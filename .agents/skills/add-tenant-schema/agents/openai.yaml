@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tenant Schema"
+  short_description: "Add a safe tenant data-model change"
+  default_prompt: "Use $add-tenant-schema to add a Screenshot Studio tenant data model."

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "screenshot-studio.fullname" . }}-test-connection"
+  labels:
+    {{- include "screenshot-studio.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: healthcheck
+      image: busybox
+      command: ['wget']
+      args: ['-qO-', '{{ include "screenshot-studio.fullname" . }}:{{ .Values.service.port }}/api/health']
+  restartPolicy: Never

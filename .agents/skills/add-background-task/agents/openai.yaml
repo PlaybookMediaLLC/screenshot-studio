@@ -1,0 +1,4 @@
+interface:
+  display_name: "Background Task"
+  short_description: "Add a safe durable background task"
+  default_prompt: "Use $add-background-task to add a Screenshot Studio Trigger.dev task."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Brand Kit Capability"
+  short_description: "Add a versioned brand-kit capability"
+  default_prompt: "Use $add-brand-kit-capability to add a Screenshot Studio brand-kit capability."

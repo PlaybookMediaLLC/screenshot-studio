@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release Intake"
+  short_description: "Add a secure release input path"
+  default_prompt: "Use $add-release-intake to add a secure Screenshot Studio release source."

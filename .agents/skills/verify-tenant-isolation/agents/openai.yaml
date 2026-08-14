@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tenant Isolation Check"
+  short_description: "Verify tenant boundaries end to end"
+  default_prompt: "Use $verify-tenant-isolation to test Screenshot Studio tenant isolation."

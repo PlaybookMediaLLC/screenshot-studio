@@ -1,0 +1,47 @@
+name: Deploy to Fly.io
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      deployment_environment:
+        description: GitHub Environment to deploy
+        required: false
+        default: production
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fly-${{ inputs.deployment_environment || 'production' }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.deployment_environment || 'production' }}
+    env:
+      FLY_APP: ${{ vars.FLY_APP || 'screenshot-studio-playbook' }}
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      FLY_REGIONS: ${{ vars.FLY_REGIONS || 'iad lax' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: |
+          flyctl deploy --app "$FLY_APP" --remote-only \
+            --build-arg "NEXT_PUBLIC_POSTHOG_KEY=${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}" \
+            --build-arg "NEXT_PUBLIC_POSTHOG_HOST=${{ vars.NEXT_PUBLIC_POSTHOG_HOST }}" \
+            --build-arg "NEXT_PUBLIC_R2_PUBLIC_URL=${{ vars.NEXT_PUBLIC_R2_PUBLIC_URL }}"
+      - name: Keep one active Machine in each configured region
+        run: |
+          test -n "$FLY_REGIONS"
+          for region in $FLY_REGIONS; do
+            flyctl scale count 1 --app "$FLY_APP" --process-group app --region "$region" --yes
+          done
+          flyctl scale show --app "$FLY_APP"

@@ -42,6 +42,11 @@ npm run dev
 
 Open [localhost:3000](http://localhost:3000)
 
+## Deployment
+
+The app has a production Docker image, portable Helm chart, Fly.io deployment
+configuration, and GitHub Actions workflows. See [deployment instructions](docs/deployment.md).
+
 ## Tech Stack
 
 Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Zustand · Radix UI · Motion · FFmpeg WASM · WebCodecs

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release Workflow Test"
+  short_description: "Test release intake through delivery"
+  default_prompt: "Use $test-release-workflow to test a Screenshot Studio release flow."

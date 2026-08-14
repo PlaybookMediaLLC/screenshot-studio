@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tenant RPC Feature"
+  short_description: "Add a tenant-safe tRPC capability"
+  default_prompt: "Use $add-tenant-rpc-feature to add a scoped Screenshot Studio API capability."

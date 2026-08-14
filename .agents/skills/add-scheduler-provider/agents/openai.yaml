@@ -1,0 +1,4 @@
+interface:
+  display_name: "Scheduler Provider"
+  short_description: "Add a social scheduling provider"
+  default_prompt: "Use $add-scheduler-provider to add a Screenshot Studio social provider."

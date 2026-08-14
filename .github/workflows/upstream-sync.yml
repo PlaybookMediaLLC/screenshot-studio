@@ -1,0 +1,72 @@
+name: Sync upstream
+
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+env:
+  TARGET_BRANCH: upstream
+  UPSTREAM_REPOSITORY: ${{ vars.UPSTREAM_REPOSITORY || 'PlaybookMediaLLC/screenshot-studio' }}
+  UPSTREAM_BRANCH: ${{ vars.UPSTREAM_BRANCH || 'main' }}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch upstream changes
+        id: upstream
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream "https://github.com/${UPSTREAM_REPOSITORY}.git" || git remote set-url upstream "https://github.com/${UPSTREAM_REPOSITORY}.git"
+          git fetch --no-tags origin "$DEFAULT_BRANCH" "$TARGET_BRANCH" || git fetch --no-tags origin "$DEFAULT_BRANCH"
+          git fetch --no-tags upstream "$UPSTREAM_BRANCH"
+
+          if git show-ref --verify --quiet "refs/remotes/origin/$TARGET_BRANCH"; then
+            base="origin/$TARGET_BRANCH"
+          else
+            base="origin/$DEFAULT_BRANCH"
+            git push origin "$base:refs/heads/$TARGET_BRANCH"
+            git fetch --no-tags origin "$TARGET_BRANCH"
+            base="origin/$TARGET_BRANCH"
+          fi
+
+          upstream="upstream/$UPSTREAM_BRANCH"
+          if git merge-base --is-ancestor "$upstream" "$base"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          branch="sync/upstream-$(git rev-parse --short=12 "$upstream")"
+          git switch --create "$branch" "$base"
+          git merge --no-ff --no-edit "$upstream"
+          git push --set-upstream origin "$branch"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Open upstream pull request
+        if: steps.upstream.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.upstream.outputs.branch }}
+        run: |
+          gh pr create \
+            --base "$TARGET_BRANCH" \
+            --head "$BRANCH" \
+            --title "chore: sync upstream" \
+            --body "Automated sync from ${UPSTREAM_REPOSITORY}@${UPSTREAM_BRANCH}."

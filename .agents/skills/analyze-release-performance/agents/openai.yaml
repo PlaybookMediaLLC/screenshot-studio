@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release Performance"
+  short_description: "Analyze release communication outcomes"
+  default_prompt: "Use $analyze-release-performance to analyze Screenshot Studio release performance."

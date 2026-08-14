@@ -1,0 +1,4 @@
+interface:
+  display_name: "Artifact Policy Review"
+  short_description: "Review branded artifact safety rules"
+  default_prompt: "Use $review-artifact-policy to review a Screenshot Studio artifact policy."

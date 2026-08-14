@@ -1,0 +1,4 @@
+interface:
+  display_name: "Request Middleware"
+  short_description: "Add safe Next.js request middleware"
+  default_prompt: "Use $add-request-middleware to add a Screenshot Studio request control."

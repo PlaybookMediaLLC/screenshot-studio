@@ -1,0 +1,4 @@
+interface:
+  display_name: "Platform Delivery"
+  short_description: "Deploy a safe Screenshot Studio change"
+  default_prompt: "Use $deploy-platform-change to deliver a Screenshot Studio platform change safely."

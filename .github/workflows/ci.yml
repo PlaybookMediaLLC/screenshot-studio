@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: docker build --tag screenshot-studio:${{ github.sha }} .
+      - name: Smoke test production container
+        run: |
+          docker run --detach --rm --name screenshot-studio-smoke \
+            --publish 3000:3000 \
+            --env DATABASE_URL=postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio \
+            screenshot-studio:${{ github.sha }}
+          trap 'docker logs screenshot-studio-smoke || true; docker stop screenshot-studio-smoke || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/api/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+      - run: helm lint charts/screenshot-studio
+      - run: helm template screenshot-studio charts/screenshot-studio > /dev/null

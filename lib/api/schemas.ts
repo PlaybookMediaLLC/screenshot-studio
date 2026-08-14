@@ -4,8 +4,7 @@ const httpUrl = z
   .string()
   .url()
   .refine((value) => {
-    const protocol = new URL(value).protocol
-    return protocol === 'http:' || protocol === 'https:'
+    return URL.canParse(value) && ['http:', 'https:'].includes(new URL(value).protocol)
   }, 'URL must use http or https protocol.')
 
 export const screenshotRequestSchema = z.object({

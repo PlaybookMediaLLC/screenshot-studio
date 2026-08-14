@@ -47,6 +47,10 @@ Open [localhost:3000](http://localhost:3000)
 The app has a production Docker image, portable Helm chart, Fly.io deployment
 configuration, and GitHub Actions workflows. See [deployment instructions](docs/deployment.md).
 
+For the hot-reload local stack, Trigger.dev development worker, Supabase Storage,
+MinIO, and Kind commands, see [local development](docs/local-development.md).
+Start with `make help` to view the team workflow.
+
 ## Tech Stack
 
 Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Zustand · Radix UI · Motion · FFmpeg WASM · WebCodecs

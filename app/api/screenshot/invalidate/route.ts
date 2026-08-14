@@ -1,48 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { hasMaintenanceAccess } from '@/lib/api/maintenance-auth'
+import { isInvalidRequest, parseJson } from '@/lib/api/request'
+import { cacheInvalidationSchema } from '@/lib/api/schemas'
 import { invalidateCache, invalidateCacheBatch } from '@/lib/screenshot-cache'
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const body = await request.json()
+    if (!hasMaintenanceAccess(request)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await parseJson(request, cacheInvalidationSchema)
     const { url, urls } = body
 
-    if (!url && !urls) {
-      return NextResponse.json(
-        { error: 'Either "url" or "urls" is required' },
-        { status: 400 }
-      )
-    }
-
-    if (url && urls) {
-      return NextResponse.json(
-        { error: 'Provide either "url" or "urls", not both' },
-        { status: 400 }
-      )
-    }
-
     if (url) {
-      if (typeof url !== 'string') {
-        return NextResponse.json(
-          { error: '"url" must be a string' },
-          { status: 400 }
-        )
-      }
-
-      try {
-        const validUrl = new URL(url)
-        if (!['http:', 'https:'].includes(validUrl.protocol)) {
-          return NextResponse.json(
-            { error: 'URL must use http or https protocol' },
-            { status: 400 }
-          )
-        }
-      } catch {
-        return NextResponse.json(
-          { error: 'Invalid URL format' },
-          { status: 400 }
-        )
-      }
-
       await invalidateCache(url)
       return NextResponse.json({
         success: true,
@@ -51,44 +22,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (urls) {
-      if (!Array.isArray(urls)) {
-        return NextResponse.json(
-          { error: '"urls" must be an array' },
-          { status: 400 }
-        )
-      }
-
-      if (urls.length === 0) {
-        return NextResponse.json(
-          { error: '"urls" array cannot be empty' },
-          { status: 400 }
-        )
-      }
-
-      for (const u of urls) {
-        if (typeof u !== 'string') {
-          return NextResponse.json(
-            { error: 'All items in "urls" must be strings' },
-            { status: 400 }
-          )
-        }
-
-        try {
-          const validUrl = new URL(u)
-          if (!['http:', 'https:'].includes(validUrl.protocol)) {
-            return NextResponse.json(
-              { error: `URL must use http or https protocol: ${u}` },
-              { status: 400 }
-            )
-          }
-        } catch {
-          return NextResponse.json(
-            { error: `Invalid URL format: ${u}` },
-            { status: 400 }
-          )
-        }
-      }
-
       await invalidateCacheBatch(urls)
       return NextResponse.json({
         success: true,
@@ -97,15 +30,13 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json(
-      { error: 'Invalid request' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   } catch (error) {
     console.error('Error invalidating cache:', error)
-    return NextResponse.json(
-      { error: 'Failed to invalidate cache' },
-      { status: 500 }
-    )
+    if (isInvalidRequest(error)) {
+      return NextResponse.json({ error: 'Invalid invalidation request' }, { status: 400 })
+    }
+
+    return NextResponse.json({ error: 'Failed to invalidate cache' }, { status: 500 })
   }
 }

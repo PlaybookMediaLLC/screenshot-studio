@@ -1,0 +1,389 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LOCAL_DIR="$ROOT_DIR/.local"
+LOCAL_ENV="$LOCAL_DIR/dev.env"
+KIND_ENV="$LOCAL_DIR/kind.env"
+TRIGGER_DIR="$LOCAL_DIR/trigger"
+KIND_CLUSTER="screenshot-studio-dev"
+KIND_NAMESPACE="screenshot-studio"
+
+compose() {
+  docker compose --env-file "$LOCAL_ENV" --file "$ROOT_DIR/compose.yaml" "$@"
+}
+
+random_hex() {
+  openssl rand -hex "$1"
+}
+
+create_storage_key() {
+  node - "$1" <<'NODE'
+const crypto = require("node:crypto");
+const [secret] = process.argv.slice(2);
+const encode = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+const header = encode({ alg: "HS256", typ: "JWT" });
+const payload = encode({
+  role: "service_role",
+  iss: "screenshot-studio-local",
+  iat: Math.floor(Date.now() / 1000),
+  exp: Math.floor(Date.now() / 1000) + 315_360_000,
+});
+const signature = crypto.createHmac("sha256", secret).update(`${header}.${payload}`).digest("base64url");
+process.stdout.write(`${header}.${payload}.${signature}`);
+NODE
+}
+
+ensure_env() {
+  if [[ -f "$LOCAL_ENV" ]]; then
+    node - "$LOCAL_ENV" <<'NODE'
+const fs = require("node:fs");
+const [file] = process.argv.slice(2);
+const current = fs.readFileSync(file, "utf8");
+const next = current.replace(
+  /^(STORAGE_DATABASE_POOL_URL=.*@pgbouncer:6432)\/storage$/m,
+  "$1/postgres"
+);
+    if (next !== current) fs.writeFileSync(file, next);
+NODE
+    if ! grep -q '^CLEANUP_SECRET=' "$LOCAL_ENV"; then
+      printf '\nCLEANUP_SECRET=%s\n' "$(random_hex 32)" >>"$LOCAL_ENV"
+      chmod 600 "$LOCAL_ENV"
+    fi
+    return
+  fi
+
+  mkdir -p "$LOCAL_DIR" "$TRIGGER_DIR"
+  local postgres_super_password
+  local postgres_app_password
+  local postgres_storage_password
+  local minio_password
+  local storage_jwt_secret
+  local storage_service_key
+  local cleanup_secret
+
+  postgres_super_password="$(random_hex 24)"
+  postgres_app_password="$(random_hex 24)"
+  postgres_storage_password="$(random_hex 24)"
+  minio_password="$(random_hex 24)"
+  storage_jwt_secret="$(random_hex 32)"
+  storage_service_key="$(create_storage_key "$storage_jwt_secret")"
+  cleanup_secret="$(random_hex 32)"
+
+  umask 077
+  cat >"$LOCAL_ENV" <<EOF
+POSTGRES_SUPER_PASSWORD=$postgres_super_password
+POSTGRES_APP_PASSWORD=$postgres_app_password
+POSTGRES_STORAGE_PASSWORD=$postgres_storage_password
+MINIO_ROOT_USER=screenshot-studio
+MINIO_ROOT_PASSWORD=$minio_password
+STORAGE_JWT_SECRET=$storage_jwt_secret
+STORAGE_SERVICE_KEY=$storage_service_key
+STORAGE_BUCKET=tenant-assets
+CLEANUP_SECRET=$cleanup_secret
+DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@postgres:5432/screenshot_studio?schema=public
+HOST_DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@127.0.0.1:54329/screenshot_studio?schema=public
+STORAGE_DATABASE_URL=postgresql://postgres:$postgres_super_password@postgres:5432/storage
+STORAGE_DATABASE_POOL_URL=postgresql://postgres:$postgres_super_password@pgbouncer:6432/postgres
+STORAGE_API_URL=http://storage:5000
+STORAGE_HOST_URL=http://127.0.0.1:5000
+R2_ENDPOINT=http://minio:9000
+R2_REGION=us-east-1
+R2_FORCE_PATH_STYLE=true
+R2_ACCESS_KEY_ID=screenshot-studio
+R2_SECRET_ACCESS_KEY=$minio_password
+R2_BUCKET_NAME=tenant-assets
+REDIS_URL=redis://redis:6379
+TRIGGER_PROJECT_REF=
+EOF
+  chmod 600 "$LOCAL_ENV"
+  echo "Created $LOCAL_ENV"
+}
+
+load_env() {
+  ensure_env
+  set -a
+  # shellcheck source=/dev/null
+  source "$LOCAL_ENV"
+  set +a
+}
+
+sync_dependencies() {
+  local lock_hash
+  local state_file="$LOCAL_DIR/package-lock.sha"
+
+  lock_hash="$(shasum -a 256 "$ROOT_DIR/package-lock.json" | awk '{print $1}')"
+  if [[ -f "$state_file" && "$(cat "$state_file")" == "$lock_hash" ]]; then
+    return
+  fi
+
+  compose run --rm --no-deps app npm ci
+  printf '%s\n' "$lock_hash" >"$state_file"
+}
+
+write_kind_env() {
+  load_env
+  cat >"$KIND_ENV" <<EOF
+POSTGRES_SUPER_PASSWORD=$POSTGRES_SUPER_PASSWORD
+POSTGRES_APP_PASSWORD=$POSTGRES_APP_PASSWORD
+POSTGRES_STORAGE_PASSWORD=$POSTGRES_STORAGE_PASSWORD
+MINIO_ROOT_USER=$MINIO_ROOT_USER
+MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD
+STORAGE_JWT_SECRET=$STORAGE_JWT_SECRET
+STORAGE_SERVICE_KEY=$STORAGE_SERVICE_KEY
+STORAGE_BUCKET=$STORAGE_BUCKET
+CLEANUP_SECRET=$CLEANUP_SECRET
+DATABASE_URL=postgresql://screenshot_studio:$POSTGRES_APP_PASSWORD@screenshot-studio-postgres:5432/screenshot_studio?schema=public
+STORAGE_DATABASE_URL=postgresql://postgres:$POSTGRES_SUPER_PASSWORD@screenshot-studio-postgres:5432/storage
+STORAGE_DATABASE_POOL_URL=postgresql://postgres:$POSTGRES_SUPER_PASSWORD@screenshot-studio-pgbouncer:6432/postgres
+STORAGE_API_URL=http://screenshot-studio-storage:5000
+R2_ENDPOINT=http://screenshot-studio-minio:9000
+R2_REGION=us-east-1
+R2_FORCE_PATH_STYLE=true
+R2_ACCESS_KEY_ID=$MINIO_ROOT_USER
+R2_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD
+R2_BUCKET_NAME=$STORAGE_BUCKET
+REDIS_URL=redis://screenshot-studio-redis:6379
+EOF
+  chmod 600 "$KIND_ENV"
+}
+
+wait_for_http() {
+  local url="$1"
+  local label="$2"
+  local attempt
+
+  for attempt in $(seq 1 30); do
+    if curl --fail --silent --show-error "$url" >/dev/null 2>&1; then
+      return
+    fi
+    sleep 1
+  done
+
+  echo "$label did not become ready: $url" >&2
+  exit 1
+}
+
+smoke() {
+  local storage_path
+  local storage_response
+  local storage_test_key="tenants/smoke/assets/health/smoke.txt"
+
+  load_env
+  compose exec -T postgres pg_isready --username=postgres --dbname=postgres >/dev/null
+  compose exec -T redis redis-cli ping | grep -qx PONG
+  wait_for_http "http://127.0.0.1:9003/minio/health/live" "MinIO"
+  wait_for_http "http://127.0.0.1:5000/status" "Supabase Storage"
+  storage_response="$(curl --fail --silent --show-error --request POST \
+    "http://127.0.0.1:5000/object/upload/sign/$STORAGE_BUCKET/$storage_test_key" \
+    --header "authorization: Bearer $STORAGE_SERVICE_KEY" \
+    --header "apikey: $STORAGE_SERVICE_KEY" \
+    --header "content-type: application/json" \
+    --data '{"contentType":"text/plain"}')"
+  storage_path="$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).url)' "$storage_response")"
+  curl --fail --silent --show-error --request PUT "http://127.0.0.1:5000$storage_path" \
+    --header "content-type: text/plain" \
+    --data "smoke" >/dev/null
+  curl --fail --silent --show-error \
+    --header "authorization: Bearer $STORAGE_SERVICE_KEY" \
+    --header "apikey: $STORAGE_SERVICE_KEY" \
+    "http://127.0.0.1:5000/object/$STORAGE_BUCKET/$storage_test_key" | grep -qx smoke
+  curl --fail --silent --show-error --request DELETE \
+    "http://127.0.0.1:5000/object/$STORAGE_BUCKET/$storage_test_key" \
+    --header "authorization: Bearer $STORAGE_SERVICE_KEY" \
+    --header "apikey: $STORAGE_SERVICE_KEY" >/dev/null
+  wait_for_http "http://127.0.0.1:3000/api/health" "Screenshot Studio"
+  [[ "$(curl --silent --output /dev/null --write-out '%{http_code}' --request POST \
+    --header 'content-type: application/json' --data '{}' \
+    http://127.0.0.1:3000/api/screenshot/invalidate)" == "401" ]]
+  [[ "$(curl --silent --output /dev/null --write-out '%{http_code}' --request POST \
+    --header "x-screenshot-studio-maintenance-secret: $CLEANUP_SECRET" \
+    --header 'content-type: application/json' --data '{"url":"not-a-url"}' \
+    http://127.0.0.1:3000/api/screenshot/invalidate)" == "400" ]]
+  rate_limit_smoke
+  echo "Local stack is healthy."
+}
+
+rate_limit_smoke() {
+  node "$ROOT_DIR/scripts/smoke-rate-limit.mjs"
+}
+
+check() {
+  ensure_env
+  sync_dependencies
+  compose run --rm --no-deps app npm run quality:check
+}
+
+up() {
+  ensure_env
+  compose rm --force --stop minio-init >/dev/null 2>&1 || true
+  compose rm --force --stop storage-init >/dev/null 2>&1 || true
+  compose up --detach --build postgres pgbouncer redis minio minio-init imgproxy storage storage-init
+  sync_dependencies
+  compose up --detach app
+  compose exec -T postgres psql --username=postgres --dbname=screenshot_studio --command \
+    "ALTER TABLE IF EXISTS screenshot_cache OWNER TO screenshot_studio;" >/dev/null
+  compose exec -T app npx prisma db push --skip-generate
+  smoke
+  echo "App:     http://localhost:3000"
+  echo "Storage: http://localhost:5000"
+  echo "MinIO:   http://localhost:9004"
+  echo "Run '$0 trigger-dev' after '$0 trigger-config <project-ref>'."
+}
+
+down() {
+  local mode=""
+  local response=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --keep-data) mode="keep" ;;
+      --purge) mode="purge" ;;
+      --yes) mode="${mode:-keep}" ;;
+      *) echo "Unknown down option: $1" >&2; exit 2 ;;
+    esac
+    shift
+  done
+
+  ensure_env
+  if [[ -z "$mode" ]]; then
+    read -r -p "Preserve Postgres, Redis, and MinIO data? [Y/n] " response
+    if [[ "$response" =~ ^[Nn]$ ]]; then
+      mode="purge"
+    else
+      mode="keep"
+    fi
+  fi
+
+  if [[ "$mode" == "purge" ]]; then
+    compose --profile trigger down --volumes --remove-orphans
+    return
+  fi
+
+  compose --profile trigger down --remove-orphans
+}
+
+trigger_login() {
+  ensure_env
+  mkdir -p "$TRIGGER_DIR"
+  compose run --rm --no-deps trigger-dev npx trigger.dev@4.5.11 login --profile screenshot-studio-local
+}
+
+trigger_config() {
+  local project_ref="${1:-}"
+  if [[ -z "$project_ref" ]]; then
+    echo "Usage: $0 trigger-config <project-ref>" >&2
+    exit 2
+  fi
+
+  ensure_env
+  node - "$LOCAL_ENV" "$project_ref" <<'NODE'
+const fs = require("node:fs");
+const [file, projectRef] = process.argv.slice(2);
+const next = fs
+  .readFileSync(file, "utf8")
+  .replace(/^TRIGGER_PROJECT_REF=.*$/m, `TRIGGER_PROJECT_REF=${projectRef}`);
+fs.writeFileSync(file, next);
+NODE
+}
+
+trigger_dev() {
+  load_env
+  if [[ -z "$TRIGGER_PROJECT_REF" ]]; then
+    echo "Set a Trigger.dev project first: $0 trigger-config <project-ref>" >&2
+    exit 2
+  fi
+  compose --profile trigger up --detach --build trigger-dev
+  echo "Trigger.dev development worker is running."
+}
+
+kind_up() {
+  ensure_env
+  write_kind_env
+
+  if ! kind get clusters | grep -qx "$KIND_CLUSTER"; then
+    kind create cluster --name "$KIND_CLUSTER" --wait 60s
+  fi
+
+  docker build --tag screenshot-studio:kind-dev "$ROOT_DIR"
+  kind load docker-image screenshot-studio:kind-dev --name "$KIND_CLUSTER"
+  kubectl create namespace "$KIND_NAMESPACE" --dry-run=client --output=yaml | kubectl apply --filename -
+  kubectl create secret generic screenshot-studio-local \
+    --namespace "$KIND_NAMESPACE" \
+    --from-env-file="$KIND_ENV" \
+    --dry-run=client \
+    --output=yaml | kubectl apply --filename -
+  helm upgrade --install screenshot-studio "$ROOT_DIR/charts/screenshot-studio" \
+    --namespace "$KIND_NAMESPACE" \
+    --values "$ROOT_DIR/charts/screenshot-studio/values-kind.yaml" \
+    --set image.repository=screenshot-studio \
+    --set image.tag=kind-dev \
+    --set image.pullPolicy=Never \
+    --set existingSecret=screenshot-studio-local \
+    --wait \
+    --wait-for-jobs \
+    --timeout 8m
+  kubectl rollout status deployment/screenshot-studio --namespace "$KIND_NAMESPACE" --timeout=3m
+}
+
+kind_down() {
+  local auto_confirm="false"
+  local response=""
+
+  if [[ "${1:-}" == "--yes" ]]; then
+    auto_confirm="true"
+  elif [[ -n "${1:-}" ]]; then
+    echo "Unknown kind-down option: $1" >&2
+    exit 2
+  fi
+
+  if [[ "$auto_confirm" != "true" ]]; then
+    read -r -p "Delete the Kind cluster and all local cluster data? [y/N] " response
+  fi
+  if [[ "$auto_confirm" != "true" && ! "$response" =~ ^[Yy]$ ]]; then
+    echo "Kind cluster preserved."
+    return
+  fi
+
+  kind delete cluster --name "$KIND_CLUSTER"
+}
+
+usage() {
+  cat <<EOF
+Usage: bin/studio <command>
+
+Commands:
+  up                         Start the hot-reload Compose stack.
+  down [--keep-data|--purge] Stop the Compose stack and prompt for data handling.
+  reset                      Stop the Compose stack and remove all local data.
+  smoke                      Verify Compose service health.
+  rate-limit-smoke           Verify Redis-backed screenshot API rate limiting.
+  check                      Run the server-boundary quality checks in Docker.
+  logs [service]             Follow local service logs.
+  status                     Show local Compose services.
+  trigger-login              Log in to Trigger.dev Cloud from the Compose worker.
+  trigger-config <ref>       Save the Trigger.dev project reference locally.
+  trigger-dev                Start the hot-reload Trigger.dev development worker.
+  kind-up                    Build, load, and install the Kind development stack.
+  kind-down                  Delete the Kind development cluster after confirmation.
+EOF
+}
+
+case "${1:-}" in
+  up) up ;;
+  down) shift; down "$@" ;;
+  reset) down --purge --yes ;;
+  smoke) smoke ;;
+  rate-limit-smoke) rate_limit_smoke ;;
+  check) check ;;
+  logs) ensure_env; shift; compose logs --follow "${@:-}" ;;
+  status) ensure_env; compose ps ;;
+  trigger-login) trigger_login ;;
+  trigger-config) shift; trigger_config "$@" ;;
+  trigger-dev) trigger_dev ;;
+  kind-up) kind_up ;;
+  kind-down) shift; kind_down "$@" ;;
+  ""|help|--help|-h) usage ;;
+  *) echo "Unknown command: $1" >&2; usage; exit 2 ;;
+esac

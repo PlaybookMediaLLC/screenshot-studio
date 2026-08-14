@@ -1,4 +1,4 @@
-const BASE_URL = "https://screenshot-studio.com";
+const BASE_URL = 'https://screenshot-studio.com'
 
 const content = `# Screenshot Studio - Complete Reference
 
@@ -179,13 +179,13 @@ All image processing happens in the browser. No images are uploaded to any serve
 - **Email**: kartik.labhshetwar@gmail.com
 - **Bug Reports**: https://github.com/KartikLabhshetwar/stage/issues
 - **Feature Requests**: https://github.com/KartikLabhshetwar/stage/issues/new?labels=enhancement
-`;
+`
 
 export async function GET() {
   return new Response(content.trim(), {
     headers: {
-      "Content-Type": "text/markdown; charset=utf-8",
-      "Cache-Control": "public, max-age=86400, s-maxage=86400",
+      'Content-Type': 'text/markdown; charset=utf-8',
+      'Cache-Control': 'public, max-age=86400, s-maxage=86400',
     },
-  });
+  })
 }

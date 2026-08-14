@@ -49,6 +49,27 @@ export default defineConfig([
     ...tseslint.configs.disableTypeChecked,
   },
   {
+    files: [
+      'app/api/cleanup-cache/route.ts',
+      'app/api/export/route.ts',
+      'app/api/image-proxy/route.ts',
+      'app/api/screenshot/**/*.ts',
+      'lib/api/**/*.ts',
+      'lib/rate-limit.ts',
+      'lib/redis.ts',
+      'lib/screenshot-cache.ts',
+      'lib/screenshot-service.ts',
+      'lib/storage/**/*.ts',
+    ],
+    rules: {
+      complexity: ['error', 10],
+      'max-depth': ['error', 3],
+      'max-lines': ['error', { max: 300, skipBlankLines: true, skipComments: true }],
+      'max-lines-per-function': ['error', { max: 40, skipBlankLines: true, skipComments: true }],
+      'max-params': ['error', 4],
+    },
+  },
+  {
     ignores: [
       'node_modules/**',
       '.next/**',
@@ -68,4 +89,3 @@ export default defineConfig([
     ],
   },
 ]);
-

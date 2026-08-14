@@ -1,0 +1,37 @@
+name: Kind local stack
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: helm/kind-action@v1.12.0
+        with:
+          install_only: true
+      - run: npm ci
+      - run: ./bin/studio kind-up
+      - name: Smoke test the Helm release
+        run: |
+          kubectl --namespace screenshot-studio port-forward service/screenshot-studio 3000:80 &
+          port_forward_pid=$!
+          trap 'kill $port_forward_pid' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/api/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+      - if: always()
+        run: ./bin/studio kind-down --yes

@@ -15,11 +15,13 @@ Thanks for your interest in contributing! Here's what you need to know.
 ```bash
 git clone https://github.com/your-username/screenshot-studio.git
 cd screenshot-studio
-npm install
-npm run dev
+make up
 ```
 
 Open [http://localhost:3000](http://localhost:3000)
+
+See [local development](docs/local-development.md) for Compose, Trigger.dev,
+Supabase Storage, MinIO, and Kind commands.
 
 ### Environment Variables (optional)
 
@@ -93,11 +95,12 @@ screenshot-studio/
 ### Linting
 
 ```bash
-npm run lint          # Check for errors
-npm run lint:fix      # Auto-fix
+npm run quality:check # Format, lint, type, and size checks
+npm run format        # Apply format fixes to the server boundary
 ```
 
-Always run lint before committing.
+Always run `make check` before committing. It uses the Node version in the
+local Docker stack, so local machines do not need a separate dependency setup.
 
 ## Common Tasks
 
@@ -146,6 +149,9 @@ refactor(store): simplify state management
 docs: update contributing guide
 ```
 
+`npm install` enables the local `commit-msg` hook. It rejects commit messages
+that do not follow this format.
+
 ### Pull Request
 
 1. Push your branch
@@ -156,7 +162,7 @@ docs: update contributing guide
 ### PR Checklist
 
 - [ ] `npm run build` passes
-- [ ] `npm run lint` passes
+- [ ] `make check` passes
 - [ ] Tested manually in the browser
 - [ ] No console errors
 - [ ] Follows existing code style

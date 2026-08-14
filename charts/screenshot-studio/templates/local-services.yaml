@@ -1,0 +1,430 @@
+{{- if .Values.local.enabled }}
+{{- $fullName := include "screenshot-studio.fullname" . }}
+{{- $secretName := required "local.enabled requires existingSecret" .Values.existingSecret }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullName }}-postgres-init
+data:
+  10-init-databases.sh: |
+    #!/usr/bin/env sh
+    set -eu
+    psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<SQL
+    CREATE ROLE screenshot_studio LOGIN PASSWORD '$POSTGRES_APP_PASSWORD';
+    CREATE ROLE storage_service LOGIN PASSWORD '$POSTGRES_STORAGE_PASSWORD';
+    CREATE DATABASE screenshot_studio OWNER screenshot_studio;
+    CREATE DATABASE storage OWNER postgres;
+    GRANT ALL PRIVILEGES ON DATABASE storage TO storage_service;
+    \connect screenshot_studio
+    CREATE TABLE screenshot_cache (
+      id TEXT PRIMARY KEY,
+      "urlHash" TEXT UNIQUE NOT NULL,
+      url TEXT NOT NULL,
+      "cloudinaryPublicId" TEXT UNIQUE NOT NULL,
+      "cloudinaryUrl" TEXT NOT NULL,
+      "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    ALTER TABLE screenshot_cache OWNER TO screenshot_studio;
+    SQL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-postgres
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+  selector:
+    app.kubernetes.io/component: postgres
+    {{- include "screenshot-studio.selectorLabels" . | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: postgres
+      {{- include "screenshot-studio.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: postgres
+        {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.local.postgres.image | quote }}
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: postgres
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: POSTGRES_SUPER_PASSWORD
+            - name: POSTGRES_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: POSTGRES_APP_PASSWORD
+            - name: POSTGRES_STORAGE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: POSTGRES_STORAGE_PASSWORD
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "--username=postgres", "--dbname=postgres"]
+          volumeMounts:
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d/10-init-databases.sh
+              subPath: 10-init-databases.sh
+      volumes:
+        - name: init
+          configMap:
+            name: {{ $fullName }}-postgres-init
+            defaultMode: 493
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-pgbouncer
+spec:
+  ports:
+    - name: postgres
+      port: 6432
+      targetPort: postgres
+  selector:
+    app.kubernetes.io/component: pgbouncer
+    {{- include "screenshot-studio.selectorLabels" . | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}-pgbouncer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: pgbouncer
+      {{- include "screenshot-studio.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: pgbouncer
+        {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: pgbouncer
+          image: {{ .Values.local.pgbouncer.image | quote }}
+          ports:
+            - name: postgres
+              containerPort: 6432
+          env:
+            - name: POSTGRESQL_HOST
+              value: {{ printf "%s-postgres" $fullName | quote }}
+            - name: POSTGRESQL_PORT
+              value: "5432"
+            - name: POSTGRESQL_DATABASE
+              value: storage
+            - name: POSTGRESQL_USERNAME
+              value: postgres
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: POSTGRES_SUPER_PASSWORD
+            - name: PGBOUNCER_POOL_MODE
+              value: transaction
+            - name: PGBOUNCER_IGNORE_STARTUP_PARAMETERS
+              value: extra_float_digits,options
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-redis
+spec:
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+  selector:
+    app.kubernetes.io/component: redis
+    {{- include "screenshot-studio.selectorLabels" . | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: redis
+      {{- include "screenshot-studio.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: redis
+        {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: redis
+          image: {{ .Values.local.redis.image | quote }}
+          args: ["--appendonly", "yes"]
+          ports:
+            - name: redis
+              containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-minio
+spec:
+  ports:
+    - name: s3
+      port: 9000
+      targetPort: s3
+    - name: console
+      port: 9001
+      targetPort: console
+  selector:
+    app.kubernetes.io/component: minio
+    {{- include "screenshot-studio.selectorLabels" . | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}-minio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: minio
+      {{- include "screenshot-studio.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: minio
+        {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: minio
+          image: {{ .Values.local.minio.image | quote }}
+          args: ["server", "--console-address", ":9001", "/data"]
+          ports:
+            - name: s3
+              containerPort: 9000
+            - name: console
+              containerPort: 9001
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: MINIO_ROOT_USER
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: MINIO_ROOT_PASSWORD
+          readinessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: s3
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $fullName }}-minio-init
+spec:
+  backoffLimit: 8
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: minio-init
+        {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: minio-init
+          image: {{ .Values.local.minio.clientImage | quote }}
+          command: ["sh", "-c"]
+          args:
+            - >-
+              mc alias set local http://{{ $fullName }}-minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+              && mc mb --ignore-existing local/$STORAGE_BUCKET
+          envFrom:
+            - secretRef:
+                name: {{ $secretName }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-imgproxy
+spec:
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+  selector:
+    app.kubernetes.io/component: imgproxy
+    {{- include "screenshot-studio.selectorLabels" . | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}-imgproxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: imgproxy
+      {{- include "screenshot-studio.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: imgproxy
+        {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: imgproxy
+          image: {{ .Values.local.imgproxy.image | quote }}
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: IMGPROXY_USE_ETAG
+              value: "true"
+            - name: IMGPROXY_DEVELOPMENT_ERRORS_MODE
+              value: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-storage
+spec:
+  ports:
+    - name: http
+      port: 5000
+      targetPort: http
+  selector:
+    app.kubernetes.io/component: storage
+    {{- include "screenshot-studio.selectorLabels" . | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}-storage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: storage
+      {{- include "screenshot-studio.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: storage
+        {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: storage
+          image: {{ .Values.local.storage.image | quote }}
+          ports:
+            - name: http
+              containerPort: 5000
+          env:
+            - name: SERVER_PORT
+              value: "5000"
+            - name: AUTH_JWT_ALGORITHM
+              value: HS256
+            - name: AUTH_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: STORAGE_JWT_SECRET
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: STORAGE_DATABASE_URL
+            - name: DATABASE_POOL_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: STORAGE_DATABASE_POOL_URL
+            - name: DB_INSTALL_ROLES
+              value: "true"
+            - name: STORAGE_BACKEND
+              value: s3
+            - name: STORAGE_S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: STORAGE_BUCKET
+            - name: STORAGE_S3_ENDPOINT
+              value: http://{{ $fullName }}-minio:9000
+            - name: STORAGE_S3_FORCE_PATH_STYLE
+              value: "true"
+            - name: STORAGE_S3_REGION
+              value: us-east-1
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: MINIO_ROOT_USER
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: MINIO_ROOT_PASSWORD
+            - name: IMGPROXY_URL
+              value: http://{{ $fullName }}-imgproxy:8080
+            - name: ENABLE_IMAGE_TRANSFORMATION
+              value: "true"
+          readinessProbe:
+            tcpSocket:
+              port: http
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $fullName }}-storage-init
+spec:
+  backoffLimit: 8
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: storage-init
+          image: {{ .Values.local.curlImage | quote }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - >-
+              until curl --fail --silent http://{{ $fullName }}-storage:5000/status >/dev/null; do sleep 1; done;
+              if curl --fail --silent
+              --header "authorization: Bearer $STORAGE_SERVICE_KEY"
+              --header "apikey: $STORAGE_SERVICE_KEY"
+              http://{{ $fullName }}-storage:5000/bucket/$STORAGE_BUCKET >/dev/null; then exit 0; fi;
+              curl --fail --silent --show-error
+              --request POST http://{{ $fullName }}-storage:5000/bucket
+              --header "authorization: Bearer $STORAGE_SERVICE_KEY"
+              --header "apikey: $STORAGE_SERVICE_KEY"
+              --header "content-type: application/json"
+              --data "{\"id\":\"$STORAGE_BUCKET\",\"name\":\"$STORAGE_BUCKET\",\"public\":false}" >/dev/null
+          envFrom:
+            - secretRef:
+                name: {{ $secretName }}
+{{- end }}

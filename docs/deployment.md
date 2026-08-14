@@ -86,10 +86,10 @@ helm upgrade --install screenshot-studio charts/screenshot-studio \
   --set image.tag=<image-tag>
 ```
 
-To enable cache persistence, create a Secret with the optional keys described
-in `charts/screenshot-studio/values.yaml`, then set `existingSecret` to its
-name. Configure Ingress or Gateway API through the existing `ingress` or
-`httpRoute` values.
+Create a Secret with the optional keys described in
+`charts/screenshot-studio/values.yaml`, then set `existingSecret` to its name.
+Set `REDIS_URL` whenever the screenshot API route is enabled. Configure Ingress
+or Gateway API through the existing `ingress` or `httpRoute` values.
 
 ## Cost sources
 

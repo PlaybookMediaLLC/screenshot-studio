@@ -68,6 +68,12 @@ spec:
                   name: {{ . }}
                   key: DATABASE_URL
                   optional: true
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: REDIS_URL
+                  optional: true
             - name: R2_ACCOUNT_ID
               valueFrom:
                 secretKeyRef:
@@ -91,6 +97,42 @@ spec:
                 secretKeyRef:
                   name: {{ . }}
                   key: R2_BUCKET_NAME
+                  optional: true
+            - name: R2_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: R2_ENDPOINT
+                  optional: true
+            - name: R2_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: R2_REGION
+                  optional: true
+            - name: R2_FORCE_PATH_STYLE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: R2_FORCE_PATH_STYLE
+                  optional: true
+            - name: STORAGE_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: STORAGE_API_URL
+                  optional: true
+            - name: STORAGE_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: STORAGE_SERVICE_KEY
+                  optional: true
+            - name: STORAGE_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: STORAGE_BUCKET
                   optional: true
             - name: CLEANUP_SECRET
               valueFrom:

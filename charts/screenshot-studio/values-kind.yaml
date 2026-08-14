@@ -1,0 +1,9 @@
+image:
+  repository: screenshot-studio
+  pullPolicy: Never
+  tag: kind-dev
+
+existingSecret: screenshot-studio-local
+
+local:
+  enabled: true

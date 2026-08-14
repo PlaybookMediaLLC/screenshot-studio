@@ -23,6 +23,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run quality:check
+      - name: Validate local development configuration
+        run: |
+          ./bin/studio status
+          docker compose --env-file .local/dev.env --file compose.yaml config --quiet
       - run: npm run build
         env:
           DATABASE_URL: postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio
@@ -43,3 +48,26 @@ jobs:
           exit 1
       - run: helm lint charts/screenshot-studio
       - run: helm template screenshot-studio charts/screenshot-studio > /dev/null
+      - run: helm lint charts/screenshot-studio --values charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local
+      - run: helm template screenshot-studio charts/screenshot-studio --values charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local > /dev/null
+
+  integration:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Start and smoke-test the local stack
+        run: ./bin/studio up
+      - name: Run local stack smoke test
+        run: ./bin/studio smoke
+      - if: always()
+        name: Collect local stack logs
+        run: docker compose --env-file .local/dev.env --file compose.yaml logs --no-color
+      - if: always()
+        name: Remove local stack data
+        run: ./bin/studio down --purge --yes

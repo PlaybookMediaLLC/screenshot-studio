@@ -1,32 +1,48 @@
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+import { createHash } from "node:crypto";
+import { getRedisClient } from "./redis";
 
-const RATE_LIMIT_WINDOW_MS = 60 * 1000
-const RATE_LIMIT_MAX_REQUESTS = 20
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_REQUESTS = 20;
+const RATE_LIMIT_SCRIPT = `
+local count = redis.call('INCR', KEYS[1])
+if count == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]) end
+return { count, redis.call('PTTL', KEYS[1]) }
+`;
 
-export function checkRateLimit(identifier: string): { allowed: boolean; remaining: number; resetAt: number } {
-  const now = Date.now()
-  const record = rateLimitMap.get(identifier)
-
-  if (!record || now > record.resetAt) {
-    const resetAt = now + RATE_LIMIT_WINDOW_MS
-    rateLimitMap.set(identifier, { count: 1, resetAt })
-    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1, resetAt }
-  }
-
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, remaining: 0, resetAt: record.resetAt }
-  }
-
-  record.count++
-  return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - record.count, resetAt: record.resetAt }
+export interface RateLimitResult {
+  allowed: boolean;
+  remaining: number;
+  resetAt: number;
 }
 
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, value] of rateLimitMap.entries()) {
-    if (now > value.resetAt) {
-      rateLimitMap.delete(key)
-    }
-  }
-}, RATE_LIMIT_WINDOW_MS)
+function getRateLimitKey(identifier: string): string {
+  const hash = createHash("sha256").update(identifier).digest("hex");
+  return `screenshot-studio:rate-limit:${hash}`;
+}
 
+function parseCounterResponse(response: unknown): [number, number] {
+  if (
+    !Array.isArray(response) ||
+    response.length !== 2 ||
+    !response.every((value) => typeof value === "number")
+  ) {
+    throw new Error("Redis rate-limit script returned an invalid response.");
+  }
+
+  return [response[0], response[1]];
+}
+
+export async function checkRateLimit(identifier: string): Promise<RateLimitResult> {
+  const redis = await getRedisClient();
+  const response = await redis.eval(RATE_LIMIT_SCRIPT, {
+    arguments: [String(RATE_LIMIT_WINDOW_MS)],
+    keys: [getRateLimitKey(identifier)],
+  });
+  const [count, ttl] = parseCounterResponse(response);
+
+  return {
+    allowed: count <= RATE_LIMIT_MAX_REQUESTS,
+    remaining: Math.max(0, RATE_LIMIT_MAX_REQUESTS - count),
+    resetAt: Date.now() + Math.max(0, ttl),
+  };
+}

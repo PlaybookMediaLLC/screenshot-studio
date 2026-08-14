@@ -1,98 +1,69 @@
-/**
- * API route for server-side image compression with Sharp
- * Accepts FormData with raw image blob, returns optimized image blob.
- *
- * Sharp produces significantly smaller files than browser canvas.toBlob():
- * - JPEG: MozJPEG encoder (10-15% smaller than browser JPEG at same quality)
- * - WebP: libwebp encoder (better than browser WebP)
- * - PNG: zlib + adaptive filtering (optimal lossless compression)
- */
+import { NextRequest, NextResponse } from 'next/server'
+import sharp from 'sharp'
+import { isInvalidRequest } from '@/lib/api/request'
+import { exportRequestSchema, type ExportRequest } from '@/lib/api/schemas'
+import { QUALITY_PRESETS } from '@/lib/export/types'
 
-import { NextRequest, NextResponse } from 'next/server';
-import sharp from 'sharp';
-import { QUALITY_PRESETS, type ExportFormat, type QualityPreset } from '@/lib/export/types';
-
-function isValidFormat(format: string): format is ExportFormat {
-  return format === 'png' || format === 'jpeg' || format === 'webp';
+type ExportResult = {
+  buffer: Buffer
+  mimeType: string
 }
 
-function isValidQualityPreset(preset: string): preset is QualityPreset {
-  return preset === 'high' || preset === 'medium' || preset === 'low';
+function getMimeType(format: ExportRequest['format']): string {
+  if (format === 'jpeg') {
+    return 'image/jpeg'
+  }
+
+  return `image/${format}`
 }
 
-export async function POST(request: NextRequest) {
+async function encodeImage(input: ExportRequest, buffer: Buffer): Promise<Buffer> {
+  const image = sharp(buffer)
+  const quality = QUALITY_PRESETS[input.qualityPreset]
+
+  if (input.format === 'jpeg') {
+    return image.flatten({ background: { b: 255, g: 255, r: 255 } }).jpeg({
+      mozjpeg: true,
+      quality: quality.jpeg,
+    }).toBuffer()
+  }
+  if (input.format === 'webp') {
+    return image.webp({ effort: 4, quality: quality.webp }).toBuffer()
+  }
+
+  return image.png({ adaptiveFiltering: true, compressionLevel: quality.pngCompression }).toBuffer()
+}
+
+async function exportImage(input: ExportRequest): Promise<ExportResult> {
+  const source = Buffer.from(await input.image.arrayBuffer())
+  const buffer = await encodeImage(input, source)
+  return { buffer, mimeType: getMimeType(input.format) }
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const formData = await request.formData();
-    const imageFile = formData.get('image') as File | null;
-    const format = formData.get('format') as string | null;
-    const qualityPreset = formData.get('qualityPreset') as string | null;
-
-    if (!imageFile) {
-      return NextResponse.json(
-        { error: 'Missing image file' },
-        { status: 400 }
-      );
-    }
-
-    if (!format || !isValidFormat(format)) {
-      return NextResponse.json(
-        { error: 'Invalid format. Must be "png", "jpeg", or "webp"' },
-        { status: 400 }
-      );
-    }
-
-    if (!qualityPreset || !isValidQualityPreset(qualityPreset)) {
-      return NextResponse.json(
-        { error: 'Invalid qualityPreset. Must be "high", "medium", or "low"' },
-        { status: 400 }
-      );
-    }
-
-    const inputBuffer = Buffer.from(await imageFile.arrayBuffer());
-    const qualitySettings = QUALITY_PRESETS[qualityPreset];
-
-    const sharpInstance = sharp(inputBuffer);
-    let outputBuffer: Buffer;
-    let mimeType: string;
-
-    if (format === 'jpeg') {
-      outputBuffer = await sharpInstance
-        .flatten({ background: { r: 255, g: 255, b: 255 } }) // Flatten alpha to white (JPEG has no transparency)
-        .jpeg({
-          quality: qualitySettings.jpeg,
-          mozjpeg: true, // MozJPEG produces ~10-15% smaller files than standard JPEG
-        })
-        .toBuffer();
-      mimeType = 'image/jpeg';
-    } else if (format === 'webp') {
-      outputBuffer = await sharpInstance
-        .webp({
-          quality: qualitySettings.webp,
-          effort: 4, // balanced speed vs compression (0=fastest, 6=slowest)
-        })
-        .toBuffer();
-      mimeType = 'image/webp';
-    } else {
-      outputBuffer = await sharpInstance
-        .png({
-          compressionLevel: qualitySettings.pngCompression,
-          adaptiveFiltering: true,
-        })
-        .toBuffer();
-      mimeType = 'image/png';
-    }
-
-    return new NextResponse(new Uint8Array(outputBuffer), {
+    const formData = await request.formData()
+    const input = exportRequestSchema.parse({
+      format: formData.get('format'),
+      image: formData.get('image'),
+      qualityPreset: formData.get('qualityPreset'),
+    })
+    const result = await exportImage(input)
+    return new NextResponse(new Uint8Array(result.buffer), {
       headers: {
-        'Content-Type': mimeType,
-        'Content-Length': outputBuffer.length.toString(),
+        'Content-Length': result.buffer.length.toString(),
+        'Content-Type': result.mimeType,
       },
-    });
+    })
   } catch (error) {
-    console.error('Export API error:', error);
+    console.error('Export API error:', error)
+    if (isInvalidRequest(error)) {
+      return NextResponse.json({ error: 'Invalid export request' }, { status: 400 })
+    }
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to process image' },
       { status: 500 }
-    );
+    )
   }
 }

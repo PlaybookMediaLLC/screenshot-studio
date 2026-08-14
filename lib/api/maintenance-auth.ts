@@ -14,5 +14,8 @@ export function hasMaintenanceAccess(request: NextRequest): boolean {
 
   const expectedBuffer = Buffer.from(expected)
   const providedBuffer = Buffer.from(provided)
-  return expectedBuffer.length === providedBuffer.length && timingSafeEqual(expectedBuffer, providedBuffer)
+  return (
+    expectedBuffer.length === providedBuffer.length &&
+    timingSafeEqual(expectedBuffer, providedBuffer)
+  )
 }

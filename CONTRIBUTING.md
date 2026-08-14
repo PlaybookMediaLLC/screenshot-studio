@@ -149,6 +149,9 @@ refactor(store): simplify state management
 docs: update contributing guide
 ```
 
+`npm install` enables the local `commit-msg` hook. It rejects commit messages
+that do not follow this format.
+
 ### Pull Request
 
 1. Push your branch
@@ -159,7 +162,7 @@ docs: update contributing guide
 ### PR Checklist
 
 - [ ] `npm run build` passes
-- [ ] `npm run lint` passes
+- [ ] `make check` passes
 - [ ] Tested manually in the browser
 - [ ] No console errors
 - [ ] Follows existing code style

@@ -1,48 +1,48 @@
-import { createHash } from "node:crypto";
-import { getRedisClient } from "./redis";
+import { createHash } from 'node:crypto'
+import { getRedisClient } from './redis'
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_REQUESTS = 20;
+const RATE_LIMIT_WINDOW_MS = 60_000
+const RATE_LIMIT_MAX_REQUESTS = 20
 const RATE_LIMIT_SCRIPT = `
 local count = redis.call('INCR', KEYS[1])
 if count == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]) end
 return { count, redis.call('PTTL', KEYS[1]) }
-`;
+`
 
 export interface RateLimitResult {
-  allowed: boolean;
-  remaining: number;
-  resetAt: number;
+  allowed: boolean
+  remaining: number
+  resetAt: number
 }
 
 function getRateLimitKey(identifier: string): string {
-  const hash = createHash("sha256").update(identifier).digest("hex");
-  return `screenshot-studio:rate-limit:${hash}`;
+  const hash = createHash('sha256').update(identifier).digest('hex')
+  return `screenshot-studio:rate-limit:${hash}`
 }
 
 function parseCounterResponse(response: unknown): [number, number] {
   if (
     !Array.isArray(response) ||
     response.length !== 2 ||
-    !response.every((value) => typeof value === "number")
+    !response.every((value) => typeof value === 'number')
   ) {
-    throw new Error("Redis rate-limit script returned an invalid response.");
+    throw new Error('Redis rate-limit script returned an invalid response.')
   }
 
-  return [response[0], response[1]];
+  return [response[0], response[1]]
 }
 
 export async function checkRateLimit(identifier: string): Promise<RateLimitResult> {
-  const redis = await getRedisClient();
+  const redis = await getRedisClient()
   const response = await redis.eval(RATE_LIMIT_SCRIPT, {
     arguments: [String(RATE_LIMIT_WINDOW_MS)],
     keys: [getRateLimitKey(identifier)],
-  });
-  const [count, ttl] = parseCounterResponse(response);
+  })
+  const [count, ttl] = parseCounterResponse(response)
 
   return {
     allowed: count <= RATE_LIMIT_MAX_REQUESTS,
     remaining: Math.max(0, RATE_LIMIT_MAX_REQUESTS - count),
     resetAt: Date.now() + Math.max(0, ttl),
-  };
+  }
 }

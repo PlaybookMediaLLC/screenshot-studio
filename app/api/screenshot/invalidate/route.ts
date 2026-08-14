@@ -30,19 +30,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       })
     }
 
-    return NextResponse.json(
-      { error: 'Invalid request' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   } catch (error) {
     console.error('Error invalidating cache:', error)
     if (isInvalidRequest(error)) {
       return NextResponse.json({ error: 'Invalid invalidation request' }, { status: 400 })
     }
 
-    return NextResponse.json(
-      { error: 'Failed to invalidate cache' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to invalidate cache' }, { status: 500 })
   }
 }

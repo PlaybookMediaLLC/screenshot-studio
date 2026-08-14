@@ -1,4 +1,4 @@
-const BASE_URL = "https://screenshot-studio.com";
+const BASE_URL = 'https://screenshot-studio.com'
 
 const content = `# Screenshot Studio
 
@@ -82,13 +82,13 @@ Developers, designers, marketers, indie hackers, content creators, and anyone wh
 ## Full Documentation
 
 For the complete, detailed version of this document, see: ${BASE_URL}/llms-full.txt
-`;
+`
 
 export async function GET() {
   return new Response(content.trim(), {
     headers: {
-      "Content-Type": "text/markdown; charset=utf-8",
-      "Cache-Control": "public, max-age=86400, s-maxage=86400",
+      'Content-Type': 'text/markdown; charset=utf-8',
+      'Cache-Control': 'public, max-age=86400, s-maxage=86400',
     },
-  });
+  })
 }

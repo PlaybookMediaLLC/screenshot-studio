@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { imageProxyRequestSchema } from '@/lib/api/schemas'
 
-const ALLOWED_DOMAINS = [
-  'pbs.twimg.com',
-  'abs.twimg.com',
-  'ton.twitter.com',
-  'video.twimg.com',
-]
+const ALLOWED_DOMAINS = ['pbs.twimg.com', 'abs.twimg.com', 'ton.twitter.com', 'video.twimg.com']
 
 function getUrl(request: NextRequest): URL | null {
   const parsed = imageProxyRequestSchema.safeParse({ url: request.nextUrl.searchParams.get('url') })

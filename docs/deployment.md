@@ -65,6 +65,21 @@ No workflow change is needed for another environment: create its GitHub
 Environment, add the same secret and variables, then enter its name when you
 run the workflow. The automatic release path always deploys `production`.
 
+## Releases
+
+Release Please reads Conventional Commit messages merged into `main`. It opens
+one version and changelog pull request, enables its auto-merge, then creates a
+Git tag and GitHub Release when that pull request merges.
+
+Before the first release, create a fine-grained GitHub token that can write
+repository contents and pull requests. Store it as the `RELEASE_PLEASE_TOKEN`
+repository secret. Do not use the default `GITHUB_TOKEN`: release-created
+commits and tags must start the Fly.io and Trigger.dev workflows.
+
+In GitHub branch protection for `main`, require the `CI` and `Commitlint`
+checks, enable auto-merge, and allow the token owner to bypass neither rule.
+The release pull request then merges only after the same required checks pass.
+
 ## Docker
 
 ```sh

@@ -22,10 +22,13 @@ async function encodeImage(input: ExportRequest, buffer: Buffer): Promise<Buffer
   const quality = QUALITY_PRESETS[input.qualityPreset]
 
   if (input.format === 'jpeg') {
-    return image.flatten({ background: { b: 255, g: 255, r: 255 } }).jpeg({
-      mozjpeg: true,
-      quality: quality.jpeg,
-    }).toBuffer()
+    return image
+      .flatten({ background: { b: 255, g: 255, r: 255 } })
+      .jpeg({
+        mozjpeg: true,
+        quality: quality.jpeg,
+      })
+      .toBuffer()
   }
   if (input.format === 'webp') {
     return image.webp({ effort: 4, quality: quality.webp }).toBuffer()

@@ -12,7 +12,8 @@ const CACHE_MAX_AGE_MS = 2 * 24 * 60 * 60 * 1000
 const CACHE_VARIANTS = ['desktop:light', 'desktop:dark', 'mobile:light', 'mobile:dark']
 const R2_BUCKET = process.env.R2_BUCKET_NAME || 'stage-assets'
 const SCREENSHOT_CACHE_CONTROL = 'public, max-age=172800, s-maxage=172800'
-const r2Endpoint = process.env.R2_ENDPOINT || `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+const r2Endpoint =
+  process.env.R2_ENDPOINT || `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
 
 const r2Client = new S3Client({
   credentials: {
@@ -42,13 +43,15 @@ async function readPrivateObject(key: string): Promise<string | null> {
 
 async function uploadToR2(screenshotBase64: string, hash: string): Promise<CacheObject> {
   const key = `screenshots/${hash}.png`
-  await r2Client.send(new PutObjectCommand({
-    Body: Buffer.from(screenshotBase64, 'base64'),
-    Bucket: R2_BUCKET,
-    CacheControl: SCREENSHOT_CACHE_CONTROL,
-    ContentType: 'image/png',
-    Key: key,
-  }))
+  await r2Client.send(
+    new PutObjectCommand({
+      Body: Buffer.from(screenshotBase64, 'base64'),
+      Bucket: R2_BUCKET,
+      CacheControl: SCREENSHOT_CACHE_CONTROL,
+      ContentType: 'image/png',
+      Key: key,
+    })
+  )
 
   return { key, url: getR2PublicUrl(key) }
 }
@@ -58,10 +61,12 @@ async function deleteFromR2(keys: string[]): Promise<void> {
     return
   }
 
-  await r2Client.send(new DeleteObjectsCommand({
-    Bucket: R2_BUCKET,
-    Delete: { Objects: keys.map((key) => ({ Key: key })) },
-  }))
+  await r2Client.send(
+    new DeleteObjectsCommand({
+      Bucket: R2_BUCKET,
+      Delete: { Objects: keys.map((key) => ({ Key: key })) },
+    })
+  )
 }
 
 async function getRemoteScreenshot(key: string, url: string): Promise<string | null> {
@@ -98,7 +103,9 @@ export function normalizeUrl(urlString: string): string {
     }
 
     url.hash = ''
-    const sorted = [...url.searchParams.entries()].sort(([left], [right]) => left.localeCompare(right))
+    const sorted = [...url.searchParams.entries()].sort(([left], [right]) =>
+      left.localeCompare(right)
+    )
     url.search = sorted.length ? `?${new URLSearchParams(sorted)}` : ''
     return url.toString()
   } catch {

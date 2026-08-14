@@ -78,7 +78,11 @@ async function loadCachedScreenshot(input: ScreenshotRequest, url: string): Prom
   }
 }
 
-async function storeScreenshot(input: ScreenshotRequest, url: string, screenshot: string): Promise<void> {
+async function storeScreenshot(
+  input: ScreenshotRequest,
+  url: string,
+  screenshot: string
+): Promise<void> {
   try {
     await cacheScreenshot(getCacheKey(url, input), screenshot)
   } catch (error) {

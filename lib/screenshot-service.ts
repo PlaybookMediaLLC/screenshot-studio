@@ -54,10 +54,7 @@ function getCaptureUrl(input: ScreenshotRequest): string {
   return `${MICROLINK_API_URL}/?${params.toString()}`
 }
 
-function getServiceError(
-  response: Response,
-  data: z.infer<typeof microlinkResponseSchema>
-): Error {
+function getServiceError(response: Response, data: z.infer<typeof microlinkResponseSchema>): Error {
   if (response.status === 408 || response.status === 504) {
     return new Error('timeout')
   }
@@ -65,7 +62,9 @@ function getServiceError(
     return new Error('connection_error')
   }
 
-  return new Error(data.data?.url || data.data?.message || `Screenshot API returned ${response.status}`)
+  return new Error(
+    data.data?.url || data.data?.message || `Screenshot API returned ${response.status}`
+  )
 }
 
 async function requestScreenshotUrl(input: ScreenshotRequest): Promise<string> {
@@ -139,17 +138,30 @@ export function getScreenshotFailure(error: unknown): ScreenshotFailure {
   const message = error instanceof Error ? error.message : ''
 
   if (includesAny(message, ['timeout', 'Timeout'])) {
-    return { message: 'Website took too long to load. Please try again or try a different URL.', status: 408 }
+    return {
+      message: 'Website took too long to load. Please try again or try a different URL.',
+      status: 408,
+    }
   }
   if (includesAny(message, ['connection_error', 'ECONNREFUSED'])) {
     return { message: 'Screenshot service is unavailable. Please try again later.', status: 503 }
   }
   if (includesAny(message, ['ERR_NAME_NOT_RESOLVED', 'ERR_CONNECTION'])) {
-    return { message: 'Could not connect to the website. Please check the URL and try again.', status: 400 }
+    return {
+      message: 'Could not connect to the website. Please check the URL and try again.',
+      status: 400,
+    }
   }
   if (includesAny(message, ['SSL', 'certificate', 'ERR_CERT'])) {
-    return { message: 'Website has SSL certificate issues. The screenshot may be incomplete.', status: 400 }
+    return {
+      message: 'Website has SSL certificate issues. The screenshot may be incomplete.',
+      status: 400,
+    }
   }
 
-  return { message: 'Failed to capture screenshot. Please try again or contact support if the issue persists.', status: 500 }
+  return {
+    message:
+      'Failed to capture screenshot. Please try again or contact support if the issue persists.',
+    status: 500,
+  }
 }

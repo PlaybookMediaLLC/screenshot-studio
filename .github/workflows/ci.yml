@@ -24,6 +24,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          DATABASE_URL: postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio
       - run: docker build --tag screenshot-studio:${{ github.sha }} .
       - name: Smoke test production container
         run: |

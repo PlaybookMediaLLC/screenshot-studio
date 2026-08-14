@@ -115,16 +115,12 @@ export function Perspective3DOverlay({
   // Parse shadow color and extract RGB values
   const colorMatch = shadow.color.match(/rgba?\(([^)]+)\)/)
   let r = 0, g = 0, b = 0;
-  let shadowOpacity = shadow.intensity || 0.5;
 
   if (colorMatch) {
     const parts = colorMatch[1].split(',').map(s => s.trim())
     r = parseInt(parts[0]) || 0;
     g = parseInt(parts[1]) || 0;
     b = parseInt(parts[2]) || 0;
-    if (parts.length === 4) {
-      shadowOpacity = parseFloat(parts[3]) || shadow.intensity;
-    }
   } else if (shadow.color.startsWith('#')) {
     const hex = shadow.color.replace('#', '')
     r = parseInt(hex.slice(0, 2), 16) || 0;
@@ -270,4 +266,3 @@ export function Perspective3DOverlay({
     </div>
   );
 }
-

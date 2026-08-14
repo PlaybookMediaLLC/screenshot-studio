@@ -10,7 +10,7 @@
  * Uses OffscreenCanvas for canvas operations in the worker context.
  */
 
-/* eslint-disable no-restricted-globals */
+
 
 // Worker message types
 export type ExportWorkerMessageType =
@@ -24,14 +24,14 @@ export type ExportWorkerMessageType =
 export interface ExportWorkerRequest {
   id: string;
   type: ExportWorkerMessageType;
-  payload: any;
+  payload: ExportWorkerPayload;
 }
 
 export interface ExportWorkerResponse {
   id: string;
   type: ExportWorkerMessageType;
   success: boolean;
-  result?: any;
+  result?: ExportWorkerResult;
   error?: string;
 }
 
@@ -83,6 +83,15 @@ export interface ConvertFormatResult {
   mimeType: string;
   fileSize: number;
 }
+
+export type ExportWorkerPayload =
+  | NoisePayload
+  | BlurPayload
+  | OpacityPayload
+  | CompositePayload
+  | ConvertFormatPayload;
+
+export type ExportWorkerResult = ImageData | ConvertFormatResult;
 
 // Worker context type
 const ctx: Worker = self as unknown as Worker;

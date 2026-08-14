@@ -17,7 +17,7 @@ interface KeyframeMarkerProps {
 }
 
 export function KeyframeMarker({
-  keyframe,
+  keyframe: _keyframe,
   position,
   isSelected,
   trackType,

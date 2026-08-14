@@ -6,7 +6,7 @@ import { Slider } from '@/components/ui/slider'
 import { useImageStore } from '@/lib/store'
 import { Delete02Icon, ViewIcon, ViewOffSlashIcon, RotateRight01Icon, RotateLeft01Icon, RefreshIcon } from 'hugeicons-react'
 import { getR2ImageUrl } from '@/lib/r2'
-import { OVERLAY_PATHS, isOverlayPath } from '@/lib/r2-overlays'
+import { isOverlayPath } from '@/lib/r2-overlays'
 
 export function OverlayControls() {
   const {
@@ -328,4 +328,3 @@ export function OverlayControls() {
     </div>
   )
 }
-

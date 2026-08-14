@@ -181,7 +181,7 @@ const defaultSponsors: Sponsor[] = [
 export function Sponsors({ 
   title = "Our Sponsors", 
   sponsors = defaultSponsors,
-  showDescription = false 
+  showDescription: _showDescription = false
 }: SponsorsProps) {
   const hasSponsors = sponsors && sponsors.length > 0;
 

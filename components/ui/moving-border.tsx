@@ -10,29 +10,32 @@ import {
 import { useRef } from "react";
 import { cn } from "@/lib/utils";
 
+type MovingBorderButtonProps = {
+  borderRadius?: string;
+  containerClassName?: string;
+  borderClassName?: string;
+  duration?: number;
+  gradientColor?: string;
+} & React.ButtonHTMLAttributes<HTMLButtonElement>;
+
+type MovingBorderProps = {
+  duration?: number;
+  rx?: string;
+  ry?: string;
+} & React.SVGProps<SVGSVGElement>;
+
 export function Button({
   borderRadius = "1.75rem",
   children,
-  as: Component = "button",
   containerClassName,
   borderClassName,
   duration,
   className,
   gradientColor,
   ...otherProps
-}: {
-  borderRadius?: string;
-  children: React.ReactNode;
-  as?: any;
-  containerClassName?: string;
-  borderClassName?: string;
-  duration?: number;
-  className?: string;
-  gradientColor?: string;
-  [key: string]: any;
-}) {
+}: MovingBorderButtonProps) {
   return (
-    <Component
+    <button
       className={cn(
         "relative h-16 w-40 overflow-hidden bg-transparent p-[1px] text-xl",
         containerClassName,
@@ -70,7 +73,7 @@ export function Button({
       >
         {children}
       </div>
-    </Component>
+    </button>
   );
 }
 
@@ -80,14 +83,8 @@ export const MovingBorder = ({
   rx,
   ry,
   ...otherProps
-}: {
-  children: React.ReactNode;
-  duration?: number;
-  rx?: string;
-  ry?: string;
-  [key: string]: any;
-}) => {
-  const pathRef = useRef<any>(null);
+}: MovingBorderProps) => {
+  const pathRef = useRef<SVGRectElement>(null);
   const progress = useMotionValue<number>(0);
 
   useAnimationFrame((time) => {

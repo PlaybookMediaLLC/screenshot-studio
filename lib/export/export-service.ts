@@ -12,14 +12,9 @@
  */
 
 import { domToCanvas } from 'modern-screenshot';
-import { generateNoiseTextureAsync } from './export-utils';
-import { getBackgroundCSS } from '@/lib/constants/backgrounds';
-import { getFontCSS } from '@/lib/constants/fonts';
-import { exportWorkerService } from '@/lib/workers/export-worker-service';
 import { processWithSharp } from './sharp-client';
 import type { ExportFormat, QualityPreset } from './types';
-import { useImageStore } from '@/lib/store';
-import type { BlurRegion } from '@/lib/store';
+import { useImageStore, type ImageState } from '@/lib/store';
 
 export interface ExportOptions {
   format: ExportFormat;
@@ -34,70 +29,6 @@ export interface ExportOptions {
 export interface ExportResult {
   dataURL: string;
   blob: Blob;
-}
-
-/**
- * Convert oklch color to RGB (memoized to avoid repeated DOM mutations)
- */
-const oklchCache = new Map<string, string>();
-
-function convertOklchToRGB(oklchColor: string): string {
-  // If it's not oklch, return as-is
-  if (!oklchColor.includes('oklch')) {
-    return oklchColor;
-  }
-
-  const cached = oklchCache.get(oklchColor);
-  if (cached) return cached;
-
-  // Extract oklch values using regex
-  const oklchMatch = oklchColor.match(/oklch\(([^)]+)\)/);
-  if (!oklchMatch) {
-    return oklchColor;
-  }
-
-  const values = oklchMatch[1].split(/\s+/).map(v => parseFloat(v.trim()));
-  if (values.length < 3) {
-    return oklchColor;
-  }
-
-  // Convert oklch to RGB using browser's computed style
-  const tempEl = document.createElement('div');
-  tempEl.style.color = oklchColor;
-  document.body.appendChild(tempEl);
-  const computed = window.getComputedStyle(tempEl).color;
-  document.body.removeChild(tempEl);
-
-  const result = computed || oklchColor;
-  oklchCache.set(oklchColor, result);
-  return result;
-}
-
-/**
- * Apply blur effect to a canvas using Canvas 2D context filter (sync version)
- */
-function applyBlurToCanvasSync(
-  canvas: HTMLCanvasElement,
-  blurAmount: number
-): HTMLCanvasElement {
-  if (blurAmount <= 0) {
-    return canvas;
-  }
-
-  const blurredCanvas = document.createElement('canvas');
-  blurredCanvas.width = canvas.width;
-  blurredCanvas.height = canvas.height;
-  const ctx = blurredCanvas.getContext('2d');
-
-  if (!ctx) {
-    return canvas;
-  }
-
-  ctx.filter = `blur(${blurAmount}px)`;
-  ctx.drawImage(canvas, 0, 0);
-  ctx.filter = 'none';
-
-  return blurredCanvas;
 }
 
 /**
@@ -148,238 +79,6 @@ function applyBlurRegionsToCanvas(
 }
 
 /**
- * Apply blur effect to a canvas using Web Worker for heavy computation
- */
-async function applyBlurToCanvas(
-  canvas: HTMLCanvasElement,
-  blurAmount: number
-): Promise<HTMLCanvasElement> {
-  if (blurAmount <= 0) {
-    return canvas;
-  }
-
-  try {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      return canvas;
-    }
-
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const blurredImageData = await exportWorkerService.applyBlur(imageData, blurAmount);
-
-    const blurredCanvas = document.createElement('canvas');
-    blurredCanvas.width = canvas.width;
-    blurredCanvas.height = canvas.height;
-    const blurredCtx = blurredCanvas.getContext('2d');
-
-    if (!blurredCtx) {
-      return applyBlurToCanvasSync(canvas, blurAmount);
-    }
-
-    blurredCtx.putImageData(blurredImageData, 0, 0);
-    return blurredCanvas;
-  } catch (error) {
-    console.warn('Worker blur failed, using sync fallback:', error);
-    return applyBlurToCanvasSync(canvas, blurAmount);
-  }
-}
-
-/**
- * Apply opacity to a canvas (sync version for fallback)
- */
-function applyOpacityToCanvasSync(
-  canvas: HTMLCanvasElement,
-  opacity: number
-): HTMLCanvasElement {
-  if (opacity >= 1) {
-    return canvas;
-  }
-
-  if (opacity <= 0) {
-    const transparentCanvas = document.createElement('canvas');
-    transparentCanvas.width = canvas.width;
-    transparentCanvas.height = canvas.height;
-    return transparentCanvas;
-  }
-
-  const opacityCanvas = document.createElement('canvas');
-  opacityCanvas.width = canvas.width;
-  opacityCanvas.height = canvas.height;
-  const ctx = opacityCanvas.getContext('2d', { willReadFrequently: false });
-
-  if (!ctx) {
-    return canvas;
-  }
-
-  ctx.globalAlpha = opacity;
-  ctx.drawImage(canvas, 0, 0);
-  ctx.globalAlpha = 1;
-
-  return opacityCanvas;
-}
-
-/**
- * Apply opacity to a canvas using Web Worker
- */
-async function applyOpacityToCanvas(
-  canvas: HTMLCanvasElement,
-  opacity: number
-): Promise<HTMLCanvasElement> {
-  if (opacity >= 1) {
-    return canvas;
-  }
-
-  if (opacity <= 0) {
-    const transparentCanvas = document.createElement('canvas');
-    transparentCanvas.width = canvas.width;
-    transparentCanvas.height = canvas.height;
-    return transparentCanvas;
-  }
-
-  try {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      return canvas;
-    }
-
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const resultImageData = await exportWorkerService.applyOpacity(imageData, opacity);
-
-    const resultCanvas = document.createElement('canvas');
-    resultCanvas.width = canvas.width;
-    resultCanvas.height = canvas.height;
-    const resultCtx = resultCanvas.getContext('2d');
-
-    if (!resultCtx) {
-      return applyOpacityToCanvasSync(canvas, opacity);
-    }
-
-    resultCtx.putImageData(resultImageData, 0, 0);
-    return resultCanvas;
-  } catch (error) {
-    console.warn('Worker opacity failed, using sync fallback:', error);
-    return applyOpacityToCanvasSync(canvas, opacity);
-  }
-}
-
-/**
- * Extract noise texture from preview element
- */
-async function getNoiseTextureFromPreview(): Promise<HTMLCanvasElement | null> {
-  let noiseOverlay = document.getElementById('canvas-noise-overlay') as HTMLElement | null;
-
-  if (!noiseOverlay) {
-    const canvasBackground = document.getElementById('canvas-background');
-    if (!canvasBackground) return null;
-
-    const parent = canvasBackground.parentElement;
-    if (!parent) return null;
-
-    const found = Array.from(parent.children).find((child) => {
-      if (child instanceof HTMLElement) {
-        const style = window.getComputedStyle(child);
-        const bgImage = style.backgroundImage;
-        const mixBlendMode = style.mixBlendMode;
-        const pointerEvents = style.pointerEvents;
-
-        return bgImage &&
-          bgImage.includes('data:image') &&
-          bgImage.includes('base64') &&
-          mixBlendMode === 'overlay' &&
-          pointerEvents === 'none';
-      }
-      return false;
-    }) as HTMLElement | undefined;
-
-    if (!found) return null;
-    noiseOverlay = found;
-  }
-
-  if (!noiseOverlay) return null;
-
-  const style = window.getComputedStyle(noiseOverlay);
-  const bgImage = style.backgroundImage;
-  const urlMatch = bgImage.match(/url\(['"]?(.+?)['"]?\)/);
-
-  if (!urlMatch || !urlMatch[1]) return null;
-
-  const dataURL = urlMatch[1];
-
-  return new Promise<HTMLCanvasElement | null>((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas);
-      } else {
-        resolve(null);
-      }
-    };
-    img.onerror = () => resolve(null);
-    img.src = dataURL;
-  });
-}
-
-/**
- * Apply noise overlay to a canvas
- */
-async function applyNoiseToCanvas(
-  canvas: HTMLCanvasElement,
-  noiseIntensity: number,
-  width: number,
-  height: number,
-  scale: number
-): Promise<HTMLCanvasElement> {
-  if (noiseIntensity <= 0) {
-    return canvas;
-  }
-
-  const canvasWidth = canvas.width;
-  const canvasHeight = canvas.height;
-
-  const finalCanvas = document.createElement('canvas');
-  finalCanvas.width = canvasWidth;
-  finalCanvas.height = canvasHeight;
-  const ctx = finalCanvas.getContext('2d');
-
-  if (!ctx) {
-    return canvas;
-  }
-
-  ctx.drawImage(canvas, 0, 0);
-
-  let noiseCanvas: HTMLCanvasElement | null = null;
-
-  const previewNoiseTexture = await getNoiseTextureFromPreview();
-  if (previewNoiseTexture) {
-    noiseCanvas = previewNoiseTexture;
-  } else {
-    noiseCanvas = await generateNoiseTextureAsync(200, 200, noiseIntensity);
-  }
-
-  ctx.save();
-  ctx.globalCompositeOperation = 'overlay';
-  ctx.globalAlpha = noiseIntensity;
-
-  ctx.imageSmoothingEnabled = false;
-  const pattern = ctx.createPattern(noiseCanvas, 'repeat');
-  if (pattern) {
-    ctx.fillStyle = pattern;
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-  }
-  ctx.imageSmoothingEnabled = true;
-
-  ctx.restore();
-
-  return finalCanvas;
-}
-
-/**
  * Capture 3D transformed element using modern-screenshot
  */
 async function capture3DTransformWithModernScreenshot(
@@ -391,8 +90,6 @@ async function capture3DTransformWithModernScreenshot(
   if (!overlayElement) {
     throw new Error('3D overlay element not found');
   }
-
-  const rect = overlayElement.getBoundingClientRect();
 
   if (!skipDelay) {
     // Wait for styles to apply (only needed for first/single exports, not video frames)
@@ -440,7 +137,7 @@ async function exportHTMLCanvas(
   targetWidth: number,
   targetHeight: number,
   scale: number,
-  borderRadius: number = 0,
+  _borderRadius: number = 0,
   skipDelay: boolean = false
 ): Promise<HTMLCanvasElement> {
   // Get current container dimensions
@@ -536,16 +233,16 @@ export async function exportElement(
   elementId: string,
   options: ExportOptions,
   canvasContainer: HTMLElement | null,
-  backgroundConfig: any,
+  _backgroundConfig: unknown,
   backgroundBorderRadius: number,
-  textOverlays: any[] = [],
-  imageOverlays: any[] = [],
-  perspective3D?: any,
+  _textOverlays: unknown[] = [],
+  _imageOverlays: unknown[] = [],
+  perspective3D?: ImageState['perspective3D'],
   imageSrc?: string,
   screenshotRadius?: number,
-  backgroundBlur: number = 0,
-  backgroundNoise: number = 0,
-  backgroundOpacity: number = 1,
+  _backgroundBlur: number = 0,
+  _backgroundNoise: number = 0,
+  _backgroundOpacity: number = 1,
   onProgress?: (percent: number) => void
 ): Promise<ExportResult> {
   const report = onProgress ?? (() => {});
@@ -665,7 +362,7 @@ export async function exportElementAsCanvas(
   options: ExportOptions,
   canvasContainer: HTMLElement | null,
   backgroundBorderRadius: number,
-  perspective3D?: any,
+  perspective3D?: ImageState['perspective3D'],
   imageSrc?: string,
 ): Promise<HTMLCanvasElement> {
   const element = document.getElementById(elementId);

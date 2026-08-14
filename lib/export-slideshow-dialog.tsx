@@ -160,10 +160,6 @@ export function ExportSlideshowDialog({
       } else {
         result = await exportSlideshowVideo(options);
       }
-      if (result.format !== format) {
-        console.info(`Exported as ${result.format} (${format} not supported)`);
-      }
-
       // Confetti on successful video export
       confetti({
         particleCount: 120,

@@ -150,10 +150,6 @@ export async function exportVideo(
   const preferMp4 = options.format === "mp4" || options.format === undefined
   const { mimeType, format } = getBestCodec(preferMp4)
 
-  if (format !== options.format && options.format) {
-    console.info(`${options.format.toUpperCase()} not supported, using ${format.toUpperCase()}`)
-  }
-
   const blob = await recordFrames(frames, { ...options, format }, mimeType)
   return { blob, format }
 }

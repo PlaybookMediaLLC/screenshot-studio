@@ -30,7 +30,7 @@ function parseGradientColors(gradientStr: string): { colorA: string; colorB: str
         colorB = hexMatches[hexMatches.length - 1]
       }
     }
-  } catch (e) {
+  } catch {
     // Use defaults
   }
 
@@ -196,4 +196,3 @@ export function EditorStoreSync() {
 
   return null
 }
-

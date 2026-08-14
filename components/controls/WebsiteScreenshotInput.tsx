@@ -48,7 +48,7 @@ export function WebsiteScreenshotInput() {
       }
       
       return { valid: true, normalized }
-    } catch (error) {
+    } catch {
       return { valid: false, error: 'Please enter a valid URL (e.g., example.com or https://example.com)' }
     }
   }
@@ -257,4 +257,3 @@ export function WebsiteScreenshotInput() {
     </div>
   )
 }
-

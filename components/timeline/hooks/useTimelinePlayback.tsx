@@ -36,16 +36,13 @@ export function useTimelinePlayback() {
     timeline,
     animationClips,
     slides,
-    activeSlideId,
     slideshow,
     setActiveSlide,
-    setPlayhead,
-    setTimeline,
     setPerspective3D,
     setImageOpacity,
   } = useImageStore();
 
-  const { isPlaying, playhead, duration, isLooping, tracks } = timeline;
+  const { isPlaying, playhead, tracks } = timeline;
   const lastTimeRef = React.useRef<number | null>(null);
   const animationFrameRef = React.useRef<number | null>(null);
   const playheadRef = React.useRef(timeline.playhead);

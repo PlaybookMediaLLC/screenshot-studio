@@ -10,17 +10,15 @@ import { BackgroundConfig, BackgroundType } from "@/lib/constants/backgrounds";
 import { gradientColors } from "@/lib/constants/gradient-colors";
 import { solidColors } from "@/lib/constants/solid-colors";
 import type { Mockup } from "@/types/mockup";
-import type { TimelineState, AnimationTrack, Keyframe, AnimatableProperties, AnimationClip } from "@/types/animation";
+import type { TimelineState, AnimationTrack, Keyframe, AnimationClip } from "@/types/animation";
 import { DEFAULT_TIMELINE_STATE } from "@/types/animation";
 import { clonePresetTracks, getPresetById, ANIMATION_PRESETS } from "@/lib/animation/presets";
 import {
   trackImageUpload,
   trackBackgroundChange,
-  trackEffectApply,
   trackFrameApply,
   trackOverlayAdd,
   trackAspectRatioChange,
-  trackPresetApply,
   trackAnimationClipAdd,
 } from "@/lib/analytics";
 
@@ -170,7 +168,7 @@ function parseGradientColors(gradientStr: string): {
         colorB = hexMatches[hexMatches.length - 1];
       }
     }
-  } catch (e) {
+  } catch {
     // Use defaults
   }
 
@@ -275,7 +273,7 @@ export interface EditorState {
 }
 
 // Create editor store
-export const useEditorStore = create<EditorState>((set, get) => ({
+export const useEditorStore = create<EditorState>((set) => ({
   screenshot: {
     src: null,
     scale: 1,
@@ -523,6 +521,7 @@ export function useEditorStoreSync() {
     imageStore.imageBorder,
     imageStore.imageShadow,
     imageStore.selectedAspectRatio,
+    editorStore,
   ]);
 }
 
@@ -1659,7 +1658,6 @@ export const useImageStore = create<ImageState>()(
           updatedTracks = state.timeline.tracks.map((track) => {
             if (track.clipId !== clipId) return track;
 
-            const originalDuration = track.originalDuration || existingClip.duration;
             const newStartTime = updates.startTime ?? existingClip.startTime;
             const newDuration = updates.duration ?? existingClip.duration;
             const oldStartTime = existingClip.startTime;

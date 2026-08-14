@@ -13,7 +13,7 @@ export interface BackgroundConfig {
 }
 
 export const getBackgroundStyle = (config: BackgroundConfig): string => {
-  const { type, value, opacity = 1 } = config;
+  const { type, value } = config;
 
   switch (type) {
     case 'gradient': {

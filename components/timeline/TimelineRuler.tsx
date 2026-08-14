@@ -9,7 +9,7 @@ interface TimelineRulerProps {
 
 export function TimelineRuler({ width }: TimelineRulerProps) {
   const { timeline } = useImageStore();
-  const { duration, zoom } = timeline;
+  const { duration } = timeline;
 
   // Calculate tick spacing based on duration and zoom
   const getTickSpacing = (): { major: number; minor: number } => {

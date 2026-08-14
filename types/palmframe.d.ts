@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-namespace */
+
 declare namespace React.JSX {
   interface IntrinsicElements {
     'palmframe-widget': React.DetailedHTMLProps<

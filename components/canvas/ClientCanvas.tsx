@@ -568,8 +568,6 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           <MockupRenderer
             key={mockup.id}
             mockup={mockup}
-            canvasWidth={canvasW}
-            canvasHeight={canvasH}
           />
         ))}
 

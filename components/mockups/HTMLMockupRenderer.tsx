@@ -7,11 +7,9 @@ import type { Mockup } from '@/types/mockup';
 
 interface HTMLMockupRendererProps {
   mockup: Mockup;
-  canvasWidth: number;
-  canvasHeight: number;
 }
 
-export function HTMLMockupRenderer({ mockup, canvasWidth, canvasHeight }: HTMLMockupRendererProps) {
+export function HTMLMockupRenderer({ mockup }: HTMLMockupRendererProps) {
   const { uploadedImageUrl, updateMockup } = useImageStore();
   const definition = getMockupDefinition(mockup.definitionId);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -19,8 +17,6 @@ export function HTMLMockupRenderer({ mockup, canvasWidth, canvasHeight }: HTMLMo
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [mockupSize, setMockupSize] = useState({ width: 0, height: 0 });
   const [mockupLoaded, setMockupLoaded] = useState(false);
-
-  if (!definition || !mockup.isVisible) return null;
 
   // Calculate mockup dimensions
   const handleMockupLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -33,11 +29,12 @@ export function HTMLMockupRenderer({ mockup, canvasWidth, canvasHeight }: HTMLMo
   }, [mockup.size]);
 
   // Calculate screen area dimensions
-  const screenAreaX = definition.screenArea.x * mockupSize.width;
-  const screenAreaY = definition.screenArea.y * mockupSize.height;
-  const screenAreaWidth = definition.screenArea.width * mockupSize.width;
-  const screenAreaHeight = definition.screenArea.height * mockupSize.height;
-  const borderRadius = (definition.screenArea.borderRadius || 0) * mockupSize.width;
+  const screenArea = definition?.screenArea;
+  const screenAreaX = (screenArea?.x ?? 0) * mockupSize.width;
+  const screenAreaY = (screenArea?.y ?? 0) * mockupSize.height;
+  const screenAreaWidth = (screenArea?.width ?? 0) * mockupSize.width;
+  const screenAreaHeight = (screenArea?.height ?? 0) * mockupSize.height;
+  const borderRadius = (screenArea?.borderRadius ?? 0) * mockupSize.width;
 
   // Handle drag
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -51,7 +48,7 @@ export function HTMLMockupRenderer({ mockup, canvasWidth, canvasHeight }: HTMLMo
   }, [mockup.position.x, mockup.position.y]);
 
   useEffect(() => {
-    if (!isDragging) return;
+    if (!definition || !isDragging || !mockup.isVisible) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       const newX = e.clientX - dragStart.x;
@@ -70,7 +67,9 @@ export function HTMLMockupRenderer({ mockup, canvasWidth, canvasHeight }: HTMLMo
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, dragStart, mockup.id, updateMockup]);
+  }, [definition, isDragging, dragStart, mockup.id, mockup.isVisible, updateMockup]);
+
+  if (!definition || !mockup.isVisible) return null;
 
   return (
     <div

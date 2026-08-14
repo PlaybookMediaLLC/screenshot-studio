@@ -8,7 +8,7 @@ import { exportWorkerService } from '@/lib/workers/export-worker-service';
  * Convert CSS variables and computed styles to RGB
  */
 export function convertStylesToRGB(element: HTMLElement, doc: Document): void {
-  const win = doc.defaultView || (doc as any).parentWindow;
+  const win = doc.defaultView;
   if (!win) return;
   
   try {
@@ -25,12 +25,12 @@ export function convertStylesToRGB(element: HTMLElement, doc: Document): void {
       try {
         const value = computedStyle.getPropertyValue(prop);
         if (value && (value.includes('oklch') || value.includes('var('))) {
-          const computed = (computedStyle as any)[prop];
+          const computed = computedStyle.getPropertyValue(prop);
           if (computed && computed !== 'rgba(0, 0, 0, 0)' && computed !== 'transparent' && computed !== 'none' && !computed.includes('oklch')) {
             element.style.setProperty(prop, computed, 'important');
           }
         }
-      } catch (e) {
+      } catch {
         // Ignore errors for individual properties
       }
     });
@@ -42,17 +42,17 @@ export function convertStylesToRGB(element: HTMLElement, doc: Document): void {
         // Re-apply computed styles
         allProps.forEach(prop => {
           try {
-            const computed = (computedStyle as any)[prop];
+            const computed = computedStyle.getPropertyValue(prop);
             if (computed && !computed.includes('oklch')) {
               element.style.setProperty(prop, computed, 'important');
             }
-          } catch (e) {
+          } catch {
             // Ignore errors
           }
         });
       }
     }
-  } catch (e) {
+  } catch {
     // Ignore errors
   }
   
@@ -74,12 +74,12 @@ export function injectRGBOverrides(doc: Document): void {
     try {
       if (sheet.href && sheet.href.includes('globals.css')) {
         try {
-          (sheet as any).disabled = true;
-        } catch (e) {
+        (sheet as CSSStyleSheet).disabled = true;
+        } catch {
           // Ignore
         }
       }
-    } catch (e) {
+    } catch {
       // Ignore cross-origin errors
     }
   });
@@ -131,7 +131,7 @@ export function injectRGBOverrides(doc: Document): void {
 /**
  * Preserve image styles from original document
  */
-export function preserveImageStyles(img: HTMLImageElement, clonedDoc: Document): void {
+export function preserveImageStyles(img: HTMLImageElement, _clonedDoc: Document): void {
   // Force display for images that might be hidden
   if (img.style.display === 'none') {
     img.style.display = '';
@@ -405,5 +405,4 @@ export async function generateNoiseTextureAsync(
     return generateNoiseTextureSync(width, height, intensity);
   }
 }
-
 

@@ -417,7 +417,7 @@ export function SVGAnnotationLayer({
       setDrawing(d);
       setSelectedId(null);
     },
-    [activeAnnotationTool, getSVGPoint]
+    [activeAnnotationTool, getSVGPoint, setSelectedId]
   );
 
   const handlePointerMove = useCallback(
@@ -649,7 +649,7 @@ export function SVGAnnotationLayer({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedId, activeAnnotationTool, removeAnnotation, setActiveAnnotationTool]);
+  }, [selectedId, activeAnnotationTool, removeAnnotation, setActiveAnnotationTool, setSelectedId]);
 
   const isToolActive = !!activeAnnotationTool;
 

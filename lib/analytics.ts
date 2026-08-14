@@ -34,9 +34,6 @@ export function trackEvent(
   eventData?: Record<string, string | number | boolean>
 ): void {
   if (!shouldTrack()) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[PostHog] Skipped:', eventName, eventData);
-    }
     return;
   }
 

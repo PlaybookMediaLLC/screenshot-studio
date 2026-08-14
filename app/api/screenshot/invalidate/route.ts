@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           )
         }
-      } catch (error) {
+      } catch {
         return NextResponse.json(
           { error: 'Invalid URL format' },
           { status: 400 }
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
               { status: 400 }
             )
           }
-        } catch (error) {
+        } catch {
           return NextResponse.json(
             { error: `Invalid URL format: ${u}` },
             { status: 400 }
@@ -109,4 +109,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

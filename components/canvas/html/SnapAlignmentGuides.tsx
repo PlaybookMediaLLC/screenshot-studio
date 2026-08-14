@@ -11,8 +11,8 @@ interface SnapAlignmentGuidesProps {
 const SNAP_THRESHOLD = 6;
 
 export function SnapAlignmentGuides({
-  canvasW,
-  canvasH,
+  canvasW: _canvasW,
+  canvasH: _canvasH,
   offsetX,
   offsetY,
   isDragging,

@@ -43,7 +43,7 @@ export interface CanvasOperations {
   transformObject: (objectId: string | undefined, properties: Partial<{ left: number; top: number; scaleX: number; scaleY: number; angle: number; elevationX?: number; elevationY?: number; text?: string }>) => void;
   deleteObject: (objectId: string | undefined) => void;
   exportCanvas: (format: "png", quality?: number) => Promise<string>;
-  getSelectedObject: () => any;
+  getSelectedObject: () => unknown;
   clearSelection: () => void;
   selectObject?: (objectId: string) => void;
 }

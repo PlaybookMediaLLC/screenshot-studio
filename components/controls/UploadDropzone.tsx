@@ -63,7 +63,6 @@ export function UploadDropzone() {
     getRootProps,
     getInputProps,
     isDragActive: dropzoneActive,
-    fileRejections,
   } = useDropzone({
     onDrop,
     accept: {

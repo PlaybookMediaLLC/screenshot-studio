@@ -1,5 +1,5 @@
 import { createHash } from 'crypto'
-import { S3Client, PutObjectCommand, DeleteObjectsCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 import { prisma } from './db'
 import { getR2PublicUrl } from './r2'
 
@@ -45,7 +45,7 @@ export function normalizeUrl(urlString: string): string {
     }
 
     return url.toString()
-  } catch (error) {
+  } catch {
     return urlString
   }
 }
@@ -122,7 +122,6 @@ export async function getCachedScreenshot(
 
     const age = Date.now() - cached.createdAt.getTime()
     if (age > maxAgeMs) {
-      console.log(`Cache expired for ${url}, invalidating...`)
       await invalidateCache(url)
       return null
     }
@@ -210,7 +209,6 @@ export async function invalidateCache(url: string): Promise<void> {
       where: { urlHash: hash },
     })
 
-    console.log(`Cache invalidated for ${url}`)
   } catch (error) {
     console.error('Error invalidating cache:', error)
   }
@@ -240,7 +238,6 @@ export async function invalidateCacheBatch(urls: string[]): Promise<void> {
       },
     })
 
-    console.log(`Invalidated ${entries.length} cache entries`)
   } catch (error) {
     console.error('Error invalidating cache batch:', error)
   }
@@ -269,7 +266,7 @@ export async function clearOldCache(maxAgeMs: number = 2 * 24 * 60 * 60 * 1000):
     const keys = oldEntries.map((entry: { cloudinaryPublicId: string }) => entry.cloudinaryPublicId)
     await deleteFromR2(keys)
 
-    const result = await prisma.screenshotCache.deleteMany({
+    await prisma.screenshotCache.deleteMany({
       where: {
         createdAt: {
           lt: cutoffDate,
@@ -277,9 +274,6 @@ export async function clearOldCache(maxAgeMs: number = 2 * 24 * 60 * 60 * 1000):
       },
     })
 
-    if (result.count > 0) {
-      console.log(`Cleared ${result.count} old cache entries`)
-    }
   } catch (error) {
     console.error('Error clearing old cache:', error)
   }

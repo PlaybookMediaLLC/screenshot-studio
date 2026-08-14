@@ -1,9 +1,9 @@
 "use client";
 
-import Image from 'next/image';
+import Image, { type ImageProps } from 'next/image';
 import { getR2ImageUrl } from '@/lib/r2';
 
-interface OptimizedImageProps {
+type OptimizedImageProps = Omit<ImageProps, 'src' | 'alt' | 'width' | 'height' | 'fill' | 'quality' | 'unoptimized'> & {
   src: string;
   alt: string;
   width?: number;
@@ -15,8 +15,7 @@ interface OptimizedImageProps {
   quality?: number | 'auto';
   crop?: 'fill' | 'fit' | 'scale' | 'crop';
   gravity?: 'auto' | 'center' | 'face';
-  [key: string]: any;
-}
+};
 
 /**
  * OptimizedImage component that uses R2 for all images.
@@ -33,12 +32,12 @@ export function OptimizedImage({
   priority,
   sizes,
   quality = 'auto',
-  crop,
-  gravity = 'auto',
+  crop: _crop,
+  gravity: _gravity,
   ...props
 }: OptimizedImageProps) {
   // Get R2 URL for the image
-  const imageUrl = getR2ImageUrl({ src });
+  const imageUrl = getR2ImageUrl({ src, width, height, quality });
 
   if (fill) {
     return (

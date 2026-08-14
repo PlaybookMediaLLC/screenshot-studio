@@ -5,7 +5,7 @@
  * Based on industry standards for social media, video, and design platforms
  */
 
-import { aspectRatios, type AspectRatio } from '@/lib/constants/aspect-ratios';
+import { aspectRatios } from '@/lib/constants/aspect-ratios';
 import { ASPECT_RATIO_PRESETS, type AspectRatioPreset } from '@/lib/constants';
 import { useImageStore } from '@/lib/store';
 
@@ -192,4 +192,3 @@ export function calculateFitDimensions(
 export function getAspectRatioCSS(width: number, height: number): string {
   return `${width} / ${height}`;
 }
-

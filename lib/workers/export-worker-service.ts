@@ -14,7 +14,9 @@ import type {
   OpacityPayload,
   CompositePayload,
   ConvertFormatPayload,
-  ConvertFormatResult
+  ConvertFormatResult,
+  ExportWorkerPayload,
+  ExportWorkerResult,
 } from './export.worker';
 
 // Re-export types for consumers
@@ -28,9 +30,21 @@ export type {
 };
 
 type PendingRequest = {
-  resolve: (result: any) => void;
+  resolve: (result: ExportWorkerResult | undefined) => void;
   reject: (error: Error) => void;
 };
+
+function isImageDataResult(
+  result: ExportWorkerResult | undefined
+): result is ImageData {
+  return Boolean(
+    result &&
+      typeof result === 'object' &&
+      'data' in result &&
+      'width' in result &&
+      'height' in result
+  );
+}
 
 class ExportWorkerService {
   private worker: Worker | null = null;
@@ -63,7 +77,7 @@ class ExportWorkerService {
       return;
     }
 
-    this.readyPromise = new Promise((resolve, reject) => {
+    this.readyPromise = new Promise((resolve) => {
       try {
         // Create worker using Webpack's worker-loader syntax
         this.worker = new Worker(
@@ -97,7 +111,7 @@ class ExportWorkerService {
             
             if (response.success) {
               // Reconstruct ImageData from transferred buffer if needed
-              if (response.result && response.result.data && response.result.width && response.result.height) {
+              if (isImageDataResult(response.result)) {
                 const { data: dataArray, width, height } = response.result;
                 try {
                   // Create a new Uint8ClampedArray with a fresh ArrayBuffer
@@ -168,9 +182,9 @@ class ExportWorkerService {
   /**
    * Send a message to the worker and wait for response
    */
-  private async sendMessage<T>(
+  private async sendMessage<T extends ExportWorkerResult>(
     type: ExportWorkerMessageType,
-    payload: any,
+    payload: ExportWorkerPayload,
     transferables?: Transferable[]
   ): Promise<T> {
     await this.initializeWorker();
@@ -183,7 +197,10 @@ class ExportWorkerService {
     const request: ExportWorkerRequest = { id, type, payload };
 
     return new Promise((resolve, reject) => {
-      this.pendingRequests.set(id, { resolve, reject });
+      this.pendingRequests.set(id, {
+        resolve: (result) => resolve(result as T),
+        reject,
+      });
 
       // Set timeout for the request
       const timeout = setTimeout(() => {
@@ -195,7 +212,7 @@ class ExportWorkerService {
       this.pendingRequests.set(id, {
         resolve: (result) => {
           clearTimeout(timeout);
-          resolve(result);
+          resolve(result as T);
         },
         reject: (error) => {
           clearTimeout(timeout);

@@ -60,7 +60,6 @@ export function SponsorButton({ className, variant = 'bar' }: SponsorButtonProps
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <MovingBorderButton
-          as="button"
           borderRadius="0.5rem"
           containerClassName={cn("h-10", className)}
           borderClassName=""
@@ -170,4 +169,3 @@ function SponsorContent({
     </div>
   );
 }
-

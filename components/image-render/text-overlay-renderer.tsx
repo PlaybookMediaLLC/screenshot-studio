@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { useImageStore } from '@/lib/store';
 import { getFontCSS } from '@/lib/constants/fonts';
 
@@ -34,7 +35,7 @@ export const TextOverlayRenderer = () => {
               fontFamily: getFontCSS(overlay.fontFamily),
               color: overlay.color,
               opacity: overlay.opacity,
-              writingMode: writingMode as any,
+              writingMode: writingMode as CSSProperties['writingMode'],
               whiteSpace: 'nowrap',
               ...textShadowStyle,
             }}
@@ -46,4 +47,3 @@ export const TextOverlayRenderer = () => {
     </>
   );
 };
-

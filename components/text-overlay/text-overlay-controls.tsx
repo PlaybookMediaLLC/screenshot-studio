@@ -46,7 +46,7 @@ export const TextOverlayControls = () => {
       editInputRef.current.focus();
       editInputRef.current.select();
     }
-  }, [selectedOverlayId]);
+  }, [selectedOverlay]);
 
   const handleAddText = () => {
     const availableWeights = getAvailableFontWeights('system');

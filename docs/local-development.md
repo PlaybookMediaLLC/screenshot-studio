@@ -36,8 +36,9 @@ The stack contains:
 - Supabase Storage, PgBouncer, and Imgproxy in front of MinIO.
 
 Supabase Storage is private. The server-only storage client creates object keys
-under `tenants/<tenant-id>/assets/<asset-id>/`. Public upload routes are not
-enabled until Better Auth and tenant authorization are implemented.
+under `tenants/<tenant-id>/assets/<asset-id>/`. Local setup also generates
+Better Auth and audit secrets. Do not copy `.local/dev.env` to another
+environment.
 
 Cache cleanup and invalidation use the generated `CLEANUP_SECRET` in the
 `x-screenshot-studio-maintenance-secret` request header. It is server-only;
@@ -45,9 +46,10 @@ never send it from the browser.
 
 ## Quality checks
 
-Run `make check` before you commit. It checks format, lint, TypeScript, file
-size, function size, complexity, nesting, and parameter count for the server
-boundary. `npm install` installs the same check as the Git pre-commit hook.
+Run `make check` before you commit. It checks format, lint, TypeScript, unit
+tests, file size, function size, complexity, nesting, and parameter count for
+the server boundary. `npm install` installs the same check as the Git
+pre-commit hook.
 
 ## Trigger.dev Cloud development
 
@@ -62,6 +64,11 @@ make trigger-dev
 
 The Trigger.dev account and project reference are the only values the local CLI
 cannot generate. It does not self-host Trigger.dev.
+
+Trigger.dev also dispatches pending SIEM audit-drain events every minute and
+purges expired audit records daily. See [authentication and enterprise
+access](authentication.md) for production-only credentials and database-role
+requirements.
 
 ## Production task deployment
 

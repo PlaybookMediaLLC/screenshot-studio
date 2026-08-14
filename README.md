@@ -51,6 +51,10 @@ For the hot-reload local stack, Trigger.dev development worker, Supabase Storage
 MinIO, and Kind commands, see [local development](docs/local-development.md).
 Start with `make help` to view the team workflow.
 
+Better Auth, fixed organization RBAC, SSO, SCIM, audit logs, retention, and
+SIEM drains are documented in [authentication and enterprise
+access](docs/authentication.md).
+
 ## Tech Stack
 
 Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Zustand · Radix UI · Motion · FFmpeg WASM · WebCodecs

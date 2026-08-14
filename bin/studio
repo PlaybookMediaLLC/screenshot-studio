@@ -18,6 +18,19 @@ random_hex() {
   openssl rand -hex "$1"
 }
 
+random_base64() {
+  openssl rand -base64 "$1" | tr -d '\n'
+}
+
+ensure_env_value() {
+  local key="$1"
+  local value="$2"
+
+  if ! grep -q "^${key}=" "$LOCAL_ENV"; then
+    printf '%s=%s\n' "$key" "$value" >>"$LOCAL_ENV"
+  fi
+}
+
 create_storage_key() {
   node - "$1" <<'NODE'
 const crypto = require("node:crypto");
@@ -37,6 +50,7 @@ NODE
 
 ensure_env() {
   if [[ -f "$LOCAL_ENV" ]]; then
+    local database_url
     node - "$LOCAL_ENV" <<'NODE'
 const fs = require("node:fs");
 const [file] = process.argv.slice(2);
@@ -47,10 +61,16 @@ const next = current.replace(
 );
     if (next !== current) fs.writeFileSync(file, next);
 NODE
-    if ! grep -q '^CLEANUP_SECRET=' "$LOCAL_ENV"; then
-      printf '\nCLEANUP_SECRET=%s\n' "$(random_hex 32)" >>"$LOCAL_ENV"
-      chmod 600 "$LOCAL_ENV"
-    fi
+    ensure_env_value CLEANUP_SECRET "$(random_hex 32)"
+    ensure_env_value BETTER_AUTH_SECRET "$(random_hex 32)"
+    ensure_env_value AUDIT_IP_HASH_SECRET "$(random_hex 32)"
+    ensure_env_value AUDIT_DRAIN_ENCRYPTION_KEY "$(random_base64 32)"
+    ensure_env_value BETTER_AUTH_URL "http://localhost:3000"
+    ensure_env_value NEXT_PUBLIC_APP_URL "http://localhost:3000"
+    ensure_env_value BETTER_AUTH_TRUSTED_ORIGINS "http://localhost:3000"
+    database_url="$(grep '^DATABASE_URL=' "$LOCAL_ENV" | cut -d= -f2-)"
+    ensure_env_value AUDIT_RETENTION_DATABASE_URL "$database_url"
+    chmod 600 "$LOCAL_ENV"
     return
   fi
 
@@ -62,6 +82,9 @@ NODE
   local storage_jwt_secret
   local storage_service_key
   local cleanup_secret
+  local better_auth_secret
+  local audit_ip_hash_secret
+  local audit_drain_encryption_key
 
   postgres_super_password="$(random_hex 24)"
   postgres_app_password="$(random_hex 24)"
@@ -70,6 +93,9 @@ NODE
   storage_jwt_secret="$(random_hex 32)"
   storage_service_key="$(create_storage_key "$storage_jwt_secret")"
   cleanup_secret="$(random_hex 32)"
+  better_auth_secret="$(random_hex 32)"
+  audit_ip_hash_secret="$(random_hex 32)"
+  audit_drain_encryption_key="$(random_base64 32)"
 
   umask 077
   cat >"$LOCAL_ENV" <<EOF
@@ -82,7 +108,14 @@ STORAGE_JWT_SECRET=$storage_jwt_secret
 STORAGE_SERVICE_KEY=$storage_service_key
 STORAGE_BUCKET=tenant-assets
 CLEANUP_SECRET=$cleanup_secret
+BETTER_AUTH_SECRET=$better_auth_secret
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+AUDIT_IP_HASH_SECRET=$audit_ip_hash_secret
+AUDIT_DRAIN_ENCRYPTION_KEY=$audit_drain_encryption_key
 DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@postgres:5432/screenshot_studio?schema=public
+AUDIT_RETENTION_DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@postgres:5432/screenshot_studio?schema=public
 HOST_DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@127.0.0.1:54329/screenshot_studio?schema=public
 STORAGE_DATABASE_URL=postgresql://postgres:$postgres_super_password@postgres:5432/storage
 STORAGE_DATABASE_POOL_URL=postgresql://postgres:$postgres_super_password@pgbouncer:6432/postgres
@@ -134,7 +167,14 @@ STORAGE_JWT_SECRET=$STORAGE_JWT_SECRET
 STORAGE_SERVICE_KEY=$STORAGE_SERVICE_KEY
 STORAGE_BUCKET=$STORAGE_BUCKET
 CLEANUP_SECRET=$CLEANUP_SECRET
+BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+AUDIT_IP_HASH_SECRET=$AUDIT_IP_HASH_SECRET
+AUDIT_DRAIN_ENCRYPTION_KEY=$AUDIT_DRAIN_ENCRYPTION_KEY
 DATABASE_URL=postgresql://screenshot_studio:$POSTGRES_APP_PASSWORD@screenshot-studio-postgres:5432/screenshot_studio?schema=public
+AUDIT_RETENTION_DATABASE_URL=postgresql://screenshot_studio:$POSTGRES_APP_PASSWORD@screenshot-studio-postgres:5432/screenshot_studio?schema=public
 STORAGE_DATABASE_URL=postgresql://postgres:$POSTGRES_SUPER_PASSWORD@screenshot-studio-postgres:5432/storage
 STORAGE_DATABASE_POOL_URL=postgresql://postgres:$POSTGRES_SUPER_PASSWORD@screenshot-studio-pgbouncer:6432/postgres
 STORAGE_API_URL=http://screenshot-studio-storage:5000
@@ -194,6 +234,7 @@ smoke() {
     --header "authorization: Bearer $STORAGE_SERVICE_KEY" \
     --header "apikey: $STORAGE_SERVICE_KEY" >/dev/null
   wait_for_http "http://127.0.0.1:3000/api/health" "Screenshot Studio"
+  wait_for_http "http://127.0.0.1:3000/api/auth/ok" "Better Auth"
   [[ "$(curl --silent --output /dev/null --write-out '%{http_code}' --request POST \
     --header 'content-type: application/json' --data '{}' \
     http://127.0.0.1:3000/api/screenshot/invalidate)" == "401" ]]

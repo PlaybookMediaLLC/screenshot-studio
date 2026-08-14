@@ -22,8 +22,8 @@ Use:
 - Trigger.dev Cloud for processing, rendering, and scheduling work.
 - Postiz as the first scheduler connector and local integration fixture.
 
-Buffer, Post Bridge, extra social providers, enterprise SSO or SCIM, and a
-separate API service are later work. The connector contract in RFC 005 keeps
+Buffer, Post Bridge, and a separate API service are later work. Enterprise SSO
+and SCIM are available to entitled organizations. The connector contract in RFC 005 keeps
 those additions possible without making them MVP dependencies.
 
 `Dark` was not identified from the current request. It is not a selected local
@@ -52,7 +52,7 @@ type is complete.
 
 | Capability | MVP behavior | Explicit limit |
 | --- | --- | --- |
-| Sign-in and tenancy | Email sign-in, active organization, owner/admin/creator/approver/publisher/viewer roles | SSO and SCIM are enterprise follow-up work |
+| Sign-in and tenancy | Email, Google, Microsoft, GitHub, active organization, and fixed roles | SSO and SCIM require enterprise entitlement and TOTP |
 | Brand kit | Name, logo asset, colors, font-family tokens, spacing/radius, tone, default CTA, and immutable published version | No custom design-system builder |
 | Release inputs | Manual Markdown, media upload, GitHub release webhook, GitLab release/tag webhook, generic signed changelog webhook, and API-key intake | One normalized release format |
 | Remote upload | API key creates an upload intent; browser or customer uploads directly to private R2; worker validates it | No large file proxy through Next.js |

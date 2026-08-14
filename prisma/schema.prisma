@@ -7,16 +7,351 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id               String               @id
+  name             String
+  email            String
+  emailVerified    Boolean              @default(false)
+  image            String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  twoFactorEnabled Boolean?             @default(false)
+  accounts         Account[]
+  auditLogs        AuditLog[]           @relation("AuditActor")
+  invitations      Invitation[]
+  members          Member[]
+  sessions         Session[]
+  ssoProviders     SsoProvider[]
+  supportGrants    SupportAccessGrant[]
+  twoFactors       TwoFactor[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id                   String   @id
+  expiresAt            DateTime
+  token                String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  activeOrganizationId String?
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model Organization {
+  id                 String                          @id
+  name               String
+  slug               String
+  logo               String?
+  createdAt          DateTime
+  metadata           String?
+  auditDrains        AuditDrain[]
+  auditLogs          AuditLog[]
+  enterpriseSettings OrganizationEnterpriseSettings?
+  invitations        Invitation[]
+  members            Member[]
+  retentionPolicy    AuditRetentionPolicy?
+  supportGrants      SupportAccessGrant[]
+
+  @@unique([slug])
+  @@map("organization")
+}
+
+model Member {
+  id             String       @id
+  organizationId String
+  userId         String
+  role           String       @default("member")
+  createdAt      DateTime
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("member")
+}
+
+model Invitation {
+  id             String       @id
+  organizationId String
+  email          String
+  role           String?
+  status         String       @default("pending")
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  inviterId      String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("invitation")
+}
+
+model Apikey {
+  id                  String    @id
+  configId            String    @default("default")
+  name                String?
+  start               String?
+  referenceId         String
+  prefix              String?
+  key                 String
+  refillInterval      Int?
+  refillAmount        Int?
+  lastRefillAt        DateTime?
+  enabled             Boolean?  @default(true)
+  rateLimitEnabled    Boolean?  @default(true)
+  rateLimitTimeWindow Int?      @default(60000)
+  rateLimitMax        Int?      @default(60)
+  requestCount        Int?      @default(0)
+  remaining           Int?
+  lastRequest         DateTime?
+  expiresAt           DateTime?
+  createdAt           DateTime
+  updatedAt           DateTime
+  permissions         String?
+  metadata            String?
+
+  @@index([configId])
+  @@index([referenceId])
+  @@index([key])
+  @@map("apikey")
+}
+
+model TwoFactor {
+  id                      String    @id
+  secret                  String
+  backupCodes             String
+  userId                  String
+  verified                Boolean?  @default(true)
+  failedVerificationCount Int?      @default(0)
+  lockedUntil             DateTime?
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([secret])
+  @@index([userId])
+  @@map("twoFactor")
+}
+
+model SsoProvider {
+  id             String   @id
+  issuer         String
+  oidcConfig     String?
+  samlConfig     String?
+  userId         String
+  providerId     String
+  organizationId String?
+  domain         String
+  domainVerified Boolean?
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId])
+  @@index([organizationId])
+  @@map("ssoProvider")
+}
+
+model ScimProvider {
+  id             String  @id
+  providerId     String
+  scimToken      String
+  organizationId String?
+  userId         String?
+
+  @@unique([providerId])
+  @@unique([scimToken])
+  @@index([organizationId])
+  @@map("scimProvider")
+}
+
+model OrganizationEnterpriseSettings {
+  organizationId String       @id
+  ssoEnabled     Boolean      @default(false)
+  scimEnabled    Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("organization_enterprise_settings")
+}
+
+model AuditLog {
+  id               String         @id @default(cuid())
+  organizationId   String
+  createdAt        DateTime       @default(now())
+  requestId        String
+  actorType        AuditActorType
+  actorUserId      String?
+  actorDisplay     String?
+  action           String
+  outcome          AuditOutcome   @default(SUCCEEDED)
+  entityType       String
+  entityId         String?
+  ipHash           String?
+  userAgentSummary String?
+  metadata         Json?
+  searchText       String         @default("")
+  actor            User?          @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  outbox           AuditOutbox?
+
+  @@index([organizationId, createdAt, id])
+  @@index([organizationId, action, createdAt])
+  @@index([organizationId, actorUserId, createdAt])
+  @@map("audit_log")
+}
+
+model AuditRetentionPolicy {
+  organizationId String       @id
+  retentionDays  Int          @default(90)
+  legalHold      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("audit_retention_policy")
+}
+
+model AuditDrain {
+  id                     String               @id @default(cuid())
+  organizationId         String
+  name                   String
+  provider               AuditDrainProvider   @default(GENERIC)
+  endpoint               String
+  encryptedSigningSecret String
+  enabled                Boolean              @default(true)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  organization           Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deliveries             AuditDrainDelivery[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, enabled])
+  @@map("audit_drain")
+}
+
+model AuditOutbox {
+  id         String               @id @default(cuid())
+  auditLogId String               @unique
+  createdAt  DateTime             @default(now())
+  auditLog   AuditLog             @relation(fields: [auditLogId], references: [id], onDelete: Cascade)
+  deliveries AuditDrainDelivery[]
+
+  @@map("audit_outbox")
+}
+
+model AuditDrainDelivery {
+  id            String                   @id @default(cuid())
+  drainId       String
+  outboxId      String
+  status        AuditDrainDeliveryStatus @default(PENDING)
+  attemptCount  Int                      @default(0)
+  nextAttemptAt DateTime                 @default(now())
+  lastError     String?
+  responseCode  Int?
+  deliveredAt   DateTime?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  drain         AuditDrain               @relation(fields: [drainId], references: [id], onDelete: Cascade)
+  outbox        AuditOutbox              @relation(fields: [outboxId], references: [id], onDelete: Cascade)
+
+  @@unique([drainId, outboxId])
+  @@index([status, nextAttemptAt])
+  @@map("audit_drain_delivery")
+}
+
+model SupportAccessGrant {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String
+  purpose        String
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, expiresAt])
+  @@index([userId, expiresAt])
+  @@map("support_access_grant")
+}
+
 model ScreenshotCache {
-  id        String   @id @default(cuid())
-  urlHash   String   @unique
-  url       String
-  cloudinaryPublicId String @unique
-  cloudinaryUrl     String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  urlHash            String   @unique
+  url                String
+  cloudinaryPublicId String   @unique
+  cloudinaryUrl      String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@index([urlHash])
   @@index([createdAt])
   @@map("screenshot_cache")
+}
+
+enum AuditActorType {
+  USER
+  SERVICE
+  SUPPORT
+  WEBHOOK
+}
+
+enum AuditOutcome {
+  SUCCEEDED
+  FAILED
+  DENIED
+}
+
+enum AuditDrainProvider {
+  GENERIC
+  SPLUNK
+  DATADOG
+}
+
+enum AuditDrainDeliveryStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  FAILED
 }

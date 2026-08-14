@@ -51,10 +51,15 @@ export default defineConfig([
   {
     files: [
       'app/api/cleanup-cache/route.ts',
+      'app/api/auth/**/*.ts',
+      'app/api/audit-logs/**/*.ts',
+      'app/api/enterprise/**/*.ts',
       'app/api/export/route.ts',
       'app/api/image-proxy/route.ts',
       'app/api/screenshot/**/*.ts',
       'lib/api/**/*.ts',
+      'lib/audit/**/*.ts',
+      'lib/auth/**/*.ts',
       'lib/rate-limit.ts',
       'lib/redis.ts',
       'lib/screenshot-cache.ts',

@@ -175,7 +175,9 @@ export async function invalidateCache(url: string): Promise<void> {
     return
   }
 
-  await deleteFromR2(entries.map((entry) => entry.cloudinaryPublicId))
+  await deleteFromR2(
+    entries.map((entry: { cloudinaryPublicId: string }) => entry.cloudinaryPublicId)
+  )
   await prisma.screenshotCache.deleteMany({ where: { url: { in: cacheUrls } } })
 }
 
@@ -193,6 +195,8 @@ export async function clearOldCache(maxAgeMs: number = CACHE_MAX_AGE_MS): Promis
     return
   }
 
-  await deleteFromR2(entries.map((entry) => entry.cloudinaryPublicId))
+  await deleteFromR2(
+    entries.map((entry: { cloudinaryPublicId: string }) => entry.cloudinaryPublicId)
+  )
   await prisma.screenshotCache.deleteMany({ where: { createdAt: { lt: cutoff } } })
 }

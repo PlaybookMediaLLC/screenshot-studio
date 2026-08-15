@@ -23,6 +23,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio
       - run: npm run quality:check
       - name: Validate local development configuration
         run: |
@@ -64,6 +67,7 @@ jobs:
       - name: Install browser test dependencies
         run: |
           npm ci
+          DATABASE_URL=postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio npx prisma generate
           npx playwright install --with-deps chromium
       - name: Start and smoke-test the local stack
         run: ./bin/studio up

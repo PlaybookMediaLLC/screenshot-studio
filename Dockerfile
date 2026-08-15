@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 FROM node:22-bookworm-slim AS base
 
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -11,7 +12,7 @@ FROM base AS dependencies
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci --prefer-offline --no-audit
 
 FROM dependencies AS builder
 
@@ -38,6 +39,15 @@ RUN npm run build
 RUN if [ -n "$NEXT_PUBLIC_R2_PUBLIC_URL" ]; then \
       rm -rf public/assets public/mac public/mesh public/paper public/pattern public/radiant public/raycast; \
     fi
+
+FROM dependencies AS migrate
+
+WORKDIR /app
+
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+
+CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
 
 FROM base AS runner
 

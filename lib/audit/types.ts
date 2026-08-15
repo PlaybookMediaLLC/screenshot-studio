@@ -13,6 +13,12 @@ export const auditActions = [
   'identity.scim_connection_removed',
   'identity.sso_configured',
   'identity.sso_removed',
+  'post.cancelled',
+  'post.connection_created',
+  'post.publish_failed',
+  'post.publish_recovery_required',
+  'post.published',
+  'post.scheduled',
   'support.access_granted',
   'support.access_revoked',
 ] as const

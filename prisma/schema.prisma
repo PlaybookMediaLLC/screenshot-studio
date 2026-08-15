@@ -8,22 +8,30 @@ datasource db {
 }
 
 model User {
-  id               String               @id
-  name             String
-  email            String
-  emailVerified    Boolean              @default(false)
-  image            String?
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  twoFactorEnabled Boolean?             @default(false)
-  accounts         Account[]
-  auditLogs        AuditLog[]           @relation("AuditActor")
-  invitations      Invitation[]
-  members          Member[]
-  sessions         Session[]
-  ssoProviders     SsoProvider[]
-  supportGrants    SupportAccessGrant[]
-  twoFactors       TwoFactor[]
+  id                     String               @id
+  name                   String
+  email                  String
+  emailVerified          Boolean              @default(false)
+  image                  String?
+  role                   String?              @default("user")
+  banned                 Boolean?             @default(false)
+  banReason              String?
+  banExpires             DateTime?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  twoFactorEnabled       Boolean?             @default(false)
+  accounts               Account[]
+  auditLogs              AuditLog[]           @relation("AuditActor")
+  approvedSupportGrants  SupportAccessGrant[] @relation("SupportGrantApprover")
+  createdReleases        Release[]            @relation("ReleaseCreator")
+  createdVariants        CreativeVariant[]    @relation("VariantCreator")
+  invitations            Invitation[]
+  members                Member[]
+  requestedSupportGrants SupportAccessGrant[] @relation("SupportGrantRequester")
+  sessions               Session[]
+  ssoProviders           SsoProvider[]
+  supportGrants          SupportAccessGrant[] @relation("SupportGrantUser")
+  twoFactors             TwoFactor[]
 
   @@unique([email])
   @@map("user")
@@ -79,19 +87,36 @@ model Verification {
 }
 
 model Organization {
-  id                 String                          @id
-  name               String
-  slug               String
-  logo               String?
-  createdAt          DateTime
-  metadata           String?
-  auditDrains        AuditDrain[]
-  auditLogs          AuditLog[]
-  enterpriseSettings OrganizationEnterpriseSettings?
-  invitations        Invitation[]
-  members            Member[]
-  retentionPolicy    AuditRetentionPolicy?
-  supportGrants      SupportAccessGrant[]
+  id                     String                          @id
+  name                   String
+  slug                   String
+  logo                   String?
+  createdAt              DateTime
+  metadata               String?
+  auditDrains            AuditDrain[]
+  auditLogs              AuditLog[]
+  assets                 Asset[]
+  brandKits              BrandKit[]
+  captureJobs            CaptureJob[]
+  captures               Capture[]
+  channelConnections     ChannelConnection[]
+  creativeTemplates      CreativeTemplate[]
+  creativeVariants       CreativeVariant[]
+  communicationAttempts  CommunicationAttempt[]
+  customerCommunications CustomerCommunication[]
+  enterpriseSettings     OrganizationEnterpriseSettings?
+  invitations            Invitation[]
+  members                Member[]
+  outboxEvents           OutboxEvent[]
+  publicationAttempts    PublicationAttempt[]
+  releases               Release[]
+  releaseDocuments       ReleaseDocument[]
+  retentionPolicy        AuditRetentionPolicy?
+  scheduledPosts         ScheduledPost[]
+  sourceApps             SourceApp[]
+  supportGrants          SupportAccessGrant[]
+  captureRecipes         CaptureRecipe[]
+  approvals              Approval[]
 
   @@unique([slug])
   @@map("organization")
@@ -301,15 +326,20 @@ model AuditDrainDelivery {
 }
 
 model SupportAccessGrant {
-  id             String       @id @default(cuid())
-  organizationId String
-  userId         String
-  purpose        String
-  expiresAt      DateTime
-  revokedAt      DateTime?
-  createdAt      DateTime     @default(now())
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String       @id @default(cuid())
+  organizationId    String
+  userId            String
+  purpose           String
+  scope             String       @default("metadata:read")
+  requestedByUserId String?
+  approvedByUserId  String?
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  createdAt         DateTime     @default(now())
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  approvedByUser    User?        @relation("SupportGrantApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  requestedByUser   User?        @relation("SupportGrantRequester", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  user              User         @relation("SupportGrantUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, expiresAt])
   @@index([userId, expiresAt])
@@ -328,6 +358,365 @@ model ScreenshotCache {
   @@index([urlHash])
   @@index([createdAt])
   @@map("screenshot_cache")
+}
+
+model BrandKit {
+  id             String                  @id @default(cuid())
+  organizationId String
+  name           String
+  version        Int
+  definition     Json
+  status         VersionedResourceStatus @default(DRAFT)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  variants       CreativeVariant[]
+
+  @@unique([organizationId, name, version])
+  @@index([organizationId, createdAt])
+  @@map("brand_kit")
+}
+
+model SourceApp {
+  id              String                  @id @default(cuid())
+  organizationId  String
+  name            String
+  provider        String                  @default("generic")
+  externalId      String?
+  secretReference String?
+  allowedHosts    Json
+  status          VersionedResourceStatus @default(DRAFT)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  organization    Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recipes         CaptureRecipe[]
+
+  @@unique([organizationId, name])
+  @@unique([provider, externalId])
+  @@index([organizationId, createdAt])
+  @@map("source_app")
+}
+
+model CaptureRecipe {
+  id              String                  @id @default(cuid())
+  organizationId  String
+  sourceAppId     String
+  name            String
+  version         Int
+  definition      Json
+  secretReference String?
+  status          VersionedResourceStatus @default(DRAFT)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  organization    Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sourceApp       SourceApp               @relation(fields: [sourceAppId], references: [id], onDelete: Restrict)
+  jobs            CaptureJob[]
+
+  @@unique([organizationId, name, version])
+  @@index([organizationId, createdAt])
+  @@index([sourceAppId])
+  @@map("capture_recipe")
+}
+
+model CreativeTemplate {
+  id             String                  @id @default(cuid())
+  organizationId String
+  name           String
+  version        Int
+  definition     Json
+  status         VersionedResourceStatus @default(DRAFT)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  variants       CreativeVariant[]
+
+  @@unique([organizationId, name, version])
+  @@index([organizationId, createdAt])
+  @@map("creative_template")
+}
+
+model Release {
+  id               String            @id @default(cuid())
+  organizationId   String
+  title            String
+  benefitStatement String
+  status           ReleaseStatus     @default(DRAFT)
+  createdByUserId  String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdByUser    User?             @relation("ReleaseCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  captures         Capture[]
+  captureJobs      CaptureJob[]
+  documents        ReleaseDocument[]
+  variants         CreativeVariant[]
+
+  @@index([organizationId, status, updatedAt])
+  @@index([organizationId, createdAt])
+  @@map("release")
+}
+
+model ReleaseDocument {
+  id               String                  @id @default(cuid())
+  organizationId   String
+  releaseId        String
+  revision         Int
+  frontMatter      Json
+  bodyMarkdown     String
+  status           ReleaseDocumentStatus   @default(DRAFT)
+  approvedByUserId String?
+  approvedAt       DateTime?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  release          Release                 @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  communications   CustomerCommunication[]
+
+  @@unique([releaseId, revision])
+  @@index([organizationId, createdAt])
+  @@map("release_document")
+}
+
+model CustomerCommunication {
+  id                String                       @id @default(cuid())
+  organizationId    String
+  releaseDocumentId String
+  channel           CustomerCommunicationChannel
+  audienceReference String?
+  status            CustomerCommunicationStatus  @default(DRAFT)
+  scheduledFor      DateTime?
+  ctaUrl            String?
+  idempotencyKey    String
+  triggerRunId      String?
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+  organization      Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  releaseDocument   ReleaseDocument              @relation(fields: [releaseDocumentId], references: [id], onDelete: Cascade)
+  attempts          CommunicationAttempt[]
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, status, scheduledFor])
+  @@map("customer_communication")
+}
+
+model CommunicationAttempt {
+  id                      String                @id @default(cuid())
+  organizationId          String
+  customerCommunicationId String
+  attemptNumber           Int
+  startedAt               DateTime              @default(now())
+  completedAt             DateTime?
+  outcome                 AttemptOutcome?
+  providerMessageId       String?
+  failureCode             String?
+  organization            Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customerCommunication   CustomerCommunication @relation(fields: [customerCommunicationId], references: [id], onDelete: Cascade)
+
+  @@unique([customerCommunicationId, attemptNumber])
+  @@index([organizationId, startedAt])
+  @@map("communication_attempt")
+}
+
+model CaptureJob {
+  id             String          @id @default(cuid())
+  organizationId String
+  releaseId      String
+  recipeId       String
+  recipeVersion  Int
+  status         ExecutionStatus @default(QUEUED)
+  idempotencyKey String
+  triggerRunId   String?
+  attempts       Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  release        Release         @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  recipe         CaptureRecipe   @relation(fields: [recipeId], references: [id], onDelete: Restrict)
+  captures       Capture[]
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, createdAt])
+  @@map("capture_job")
+}
+
+model Capture {
+  id             String          @id @default(cuid())
+  organizationId String
+  releaseId      String
+  captureJobId   String
+  recipeId       String
+  recipeVersion  Int
+  sourceUrl      String
+  provider       String
+  status         ExecutionStatus @default(QUEUED)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  failureCode    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  release        Release         @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  captureJob     CaptureJob      @relation(fields: [captureJobId], references: [id], onDelete: Cascade)
+  assets         Asset[]
+
+  @@index([organizationId, createdAt])
+  @@index([releaseId])
+  @@map("capture")
+}
+
+model Asset {
+  id             String            @id @default(cuid())
+  organizationId String
+  captureId      String?
+  parentAssetId  String?
+  objectKey      String            @unique
+  sha256         String?
+  mediaType      String
+  bytes          Int
+  width          Int?
+  height         Int?
+  status         AssetStatus       @default(PENDING)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  capture        Capture?          @relation(fields: [captureId], references: [id], onDelete: SetNull)
+  parentAsset    Asset?            @relation("AssetDerivation", fields: [parentAssetId], references: [id], onDelete: SetNull)
+  derivedAssets  Asset[]           @relation("AssetDerivation")
+  sourceVariants CreativeVariant[] @relation("VariantSourceAsset")
+
+  @@index([organizationId, createdAt])
+  @@index([captureId])
+  @@map("asset")
+}
+
+model CreativeVariant {
+  id              String           @id @default(cuid())
+  organizationId  String
+  releaseId       String
+  sourceAssetId   String
+  brandKitId      String
+  brandKitVersion Int
+  templateId      String
+  templateVersion Int
+  revision        Int
+  aspectRatio     String
+  status          VariantStatus    @default(DRAFT)
+  createdByUserId String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  release         Release          @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  sourceAsset     Asset            @relation("VariantSourceAsset", fields: [sourceAssetId], references: [id], onDelete: Restrict)
+  brandKit        BrandKit         @relation(fields: [brandKitId], references: [id], onDelete: Restrict)
+  template        CreativeTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  createdByUser   User             @relation("VariantCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  approval        Approval?
+  scheduledPosts  ScheduledPost[]
+
+  @@unique([releaseId, aspectRatio, revision])
+  @@index([organizationId, createdAt])
+  @@map("creative_variant")
+}
+
+model Approval {
+  id              String          @id @default(cuid())
+  organizationId  String
+  variantId       String          @unique
+  status          ApprovalStatus  @default(PENDING)
+  decidedByUserId String?
+  decidedAt       DateTime?
+  reason          String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  variant         CreativeVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("approval")
+}
+
+model ChannelConnection {
+  id                String           @id @default(cuid())
+  organizationId    String
+  provider          String
+  externalAccountId String
+  platform          String           @default("x")
+  providerSettings  Json             @default("{}")
+  secretReference   String
+  status            ConnectionStatus @default(ACTIVE)
+  createdByUserId   String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scheduledPosts    ScheduledPost[]
+
+  @@unique([organizationId, provider, externalAccountId])
+  @@index([organizationId, createdAt])
+  @@map("channel_connection")
+}
+
+model ScheduledPost {
+  id                  String               @id @default(cuid())
+  organizationId      String
+  variantId           String
+  channelConnectionId String
+  scheduledFor        DateTime
+  status              ScheduledPostStatus  @default(DRAFT)
+  caption             String
+  idempotencyKey      String
+  triggerRunId        String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  organization        Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  variant             CreativeVariant      @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  channelConnection   ChannelConnection    @relation(fields: [channelConnectionId], references: [id], onDelete: Restrict)
+  attempts            PublicationAttempt[]
+
+  @@unique([channelConnectionId, idempotencyKey])
+  @@index([organizationId, status, scheduledFor])
+  @@index([status, updatedAt])
+  @@map("scheduled_post")
+}
+
+model PublicationAttempt {
+  id              String          @id @default(cuid())
+  organizationId  String
+  scheduledPostId String
+  attemptNumber   Int
+  startedAt       DateTime        @default(now())
+  completedAt     DateTime?
+  outcome         AttemptOutcome?
+  providerPostId  String?
+  failureCode     String?
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scheduledPost   ScheduledPost   @relation(fields: [scheduledPostId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduledPostId, attemptNumber])
+  @@index([organizationId, startedAt])
+  @@map("publication_attempt")
+}
+
+model OutboxEvent {
+  id             String       @id @default(cuid())
+  organizationId String
+  type           String
+  aggregateType  String
+  aggregateId    String
+  payload        Json
+  idempotencyKey String
+  processingAt   DateTime?
+  attempts       Int          @default(0)
+  lastError      String?
+  deadLetteredAt DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([deadLetteredAt, createdAt])
+  @@index([deliveredAt, createdAt])
+  @@index([organizationId, createdAt])
+  @@map("outbox_event")
 }
 
 enum AuditActorType {
@@ -353,5 +742,87 @@ enum AuditDrainDeliveryStatus {
   PENDING
   PROCESSING
   DELIVERED
+  FAILED
+}
+
+enum VersionedResourceStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ReleaseStatus {
+  DRAFT
+  READY
+  ARCHIVED
+  CANCELLED
+}
+
+enum ReleaseDocumentStatus {
+  DRAFT
+  APPROVED
+  ARCHIVED
+}
+
+enum CustomerCommunicationChannel {
+  CHANGELOG
+  IN_APP
+  EMAIL
+  SOCIAL
+}
+
+enum CustomerCommunicationStatus {
+  DRAFT
+  SCHEDULED
+  PROCESSING
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum ExecutionStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum AssetStatus {
+  PENDING
+  UPLOADED
+  FAILED
+  DELETED
+}
+
+enum VariantStatus {
+  DRAFT
+  APPROVED
+  ARCHIVED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ConnectionStatus {
+  ACTIVE
+  DISABLED
+  REVOKED
+}
+
+enum ScheduledPostStatus {
+  DRAFT
+  SCHEDULED
+  PROCESSING
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
+
+enum AttemptOutcome {
+  SUCCEEDED
   FAILED
 }

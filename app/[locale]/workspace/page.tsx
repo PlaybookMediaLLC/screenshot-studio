@@ -11,13 +11,17 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
   const [{ locale }, requestHeaders] = await Promise.all([params, headers()])
   const access = await getPageAccess(requestHeaders)
   if (!access) redirect(getLocalizedPath(locale, '/sign-in'))
-  if (!access.hasOrganization) redirect(getLocalizedPath(locale, '/onboarding'))
+  if (!access.hasOrganization || !access.organization) {
+    redirect(getLocalizedPath(locale, '/onboarding'))
+  }
 
   return (
     <WorkspaceSettings
       email={access.session.user.email}
       name={access.session.user.name || ''}
-      organizationName={access.organization?.name ?? 'Workspace'}
+      organization={access.organization}
+      role={access.role}
+      twoFactorEnabled={Boolean(access.session.user.twoFactorEnabled)}
     />
   )
 }

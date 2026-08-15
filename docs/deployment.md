@@ -97,6 +97,20 @@ Production authentication and audit logging require the values in
 PlanetScale database role for `AUDIT_RETENTION_DATABASE_URL`; the web app role
 must not update or delete audit records.
 
+## Database migrations
+
+Apply the reviewed Prisma migration to the PlanetScale development branch
+before deploying code that depends on it:
+
+```sh
+npm run db:migrate:status
+npm run db:migrate:deploy
+```
+
+Use `npm run db:push` only for the disposable local Compose database. Do not
+use it against PlanetScale or any production environment. Record the target
+branch, migration name, operator, and result in the release record.
+
 ## Kubernetes
 
 ```sh

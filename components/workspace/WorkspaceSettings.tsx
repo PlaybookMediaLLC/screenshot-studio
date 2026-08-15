@@ -12,26 +12,33 @@ import {
   UserGroupIcon,
   UserSettings01Icon,
 } from 'hugeicons-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 import { AccountMenu } from '@/components/auth/AccountMenu'
-import { ProfileForm } from '@/components/auth/ProfileForm'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { WorkspaceSettingDetail } from './WorkspaceSettingDetail'
 
 type SettingsIcon = typeof Building02Icon
-type SettingId = 'profile' | 'general' | 'members' | 'roles' | 'security' | 'sso' | 'audit' | 'brand' | 'api'
+export type SettingId =
+  'profile' | 'general' | 'members' | 'roles' | 'security' | 'sso' | 'audit' | 'brand' | 'api'
 type ViewId = 'overview' | SettingId
 
-type SettingItem = {
+export type SettingItem = {
   description: string
   icon: SettingsIcon
   id: SettingId
   title: string
 }
 
-type WorkspaceSettingsProps = {
+export type WorkspaceSettingsProps = {
   email: string
   name: string
-  organizationName: string
+  organization: { id: string; name: string; slug: string }
+  role: string
+  twoFactorEnabled: boolean
 }
 
 const settings: SettingItem[] = [
@@ -97,80 +104,72 @@ function SettingsCard({ item, onOpen }: { item: SettingItem; onOpen: (id: Settin
   const Icon = item.icon
 
   return (
-    <button
-      className="group flex min-h-36 items-start gap-4 rounded-lg border border-border bg-background p-5 text-left transition-colors hover:border-foreground/25 hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    <Button
+      className="group h-auto w-full justify-start gap-4 whitespace-normal rounded-lg border border-foreground/10 bg-card p-4 text-left shadow-none transition-colors hover:border-foreground/25 hover:bg-muted/35"
       onClick={() => onOpen(item.id)}
       type="button"
+      variant="outline"
     >
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground group-hover:text-foreground">
         <Icon size={20} />
       </span>
       <span>
         <span className="block text-base font-semibold text-foreground">{item.title}</span>
-        <span className="mt-1 block text-sm leading-6 text-muted-foreground">{item.description}</span>
-      </span>
-    </button>
-  )
-}
-
-function SettingDetail({
-  email,
-  item,
-  name,
-  onBack,
-}: {
-  email: string
-  item: SettingItem
-  name: string
-  onBack: () => void
-}) {
-  const Icon = item.icon
-
-  return (
-    <section className="max-w-2xl">
-      <button className="text-sm font-medium text-muted-foreground hover:text-foreground" onClick={onBack} type="button">
-        All settings
-      </button>
-      <div className="mt-6 rounded-lg border border-border bg-background p-6 sm:p-8">
-        <span className="flex h-11 w-11 items-center justify-center rounded-md bg-muted text-muted-foreground">
-          <Icon size={22} />
+        <span className="mt-0.5 block text-sm leading-5 text-muted-foreground">
+          {item.description}
         </span>
-        <h2 className="mt-5 text-xl font-semibold">{item.title}</h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
-        {item.id === 'profile' ? (
-          <div className="mt-8 border-t pt-6">
-            <ProfileForm email={email} name={name} />
-          </div>
-        ) : (
-          <p className="mt-8 rounded-md bg-muted px-4 py-3 text-sm text-muted-foreground">
-            This workspace control is ready for its connected workflow.
-          </p>
-        )}
-      </div>
-    </section>
+      </span>
+    </Button>
   )
 }
 
-export function WorkspaceSettings({ email, name, organizationName }: WorkspaceSettingsProps) {
+export function WorkspaceSettings({
+  email,
+  name,
+  organization,
+  role,
+  twoFactorEnabled,
+}: WorkspaceSettingsProps) {
   const [query, setQuery] = useState('')
   const [view, setView] = useState<ViewId>('overview')
   const search = query.trim().toLowerCase()
-  const visibleSettings = settings.filter((item) => `${item.title} ${item.description}`.toLowerCase().includes(search))
+  const visibleSettings = settings.filter((item) =>
+    `${item.title} ${item.description}`.toLowerCase().includes(search)
+  )
   const selected = view === 'overview' ? null : settings.find((item) => item.id === view)
 
   return (
-    <main className="min-h-screen bg-background text-foreground [--background:#fff] [--foreground:#1d2129] [--card:#fff] [--muted:#f4f5f7] [--muted-foreground:#697386] [--border:#e5e7eb] [--ring:#7c8699] [--primary:#1d2129] [--primary-foreground:#fff]">
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between px-5 sm:px-8">
-          <Link className="flex items-center gap-2 text-sm font-semibold" href="/">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-background">
-              <Building02Icon size={16} />
-            </span>
-            Screenshot Studio
-          </Link>
+    <main className="min-h-screen bg-background text-foreground">
+      <header className="h-16 border-b border-foreground/10 bg-background">
+        <div className="flex h-full items-center justify-between gap-3 px-4">
+          <div className="flex h-8 min-w-0 items-center">
+            <Link
+              className="flex h-8 shrink-0 items-center gap-2.5 transition-opacity hover:opacity-80"
+              href="/"
+            >
+              <Image
+                alt="Screenshot Studio"
+                className="h-8 w-8"
+                height={32}
+                priority
+                src="/logo-mark.png"
+                width={32}
+              />
+              <span className="hidden text-sm font-semibold leading-none tracking-tight text-foreground sm:inline">
+                Screenshot Studio
+              </span>
+            </Link>
+            <span aria-hidden className="mx-2.5 h-4 w-px shrink-0 bg-foreground/10" />
+            <span className="text-sm font-medium text-muted-foreground">Workspace</span>
+          </div>
           <div className="flex items-center gap-4">
-            <span className="hidden text-sm text-muted-foreground sm:inline">{organizationName}</span>
-            <Link className="text-sm font-medium text-muted-foreground hover:text-foreground" href="/">
+            <span className="hidden text-sm text-muted-foreground sm:inline">
+              {organization.name}
+            </span>
+            <Link
+              className="text-sm font-medium text-muted-foreground hover:text-foreground"
+              href="/"
+            >
               Open editor
             </Link>
             <AccountMenu />
@@ -178,45 +177,51 @@ export function WorkspaceSettings({ email, name, organizationName }: WorkspaceSe
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-[1440px] px-5 py-10 sm:px-8 lg:py-14">
+      <div className="w-full px-5 py-8 sm:px-8 lg:py-10">
         <header>
           <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-          <p className="mt-2 text-base text-muted-foreground">Manage your workspace, access, and brand preferences.</p>
-          <div className="mt-9 flex items-center gap-3 text-sm">
+          <p className="mt-2 text-base text-muted-foreground">
+            Manage your workspace, access, and brand preferences.
+          </p>
+          <div className="mt-7 flex items-center gap-3 text-sm">
             <span className="flex h-9 w-9 items-center justify-center rounded-md bg-muted text-muted-foreground">
               <Building02Icon size={18} />
             </span>
             <span className="text-muted-foreground">Settings for</span>
-            <span className="font-semibold">{organizationName}</span>
+            <span className="font-semibold">{organization.name}</span>
           </div>
         </header>
 
-        <div className="mt-12 grid gap-10 lg:grid-cols-[14rem_minmax(0,1fr)]">
-          <aside className="lg:border-r lg:pr-6">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Workspace</p>
+        <div className="mt-9 grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
+          <aside className="lg:border-r lg:pr-5">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Workspace
+            </p>
             <nav className="grid gap-1" aria-label="Workspace settings">
-              <button
-                className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition-colors ${view === 'overview' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'}`}
-                onClick={() => setView('overview')}
+              <Button
+                className={`h-auto w-full justify-start gap-3 px-3 py-2.5 text-left ${view === 'profile' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'}`}
+                onClick={() => setView('profile')}
                 type="button"
+                variant="ghost"
               >
                 <UserAccountIcon size={18} />
                 Account
-              </button>
+              </Button>
               {navigation.slice(1).map((item) => {
                 const Icon = item.icon
                 const isActive = view === item.id
 
                 return (
-                  <button
+                  <Button
                     key={item.id}
-                    className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium transition-colors ${isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'}`}
+                    className={`h-auto w-full justify-start gap-3 px-3 py-2.5 text-left ${isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'}`}
                     onClick={() => setView(item.id)}
                     type="button"
+                    variant="ghost"
                   >
                     <Icon size={18} />
                     {item.title}
-                  </button>
+                  </Button>
                 )
               })}
             </nav>
@@ -224,29 +229,45 @@ export function WorkspaceSettings({ email, name, organizationName }: WorkspaceSe
 
           <div>
             {selected ? (
-              <SettingDetail email={email} item={selected} name={name} onBack={() => setView('overview')} />
+              <WorkspaceSettingDetail
+                email={email}
+                item={selected}
+                name={name}
+                onBack={() => setView('overview')}
+                organization={organization}
+                role={role}
+                twoFactorEnabled={twoFactorEnabled}
+              />
             ) : (
               <>
-                <label className="relative block max-w-xl" htmlFor="settings-search">
-                  <Search01Icon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={19} />
-                  <input
-                    className="h-11 w-full rounded-md border border-border bg-background pl-11 pr-4 text-sm shadow-sm outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+                <Label className="relative block max-w-xl" htmlFor="settings-search">
+                  <span className="sr-only">Search settings</span>
+                  <Search01Icon
+                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    size={19}
+                  />
+                  <Input
+                    className="h-11 bg-card pl-11"
                     id="settings-search"
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Search settings..."
                     type="search"
                     value={query}
                   />
-                </label>
-                <section className="mt-9">
-                  <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Workspace</h2>
-                  <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                </Label>
+                <section className="mt-8">
+                  <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Workspace
+                  </h2>
+                  <div className="mt-4 grid gap-3 xl:grid-cols-2">
                     {visibleSettings.map((item) => (
                       <SettingsCard item={item} key={item.id} onOpen={setView} />
                     ))}
                   </div>
                   {visibleSettings.length === 0 ? (
-                    <p className="mt-6 text-sm text-muted-foreground">No settings match “{query}”.</p>
+                    <p className="mt-6 text-sm text-muted-foreground">
+                      No settings match “{query}”.
+                    </p>
                   ) : null}
                 </section>
               </>

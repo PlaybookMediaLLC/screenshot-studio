@@ -1,26 +1,51 @@
 import 'server-only'
 
-const INVALID_PATH_SEGMENT = /[^a-zA-Z0-9._-]/
+import {
+  assertTenantObjectKey,
+  buildTenantObjectKey,
+  type AssetClassification,
+} from '@/lib/tenant/object-key'
 
-export interface TenantUploadRequest {
+export { buildTenantObjectKey } from '@/lib/tenant/object-key'
+
+export type TenantUploadRequest = {
   assetId: string
+  classification: AssetClassification
   contentType: string
   fileName: string
-  tenantId: string
+  organizationId: string
+  revision: number
 }
 
-export interface TenantUploadUrl {
+export type TenantUploadUrl = {
   objectKey: string
   uploadUrl: string
 }
 
-interface StorageSignedUploadResponse {
+export class TenantStorageUnavailableError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'TenantStorageUnavailableError'
+  }
+}
+
+export class TenantStorageObjectMissingError extends Error {
+  constructor() {
+    super('The signed upload was not found in storage.')
+    this.name = 'TenantStorageObjectMissingError'
+  }
+}
+
+type StorageSignedDownloadResponse = {
+  signedURL: string
+}
+
+type StorageSignedUploadResponse = {
   url: string
 }
 
 function getRequiredEnvironment(name: string): string {
   const value = process.env[name]
-
   if (!value) {
     throw new Error(`${name} is required for tenant storage.`)
   }
@@ -28,50 +53,139 @@ function getRequiredEnvironment(name: string): string {
   return value
 }
 
-function getSafeSegment(value: string): string {
-  if (!value || value === '.' || value === '..' || INVALID_PATH_SEGMENT.test(value)) {
-    throw new Error('Storage path segments contain unsafe characters.')
+function getRequestUrl(path: string): string {
+  return new URL(path, getRequiredEnvironment('STORAGE_API_URL')).toString()
+}
+
+function getStorageHeaders(): HeadersInit {
+  const storageKey = getRequiredEnvironment('STORAGE_SERVICE_KEY')
+  return {
+    apikey: storageKey,
+    authorization: `Bearer ${storageKey}`,
+    'content-type': 'application/json',
+  }
+}
+
+function getStorageProxyUrl(path: string): string | null {
+  const proxyRoot = process.env.STORAGE_PROXY_URL
+  if (!proxyRoot) {
+    return null
   }
 
-  return value
+  const signedUrl = new URL(path, 'http://storage.internal')
+  const proxyUrl = new URL(proxyRoot)
+  proxyUrl.pathname = `${proxyUrl.pathname.replace(/\/$/, '')}${signedUrl.pathname}`
+  proxyUrl.search = signedUrl.search
+  return proxyUrl.toString()
 }
 
-function getObjectKey(input: TenantUploadRequest): string {
-  return [
-    'tenants',
-    getSafeSegment(input.tenantId),
-    'assets',
-    getSafeSegment(input.assetId),
-    getSafeSegment(input.fileName),
-  ].join('/')
+function getStorageObjectUrl(path: string): string {
+  const proxyUrl = getStorageProxyUrl(path)
+  if (proxyUrl) {
+    return proxyUrl
+  }
+
+  return new URL(
+    path,
+    process.env.STORAGE_HOST_URL ?? getRequiredEnvironment('STORAGE_API_URL')
+  ).toString()
 }
 
-function getRequestUrl(path: string): string {
-  const storageUrl = getRequiredEnvironment('STORAGE_API_URL')
-  return new URL(path, storageUrl).toString()
+async function fetchStorage(url: string, init: RequestInit): Promise<Response> {
+  try {
+    const response = await fetch(url, init)
+    if (!response.ok) {
+      throw new TenantStorageUnavailableError(`Storage request failed: ${response.status}`)
+    }
+    return response
+  } catch (error) {
+    if (error instanceof TenantStorageUnavailableError) {
+      throw error
+    }
+    throw new TenantStorageUnavailableError('Storage is unavailable.')
+  }
+}
+
+export async function assertTenantObjectExists(input: {
+  objectKey: string
+  organizationId: string
+}): Promise<void> {
+  const bucket = getRequiredEnvironment('STORAGE_BUCKET')
+  assertTenantObjectKey(input.organizationId, input.objectKey)
+  try {
+    const response = await fetch(getRequestUrl(`/object/${bucket}/${input.objectKey}`), {
+      headers: { ...getStorageHeaders(), range: 'bytes=0-0' },
+      signal: AbortSignal.timeout(5_000),
+    })
+    const body = await response.text()
+    if (response.status === 404 || body.includes('"error":"not_found"')) {
+      throw new TenantStorageObjectMissingError()
+    }
+    if (!response.ok) {
+      throw new TenantStorageUnavailableError(`Storage request failed: ${response.status}`)
+    }
+  } catch (error) {
+    if (
+      error instanceof TenantStorageObjectMissingError ||
+      error instanceof TenantStorageUnavailableError
+    ) {
+      throw error
+    }
+    throw new TenantStorageUnavailableError('Storage is unavailable.')
+  }
 }
 
 export async function createTenantUploadUrl(input: TenantUploadRequest): Promise<TenantUploadUrl> {
-  const storageKey = getRequiredEnvironment('STORAGE_SERVICE_KEY')
   const bucket = getRequiredEnvironment('STORAGE_BUCKET')
-  const objectKey = getObjectKey(input)
-  const response = await fetch(getRequestUrl(`/object/upload/sign/${bucket}/${objectKey}`), {
+  const objectKey = buildTenantObjectKey(input)
+  const response = await fetchStorage(getRequestUrl(`/object/upload/sign/${bucket}/${objectKey}`), {
     body: JSON.stringify({ contentType: input.contentType }),
-    headers: {
-      apikey: storageKey,
-      authorization: `Bearer ${storageKey}`,
-      'content-type': 'application/json',
-    },
+    headers: getStorageHeaders(),
     method: 'POST',
   })
 
-  if (!response.ok) {
-    throw new Error(`Storage signed-upload request failed: ${response.status}`)
-  }
-
   const payload = (await response.json()) as StorageSignedUploadResponse
-  return {
-    objectKey,
-    uploadUrl: getRequestUrl(payload.url),
-  }
+  return { objectKey, uploadUrl: getStorageObjectUrl(payload.url) }
+}
+
+export async function createTenantDownloadUrl(input: {
+  expiresIn: number
+  objectKey: string
+  organizationId: string
+}): Promise<string> {
+  const bucket = getRequiredEnvironment('STORAGE_BUCKET')
+  assertTenantObjectKey(input.organizationId, input.objectKey)
+  const response = await fetchStorage(getRequestUrl(`/object/sign/${bucket}/${input.objectKey}`), {
+    body: JSON.stringify({ expiresIn: input.expiresIn }),
+    headers: getStorageHeaders(),
+    method: 'POST',
+  })
+
+  const payload = (await response.json()) as StorageSignedDownloadResponse
+  return getStorageObjectUrl(payload.signedURL)
+}
+
+export async function deleteTenantObject(input: {
+  objectKey: string
+  organizationId: string
+}): Promise<void> {
+  const bucket = getRequiredEnvironment('STORAGE_BUCKET')
+  assertTenantObjectKey(input.organizationId, input.objectKey)
+  await fetchStorage(getRequestUrl(`/object/${bucket}/${input.objectKey}`), {
+    headers: getStorageHeaders(),
+    method: 'DELETE',
+  })
+}
+
+export async function readTenantObject(input: {
+  objectKey: string
+  organizationId: string
+}): Promise<Uint8Array> {
+  const bucket = getRequiredEnvironment('STORAGE_BUCKET')
+  assertTenantObjectKey(input.organizationId, input.objectKey)
+  const response = await fetchStorage(getRequestUrl(`/object/${bucket}/${input.objectKey}`), {
+    headers: getStorageHeaders(),
+    signal: AbortSignal.timeout(10_000),
+  })
+  return new Uint8Array(await response.arrayBuffer())
 }

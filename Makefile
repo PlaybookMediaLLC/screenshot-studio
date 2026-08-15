@@ -5,10 +5,11 @@ NAMESPACE ?= screenshot-studio
 SERVICE ?=
 COMPONENT ?= screenshot-studio
 TAIL ?= 200
+E2E_BASE_URL ?= http://localhost:3000
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down reset status smoke rate-limit-smoke check logs logs-app logs-postgres logs-redis logs-minio logs-storage trigger-login trigger-config trigger-dev kind-up kind-down kind-status kind-logs
+.PHONY: help up down reset status smoke rate-limit-smoke tenant-isolation e2e e2e-file e2e-onboarding e2e-recovery check logs logs-app logs-postgres logs-redis logs-minio logs-storage trigger-login trigger-config trigger-dev kind-up kind-down kind-status kind-logs
 
 help: ## Show local development commands.
 	@echo "Screenshot Studio local development"
@@ -19,6 +20,11 @@ help: ## Show local development commands.
 	@echo "  make status                     Show Compose service status"
 	@echo "  make smoke                      Verify the running Compose stack"
 	@echo "  make rate-limit-smoke           Verify Redis-backed API rate limiting"
+	@echo "  make tenant-isolation           Verify two-organization session and API-key isolation"
+	@echo "  make e2e                        Run all browser end-to-end flows"
+	@echo "  make e2e-file SPEC=e2e/foo.ts   Run one browser end-to-end flow"
+	@echo "  make e2e-onboarding             Verify sign-up and workspace onboarding in Chromium"
+	@echo "  make e2e-recovery               Verify dependency failure and recovery behavior"
 	@echo "  make check                      Run lint and TypeScript checks"
 	@echo ""
 	@echo "  make logs [SERVICE=app]         Follow Compose logs"
@@ -54,6 +60,22 @@ smoke:
 
 rate-limit-smoke:
 	@$(STUDIO) rate-limit-smoke
+
+tenant-isolation:
+	@$(STUDIO) tenant-isolation
+
+e2e:
+	@E2E_BASE_URL="$(E2E_BASE_URL)" $(STUDIO) e2e
+
+e2e-file:
+	@test -n "$(SPEC)" || { echo "Usage: make e2e-file SPEC=e2e/example.spec.ts" >&2; exit 2; }
+	@E2E_BASE_URL="$(E2E_BASE_URL)" $(STUDIO) e2e-file "$(SPEC)"
+
+e2e-onboarding:
+	@E2E_BASE_URL="$(E2E_BASE_URL)" $(STUDIO) e2e-onboarding
+
+e2e-recovery:
+	@E2E_BASE_URL="$(E2E_BASE_URL)" $(STUDIO) e2e-recovery
 
 check:
 	@$(STUDIO) check

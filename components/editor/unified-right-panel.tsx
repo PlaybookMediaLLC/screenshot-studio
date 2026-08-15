@@ -1,7 +1,7 @@
-'use client';
+'use client'
 
-import * as React from 'react';
-import { PresetGallery } from '@/components/presets/PresetGallery';
+import * as React from 'react'
+import dynamic from 'next/dynamic'
 import {
   Settings02Icon,
   SlidersHorizontalIcon,
@@ -13,7 +13,7 @@ import {
   LayersLogoIcon,
   Image01Icon,
   Globe02Icon,
-} from 'hugeicons-react';
+} from 'hugeicons-react'
 import {
   SettingsSection,
   StyleSection,
@@ -26,22 +26,42 @@ import {
   AnnotateSection,
   ImageOverlaySection,
   DepthSection,
-  TweetImportSection,
-  CodeSnippetSection,
   ImagePositionSection,
-} from './sections';
-import { cn } from '@/lib/utils';
-import { useImageStore } from '@/lib/store';
-import { AnimationPresetGallery } from '@/components/timeline/AnimationPresetGallery';
-import { SegmentedControl } from '@/components/ui/segmented-control';
+} from './sections'
+import { cn } from '@/lib/utils'
+import { useImageStore } from '@/lib/store'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 
-type EditorMode = 'screenshot' | 'browser';
-type TabType = 'settings' | 'edit' | 'background' | 'transforms' | 'animate' | 'depth';
+const PresetGallery = dynamic(
+  () => import('@/components/presets/PresetGallery').then((module) => module.PresetGallery),
+  { ssr: false }
+)
+
+const TweetImportSection = dynamic(
+  () => import('./sections/TweetImportSection').then((module) => module.TweetImportSection),
+  { ssr: false }
+)
+
+const CodeSnippetSection = dynamic(
+  () => import('./sections/CodeSnippetSection').then((module) => module.CodeSnippetSection),
+  { ssr: false }
+)
+
+const AnimationPresetGallery = dynamic(
+  () =>
+    import('@/components/timeline/AnimationPresetGallery').then(
+      (module) => module.AnimationPresetGallery
+    ),
+  { ssr: false }
+)
+
+type EditorMode = 'screenshot' | 'browser'
+type TabType = 'settings' | 'edit' | 'background' | 'transforms' | 'animate' | 'depth'
 
 const modeTabs: { id: EditorMode; icon: React.ReactNode; label: string }[] = [
   { id: 'screenshot', icon: <Image01Icon size={14} />, label: 'Screenshot' },
   { id: 'browser', icon: <Globe02Icon size={14} />, label: 'Browser' },
-];
+]
 
 const tabs: { id: TabType; icon: React.ReactNode; label: string }[] = [
   { id: 'edit', icon: <SlidersHorizontalIcon size={14} />, label: 'Design' },
@@ -50,12 +70,12 @@ const tabs: { id: TabType; icon: React.ReactNode; label: string }[] = [
   { id: 'settings', icon: <Settings02Icon size={14} />, label: 'Adjust' },
   { id: 'transforms', icon: <RotateSquareIcon size={14} />, label: '3D' },
   { id: 'animate', icon: <VideoReplayIcon size={14} />, label: 'Motion' },
-];
+]
 
 export function UnifiedRightPanel({
   onClose,
 }: {
-  onClose?: () => void;
+  onClose?: () => void
 } = {}) {
   const {
     activeRightPanelTab,
@@ -64,32 +84,32 @@ export function UnifiedRightPanel({
     setShowTemplates: setTemplatesOpen,
     editorMode,
     setEditorMode,
-  } = useImageStore();
-  const activeTab = activeRightPanelTab;
-  const setActiveTab = setActiveRightPanelTab;
+  } = useImageStore()
+  const activeTab = activeRightPanelTab
+  const setActiveTab = setActiveRightPanelTab
 
-  const [contentKey, setContentKey] = React.useState(activeTab);
-  const [transitioning, setTransitioning] = React.useState(false);
+  const [contentKey, setContentKey] = React.useState(activeTab)
+  const [transitioning, setTransitioning] = React.useState(false)
 
   React.useEffect(() => {
     if (activeTab !== contentKey) {
-      setTransitioning(true);
+      setTransitioning(true)
       const timeout = setTimeout(() => {
-        setContentKey(activeTab);
-        setTransitioning(false);
-      }, 150);
-      return () => clearTimeout(timeout);
+        setContentKey(activeTab)
+        setTransitioning(false)
+      }, 150)
+      return () => clearTimeout(timeout)
     }
-  }, [activeTab, contentKey]);
+  }, [activeTab, contentKey])
 
   React.useEffect(() => {
-    if (!templatesOpen) return;
+    if (!templatesOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setTemplatesOpen(false);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [templatesOpen, setTemplatesOpen]);
+      if (e.key === 'Escape') setTemplatesOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [templatesOpen, setTemplatesOpen])
 
   return (
     <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
@@ -209,5 +229,5 @@ export function UnifiedRightPanel({
         </div>
       </div>
     </div>
-  );
+  )
 }

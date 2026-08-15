@@ -1,0 +1,4 @@
+interface:
+  display_name: 'End-to-End Flow'
+  short_description: 'Add verified Playwright user journeys'
+  default_prompt: 'Use $add-e2e-flow to add a Screenshot Studio end-to-end test.'

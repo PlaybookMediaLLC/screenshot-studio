@@ -3,7 +3,10 @@
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { authClient } from '@/lib/auth/client'
 import { getAuthErrorMessage } from './error-message'
 
@@ -47,9 +50,9 @@ export function ProfileForm({ email, name }: ProfileFormProps) {
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
-      <label className="grid gap-1.5 text-sm font-medium" htmlFor="profile-name">
+      <Label className="grid gap-1.5" htmlFor="profile-name">
         Name
-        <input
+        <Input
           autoComplete="name"
           className="h-10 rounded-md border bg-background px-3"
           defaultValue={name}
@@ -57,19 +60,27 @@ export function ProfileForm({ email, name }: ProfileFormProps) {
           name="name"
           required
         />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium" htmlFor="profile-email">
+      </Label>
+      <Label className="grid gap-1.5" htmlFor="profile-email">
         Email
-        <input
-          className="h-10 cursor-not-allowed rounded-md border bg-muted px-3 text-muted-foreground"
+        <Input
+          className="cursor-not-allowed bg-muted text-muted-foreground"
           defaultValue={email}
           disabled
           id="profile-email"
           type="email"
         />
-      </label>
-      {error ? <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
-      {message ? <p className="rounded-md bg-primary/10 p-3 text-sm">{message}</p> : null}
+      </Label>
+      {error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+      {message ? (
+        <Alert>
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      ) : null}
       <Button disabled={isSubmitting} type="submit">
         {isSubmitting ? 'Saving…' : 'Save profile'}
       </Button>

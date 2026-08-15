@@ -4,7 +4,7 @@ import { scim } from '@better-auth/scim'
 import { sso } from '@better-auth/sso'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { betterAuth } from 'better-auth'
-import { organization, twoFactor } from 'better-auth/plugins'
+import { admin, organization, twoFactor } from 'better-auth/plugins'
 import { prisma } from '@/lib/db'
 import {
   getAuthBaseUrl,
@@ -20,6 +20,8 @@ const google = getSocialProviderCredentials('GOOGLE')
 const github = getSocialProviderCredentials('GITHUB')
 const microsoft = getSocialProviderCredentials('MICROSOFT')
 const infrastructure = getBetterAuthInfrastructure()
+const requireEmailVerification =
+  process.env.NODE_ENV === 'production' && process.env.AUTH_REQUIRE_EMAIL_VERIFICATION !== 'false'
 
 const socialProviders = {
   ...(google ? { google } : {}),
@@ -28,6 +30,7 @@ const socialProviders = {
 }
 
 type MemberHook = { member: { role: string } }
+type RemovedMemberHook = { member: { organizationId: string; userId: string } }
 type InvitationHook = { invitation: { role: string } }
 type RoleUpdateHook = { newRole: string }
 
@@ -38,7 +41,7 @@ export const auth = betterAuth({
     autoSignIn: process.env.NODE_ENV !== 'production',
     enabled: true,
     minPasswordLength: 12,
-    requireEmailVerification: process.env.NODE_ENV === 'production',
+    requireEmailVerification,
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ url, user }) =>
       sendAuthEmail({
@@ -53,24 +56,41 @@ export const auth = betterAuth({
       sendAuthEmail({ subject: 'Verify your Screenshot Studio email', text: url, to: user.email }),
   },
   plugins: [
+    admin({ adminRoles: [], defaultRole: 'user' }),
     organization({
-      beforeAddMember: async ({ member }: MemberHook) => {
-        if (!isSupportedOrganizationRole(member.role)) {
-          throw new Error('Unsupported organization role.')
-        }
+      organizationHooks: {
+        beforeAddMember: async ({ member }: MemberHook) => {
+          if (!isSupportedOrganizationRole(member.role)) {
+            throw new Error('Unsupported organization role.')
+          }
+        },
+        beforeCreateInvitation: async ({ invitation }: InvitationHook) => {
+          if (!isSupportedOrganizationRole(invitation.role)) {
+            throw new Error('Unsupported organization role.')
+          }
+        },
+        beforeUpdateMemberRole: async ({ newRole }: RoleUpdateHook) => {
+          if (!isSupportedOrganizationRole(newRole)) {
+            throw new Error('Unsupported organization role.')
+          }
+        },
+        afterRemoveMember: async ({ member }: RemovedMemberHook) => {
+          await prisma.session.deleteMany({
+            where: { userId: member.userId },
+          })
+        },
       },
-      beforeCreateInvitation: async ({ invitation }: InvitationHook) => {
-        if (!isSupportedOrganizationRole(invitation.role)) {
-          throw new Error('Unsupported organization role.')
-        }
-      },
-      beforeUpdateMemberRole: async ({ newRole }: RoleUpdateHook) => {
-        if (!isSupportedOrganizationRole(newRole)) {
-          throw new Error('Unsupported organization role.')
-        }
-      },
-      requireEmailVerificationOnInvitation: true,
+      requireEmailVerificationOnInvitation: requireEmailVerification,
       roles: betterAuthOrganizationRoles,
+      sendInvitationEmail: async ({ invitation, organization, inviter }) => {
+        const invitationUrl = new URL('/accept-invitation', getAuthBaseUrl())
+        invitationUrl.searchParams.set('invitationId', invitation.id)
+        await sendAuthEmail({
+          subject: `Join ${organization.name} on Screenshot Studio`,
+          text: `${inviter.user.name || inviter.user.email} invited you to ${organization.name}. Accept the invitation: ${invitationUrl}`,
+          to: invitation.email,
+        })
+      },
     }),
     apiKey({
       defaultPrefix: 'ss_',
@@ -107,7 +127,9 @@ export const auth = betterAuth({
     ...(infrastructure ? [dash(infrastructure)] : []),
   ],
   secret: getAuthSecret(),
-  session: { freshAge: 15 * 60 },
+  // A database-backed session must be checked on every request so a removed
+  // member cannot keep using a signed cookie cache until it expires.
+  session: { cookieCache: { enabled: false }, freshAge: 15 * 60 },
   socialProviders,
   trustedOrigins: getTrustedOrigins(),
 })

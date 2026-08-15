@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, type FormEvent } from 'react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth/client'
@@ -19,9 +18,13 @@ function slugify(value: string): string {
 }
 
 export function OnboardingForm() {
-  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
+  const [isHydrated, setIsHydrated] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -42,9 +45,20 @@ export function OnboardingForm() {
         setError(result.error.message || 'Could not create the workspace.')
         return
       }
+      if (!result.data) {
+        setError('Could not select the new workspace.')
+        return
+      }
 
-      router.push('/')
-      router.refresh()
+      const activeOrganization = await authClient.organization.setActive({
+        organizationId: result.data.id,
+      })
+      if (activeOrganization.error) {
+        setError(activeOrganization.error.message || 'Could not select the new workspace.')
+        return
+      }
+
+      window.location.assign('/')
     } catch (requestError) {
       setError(getAuthErrorMessage(requestError, 'Could not create the workspace.'))
     } finally {
@@ -68,7 +82,7 @@ export function OnboardingForm() {
       {error ? (
         <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
       ) : null}
-      <Button className="w-full" disabled={isSubmitting} type="submit">
+      <Button className="w-full" disabled={!isHydrated || isSubmitting} type="submit">
         {isSubmitting ? 'Creating workspace…' : 'Create workspace'}
       </Button>
     </form>

@@ -12,7 +12,13 @@ export const authClient = createAuthClient({
   plugins: [
     organizationClient({ roles: betterAuthOrganizationRoles }),
     apiKeyClient(),
-    twoFactorClient({ twoFactorPage: '/two-factor' }),
+    twoFactorClient({
+      onTwoFactorRedirect: () => {
+        const callbackURL = new URLSearchParams(window.location.search).get('callbackURL')
+        const search = callbackURL ? `?callbackURL=${encodeURIComponent(callbackURL)}` : ''
+        window.location.assign(`/two-factor${search}`)
+      },
+    }),
     ssoClient(),
     scimClient(),
   ],

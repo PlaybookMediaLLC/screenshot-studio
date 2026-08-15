@@ -9,7 +9,7 @@ import {
   type OrganizationRole,
   type Permission,
 } from './permissions'
-import { type Principal, type SessionPrincipal } from './principal'
+import { type Principal, type SessionPrincipal, type SupportPrincipal } from './principal'
 import { auth } from './server'
 
 const freshSessionAgeMilliseconds = 15 * 60 * 1000
@@ -31,8 +31,40 @@ export type OrganizationAccess = {
   role: OrganizationRole
 }
 
-function getRequestId(headers: Headers): string {
+export type TenantContext = {
+  organizationId: string
+  principal: Principal
+  requestId: string
+}
+
+type AuthSession = {
+  activeOrganizationId?: string | null
+  id: string
+}
+
+export function getRequestId(headers: Headers): string {
   return headers.get('x-request-id') ?? randomUUID()
+}
+
+export async function resolveActiveOrganizationId(
+  session: AuthSession,
+  userId: string
+): Promise<string | null> {
+  if (session.activeOrganizationId) return session.activeOrganizationId
+
+  const memberships = await prisma.member.findMany({
+    select: { organizationId: true },
+    take: 2,
+    where: { userId },
+  })
+  const membership = memberships.length === 1 ? memberships[0] : null
+  if (!membership) return null
+
+  await prisma.session.update({
+    data: { activeOrganizationId: membership.organizationId },
+    where: { id: session.id },
+  })
+  return membership.organizationId
 }
 
 async function getSessionPrincipal(headers: Headers): Promise<SessionPrincipal | null> {
@@ -73,29 +105,96 @@ export async function getRequestPrincipal(headers: Headers): Promise<Principal |
   return (await getApiKeyPrincipal(headers)) ?? getSessionPrincipal(headers)
 }
 
+async function requireActiveSessionOrganization(headers: Headers): Promise<OrganizationAccess> {
+  const session = await auth.api.getSession({ headers, query: { disableCookieCache: true } })
+  if (!session) {
+    throw new AuthorizationError('Authentication is required.', 401)
+  }
+  const activeOrganizationId = await resolveActiveOrganizationId(session.session, session.user.id)
+  if (!activeOrganizationId) {
+    throw new AuthorizationError('An active organization is required.', 403)
+  }
+
+  const member = await prisma.member.findUnique({
+    where: {
+      organizationId_userId: {
+        organizationId: activeOrganizationId,
+        userId: session.user.id,
+      },
+    },
+  })
+  if (!member) {
+    throw new AuthorizationError('You do not belong to the active organization.', 403)
+  }
+
+  return {
+    organizationId: member.organizationId,
+    principal: {
+      display: session.user.email,
+      kind: 'session',
+      sessionId: session.session.id,
+      userId: session.user.id,
+    },
+    requestId: getRequestId(headers),
+    role: normalizeOrganizationRole(member.role),
+  }
+}
+
+export async function requireActiveOrganizationPermission(
+  headers: Headers,
+  permission: Permission
+): Promise<OrganizationAccess> {
+  const access = await requireActiveSessionOrganization(headers)
+  if (!hasPermission(access.role, permission)) {
+    throw new AuthorizationError('You do not have permission for this organization.', 403)
+  }
+
+  return access
+}
+
 export async function requireOrganizationPermission(
   headers: Headers,
   organizationId: string,
   permission: Permission
 ): Promise<OrganizationAccess> {
+  const access = await requireActiveOrganizationPermission(headers, permission)
+  if (access.organizationId !== organizationId) {
+    throw new AuthorizationError('The requested organization is not active.', 403)
+  }
+
+  return access
+}
+
+export async function requireSupportTenantContext(
+  headers: Headers,
+  organizationId: string,
+  scope: string
+): Promise<TenantContext> {
   const principal = await getSessionPrincipal(headers)
   if (!principal) {
     throw new AuthorizationError('Authentication is required.', 401)
   }
 
-  const member = await prisma.member.findUnique({
-    where: { organizationId_userId: { organizationId, userId: principal.userId } },
+  const grant = await prisma.supportAccessGrant.findFirst({
+    where: {
+      expiresAt: { gt: new Date() },
+      organizationId,
+      revokedAt: null,
+      scope,
+      userId: principal.userId,
+    },
   })
-  if (!member || !hasPermission(member.role, permission)) {
-    throw new AuthorizationError('You do not have permission for this organization.', 403)
+  if (!grant) {
+    throw new AuthorizationError('An active support grant is required.', 403)
   }
 
-  return {
+  const supportPrincipal: SupportPrincipal = {
+    grantId: grant.id,
+    kind: 'support',
     organizationId,
-    principal,
-    requestId: getRequestId(headers),
-    role: normalizeOrganizationRole(member.role),
+    userId: principal.userId,
   }
+  return { organizationId, principal: supportPrincipal, requestId: getRequestId(headers) }
 }
 
 export async function requireSensitiveOrganizationPermission(

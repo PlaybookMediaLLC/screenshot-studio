@@ -8,7 +8,11 @@ import {
   invalidateCache,
   normalizeUrl,
 } from '@/lib/screenshot-cache'
-import { captureScreenshot, getScreenshotFailure } from '@/lib/screenshot-service'
+import {
+  assertPublicCaptureUrl,
+  captureScreenshot,
+  getScreenshotFailure,
+} from '@/lib/screenshot-service'
 
 export const maxDuration = 60
 
@@ -117,6 +121,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   try {
     const input = await parseJson(request, screenshotRequestSchema)
+    assertPublicCaptureUrl(input.url)
     const url = normalizeUrl(input.url)
     await refreshCache(input, url)
     const cachedScreenshot = await loadCachedScreenshot(input, url)

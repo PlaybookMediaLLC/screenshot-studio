@@ -3,17 +3,17 @@ replicaCount: 1
 image:
   repository: ghcr.io/playbookmediallc/screenshot-studio
   pullPolicy: IfNotPresent
-  tag: ""
+  tag: ''
 
 imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
+nameOverride: ''
+fullnameOverride: ''
 
 serviceAccount:
   create: false
   automount: false
   annotations: {}
-  name: ""
+  name: ''
 
 podAnnotations: {}
 podLabels: {}
@@ -37,14 +37,24 @@ service:
 # Public NEXT_PUBLIC_* values are compiled into the browser bundle. Supply them
 # as Docker build arguments when building the image, not as runtime values here.
 config:
-  betterAuthUrl: ""
-  googleSiteVerification: ""
-  screenshotApiUrl: "https://api.microlink.io"
+  betterAuthUrl: ''
+  googleSiteVerification: ''
+  screenshotApiUrl: 'https://api.microlink.io'
 
-# Optional Secret containing any of: DATABASE_URL, REDIS_URL, R2_ACCOUNT_ID,
-# R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, CLEANUP_SECRET.
-# REDIS_URL is required when the screenshot API route is enabled.
-existingSecret: ""
+# Optional Secret containing application connection, authentication, audit, and
+# R2 values. REDIS_URL is required when the screenshot API route is enabled.
+existingSecret: ''
+
+migration:
+  command:
+    - ./node_modules/.bin/prisma
+    - migrate
+    - deploy
+  enabled: false
+  image:
+    repository: ''
+    pullPolicy: IfNotPresent
+    tag: ''
 
 # Development-only dependencies. `bin/studio kind-up` enables this group through
 # values-kind.yaml. Production deployments must use managed services instead.
@@ -64,10 +74,12 @@ local:
   curlImage: curlimages/curl:8.12.1
   imgproxy:
     image: darthsim/imgproxy:v3.26.0
+  screenshotMock:
+    image: hashicorp/http-echo:1.0.0
 
 ingress:
   enabled: false
-  className: ""
+  className: ''
   annotations: {}
   hosts:
     - host: screenshot-studio.example.com

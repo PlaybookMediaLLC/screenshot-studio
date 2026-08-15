@@ -54,6 +54,8 @@ class UnsafeScreenshotDownloadError extends Error {
   }
 }
 
+// Explicit ranges preserve the SSRF boundary; do not split this check by caller.
+// eslint-disable-next-line complexity
 function isPrivateIpv4(hostname: string): boolean {
   const octets = hostname.split('.').map(Number)
   const [first, second] = octets

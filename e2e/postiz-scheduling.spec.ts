@@ -174,7 +174,6 @@ test('an approved variant schedules through Postiz once, retries a throttle, and
 
   try {
     await signUpAndCreateWorkspace(identity, page)
-    const organizationId = await getActiveOrganizationId(page)
     await enableTwoFactor(page, identity.password)
     const variantId = await createApprovedVariant(page)
     const connectionResponse = await requestJson(page, '/api/tenant/channel-connections', {
@@ -273,7 +272,6 @@ test('a queued post is cancelled when its approval or destination is revoked bef
 
   try {
     await signUpAndCreateWorkspace(identity, page)
-    const organizationId = await getActiveOrganizationId(page)
     await enableTwoFactor(page, identity.password)
     const variantId = await createApprovedVariant(page)
     const connection = connectionSchema.parse(

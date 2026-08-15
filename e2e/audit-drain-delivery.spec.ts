@@ -71,8 +71,15 @@ test('an audit drain signs its event, retries a failure, and records delivery', 
     ).toBe(200)
 
     expect(
-      (await requestJson(page, '/api/internal/audit-drains/dispatch', {}, 'POST', getMaintenanceHeaders()))
-        .status
+      (
+        await requestJson(
+          page,
+          '/api/internal/audit-drains/dispatch',
+          {},
+          'POST',
+          getMaintenanceHeaders()
+        )
+      ).status
     ).toBe(200)
     const firstDelivery = await database.auditDrainDelivery.findFirstOrThrow({
       where: { drainId: drain.id, outbox: { auditLog: { action: retentionAction } } },
@@ -93,8 +100,15 @@ test('an audit drain signs its event, retries a failure, and records delivery', 
       where: { id: firstDelivery.id },
     })
     expect(
-      (await requestJson(page, '/api/internal/audit-drains/dispatch', {}, 'POST', getMaintenanceHeaders()))
-        .status
+      (
+        await requestJson(
+          page,
+          '/api/internal/audit-drains/dispatch',
+          {},
+          'POST',
+          getMaintenanceHeaders()
+        )
+      ).status
     ).toBe(200)
     const delivered = await database.auditDrainDelivery.findUniqueOrThrow({
       where: { id: firstDelivery.id },

@@ -30,5 +30,7 @@ test('an owner can persist workspace, profile, and active brand-kit settings', a
   await expect(page.getByText('v1 · active')).toBeVisible()
 
   await page.reload()
-  await expect(page.locator('main > header').getByText(workspaceName, { exact: true })).toBeVisible()
+  await expect(
+    page.locator('main > header').getByText(workspaceName, { exact: true })
+  ).toBeVisible()
 })

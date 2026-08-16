@@ -58,6 +58,8 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      E2E_DOCKER_HOST_GATEWAY: 'true'
     strategy:
       fail-fast: false
       matrix:

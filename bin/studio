@@ -11,7 +11,11 @@ KIND_CLUSTER="screenshot-studio-dev"
 KIND_NAMESPACE="screenshot-studio"
 
 compose() {
-  docker compose --env-file "$LOCAL_ENV" --file "$ROOT_DIR/compose.yaml" "$@"
+  local compose_args=(--env-file "$LOCAL_ENV" --file "$ROOT_DIR/compose.yaml")
+  if [[ "${E2E_DOCKER_HOST_GATEWAY:-}" == "true" ]]; then
+    compose_args+=(--file "$ROOT_DIR/compose.ci.yaml")
+  fi
+  docker compose "${compose_args[@]}" "$@"
 }
 
 random_hex() {

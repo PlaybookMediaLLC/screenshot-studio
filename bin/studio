@@ -302,7 +302,7 @@ run_e2e() {
 }
 
 e2e() {
-  run_e2e test:e2e
+  run_e2e test:e2e "$@"
 }
 
 e2e_onboarding() {
@@ -500,7 +500,7 @@ case "${1:-}" in
   smoke) smoke ;;
   rate-limit-smoke) rate_limit_smoke ;;
   tenant-isolation) tenant_isolation ;;
-  e2e) e2e ;;
+  e2e) shift; e2e "$@" ;;
   e2e-file) shift; e2e_file "$@" ;;
   e2e-onboarding) e2e_onboarding ;;
   e2e-recovery) e2e_recovery ;;

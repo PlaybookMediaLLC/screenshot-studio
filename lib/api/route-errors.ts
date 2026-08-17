@@ -8,6 +8,7 @@ import {
 } from '@/lib/storage/client'
 import { InvalidTenantObjectKeyError } from '@/lib/tenant/object-key'
 import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
+import { CampaignError } from '@/lib/tenant/campaigns'
 import { CreativeWorkflowError } from '@/lib/tenant/creative'
 
 function isDatabaseUnavailable(error: unknown): boolean {
@@ -22,6 +23,17 @@ function isDatabaseUnavailable(error: unknown): boolean {
       'code' in error.body &&
       error.body.code === 'FAILED_TO_GET_SESSION')
   )
+}
+
+function getWorkflowErrorResponse(error: unknown): NextResponse | null {
+  if (
+    error instanceof ScheduledPostError ||
+    error instanceof CreativeWorkflowError ||
+    error instanceof CampaignError
+  ) {
+    return NextResponse.json({ error: error.message }, { status: error.status })
+  }
+  return null
 }
 
 export function getRouteErrorResponse(error: unknown): NextResponse {
@@ -43,11 +55,9 @@ export function getRouteErrorResponse(error: unknown): NextResponse {
   if (error instanceof TenantStorageObjectMissingError) {
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
-  if (error instanceof ScheduledPostError) {
-    return NextResponse.json({ error: error.message }, { status: error.status })
-  }
-  if (error instanceof CreativeWorkflowError) {
-    return NextResponse.json({ error: error.message }, { status: error.status })
+  const workflowResponse = getWorkflowErrorResponse(error)
+  if (workflowResponse) {
+    return workflowResponse
   }
 
   console.error('Route request failed.', error)

@@ -1,27 +1,36 @@
-"use client";
+'use client'
 
-import * as React from "react";
-import { LeftEditPanel } from "./LeftEditPanel";
-import { RightSettingsPanel } from "./RightSettingsPanel";
-import { UnifiedRightPanel } from "./unified-right-panel";
-import { EditorContent } from "./EditorContent";
-import { EditorCanvas } from "@/components/canvas/EditorCanvas";
-import { EditorStoreSync } from "@/components/canvas/EditorStoreSync";
-import { EditorHeader } from "./EditorHeader";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Settings02Icon, VideoReplayIcon } from "hugeicons-react";
-import { useAutosaveDraft } from "@/hooks/useAutosaveDraft";
-import { MobileBanner } from "./MobileBanner";
-import { TimelineEditor } from "@/components/timeline";
-import { useImageStore } from "@/lib/store";
-import { trackEditorOpen } from "@/lib/analytics";
-import { cn } from "@/lib/utils";
+import * as React from 'react'
+import dynamic from 'next/dynamic'
+import { LeftEditPanel } from './LeftEditPanel'
+import { RightSettingsPanel } from './RightSettingsPanel'
+import { EditorContent } from './EditorContent'
+import { EditorCanvas } from '@/components/canvas/EditorCanvas'
+import { EditorStoreSync } from '@/components/canvas/EditorStoreSync'
+import { EditorHeader } from './EditorHeader'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { Button } from '@/components/ui/button'
+import { Settings02Icon, VideoReplayIcon } from 'hugeicons-react'
+import { useAutosaveDraft } from '@/hooks/useAutosaveDraft'
+import { MobileBanner } from './MobileBanner'
+import { useImageStore } from '@/lib/store'
+import { trackEditorOpen } from '@/lib/analytics'
+import { cn } from '@/lib/utils'
+
+const TimelineEditor = dynamic(
+  () => import('@/components/timeline').then((module) => module.TimelineEditor),
+  { ssr: false }
+)
+
+const UnifiedRightPanel = dynamic(
+  () => import('./unified-right-panel').then((module) => module.UnifiedRightPanel),
+  { ssr: false }
+)
 
 function EditorMain() {
-  const isMobile = useIsMobile();
-  const [mobileSheetOpen, setMobileSheetOpen] = React.useState(false);
+  const isMobile = useIsMobile()
+  const [mobileSheetOpen, setMobileSheetOpen] = React.useState(false)
   const {
     uploadedImageUrl,
     slides,
@@ -29,35 +38,35 @@ function EditorMain() {
     toggleTimeline,
     showTemplates,
     setShowTemplates,
-  } = useImageStore();
+  } = useImageStore()
 
   // enable autosave
-  useAutosaveDraft();
+  useAutosaveDraft()
 
-  const hasContent = !!uploadedImageUrl || slides.length > 0;
+  const hasContent = !!uploadedImageUrl || slides.length > 0
 
   React.useEffect(() => {
-    document.body.style.overflow = "hidden";
-    trackEditorOpen();
+    document.body.style.overflow = 'hidden'
+    trackEditorOpen()
     return () => {
-      document.body.style.overflow = "";
-    };
-  }, []);
+      document.body.style.overflow = ''
+    }
+  }, [])
 
   // Templates overlay lives in UnifiedRightPanel, which only mounts when the
   // sheet is open. Opening Templates from the header must open the sheet too.
   React.useEffect(() => {
     if (isMobile && showTemplates) {
-      setMobileSheetOpen(true);
+      setMobileSheetOpen(true)
     }
-  }, [isMobile, showTemplates]);
+  }, [isMobile, showTemplates])
 
   const handleMobileSheetOpenChange = (open: boolean): void => {
-    setMobileSheetOpen(open);
+    setMobileSheetOpen(open)
     if (!open) {
-      setShowTemplates(false);
+      setShowTemplates(false)
     }
-  };
+  }
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
@@ -87,9 +96,9 @@ function EditorMain() {
         <div className="flex-1 flex flex-col overflow-hidden bg-background relative min-w-0">
           <div
             className={cn(
-              "flex-1 flex items-center justify-center overflow-y-auto overflow-x-hidden relative min-h-0",
+              'flex-1 flex items-center justify-center overflow-y-auto overflow-x-hidden relative min-h-0',
               // Dock space for the Animate chip so portrait stages don't sit under it
-              hasContent && !showTimeline && !isMobile && "pb-14"
+              hasContent && !showTimeline && !isMobile && 'pb-14'
             )}
           >
             <EditorContent>
@@ -130,17 +139,15 @@ function EditorMain() {
               className="h-full w-full max-w-[min(100%,460px)] gap-0 overflow-hidden p-0 sm:max-w-[min(100%,460px)]"
             >
               <SheetTitle className="sr-only">Editor settings</SheetTitle>
-              <UnifiedRightPanel
-                onClose={() => handleMobileSheetOpenChange(false)}
-              />
+              <UnifiedRightPanel onClose={() => handleMobileSheetOpenChange(false)} />
             </SheetContent>
           </Sheet>
         )}
       </div>
     </div>
-  );
+  )
 }
 
 export function EditorLayout() {
-  return <EditorMain />;
+  return <EditorMain />
 }

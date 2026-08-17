@@ -1,0 +1,59 @@
+import { z } from 'zod'
+import { getE2EUrl, openWorkspaceSetting, signUp, signUpAndCreateWorkspace } from './framework/auth'
+import { browserRequest } from './framework/browser'
+import { configureE2EFlow, expect, test } from './framework/flow'
+
+const invitationSchema = z.object({ id: z.string() })
+
+configureE2EFlow()
+
+test('an owner can invite a viewer and remove their workspace access', async ({
+  browser,
+  identity,
+  page,
+}) => {
+  await signUpAndCreateWorkspace(identity, page)
+  const memberIdentity = {
+    ...identity,
+    email: `member-${identity.email}`,
+    name: 'E2E Viewer',
+  }
+  const memberContext = await browser.newContext()
+  const memberPage = await memberContext.newPage()
+
+  try {
+    await signUp(memberIdentity, memberPage)
+    await openWorkspaceSetting(page, 'Members')
+    const invitationResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        response.url().includes('/api/auth/organization/invite-member')
+    )
+    await page.locator('input[name="email"]').fill(memberIdentity.email)
+    await page.getByRole('button', { name: 'Invite' }).click()
+    const invitation = invitationSchema.parse(await (await invitationResponse).json())
+    await expect(page.getByText('Invitation created.')).toBeVisible()
+
+    await memberPage.goto(getE2EUrl(`/accept-invitation?invitationId=${invitation.id}`))
+    await memberPage.getByRole('button', { name: 'Accept invitation' }).click()
+    await expect.poll(() => new URL(memberPage.url()).pathname).toBe('/workspace')
+
+    await memberPage.goto(getE2EUrl('/'))
+    await expect(memberPage.getByRole('button', { exact: true, name: 'Save' })).toBeVisible()
+    expect((await browserRequest(memberPage, '/api/tenant/api-keys')).status).toBe(403)
+
+    await openWorkspaceSetting(page, 'Members')
+    await expect(page.getByText(memberIdentity.email, { exact: true })).toBeVisible()
+    const memberRow = page
+      .getByText(memberIdentity.email, { exact: true })
+      .locator('xpath=..')
+      .locator('xpath=..')
+    await memberRow.getByRole('button', { name: 'Remove' }).click()
+    await expect(page.getByText(memberIdentity.email, { exact: true })).toHaveCount(0)
+
+    await memberPage.goto(getE2EUrl('/'))
+    await expect.poll(() => new URL(memberPage.url()).pathname).toBe('/sign-in')
+  } finally {
+    await memberContext.close()
+  }
+})

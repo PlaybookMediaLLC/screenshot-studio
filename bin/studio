@@ -11,11 +11,28 @@ KIND_CLUSTER="screenshot-studio-dev"
 KIND_NAMESPACE="screenshot-studio"
 
 compose() {
-  docker compose --env-file "$LOCAL_ENV" --file "$ROOT_DIR/compose.yaml" "$@"
+  local compose_args=(--env-file "$LOCAL_ENV" --file "$ROOT_DIR/compose.yaml")
+  if [[ "${E2E_DOCKER_HOST_GATEWAY:-}" == "true" ]]; then
+    compose_args+=(--file "$ROOT_DIR/compose.ci.yaml")
+  fi
+  docker compose "${compose_args[@]}" "$@"
 }
 
 random_hex() {
   openssl rand -hex "$1"
+}
+
+random_base64() {
+  openssl rand -base64 "$1" | tr -d '\n'
+}
+
+ensure_env_value() {
+  local key="$1"
+  local value="$2"
+
+  if ! grep -q "^${key}=" "$LOCAL_ENV"; then
+    printf '%s=%s\n' "$key" "$value" >>"$LOCAL_ENV"
+  fi
 }
 
 create_storage_key() {
@@ -37,6 +54,7 @@ NODE
 
 ensure_env() {
   if [[ -f "$LOCAL_ENV" ]]; then
+    local database_url
     node - "$LOCAL_ENV" <<'NODE'
 const fs = require("node:fs");
 const [file] = process.argv.slice(2);
@@ -47,10 +65,19 @@ const next = current.replace(
 );
     if (next !== current) fs.writeFileSync(file, next);
 NODE
-    if ! grep -q '^CLEANUP_SECRET=' "$LOCAL_ENV"; then
-      printf '\nCLEANUP_SECRET=%s\n' "$(random_hex 32)" >>"$LOCAL_ENV"
-      chmod 600 "$LOCAL_ENV"
-    fi
+    ensure_env_value CLEANUP_SECRET "$(random_hex 32)"
+    ensure_env_value BETTER_AUTH_SECRET "$(random_hex 32)"
+    ensure_env_value AUDIT_IP_HASH_SECRET "$(random_hex 32)"
+    ensure_env_value AUDIT_DRAIN_ENCRYPTION_KEY "$(random_base64 32)"
+    ensure_env_value BETTER_AUTH_URL "http://localhost:3000"
+    ensure_env_value NEXT_PUBLIC_APP_URL "http://localhost:3000"
+    ensure_env_value BETTER_AUTH_TRUSTED_ORIGINS "http://localhost:3000"
+    ensure_env_value STORAGE_PROXY_URL "http://localhost:3000/api/tenant/storage"
+    ensure_env_value POSTIZ_API_URL "http://host.docker.internal:5679/api/public/v1"
+    ensure_env_value POSTIZ_API_KEY "e2e-postiz-token"
+    database_url="$(grep '^DATABASE_URL=' "$LOCAL_ENV" | cut -d= -f2-)"
+    ensure_env_value AUDIT_RETENTION_DATABASE_URL "$database_url"
+    chmod 600 "$LOCAL_ENV"
     return
   fi
 
@@ -62,6 +89,9 @@ NODE
   local storage_jwt_secret
   local storage_service_key
   local cleanup_secret
+  local better_auth_secret
+  local audit_ip_hash_secret
+  local audit_drain_encryption_key
 
   postgres_super_password="$(random_hex 24)"
   postgres_app_password="$(random_hex 24)"
@@ -70,6 +100,9 @@ NODE
   storage_jwt_secret="$(random_hex 32)"
   storage_service_key="$(create_storage_key "$storage_jwt_secret")"
   cleanup_secret="$(random_hex 32)"
+  better_auth_secret="$(random_hex 32)"
+  audit_ip_hash_secret="$(random_hex 32)"
+  audit_drain_encryption_key="$(random_base64 32)"
 
   umask 077
   cat >"$LOCAL_ENV" <<EOF
@@ -82,12 +115,22 @@ STORAGE_JWT_SECRET=$storage_jwt_secret
 STORAGE_SERVICE_KEY=$storage_service_key
 STORAGE_BUCKET=tenant-assets
 CLEANUP_SECRET=$cleanup_secret
+BETTER_AUTH_SECRET=$better_auth_secret
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+AUDIT_IP_HASH_SECRET=$audit_ip_hash_secret
+AUDIT_DRAIN_ENCRYPTION_KEY=$audit_drain_encryption_key
 DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@postgres:5432/screenshot_studio?schema=public
+AUDIT_RETENTION_DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@postgres:5432/screenshot_studio?schema=public
 HOST_DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@127.0.0.1:54329/screenshot_studio?schema=public
 STORAGE_DATABASE_URL=postgresql://postgres:$postgres_super_password@postgres:5432/storage
 STORAGE_DATABASE_POOL_URL=postgresql://postgres:$postgres_super_password@pgbouncer:6432/postgres
 STORAGE_API_URL=http://storage:5000
 STORAGE_HOST_URL=http://127.0.0.1:5000
+STORAGE_PROXY_URL=http://localhost:3000/api/tenant/storage
+POSTIZ_API_URL=http://host.docker.internal:5679/api/public/v1
+POSTIZ_API_KEY=e2e-postiz-token
 R2_ENDPOINT=http://minio:9000
 R2_REGION=us-east-1
 R2_FORCE_PATH_STYLE=true
@@ -134,10 +177,20 @@ STORAGE_JWT_SECRET=$STORAGE_JWT_SECRET
 STORAGE_SERVICE_KEY=$STORAGE_SERVICE_KEY
 STORAGE_BUCKET=$STORAGE_BUCKET
 CLEANUP_SECRET=$CLEANUP_SECRET
+BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
+AUTH_REQUIRE_EMAIL_VERIFICATION=false
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+AUDIT_IP_HASH_SECRET=$AUDIT_IP_HASH_SECRET
+AUDIT_DRAIN_ENCRYPTION_KEY=$AUDIT_DRAIN_ENCRYPTION_KEY
 DATABASE_URL=postgresql://screenshot_studio:$POSTGRES_APP_PASSWORD@screenshot-studio-postgres:5432/screenshot_studio?schema=public
+AUDIT_RETENTION_DATABASE_URL=postgresql://screenshot_studio:$POSTGRES_APP_PASSWORD@screenshot-studio-postgres:5432/screenshot_studio?schema=public
 STORAGE_DATABASE_URL=postgresql://postgres:$POSTGRES_SUPER_PASSWORD@screenshot-studio-postgres:5432/storage
 STORAGE_DATABASE_POOL_URL=postgresql://postgres:$POSTGRES_SUPER_PASSWORD@screenshot-studio-pgbouncer:6432/postgres
 STORAGE_API_URL=http://screenshot-studio-storage:5000
+STORAGE_HOST_URL=http://127.0.0.1:5000
+STORAGE_PROXY_URL=http://127.0.0.1:3000/api/tenant/storage
 R2_ENDPOINT=http://screenshot-studio-minio:9000
 R2_REGION=us-east-1
 R2_FORCE_PATH_STYLE=true
@@ -162,6 +215,22 @@ wait_for_http() {
   done
 
   echo "$label did not become ready: $url" >&2
+  exit 1
+}
+
+wait_for_screenshot_mock() {
+  local attempt
+
+  for attempt in $(seq 1 30); do
+    if compose exec -T app node -e 'fetch("http://screenshot-mock:5678/?url=https://readiness.example/probe").then((response) => process.exit(response.ok ? 0 : 1), () => process.exit(1))' >/dev/null 2>&1; then
+      return
+    fi
+    sleep 1
+  done
+
+  echo "The app container cannot reach screenshot-mock:5678." >&2
+  compose --profile e2e ps --all >&2 || true
+  compose --profile e2e logs screenshot-mock >&2 || true
   exit 1
 }
 
@@ -194,6 +263,7 @@ smoke() {
     --header "authorization: Bearer $STORAGE_SERVICE_KEY" \
     --header "apikey: $STORAGE_SERVICE_KEY" >/dev/null
   wait_for_http "http://127.0.0.1:3000/api/health" "Screenshot Studio"
+  wait_for_http "http://127.0.0.1:3000/api/auth/ok" "Better Auth"
   [[ "$(curl --silent --output /dev/null --write-out '%{http_code}' --request POST \
     --header 'content-type: application/json' --data '{}' \
     http://127.0.0.1:3000/api/screenshot/invalidate)" == "401" ]]
@@ -207,6 +277,68 @@ smoke() {
 
 rate_limit_smoke() {
   node "$ROOT_DIR/scripts/smoke-rate-limit.mjs"
+}
+
+tenant_isolation() {
+  load_env
+  wait_for_http "http://localhost:3000/api/health" "Screenshot Studio"
+  TENANT_TEST_BASE_URL="http://localhost:3000" npm --prefix "$ROOT_DIR" run test:tenant-isolation
+}
+
+run_e2e() {
+  local test_script="$1"
+  shift
+  local app_url="${E2E_BASE_URL:-http://localhost:3000}"
+  local e2e_trusted_origins
+  local manage_screenshot_mock="${E2E_MANAGE_SCREENSHOT_MOCK:-true}"
+  local test_result=0
+
+  load_env
+  e2e_trusted_origins="$BETTER_AUTH_TRUSTED_ORIGINS,http://localhost:5680,http://host.docker.internal:5680"
+  if [[ "$manage_screenshot_mock" == "true" ]]; then
+    BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" SCREENSHOT_API_URL="http://screenshot-mock:5678" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" compose --profile e2e up --detach --force-recreate screenshot-mock app
+    wait_for_screenshot_mock
+  fi
+  wait_for_http "${app_url%/}/api/health" "Screenshot Studio"
+  wait_for_http "${app_url%/}/sign-up" "Screenshot Studio sign-up route"
+  wait_for_http "$app_url" "Screenshot Studio editor route"
+  if ! E2E_BASE_URL="$app_url" \
+    E2E_DATABASE_URL="${E2E_DATABASE_URL:-$HOST_DATABASE_URL}" \
+    E2E_COMPOSE_LOGS="$manage_screenshot_mock" \
+    E2E_MAINTENANCE_SECRET="$CLEANUP_SECRET" \
+    E2E_R2_ACCESS_KEY_ID="${E2E_R2_ACCESS_KEY_ID:-$R2_ACCESS_KEY_ID}" \
+    E2E_R2_BUCKET_NAME="${E2E_R2_BUCKET_NAME:-$R2_BUCKET_NAME}" \
+    E2E_R2_ENDPOINT="${E2E_R2_ENDPOINT:-http://127.0.0.1:9003}" \
+    E2E_R2_REGION="${E2E_R2_REGION:-$R2_REGION}" \
+    E2E_R2_SECRET_ACCESS_KEY="${E2E_R2_SECRET_ACCESS_KEY:-$R2_SECRET_ACCESS_KEY}" \
+    E2E_WEBHOOK_SECRET="$CLEANUP_SECRET" \
+    npm --prefix "$ROOT_DIR" run "$test_script" -- "$@"; then
+    test_result=1
+  fi
+  if [[ "$manage_screenshot_mock" == "true" ]]; then
+    SCREENSHOT_API_URL="" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="" compose up --detach --force-recreate app
+  fi
+  return "$test_result"
+}
+
+e2e() {
+  run_e2e test:e2e "$@"
+}
+
+e2e_onboarding() {
+  run_e2e test:e2e:onboarding
+}
+
+e2e_recovery() {
+  run_e2e test:e2e:recovery
+}
+
+e2e_file() {
+  if [[ "$#" -eq 0 ]]; then
+    echo "Provide one Playwright test path." >&2
+    exit 2
+  fi
+  run_e2e test:e2e "$@"
 }
 
 check() {
@@ -257,11 +389,11 @@ down() {
   fi
 
   if [[ "$mode" == "purge" ]]; then
-    compose --profile trigger down --volumes --remove-orphans
+    compose --profile trigger --profile e2e down --volumes --remove-orphans
     return
   fi
 
-  compose --profile trigger down --remove-orphans
+  compose --profile trigger --profile e2e down --remove-orphans
 }
 
 trigger_login() {
@@ -307,7 +439,9 @@ kind_up() {
   fi
 
   docker build --tag screenshot-studio:kind-dev "$ROOT_DIR"
+  docker build --target migrate --tag screenshot-studio:migrate-kind-dev "$ROOT_DIR"
   kind load docker-image screenshot-studio:kind-dev --name "$KIND_CLUSTER"
+  kind load docker-image screenshot-studio:migrate-kind-dev --name "$KIND_CLUSTER"
   kubectl create namespace "$KIND_NAMESPACE" --dry-run=client --output=yaml | kubectl apply --filename -
   kubectl create secret generic screenshot-studio-local \
     --namespace "$KIND_NAMESPACE" \
@@ -320,10 +454,14 @@ kind_up() {
     --set image.repository=screenshot-studio \
     --set image.tag=kind-dev \
     --set image.pullPolicy=Never \
+    --set migration.image.repository=screenshot-studio \
+    --set migration.image.tag=migrate-kind-dev \
+    --set migration.image.pullPolicy=Never \
     --set existingSecret=screenshot-studio-local \
     --wait \
     --wait-for-jobs \
     --timeout 8m
+  kubectl rollout restart deployment/screenshot-studio --namespace "$KIND_NAMESPACE"
   kubectl rollout status deployment/screenshot-studio --namespace "$KIND_NAMESPACE" --timeout=3m
 }
 
@@ -359,6 +497,11 @@ Commands:
   reset                      Stop the Compose stack and remove all local data.
   smoke                      Verify Compose service health.
   rate-limit-smoke           Verify Redis-backed screenshot API rate limiting.
+  tenant-isolation           Verify two-organization session and API-key isolation.
+  e2e                        Run all browser end-to-end flows.
+  e2e-file <path>            Run one browser end-to-end flow.
+  e2e-onboarding             Verify browser sign-up and workspace onboarding.
+  e2e-recovery               Verify dependency failure and recovery behavior.
   check                      Run the server-boundary quality checks in Docker.
   logs [service]             Follow local service logs.
   status                     Show local Compose services.
@@ -376,6 +519,11 @@ case "${1:-}" in
   reset) down --purge --yes ;;
   smoke) smoke ;;
   rate-limit-smoke) rate_limit_smoke ;;
+  tenant-isolation) tenant_isolation ;;
+  e2e) shift; e2e "$@" ;;
+  e2e-file) shift; e2e_file "$@" ;;
+  e2e-onboarding) e2e_onboarding ;;
+  e2e-recovery) e2e_recovery ;;
   check) check ;;
   logs) ensure_env; shift; compose logs --follow "${@:-}" ;;
   status) ensure_env; compose ps ;;

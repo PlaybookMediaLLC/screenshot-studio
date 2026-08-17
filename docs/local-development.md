@@ -28,6 +28,31 @@ Redis-backed screenshot rate limit, and a temporary signed Storage
 upload/read/delete operation. It also proves cache invalidation rejects an
 unauthenticated request and validates an authenticated request body.
 
+`make tenant-isolation` creates two disposable local users and workspaces. It
+proves session and organization API-key requests cannot list another
+organization's releases or access its asset by ID. It also proves key revocation
+takes effect on the next request. It runs only against localhost; use `make
+reset` when you want to remove its local fixtures.
+
+## Onboarding browser test
+
+After `make up`, run the full sign-up and workspace onboarding flow in Chromium:
+
+```sh
+npx playwright install chromium # once per machine
+make e2e
+make e2e-onboarding
+make e2e-recovery
+```
+
+The browser suite creates unique local users and workspaces. It covers sign-in,
+tenant assets, release webhooks, Redis limits, cache lifecycle, workspace
+settings, audit controls, identity controls, and secret exposure.
+`make e2e-recovery` runs serial failure and recovery checks for Redis, MinIO,
+Storage, and Postgres. Use a Kind port-forward with
+`E2E_MANAGE_SCREENSHOT_MOCK=false` so the command does not recreate Compose.
+See [`e2e/README.md`](../e2e/README.md) to add flows with shared lifecycle hooks.
+
 The stack contains:
 
 - Screenshot Studio in Next.js development mode with hot reload.
@@ -36,8 +61,9 @@ The stack contains:
 - Supabase Storage, PgBouncer, and Imgproxy in front of MinIO.
 
 Supabase Storage is private. The server-only storage client creates object keys
-under `tenants/<tenant-id>/assets/<asset-id>/`. Public upload routes are not
-enabled until Better Auth and tenant authorization are implemented.
+under `org/<organization-id>/<classification>/<asset-id>/<revision>/`. Local setup also generates
+Better Auth and audit secrets. Do not copy `.local/dev.env` to another
+environment.
 
 Cache cleanup and invalidation use the generated `CLEANUP_SECRET` in the
 `x-screenshot-studio-maintenance-secret` request header. It is server-only;
@@ -45,9 +71,10 @@ never send it from the browser.
 
 ## Quality checks
 
-Run `make check` before you commit. It checks format, lint, TypeScript, file
-size, function size, complexity, nesting, and parameter count for the server
-boundary. `npm install` installs the same check as the Git pre-commit hook.
+Run `make check` before you commit. It checks format, lint, TypeScript, unit
+tests, file size, function size, complexity, nesting, and parameter count for
+the server boundary. `npm install` installs the same check as the Git
+pre-commit hook.
 
 ## Trigger.dev Cloud development
 
@@ -62,6 +89,11 @@ make trigger-dev
 
 The Trigger.dev account and project reference are the only values the local CLI
 cannot generate. It does not self-host Trigger.dev.
+
+Trigger.dev also dispatches pending SIEM audit-drain events every minute and
+purges expired audit records daily. See [authentication and enterprise
+access](authentication.md) for production-only credentials and database-role
+requirements.
 
 ## Production task deployment
 
@@ -83,10 +115,16 @@ make kind-down
 Kind cluster, generates a Kubernetes Secret from the local values, and installs
 the Helm chart with local Postgres, Redis, MinIO, Storage, PgBouncer, and
 Imgproxy enabled. Kind is a production-like image test, not a hot-reload loop.
+Its migration job uses `prisma db push` because the local database retains the
+legacy screenshot-cache table. Production uses the reviewed Prisma migration
+path in RFC 002.
 
 ## Production storage
 
 The Storage service uses an S3-compatible backend. Local development sets it to
 MinIO. Production should set the same S3 settings to private Cloudflare R2
 credentials and endpoint. The application remains responsible for tenant checks
-and issuing short-lived upload URLs.
+and issuing short-lived upload URLs. Local Storage has no browser CORS gateway,
+so `STORAGE_PROXY_URL` sends signed transfers through the authenticated Next.js
+route. In production, keep that route or configure the public Storage gateway
+with equivalent CORS rules.

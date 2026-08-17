@@ -1,5 +1,4 @@
-import type { Metadata, Viewport } from "next";
-import Script from "next/script";
+import type { Metadata, Viewport } from 'next'
 import {
   Geist,
   Geist_Mono,
@@ -28,179 +27,207 @@ import {
   Work_Sans,
   Urbanist,
   Albert_Sans,
-} from "next/font/google";
-import "./globals.css";
-import { Toaster } from "@/components/ui/sonner";
-import { QueryProvider } from "@/lib/query-client";
-import { GlobalDropZone } from "@/components/GlobalDropZone";
-import { PathTracker } from "@/components/landing/GoBackButton";
-import { getRootJsonLd } from "@/lib/seo/json-ld";
-import { getLocale } from "next-intl/server";
+} from 'next/font/google'
+import './globals.css'
+import { Toaster } from '@/components/ui/sonner'
+import { QueryProvider } from '@/lib/query-client'
+import { GlobalDropZone } from '@/components/GlobalDropZone'
+import { PathTracker } from '@/components/landing/GoBackButton'
+import { PublicAdScript } from '@/components/marketing/PublicAdScript'
+import { getRootJsonLd } from '@/lib/seo/json-ld'
+import { getLocale } from 'next-intl/server'
 
 // System UI fonts
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+  variable: '--font-geist-sans',
+  preload: false,
+  subsets: ['latin'],
+})
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  variable: '--font-geist-mono',
+  preload: false,
+  subsets: ['latin'],
+})
 
 // Modern Sans-serif fonts
 const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-});
+  variable: '--font-inter',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+})
 
 const poppins = Poppins({
-  variable: "--font-poppins",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-});
+  variable: '--font-poppins',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+})
 
 const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-});
+  variable: '--font-space-grotesk',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+})
 
 const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-});
+  variable: '--font-outfit',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+})
 
 const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta-sans",
-  subsets: ["latin"],
-  weight: ["200", "300", "400", "500", "600", "700", "800"],
-});
+  variable: '--font-plus-jakarta-sans',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['200', '300', '400', '500', '600', '700', '800'],
+})
 
 const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-});
+  variable: '--font-dm-sans',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+})
 
 const sora = Sora({
-  variable: "--font-sora",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800"],
-});
+  variable: '--font-sora',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800'],
+})
 
 const manrope = Manrope({
-  variable: "--font-manrope",
-  subsets: ["latin"],
-  weight: ["200", "300", "400", "500", "600", "700", "800"],
-});
+  variable: '--font-manrope',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['200', '300', '400', '500', '600', '700', '800'],
+})
 
 const raleway = Raleway({
-  variable: "--font-raleway",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-});
+  variable: '--font-raleway',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+})
 
 const montserrat = Montserrat({
-  variable: "--font-montserrat",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-});
+  variable: '--font-montserrat',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+})
 
 const lexend = Lexend({
-  variable: "--font-lexend",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-});
+  variable: '--font-lexend',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+})
 
 const workSans = Work_Sans({
-  variable: "--font-work-sans",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-});
+  variable: '--font-work-sans',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+})
 
 const urbanist = Urbanist({
-  variable: "--font-urbanist",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-});
+  variable: '--font-urbanist',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+})
 
 const albertSans = Albert_Sans({
-  variable: "--font-albert-sans",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-});
+  variable: '--font-albert-sans',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+})
 
 // Display/Condensed fonts
 const oswald = Oswald({
-  variable: "--font-oswald",
-  subsets: ["latin"],
-  weight: ["200", "300", "400", "500", "600", "700"],
-});
+  variable: '--font-oswald',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['200', '300', '400', '500', '600', '700'],
+})
 
 const bebasNeue = Bebas_Neue({
-  variable: "--font-bebas-neue",
-  subsets: ["latin"],
-  weight: ["400"],
-});
+  variable: '--font-bebas-neue',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['400'],
+})
 
 const righteous = Righteous({
-  variable: "--font-righteous",
-  subsets: ["latin"],
-  weight: ["400"],
-});
+  variable: '--font-righteous',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['400'],
+})
 
 // Serif fonts
 const playfairDisplay = Playfair_Display({
-  variable: "--font-playfair-display",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-});
+  variable: '--font-playfair-display',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800', '900'],
+})
 
 const lora = Lora({
-  variable: "--font-lora",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
+  variable: '--font-lora',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+})
 
 const libreBaskerville = Libre_Baskerville({
-  variable: "--font-libre-baskerville",
-  subsets: ["latin"],
-  weight: ["400", "700"],
-});
+  variable: '--font-libre-baskerville',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['400', '700'],
+})
 
 // Handwriting/Script fonts
 const caveat = Caveat({
-  variable: "--font-caveat",
-  subsets: ["latin"],
-});
+  variable: '--font-caveat',
+  preload: false,
+  subsets: ['latin'],
+})
 
 const pacifico = Pacifico({
-  variable: "--font-pacifico",
-  subsets: ["latin"],
-  weight: ["400"],
-});
+  variable: '--font-pacifico',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['400'],
+})
 
 const dancingScript = Dancing_Script({
-  variable: "--font-dancing-script",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
+  variable: '--font-dancing-script',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+})
 
 // Monospace fonts
 const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800"],
-});
+  variable: '--font-jetbrains-mono',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800'],
+})
 
 const firaCode = Fira_Code({
-  variable: "--font-fira-code",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-});
+  variable: '--font-fira-code',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+})
 
 // Combine all font variables
 const fontVariables = [
@@ -231,100 +258,96 @@ const fontVariables = [
   dancingScript.variable,
   jetbrainsMono.variable,
   firaCode.variable,
-].join(" ");
+].join(' ')
 
 export const metadata: Metadata = {
   title: {
-    default: "Screenshot Studio - Screenshot Beautifier & Mockup Maker",
-    template: "%s | Screenshot Studio",
+    default: 'Screenshot Studio - Screenshot Beautifier & Mockup Maker',
+    template: '%s | Screenshot Studio',
   },
   // Add your Google Search Console verification code here
   // Get it from: https://search.google.com/search-console
   verification: {
-    google: process.env.GOOGLE_SITE_VERIFICATION || "",
+    google: process.env.GOOGLE_SITE_VERIFICATION || '',
     // yandex: "your-yandex-verification",
     // bing: "your-bing-verification",
   },
   description:
-    "Free screenshot editor and mockup tool — transform plain screenshots into professional graphics in seconds. 100+ gradient backgrounds, browser frames, shadows, animations, 3D effects, and video export. The best free alternative to Pika Style and Shots.so. No signup needed.",
+    'Free screenshot editor and mockup tool — transform plain screenshots into professional graphics in seconds. 100+ gradient backgrounds, browser frames, shadows, animations, 3D effects, and video export. The best free alternative to Pika Style and Shots.so. No signup needed.',
   keywords: [
     // Primary keywords
-    "screenshot editor online free",
-    "free screenshot editor",
-    "online screenshot editor",
-    "screenshot beautifier",
-    "screenshot editor",
-    "screenshot studio",
-    "free image editor",
-    "online image editor",
+    'screenshot editor online free',
+    'free screenshot editor',
+    'online screenshot editor',
+    'screenshot beautifier',
+    'screenshot editor',
+    'screenshot studio',
+    'free image editor',
+    'online image editor',
     // Competitor & alternative keywords
-    "pika style alternative",
-    "shots.so alternative",
-    "screenshot mockup tool",
-    "browser mockup generator",
-    "window mockup generator",
-    "screenshot wrapper",
+    'pika style alternative',
+    'shots.so alternative',
+    'screenshot mockup tool',
+    'browser mockup generator',
+    'window mockup generator',
+    'screenshot wrapper',
     // Feature keywords
-    "social media graphics maker",
-    "image background editor",
-    "screenshot animation maker",
-    "browser frame screenshot",
-    "screenshot with gradient background",
-    "mac window screenshot mockup",
+    'social media graphics maker',
+    'image background editor',
+    'screenshot animation maker',
+    'browser frame screenshot',
+    'screenshot with gradient background',
+    'mac window screenshot mockup',
     // Use case keywords
-    "product screenshot tool",
-    "SaaS screenshot maker",
-    "app screenshot maker",
-    "developer portfolio images",
-    "Twitter card generator",
-    "Instagram post creator",
-    "LinkedIn banner maker",
+    'product screenshot tool',
+    'SaaS screenshot maker',
+    'app screenshot maker',
+    'developer portfolio images',
+    'Twitter card generator',
+    'Instagram post creator',
+    'LinkedIn banner maker',
     // Long-tail keywords
-    "free design tool no signup",
-    "beautify screenshots online",
-    "add background to screenshot",
-    "screenshot to video converter",
-    "screenshot padding and shadow tool",
-    "screenshot border radius editor",
-    "free online screenshot beautifier",
-    "image presentation maker",
+    'free design tool no signup',
+    'beautify screenshots online',
+    'add background to screenshot',
+    'screenshot to video converter',
+    'screenshot padding and shadow tool',
+    'screenshot border radius editor',
+    'free online screenshot beautifier',
+    'image presentation maker',
   ],
-  authors: [
-    { name: "Screenshot Studio", url: "https://screenshot-studio.com" },
-  ],
-  creator: "Screenshot Studio",
-  publisher: "Screenshot Studio",
-  metadataBase: new URL(
-    process.env.BETTER_AUTH_URL || "https://screenshot-studio.com",
-  ),
+  authors: [{ name: 'Screenshot Studio', url: 'https://screenshot-studio.com' }],
+  creator: 'Screenshot Studio',
+  publisher: 'Screenshot Studio',
+  metadataBase: new URL(process.env.BETTER_AUTH_URL || 'https://screenshot-studio.com'),
   alternates: {
-    canonical: "/",
+    canonical: '/',
   },
   openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "/",
-    siteName: "Screenshot Studio",
-    title: "Screenshot Studio - Free Screenshot Editor Online",
+    type: 'website',
+    locale: 'en_US',
+    url: '/',
+    siteName: 'Screenshot Studio',
+    title: 'Screenshot Studio - Free Screenshot Editor Online',
     description:
-      "Free screenshot editor online — create stunning social media graphics in seconds. 100+ backgrounds, animations, 3D effects, video export. No signup required.",
+      'Free screenshot editor online — create stunning social media graphics in seconds. 100+ backgrounds, animations, 3D effects, video export. No signup required.',
     images: [
       {
-        url: "https://screenshot-studio.com/og.jpg",
+        url: 'https://screenshot-studio.com/og.jpg',
         width: 1200,
         height: 630,
-        alt: "Screenshot Studio - Transform Screenshots into Professional Graphics",
+        alt: 'Screenshot Studio - Transform Screenshots into Professional Graphics',
       },
     ],
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Screenshot Studio - Free Screenshot Editor Online",
+    card: 'summary_large_image',
+    title: 'Screenshot Studio - Free Screenshot Editor Online',
     description:
-      "Free screenshot editor online — transform screenshots into stunning graphics. Animations, 3D effects, video export. No signup.",
-    images: ["https://screenshot-studio.com/og.jpg"],
-    creator: "@code_kartik",
-    site: "@code_kartik",
+      'Free screenshot editor online — transform screenshots into stunning graphics. Animations, 3D effects, video export. No signup.',
+    images: ['https://screenshot-studio.com/og.jpg'],
+    creator: '@code_kartik',
+    site: '@code_kartik',
   },
   robots: {
     index: true,
@@ -332,50 +355,45 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
     },
   },
   icons: {
     icon: [
-      { url: "/favicon.svg?v=10", type: "image/svg+xml" },
-      { url: "/favicon-96x96.png?v=10", type: "image/png", sizes: "96x96" },
-      { url: "/favicon-32x32.png?v=10", type: "image/png", sizes: "32x32" },
-      { url: "/favicon-16x16.png?v=10", type: "image/png", sizes: "16x16" },
-      { url: "/favicon.ico?v=10", sizes: "16x16 32x32 48x48" },
+      { url: '/favicon.svg?v=10', type: 'image/svg+xml' },
+      { url: '/favicon-96x96.png?v=10', type: 'image/png', sizes: '96x96' },
+      { url: '/favicon-32x32.png?v=10', type: 'image/png', sizes: '32x32' },
+      { url: '/favicon-16x16.png?v=10', type: 'image/png', sizes: '16x16' },
+      { url: '/favicon.ico?v=10', sizes: '16x16 32x32 48x48' },
     ],
-    shortcut: "/favicon.ico?v=10",
-    apple: [{ url: "/apple-touch-icon.png?v=10", sizes: "180x180", type: "image/png" }],
+    shortcut: '/favicon.ico?v=10',
+    apple: [{ url: '/apple-touch-icon.png?v=10', sizes: '180x180', type: 'image/png' }],
   },
-  manifest: "/site.webmanifest",
-  category: "Design Tools",
-};
+  manifest: '/site.webmanifest',
+  category: 'Design Tools',
+}
 
 export const viewport: Viewport = {
-  width: "device-width",
+  width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-};
+}
 
 export default async function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
-  const rootJsonLd = getRootJsonLd();
-  const locale = await getLocale();
+  const rootJsonLd = getRootJsonLd()
+  const locale = await getLocale()
 
   return (
     <html lang={locale} className="dark">
       <meta name="msvalidate.01" content="A3B8CB50BBD78710971A13FA3EE1E544" />
-      <link
-        rel="alternate"
-        type="text/markdown"
-        href="/llms.txt"
-        title="LLMs.txt"
-      />
+      <link rel="alternate" type="text/markdown" href="/llms.txt" title="LLMs.txt" />
       <link
         rel="alternate"
         type="text/markdown"
@@ -387,12 +405,7 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(rootJsonLd) }}
         />
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8704843786311642"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
+        <PublicAdScript />
         <QueryProvider>
           <GlobalDropZone>
             <PathTracker />
@@ -402,5 +415,5 @@ export default async function RootLayout({
         </QueryProvider>
       </body>
     </html>
-  );
+  )
 }

@@ -1,8 +1,19 @@
 import 'server-only'
+import { isIP } from 'node:net'
 import { z } from 'zod'
 import type { ScreenshotRequest } from '@/lib/api/schemas'
 
 const MICROLINK_API_URL = process.env.SCREENSHOT_API_URL || 'https://api.microlink.io'
+const MAX_SCREENSHOT_BYTES = 10 * 1024 * 1024
+const MAX_SCREENSHOT_REDIRECTS = 3
+const E2E_ALLOWED_DOWNLOAD_HOSTS = new Set(
+  process.env.NODE_ENV === 'production'
+    ? []
+    : (process.env.SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS ?? '')
+        .split(',')
+        .map((host) => host.trim().toLowerCase())
+        .filter(Boolean)
+)
 
 const microlinkResponseSchema = z.object({
   data: z
@@ -29,6 +40,86 @@ export type ScreenshotCapture = {
 export type ScreenshotFailure = {
   message: string
   status: number
+}
+
+class UnsafeCaptureUrlError extends Error {
+  constructor() {
+    super('unsafe_capture_url')
+  }
+}
+
+class UnsafeScreenshotDownloadError extends Error {
+  constructor() {
+    super('unsafe_screenshot_download')
+  }
+}
+
+// Explicit ranges preserve the SSRF boundary; do not split this check by caller.
+// eslint-disable-next-line complexity
+function isPrivateIpv4(hostname: string): boolean {
+  const octets = hostname.split('.').map(Number)
+  const [first, second] = octets
+  return (
+    octets.length !== 4 ||
+    octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255) ||
+    first === 0 ||
+    first === 10 ||
+    first === 127 ||
+    first === 224 ||
+    first === 255 ||
+    (first === 100 && second >= 64 && second <= 127) ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && (second === 0 || second === 168)) ||
+    (first === 198 && (second === 18 || second === 19))
+  )
+}
+
+function isPrivateIpv6(hostname: string): boolean {
+  const value = hostname.replace(/^\[|\]$/g, '').toLowerCase()
+  return (
+    value === '::' ||
+    value === '::1' ||
+    value.startsWith('fc') ||
+    value.startsWith('fd') ||
+    value.startsWith('fe80:') ||
+    value.startsWith('::ffff:127.') ||
+    value.startsWith('::ffff:10.') ||
+    value.startsWith('::ffff:192.168.')
+  )
+}
+
+function isUnsafeCaptureHost(hostname: string): boolean {
+  const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, '')
+  if (
+    normalized === 'localhost' ||
+    normalized.endsWith('.localhost') ||
+    normalized.endsWith('.local')
+  ) {
+    return true
+  }
+
+  return isIP(normalized) === 4
+    ? isPrivateIpv4(normalized)
+    : isIP(normalized) === 6 && isPrivateIpv6(normalized)
+}
+
+export function assertPublicCaptureUrl(value: string): void {
+  const url = new URL(value)
+  if (!['http:', 'https:'].includes(url.protocol) || isUnsafeCaptureHost(url.hostname)) {
+    throw new UnsafeCaptureUrlError()
+  }
+}
+
+function assertSafeScreenshotDownloadUrl(url: URL): void {
+  const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '')
+  const allowedE2EHost = E2E_ALLOWED_DOWNLOAD_HOSTS.has(hostname)
+  if (
+    !['http:', 'https:'].includes(url.protocol) ||
+    (isUnsafeCaptureHost(hostname) && !allowedE2EHost)
+  ) {
+    throw new UnsafeScreenshotDownloadError()
+  }
 }
 
 function getViewport(deviceType: ScreenshotRequest['deviceType']): Viewport {
@@ -88,22 +179,72 @@ function isSupportedImage(buffer: Buffer): boolean {
   return isPng || isJpeg
 }
 
-async function downloadScreenshot(url: string): Promise<Buffer> {
-  const response = await fetch(url, { signal: AbortSignal.timeout(25_000) })
+function isRedirect(response: Response): boolean {
+  return response.status >= 300 && response.status < 400
+}
 
-  if (!response.ok) {
-    throw new Error(`Screenshot API returned ${response.status}`)
+async function readScreenshot(response: Response): Promise<Buffer> {
+  const contentLength = Number(response.headers.get('content-length'))
+  if (Number.isFinite(contentLength) && contentLength > MAX_SCREENSHOT_BYTES) {
+    throw new Error('Screenshot exceeds the maximum allowed size')
   }
 
-  const buffer = Buffer.from(await response.arrayBuffer())
-  if (!buffer.length) {
+  if (!response.body) {
     throw new Error('Empty response from screenshot API')
   }
-  if (!isSupportedImage(buffer)) {
-    throw new Error('Invalid image format received from screenshot API: expected PNG or JPEG')
+
+  const chunks: Uint8Array[] = []
+  let bytes = 0
+  const reader = response.body.getReader()
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) {
+      break
+    }
+    bytes += value.byteLength
+    if (bytes > MAX_SCREENSHOT_BYTES) {
+      await reader.cancel()
+      throw new Error('Screenshot exceeds the maximum allowed size')
+    }
+    chunks.push(value)
   }
 
-  return buffer
+  return Buffer.concat(chunks, bytes)
+}
+
+async function downloadScreenshot(url: string): Promise<Buffer> {
+  let screenshotUrl = new URL(url)
+  for (let redirectCount = 0; redirectCount <= MAX_SCREENSHOT_REDIRECTS; redirectCount += 1) {
+    assertSafeScreenshotDownloadUrl(screenshotUrl)
+    const response = await fetch(screenshotUrl, {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(25_000),
+    })
+
+    if (isRedirect(response)) {
+      const location = response.headers.get('location')
+      if (!location) {
+        throw new Error('Screenshot API returned a redirect without a destination')
+      }
+      screenshotUrl = new URL(location, screenshotUrl)
+      continue
+    }
+    if (!response.ok) {
+      throw new Error(`Screenshot API returned ${response.status}`)
+    }
+
+    const buffer = await readScreenshot(response)
+    if (!buffer.length) {
+      throw new Error('Empty response from screenshot API')
+    }
+    if (!isSupportedImage(buffer)) {
+      throw new Error('Invalid image format received from screenshot API: expected PNG or JPEG')
+    }
+
+    return buffer
+  }
+
+  throw new Error('Screenshot API returned too many redirects')
 }
 
 function normalizeCaptureError(error: unknown): Error {
@@ -142,6 +283,9 @@ export function getScreenshotFailure(error: unknown): ScreenshotFailure {
       message: 'Website took too long to load. Please try again or try a different URL.',
       status: 408,
     }
+  }
+  if (message === 'unsafe_capture_url') {
+    return { message: 'This address cannot be captured.', status: 400 }
   }
   if (includesAny(message, ['connection_error', 'ECONNREFUSED'])) {
     return { message: 'Screenshot service is unavailable. Please try again later.', status: 503 }

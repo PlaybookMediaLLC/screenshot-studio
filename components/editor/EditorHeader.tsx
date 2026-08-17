@@ -1,10 +1,10 @@
-"use client";
+'use client'
 
-import * as React from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { NewTwitterIcon } from "hugeicons-react";
-import { Button } from "@/components/ui/button";
+import * as React from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+import { NewTwitterIcon } from 'hugeicons-react'
+import { Button } from '@/components/ui/button'
 import {
   Download04Icon,
   Copy01Icon,
@@ -20,34 +20,27 @@ import {
   GridIcon,
   RulerIcon,
   FileZipIcon,
-} from "hugeicons-react";
-import { useEditorStore, useImageStore } from "@/lib/store";
-import { useExport } from "@/hooks/useExport";
-import { useBatchExport } from "@/hooks/useBatchExport";
-import { aspectRatios } from "@/lib/constants/aspect-ratios";
-import { AspectRatioPicker } from "@/components/aspect-ratio/aspect-ratio-picker";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { CopyProgressDialog } from "@/components/canvas/dialogs/CopyProgressDialog";
-import { BatchExportProgressDialog } from "@/components/canvas/dialogs/BatchExportProgressDialog";
-import { ExportSlideshowDialog } from "@/lib/export-slideshow-dialog";
-import { ImageExportProgressView } from "@/components/canvas/dialogs/ImageProgressView";
-import {
-  FormatSelector,
-  QualityPresetSelector,
-  ScaleSlider,
-} from "@/components/export";
-import { cn } from "@/lib/utils";
-import { GitHubStarButton } from "@/components/ui/github-star-button";
-import { FeedbackWidget } from "@/components/FeedbackWidget";
-import { useIsMobile } from "@/hooks/use-mobile";
+} from 'hugeicons-react'
+import { useEditorStore, useImageStore } from '@/lib/store'
+import { useExport } from '@/hooks/useExport'
+import { useBatchExport } from '@/hooks/useBatchExport'
+import { aspectRatios } from '@/lib/constants/aspect-ratios'
+import { AspectRatioPicker } from '@/components/aspect-ratio/aspect-ratio-picker'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { CopyProgressDialog } from '@/components/canvas/dialogs/CopyProgressDialog'
+import { BatchExportProgressDialog } from '@/components/canvas/dialogs/BatchExportProgressDialog'
+import { ExportSlideshowDialog } from '@/lib/export-slideshow-dialog'
+import { ImageExportProgressView } from '@/components/canvas/dialogs/ImageProgressView'
+import { FormatSelector, QualityPresetSelector, ScaleSlider } from '@/components/export'
+import { cn } from '@/lib/utils'
+import { GitHubStarButton } from '@/components/ui/github-star-button'
+import { FeedbackWidget } from '@/components/FeedbackWidget'
+import { AccountMenu } from '@/components/auth/AccountMenu'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 export function EditorHeader() {
-  const isMobile = useIsMobile();
-  const { screenshot } = useEditorStore();
+  const isMobile = useIsMobile()
+  const { screenshot } = useEditorStore()
   const {
     selectedAspectRatio,
     slides,
@@ -64,46 +57,42 @@ export function EditorHeader() {
     toggleRulers,
     toggleGrid,
     setRulerInterval,
-  } = useImageStore();
-  const [aspectRatioOpen, setAspectRatioOpen] = React.useState(false);
-  const [exportOpen, setExportOpen] = React.useState(false);
-  const [exportSlideshowOpen, setExportSlideshowOpen] = React.useState(false);
-  const [exportError, setExportError] = React.useState<string | null>(null);
+  } = useImageStore()
+  const [aspectRatioOpen, setAspectRatioOpen] = React.useState(false)
+  const [exportOpen, setExportOpen] = React.useState(false)
+  const [exportSlideshowOpen, setExportSlideshowOpen] = React.useState(false)
+  const [exportError, setExportError] = React.useState<string | null>(null)
 
-  const currentAspectRatio = aspectRatios.find(
-    (ar) => ar.id === selectedAspectRatio,
-  );
-  const hasImage = !!screenshot.src;
+  const currentAspectRatio = aspectRatios.find((ar) => ar.id === selectedAspectRatio)
+  const hasImage = !!screenshot.src
 
   // Undo/redo state
-  const [canUndo, setCanUndo] = React.useState(false);
-  const [canRedo, setCanRedo] = React.useState(false);
+  const [canUndo, setCanUndo] = React.useState(false)
+  const [canRedo, setCanRedo] = React.useState(false)
 
   React.useEffect(() => {
     const updateTemporalState = () => {
-      const { pastStates, futureStates } = useImageStore.temporal.getState();
-      setCanUndo(pastStates.length > 0);
-      setCanRedo(futureStates.length > 0);
-    };
-    updateTemporalState();
-    const unsubscribe = useImageStore.temporal.subscribe(updateTemporalState);
-    return unsubscribe;
-  }, []);
+      const { pastStates, futureStates } = useImageStore.temporal.getState()
+      setCanUndo(pastStates.length > 0)
+      setCanRedo(futureStates.length > 0)
+    }
+    updateTemporalState()
+    const unsubscribe = useImageStore.temporal.subscribe(updateTemporalState)
+    return unsubscribe
+  }, [])
 
   const handleUndo = React.useCallback(() => {
-    const { undo, pastStates } = useImageStore.temporal.getState();
-    if (pastStates.length > 0) undo();
-  }, []);
+    const { undo, pastStates } = useImageStore.temporal.getState()
+    if (pastStates.length > 0) undo()
+  }, [])
 
   const handleRedo = React.useCallback(() => {
-    const { redo, futureStates } = useImageStore.temporal.getState();
-    if (futureStates.length > 0) redo();
-  }, []);
+    const { redo, futureStates } = useImageStore.temporal.getState()
+    if (futureStates.length > 0) redo()
+  }, [])
 
   const showVideoExport =
-    slides.length > 0 ||
-    timeline.tracks.length > 0 ||
-    animationClips.length > 0;
+    slides.length > 0 || timeline.tracks.length > 0 || animationClips.length > 0
 
   const {
     copyImage,
@@ -116,43 +105,37 @@ export function EditorHeader() {
     updateScale,
     updateFormat,
     updateQualityPreset,
-  } = useExport(selectedAspectRatio);
+  } = useExport(selectedAspectRatio)
 
   const { isBatchExporting, batchProgress, exportAllSlides } = useBatchExport(
     selectedAspectRatio,
-    exportSettings,
-  );
+    exportSettings
+  )
 
   const handleExport = async () => {
-    setExportError(null);
+    setExportError(null)
     try {
-      await exportImage();
-      setExportOpen(false);
+      await exportImage()
+      setExportOpen(false)
     } catch (err) {
-      setExportError(
-        err instanceof Error ? err.message : "Export failed. Please try again.",
-      );
+      setExportError(err instanceof Error ? err.message : 'Export failed. Please try again.')
     }
-  };
+  }
 
   const handleExportAll = async () => {
-    setExportOpen(false);
-    await exportAllSlides();
-  };
+    setExportOpen(false)
+    await exportAllSlides()
+  }
 
   const formatLabel =
-    exportSettings.format === "jpeg"
-      ? "JPEG"
-      : exportSettings.format === "webp"
-        ? "WebP"
-        : "PNG";
+    exportSettings.format === 'jpeg' ? 'JPEG' : exportSettings.format === 'webp' ? 'WebP' : 'PNG'
 
   return (
     <>
       <header
         className={cn(
-          "h-16 bg-background border-b border-foreground/10 grid grid-cols-[1fr_auto_1fr] items-center shrink-0",
-          isMobile ? "gap-1 px-2" : "gap-3 px-4"
+          'h-16 bg-background border-b border-foreground/10 grid grid-cols-[1fr_auto_1fr] items-center shrink-0',
+          isMobile ? 'gap-1 px-2' : 'gap-3 px-4'
         )}
       >
         <div className="flex items-center h-8 justify-self-start min-w-0">
@@ -174,10 +157,7 @@ export function EditorHeader() {
           </Link>
 
           <div
-            className={cn(
-              "h-4 w-px bg-foreground/10 shrink-0",
-              isMobile ? "mx-1.5" : "mx-2.5"
-            )}
+            className={cn('h-4 w-px bg-foreground/10 shrink-0', isMobile ? 'mx-1.5' : 'mx-2.5')}
             aria-hidden
           />
 
@@ -187,11 +167,11 @@ export function EditorHeader() {
             aria-expanded={showTemplates}
             aria-label="Templates"
             className={cn(
-              "inline-flex items-center gap-1.5 h-8 px-2 rounded-md shrink-0 cursor-pointer",
-              "text-sm font-medium leading-none transition-colors duration-150",
+              'inline-flex items-center gap-1.5 h-8 px-2 rounded-md shrink-0 cursor-pointer',
+              'text-sm font-medium leading-none transition-colors duration-150',
               showTemplates
-                ? "text-foreground hover:text-foreground/70"
-                : "text-muted-foreground hover:text-foreground"
+                ? 'text-foreground hover:text-foreground/70'
+                : 'text-muted-foreground hover:text-foreground'
             )}
           >
             <MagicWand01Icon size={14} className="shrink-0" />
@@ -201,8 +181,8 @@ export function EditorHeader() {
 
         <div
           className={cn(
-            "flex items-center justify-center justify-self-center",
-            isMobile ? "gap-1" : "gap-2.5"
+            'flex items-center justify-center justify-self-center',
+            isMobile ? 'gap-1' : 'gap-2.5'
           )}
         >
           {hasImage ? (
@@ -211,11 +191,11 @@ export function EditorHeader() {
                 onClick={handleUndo}
                 disabled={!canUndo}
                 className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer",
-                  "text-muted-foreground transition-all duration-150",
+                  'flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer',
+                  'text-muted-foreground transition-all duration-150',
                   canUndo
-                    ? "hover:text-foreground active:scale-95"
-                    : "opacity-40 cursor-not-allowed",
+                    ? 'hover:text-foreground active:scale-95'
+                    : 'opacity-40 cursor-not-allowed'
                 )}
                 title="Undo (Cmd+Z)"
               >
@@ -225,11 +205,11 @@ export function EditorHeader() {
                 onClick={handleRedo}
                 disabled={!canRedo}
                 className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer",
-                  "text-muted-foreground transition-all duration-150",
+                  'flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer',
+                  'text-muted-foreground transition-all duration-150',
                   canRedo
-                    ? "hover:text-foreground active:scale-95"
-                    : "opacity-40 cursor-not-allowed",
+                    ? 'hover:text-foreground active:scale-95'
+                    : 'opacity-40 cursor-not-allowed'
                 )}
                 title="Redo (Cmd+Shift+Z)"
               >
@@ -247,10 +227,10 @@ export function EditorHeader() {
               <button
                 onClick={toggleRulers}
                 className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer transition-all duration-150 active:scale-95",
+                  'flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer transition-all duration-150 active:scale-95',
                   showRulers
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
                 )}
                 title="Toggle rulers"
               >
@@ -272,10 +252,10 @@ export function EditorHeader() {
               <button
                 onClick={toggleGrid}
                 className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer transition-all duration-150 active:scale-95",
+                  'flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer transition-all duration-150 active:scale-95',
                   showGrid
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
                 )}
                 title="Toggle grid"
               >
@@ -295,15 +275,15 @@ export function EditorHeader() {
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "h-8 gap-1.5 rounded-md text-muted-foreground hover:text-foreground shrink-0",
-                    isMobile ? "px-1.5" : "px-2.5"
+                    'h-8 gap-1.5 rounded-md text-muted-foreground hover:text-foreground shrink-0',
+                    isMobile ? 'px-1.5' : 'px-2.5'
                   )}
                 >
                   <AspectRatioIcon size={15} />
                   <span className="text-xs leading-none">
                     {currentAspectRatio
                       ? `${currentAspectRatio.width}:${currentAspectRatio.height}`
-                      : "Auto"}
+                      : 'Auto'}
                   </span>
                 </Button>
               </PopoverTrigger>
@@ -326,9 +306,7 @@ export function EditorHeader() {
                   className="hidden"
                   onChange={(e) => {
                     if (e.target.files?.length) {
-                      useImageStore
-                        .getState()
-                        .addImages(Array.from(e.target.files));
+                      useImageStore.getState().addImages(Array.from(e.target.files))
                     }
                   }}
                 />
@@ -342,7 +320,7 @@ export function EditorHeader() {
 
           <div className="w-px h-4 bg-foreground/10 shrink-0" aria-hidden />
 
-          <div className={cn("flex items-center", isMobile ? "gap-1" : "gap-1.5")}>
+          <div className={cn('flex items-center', isMobile ? 'gap-1' : 'gap-1.5')}>
             <Button
               onClick={() => copyImage()}
               disabled={!hasImage || isExporting || isCopying}
@@ -350,26 +328,23 @@ export function EditorHeader() {
               size="sm"
               aria-label="Copy"
               className={cn(
-                "h-8 gap-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-transparent dark:hover:bg-transparent text-xs leading-none shrink-0",
-                isMobile ? "px-1.5" : "px-2.5"
+                'h-8 gap-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-transparent dark:hover:bg-transparent text-xs leading-none shrink-0',
+                isMobile ? 'px-1.5' : 'px-2.5'
               )}
             >
               <Copy01Icon size={15} />
               {!isMobile ? <span>Copy</span> : null}
             </Button>
 
-            <Popover
-              open={exportOpen}
-              onOpenChange={isExporting ? undefined : setExportOpen}
-            >
+            <Popover open={exportOpen} onOpenChange={isExporting ? undefined : setExportOpen}>
               <PopoverTrigger asChild>
                 <Button
                   disabled={!hasImage}
                   size="sm"
                   aria-label="Save"
                   className={cn(
-                    "h-8 gap-1.5 rounded-md text-xs font-medium leading-none shrink-0",
-                    isMobile ? "px-2" : "px-3"
+                    'h-8 gap-1.5 rounded-md text-xs font-medium leading-none shrink-0',
+                    isMobile ? 'px-2' : 'px-3'
                   )}
                 >
                   <Download04Icon size={15} />
@@ -381,38 +356,23 @@ export function EditorHeader() {
                 align="center"
                 sideOffset={8}
                 collisionPadding={16}
-                onPointerDownOutside={
-                  isExporting ? (e) => e.preventDefault() : undefined
-                }
+                onPointerDownOutside={isExporting ? (e) => e.preventDefault() : undefined}
               >
                 {isExporting ? (
                   <div className="p-5">
-                    <p className="text-sm font-medium text-foreground mb-1">
-                      Exporting...
-                    </p>
-                    <p className="text-xs text-muted-foreground mb-4">
-                      Rendering your creation
-                    </p>
-                    <ImageExportProgressView
-                      progress={progress}
-                      format={exportSettings.format}
-                    />
+                    <p className="text-sm font-medium text-foreground mb-1">Exporting...</p>
+                    <p className="text-xs text-muted-foreground mb-4">Rendering your creation</p>
+                    <ImageExportProgressView progress={progress} format={exportSettings.format} />
                   </div>
                 ) : (
                   <div className="p-4 space-y-4">
-                    <FormatSelector
-                      format={exportSettings.format}
-                      onFormatChange={updateFormat}
-                    />
+                    <FormatSelector format={exportSettings.format} onFormatChange={updateFormat} />
                     <QualityPresetSelector
                       qualityPreset={exportSettings.qualityPreset}
                       format={exportSettings.format}
                       onQualityPresetChange={updateQualityPreset}
                     />
-                    <ScaleSlider
-                      scale={exportSettings.scale}
-                      onScaleChange={updateScale}
-                    />
+                    <ScaleSlider scale={exportSettings.scale} onScaleChange={updateScale} />
 
                     {exportError && (
                       <div className="text-xs text-destructive bg-destructive/10 p-2.5 rounded-md border border-destructive/20">
@@ -465,9 +425,9 @@ export function EditorHeader() {
                   <button
                     onClick={resetCanvasSettings}
                     className={cn(
-                      "flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer",
-                      "text-muted-foreground transition-all duration-150",
-                      "hover:text-foreground active:scale-95",
+                      'flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer',
+                      'text-muted-foreground transition-all duration-150',
+                      'hover:text-foreground active:scale-95'
                     )}
                     title="Reset to defaults"
                   >
@@ -491,6 +451,7 @@ export function EditorHeader() {
         </div>
 
         <div className="flex items-center gap-1 justify-self-end">
+          <AccountMenu />
           {!isMobile ? <FeedbackWidget /> : null}
           {!isMobile ? <GitHubStarButton compact /> : null}
           <a
@@ -512,10 +473,7 @@ export function EditorHeader() {
         format={exportSettings.format}
       />
 
-      <ExportSlideshowDialog
-        open={exportSlideshowOpen}
-        onOpenChange={setExportSlideshowOpen}
-      />
+      <ExportSlideshowDialog open={exportSlideshowOpen} onOpenChange={setExportSlideshowOpen} />
     </>
-  );
+  )
 }

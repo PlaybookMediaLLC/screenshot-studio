@@ -1,0 +1,33 @@
+{{- if .Values.migration.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "screenshot-studio.fullname" . }}-migrate
+  labels:
+    {{- include "screenshot-studio.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: migrate
+        {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: migrate
+          image: "{{ required "migration.image.repository is required when migrations are enabled" .Values.migration.image.repository }}:{{ required "migration.image.tag is required when migrations are enabled" .Values.migration.image.tag }}"
+          imagePullPolicy: {{ .Values.migration.image.pullPolicy }}
+          command: {{ toJson .Values.migration.command }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "existingSecret is required when migrations are enabled" .Values.existingSecret }}
+                  key: DATABASE_URL
+{{- end }}

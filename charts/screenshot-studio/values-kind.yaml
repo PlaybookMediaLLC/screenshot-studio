@@ -5,5 +5,22 @@ image:
 
 existingSecret: screenshot-studio-local
 
+replicaCount: 2
+
+config:
+  screenshotApiUrl: http://screenshot-studio-screenshot-mock:5678
+
+migration:
+  command:
+    - ./node_modules/.bin/prisma
+    - db
+    - push
+    - --skip-generate
+  enabled: true
+  image:
+    repository: screenshot-studio
+    pullPolicy: Never
+    tag: migrate-kind-dev
+
 local:
   enabled: true

@@ -1,159 +1,159 @@
-'use client';
+'use client'
 
-import * as React from 'react';
-import { useDropzone } from 'react-dropzone';
-import {
-  Camera01Icon,
-  CommandIcon,
-  Globe02Icon,
-  Loading03Icon,
-} from 'hugeicons-react';
-import { Moon, Sun } from 'lucide-react';
-import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from '@/lib/constants';
-import { useEditorStore, useImageStore } from '@/lib/store';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { SegmentedControl } from '@/components/ui/segmented-control';
-import { getBackgroundCSS } from '@/lib/constants/backgrounds';
+import * as React from 'react'
+import { useDropzone } from 'react-dropzone'
+import { Camera01Icon, CommandIcon, Globe02Icon, Loading03Icon } from 'hugeicons-react'
+import { Moon, Sun } from 'lucide-react'
+import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from '@/lib/constants'
+import { useEditorStore, useImageStore } from '@/lib/store'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { getBackgroundCSS } from '@/lib/constants/backgrounds'
 
-const TRANSITION_DURATION = 400; // ms
-type ColorScheme = 'light' | 'dark';
+const TRANSITION_DURATION = 400 // ms
+type ColorScheme = 'light' | 'dark'
 
 function extractImageUrl(style: React.CSSProperties): string | null {
-  const bg = style.backgroundImage;
-  if (!bg || typeof bg !== 'string') return null;
-  const match = bg.match(/url\(([^)]+)\)/);
-  if (!match) return null;
-  return match[1].replace(/['"]/g, '');
+  const bg = style.backgroundImage
+  if (!bg || typeof bg !== 'string') return null
+  const match = bg.match(/url\(([^)]+)\)/)
+  if (!match) return null
+  return match[1].replace(/['"]/g, '')
 }
 
 function preloadImage(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const img = new window.Image();
-    img.onload = () => resolve(url);
-    img.onerror = () => reject(new Error(`Failed to load: ${url}`));
-    img.src = url;
-  });
+    const img = new window.Image()
+    img.onload = () => resolve(url)
+    img.onerror = () => reject(new Error(`Failed to load: ${url}`))
+    img.src = url
+  })
 }
 
 export function CleanUploadState() {
-  const [isDragActive, setIsDragActive] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [screenshotUrl, setScreenshotUrl] = React.useState('');
-  const [colorScheme, setColorScheme] = React.useState<ColorScheme>('light');
-  const [isCapturing, setIsCapturing] = React.useState(false);
+  const [isDragActive, setIsDragActive] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  const [screenshotUrl, setScreenshotUrl] = React.useState('')
+  const [colorScheme, setColorScheme] = React.useState<ColorScheme>('light')
+  const [isCapturing, setIsCapturing] = React.useState(false)
 
-  const { setScreenshot } = useEditorStore();
-  const { addImages, setImage, backgroundConfig } = useImageStore();
-  const containerRef = React.useRef<HTMLDivElement>(null);
+  const { setScreenshot } = useEditorStore()
+  const { addImages, setImage, backgroundConfig } = useImageStore()
+  const containerRef = React.useRef<HTMLDivElement>(null)
 
   // Crossfade state
   const backgroundStyle = React.useMemo(
     () => getBackgroundCSS(backgroundConfig),
     [backgroundConfig]
-  );
-  const [activeLayer, setActiveLayer] = React.useState<'a' | 'b'>('a');
-  const [layerAStyle, setLayerAStyle] = React.useState<React.CSSProperties>(backgroundStyle);
-  const [layerBStyle, setLayerBStyle] = React.useState<React.CSSProperties>(backgroundStyle);
-  const [showTransition, setShowTransition] = React.useState(false);
-  const prevConfigRef = React.useRef(backgroundConfig);
-  const isFirstRender = React.useRef(true);
-  const timeoutRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
+  )
+  const [activeLayer, setActiveLayer] = React.useState<'a' | 'b'>('a')
+  const [layerAStyle, setLayerAStyle] = React.useState<React.CSSProperties>(backgroundStyle)
+  const [layerBStyle, setLayerBStyle] = React.useState<React.CSSProperties>(backgroundStyle)
+  const [showTransition, setShowTransition] = React.useState(false)
+  const prevConfigRef = React.useRef(backgroundConfig)
+  const isFirstRender = React.useRef(true)
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout>>(undefined)
 
   React.useEffect(() => {
     if (isFirstRender.current) {
-      isFirstRender.current = false;
-      setLayerAStyle(backgroundStyle);
-      setLayerBStyle(backgroundStyle);
-      return;
+      isFirstRender.current = false
+      setLayerAStyle(backgroundStyle)
+      setLayerBStyle(backgroundStyle)
+      return
     }
 
-    const prev = prevConfigRef.current;
-    const changed =
-      prev.type !== backgroundConfig.type ||
-      prev.value !== backgroundConfig.value;
+    const prev = prevConfigRef.current
+    const changed = prev.type !== backgroundConfig.type || prev.value !== backgroundConfig.value
 
     if (!changed) {
-      if (activeLayer === 'a') setLayerAStyle(backgroundStyle);
-      else setLayerBStyle(backgroundStyle);
-      return;
+      if (activeLayer === 'a') setLayerAStyle(backgroundStyle)
+      else setLayerBStyle(backgroundStyle)
+      return
     }
 
-    prevConfigRef.current = backgroundConfig;
-    let cancelled = false;
+    prevConfigRef.current = backgroundConfig
+    let cancelled = false
 
     const applyNewBackground = (style: React.CSSProperties) => {
-      if (cancelled) return;
+      if (cancelled) return
       if (activeLayer === 'a') {
-        setLayerBStyle(style);
-        setShowTransition(true);
-        requestAnimationFrame(() => { if (!cancelled) setActiveLayer('b'); });
+        setLayerBStyle(style)
+        setShowTransition(true)
+        requestAnimationFrame(() => {
+          if (!cancelled) setActiveLayer('b')
+        })
       } else {
-        setLayerAStyle(style);
-        setShowTransition(true);
-        requestAnimationFrame(() => { if (!cancelled) setActiveLayer('a'); });
+        setLayerAStyle(style)
+        setShowTransition(true)
+        requestAnimationFrame(() => {
+          if (!cancelled) setActiveLayer('a')
+        })
       }
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => setShowTransition(false), TRANSITION_DURATION + 50);
-    };
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      timeoutRef.current = setTimeout(() => setShowTransition(false), TRANSITION_DURATION + 50)
+    }
 
     if (backgroundConfig.type === 'image') {
-      const url = extractImageUrl(backgroundStyle);
+      const url = extractImageUrl(backgroundStyle)
       if (url) {
         preloadImage(url)
           .then((loadedUrl) => {
-            applyNewBackground({ ...backgroundStyle, backgroundImage: `url(${loadedUrl})` });
+            applyNewBackground({ ...backgroundStyle, backgroundImage: `url(${loadedUrl})` })
           })
-          .catch(() => applyNewBackground(backgroundStyle));
-        return () => { cancelled = true; if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+          .catch(() => applyNewBackground(backgroundStyle))
+        return () => {
+          cancelled = true
+          if (timeoutRef.current) clearTimeout(timeoutRef.current)
+        }
       }
     }
 
-    applyNewBackground(backgroundStyle);
-    return () => { cancelled = true; if (timeoutRef.current) clearTimeout(timeoutRef.current); };
-  }, [backgroundConfig, backgroundStyle, activeLayer]);
+    applyNewBackground(backgroundStyle)
+    return () => {
+      cancelled = true
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [backgroundConfig, backgroundStyle, activeLayer])
 
   const validateFile = React.useCallback((file: File): string | null => {
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      return `File type not supported. Please use: PNG, JPG, WEBP`;
+      return `File type not supported. Please use: PNG, JPG, WEBP`
     }
     if (file.size > MAX_IMAGE_SIZE) {
-      return `File size too large. Maximum size is ${MAX_IMAGE_SIZE / 1024 / 1024}MB`;
+      return `File size too large. Maximum size is ${MAX_IMAGE_SIZE / 1024 / 1024}MB`
     }
-    return null;
-  }, []);
+    return null
+  }, [])
 
-  const handleFile = React.useCallback(
-    (file: File) => {
-      const validationError = validateFile(file);
+  const handleFiles = React.useCallback(
+    (files: File[]) => {
+      const firstFile = files[0]
+      if (!firstFile) return
+      const validationError = validateFile(firstFile)
       if (validationError) {
-        setError(validationError);
-        return;
+        setError(validationError)
+        return
       }
-      setError(null);
-      const imageUrl = URL.createObjectURL(file);
-      setScreenshot({ src: imageUrl });
+      const acceptedFiles = files.filter((file) => !validateFile(file))
+      addImages(acceptedFiles)
+      setError(null)
+      setScreenshot({ src: URL.createObjectURL(firstFile) })
     },
-    [validateFile, setScreenshot]
-  );
+    [addImages, setScreenshot, validateFile]
+  )
 
-  const onDrop = React.useCallback(
-    (acceptedFiles: File[]) => {
-      if (!acceptedFiles.length) return;
-      addImages(acceptedFiles);
-      handleFile(acceptedFiles[0]);
+  const onFileInputChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      handleFiles(Array.from(event.currentTarget.files ?? []))
+      event.currentTarget.value = ''
     },
-    [addImages, handleFile]
-  );
+    [handleFiles]
+  )
 
-  const {
-    getRootProps,
-    getInputProps,
-    isDragActive: dropzoneActive,
-    open,
-  } = useDropzone({
-    onDrop,
+  const { getRootProps, isDragActive: dropzoneActive } = useDropzone({
+    onDrop: handleFiles,
     accept: {
       'image/jpeg': ['.jpg', '.jpeg'],
       'image/png': ['.png'],
@@ -162,99 +162,98 @@ export function CleanUploadState() {
     maxSize: MAX_IMAGE_SIZE,
     multiple: true,
     noClick: true,
-    onDragEnter: () => { setIsDragActive(true); setError(null); },
+    onDragEnter: () => {
+      setIsDragActive(true)
+      setError(null)
+    },
     onDragLeave: () => setIsDragActive(false),
     onDropRejected: (rejectedFiles) => {
       if (rejectedFiles.length > 0) {
-        const rejection = rejectedFiles[0];
+        const rejection = rejectedFiles[0]
         if (rejection.errors.some((e) => e.code === 'file-too-large')) {
-          setError(`File size too large. Maximum size is ${MAX_IMAGE_SIZE / 1024 / 1024}MB`);
+          setError(`File size too large. Maximum size is ${MAX_IMAGE_SIZE / 1024 / 1024}MB`)
         } else if (rejection.errors.some((e) => e.code === 'file-invalid-type')) {
-          setError('File type not supported. Please use: PNG, JPG, WEBP');
+          setError('File type not supported. Please use: PNG, JPG, WEBP')
         } else {
-          setError('Failed to upload file. Please try again.');
+          setError('Failed to upload file. Please try again.')
         }
       }
     },
-  });
+  })
 
-  // Auto-focus the container so paste events work immediately
   React.useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.focus();
-    }
-  }, []);
+    containerRef.current?.focus()
+  }, [])
 
   const handlePaste = React.useCallback(
     (e: React.ClipboardEvent | ClipboardEvent) => {
-      const clipboardData = 'clipboardData' in e ? e.clipboardData : null;
-      const items = clipboardData?.items;
-      if (!items) return;
+      const clipboardData = 'clipboardData' in e ? e.clipboardData : null
+      const items = clipboardData?.items
+      if (!items) return
       for (let i = 0; i < items.length; i++) {
-        const item = items[i];
+        const item = items[i]
         if (item.type.startsWith('image/')) {
-          e.preventDefault();
-          const file = item.getAsFile();
+          e.preventDefault()
+          const file = item.getAsFile()
           if (file) {
-            addImages([file]);
-            handleFile(file);
+            handleFiles([file])
           }
-          break;
+          break
         }
       }
     },
-    [addImages, handleFile]
-  );
+    [handleFiles]
+  )
 
   // Listen on both document and the container for paste events
   React.useEffect(() => {
-    const handler = (e: ClipboardEvent) => handlePaste(e);
-    document.addEventListener('paste', handler);
-    return () => document.removeEventListener('paste', handler);
-  }, [handlePaste]);
+    const handler = (e: ClipboardEvent) => handlePaste(e)
+    document.addEventListener('paste', handler)
+    return () => document.removeEventListener('paste', handler)
+  }, [handlePaste])
 
   const handleCaptureScreenshot = async () => {
     if (!screenshotUrl.trim()) {
-      setError('Please enter a URL');
-      return;
+      setError('Please enter a URL')
+      return
     }
-    let finalUrl = screenshotUrl.trim();
+    let finalUrl = screenshotUrl.trim()
     if (!finalUrl.match(/^https?:\/\//i)) {
-      finalUrl = `https://${finalUrl}`;
+      finalUrl = `https://${finalUrl}`
     }
-    setIsCapturing(true);
-    setError(null);
+    setIsCapturing(true)
+    setError(null)
     try {
       const response = await fetch('/api/screenshot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: finalUrl, deviceType: 'desktop', colorScheme }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to capture screenshot');
-      let base64Data = data.screenshot.trim();
-      if (base64Data.includes(',')) base64Data = base64Data.split(',')[1];
-      base64Data = base64Data.replace(/\s/g, '');
-      const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Failed to capture screenshot')
+      let base64Data = data.screenshot.trim()
+      if (base64Data.includes(',')) base64Data = base64Data.split(',')[1]
+      base64Data = base64Data.replace(/\s/g, '')
+      const byteCharacters = atob(base64Data)
+      const byteNumbers = new Array(byteCharacters.length)
       for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
+        byteNumbers[i] = byteCharacters.charCodeAt(i)
       }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'image/png' });
-      const blobUrl = URL.createObjectURL(blob);
-      const file = new File([blob], `screenshot-${colorScheme}.png`, { type: 'image/png' });
-      setScreenshot({ src: blobUrl });
-      setImage(file);
-      setScreenshotUrl('');
+      const byteArray = new Uint8Array(byteNumbers)
+      const blob = new Blob([byteArray], { type: 'image/png' })
+      const blobUrl = URL.createObjectURL(blob)
+      const file = new File([blob], `screenshot-${colorScheme}.png`, { type: 'image/png' })
+      setScreenshot({ src: blobUrl })
+      setImage(file)
+      setScreenshotUrl('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to capture screenshot');
+      setError(err instanceof Error ? err.message : 'Failed to capture screenshot')
     } finally {
-      setIsCapturing(false);
+      setIsCapturing(false)
     }
-  };
+  }
 
-  const active = isDragActive || dropzoneActive;
+  const active = isDragActive || dropzoneActive
 
   return (
     <div
@@ -284,15 +283,23 @@ export function CleanUploadState() {
           zIndex: 0,
         }}
       />
-      <input {...getInputProps()} />
+      <input
+        accept="image/jpeg,image/png,image/webp"
+        aria-label="Upload image"
+        className="sr-only"
+        id="editor-image-upload"
+        multiple
+        onChange={onFileInputChange}
+        type="file"
+      />
 
-      <div
+      <label
+        htmlFor="editor-image-upload"
         className={cn(
           'relative z-10 flex flex-col items-center justify-center cursor-pointer',
           'group/upload px-6 transition-transform duration-100 ease-out active:scale-[0.98]',
-          active && 'scale-[1.01]',
+          active && 'scale-[1.01]'
         )}
-        onClick={open}
       >
         <svg
           width="44"
@@ -304,15 +311,30 @@ export function CleanUploadState() {
             active ? 'text-foreground/90' : 'text-foreground/70'
           )}
         >
-          <line x1="24" y1="8" x2="24" y2="40" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-          <line x1="8" y1="24" x2="40" y2="24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+          <line
+            x1="24"
+            y1="8"
+            x2="24"
+            y2="40"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          <line
+            x1="8"
+            y1="24"
+            x2="40"
+            y2="24"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
         </svg>
 
         <p
           className="text-sm font-medium text-center text-foreground/80 mb-2"
           style={{
-            textShadow:
-              '0 1px 4px color-mix(in srgb, var(--shadow-color) 45%, transparent)',
+            textShadow: '0 1px 4px color-mix(in srgb, var(--shadow-color) 45%, transparent)',
           }}
         >
           {active ? 'Drop the image here...' : 'Drag & drop, click to browse, or paste'}
@@ -321,8 +343,7 @@ export function CleanUploadState() {
         {!active && (
           <div className="flex items-center gap-1.5 text-xs text-foreground/50 mb-5">
             <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-foreground/10 border border-foreground/20 text-foreground/70 font-medium">
-              <CommandIcon size={10} />
-              V
+              <CommandIcon size={10} />V
             </kbd>
             <span>to paste</span>
           </div>
@@ -346,7 +367,7 @@ export function CleanUploadState() {
                   type="url"
                   placeholder="Enter website URL..."
                   value={screenshotUrl}
-                  onChange={(e) => setScreenshotUrl(e.target.value)}
+                  onChange={(event) => setScreenshotUrl(event.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCaptureScreenshot()}
                   disabled={isCapturing}
                   className="h-full flex-1 min-w-0 border-0 bg-transparent px-2 text-xs text-foreground/90 placeholder:text-foreground/35 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
@@ -373,6 +394,7 @@ export function CleanUploadState() {
                 disabled={isCapturing}
                 variant="outline"
                 size="icon"
+                aria-label="Capture screenshot"
                 className="size-10 shrink-0 rounded-xl border-foreground/15 bg-background/35 text-foreground/80 backdrop-blur-md hover:bg-background/45 hover:text-foreground hover:border-foreground/25"
               >
                 {isCapturing ? (
@@ -390,7 +412,7 @@ export function CleanUploadState() {
             {error}
           </div>
         )}
-      </div>
+      </label>
     </div>
-  );
+  )
 }

@@ -20,12 +20,16 @@ jobs:
         with:
           install_only: true
       - run: npm ci
+      - name: Install browser test dependencies
+        run: npx playwright install --with-deps chromium
       - run: ./bin/studio kind-up
       - name: Smoke test the Helm release
         run: |
           kubectl --namespace screenshot-studio port-forward service/screenshot-studio 3000:80 &
           port_forward_pid=$!
-          trap 'kill $port_forward_pid' EXIT
+          kubectl --namespace screenshot-studio port-forward service/screenshot-studio-storage 5000:5000 &
+          storage_port_forward_pid=$!
+          trap 'kill $port_forward_pid $storage_port_forward_pid' EXIT
           for attempt in $(seq 1 30); do
             if curl --fail --silent --show-error http://127.0.0.1:3000/api/health; then
               exit 0
@@ -33,5 +37,37 @@ jobs:
             sleep 1
           done
           exit 1
+      - name: Verify tenant isolation in Kind
+        run: |
+          kubectl --namespace screenshot-studio port-forward service/screenshot-studio 3000:80 &
+          port_forward_pid=$!
+          kubectl --namespace screenshot-studio port-forward service/screenshot-studio-postgres 54329:5432 &
+          postgres_port_forward_pid=$!
+          kubectl --namespace screenshot-studio port-forward service/screenshot-studio-minio 9003:9000 &
+          minio_port_forward_pid=$!
+          trap 'kill $port_forward_pid $postgres_port_forward_pid $minio_port_forward_pid' EXIT
+          source .local/dev.env
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://localhost:3000/api/health; then
+              TENANT_TEST_BASE_URL=http://localhost:3000 npm run test:tenant-isolation
+              E2E_BASE_URL=http://localhost:3000 \
+                E2E_DATABASE_URL=postgresql://screenshot_studio:$POSTGRES_APP_PASSWORD@127.0.0.1:54329/screenshot_studio?schema=public \
+                E2E_R2_ENDPOINT=http://127.0.0.1:9003 \
+                E2E_MANAGE_SCREENSHOT_MOCK=false \
+                make e2e
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+      - if: failure()
+        name: Upload Playwright artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kind-playwright-artifacts-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
       - if: always()
         run: ./bin/studio kind-down --yes

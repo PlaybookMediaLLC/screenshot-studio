@@ -23,6 +23,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio
       - run: npm run quality:check
       - name: Validate local development configuration
         run: |
@@ -54,20 +57,51 @@ jobs:
   integration:
     needs: validate
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    env:
+      E2E_DOCKER_HOST_GATEWAY: 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: '1/2'
+            shard_index: 1
+          - shard: '2/2'
+            shard_index: 2
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+      - name: Install browser test dependencies
+        run: |
+          npm ci
+          DATABASE_URL=postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio npx prisma generate
+          npx playwright install --with-deps chromium
       - name: Start and smoke-test the local stack
         run: ./bin/studio up
       - name: Run local stack smoke test
         run: ./bin/studio smoke
+      - name: Verify tenant isolation
+        run: ./bin/studio tenant-isolation
+      - name: Verify browser end-to-end flows
+        run: ./bin/studio e2e --shard=${{ matrix.shard }}
+      - name: Verify dependency failure and recovery
+        if: matrix.shard_index == 1
+        run: make e2e-recovery
+      - if: failure()
+        name: Upload Playwright artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts-${{ github.run_id }}-${{ matrix.shard_index }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
       - if: always()
         name: Collect local stack logs
-        run: docker compose --env-file .local/dev.env --file compose.yaml logs --no-color
+        run: docker compose --env-file .local/dev.env --file compose.yaml --profile e2e logs --no-color
       - if: always()
         name: Remove local stack data
         run: ./bin/studio down --purge --yes

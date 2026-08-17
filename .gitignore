@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
 
 # next.js
 /.next/
@@ -43,9 +45,10 @@ next-env.d.ts
 
 public/backgrounds
 /scripts/*
+!/scripts/e2e-screenshot-mock.mjs
 !/scripts/smoke-rate-limit.mjs
+!/scripts/verify-tenant-isolation.ts
 
-prisma/migrations
 /lib/generated/prisma
 # Prisma
 prisma/*.db

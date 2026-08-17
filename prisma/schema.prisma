@@ -7,16 +7,822 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                     String               @id
+  name                   String
+  email                  String
+  emailVerified          Boolean              @default(false)
+  image                  String?
+  role                   String?              @default("user")
+  banned                 Boolean?             @default(false)
+  banReason              String?
+  banExpires             DateTime?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  twoFactorEnabled       Boolean?             @default(false)
+  accounts               Account[]
+  auditLogs              AuditLog[]           @relation("AuditActor")
+  approvedSupportGrants  SupportAccessGrant[] @relation("SupportGrantApprover")
+  createdReleases        Release[]            @relation("ReleaseCreator")
+  createdVariants        CreativeVariant[]    @relation("VariantCreator")
+  invitations            Invitation[]
+  members                Member[]
+  requestedSupportGrants SupportAccessGrant[] @relation("SupportGrantRequester")
+  sessions               Session[]
+  ssoProviders           SsoProvider[]
+  supportGrants          SupportAccessGrant[] @relation("SupportGrantUser")
+  twoFactors             TwoFactor[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id                   String   @id
+  expiresAt            DateTime
+  token                String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  activeOrganizationId String?
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model Organization {
+  id                     String                          @id
+  name                   String
+  slug                   String
+  logo                   String?
+  createdAt              DateTime
+  metadata               String?
+  auditDrains            AuditDrain[]
+  auditLogs              AuditLog[]
+  assets                 Asset[]
+  brandKits              BrandKit[]
+  captureJobs            CaptureJob[]
+  captures               Capture[]
+  channelConnections     ChannelConnection[]
+  creativeTemplates      CreativeTemplate[]
+  creativeVariants       CreativeVariant[]
+  communicationAttempts  CommunicationAttempt[]
+  customerCommunications CustomerCommunication[]
+  enterpriseSettings     OrganizationEnterpriseSettings?
+  invitations            Invitation[]
+  members                Member[]
+  outboxEvents           OutboxEvent[]
+  publicationAttempts    PublicationAttempt[]
+  releases               Release[]
+  releaseDocuments       ReleaseDocument[]
+  retentionPolicy        AuditRetentionPolicy?
+  scheduledPosts         ScheduledPost[]
+  sourceApps             SourceApp[]
+  supportGrants          SupportAccessGrant[]
+  captureRecipes         CaptureRecipe[]
+  approvals              Approval[]
+
+  @@unique([slug])
+  @@map("organization")
+}
+
+model Member {
+  id             String       @id
+  organizationId String
+  userId         String
+  role           String       @default("member")
+  createdAt      DateTime
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("member")
+}
+
+model Invitation {
+  id             String       @id
+  organizationId String
+  email          String
+  role           String?
+  status         String       @default("pending")
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  inviterId      String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("invitation")
+}
+
+model Apikey {
+  id                  String    @id
+  configId            String    @default("default")
+  name                String?
+  start               String?
+  referenceId         String
+  prefix              String?
+  key                 String
+  refillInterval      Int?
+  refillAmount        Int?
+  lastRefillAt        DateTime?
+  enabled             Boolean?  @default(true)
+  rateLimitEnabled    Boolean?  @default(true)
+  rateLimitTimeWindow Int?      @default(60000)
+  rateLimitMax        Int?      @default(60)
+  requestCount        Int?      @default(0)
+  remaining           Int?
+  lastRequest         DateTime?
+  expiresAt           DateTime?
+  createdAt           DateTime
+  updatedAt           DateTime
+  permissions         String?
+  metadata            String?
+
+  @@index([configId])
+  @@index([referenceId])
+  @@index([key])
+  @@map("apikey")
+}
+
+model TwoFactor {
+  id                      String    @id
+  secret                  String
+  backupCodes             String
+  userId                  String
+  verified                Boolean?  @default(true)
+  failedVerificationCount Int?      @default(0)
+  lockedUntil             DateTime?
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([secret])
+  @@index([userId])
+  @@map("twoFactor")
+}
+
+model SsoProvider {
+  id             String   @id
+  issuer         String
+  oidcConfig     String?
+  samlConfig     String?
+  userId         String
+  providerId     String
+  organizationId String?
+  domain         String
+  domainVerified Boolean?
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId])
+  @@index([organizationId])
+  @@map("ssoProvider")
+}
+
+model ScimProvider {
+  id             String  @id
+  providerId     String
+  scimToken      String
+  organizationId String?
+  userId         String?
+
+  @@unique([providerId])
+  @@unique([scimToken])
+  @@index([organizationId])
+  @@map("scimProvider")
+}
+
+model OrganizationEnterpriseSettings {
+  organizationId String       @id
+  ssoEnabled     Boolean      @default(false)
+  scimEnabled    Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("organization_enterprise_settings")
+}
+
+model AuditLog {
+  id               String         @id @default(cuid())
+  organizationId   String
+  createdAt        DateTime       @default(now())
+  requestId        String
+  actorType        AuditActorType
+  actorUserId      String?
+  actorDisplay     String?
+  action           String
+  outcome          AuditOutcome   @default(SUCCEEDED)
+  entityType       String
+  entityId         String?
+  ipHash           String?
+  userAgentSummary String?
+  metadata         Json?
+  searchText       String         @default("")
+  actor            User?          @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  outbox           AuditOutbox?
+
+  @@index([organizationId, createdAt, id])
+  @@index([organizationId, action, createdAt])
+  @@index([organizationId, actorUserId, createdAt])
+  @@map("audit_log")
+}
+
+model AuditRetentionPolicy {
+  organizationId String       @id
+  retentionDays  Int          @default(90)
+  legalHold      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("audit_retention_policy")
+}
+
+model AuditDrain {
+  id                     String               @id @default(cuid())
+  organizationId         String
+  name                   String
+  provider               AuditDrainProvider   @default(GENERIC)
+  endpoint               String
+  encryptedSigningSecret String
+  enabled                Boolean              @default(true)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  organization           Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deliveries             AuditDrainDelivery[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, enabled])
+  @@map("audit_drain")
+}
+
+model AuditOutbox {
+  id         String               @id @default(cuid())
+  auditLogId String               @unique
+  createdAt  DateTime             @default(now())
+  auditLog   AuditLog             @relation(fields: [auditLogId], references: [id], onDelete: Cascade)
+  deliveries AuditDrainDelivery[]
+
+  @@map("audit_outbox")
+}
+
+model AuditDrainDelivery {
+  id            String                   @id @default(cuid())
+  drainId       String
+  outboxId      String
+  status        AuditDrainDeliveryStatus @default(PENDING)
+  attemptCount  Int                      @default(0)
+  nextAttemptAt DateTime                 @default(now())
+  lastError     String?
+  responseCode  Int?
+  deliveredAt   DateTime?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  drain         AuditDrain               @relation(fields: [drainId], references: [id], onDelete: Cascade)
+  outbox        AuditOutbox              @relation(fields: [outboxId], references: [id], onDelete: Cascade)
+
+  @@unique([drainId, outboxId])
+  @@index([status, nextAttemptAt])
+  @@map("audit_drain_delivery")
+}
+
+model SupportAccessGrant {
+  id                String       @id @default(cuid())
+  organizationId    String
+  userId            String
+  purpose           String
+  scope             String       @default("metadata:read")
+  requestedByUserId String?
+  approvedByUserId  String?
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  createdAt         DateTime     @default(now())
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  approvedByUser    User?        @relation("SupportGrantApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  requestedByUser   User?        @relation("SupportGrantRequester", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  user              User         @relation("SupportGrantUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, expiresAt])
+  @@index([userId, expiresAt])
+  @@map("support_access_grant")
+}
+
 model ScreenshotCache {
-  id        String   @id @default(cuid())
-  urlHash   String   @unique
-  url       String
-  cloudinaryPublicId String @unique
-  cloudinaryUrl     String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  urlHash            String   @unique
+  url                String
+  cloudinaryPublicId String   @unique
+  cloudinaryUrl      String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@index([urlHash])
   @@index([createdAt])
   @@map("screenshot_cache")
+}
+
+model BrandKit {
+  id             String                  @id @default(cuid())
+  organizationId String
+  name           String
+  version        Int
+  definition     Json
+  status         VersionedResourceStatus @default(DRAFT)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  variants       CreativeVariant[]
+
+  @@unique([organizationId, name, version])
+  @@index([organizationId, createdAt])
+  @@map("brand_kit")
+}
+
+model SourceApp {
+  id              String                  @id @default(cuid())
+  organizationId  String
+  name            String
+  provider        String                  @default("generic")
+  externalId      String?
+  secretReference String?
+  allowedHosts    Json
+  status          VersionedResourceStatus @default(DRAFT)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  organization    Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recipes         CaptureRecipe[]
+
+  @@unique([organizationId, name])
+  @@unique([provider, externalId])
+  @@index([organizationId, createdAt])
+  @@map("source_app")
+}
+
+model CaptureRecipe {
+  id              String                  @id @default(cuid())
+  organizationId  String
+  sourceAppId     String
+  name            String
+  version         Int
+  definition      Json
+  secretReference String?
+  status          VersionedResourceStatus @default(DRAFT)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  organization    Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sourceApp       SourceApp               @relation(fields: [sourceAppId], references: [id], onDelete: Restrict)
+  jobs            CaptureJob[]
+
+  @@unique([organizationId, name, version])
+  @@index([organizationId, createdAt])
+  @@index([sourceAppId])
+  @@map("capture_recipe")
+}
+
+model CreativeTemplate {
+  id             String                  @id @default(cuid())
+  organizationId String
+  name           String
+  version        Int
+  definition     Json
+  status         VersionedResourceStatus @default(DRAFT)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  variants       CreativeVariant[]
+
+  @@unique([organizationId, name, version])
+  @@index([organizationId, createdAt])
+  @@map("creative_template")
+}
+
+model Release {
+  id               String            @id @default(cuid())
+  organizationId   String
+  title            String
+  benefitStatement String
+  status           ReleaseStatus     @default(DRAFT)
+  createdByUserId  String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdByUser    User?             @relation("ReleaseCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  captures         Capture[]
+  captureJobs      CaptureJob[]
+  documents        ReleaseDocument[]
+  variants         CreativeVariant[]
+
+  @@index([organizationId, status, updatedAt])
+  @@index([organizationId, createdAt])
+  @@map("release")
+}
+
+model ReleaseDocument {
+  id               String                  @id @default(cuid())
+  organizationId   String
+  releaseId        String
+  revision         Int
+  frontMatter      Json
+  bodyMarkdown     String
+  status           ReleaseDocumentStatus   @default(DRAFT)
+  approvedByUserId String?
+  approvedAt       DateTime?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  release          Release                 @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  communications   CustomerCommunication[]
+
+  @@unique([releaseId, revision])
+  @@index([organizationId, createdAt])
+  @@map("release_document")
+}
+
+model CustomerCommunication {
+  id                String                       @id @default(cuid())
+  organizationId    String
+  releaseDocumentId String
+  channel           CustomerCommunicationChannel
+  audienceReference String?
+  status            CustomerCommunicationStatus  @default(DRAFT)
+  scheduledFor      DateTime?
+  ctaUrl            String?
+  idempotencyKey    String
+  triggerRunId      String?
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+  organization      Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  releaseDocument   ReleaseDocument              @relation(fields: [releaseDocumentId], references: [id], onDelete: Cascade)
+  attempts          CommunicationAttempt[]
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, status, scheduledFor])
+  @@map("customer_communication")
+}
+
+model CommunicationAttempt {
+  id                      String                @id @default(cuid())
+  organizationId          String
+  customerCommunicationId String
+  attemptNumber           Int
+  startedAt               DateTime              @default(now())
+  completedAt             DateTime?
+  outcome                 AttemptOutcome?
+  providerMessageId       String?
+  failureCode             String?
+  organization            Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customerCommunication   CustomerCommunication @relation(fields: [customerCommunicationId], references: [id], onDelete: Cascade)
+
+  @@unique([customerCommunicationId, attemptNumber])
+  @@index([organizationId, startedAt])
+  @@map("communication_attempt")
+}
+
+model CaptureJob {
+  id             String          @id @default(cuid())
+  organizationId String
+  releaseId      String
+  recipeId       String
+  recipeVersion  Int
+  status         ExecutionStatus @default(QUEUED)
+  idempotencyKey String
+  triggerRunId   String?
+  attempts       Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  release        Release         @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  recipe         CaptureRecipe   @relation(fields: [recipeId], references: [id], onDelete: Restrict)
+  captures       Capture[]
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, createdAt])
+  @@map("capture_job")
+}
+
+model Capture {
+  id             String          @id @default(cuid())
+  organizationId String
+  releaseId      String
+  captureJobId   String
+  recipeId       String
+  recipeVersion  Int
+  sourceUrl      String
+  provider       String
+  status         ExecutionStatus @default(QUEUED)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  failureCode    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  release        Release         @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  captureJob     CaptureJob      @relation(fields: [captureJobId], references: [id], onDelete: Cascade)
+  assets         Asset[]
+
+  @@index([organizationId, createdAt])
+  @@index([releaseId])
+  @@map("capture")
+}
+
+model Asset {
+  id             String            @id @default(cuid())
+  organizationId String
+  captureId      String?
+  parentAssetId  String?
+  objectKey      String            @unique
+  sha256         String?
+  mediaType      String
+  bytes          Int
+  width          Int?
+  height         Int?
+  status         AssetStatus       @default(PENDING)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  capture        Capture?          @relation(fields: [captureId], references: [id], onDelete: SetNull)
+  parentAsset    Asset?            @relation("AssetDerivation", fields: [parentAssetId], references: [id], onDelete: SetNull)
+  derivedAssets  Asset[]           @relation("AssetDerivation")
+  sourceVariants CreativeVariant[] @relation("VariantSourceAsset")
+
+  @@index([organizationId, createdAt])
+  @@index([captureId])
+  @@map("asset")
+}
+
+model CreativeVariant {
+  id              String           @id @default(cuid())
+  organizationId  String
+  releaseId       String
+  sourceAssetId   String
+  brandKitId      String
+  brandKitVersion Int
+  templateId      String
+  templateVersion Int
+  revision        Int
+  aspectRatio     String
+  status          VariantStatus    @default(DRAFT)
+  createdByUserId String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  release         Release          @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  sourceAsset     Asset            @relation("VariantSourceAsset", fields: [sourceAssetId], references: [id], onDelete: Restrict)
+  brandKit        BrandKit         @relation(fields: [brandKitId], references: [id], onDelete: Restrict)
+  template        CreativeTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  createdByUser   User             @relation("VariantCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  approval        Approval?
+  scheduledPosts  ScheduledPost[]
+
+  @@unique([releaseId, aspectRatio, revision])
+  @@index([organizationId, createdAt])
+  @@map("creative_variant")
+}
+
+model Approval {
+  id              String          @id @default(cuid())
+  organizationId  String
+  variantId       String          @unique
+  status          ApprovalStatus  @default(PENDING)
+  decidedByUserId String?
+  decidedAt       DateTime?
+  reason          String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  variant         CreativeVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("approval")
+}
+
+model ChannelConnection {
+  id                String           @id @default(cuid())
+  organizationId    String
+  provider          String
+  externalAccountId String
+  platform          String           @default("x")
+  providerSettings  Json             @default("{}")
+  secretReference   String
+  status            ConnectionStatus @default(ACTIVE)
+  createdByUserId   String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scheduledPosts    ScheduledPost[]
+
+  @@unique([organizationId, provider, externalAccountId])
+  @@index([organizationId, createdAt])
+  @@map("channel_connection")
+}
+
+model ScheduledPost {
+  id                  String               @id @default(cuid())
+  organizationId      String
+  variantId           String
+  channelConnectionId String
+  scheduledFor        DateTime
+  status              ScheduledPostStatus  @default(DRAFT)
+  caption             String
+  idempotencyKey      String
+  triggerRunId        String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  organization        Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  variant             CreativeVariant      @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  channelConnection   ChannelConnection    @relation(fields: [channelConnectionId], references: [id], onDelete: Restrict)
+  attempts            PublicationAttempt[]
+
+  @@unique([channelConnectionId, idempotencyKey])
+  @@index([organizationId, status, scheduledFor])
+  @@index([status, updatedAt])
+  @@map("scheduled_post")
+}
+
+model PublicationAttempt {
+  id              String          @id @default(cuid())
+  organizationId  String
+  scheduledPostId String
+  attemptNumber   Int
+  startedAt       DateTime        @default(now())
+  completedAt     DateTime?
+  outcome         AttemptOutcome?
+  providerPostId  String?
+  failureCode     String?
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scheduledPost   ScheduledPost   @relation(fields: [scheduledPostId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduledPostId, attemptNumber])
+  @@index([organizationId, startedAt])
+  @@map("publication_attempt")
+}
+
+model OutboxEvent {
+  id             String       @id @default(cuid())
+  organizationId String
+  type           String
+  aggregateType  String
+  aggregateId    String
+  payload        Json
+  idempotencyKey String
+  processingAt   DateTime?
+  attempts       Int          @default(0)
+  lastError      String?
+  deadLetteredAt DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([deadLetteredAt, createdAt])
+  @@index([deliveredAt, createdAt])
+  @@index([organizationId, createdAt])
+  @@map("outbox_event")
+}
+
+enum AuditActorType {
+  USER
+  SERVICE
+  SUPPORT
+  WEBHOOK
+}
+
+enum AuditOutcome {
+  SUCCEEDED
+  FAILED
+  DENIED
+}
+
+enum AuditDrainProvider {
+  GENERIC
+  SPLUNK
+  DATADOG
+}
+
+enum AuditDrainDeliveryStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  FAILED
+}
+
+enum VersionedResourceStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ReleaseStatus {
+  DRAFT
+  READY
+  ARCHIVED
+  CANCELLED
+}
+
+enum ReleaseDocumentStatus {
+  DRAFT
+  APPROVED
+  ARCHIVED
+}
+
+enum CustomerCommunicationChannel {
+  CHANGELOG
+  IN_APP
+  EMAIL
+  SOCIAL
+}
+
+enum CustomerCommunicationStatus {
+  DRAFT
+  SCHEDULED
+  PROCESSING
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum ExecutionStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum AssetStatus {
+  PENDING
+  UPLOADED
+  FAILED
+  DELETED
+}
+
+enum VariantStatus {
+  DRAFT
+  APPROVED
+  ARCHIVED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ConnectionStatus {
+  ACTIVE
+  DISABLED
+  REVOKED
+}
+
+enum ScheduledPostStatus {
+  DRAFT
+  SCHEDULED
+  PROCESSING
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
+
+enum AttemptOutcome {
+  SUCCEEDED
+  FAILED
 }

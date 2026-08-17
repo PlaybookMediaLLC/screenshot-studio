@@ -1,7 +1,7 @@
 # RFC 003: Better Auth, Enterprise Access, and Audit Logging
 
-**Status:** Proposed
-**Date:** 2026-08-13
+**Status:** Partially implemented
+**Date:** 2026-08-14
 **Depends on:** RFC 002
 **Owners:** Engineering and Security
 
@@ -41,7 +41,7 @@ enterprise layer over our Better Auth deployment and PlanetScale data.
 | Path | Availability | Policy |
 | --- | --- | --- |
 | Email and password with verified email | General availability | Rate-limit sign-in and reset; verify before accepting an invitation |
-| Social sign-in | Add after demand | Link to a verified user; never bypass organization membership |
+| Social sign-in | General availability | Google, Microsoft, and GitHub; never bypass organization membership |
 | Organization API key | Core MVP | Scope to intake and upload actions; show the raw key once and allow rotation or revocation |
 | TOTP two-factor authentication | Required for owner, admin, publisher | Provide recovery codes; require a fresh session to view them |
 | SAML 2.0 or OIDC SSO | Enterprise add-on | Configure and activate per organization after test sign-in |
@@ -134,8 +134,8 @@ Enable enterprise identity features per organization, not globally.
 4. Keep a separately audited break-glass owner using TOTP until the customer
    verifies a recovery path.
 
-Use `@better-auth/sso` for SAML/OIDC and `@better-auth/scim` for provisioning
-when those features are implemented. Better Auth documents organization-scoped
+Use `@better-auth/sso` for SAML/OIDC and `@better-auth/scim` for provisioning.
+Both are now gated by organization enterprise settings. Better Auth documents organization-scoped
 SCIM controls and its default owner/admin requirement in the [SCIM
 documentation](https://better-auth.com/docs/plugins/scim). Validate SAML
 timestamps, issuer, audience, redirect URLs, and trusted origins before
@@ -197,12 +197,10 @@ and [log drains](https://better-auth.com/docs/infrastructure/plugins/dash).
 
 ### Retention and export
 
-- Keep application audit logs for at least two years for enterprise tenants,
-  subject to contract, legal hold, and deletion requirements.
-- Allow date-bounded CSV or JSON exports only to organization owners. Audit the
-  export itself.
-- Send a redacted event copy to an enterprise SIEM through `OutboxEvent`. A
-  log-drain failure alerts operations but does not block a customer action.
+- Keep application audit logs for 90 days by default. Enterprise tenants can
+  configure a longer period, including two years, or set a legal hold.
+- Send a redacted event copy to an enterprise SIEM through `AuditOutbox`.
+  Trigger.dev retries delivery; a log-drain failure does not block a customer action.
 - Organization deletion retains only legally required audit evidence. Media and
   credentials never appear in audit data.
 

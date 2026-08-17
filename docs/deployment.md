@@ -23,7 +23,7 @@ Kubernetes deployment only after the app needs a cluster for other workloads.
 
    ```sh
    fly launch --no-deploy
-   fly secrets set DATABASE_URL='postgresql://...' R2_ACCOUNT_ID='...' R2_ACCESS_KEY_ID='...' R2_SECRET_ACCESS_KEY='...' R2_BUCKET_NAME='...' CLEANUP_SECRET='...'
+   fly secrets set DATABASE_URL='postgresql://...' AUDIT_RETENTION_DATABASE_URL='postgresql://...' BETTER_AUTH_SECRET='...' BETTER_AUTH_URL='https://app.example.com' BETTER_AUTH_TRUSTED_ORIGINS='https://app.example.com' AUDIT_IP_HASH_SECRET='...' AUDIT_DRAIN_ENCRYPTION_KEY='...' AUTH_EMAIL_WEBHOOK_URL='https://mailer.example.com/auth' R2_ACCOUNT_ID='...' R2_ACCESS_KEY_ID='...' R2_SECRET_ACCESS_KEY='...' R2_BUCKET_NAME='...' CLEANUP_SECRET='...'
    fly deploy
    for region in iad lax; do
      fly scale count 1 --process-group app --region "$region" --yes
@@ -91,6 +91,25 @@ curl --fail http://localhost:3000/api/health
 The image runs as UID 1001 and starts the Next.js standalone server on port
 3000. `DATABASE_URL` has a build-only default because Prisma generation runs
 during the image build; use a real value at runtime only when caching is on.
+
+Production authentication and audit logging require the values in
+[authentication and enterprise access](authentication.md). Use a separate
+PlanetScale database role for `AUDIT_RETENTION_DATABASE_URL`; the web app role
+must not update or delete audit records.
+
+## Database migrations
+
+Apply the reviewed Prisma migration to the PlanetScale development branch
+before deploying code that depends on it:
+
+```sh
+npm run db:migrate:status
+npm run db:migrate:deploy
+```
+
+Use `npm run db:push` only for the disposable local Compose database. Do not
+use it against PlanetScale or any production environment. Record the target
+branch, migration name, operator, and result in the release record.
 
 ## Kubernetes
 

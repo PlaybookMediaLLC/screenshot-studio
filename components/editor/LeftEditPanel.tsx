@@ -1,7 +1,7 @@
-"use client";
+'use client'
 
-import * as React from "react";
-import { PresetGallery } from "@/components/presets/PresetGallery";
+import * as React from 'react'
+import dynamic from 'next/dynamic'
 import {
   SlidersHorizontalIcon,
   ColorsIcon,
@@ -10,87 +10,100 @@ import {
   LayersLogoIcon,
   Image01Icon,
   Globe02Icon,
-} from "hugeicons-react";
+} from 'hugeicons-react'
 import {
   StyleSection,
   BorderSection,
   ShadowSection,
   BackgroundSection,
   DepthSection,
-  TweetImportSection,
-  CodeSnippetSection,
   ImageOverlaySection,
   AnnotateSection,
   TextSection,
   SettingsSection,
   BrowserMockupSection,
-} from "./sections";
-import { cn } from "@/lib/utils";
-import { useImageStore } from "@/lib/store";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+} from './sections'
+import { cn } from '@/lib/utils'
+import { useImageStore } from '@/lib/store'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 
-type LeftTabType = "edit" | "background" | "depth";
+const PresetGallery = dynamic(
+  () => import('@/components/presets/PresetGallery').then((module) => module.PresetGallery),
+  { ssr: false }
+)
+
+const TweetImportSection = dynamic(
+  () => import('./sections/TweetImportSection').then((module) => module.TweetImportSection),
+  { ssr: false }
+)
+
+const CodeSnippetSection = dynamic(
+  () => import('./sections/CodeSnippetSection').then((module) => module.CodeSnippetSection),
+  { ssr: false }
+)
+
+type LeftTabType = 'edit' | 'background' | 'depth'
 
 const leftTabs: { id: LeftTabType; icon: React.ReactNode; label: string }[] = [
-  { id: "edit", icon: <SlidersHorizontalIcon size={14} />, label: "Design" },
-  { id: "background", icon: <ColorsIcon size={14} />, label: "BG" },
-  { id: "depth", icon: <LayersLogoIcon size={14} />, label: "Layers" },
-];
+  { id: 'edit', icon: <SlidersHorizontalIcon size={14} />, label: 'Design' },
+  { id: 'background', icon: <ColorsIcon size={14} />, label: 'BG' },
+  { id: 'depth', icon: <LayersLogoIcon size={14} />, label: 'Layers' },
+]
 
 function ModeSegmentedControl(): React.JSX.Element {
-  const editorMode = useImageStore((s) => s.editorMode);
-  const setEditorMode = useImageStore((s) => s.setEditorMode);
+  const editorMode = useImageStore((s) => s.editorMode)
+  const setEditorMode = useImageStore((s) => s.setEditorMode)
 
   return (
     <SegmentedControl
       value={editorMode}
-      onChange={(id) => setEditorMode(id as "screenshot" | "browser")}
+      onChange={(id) => setEditorMode(id as 'screenshot' | 'browser')}
       options={[
         {
-          id: "screenshot",
-          label: "Screenshot",
+          id: 'screenshot',
+          label: 'Screenshot',
           icon: <Image01Icon size={14} />,
-          ariaLabel: "Screenshot",
+          ariaLabel: 'Screenshot',
         },
         {
-          id: "browser",
-          label: "Browser",
+          id: 'browser',
+          label: 'Browser',
           icon: <Globe02Icon size={14} />,
-          ariaLabel: "Browser",
+          ariaLabel: 'Browser',
         },
       ]}
     />
-  );
+  )
 }
 
 export function LeftEditPanel() {
-  const templatesOpen = useImageStore((s) => s.showTemplates);
-  const setTemplatesOpen = useImageStore((s) => s.setShowTemplates);
-  const editorMode = useImageStore((s) => s.editorMode);
-  const [activeTab, setActiveTab] = React.useState<LeftTabType>("edit");
+  const templatesOpen = useImageStore((s) => s.showTemplates)
+  const setTemplatesOpen = useImageStore((s) => s.setShowTemplates)
+  const editorMode = useImageStore((s) => s.editorMode)
+  const [activeTab, setActiveTab] = React.useState<LeftTabType>('edit')
 
-  const [contentKey, setContentKey] = React.useState<LeftTabType>(activeTab);
-  const [transitioning, setTransitioning] = React.useState(false);
+  const [contentKey, setContentKey] = React.useState<LeftTabType>(activeTab)
+  const [transitioning, setTransitioning] = React.useState(false)
 
   React.useEffect(() => {
     if (activeTab !== contentKey) {
-      setTransitioning(true);
+      setTransitioning(true)
       const timeout = setTimeout(() => {
-        setContentKey(activeTab);
-        setTransitioning(false);
-      }, 150);
-      return () => clearTimeout(timeout);
+        setContentKey(activeTab)
+        setTransitioning(false)
+      }, 150)
+      return () => clearTimeout(timeout)
     }
-  }, [activeTab, contentKey]);
+  }, [activeTab, contentKey])
 
   React.useEffect(() => {
-    if (!templatesOpen) return;
+    if (!templatesOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setTemplatesOpen(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [templatesOpen, setTemplatesOpen]);
+      if (e.key === 'Escape') setTemplatesOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [templatesOpen, setTemplatesOpen])
 
   return (
     <div className="w-[260px] h-full bg-background flex flex-col overflow-hidden border-r border-foreground/10 relative shrink-0">
@@ -116,12 +129,12 @@ export function LeftEditPanel() {
           className="p-4 transition-all duration-150 ease-out"
           style={{
             opacity: transitioning ? 0 : 1,
-            transform: transitioning ? "translateY(4px)" : "translateY(0)",
+            transform: transitioning ? 'translateY(4px)' : 'translateY(0)',
           }}
         >
-          {contentKey === "edit" && (
+          {contentKey === 'edit' && (
             <div className="space-y-1">
-              {editorMode === "browser" ? (
+              {editorMode === 'browser' ? (
                 <BrowserMockupSection />
               ) : (
                 <>
@@ -139,22 +152,22 @@ export function LeftEditPanel() {
             </div>
           )}
 
-          {contentKey === "background" && (
+          {contentKey === 'background' && (
             <div className="space-y-1">
               <BackgroundSection />
             </div>
           )}
 
-          {contentKey === "depth" && <DepthSection />}
+          {contentKey === 'depth' && <DepthSection />}
         </div>
       </div>
 
       <div
         className={cn(
-          "absolute inset-0 z-50 bg-background flex flex-col transition-all duration-300 ease-out",
+          'absolute inset-0 z-50 bg-background flex flex-col transition-all duration-300 ease-out',
           templatesOpen
-            ? "translate-x-0 opacity-100"
-            : "-translate-x-full opacity-0 pointer-events-none",
+            ? 'translate-x-0 opacity-100'
+            : '-translate-x-full opacity-0 pointer-events-none'
         )}
       >
         <div className="flex items-center justify-between px-3 py-3 border-b border-foreground/10 shrink-0">
@@ -176,5 +189,5 @@ export function LeftEditPanel() {
         </div>
       </div>
     </div>
-  );
+  )
 }

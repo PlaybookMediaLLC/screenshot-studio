@@ -18,6 +18,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
+        app.kubernetes.io/component: app
         {{- include "screenshot-studio.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
@@ -122,6 +123,18 @@ spec:
                   name: {{ . }}
                   key: STORAGE_API_URL
                   optional: true
+            - name: STORAGE_HOST_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: STORAGE_HOST_URL
+                  optional: true
+            - name: STORAGE_PROXY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: STORAGE_PROXY_URL
+                  optional: true
             - name: STORAGE_SERVICE_KEY
               valueFrom:
                 secretKeyRef:
@@ -139,6 +152,42 @@ spec:
                 secretKeyRef:
                   name: {{ . }}
                   key: CLEANUP_SECRET
+                  optional: true
+            - name: BETTER_AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: BETTER_AUTH_SECRET
+                  optional: true
+            - name: BETTER_AUTH_TRUSTED_ORIGINS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: BETTER_AUTH_TRUSTED_ORIGINS
+                  optional: true
+            - name: AUTH_REQUIRE_EMAIL_VERIFICATION
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: AUTH_REQUIRE_EMAIL_VERIFICATION
+                  optional: true
+            - name: AUDIT_IP_HASH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: AUDIT_IP_HASH_SECRET
+                  optional: true
+            - name: AUDIT_DRAIN_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: AUDIT_DRAIN_ENCRYPTION_KEY
+                  optional: true
+            - name: AUDIT_RETENTION_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: AUDIT_RETENTION_DATABASE_URL
                   optional: true
             {{- end }}
           {{- with .Values.startupProbe }}

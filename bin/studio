@@ -389,11 +389,11 @@ down() {
   fi
 
   if [[ "$mode" == "purge" ]]; then
-    compose --profile trigger down --volumes --remove-orphans
+    compose --profile trigger --profile e2e down --volumes --remove-orphans
     return
   fi
 
-  compose --profile trigger down --remove-orphans
+  compose --profile trigger --profile e2e down --remove-orphans
 }
 
 trigger_login() {

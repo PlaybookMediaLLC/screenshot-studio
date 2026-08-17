@@ -36,6 +36,74 @@ export const brandKitCreateSchema = z.object({
   publish: z.boolean().default(false),
 })
 
+export const brandProfileUpsertSchema = z.object({
+  audience: z.string().trim().min(1).max(1_000),
+  ctaConventions: z.string().trim().max(1_000).optional(),
+  preferredStyles: z.array(z.string().trim().min(1).max(100)).max(50).default([]),
+  productDescription: z.string().trim().min(1).max(2_000),
+  prohibitedTerms: z.array(z.string().trim().min(1).max(100)).max(200).default([]),
+  socialHandles: z.record(z.string(), z.string().trim().max(160)).default({}),
+  tagline: z.string().trim().max(200).optional(),
+  tone: z.string().trim().min(1).max(500),
+})
+
+const channelSlugSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[a-z0-9-]+$/)
+  .max(64)
+
+export const productSurfaceCreateSchema = z.object({
+  description: z.string().trim().max(1_000).optional(),
+  featureTags: z.array(z.string().trim().min(1).max(100)).max(50).default([]),
+  name: z.string().trim().min(1).max(160),
+  screenshotAssetIds: z.array(z.string().uuid()).max(50).default([]),
+  url: z.string().trim().url().max(2_000),
+})
+
+export const productSurfaceUpdateSchema = productSurfaceCreateSchema.partial()
+
+export const campaignCreateSchema = z.object({
+  angles: z
+    .array(
+      z.object({
+        hook: z.string().trim().min(1).max(1_000),
+        title: z.string().trim().min(1).max(200),
+      })
+    )
+    .max(20)
+    .default([]),
+  audience: z.string().trim().max(1_000).optional(),
+  feature: z.string().trim().max(500).optional(),
+  messaging: z.string().trim().max(2_000).optional(),
+  name: z.string().trim().min(1).max(160),
+  objective: z.string().trim().min(1).max(500),
+  posts: z
+    .array(
+      z.object({
+        angleIndex: z.number().int().min(0).optional(),
+        callToAction: z.string().trim().max(300).optional(),
+        channel: channelSlugSchema,
+        copy: z.string().trim().min(1).max(10_000),
+      })
+    )
+    .max(50)
+    .default([]),
+})
+
+export const campaignApprovalSchema = z.object({
+  decision: z.enum(['submit', 'approve', 'reject', 'request_changes']),
+  postIds: z.array(z.string().cuid()).min(1).max(100).optional(),
+})
+
+export const campaignPostScheduleSchema = z.object({
+  channelConnectionId: z.string().cuid(),
+  scheduledAt: z.coerce.date().refine((value) => value.getTime() > Date.now(), {
+    message: 'Scheduled time must be in the future.',
+  }),
+})
+
 export const releaseCreateSchema = z.object({
   benefitStatement: z.string().trim().min(1).max(500),
   title: z.string().trim().min(1).max(160),
@@ -120,6 +188,12 @@ export const creativeVariantApprovalSchema = z.object({
 
 export type AssetUploadInput = z.infer<typeof assetUploadSchema>
 export type BrandKitCreateInput = z.infer<typeof brandKitCreateSchema>
+export type BrandProfileUpsertInput = z.infer<typeof brandProfileUpsertSchema>
+export type CampaignApprovalInput = z.infer<typeof campaignApprovalSchema>
+export type CampaignCreateInput = z.infer<typeof campaignCreateSchema>
+export type CampaignPostScheduleInput = z.infer<typeof campaignPostScheduleSchema>
+export type ProductSurfaceCreateInput = z.infer<typeof productSurfaceCreateSchema>
+export type ProductSurfaceUpdateInput = z.infer<typeof productSurfaceUpdateSchema>
 export type ChannelConnectionCreateInput = z.infer<typeof channelConnectionCreateSchema>
 export type CreativeTemplateCreateInput = z.infer<typeof creativeTemplateCreateSchema>
 export type CreativeVariantApprovalInput = z.infer<typeof creativeVariantApprovalSchema>

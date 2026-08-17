@@ -117,6 +117,11 @@ model Organization {
   supportGrants          SupportAccessGrant[]
   captureRecipes         CaptureRecipe[]
   approvals              Approval[]
+  brandProfile           BrandProfile?
+  productSurfaces        ProductSurface[]
+  campaigns              Campaign[]
+  contentAngles          ContentAngle[]
+  campaignPosts          CampaignPost[]
 
   @@unique([slug])
   @@map("organization")
@@ -612,6 +617,7 @@ model CreativeVariant {
   createdByUser   User             @relation("VariantCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
   approval        Approval?
   scheduledPosts  ScheduledPost[]
+  campaignPosts   CampaignPost[]
 
   @@unique([releaseId, aspectRatio, revision])
   @@index([organizationId, createdAt])
@@ -671,6 +677,7 @@ model ScheduledPost {
   variant             CreativeVariant      @relation(fields: [variantId], references: [id], onDelete: Restrict)
   channelConnection   ChannelConnection    @relation(fields: [channelConnectionId], references: [id], onDelete: Restrict)
   attempts            PublicationAttempt[]
+  campaignPost        CampaignPost?
 
   @@unique([channelConnectionId, idempotencyKey])
   @@index([organizationId, status, scheduledFor])
@@ -694,6 +701,103 @@ model PublicationAttempt {
   @@unique([scheduledPostId, attemptNumber])
   @@index([organizationId, startedAt])
   @@map("publication_attempt")
+}
+
+model BrandProfile {
+  id                 String       @id @default(cuid())
+  organizationId     String       @unique
+  productDescription String
+  audience           String
+  tone               String
+  tagline            String?
+  ctaConventions     String?
+  prohibitedTerms    Json
+  preferredStyles    Json
+  socialHandles      Json
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("brand_profile")
+}
+
+model ProductSurface {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  name               String
+  url                String
+  description        String?
+  featureTags        Json
+  screenshotAssetIds Json
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, name])
+  @@index([organizationId, createdAt])
+  @@map("product_surface")
+}
+
+model Campaign {
+  id             String         @id @default(cuid())
+  organizationId String
+  name           String
+  objective      String
+  audience       String?
+  feature        String?
+  messaging      String?
+  status         CampaignStatus @default(DRAFT)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  angles         ContentAngle[]
+  posts          CampaignPost[]
+
+  @@index([organizationId, createdAt])
+  @@map("campaign")
+}
+
+model ContentAngle {
+  id             String         @id @default(cuid())
+  organizationId String
+  campaignId     String
+  title          String
+  hook           String
+  position       Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign       Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  posts          CampaignPost[]
+
+  @@unique([campaignId, position])
+  @@index([organizationId, createdAt])
+  @@map("content_angle")
+}
+
+model CampaignPost {
+  id                String             @id @default(cuid())
+  organizationId    String
+  campaignId        String
+  angleId           String?
+  channel           String
+  copy              String
+  callToAction      String?
+  status            CampaignPostStatus @default(DRAFT)
+  scheduledAt       DateTime?
+  creativeVariantId String?
+  scheduledPostId   String?            @unique
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign          Campaign           @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  angle             ContentAngle?      @relation(fields: [angleId], references: [id], onDelete: SetNull)
+  creativeVariant   CreativeVariant?   @relation(fields: [creativeVariantId], references: [id], onDelete: Restrict)
+  scheduledPost     ScheduledPost?     @relation(fields: [scheduledPostId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@index([campaignId])
+  @@map("campaign_post")
 }
 
 model OutboxEvent {
@@ -799,6 +903,23 @@ enum VariantStatus {
   DRAFT
   APPROVED
   ARCHIVED
+}
+
+enum CampaignStatus {
+  DRAFT
+  READY_FOR_REVIEW
+  APPROVED
+  ARCHIVED
+}
+
+enum CampaignPostStatus {
+  DRAFT
+  READY_FOR_REVIEW
+  APPROVED
+  REJECTED
+  NEEDS_CHANGES
+  SCHEDULED
+  PUBLISHED
 }
 
 enum ApprovalStatus {

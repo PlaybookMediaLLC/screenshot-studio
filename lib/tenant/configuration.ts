@@ -4,7 +4,7 @@ import { appendAuditLog } from '@/lib/audit/log'
 import type { TenantContext } from '@/lib/auth/access'
 import { getAuditActor } from '@/lib/auth/principal'
 import { prisma } from '@/lib/db'
-import type { BrandKitCreateInput, SourceAppCreateInput } from './schemas'
+import type { BrandKitCreateInput, BrandProfileUpsertInput, SourceAppCreateInput } from './schemas'
 
 export async function createBrandKit(context: TenantContext, input: BrandKitCreateInput) {
   return prisma.$transaction(async (transaction) => {
@@ -31,6 +31,39 @@ export async function createBrandKit(context: TenantContext, input: BrandKitCrea
       requestId: context.requestId,
     })
     return brandKit
+  })
+}
+
+export async function getBrandProfile(organizationId: string) {
+  return prisma.brandProfile.findUnique({ where: { organizationId } })
+}
+
+export async function upsertBrandProfile(context: TenantContext, input: BrandProfileUpsertInput) {
+  return prisma.$transaction(async (transaction) => {
+    const data = {
+      audience: input.audience,
+      ctaConventions: input.ctaConventions ?? null,
+      preferredStyles: input.preferredStyles,
+      productDescription: input.productDescription,
+      prohibitedTerms: input.prohibitedTerms,
+      socialHandles: input.socialHandles,
+      tagline: input.tagline ?? null,
+      tone: input.tone,
+    }
+    const brandProfile = await transaction.brandProfile.upsert({
+      create: { ...data, organizationId: context.organizationId },
+      update: data,
+      where: { organizationId: context.organizationId },
+    })
+    await appendAuditLog(transaction, {
+      action: 'product.brand_profile_updated',
+      actor: getAuditActor(context.principal),
+      entityId: brandProfile.id,
+      entityType: 'brand_profile',
+      organizationId: context.organizationId,
+      requestId: context.requestId,
+    })
+    return brandProfile
   })
 }
 

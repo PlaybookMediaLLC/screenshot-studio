@@ -27,6 +27,9 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio
       - run: npm run lint
       - run: npx tsc --noEmit
 

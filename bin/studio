@@ -218,6 +218,22 @@ wait_for_http() {
   exit 1
 }
 
+wait_for_screenshot_mock() {
+  local attempt
+
+  for attempt in $(seq 1 30); do
+    if compose exec -T app node -e 'fetch("http://screenshot-mock:5678/?url=https://readiness.example/probe").then((response) => process.exit(response.ok ? 0 : 1), () => process.exit(1))' >/dev/null 2>&1; then
+      return
+    fi
+    sleep 1
+  done
+
+  echo "The app container cannot reach screenshot-mock:5678." >&2
+  compose --profile e2e ps --all >&2 || true
+  compose --profile e2e logs screenshot-mock >&2 || true
+  exit 1
+}
+
 smoke() {
   local storage_path
   local storage_response
@@ -280,8 +296,8 @@ run_e2e() {
   load_env
   e2e_trusted_origins="$BETTER_AUTH_TRUSTED_ORIGINS,http://localhost:5680,http://host.docker.internal:5680"
   if [[ "$manage_screenshot_mock" == "true" ]]; then
-    compose --profile e2e up --detach --force-recreate screenshot-mock
-    BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" SCREENSHOT_API_URL="http://screenshot-mock:5678" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" compose up --detach --force-recreate app
+    BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" SCREENSHOT_API_URL="http://screenshot-mock:5678" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" compose --profile e2e up --detach --force-recreate screenshot-mock app
+    wait_for_screenshot_mock
   fi
   wait_for_http "${app_url%/}/api/health" "Screenshot Studio"
   wait_for_http "${app_url%/}/sign-up" "Screenshot Studio sign-up route"

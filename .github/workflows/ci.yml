@@ -101,7 +101,7 @@ jobs:
           if-no-files-found: ignore
       - if: always()
         name: Collect local stack logs
-        run: docker compose --env-file .local/dev.env --file compose.yaml logs --no-color
+        run: docker compose --env-file .local/dev.env --file compose.yaml --profile e2e logs --no-color
       - if: always()
         name: Remove local stack data
         run: ./bin/studio down --purge --yes

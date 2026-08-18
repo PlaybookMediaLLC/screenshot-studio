@@ -61,3 +61,5 @@ moving-forward.md
 # scratch credential files
 sample.txt
 *.secrets.txt
+token.txt
+*.token.txt

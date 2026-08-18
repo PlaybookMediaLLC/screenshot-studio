@@ -63,3 +63,4 @@ sample.txt
 *.secrets.txt
 token.txt
 *.token.txt
+sec.txt

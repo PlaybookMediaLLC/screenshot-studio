@@ -26,6 +26,7 @@ export class ScheduledPostError extends Error {
     readonly status: 400 | 404 | 409
   ) {
     super(message)
+    this.name = 'ScheduledPostError'
   }
 }
 

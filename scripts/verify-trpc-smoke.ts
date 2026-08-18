@@ -187,6 +187,94 @@ async function main(): Promise<void> {
     client
   )
   assert.equal(missingCampaign.status, 404, 'A missing campaign must return 404.')
+  const missingSchedule = await trpcMutation(
+    'campaign.schedulePost',
+    {
+      campaignId: 'c000000000000000000000000',
+      channelConnectionId: 'c000000000000000000000000',
+      postId: 'c000000000000000000000000',
+      scheduledAt: new Date(Date.now() + 60_000).toISOString(),
+    },
+    client
+  )
+  assert.equal(missingSchedule.status, 404, 'Scheduling a missing campaign post must return 404.')
+
+  // release create (idempotent), list
+  const idempotencyKey = `trpc-smoke-${testRunId}`
+  const releaseCreate = await trpcMutation(
+    'release.create',
+    { benefitStatement: 'Typed API calls.', idempotencyKey, title: 'tRPC smoke release' },
+    client
+  )
+  assert.equal(releaseCreate.status, 200, 'release.create must succeed.')
+  assert.equal(get(await trpcJson(releaseCreate), 'created'), true, 'First create must be new.')
+  const releaseDuplicate = await trpcMutation(
+    'release.create',
+    { benefitStatement: 'Typed API calls.', idempotencyKey, title: 'tRPC smoke release' },
+    client
+  )
+  assert.equal(
+    get(await trpcJson(releaseDuplicate), 'created'),
+    false,
+    'A duplicate idempotency key must not create a second release.'
+  )
+  const releaseList = await trpcQuery('release.list', { limit: 10 }, client)
+  assert.equal(releaseList.status, 200, 'release.list must succeed.')
+  const releases = get(await trpcJson(releaseList), 'releases')
+  assert(Array.isArray(releases) && releases.length === 1, 'Exactly one release must exist.')
+
+  // asset sign upload, error paths for missing assets
+  const signUpload = await trpcMutation(
+    'asset.signUpload',
+    { bytes: 1, contentType: 'image/png', fileName: 'smoke.png' },
+    client
+  )
+  assert.equal(signUpload.status, 200, 'asset.signUpload must succeed.')
+  const pendingAssetId = get(await trpcJson(signUpload), 'asset', 'id')
+  assert(typeof pendingAssetId === 'string', 'asset.signUpload must return an asset id.')
+  const missingAssetId = randomUUID()
+  const missingDownload = await trpcQuery(
+    'asset.signDownload',
+    { assetId: missingAssetId },
+    client
+  )
+  assert.equal(missingDownload.status, 404, 'Signing a missing asset download must return 404.')
+  const missingComplete = await trpcMutation(
+    'asset.completeUpload',
+    { assetId: missingAssetId },
+    client
+  )
+  assert.equal(missingComplete.status, 404, 'Completing a missing asset must return 404.')
+  const pendingDelete = await trpcMutation('asset.delete', { assetId: pendingAssetId }, client)
+  assert.equal(pendingDelete.status, 409, 'Deleting a pending (not uploaded) asset must conflict.')
+
+  // source app create
+  const sourceApp = await trpcMutation(
+    'sourceApp.create',
+    { allowedHosts: ['https://example.invalid'], name: 'Smoke source', provider: 'generic' },
+    client
+  )
+  assert.equal(sourceApp.status, 200, 'sourceApp.create must succeed.')
+
+  // publishing and creative list queries
+  const scheduledPosts = await trpcQuery('scheduledPost.list', { limit: 10 }, client)
+  assert.equal(scheduledPosts.status, 200, 'scheduledPost.list must succeed.')
+  const connections = await trpcQuery('channelConnection.list', undefined, client)
+  assert.equal(connections.status, 200, 'channelConnection.list must succeed.')
+  const templates = await trpcQuery('creativeTemplate.list', undefined, client)
+  assert.equal(templates.status, 200, 'creativeTemplate.list must succeed.')
+
+  // sensitive procedures require a fresh two-factor session
+  const sensitive = await trpcMutation(
+    'channelConnection.create',
+    { externalAccountId: 'smoke-account' },
+    client
+  )
+  assert.equal(
+    sensitive.status,
+    403,
+    'channelConnection.create without two-factor must return 403.'
+  )
 
   console.info(`tRPC smoke passed for local run ${testRunId}.`)
 }

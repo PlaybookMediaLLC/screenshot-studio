@@ -23,6 +23,7 @@
     "test:e2e:onboarding": "playwright test e2e/onboarding.spec.ts",
     "test:e2e:recovery": "E2E_INCLUDE_RECOVERY=true playwright test e2e/dependency-recovery.spec.ts --workers=1",
     "test:tenant-isolation": "tsx scripts/verify-tenant-isolation.ts",
+    "test:trpc-smoke": "tsx scripts/verify-trpc-smoke.ts",
     "commitlint": "commitlint",
     "prepare": "git config core.hooksPath .githooks || true",
     "upload-to-r2": "tsx scripts/upload-to-r2.ts",

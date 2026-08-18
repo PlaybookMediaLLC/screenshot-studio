@@ -1,32 +1,30 @@
 'use client'
 
 import { type FormEvent, useEffect, useState } from 'react'
-import { z } from 'zod'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { getErrorMessage, requestJson } from './settings-client'
+import { useTRPCClient } from '@/lib/trpc/react'
+import { getErrorMessage } from './settings-client'
 
-const brandKitSchema = z.object({
-  brandKits: z.array(
-    z.object({ id: z.string(), name: z.string(), status: z.string(), version: z.number() })
-  ),
-})
+type BrandKitSummary = { id: string; name: string; status: string; version: number }
 
 type WorkspaceBrandSettingsProps = { canManage: boolean }
 
 export function WorkspaceBrandSettings({ canManage }: WorkspaceBrandSettingsProps) {
-  const [brandKits, setBrandKits] = useState<z.infer<typeof brandKitSchema>['brandKits']>([])
+  const trpcClient = useTRPCClient()
+  const [brandKits, setBrandKits] = useState<BrandKitSummary[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
-    requestJson('/api/tenant/brand-kits', brandKitSchema)
+    trpcClient.brandKit.list
+      .query()
       .then((result) => setBrandKits(result.brandKits))
       .catch((requestError) => setError(getErrorMessage(requestError)))
-  }, [])
+  }, [trpcClient])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
@@ -35,22 +33,19 @@ export function WorkspaceBrandSettings({ canManage }: WorkspaceBrandSettingsProp
     const data = Object.fromEntries(new FormData(form))
     setIsSaving(true)
     try {
-      await requestJson('/api/tenant/brand-kits', z.unknown(), {
-        body: {
-          definition: {
-            colors: {
-              accent: data.accent,
-              background: data.background,
-              foreground: data.foreground,
-            },
-            typography: { fontFamily: data.fontFamily },
+      await trpcClient.brandKit.create.mutate({
+        definition: {
+          colors: {
+            accent: String(data.accent ?? ''),
+            background: String(data.background ?? ''),
+            foreground: String(data.foreground ?? ''),
           },
-          name: data.name,
-          publish: true,
+          typography: { fontFamily: String(data.fontFamily ?? '') },
         },
-        method: 'POST',
+        name: String(data.name ?? ''),
+        publish: true,
       })
-      const result = await requestJson('/api/tenant/brand-kits', brandKitSchema)
+      const result = await trpcClient.brandKit.list.query()
       setBrandKits(result.brandKits)
       form.reset()
     } catch (requestError) {

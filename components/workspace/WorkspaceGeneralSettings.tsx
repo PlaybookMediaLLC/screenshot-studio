@@ -1,16 +1,12 @@
 'use client'
 
 import { type FormEvent, useState } from 'react'
-import { z } from 'zod'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { getErrorMessage, requestJson } from './settings-client'
-
-const workspaceSchema = z.object({
-  organization: z.object({ id: z.string(), name: z.string(), slug: z.string() }),
-})
+import { useTRPCClient } from '@/lib/trpc/react'
+import { getErrorMessage } from './settings-client'
 
 type WorkspaceGeneralSettingsProps = {
   canManage: boolean
@@ -21,6 +17,7 @@ export function WorkspaceGeneralSettings({
   canManage,
   organization,
 }: WorkspaceGeneralSettingsProps) {
+  const trpcClient = useTRPCClient()
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -32,7 +29,10 @@ export function WorkspaceGeneralSettings({
     const data = Object.fromEntries(new FormData(event.currentTarget))
     setIsSaving(true)
     try {
-      await requestJson('/api/tenant/workspace', workspaceSchema, { body: data, method: 'PUT' })
+      await trpcClient.workspace.update.mutate({
+        name: String(data.name ?? ''),
+        slug: String(data.slug ?? ''),
+      })
       setMessage('Workspace details updated.')
     } catch (requestError) {
       setError(getErrorMessage(requestError))

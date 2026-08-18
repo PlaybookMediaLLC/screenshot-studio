@@ -14,20 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { apiKeyScopes } from '@/lib/auth/api-key-scopes'
-import { getErrorMessage, requestJson } from './settings-client'
+import { apiKeyScopes, type ApiKeyScope } from '@/lib/auth/api-key-scopes'
+import { useTRPCClient } from '@/lib/trpc/react'
+import { getErrorMessage } from './settings-client'
 
-const apiKeySchema = z.object({
-  createdAt: z.string(),
-  enabled: z.boolean().nullable(),
-  expiresAt: z.string().nullable(),
-  id: z.string(),
-  name: z.string().nullable(),
-  prefix: z.string().nullable(),
-  start: z.string().nullable(),
-})
-const apiKeysSchema = z.object({ keys: z.array(apiKeySchema) })
-const apiKeyCreateSchema = z.object({ apiKey: apiKeySchema.extend({ key: z.string() }) })
 const sourceSchema = z.object({
   allowedHost: z.string().url(),
   name: z.string().trim().min(2).max(100),
@@ -35,9 +25,18 @@ const sourceSchema = z.object({
 })
 
 type WorkspaceDeveloperSettingsProps = { canManage: boolean }
-type ApiKey = z.infer<typeof apiKeySchema>
+type ApiKey = {
+  createdAt: Date | string
+  enabled: boolean | null
+  expiresAt: Date | string | null
+  id: string
+  name: string | null
+  prefix: string | null
+  start: string | null
+}
 
 export function WorkspaceDeveloperSettings({ canManage }: WorkspaceDeveloperSettingsProps) {
+  const trpcClient = useTRPCClient()
   const [error, setError] = useState<string | null>(null)
   const [keys, setKeys] = useState<ApiKey[]>([])
   const [newKey, setNewKey] = useState<string | null>(null)
@@ -45,7 +44,7 @@ export function WorkspaceDeveloperSettings({ canManage }: WorkspaceDeveloperSett
 
   async function loadKeys(): Promise<void> {
     try {
-      const result = await requestJson('/api/tenant/api-keys', apiKeysSchema)
+      const result = await trpcClient.apiKey.list.query()
       setKeys(result.keys)
     } catch (requestError) {
       setError(getErrorMessage(requestError))
@@ -61,16 +60,14 @@ export function WorkspaceDeveloperSettings({ canManage }: WorkspaceDeveloperSett
     setError(null)
     const form = event.currentTarget
     const data = new FormData(form)
-    const scopes = data.getAll('scopes').map(String)
+    const scopes = data.getAll('scopes').map(String) as ApiKeyScope[]
     setPendingId('create-key')
     try {
-      const result = await requestJson('/api/tenant/api-keys', apiKeyCreateSchema, {
-        body: {
-          expiresInDays: data.get('expiresInDays') || undefined,
-          name: data.get('name'),
-          scopes,
-        },
-        method: 'POST',
+      const expiresInDays = data.get('expiresInDays')
+      const result = await trpcClient.apiKey.create.mutate({
+        expiresInDays: expiresInDays ? Number(expiresInDays) : undefined,
+        name: String(data.get('name') ?? ''),
+        scopes,
       })
       setNewKey(result.apiKey.key)
       form.reset()
@@ -86,10 +83,7 @@ export function WorkspaceDeveloperSettings({ canManage }: WorkspaceDeveloperSett
     setError(null)
     setPendingId(keyId)
     try {
-      await requestJson('/api/tenant/api-keys', z.object({ success: z.literal(true) }), {
-        body: { keyId },
-        method: 'DELETE',
-      })
+      await trpcClient.apiKey.revoke.mutate({ keyId })
       await loadKeys()
     } catch (requestError) {
       setError(getErrorMessage(requestError))
@@ -109,13 +103,10 @@ export function WorkspaceDeveloperSettings({ canManage }: WorkspaceDeveloperSett
     }
     setPendingId('create-source')
     try {
-      await requestJson('/api/tenant/source-apps', z.unknown(), {
-        body: {
-          allowedHosts: [input.data.allowedHost],
-          name: input.data.name,
-          provider: input.data.provider,
-        },
-        method: 'POST',
+      await trpcClient.sourceApp.create.mutate({
+        allowedHosts: [input.data.allowedHost],
+        name: input.data.name,
+        provider: input.data.provider,
       })
       form.reset()
     } catch (requestError) {

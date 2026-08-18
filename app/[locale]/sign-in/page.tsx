@@ -1,13 +1,18 @@
 import type { Metadata } from 'next'
 import { AuthForm } from '@/components/auth/AuthForm'
 import { AuthShell } from '@/components/auth/AuthShell'
+import { getEnabledSocialProviders, isPasswordAuthEnabled } from '@/lib/auth/methods'
 
 export const metadata: Metadata = { title: 'Sign in | Screenshot Studio' }
 
 export default function SignInPage() {
   return (
     <AuthShell description="Sign in to access your team workspace." title="Welcome back">
-      <AuthForm mode="sign-in" />
+      <AuthForm
+        mode="sign-in"
+        passwordAuthEnabled={isPasswordAuthEnabled()}
+        socialProviders={getEnabledSocialProviders()}
+      />
     </AuthShell>
   )
 }

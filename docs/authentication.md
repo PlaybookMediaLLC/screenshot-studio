@@ -30,6 +30,35 @@ object with `to`, `subject`, and `text`; connect it to the approved email
 delivery service. Set the Google, Microsoft, and GitHub client ID and secret
 pairs to enable those sign-in methods.
 
+## Sign-in methods
+
+`AUTH_ENABLE_PASSWORD` controls email/password sign-in. It defaults to
+enabled so local development and self-hosted deployments work without extra
+configuration. Set it to `false` to run OAuth-only.
+
+Password auth depends on outbound email. Verification and password reset both
+deliver links through `AUTH_EMAIL_WEBHOOK_URL`, so enabling passwords without
+that webhook creates accounts that can never be verified and passwords that
+can never be reset. OAuth has no such dependency, because the provider has
+already verified the address.
+
+A provider appears on the sign-in page only when both its client ID and
+client secret are set. A half-configured provider is treated as absent rather
+than rendering a button that fails when clicked.
+
+The application refuses to start when password auth is disabled and no OAuth
+provider is configured, since that combination leaves no way to sign in,
+including for administrators.
+
+Register these redirect URIs with each provider, replacing the host with the
+deployment's public URL:
+
+```text
+https://shots.oppulence.io/api/auth/callback/google
+https://shots.oppulence.io/api/auth/callback/github
+https://shots.oppulence.io/api/auth/callback/microsoft
+```
+
 Set `BETTER_AUTH_API_KEY`, and optionally `BETTER_AUTH_API_URL` and
 `BETTER_AUTH_KV_URL`, to enable Better Auth Infrastructure audit capture for
 authentication and identity-provider events.

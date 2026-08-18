@@ -14,6 +14,7 @@ import {
   getTrustedOrigins,
 } from './environment'
 import { sendAuthEmail } from './email'
+import { assertSignInMethodAvailable, isPasswordAuthEnabled } from './methods'
 import { betterAuthOrganizationRoles, isSupportedOrganizationRole } from './permissions'
 
 const google = getSocialProviderCredentials('GOOGLE')
@@ -22,6 +23,9 @@ const microsoft = getSocialProviderCredentials('MICROSOFT')
 const infrastructure = getBetterAuthInfrastructure()
 const requireEmailVerification =
   process.env.NODE_ENV === 'production' && process.env.AUTH_REQUIRE_EMAIL_VERIFICATION !== 'false'
+const passwordAuthEnabled = isPasswordAuthEnabled()
+
+assertSignInMethodAvailable()
 
 const socialProviders = {
   ...(google ? { google } : {}),
@@ -39,7 +43,7 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: 'postgresql', transaction: true }),
   emailAndPassword: {
     autoSignIn: process.env.NODE_ENV !== 'production',
-    enabled: true,
+    enabled: passwordAuthEnabled,
     minPasswordLength: 12,
     requireEmailVerification,
     revokeSessionsOnPasswordReset: true,

@@ -57,3 +57,7 @@ prisma/*.db-journal
 
 #files
 moving-forward.md
+
+# scratch credential files
+sample.txt
+*.secrets.txt

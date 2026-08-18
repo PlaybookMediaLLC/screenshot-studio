@@ -1,6 +1,6 @@
 'use client'
 
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import { z } from 'zod'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -42,18 +42,18 @@ export function WorkspaceDeveloperSettings({ canManage }: WorkspaceDeveloperSett
   const [newKey, setNewKey] = useState<string | null>(null)
   const [pendingId, setPendingId] = useState<string | null>(null)
 
-  async function loadKeys(): Promise<void> {
+  const loadKeys = useCallback(async (): Promise<void> => {
     try {
       const result = await trpcClient.apiKey.list.query()
       setKeys(result.keys)
     } catch (requestError) {
       setError(getErrorMessage(requestError))
     }
-  }
+  }, [trpcClient])
 
   useEffect(() => {
     void loadKeys()
-  }, [])
+  }, [loadKeys])
 
   async function createKey(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()

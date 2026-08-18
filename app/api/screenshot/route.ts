@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getClientIdentifier } from '@/lib/api/client-identity'
 import { isInvalidRequest, parseJson } from '@/lib/api/request'
 import { screenshotRequestSchema, type ScreenshotRequest } from '@/lib/api/schemas'
+import { SCREENSHOT_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
 import { checkRateLimit, type RateLimitResult } from '@/lib/rate-limit'
 import {
   cacheScreenshot,
@@ -16,18 +18,11 @@ import {
 
 export const maxDuration = 60
 
-const RATE_LIMIT = 20
-
-function getClientIdentifier(request: NextRequest): string {
-  const forwardedFor = request.headers.get('x-forwarded-for')
-  return forwardedFor?.split(',', 1)[0] || request.headers.get('x-real-ip') || 'unknown'
-}
-
 function getRateLimitHeaders(rateLimit: RateLimitResult): HeadersInit {
   const retryAfter = Math.max(1, Math.ceil((rateLimit.resetAt - Date.now()) / 1000))
   return {
     'Retry-After': retryAfter.toString(),
-    'X-RateLimit-Limit': RATE_LIMIT.toString(),
+    'X-RateLimit-Limit': rateLimit.limit.toString(),
     'X-RateLimit-Remaining': '0',
     'X-RateLimit-Reset': rateLimit.resetAt.toString(),
   }
@@ -35,7 +30,10 @@ function getRateLimitHeaders(rateLimit: RateLimitResult): HeadersInit {
 
 async function getRateLimitResponse(request: NextRequest): Promise<NextResponse | null> {
   try {
-    const rateLimit = await checkRateLimit(getClientIdentifier(request))
+    const rateLimit = await checkRateLimit(
+      getClientIdentifier(request.headers),
+      SCREENSHOT_RATE_LIMIT
+    )
     if (rateLimit.allowed) {
       return null
     }

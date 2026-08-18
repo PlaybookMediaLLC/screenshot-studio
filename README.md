@@ -94,6 +94,7 @@ conversation.
 - Audit logs with retention policies and signed SIEM drains
 - Workspace-scoped assets, scoped API keys, and source-app webhooks
 - Brand kits, creative templates, variant approval, and scheduled posts through Postiz
+- Typed tRPC API for browser and API-key callers, with REST intake routes for machines
 - Durable background execution on Trigger.dev with outbox recovery
 
 ## Roadmap
@@ -116,7 +117,8 @@ The full plan lives in [docs/rfcs/](docs/rfcs/). Implementation follows this ord
 | Defer (V3) | 022, 023, 024, 025, 008                                                                            | GitHub triggers, deployment capture, demo videos, content pillars, Cloudflare data plane     | Deferred    |
 | Defer (V4) | 026, 027, 028                                                                                      | External research, analytics, feedback-driven generation                                     | Deferred    |
 | Defer (V5) | 029, 030, 031                                                                                      | Weekly autonomy, approval policies, autopilot modes                                          | Deferred    |
-| Superseded | 001, 007                                                                                           | Release-kit umbrella and tRPC surface                                                        | Superseded  |
+| Superseded | 001                                                                                                | Release-kit umbrella                                                                         | Superseded  |
+| Done       | [007](docs/rfcs/007-mvp-rpc-product-surface.md)                                                    | tRPC product surface over the tenant domain services                                         | Implemented |
 
 Two RFCs still need to be written before the chargeable milestone: billing with usage
 quotas, and authenticated page capture.

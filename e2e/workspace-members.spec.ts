@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { getE2EUrl, openWorkspaceSetting, signUp, signUpAndCreateWorkspace } from './framework/auth'
-import { browserRequest } from './framework/browser'
+import { trpcQuery } from './framework/trpc'
 import { configureE2EFlow, expect, test } from './framework/flow'
 
 const invitationSchema = z.object({ id: z.string() })
@@ -40,7 +40,7 @@ test('an owner can invite a viewer and remove their workspace access', async ({
 
     await memberPage.goto(getE2EUrl('/'))
     await expect(memberPage.getByRole('button', { exact: true, name: 'Save' })).toBeVisible()
-    expect((await browserRequest(memberPage, '/api/tenant/api-keys')).status).toBe(403)
+    expect((await trpcQuery(memberPage, 'apiKey.list')).status).toBe(403)
 
     await openWorkspaceSetting(page, 'Members')
     await expect(page.getByText(memberIdentity.email, { exact: true })).toBeVisible()

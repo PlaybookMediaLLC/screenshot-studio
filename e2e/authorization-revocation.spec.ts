@@ -6,6 +6,7 @@ import {
   signUpAndCreateWorkspace,
 } from './framework/auth'
 import { browserRequest, requestJson } from './framework/browser'
+import { trpcMutation } from './framework/trpc'
 import { configureE2EFlow, expect, test } from './framework/flow'
 import { createE2EDatabaseClient } from './framework/services'
 
@@ -81,7 +82,7 @@ test('a role downgrade denies privileged actions and member removal revokes the 
     ).toBe(200)
     expect(
       (
-        await requestJson(memberPage, '/api/tenant/brand-kits', {
+        await trpcMutation(memberPage, 'brandKit.create', {
           definition: {},
           name: 'Denied after downgrade',
           publish: false,

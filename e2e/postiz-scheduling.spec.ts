@@ -11,6 +11,7 @@ import { configureE2EFlow, test } from './framework/flow'
 import { startHttpMockServer, type HttpMockRequest } from './framework/http-server'
 import { getMaintenanceHeaders } from './framework/maintenance'
 import { createE2EDatabaseClient } from './framework/services'
+import { trpcMutation } from './framework/trpc'
 
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFgAI/ScL6fQAAAABJRU5ErkJggg==',
@@ -55,12 +56,12 @@ async function createUploadedAsset(page: Page): Promise<string> {
 
 async function createApprovedVariant(page: Page): Promise<string> {
   const assetId = await createUploadedAsset(page)
-  const kitResponse = await requestJson(page, '/api/tenant/brand-kits', {
+  const kitResponse = await trpcMutation(page, 'brandKit.create', {
     definition: { accent: '#7047eb' },
     name: 'Launch brand',
     publish: true,
   })
-  expect(kitResponse.status).toBe(201)
+  expect(kitResponse.status).toBe(200)
   const brandKit = brandKitSchema.parse(kitResponse.body).brandKit
   const releaseResponse = await requestJson(page, '/api/tenant/releases', {
     benefitStatement: 'Ship the launch update.',
@@ -68,27 +69,25 @@ async function createApprovedVariant(page: Page): Promise<string> {
   })
   expect(releaseResponse.status).toBe(201)
   const releaseId = releaseSchema.parse(releaseResponse.body).release.id
-  const templateResponse = await requestJson(page, '/api/tenant/creative-templates', {
+  const templateResponse = await trpcMutation(page, 'creativeTemplate.create', {
     definition: { layout: 'social' },
     name: `Launch template ${releaseId}`,
   })
-  expect(templateResponse.status).toBe(201)
+  expect(templateResponse.status).toBe(200)
   const template = creativeTemplateSchema.parse(templateResponse.body).template
-  const variantResponse = await requestJson(page, '/api/tenant/creative-variants', {
+  const variantResponse = await trpcMutation(page, 'creativeVariant.create', {
     aspectRatio: '1:1',
     brandKitId: brandKit.id,
     releaseId,
     sourceAssetId: assetId,
     templateId: template.id,
   })
-  expect(variantResponse.status, JSON.stringify(variantResponse.body)).toBe(201)
+  expect(variantResponse.status, JSON.stringify(variantResponse.body)).toBe(200)
   const variant = creativeVariantSchema.parse(variantResponse.body).variant
-  const approvalResponse = await requestJson(
-    page,
-    `/api/tenant/creative-variants/${variant.id}/approval`,
-    { status: 'APPROVED' },
-    'POST'
-  )
+  const approvalResponse = await trpcMutation(page, 'creativeVariant.decideApproval', {
+    status: 'APPROVED',
+    variantId: variant.id,
+  })
   expect(approvalResponse).toMatchObject({
     body: { variant: { id: variant.id, status: 'APPROVED' } },
     status: 200,
@@ -106,18 +105,13 @@ async function createScheduledPost(
   idempotencyKey: string,
   variantId: string
 ) {
-  const response = await requestJson(
-    page,
-    '/api/tenant/scheduled-posts',
-    {
-      caption: 'The launch is ready.',
-      channelConnectionId,
-      scheduledFor: new Date(Date.now() + 60_000).toISOString(),
-      variantId,
-    },
-    'POST',
-    { 'idempotency-key': idempotencyKey }
-  )
+  const response = await trpcMutation(page, 'scheduledPost.create', {
+    caption: 'The launch is ready.',
+    channelConnectionId,
+    idempotencyKey,
+    scheduledFor: new Date(Date.now() + 60_000).toISOString(),
+    variantId,
+  })
   return { response, scheduledPost: scheduledPostSchema.parse(response.body).scheduledPost }
 }
 
@@ -176,18 +170,20 @@ test('an approved variant schedules through Postiz once, retries a throttle, and
     await signUpAndCreateWorkspace(identity, page)
     await enableTwoFactor(page, identity.password)
     const variantId = await createApprovedVariant(page)
-    const connectionResponse = await requestJson(page, '/api/tenant/channel-connections', {
+    const connectionResponse = await trpcMutation(page, 'channelConnection.create', {
       externalAccountId: 'postiz-x-integration',
       platform: 'x',
       providerSettings: { who_can_reply_post: 'everyone' },
     })
-    expect(connectionResponse.status).toBe(201)
+    expect(connectionResponse.status).toBe(200)
     const connectionId = connectionSchema.parse(connectionResponse.body).connection.id
 
     const first = await createScheduledPost(page, connectionId, 'postiz-launch', variantId)
-    expect(first.response.status).toBe(201)
+    expect(first.response.status).toBe(200)
+    expect(scheduledPostSchema.parse(first.response.body).created).toBe(true)
     const duplicate = await createScheduledPost(page, connectionId, 'postiz-launch', variantId)
     expect(duplicate.response.status).toBe(200)
+    expect(scheduledPostSchema.parse(duplicate.response.body).created).toBe(false)
     expect(duplicate.scheduledPost.id).toBe(first.scheduledPost.id)
     await makeScheduledPostDue(first.scheduledPost.id)
 
@@ -234,12 +230,10 @@ test('an approved variant schedules through Postiz once, retries a throttle, and
     })
 
     const cancelled = await createScheduledPost(page, connectionId, 'postiz-cancelled', variantId)
-    expect(cancelled.response.status).toBe(201)
-    const cancelResponse = await requestJson(
-      page,
-      `/api/tenant/scheduled-posts/${cancelled.scheduledPost.id}/cancel`,
-      {}
-    )
+    expect(cancelled.response.status).toBe(200)
+    const cancelResponse = await trpcMutation(page, 'scheduledPost.cancel', {
+      scheduledPostId: cancelled.scheduledPost.id,
+    })
     expect(cancelResponse).toMatchObject({
       body: { scheduledPost: { status: 'CANCELLED' } },
       status: 200,
@@ -276,7 +270,7 @@ test('a queued post is cancelled when its approval or destination is revoked bef
     const variantId = await createApprovedVariant(page)
     const connection = connectionSchema.parse(
       (
-        await requestJson(page, '/api/tenant/channel-connections', {
+        await trpcMutation(page, 'channelConnection.create', {
           externalAccountId: 'revocation-integration',
           platform: 'x',
           providerSettings: {},
@@ -289,7 +283,7 @@ test('a queued post is cancelled when its approval or destination is revoked bef
       'postiz-connection-revoked',
       variantId
     )
-    expect(connectionRevoked.response.status).toBe(201)
+    expect(connectionRevoked.response.status).toBe(200)
     await makeScheduledPostDue(connectionRevoked.scheduledPost.id)
 
     const database = createE2EDatabaseClient()
@@ -328,7 +322,7 @@ test('a queued post is cancelled when its approval or destination is revoked bef
         'postiz-approval-revoked',
         variantId
       )
-      expect(approvalRevoked.response.status).toBe(201)
+      expect(approvalRevoked.response.status).toBe(200)
       await makeScheduledPostDue(approvalRevoked.scheduledPost.id)
       await database.approval.update({ data: { status: 'REJECTED' }, where: { variantId } })
       expect(
@@ -378,7 +372,7 @@ test('a worker recovers an unclaimed post and does not retry uncertain delivery'
     const variantId = await createApprovedVariant(page)
     const connection = connectionSchema.parse(
       (
-        await requestJson(page, '/api/tenant/channel-connections', {
+        await trpcMutation(page, 'channelConnection.create', {
           externalAccountId: 'recovery-integration',
           platform: 'x',
           providerSettings: {},

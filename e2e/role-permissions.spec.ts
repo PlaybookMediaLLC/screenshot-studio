@@ -8,6 +8,7 @@ import {
 } from './framework/auth'
 import { browserRequest, requestJson } from './framework/browser'
 import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
+import { trpcMutation, trpcQuery } from './framework/trpc'
 
 const invitedRoles = ['admin', 'creator', 'approver', 'publisher', 'viewer'] as const
 const invitationSchema = z.object({ id: z.string() })
@@ -53,8 +54,8 @@ async function assertRolePermissions(
   const canPublish = isAdmin || role === 'publisher'
   const [audit, brandKits, connections, releases, workspace] = await Promise.all([
     browserRequest(page, `/api/audit-logs?organizationId=${organizationId}`),
-    browserRequest(page, '/api/tenant/brand-kits'),
-    browserRequest(page, '/api/tenant/channel-connections'),
+    trpcQuery(page, 'brandKit.list'),
+    trpcQuery(page, 'channelConnection.list'),
     requestJson(
       page,
       '/api/tenant/releases',
@@ -62,15 +63,10 @@ async function assertRolePermissions(
       'POST',
       { 'idempotency-key': `role-${role}-release` }
     ),
-    requestJson(
-      page,
-      '/api/tenant/workspace',
-      {
-        name: `Denied ${role}`,
-        slug: `denied-${role}-${organizationId.slice(-8).toLowerCase()}`,
-      },
-      'PUT'
-    ),
+    trpcMutation(page, 'workspace.update', {
+      name: `Denied ${role}`,
+      slug: `denied-${role}-${organizationId.slice(-8).toLowerCase()}`,
+    }),
   ])
 
   expect(audit.status).toBe(isAdmin ? 200 : 403)

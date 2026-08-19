@@ -119,7 +119,7 @@ The full plan lives in [docs/rfcs/](docs/rfcs/). Implementation follows this ord
 | Defer (V5) | 029, 030, 031                                                                                      | Weekly autonomy, approval policies, autopilot modes                                          | Deferred    |
 | Superseded | 001                                                                                                | Release-kit umbrella                                                                         | Superseded  |
 | Done       | [007](docs/rfcs/007-mvp-rpc-product-surface.md)                                                    | tRPC product surface over the tenant domain services                                         | Implemented |
-| Done       | [033](docs/rfcs/033-customer-email-and-release-broadcast.md)                                        | Customer email templating and release broadcast with per-recipient consent                   | Implemented |
+| Deferred   | [033](docs/rfcs/033-workspace-migration.md)                                                         | Monorepo workspace migration — deferred until a second deployable exists                     | Deferred    |
 
 Two RFCs still need to be written before the chargeable milestone: billing with usage
 quotas, and authenticated page capture.
@@ -244,6 +244,10 @@ view the team workflow.
 
 Better Auth, fixed organization RBAC, SSO, SCIM, audit logs, retention, and SIEM drains are
 documented in [authentication and enterprise access](docs/authentication.md).
+
+Email templating, release announcements, audience consent, and unsubscribe
+handling are documented in
+[customer email and release broadcast](docs/email-and-broadcast.md).
 
 ## Tech stack
 

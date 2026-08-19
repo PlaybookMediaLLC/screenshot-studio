@@ -1,11 +1,9 @@
-# RFC 033: Customer Email and Release Broadcast
+# Customer email and release broadcast
 
-**Status:** Implemented
-**Date:** 2026-08-19
-**Depends on:** RFC 006, RFC 019, RFC 020
-**Owners:** Engineering
+How Screenshot Studio sends email: authentication messages, organization
+invitations, and release announcements to customer audiences.
 
-## Decision
+## Summary
 
 Announcing a release by email is a product capability, not supporting
 infrastructure, so it gets the same treatment as capture and publishing:
@@ -125,7 +123,7 @@ Announcements are scoped to `publish:manage` rather than `artifact:edit`,
 placing them with the permission that already governs customer-facing
 publishing instead of with content editing.
 
-## Rejected alternatives
+## Design decisions and rejected alternatives
 
 **A marketing automation platform.** Loops, Customer.io, and similar
 tools own the audience, the templates, and the send schedule. Release
@@ -146,37 +144,31 @@ output on the send path. Flattening to escaped text is inert by
 construction, and richer formatting can be added later behind an explicit
 allowlist if the product needs it.
 
-**A monorepo workspace split.** Extracting `lib/email` into a published
-workspace package was considered and rejected. This repository has one
-deployable application, so every package boundary would serve exactly one
-consumer while adding workspace-aware Docker builds, Prisma generation
-across package boundaries, and standalone output tracing through symlinked
-packages. The `server-only` guards already enforce the boundaries that
-matter, and a barrel export already gives a stable public surface. This
-becomes worth revisiting when a second deployable exists, such as an
-extracted Trigger.dev worker or a separate marketing site.
+**A monorepo workspace package.** Extracting `lib/email` into a workspace
+package was considered and deferred. See
+[RFC 033](rfcs/033-workspace-migration.md) for the analysis.
 
-## Exit criterion
+## Verification
 
-An approved `ReleaseDocument` schedules an announcement, the dispatch
-cron delivers it to every subscribed customer exactly once, each attempt
-is recorded with its provider message ID, and a recipient who uses the
-unsubscribe link is excluded from the next announcement.
-
-Met. Verified against the production database: the approval gate, the
+`npm run verify:announcements` exercises the rules that schema tests
+cannot cover, against a real database: the approval gate, the
 empty-audience gate, idempotent replay, cancellation, and tenant
-isolation. A templated announcement was rendered and accepted by the
-provider. In production, a validly signed unsubscribe token returns 204
-and a forged one returns 400.
+isolation. It requires `DATABASE_URL` and creates and removes its own
+fixtures.
 
-## Out of scope
+Unit tests cover rendering of both message parts, chunk boundaries at
+99, 100, and 101 recipients, escaping of tenant-authored bodies,
+unsubscribe token forgery, and the scheduling and audience schemas.
 
-- **Lifecycle drip sequences.** Trigger.dev durable waits make onboarding
-  and trial sequences straightforward, following Midday's `onboard-team`
-  task, but a drip is a separate product decision from announcing a
-  release.
-- **An authoring UI.** The tRPC procedures exist and are callable; no
-  screen reaches them yet.
+## Known gaps
+
+- **No authoring UI.** The tRPC procedures exist and are callable, but no
+  screen reaches them, so an announcement cannot be scheduled from the
+  product itself.
+- **No lifecycle drip sequences.** Trigger.dev durable waits make
+  onboarding and trial sequences straightforward, following Midday's
+  `onboard-team` task, but a drip is a separate product decision from
+  announcing a release.
 - **Bounce and complaint ingestion.** `suppressedAt` is modelled and
   respected, but no provider webhook writes to it, so suppression is
   currently manual.

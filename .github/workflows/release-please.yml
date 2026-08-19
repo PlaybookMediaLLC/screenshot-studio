@@ -40,8 +40,13 @@ jobs:
         if: ${{ steps.release.outputs.prs_created == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          # The job runs without a checkout, so gh cannot infer the
+          # repository from git. GH_REPO supplies it. --delete-branch is
+          # omitted for the same reason: it runs local git commands, and
+          # release-please manages its own release branch anyway.
+          GH_REPO: ${{ github.repository }}
           PRS: ${{ steps.release.outputs.prs }}
         run: |
           pr_number="$(printf '%s' "$PRS" | jq --raw-output '.[0].number')"
           test "$pr_number" != "null"
-          gh pr merge "$pr_number" --auto --squash --delete-branch
+          gh pr merge "$pr_number" --auto --squash

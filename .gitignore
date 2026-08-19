@@ -64,3 +64,4 @@ sample.txt
 token.txt
 *.token.txt
 sec.txt
+.resend.key

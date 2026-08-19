@@ -263,6 +263,7 @@ variables that configure it, so you can trace a credential back to its console.
 | [Upstash](https://upstash.com) ([console](https://console.upstash.com)) | Serverless Redis for rate limiting and caching | `REDIS_URL` |
 | [Cloudflare R2](https://developers.cloudflare.com/r2/) ([dashboard](https://dash.cloudflare.com/?to=/:account/r2)) | Object storage for exports, uploads, and assets | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`, `R2_REGION`, `NEXT_PUBLIC_R2_PUBLIC_URL` |
 | [Better Auth](https://www.better-auth.com) ([docs](https://www.better-auth.com/docs)) | Authentication, sessions, organization RBAC | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `BETTER_AUTH_TRUSTED_ORIGINS` |
+| [Resend](https://resend.com) ([dashboard](https://resend.com/overview)) | Verification, password reset, and invitation email | `RESEND_API_KEY`, `AUTH_EMAIL_FROM` |
 
 ### Optional integrations
 

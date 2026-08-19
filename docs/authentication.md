@@ -25,10 +25,26 @@ retention worker role can delete only expired audit rows.
 Set `NEXT_PUBLIC_APP_URL` to the public application URL. It is safe for the
 browser. Do not expose any other value in this list.
 
-Email/password sign-up needs `AUTH_EMAIL_WEBHOOK_URL`. It receives a JSON
-object with `to`, `subject`, and `text`; connect it to the approved email
-delivery service. Set the Google, Microsoft, and GitHub client ID and secret
-pairs to enable those sign-in methods.
+Set the Google, Microsoft, and GitHub client ID and secret pairs to enable
+those sign-in methods.
+
+## Outbound email
+
+Verification links, password resets, and organization invitations all require
+outbound email. Two transports are supported:
+
+- `RESEND_API_KEY` sends through Resend and takes precedence when set.
+- `AUTH_EMAIL_WEBHOOK_URL` receives a JSON object with `to`, `subject`, and
+  `text`, so a self-hosted deployment can route mail through its own service.
+
+`AUTH_EMAIL_FROM` sets the sender and defaults to
+`Screenshot Studio <noreply@oppulence.app>`. The address must belong to a
+domain verified with the provider; an unverified sender is rejected at send
+time rather than at startup. Both a bare address and the
+`Name <address>` header form are accepted.
+
+Organization invitations depend on this even in an OAuth-only deployment,
+because the invited user has no account yet and is reached by email alone.
 
 ## Sign-in methods
 

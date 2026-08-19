@@ -89,6 +89,11 @@ land that explains what the product does.
 The `list` procedures already exist for release, asset, campaign, and
 announcement.
 
+**Status: done.** `/assets` lists saved assets with edit, download, and
+delete. `/activity` lists releases, campaigns, announcements, and
+scheduled posts. Creation still happens through the API; those flows
+are items 3 through 7.
+
 ### 3. Automated capture
 
 `CaptureRecipe`, `CaptureJob`, and `Capture` are schema-only.
@@ -171,15 +176,18 @@ callable today; the gap is first-party screens.
 | brandKit | 2 | All 2 |
 | sourceApp | 1 | All 1 |
 | workspace | 1 | All 1 |
-| announcement, audience | 6 | None |
-| campaign | 5 | None |
-| channelConnection, scheduledPost | 5 | None |
+| release | 2 | list (the activity page) |
+| campaign | 5 | list (the activity page) |
+| announcement, audience | 6 | list (the activity page) |
+| channelConnection, scheduledPost | 5 | scheduledPost.list (the activity page) |
 | creativeTemplate, creativeVariant | 4 | None |
 | productSurface | 4 | None |
 | brandProfile | 2 | None |
-| release | 2 | None |
 
-Twelve of 40 procedures have a screen. The ten screenless routers match
+Sixteen of 40 procedures have a screen. The `/activity` page lists
+releases, campaigns, announcements, and scheduled posts read-only, so
+work created through the API is now visible in the app. The remaining
+screenless procedures are creation and workflow actions. They match
 recommendations 3 through 7 above: they need workflow surfaces, not
 wiring, and the ranked order there still holds.
 
@@ -189,8 +197,8 @@ Before: each signed-in page built its own header. The assets page had
 one link. The settings page had another. The editor routed only through
 the account menu.
 
-After: a shared `AppHeader` gives every platform page the same three
-routes — Editor, Assets, Settings — plus the account menu, which also
+After: a shared `AppHeader` gives every platform page the same routes —
+Editor, Assets, Activity, Settings — plus the account menu, which also
 switches workspaces and signs out. The editor keeps its tool header;
 its account menu already routes to Assets and Settings. The marketing
 pages keep their own `Navigation`, which routes to features, contact,

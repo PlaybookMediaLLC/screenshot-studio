@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 const NAV_LINKS = [
   { href: '/', label: 'Editor' },
   { href: '/assets', label: 'Assets' },
+  { href: '/activity', label: 'Activity' },
   { href: '/workspace', label: 'Settings' },
 ] as const
 

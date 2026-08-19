@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { router } from './init'
+import { announcementRouter, audienceRouter } from './routers/announcement'
 import { apiKeyRouter } from './routers/api-key'
 import { assetRouter } from './routers/asset'
 import { campaignRouter } from './routers/campaign'
@@ -12,7 +13,9 @@ import { releaseRouter } from './routers/release'
 import { workspaceRouter } from './routers/workspace'
 
 export const appRouter = router({
+  announcement: announcementRouter,
   apiKey: apiKeyRouter,
+  audience: audienceRouter,
   asset: assetRouter,
   brandKit: brandKitRouter,
   brandProfile: brandProfileRouter,

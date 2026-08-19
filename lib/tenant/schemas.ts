@@ -186,7 +186,56 @@ export const creativeVariantApprovalSchema = z.object({
   status: z.enum(['APPROVED', 'REJECTED']),
 })
 
+/**
+ * Schedule a release announcement.
+ *
+ * `scheduledFor` is optional and defaults to immediate dispatch, since
+ * announcing on approval is the common case. When supplied it must be in
+ * the future: a past time would be picked up by the very next dispatch
+ * tick, which silently turns "schedule" into "send now".
+ */
+export const announcementScheduleSchema = z.object({
+  ctaUrl: z.string().url().max(2_000).optional(),
+  releaseDocumentId: z.string().cuid(),
+  scheduledFor: z.coerce
+    .date()
+    .refine((value) => value.getTime() > Date.now(), {
+      message: 'Scheduled time must be in the future.',
+    })
+    .optional(),
+})
+
+export const announcementListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+})
+
+/**
+ * Add customers to an announcement audience.
+ *
+ * Addresses are lowercased so consent cannot be bypassed by varying case:
+ * without it, `Customer@example.com` would create a second subscriber row
+ * that an unsubscribe on `customer@example.com` would not suppress.
+ */
+export const audienceSubscriberCreateSchema = z.object({
+  subscribers: z
+    .array(
+      z.object({
+        email: z.string().trim().toLowerCase().email().max(320),
+        name: z.string().trim().max(200).optional(),
+      })
+    )
+    .min(1)
+    .max(1_000),
+})
+
+export const audienceListQuerySchema = z.object({
+  includeUnsubscribed: z.boolean().default(false),
+  limit: z.coerce.number().int().min(1).max(500).default(100),
+})
+
 export type AssetUploadInput = z.infer<typeof assetUploadSchema>
+export type AnnouncementScheduleInput = z.infer<typeof announcementScheduleSchema>
+export type AudienceSubscriberCreateInput = z.infer<typeof audienceSubscriberCreateSchema>
 export type BrandKitCreateInput = z.infer<typeof brandKitCreateSchema>
 export type BrandProfileUpsertInput = z.infer<typeof brandProfileUpsertSchema>
 export type CampaignApprovalInput = z.infer<typeof campaignApprovalSchema>

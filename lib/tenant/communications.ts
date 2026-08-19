@@ -3,7 +3,7 @@ import 'server-only'
 import { appendAuditLog } from '@/lib/audit/log'
 import { getAuditActor, type TriggerServicePrincipal } from '@/lib/auth/principal'
 import { prisma } from '@/lib/db'
-import { getUnsubscribeHeaders, sendBulkEmail } from '@/lib/email/send'
+import { getUnsubscribeHeaders, sendBulkEmail } from '@/lib/email'
 import { ReleaseAnnouncementEmail } from '@/lib/email/templates/release-announcement'
 import { getUnsubscribeUrl } from './unsubscribe-url'
 
@@ -88,9 +88,7 @@ async function recoverStaleCommunications(): Promise<void> {
       })
       await appendAuditLog(transaction, {
         action: 'communication.delivery_recovery_required',
-        actor: getAuditActor(
-          getTriggerPrincipal(communication.organizationId, communication.id)
-        ),
+        actor: getAuditActor(getTriggerPrincipal(communication.organizationId, communication.id)),
         entityId: communication.id,
         entityType: 'customer_communication',
         metadata: { failureCode: 'UNKNOWN_DELIVERY' },
@@ -109,7 +107,10 @@ async function recoverStaleCommunications(): Promise<void> {
  * unsubscribe between scheduling and delivery is honored. Rows are
  * created with `skipDuplicates`, which makes re-running this safe.
  */
-async function materializeRecipients(communicationId: string, organizationId: string): Promise<void> {
+async function materializeRecipients(
+  communicationId: string,
+  organizationId: string
+): Promise<void> {
   const subscribers = await prisma.audienceSubscriber.findMany({
     select: { email: true, id: true },
     where: { organizationId, suppressedAt: null, unsubscribedAt: null },

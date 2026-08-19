@@ -4,18 +4,28 @@ import { TRPCError } from '@trpc/server'
 import {
   completeAssetUpload,
   deleteAsset,
+  listAssets,
   signAssetDownload,
   signAssetUpload,
 } from '@/lib/tenant/assets'
 import {
   assetCompleteSchema,
   assetDownloadQuerySchema,
+  assetListQuerySchema,
   assetUploadSchema,
 } from '@/lib/tenant/schemas'
 import { router } from '../init'
 import { tenantProcedure } from '../procedures'
 
 export const assetRouter = router({
+  list: tenantProcedure({ apiKeyScope: 'artifact:read', permission: 'artifact:read' })
+    .input(assetListQuerySchema.optional())
+    .query(async ({ ctx, input }) =>
+      listAssets(ctx.tenant.organizationId, {
+        cursor: input?.cursor,
+        take: input?.limit ?? 50,
+      })
+    ),
   signUpload: tenantProcedure({ apiKeyScope: 'upload:sign', permission: 'artifact:edit' })
     .input(assetUploadSchema)
     .mutation(async ({ ctx, input }) => signAssetUpload(ctx.tenant, input)),

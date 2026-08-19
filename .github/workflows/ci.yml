@@ -75,6 +75,10 @@ jobs:
           node-version: 22
           cache: npm
       - name: Install browser test dependencies
+        # Bounded because a hung browser download otherwise consumes the
+        # whole job budget and reports a timeout with no diagnostic, which
+        # reads as a test failure rather than an infrastructure one.
+        timeout-minutes: 8
         run: |
           npm ci
           DATABASE_URL=postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio npx prisma generate

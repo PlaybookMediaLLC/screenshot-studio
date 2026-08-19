@@ -22,6 +22,11 @@ const RESEND_ENDPOINT = 'https://api.resend.com/emails'
 const DEFAULT_SENDER = 'Screenshot Studio <noreply@oppulence.app>'
 
 type AuthEmail = {
+  /**
+   * Rendered HTML body. Optional so the webhook transport, which is
+   * plaintext-only, keeps working for self-hosted deployments.
+   */
+  html?: string
   subject: string
   text: string
   to: string
@@ -60,6 +65,7 @@ async function sendViaResend(email: AuthEmail, apiKey: string): Promise<void> {
   const response = await fetch(RESEND_ENDPOINT, {
     body: JSON.stringify({
       from: getAuthEmailSender(),
+      ...(email.html ? { html: email.html } : {}),
       subject: email.subject,
       text: email.text,
       to: [email.to],

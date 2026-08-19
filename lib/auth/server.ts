@@ -13,7 +13,11 @@ import {
   getSocialProviderCredentials,
   getTrustedOrigins,
 } from './environment'
-import { sendAuthEmail } from './email'
+import {
+  sendInvitationEmail,
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from './transactional-email'
 import { assertSignInMethodAvailable, isPasswordAuthEnabled } from './methods'
 import { betterAuthOrganizationRoles, isSupportedOrganizationRole } from './permissions'
 
@@ -48,16 +52,12 @@ export const auth = betterAuth({
     requireEmailVerification,
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ url, user }) =>
-      sendAuthEmail({
-        subject: 'Reset your Screenshot Studio password',
-        text: url,
-        to: user.email,
-      }),
+      sendPasswordResetEmail({ actionUrl: url, to: user.email }),
   },
   emailVerification: {
     sendOnSignIn: true,
     sendVerificationEmail: async ({ url, user }) =>
-      sendAuthEmail({ subject: 'Verify your Screenshot Studio email', text: url, to: user.email }),
+      sendVerificationEmail({ actionUrl: url, to: user.email }),
   },
   plugins: [
     admin({ adminRoles: [], defaultRole: 'user' }),
@@ -89,9 +89,10 @@ export const auth = betterAuth({
       sendInvitationEmail: async ({ invitation, organization, inviter }) => {
         const invitationUrl = new URL('/accept-invitation', getAuthBaseUrl())
         invitationUrl.searchParams.set('invitationId', invitation.id)
-        await sendAuthEmail({
-          subject: `Join ${organization.name} on Screenshot Studio`,
-          text: `${inviter.user.name || inviter.user.email} invited you to ${organization.name}. Accept the invitation: ${invitationUrl}`,
+        await sendInvitationEmail({
+          acceptUrl: invitationUrl.toString(),
+          inviterName: inviter.user.name || inviter.user.email,
+          organizationName: organization.name,
           to: invitation.email,
         })
       },

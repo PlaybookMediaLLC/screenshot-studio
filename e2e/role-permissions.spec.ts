@@ -3,8 +3,8 @@ import type { Browser, Page } from '@playwright/test'
 import {
   acceptInvitation,
   getActiveOrganizationId,
-  signUp,
   signUpAndCreateWorkspace,
+  signUpViaApi,
 } from './framework/auth'
 import { browserRequest, requestJson } from './framework/browser'
 import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
@@ -35,12 +35,23 @@ async function inviteRole(input: RoleContext): Promise<void> {
     ).body
   )
   const context = await input.browser.newContext()
-  const memberPage = await context.newPage()
-  await signUp({ ...input.identity, email: input.email, name: `E2E ${input.role}` }, memberPage)
-  await acceptInvitation(memberPage, invitation.id)
-
-  await assertRolePermissions(memberPage, input.organizationId, input.role)
-  await context.close()
+  try {
+    const memberPage = await context.newPage()
+    // This spec asserts what each role may do, not how the account was
+    // created, so invited members are created through the API. The sign-up
+    // form stays covered by the specs that exist to exercise it.
+    await signUpViaApi(
+      { ...input.identity, email: input.email, name: `E2E ${input.role}` },
+      memberPage
+    )
+    await acceptInvitation(memberPage, invitation.id)
+    await assertRolePermissions(memberPage, input.organizationId, input.role)
+  } finally {
+    // Without this the context leaks whenever an assertion fails, and the
+    // abandoned browser competes for resources with the roles still to
+    // run, which turns one slow role into a cascade of timeouts.
+    await context.close()
+  }
 }
 
 async function assertRolePermissions(

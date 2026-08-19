@@ -29,6 +29,31 @@ export async function signUp(identity: E2EIdentity, page: Page): Promise<void> {
   await expectPath(page, '/onboarding')
 }
 
+/**
+ * Create an account through the API rather than the sign-up form.
+ *
+ * Specs that assert on what an account may do, rather than on how it was
+ * created, do not need the form. Driving the UI for each of them costs a
+ * page load and four field interactions per account, which dominates the
+ * runtime of any spec that needs several accounts and pushes it into
+ * timeout territory for reasons unrelated to what it verifies.
+ *
+ * Sign-up through the form stays covered by the specs that exist to
+ * exercise it.
+ */
+export async function signUpViaApi(identity: E2EIdentity, page: Page): Promise<void> {
+  await page.goto(getE2EUrl('/sign-up'))
+  await browserJson(page, '/api/auth/sign-up/email', {
+    body: JSON.stringify({
+      email: identity.email,
+      name: identity.name,
+      password: identity.password,
+    }),
+    headers: { 'content-type': 'application/json' },
+    method: 'POST',
+  })
+}
+
 export async function acceptInvitation(page: Page, invitationId: string): Promise<void> {
   await page.goto(getE2EUrl(`/accept-invitation?invitationId=${invitationId}`))
   await Promise.all([

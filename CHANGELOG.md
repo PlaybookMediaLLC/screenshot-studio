@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.0.0...v1.0.1) (2026-08-19)
+
+
+### Performance Improvements
+
+* **ci:** parallelize jobs and cache builds ([#17](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/17)) ([23da28e](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/23da28e749f60c3e88f824da261b07e55af37ef4))
+
 ## 1.0.0 (2026-08-19)
 
 

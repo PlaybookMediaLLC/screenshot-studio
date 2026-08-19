@@ -82,14 +82,25 @@ test('workspace roles permit only their assigned actions', async ({ browser, ide
   await signUpAndCreateWorkspace(identity, page)
   const organizationId = await getActiveOrganizationId(page)
 
-  for (const role of invitedRoles) {
-    await inviteRole({
-      browser,
-      email: `${role}-${identity.email}`,
-      identity,
-      organizationId,
-      ownerPage: page,
-      role,
-    })
+  // Roles are independent, so they run in pairs rather than one at a
+  // time. Serially this was five sign-up and invitation round trips inside
+  // a single test budget, which made the spec fail on accumulated latency
+  // rather than on a permission regression. Running all five at once
+  // instead would put five browser contexts on a two-core runner, so the
+  // batch size trades a little wall time for stability.
+  const concurrency = 2
+  for (let index = 0; index < invitedRoles.length; index += concurrency) {
+    await Promise.all(
+      invitedRoles.slice(index, index + concurrency).map((role) =>
+        inviteRole({
+          browser,
+          email: `${role}-${identity.email}`,
+          identity,
+          organizationId,
+          ownerPage: page,
+          role,
+        })
+      )
+    )
   }
 })

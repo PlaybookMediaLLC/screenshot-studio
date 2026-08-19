@@ -48,6 +48,7 @@ public/backgrounds
 !/scripts/e2e-screenshot-mock.mjs
 !/scripts/smoke-rate-limit.mjs
 !/scripts/verify-tenant-isolation.ts
+!/scripts/verify-trpc-smoke.ts
 
 /lib/generated/prisma
 # Prisma
@@ -56,3 +57,11 @@ prisma/*.db-journal
 
 #files
 moving-forward.md
+
+# scratch credential files
+sample.txt
+*.secrets.txt
+token.txt
+*.token.txt
+sec.txt
+.resend.key

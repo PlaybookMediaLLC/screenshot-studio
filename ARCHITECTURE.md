@@ -45,7 +45,10 @@ Stage is a modern web-based canvas editor built with Next.js 16 and React 19. It
 stage/
 ├── app/                      # Next.js App Router pages
 │   ├── api/                  # API routes
-│   │   └── screenshot/       # Website screenshot API endpoint
+│   │   ├── screenshot/       # Website screenshot API endpoint
+│   │   ├── trpc/             # tRPC fetch adapter (browser + API-key tenant API)
+│   │   ├── tenant/           # REST intake facade for machines (releases, assets, source-apps, storage proxy)
+│   │   └── webhooks/         # Raw-body signature webhook adapters (GitHub/GitLab/generic)
 │   ├── home/                 # Editor page
 │   ├── features/             # Feature pages (SEO)
 │   ├── changelog/            # Changelog page
@@ -86,6 +89,8 @@ stage/
 ├── lib/                     # Core libraries and utilities
 │   ├── store/               # Zustand stores
 │   │   └── index.ts         # useImageStore & useEditorStore
+│   ├── trpc/                # tRPC surface (context, procedures, routers, React client)
+│   ├── tenant/              # Tenant domain services (shared by tRPC, REST facade, webhooks)
 │   ├── animation/           # Animation engine
 │   │   ├── interpolation.ts # Keyframe interpolation & easing
 │   │   └── presets.ts       # 20+ animation presets

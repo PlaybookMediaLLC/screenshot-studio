@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth/client'
+import type { SocialProvider } from '@/lib/auth/methods'
 import { getAuthErrorMessage } from './error-message'
 import { SsoSignInForm } from './SsoSignInForm'
 
@@ -19,15 +20,25 @@ const signUpSchema = signInSchema.extend({
   password: z.string().min(12, 'Use at least 12 characters.'),
 })
 
+const PROVIDER_LABELS: Record<SocialProvider, string> = {
+  github: 'GitHub',
+  google: 'Google',
+  microsoft: 'Microsoft',
+}
+
 type AuthFormProps = {
   mode: 'sign-in' | 'sign-up'
+  /** Providers with credentials configured. Rendering a provider the server
+   * cannot service produces an opaque failure when the user clicks it. */
+  socialProviders: SocialProvider[]
+  passwordAuthEnabled: boolean
 }
 
 function getCallbackUrl(value: string | null): string {
   return value?.startsWith('/') && !value.startsWith('//') ? value : '/'
 }
 
-export function AuthForm({ mode }: AuthFormProps) {
+export function AuthForm({ mode, passwordAuthEnabled, socialProviders }: AuthFormProps) {
   const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [isHydrated, setIsHydrated] = useState(false)
@@ -35,6 +46,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isSignUp = mode === 'sign-up'
   const callbackURL = getCallbackUrl(searchParams.get('callbackURL'))
+  const hasSocialProviders = socialProviders.length > 0
 
   useEffect(() => {
     setIsHydrated(true)
@@ -85,7 +97,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     }
   }
 
-  async function handleSocialSignIn(provider: 'github' | 'google' | 'microsoft') {
+  async function handleSocialSignIn(provider: SocialProvider) {
     setError(null)
     const result = await authClient.signIn.social({ callbackURL, provider })
     if (result.error) setError(result.error.message || 'Social sign-in failed. Please try again.')
@@ -93,66 +105,87 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   return (
     <div className="space-y-4">
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        {isSignUp ? (
-          <label className="grid gap-1.5 text-sm font-medium" htmlFor="name">
-            Name
+      {passwordAuthEnabled ? (
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          {isSignUp ? (
+            <label className="grid gap-1.5 text-sm font-medium" htmlFor="name">
+              Name
+              <input
+                autoComplete="name"
+                className="h-10 rounded-md border bg-background px-3"
+                id="name"
+                name="name"
+                required
+              />
+            </label>
+          ) : null}
+          <label className="grid gap-1.5 text-sm font-medium" htmlFor="email">
+            Email
             <input
-              autoComplete="name"
+              autoComplete="email"
               className="h-10 rounded-md border bg-background px-3"
-              id="name"
-              name="name"
+              id="email"
+              name="email"
               required
+              type="email"
             />
           </label>
-        ) : null}
-        <label className="grid gap-1.5 text-sm font-medium" htmlFor="email">
-          Email
-          <input
-            autoComplete="email"
-            className="h-10 rounded-md border bg-background px-3"
-            id="email"
-            name="email"
-            required
-            type="email"
-          />
-        </label>
-        <label className="grid gap-1.5 text-sm font-medium" htmlFor="password">
-          Password
-          <input
-            autoComplete={isSignUp ? 'new-password' : 'current-password'}
-            className="h-10 rounded-md border bg-background px-3"
-            id="password"
-            minLength={isSignUp ? 12 : undefined}
-            name="password"
-            required
-            type="password"
-          />
-        </label>
-        {error ? (
-          <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
-        ) : null}
-        {message ? (
-          <p className="rounded-md bg-primary/10 p-3 text-sm text-foreground">{message}</p>
-        ) : null}
-        <Button className="w-full" disabled={!isHydrated || isSubmitting} type="submit">
-          {isSubmitting ? 'Please wait…' : isSignUp ? 'Create account' : 'Sign in'}
-        </Button>
+          <label className="grid gap-1.5 text-sm font-medium" htmlFor="password">
+            Password
+            <input
+              autoComplete={isSignUp ? 'new-password' : 'current-password'}
+              className="h-10 rounded-md border bg-background px-3"
+              id="password"
+              minLength={isSignUp ? 12 : undefined}
+              name="password"
+              required
+              type="password"
+            />
+          </label>
+          {error ? (
+            <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
+          ) : null}
+          {message ? (
+            <p className="rounded-md bg-primary/10 p-3 text-sm text-foreground">{message}</p>
+          ) : null}
+          <Button className="w-full" disabled={!isHydrated || isSubmitting} type="submit">
+            {isSubmitting ? 'Please wait…' : isSignUp ? 'Create account' : 'Sign in'}
+          </Button>
+        </form>
+      ) : null}
+
+      {passwordAuthEnabled && hasSocialProviders ? (
         <div className="relative py-2 text-center text-xs text-muted-foreground before:absolute before:inset-x-0 before:top-1/2 before:border-t before:border-border">
           <span className="relative bg-background px-2">or continue with</span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          {(['google', 'microsoft', 'github'] as const).map((provider) => (
+      ) : null}
+
+      {!passwordAuthEnabled && error ? (
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
+      ) : null}
+
+      {hasSocialProviders ? (
+        <div
+          className={
+            socialProviders.length > 2 ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-1 gap-2'
+          }
+        >
+          {socialProviders.map((provider) => (
             <Button
               key={provider}
               onClick={() => handleSocialSignIn(provider)}
               type="button"
               variant="outline"
             >
-              {provider[0].toUpperCase() + provider.slice(1)}
+              {socialProviders.length > 2
+                ? PROVIDER_LABELS[provider]
+                : `Continue with ${PROVIDER_LABELS[provider]}`}
             </Button>
           ))}
         </div>
+      ) : null}
+
+      {passwordAuthEnabled ? (
         <p className="text-center text-sm text-muted-foreground">
           {isSignUp ? 'Already have an account?' : 'Need an account?'}{' '}
           <Link
@@ -162,7 +195,8 @@ export function AuthForm({ mode }: AuthFormProps) {
             {isSignUp ? 'Sign in' : 'Create one'}
           </Link>
         </p>
-      </form>
+      ) : null}
+
       {!isSignUp ? <SsoSignInForm callbackURL={callbackURL} /> : null}
     </div>
   )

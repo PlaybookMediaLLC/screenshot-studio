@@ -1,6 +1,6 @@
 # RFC 007: MVP RPC Product Surface and Developer Workflow
 
-**Status:** Proposed
+**Status:** Implemented (tRPC surface; see `lib/trpc/`)
 **Date:** 2026-08-13
 **Depends on:** RFC 002 through RFC 006
 **Owners:** Product, Engineering, and Security

@@ -31,6 +31,7 @@ import {
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { QueryProvider } from '@/lib/query-client'
+import { TRPCReactProvider } from '@/lib/trpc/provider'
 import { GlobalDropZone } from '@/components/GlobalDropZone'
 import { PathTracker } from '@/components/landing/GoBackButton'
 import { PublicAdScript } from '@/components/marketing/PublicAdScript'
@@ -407,11 +408,13 @@ export default async function RootLayout({
         />
         <PublicAdScript />
         <QueryProvider>
-          <GlobalDropZone>
-            <PathTracker />
-            {children}
-          </GlobalDropZone>
-          <Toaster />
+          <TRPCReactProvider>
+            <GlobalDropZone>
+              <PathTracker />
+              {children}
+            </GlobalDropZone>
+            <Toaster />
+          </TRPCReactProvider>
         </QueryProvider>
       </body>
     </html>

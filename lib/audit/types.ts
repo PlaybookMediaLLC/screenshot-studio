@@ -3,12 +3,18 @@ import type { AuditActor } from '@/lib/auth/principal'
 import type { AuditMetadata } from './metadata'
 
 export const auditActions = [
+  'audience.unsubscribed',
   'audit.drain_created',
   'audit.drain_deleted',
   'audit.log_exported',
   'audit.log_read',
   'audit.retention_changed',
   'auth.session_revoked',
+  'communication.cancelled',
+  'communication.delivered',
+  'communication.delivery_recovery_required',
+  'communication.partially_failed',
+  'communication.scheduled',
   'identity.scim_token_created',
   'identity.scim_connection_removed',
   'identity.sso_configured',

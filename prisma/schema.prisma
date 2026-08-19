@@ -87,41 +87,43 @@ model Verification {
 }
 
 model Organization {
-  id                     String                          @id
-  name                   String
-  slug                   String
-  logo                   String?
-  createdAt              DateTime
-  metadata               String?
-  auditDrains            AuditDrain[]
-  auditLogs              AuditLog[]
-  assets                 Asset[]
-  brandKits              BrandKit[]
-  captureJobs            CaptureJob[]
-  captures               Capture[]
-  channelConnections     ChannelConnection[]
-  creativeTemplates      CreativeTemplate[]
-  creativeVariants       CreativeVariant[]
-  communicationAttempts  CommunicationAttempt[]
-  customerCommunications CustomerCommunication[]
-  enterpriseSettings     OrganizationEnterpriseSettings?
-  invitations            Invitation[]
-  members                Member[]
-  outboxEvents           OutboxEvent[]
-  publicationAttempts    PublicationAttempt[]
-  releases               Release[]
-  releaseDocuments       ReleaseDocument[]
-  retentionPolicy        AuditRetentionPolicy?
-  scheduledPosts         ScheduledPost[]
-  sourceApps             SourceApp[]
-  supportGrants          SupportAccessGrant[]
-  captureRecipes         CaptureRecipe[]
-  approvals              Approval[]
-  brandProfile           BrandProfile?
-  productSurfaces        ProductSurface[]
-  campaigns              Campaign[]
-  contentAngles          ContentAngle[]
-  campaignPosts          CampaignPost[]
+  id                      String                          @id
+  name                    String
+  slug                    String
+  logo                    String?
+  createdAt               DateTime
+  metadata                String?
+  auditDrains             AuditDrain[]
+  auditLogs               AuditLog[]
+  assets                  Asset[]
+  brandKits               BrandKit[]
+  captureJobs             CaptureJob[]
+  captures                Capture[]
+  channelConnections      ChannelConnection[]
+  creativeTemplates       CreativeTemplate[]
+  creativeVariants        CreativeVariant[]
+  communicationAttempts   CommunicationAttempt[]
+  customerCommunications  CustomerCommunication[]
+  enterpriseSettings      OrganizationEnterpriseSettings?
+  invitations             Invitation[]
+  members                 Member[]
+  outboxEvents            OutboxEvent[]
+  publicationAttempts     PublicationAttempt[]
+  releases                Release[]
+  releaseDocuments        ReleaseDocument[]
+  retentionPolicy         AuditRetentionPolicy?
+  scheduledPosts          ScheduledPost[]
+  sourceApps              SourceApp[]
+  supportGrants           SupportAccessGrant[]
+  captureRecipes          CaptureRecipe[]
+  approvals               Approval[]
+  brandProfile            BrandProfile?
+  productSurfaces         ProductSurface[]
+  campaigns               Campaign[]
+  contentAngles           ContentAngle[]
+  campaignPosts           CampaignPost[]
+  audienceSubscribers     AudienceSubscriber[]
+  communicationRecipients CommunicationRecipient[]
 
   @@unique([slug])
   @@map("organization")
@@ -498,6 +500,7 @@ model CustomerCommunication {
   organization      Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   releaseDocument   ReleaseDocument              @relation(fields: [releaseDocumentId], references: [id], onDelete: Cascade)
   attempts          CommunicationAttempt[]
+  recipients        CommunicationRecipient[]
 
   @@unique([organizationId, idempotencyKey])
   @@index([organizationId, status, scheduledFor])
@@ -520,6 +523,55 @@ model CommunicationAttempt {
   @@unique([customerCommunicationId, attemptNumber])
   @@index([organizationId, startedAt])
   @@map("communication_attempt")
+}
+
+/// A customer who may receive release announcements for one organization.
+///
+/// Consent is per organization, not global: unsubscribing from one
+/// tenant's announcements must not silence another's. `unsubscribedAt`
+/// records an explicit opt-out, while `suppressedAt` records a delivery
+/// signal such as a hard bounce or spam complaint, which must suppress
+/// sending even though the customer never asked to leave.
+model AudienceSubscriber {
+  id                String                   @id @default(cuid())
+  organizationId    String
+  email             String
+  name              String?
+  unsubscribedAt    DateTime?
+  suppressedAt      DateTime?
+  suppressionReason String?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  organization      Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deliveries        CommunicationRecipient[]
+
+  @@unique([organizationId, email])
+  @@index([organizationId, unsubscribedAt, suppressedAt])
+  @@map("audience_subscriber")
+}
+
+/// One recipient of one communication.
+///
+/// The unique constraint is what makes delivery exactly-once: a retry
+/// after a partially failed batch re-sends only to rows without a
+/// `deliveredAt`, so customers already reached are never mailed twice.
+model CommunicationRecipient {
+  id                      String                @id @default(cuid())
+  organizationId          String
+  customerCommunicationId String
+  subscriberId            String?
+  email                   String
+  deliveredAt             DateTime?
+  providerMessageId       String?
+  failureCode             String?
+  createdAt               DateTime              @default(now())
+  organization            Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customerCommunication   CustomerCommunication @relation(fields: [customerCommunicationId], references: [id], onDelete: Cascade)
+  subscriber              AudienceSubscriber?   @relation(fields: [subscriberId], references: [id], onDelete: SetNull)
+
+  @@unique([customerCommunicationId, email])
+  @@index([organizationId, deliveredAt])
+  @@map("communication_recipient")
 }
 
 model CaptureJob {

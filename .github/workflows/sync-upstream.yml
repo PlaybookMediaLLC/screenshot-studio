@@ -9,7 +9,7 @@ name: Sync Upstream
 on:
   schedule:
     # 08:00 UTC = midnight PST.
-    - cron: "0 8 * * *"
+    - cron: '0 8 * * *'
   workflow_dispatch:
 
 # Serialize runs so a manual dispatch cannot race the scheduled push.

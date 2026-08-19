@@ -13,7 +13,12 @@ import {
   getSocialProviderCredentials,
   getTrustedOrigins,
 } from './environment'
-import { sendAuthEmail } from './email'
+import {
+  sendInvitationEmail,
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from './transactional-email'
+import { assertSignInMethodAvailable, isPasswordAuthEnabled } from './methods'
 import { betterAuthOrganizationRoles, isSupportedOrganizationRole } from './permissions'
 
 const google = getSocialProviderCredentials('GOOGLE')
@@ -22,6 +27,9 @@ const microsoft = getSocialProviderCredentials('MICROSOFT')
 const infrastructure = getBetterAuthInfrastructure()
 const requireEmailVerification =
   process.env.NODE_ENV === 'production' && process.env.AUTH_REQUIRE_EMAIL_VERIFICATION !== 'false'
+const passwordAuthEnabled = isPasswordAuthEnabled()
+
+assertSignInMethodAvailable()
 
 const socialProviders = {
   ...(google ? { google } : {}),
@@ -39,21 +47,17 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: 'postgresql', transaction: true }),
   emailAndPassword: {
     autoSignIn: process.env.NODE_ENV !== 'production',
-    enabled: true,
+    enabled: passwordAuthEnabled,
     minPasswordLength: 12,
     requireEmailVerification,
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ url, user }) =>
-      sendAuthEmail({
-        subject: 'Reset your Screenshot Studio password',
-        text: url,
-        to: user.email,
-      }),
+      sendPasswordResetEmail({ actionUrl: url, to: user.email }),
   },
   emailVerification: {
     sendOnSignIn: true,
     sendVerificationEmail: async ({ url, user }) =>
-      sendAuthEmail({ subject: 'Verify your Screenshot Studio email', text: url, to: user.email }),
+      sendVerificationEmail({ actionUrl: url, to: user.email }),
   },
   plugins: [
     admin({ adminRoles: [], defaultRole: 'user' }),
@@ -85,11 +89,24 @@ export const auth = betterAuth({
       sendInvitationEmail: async ({ invitation, organization, inviter }) => {
         const invitationUrl = new URL('/accept-invitation', getAuthBaseUrl())
         invitationUrl.searchParams.set('invitationId', invitation.id)
-        await sendAuthEmail({
-          subject: `Join ${organization.name} on Screenshot Studio`,
-          text: `${inviter.user.name || inviter.user.email} invited you to ${organization.name}. Accept the invitation: ${invitationUrl}`,
-          to: invitation.email,
-        })
+        // The invitation row already exists by this point, and it can be
+        // accepted from the members screen without the email. Letting a
+        // mail failure propagate would fail the whole invite request and
+        // leave an invitation the caller believes was never created.
+        try {
+          await sendInvitationEmail({
+            acceptUrl: invitationUrl.toString(),
+            inviterName: inviter.user.name || inviter.user.email,
+            organizationName: organization.name,
+            to: invitation.email,
+          })
+        } catch (error) {
+          console.error('Invitation email delivery failed.', {
+            invitationId: invitation.id,
+            organizationId: organization.id,
+            reason: error instanceof Error ? error.message : 'unknown',
+          })
+        }
       },
     }),
     apiKey({

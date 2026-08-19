@@ -22,6 +22,7 @@ export class CampaignError extends Error {
     readonly status: 400 | 404 | 409
   ) {
     super(message)
+    this.name = 'CampaignError'
   }
 }
 

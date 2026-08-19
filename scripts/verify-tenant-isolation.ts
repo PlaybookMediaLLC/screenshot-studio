@@ -45,6 +45,28 @@ async function request(path: string, init: RequestInit = {}, client?: SessionCli
   return response
 }
 
+async function trpcMutation(
+  path: string,
+  input: unknown,
+  client?: SessionClient,
+  headers: Record<string, string> = {}
+): Promise<Response> {
+  return request(
+    `/api/trpc/${path}`,
+    {
+      body: JSON.stringify({ json: input }),
+      headers: { 'content-type': 'application/json', ...headers },
+      method: 'POST',
+    },
+    client
+  )
+}
+
+async function trpcJson(response: Response): Promise<unknown> {
+  const payload = (await response.json()) as { result?: { data?: { json?: unknown } } }
+  return payload.result?.data?.json ?? null
+}
+
 function assertStatus(response: Response, expected: number): void {
   assert.equal(response.status, expected, `Expected ${expected}, received ${response.status}.`)
 }
@@ -126,17 +148,13 @@ async function createPendingAsset(client: SessionClient): Promise<string> {
 }
 
 async function createApiKey(client: SessionClient): Promise<{ id: string; key: string }> {
-  const response = await request(
-    '/api/tenant/api-keys',
-    {
-      body: JSON.stringify({ name: `tenant-${testRunId.slice(0, 20)}`, scopes: ['artifact:read', 'release:create'] }),
-      headers: { 'content-type': 'application/json' },
-      method: 'POST',
-    },
+  const response = await trpcMutation(
+    'apiKey.create',
+    { name: `tenant-${testRunId.slice(0, 20)}`, scopes: ['artifact:read', 'release:create'] },
     client
   )
-  assertStatus(response, 201)
-  return apiKeyResultSchema.parse(await responseJson(response)).apiKey
+  assertStatus(response, 200)
+  return apiKeyResultSchema.parse(await trpcJson(response)).apiKey
 }
 
 async function assertSessionIsolation(
@@ -179,11 +197,7 @@ async function assertApiKeyIsolation(
 
   const downloadResponse = await request(`/api/tenant/assets/${otherAssetId}/download-url`, { headers })
   assertStatus(downloadResponse, 404)
-  const revokeResponse = await request(
-    '/api/tenant/api-keys',
-    { body: JSON.stringify({ keyId: apiKey.id }), headers: { 'content-type': 'application/json' }, method: 'DELETE' },
-    client
-  )
+  const revokeResponse = await trpcMutation('apiKey.revoke', { keyId: apiKey.id }, client)
   assertStatus(revokeResponse, 200)
   const revokedResponse = await request('/api/tenant/releases', { headers })
   assertStatus(revokedResponse, 403)

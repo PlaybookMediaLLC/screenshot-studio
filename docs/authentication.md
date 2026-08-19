@@ -25,10 +25,55 @@ retention worker role can delete only expired audit rows.
 Set `NEXT_PUBLIC_APP_URL` to the public application URL. It is safe for the
 browser. Do not expose any other value in this list.
 
-Email/password sign-up needs `AUTH_EMAIL_WEBHOOK_URL`. It receives a JSON
-object with `to`, `subject`, and `text`; connect it to the approved email
-delivery service. Set the Google, Microsoft, and GitHub client ID and secret
-pairs to enable those sign-in methods.
+Set the Google, Microsoft, and GitHub client ID and secret pairs to enable
+those sign-in methods.
+
+## Outbound email
+
+Verification links, password resets, and organization invitations all require
+outbound email. Two transports are supported:
+
+- `RESEND_API_KEY` sends through Resend and takes precedence when set.
+- `AUTH_EMAIL_WEBHOOK_URL` receives a JSON object with `to`, `subject`, and
+  `text`, so a self-hosted deployment can route mail through its own service.
+
+`AUTH_EMAIL_FROM` sets the sender and defaults to
+`Screenshot Studio <noreply@oppulence.app>`. The address must belong to a
+domain verified with the provider; an unverified sender is rejected at send
+time rather than at startup. Both a bare address and the
+`Name <address>` header form are accepted.
+
+Organization invitations depend on this even in an OAuth-only deployment,
+because the invited user has no account yet and is reached by email alone.
+
+## Sign-in methods
+
+`AUTH_ENABLE_PASSWORD` controls email/password sign-in. It defaults to
+enabled so local development and self-hosted deployments work without extra
+configuration. Set it to `false` to run OAuth-only.
+
+Password auth depends on outbound email. Verification and password reset both
+deliver links through `AUTH_EMAIL_WEBHOOK_URL`, so enabling passwords without
+that webhook creates accounts that can never be verified and passwords that
+can never be reset. OAuth has no such dependency, because the provider has
+already verified the address.
+
+A provider appears on the sign-in page only when both its client ID and
+client secret are set. A half-configured provider is treated as absent rather
+than rendering a button that fails when clicked.
+
+The application refuses to start when password auth is disabled and no OAuth
+provider is configured, since that combination leaves no way to sign in,
+including for administrators.
+
+Register these redirect URIs with each provider, replacing the host with the
+deployment's public URL:
+
+```text
+https://shots.oppulence.io/api/auth/callback/google
+https://shots.oppulence.io/api/auth/callback/github
+https://shots.oppulence.io/api/auth/callback/microsoft
+```
 
 Set `BETTER_AUTH_API_KEY`, and optionally `BETTER_AUTH_API_URL` and
 `BETTER_AUTH_KV_URL`, to enable Better Auth Infrastructure audit capture for

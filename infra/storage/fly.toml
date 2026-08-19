@@ -1,0 +1,56 @@
+# Supabase Storage API for tenant assets.
+#
+# The web application signs upload and download URLs through this service
+# rather than talking to object storage directly, which is what keeps
+# per-tenant object keys and expiry policy in one place.
+#
+# Objects live in the existing Cloudflare R2 bucket through the S3
+# backend. Object metadata lives in a separate `storage` database on the
+# same PlanetScale cluster, so tenant application data and storage
+# bookkeeping stay in different databases.
+app = "screenshot-studio-storage"
+primary_region = "iad"
+
+[build]
+  image = "supabase/storage-api:v1.37.8"
+
+[env]
+  SERVER_PORT = "5000"
+  AUTH_JWT_ALGORITHM = "HS256"
+  DB_INSTALL_ROLES = "false"
+  STORAGE_BACKEND = "s3"
+  STORAGE_S3_FORCE_PATH_STYLE = "true"
+  STORAGE_S3_REGION = "auto"
+  # Matches the ceiling the tenant asset schema enforces, so an oversized
+  # upload is refused by the application before it reaches storage.
+  UPLOAD_FILE_SIZE_LIMIT = "52428800"
+  UPLOAD_FILE_SIZE_LIMIT_STANDARD = "52428800"
+  # Signed URLs are handed to a browser, so they live long enough to
+  # complete an upload and no longer.
+  UPLOAD_SIGNED_URL_EXPIRATION_TIME = "120"
+  TUS_URL_PATH = "/upload/resumable"
+  TUS_URL_EXPIRY_MS = "3600000"
+  # Image transformation needs a separate imgproxy service, which is not
+  # deployed. The application does its own rendering.
+  ENABLE_IMAGE_TRANSFORMATION = "false"
+
+[http_service]
+  internal_port = 5000
+  force_https = true
+  auto_start_machines = true
+  # Signing runs in the request path of an upload, so a cold start would
+  # be visible to a user waiting on a save.
+  auto_stop_machines = "off"
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "20s"
+    interval = "15s"
+    method = "GET"
+    timeout = "5s"
+    path = "/status"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"

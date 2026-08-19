@@ -53,6 +53,10 @@ export function SaveToWorkspaceButton({ createExport, disabled }: SaveToWorkspac
 
       setState('saved')
       toast.success('Saved to workspace', {
+        action: {
+          label: 'View assets',
+          onClick: () => window.open('/assets', '_blank', 'noopener,noreferrer'),
+        },
         description: 'This export is now available to your team.',
       })
       // Reset so a further edit can be saved without reloading.

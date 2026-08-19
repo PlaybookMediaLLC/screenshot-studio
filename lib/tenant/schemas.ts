@@ -14,6 +14,12 @@ export const assetCompleteSchema = z.object({
   sha256: sha256Schema.optional(),
 })
 
+export const assetListQuerySchema = z.object({
+  /** Opaque id of the last asset on the previous page. */
+  cursor: assetIdSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+})
+
 export const assetDownloadQuerySchema = z.object({
   assetId: assetIdSchema,
 })
@@ -233,6 +239,7 @@ export const audienceListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(500).default(100),
 })
 
+export type AssetListQuery = z.infer<typeof assetListQuerySchema>
 export type AssetUploadInput = z.infer<typeof assetUploadSchema>
 export type AnnouncementScheduleInput = z.infer<typeof announcementScheduleSchema>
 export type AudienceSubscriberCreateInput = z.infer<typeof audienceSubscriberCreateSchema>

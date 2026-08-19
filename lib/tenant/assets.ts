@@ -193,6 +193,46 @@ export async function signAssetDownload(
   })
 }
 
+/**
+ * List a tenant's assets, newest first.
+ *
+ * Only uploaded assets are returned. A pending row exists from the moment
+ * an upload is signed, so including them would show entries whose bytes
+ * may never arrive, and whose download URL would fail.
+ *
+ * Pagination is by cursor rather than offset, because assets are ordered
+ * by creation and new ones arrive at the front. An offset would shift
+ * under the reader and silently repeat or skip rows.
+ */
+export async function listAssets(
+  organizationId: string,
+  options: { cursor?: string; take: number }
+) {
+  const assets = await prisma.asset.findMany({
+    // The tiebreak on id keeps the order total, so a cursor cannot stall
+    // on rows sharing a timestamp.
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    select: {
+      bytes: true,
+      createdAt: true,
+      height: true,
+      id: true,
+      mediaType: true,
+      width: true,
+    },
+    // Read one beyond the page to learn whether another page exists
+    // without issuing a second count query.
+    take: options.take + 1,
+    where: { organizationId, status: 'UPLOADED' },
+    ...(options.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
+  })
+
+  const hasMore = assets.length > options.take
+  const page = hasMore ? assets.slice(0, options.take) : assets
+
+  return { assets: page, nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null }
+}
+
 export async function deleteAsset(
   context: TenantContext,
   assetId: string

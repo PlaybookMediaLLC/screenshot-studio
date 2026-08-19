@@ -34,6 +34,7 @@ import { ImageExportProgressView } from '@/components/canvas/dialogs/ImageProgre
 import { FormatSelector, QualityPresetSelector, ScaleSlider } from '@/components/export'
 import { cn } from '@/lib/utils'
 import { GitHubStarButton } from '@/components/ui/github-star-button'
+import { SaveToWorkspaceButton } from '@/components/workspace/SaveToWorkspaceButton'
 import { FeedbackWidget } from '@/components/FeedbackWidget'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -102,6 +103,7 @@ export function EditorHeader() {
     copyProgress,
     settings: exportSettings,
     exportImage,
+    renderExportBlob,
     updateScale,
     updateFormat,
     updateQualityPreset,
@@ -388,6 +390,11 @@ export function EditorHeader() {
                       <Download01Icon size={16} className="mr-2" />
                       Export as {formatLabel}
                     </Button>
+
+                    <SaveToWorkspaceButton
+                      createExport={renderExportBlob}
+                      disabled={isExporting}
+                    />
 
                     {slides.length > 1 && (
                       <Button

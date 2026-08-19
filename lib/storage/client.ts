@@ -47,7 +47,10 @@ type StorageSignedUploadResponse = {
 function getRequiredEnvironment(name: string): string {
   const value = process.env[name]
   if (!value) {
-    throw new Error(`${name} is required for tenant storage.`)
+    // Unconfigured storage is a deployment gap, not a bad request, so it
+    // surfaces as a dependency being unavailable rather than an
+    // unexplained server fault. Callers already map this to 503.
+    throw new TenantStorageUnavailableError(`${name} is required for tenant storage.`)
   }
 
   return value

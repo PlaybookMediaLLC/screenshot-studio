@@ -69,6 +69,17 @@ account a reason to exist and gives the platform its first real input. The
 asset router, R2 pipeline, and tenant object keys already exist and are
 tested, so this is wiring rather than new infrastructure.
 
+**Status: done.** The editor offers "Save to workspace" to signed-in
+users, reusing the presign, upload, complete flow the API already
+exposes.
+
+This initially could not work, because tenant asset storage had no
+service behind it: the `STORAGE_*` variables were unset on the
+deployment. A Supabase Storage service now runs as its own Fly app,
+backed by the existing R2 bucket, and the full path is verified by
+`npm run verify:storage`. See
+[tenant asset storage](tenant-storage.md).
+
 ### 2. A workspace that shows the work
 
 `/workspace` means "settings" today. Nothing lists releases, assets,

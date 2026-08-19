@@ -30,7 +30,8 @@
     "upload-all-to-r2": "tsx scripts/upload-all-to-r2.ts",
     "upload-pattern": "tsx scripts/upload-pattern-to-r2.ts",
     "upload-demo": "tsx scripts/upload-demo-to-r2.ts",
-    "verify:announcements": "tsx --tsconfig tsconfig.verify.json scripts/verify-announcement-authoring.ts"
+    "verify:announcements": "tsx --tsconfig tsconfig.verify.json scripts/verify-announcement-authoring.ts",
+    "verify:storage": "tsx --tsconfig tsconfig.verify.json scripts/verify-tenant-storage.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.990.0",

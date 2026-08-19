@@ -69,23 +69,16 @@ account a reason to exist and gives the platform its first real input. The
 asset router, R2 pipeline, and tenant object keys already exist and are
 tested, so this is wiring rather than new infrastructure.
 
-**Status: built, blocked on configuration.** The editor now offers "Save
-to workspace" to signed-in users, reusing the presign, upload, complete
-flow the API already exposes.
+**Status: done.** The editor offers "Save to workspace" to signed-in
+users, reusing the presign, upload, complete flow the API already
+exposes.
 
-It cannot work in the current deployment. Tenant asset storage is a
-Supabase Storage service configured through `STORAGE_API_URL`,
-`STORAGE_SERVICE_KEY`, and `STORAGE_BUCKET`, and none of those are set on
-the Fly application. R2 is configured, but it serves editor backgrounds
-and overlays through a public read path, which is a different concern from
-per-tenant private assets.
-
-So the deployment has object storage for public assets and none for tenant
-assets. Either a Supabase Storage service is provisioned and its
-credentials set, or `lib/storage/client.ts` gains an S3-compatible driver
-so the existing R2 bucket can serve both. The second is likely cheaper
-given R2 already exists, but it is a deliberate infrastructure decision
-rather than a wiring change.
+This initially could not work, because tenant asset storage had no
+service behind it: the `STORAGE_*` variables were unset on the
+deployment. A Supabase Storage service now runs as its own Fly app,
+backed by the existing R2 bucket, and the full path is verified by
+`npm run verify:storage`. See
+[tenant asset storage](tenant-storage.md).
 
 ### 2. A workspace that shows the work
 

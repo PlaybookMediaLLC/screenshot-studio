@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.0.1...v1.0.2) (2026-08-19)
+
+
+### Bug Fixes
+
+* clear production console errors and unblock browser uploads ([#19](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/19)) ([5753570](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/5753570ee16f5c4e9d58628eaf8dea3af5476c1f))
+
 ## [1.0.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.0.0...v1.0.1) (2026-08-19)
 
 

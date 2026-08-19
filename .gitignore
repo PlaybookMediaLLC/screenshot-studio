@@ -65,3 +65,6 @@ token.txt
 *.token.txt
 sec.txt
 .resend.key
+
+# Wrangler local dev-server state
+.wrangler/

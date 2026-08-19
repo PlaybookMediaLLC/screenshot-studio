@@ -1,6 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { useTRPCClient } from '@/lib/trpc/react'
@@ -41,6 +43,10 @@ export function WorkspaceAssets() {
   const [cursor, setCursor] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  // The id of the asset whose delete awaits a second click, so one
+  // stray click cannot destroy work.
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const loadPage = useCallback(
     async (after?: string): Promise<void> => {
@@ -78,7 +84,22 @@ export function WorkspaceAssets() {
       const { downloadUrl } = await trpcClient.asset.signDownload.query({ assetId })
       window.open(downloadUrl, '_blank', 'noopener,noreferrer')
     } catch (requestError) {
-      setError(getErrorMessage(requestError))
+      toast.error('Could not open the asset', { description: getErrorMessage(requestError) })
+    }
+  }
+
+  async function handleDelete(assetId: string): Promise<void> {
+    setDeletingId(assetId)
+    try {
+      await trpcClient.asset.delete.mutate({ assetId })
+      setAssets((current) => current.filter((asset) => asset.id !== assetId))
+    } catch (requestError) {
+      // The server refuses when a creative variant still references the
+      // asset, and its message says so. Show it rather than translate it.
+      toast.error('Could not delete the asset', { description: getErrorMessage(requestError) })
+    } finally {
+      setDeletingId(null)
+      setConfirmingDeleteId(null)
     }
   }
 
@@ -107,22 +128,43 @@ export function WorkspaceAssets() {
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {assets.map((asset) => {
           const dimensions = formatDimensions(asset)
+          const isImage = asset.mediaType.startsWith('image/')
+          const isConfirmingDelete = confirmingDeleteId === asset.id
+          const isDeleting = deletingId === asset.id
           return (
-            <li key={asset.id}>
-              <button
-                className="w-full rounded-lg border p-4 text-left transition-colors hover:bg-accent"
-                onClick={() => handleOpen(asset.id)}
-                type="button"
-              >
-                <p className="text-sm font-medium">{asset.mediaType}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {formatBytes(asset.bytes)}
-                  {dimensions ? ` · ${dimensions}` : ''}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {new Date(asset.createdAt).toLocaleString()}
-                </p>
-              </button>
+            <li className="rounded-lg border p-4" key={asset.id}>
+              <p className="text-sm font-medium">{asset.mediaType}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {formatBytes(asset.bytes)}
+                {dimensions ? ` · ${dimensions}` : ''}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {new Date(asset.createdAt).toLocaleString()}
+              </p>
+              <div className="mt-3 flex items-center gap-1.5">
+                {isImage ? (
+                  <Button asChild size="sm" variant="outline">
+                    {/* The editor reads this parameter on load and pulls
+                        the asset onto the canvas for another pass. */}
+                    <Link href={`/?asset=${asset.id}`}>Edit</Link>
+                  </Button>
+                ) : null}
+                <Button onClick={() => handleOpen(asset.id)} size="sm" type="button" variant="ghost">
+                  Download
+                </Button>
+                <Button
+                  className="text-destructive hover:text-destructive"
+                  disabled={isDeleting}
+                  onClick={() =>
+                    isConfirmingDelete ? handleDelete(asset.id) : setConfirmingDeleteId(asset.id)
+                  }
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  {isDeleting ? 'Deleting…' : isConfirmingDelete ? 'Confirm delete' : 'Delete'}
+                </Button>
+              </div>
             </li>
           )
         })}

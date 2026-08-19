@@ -135,6 +135,9 @@ export function AccountMenu() {
           <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/assets">
             Assets
           </Link>
+          <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/activity">
+            Activity
+          </Link>
           <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/workspace">
             Workspace settings
           </Link>

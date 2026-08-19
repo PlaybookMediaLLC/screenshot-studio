@@ -89,6 +89,11 @@ land that explains what the product does.
 The `list` procedures already exist for release, asset, campaign, and
 announcement.
 
+**Status: done.** `/assets` lists saved assets with edit, download, and
+delete. `/activity` lists releases, campaigns, announcements, and
+scheduled posts. Creation still happens through the API; those flows
+are items 3 through 7.
+
 ### 3. Automated capture
 
 `CaptureRecipe`, `CaptureJob`, and `Capture` are schema-only.
@@ -132,6 +137,72 @@ user-visible capability.
 
 Items 1 and 2 are days of work on tested infrastructure and change what
 the product is. They are the smaller and higher-value move.
+
+## Second pass: the asset loop (2026-08-19)
+
+A re-audit on the `audit/full-product-flow` branch. It checked one
+question: can a user move work through the product without a dead end?
+
+### The flow, verified against the code
+
+1. **Upload.** `UploadArea` and `GlobalDropZone` accept drag, paste, and
+   file picks. `useImageStore.setImage` puts the file on the canvas.
+2. **Tune.** The editor applies frames, backgrounds, filters, 3D,
+   annotations, and animation. Drafts autosave to IndexedDB.
+3. **Store.** "Save to workspace" renders the export, reserves an
+   `Asset`, PUTs to a presigned URL, and marks the upload complete.
+   `npm run verify:storage` proves the storage path.
+4. **Edit and resave.** This was the dead end. An asset could only be
+   downloaded. The branch closes the loop:
+   - The assets page gains Edit, Download, and Delete actions per asset.
+   - Edit opens the editor with `?asset=<id>`. `WorkspaceAssetLoader`
+     signs a download, fetches the bytes, and loads them onto the canvas.
+   - The user tunes again and saves again. The format selector already
+     lets the resave use PNG, JPEG, or WebP, so "resave as" needs no new
+     code.
+   - Delete wires the last unused procedure of the asset router.
+
+### Backend surface against UI surface
+
+The app router exports 15 routers with 40 procedures. Every procedure
+also accepts an organization API key (`tenantProcedure`), and the
+developer settings screen creates those keys. So the full backend is
+callable today; the gap is first-party screens.
+
+| Router | Procedures | First-party UI |
+| --- | --- | --- |
+| asset | 5 | All 5 (delete added on this branch) |
+| apiKey | 3 | All 3 |
+| brandKit | 2 | All 2 |
+| sourceApp | 1 | All 1 |
+| workspace | 1 | All 1 |
+| release | 2 | list (the activity page) |
+| campaign | 5 | list (the activity page) |
+| announcement, audience | 6 | list (the activity page) |
+| channelConnection, scheduledPost | 5 | scheduledPost.list (the activity page) |
+| creativeTemplate, creativeVariant | 4 | None |
+| productSurface | 4 | None |
+| brandProfile | 2 | None |
+
+Sixteen of 40 procedures have a screen. The `/activity` page lists
+releases, campaigns, announcements, and scheduled posts read-only, so
+work created through the API is now visible in the app. The remaining
+screenless procedures are creation and workflow actions. They match
+recommendations 3 through 7 above: they need workflow surfaces, not
+wiring, and the ranked order there still holds.
+
+### Navigation, before and after
+
+Before: each signed-in page built its own header. The assets page had
+one link. The settings page had another. The editor routed only through
+the account menu.
+
+After: a shared `AppHeader` gives every platform page the same routes —
+Editor, Assets, Activity, Settings — plus the account menu, which also
+switches workspaces and signs out. The editor keeps its tool header;
+its account menu already routes to Assets and Settings. The marketing
+pages keep their own `Navigation`, which routes to features, contact,
+and sign-in.
 
 ## A strategic mismatch
 

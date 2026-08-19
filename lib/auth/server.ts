@@ -89,12 +89,24 @@ export const auth = betterAuth({
       sendInvitationEmail: async ({ invitation, organization, inviter }) => {
         const invitationUrl = new URL('/accept-invitation', getAuthBaseUrl())
         invitationUrl.searchParams.set('invitationId', invitation.id)
-        await sendInvitationEmail({
-          acceptUrl: invitationUrl.toString(),
-          inviterName: inviter.user.name || inviter.user.email,
-          organizationName: organization.name,
-          to: invitation.email,
-        })
+        // The invitation row already exists by this point, and it can be
+        // accepted from the members screen without the email. Letting a
+        // mail failure propagate would fail the whole invite request and
+        // leave an invitation the caller believes was never created.
+        try {
+          await sendInvitationEmail({
+            acceptUrl: invitationUrl.toString(),
+            inviterName: inviter.user.name || inviter.user.email,
+            organizationName: organization.name,
+            to: invitation.email,
+          })
+        } catch (error) {
+          console.error('Invitation email delivery failed.', {
+            invitationId: invitation.id,
+            organizationId: organization.id,
+            reason: error instanceof Error ? error.message : 'unknown',
+          })
+        }
       },
     }),
     apiKey({

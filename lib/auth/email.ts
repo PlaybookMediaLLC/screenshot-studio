@@ -21,6 +21,15 @@ const senderSchema = z.string().email().optional()
 const RESEND_ENDPOINT = 'https://api.resend.com/emails'
 const DEFAULT_SENDER = 'Screenshot Studio <noreply@oppulence.app>'
 
+/**
+ * Bound on the provider request.
+ *
+ * Verification and invitation email is sent inside the request that
+ * triggered it, so an unresponsive provider would hold that request open
+ * until the platform timeout rather than failing quickly.
+ */
+const DELIVERY_TIMEOUT_MS = 10_000
+
 type AuthEmail = {
   /**
    * Rendered HTML body. Optional so the webhook transport, which is
@@ -75,6 +84,7 @@ async function sendViaResend(email: AuthEmail, apiKey: string): Promise<void> {
       'content-type': 'application/json',
     },
     method: 'POST',
+    signal: AbortSignal.timeout(DELIVERY_TIMEOUT_MS),
   })
 
   if (!response.ok) {
@@ -92,6 +102,7 @@ async function sendViaWebhook(email: AuthEmail, webhookUrl: string): Promise<voi
     body: JSON.stringify(email),
     headers: { 'content-type': 'application/json' },
     method: 'POST',
+    signal: AbortSignal.timeout(DELIVERY_TIMEOUT_MS),
   })
 
   if (!response.ok) {

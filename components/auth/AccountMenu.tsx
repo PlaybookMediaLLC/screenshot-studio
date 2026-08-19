@@ -132,6 +132,9 @@ export function AccountMenu() {
           </div>
         ) : null}
         <div className="grid gap-1 py-2">
+          <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/assets">
+            Assets
+          </Link>
           <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/workspace">
             Workspace settings
           </Link>

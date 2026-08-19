@@ -119,6 +119,7 @@ The full plan lives in [docs/rfcs/](docs/rfcs/). Implementation follows this ord
 | Defer (V5) | 029, 030, 031                                                                                      | Weekly autonomy, approval policies, autopilot modes                                          | Deferred    |
 | Superseded | 001                                                                                                | Release-kit umbrella                                                                         | Superseded  |
 | Done       | [007](docs/rfcs/007-mvp-rpc-product-surface.md)                                                    | tRPC product surface over the tenant domain services                                         | Implemented |
+| Done       | [033](docs/rfcs/033-customer-email-and-release-broadcast.md)                                        | Customer email templating and release broadcast with per-recipient consent                   | Implemented |
 
 Two RFCs still need to be written before the chargeable milestone: billing with usage
 quotas, and authenticated page capture.

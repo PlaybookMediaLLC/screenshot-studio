@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.0.2...v1.1.0) (2026-08-20)
+
+
+### Features
+
+* complete workspace administration ([#21](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/21)) ([1ee39f2](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1ee39f2cb3ac1c843cd147515d8d97cd1b827b5f))
+
 ## [1.0.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.0.1...v1.0.2) (2026-08-19)
 
 

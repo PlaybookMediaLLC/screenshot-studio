@@ -1,7 +1,7 @@
 import { toNextJsHandler } from 'better-auth/next-js'
 import { Prisma } from '@prisma/client'
 import { getClientIdentifier } from '@/lib/api/client-identity'
-import { AuthorizationError } from '@/lib/auth/access'
+import { AuthorizationError, resolveActiveOrganizationId } from '@/lib/auth/access'
 import { assertAuthEnvironment } from '@/lib/auth/environment'
 import {
   authorizeEnterpriseAuthRequest,
@@ -116,6 +116,20 @@ async function enforceOperationalOrganization(request: Request): Promise<Respons
   return null
 }
 
+async function ensureActiveOrganizationForSessionRead(request: Request): Promise<void> {
+  if (!new URL(request.url).pathname.endsWith('/get-session')) {
+    return
+  }
+
+  const session = await auth.api.getSession({
+    headers: request.headers,
+    query: { disableCookieCache: true },
+  })
+  if (session) {
+    await resolveActiveOrganizationId(session.session, session.user.id)
+  }
+}
+
 function getAuthRateLimitPolicy(request: Request): RateLimitPolicy | null {
   if (request.method !== 'POST') {
     return null
@@ -181,6 +195,8 @@ const handler = toNextJsHandler({
       if (unavailableWorkspace) {
         return unavailableWorkspace
       }
+
+      await ensureActiveOrganizationForSessionRead(request)
 
       const enterpriseRequest = await authorizeEnterpriseAuthRequest(request)
       const response = await auth.handler(request)

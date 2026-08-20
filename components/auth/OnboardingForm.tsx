@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { workspaceCreateSchema } from '@/lib/workspace/input-schemas'
@@ -18,7 +18,7 @@ export function OnboardingForm() {
   const [error, setError] = useState<string | null>(null)
   const [isHydrated, setIsHydrated] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [slug, setSlug] = useState('')
+  const slugInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setIsHydrated(true)
@@ -27,9 +27,18 @@ export function OnboardingForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
-    const input = workspaceCreateSchema.safeParse(
-      Object.fromEntries(new FormData(event.currentTarget))
-    )
+    const formData = new FormData(event.currentTarget)
+    const name = formData.get('name')
+    const slug = formData.get('slug')
+    const input = workspaceCreateSchema.safeParse({
+      name,
+      slug:
+        typeof slug === 'string' && slug.trim()
+          ? slug
+          : typeof name === 'string'
+            ? slugify(name)
+            : '',
+    })
     if (!input.success) {
       setError(input.error.issues[0]?.message ?? 'Check the workspace name.')
       return
@@ -58,7 +67,9 @@ export function OnboardingForm() {
           className="h-10 rounded-md border bg-background px-3"
           id="workspace-name"
           name="name"
-          onChange={(event) => setSlug(slugify(event.target.value))}
+          onChange={(event) => {
+            if (slugInputRef.current) slugInputRef.current.value = slugify(event.target.value)
+          }}
           placeholder="Acme, Inc."
           required
         />
@@ -69,11 +80,9 @@ export function OnboardingForm() {
           className="h-10 rounded-md border bg-background px-3"
           id="workspace-slug"
           name="slug"
-          onChange={(event) => setSlug(event.target.value)}
           pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
           placeholder="acme-inc"
-          required
-          value={slug}
+          ref={slugInputRef}
         />
         <span className="text-xs font-normal text-muted-foreground">
           Lowercase letters, numbers, and hyphens only.

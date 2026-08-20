@@ -49,6 +49,7 @@ test('an owner can invite a viewer and remove their workspace access', async ({
       .locator('xpath=..')
       .locator('xpath=..')
     await memberRow.getByRole('button', { name: 'Remove' }).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Remove member' }).click()
     await expect(page.getByText(memberIdentity.email, { exact: true })).toHaveCount(0)
 
     await memberPage.goto(getE2EUrl('/'))

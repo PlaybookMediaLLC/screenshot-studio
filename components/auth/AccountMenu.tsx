@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { authClient } from '@/lib/auth/client'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -14,7 +13,6 @@ function getInitial(name: string | null | undefined, email: string): string {
 type Workspace = { id: string; isScheduledForDeletion: boolean; name: string; slug: string }
 
 export function AccountMenu() {
-  const router = useRouter()
   const trpcClient = useTRPCClient()
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isSwitchingWorkspace, setIsSwitchingWorkspace] = useState(false)
@@ -46,8 +44,7 @@ export function AccountMenu() {
   async function handleSignOut() {
     setIsSigningOut(true)
     await authClient.signOut()
-    router.push('/sign-in')
-    router.refresh()
+    window.location.assign('/sign-in')
   }
 
   async function handleWorkspaceSwitch(organizationId: string): Promise<void> {

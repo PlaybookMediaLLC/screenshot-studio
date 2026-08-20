@@ -32,6 +32,7 @@ model User {
   ssoProviders           SsoProvider[]
   supportGrants          SupportAccessGrant[] @relation("SupportGrantUser")
   twoFactors             TwoFactor[]
+  workspaceDeletions    WorkspaceDeletion[]  @relation("WorkspaceDeletionRequester")
 
   @@unique([email])
   @@map("user")
@@ -124,6 +125,8 @@ model Organization {
   campaignPosts           CampaignPost[]
   audienceSubscribers     AudienceSubscriber[]
   communicationRecipients CommunicationRecipient[]
+  workspaceDeletion       WorkspaceDeletion?
+  workspaceSettings       WorkspaceSettings?
 
   @@unique([slug])
   @@map("organization")
@@ -139,6 +142,7 @@ model Member {
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, userId])
+  // The migration also enforces one owner per organization with a partial unique index.
   @@index([organizationId])
   @@index([userId])
   @@map("member")
@@ -157,8 +161,55 @@ model Invitation {
   user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
+  // The migration enforces one normalized pending recipient per organization with a partial unique index.
   @@index([email])
+  @@index([organizationId, status, createdAt])
   @@map("invitation")
+}
+
+/// Screenshot Studio workspace profile and scheduling defaults. Better Auth
+/// continues to own the core organization record, membership, and identity.
+model WorkspaceSettings {
+  organizationId      String       @id
+  description         String?
+  locale              String       @default("en")
+  timeZone            String       @default("UTC")
+  defaultPublishTime  String       @default("09:00")
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("workspace_settings")
+}
+
+enum WorkspaceDeletionStatus {
+  PENDING
+  PROCESSING
+  CANCELLED
+  PURGED
+}
+
+/// A recovery-period deletion request. The organization row is retained as a
+/// tombstone after purge so legally required audit records keep their tenant
+/// reference without preserving workspace access or product data.
+model WorkspaceDeletion {
+  id                String                  @id @default(cuid())
+  organizationId    String                  @unique
+  requestedByUserId String
+  status            WorkspaceDeletionStatus @default(PENDING)
+  scheduledFor      DateTime
+  cancelledAt       DateTime?
+  processingAt      DateTime?
+  purgedAt          DateTime?
+  lastError         String?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  organization      Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requestedByUser   User                     @relation("WorkspaceDeletionRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([status, scheduledFor])
+  @@index([requestedByUserId, status])
+  @@map("workspace_deletion")
 }
 
 model Apikey {

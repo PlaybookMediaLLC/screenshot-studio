@@ -5,6 +5,7 @@ import { appendAuditLog } from '@/lib/audit/log'
 import type { TenantContext } from '@/lib/auth/access'
 import { getAuditActor } from '@/lib/auth/principal'
 import { prisma } from '@/lib/db'
+import { getNextWorkspacePublishTime } from '@/lib/workspace/schedule'
 import { type CampaignApprovalDecision, campaignPostTransitions } from './campaign-status'
 import { createScheduledPost } from './scheduled-posts'
 import type { CampaignCreateInput, CampaignPostScheduleInput } from './schemas'
@@ -167,17 +168,29 @@ export async function scheduleCampaignPost(
   if (post.copy.length > SCHEDULED_POST_CAPTION_LIMIT) {
     throw new CampaignError('The post copy exceeds the channel caption limit.', 409)
   }
+  const settings = input.scheduledAt
+    ? null
+    : await prisma.workspaceSettings.findUnique({
+        select: { defaultPublishTime: true, timeZone: true },
+        where: { organizationId: context.organizationId },
+      })
+  const scheduledAt =
+    input.scheduledAt ??
+    getNextWorkspacePublishTime({
+      time: settings?.defaultPublishTime ?? '09:00',
+      timeZone: settings?.timeZone ?? 'UTC',
+    })
   const { scheduledPost } = await createScheduledPost(context, {
     caption: post.copy,
     channelConnectionId: input.channelConnectionId,
     idempotencyKey: randomUUID(),
-    scheduledFor: input.scheduledAt,
+    scheduledFor: scheduledAt,
     variantId: post.creativeVariantId,
   })
   return prisma.$transaction(async (transaction) => {
     const updated = await transaction.campaignPost.update({
       data: {
-        scheduledAt: input.scheduledAt,
+        scheduledAt,
         scheduledPostId: scheduledPost.id,
         status: 'SCHEDULED',
       },

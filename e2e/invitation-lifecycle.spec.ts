@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { getE2EUrl, openWorkspaceSetting, signUp, signUpAndCreateWorkspace } from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
+import { browserRequest } from './framework/browser'
 import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
 import { createE2EDatabaseClient } from './framework/services'
 
@@ -15,14 +15,21 @@ function getMemberIdentity(identity: E2EIdentity, prefix: string): E2EIdentity {
 
 async function createInvitation(page: Parameters<typeof openWorkspaceSetting>[0], email: string) {
   await openWorkspaceSetting(page, 'Members')
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' &&
-      response.url().includes('/api/auth/organization/invite-member')
-  )
   await page.locator('input[name="email"]').fill(email)
   await page.getByRole('button', { name: 'Invite' }).click()
-  return invitationSchema.parse(await (await responsePromise).json())
+  await expect(page.getByText('Invitation created.')).toBeVisible()
+  const database = createE2EDatabaseClient()
+  try {
+    const invitation = await database.invitation.findFirst({
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+      where: { email, status: 'pending' },
+    })
+    if (!invitation) throw new Error('Invitation was not created.')
+    return invitationSchema.parse(invitation)
+  } finally {
+    await database.$disconnect()
+  }
 }
 
 async function expectNoActiveWorkspace(
@@ -97,13 +104,11 @@ test('an invitation cannot be accepted by another user or after cancellation', a
     const otherPage = await otherContext.newPage()
     await signUp(getMemberIdentity(identity, 'other'), otherPage)
     await expectInvitationRejection(otherPage, invitation.id)
-    expect(
-      (
-        await requestJson(page, '/api/auth/organization/cancel-invitation', {
-          invitationId: invitation.id,
-        })
-      ).status
-    ).toBe(200)
+    await page.getByRole('button', { name: 'Resend' }).click()
+    await expect(page.getByText('Invitation resent.')).toBeVisible()
+    await page.getByRole('button', { name: 'Revoke' }).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Revoke invitation' }).click()
+    await expect(page.getByText('Invitation revoked.')).toBeVisible()
 
     const intendedPage = await intendedContext.newPage()
     await signUp(intendedMember, intendedPage)
@@ -132,4 +137,13 @@ test('an expired invitation does not grant workspace access', async ({
   } finally {
     await memberContext.close()
   }
+})
+
+test('a workspace cannot create duplicate active invitations', async ({ identity, page }) => {
+  await signUpAndCreateWorkspace(identity, page)
+  const member = getMemberIdentity(identity, 'duplicate')
+  await createInvitation(page, member.email)
+  await page.locator('input[name="email"]').fill(member.email)
+  await page.getByRole('button', { name: 'Invite' }).click()
+  await expect(page.getByText('This email already has a pending invitation.')).toBeVisible()
 })

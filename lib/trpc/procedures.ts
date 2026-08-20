@@ -2,6 +2,7 @@ import 'server-only'
 
 import {
   requireActiveOrganizationPermission,
+  requireSessionAccess,
   requireSensitiveOrganizationPermission,
   type OrganizationAccess,
   type TenantContext,
@@ -12,6 +13,12 @@ import { requireTenantAccess } from '@/lib/tenant/access'
 import { publicProcedure } from './init'
 
 export { publicProcedure }
+
+/** A signed-in user action that does not require an active workspace. */
+export const sessionProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  const access = await requireSessionAccess(ctx.headers)
+  return next({ ctx: { ...ctx, sessionAccess: access } })
+})
 
 /**
  * Signed-in member of the active organization with the named role permission.

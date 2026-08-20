@@ -1,39 +1,22 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { authClient } from '@/lib/auth/client'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { useTRPCClient } from '@/lib/trpc/react'
 
 function getInitial(name: string | null | undefined, email: string): string {
   return (name || email).trim().charAt(0).toUpperCase()
 }
 
-type Workspace = { id: string; name: string; slug: string }
-
-function getWorkspaces(data: unknown): Workspace[] {
-  if (!Array.isArray(data)) {
-    return []
-  }
-
-  return data.filter(
-    (item): item is Workspace =>
-      typeof item === 'object' &&
-      item !== null &&
-      'id' in item &&
-      'name' in item &&
-      'slug' in item &&
-      typeof item.id === 'string' &&
-      typeof item.name === 'string' &&
-      typeof item.slug === 'string'
-  )
-}
+type Workspace = { id: string; isScheduledForDeletion: boolean; name: string; slug: string }
 
 export function AccountMenu() {
-  const router = useRouter()
+  const trpcClient = useTRPCClient()
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isSwitchingWorkspace, setIsSwitchingWorkspace] = useState(false)
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const { data: session, isPending } = authClient.useSession()
 
@@ -44,11 +27,11 @@ export function AccountMenu() {
     }
 
     let active = true
-    void fetch('/api/auth/organization/list')
-      .then((response) => (response.ok ? response.json() : []))
-      .then((data: unknown) => {
+    void trpcClient.workspace.listMine
+      .query()
+      .then((result) => {
         if (active) {
-          setWorkspaces(getWorkspaces(data))
+          setWorkspaces(result.workspaces)
         }
       })
       .catch(() => active && setWorkspaces([]))
@@ -56,13 +39,12 @@ export function AccountMenu() {
     return () => {
       active = false
     }
-  }, [session])
+  }, [session, trpcClient])
 
   async function handleSignOut() {
     setIsSigningOut(true)
     await authClient.signOut()
-    router.push('/sign-in')
-    router.refresh()
+    window.location.assign('/sign-in')
   }
 
   async function handleWorkspaceSwitch(organizationId: string): Promise<void> {
@@ -70,13 +52,15 @@ export function AccountMenu() {
       return
     }
 
+    setWorkspaceError(null)
     setIsSwitchingWorkspace(true)
-    const result = await authClient.organization.setActive({ organizationId })
-    if (!result.error) {
+    try {
+      await trpcClient.workspace.setActive.mutate({ organizationId })
       window.location.assign('/')
-      return
+    } catch (error) {
+      setWorkspaceError(error instanceof Error ? error.message : 'Could not switch workspace.')
+      setIsSwitchingWorkspace(false)
     }
-    setIsSwitchingWorkspace(false)
   }
 
   if (isPending) return <div aria-hidden className="h-8 w-8" />
@@ -93,6 +77,11 @@ export function AccountMenu() {
   }
 
   const name = session.user.name || session.user.email
+  const hasUnavailableActiveWorkspace = Boolean(
+    session.session.activeOrganizationId &&
+    !workspaces.some((workspace) => workspace.id === session.session.activeOrganizationId)
+  )
+  const canSwitchWorkspace = workspaces.length > 1 || hasUnavailableActiveWorkspace
 
   return (
     <Popover>
@@ -110,7 +99,7 @@ export function AccountMenu() {
           <p className="truncate text-sm font-medium">{name}</p>
           <p className="truncate text-xs text-muted-foreground">{session.user.email}</p>
         </div>
-        {workspaces.length > 1 ? (
+        {canSwitchWorkspace ? (
           <div className="grid gap-1 border-b py-2">
             <p className="px-2 text-xs font-medium text-muted-foreground">Workspaces</p>
             {workspaces.map((workspace) => {
@@ -125,13 +114,22 @@ export function AccountMenu() {
                   onClick={() => void handleWorkspaceSwitch(workspace.id)}
                   type="button"
                 >
-                  {workspace.name}
+                  <span className="block truncate">{workspace.name}</span>
+                  {workspace.isScheduledForDeletion ? (
+                    <span className="block text-xs text-destructive">Deletion scheduled</span>
+                  ) : null}
                 </button>
               )
             })}
           </div>
         ) : null}
+        {workspaceError ? (
+          <p className="px-2 pb-2 text-xs text-destructive">{workspaceError}</p>
+        ) : null}
         <div className="grid gap-1 py-2">
+          <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/onboarding">
+            Create workspace
+          </Link>
           <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/assets">
             Assets
           </Link>

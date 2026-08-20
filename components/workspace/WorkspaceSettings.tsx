@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AppHeader } from './AppHeader'
 import { WorkspaceSettingDetail } from './WorkspaceSettingDetail'
+import { WorkspaceDeletionRecovery } from './WorkspaceDeletionSettings'
 
 type SettingsIcon = typeof Building02Icon
 export type SettingId =
@@ -34,9 +35,22 @@ export type SettingItem = {
 export type WorkspaceSettingsProps = {
   email: string
   name: string
-  organization: { id: string; name: string; slug: string }
+  organization: {
+    id: string
+    logo: string | null
+    name: string
+    slug: string
+    workspaceDeletion?: { requestedByUserId: string; scheduledFor: Date; status: string } | null
+    workspaceSettings?: {
+      defaultPublishTime: string
+      description: string | null
+      locale: string
+      timeZone: string
+    } | null
+  }
   role: string
   twoFactorEnabled: boolean
+  userId: string
 }
 
 const settings: SettingItem[] = [
@@ -127,6 +141,7 @@ export function WorkspaceSettings({
   organization,
   role,
   twoFactorEnabled,
+  userId,
 }: WorkspaceSettingsProps) {
   const [query, setQuery] = useState('')
   const [view, setView] = useState<ViewId>('overview')
@@ -135,6 +150,21 @@ export function WorkspaceSettings({
     `${item.title} ${item.description}`.toLowerCase().includes(search)
   )
   const selected = view === 'overview' ? null : settings.find((item) => item.id === view)
+
+  if (
+    organization.workspaceDeletion?.status === 'PENDING' ||
+    organization.workspaceDeletion?.status === 'PROCESSING'
+  ) {
+    return (
+      <main className="min-h-screen bg-background text-foreground">
+        <AppHeader current="/workspace" orgName={organization.name} />
+        <WorkspaceDeletionRecovery
+          canRestore={organization.workspaceDeletion.requestedByUserId === userId}
+          scheduledFor={organization.workspaceDeletion.scheduledFor}
+        />
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -200,6 +230,7 @@ export function WorkspaceSettings({
                 organization={organization}
                 role={role}
                 twoFactorEnabled={twoFactorEnabled}
+                userId={userId}
               />
             ) : (
               <>

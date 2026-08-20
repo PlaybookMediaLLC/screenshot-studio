@@ -63,10 +63,14 @@ async function assertRolePermissions(
   const canCreateRelease = role === 'creator'
   const canManageWorkspace = isAdmin
   const canPublish = isAdmin || role === 'publisher'
-  const [audit, brandKits, connections, releases, workspace] = await Promise.all([
+  const [audit, brandKits, connections, invitation, releases, workspace] = await Promise.all([
     browserRequest(page, `/api/audit-logs?organizationId=${organizationId}`),
     trpcQuery(page, 'brandKit.list'),
     trpcQuery(page, 'channelConnection.list'),
+    trpcMutation(page, 'workspace.invite', {
+      email: `invited-by-${role}-${organizationId}@example.test`,
+      role: 'viewer',
+    }),
     requestJson(
       page,
       '/api/tenant/releases',
@@ -83,6 +87,7 @@ async function assertRolePermissions(
   expect(audit.status).toBe(isAdmin ? 200 : 403)
   expect(brandKits.status).toBe(isAdmin ? 200 : 403)
   expect(connections.status).toBe(canPublish ? 200 : 403)
+  expect(invitation.status).toBe(isAdmin ? 200 : 403)
   expect(releases.status).toBe(canCreateRelease || isAdmin ? 201 : 403)
   expect(workspace.status).toBe(canManageWorkspace ? 200 : 403)
 }

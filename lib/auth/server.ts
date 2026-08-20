@@ -19,7 +19,8 @@ import {
   sendVerificationEmail,
 } from './transactional-email'
 import { assertSignInMethodAvailable, isPasswordAuthEnabled } from './methods'
-import { betterAuthOrganizationRoles, isSupportedOrganizationRole } from './permissions'
+import { organizationHooks } from './organization-hooks'
+import { betterAuthOrganizationRoles } from './permissions'
 
 const google = getSocialProviderCredentials('GOOGLE')
 const github = getSocialProviderCredentials('GITHUB')
@@ -36,11 +37,6 @@ const socialProviders = {
   ...(github ? { github } : {}),
   ...(microsoft ? { microsoft } : {}),
 }
-
-type MemberHook = { member: { role: string } }
-type RemovedMemberHook = { member: { organizationId: string; userId: string } }
-type InvitationHook = { invitation: { role: string } }
-type RoleUpdateHook = { newRole: string }
 
 export const auth = betterAuth({
   baseURL: getAuthBaseUrl(),
@@ -62,28 +58,9 @@ export const auth = betterAuth({
   plugins: [
     admin({ adminRoles: [], defaultRole: 'user' }),
     organization({
-      organizationHooks: {
-        beforeAddMember: async ({ member }: MemberHook) => {
-          if (!isSupportedOrganizationRole(member.role)) {
-            throw new Error('Unsupported organization role.')
-          }
-        },
-        beforeCreateInvitation: async ({ invitation }: InvitationHook) => {
-          if (!isSupportedOrganizationRole(invitation.role)) {
-            throw new Error('Unsupported organization role.')
-          }
-        },
-        beforeUpdateMemberRole: async ({ newRole }: RoleUpdateHook) => {
-          if (!isSupportedOrganizationRole(newRole)) {
-            throw new Error('Unsupported organization role.')
-          }
-        },
-        afterRemoveMember: async ({ member }: RemovedMemberHook) => {
-          await prisma.session.deleteMany({
-            where: { userId: member.userId },
-          })
-        },
-      },
+      disableOrganizationDeletion: true,
+      invitationExpiresIn: 7 * 24 * 60 * 60,
+      organizationHooks,
       requireEmailVerificationOnInvitation: requireEmailVerification,
       roles: betterAuthOrganizationRoles,
       sendInvitationEmail: async ({ invitation, organization, inviter }) => {

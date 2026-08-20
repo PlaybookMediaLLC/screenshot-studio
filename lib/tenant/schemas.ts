@@ -105,9 +105,12 @@ export const campaignApprovalSchema = z.object({
 
 export const campaignPostScheduleSchema = z.object({
   channelConnectionId: z.string().cuid(),
-  scheduledAt: z.coerce.date().refine((value) => value.getTime() > Date.now(), {
-    message: 'Scheduled time must be in the future.',
-  }),
+  scheduledAt: z.coerce
+    .date()
+    .refine((value) => value.getTime() > Date.now(), {
+      message: 'Scheduled time must be in the future.',
+    })
+    .optional(),
 })
 
 export const releaseCreateSchema = z.object({

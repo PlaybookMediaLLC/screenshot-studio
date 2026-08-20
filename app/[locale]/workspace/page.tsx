@@ -22,6 +22,7 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
       organization={access.organization}
       role={access.role}
       twoFactorEnabled={Boolean(access.session.user.twoFactorEnabled)}
+      userId={access.session.user.id}
     />
   )
 }

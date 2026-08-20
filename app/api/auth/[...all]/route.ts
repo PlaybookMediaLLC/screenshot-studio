@@ -1,4 +1,5 @@
 import { toNextJsHandler } from 'better-auth/next-js'
+import { Prisma } from '@prisma/client'
 import { getClientIdentifier } from '@/lib/api/client-identity'
 import { AuthorizationError } from '@/lib/auth/access'
 import { assertAuthEnvironment } from '@/lib/auth/environment'
@@ -7,8 +8,14 @@ import {
   logEnterpriseAuthRequest,
 } from '@/lib/auth/enterprise-guard'
 import { auth } from '@/lib/auth/server'
-import { AUTH_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
+import {
+  AUTH_RATE_LIMIT,
+  type RateLimitPolicy,
+  WORKSPACE_INVITATION_RATE_LIMIT,
+} from '@/lib/api/rate-limit-policy'
+import { prisma } from '@/lib/db'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { isWorkspaceOperational } from '@/lib/workspace/access'
 
 /**
  * Only credential-bearing endpoints are throttled. Session reads run on
@@ -24,23 +31,111 @@ const RATE_LIMITED_AUTH_PATHS = [
   '/two-factor',
 ]
 
-function isRateLimitedAuthRequest(request: Request): boolean {
+const OPERATIONAL_ORGANIZATION_PATHS = [
+  '/organization/add-member',
+  '/organization/get-active-member',
+  '/organization/get-full-organization',
+  '/organization/invite-member',
+  '/organization/leave',
+  '/organization/list-invitations',
+  '/organization/list-members',
+  '/organization/remove-member',
+  '/organization/set-active',
+  '/organization/update',
+  '/organization/update-member-role',
+]
+
+type OrganizationRequestInput = { organizationId?: unknown; organizationSlug?: unknown }
+
+async function getOrganizationRequestInput(request: Request): Promise<OrganizationRequestInput> {
+  if (request.method === 'GET') {
+    const searchParams = new URL(request.url).searchParams
+    return {
+      organizationId: searchParams.get('organizationId') ?? undefined,
+      organizationSlug: searchParams.get('organizationSlug') ?? undefined,
+    }
+  }
+
+  try {
+    const body = (await request.clone().json()) as OrganizationRequestInput
+    return body && typeof body === 'object' ? body : {}
+  } catch {
+    return {}
+  }
+}
+
+async function resolveRequestedOrganizationId(
+  input: OrganizationRequestInput,
+  activeOrganizationId: string | null | undefined
+): Promise<string | null> {
+  if (typeof input.organizationId === 'string') return input.organizationId
+  if (typeof input.organizationSlug === 'string') {
+    return (
+      (
+        await prisma.organization.findUnique({
+          select: { id: true },
+          where: { slug: input.organizationSlug },
+        })
+      )?.id ?? null
+    )
+  }
+  return activeOrganizationId ?? null
+}
+
+async function getRequestedWorkspaceId(request: Request): Promise<string | null> {
+  const session = await auth.api.getSession({
+    headers: request.headers,
+    query: { disableCookieCache: true },
+  })
+  if (!session) return null
+
+  const input = await getOrganizationRequestInput(request)
+  const organizationId = await resolveRequestedOrganizationId(
+    input,
+    session.session.activeOrganizationId
+  )
+  if (!organizationId) return null
+
+  const membership = await prisma.member.findUnique({
+    select: { organizationId: true },
+    where: { organizationId_userId: { organizationId, userId: session.user.id } },
+  })
+  return membership?.organizationId ?? null
+}
+
+async function enforceOperationalOrganization(request: Request): Promise<Response | null> {
+  const { pathname } = new URL(request.url)
+  if (!OPERATIONAL_ORGANIZATION_PATHS.some((path) => pathname.endsWith(path))) {
+    return null
+  }
+
+  const organizationId = await getRequestedWorkspaceId(request)
+  if (organizationId && !(await isWorkspaceOperational(organizationId))) {
+    return Response.json({ error: 'This workspace is unavailable.' }, { status: 403 })
+  }
+  return null
+}
+
+function getAuthRateLimitPolicy(request: Request): RateLimitPolicy | null {
   if (request.method !== 'POST') {
-    return false
+    return null
   }
 
   const { pathname } = new URL(request.url)
-  return RATE_LIMITED_AUTH_PATHS.some((path) => pathname.includes(path))
+  if (pathname.includes('/organization/invite-member')) {
+    return WORKSPACE_INVITATION_RATE_LIMIT
+  }
+  return RATE_LIMITED_AUTH_PATHS.some((path) => pathname.includes(path)) ? AUTH_RATE_LIMIT : null
 }
 
-function getRateLimitResponse(resetAt: number): Response {
+function getRateLimitResponse(policy: RateLimitPolicy, resetAt: number): Response {
   const retryAfter = Math.max(1, Math.ceil((resetAt - Date.now()) / 1000))
   return Response.json(
     { error: 'Too many attempts. Please try again shortly.' },
     {
       headers: {
         'Retry-After': retryAfter.toString(),
-        'X-RateLimit-Limit': AUTH_RATE_LIMIT.maxRequests.toString(),
+        'X-RateLimit-Limit': policy.maxRequests.toString(),
         'X-RateLimit-Remaining': '0',
         'X-RateLimit-Reset': resetAt.toString(),
       },
@@ -58,13 +153,14 @@ function getRateLimitResponse(resetAt: number): Response {
  * window where the cache is unreachable.
  */
 async function enforceAuthRateLimit(request: Request): Promise<Response | null> {
-  if (!isRateLimitedAuthRequest(request)) {
+  const policy = getAuthRateLimitPolicy(request)
+  if (!policy) {
     return null
   }
 
   try {
-    const rateLimit = await checkRateLimit(getClientIdentifier(request.headers), AUTH_RATE_LIMIT)
-    return rateLimit.allowed ? null : getRateLimitResponse(rateLimit.resetAt)
+    const rateLimit = await checkRateLimit(getClientIdentifier(request.headers), policy)
+    return rateLimit.allowed ? null : getRateLimitResponse(policy, rateLimit.resetAt)
   } catch (error) {
     console.error('Auth rate limit check failed; allowing request.', error)
     return null
@@ -81,6 +177,11 @@ const handler = toNextJsHandler({
         return rateLimited
       }
 
+      const unavailableWorkspace = await enforceOperationalOrganization(request)
+      if (unavailableWorkspace) {
+        return unavailableWorkspace
+      }
+
       const enterpriseRequest = await authorizeEnterpriseAuthRequest(request)
       const response = await auth.handler(request)
       if (enterpriseRequest && response.ok) {
@@ -94,6 +195,10 @@ const handler = toNextJsHandler({
     } catch (error) {
       if (error instanceof AuthorizationError) {
         return Response.json({ error: error.message }, { status: error.status })
+      }
+
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        return Response.json({ error: 'This record already exists.' }, { status: 409 })
       }
 
       throw error

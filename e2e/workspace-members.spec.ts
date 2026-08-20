@@ -1,9 +1,7 @@
-import { z } from 'zod'
 import { getE2EUrl, openWorkspaceSetting, signUp, signUpAndCreateWorkspace } from './framework/auth'
 import { trpcQuery } from './framework/trpc'
 import { configureE2EFlow, expect, test } from './framework/flow'
-
-const invitationSchema = z.object({ id: z.string() })
+import { createE2EDatabaseClient } from './framework/services'
 
 configureE2EFlow()
 
@@ -24,15 +22,17 @@ test('an owner can invite a viewer and remove their workspace access', async ({
   try {
     await signUp(memberIdentity, memberPage)
     await openWorkspaceSetting(page, 'Members')
-    const invitationResponse = page.waitForResponse(
-      (response) =>
-        response.request().method() === 'POST' &&
-        response.url().includes('/api/auth/organization/invite-member')
-    )
     await page.locator('input[name="email"]').fill(memberIdentity.email)
     await page.getByRole('button', { name: 'Invite' }).click()
-    const invitation = invitationSchema.parse(await (await invitationResponse).json())
     await expect(page.getByText('Invitation created.')).toBeVisible()
+
+    const database = createE2EDatabaseClient()
+    const invitation = await database.invitation.findFirst({
+      select: { id: true },
+      where: { email: memberIdentity.email, status: 'pending' },
+    })
+    await database.$disconnect()
+    if (!invitation) throw new Error('Invitation was not created.')
 
     await memberPage.goto(getE2EUrl(`/accept-invitation?invitationId=${invitation.id}`))
     await memberPage.getByRole('button', { name: 'Accept invitation' }).click()

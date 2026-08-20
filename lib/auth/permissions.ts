@@ -12,11 +12,20 @@ export const organizationRoles = [
 export type OrganizationRole = (typeof organizationRoles)[number]
 
 export const permissions = [
+  'workspace:read',
+  'workspace:update',
+  'workspace:delete',
+  'workspace:transfer_ownership',
+  'member:read',
+  'member:invite',
+  'member:remove',
+  'member:update_role',
+  'invitation:read',
+  'invitation:revoke',
   'audit:read',
   'audit:export',
   'audit:manage',
   'identity:manage',
-  'member:manage',
   'brand:manage',
   'release:create',
   'release:approve',
@@ -31,11 +40,18 @@ export type Permission = (typeof permissions)[number]
 const rolePermissions: Record<OrganizationRole, readonly Permission[]> = {
   owner: permissions,
   admin: [
+    'workspace:read',
+    'workspace:update',
+    'member:read',
+    'member:invite',
+    'member:remove',
+    'member:update_role',
+    'invitation:read',
+    'invitation:revoke',
     'audit:read',
     'audit:export',
     'audit:manage',
     'identity:manage',
-    'member:manage',
     'brand:manage',
     'release:create',
     'release:approve',
@@ -43,10 +59,10 @@ const rolePermissions: Record<OrganizationRole, readonly Permission[]> = {
     'artifact:edit',
     'publish:manage',
   ],
-  creator: ['release:create', 'artifact:read', 'artifact:edit'],
-  approver: ['artifact:read', 'release:approve'],
-  publisher: ['artifact:read', 'publish:manage'],
-  viewer: ['artifact:read'],
+  creator: ['workspace:read', 'member:read', 'release:create', 'artifact:read', 'artifact:edit'],
+  approver: ['workspace:read', 'member:read', 'artifact:read', 'release:approve'],
+  publisher: ['workspace:read', 'member:read', 'artifact:read', 'publish:manage'],
+  viewer: ['workspace:read', 'member:read', 'artifact:read'],
 }
 
 export const betterAuthOrganizationRoles = {

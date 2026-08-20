@@ -3,6 +3,7 @@ import 'server-only'
 import { appendAuditLog } from '@/lib/audit/log'
 import { getAuditActor, type TriggerServicePrincipal } from '@/lib/auth/principal'
 import { prisma } from '@/lib/db'
+import { isWorkspaceOperational } from '@/lib/workspace/access'
 import { PostizProviderError, publishPostizPost } from './postiz'
 
 const maxPublicationAttempts = 3
@@ -192,7 +193,7 @@ async function dispatchClaimedPost(id: string): Promise<void> {
   if (!post) {
     return
   }
-  if (!isEligible(post)) {
+  if (!(await isWorkspaceOperational(post.organizationId)) || !isEligible(post)) {
     await cancelIneligiblePost(post.id, post.organizationId)
     return
   }

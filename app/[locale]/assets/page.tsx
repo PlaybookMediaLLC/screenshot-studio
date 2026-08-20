@@ -18,6 +18,7 @@ export default async function AssetsPage({ params }: AssetsPageProps) {
   if (!access.hasOrganization || !access.organization) {
     redirect(getLocalizedPath(locale, '/onboarding'))
   }
+  if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
 
   return (
     <>

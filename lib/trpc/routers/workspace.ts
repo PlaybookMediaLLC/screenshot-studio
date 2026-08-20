@@ -1,31 +1,92 @@
 import 'server-only'
 
-import { appendAuditLog } from '@/lib/audit/log'
-import { getAuditActor } from '@/lib/auth/principal'
-import { prisma } from '@/lib/db'
-import { workspaceUpdateSchema } from '@/lib/tenant/workspace-settings-schema'
+import { z } from 'zod'
+import {
+  cancelWorkspaceDeletion,
+  createWorkspace,
+  getWorkspace,
+  inviteWorkspaceMember,
+  leaveWorkspace,
+  listWorkspaceInvitations,
+  listWorkspaceMembers,
+  listWorkspaces,
+  removeWorkspaceMember,
+  requestWorkspaceDeletion,
+  resendWorkspaceInvitation,
+  revokeWorkspaceInvitation,
+  setActiveWorkspace,
+  transferWorkspaceOwnership,
+  updateWorkspace,
+  updateWorkspaceMemberRole,
+} from '@/lib/workspace/service'
+import {
+  workspaceCreateSchema,
+  workspaceDeleteSchema,
+  workspaceInvitationIdSchema,
+  workspaceInviteSchema,
+  workspaceMemberIdSchema,
+  workspaceRoleChangeSchema,
+  workspaceTransferOwnershipSchema,
+  workspaceUpdateSchema,
+} from '@/lib/workspace/schemas'
 import { router } from '../init'
-import { organizationProcedure } from '../procedures'
+import {
+  organizationProcedure,
+  sensitiveOrganizationProcedure,
+  sessionProcedure,
+} from '../procedures'
+
+const organizationIdSchema = z.object({ organizationId: z.string().min(1).max(128) })
 
 export const workspaceRouter = router({
-  update: organizationProcedure('member:manage')
+  cancelDeletion: sessionProcedure.mutation(async ({ ctx }) =>
+    cancelWorkspaceDeletion(ctx.sessionAccess)
+  ),
+  create: sessionProcedure
+    .input(workspaceCreateSchema)
+    .mutation(async ({ ctx, input }) => createWorkspace(ctx.sessionAccess, input)),
+  get: organizationProcedure('workspace:read').query(async ({ ctx }) => ({
+    workspace: await getWorkspace(ctx.access.organizationId),
+  })),
+  invite: organizationProcedure('member:invite')
+    .input(workspaceInviteSchema)
+    .mutation(async ({ ctx, input }) => inviteWorkspaceMember(ctx.access, input)),
+  leave: organizationProcedure('member:read').mutation(async ({ ctx }) =>
+    leaveWorkspace(ctx.access)
+  ),
+  listInvitations: organizationProcedure('invitation:read').query(async ({ ctx }) => ({
+    invitations: await listWorkspaceInvitations(ctx.access.organizationId),
+  })),
+  listMembers: organizationProcedure('member:read').query(async ({ ctx }) => ({
+    members: await listWorkspaceMembers(ctx.access.organizationId),
+  })),
+  listMine: sessionProcedure.query(async ({ ctx }) => ({
+    workspaces: await listWorkspaces(ctx.sessionAccess),
+  })),
+  removeMember: organizationProcedure('member:remove')
+    .input(workspaceMemberIdSchema)
+    .mutation(async ({ ctx, input }) => removeWorkspaceMember(ctx.access, input.memberId)),
+  requestDeletion: sensitiveOrganizationProcedure('workspace:delete')
+    .input(workspaceDeleteSchema)
+    .mutation(async ({ ctx, input }) => requestWorkspaceDeletion(ctx.access, input.confirmation)),
+  resendInvitation: organizationProcedure('member:invite')
+    .input(workspaceInvitationIdSchema)
+    .mutation(async ({ ctx, input }) => resendWorkspaceInvitation(ctx.access, input.invitationId)),
+  revokeInvitation: organizationProcedure('invitation:revoke')
+    .input(workspaceInvitationIdSchema)
+    .mutation(async ({ ctx, input }) => revokeWorkspaceInvitation(ctx.access, input.invitationId)),
+  setActive: sessionProcedure.input(organizationIdSchema).mutation(async ({ ctx, input }) => {
+    await setActiveWorkspace(ctx.sessionAccess, input.organizationId)
+  }),
+  transferOwnership: sensitiveOrganizationProcedure('workspace:transfer_ownership')
+    .input(workspaceTransferOwnershipSchema)
+    .mutation(async ({ ctx, input }) => transferWorkspaceOwnership(ctx.access, input.memberId)),
+  update: organizationProcedure('workspace:update')
     .input(workspaceUpdateSchema)
-    .mutation(async ({ ctx, input }) => {
-      const organization = await prisma.$transaction(async (transaction) => {
-        const updated = await transaction.organization.update({
-          data: input,
-          where: { id: ctx.access.organizationId },
-        })
-        await appendAuditLog(transaction, {
-          action: 'product.workspace_updated',
-          actor: getAuditActor(ctx.access.principal),
-          entityId: updated.id,
-          entityType: 'organization',
-          organizationId: ctx.access.organizationId,
-          requestId: ctx.access.requestId,
-        })
-        return updated
-      })
-      return { organization }
-    }),
+    .mutation(async ({ ctx, input }) => updateWorkspace(ctx.access, input)),
+  updateMemberRole: organizationProcedure('member:update_role')
+    .input(workspaceRoleChangeSchema)
+    .mutation(async ({ ctx, input }) =>
+      updateWorkspaceMemberRole(ctx.access, input.memberId, input.role)
+    ),
 })

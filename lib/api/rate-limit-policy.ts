@@ -34,3 +34,17 @@ export const AUTH_RATE_LIMIT: RateLimitPolicy = {
   name: 'auth',
   windowMs: 60_000,
 }
+
+/** Member invitations can trigger transactional email, so this is scoped to
+ * the actor and workspace rather than a shared client IP. */
+export const WORKSPACE_INVITATION_RATE_LIMIT: RateLimitPolicy = {
+  maxRequests: 10,
+  name: 'workspace-invitation',
+  windowMs: 60 * 60 * 1_000,
+}
+
+export const WORKSPACE_INVITATION_RESEND_RATE_LIMIT: RateLimitPolicy = {
+  maxRequests: 3,
+  name: 'workspace-invitation-resend',
+  windowMs: 60 * 60 * 1_000,
+}

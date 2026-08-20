@@ -7,6 +7,9 @@ test('fixed roles enforce least-privilege permissions', () => {
   assert.equal(hasPermission('creator', 'publish:manage'), false)
   assert.equal(hasPermission('publisher', 'publish:manage'), true)
   assert.equal(hasPermission('viewer', 'audit:read'), false)
+  assert.equal(hasPermission('admin', 'member:invite'), true)
+  assert.equal(hasPermission('admin', 'workspace:delete'), false)
+  assert.equal(hasPermission('owner', 'workspace:transfer_ownership'), true)
 })
 
 test('legacy Better Auth member role remains viewer-equivalent', () => {

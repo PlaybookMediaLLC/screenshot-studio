@@ -5,6 +5,7 @@ import { getAuditActor, type TriggerServicePrincipal } from '@/lib/auth/principa
 import { prisma } from '@/lib/db'
 import { getUnsubscribeHeaders, sendBulkEmail } from '@/lib/email'
 import { ReleaseAnnouncementEmail } from '@/lib/email/templates/release-announcement'
+import { isWorkspaceOperational } from '@/lib/workspace/access'
 import { getUnsubscribeUrl } from './unsubscribe-url'
 
 /**
@@ -153,6 +154,25 @@ async function loadCommunication(id: string) {
 
 type LoadedCommunication = NonNullable<Awaited<ReturnType<typeof loadCommunication>>>
 
+async function cancelUnavailableCommunication(id: string, organizationId: string): Promise<void> {
+  await prisma.$transaction(async (transaction) => {
+    const cancelled = await transaction.customerCommunication.updateMany({
+      data: { status: 'CANCELLED' },
+      where: { id, status: 'PROCESSING' },
+    })
+    if (cancelled.count === 0) return
+
+    await appendAuditLog(transaction, {
+      action: 'communication.cancelled',
+      actor: getAuditActor(getTriggerPrincipal(organizationId, id)),
+      entityId: id,
+      entityType: 'customer_communication',
+      organizationId,
+      requestId: id,
+    })
+  })
+}
+
 /**
  * Deliver one claimed communication to every recipient not yet reached.
  */
@@ -271,6 +291,11 @@ export async function dispatchDueCommunications(): Promise<number> {
 
     const communication = await loadCommunication(candidate.id)
     if (!communication) continue
+
+    if (!(await isWorkspaceOperational(communication.organizationId))) {
+      await cancelUnavailableCommunication(communication.id, communication.organizationId)
+      continue
+    }
 
     try {
       await materializeRecipients(communication.id, communication.organizationId)

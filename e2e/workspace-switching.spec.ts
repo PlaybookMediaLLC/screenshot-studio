@@ -89,6 +89,15 @@ test('a member can switch workspaces without crossing tenant data', async ({
     await switchWorkspace(page, secondIdentity.workspaceName)
     await expect.poll(() => getActiveOrganizationId(page)).toBe(secondOrganizationId)
     await assertReleaseIsolation(page, secondTitle, firstTitle)
+
+    await page.getByRole('button', { name: 'Open account menu' }).click()
+    await page.getByRole('button', { name: 'Sign out' }).click()
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/sign-in')
+    await page.getByLabel('Email', { exact: true }).fill(identity.email)
+    await page.getByLabel('Password').fill(identity.password)
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await expect.poll(() => getActiveOrganizationId(page)).toBe(firstOrganizationId)
+    await assertReleaseIsolation(page, firstTitle, secondTitle)
   } finally {
     await secondContext.close()
   }

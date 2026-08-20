@@ -9,6 +9,7 @@ import { WorkspaceIdentitySettings } from './WorkspaceIdentitySettings'
 import { WorkspaceMembersSettings } from './WorkspaceMembersSettings'
 import { WorkspaceRolesSettings } from './WorkspaceRolesSettings'
 import { WorkspaceSecuritySettings } from './WorkspaceSecuritySettings'
+import { hasPermission } from '@/lib/auth/permissions'
 import type { SettingId, SettingItem, WorkspaceSettingsProps } from './WorkspaceSettings'
 
 type WorkspaceSettingDetailProps = {
@@ -19,6 +20,7 @@ type WorkspaceSettingDetailProps = {
   organization: WorkspaceSettingsProps['organization']
   role: string
   twoFactorEnabled: boolean
+  userId: string
 }
 
 function getDetailContent({
@@ -27,8 +29,9 @@ function getDetailContent({
   organization,
   role,
   twoFactorEnabled,
+  userId,
 }: Omit<WorkspaceSettingDetailProps, 'item' | 'onBack'>): Record<SettingId, ReactNode> {
-  const canManage = role === 'admin' || role === 'owner'
+  const canManage = hasPermission(role, 'workspace:update')
   return {
     api: <WorkspaceDeveloperSettings canManage={canManage} />,
     audit: (
@@ -39,8 +42,22 @@ function getDetailContent({
       />
     ),
     brand: <WorkspaceBrandSettings canManage={canManage} />,
-    general: <WorkspaceGeneralSettings canManage={canManage} organization={organization} />,
-    members: <WorkspaceMembersSettings canManage={canManage} organizationId={organization.id} />,
+    general: (
+      <WorkspaceGeneralSettings
+        canDelete={hasPermission(role, 'workspace:delete')}
+        canManage={canManage}
+        organization={organization}
+      />
+    ),
+    members: (
+      <WorkspaceMembersSettings
+        canInvite={hasPermission(role, 'member:invite')}
+        canManageMembers={hasPermission(role, 'member:update_role')}
+        canRead={hasPermission(role, 'member:read')}
+        canTransferOwnership={hasPermission(role, 'workspace:transfer_ownership')}
+        currentUserId={userId}
+      />
+    ),
     profile: <ProfileForm email={email} name={name} />,
     roles: <WorkspaceRolesSettings />,
     security: <WorkspaceSecuritySettings twoFactorEnabled={twoFactorEnabled} />,
@@ -62,9 +79,17 @@ export function WorkspaceSettingDetail({
   organization,
   role,
   twoFactorEnabled,
+  userId,
 }: WorkspaceSettingDetailProps) {
   const Icon = item.icon
-  const content = getDetailContent({ email, name, organization, role, twoFactorEnabled })
+  const content = getDetailContent({
+    email,
+    name,
+    organization,
+    role,
+    twoFactorEnabled,
+    userId,
+  })
 
   return (
     <section className="w-full">

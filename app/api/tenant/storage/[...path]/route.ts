@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRouteErrorResponse } from '@/lib/api/route-errors'
 import { AuthorizationError } from '@/lib/auth/access'
+import { prisma } from '@/lib/db'
 import { assertTenantObjectKey } from '@/lib/tenant/object-key'
 import { requireTenantAccess } from '@/lib/tenant/access'
 
@@ -39,6 +40,21 @@ async function authorizeStorageRequest(
     assertTenantObjectKey(context.organizationId, objectKey)
   } catch {
     throw new AuthorizationError('The object is outside the active organization.', 403)
+  }
+
+  // A signed storage URL is only useful while its corresponding asset is in
+  // the expected lifecycle state. This prevents an old or tampered proxy URL
+  // from reading deleted bytes or writing an object outside the asset model.
+  const asset = await prisma.asset.findFirst({
+    select: { id: true },
+    where: {
+      objectKey,
+      organizationId: context.organizationId,
+      status: operation === 'upload' ? 'PENDING' : 'UPLOADED',
+    },
+  })
+  if (!asset) {
+    throw new AuthorizationError('The storage object is unavailable.', 403)
   }
 }
 

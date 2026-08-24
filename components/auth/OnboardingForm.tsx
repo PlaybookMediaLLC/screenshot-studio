@@ -1,14 +1,10 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
-import { z } from 'zod'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
-import { authClient } from '@/lib/auth/client'
+import { useTRPCClient } from '@/lib/trpc/react'
+import { workspaceCreateSchema } from '@/lib/workspace/input-schemas'
 import { getAuthErrorMessage } from './error-message'
-
-const workspaceSchema = z.object({
-  name: z.string().trim().min(2, 'Enter a workspace name.').max(100),
-})
 
 function slugify(value: string): string {
   return value
@@ -18,9 +14,11 @@ function slugify(value: string): string {
 }
 
 export function OnboardingForm() {
+  const trpcClient = useTRPCClient()
   const [error, setError] = useState<string | null>(null)
   const [isHydrated, setIsHydrated] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const slugInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setIsHydrated(true)
@@ -29,7 +27,18 @@ export function OnboardingForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
-    const input = workspaceSchema.safeParse(Object.fromEntries(new FormData(event.currentTarget)))
+    const formData = new FormData(event.currentTarget)
+    const name = formData.get('name')
+    const slug = formData.get('slug')
+    const input = workspaceCreateSchema.safeParse({
+      name,
+      slug:
+        typeof slug === 'string' && slug.trim()
+          ? slug
+          : typeof name === 'string'
+            ? slugify(name)
+            : '',
+    })
     if (!input.success) {
       setError(input.error.issues[0]?.message ?? 'Check the workspace name.')
       return
@@ -37,27 +46,10 @@ export function OnboardingForm() {
 
     setIsSubmitting(true)
     try {
-      const result = await authClient.organization.create({
+      await trpcClient.workspace.create.mutate({
         name: input.data.name,
-        slug: slugify(input.data.name),
+        slug: input.data.slug,
       })
-      if (result.error) {
-        setError(result.error.message || 'Could not create the workspace.')
-        return
-      }
-      if (!result.data) {
-        setError('Could not select the new workspace.')
-        return
-      }
-
-      const activeOrganization = await authClient.organization.setActive({
-        organizationId: result.data.id,
-      })
-      if (activeOrganization.error) {
-        setError(activeOrganization.error.message || 'Could not select the new workspace.')
-        return
-      }
-
       window.location.assign('/')
     } catch (requestError) {
       setError(getAuthErrorMessage(requestError, 'Could not create the workspace.'))
@@ -75,9 +67,26 @@ export function OnboardingForm() {
           className="h-10 rounded-md border bg-background px-3"
           id="workspace-name"
           name="name"
+          onChange={(event) => {
+            if (slugInputRef.current) slugInputRef.current.value = slugify(event.target.value)
+          }}
           placeholder="Acme, Inc."
           required
         />
+      </label>
+      <label className="grid gap-1.5 text-sm font-medium" htmlFor="workspace-slug">
+        Workspace slug
+        <input
+          className="h-10 rounded-md border bg-background px-3"
+          id="workspace-slug"
+          name="slug"
+          pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+          placeholder="acme-inc"
+          ref={slugInputRef}
+        />
+        <span className="text-xs font-normal text-muted-foreground">
+          Lowercase letters, numbers, and hyphens only.
+        </span>
       </label>
       {error ? (
         <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>

@@ -15,7 +15,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,10 +31,18 @@ jobs:
         run: |
           ./bin/studio status
           docker compose --env-file .local/dev.env --file compose.yaml config --quiet
-      - run: npm run build
-        env:
-          DATABASE_URL: postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio
-      - run: docker build --tag screenshot-studio:${{ github.sha }} .
+      # The Docker build runs `npm run build` inside the image, so a bare
+      # `npm run build` here would validate the same thing twice. The
+      # GitHub Actions layer cache keeps the dependency and build layers
+      # warm between runs.
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          tags: screenshot-studio:${{ github.sha }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - name: Smoke test production container
         run: |
           docker run --detach --rm --name screenshot-studio-smoke \
@@ -54,8 +62,11 @@ jobs:
       - run: helm lint charts/screenshot-studio --values charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local
       - run: helm template screenshot-studio charts/screenshot-studio --values charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local > /dev/null
 
+  # Runs in parallel with validate rather than after it. The two jobs
+  # share no outputs, and the serial order added the whole validate
+  # duration to every release. The cost is integration runner minutes
+  # on changes that fail validation.
   integration:
-    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -74,7 +85,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install browser test dependencies
+        # Bounded because a hung browser download otherwise consumes the
+        # whole job budget and reports a timeout with no diagnostic, which
+        # reads as a test failure rather than an infrastructure one.
+        timeout-minutes: 8
         run: |
           npm ci
           DATABASE_URL=postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio npx prisma generate

@@ -11,6 +11,10 @@ primary_region = "iad"
   NODE_ENV = "production"
   PORT = "3000"
   SCREENSHOT_API_URL = "https://api.microlink.io"
+  # The storage gateway sends no CORS headers, so browsers cannot PUT to
+  # its signed URLs directly. Signed transfers route through the
+  # authenticated same-origin proxy at /api/tenant/storage instead.
+  STORAGE_PROXY_URL = "https://shots.oppulence.io/api/tenant/storage"
 
 [http_service]
   internal_port = 3000

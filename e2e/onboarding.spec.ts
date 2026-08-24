@@ -20,6 +20,6 @@ test('a new user can create an account and workspace', async ({ app, identity, p
 
   await app.expectPath('/')
   await app.open('/onboarding')
-  await app.expectPath('/')
-  await expect(page.getByRole('button', { exact: true, name: 'Save' })).toBeVisible()
+  await app.expectPath('/onboarding')
+  await expect(page.getByRole('button', { name: 'Create workspace' })).toBeVisible()
 })

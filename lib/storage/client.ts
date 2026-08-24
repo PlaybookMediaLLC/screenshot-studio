@@ -47,7 +47,10 @@ type StorageSignedUploadResponse = {
 function getRequiredEnvironment(name: string): string {
   const value = process.env[name]
   if (!value) {
-    throw new Error(`${name} is required for tenant storage.`)
+    // Unconfigured storage is a deployment gap, not a bad request, so it
+    // surfaces as a dependency being unavailable rather than an
+    // unexplained server fault. Callers already map this to 503.
+    throw new TenantStorageUnavailableError(`${name} is required for tenant storage.`)
   }
 
   return value
@@ -171,10 +174,20 @@ export async function deleteTenantObject(input: {
 }): Promise<void> {
   const bucket = getRequiredEnvironment('STORAGE_BUCKET')
   assertTenantObjectKey(input.organizationId, input.objectKey)
-  await fetchStorage(getRequestUrl(`/object/${bucket}/${input.objectKey}`), {
-    headers: getStorageHeaders(),
-    method: 'DELETE',
-  })
+  try {
+    const response = await fetch(getRequestUrl(`/object/${bucket}/${input.objectKey}`), {
+      headers: getStorageHeaders(),
+      method: 'DELETE',
+    })
+    if (!response.ok && response.status !== 404) {
+      throw new TenantStorageUnavailableError(`Storage request failed: ${response.status}`)
+    }
+  } catch (error) {
+    if (error instanceof TenantStorageUnavailableError) {
+      throw error
+    }
+    throw new TenantStorageUnavailableError('Storage is unavailable.')
+  }
 }
 
 export async function readTenantObject(input: {

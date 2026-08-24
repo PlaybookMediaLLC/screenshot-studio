@@ -2,6 +2,7 @@ import 'server-only'
 
 import { randomUUID } from 'node:crypto'
 import { prisma } from '@/lib/db'
+import { isWorkspaceOperational } from '@/lib/workspace/access'
 import { assertAuthEnvironment } from './environment'
 import {
   hasPermission,
@@ -37,6 +38,11 @@ export type TenantContext = {
   requestId: string
 }
 
+export type SessionAccess = {
+  principal: SessionPrincipal
+  requestId: string
+}
+
 type AuthSession = {
   activeOrganizationId?: string | null
   id: string
@@ -52,12 +58,11 @@ export async function resolveActiveOrganizationId(
 ): Promise<string | null> {
   if (session.activeOrganizationId) return session.activeOrganizationId
 
-  const memberships = await prisma.member.findMany({
+  const membership = await prisma.member.findFirst({
+    orderBy: { createdAt: 'asc' },
     select: { organizationId: true },
-    take: 2,
     where: { userId },
   })
-  const membership = memberships.length === 1 ? memberships[0] : null
   if (!membership) return null
 
   await prisma.session.update({
@@ -105,6 +110,14 @@ export async function getRequestPrincipal(headers: Headers): Promise<Principal |
   return (await getApiKeyPrincipal(headers)) ?? getSessionPrincipal(headers)
 }
 
+export async function requireSessionAccess(headers: Headers): Promise<SessionAccess> {
+  const principal = await getSessionPrincipal(headers)
+  if (!principal) {
+    throw new AuthorizationError('Authentication is required.', 401)
+  }
+  return { principal, requestId: getRequestId(headers) }
+}
+
 async function requireActiveSessionOrganization(headers: Headers): Promise<OrganizationAccess> {
   const session = await auth.api.getSession({ headers, query: { disableCookieCache: true } })
   if (!session) {
@@ -125,6 +138,10 @@ async function requireActiveSessionOrganization(headers: Headers): Promise<Organ
   })
   if (!member) {
     throw new AuthorizationError('You do not belong to the active organization.', 403)
+  }
+
+  if (!(await isWorkspaceOperational(member.organizationId))) {
+    throw new AuthorizationError('This workspace is unavailable.', 403)
   }
 
   return {

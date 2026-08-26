@@ -90,6 +90,7 @@ Scalar may display the bearer-token input, but it must not persist, log, prefill
 - JSON request bodies use `Content-Type: application/json`.
 - Upload operations use documented multipart fields or signed upload URLs.
 - Zod schemas validate path, query, header, and body inputs at the route boundary.
+- The REST framework requires a Zod schema for every authenticated JSON operation and is the sole owner of the `parseAsync` call.
 - Unknown fields are rejected for mutation requests unless a resource RFC explicitly allows them.
 - Timestamps use RFC 3339 UTC strings.
 - Pagination uses an opaque `cursor` and bounded `limit`.
@@ -147,12 +148,15 @@ New authenticated JSON endpoints use `createTenantJsonRoute` from
 requires four explicit decisions:
 
 1. the API-key scope and browser-session permission;
-2. the Zod-backed request parser;
+2. a required Zod schema plus an extractor for untrusted request values;
 3. the tenant domain service to execute;
 4. an optional response mapper for non-`200` behavior.
 
 The framework resolves `TenantContext`, applies the shared authorization
-boundary, and maps thrown errors through the shared REST error handler. Domain
+boundary, validates the extractor result with `schema.parseAsync`, and only then
+invokes the domain service. Endpoint code must not manually parse or bypass this
+Zod boundary. Inputs spanning path, query, headers, and body use one composed
+Zod object so the complete operation contract remains inspectable. Domain
 logic remains in `lib/tenant`; handlers must not call tRPC or duplicate service
 logic.
 

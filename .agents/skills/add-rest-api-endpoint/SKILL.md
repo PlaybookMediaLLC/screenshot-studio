@@ -14,9 +14,11 @@ Add versioned public operations to the existing Next.js application without dupl
 3. Add the handler below `app/api/v1`. Use plural kebab-case resources and opaque identifiers.
 4. Build authenticated JSON handlers with `createTenantJsonRoute` from `lib/api/v1/route.ts`. Supply:
    - one explicit API-key scope and browser-session permission;
-   - a `parse` function that validates path, query, headers, and body with Zod;
+   - a required Zod `schema` that defines the complete route input contract;
+   - an `input` function that only extracts untrusted path, query, header, and body values;
    - an `execute` function that receives the server-resolved `TenantContext`;
    - a `respond` function only when the default `200` JSON response is insufficient.
+     The framework, not the endpoint, calls `schema.parseAsync`. Do not parse manually or bypass this Zod boundary.
 5. Never accept `organizationId` as authorization. Resolve workspace ownership through `requireTenantAccess` inside the framework.
 6. Add the exact path, method, stable `operationId`, security requirement, schemas, and responses to `lib/api/openapi.ts`. Scalar reads this document automatically.
 7. Add a focused contract test and extend `tests/verify-agent-endpoints.ts` when the route can be exercised without destructive durable effects.
@@ -32,17 +34,19 @@ import { performAction } from '@/lib/tenant/example'
 
 export const POST = createTenantJsonRoute({
   access: { apiKeyScope: 'example:write', permission: 'artifact:edit' },
-  parse: async (request) => inputSchema.parse(await request.json()),
+  schema: inputSchema,
+  input: (request) => request.json(),
   execute: (tenant, input) => performAction(tenant, input),
   respond: (result) => NextResponse.json(result, { status: 201 }),
 })
 ```
 
-For dynamic paths, accept the provided route context in `parse`, await `context.params`, and validate the identifier with the owning Zod schema.
+For dynamic paths, accept the provided route context in `input`, await `context.params`, and return those raw values as part of the object validated by the route's Zod `schema`.
 
 ## Contract rules
 
 - Keep `/api/v1` additive. Require a new major version for breaking request or response changes.
+- Every authenticated JSON route must declare its Zod schema through the framework. Endpoint-local calls to `parse`, `safeParse`, or ad hoc validation are not substitutes.
 - Reject unknown mutation fields unless the owning RFC explicitly permits them.
 - Accept `Idempotency-Key` for retriable durable mutations.
 - Return only safe product data. Never return secrets, cookies, raw API keys, provider tokens, internal storage keys, or permanent object URLs.

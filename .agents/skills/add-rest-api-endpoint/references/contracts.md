@@ -10,6 +10,8 @@ Do not expose `app/api/internal`, webhook receivers, Better Auth handlers, or tR
 
 Use `createTenantJsonRoute` for workspace JSON operations. Declare both the API-key scope and browser-session permission. The helper resolves `TenantContext` and converts thrown authorization, validation, workflow, storage, and dependency failures through the shared route-error boundary.
 
+Every route supplies a Zod `schema` and an `input` extractor. The extractor returns untrusted values without parsing. The framework owns the single `schema.parseAsync` call before the domain service can execute, so async refinements, coercion, defaults, and validation errors behave consistently across endpoints.
+
 Never authorize from an input workspace ID. Pass the resolved tenant context to domain services and scope every read or write with `tenant.organizationId`.
 
 ## Parsing
@@ -21,6 +23,8 @@ Validate all untrusted data before executing the domain service:
 - path parameters after awaiting the Next.js 16 `params` promise;
 - idempotency keys with a 128-character maximum;
 - content type and byte limits before signing uploads.
+
+For inputs spanning multiple request locations, define one composed Zod object such as `{ params, query, headers, body }`. This keeps the full operation input contract inspectable and reusable instead of scattering validation across callbacks.
 
 ## Responses
 

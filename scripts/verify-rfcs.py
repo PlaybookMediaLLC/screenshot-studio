@@ -364,6 +364,17 @@ def check_cross_references(docs: dict[str, str]) -> list[str]:
     return problems
 
 
+def evaluate_script_allowlist(scripts: list[str], ignored: list[str]) -> list[str]:
+    """Pure core of the allowlist check, so it can be tested without a repo."""
+    if not scripts:
+        return ["no tracked scripts found; allowlist check would be meaningless"]
+    return [
+        f"{script} is tracked but would be ignored if re-added"
+        for script in scripts
+        if script in ignored
+    ]
+
+
 def check_tracked_scripts_survive_reclone() -> list[str]:
     """Every tracked script must be allowlisted against `/scripts/*`.
 
@@ -373,20 +384,14 @@ def check_tracked_scripts_survive_reclone() -> list[str]:
     until someone re-adds the file and it vanishes. `--no-index` is what makes
     this detectable: plain `check-ignore` reports tracked files as fine.
     """
-    listing = subprocess.run(
-        ["git", "ls-files", "scripts/"], capture_output=True, text=True
-    )
+    listing = subprocess.run(["git", "ls-files", "scripts/"], capture_output=True, text=True)
     scripts = [f for f in listing.stdout.split("\n") if f.strip()]
-    if not scripts:
-        return ["no tracked scripts found; allowlist check would be meaningless"]
-    problems = []
-    for script in scripts:
-        ignored = subprocess.run(
-            ["git", "check-ignore", "-q", "--no-index", script]
-        )
-        if ignored.returncode == 0:
-            problems.append(f"{script} is tracked but would be ignored if re-added")
-    return problems
+    ignored = [
+        script
+        for script in scripts
+        if subprocess.run(["git", "check-ignore", "-q", "--no-index", script]).returncode == 0
+    ]
+    return evaluate_script_allowlist(scripts, ignored)
 
 
 def check_shipped_symbols(docs: dict[str, str], source: str) -> list[str]:
@@ -499,6 +504,11 @@ def self_test(docs: dict[str, str], source: str) -> int:
             ),
         ),
         ("grounded paragraphs (no sources)", lambda: check_grounded_paragraphs(docs, "")),
+        (
+            "script allowlist (tracked but ignored)",
+            lambda: evaluate_script_allowlist(["scripts/a.ts"], ["scripts/a.ts"]),
+        ),
+        ("script allowlist (no scripts found)", lambda: evaluate_script_allowlist([], [])),
         (
             "cross references (missing RFC)",
             lambda: check_cross_references({"x.md": "See RFC 099 for details."}),

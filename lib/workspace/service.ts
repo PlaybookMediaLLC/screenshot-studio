@@ -57,6 +57,15 @@ async function withSerializableTransaction<T>(
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new WorkspaceError('The workspace data conflicts with an existing record.', 409)
       }
+      // A serialization failure that outlived the retries is still a
+      // concurrency conflict, not a server fault. Left raw it matches no
+      // branch in getDomainTRPCError and surfaces as a 500, which reads as
+      // "the workspace API is broken" when the real answer is "two writes
+      // raced, retry". Convert it to the same 409 the retry budget already
+      // ends with.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+        throw new WorkspaceError('The workspace changed. Please retry.', 409)
+      }
       throw error
     }
   }

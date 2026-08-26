@@ -101,7 +101,7 @@ conversation.
 
 ### RFC priority order
 
-The full plan lives in [docs/rfcs/](docs/rfcs/). Implementation follows this order:
+The [RFC detail audit](docs/rfcs/000-detail-audit-2026-08-26.md) records which proposals need stronger contracts or documentation backfill. The full plan lives in [docs/rfcs/](docs/rfcs/). Implementation follows this order:
 
 | Priority   | RFC                                                                                                | Scope                                                                                        | Status      |
 | ---------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------- |

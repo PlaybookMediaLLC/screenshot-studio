@@ -301,6 +301,13 @@ run_e2e() {
   fi
   wait_for_http "${app_url%/}/api/health" "Screenshot Studio"
   wait_for_http "${app_url%/}/sign-up" "Screenshot Studio sign-up route"
+  wait_for_http "${app_url%/}/sign-in" "Screenshot Studio sign-in route"
+  # The stack runs `next dev`, so a route is compiled on its first request.
+  # A browser navigation to an uncompiled route keeps `page.url()` on the
+  # previous page until the server responds, so an unwarmed auth route looks
+  # to Playwright exactly like a redirect that never happened. /two-factor is
+  # reached only mid-test, so it was paying that cost inside a 20s poll.
+  wait_for_http "${app_url%/}/two-factor" "Screenshot Studio two-factor route"
   wait_for_http "$app_url" "Screenshot Studio editor route"
   if ! E2E_BASE_URL="$app_url" \
     E2E_DATABASE_URL="${E2E_DATABASE_URL:-$HOST_DATABASE_URL}" \

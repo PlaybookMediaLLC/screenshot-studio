@@ -129,6 +129,53 @@ This gives three properties:
 The cost is that connections are operator-provisioned rather than
 self-service. Multi-tenant OAuth is the planned refinement below.
 
+## Authorization
+
+Every publishing operation is guarded by `publish:manage`, which
+`lib/auth/permissions.ts` grants to `owner`, `admin`, and `publisher`. Notably
+`approver` does not hold it: approving content and pushing it to a public
+channel are deliberately separate capabilities, so the role that signs off on a
+message cannot unilaterally broadcast it.
+
+Read and write operations are not guarded equally. `lib/trpc/routers/publishing.ts`
+uses `organizationProcedure('publish:manage')` for listing and
+`sensitiveOrganizationProcedure('publish:manage')` for every mutation:
+
+| Operation                    | Procedure                            | Requires fresh 2FA |
+| ---------------------------- | ------------------------------------ | ------------------ |
+| List channel connections     | `organizationProcedure`              | no                 |
+| Create a channel connection  | `sensitiveOrganizationProcedure`     | yes                |
+| List scheduled posts         | `organizationProcedure`              | no                 |
+| Create a scheduled post      | `sensitiveOrganizationProcedure`     | yes                |
+| Cancel a scheduled post      | `sensitiveOrganizationProcedure`     | yes                |
+
+`sensitiveOrganizationProcedure` checks the permission twice: once against the
+active organization, then again through `requireSensitiveOrganizationPermission`,
+which additionally demands a recent two-factor session. The reasoning is that
+scheduling is the last reversible moment before content becomes public and
+binding a channel connection confers the ability to speak as the tenant. Both
+warrant proof of a live, strongly authenticated human rather than a long-lived
+cookie.
+
+This is the one place where the platform's general rule that reads and writes
+share an authorization path is deliberately broken, and the asymmetry is the
+point: observing the schedule is routine, changing it is not.
+
+Tenancy follows the platform invariant. `organizationId` is resolved from the
+session principal by `requireActiveOrganizationPermission` and is never read
+from client input. `lib/tenant/scheduled-posts.ts` resolves both the connection
+and the variant with `findFirst` scoped by `organizationId`, so a
+`channelConnectionId` naming another tenant's connection selects nothing and
+raises `ScheduledPostError` with status `404` rather than a permission error.
+The surface does not confirm the existence of records the caller cannot see.
+
+The same lookup carries two further predicates that make scheduling fail closed:
+the connection must be `ACTIVE`, and the variant must be `APPROVED` with an
+`APPROVED` approval record. Authorization alone is therefore not sufficient to
+schedule. A publisher with a valid permission still cannot schedule unapproved
+content, which is where the "machines create, humans approve" invariant is
+enforced structurally rather than by convention.
+
 ## Scheduling contract
 
 `createScheduledPost` requires an idempotency key and enforces uniqueness on

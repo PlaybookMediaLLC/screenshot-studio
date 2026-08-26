@@ -268,6 +268,42 @@ Two additions specific to background execution:
 Stored markdown is subject to workspace deletion and retention. A workspace
 that deletes its data deletes its crawled pages.
 
+### Tenant isolation and authorization
+
+Onboarding is unusual because much of it runs after the request that started it
+has returned, so the usual "resolve tenancy from the session principal" rule
+needs an explicit extension.
+
+| Operation                     | Permission                              |
+| ----------------------------- | --------------------------------------- |
+| Start an onboarding run       | `workspace:update`                      |
+| Read run status and progress  | `workspace:read`                        |
+| Accept or correct the profile | `brand:manage`                          |
+| Cancel a run                  | `workspace:update`                      |
+
+The `workspaceId` on a background run is captured from the authenticated
+session at enqueue time and is carried on the job payload. The worker treats it
+as an already authorized value and never re-derives it from crawled content, a
+model output, or a URL. This mirrors RFC 016's rule that `workspaceId` is
+runtime-injected and never taken from model output, and it matters more here
+because the model is reading attacker-controllable text: a page that says "this
+site belongs to workspace X" must have no mechanism by which it could be
+believed.
+
+Three consequences follow:
+
+1. Every write the worker performs is scoped to the captured `workspaceId`.
+   `PageKnowledge` is unique on `(workspaceId, normalizedUrl)` and profile
+   merges are governed by the precedence rules, so a run cannot write outside
+   its own tenant even if extraction returns nonsense.
+2. If the initiating member loses access or the workspace is suspended before
+   the run completes, results are discarded rather than applied. Authorization
+   is re-checked at apply time, not only at enqueue time.
+3. Crawled content is tenant-private. Two workspaces onboarding the same public
+   URL each get their own `PageKnowledge` rows. Sharing a cache across tenants
+   would leak which companies are evaluating which competitors, so the
+   duplicated storage is accepted deliberately.
+
 ## Observability
 
 - Fast-path latency at p50, p95, and p99, and its timeout rate by stage.

@@ -296,9 +296,12 @@ Every asset, capture, brand kit, and template referenced by a spec is verified
 to belong to the caller's organization during input resolution, before any
 render begins. A spec referencing a foreign asset fails with `404`, not `403`.
 
-Rendering is metered. It declares the `creative:render` capability and consumes
-the monthly generation quota from the entitlement model in RFC 034. Video
-consumes more quota than images, proportional to rendered frames.
+Rendering is metered. It requires a new `creative:render` workspace feature,
+which does not exist yet: `workspaceFeatureSchema` in `lib/billing/plans.ts`
+currently enumerates asset, release, source-app, and enterprise features only.
+Adding it is a prerequisite of this RFC, not an assumption of it. Rendering then
+consumes the existing `generation:monthly` quota from the entitlement model in
+RFC 034. Video consumes more quota than images, proportional to rendered frames.
 
 ## Failure behavior
 

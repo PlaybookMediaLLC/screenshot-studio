@@ -46,7 +46,7 @@ Details:
 - A scheduled Trigger.dev task runs the cycle per workspace.
 - Inputs: GitHub-derived product changes (RFC 022), performance data
   (RFC 027), published history, and pillar balance (RFC 025).
-- The output is one campaign in `ready_for_review` with a full week of posts.
+- The output is one campaign in `READY_FOR_REVIEW` with a full week of posts.
 - One batch approval (RFC 019) schedules the week. Rejection with a note
   regenerates the plan.
 - A workspace can disable the cycle.
@@ -154,6 +154,14 @@ unreviewed work is how an autonomous feature becomes something users turn off.
 
 The cycle produces `READY_FOR_REVIEW`, never `APPROVED`, and never
 `SCHEDULED`. Approval is RFC 019's batch action.
+
+This is a blocking dependency, not just a design preference. RFC 019's `submit`
+decision is session-only today, because `decideApproval` resolves through
+`requireActiveSessionOrganization` and has no API-key path. A background cycle
+therefore cannot move its own output to `READY_FOR_REVIEW` with the shipped
+surface. RFC 019's planned machine-submission procedure has to land before this
+RFC can work at all, and it must be a separate procedure so that `approve`,
+`reject`, and `request_changes` stay human-only.
 
 | Founder action           | Effect                                                  |
 | ------------------------ | ------------------------------------------------------- |

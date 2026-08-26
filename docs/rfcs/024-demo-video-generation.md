@@ -256,9 +256,10 @@ Accessibility requirements, because these videos are published publicly:
 | Cancel a render     | `artifact:edit`    | `asset:write` |
 | Open in the editor  | `artifact:edit`    | not applicable |
 
-Video rendering is metered under `creative:render` with a higher quota cost
-proportional to frame count. Every referenced capture is verified to belong to
-the workspace before rendering starts.
+Video rendering is metered under the `creative:render` workspace feature that
+RFC 010 introduces, with a higher `generation:monthly` cost proportional to
+frame count. Every referenced capture is verified to belong to the workspace
+before rendering starts.
 
 ## Observability
 

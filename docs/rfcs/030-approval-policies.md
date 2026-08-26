@@ -278,7 +278,7 @@ positive rate is the metric that governs whether this feature expands.
 ## Acceptance criteria
 
 1. An educational post publishes without a human touch. A post naming a
-   competitor stops at `ready_for_review`, and the audit log shows the policy
+   competitor stops at `READY_FOR_REVIEW`, and the audit log shows the policy
    decision for both.
 2. A new workspace requires approval for everything by default.
 3. A post matching both a permissive and a restrictive rule requires approval.

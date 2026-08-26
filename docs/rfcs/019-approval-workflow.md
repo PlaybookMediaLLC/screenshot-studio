@@ -104,13 +104,29 @@ This table is the normative contract. It matches `campaignPostTransitions` in
 
 | Decision          | From                      | To                 | Permission        | Actor kinds allowed      |
 | ----------------- | ------------------------- | ------------------ | ----------------- | ------------------------ |
-| `submit`          | `DRAFT`, `NEEDS_CHANGES`  | `READY_FOR_REVIEW` | `release:create`  | session, API key, agent  |
+| `submit`          | `DRAFT`, `NEEDS_CHANGES`  | `READY_FOR_REVIEW` | `release:create`  | session only             |
 | `approve`         | `READY_FOR_REVIEW`        | `APPROVED`         | `release:approve` | session only             |
 | `reject`          | `READY_FOR_REVIEW`        | `REJECTED`         | `release:approve` | session only             |
 | `request_changes` | `READY_FOR_REVIEW`        | `NEEDS_CHANGES`    | `release:approve` | session only             |
 
 Any decision applied to a post outside its `from` set is rejected. There is no
 force transition and no administrative override that skips a state.
+
+Every decision is session-only today, including `submit`. `decideApproval` in
+`lib/trpc/routers/campaign.ts` calls `requireActiveOrganizationPermission`,
+which resolves through `requireActiveSessionOrganization` and therefore has no
+API-key path at all. The permission still varies per decision, so a `creator`
+can submit and cannot approve, but no actor kind other than a logged-in member
+can drive the state machine.
+
+For `approve`, `reject`, and `request_changes` this is a deliberate safety
+property and should not change: approval is the human gate the whole platform
+rests on. For `submit` it is an incidental consequence of sharing one procedure.
+Machine submission is a reasonable future capability, since a generation job
+that produces a draft and moves it to review is exactly what RFC 029 wants, and
+it would need a separate procedure with an API-key path rather than a relaxation
+of `decideApproval`. It is listed under planned refinements rather than
+described here as though it already worked.
 
 ### Scheduling as a separate gate
 
@@ -303,6 +319,12 @@ These are not shipped. Each needs its own change with a migration.
 6. **Per-channel caption limits.** The 3,000 character limit is global. X,
    LinkedIn, and Instagram have different real limits and the check should be
    channel-aware, sourced from the provider capability table in RFC 020.
+7. **Machine submission.** `submit` shares `decideApproval` with the three
+   review decisions, so it inherits a session-only path and no automated
+   producer can move a draft to review. RFC 029's recurring generation needs
+   this. The fix is a separate procedure carrying `release:create` with an
+   API-key path, not a relaxation of `decideApproval`, so that `approve`,
+   `reject`, and `request_changes` remain provably reachable only by a human.
 
 ## Out of scope
 

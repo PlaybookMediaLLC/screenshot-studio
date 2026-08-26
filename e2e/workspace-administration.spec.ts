@@ -187,8 +187,18 @@ test('an MFA-protected owner can schedule and restore workspace deletion', async
   })
 
   await page.getByRole('button', { name: 'Restore workspace' }).click()
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/workspace')
-  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
+  // The page is already on /workspace, so polling the path proves nothing
+  // here: it matches immediately whether or not the restore navigation ever
+  // happened. Wait for the restored content instead, and surface the
+  // component's error alert if the mutation failed, so a failure says why
+  // rather than reporting a missing heading.
+  await expect(async () => {
+    const alert = page.getByRole('alert')
+    if ((await alert.count()) > 0) {
+      throw new Error(`Restore failed: ${await alert.first().innerText()}`)
+    }
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible({ timeout: 1_000 })
+  }).toPass({ timeout: 45_000 })
   expect((await browserRequest(page, '/api/tenant/releases')).status).toBe(200)
   expect(
     (

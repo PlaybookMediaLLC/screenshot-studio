@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { ZodType } from 'zod'
 import type { ApiKeyScope } from '@/lib/auth/api-key-scopes'
 import type { Permission } from '@/lib/auth/permissions'
+import type { WorkspaceFeature } from '@/lib/billing/plans'
 import type { TenantContext } from '@/lib/auth/access'
 import { getRouteErrorResponse } from '@/lib/api/route-errors'
 import { requireTenantAccess } from '@/lib/tenant/access'
@@ -14,6 +15,7 @@ export type RestRouteContext<Params extends Record<string, string> = Record<stri
 
 type TenantAccessRequirement = {
   apiKeyScope: ApiKeyScope
+  feature?: WorkspaceFeature
   permission: Permission
 }
 

@@ -85,6 +85,16 @@ API keys carry explicit scopes. Every handler calls the shared tenant-access bou
 
 Scalar may display the bearer-token input, but it must not persist, log, prefill, or send credentials anywhere except the selected API request.
 
+## Pricing and enterprise entitlement boundary
+
+Commercial authorization is capability-based and server-resolved. Routes declare a stable named feature such as `asset:delete` or `enterprise:scim`; they do not compare arbitrary tier strings inside handlers. `requireTenantAccess` authenticates the principal, resolves the workspace, verifies scope or permission, and then checks the workspace entitlement before any request parsing or domain execution.
+
+`WorkspaceEntitlement` stores the server-owned plan, lifecycle status, optional expiry, and validated per-feature contract overrides. A missing record receives conservative free-plan defaults. Suspended, expired, unknown, or malformed records fail closed for paid features. Request data, API-key metadata, and browser state can never assert a plan or override.
+
+Default plans are `free`, `pro`, `business`, and `enterprise`, but feature checks are the durable contract. This supports negotiated enterprise agreements without creating fragile numeric tier comparisons. Resource update and delete paths have separate capabilities so contracts can permit one without the other. The initial live gated mutation is `asset:delete`, available on Pro and higher unless an explicit contract override grants or revokes it; `asset:update` is reserved for the corresponding update operation. Compatibility routes use the same access requirement to prevent path-based bypass.
+
+The entitlement migration backfills existing workspaces to `business` so enabling the gate does not silently remove capabilities from current customers. New workspaces must receive an entitlement from the billing or onboarding service; until that happens, the fail-closed fallback is `free`. Plan changes and contract overrides are server-side billing operations and are not exposed through tenant product endpoints.
+
 ## Request contract
 
 - JSON request bodies use `Content-Type: application/json`.
@@ -148,9 +158,10 @@ New authenticated JSON endpoints use `createTenantJsonRoute` from
 requires four explicit decisions:
 
 1. the API-key scope and browser-session permission;
-2. a required Zod schema plus an extractor for untrusted request values;
-3. the tenant domain service to execute;
-4. an optional response mapper for non-`200` behavior.
+2. an optional named pricing or enterprise feature entitlement;
+3. a required Zod schema plus an extractor for untrusted request values;
+4. the tenant domain service to execute;
+5. an optional response mapper for non-`200` behavior.
 
 The framework resolves `TenantContext`, applies the shared authorization
 boundary, validates the extractor result with `schema.parseAsync`, and only then
@@ -253,6 +264,7 @@ asset completion, signed asset downloads, and asset deletion.
 - The developer portal links to the interactive reference and raw specification.
 - Unknown `/api/*` paths still return the standardized JSON `404` envelope.
 - Authenticated `/api/v1` routes cannot cross workspace boundaries in tenant-isolation verification.
+- Plan-gated update and delete operations reject free, expired, and suspended workspaces before domain execution, while validated enterprise overrides are honored.
 - Mutation retries with the same idempotency key cannot create duplicate durable effects.
 - Documentation and API smoke tests run in CI.
 

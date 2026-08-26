@@ -14,6 +14,14 @@ Every route supplies a Zod `schema` and an `input` extractor. The extractor retu
 
 Never authorize from an input workspace ID. Pass the resolved tenant context to domain services and scope every read or write with `tenant.organizationId`.
 
+## Pricing and enterprise entitlements
+
+Declare a named `feature` in the route access requirement when an operation is commercially gated. `requireTenantAccess` resolves the authenticated workspace, then loads the server-owned `WorkspaceEntitlement` before input parsing or domain execution. Missing records use the conservative free-plan defaults. Expired, suspended, unknown, or malformed entitlement data fails closed for paid capabilities.
+
+Plan defaults live in `lib/billing/plans.ts`. Enterprise contracts may grant or revoke individual named features with validated overrides, which avoids treating custom enterprise agreements as a simple numeric tier. Never read plan or entitlement claims from request bodies, headers, API-key metadata, or route parameters.
+
+Update and delete operations require explicit entitlement review. Apply the same feature gate to compatibility handlers and other transports until they are retired, otherwise an older endpoint can bypass the commercial boundary.
+
 ## Parsing
 
 Validate all untrusted data before executing the domain service:

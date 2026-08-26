@@ -14,12 +14,14 @@ Add versioned public operations to the existing Next.js application without dupl
 3. Add the handler below `app/api/v1`. Use plural kebab-case resources and opaque identifiers.
 4. Build authenticated JSON handlers with `createTenantJsonRoute` from `lib/api/v1/route.ts`. Supply:
    - one explicit API-key scope and browser-session permission;
+   - a named `feature` entitlement for any plan-gated capability;
    - a required Zod `schema` that defines the complete route input contract;
    - an `input` function that only extracts untrusted path, query, header, and body values;
    - an `execute` function that receives the server-resolved `TenantContext`;
    - a `respond` function only when the default `200` JSON response is insufficient.
      The framework, not the endpoint, calls `schema.parseAsync`. Do not parse manually or bypass this Zod boundary.
 5. Never accept `organizationId` as authorization. Resolve workspace ownership through `requireTenantAccess` inside the framework.
+   Never accept a plan, billing status, or entitlement from the request. The framework resolves it from the authenticated workspace.
 6. Add the exact path, method, stable `operationId`, security requirement, schemas, and responses to `lib/api/openapi.ts`. Scalar reads this document automatically.
 7. Add a focused contract test and extend `tests/verify-agent-endpoints.ts` when the route can be exercised without destructive durable effects.
 8. Run the deterministic registry check, formatting, lint, typecheck, tests, and a production build.
@@ -47,6 +49,8 @@ For dynamic paths, accept the provided route context in `input`, await `context.
 
 - Keep `/api/v1` additive. Require a new major version for breaking request or response changes.
 - Every authenticated JSON route must declare its Zod schema through the framework. Endpoint-local calls to `parse`, `safeParse`, or ad hoc validation are not substitutes.
+- Gate commercial capabilities by named feature, not a client-supplied plan or scattered `if (plan === ...)` checks. Define plan defaults and contract overrides in `lib/billing/plans.ts`.
+- Put update and delete entitlement checks in the shared access boundary before request parsing or domain execution. Compatibility routes must use the same gate so callers cannot bypass pricing through an older path.
 - Reject unknown mutation fields unless the owning RFC explicitly permits them.
 - Accept `Idempotency-Key` for retriable durable mutations.
 - Return only safe product data. Never return secrets, cookies, raw API keys, provider tokens, internal storage keys, or permanent object URLs.

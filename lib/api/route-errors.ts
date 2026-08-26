@@ -11,6 +11,7 @@ import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
 import { CampaignError } from '@/lib/tenant/campaigns'
 import { CreativeWorkflowError } from '@/lib/tenant/creative'
 import { WorkspaceError } from '@/lib/workspace/errors'
+import { WorkspaceEntitlementError } from '@/lib/tenant/entitlements'
 
 function isDatabaseUnavailable(error: unknown): boolean {
   return (
@@ -38,10 +39,39 @@ function getWorkflowErrorResponse(error: unknown): NextResponse | null {
   return null
 }
 
+function getEntitlementErrorResponse(error: unknown): NextResponse | null {
+  if (!(error instanceof WorkspaceEntitlementError)) return null
+
+  const documentation = 'https://www.screenshot-studio.com/api-reference'
+
+  return NextResponse.json(
+    {
+      code: 'workspace_feature_not_entitled',
+      currentPlan: error.currentPlan,
+      documentation,
+      error: error.message,
+      feature: error.feature,
+      hint: `Upgrade to ${error.requiredPlan} or ask a workspace owner to review the contract entitlement.`,
+      message: error.message,
+      requiredPlan: error.requiredPlan,
+      status: error.status,
+    },
+    {
+      headers: {
+        'x-current-plan': error.currentPlan,
+        'x-required-plan': error.requiredPlan,
+      },
+      status: error.status,
+    }
+  )
+}
+
 export function getRouteErrorResponse(error: unknown): NextResponse {
   if (error instanceof AuthorizationError) {
     return NextResponse.json({ error: error.message }, { status: error.status })
   }
+  const entitlementResponse = getEntitlementErrorResponse(error)
+  if (entitlementResponse) return entitlementResponse
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
   }

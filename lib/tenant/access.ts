@@ -4,9 +4,12 @@ import { requireActiveOrganizationPermission, type TenantContext } from '@/lib/a
 import { requireOrganizationApiKeyScope } from '@/lib/auth/api-keys'
 import type { ApiKeyScope } from '@/lib/auth/api-key-scopes'
 import type { Permission } from '@/lib/auth/permissions'
+import { requireWorkspaceFeature } from '@/lib/tenant/entitlements'
+import type { WorkspaceFeature } from '@/lib/billing/plans'
 
 type TenantAccessRequirement = {
   apiKeyScope: ApiKeyScope
+  feature?: WorkspaceFeature
   permission: Permission
 }
 
@@ -14,9 +17,13 @@ export async function requireTenantAccess(
   headers: Headers,
   requirement: TenantAccessRequirement
 ): Promise<TenantContext> {
-  if (headers.has('x-api-key')) {
-    return requireOrganizationApiKeyScope(headers, requirement.apiKeyScope)
+  const context = headers.has('x-api-key')
+    ? await requireOrganizationApiKeyScope(headers, requirement.apiKeyScope)
+    : await requireActiveOrganizationPermission(headers, requirement.permission)
+
+  if (requirement.feature) {
+    await requireWorkspaceFeature(context.organizationId, requirement.feature)
   }
 
-  return requireActiveOrganizationPermission(headers, requirement.permission)
+  return context
 }

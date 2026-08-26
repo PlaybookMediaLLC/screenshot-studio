@@ -15,6 +15,7 @@ export async function DELETE(
     const input = assetDownloadQuerySchema.parse({ assetId })
     const context = await requireTenantAccess(request.headers, {
       apiKeyScope: 'asset:write',
+      feature: 'asset:delete',
       permission: 'artifact:edit',
     })
     const result = await deleteAsset(context, input.assetId)

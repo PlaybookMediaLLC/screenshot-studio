@@ -364,6 +364,31 @@ def check_cross_references(docs: dict[str, str]) -> list[str]:
     return problems
 
 
+def check_tracked_scripts_survive_reclone() -> list[str]:
+    """Every tracked script must be allowlisted against `/scripts/*`.
+
+    `.gitignore` denies `/scripts/*` and re-admits specific files. A tracked
+    script missing from that allowlist keeps working only because git ignores
+    ignore-rules for files already in the index, so the omission stays silent
+    until someone re-adds the file and it vanishes. `--no-index` is what makes
+    this detectable: plain `check-ignore` reports tracked files as fine.
+    """
+    listing = subprocess.run(
+        ["git", "ls-files", "scripts/"], capture_output=True, text=True
+    )
+    scripts = [f for f in listing.stdout.split("\n") if f.strip()]
+    if not scripts:
+        return ["no tracked scripts found; allowlist check would be meaningless"]
+    problems = []
+    for script in scripts:
+        ignored = subprocess.run(
+            ["git", "check-ignore", "-q", "--no-index", script]
+        )
+        if ignored.returncode == 0:
+            problems.append(f"{script} is tracked but would be ignored if re-added")
+    return problems
+
+
 def check_shipped_symbols(docs: dict[str, str], source: str) -> list[str]:
     """A doc marked Implemented must not cite symbols that do not exist."""
     problems = []
@@ -400,6 +425,7 @@ def run(docs: dict[str, str], source: str) -> list[tuple[str, list[str]]]:
         ("audit promises are substantiated", check_audit_promises(docs)),
         ("every doc citing a real file names real symbols", check_grounded_paragraphs(docs, source)),
         ("cross-RFC references resolve", check_cross_references(docs)),
+        ("tracked scripts survive a re-clone", check_tracked_scripts_survive_reclone()),
     ]
 
 

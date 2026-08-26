@@ -47,6 +47,7 @@ public/backgrounds
 /scripts/*
 !/scripts/e2e-screenshot-mock.mjs
 !/scripts/smoke-rate-limit.mjs
+!/scripts/verify-entitlements.ts
 !/scripts/verify-tenant-isolation.ts
 !/scripts/verify-trpc-smoke.ts
 !/scripts/verify-rfcs.py

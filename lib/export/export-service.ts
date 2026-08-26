@@ -12,6 +12,7 @@
  */
 
 import { domToCanvas } from 'modern-screenshot';
+import { cleanExportClone, shouldIncludeInExport } from './export-filter';
 import { processWithSharp } from './sharp-client';
 import type { ExportFormat, QualityPreset } from './types';
 import { useImageStore, type ImageState } from '@/lib/store';
@@ -101,16 +102,8 @@ async function capture3DTransformWithModernScreenshot(
   const canvas = await domToCanvas(element, {
     scale: scale,
     backgroundColor: null,
-    filter: (node: Node) => {
-      if (node instanceof HTMLElement && node.dataset.resizeHandle === 'true') return false;
-      if (node instanceof HTMLElement && node.dataset.blurRegion === 'true') return false;
-      return true;
-    },
-    onCloneNode: (cloned: Node) => {
-      if (cloned instanceof HTMLElement && cloned.dataset.htmlCanvas === 'true') {
-        cloned.style.overflow = 'visible';
-      }
-    },
+    filter: shouldIncludeInExport,
+    onCloneNode: cleanExportClone,
   });
 
   // Apply blur regions as post-processing
@@ -164,18 +157,10 @@ async function exportHTMLCanvas(
     backgroundColor: null,
     width: originalWidth,
     height: originalHeight,
-    filter: (node: Node) => {
-      if (node instanceof HTMLElement && node.dataset.resizeHandle === 'true') return false;
-      // Exclude blur region elements — backdrop-filter doesn't render in domToCanvas,
-      // so we apply blur as canvas post-processing below
-      if (node instanceof HTMLElement && node.dataset.blurRegion === 'true') return false;
-      return true;
-    },
-    onCloneNode: (cloned: Node) => {
-      if (cloned instanceof HTMLElement && cloned.dataset.htmlCanvas === 'true') {
-        cloned.style.overflow = 'visible';
-      }
-    },
+    // Exclude editor-only controls and blur regions. Blur is composited in a
+    // post-processing pass because backdrop-filter cannot be rasterized here.
+    filter: shouldIncludeInExport,
+    onCloneNode: cleanExportClone,
   });
 
   // Apply blur regions as post-processing (CSS backdrop-filter doesn't export)

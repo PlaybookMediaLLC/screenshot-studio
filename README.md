@@ -6,7 +6,7 @@ Screenshot Studio started as a free, browser-based screenshot editor. It is grow
 marketing platform for software founders. The editor is the creative engine. An AI copilot
 plans campaigns. The platform renders assets, collects approval, and publishes.
 
-**Live editor:** [screenshot-studio.com](https://screenshot-studio.com)
+**Live platform and editor:** [screenshot-studio.com](https://www.screenshot-studio.com)
 
 ## The thesis
 
@@ -232,6 +232,17 @@ npm run dev
 ```
 
 Open [localhost:3000](http://localhost:3000).
+
+## Agent and API discovery
+
+The deployed product publishes machine-readable interfaces for agents and API clients:
+
+- [`llms.txt`](https://www.screenshot-studio.com/llms.txt) and
+  [`llms-full.txt`](https://www.screenshot-studio.com/llms-full.txt)
+- [OpenAPI 3.1 specification](https://www.screenshot-studio.com/openapi.json)
+- [API documentation](https://www.screenshot-studio.com/docs) and
+  [developer portal](https://www.screenshot-studio.com/developers)
+- Markdown representations of supported pages via `Accept: text/markdown`
 
 ## Deployment
 

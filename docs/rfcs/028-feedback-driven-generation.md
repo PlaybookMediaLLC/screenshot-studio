@@ -261,6 +261,26 @@ The default action is always "make no adjustment". A feedback loop biased
 toward acting will act on noise, and acting on noise in a compounding weekly
 cycle is worse than not having the loop.
 
+## Security threats
+
+This loop lets measured outcomes change what the system generates, which makes
+it the one place where an attacker who can influence numbers can influence
+copy. The defense is that recommendations are proposals a human accepts, never
+silent parameter drift.
+
+| Threat                                       | Mitigation                                                 |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| Manipulated engagement steering house style  | Adjustments surface as reviewable recommendations with their evidence |
+| Cross-tenant learning                        | Every signal is workspace-scoped; nothing is pooled across tenants |
+| Thin samples presented as findings           | Sample size is shown; below threshold the loop reports uncertainty |
+| Recommendation applied without attribution   | Applied adjustments are audited with actor, evidence, and prior value |
+| Runaway drift across cycles                  | Adjustments are bounded and revertible to the prior state    |
+
+Nothing here learns across workspaces. Pooling would produce better
+recommendations and would also mean one tenant's performance data shapes
+another tenant's marketing, which is a confidentiality boundary this product
+cannot cross regardless of the modeling benefit.
+
 ## Observability
 
 - Recommendations produced, shown, applied, and reverted.

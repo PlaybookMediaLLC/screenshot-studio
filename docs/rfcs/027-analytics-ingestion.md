@@ -269,6 +269,25 @@ only from its own data, which RFC 028 restates as a product commitment.
 Analytics failure never affects publishing. The two paths share only the
 `providerPostId`.
 
+## Security threats
+
+Performance data is business intelligence. It reveals what a company is
+shipping, how its market responds, and where it is struggling, so a leak across
+tenants is a competitive harm even though no credential is involved.
+
+| Threat                                      | Mitigation                                                  |
+| ------------------------------------------- | ----------------------------------------------------------- |
+| Snapshots attributed to the wrong workspace | Ingestion resolves the workspace from the stored post, never from provider payload |
+| Provider payload used as an identifier      | `providerPostId` is matched against records this workspace owns |
+| Metrics inflated to steer generation        | Snapshots are immutable; corrections append (see Reconciliation) |
+| Aggregate queries crossing tenants          | Every aggregate is workspace-scoped at the query, not filtered after |
+| Retention outliving its purpose             | Snapshots age out on the schedule in Retention                |
+
+The rule that carries the most weight is that a provider response never
+determines which workspace a snapshot belongs to. The provider is authoritative
+about numbers and never about ownership, so a compromised or confused provider
+account can corrupt a workspace's metrics but cannot read another workspace's.
+
 ## Observability
 
 - Polling success rate and latency per provider.

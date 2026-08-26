@@ -210,6 +210,24 @@ All planning uses the workspace time zone from `WorkspaceSettings`.
 | Drag onto a quiet day              | Warning; permitted                              |
 | Reschedule fails at the provider   | Post returns to `APPROVED`; the move is undone  |
 
+## Security threats
+
+The calendar is a scheduling surface, so its threats are about time and
+ownership rather than data exfiltration. The damaging outcome is a post going
+out at a moment nobody chose.
+
+| Threat                                     | Mitigation                                                |
+| ------------------------------------------ | --------------------------------------------------------- |
+| Rescheduling another workspace's post      | Moves resolve the post within the caller's workspace first |
+| Time-zone manipulation shifting publish time | Slots store an absolute instant; the zone is display only |
+| Reordering used to bypass approval         | Moving a post never changes its approval state             |
+| Pillar weights edited without attribution  | Weight changes are audited with actor and prior value      |
+
+Rescheduling and approval are deliberately independent. A post that moves to a
+different day is the same approved content at a new time, and a post that is
+not approved cannot be scheduled at any time, so no sequence of calendar
+operations can turn unreviewed copy into published copy.
+
 ## Observability
 
 | Signal                       | Dimensions                  | Why it is collected                        |

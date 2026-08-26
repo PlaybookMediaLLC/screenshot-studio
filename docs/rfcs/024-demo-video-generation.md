@@ -247,6 +247,25 @@ Accessibility requirements, because these videos are published publicly:
 - A caption transcript is stored with the asset for use as alt text or a
   platform caption field.
 
+## Security threats
+
+Video generation drives a real browser through a customer's product, which
+makes it the most powerful capture primitive in the platform and the one most
+able to record something it should not.
+
+| Threat                                    | Mitigation                                                    |
+| ----------------------------------------- | ------------------------------------------------------------- |
+| Recording authenticated or private state  | Capture runs unauthenticated; `requiresAuth` surfaces are skipped |
+| Internal network reachable from the browser | Same SSRF denylist as every other capture path                |
+| Real customer data appearing in a frame   | Only public surfaces are recorded; frames are workspace-scoped   |
+| Rendered video readable across tenants    | Storage keys are workspace-scoped and served through signed URLs |
+| Cost exhaustion through repeated renders  | Per-render and per-workspace budgets; exhaustion fails the job   |
+
+The narrow rule is that this pipeline never authenticates. Authenticated
+capture is a named gap in the README precisely because doing it safely is a
+separate problem, and a video pipeline that quietly grew a login step would
+solve that problem in the least reviewable place in the product.
+
 ## Authorization
 
 | Operation           | Session permission | API-key scope |

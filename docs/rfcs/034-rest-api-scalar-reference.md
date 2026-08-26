@@ -140,6 +140,43 @@ Validation failures may add an `issues` array containing field paths and message
 - CI validates the document shape and verifies that documented public paths respond.
 - Longer term, resource-level schemas may generate OpenAPI fragments from the same Zod definitions used by handlers. That migration must preserve stable operation IDs.
 
+## Endpoint extension framework
+
+New authenticated JSON endpoints use `createTenantJsonRoute` from
+`lib/api/v1/route.ts`. The framework keeps each Route Handler declarative and
+requires four explicit decisions:
+
+1. the API-key scope and browser-session permission;
+2. the Zod-backed request parser;
+3. the tenant domain service to execute;
+4. an optional response mapper for non-`200` behavior.
+
+The framework resolves `TenantContext`, applies the shared authorization
+boundary, and maps thrown errors through the shared REST error handler. Domain
+logic remains in `lib/tenant`; handlers must not call tRPC or duplicate service
+logic.
+
+Every file below `app/api/v1` must have a one-to-one OpenAPI path. The
+deterministic registry validator at
+`.agents/skills/add-rest-api-endpoint/scripts/validate-rest-api.ts` enforces
+that invariant.
+
+## Endpoint authoring skill
+
+The repository ships the `add-rest-api-endpoint` skill at
+`.agents/skills/add-rest-api-endpoint/SKILL.md`. Use it whenever adding or
+changing a public REST operation. The skill defines:
+
+- route naming and versioning rules;
+- framework usage and tenant authorization requirements;
+- Zod parsing and idempotency conventions;
+- OpenAPI and Scalar registration;
+- contract, tenant-isolation, build, and production verification gates.
+
+Detailed contracts live in the skill's `references/contracts.md`. Keeping this
+workflow in the repository makes endpoint expansion repeatable for engineers
+and coding agents rather than dependent on institutional memory.
+
 ## Scalar reference
 
 The Next.js route at `/api-reference` uses `@scalar/nextjs-api-reference` and loads `/openapi.json`. The reference is public and read-only except for requests users explicitly initiate through Scalar's client.
@@ -193,6 +230,9 @@ Metrics must distinguish documentation traffic from API operation traffic. Alert
 - Reuse tenant services and authorization from the tRPC surface.
 - Add bearer security schemes, scopes, pagination, request IDs, and audit events to OpenAPI.
 - Keep current tenant routes as compatibility adapters until consumers migrate.
+
+Initial Phase 2 operations cover releases, source apps, signed asset uploads,
+asset completion, signed asset downloads, and asset deletion.
 
 ### Phase 3: client ecosystem
 

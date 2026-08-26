@@ -44,6 +44,14 @@ export const openApiSpec = {
     { name: 'Images', description: 'Optimize and proxy image bytes.' },
     { name: 'Social', description: 'Resolve social media content.' },
     {
+      name: 'Workspace',
+      description: 'Authenticated workspace release and source configuration operations.',
+    },
+    {
+      name: 'Assets',
+      description: 'Authenticated workspace asset upload and download operations.',
+    },
+    {
       name: 'Discovery',
       description: 'Machine-readable descriptions of the site and this API.',
     },
@@ -214,6 +222,191 @@ export const openApiSpec = {
         },
       },
     },
+    '/api/v1/releases': {
+      get: {
+        operationId: 'listReleases',
+        summary: 'List workspace releases',
+        description: 'Lists releases in the API key workspace. Requires the `artifact:read` scope.',
+        tags: ['Workspace'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'query',
+            name: 'limit',
+            schema: { type: 'integer', minimum: 1, maximum: 100, default: 50 },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Workspace releases.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ReleaseListResponse' } },
+            },
+          },
+          '400': errorResponse('The list query is invalid.'),
+          '401': errorResponse('Authentication is required.'),
+          '403': errorResponse('The API key lacks the required workspace scope.'),
+          '503': errorResponse('A required dependency is unavailable.'),
+        },
+      },
+      post: {
+        operationId: 'createRelease',
+        summary: 'Create a workspace release',
+        description:
+          'Creates a release in the API key workspace. Accepts `Idempotency-Key` and requires the `release:create` scope.',
+        tags: ['Workspace'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'header',
+            name: 'Idempotency-Key',
+            schema: { type: 'string', maxLength: 128 },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/ReleaseCreateRequest' } },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'An existing idempotent result.',
+            content: { 'application/json': { schema: { type: 'object' } } },
+          },
+          '201': {
+            description: 'Release created.',
+            content: { 'application/json': { schema: { type: 'object' } } },
+          },
+          '400': errorResponse('The release input is invalid.'),
+          '401': errorResponse('Authentication is required.'),
+          '403': errorResponse('The API key lacks the required workspace scope.'),
+          '503': errorResponse('A required dependency is unavailable.'),
+        },
+      },
+    },
+    '/api/v1/source-apps': {
+      post: {
+        operationId: 'createSourceApp',
+        summary: 'Create a workspace source app',
+        description:
+          'Registers a release-intake source in the API key workspace. Requires the `source:write` scope.',
+        tags: ['Workspace'],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/SourceAppCreateRequest' } },
+          },
+        },
+        responses: {
+          '201': {
+            description: 'Source app created.',
+            content: { 'application/json': { schema: { type: 'object' } } },
+          },
+          '400': errorResponse('The source app input is invalid.'),
+          '401': errorResponse('Authentication is required.'),
+          '403': errorResponse('The API key lacks the required workspace scope.'),
+          '503': errorResponse('A required dependency is unavailable.'),
+        },
+      },
+    },
+    '/api/v1/assets/upload-url': {
+      post: {
+        operationId: 'createAssetUploadUrl',
+        summary: 'Create a signed asset upload URL',
+        description:
+          'Creates an asset record and a short-lived signed upload URL. Requires the `upload:sign` scope.',
+        tags: ['Assets'],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/AssetUploadRequest' } },
+          },
+        },
+        responses: {
+          '201': {
+            description: 'Signed upload instructions.',
+            content: { 'application/json': { schema: { type: 'object' } } },
+          },
+          '400': errorResponse('The asset metadata is invalid.'),
+          '401': errorResponse('Authentication is required.'),
+          '403': errorResponse('The API key lacks the required workspace scope.'),
+          '503': errorResponse('A required dependency is unavailable.'),
+        },
+      },
+    },
+    '/api/v1/assets/{assetId}/complete': {
+      post: {
+        operationId: 'completeAssetUpload',
+        summary: 'Complete an asset upload',
+        description:
+          'Marks a signed upload as complete after storage verification. Requires the `asset:write` scope.',
+        tags: ['Assets'],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ $ref: '#/components/parameters/AssetId' }],
+        requestBody: {
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/AssetCompleteRequest' } },
+          },
+        },
+        responses: {
+          '200': { description: 'Asset upload completed.' },
+          '400': errorResponse('The completion input is invalid.'),
+          '401': errorResponse('Authentication is required.'),
+          '403': errorResponse('The API key lacks the required workspace scope.'),
+          '404': errorResponse('The asset was not found in this workspace.'),
+          '503': errorResponse('A required dependency is unavailable.'),
+        },
+      },
+    },
+    '/api/v1/assets/{assetId}/download-url': {
+      get: {
+        operationId: 'createAssetDownloadUrl',
+        summary: 'Create a signed asset download URL',
+        description:
+          'Returns a short-lived signed download URL for a workspace asset. Requires the `artifact:read` scope.',
+        tags: ['Assets'],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ $ref: '#/components/parameters/AssetId' }],
+        responses: {
+          '200': {
+            description: 'Signed asset download URL.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AssetDownloadResponse' },
+              },
+            },
+          },
+          '400': errorResponse('The asset identifier is invalid.'),
+          '401': errorResponse('Authentication is required.'),
+          '403': errorResponse('The API key lacks the required workspace scope.'),
+          '404': errorResponse('The asset was not found in this workspace.'),
+          '503': errorResponse('A required dependency is unavailable.'),
+        },
+      },
+    },
+    '/api/v1/assets/{assetId}': {
+      delete: {
+        operationId: 'deleteAsset',
+        summary: 'Delete a workspace asset',
+        description:
+          'Queues deletion of an uploaded asset that is not in use. Requires the `asset:write` scope.',
+        tags: ['Assets'],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ $ref: '#/components/parameters/AssetId' }],
+        responses: {
+          '202': { description: 'Asset deletion accepted.' },
+          '400': errorResponse('The asset identifier is invalid.'),
+          '401': errorResponse('Authentication is required.'),
+          '403': errorResponse('The API key lacks the required workspace scope.'),
+          '404': errorResponse('The asset was not found in this workspace.'),
+          '409': errorResponse('The asset is in use or is not ready for deletion.'),
+          '503': errorResponse('A required dependency is unavailable.'),
+        },
+      },
+    },
     '/openapi.json': {
       get: {
         operationId: 'getOpenApiSpec',
@@ -267,7 +460,78 @@ export const openApiSpec = {
     },
   },
   components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        description: 'Workspace API key with the operation-required scope.',
+      },
+    },
+    parameters: {
+      AssetId: {
+        in: 'path',
+        name: 'assetId',
+        required: true,
+        schema: { type: 'string', format: 'uuid' },
+      },
+    },
     schemas: {
+      ReleaseCreateRequest: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['title', 'benefitStatement'],
+        properties: {
+          title: { type: 'string', minLength: 1, maxLength: 160 },
+          benefitStatement: { type: 'string', minLength: 1, maxLength: 500 },
+        },
+      },
+      ReleaseListResponse: {
+        type: 'object',
+        required: ['releases'],
+        properties: { releases: { type: 'array', items: { type: 'object' } } },
+      },
+      SourceAppCreateRequest: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['allowedHosts', 'name'],
+        properties: {
+          allowedHosts: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 50,
+            items: { type: 'string', format: 'uri' },
+          },
+          externalId: { type: 'string', maxLength: 160 },
+          name: { type: 'string', minLength: 1, maxLength: 100 },
+          provider: { type: 'string', default: 'generic', maxLength: 64 },
+          secretReference: { type: 'string', maxLength: 128 },
+        },
+      },
+      AssetUploadRequest: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['bytes', 'contentType', 'fileName'],
+        properties: {
+          bytes: { type: 'integer', minimum: 1, maximum: 52428800 },
+          classification: { type: 'string', default: 'input' },
+          contentType: {
+            type: 'string',
+            enum: ['image/gif', 'image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'],
+          },
+          fileName: { type: 'string', minLength: 1, maxLength: 128 },
+          sha256: { type: 'string', pattern: '^[a-fA-F0-9]{64}$' },
+        },
+      },
+      AssetCompleteRequest: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { sha256: { type: 'string', pattern: '^[a-fA-F0-9]{64}$' } },
+      },
+      AssetDownloadResponse: {
+        type: 'object',
+        required: ['downloadUrl'],
+        properties: { downloadUrl: { type: 'string', format: 'uri' } },
+      },
       Error: {
         type: 'object',
         description:

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import {
   acceptInvitation,
-  getActiveOrganizationId,
+  findActiveOrganizationId,
   getE2EUrl,
   signUpAndCreateWorkspace,
 } from './framework/auth'
@@ -78,16 +78,16 @@ test('a member can switch workspaces without crossing tenant data', async ({
     )
 
     await acceptInvitation(page, invitation.id)
-    await expect.poll(() => getActiveOrganizationId(page)).toBe(secondOrganizationId)
+    await expect.poll(() => findActiveOrganizationId(page)).toBe(secondOrganizationId)
     await page.goto(getE2EUrl('/'))
     await assertReleaseIsolation(page, secondTitle, firstTitle)
 
     await switchWorkspace(page, identity.workspaceName)
-    await expect.poll(() => getActiveOrganizationId(page)).toBe(firstOrganizationId)
+    await expect.poll(() => findActiveOrganizationId(page)).toBe(firstOrganizationId)
     await assertReleaseIsolation(page, firstTitle, secondTitle)
 
     await switchWorkspace(page, secondIdentity.workspaceName)
-    await expect.poll(() => getActiveOrganizationId(page)).toBe(secondOrganizationId)
+    await expect.poll(() => findActiveOrganizationId(page)).toBe(secondOrganizationId)
     await assertReleaseIsolation(page, secondTitle, firstTitle)
 
     await page.getByRole('button', { name: 'Open account menu' }).click()
@@ -96,7 +96,7 @@ test('a member can switch workspaces without crossing tenant data', async ({
     await page.getByLabel('Email', { exact: true }).fill(identity.email)
     await page.getByLabel('Password').fill(identity.password)
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect.poll(() => getActiveOrganizationId(page)).toBe(firstOrganizationId)
+    await expect.poll(() => findActiveOrganizationId(page)).toBe(firstOrganizationId)
     await assertReleaseIsolation(page, firstTitle, secondTitle)
   } finally {
     await secondContext.close()

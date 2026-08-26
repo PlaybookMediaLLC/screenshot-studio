@@ -73,10 +73,16 @@ async function expectPath(page: Page, path: string): Promise<void> {
 
 async function waitForEditorHydration(page: Page): Promise<void> {
   const templates = page.getByRole('button', { exact: true, name: 'Templates' })
+  // The button is present in the server-rendered markup with
+  // `aria-expanded="false"`, so it is clickable before React attaches its
+  // handler and an early click is silently dropped. Waiting for the element
+  // first keeps the retry loop about hydration rather than about rendering,
+  // which matters on a cold Next.js route that compiles on first request.
+  await expect(templates).toBeVisible({ timeout: 60_000 })
   await expect(async () => {
     await templates.click()
     expect(await templates.getAttribute('aria-expanded')).toBe('true')
-  }).toPass({ timeout: 20_000 })
+  }).toPass({ timeout: 60_000 })
   await templates.click()
   await expect(templates).toHaveAttribute('aria-expanded', 'false')
 }
@@ -88,6 +94,23 @@ export async function getActiveOrganizationId(page: Page): Promise<string> {
   }
 
   return result.session.activeOrganizationId
+}
+
+/**
+ * The active organization id once the session exists, or null while it does not.
+ *
+ * `/api/auth/get-session` returns null for a short window after a sign-in
+ * submit, before the session cookie is readable. `getActiveOrganizationId`
+ * throws in that window, and a throw inside `expect.poll` fails the assertion
+ * outright rather than retrying, so polling on it turns an ordinary race into
+ * a hard failure. Callers that are waiting for a sign-in to land should poll
+ * this instead and let the returned value settle.
+ */
+export async function findActiveOrganizationId(page: Page): Promise<string | null> {
+  const parsed = sessionSchema.safeParse(await browserJson(page, '/api/auth/get-session'))
+  if (!parsed.success) return null
+
+  return parsed.data.session.activeOrganizationId
 }
 
 export async function enableTwoFactor(page: Page, password: string): Promise<TwoFactorSetup> {

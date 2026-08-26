@@ -69,10 +69,19 @@ def shipped_prose(text: str) -> str:
 
 
 def check_links(docs: dict[str, str]) -> list[str]:
+    """Every relative Markdown link must resolve to a real file.
+
+    An earlier version only matched targets starting with a digit-zero, which
+    silently skipped `./`-prefixed and parent-directory links. A link check that
+    cannot see a whole class of links is worse than none, because it reports
+    success over unexamined text.
+    """
     problems = []
     for name, text in docs.items():
-        for link in re.findall(r"\]\((0\d\d[^)]*\.md)\)", text):
-            if not os.path.exists(os.path.join(RFC_DIR, link)):
+        for link in re.findall(r"\]\(([^)\s#]+\.md)(?:#[^)]*)?\)", text):
+            if link.startswith(("http://", "https://", "/")):
+                continue
+            if not os.path.exists(os.path.normpath(os.path.join(RFC_DIR, link))):
                 problems.append(f"{name} links to missing {link}")
     return problems
 
@@ -440,6 +449,12 @@ def self_test(docs: dict[str, str], source: str) -> int:
     doc31 = next(t for n, t in docs.items() if n.startswith("031-"))
     cases = [
         ("links", lambda: check_links({"x.md": doc31 + "\n[x](099-nope.md)\n"})),
+        # The original case used a bare `099-` target, which the old digit-anchored
+        # regex happened to match, so the check passed its self-test while blind to
+        # every `./` and `../` link. Pin both shapes.
+        ("links (dot-slash target)", lambda: check_links({"x.md": "[x](./099-nope.md)"})),
+        ("links (parent-dir target)", lambda: check_links({"x.md": "[x](../nope.md)"})),
+        ("links (anchor suffix)", lambda: check_links({"x.md": "[x](./099-nope.md#s)"})),
         ("fences", lambda: check_fences({"x.md": doc31 + "\n```ts\n"})),
         ("tables", lambda: check_tables({"x.md": "\n| a | b |\n| --- | --- |\n| 1 | 2 | 3 |\n"})),
         (

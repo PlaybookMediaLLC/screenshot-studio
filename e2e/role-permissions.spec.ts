@@ -24,16 +24,7 @@ type RoleContext = {
   role: InvitedRole
 }
 
-async function inviteRole(input: RoleContext): Promise<void> {
-  const invitation = invitationSchema.parse(
-    (
-      await requestJson(input.ownerPage, '/api/auth/organization/invite-member', {
-        email: input.email,
-        organizationId: input.organizationId,
-        role: input.role,
-      })
-    ).body
-  )
+async function inviteRole(input: RoleContext & { invitationId: string }): Promise<void> {
   const context = await input.browser.newContext()
   try {
     const memberPage = await context.newPage()
@@ -44,7 +35,7 @@ async function inviteRole(input: RoleContext): Promise<void> {
       { ...input.identity, email: input.email, name: `E2E ${input.role}` },
       memberPage
     )
-    await acceptInvitation(memberPage, invitation.id)
+    await acceptInvitation(memberPage, input.invitationId)
     await assertRolePermissions(memberPage, input.organizationId, input.role)
   } finally {
     // Without this the context leaks whenever an assertion fails, and the
@@ -52,6 +43,31 @@ async function inviteRole(input: RoleContext): Promise<void> {
     // run, which turns one slow role into a cascade of timeouts.
     await context.close()
   }
+}
+
+/**
+ * Create the invitation on the owner's page.
+ *
+ * Kept separate from inviteRole, and never run concurrently, because every
+ * helper here issues its request through `page.evaluate` so it carries the
+ * session cookie. Two of these in flight on the same owner page share one
+ * execution context, so anything that replaces that context rejects the
+ * in-flight call with "Execution context was destroyed" no matter what the
+ * endpoint would have returned. This is a POST, so browserRequest
+ * deliberately does not retry it: a replayed invite could create a second
+ * invitation.
+ */
+async function createInvitation(input: RoleContext): Promise<string> {
+  const invitation = invitationSchema.parse(
+    (
+      await requestJson(input.ownerPage, '/api/auth/organization/invite-member', {
+        email: input.email,
+        organizationId: input.organizationId,
+        role: input.role,
+      })
+    ).body
+  )
+  return invitation.id
 }
 
 async function assertRolePermissions(
@@ -104,19 +120,43 @@ test('workspace roles permit only their assigned actions', async ({ browser, ide
   // rather than on a permission regression. Running all five at once
   // instead would put five browser contexts on a two-core runner, so the
   // batch size trades a little wall time for stability.
+  //
+  // The invitations are created first, one at a time. They all run on the
+  // owner's page, and concurrent page.evaluate calls there share a single
+  // execution context, which is how this spec produced the "Execution
+  // context was destroyed" flake. Only the per-role work below, which each
+  // own a separate browser context, still runs in parallel.
+  const invitations = new Map<InvitedRole, string>()
+  for (const role of invitedRoles) {
+    invitations.set(
+      role,
+      await createInvitation({
+        browser,
+        email: `${role}-${identity.email}`,
+        identity,
+        organizationId,
+        ownerPage: page,
+        role,
+      })
+    )
+  }
+
   const concurrency = 2
   for (let index = 0; index < invitedRoles.length; index += concurrency) {
     await Promise.all(
-      invitedRoles.slice(index, index + concurrency).map((role) =>
-        inviteRole({
+      invitedRoles.slice(index, index + concurrency).map((role) => {
+        const invitationId = invitations.get(role)
+        if (!invitationId) throw new Error(`No invitation was created for the ${role} role.`)
+        return inviteRole({
           browser,
           email: `${role}-${identity.email}`,
           identity,
+          invitationId,
           organizationId,
           ownerPage: page,
           role,
         })
-      )
+      })
     )
   }
 })

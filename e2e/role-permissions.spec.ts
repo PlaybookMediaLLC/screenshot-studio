@@ -3,8 +3,8 @@ import type { Browser, Page } from '@playwright/test'
 import {
   acceptInvitation,
   getActiveOrganizationId,
-  signUp,
   signUpAndCreateWorkspace,
+  signUpViaApi,
 } from './framework/auth'
 import { browserRequest, requestJson } from './framework/browser'
 import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
@@ -35,12 +35,23 @@ async function inviteRole(input: RoleContext): Promise<void> {
     ).body
   )
   const context = await input.browser.newContext()
-  const memberPage = await context.newPage()
-  await signUp({ ...input.identity, email: input.email, name: `E2E ${input.role}` }, memberPage)
-  await acceptInvitation(memberPage, invitation.id)
-
-  await assertRolePermissions(memberPage, input.organizationId, input.role)
-  await context.close()
+  try {
+    const memberPage = await context.newPage()
+    // This spec asserts what each role may do, not how the account was
+    // created, so invited members are created through the API. The sign-up
+    // form stays covered by the specs that exist to exercise it.
+    await signUpViaApi(
+      { ...input.identity, email: input.email, name: `E2E ${input.role}` },
+      memberPage
+    )
+    await acceptInvitation(memberPage, invitation.id)
+    await assertRolePermissions(memberPage, input.organizationId, input.role)
+  } finally {
+    // Without this the context leaks whenever an assertion fails, and the
+    // abandoned browser competes for resources with the roles still to
+    // run, which turns one slow role into a cascade of timeouts.
+    await context.close()
+  }
 }
 
 async function assertRolePermissions(
@@ -52,10 +63,14 @@ async function assertRolePermissions(
   const canCreateRelease = role === 'creator'
   const canManageWorkspace = isAdmin
   const canPublish = isAdmin || role === 'publisher'
-  const [audit, brandKits, connections, releases, workspace] = await Promise.all([
+  const [audit, brandKits, connections, invitation, releases, workspace] = await Promise.all([
     browserRequest(page, `/api/audit-logs?organizationId=${organizationId}`),
     trpcQuery(page, 'brandKit.list'),
     trpcQuery(page, 'channelConnection.list'),
+    trpcMutation(page, 'workspace.invite', {
+      email: `invited-by-${role}-${organizationId}@example.test`,
+      role: 'viewer',
+    }),
     requestJson(
       page,
       '/api/tenant/releases',
@@ -72,6 +87,7 @@ async function assertRolePermissions(
   expect(audit.status).toBe(isAdmin ? 200 : 403)
   expect(brandKits.status).toBe(isAdmin ? 200 : 403)
   expect(connections.status).toBe(canPublish ? 200 : 403)
+  expect(invitation.status).toBe(isAdmin ? 200 : 403)
   expect(releases.status).toBe(canCreateRelease || isAdmin ? 201 : 403)
   expect(workspace.status).toBe(canManageWorkspace ? 200 : 403)
 }
@@ -82,14 +98,25 @@ test('workspace roles permit only their assigned actions', async ({ browser, ide
   await signUpAndCreateWorkspace(identity, page)
   const organizationId = await getActiveOrganizationId(page)
 
-  for (const role of invitedRoles) {
-    await inviteRole({
-      browser,
-      email: `${role}-${identity.email}`,
-      identity,
-      organizationId,
-      ownerPage: page,
-      role,
-    })
+  // Roles are independent, so they run in pairs rather than one at a
+  // time. Serially this was five sign-up and invitation round trips inside
+  // a single test budget, which made the spec fail on accumulated latency
+  // rather than on a permission regression. Running all five at once
+  // instead would put five browser contexts on a two-core runner, so the
+  // batch size trades a little wall time for stability.
+  const concurrency = 2
+  for (let index = 0; index < invitedRoles.length; index += concurrency) {
+    await Promise.all(
+      invitedRoles.slice(index, index + concurrency).map((role) =>
+        inviteRole({
+          browser,
+          email: `${role}-${identity.email}`,
+          identity,
+          organizationId,
+          ownerPage: page,
+          role,
+        })
+      )
+    )
   }
 })

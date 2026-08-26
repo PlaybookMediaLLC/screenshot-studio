@@ -12,8 +12,6 @@ export default async function OnboardingPage({ params }: OnboardingPageProps) {
   const [{ locale }, requestHeaders] = await Promise.all([params, headers()])
   const access = await getPageAccess(requestHeaders)
   if (!access) redirect(getLocalizedPath(locale, '/sign-in'))
-  if (access.hasOrganization) redirect(getLocalizedPath(locale, '/'))
-
   return (
     <AuthShell
       description="Set up the shared home for your team and brand."

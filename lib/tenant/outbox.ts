@@ -4,6 +4,7 @@ import { appendAuditLog } from '@/lib/audit/log'
 import { getAuditActor, type TriggerServicePrincipal } from '@/lib/auth/principal'
 import { prisma } from '@/lib/db'
 import { deleteTenantObject } from '@/lib/storage/client'
+import { isWorkspaceOperational } from '@/lib/workspace/access'
 
 const maxAttempts = 8
 const staleProcessingMilliseconds = 10 * 60 * 1_000
@@ -61,6 +62,17 @@ async function isDispatchable(event: {
   }
 
   return false
+}
+
+function isWorkspaceCleanupEvent(event: { aggregateType: string; type: string }): boolean {
+  return event.aggregateType === 'asset' && event.type === 'asset.deleted'
+}
+
+async function releaseOutboxEventClaim(eventId: string): Promise<void> {
+  await prisma.outboxEvent.updateMany({
+    data: { processingAt: null },
+    where: { deadLetteredAt: null, deliveredAt: null, id: eventId },
+  })
 }
 
 async function deleteAssetObject(event: {
@@ -161,8 +173,14 @@ async function dispatchClaimedEvent(eventId: string): Promise<void> {
   }
 
   try {
-    if (event.aggregateType === 'asset' && event.type === 'asset.deleted') {
+    if (isWorkspaceCleanupEvent(event)) {
       await deleteAssetObject(event)
+    } else if (!(await isWorkspaceOperational(event.organizationId))) {
+      // Deletion scheduling suspends product work but remains reversible for
+      // fourteen days. Keep the event pending so restoration resumes it
+      // instead of exhausting its retry budget while the workspace is paused.
+      await releaseOutboxEventClaim(event.id)
+      return
     } else if (!(await isDispatchable(event))) {
       throw new Error('Tenant resource is no longer eligible for dispatch.')
     }
@@ -206,7 +224,7 @@ export async function dispatchPendingTenantOutboxEvents(): Promise<number> {
   await requeueStalledEvents()
   const events = await prisma.outboxEvent.findMany({
     orderBy: { createdAt: 'asc' },
-    select: { id: true },
+    select: { aggregateType: true, id: true, organizationId: true, type: true },
     take: 100,
     where: {
       attempts: { lt: maxAttempts },
@@ -216,6 +234,9 @@ export async function dispatchPendingTenantOutboxEvents(): Promise<number> {
     },
   })
   for (const event of events) {
+    if (!isWorkspaceCleanupEvent(event) && !(await isWorkspaceOperational(event.organizationId))) {
+      continue
+    }
     if (await claimOutboxEvent(event.id)) {
       await dispatchClaimedEvent(event.id)
     }

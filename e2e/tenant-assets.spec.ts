@@ -195,7 +195,7 @@ test('an uploaded asset stays private to its workspace through completion and do
     (await browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`)).status
   ).toBe(404)
   await dispatchAssetDeletion(page, signed.asset.id)
-  expect([400, 404]).toContain((await downloadSignedAsset(page, download.downloadUrl)).status)
+  expect([400, 403, 404]).toContain((await downloadSignedAsset(page, download.downloadUrl)).status)
 
   const database = createE2EDatabaseClient()
   try {

@@ -19,21 +19,34 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Verify release token
+      # A personal access token is preferred: commits and merges made
+      # with the default GITHUB_TOKEN do not trigger other workflows,
+      # so a release version-bump lands without a CI run or a deploy.
+      # The next feature merge picks the bump up. Warn instead of fail,
+      # because the release itself works either way.
+      - name: Check the release token
         env:
           RELEASE_PLEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-        run: test -n "$RELEASE_PLEASE_TOKEN"
+        run: |
+          if [ -z "$RELEASE_PLEASE_TOKEN" ]; then
+            echo "::warning::RELEASE_PLEASE_TOKEN is empty. Falling back to GITHUB_TOKEN; the release commit will not trigger CI or a deploy."
+          fi
       - id: release
         uses: googleapis/release-please-action@v4
         with:
           release-type: node
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
       - name: Enable release pull request auto-merge
         if: ${{ steps.release.outputs.prs_created == 'true' }}
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          # The job runs without a checkout, so gh cannot infer the
+          # repository from git. GH_REPO supplies it. --delete-branch is
+          # omitted for the same reason: it runs local git commands, and
+          # release-please manages its own release branch anyway.
+          GH_REPO: ${{ github.repository }}
           PRS: ${{ steps.release.outputs.prs }}
         run: |
           pr_number="$(printf '%s' "$PRS" | jq --raw-output '.[0].number')"
           test "$pr_number" != "null"
-          gh pr merge "$pr_number" --auto --squash --delete-branch
+          gh pr merge "$pr_number" --auto --squash

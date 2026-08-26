@@ -12,14 +12,13 @@ import {
   UserGroupIcon,
   UserSettings01Icon,
 } from 'hugeicons-react'
-import Image from 'next/image'
-import Link from 'next/link'
 import { useState } from 'react'
-import { AccountMenu } from '@/components/auth/AccountMenu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { AppHeader } from './AppHeader'
 import { WorkspaceSettingDetail } from './WorkspaceSettingDetail'
+import { WorkspaceDeletionRecovery } from './WorkspaceDeletionSettings'
 
 type SettingsIcon = typeof Building02Icon
 export type SettingId =
@@ -36,9 +35,22 @@ export type SettingItem = {
 export type WorkspaceSettingsProps = {
   email: string
   name: string
-  organization: { id: string; name: string; slug: string }
+  organization: {
+    id: string
+    logo: string | null
+    name: string
+    slug: string
+    workspaceDeletion?: { requestedByUserId: string; scheduledFor: Date; status: string } | null
+    workspaceSettings?: {
+      defaultPublishTime: string
+      description: string | null
+      locale: string
+      timeZone: string
+    } | null
+  }
   role: string
   twoFactorEnabled: boolean
+  userId: string
 }
 
 const settings: SettingItem[] = [
@@ -129,6 +141,7 @@ export function WorkspaceSettings({
   organization,
   role,
   twoFactorEnabled,
+  userId,
 }: WorkspaceSettingsProps) {
   const [query, setQuery] = useState('')
   const [view, setView] = useState<ViewId>('overview')
@@ -138,44 +151,24 @@ export function WorkspaceSettings({
   )
   const selected = view === 'overview' ? null : settings.find((item) => item.id === view)
 
+  if (
+    organization.workspaceDeletion?.status === 'PENDING' ||
+    organization.workspaceDeletion?.status === 'PROCESSING'
+  ) {
+    return (
+      <main className="min-h-screen bg-background text-foreground">
+        <AppHeader current="/workspace" orgName={organization.name} />
+        <WorkspaceDeletionRecovery
+          canRestore={organization.workspaceDeletion.requestedByUserId === userId}
+          scheduledFor={organization.workspaceDeletion.scheduledFor}
+        />
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <header className="h-16 border-b border-foreground/10 bg-background">
-        <div className="flex h-full items-center justify-between gap-3 px-4">
-          <div className="flex h-8 min-w-0 items-center">
-            <Link
-              className="flex h-8 shrink-0 items-center gap-2.5 transition-opacity hover:opacity-80"
-              href="/"
-            >
-              <Image
-                alt="Screenshot Studio"
-                className="h-8 w-8"
-                height={32}
-                priority
-                src="/logo-mark.png"
-                width={32}
-              />
-              <span className="hidden text-sm font-semibold leading-none tracking-tight text-foreground sm:inline">
-                Screenshot Studio
-              </span>
-            </Link>
-            <span aria-hidden className="mx-2.5 h-4 w-px shrink-0 bg-foreground/10" />
-            <span className="text-sm font-medium text-muted-foreground">Workspace</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="hidden text-sm text-muted-foreground sm:inline">
-              {organization.name}
-            </span>
-            <Link
-              className="text-sm font-medium text-muted-foreground hover:text-foreground"
-              href="/"
-            >
-              Open editor
-            </Link>
-            <AccountMenu />
-          </div>
-        </div>
-      </header>
+      <AppHeader current="/workspace" orgName={organization.name} />
 
       <div className="w-full px-5 py-8 sm:px-8 lg:py-10">
         <header>
@@ -237,6 +230,7 @@ export function WorkspaceSettings({
                 organization={organization}
                 role={role}
                 twoFactorEnabled={twoFactorEnabled}
+                userId={userId}
               />
             ) : (
               <>

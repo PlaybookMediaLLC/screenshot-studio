@@ -4,6 +4,7 @@ import { AuthorizationError, getRequestId, type TenantContext } from './access'
 import { apiKeyScopePermissions, type ApiKeyScope } from './api-key-scopes'
 import type { OrganizationApiKeyPrincipal } from './principal'
 import { auth } from './server'
+import { isWorkspaceOperational } from '@/lib/workspace/access'
 
 export async function requireOrganizationApiKeyScope(
   headers: Headers,
@@ -19,6 +20,9 @@ export async function requireOrganizationApiKeyScope(
   })
   if (!result.valid || !result.key || !result.key.referenceId) {
     throw new AuthorizationError('The organization API key is not authorized for this action.', 403)
+  }
+  if (!(await isWorkspaceOperational(result.key.referenceId))) {
+    throw new AuthorizationError('This workspace is unavailable.', 403)
   }
 
   return {

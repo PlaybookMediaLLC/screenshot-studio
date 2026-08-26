@@ -47,6 +47,7 @@ export default async function EditorPage({ params }: EditorPageProps) {
   const access = await getPageAccess(requestHeaders)
   if (!access) redirect(getLocalizedPath(locale, '/sign-in'))
   if (!access.hasOrganization) redirect(getLocalizedPath(locale, '/onboarding'))
+  if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
 
   return (
     <ErrorBoundary>

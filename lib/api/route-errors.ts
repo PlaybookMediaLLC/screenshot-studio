@@ -10,6 +10,7 @@ import { InvalidTenantObjectKeyError } from '@/lib/tenant/object-key'
 import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
 import { CampaignError } from '@/lib/tenant/campaigns'
 import { CreativeWorkflowError } from '@/lib/tenant/creative'
+import { WorkspaceError } from '@/lib/workspace/errors'
 
 function isDatabaseUnavailable(error: unknown): boolean {
   return (
@@ -29,7 +30,8 @@ function getWorkflowErrorResponse(error: unknown): NextResponse | null {
   if (
     error instanceof ScheduledPostError ||
     error instanceof CreativeWorkflowError ||
-    error instanceof CampaignError
+    error instanceof CampaignError ||
+    error instanceof WorkspaceError
   ) {
     return NextResponse.json({ error: error.message }, { status: error.status })
   }

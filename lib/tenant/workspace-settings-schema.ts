@@ -1,15 +1,6 @@
 import { z } from 'zod'
 import { apiKeyScopes } from '@/lib/auth/api-key-scopes'
-
-export const workspaceUpdateSchema = z.object({
-  name: z.string().trim().min(2).max(100),
-  slug: z
-    .string()
-    .trim()
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-    .min(2)
-    .max(100),
-})
+export { workspaceUpdateSchema } from '@/lib/workspace/schemas'
 
 export const workspaceApiKeySchema = z.object({
   expiresInDays: z.coerce.number().int().min(1).max(365).optional(),

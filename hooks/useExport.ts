@@ -157,6 +157,63 @@ export function useExport(selectedAspectRatio: string) {
     await savePreferences(newSettings);
   }, [settings, savePreferences]);
 
+  /**
+   * Render the current composition and return the bytes.
+   *
+   * `exportImage` downloads and `copyImage` writes to the clipboard, so
+   * neither can be reused by a caller that needs the payload itself, such
+   * as saving into a workspace. This shares the render with them rather
+   * than duplicating a fourteen-argument call at each site.
+   */
+  const renderExportBlob = useCallback(async (): Promise<Blob> => {
+    const canvasContainer = getCanvasContainer();
+    const preset = getAspectRatioPreset(selectedAspectRatio);
+    if (!preset) {
+      throw new Error('Invalid aspect ratio selected');
+    }
+
+    const exportOptions: ExportOptions = {
+      format: settings.format,
+      qualityPreset: settings.qualityPreset,
+      scale: settings.scale,
+      exportWidth: preset.width,
+      exportHeight: preset.height,
+    };
+
+    const result = await exportElement(
+      'image-render-card',
+      exportOptions,
+      canvasContainer,
+      backgroundConfig,
+      backgroundBorderRadius,
+      textOverlays,
+      imageOverlays,
+      perspective3D,
+      screenshot.src || undefined,
+      screenshot.radius,
+      backgroundBlur,
+      backgroundNoise,
+      backgroundOpacity,
+    );
+
+    return result.blob;
+  }, [
+    backgroundBlur,
+    backgroundBorderRadius,
+    backgroundConfig,
+    backgroundNoise,
+    backgroundOpacity,
+    imageOverlays,
+    perspective3D,
+    screenshot.radius,
+    screenshot.src,
+    selectedAspectRatio,
+    settings.format,
+    settings.qualityPreset,
+    settings.scale,
+    textOverlays,
+  ]);
+
   const exportImage = useCallback(async (): Promise<void> => {
     const anim = progressAnimator.current;
     setIsExporting(true);
@@ -408,5 +465,6 @@ export function useExport(selectedAspectRatio: string) {
     updateScale,
     exportImage,
     copyImage,
+    renderExportBlob,
   };
 }

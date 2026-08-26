@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.2.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.1.0...v1.2.0) (2026-08-26)
+
+
+### Features
+
+* add Databuddy analytics tracking to root layout ([0497101](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/0497101b503c19701e74707b73ec08e2368b0712))
+* add extensible v1 REST framework ([c40a555](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/c40a555d457c65c9815dde94df949aa31beb19df))
+* add GA4 gtag to root layout ([c0eee43](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/c0eee435c2bd8a9c836b9572910e6dc3fcf9ec7c))
+* add Scalar REST API reference ([53ab217](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/53ab21782c9fbc7a06aadffe4d8cc9d23345b297))
+* agent readiness, canonical www host, and a truthful privacy policy ([b9c12b1](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/b9c12b1956c9000beb305bbf76ba96d5fd9f929c))
+
+
+### Bug Fixes
+
+* **ci:** ignore imported upstream commit messages ([850c956](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/850c9568cf5c1098e59d2cf395fbe45256db3161))
+* **export:** exclude editor overlays from export ([1228469](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/122846942792386666da1570c7959720bf57a4e8))
+* **export:** exclude editor overlays from export ([36669b8](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/36669b868670f0204e3a76886d2348fb48ef7502))
+
 ## [1.1.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.0.2...v1.1.0) (2026-08-20)
 
 

@@ -140,6 +140,9 @@ def check_acceptance(docs: dict[str, str]) -> list[str]:
     for i in range(10, 33):
         matches = [n for n in docs if n.startswith(f"{i:03d}-")]
         if not matches:
+            # A missing document must fail loudly. Skipping it would let a
+            # deleted or renamed RFC pass this check silently.
+            problems.append(f"RFC {i:03d} not found; expected an expanded document")
             continue
         name = matches[0]
         section = re.search(
@@ -168,7 +171,13 @@ def known_identifiers() -> set[str]:
 
 
 def check_identifiers(docs: dict[str, str]) -> list[str]:
-    known = known_identifiers() | ALLOWED_MISSING_IDENTIFIERS
+    known = known_identifiers()
+    if len(known) < 20:
+        # The permission sources moved or failed to parse. An empty or tiny
+        # allowlist would flag everything, or an over-broad one would flag
+        # nothing; either way the result is not trustworthy.
+        return [f"identifier allowlist resolved to {len(known)} entries; expected the full set"]
+    known |= ALLOWED_MISSING_IDENTIFIERS
     problems = []
     for name, text in docs.items():
         for ident in sorted(set(re.findall(r"`([a-z]+:[a-z\-]+)`", text))):
@@ -228,8 +237,13 @@ def check_transition_table(docs: dict[str, str]) -> list[str]:
 def check_shipped_symbols(docs: dict[str, str], source: str) -> list[str]:
     """A doc marked Implemented must not cite symbols that do not exist."""
     problems = []
+    if not source.strip():
+        # Without sources every symbol would appear absent, or worse, the
+        # membership test would be meaningless. Fail rather than guess.
+        return ["cannot read lib/ sources; symbol check would be meaningless"]
     for name in IMPLEMENTED:
         if name not in docs:
+            problems.append(f"{name} not found; it documents shipped behavior and must exist")
             continue
         prose = shipped_prose(docs[name])
         for symbol in sorted(set(re.findall(r"`([a-z][a-zA-Z0-9]{7,})`", prose))):
@@ -302,6 +316,11 @@ def self_test(docs: dict[str, str], source: str) -> int:
                 {"019-approval-workflow.md": "## S\n\nCalls `fabricatedHelper`.\n\n## T\n"}, source
             ),
         ),
+        # A check that passes when its input is missing is worse than no check.
+        # These three confirm each fails loudly rather than silently skipping.
+        ("acceptance (missing RFC)", lambda: check_acceptance({})),
+        ("shipped symbols (missing doc)", lambda: check_shipped_symbols({}, source)),
+        ("shipped symbols (no sources)", lambda: check_shipped_symbols(docs, "")),
     ]
     failures = 0
     print("Self-test: every check must reject known-bad input\n")

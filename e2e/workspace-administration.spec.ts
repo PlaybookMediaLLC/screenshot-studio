@@ -186,19 +186,45 @@ test('an MFA-protected owner can schedule and restore workspace deletion', async
     deliveredAt: null,
   })
 
-  await page.getByRole('button', { name: 'Restore workspace' }).click()
+  // Clicking as soon as the button paints races hydration: the trace for the
+  // CI failure shows the click landing (the button is [active]) while no
+  // workspace.cancelDeletion request was ever sent and the label still reads
+  // "Restore workspace" rather than "Restoring…", so React had not attached
+  // the handler yet. The click is silently swallowed and the page never
+  // navigates.
+  //
+  // Retry the click until the mutation is actually in flight. The request
+  // itself is the signal, not the button label: on success the component
+  // calls window.location.assign, so "Restoring…" can disappear before it
+  // could be observed, and asserting on it would reintroduce a race.
+  const restoreButton = page.getByRole('button', { name: 'Restore workspace' })
+  await expect(restoreButton).toBeEnabled()
+  let restoreStatus: number | null = null
+  const observeRestore = page
+    .waitForResponse((response) => response.url().includes('workspace.cancelDeletion'), {
+      timeout: 60_000,
+    })
+    .then((response) => response.status())
+    .catch(() => null)
+  void observeRestore.then((status) => {
+    restoreStatus = status
+  })
+  await expect(async () => {
+    if (restoreStatus !== null) return
+    await restoreButton.click({ timeout: 2_000 }).catch(() => {
+      // The button goes away once the restore navigation starts.
+    })
+    // Give the click that just landed a chance to reach the server before
+    // clicking again, so a slow-but-working request is not clicked twice.
+    await page.waitForTimeout(2_000)
+    if (restoreStatus === null) throw new Error('restore click did not reach the server')
+  }).toPass({ timeout: 45_000 })
+  expect(restoreStatus).toBe(200)
+
   // The page is already on /workspace, so polling the path proves nothing
   // here: it matches immediately whether or not the restore navigation ever
-  // happened. Wait for the restored content instead, and surface the
-  // component's error alert if the mutation failed, so a failure says why
-  // rather than reporting a missing heading.
-  await expect(async () => {
-    const alert = page.getByRole('alert')
-    if ((await alert.count()) > 0) {
-      throw new Error(`Restore failed: ${await alert.first().innerText()}`)
-    }
-    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible({ timeout: 1_000 })
-  }).toPass({ timeout: 45_000 })
+  // happened. Wait for the restored content instead.
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible({ timeout: 45_000 })
   expect((await browserRequest(page, '/api/tenant/releases')).status).toBe(200)
   expect(
     (

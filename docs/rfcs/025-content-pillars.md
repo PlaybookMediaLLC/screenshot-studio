@@ -210,6 +210,27 @@ All planning uses the workspace time zone from `WorkspaceSettings`.
 | Drag onto a quiet day              | Warning; permitted                              |
 | Reschedule fails at the provider   | Post returns to `APPROVED`; the move is undone  |
 
+## Observability
+
+| Signal                       | Dimensions                  | Why it is collected                        |
+| ---------------------------- | --------------------------- | ------------------------------------------ |
+| `pillar.plan.balance`        | workspace, week             | The balance score defined above            |
+| `pillar.slot.skipped`        | pillar, reason              | Distinguishes thin inventory from bugs     |
+| `pillar.manual_move`         | from day, to day, conflict  | Shows where the planner guesses wrong      |
+| `pillar.disabled`            | pillar                      | A disabled pillar silently narrows output  |
+
+**The metric that actually matters: the share of planned weeks a customer
+accepts without moving a post.** Pillars exist to make the weekly plan good
+enough to publish as proposed. Every manual move is the planner being wrong
+about balance, timing, or fit, so this number measures the feature's whole
+reason for existing. Balance scores can look healthy while customers rearrange
+every week, and that combination means the scoring model, not the customer,
+needs to change.
+
+Skipped slots record which pillar had no eligible topic. Persistent skips on
+one pillar mean the product asset map is thin there, which is a content problem
+the customer can fix once it is named.
+
 ## Acceptance criteria
 
 1. "Give me content for this week" produces a pillar-balanced week on the

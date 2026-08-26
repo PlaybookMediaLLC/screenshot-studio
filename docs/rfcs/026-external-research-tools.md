@@ -242,6 +242,17 @@ never fails a campaign.
 - SSRF blocks and injection detections, which should be rare and are
   investigated when not.
 
+Approval rate on research-backed posts, compared against posts without
+research, is the metric that actually matters. Research adds latency and
+per-call cost to every campaign that uses it, so the only justification is
+output a founder is more willing to publish. If the two rates converge,
+research is a cost with no return and the correct response is to narrow when
+it runs rather than to make it faster.
+
+Unsupported-claim flags are read alongside it. Research that raises approval
+rate while inventing citations is worse than no research, because it moves
+wrong claims past a human who has started to trust the source.
+
 ## Acceptance criteria
 
 1. The agent produces an industry-context post with cited sources, grounded in

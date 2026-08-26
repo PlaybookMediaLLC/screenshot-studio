@@ -267,6 +267,27 @@ Uploaded logos are validated and normalized on ingest:
 | Prohibited term added after approval  | Pre-schedule re-check blocks; post returns to review |
 | Concurrent kit edits                  | Version numbers serialize; both edits are kept    |
 
+## Observability
+
+| Signal                          | Dimensions               | Why it is collected                        |
+| ------------------------------- | ------------------------ | ------------------------------------------ |
+| `brand.resolution.source`       | field, source layer      | Shows how often defaults stand in for brand |
+| `brand.prohibited_term.hits`    | term, mode, surface      | Sizes the filter before it starts blocking  |
+| `brand.contrast.warnings`       | token pair               | Finds kits that fail accessibility          |
+| `brand.kit.version`             | workspace, version       | Ties a rendered asset to the kit that made it |
+
+**The metric that actually matters: the share of generated assets rendered
+with a complete Brand Profile rather than platform defaults.** Every downstream
+promise in the thesis depends on output looking like the customer's brand, and
+an asset rendered from defaults is off-brand even when nothing errored. This
+number is the honest measure of whether brand context is actually reaching the
+renderer, and it degrades silently, which is exactly why it needs a metric
+rather than an alert on failures.
+
+The prohibited-term filter reports its hit rate before it is allowed to block,
+so the rollout can distinguish a filter that is working from one that would
+have blocked legitimate copy.
+
 ## Acceptance criteria
 
 1. A workspace stores a complete Brand Profile, and a creative primitive call

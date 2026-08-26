@@ -270,6 +270,15 @@ cycle is worse than not having the loop.
 - Trend in approval rate and edit distance after adjustments, which is whether
   the loop actually works.
 
+That trend is the metric that actually matters. Everything else counts
+activity: recommendations produced, shown, applied. Only the movement in
+approval rate and edit distance after an adjustment says whether the loop
+learned something true about this workspace.
+
+It must be read against metric coverage from RFC 027. A trend computed from
+40% of posts is a claim about a biased sample, and a loop that adjusts
+confidently on thin data will amplify noise into a house style nobody chose.
+
 ## Acceptance criteria
 
 1. The weekly plan changes in response to real performance data, and the agent

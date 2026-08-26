@@ -347,6 +347,26 @@ A spec version is retired only after every stored template has been migrated,
 verified by a migration audit query. Rendering a retired version returns
 `unsupported_spec_version` rather than rendering something approximate.
 
+## Observability
+
+| Signal                     | Dimensions                          | Why it is collected                          |
+| -------------------------- | ----------------------------------- | -------------------------------------------- |
+| `creative.render.duration` | mode, layer count, scale, cache hit | Confirms the latency budgets above hold      |
+| `creative.render.outcome`  | outcome, error code                 | Separates bad specs from engine faults       |
+| `creative.cache.hit_rate`  | key prefix                          | Cache misses are the main cost driver        |
+| `creative.spec.version`    | version, migrated                   | Shows when a version is safe to retire       |
+
+**The metric that actually matters: synchronous render p95 against its budget.**
+The engine promises 10 seconds at p95 for a single-frame image, and the whole
+synchronous path exists only because that promise holds. When it slips, callers
+that were written to render inline start blocking a user-visible request, so
+the correct response is to move the offending shape to the asynchronous path
+rather than to raise the budget.
+
+Render failures are logged with the spec hash rather than the full spec. Specs
+can carry customer copy, and a hash is enough to reproduce a fault from stored
+template definitions.
+
 ## Rollout
 
 1. **Spec and composition.** Define the Zod schema and the compose functions.

@@ -228,6 +228,26 @@ Audit events from RFC 019 render in the same timeline, so "who approved this
 and what did it say when they approved it" is one view. That question is the
 whole reason approval and versioning were specified together in RFC 014.
 
+## Observability
+
+| Signal                        | Dimensions                    | Why it is collected                       |
+| ----------------------------- | ----------------------------- | ----------------------------------------- |
+| `workspace.load.duration`     | post count, cold or warm      | Guards the one-second budget above        |
+| `workspace.autosave.outcome`  | outcome, conflict kind        | Silent save loss is the worst failure     |
+| `workspace.regenerate.scope`  | scope, accepted or discarded  | Shows whether regeneration is trusted     |
+| `workspace.entry.surface`     | workspace, chat, or calendar  | Tests the claim that chat is optional     |
+
+**The metric that actually matters: the share of campaigns completed without
+entering chat.** This RFC's central claim is that the workspace is the product
+and the copilot is an accelerant, so a founder who can only finish a campaign
+by dropping into chat is evidence the direct-manipulation surface is
+incomplete. Read alongside `workspace.entry.surface`, it says whether the
+workspace earns its position or merely hosts the chat.
+
+Autosave conflicts are recorded with both revision numbers. A conflict that
+resolves by discarding an edit is a correctness bug, not a UX event, and it
+needs enough context to reconstruct what was lost.
+
 ## Acceptance criteria
 
 1. A founder edits, regenerates, and rearranges a campaign entirely in the

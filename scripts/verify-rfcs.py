@@ -184,6 +184,59 @@ def known_identifiers() -> set[str]:
     return found
 
 
+def evaluate_observability(name: str, text: str) -> list[str]:
+    """Pure core: an audited RFC needs an observability section naming one metric.
+
+    The house style asks each document to elevate a single metric that actually
+    matters, because a bullet list of signals says what could be measured, not
+    what would tell you the feature failed. Phrasings vary ("is the headline",
+    "is the number that matters"), so this looks for prose that elevates one
+    signal rather than for a fixed sentence. Bullets and table rows are dropped
+    first; bold lead-ins are kept, since that is how several sections open.
+    """
+    section = re.search(
+        r"^## (?:Observability|Measurement|Tracing and observability)\b(.*?)(?=^## |\Z)",
+        text,
+        re.M | re.S,
+    )
+    if not section:
+        return [f"{name} has no observability section"]
+    prose = "\n".join(
+        line
+        for line in section.group(1).split("\n")
+        if not line.strip().startswith(("- ", "| "))
+    )
+    elevated = re.search(
+        r"metric that actually matters|is the (?:earliest|product|health|real|key|headline|"
+        r"primary|one|value|user-visible|false)\b|are the only metrics|is the one that matters"
+        r"|is the number that matters|are the number that matters|decides whether"
+        r"|is the metric|which is the false-positive measure",
+        prose,
+        re.I,
+    )
+    if not elevated:
+        return [f"{name} lists signals but never names the metric that matters"]
+    return []
+
+
+def check_observability(docs: dict[str, str]) -> list[str]:
+    """Every RFC the audit flagged must carry a usable observability section."""
+    audit = docs.get("000-detail-audit-2026-08-26.md", "")
+    if not audit:
+        return ["audit document missing; observability check would be meaningless"]
+    flagged = sorted(set(re.findall(r"^\| \[(\d{3})\]", audit, re.M)))
+    if not flagged:
+        return ["no flagged RFCs parsed; observability check would be meaningless"]
+    problems = []
+    for number in flagged:
+        match = [n for n in docs if n.startswith(f"{number}-")]
+        if not match:
+            problems.append(f"RFC {number} is audited but its document is missing")
+            continue
+        problems += evaluate_observability(match[0], docs[match[0]])
+    return problems
+
+
 def check_identifiers(docs: dict[str, str]) -> list[str]:
     known = known_identifiers()
     if len(known) < 20:
@@ -439,6 +492,7 @@ def run(docs: dict[str, str], source: str) -> list[tuple[str, list[str]]]:
         ("audit promises are substantiated", check_audit_promises(docs)),
         ("every doc citing a real file names real symbols", check_grounded_paragraphs(docs, source)),
         ("cross-RFC references resolve", check_cross_references(docs)),
+        ("audited RFCs name the metric that matters", check_observability(docs)),
         ("tracked scripts survive a re-clone", check_tracked_scripts_survive_reclone()),
     ]
 
@@ -519,6 +573,15 @@ def self_test(docs: dict[str, str], source: str) -> int:
             ),
         ),
         ("grounded paragraphs (no sources)", lambda: check_grounded_paragraphs(docs, "")),
+        (
+            "observability (no section)",
+            lambda: evaluate_observability("x.md", "## Decision\n\ntext\n"),
+        ),
+        (
+            "observability (bullets, no elevated metric)",
+            lambda: evaluate_observability("x.md", "## Observability\n\n- a signal\n- another\n"),
+        ),
+        ("observability (audit missing)", lambda: check_observability({})),
         (
             "script allowlist (tracked but ignored)",
             lambda: evaluate_script_allowlist(["scripts/a.ts"], ["scripts/a.ts"]),

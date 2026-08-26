@@ -282,6 +282,15 @@ Metrics:
 - Downstream: share of agent-created campaigns reaching approval, and edit
   distance on their copy.
 
+The metric that actually matters is the share of agent-created campaigns that
+reach approval without edits. Run counts, token cost, and tool error rates
+measure whether the agent is functioning; only that share measures whether it
+is useful. An agent with a perfect success rate whose every output gets
+rewritten has produced expensive drafts, not marketing.
+
+Cross-tenant workspace mismatches are the exception to that framing. They must
+be zero, and a single one is an incident rather than a metric to trend.
+
 ## Failure behavior
 
 | Failure                        | Behavior                                                |

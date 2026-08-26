@@ -47,7 +47,12 @@ export const assetRouter = router({
       }
       return { downloadUrl }
     }),
-  delete: tenantProcedure({ apiKeyScope: 'asset:write', permission: 'artifact:edit' })
+  delete: tenantProcedure({
+    apiKeyScope: 'asset:write',
+    feature: 'asset:delete',
+    permission: 'artifact:edit',
+    quota: 'api:write:minute',
+  })
     .input(assetDownloadQuerySchema)
     .mutation(async ({ ctx, input }) => {
       const result = await deleteAsset(ctx.tenant, input.assetId)

@@ -98,6 +98,7 @@ model Organization {
   auditLogs               AuditLog[]
   assets                  Asset[]
   brandKits               BrandKit[]
+  billingEntitlementEvents BillingEntitlementEvent[]
   captureJobs             CaptureJob[]
   captures                Capture[]
   channelConnections      ChannelConnection[]
@@ -186,19 +187,42 @@ model WorkspaceSettings {
 /// Server-owned commercial plan and explicit capability overrides. Clients
 /// never select or mutate this record through tenant product APIs.
 model WorkspaceEntitlement {
-  organizationId   String       @id
-  plan             String       @default("free")
-  status           String       @default("active")
-  featureOverrides Json?
-  validUntil       DateTime?
-  version          Int          @default(1)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId         String       @id
+  plan                   String       @default("free")
+  status                 String       @default("active")
+  featureOverrides       Json?
+  validUntil             DateTime?
+  graceUntil             DateTime?
+  provider               String?
+  externalCustomerId     String?
+  externalSubscriptionId String?
+  lastSyncedAt           DateTime?
+  version                Int          @default(1)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  organization           Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@unique([provider, externalSubscriptionId])
   @@index([plan, status])
   @@index([status, validUntil])
   @@map("workspace_entitlement")
+}
+
+/// Immutable provider event receipt used to make billing synchronization
+/// replay-safe and auditable without storing raw webhook payloads.
+model BillingEntitlementEvent {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  provider           String
+  eventId            String
+  eventType          String
+  entitlementVersion Int
+  createdAt          DateTime     @default(now())
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, eventId])
+  @@index([organizationId, createdAt])
+  @@map("billing_entitlement_event")
 }
 
 enum WorkspaceDeletionStatus {

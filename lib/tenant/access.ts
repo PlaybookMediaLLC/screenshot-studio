@@ -4,13 +4,14 @@ import { requireActiveOrganizationPermission, type TenantContext } from '@/lib/a
 import { requireOrganizationApiKeyScope } from '@/lib/auth/api-keys'
 import type { ApiKeyScope } from '@/lib/auth/api-key-scopes'
 import type { Permission } from '@/lib/auth/permissions'
-import { requireWorkspaceFeature } from '@/lib/tenant/entitlements'
-import type { WorkspaceFeature } from '@/lib/billing/plans'
+import { consumeWorkspaceQuota, requireWorkspaceFeature } from '@/lib/tenant/entitlements'
+import type { WorkspaceFeature, WorkspaceQuota } from '@/lib/billing/plans'
 
 type TenantAccessRequirement = {
   apiKeyScope: ApiKeyScope
   feature?: WorkspaceFeature
   permission: Permission
+  quota?: WorkspaceQuota
 }
 
 export async function requireTenantAccess(
@@ -23,6 +24,9 @@ export async function requireTenantAccess(
 
   if (requirement.feature) {
     await requireWorkspaceFeature(context.organizationId, requirement.feature)
+  }
+  if (requirement.quota) {
+    await consumeWorkspaceQuota(context.organizationId, requirement.quota)
   }
 
   return context

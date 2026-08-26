@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { ZodType } from 'zod'
 import type { ApiKeyScope } from '@/lib/auth/api-key-scopes'
 import type { Permission } from '@/lib/auth/permissions'
-import type { WorkspaceFeature } from '@/lib/billing/plans'
+import type { WorkspaceFeature, WorkspaceQuota } from '@/lib/billing/plans'
 import type { TenantContext } from '@/lib/auth/access'
 import { getRouteErrorResponse } from '@/lib/api/route-errors'
 import { requireTenantAccess } from '@/lib/tenant/access'
@@ -17,6 +17,7 @@ type TenantAccessRequirement = {
   apiKeyScope: ApiKeyScope
   feature?: WorkspaceFeature
   permission: Permission
+  quota?: WorkspaceQuota
 }
 
 type TenantJsonRouteDefinition<Input, Output, Params extends Record<string, string>> = {

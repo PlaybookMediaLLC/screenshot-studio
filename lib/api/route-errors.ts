@@ -11,7 +11,7 @@ import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
 import { CampaignError } from '@/lib/tenant/campaigns'
 import { CreativeWorkflowError } from '@/lib/tenant/creative'
 import { WorkspaceError } from '@/lib/workspace/errors'
-import { WorkspaceEntitlementError } from '@/lib/tenant/entitlements'
+import { WorkspaceEntitlementError, WorkspaceQuotaError } from '@/lib/tenant/entitlements'
 
 function isDatabaseUnavailable(error: unknown): boolean {
   return (
@@ -37,6 +37,28 @@ function getWorkflowErrorResponse(error: unknown): NextResponse | null {
     return NextResponse.json({ error: error.message }, { status: error.status })
   }
   return null
+}
+
+function getQuotaErrorResponse(error: unknown): NextResponse | null {
+  if (!(error instanceof WorkspaceQuotaError)) return null
+  return NextResponse.json(
+    {
+      code: 'workspace_quota_exceeded',
+      error: error.message,
+      limit: error.limit,
+      message: error.message,
+      quota: error.quota,
+      status: error.status,
+    },
+    {
+      headers: {
+        'retry-after': String(Math.max(1, Math.ceil((error.resetAt - Date.now()) / 1_000))),
+        'x-rate-limit-limit': String(error.limit),
+        'x-rate-limit-reset': String(error.resetAt),
+      },
+      status: error.status,
+    }
+  )
 }
 
 function getEntitlementErrorResponse(error: unknown): NextResponse | null {
@@ -66,12 +88,16 @@ function getEntitlementErrorResponse(error: unknown): NextResponse | null {
   )
 }
 
+function getCommercialErrorResponse(error: unknown): NextResponse | null {
+  return getQuotaErrorResponse(error) ?? getEntitlementErrorResponse(error)
+}
+
 export function getRouteErrorResponse(error: unknown): NextResponse {
   if (error instanceof AuthorizationError) {
     return NextResponse.json({ error: error.message }, { status: error.status })
   }
-  const entitlementResponse = getEntitlementErrorResponse(error)
-  if (entitlementResponse) return entitlementResponse
+  const commercialResponse = getCommercialErrorResponse(error)
+  if (commercialResponse) return commercialResponse
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
   }

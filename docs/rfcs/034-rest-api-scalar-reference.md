@@ -95,6 +95,20 @@ Default plans are `free`, `pro`, `business`, and `enterprise`, but feature check
 
 The entitlement migration backfills existing workspaces to `business` so enabling the gate does not silently remove capabilities from current customers. New workspaces must receive an entitlement from the billing or onboarding service; until that happens, the fail-closed fallback is `free`. Plan changes and contract overrides are server-side billing operations and are not exposed through tenant product endpoints.
 
+### Billing synchronization and administration
+
+Billing providers and authorized support automation write through the signed internal endpoint at `/api/internal/billing/entitlements`. The endpoint verifies an HMAC over the raw body, requires a provider event ID, and records an immutable receipt. Replays return the original version without repeating effects. Every mutation supplies `expectedVersion`; stale concurrent changes return `409` and never overwrite newer contract state. The plan change, lifecycle state, event reference, previous version, and new version are written to the tenant audit log in the same transaction.
+
+Workspace owners may read the safe entitlement summary through `/api/enterprise/entitlement` only after a fresh sign-in and TOTP. Plan mutation remains service-controlled, so a tenant owner cannot self-grant paid or enterprise capabilities. New organizations receive an explicit free entitlement during provisioning.
+
+### Quotas, caching, and outage policy
+
+Plans define named quotas for API writes, storage bytes, monthly generation, and concurrent jobs. Metered write routes declare a quota alongside their feature. Redis provides distributed counters and emits standard `429`, `Retry-After`, and `X-RateLimit-*` metadata. Costly writes fail closed when the distributed counter is unavailable; reads remain available.
+
+Entitlement records use a 30-second distributed cache and a five-second process-local cache. Billing commits invalidate both. If Redis is unavailable, authorization reads fall back to PlanetScale and keep only the bounded local cache. A PlanetScale failure returns `503`; the service does not trust indefinitely stale plan data.
+
+`active` and `trialing` plans are usable. `past_due` remains usable only until the server-owned `graceUntil` timestamp. `suspended`, `cancelled`, expired, unknown, and malformed records fail closed for paid capabilities. Downgrades take effect immediately after the synchronized transaction and cache invalidation. Refund policy and provider retry schedules remain billing-provider concerns, while webhook replay and product authorization semantics remain provider-neutral here.
+
 ## Request contract
 
 - JSON request bodies use `Content-Type: application/json`.
@@ -265,6 +279,9 @@ asset completion, signed asset downloads, and asset deletion.
 - Unknown `/api/*` paths still return the standardized JSON `404` envelope.
 - Authenticated `/api/v1` routes cannot cross workspace boundaries in tenant-isolation verification.
 - Plan-gated update and delete operations reject free, expired, and suspended workspaces before domain execution, while validated enterprise overrides are honored.
+- REST, compatibility routes, tRPC, jobs, and direct destructive domain calls cannot bypass the same feature policy.
+- Billing event replays are idempotent, stale versions return `409`, and entitlement changes produce tenant audit records.
+- Machine-readable OpenAPI extensions declare feature, minimum-plan, and quota requirements.
 - Mutation retries with the same idempotency key cannot create duplicate durable effects.
 - Documentation and API smoke tests run in CI.
 

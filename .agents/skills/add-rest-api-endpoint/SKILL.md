@@ -15,6 +15,7 @@ Add versioned public operations to the existing Next.js application without dupl
 4. Build authenticated JSON handlers with `createTenantJsonRoute` from `lib/api/v1/route.ts`. Supply:
    - one explicit API-key scope and browser-session permission;
    - a named `feature` entitlement for any plan-gated capability;
+   - a named `quota` for metered or costly operations;
    - a required Zod `schema` that defines the complete route input contract;
    - an `input` function that only extracts untrusted path, query, header, and body values;
    - an `execute` function that receives the server-resolved `TenantContext`;
@@ -51,6 +52,8 @@ For dynamic paths, accept the provided route context in `input`, await `context.
 - Every authenticated JSON route must declare its Zod schema through the framework. Endpoint-local calls to `parse`, `safeParse`, or ad hoc validation are not substitutes.
 - Gate commercial capabilities by named feature, not a client-supplied plan or scattered `if (plan === ...)` checks. Define plan defaults and contract overrides in `lib/billing/plans.ts`.
 - Put update and delete entitlement checks in the shared access boundary before request parsing or domain execution. Compatibility routes must use the same gate so callers cannot bypass pricing through an older path.
+- Enforce destructive feature checks again in the owning domain service so tRPC, jobs, support tooling, and future transports cannot bypass the route declaration.
+- Add `x-screenshot-studio-entitlement` to OpenAPI with the feature, minimum default plan, and quota. Declare standardized `403` and `429` schemas.
 - Reject unknown mutation fields unless the owning RFC explicitly permits them.
 - Accept `Idempotency-Key` for retriable durable mutations.
 - Return only safe product data. Never return secrets, cookies, raw API keys, provider tokens, internal storage keys, or permanent object URLs.

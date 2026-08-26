@@ -88,8 +88,7 @@ docker run --rm -p 3000:3000 screenshot-studio
 curl --fail http://localhost:3000/api/health
 ```
 
-The image runs as UID 1001 and starts the Next.js standalone server on port
-3000. `DATABASE_URL` has a build-only default because Prisma generation runs
+The image runs as UID 1001 and starts the Next.js standalone server on port 3000. `DATABASE_URL` has a build-only default because Prisma generation runs
 during the image build; use a real value at runtime only when caching is on.
 
 Production authentication and audit logging require the values in
@@ -106,6 +105,18 @@ before deploying code that depends on it:
 npm run db:migrate:status
 npm run db:migrate:deploy
 ```
+
+For entitlement migrations, verify replay safety, optimistic concurrency,
+auditing, and cleanup against that disposable development branch before
+promotion:
+
+```sh
+ENTITLEMENT_TEST_ALLOW_DATABASE=true npm run verify:entitlements
+```
+
+Set `BILLING_ENTITLEMENT_WEBHOOK_SECRET` independently in each environment.
+Billing systems sign the exact raw JSON body with HMAC-SHA256 and send the
+digest in `X-Screenshot-Studio-Signature`; never reuse a provider API secret.
 
 Use `npm run db:push` only for the disposable local Compose database. Do not
 use it against PlanetScale or any production environment. Record the target

@@ -16,6 +16,14 @@ export const workspaceFeatureSchema = z.enum([
 ])
 export type WorkspaceFeature = z.infer<typeof workspaceFeatureSchema>
 
+export const workspaceQuotaSchema = z.enum([
+  'api:write:minute',
+  'storage:bytes',
+  'generation:monthly',
+  'jobs:concurrent',
+])
+export type WorkspaceQuota = z.infer<typeof workspaceQuotaSchema>
+
 export const featureOverrideSchema = z
   .partialRecord(workspaceFeatureSchema, z.boolean())
   .default({})
@@ -63,10 +71,38 @@ const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
   'enterprise:scim': 'enterprise',
 }
 
+const planQuotas = {
+  free: {
+    'api:write:minute': 30,
+    'generation:monthly': 25,
+    'jobs:concurrent': 1,
+    'storage:bytes': 250 * 1024 * 1024,
+  },
+  pro: {
+    'api:write:minute': 300,
+    'generation:monthly': 1_000,
+    'jobs:concurrent': 5,
+    'storage:bytes': 25 * 1024 * 1024 * 1024,
+  },
+  business: {
+    'api:write:minute': 1_500,
+    'generation:monthly': 10_000,
+    'jobs:concurrent': 25,
+    'storage:bytes': 250 * 1024 * 1024 * 1024,
+  },
+  enterprise: {
+    'api:write:minute': 10_000,
+    'generation:monthly': 100_000,
+    'jobs:concurrent': 250,
+    'storage:bytes': 5 * 1024 * 1024 * 1024 * 1024,
+  },
+} as const satisfies Record<WorkspacePlan, Record<WorkspaceQuota, number>>
+
 type WorkspaceEntitlementSnapshot = {
   featureOverrides?: unknown
   plan?: unknown
   status?: string | null
+  graceUntil?: Date | null
   validUntil?: Date | null
 }
 
@@ -96,8 +132,11 @@ export function evaluateWorkspaceFeature(
   const currentPlan = workspacePlanSchema.catch('free').parse(entitlement?.plan)
   const overrides = featureOverrideSchema.catch({}).parse(entitlement?.featureOverrides)
   const isCurrent = !entitlement?.validUntil || entitlement.validUntil > now
+  const isInBillingGrace =
+    entitlement?.status === 'past_due' && !!entitlement.graceUntil && entitlement.graceUntil > now
   const isActive = entitlement
-    ? (entitlement.status === 'active' || entitlement.status === 'trialing') && isCurrent
+    ? (entitlement.status === 'active' || entitlement.status === 'trialing' || isInBillingGrace) &&
+      isCurrent
     : true
 
   return {
@@ -105,4 +144,8 @@ export function evaluateWorkspaceFeature(
     currentPlan,
     requiredPlan: getMinimumPlan(feature),
   }
+}
+
+export function getWorkspaceQuota(plan: WorkspacePlan, quota: WorkspaceQuota): number {
+  return planQuotas[plan][quota]
 }

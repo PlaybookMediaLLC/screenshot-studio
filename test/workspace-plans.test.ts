@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { evaluateWorkspaceFeature, getMinimumPlan, hasWorkspaceFeature } from '@/lib/billing/plans'
+import {
+  evaluateWorkspaceFeature,
+  getMinimumPlan,
+  getWorkspaceQuota,
+  hasWorkspaceFeature,
+} from '@/lib/billing/plans'
 
 test('free workspaces cannot delete assets', () => {
   assert.equal(hasWorkspaceFeature('free', 'asset:delete'), false)
@@ -59,4 +64,34 @@ test('unknown plans and malformed overrides fall back to free-plan policy', () =
     currentPlan: 'free',
     requiredPlan: 'pro',
   })
+})
+
+test('past-due workspaces retain access only during the explicit billing grace period', () => {
+  const now = new Date('2026-08-26T12:00:00.000Z')
+  assert.equal(
+    evaluateWorkspaceFeature(
+      { graceUntil: new Date('2026-08-27T12:00:00.000Z'), plan: 'pro', status: 'past_due' },
+      'asset:delete',
+      now
+    ).allowed,
+    true
+  )
+  assert.equal(
+    evaluateWorkspaceFeature(
+      { graceUntil: new Date('2026-08-26T11:59:59.000Z'), plan: 'pro', status: 'past_due' },
+      'asset:delete',
+      now
+    ).allowed,
+    false
+  )
+})
+
+test('plan quotas increase for API writes and storage', () => {
+  assert(
+    getWorkspaceQuota('free', 'api:write:minute') < getWorkspaceQuota('pro', 'api:write:minute')
+  )
+  assert(
+    getWorkspaceQuota('business', 'storage:bytes') <
+      getWorkspaceQuota('enterprise', 'storage:bytes')
+  )
 })

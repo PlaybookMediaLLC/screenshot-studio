@@ -22,6 +22,10 @@ Plan defaults live in `lib/billing/plans.ts`. Enterprise contracts may grant or 
 
 Update and delete operations require explicit entitlement review. Apply the same feature gate to compatibility handlers and other transports until they are retired, otherwise an older endpoint can bypass the commercial boundary.
 
+Destructive and high-value domain services repeat the feature assertion as defense in depth. tRPC procedures use the same `feature` and `quota` fields as REST. Distributed quotas use Redis and fail closed for costly writes when the counter is unavailable. Entitlement reads use a bounded cache; billing synchronization invalidates it after the audited transaction commits.
+
+OpenAPI operations expose `x-screenshot-studio-entitlement` so Scalar, generated clients, and policy tooling can inspect feature and quota requirements without scraping descriptions.
+
 ## Parsing
 
 Validate all untrusted data before executing the domain service:

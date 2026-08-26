@@ -12,6 +12,7 @@ export const DELETE = createTenantJsonRoute({
     apiKeyScope: 'asset:write',
     feature: 'asset:delete',
     permission: 'artifact:edit',
+    quota: 'api:write:minute',
   },
   schema: assetDeleteSchema,
   input: async (_request, context) => context.params,

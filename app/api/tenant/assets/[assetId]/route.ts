@@ -17,6 +17,7 @@ export async function DELETE(
       apiKeyScope: 'asset:write',
       feature: 'asset:delete',
       permission: 'artifact:edit',
+      quota: 'api:write:minute',
     })
     const result = await deleteAsset(context, input.assetId)
     if (result === 'not-found') {

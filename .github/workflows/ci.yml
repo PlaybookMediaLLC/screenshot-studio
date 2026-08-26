@@ -107,6 +107,14 @@ jobs:
         run: ./bin/studio tenant-isolation
       - name: Verify browser end-to-end flows
         run: ./bin/studio e2e --shard=${{ matrix.shard }}
+      # Collected before the recovery check, which calls `compose up
+      # --force-recreate app` and so destroys the container that served the
+      # failing tests. Collecting only at the end left every shard-1 failure
+      # with no server-side evidence, which is why the two-factor flake could
+      # not be diagnosed from CI output.
+      - if: always()
+        name: Collect end-to-end stack logs
+        run: docker compose --env-file .local/dev.env --file compose.yaml --profile e2e logs --no-color
       - name: Verify dependency failure and recovery
         if: matrix.shard_index == 1
         run: make e2e-recovery
@@ -120,7 +128,7 @@ jobs:
             test-results/
           if-no-files-found: ignore
       - if: always()
-        name: Collect local stack logs
+        name: Collect post-recovery stack logs
         run: docker compose --env-file .local/dev.env --file compose.yaml --profile e2e logs --no-color
       - if: always()
         name: Remove local stack data

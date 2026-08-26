@@ -8,9 +8,11 @@ const assetDeleteSchema = z.object({
 })
 
 export const DELETE = createTenantJsonRoute({
+  // No `feature` here on purpose. The `asset:delete` plan gate runs inside
+  // `deleteAsset`, after ownership is resolved, so a caller cannot learn that
+  // a foreign asset exists by comparing a 403 against a 404.
   access: {
     apiKeyScope: 'asset:write',
-    feature: 'asset:delete',
     permission: 'artifact:edit',
     quota: 'api:write:minute',
   },

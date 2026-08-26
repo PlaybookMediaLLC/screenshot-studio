@@ -25,21 +25,66 @@ export async function browserRequest(
   path: string,
   input: BrowserRequest = {}
 ): Promise<BrowserResponse> {
-  return page.evaluate(
-    async ({ input: requestInput, requestPath }) => {
-      const response = await fetch(requestPath, requestInput)
-      const text = await response.text()
-      if (!text) {
-        return { body: null, status: response.status }
-      }
+  // These requests run in the page so they carry the session cookie, which
+  // means they share the page's execution context: any navigation still
+  // settling when the fetch starts destroys that context and rejects with
+  // "Execution context was destroyed", regardless of what the request would
+  // have returned. The failure is indistinguishable from the endpoint
+  // misbehaving, which is exactly the kind of false signal that makes a
+  // tenant-isolation suite untrustworthy.
+  //
+  // Prevention first: wait for the page to stop navigating before evaluating.
+  // That removes the common case without changing what is sent.
+  await page.waitForLoadState('domcontentloaded').catch(() => {})
 
-      try {
-        return { body: JSON.parse(text), status: response.status }
-      } catch {
-        return { body: text, status: response.status }
-      }
-    },
-    { input: toRequestInit(input), requestPath: path }
+  const requestInit = toRequestInit(input)
+  const method = (input.method ?? 'GET').toUpperCase()
+  // Retry only reads. A destroyed context gives no way to tell whether the
+  // request reached the server, so replaying a DELETE or POST could double
+  // submit and turn a 202 into a 404 on the retry, inventing a failure worse
+  // than the one being fixed. GET and HEAD have no such risk.
+  const isReplaySafe = method === 'GET' || method === 'HEAD'
+  const attempts = isReplaySafe ? 3 : 1
+  let lastError: unknown
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await page.evaluate(
+        async ({ input: requestInput, requestPath }) => {
+          const response = await fetch(requestPath, requestInput)
+          const text = await response.text()
+          if (!text) {
+            return { body: null, status: response.status }
+          }
+
+          try {
+            return { body: JSON.parse(text), status: response.status }
+          } catch {
+            return { body: text, status: response.status }
+          }
+        },
+        { input: requestInit, requestPath: path }
+      )
+    } catch (error) {
+      if (!isDestroyedContextError(error)) throw error
+      lastError = error
+      await page.waitForLoadState('domcontentloaded').catch(() => {})
+    }
+  }
+
+  throw lastError
+}
+
+/**
+ * True for the Playwright error raised when a navigation replaces the
+ * execution context that `page.evaluate` was running in.
+ */
+function isDestroyedContextError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.message.includes('Execution context was destroyed') ||
+      error.message.includes('Target closed') ||
+      error.message.includes('Target crashed'))
   )
 }
 

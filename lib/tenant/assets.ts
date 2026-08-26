@@ -248,7 +248,16 @@ export async function deleteAsset(
   context: TenantContext,
   assetId: string
 ): Promise<AssetDeletionResult> {
+  // Resolve ownership before the plan gate. A workspace that cannot see the
+  // asset must get 'not-found', never an entitlement error, because a 403
+  // would confirm that an asset with this id exists in another workspace.
+  const owned = await prisma.asset.findFirst({
+    select: { id: true },
+    where: { id: assetId, organizationId: context.organizationId, status: { not: 'DELETED' } },
+  })
+  if (!owned) return 'not-found'
   await requireWorkspaceFeature(context.organizationId, 'asset:delete')
+
   return prisma.$transaction(async (transaction) => {
     const asset = await transaction.asset.findFirst({
       select: { id: true, status: true },

@@ -89,7 +89,9 @@ export function OnboardingForm() {
         </span>
       </label>
       {error ? (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
       ) : null}
       <Button className="w-full" disabled={!isHydrated || isSubmitting} type="submit">
         {isSubmitting ? 'Creating workspace…' : 'Create workspace'}

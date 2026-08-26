@@ -143,7 +143,9 @@ export function AuthForm({ mode, passwordAuthEnabled, socialProviders }: AuthFor
             />
           </label>
           {error ? (
-            <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
+            <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
           ) : null}
           {message ? (
             <p className="rounded-md bg-primary/10 p-3 text-sm text-foreground">{message}</p>
@@ -161,7 +163,9 @@ export function AuthForm({ mode, passwordAuthEnabled, socialProviders }: AuthFor
       ) : null}
 
       {!passwordAuthEnabled && error ? (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
       ) : null}
 
       {hasSocialProviders ? (

@@ -56,7 +56,9 @@ export function SsoSignInForm({ callbackURL }: SsoSignInFormProps) {
         <Input autoComplete="email" id="sso-email" name="email" required type="email" />
       </label>
       {error ? (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
       ) : null}
       <Button className="w-full" disabled={isSubmitting} type="submit" variant="outline">
         {isSubmitting ? 'Redirecting…' : 'Continue with SSO'}

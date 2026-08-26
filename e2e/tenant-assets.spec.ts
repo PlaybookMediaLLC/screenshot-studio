@@ -10,7 +10,7 @@ import {
 } from './framework/browser'
 import { configureE2EFlow, test, type E2EIdentity } from './framework/flow'
 import { getMaintenanceHeaders } from './framework/maintenance'
-import { createE2EDatabaseClient } from './framework/services'
+import { createE2EDatabaseClient, grantWorkspacePlan } from './framework/services'
 
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFgAI/ScL6fQAAAABJRU5ErkJggg==',
@@ -143,7 +143,7 @@ test('an uploaded asset stays private to its workspace through completion and do
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  const organizationId = await signUpAndCreateWorkspace(identity, page)
   const sha256 = createHash('sha256').update(png).digest('hex')
   const request: AssetRequest = {
     bytes: png.byteLength,
@@ -188,9 +188,32 @@ test('an uploaded asset stays private to its workspace through completion and do
     signed,
   })
 
+  // Deleting an asset is a paid capability (RFC 034: `asset:delete` needs Pro
+  // or an explicit contract override), and workspaces start on `free`. Assert
+  // the rejection first so the gate is covered, then grant the plan the way
+  // billing would, so the rest of the deletion lifecycle can be exercised at
+  // all. Ownership resolves before the plan check, so this 403 proves the
+  // caller owns the asset rather than leaking that some other workspace does.
   expect(
     await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
-  ).toMatchObject({ body: { accepted: true }, status: 202 })
+  ).toMatchObject({
+    body: { code: 'workspace_feature_not_entitled', feature: 'asset:delete' },
+    status: 403,
+  })
+  await grantWorkspacePlan(organizationId, 'pro')
+
+  // The entitlement is read through a 5s in-process cache that no external
+  // process can clear, so the grant is not visible the instant it lands.
+  // Retry the delete until the plan gate stops rejecting it, then assert the
+  // real result. A 202 is terminal; so is any status that is not the gate.
+  let deletion = await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
+  await expect(async () => {
+    if (deletion.status === 403) {
+      deletion = await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
+      throw new Error(`plan gate still rejecting: ${JSON.stringify(deletion.body)}`)
+    }
+  }).toPass({ timeout: 30_000 })
+  expect(deletion).toMatchObject({ body: { accepted: true }, status: 202 })
   expect(
     (await browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`)).status
   ).toBe(404)

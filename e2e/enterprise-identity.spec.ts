@@ -2,6 +2,7 @@ import type { Browser, Page } from '@playwright/test'
 import { z } from 'zod'
 import {
   enableTwoFactor,
+  findActiveOrganizationId,
   getActiveOrganizationId,
   openWorkspaceSetting,
   signUpAndCreateWorkspace,
@@ -283,7 +284,7 @@ test('a verified OIDC provider signs a user in and provisions the workspace memb
     )
 
     const ssoPage = await signInWithSso(browser, ssoEmail)
-    await expect.poll(() => getActiveOrganizationId(ssoPage)).toBe(organizationId)
+    await expect.poll(() => findActiveOrganizationId(ssoPage)).toBe(organizationId)
     const database = createE2EDatabaseClient()
     try {
       await expect

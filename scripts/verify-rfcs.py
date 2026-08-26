@@ -47,7 +47,12 @@ def rfc_paths() -> list[str]:
 def lib_sources() -> str:
     """Concatenated tracked TypeScript under lib/, used for symbol existence."""
     result = subprocess.run(
-        ["bash", "-c", "cat $(git ls-files 'lib/**/*.ts') 2>/dev/null"],
+        [
+            "bash",
+            "-c",
+            "cat $(git ls-files 'lib/**/*.ts' 'app/**/*.ts' 'app/**/*.tsx' "
+            "'prisma/schema.prisma') 2>/dev/null",
+        ],
         capture_output=True,
         text=True,
     )
@@ -315,6 +320,50 @@ def check_audit_promises(docs: dict[str, str]) -> list[str]:
     return problems
 
 
+def check_grounded_paragraphs(docs: dict[str, str], source: str) -> list[str]:
+    """Any paragraph citing a real source file must not invent symbols.
+
+    The `Implemented RFCs cite only real symbols` check covers RFCs 019 and 020.
+    This one applies the same standard to every document: citing a concrete file
+    is a claim about real code, so every symbol named alongside it must exist.
+    Proposed schema fields in `ts` blocks are untouched, because those describe
+    work to be done rather than code that is there.
+    """
+    if not source.strip():
+        return ["cannot read sources; grounded-paragraph check would be meaningless"]
+    file_ref = re.compile(r"`(?:lib|app|prisma)/[\w\-./]+\.(?:ts|tsx|prisma)`")
+    problems = []
+    for name in sorted(docs):
+        for paragraph in docs[name].split("\n\n"):
+            if paragraph.lstrip().startswith("```") or not file_ref.search(paragraph):
+                continue
+            for symbol in sorted(set(re.findall(r"`([a-z][a-zA-Z0-9]{6,})`", paragraph))):
+                if symbol not in source:
+                    problems.append(
+                        f"{name} names `{symbol}` beside a real file path; not found in sources"
+                    )
+    return problems
+
+
+def check_cross_references(docs: dict[str, str]) -> list[str]:
+    """Every RFC reference and dependency must point at a document that exists."""
+    problems = []
+    for name in sorted(docs):
+        text = docs[name]
+        own = name[:3]
+        for number in sorted(set(re.findall(r"\bRFC (\d{3})\b", text))):
+            if number == own:
+                continue  # the document's own title line
+            if not any(k.startswith(f"{number}-") for k in docs):
+                problems.append(f"{name} references RFC {number}, which does not exist")
+        header = re.search(r"\*\*Depends on:\*\*\s*(.+)", text)
+        if header:
+            for number in sorted(set(re.findall(r"(\d{3})", header.group(1)))):
+                if not any(k.startswith(f"{number}-") for k in docs):
+                    problems.append(f"{name} declares a dependency on missing RFC {number}")
+    return problems
+
+
 def check_shipped_symbols(docs: dict[str, str], source: str) -> list[str]:
     """A doc marked Implemented must not cite symbols that do not exist."""
     problems = []
@@ -349,6 +398,8 @@ def run(docs: dict[str, str], source: str) -> list[tuple[str, list[str]]]:
         ("RFC 019 table matches campaignPostTransitions", check_transition_table(docs)),
         ("Implemented RFCs cite only real symbols", check_shipped_symbols(docs, source)),
         ("audit promises are substantiated", check_audit_promises(docs)),
+        ("every doc citing a real file names real symbols", check_grounded_paragraphs(docs, source)),
+        ("cross-RFC references resolve", check_cross_references(docs)),
     ]
 
 
@@ -415,6 +466,17 @@ def self_test(docs: dict[str, str], source: str) -> int:
             ),
         ),
         ("audit promises (audit missing)", lambda: check_audit_promises({})),
+        (
+            "grounded paragraphs (invented symbol)",
+            lambda: check_grounded_paragraphs(
+                {"x.md": "The `phantomResolver` in `lib/tenant/campaigns.ts` does this."}, source
+            ),
+        ),
+        ("grounded paragraphs (no sources)", lambda: check_grounded_paragraphs(docs, "")),
+        (
+            "cross references (missing RFC)",
+            lambda: check_cross_references({"x.md": "See RFC 099 for details."}),
+        ),
     ]
     failures = 0
     print("Self-test: every check must reject known-bad input\n")

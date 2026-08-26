@@ -247,6 +247,27 @@ a security setting, not a preference.
 Policies are never editable by an API key or by an agent. Automation cannot
 widen its own permissions.
 
+## Security threats
+
+A policy is the mechanism that lets content publish without a person, so
+attacking the policy is strictly easier than attacking every post it governs.
+The threats below are about widening a policy rather than about defeating an
+individual approval.
+
+| Threat                                    | Mitigation                                                    |
+| ----------------------------------------- | ------------------------------------------------------------- |
+| Agent or API key widening its own policy  | Policies are session-only; automation cannot edit them         |
+| Silent activation of a permissive version | Activation needs fresh authentication and is audited with a diff |
+| Content edited after an automatic decision | Decisions are invalidated on change and re-evaluated           |
+| Classifier manipulated into auto-approval | Classifier failure or low confidence routes to review          |
+| Policy widened, then quietly narrowed back | Every version is retained; activation history is immutable     |
+
+The asymmetry worth stating plainly: a policy that wrongly routes to review
+costs a founder some time, and a policy that wrongly publishes costs trust that
+does not come back. Every ambiguous case in this document resolves toward
+review for that reason, including cases where the ambiguity is a bug rather
+than a judgment call.
+
 ## Failure behavior
 
 | Failure                       | Behavior                                     |

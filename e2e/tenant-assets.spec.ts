@@ -202,9 +202,18 @@ test('an uploaded asset stays private to its workspace through completion and do
   })
   await grantWorkspacePlan(organizationId, 'pro')
 
-  expect(
-    await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
-  ).toMatchObject({ body: { accepted: true }, status: 202 })
+  // The entitlement is read through a 5s in-process cache that no external
+  // process can clear, so the grant is not visible the instant it lands.
+  // Retry the delete until the plan gate stops rejecting it, then assert the
+  // real result. A 202 is terminal; so is any status that is not the gate.
+  let deletion = await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
+  await expect(async () => {
+    if (deletion.status === 403) {
+      deletion = await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
+      throw new Error(`plan gate still rejecting: ${JSON.stringify(deletion.body)}`)
+    }
+  }).toPass({ timeout: 30_000 })
+  expect(deletion).toMatchObject({ body: { accepted: true }, status: 202 })
   expect(
     (await browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`)).status
   ).toBe(404)

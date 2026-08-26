@@ -349,6 +349,7 @@ run_e2e() {
     E2E_R2_ENDPOINT="${E2E_R2_ENDPOINT:-http://127.0.0.1:9003}" \
     E2E_R2_REGION="${E2E_R2_REGION:-$R2_REGION}" \
     E2E_R2_SECRET_ACCESS_KEY="${E2E_R2_SECRET_ACCESS_KEY:-$R2_SECRET_ACCESS_KEY}" \
+    E2E_REDIS_URL="${E2E_REDIS_URL:-redis://127.0.0.1:63799}" \
     E2E_WEBHOOK_SECRET="$CLEANUP_SECRET" \
     npm --prefix "$ROOT_DIR" run "$test_script" -- "$@"; then
     test_result=1

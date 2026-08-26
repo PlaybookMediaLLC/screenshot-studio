@@ -234,6 +234,87 @@ def check_transition_table(docs: dict[str, str]) -> list[str]:
     return problems
 
 
+# Promise words that describe a document's shape rather than a topic, or that
+# routinely appear in a different grammatical form than the audit uses.
+PROMISE_STOPWORDS = {
+    "and",
+    "the",
+    "for",
+    "with",
+    "plus",
+    "its",
+    "their",
+    "that",
+    "from",
+    "rules",
+    "defenses",
+    "behavior",
+    "handling",
+    "model",
+    "models",
+    "semantics",
+    "contracts",
+    "limits",
+    "boundaries",
+    "states",
+    "concrete",
+    "measurable",
+    "formal",
+    "supported",
+    "architecture",
+    "constraints",
+    "policy",
+    "schema",
+    "resumability",
+    "budgets",
+    "protection",
+    "authentication",
+    "translation",
+    "versioning",
+    "measurement",
+    "approving",
+    "generating",
+    "reading",
+    "scheduling",
+    "timezone",
+    "fallback",
+    "hashing",
+    "rollback",
+    "normalization",
+    "deduplication",
+}
+
+
+def check_audit_promises(docs: dict[str, str]) -> list[str]:
+    """Each audit row promises specific detail; the target must deliver it.
+
+    Word matching is deliberately lenient, because the audit and the documents
+    use different grammatical forms. It exists to catch a wholly absent topic,
+    which is how the missing cancellation and reconciliation sections were
+    found, not to police vocabulary.
+    """
+    audit = docs.get("000-detail-audit-2026-08-26.md")
+    if not audit:
+        return ["audit document not found; cannot verify its promises"]
+    rows = re.findall(r"^\| \[(\d{3})\][^|]*\|\s*(.+?)\s*\|$", audit, re.M)
+    if len(rows) < 20:
+        return [f"audit promise tables parsed {len(rows)} rows; expected >= 20"]
+    problems = []
+    for number, promise in rows:
+        targets = [v for k, v in docs.items() if k.startswith(f"{number}-")]
+        if not targets:
+            problems.append(f"RFC {number} promised detail but the document is missing")
+            continue
+        body = targets[0].lower().replace("-", " ")
+        for word in promise.split():
+            word = word.lower().strip(".,()").replace("-", " ")
+            if len(word) < 6 or word in PROMISE_STOPWORDS:
+                continue
+            if word.rstrip("s") not in body:
+                problems.append(f"RFC {number} promised '{word}' but the document omits it")
+    return problems
+
+
 def check_shipped_symbols(docs: dict[str, str], source: str) -> list[str]:
     """A doc marked Implemented must not cite symbols that do not exist."""
     problems = []
@@ -267,6 +348,7 @@ def run(docs: dict[str, str], source: str) -> list[tuple[str, list[str]]]:
         ("cited source paths exist", check_paths(docs)),
         ("RFC 019 table matches campaignPostTransitions", check_transition_table(docs)),
         ("Implemented RFCs cite only real symbols", check_shipped_symbols(docs, source)),
+        ("audit promises are substantiated", check_audit_promises(docs)),
     ]
 
 
@@ -321,6 +403,18 @@ def self_test(docs: dict[str, str], source: str) -> int:
         ("acceptance (missing RFC)", lambda: check_acceptance({})),
         ("shipped symbols (missing doc)", lambda: check_shipped_symbols({}, source)),
         ("shipped symbols (no sources)", lambda: check_shipped_symbols(docs, "")),
+        (
+            "audit promises (topic absent)",
+            lambda: check_audit_promises(
+                {
+                    **docs,
+                    "029-recurring-campaign-generation.md": re.sub(
+                        r"(?i)freshness", "xxxx", docs["029-recurring-campaign-generation.md"]
+                    ),
+                }
+            ),
+        ),
+        ("audit promises (audit missing)", lambda: check_audit_promises({})),
     ]
     failures = 0
     print("Self-test: every check must reject known-bad input\n")

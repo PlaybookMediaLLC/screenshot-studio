@@ -225,6 +225,45 @@ The cycle produces something useful rather than nothing:
 Only a missing product profile skips the cycle, because generating marketing
 for an unknown product is the one case where output would be actively wrong.
 
+## Stopping, pausing, and cancelling
+
+Three different intentions are easy to conflate, so they are separate controls
+with separate effects:
+
+| Control                 | Effect                                                    |
+| ----------------------- | --------------------------------------------------------- |
+| `pausedUntil` set       | Cycles skip until the date; configuration is retained      |
+| `enabled` set to false  | Cycles stop indefinitely; configuration is retained        |
+| Cancel a running cycle  | The in-flight run stops; partial output is discarded        |
+| Delete the plan         | Configuration is removed; generated campaigns are untouched |
+
+A founder going on holiday wants `pausedUntil`. A founder who dislikes the
+feature wants `enabled: false`. Neither should have to delete their channel
+selections and cadence to get what they want, and neither should lose campaigns
+that were already generated and reviewed.
+
+Cancelling a run in flight is the interesting case. The cycle generates a plan
+of several posts, so a cancellation can land mid-generation:
+
+1. Cancellation sets a flag the run checks between posts, rather than killing
+   the worker mid-write. A half-written post is worse than a slow stop.
+2. The run stops at the next boundary and discards the partial campaign. A
+   founder who cancels expects nothing to appear, not a fragment of a week.
+3. `lastRunAt` is **not** advanced, and the period lock is released. A
+   cancelled cycle did not happen, so a manual re-run remains available.
+4. Cancellation is audited with the actor and the number of posts discarded.
+
+Discarding rather than keeping partial output is deliberate. Keeping three of
+five posts would leave the founder with an unbalanced week that no pillar logic
+endorsed, and the whole value of the cycle is that the week is planned as a
+unit.
+
+Disabling or pausing never touches content that already exists. Campaigns
+already in `READY_FOR_REVIEW` stay there, and posts already approved and
+scheduled still publish. Turning off future generation is not a request to
+withdraw past decisions, and conflating the two would make the control
+frightening to use.
+
 ## Authorization and audit
 
 | Operation                | Permission        |
@@ -234,12 +273,15 @@ for an unknown product is the one case where output would be actively wrong.
 | Pause                    | `workspace:update`|
 | Review the generated plan| `release:approve` |
 | Trigger a manual run     | `release:create`  |
+| Cancel a running cycle   | `workspace:update`|
+| Delete the plan          | `workspace:update`|
 
 The cycle runs as a workspace-scoped service principal that can create
 campaigns and submit them for review, and cannot approve, schedule, or publish.
 
 Audited events: cycle enabled and disabled, configuration changed, run started,
-plan created, plan expired, run skipped with reason, and quota pause.
+plan created, plan expired, run skipped with reason, quota pause, run
+cancelled with the count of discarded posts, and plan deleted.
 
 ## Observability
 
@@ -286,6 +328,13 @@ rather than to keep generating.
 15. Approving a plan with a past scheduled time moves it forward.
 16. Disabling the cycle takes effect before the next period.
 17. Exceeding quota pauses the cycle with a notification.
+18. `pausedUntil` skips cycles until the date, then resumes without
+    reconfiguration.
+19. Cancelling a run mid-generation discards the partial campaign, leaves
+    `lastRunAt` unchanged, and releases the period lock.
+20. A cancelled period can be re-run manually.
+21. Disabling the cycle leaves existing campaigns and scheduled posts intact.
+22. Deleting the plan leaves previously generated campaigns intact.
 
 ## Rollout
 

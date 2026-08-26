@@ -197,6 +197,38 @@ Aggregation rules that keep the knowledge base honest:
 RFC 028 consumes these aggregates and is where sample-size discipline becomes
 a product requirement rather than a reporting nicety.
 
+## Reconciliation
+
+Polling produces a local view of numbers a provider owns. Drift between the two
+is inevitable, so it is checked rather than assumed away.
+
+A daily reconciliation pass, per connected channel, over posts published in the
+last 30 days:
+
+| Discrepancy                                   | Resolution                                    |
+| --------------------------------------------- | --------------------------------------------- |
+| Provider count differs from the newest snapshot | Provider wins; a corrective snapshot is written |
+| Post exists locally, absent at the provider   | Marked `deleted_at_provider`; series finalized |
+| Post exists at the provider, absent locally   | Logged as unattributed; never invented         |
+| Provider returns an error for a known post    | Left untouched; retried next pass              |
+
+Two rules keep reconciliation from doing damage. The provider is always
+authoritative for its own metrics, because the local copy is a cache and a
+cache that argues with its source is a bug. And reconciliation only ever writes
+a new snapshot; it never edits or deletes an existing one, so the history of
+what was believed and when stays intact and a bad reconciliation run is
+recoverable.
+
+The third row matters more than it looks. A post published outside the platform
+appears at the provider with no local record. It is deliberately not adopted:
+inventing local records from provider data would let an external actor's
+content enter a workspace's knowledge base and skew RFC 028's weights. It is
+surfaced for a human instead.
+
+Reconciliation reports drift as a metric rather than silently correcting it.
+Persistent drift on one provider usually means the metric mapping is wrong, and
+silent correction would hide exactly the signal needed to find that.
+
 ## Retention
 
 | Data                 | Retention                                |
@@ -272,6 +304,11 @@ conclusions.
 15. Attribution survives a later angle reassignment.
 16. No aggregate mixes data across workspaces.
 17. Provider outage does not affect publishing.
+18. Reconciliation writes a corrective snapshot when provider counts differ,
+    and never edits an existing snapshot.
+19. A post deleted at the provider is finalized, not zeroed.
+20. A provider post with no local record is reported, never adopted into
+    the workspace knowledge base.
 
 ## Rollout
 

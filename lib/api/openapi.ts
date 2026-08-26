@@ -32,8 +32,8 @@ export const openApiSpec = {
   },
   servers: [{ url: BASE_URL, description: 'Production' }],
   externalDocs: {
-    description: 'Screenshot Studio API documentation',
-    url: `${BASE_URL}/docs`,
+    description: 'Interactive Screenshot Studio API reference',
+    url: `${BASE_URL}/api-reference`,
   },
   security: [],
   tags: [

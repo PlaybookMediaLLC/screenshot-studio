@@ -115,6 +115,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
   }
 
+  entries.push({
+    url: `${baseUrl}/api-reference`,
+    lastModified: now,
+    changeFrequency: "monthly",
+    priority: 0.8,
+  });
+
   // Comparison pages (dynamic, same pattern)
   for (const slug of comparisonSlugs) {
     const path = `/compare/${slug}`;

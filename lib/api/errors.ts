@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-export const API_DOCS_URL = 'https://www.screenshot-studio.com/docs'
+export const API_DOCS_URL = 'https://www.screenshot-studio.com/api-reference'
 
 export type ApiErrorCode =
   | 'invalid_request'

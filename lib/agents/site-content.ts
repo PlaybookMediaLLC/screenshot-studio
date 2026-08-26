@@ -186,6 +186,7 @@ export const AGENT_PAGES: AgentPage[] = [
 ];
 
 export const AGENT_RESOURCES = [
+  { name: "Interactive API reference", url: `${BASE_URL}/api-reference` },
   { name: "API documentation", url: `${BASE_URL}/docs` },
   { name: "Developer portal", url: `${BASE_URL}/developers` },
   { name: "OpenAPI specification", url: `${BASE_URL}/openapi.json` },

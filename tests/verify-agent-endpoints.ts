@@ -78,6 +78,13 @@ const CHECKS: Check[] = [
     expectBody: [/# 404 Not Found/, /Where to look next/],
   },
   {
+    name: '/api-reference renders Scalar',
+    path: '/api-reference',
+    expectStatus: 200,
+    expectHeaders: { 'content-type': /text\/html/ },
+    expectBody: [/Screenshot Studio API Reference/, /\/openapi\.json/, /scalar/i],
+  },
+  {
     name: '/openapi.json serves the spec',
     path: '/openapi.json',
     expectStatus: 200,

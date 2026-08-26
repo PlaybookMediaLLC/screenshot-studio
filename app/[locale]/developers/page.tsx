@@ -35,10 +35,16 @@ export const metadata: Metadata = {
 
 const RESOURCES = [
   {
-    href: "/docs",
-    label: "API documentation",
+    href: "/api-reference",
+    label: "Interactive API reference",
     detail:
-      "Every public endpoint with request and response examples, plus the error-code table.",
+      "Explore every REST operation, copy examples, and send requests through Scalar.",
+  },
+  {
+    href: "/docs",
+    label: "API guides",
+    detail:
+      "Authentication, rate limits, request and response examples, and the error-code table.",
   },
   {
     href: "/openapi.json",
@@ -117,9 +123,9 @@ export default function DevelopersPage() {
         </h1>
         <p className="mb-12 text-lg leading-relaxed text-muted-foreground">
           Screenshot Studio is an open-source, browser-based screenshot editor
-          with a small public HTTP API. This page is the entry point for
-          building against it: the endpoints are unauthenticated, the contract
-          is published as OpenAPI 3.1, and the whole application is Apache 2.0
+          with a public REST API. This page is the entry point for building
+          against it: Scalar provides an interactive reference, the contract is
+          published as OpenAPI 3.1, and the whole application is Apache 2.0
           on GitHub.
         </p>
 

@@ -68,7 +68,15 @@ export function getE2EUrl(path: string): string {
 }
 
 async function expectPath(page: Page, path: string): Promise<void> {
-  await expect.poll(() => new URL(page.url()).pathname).toBe(path)
+  // A navigation leaves page.url() on the previous page until the server
+  // responds. The e2e stack runs `next dev`, so a route that has not been
+  // compiled yet can take tens of seconds on a loaded runner, and the poll
+  // then reports a bare timeout that looks like a redirect that never
+  // happened. bin/studio warms these routes before the suite starts, so this
+  // budget only has to cover a slow response rather than a full compile;
+  // it stays above the 20s default because warming is a mitigation, not a
+  // guarantee, and a bare URL timeout is an expensive thing to debug.
+  await expect.poll(() => new URL(page.url()).pathname, { timeout: 45_000 }).toBe(path)
 }
 
 async function waitForEditorHydration(page: Page): Promise<void> {

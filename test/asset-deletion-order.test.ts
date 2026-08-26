@@ -61,3 +61,54 @@ test('the scan would notice a route that reintroduces the gate', () => {
   assert.equal(/\[[^\]]+\]/.test('app/api/v1/assets/[assetId]/route.ts'), true)
   assert.equal(/\[[^\]]+\]/.test('app/api/tenant/assets/upload-url/route.ts'), false)
 })
+
+/**
+ * The route scan above is necessary but not sufficient.
+ *
+ * Removing `feature` from the routes only moved the decision into the domain
+ * function, so the disclosure now depends on the statement order inside
+ * `deleteAsset`: the ownership lookup must precede the plan gate. Reversing
+ * those two lines restores the original vulnerability while leaving every
+ * route file untouched, so the scan above still passes. Verified by actually
+ * reversing them, which is why this second check exists.
+ */
+const ASSETS_SOURCE = join(process.cwd(), 'lib', 'tenant', 'assets.ts')
+
+function deleteAssetGateOrder(source: string): { gate: number; ownership: number } {
+  const body = source.slice(source.indexOf('async function deleteAsset'))
+  const scope = body.slice(0, body.indexOf('\n}\n') + 1)
+  return {
+    gate: scope.indexOf("requireWorkspaceFeature(context.organizationId, 'asset:delete')"),
+    ownership: scope.indexOf('prisma.asset.findFirst'),
+  }
+}
+
+test('deleteAsset resolves ownership before applying the plan gate', () => {
+  const { gate, ownership } = deleteAssetGateOrder(readFileSync(ASSETS_SOURCE, 'utf8'))
+
+  assert.ok(ownership !== -1, 'the ownership lookup was not found in deleteAsset')
+  assert.ok(gate !== -1, 'the asset:delete plan gate was not found in deleteAsset')
+  assert.ok(
+    ownership < gate,
+    'deleteAsset applies the asset:delete plan gate before resolving ownership, so a ' +
+      "free-plan workspace gets 403 for another workspace's asset id and 404 for an " +
+      'unknown one, which confirms the id exists elsewhere'
+  )
+})
+
+test('the order check fails when the gate is moved ahead of ownership', () => {
+  // Negative control against the exact regression: the same source with the
+  // two statements swapped must be rejected.
+  const vulnerable = [
+    'async function deleteAsset(context, assetId) {',
+    "  await requireWorkspaceFeature(context.organizationId, 'asset:delete')",
+    '  const owned = await prisma.asset.findFirst({ where: { id: assetId } })',
+    "  if (!owned) return 'not-found'",
+    '}',
+    '',
+  ].join('\n')
+
+  const { gate, ownership } = deleteAssetGateOrder(vulnerable)
+  assert.ok(gate !== -1 && ownership !== -1, 'the control sample must contain both statements')
+  assert.ok(gate < ownership, 'the control sample must represent the vulnerable order')
+})

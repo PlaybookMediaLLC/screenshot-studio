@@ -218,17 +218,27 @@ work.
 
 ## Agent interaction
 
-An agent run reaches approval and stops. It does not poll and it does not hold
-a connection open. The durable-run pattern is:
+**This section is a design for planned work, not shipped behavior.** It depends
+entirely on refinement 7 below. Because `submit` is session-only today, an agent
+cannot move its own output to `READY_FOR_REVIEW` at all, so none of the flow
+described here currently runs.
 
-1. The agent calls `requestApproval`, which submits posts to
-   `READY_FOR_REVIEW` and records the run ID.
+The intent is that an agent run reaches approval and stops. It does not poll and
+it does not hold a connection open. The durable-run pattern is:
+
+1. The agent calls the planned machine-submission procedure, which submits posts
+   to `READY_FOR_REVIEW` and records the run ID. This procedure does not exist
+   yet.
 2. The Trigger.dev run creates a wait token and suspends. No compute is billed
    while it waits.
 3. A human decides through the workspace UI or the REST API.
 4. The decision completes the token and the run resumes with the outcome.
 5. On `NEEDS_CHANGES`, the run reads the reviewer note and regenerates. On
    `REJECTED`, the run ends.
+
+Steps 3 through 5 stay human-driven by construction: the agent never gains a
+path to `approve`, `reject`, or `request_changes`, only to `submit`. Step 5 also
+depends on refinement 2, since there is no reviewer note field to read yet.
 
 The wait has a bounded lifetime. A pending approval that is never decided
 expires after 14 days; the run ends and the posts stay in `READY_FOR_REVIEW`

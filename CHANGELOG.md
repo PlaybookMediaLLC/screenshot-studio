@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.3.0...v1.3.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tenant:** stop plan gates leaking other workspaces' asset ids ([#29](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/29)) ([adeea1f](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/adeea1f785d9c6b78404d01625cb6010d68162de))
+
 ## [1.3.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.2.0...v1.3.0) (2026-08-26)
 
 

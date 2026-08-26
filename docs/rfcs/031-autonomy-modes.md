@@ -223,6 +223,28 @@ and no other metric captures that as directly.
 
 Every ambiguity resolves toward less autonomy.
 
+## Security threats
+
+Autonomy mode is the single most valuable setting in the product to an
+attacker. Escalating a workspace to Autopilot converts every other weakness
+into published content, which is why the mode itself is guarded more tightly
+than the actions it governs.
+
+| Threat                                     | Mitigation                                                   |
+| ------------------------------------------ | ------------------------------------------------------------ |
+| Silent escalation to Autopilot             | Upgrades require an owner and fresh authentication; always audited |
+| Escalation through a stale session         | Mode changes re-verify the session, never a cached claim      |
+| Agent raising its own autonomy             | Structurally impossible: no tool writes the mode record       |
+| Mode read from a poisoned cache            | Modes are read from the record on each gated action           |
+| Emergency stop suppressed by an attacker   | Stop fails open into Manual; suppression is itself the safe state |
+| Downgrade race publishing in-flight posts  | Downgrade cancels scheduled work before it takes effect       |
+
+The agent has no path to its own autonomy setting. That is a structural
+property rather than a policy: the mode is not exposed as a tool, so no amount
+of prompt injection can raise it. An injected instruction can at most attempt
+actions the current mode already permits, which is the bound the whole design
+rests on.
+
 ## Acceptance criteria
 
 1. A workspace switches between all three modes. Each mode's observable

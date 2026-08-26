@@ -307,6 +307,28 @@ rather than to keep generating.
 | Workspace suspended        | Skipped; recorded                                 |
 | Configuration invalid      | Cycle paused with a notification                  |
 
+## Security threats
+
+A recurring cycle is a standing grant of compute and, once combined with an
+approval policy, of publishing. That makes it a more attractive target than a
+one-off generation, because a single successful manipulation keeps paying out
+every week until a human notices.
+
+| Threat                                        | Mitigation                                                  |
+| --------------------------------------------- | ----------------------------------------------------------- |
+| Cycle outlives the member who created it      | Runs re-resolve the owner; a suspended owner pauses the cycle |
+| Removed member's permissions still in effect  | Authorization is re-evaluated per run, never cached from setup |
+| Injected content in research or release input | Treated as data, never instruction (RFC 016, RFC 026)         |
+| Runaway cost from a wedged cycle              | Per-run and per-cycle budgets; exhaustion pauses, not retries |
+| Cross-tenant leakage in a shared worker       | Every query is workspace-scoped; a mismatch is an incident    |
+| Silent takeover of a cycle's configuration    | Configuration changes are audited with actor and diff         |
+
+The important property is that a cycle cannot accumulate authority. It runs
+with the permissions its owner holds **at run time**, and if that owner loses
+access, the cycle pauses rather than continuing under a stale grant. A paused
+cycle is a visible, recoverable state; a cycle publishing on behalf of someone
+who left the company is not.
+
 ## Acceptance criteria
 
 1. Each Monday a founder opens one screen, reads one plan, and approves seven

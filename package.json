@@ -32,7 +32,8 @@
     "upload-pattern": "tsx scripts/upload-pattern-to-r2.ts",
     "upload-demo": "tsx scripts/upload-demo-to-r2.ts",
     "verify:announcements": "tsx --tsconfig tsconfig.verify.json scripts/verify-announcement-authoring.ts",
-    "verify:storage": "tsx --tsconfig tsconfig.verify.json scripts/verify-tenant-storage.ts"
+    "verify:storage": "tsx --tsconfig tsconfig.verify.json scripts/verify-tenant-storage.ts",
+    "verify:entitlements": "NODE_OPTIONS='--conditions=react-server' tsx scripts/verify-entitlements.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.990.0",

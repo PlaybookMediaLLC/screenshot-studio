@@ -293,6 +293,7 @@ variables that configure it, so you can trace a credential back to its console.
 | [Google Cloud](https://console.cloud.google.com/apis/credentials) | Google OAuth sign-in | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 | [GitHub OAuth](https://github.com/settings/developers) | GitHub sign-in and release intake | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` |
 | [Microsoft Entra ID](https://entra.microsoft.com) | Microsoft SSO for enterprise tenants | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` |
+| Billing provider or support automation | Signed workspace plan and entitlement synchronization | `BILLING_ENTITLEMENT_WEBHOOK_SECRET` |
 
 Runtime credentials live in Fly secrets (`fly secrets set`), never in the repo or
 in GitHub secrets. GitHub holds only the deploy token and the build-time

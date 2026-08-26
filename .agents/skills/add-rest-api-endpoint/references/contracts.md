@@ -10,7 +10,21 @@ Do not expose `app/api/internal`, webhook receivers, Better Auth handlers, or tR
 
 Use `createTenantJsonRoute` for workspace JSON operations. Declare both the API-key scope and browser-session permission. The helper resolves `TenantContext` and converts thrown authorization, validation, workflow, storage, and dependency failures through the shared route-error boundary.
 
+Every route supplies a Zod `schema` and an `input` extractor. The extractor returns untrusted values without parsing. The framework owns the single `schema.parseAsync` call before the domain service can execute, so async refinements, coercion, defaults, and validation errors behave consistently across endpoints.
+
 Never authorize from an input workspace ID. Pass the resolved tenant context to domain services and scope every read or write with `tenant.organizationId`.
+
+## Pricing and enterprise entitlements
+
+Declare a named `feature` in the route access requirement when an operation is commercially gated. `requireTenantAccess` resolves the authenticated workspace, then loads the server-owned `WorkspaceEntitlement` before input parsing or domain execution. Missing records use the conservative free-plan defaults. Expired, suspended, unknown, or malformed entitlement data fails closed for paid capabilities.
+
+Plan defaults live in `lib/billing/plans.ts`. Enterprise contracts may grant or revoke individual named features with validated overrides, which avoids treating custom enterprise agreements as a simple numeric tier. Never read plan or entitlement claims from request bodies, headers, API-key metadata, or route parameters.
+
+Update and delete operations require explicit entitlement review. Apply the same feature gate to compatibility handlers and other transports until they are retired, otherwise an older endpoint can bypass the commercial boundary.
+
+Destructive and high-value domain services repeat the feature assertion as defense in depth. tRPC procedures use the same `feature` and `quota` fields as REST. Distributed quotas use Redis and fail closed for costly writes when the counter is unavailable. Entitlement reads use a bounded cache; billing synchronization invalidates it after the audited transaction commits.
+
+OpenAPI operations expose `x-screenshot-studio-entitlement` so Scalar, generated clients, and policy tooling can inspect feature and quota requirements without scraping descriptions.
 
 ## Parsing
 
@@ -21,6 +35,8 @@ Validate all untrusted data before executing the domain service:
 - path parameters after awaiting the Next.js 16 `params` promise;
 - idempotency keys with a 128-character maximum;
 - content type and byte limits before signing uploads.
+
+For inputs spanning multiple request locations, define one composed Zod object such as `{ params, query, headers, body }`. This keeps the full operation input contract inspectable and reusable instead of scattering validation across callbacks.
 
 ## Responses
 

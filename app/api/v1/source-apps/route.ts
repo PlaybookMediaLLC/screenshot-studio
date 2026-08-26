@@ -5,7 +5,8 @@ import { sourceAppCreateSchema } from '@/lib/tenant/schemas'
 
 export const POST = createTenantJsonRoute({
   access: { apiKeyScope: 'source:write', permission: 'brand:manage' },
-  parse: async (request) => sourceAppCreateSchema.parse(await request.json()),
+  schema: sourceAppCreateSchema,
+  input: (request) => request.json(),
   execute: (tenant, input) => createSourceApp(tenant, input),
   respond: (sourceApp) => NextResponse.json({ sourceApp }, { status: 201 }),
 })

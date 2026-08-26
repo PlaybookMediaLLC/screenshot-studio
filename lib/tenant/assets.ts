@@ -3,6 +3,7 @@ import 'server-only'
 import { randomUUID } from 'node:crypto'
 import { type Prisma } from '@prisma/client'
 import { appendAuditLog } from '@/lib/audit/log'
+import { requireWorkspaceFeature, requireWorkspaceQuotaCapacity } from '@/lib/tenant/entitlements'
 import type { TenantContext } from '@/lib/auth/access'
 import { getAuditActor } from '@/lib/auth/principal'
 import { prisma } from '@/lib/db'
@@ -18,6 +19,16 @@ const signedUrlSeconds = 120
 export type AssetDeletionResult = 'deleted' | 'in-use' | 'not-found' | 'not-ready'
 
 export async function signAssetUpload(context: TenantContext, input: AssetUploadInput) {
+  const storage = await prisma.asset.aggregate({
+    _sum: { bytes: true },
+    where: { organizationId: context.organizationId, status: { not: 'DELETED' } },
+  })
+  await requireWorkspaceQuotaCapacity(
+    context.organizationId,
+    'storage:bytes',
+    storage._sum.bytes ?? 0,
+    input.bytes
+  )
   const assetId = randomUUID()
   const signedUpload = await createTenantUploadUrl({
     ...input,
@@ -237,6 +248,7 @@ export async function deleteAsset(
   context: TenantContext,
   assetId: string
 ): Promise<AssetDeletionResult> {
+  await requireWorkspaceFeature(context.organizationId, 'asset:delete')
   return prisma.$transaction(async (transaction) => {
     const asset = await transaction.asset.findFirst({
       select: { id: true, status: true },

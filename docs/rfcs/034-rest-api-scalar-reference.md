@@ -85,11 +85,36 @@ API keys carry explicit scopes. Every handler calls the shared tenant-access bou
 
 Scalar may display the bearer-token input, but it must not persist, log, prefill, or send credentials anywhere except the selected API request.
 
+## Pricing and enterprise entitlement boundary
+
+Commercial authorization is capability-based and server-resolved. Routes declare a stable named feature such as `asset:delete` or `enterprise:scim`; they do not compare arbitrary tier strings inside handlers. `requireTenantAccess` authenticates the principal, resolves the workspace, verifies scope or permission, and then checks the workspace entitlement before any request parsing or domain execution.
+
+`WorkspaceEntitlement` stores the server-owned plan, lifecycle status, optional expiry, and validated per-feature contract overrides. A missing record receives conservative free-plan defaults. Suspended, expired, unknown, or malformed records fail closed for paid features. Request data, API-key metadata, and browser state can never assert a plan or override.
+
+Default plans are `free`, `pro`, `business`, and `enterprise`, but feature checks are the durable contract. This supports negotiated enterprise agreements without creating fragile numeric tier comparisons. Resource update and delete paths have separate capabilities so contracts can permit one without the other. The initial live gated mutation is `asset:delete`, available on Pro and higher unless an explicit contract override grants or revokes it; `asset:update` is reserved for the corresponding update operation. Compatibility routes use the same access requirement to prevent path-based bypass.
+
+The entitlement migration backfills existing workspaces to `business` so enabling the gate does not silently remove capabilities from current customers. New workspaces must receive an entitlement from the billing or onboarding service; until that happens, the fail-closed fallback is `free`. Plan changes and contract overrides are server-side billing operations and are not exposed through tenant product endpoints.
+
+### Billing synchronization and administration
+
+Billing providers and authorized support automation write through the signed internal endpoint at `/api/internal/billing/entitlements`. The endpoint verifies an HMAC over the raw body, requires a provider event ID, and records an immutable receipt. Replays return the original version without repeating effects. Every mutation supplies `expectedVersion`; stale concurrent changes return `409` and never overwrite newer contract state. The plan change, lifecycle state, event reference, previous version, and new version are written to the tenant audit log in the same transaction.
+
+Workspace owners may read the safe entitlement summary through `/api/enterprise/entitlement` only after a fresh sign-in and TOTP. Plan mutation remains service-controlled, so a tenant owner cannot self-grant paid or enterprise capabilities. New organizations receive an explicit free entitlement during provisioning.
+
+### Quotas, caching, and outage policy
+
+Plans define named quotas for API writes, storage bytes, monthly generation, and concurrent jobs. Metered write routes declare a quota alongside their feature. Redis provides distributed counters and emits standard `429`, `Retry-After`, and `X-RateLimit-*` metadata. Costly writes fail closed when the distributed counter is unavailable; reads remain available.
+
+Entitlement records use a 30-second distributed cache and a five-second process-local cache. Billing commits invalidate both. If Redis is unavailable, authorization reads fall back to PlanetScale and keep only the bounded local cache. A PlanetScale failure returns `503`; the service does not trust indefinitely stale plan data.
+
+`active` and `trialing` plans are usable. `past_due` remains usable only until the server-owned `graceUntil` timestamp. `suspended`, `cancelled`, expired, unknown, and malformed records fail closed for paid capabilities. Downgrades take effect immediately after the synchronized transaction and cache invalidation. Refund policy and provider retry schedules remain billing-provider concerns, while webhook replay and product authorization semantics remain provider-neutral here.
+
 ## Request contract
 
 - JSON request bodies use `Content-Type: application/json`.
 - Upload operations use documented multipart fields or signed upload URLs.
 - Zod schemas validate path, query, header, and body inputs at the route boundary.
+- The REST framework requires a Zod schema for every authenticated JSON operation and is the sole owner of the `parseAsync` call.
 - Unknown fields are rejected for mutation requests unless a resource RFC explicitly allows them.
 - Timestamps use RFC 3339 UTC strings.
 - Pagination uses an opaque `cursor` and bounded `limit`.
@@ -147,12 +172,16 @@ New authenticated JSON endpoints use `createTenantJsonRoute` from
 requires four explicit decisions:
 
 1. the API-key scope and browser-session permission;
-2. the Zod-backed request parser;
-3. the tenant domain service to execute;
-4. an optional response mapper for non-`200` behavior.
+2. an optional named pricing or enterprise feature entitlement;
+3. a required Zod schema plus an extractor for untrusted request values;
+4. the tenant domain service to execute;
+5. an optional response mapper for non-`200` behavior.
 
 The framework resolves `TenantContext`, applies the shared authorization
-boundary, and maps thrown errors through the shared REST error handler. Domain
+boundary, validates the extractor result with `schema.parseAsync`, and only then
+invokes the domain service. Endpoint code must not manually parse or bypass this
+Zod boundary. Inputs spanning path, query, headers, and body use one composed
+Zod object so the complete operation contract remains inspectable. Domain
 logic remains in `lib/tenant`; handlers must not call tRPC or duplicate service
 logic.
 
@@ -249,6 +278,10 @@ asset completion, signed asset downloads, and asset deletion.
 - The developer portal links to the interactive reference and raw specification.
 - Unknown `/api/*` paths still return the standardized JSON `404` envelope.
 - Authenticated `/api/v1` routes cannot cross workspace boundaries in tenant-isolation verification.
+- Plan-gated update and delete operations reject free, expired, and suspended workspaces before domain execution, while validated enterprise overrides are honored.
+- REST, compatibility routes, tRPC, jobs, and direct destructive domain calls cannot bypass the same feature policy.
+- Billing event replays are idempotent, stale versions return `409`, and entitlement changes produce tenant audit records.
+- Machine-readable OpenAPI extensions declare feature, minimum-plan, and quota requirements.
 - Mutation retries with the same idempotency key cannot create duplicate durable effects.
 - Documentation and API smoke tests run in CI.
 

@@ -10,6 +10,7 @@ export const auditActions = [
   'audit.log_read',
   'audit.retention_changed',
   'auth.session_revoked',
+  'billing.entitlement_changed',
   'communication.cancelled',
   'communication.delivered',
   'communication.delivery_recovery_required',

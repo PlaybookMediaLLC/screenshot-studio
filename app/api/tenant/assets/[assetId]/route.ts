@@ -15,7 +15,9 @@ export async function DELETE(
     const input = assetDownloadQuerySchema.parse({ assetId })
     const context = await requireTenantAccess(request.headers, {
       apiKeyScope: 'asset:write',
+      feature: 'asset:delete',
       permission: 'artifact:edit',
+      quota: 'api:write:minute',
     })
     const result = await deleteAsset(context, input.assetId)
     if (result === 'not-found') {

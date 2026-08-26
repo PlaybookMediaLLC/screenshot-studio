@@ -107,6 +107,18 @@ npm run db:migrate:status
 npm run db:migrate:deploy
 ```
 
+For entitlement migrations, verify replay safety, optimistic concurrency,
+auditing, and cleanup against that disposable development branch before
+promotion:
+
+```sh
+ENTITLEMENT_TEST_ALLOW_DATABASE=true npm run verify:entitlements
+```
+
+Set `BILLING_ENTITLEMENT_WEBHOOK_SECRET` independently in each environment.
+Billing systems sign the exact raw JSON body with HMAC-SHA256 and send the
+digest in `X-Screenshot-Studio-Signature`; never reuse a provider API secret.
+
 Use `npm run db:push` only for the disposable local Compose database. Do not
 use it against PlanetScale or any production environment. Record the target
 branch, migration name, operator, and result in the release record.

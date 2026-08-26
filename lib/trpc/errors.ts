@@ -18,7 +18,9 @@ const domainErrorNames = new Set([
   'CampaignError',
   'CreativeWorkflowError',
   'ScheduledPostError',
+  'WorkspaceEntitlementError',
   'WorkspaceError',
+  'WorkspaceQuotaError',
 ])
 
 function getErrorStatus(error: Error & { status?: unknown }): TRPC_ERROR_CODE_KEY | null {

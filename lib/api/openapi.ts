@@ -390,9 +390,14 @@ export const openApiSpec = {
     '/api/v1/assets/{assetId}': {
       delete: {
         operationId: 'deleteAsset',
+        'x-screenshot-studio-entitlement': {
+          feature: 'asset:delete',
+          minimumPlan: 'pro',
+          quota: 'api:write:minute',
+        },
         summary: 'Delete a workspace asset',
         description:
-          'Queues deletion of an uploaded asset that is not in use. Requires the `asset:write` scope.',
+          'Queues deletion of an uploaded asset that is not in use. Requires the `asset:write` scope and the asset deletion workspace entitlement (Pro or higher by default).',
         tags: ['Assets'],
         security: [{ bearerAuth: [] }],
         parameters: [{ $ref: '#/components/parameters/AssetId' }],
@@ -400,9 +405,19 @@ export const openApiSpec = {
           '202': { description: 'Asset deletion accepted.' },
           '400': errorResponse('The asset identifier is invalid.'),
           '401': errorResponse('Authentication is required.'),
-          '403': errorResponse('The API key lacks the required workspace scope.'),
+          '403': errorResponse(
+            'The principal lacks the required workspace permission, scope, or pricing entitlement.'
+          ),
           '404': errorResponse('The asset was not found in this workspace.'),
           '409': errorResponse('The asset is in use or is not ready for deletion.'),
+          '429': {
+            description: 'The workspace plan quota has been exceeded.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/WorkspaceQuotaError' },
+              },
+            },
+          },
           '503': errorResponse('A required dependency is unavailable.'),
         },
       },
@@ -555,6 +570,8 @@ export const openApiSpec = {
               'not_found',
               'method_not_allowed',
               'rate_limited',
+              'workspace_feature_not_entitled',
+              'workspace_quota_exceeded',
               'upstream_timeout',
               'upstream_unavailable',
               'upstream_failed',
@@ -590,6 +607,36 @@ export const openApiSpec = {
                 type: 'integer',
                 description: 'Seconds to wait before retrying.',
               },
+            },
+          },
+        ],
+      },
+      WorkspaceEntitlementError: {
+        allOf: [
+          { $ref: '#/components/schemas/Error' },
+          {
+            type: 'object',
+            required: ['currentPlan', 'feature', 'requiredPlan'],
+            properties: {
+              currentPlan: { type: 'string', enum: ['free', 'pro', 'business', 'enterprise'] },
+              feature: { type: 'string' },
+              requiredPlan: {
+                type: 'string',
+                enum: ['free', 'pro', 'business', 'enterprise'],
+              },
+            },
+          },
+        ],
+      },
+      WorkspaceQuotaError: {
+        allOf: [
+          { $ref: '#/components/schemas/Error' },
+          {
+            type: 'object',
+            required: ['limit', 'quota'],
+            properties: {
+              limit: { type: 'integer' },
+              quota: { type: 'string' },
             },
           },
         ],

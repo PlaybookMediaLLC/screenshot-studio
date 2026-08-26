@@ -109,6 +109,11 @@ export const organizationHooks = {
         update: {},
         where: { organizationId: organization.id },
       })
+      await transaction.workspaceEntitlement.upsert({
+        create: { organizationId: organization.id },
+        update: {},
+        where: { organizationId: organization.id },
+      })
       await appendAuditLog(transaction, {
         action: 'product.workspace_created',
         actor: getAuditActor({

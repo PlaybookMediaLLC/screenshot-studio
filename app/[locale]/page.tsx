@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { EditorLayout } from '@/components/editor/EditorLayout'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
+import { OG_DEFAULTS } from '@/lib/seo/metadata'
 
 export const metadata: Metadata = {
   title: 'Screenshot Studio - Free Screenshot Editor & Mockup Maker',
@@ -31,6 +32,7 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
+    ...OG_DEFAULTS,
     title: 'Screenshot Studio - Free Screenshot Editor & Mockup Maker',
     description:
       'Free screenshot editor online — add backgrounds, shadows, 3D effects, and animations. Export as PNG, JPG, or video.',

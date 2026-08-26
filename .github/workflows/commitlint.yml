@@ -21,4 +21,13 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Check pull request commits
-        run: npm run commitlint -- --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.event.pull_request.head.sha }}" --verbose
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Lint commits authored on the PR's first-parent history. A fork sync
+          # intentionally imports upstream commits as a merge's second parent,
+          # and those messages are outside this repository's commit convention.
+          while read -r commit; do
+            git show --quiet --format=%B "$commit" | npm run commitlint -- --verbose
+          done < <(git rev-list --first-parent --reverse "$BASE_SHA..$HEAD_SHA")

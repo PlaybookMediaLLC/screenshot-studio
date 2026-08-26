@@ -192,8 +192,8 @@ Include:
 
 ## Getting Help
 
-- [GitHub Issues](https://github.com/KartikLabhshetwar/screenshot-studio/issues)
-- [GitHub Discussions](https://github.com/KartikLabhshetwar/screenshot-studio/discussions)
+- [GitHub Issues](https://github.com/PlaybookMediaLLC/screenshot-studio/issues)
+- [GitHub Discussions](https://github.com/PlaybookMediaLLC/screenshot-studio/discussions)
 
 ## License
 

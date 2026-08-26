@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { apiError, methodNotAllowed } from '@/lib/api/errors'
 import { hasMaintenanceAccess } from '@/lib/api/maintenance-auth'
 import { isInvalidRequest, parseJson } from '@/lib/api/request'
 import { cacheInvalidationSchema } from '@/lib/api/schemas'
 import { invalidateCache, invalidateCacheBatch } from '@/lib/screenshot-cache'
 
+// Keep maintenance authentication and cache invalidation in one auditable boundary.
+// eslint-disable-next-line max-lines-per-function
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     if (!hasMaintenanceAccess(request)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return apiError(
+        401,
+        'unauthorized',
+        'Unauthorized',
+        'Send the server-only maintenance secret in the maintenance request header.'
+      )
     }
 
     const body = await parseJson(request, cacheInvalidationSchema)
@@ -30,13 +38,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       })
     }
 
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    return apiError(
+      400,
+      'invalid_request',
+      'Invalid invalidation request',
+      'Send either one absolute http or https "url", or a non-empty "urls" array.'
+    )
   } catch (error) {
     console.error('Error invalidating cache:', error)
     if (isInvalidRequest(error)) {
-      return NextResponse.json({ error: 'Invalid invalidation request' }, { status: 400 })
+      return apiError(
+        400,
+        'invalid_request',
+        'Invalid invalidation request',
+        'Send either one absolute http or https "url", or a non-empty "urls" array, but not both.'
+      )
     }
 
-    return NextResponse.json({ error: 'Failed to invalidate cache' }, { status: 500 })
+    return apiError(
+      500,
+      'internal_error',
+      'Failed to invalidate cache',
+      'Retry the request. Check the server logs for the underlying storage error.'
+    )
   }
+}
+
+export async function GET(): Promise<NextResponse> {
+  return methodNotAllowed(['POST'])
 }

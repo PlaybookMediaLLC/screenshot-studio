@@ -84,6 +84,14 @@ const nextConfig: NextConfig = {
         source: '/llms-full.txt',
         destination: '/api/llms-full',
       },
+      {
+        source: "/openapi.json",
+        destination: "/api/openapi",
+      },
+      {
+        source: "/.well-known/openapi.json",
+        destination: "/api/openapi",
+      },
       // PostHog reverse proxy — static assets must come first
       {
         source: '/svc/static/:path*',

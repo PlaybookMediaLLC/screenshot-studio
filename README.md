@@ -101,7 +101,7 @@ conversation.
 
 ### RFC priority order
 
-The [RFC detail audit](docs/rfcs/000-detail-audit-2026-08-26.md) records which proposals need stronger contracts or documentation backfill. The full plan lives in [docs/rfcs/](docs/rfcs/). Implementation follows this order:
+The [RFC detail audit](docs/rfcs/000-detail-audit-2026-08-26.md) recorded which proposals needed stronger contracts or documentation backfill. Every RFC it flagged now carries implementation-grade detail: typed contracts, lifecycle, authorization, failure behavior, rollout, and testable acceptance criteria. The audit is retained as the checklist new RFCs are measured against. The full plan lives in [docs/rfcs/](docs/rfcs/). Implementation follows this order:
 
 | Priority   | RFC                                                                                                | Scope                                                                                        | Status      |
 | ---------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------- |
@@ -122,8 +122,10 @@ The [RFC detail audit](docs/rfcs/000-detail-audit-2026-08-26.md) records which p
 | Done       | [007](docs/rfcs/007-mvp-rpc-product-surface.md)                                                    | tRPC product surface over the tenant domain services                                         | Implemented |
 | Deferred   | [033](docs/rfcs/033-workspace-migration.md)                                                         | Monorepo workspace migration — deferred until a second deployable exists                     | Deferred    |
 
-Two RFCs still need to be written before the chargeable milestone: billing with usage
-quotas, and authenticated page capture.
+Three gaps block the chargeable milestone. Two need RFCs written: billing with usage quotas,
+and authenticated page capture. The third is scoped inside
+[RFC 020](docs/rfcs/020-postiz-publishing.md): self-service publishing depends on Postiz OAuth,
+so channel connections currently require operator provisioning.
 
 ### The build sequence
 

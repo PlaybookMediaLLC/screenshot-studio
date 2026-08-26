@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.3.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.2.0...v1.3.0) (2026-08-26)
+
+
+### Features
+
+* **api:** gate REST features by workspace plan ([aeda832](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/aeda832d3bee754548789db06ac9807d4d12a319))
+* **api:** require Zod schemas for REST routes ([6bf0359](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/6bf03590836601942b613e227182ef9267dbf50b))
+* **billing:** harden workspace entitlements ([44104d8](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/44104d83c2f5455068a990ac97aba2d1cf20fe06))
+* ship enterprise-ready Scalar REST API framework ([9c870cc](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/9c870ccb5fa4396cabe9aae36947e5b055d26dc5))
+
 ## [1.2.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.1.0...v1.2.0) (2026-08-26)
 
 

@@ -456,6 +456,39 @@ def evaluate_inside_out(deps: dict[str, list[str]], implemented: set[str]) -> li
     return problems
 
 
+WORD_NUMBERS = {
+    "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
+    "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19,
+    "twenty": 20,
+}
+
+
+def evaluate_documented_check_count(text: str, actual: int) -> list[str]:
+    """Pure core: the audit's written check count must match reality.
+
+    This number already drifted once, silently, when a check was added. Prose
+    that counts something is a claim about code, so it gets verified like one.
+    """
+    match = re.search(r"It runs (\w+) checks", text)
+    if not match:
+        return ["audit does not state how many checks the script runs"]
+    word = match.group(1).lower()
+    if word not in WORD_NUMBERS:
+        return [f"audit states an unrecognized check count: {word!r}"]
+    claimed = WORD_NUMBERS[word]
+    if claimed != actual:
+        return [f"audit says {word} ({claimed}) checks, but the script runs {actual}"]
+    return []
+
+
+def check_documented_check_count(docs: dict[str, str], total: int) -> list[str]:
+    """The audit must not misstate how many checks exist."""
+    audit = next((t for n, t in docs.items() if n.startswith("000-")), None)
+    if audit is None:
+        return ["audit document not found; its check count cannot be verified"]
+    return evaluate_documented_check_count(audit, total)
+
+
 def check_inside_out_order(docs: dict[str, str]) -> list[str]:
     """The critical path must build inside-out, as RFC 009 requires."""
     if not docs:
@@ -627,6 +660,14 @@ def self_test(docs: dict[str, str], source: str) -> int:
         ),
         ("inside-out (no documents)", lambda: check_inside_out_order({})),
         (
+            "documented check count (stale number)",
+            lambda: evaluate_documented_check_count("It runs fifteen checks:", 16),
+        ),
+        (
+            "documented check count (no claim)",
+            lambda: evaluate_documented_check_count("no count here", 16),
+        ),
+        (
             "script allowlist (tracked but ignored)",
             lambda: evaluate_script_allowlist(["scripts/a.ts"], ["scripts/a.ts"]),
         ),
@@ -659,6 +700,13 @@ def main() -> int:
         return 1 if failures else 0
 
     results = run(docs, source)
+    # +1 counts this check itself, which is appended below.
+    results.append(
+        (
+            "audit states the real number of checks",
+            check_documented_check_count(docs, len(results) + 1),
+        )
+    )
     failures = 0
     for label, problems in results:
         print(f"[{'PASS' if not problems else 'FAIL'}] {label}")

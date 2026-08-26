@@ -49,6 +49,7 @@ public/backgrounds
 !/scripts/smoke-rate-limit.mjs
 !/scripts/verify-tenant-isolation.ts
 !/scripts/verify-trpc-smoke.ts
+!/scripts/verify-rfcs.py
 
 /lib/generated/prisma
 # Prisma

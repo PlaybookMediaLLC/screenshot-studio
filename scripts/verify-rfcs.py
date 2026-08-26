@@ -1,0 +1,343 @@
+#!/usr/bin/env python3
+"""Verify RFC documents against the codebase they describe.
+
+Structural checks catch malformed markdown. Code-grounded checks catch the more
+dangerous failure: an RFC that reads plausibly but describes behavior the code
+does not have. The second kind found four factual errors during the 2026-08-26
+detail-audit expansion, including an approval flow that could not be built.
+
+Run from the repository root:
+
+    python3 scripts/verify-rfcs.py
+    python3 scripts/verify-rfcs.py --self-test
+
+`--self-test` feeds deliberately broken input to every check and confirms each
+one fails. A check that cannot fail proves nothing, so the suite is only
+trustworthy if the self-test passes too.
+"""
+
+from __future__ import annotations
+
+import glob
+import os
+import re
+import subprocess
+import sys
+
+RFC_DIR = "docs/rfcs"
+IMPLEMENTED = ["019-approval-workflow.md", "020-postiz-publishing.md"]
+
+# Declared as a prerequisite by RFC 010 rather than claimed to exist.
+ALLOWED_MISSING_IDENTIFIERS = {"creative:render"}
+
+PLANNED_SECTION = re.compile(
+    r"\*\*This section is a design for planned work.*?(?=\n## )", re.S
+)
+
+
+def read(path: str) -> str:
+    with open(path, encoding="utf-8") as handle:
+        return handle.read()
+
+
+def rfc_paths() -> list[str]:
+    return sorted(glob.glob(os.path.join(RFC_DIR, "*.md")))
+
+
+def lib_sources() -> str:
+    """Concatenated tracked TypeScript under lib/, used for symbol existence."""
+    result = subprocess.run(
+        ["bash", "-c", "cat $(git ls-files 'lib/**/*.ts') 2>/dev/null"],
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout
+
+
+def shipped_prose(text: str) -> str:
+    """Only the parts of a document that claim to describe shipped behavior."""
+    text = text.split("## Planned refinements")[0]
+    return PLANNED_SECTION.sub("", text)
+
+
+# --- structural checks -------------------------------------------------------
+
+
+def check_links(docs: dict[str, str]) -> list[str]:
+    problems = []
+    for name, text in docs.items():
+        for link in re.findall(r"\]\((0\d\d[^)]*\.md)\)", text):
+            if not os.path.exists(os.path.join(RFC_DIR, link)):
+                problems.append(f"{name} links to missing {link}")
+    return problems
+
+
+def check_fences(docs: dict[str, str]) -> list[str]:
+    return [f"{n} has an unclosed code fence" for n, t in docs.items() if t.count("\n```") % 2]
+
+
+def check_tables(docs: dict[str, str]) -> list[str]:
+    problems = []
+    for name, text in docs.items():
+        lines = text.split("\n")
+        in_fence = False
+        for i, line in enumerate(lines):
+            if line.startswith("```"):
+                in_fence = not in_fence
+                continue
+            if in_fence or not re.match(r"^\s*\|[\s:|-]+\|\s*$", line) or "-" not in line:
+                continue
+            if not i or not lines[i - 1].strip().startswith("|"):
+                continue
+            width = line.count("|")
+            if lines[i - 1].count("|") != width:
+                problems.append(f"{name}:{i} header/separator column mismatch")
+            j = i + 1
+            while j < len(lines) and lines[j].strip().startswith("|"):
+                if lines[j].count("|") != width:
+                    problems.append(f"{name}:{j + 1} row column mismatch")
+                j += 1
+    return problems
+
+
+def check_coverage(docs: dict[str, str]) -> list[str]:
+    audit = docs.get("000-detail-audit-2026-08-26.md")
+    if not audit or "## Coverage" not in audit:
+        return ["audit document is missing its Coverage section"]
+    section = audit.split("## Coverage")[1]
+
+    def listed(label: str) -> set[str]:
+        return set(re.findall(r"\d{3}", section.split(label)[1].split("\n")[0]))
+
+    high = listed("**High priority:**")
+    medium = listed("**Medium priority:**")
+    sufficient = {f"{i:03d}" for i in list(range(1, 10)) + [33]}
+    problems = []
+    for a, b, label in (
+        (high, medium, "high/medium"),
+        (high, sufficient, "high/sufficient"),
+        (medium, sufficient, "medium/sufficient"),
+    ):
+        if a & b:
+            problems.append(f"RFCs classified twice ({label}): {sorted(a & b)}")
+    expected = {f"{i:03d}" for i in range(1, 34)}
+    if missing := expected - (high | medium | sufficient):
+        problems.append(f"RFCs absent from coverage: {sorted(missing)}")
+    return problems
+
+
+def check_enum_casing(docs: dict[str, str]) -> list[str]:
+    """Status literals must match the Prisma enum, which is uppercase."""
+    return [
+        f"{n} uses lowercase status literal"
+        for n, t in docs.items()
+        if re.search(r"`(ready_for_review|needs_changes|approved|rejected)`", t)
+    ]
+
+
+def check_acceptance(docs: dict[str, str]) -> list[str]:
+    problems = []
+    for i in range(10, 33):
+        matches = [n for n in docs if n.startswith(f"{i:03d}-")]
+        if not matches:
+            continue
+        name = matches[0]
+        section = re.search(
+            r"## .*Acceptance criteria(.*?)(\n## |\Z)", docs[name], re.S | re.I
+        )
+        count = len(re.findall(r"^\d+\. ", section.group(1), re.M)) if section else 0
+        if count < 5:
+            problems.append(f"{name} has {count} numbered acceptance criteria, expected >= 5")
+    return problems
+
+
+# --- code-grounded checks ----------------------------------------------------
+
+
+def known_identifiers() -> set[str]:
+    sources = [
+        "lib/auth/permissions.ts",
+        "lib/auth/api-key-scopes.ts",
+        "lib/billing/plans.ts",
+    ]
+    found: set[str] = set()
+    for path in sources:
+        if os.path.exists(path):
+            found |= set(re.findall(r"'([a-z\-]+:[a-z\-:]+)'", read(path)))
+    return found
+
+
+def check_identifiers(docs: dict[str, str]) -> list[str]:
+    known = known_identifiers() | ALLOWED_MISSING_IDENTIFIERS
+    problems = []
+    for name, text in docs.items():
+        for ident in sorted(set(re.findall(r"`([a-z]+:[a-z\-]+)`", text))):
+            if ident not in known:
+                problems.append(f"{name} cites undefined permission/scope/feature `{ident}`")
+    return problems
+
+
+def check_paths(docs: dict[str, str]) -> list[str]:
+    pattern = r"`((?:lib|app|prisma|components)/[\w\-./]+\.(?:ts|tsx|prisma))`"
+    problems = []
+    for name, text in docs.items():
+        for path in sorted(set(re.findall(pattern, text))):
+            if not os.path.exists(path):
+                problems.append(f"{name} cites nonexistent path `{path}`")
+    return problems
+
+
+def check_transition_table(docs: dict[str, str]) -> list[str]:
+    """RFC 019's table is normative; compare it field-by-field to the code."""
+    source_path = "lib/tenant/campaign-status.ts"
+    doc = docs.get("019-approval-workflow.md")
+    if not doc or not os.path.exists(source_path):
+        return ["cannot compare transition table: file missing"]
+    code = read(source_path)
+    rows = re.findall(
+        r"^\| `(\w+)`\s*\|\s*([^|]+?)\s*\|\s*`(\w+)`\s*\|\s*`([\w:]+)`\s*\|\s*([^|]+?)\s*\|",
+        doc,
+        re.M,
+    )
+    problems = []
+    if len(rows) != 4:
+        problems.append(f"transition table has {len(rows)} rows, expected 4")
+    for decision, from_cell, to_state, permission, actors in rows:
+        match = re.search(
+            rf"{decision}: \{{\s*from: \[([^\]]+)\],\s*permission: '([\w:]+)',\s*to: '(\w+)'",
+            code,
+            re.S,
+        )
+        if not match:
+            problems.append(f"decision `{decision}` documented but absent from code")
+            continue
+        if set(re.findall(r"'(\w+)'", match.group(1))) != set(re.findall(r"`(\w+)`", from_cell)):
+            problems.append(f"`{decision}` from-set disagrees with code")
+        if match.group(3) != to_state:
+            problems.append(f"`{decision}` to-state is `{to_state}`, code says `{match.group(3)}`")
+        if match.group(2) != permission:
+            problems.append(
+                f"`{decision}` permission is `{permission}`, code says `{match.group(2)}`"
+            )
+        # Every decision routes through requireActiveSessionOrganization.
+        if "session only" not in actors:
+            problems.append(f"`{decision}` claims a non-session actor; no API-key path exists")
+    return problems
+
+
+def check_shipped_symbols(docs: dict[str, str], source: str) -> list[str]:
+    """A doc marked Implemented must not cite symbols that do not exist."""
+    problems = []
+    for name in IMPLEMENTED:
+        if name not in docs:
+            continue
+        prose = shipped_prose(docs[name])
+        for symbol in sorted(set(re.findall(r"`([a-z][a-zA-Z0-9]{7,})`", prose))):
+            if symbol not in source:
+                problems.append(f"{name} cites `{symbol}` in a shipped section; not found in lib/")
+    return problems
+
+
+# --- driver ------------------------------------------------------------------
+
+
+def run(docs: dict[str, str], source: str) -> list[tuple[str, list[str]]]:
+    return [
+        ("inter-RFC links resolve", check_links(docs)),
+        ("code fences balanced", check_fences(docs)),
+        ("table columns aligned", check_tables(docs)),
+        ("audit classifies every RFC exactly once", check_coverage(docs)),
+        ("status literals match the Prisma enum", check_enum_casing(docs)),
+        ("every expanded RFC has >= 5 acceptance criteria", check_acceptance(docs)),
+        ("permissions, scopes, and features exist in code", check_identifiers(docs)),
+        ("cited source paths exist", check_paths(docs)),
+        ("RFC 019 table matches campaignPostTransitions", check_transition_table(docs)),
+        ("Implemented RFCs cite only real symbols", check_shipped_symbols(docs, source)),
+    ]
+
+
+def self_test(docs: dict[str, str], source: str) -> int:
+    """Confirm each check fails on input it is supposed to reject."""
+    doc19 = docs["019-approval-workflow.md"]
+    doc31 = next(t for n, t in docs.items() if n.startswith("031-"))
+    cases = [
+        ("links", lambda: check_links({"x.md": doc31 + "\n[x](099-nope.md)\n"})),
+        ("fences", lambda: check_fences({"x.md": doc31 + "\n```ts\n"})),
+        ("tables", lambda: check_tables({"x.md": "\n| a | b |\n| --- | --- |\n| 1 | 2 | 3 |\n"})),
+        (
+            "coverage",
+            lambda: check_coverage(
+                {
+                    "000-detail-audit-2026-08-26.md": docs[
+                        "000-detail-audit-2026-08-26.md"
+                    ].replace("**Medium priority:** 011", "**Medium priority:** 010, 011")
+                }
+            ),
+        ),
+        ("enum casing", lambda: check_enum_casing({"x.md": "state `ready_for_review` here"})),
+        (
+            "acceptance",
+            lambda: check_acceptance(
+                {
+                    "010-x.md": re.sub(
+                        r"## Acceptance criteria.*?(?=\n## )",
+                        "## Acceptance criteria\n\n1. one\n\n",
+                        docs[next(n for n in docs if n.startswith("010-"))],
+                        flags=re.S,
+                    )
+                }
+            ),
+        ),
+        ("identifiers", lambda: check_identifiers({"x.md": "needs `channel:forge`"})),
+        ("paths", lambda: check_paths({"x.md": "see `lib/tenant/ghost-file.ts`"})),
+        (
+            "transition table",
+            lambda: check_transition_table(
+                {"019-approval-workflow.md": doc19.replace("`release:create`", "`publish:manage`")}
+            ),
+        ),
+        (
+            "shipped symbols",
+            lambda: check_shipped_symbols(
+                {"019-approval-workflow.md": "## S\n\nCalls `fabricatedHelper`.\n\n## T\n"}, source
+            ),
+        ),
+    ]
+    failures = 0
+    print("Self-test: every check must reject known-bad input\n")
+    for label, case in cases:
+        caught = bool(case())
+        print(f"  [{'PASS' if caught else 'FAIL'}] {label} rejects bad input")
+        failures += not caught
+    return failures
+
+
+def main() -> int:
+    if not os.path.isdir(RFC_DIR):
+        print(f"error: run from the repository root; {RFC_DIR} not found", file=sys.stderr)
+        return 2
+
+    docs = {os.path.basename(p): read(p) for p in rfc_paths()}
+    source = lib_sources()
+
+    if "--self-test" in sys.argv:
+        failures = self_test(docs, source)
+        print("\nSelf-test passed" if not failures else f"\n{failures} check(s) cannot fail")
+        return 1 if failures else 0
+
+    results = run(docs, source)
+    failures = 0
+    for label, problems in results:
+        print(f"[{'PASS' if not problems else 'FAIL'}] {label}")
+        for problem in problems[:10]:
+            print(f"       {problem}")
+        if len(problems) > 10:
+            print(f"       ... and {len(problems) - 10} more")
+        failures += bool(problems)
+
+    print(f"\n{len(results) - failures}/{len(results)} checks passed")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

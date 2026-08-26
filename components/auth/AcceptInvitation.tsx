@@ -39,7 +39,9 @@ export function AcceptInvitation({ invitationId }: AcceptInvitationProps) {
         </p>
       </div>
       {error ? (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
       ) : null}
       <Button disabled={!isHydrated || isSubmitting} onClick={() => void acceptInvitation()}>
         {isSubmitting ? 'Joining…' : 'Accept invitation'}

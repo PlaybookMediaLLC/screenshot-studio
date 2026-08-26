@@ -437,6 +437,44 @@ def evaluate_script_allowlist(scripts: list[str], ignored: list[str]) -> list[st
     ]
 
 
+def evaluate_inside_out(deps: dict[str, list[str]], implemented: set[str]) -> list[str]:
+    """Pure core: a proposal must not hard-depend on later, unbuilt work.
+
+    RFC 009 sets an inside-out build order, so a lower-numbered proposal that
+    depends on a higher-numbered one inverts it. That is only safe when the
+    dependency is already implemented, because then the document describes a
+    surface over shipped behavior rather than one waiting on future work.
+    """
+    problems = []
+    for number in sorted(deps):
+        for dependency in sorted(deps[number]):
+            if dependency > number and dependency not in implemented:
+                problems.append(
+                    f"RFC {number} depends on later RFC {dependency}, which is not implemented; "
+                    "this inverts the inside-out order in RFC 009"
+                )
+    return problems
+
+
+def check_inside_out_order(docs: dict[str, str]) -> list[str]:
+    """The critical path must build inside-out, as RFC 009 requires."""
+    if not docs:
+        return ["no documents; inside-out check would be meaningless"]
+    deps, implemented = {}, set()
+    for name, text in docs.items():
+        number = name[:3]
+        # "Partially implemented" and "Implemented locally" both mean real code
+        # exists to build against, which is what makes an inversion safe.
+        if re.search(r"\*\*Status:\*\*\s*(?:\w+ )?[Ii]mplemented", text):
+            implemented.add(number)
+        header = re.search(r"\*\*Depends on:\*\*\s*(.+)", text)
+        if header:
+            deps[number] = re.findall(r"(\d{3})", header.group(1))
+    if not deps:
+        return ["no dependency headers parsed; inside-out check would be meaningless"]
+    return evaluate_inside_out(deps, implemented)
+
+
 def check_tracked_scripts_survive_reclone() -> list[str]:
     """Every tracked script must be allowlisted against `/scripts/*`.
 
@@ -493,6 +531,7 @@ def run(docs: dict[str, str], source: str) -> list[tuple[str, list[str]]]:
         ("every doc citing a real file names real symbols", check_grounded_paragraphs(docs, source)),
         ("cross-RFC references resolve", check_cross_references(docs)),
         ("audited RFCs name the metric that matters", check_observability(docs)),
+        ("proposals do not depend on later unbuilt work", check_inside_out_order(docs)),
         ("tracked scripts survive a re-clone", check_tracked_scripts_survive_reclone()),
     ]
 
@@ -582,6 +621,11 @@ def self_test(docs: dict[str, str], source: str) -> int:
             lambda: evaluate_observability("x.md", "## Observability\n\n- a signal\n- another\n"),
         ),
         ("observability (audit missing)", lambda: check_observability({})),
+        (
+            "inside-out (depends on later unbuilt RFC)",
+            lambda: evaluate_inside_out({"018": ["019"]}, set()),
+        ),
+        ("inside-out (no documents)", lambda: check_inside_out_order({})),
         (
             "script allowlist (tracked but ignored)",
             lambda: evaluate_script_allowlist(["scripts/a.ts"], ["scripts/a.ts"]),

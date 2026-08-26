@@ -150,6 +150,13 @@ have to undo through history.
 
 ## Approval in the workspace
 
+This RFC is numbered before RFC 019 but depends on it, which inverts the
+inside-out order RFC 009 sets out. The inversion is safe because RFC 019 is
+already implemented: this document describes a surface over shipped behavior
+rather than a surface waiting on future work. Where the two disagree, the
+shipped state machine in `lib/tenant/campaign-status.ts` wins and this document
+is the thing that needs correcting.
+
 The review view implements RFC 019:
 
 - Batch approval is the primary button: "Approve all 7 posts".

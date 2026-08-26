@@ -88,7 +88,8 @@ docker run --rm -p 3000:3000 screenshot-studio
 curl --fail http://localhost:3000/api/health
 ```
 
-The image runs as UID 1001 and starts the Next.js standalone server on port 3000. `DATABASE_URL` has a build-only default because Prisma generation runs
+The image runs as UID 1001 and starts the Next.js standalone server on port
+3000. `DATABASE_URL` has a build-only default because Prisma generation runs
 during the image build; use a real value at runtime only when caching is on.
 
 Production authentication and audit logging require the values in

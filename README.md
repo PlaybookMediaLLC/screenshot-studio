@@ -120,7 +120,7 @@ The [RFC detail audit](docs/rfcs/000-detail-audit-2026-08-26.md) records which p
 | Defer (V5) | 029, 030, 031                                                                                      | Weekly autonomy, approval policies, autopilot modes                                          | Deferred    |
 | Superseded | 001                                                                                                | Release-kit umbrella                                                                         | Superseded  |
 | Done       | [007](docs/rfcs/007-mvp-rpc-product-surface.md)                                                    | tRPC product surface over the tenant domain services                                         | Implemented |
-| Deferred   | [033](docs/rfcs/033-workspace-migration.md)                                                        | Monorepo workspace migration — deferred until a second deployable exists                     | Deferred    |
+| Deferred   | [033](docs/rfcs/033-workspace-migration.md)                                                         | Monorepo workspace migration — deferred until a second deployable exists                     | Deferred    |
 
 Two RFCs still need to be written before the chargeable milestone: billing with usage
 quotas, and authenticated page capture.
@@ -273,27 +273,27 @@ variables that configure it, so you can trace a credential back to its console.
 
 ### Required to run
 
-| Provider                                                                                                           | Role                                               | Environment variables                                                                                                                  |
-| ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| [Fly.io](https://fly.io) ([dashboard](https://fly.io/dashboard))                                                   | Application hosting and runtime secrets            | `FLY_API_TOKEN` (CI only)                                                                                                              |
-| [PlanetScale](https://planetscale.com) ([console](https://app.planetscale.com))                                    | Managed Postgres, primary datastore                | `DATABASE_URL`                                                                                                                         |
-| [Upstash](https://upstash.com) ([console](https://console.upstash.com))                                            | Serverless Redis for rate limiting and caching     | `REDIS_URL`                                                                                                                            |
-| [Cloudflare R2](https://developers.cloudflare.com/r2/) ([dashboard](https://dash.cloudflare.com/?to=/:account/r2)) | Object storage for exports, uploads, and assets    | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`, `R2_REGION`, `NEXT_PUBLIC_R2_PUBLIC_URL` |
-| [Better Auth](https://www.better-auth.com) ([docs](https://www.better-auth.com/docs))                              | Authentication, sessions, organization RBAC        | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `BETTER_AUTH_TRUSTED_ORIGINS`                                                                 |
-| [Resend](https://resend.com) ([dashboard](https://resend.com/overview))                                            | Verification, password reset, and invitation email | `RESEND_API_KEY`, `AUTH_EMAIL_FROM`                                                                                                    |
+| Provider | Role | Environment variables |
+| --- | --- | --- |
+| [Fly.io](https://fly.io) ([dashboard](https://fly.io/dashboard)) | Application hosting and runtime secrets | `FLY_API_TOKEN` (CI only) |
+| [PlanetScale](https://planetscale.com) ([console](https://app.planetscale.com)) | Managed Postgres, primary datastore | `DATABASE_URL` |
+| [Upstash](https://upstash.com) ([console](https://console.upstash.com)) | Serverless Redis for rate limiting and caching | `REDIS_URL` |
+| [Cloudflare R2](https://developers.cloudflare.com/r2/) ([dashboard](https://dash.cloudflare.com/?to=/:account/r2)) | Object storage for exports, uploads, and assets | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`, `R2_REGION`, `NEXT_PUBLIC_R2_PUBLIC_URL` |
+| [Better Auth](https://www.better-auth.com) ([docs](https://www.better-auth.com/docs)) | Authentication, sessions, organization RBAC | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `BETTER_AUTH_TRUSTED_ORIGINS` |
+| [Resend](https://resend.com) ([dashboard](https://resend.com/overview)) | Verification, password reset, and invitation email | `RESEND_API_KEY`, `AUTH_EMAIL_FROM` |
 
 ### Optional integrations
 
-| Provider                                                                    | Role                                                         | Environment variables                                 |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------- |
-| [Trigger.dev](https://trigger.dev) ([dashboard](https://cloud.trigger.dev)) | Background jobs for artifact generation and media processing | `TRIGGER_ACCESS_TOKEN`, `TRIGGER_PROJECT_REF`         |
-| [Postiz](https://postiz.com) ([docs](https://docs.postiz.com))              | Social scheduling and publishing                             | `POSTIZ_API_URL`                                      |
-| [Microlink](https://microlink.io) ([docs](https://microlink.io/docs))       | Screenshot capture API                                       | `SCREENSHOT_API_URL`                                  |
-| [PostHog](https://posthog.com) ([app](https://app.posthog.com))             | Product analytics and session insight                        | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` |
-| [Google Cloud](https://console.cloud.google.com/apis/credentials)           | Google OAuth sign-in                                         | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`            |
-| [GitHub OAuth](https://github.com/settings/developers)                      | GitHub sign-in and release intake                            | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`            |
-| [Microsoft Entra ID](https://entra.microsoft.com)                           | Microsoft SSO for enterprise tenants                         | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`      |
-| Billing provider or support automation                                      | Signed workspace plan and entitlement synchronization        | `BILLING_ENTITLEMENT_WEBHOOK_SECRET`                  |
+| Provider | Role | Environment variables |
+| --- | --- | --- |
+| [Trigger.dev](https://trigger.dev) ([dashboard](https://cloud.trigger.dev)) | Background jobs for artifact generation and media processing | `TRIGGER_ACCESS_TOKEN`, `TRIGGER_PROJECT_REF` |
+| [Postiz](https://postiz.com) ([docs](https://docs.postiz.com)) | Social scheduling and publishing | `POSTIZ_API_URL` |
+| [Microlink](https://microlink.io) ([docs](https://microlink.io/docs)) | Screenshot capture API | `SCREENSHOT_API_URL` |
+| [PostHog](https://posthog.com) ([app](https://app.posthog.com)) | Product analytics and session insight | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` |
+| [Google Cloud](https://console.cloud.google.com/apis/credentials) | Google OAuth sign-in | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| [GitHub OAuth](https://github.com/settings/developers) | GitHub sign-in and release intake | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` |
+| [Microsoft Entra ID](https://entra.microsoft.com) | Microsoft SSO for enterprise tenants | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` |
+| Billing provider or support automation | Signed workspace plan and entitlement synchronization | `BILLING_ENTITLEMENT_WEBHOOK_SECRET` |
 
 Runtime credentials live in Fly secrets (`fly secrets set`), never in the repo or
 in GitHub secrets. GitHub holds only the deploy token and the build-time

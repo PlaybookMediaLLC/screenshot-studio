@@ -31,3 +31,26 @@ export function createE2EObjectStoreClient(): S3Client {
 export function getE2EObjectStoreBucket(): string {
   return getRequiredEnvironment('E2E_R2_BUCKET_NAME')
 }
+
+/**
+ * Put a workspace on a paid plan.
+ *
+ * Workspaces start on `free`, and RFC 034 makes commercial capability a
+ * server-owned entitlement that tenant APIs deliberately cannot mutate. A spec
+ * that needs to exercise a gated capability therefore has to grant it out of
+ * band, the same way billing would. Writing the row directly keeps the
+ * entitlement server-owned rather than adding a test-only API that would
+ * itself become a bypass.
+ */
+export async function grantWorkspacePlan(organizationId: string, plan: string): Promise<void> {
+  const database = createE2EDatabaseClient()
+  try {
+    await database.workspaceEntitlement.upsert({
+      create: { organizationId, plan, status: 'active' },
+      update: { plan, status: 'active' },
+      where: { organizationId },
+    })
+  } finally {
+    await database.$disconnect()
+  }
+}

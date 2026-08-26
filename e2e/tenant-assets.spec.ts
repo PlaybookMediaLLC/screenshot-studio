@@ -10,7 +10,7 @@ import {
 } from './framework/browser'
 import { configureE2EFlow, test, type E2EIdentity } from './framework/flow'
 import { getMaintenanceHeaders } from './framework/maintenance'
-import { createE2EDatabaseClient } from './framework/services'
+import { createE2EDatabaseClient, grantWorkspacePlan } from './framework/services'
 
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFgAI/ScL6fQAAAABJRU5ErkJggg==',
@@ -143,7 +143,7 @@ test('an uploaded asset stays private to its workspace through completion and do
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  const organizationId = await signUpAndCreateWorkspace(identity, page)
   const sha256 = createHash('sha256').update(png).digest('hex')
   const request: AssetRequest = {
     bytes: png.byteLength,
@@ -187,6 +187,20 @@ test('an uploaded asset stays private to its workspace through completion and do
     request,
     signed,
   })
+
+  // Deleting an asset is a paid capability (RFC 034: `asset:delete` needs Pro
+  // or an explicit contract override), and workspaces start on `free`. Assert
+  // the rejection first so the gate is covered, then grant the plan the way
+  // billing would, so the rest of the deletion lifecycle can be exercised at
+  // all. Ownership resolves before the plan check, so this 403 proves the
+  // caller owns the asset rather than leaking that some other workspace does.
+  expect(
+    await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
+  ).toMatchObject({
+    body: { code: 'workspace_feature_not_entitled', feature: 'asset:delete' },
+    status: 403,
+  })
+  await grantWorkspacePlan(organizationId, 'pro')
 
   expect(
     await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')

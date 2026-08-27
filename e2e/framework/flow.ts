@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test as base, type Page, type TestInfo } from '@playwright/test'
+import { clearRateLimits } from './services'
 
 export { expect }
 
@@ -84,6 +85,10 @@ export const test = base.extend<E2EFixtures>({
 
 export function configureE2EFlow(hooks: E2EFlowHooks = {}): void {
   test.beforeEach(async ({ app, identity, page }, testInfo) => {
+    // Rate limits are keyed by client IP, so the whole shard shares one
+    // budget and a spec can be rejected for requests made by earlier specs.
+    // Reset before each test so a limit only reflects the test's own work.
+    await clearRateLimits()
     await hooks.beforeEach?.(createContext(app, identity, page, testInfo))
   })
   test.afterEach(async ({ app, identity, page }, testInfo) => {

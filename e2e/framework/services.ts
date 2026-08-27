@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { S3Client } from '@aws-sdk/client-s3'
-import { createClient } from 'redis'
+import { createClient, type RedisClientType } from 'redis'
 
 function getRequiredEnvironment(name: string): string {
   const value = process.env[name]
@@ -66,16 +66,44 @@ export async function grantWorkspacePlan(organizationId: string, plan: string): 
 
 /** Mirrors `cacheKey` in lib/tenant/entitlements.ts. */
 async function clearEntitlementCache(organizationId: string): Promise<void> {
+  await withRedis(async (client) => {
+    await client.del(`screenshot-studio:entitlement:${organizationId}`)
+  })
+}
+
+/**
+ * Drop every rate-limit counter.
+ *
+ * The invitation policy allows 10 requests per hour and is keyed by client
+ * IP (`getClientIdentifier`), so every spec in a shard draws on one shared
+ * budget from a single browser host. role-permissions alone invites five
+ * roles, and workspace-switching and authorization-revocation invite more,
+ * so a later spec receives 429 for a request its own logic never
+ * rate-limited. That is a property of running the suite on one address, not
+ * a defect the spec should assert against.
+ *
+ * Clearing between tests keeps each spec's rate-limit behaviour its own.
+ * `smoke-rate-limit` still covers the limiter itself, so this does not
+ * remove coverage of the policy.
+ */
+export async function clearRateLimits(): Promise<void> {
+  await withRedis(async (client) => {
+    const keys = await client.keys('screenshot-studio:rate-limit:*')
+    if (keys.length > 0) await client.del(keys)
+  })
+}
+
+async function withRedis(operation: (client: RedisClientType) => Promise<void>): Promise<void> {
   const url = process.env.E2E_REDIS_URL ?? process.env.REDIS_URL
   if (!url) return
 
-  const client = createClient({ url })
+  const client: RedisClientType = createClient({ url })
   try {
     await client.connect()
-    await client.del(`screenshot-studio:entitlement:${organizationId}`)
+    await operation(client)
   } catch {
-    // Falling back to the TTL is correct: the grant still lands, it just takes
-    // up to 30s to become visible.
+    // Falling back to the TTL is correct: the state still expires on its own,
+    // it just takes the full window.
   } finally {
     await client.quit().catch(() => {})
   }

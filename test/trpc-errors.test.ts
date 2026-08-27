@@ -3,6 +3,7 @@ import test from 'node:test'
 import { TRPCError } from '@trpc/server'
 import { ZodError } from 'zod'
 import { getDomainTRPCError } from '@/lib/trpc/errors'
+import { WorkspaceError } from '@/lib/workspace/errors'
 
 function makeNamedError(name: string, message: string, status?: number): Error {
   const error = new Error(message) as Error & { status?: number }
@@ -66,4 +67,32 @@ test('existing TRPCErrors pass through unchanged', () => {
 test('unknown errors are not mapped so they surface as INTERNAL_SERVER_ERROR', () => {
   assert.equal(getDomainTRPCError(new Error('Unexpected.')), null)
   assert.equal(getDomainTRPCError('not an error'), null)
+})
+
+/**
+ * Transaction failures must not read as request errors.
+ *
+ * A serialization conflict (P2034) and an interactive-transaction timeout
+ * (P2028) are both properties of load, not of the request. Neither matches a
+ * branch in getDomainTRPCError on its own, so lib/workspace/service.ts
+ * converts them to WorkspaceErrors carrying a status this mapper understands.
+ * CI produced the P2028 case as a 500 on a valid invite: "timeout 5000 ms,
+ * however 7110 ms passed".
+ */
+test('workspace transaction failures map to retryable statuses, not 500', () => {
+  // The real error type: the mapper keys off the error *name*, so a bare
+  // Error carrying a status property is not enough. Using WorkspaceError also
+  // keeps the status union honest, since 503 has to be assignable to it.
+  const conflict = new WorkspaceError('The workspace changed. Please retry.', 409)
+  const timeout = new WorkspaceError('The workspace service is busy. Please retry.', 503)
+
+  assert.equal(getDomainTRPCError(conflict)?.code, 'CONFLICT')
+  assert.equal(getDomainTRPCError(timeout)?.code, 'SERVICE_UNAVAILABLE')
+})
+
+test('a transaction failure left unconverted would surface as 500', () => {
+  // Negative control: this is the behaviour the conversion exists to prevent,
+  // so the assertions above cannot pass for an unrelated reason.
+  const raw = Object.assign(new Error('Transaction already closed'), { code: 'P2028' })
+  assert.equal(getDomainTRPCError(raw), null)
 })

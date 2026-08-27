@@ -44,14 +44,18 @@ Screenshot Studio is an open-source, browser-based screenshot editor and workspa
 ## Developer Resources
 - API documentation: https://www.screenshot-studio.com/docs
 - Developer portal: https://www.screenshot-studio.com/developers
+- Interactive API reference: https://www.screenshot-studio.com/api-reference
 - OpenAPI 3.1 specification: https://www.screenshot-studio.com/openapi.json
 - Authentication and rate limits: https://www.screenshot-studio.com/docs/authentication
 - Agent index: https://www.screenshot-studio.com/llms.txt
 - Full agent reference: https://www.screenshot-studio.com/llms-full.txt
 - Sitemap: https://www.screenshot-studio.com/sitemap.xml
 
-The public API needs no API key. Every page also serves Markdown to clients that
-send `Accept: text/markdown`. No official CLI tool and no MCP server are published yet.
+Editor utility endpoints such as `/api/screenshot` are anonymous and use per-IP
+limits. Workspace-scoped `/api/v1` operations require an organization key in
+`X-API-Key` or an authorized signed-in session. Every page also serves Markdown
+to clients that send `Accept: text/markdown`. No official CLI tool and no MCP
+server are published yet.
 
 ## Languages
 Available in 8 languages: English, Spanish (/es), French (/fr), German (/de), Japanese (/ja), Portuguese (/pt), Korean (/ko), Chinese (/zh).

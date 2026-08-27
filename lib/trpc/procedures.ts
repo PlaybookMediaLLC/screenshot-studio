@@ -9,6 +9,7 @@ import {
 } from '@/lib/auth/access'
 import type { ApiKeyScope } from '@/lib/auth/api-key-scopes'
 import type { Permission } from '@/lib/auth/permissions'
+import type { WorkspaceFeature, WorkspaceQuota } from '@/lib/billing/plans'
 import { requireTenantAccess } from '@/lib/tenant/access'
 import { publicProcedure } from './init'
 
@@ -54,7 +55,12 @@ export function sensitiveOrganizationProcedure(permission: Permission) {
  * Session member with the named permission, or an organization API key with
  * the named product scope. Mirrors requireTenantAccess on the REST surface.
  */
-export function tenantProcedure(requirement: { apiKeyScope: ApiKeyScope; permission: Permission }) {
+export function tenantProcedure(requirement: {
+  apiKeyScope: ApiKeyScope
+  feature?: WorkspaceFeature
+  permission: Permission
+  quota?: WorkspaceQuota
+}) {
   return publicProcedure.use(async ({ ctx, next }) => {
     const tenant: TenantContext = await requireTenantAccess(ctx.headers, requirement)
     return next({ ctx: { ...ctx, tenant } })

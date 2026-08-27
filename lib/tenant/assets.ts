@@ -3,6 +3,7 @@ import 'server-only'
 import { randomUUID } from 'node:crypto'
 import { type Prisma } from '@prisma/client'
 import { appendAuditLog } from '@/lib/audit/log'
+import { requireWorkspaceFeature, requireWorkspaceQuotaCapacity } from '@/lib/tenant/entitlements'
 import type { TenantContext } from '@/lib/auth/access'
 import { getAuditActor } from '@/lib/auth/principal'
 import { prisma } from '@/lib/db'
@@ -18,6 +19,16 @@ const signedUrlSeconds = 120
 export type AssetDeletionResult = 'deleted' | 'in-use' | 'not-found' | 'not-ready'
 
 export async function signAssetUpload(context: TenantContext, input: AssetUploadInput) {
+  const storage = await prisma.asset.aggregate({
+    _sum: { bytes: true },
+    where: { organizationId: context.organizationId, status: { not: 'DELETED' } },
+  })
+  await requireWorkspaceQuotaCapacity(
+    context.organizationId,
+    'storage:bytes',
+    storage._sum.bytes ?? 0,
+    input.bytes
+  )
   const assetId = randomUUID()
   const signedUpload = await createTenantUploadUrl({
     ...input,
@@ -237,6 +248,16 @@ export async function deleteAsset(
   context: TenantContext,
   assetId: string
 ): Promise<AssetDeletionResult> {
+  // Resolve ownership before the plan gate. A workspace that cannot see the
+  // asset must get 'not-found', never an entitlement error, because a 403
+  // would confirm that an asset with this id exists in another workspace.
+  const owned = await prisma.asset.findFirst({
+    select: { id: true },
+    where: { id: assetId, organizationId: context.organizationId, status: { not: 'DELETED' } },
+  })
+  if (!owned) return 'not-found'
+  await requireWorkspaceFeature(context.organizationId, 'asset:delete')
+
   return prisma.$transaction(async (transaction) => {
     const asset = await transaction.asset.findFirst({
       select: { id: true, status: true },

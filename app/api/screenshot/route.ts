@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { ZodError } from 'zod'
+import { apiError, methodNotAllowed } from '@/lib/api/errors'
 import { getClientIdentifier } from '@/lib/api/client-identity'
 import { isInvalidRequest, parseJson } from '@/lib/api/request'
 import { screenshotRequestSchema, type ScreenshotRequest } from '@/lib/api/schemas'
 import { SCREENSHOT_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
-import { apiError, methodNotAllowed } from '@/lib/api/errors'
 import { checkRateLimit, type RateLimitResult } from '@/lib/rate-limit'
 import {
   cacheScreenshot,
@@ -39,12 +40,13 @@ async function getRateLimitResponse(request: NextRequest): Promise<NextResponse 
       return null
     }
 
+    const retryAfter = Math.max(1, Math.ceil((rateLimit.resetAt - Date.now()) / 1000))
     return apiError(
       429,
       'rate_limited',
       'Rate limit exceeded. Please try again later.',
-      `Wait ${Math.max(1, Math.ceil((rateLimit.resetAt - Date.now()) / 1000))} seconds, then retry.`,
-      undefined,
+      `Wait ${retryAfter} seconds, then retry.`,
+      { retryAfter },
       getRateLimitHeaders(rateLimit)
     )
   } catch (error) {
@@ -118,9 +120,73 @@ function screenshotResponse(response: ScreenshotResponseInput): NextResponse {
   })
 }
 
-// Keep rate limiting, validation, capture, and stable error translation in the
-// order requests execute so the public boundary is straightforward to audit.
-// eslint-disable-next-line max-lines-per-function
+function invalidRequestResponse(error: unknown): NextResponse {
+  if (error instanceof ZodError) {
+    const issue = error.issues[0]
+    if (issue?.path[0] === 'url') {
+      const missing = issue.code === 'invalid_type'
+      return apiError(
+        400,
+        missing ? 'invalid_request' : 'invalid_url',
+        missing ? 'URL is required' : 'Invalid URL format',
+        'Send an absolute public http or https URL, for example {"url": "https://example.com"}.'
+      )
+    }
+    if (issue?.path[0] === 'deviceType' || issue?.path[0] === 'colorScheme') {
+      return apiError(
+        400,
+        'unsupported_value',
+        'Invalid screenshot option',
+        'Set deviceType to desktop or mobile and colorScheme to light or dark.'
+      )
+    }
+  }
+
+  return apiError(
+    400,
+    'invalid_request',
+    'Invalid screenshot request',
+    'Send valid JSON with an absolute public http or https "url".'
+  )
+}
+
+function screenshotFailureResponse(error: unknown): NextResponse {
+  const failure = getScreenshotFailure(error)
+  if (failure.status === 408) {
+    return apiError(
+      408,
+      'upstream_timeout',
+      failure.message,
+      'Retry the request, or capture a lighter page.'
+    )
+  }
+  if (failure.status === 503) {
+    return apiError(
+      503,
+      'upstream_unavailable',
+      failure.message,
+      'This is a transient upstream failure. Retry with exponential backoff.'
+    )
+  }
+  if (failure.status === 400) {
+    return apiError(
+      400,
+      'invalid_url',
+      failure.message,
+      'Use an absolute, publicly reachable http or https URL.'
+    )
+  }
+
+  return apiError(
+    500,
+    'internal_error',
+    failure.message,
+    'Retry the request. If it keeps failing, contact support.'
+  )
+}
+
+// Keep fail-closed rate limiting ahead of request parsing, SSRF validation,
+// cache access, and capture so no unthrottled work can cross the public boundary.
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const rateLimitResponse = await getRateLimitResponse(request)
   if (rateLimitResponse) {
@@ -149,24 +215,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     console.error('Screenshot error:', error)
     if (isInvalidRequest(error)) {
-      return apiError(
-        400,
-        'invalid_request',
-        'Invalid screenshot request',
-        'Send an absolute public http or https URL and supported device and color scheme values.'
-      )
+      return invalidRequestResponse(error)
     }
 
-    const failure = getScreenshotFailure(error)
-    return apiError(
-      failure.status,
-      'upstream_failed',
-      failure.message,
-      'Verify the target is publicly reachable, then retry.'
-    )
+    return screenshotFailureResponse(error)
   }
 }
 
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   return methodNotAllowed(['POST'])
 }

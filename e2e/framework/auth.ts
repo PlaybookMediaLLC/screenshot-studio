@@ -68,15 +68,29 @@ export function getE2EUrl(path: string): string {
 }
 
 async function expectPath(page: Page, path: string): Promise<void> {
-  await expect.poll(() => new URL(page.url()).pathname).toBe(path)
+  // A navigation leaves page.url() on the previous page until the server
+  // responds. The e2e stack runs `next dev`, so a route that has not been
+  // compiled yet can take tens of seconds on a loaded runner, and the poll
+  // then reports a bare timeout that looks like a redirect that never
+  // happened. bin/studio warms these routes before the suite starts, so this
+  // budget only has to cover a slow response rather than a full compile;
+  // it stays above the 20s default because warming is a mitigation, not a
+  // guarantee, and a bare URL timeout is an expensive thing to debug.
+  await expect.poll(() => new URL(page.url()).pathname, { timeout: 45_000 }).toBe(path)
 }
 
 async function waitForEditorHydration(page: Page): Promise<void> {
   const templates = page.getByRole('button', { exact: true, name: 'Templates' })
+  // The button is present in the server-rendered markup with
+  // `aria-expanded="false"`, so it is clickable before React attaches its
+  // handler and an early click is silently dropped. Waiting for the element
+  // first keeps the retry loop about hydration rather than about rendering,
+  // which matters on a cold Next.js route that compiles on first request.
+  await expect(templates).toBeVisible({ timeout: 60_000 })
   await expect(async () => {
     await templates.click()
     expect(await templates.getAttribute('aria-expanded')).toBe('true')
-  }).toPass({ timeout: 20_000 })
+  }).toPass({ timeout: 60_000 })
   await templates.click()
   await expect(templates).toHaveAttribute('aria-expanded', 'false')
 }
@@ -88,6 +102,23 @@ export async function getActiveOrganizationId(page: Page): Promise<string> {
   }
 
   return result.session.activeOrganizationId
+}
+
+/**
+ * The active organization id once the session exists, or null while it does not.
+ *
+ * `/api/auth/get-session` returns null for a short window after a sign-in
+ * submit, before the session cookie is readable. `getActiveOrganizationId`
+ * throws in that window, and a throw inside `expect.poll` fails the assertion
+ * outright rather than retrying, so polling on it turns an ordinary race into
+ * a hard failure. Callers that are waiting for a sign-in to land should poll
+ * this instead and let the returned value settle.
+ */
+export async function findActiveOrganizationId(page: Page): Promise<string | null> {
+  const parsed = sessionSchema.safeParse(await browserJson(page, '/api/auth/get-session'))
+  if (!parsed.success) return null
+
+  return parsed.data.session.activeOrganizationId
 }
 
 export async function enableTwoFactor(page: Page, password: string): Promise<TwoFactorSetup> {

@@ -11,6 +11,7 @@ import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
 import { CampaignError } from '@/lib/tenant/campaigns'
 import { CreativeWorkflowError } from '@/lib/tenant/creative'
 import { WorkspaceError } from '@/lib/workspace/errors'
+import { WorkspaceEntitlementError, WorkspaceQuotaError } from '@/lib/tenant/entitlements'
 
 function isDatabaseUnavailable(error: unknown): boolean {
   return (
@@ -38,10 +39,65 @@ function getWorkflowErrorResponse(error: unknown): NextResponse | null {
   return null
 }
 
+function getQuotaErrorResponse(error: unknown): NextResponse | null {
+  if (!(error instanceof WorkspaceQuotaError)) return null
+  return NextResponse.json(
+    {
+      code: 'workspace_quota_exceeded',
+      error: error.message,
+      limit: error.limit,
+      message: error.message,
+      quota: error.quota,
+      status: error.status,
+    },
+    {
+      headers: {
+        'retry-after': String(Math.max(1, Math.ceil((error.resetAt - Date.now()) / 1_000))),
+        'x-rate-limit-limit': String(error.limit),
+        'x-rate-limit-reset': String(error.resetAt),
+      },
+      status: error.status,
+    }
+  )
+}
+
+function getEntitlementErrorResponse(error: unknown): NextResponse | null {
+  if (!(error instanceof WorkspaceEntitlementError)) return null
+
+  const documentation = 'https://www.screenshot-studio.com/api-reference'
+
+  return NextResponse.json(
+    {
+      code: 'workspace_feature_not_entitled',
+      currentPlan: error.currentPlan,
+      documentation,
+      error: error.message,
+      feature: error.feature,
+      hint: `Upgrade to ${error.requiredPlan} or ask a workspace owner to review the contract entitlement.`,
+      message: error.message,
+      requiredPlan: error.requiredPlan,
+      status: error.status,
+    },
+    {
+      headers: {
+        'x-current-plan': error.currentPlan,
+        'x-required-plan': error.requiredPlan,
+      },
+      status: error.status,
+    }
+  )
+}
+
+function getCommercialErrorResponse(error: unknown): NextResponse | null {
+  return getQuotaErrorResponse(error) ?? getEntitlementErrorResponse(error)
+}
+
 export function getRouteErrorResponse(error: unknown): NextResponse {
   if (error instanceof AuthorizationError) {
     return NextResponse.json({ error: error.message }, { status: error.status })
   }
+  const commercialResponse = getCommercialErrorResponse(error)
+  if (commercialResponse) return commercialResponse
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
   }

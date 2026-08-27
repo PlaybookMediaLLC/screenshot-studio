@@ -1,16 +1,19 @@
 import { NextResponse } from 'next/server'
 
-export const API_DOCS_URL = 'https://www.screenshot-studio.com/docs'
+export const API_DOCS_URL = 'https://www.screenshot-studio.com/api-reference'
 
 export type ApiErrorCode =
   | 'invalid_request'
   | 'invalid_url'
   | 'unsupported_value'
   | 'unauthorized'
+  | 'forbidden'
   | 'forbidden_domain'
   | 'not_found'
   | 'method_not_allowed'
   | 'rate_limited'
+  | 'workspace_feature_not_entitled'
+  | 'workspace_quota_exceeded'
   | 'upstream_timeout'
   | 'upstream_unavailable'
   | 'upstream_failed'

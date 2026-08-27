@@ -13,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: "Screenshot Studio API Documentation",
   description:
-    "Screenshot Studio API documentation: endpoints, request and response schemas, rate limits, JSON error codes, and the OpenAPI 3.1 specification. No API key required.",
+    "Screenshot Studio API documentation: anonymous editor utilities, authenticated tenant endpoints, rate limits, errors, and the OpenAPI 3.1 specification.",
   keywords: [
     "Screenshot Studio API",
     "Screenshot Studio API docs",
@@ -179,7 +179,7 @@ const RESOURCES = [
   {
     href: "/docs/authentication",
     label: "Authentication and rate limits",
-    detail: "No API key is required. Read the per-IP limits here.",
+    detail: "Utility endpoints are anonymous; /api/v1 tenant endpoints require workspace access.",
   },
   {
     href: "/developers",
@@ -206,11 +206,11 @@ export default function DocsPage() {
           Screenshot Studio API Documentation
         </h1>
         <p className="mb-12 text-lg leading-relaxed text-muted-foreground">
-          Screenshot Studio exposes a small public HTTP API: capture a live web
-          page as an image, recompress an exported image, resolve a tweet, and
-          proxy Twitter media. There is no API key, no token, and no account.
-          Every failing request returns the same JSON error envelope. The
-          machine-readable contract lives at{" "}
+          Screenshot Studio exposes anonymous editor utilities for capture,
+          export compression, tweet resolution, and approved media proxying. It
+          also exposes authenticated <code>/api/v1</code> tenant operations for
+          workspace automation. Every failing request uses the shared JSON error
+          envelope. The machine-readable contract lives at{" "}
           <Link href="/openapi.json" className={linkClassName}>
             /openapi.json
           </Link>

@@ -45,6 +45,19 @@ async function withSerializableTransaction<T>(
     try {
       return await prisma.$transaction(operation, {
         isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        // Prisma's defaults are 2s to acquire and 5s to run. These
+        // transactions do several round trips (permission check, membership
+        // and invitation lookups, the write, then an audit-log append), and
+        // under load in CI that exceeded 5s: an invite failed with
+        // "Transaction already closed ... timeout 5000 ms, however 7110 ms
+        // passed", surfacing as a 500 on an otherwise valid request.
+        //
+        // A timeout here is a slow dependency, not invalid input, so the
+        // budget is raised rather than letting a healthy request fail. It
+        // stays bounded so a genuinely stuck transaction still gives up and
+        // releases its locks instead of pinning a connection.
+        maxWait: 10_000,
+        timeout: 20_000,
       })
     } catch (error) {
       if (
@@ -56,6 +69,22 @@ async function withSerializableTransaction<T>(
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new WorkspaceError('The workspace data conflicts with an existing record.', 409)
+      }
+      // A serialization failure that outlived the retries is still a
+      // concurrency conflict, not a server fault. Left raw it matches no
+      // branch in getDomainTRPCError and surfaces as a 500, which reads as
+      // "the workspace API is broken" when the real answer is "two writes
+      // raced, retry". Convert it to the same 409 the retry budget already
+      // ends with.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+        throw new WorkspaceError('The workspace changed. Please retry.', 409)
+      }
+      // P2028 is the interactive-transaction timeout. Like P2034 it matches
+      // no branch in getDomainTRPCError, so it reached the client as a 500
+      // that blamed the request rather than the load that caused it. 503
+      // says the dependency was too slow and the call can be retried.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2028') {
+        throw new WorkspaceError('The workspace service is busy. Please retry.', 503)
       }
       throw error
     }

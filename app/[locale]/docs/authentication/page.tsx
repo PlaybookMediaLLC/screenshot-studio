@@ -8,7 +8,7 @@ import { INTER, codeBlockClassName, linkClassName } from "@/lib/seo/docs-shared"
 export const metadata: Metadata = {
   title: "Screenshot Studio API Authentication",
   description:
-    "The Screenshot Studio API requires no API key, token, or account. Read how anonymous access, per-IP rate limits, 429 responses, and Retry-After headers work.",
+    "Authentication for Screenshot Studio anonymous utility endpoints and workspace-scoped /api/v1 tenant operations.",
   keywords: [
     "Screenshot Studio API authentication",
     "Screenshot Studio API key",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     ...OG_DEFAULTS,
     title: "Screenshot Studio API Authentication",
     description:
-      "No API key required. Anonymous access with per-IP rate limits and standard 429 semantics.",
+      "Anonymous editor utilities, workspace API keys, signed-in sessions, and rate-limit semantics.",
     url: "/docs/authentication",
   },
   alternates: {
@@ -63,10 +63,11 @@ export default function AuthenticationPage() {
           Screenshot Studio API Authentication
         </h1>
         <p className="mb-12 text-lg leading-relaxed text-muted-foreground">
-          The public Screenshot Studio API is unauthenticated. There is no API
-          key to request, no token to rotate, and no account to create. Send the
-          request and it is served. Access is shaped by per-IP rate limits
-          rather than credentials.
+          Screenshot Studio has two API surfaces. Editor utility endpoints such
+          as <code>/api/screenshot</code> are anonymous and shaped by per-IP
+          limits. Versioned <code>/api/v1</code> tenant endpoints require a
+          workspace API key with the declared scope or a signed-in user session
+          with the matching permission.
         </p>
 
         <div className="space-y-10">
@@ -75,16 +76,37 @@ export default function AuthenticationPage() {
               className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              No credentials required
+              Anonymous utility endpoints
             </h2>
             <p className="mb-4 leading-relaxed text-muted-foreground">
-              Do not send an <code>Authorization</code> header. It is ignored.
-              A complete request looks like this:
+              The utility endpoints listed below do not require credentials.
+              An <code>Authorization</code> header does not grant tenant access
+              to them. A complete capture request looks like this:
             </p>
             <pre className={codeBlockClassName}>
               <code>{`curl -X POST https://www.screenshot-studio.com/api/screenshot \\
   -H "Content-Type: application/json" \\
   -d '{"url":"https://example.com"}'`}</code>
+            </pre>
+          </section>
+
+          <section id="tenant-credentials">
+            <h2
+              className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
+              style={{ fontFamily: INTER }}
+            >
+              Tenant API credentials
+            </h2>
+            <p className="mb-4 leading-relaxed text-muted-foreground">
+              Calls to <code>/api/v1</code> operate on workspace data. Machine
+              callers send an organization key in <code>X-API-Key</code>.
+              Browser callers may use their signed-in session. The server checks
+              workspace membership, role permission, API-key scope, plan
+              feature, and quota where the operation requires them.
+            </p>
+            <pre className={codeBlockClassName}>
+              <code>{`curl https://www.screenshot-studio.com/api/v1/releases \\
+  -H "X-API-Key: $SCREENSHOT_STUDIO_API_KEY"`}</code>
             </pre>
           </section>
 
@@ -164,8 +186,8 @@ export default function AuthenticationPage() {
             </h2>
             <p className="leading-relaxed text-muted-foreground">
               A small number of cache-maintenance endpoints require a shared
-              secret held by the maintainers. They are not part of the public
-              API surface and are deliberately absent from the{" "}
+              secret held by the maintainers. They are internal operations and
+              are deliberately absent from the{" "}
               <Link href="/openapi.json" className={linkClassName}>
                 OpenAPI specification
               </Link>

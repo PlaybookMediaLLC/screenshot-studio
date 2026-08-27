@@ -53,6 +53,46 @@ Storage, and Postgres. Use a Kind port-forward with
 `E2E_MANAGE_SCREENSHOT_MOCK=false` so the command does not recreate Compose.
 See [`e2e/README.md`](../e2e/README.md) to add flows with shared lifecycle hooks.
 
+### Give Docker enough memory
+
+Budget at least 12GB for the Docker VM before running the browser suite; CI
+runners have 16GB. The app runs `next dev`, and compiling routes on demand is
+memory-hungry enough to exhaust an 8GB VM mid-run. The failure does not look
+like memory pressure from the test side: Playwright reports
+`page.evaluate: Failed to fetch` or `net::ERR_CONNECTION_REFUSED`, because the
+server died rather than answered. Confirm with
+
+```sh
+docker inspect screenshot-studio-app-1 --format '{{.State.OOMKilled}}'
+```
+
+The containers themselves are small, roughly 300MB in total, so raising Docker
+Desktop's memory limit is the fix rather than trimming services.
+
+### Warm routes before timing anything
+
+`bin/studio` requests `/sign-up`, `/sign-in`, `/two-factor`, `/onboarding`,
+`/workspace` and `/` before the suite starts. Under `next dev` a route compiles
+on its first request, which costs 5-30s, and a browser navigation to an
+uncompiled route leaves `page.url()` on the previous page until the server
+answers. An unwarmed route is therefore indistinguishable from a redirect that
+never happened, which is a slow and confusing thing to debug. Running specs
+directly with `npx playwright test` skips that warm-up, so do it by hand:
+
+```sh
+for r in /sign-up /sign-in /two-factor /onboarding /workspace /; do
+  curl -s -o /dev/null -w "$r %{time_total}s\n" "http://localhost:3000$r"
+done
+```
+
+Repeated local runs can also trip auth rate limiting, which surfaces as a
+sign-up that fails with an empty error element rather than a message. Clearing
+Redis between runs rules that out:
+
+```sh
+docker exec screenshot-studio-redis-1 redis-cli FLUSHALL
+```
+
 The stack contains:
 
 - Screenshot Studio in Next.js development mode with hot reload.

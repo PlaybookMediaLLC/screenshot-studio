@@ -19,6 +19,7 @@ import {
 import { openApiSpec } from "../lib/api/openapi";
 import { apiErrorBody, apiError, methodNotAllowed, notFoundJson } from "../lib/api/errors";
 import { llmsTxt, llmsFullTxt } from "../lib/agents/llms";
+import { GET as getApiReference } from "../app/api-reference/route";
 
 test("parseAccept reads media ranges and q values", () => {
   assert.deepEqual(parseAccept(null), []);
@@ -128,6 +129,17 @@ test("llms.txt files advertise the developer resources", () => {
   }
 });
 
+test("Scalar renders the canonical OpenAPI document", async () => {
+  const response = getApiReference();
+  const html = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type") ?? "", /text\/html/);
+  assert.match(html, /Screenshot Studio API Reference/);
+  assert.match(html, /\/openapi\.json/);
+  assert.match(html, /scalar/i);
+});
+
 test("openapi document is a valid 3.1 shape", () => {
   assert.equal(openApiSpec.openapi, "3.1.0");
   assert.ok(openApiSpec.info.title);
@@ -187,6 +199,37 @@ test("every schema reference resolves", () => {
   }
 });
 
+test("tenant OpenAPI operations declare the implemented X-API-Key scheme", () => {
+  const spec = openApiSpec as unknown as {
+    paths: Record<
+      string,
+      Record<
+        string,
+        { security?: readonly Record<string, readonly unknown[]>[] }
+      >
+    >;
+    components: {
+      securitySchemes: Record<string, Readonly<Record<string, unknown>>>;
+    };
+  };
+  const scheme = spec.components.securitySchemes.workspaceApiKey;
+
+  assert.deepEqual(scheme, {
+    type: "apiKey",
+    in: "header",
+    name: "X-API-Key",
+    description: "Workspace API key with the operation-required scope.",
+  });
+
+  for (const [path, operations] of Object.entries(spec.paths)) {
+    for (const operation of Object.values(operations)) {
+      if (path.startsWith("/api/v1/")) {
+        assert.deepEqual(operation.security, [{ workspaceApiKey: [] }], path);
+      }
+    }
+  }
+});
+
 test("error envelope is stable and backward compatible", () => {
   const body = apiErrorBody(400, "invalid_request", "URL is required", "Send a url.");
   assert.equal(body.error, "URL is required");
@@ -194,7 +237,10 @@ test("error envelope is stable and backward compatible", () => {
   assert.equal(body.code, "invalid_request");
   assert.equal(body.status, 400);
   assert.equal(body.hint, "Send a url.");
-  assert.match(body.documentation, /^https:\/\/www\.screenshot-studio\.com\/docs#errors$/);
+  assert.equal(
+    body.documentation,
+    "https://www.screenshot-studio.com/api-reference#errors",
+  );
 });
 
 test("apiError serialises extras and headers", async () => {
@@ -259,4 +305,18 @@ test("agent-facing product copy preserves fork identity and workspace access", (
   assert.match(llmsTxt, /signed-in workspace is required/i);
   assert.match(llmsFullTxt, /signed-in workspace is required/i);
   assert.match(productCopy, /github\.com\/PlaybookMediaLLC\/screenshot-studio/);
+});
+
+test("agent-facing API copy distinguishes utility and tenant authentication", () => {
+  const apiCopy = [
+    llmsTxt,
+    llmsFullTxt,
+    ...AGENT_PAGES.filter((page) =>
+      ["/docs", "/docs/authentication", "/developers"].includes(page.path),
+    ).flatMap((page) => [page.summary, ...(page.points ?? [])]),
+  ].join("\n");
+
+  assert.match(apiCopy, /utility endpoints[\s\S]*anonymous/i);
+  assert.match(apiCopy, /\/api\/v1[\s\S]*(X-API-Key|signed-in session)/i);
+  assert.doesNotMatch(apiCopy, /every (?:API )?endpoint is anonymous/i);
 });

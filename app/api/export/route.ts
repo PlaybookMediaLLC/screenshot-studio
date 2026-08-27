@@ -44,7 +44,27 @@ async function exportImage(input: ExportRequest): Promise<ExportResult> {
   return { buffer, mimeType: getMimeType(input.format) }
 }
 
+function invalidContentTypeResponse(request: NextRequest): NextResponse | null {
+  const contentType = request.headers.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase()
+  if (
+    contentType === 'multipart/form-data' ||
+    contentType === 'application/x-www-form-urlencoded'
+  ) {
+    return null
+  }
+
+  return apiError(
+    400,
+    'invalid_request',
+    'Invalid export request',
+    'Send multipart/form-data with image, format, and qualityPreset fields.'
+  )
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const contentTypeResponse = invalidContentTypeResponse(request)
+  if (contentTypeResponse) return contentTypeResponse
+
   try {
     const formData = await request.formData()
     const input = exportRequestSchema.parse({

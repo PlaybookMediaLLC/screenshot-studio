@@ -46,6 +46,7 @@ Screenshot Studio is a client-side image editor: imported images are not uploade
 
 - API Documentation: ${BASE_URL}/docs
 - Developer Portal: ${BASE_URL}/developers
+- Interactive API Reference: ${BASE_URL}/api-reference
 - OpenAPI Specification (OpenAPI 3.1, JSON): ${BASE_URL}/openapi.json
 - API Authentication and Rate Limits: ${BASE_URL}/docs/authentication
 - llms.txt: ${BASE_URL}/llms.txt
@@ -54,7 +55,7 @@ Screenshot Studio is a client-side image editor: imported images are not uploade
 - robots.txt: ${BASE_URL}/robots.txt
 - Source code: https://github.com/PlaybookMediaLLC/screenshot-studio
 
-The Screenshot Studio API is public and needs no API key, token, or account. Every error is JSON with a stable \`code\`, a \`message\`, and a \`hint\`. Any page also serves Markdown when the request sends \`Accept: text/markdown\`.
+The editor utility endpoints under paths such as \`/api/screenshot\` are anonymous and shaped by per-IP limits. Workspace-scoped \`/api/v1\` operations require an organization key in \`X-API-Key\` or an authorized signed-in session. Every error is JSON with a stable \`code\`, a \`message\`, and a \`hint\`. Any page also serves Markdown when the request sends \`Accept: text/markdown\`.
 
 No official CLI tool and no MCP server are published yet. Use the HTTP API described at ${BASE_URL}/docs.
 
@@ -251,6 +252,7 @@ Locale detection: URL path > cookie > Accept-Language header > default (English)
 |----------|-----|--------|
 | API Documentation | ${BASE_URL}/docs | HTML |
 | Developer Portal | ${BASE_URL}/developers | HTML |
+| Interactive API Reference | ${BASE_URL}/api-reference | HTML |
 | OpenAPI Specification | ${BASE_URL}/openapi.json | OpenAPI 3.1 JSON |
 | API Authentication and Rate Limits | ${BASE_URL}/docs/authentication | HTML |
 | llms.txt | ${BASE_URL}/llms.txt | Markdown |
@@ -260,7 +262,7 @@ Locale detection: URL path > cookie > Accept-Language header > default (English)
 
 ### Authentication
 
-The public API needs no API key, token, or account. Requests are anonymous. Access is shaped by per-IP rate limits rather than credentials: \`POST /api/screenshot\` allows 20 requests per minute per IP and answers 429 with \`Retry-After\` and \`X-RateLimit-*\` headers.
+The editor utility endpoints need no API key, token, or account. Access is shaped by per-IP limits: \`POST /api/screenshot\` allows 20 requests per minute per IP and answers 429 with \`Retry-After\` and \`X-RateLimit-*\` headers. Workspace-scoped \`/api/v1\` operations require an organization key in \`X-API-Key\` or an authorized signed-in session, plus the declared permission, scope, feature, and quota checks.
 
 ### Endpoints
 

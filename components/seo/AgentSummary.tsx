@@ -16,6 +16,7 @@ const LINKS = [
   { href: "/docs", label: "API documentation" },
   { href: "/docs/authentication", label: "API authentication and rate limits" },
   { href: "/developers", label: "Developer portal" },
+  { href: "/api-reference", label: "Interactive API reference" },
   { href: "/openapi.json", label: "OpenAPI specification" },
   { href: "/llms.txt", label: "llms.txt" },
   { href: "/sitemap.xml", label: "Sitemap" },

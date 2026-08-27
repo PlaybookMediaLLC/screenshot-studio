@@ -11,6 +11,17 @@ function assertMarkdownRouteDoesNotTrustHeaders(routeSource: string): void {
   assert.match(routeSource, /searchParams\.get\(["']path["']\)/)
 }
 
+function assertStandaloneRewriteGuard(proxySource: string): void {
+  assert.match(proxySource, /x-next-intl-locale/)
+  assert.match(proxySource, /isStandaloneLocaleRewrite\(request\)/)
+  assert.match(proxySource, /github\.com\/vercel\/next\.js\/issues\/95528/)
+}
+
+function assertAgentRouteUsesCanonicalContent(routeSource: string): void {
+  assert.match(routeSource, /from ['"]@\/lib\/agents\/llms['"]/)
+  assert.doesNotMatch(routeSource, /opennookorg|\.replace\(/i)
+}
+
 test('markdown route uses the rewritten URL cache key and ignores spoofed routing headers', () => {
   const routeSource = source('app/api/md/route.ts')
   assertMarkdownRouteDoesNotTrustHeaders(routeSource)
@@ -23,7 +34,12 @@ test('Next 16 proxy owns content negotiation and preserves cache separation', ()
   const proxySource = source('proxy.ts')
   assert.match(proxySource, /export function proxy\(/)
   assert.match(proxySource, /prefersMarkdown\(accept\)/)
-  assert.match(proxySource, /url\.searchParams\.set\('path', request\.nextUrl\.pathname\)/)
+  assert.match(proxySource, /url\.pathname = `\/api\/md\$\{request\.nextUrl\.pathname/)
+  assert.doesNotMatch(proxySource, /searchParams\.set\(['"]path['"]/)
+  assert.match(source('app/api/md/[...path]/route.ts'), /path\.join\(['"]\/['"]\)/)
+  assertStandaloneRewriteGuard(proxySource)
+  const missingStandaloneGuard = proxySource.replaceAll('x-next-intl-locale', 'x-missing-locale')
+  assert.throws(() => assertStandaloneRewriteGuard(missingStandaloneGuard))
   assert.match(proxySource, /Vary['"], ['"]Accept, Accept-Encoding/)
   assert.match(proxySource, /isFrameworkRequest\(request\)/)
 })
@@ -45,6 +61,17 @@ test('upstream merge preserves the canonical fork workflow and public identity',
     const contents = source(path)
     assert.doesNotMatch(contents, /opennookorg\/screenshot-studio/i, path)
     assert.match(contents, /PlaybookMediaLLC\/screenshot-studio/, path)
+  }
+
+  for (const path of ['app/api/llms/route.ts', 'app/api/llms-full/route.ts']) {
+    const contents = source(path)
+    assertAgentRouteUsesCanonicalContent(contents)
+
+    const negativeControl = contents.replace(
+      /from ['"]@\/lib\/agents\/llms['"]/,
+      "from '@opennookorg/screenshot-studio'"
+    )
+    assert.throws(() => assertAgentRouteUsesCanonicalContent(negativeControl), path)
   }
 })
 

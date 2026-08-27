@@ -11,7 +11,10 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   testDir: './e2e',
   testIgnore,
-  timeout: 60_000,
+  // A cold Next.js dev route compiles on first request, so the first flow to
+  // reach the editor can spend most of a minute before hydration finishes.
+  // The per-test budget has to leave room for that plus the flow itself.
+  timeout: 120_000,
   workers: 1,
   use: {
     baseURL,

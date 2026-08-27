@@ -16,7 +16,10 @@ export async function DELETE(
     const context = await requireTenantAccess(request.headers, {
       apiKeyScope: 'asset:write',
       permission: 'artifact:edit',
+      quota: 'api:write:minute',
     })
+    // The `asset:delete` plan gate lives in `deleteAsset`, after ownership is
+    // resolved, so a foreign asset id cannot be distinguished by status code.
     const result = await deleteAsset(context, input.assetId)
     if (result === 'not-found') {
       return NextResponse.json({ error: 'Asset not found.' }, { status: 404 })

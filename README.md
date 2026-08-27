@@ -6,7 +6,7 @@ Screenshot Studio started as a free, browser-based screenshot editor. It is grow
 marketing platform for software founders. The editor is the creative engine. An AI copilot
 plans campaigns. The platform renders assets, collects approval, and publishes.
 
-**Live editor:** [screenshot-studio.com](https://screenshot-studio.com)
+**Live platform and editor:** [screenshot-studio.com](https://www.screenshot-studio.com)
 
 ## The thesis
 
@@ -101,19 +101,20 @@ conversation.
 
 ### RFC priority order
 
-The full plan lives in [docs/rfcs/](docs/rfcs/). Implementation follows this order:
+The [RFC detail audit](docs/rfcs/000-detail-audit-2026-08-26.md) recorded which proposals needed stronger contracts or documentation backfill. Every RFC it flagged now carries implementation-grade detail: typed contracts, lifecycle, authorization, failure behavior, rollout, and testable acceptance criteria. The audit is retained as the checklist new RFCs are measured against. The full plan lives in [docs/rfcs/](docs/rfcs/). Implementation follows this order:
 
 | Priority   | RFC                                                                                                | Scope                                                                                        | Status      |
 | ---------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------- |
 | Done       | 002–006                                                                                            | Tenant data model, auth, jobs, webhooks, asset pipeline                                      | Implemented |
 | Done       | 011, 013, 014, 019, 020                                                                            | Brand profile, product surfaces, campaign objects, approval workflow, scheduling abstraction | Implemented |
-| 1          | [010](docs/rfcs/010-programmable-creative-engine.md)                                               | Programmable creative engine — the editor as domain services                                 | Next up     |
-| 2          | [012](docs/rfcs/012-product-intelligence.md) + [032](docs/rfcs/032-background-onboarding-agent.md) | Product intelligence and the background onboarding agent with ICP extraction                 | Planned     |
-| 3          | [015](docs/rfcs/015-feature-launch-recipe.md)                                                      | Deterministic feature-launch recipe                                                          | Planned     |
-| 4          | [016](docs/rfcs/016-ai-sdk-marketing-tools.md)                                                     | AI SDK and typed marketing tools                                                             | Planned     |
-| 5          | [017](docs/rfcs/017-conversational-campaign-creation.md)                                           | Conversational campaign creation                                                             | Planned     |
-| 6          | [018](docs/rfcs/018-campaign-workspace.md)                                                         | Campaign workspace UI                                                                        | Planned     |
-| 7          | [021](docs/rfcs/021-core-workflows.md)                                                             | The three core workflows and 7-post onboarding — the chargeable milestone                    | Planned     |
+| 1          | [034](docs/rfcs/034-rest-api-scalar-reference.md)                                                  | First-class REST API and interactive Scalar reference                                        | In progress |
+| 2          | [010](docs/rfcs/010-programmable-creative-engine.md)                                               | Programmable creative engine — the editor as domain services                                 | Next up     |
+| 3          | [012](docs/rfcs/012-product-intelligence.md) + [032](docs/rfcs/032-background-onboarding-agent.md) | Product intelligence and the background onboarding agent with ICP extraction                 | Planned     |
+| 4          | [015](docs/rfcs/015-feature-launch-recipe.md)                                                      | Deterministic feature-launch recipe                                                          | Planned     |
+| 5          | [016](docs/rfcs/016-ai-sdk-marketing-tools.md)                                                     | AI SDK and typed marketing tools                                                             | Planned     |
+| 6          | [017](docs/rfcs/017-conversational-campaign-creation.md)                                           | Conversational campaign creation                                                             | Planned     |
+| 7          | [018](docs/rfcs/018-campaign-workspace.md)                                                         | Campaign workspace UI                                                                        | Planned     |
+| 8          | [021](docs/rfcs/021-core-workflows.md)                                                             | The three core workflows and 7-post onboarding — the chargeable milestone                    | Planned     |
 | Defer (V3) | 022, 023, 024, 025, 008                                                                            | GitHub triggers, deployment capture, demo videos, content pillars, Cloudflare data plane     | Deferred    |
 | Defer (V4) | 026, 027, 028                                                                                      | External research, analytics, feedback-driven generation                                     | Deferred    |
 | Defer (V5) | 029, 030, 031                                                                                      | Weekly autonomy, approval policies, autopilot modes                                          | Deferred    |
@@ -121,8 +122,10 @@ The full plan lives in [docs/rfcs/](docs/rfcs/). Implementation follows this ord
 | Done       | [007](docs/rfcs/007-mvp-rpc-product-surface.md)                                                    | tRPC product surface over the tenant domain services                                         | Implemented |
 | Deferred   | [033](docs/rfcs/033-workspace-migration.md)                                                         | Monorepo workspace migration — deferred until a second deployable exists                     | Deferred    |
 
-Two RFCs still need to be written before the chargeable milestone: billing with usage
-quotas, and authenticated page capture.
+Three gaps block the chargeable milestone. Two need RFCs written: billing with usage quotas,
+and authenticated page capture. The third is scoped inside
+[RFC 020](docs/rfcs/020-postiz-publishing.md): self-service publishing depends on Postiz OAuth,
+so channel connections currently require operator provisioning.
 
 ### The build sequence
 
@@ -233,6 +236,17 @@ npm run dev
 
 Open [localhost:3000](http://localhost:3000).
 
+## Agent and API discovery
+
+The deployed product publishes machine-readable interfaces for agents and API clients:
+
+- [`llms.txt`](https://www.screenshot-studio.com/llms.txt) and
+  [`llms-full.txt`](https://www.screenshot-studio.com/llms-full.txt)
+- [OpenAPI 3.1 specification](https://www.screenshot-studio.com/openapi.json)
+- [API documentation](https://www.screenshot-studio.com/docs) and
+  [developer portal](https://www.screenshot-studio.com/developers)
+- Markdown representations of supported pages via `Accept: text/markdown`
+
 ## Deployment
 
 The app ships a production Docker image, a portable Helm chart, Fly.io deployment
@@ -281,6 +295,7 @@ variables that configure it, so you can trace a credential back to its console.
 | [Google Cloud](https://console.cloud.google.com/apis/credentials) | Google OAuth sign-in | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 | [GitHub OAuth](https://github.com/settings/developers) | GitHub sign-in and release intake | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` |
 | [Microsoft Entra ID](https://entra.microsoft.com) | Microsoft SSO for enterprise tenants | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` |
+| Billing provider or support automation | Signed workspace plan and entitlement synchronization | `BILLING_ENTITLEMENT_WEBHOOK_SECRET` |
 
 Runtime credentials live in Fly secrets (`fly secrets set`), never in the repo or
 in GitHub secrets. GitHub holds only the deploy token and the build-time

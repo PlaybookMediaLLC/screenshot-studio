@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getTweet } from 'react-tweet/api'
 import { apiError } from '@/lib/api/errors'
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
   const { id } = await params
 
   try {

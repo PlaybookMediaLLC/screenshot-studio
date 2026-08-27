@@ -9,7 +9,30 @@ async function startTwoFactorSignIn(page: Page, identity: E2EIdentity): Promise<
   await page.getByLabel('Email', { exact: true }).fill(identity.email)
   await page.getByLabel('Password').fill(identity.password)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/two-factor')
+  // Race the redirect against the form's error alert. Polling the URL alone
+  // reports a bare timeout whichever way this fails, which hides whether the
+  // credentials were rejected (for example by the two-factor account lockout
+  // this spec's replay assertions can trigger) or the navigation was merely
+  // slow. Surfacing the alert text turns that ambiguity into a real message.
+  await expect
+    .poll(
+      async () => {
+        try {
+          const pathname = new URL(page.url()).pathname
+          if (pathname === '/two-factor') return pathname
+          const alert = page.getByRole('alert')
+          if ((await alert.count()) === 0) return pathname
+          return `${pathname} rejected: ${await alert.first().innerText()}`
+        } catch {
+          // Reading the page mid-navigation destroys the execution context.
+          // expect.poll fails on a thrown error instead of retrying, so return a
+          // non-matching value and let the next tick observe the settled page.
+          return 'pending'
+        }
+      },
+      { timeout: 45_000 }
+    )
+    .toBe('/two-factor')
 }
 
 async function signOut(page: Page): Promise<void> {

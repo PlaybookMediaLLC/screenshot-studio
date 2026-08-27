@@ -10,6 +10,7 @@ interface Check {
   expectStatus: number | number[];
   expectHeaders?: Record<string, RegExp>;
   expectBody?: RegExp[];
+  expectBodyByStatus?: Partial<Record<number, RegExp[]>>;
 }
 
 const CHECKS: Check[] = [
@@ -87,11 +88,23 @@ const CHECKS: Check[] = [
     expectBody: [/# 404 Not Found/, /Where to look next/],
   },
   {
+    name: "/api-reference renders Scalar",
+    path: "/api-reference",
+    expectStatus: 200,
+    expectHeaders: { "content-type": /text\/html/ },
+    expectBody: [/Screenshot Studio API Reference/, /\/openapi\.json/, /scalar/i],
+  },
+  {
     name: "/openapi.json serves the spec",
     path: "/openapi.json",
     expectStatus: 200,
     expectHeaders: { "content-type": /application\/json/ },
-    expectBody: [/"openapi":\s*"3\.1\.0"/, /"captureScreenshot"/],
+    expectBody: [
+      /"openapi":\s*"3\.1\.0"/,
+      /"captureScreenshot"/,
+      /"\/api\/v1\/releases"/,
+      /"name":\s*"X-API-Key"/,
+    ],
   },
   {
     name: "/.well-known/openapi.json serves the spec",
@@ -134,7 +147,7 @@ const CHECKS: Check[] = [
     name: "/docs/authentication renders",
     path: "/docs/authentication",
     expectStatus: 200,
-    expectBody: [/API Authentication/, /Rate limits/],
+    expectBody: [/API Authentication/, /Rate limits/, /X-API-Key/, /\/api\/v1/],
   },
   {
     name: "/developers renders",
@@ -150,6 +163,13 @@ const CHECKS: Check[] = [
     expectBody: [/"code":"not_found"/, /openapi\.json/],
   },
   {
+    name: "tenant API rejects an anonymous request",
+    path: "/api/v1/releases",
+    expectStatus: 401,
+    expectHeaders: { "content-type": /application\/json/ },
+    expectBody: [/"code":"unauthorized"|"status":401/],
+  },
+  {
     name: "GET on a POST-only endpoint returns JSON 405 with Allow",
     path: "/api/screenshot",
     expectStatus: 405,
@@ -162,13 +182,12 @@ const CHECKS: Check[] = [
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: "{}",
-    expectStatus: 400,
-    expectBody: [
-      /"code":"invalid_request"/,
-      /"hint":/,
-      /"documentation":/,
-      /"error":"URL is required"/,
-    ],
+    expectStatus: [400, 503],
+    expectBody: [/"hint":/, /"documentation":/],
+    expectBodyByStatus: {
+      400: [/"code":"invalid_request"/, /"error":"URL is required"/],
+      503: [/"code":"upstream_unavailable"/, /Rate limiting is unavailable/],
+    },
   },
   {
     name: "invalid export request returns a structured error",
@@ -215,7 +234,11 @@ async function run() {
         }
       }
 
-      for (const pattern of check.expectBody ?? []) {
+      const bodyPatterns = [
+        ...(check.expectBody ?? []),
+        ...(check.expectBodyByStatus?.[response.status] ?? []),
+      ];
+      for (const pattern of bodyPatterns) {
         if (!pattern.test(text)) {
           problems.push(`body does not match ${pattern}`);
         }

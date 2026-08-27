@@ -17,6 +17,23 @@ jobs:
     name: Deploy production tasks
     runs-on: ubuntu-latest
     environment: production
+    # Skip when the deploy is not configured instead of failing.
+    #
+    # TRIGGER_ACCESS_TOKEN has never been set on this repository, so every
+    # push to main produced a red X on a workflow that cannot run: "You must
+    # login first ... set the TRIGGER_ACCESS_TOKEN environment variable". A
+    # permanent failure trains readers to ignore the checks and hides real
+    # ones. It sat beside genuinely broken CI for days and was dismissed as
+    # "pre-existing and unrelated" every time.
+    #
+    # The gate reads TRIGGER_PROJECT_REF rather than the token because the
+    # secrets context is not available in a job-level `if`. Both are unset
+    # together, and a deploy needs the project ref anyway, so it is an
+    # accurate proxy for "this deploy is configured".
+    #
+    # Nothing is disabled: set the variable and the secret and this runs on
+    # the next push, with no workflow change.
+    if: vars.TRIGGER_PROJECT_REF != ''
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4

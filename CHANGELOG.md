@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.3.1...v1.3.2) (2026-08-27)
+
+
+### Bug Fixes
+
+* **workspace:** stop a slow transaction returning 500 on a valid request ([#33](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/33)) ([6f69cae](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/6f69cae70212c927645c88f4563bf11ce784be86))
+
 ## [1.3.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.3.0...v1.3.1) (2026-08-26)
 
 

@@ -3,6 +3,7 @@ import sharp from 'sharp'
 import { isInvalidRequest } from '@/lib/api/request'
 import { exportRequestSchema, type ExportRequest } from '@/lib/api/schemas'
 import { QUALITY_PRESETS } from '@/lib/export/types'
+import { apiError, methodNotAllowed } from '@/lib/api/errors'
 
 type ExportResult = {
   buffer: Buffer
@@ -61,12 +62,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     console.error('Export API error:', error)
     if (isInvalidRequest(error)) {
-      return NextResponse.json({ error: 'Invalid export request' }, { status: 400 })
+      return apiError(
+        400,
+        'invalid_request',
+        'Invalid export request',
+        'Send multipart/form-data with image, format, and qualityPreset fields.'
+      )
     }
 
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to process image' },
-      { status: 500 }
+    return apiError(
+      500,
+      'internal_error',
+      error instanceof Error ? error.message : 'Failed to process image',
+      'Check that the uploaded file is a decodable PNG, JPEG, or WebP image, then retry.'
     )
   }
+}
+
+export async function GET() {
+  return methodNotAllowed(['POST'])
 }

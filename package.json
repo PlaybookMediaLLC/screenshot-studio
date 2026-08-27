@@ -17,8 +17,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
-    "quality:check": "npm run format:check && npm run lint -- --max-warnings=0 && npm run typecheck && npm run test",
+    "quality:check": "npm run format:check && npm run lint -- --max-warnings=0 && npm run typecheck && npm run test && npm run test:agents",
     "test": "tsx --test test/*.test.ts",
+    "test:agents": "tsx --test tests/agent-readiness.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:onboarding": "playwright test e2e/onboarding.spec.ts",
     "test:e2e:recovery": "E2E_INCLUDE_RECOVERY=true playwright test e2e/dependency-recovery.spec.ts --workers=1",
@@ -31,7 +32,8 @@
     "upload-pattern": "tsx scripts/upload-pattern-to-r2.ts",
     "upload-demo": "tsx scripts/upload-demo-to-r2.ts",
     "verify:announcements": "tsx --tsconfig tsconfig.verify.json scripts/verify-announcement-authoring.ts",
-    "verify:storage": "tsx --tsconfig tsconfig.verify.json scripts/verify-tenant-storage.ts"
+    "verify:storage": "tsx --tsconfig tsconfig.verify.json scripts/verify-tenant-storage.ts",
+    "verify:agents": "tsx tests/verify-agent-endpoints.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.990.0",

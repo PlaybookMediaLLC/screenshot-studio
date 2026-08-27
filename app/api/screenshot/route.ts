@@ -3,6 +3,7 @@ import { getClientIdentifier } from '@/lib/api/client-identity'
 import { isInvalidRequest, parseJson } from '@/lib/api/request'
 import { screenshotRequestSchema, type ScreenshotRequest } from '@/lib/api/schemas'
 import { SCREENSHOT_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
+import { apiError, methodNotAllowed } from '@/lib/api/errors'
 import { checkRateLimit, type RateLimitResult } from '@/lib/rate-limit'
 import {
   cacheScreenshot,
@@ -18,7 +19,7 @@ import {
 
 export const maxDuration = 60
 
-function getRateLimitHeaders(rateLimit: RateLimitResult): HeadersInit {
+function getRateLimitHeaders(rateLimit: RateLimitResult): Record<string, string> {
   const retryAfter = Math.max(1, Math.ceil((rateLimit.resetAt - Date.now()) / 1000))
   return {
     'Retry-After': retryAfter.toString(),
@@ -38,15 +39,21 @@ async function getRateLimitResponse(request: NextRequest): Promise<NextResponse 
       return null
     }
 
-    return NextResponse.json(
-      { error: 'Rate limit exceeded. Please try again later.' },
-      { headers: getRateLimitHeaders(rateLimit), status: 429 }
+    return apiError(
+      429,
+      'rate_limited',
+      'Rate limit exceeded. Please try again later.',
+      `Wait ${Math.max(1, Math.ceil((rateLimit.resetAt - Date.now()) / 1000))} seconds, then retry.`,
+      undefined,
+      getRateLimitHeaders(rateLimit)
     )
   } catch (error) {
     console.error('Rate limit check failed:', error)
-    return NextResponse.json(
-      { error: 'Rate limiting is unavailable. Please try again shortly.' },
-      { status: 503 }
+    return apiError(
+      503,
+      'upstream_unavailable',
+      'Rate limiting is unavailable. Please try again shortly.',
+      'Retry later. Requests fail closed while rate limiting is unavailable.'
     )
   }
 }
@@ -111,6 +118,9 @@ function screenshotResponse(response: ScreenshotResponseInput): NextResponse {
   })
 }
 
+// Keep rate limiting, validation, capture, and stable error translation in the
+// order requests execute so the public boundary is straightforward to audit.
+// eslint-disable-next-line max-lines-per-function
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const rateLimitResponse = await getRateLimitResponse(request)
   if (rateLimitResponse) {
@@ -139,10 +149,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     console.error('Screenshot error:', error)
     if (isInvalidRequest(error)) {
-      return NextResponse.json({ error: 'Invalid screenshot request' }, { status: 400 })
+      return apiError(
+        400,
+        'invalid_request',
+        'Invalid screenshot request',
+        'Send an absolute public http or https URL and supported device and color scheme values.'
+      )
     }
 
     const failure = getScreenshotFailure(error)
-    return NextResponse.json({ error: failure.message }, { status: failure.status })
+    return apiError(
+      failure.status,
+      'upstream_failed',
+      failure.message,
+      'Verify the target is publicly reachable, then retry.'
+    )
   }
+}
+
+export async function GET() {
+  return methodNotAllowed(['POST'])
 }

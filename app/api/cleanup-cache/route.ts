@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { hasMaintenanceAccess } from '@/lib/api/maintenance-auth'
 import { isInvalidRequest, parseJson } from '@/lib/api/request'
 import { emptyRequestSchema } from '@/lib/api/schemas'
+import { apiError, methodNotAllowed } from '@/lib/api/errors'
 import { clearOldCache } from '@/lib/screenshot-cache'
 
 export const maxDuration = 60
@@ -9,7 +10,12 @@ export const maxDuration = 60
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     if (!hasMaintenanceAccess(request)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return apiError(
+        401,
+        'unauthorized',
+        'Unauthorized',
+        'This maintenance endpoint requires authorized maintenance access.'
+      )
     }
 
     await parseJson(request, emptyRequestSchema)
@@ -21,9 +27,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     console.error('Cache cleanup error:', error)
     if (isInvalidRequest(error)) {
-      return NextResponse.json({ error: 'Invalid cleanup request' }, { status: 400 })
+      return apiError(
+        400,
+        'invalid_request',
+        'Invalid cleanup request',
+        'Send an empty JSON object with authorized maintenance credentials.'
+      )
     }
 
-    return NextResponse.json({ error: 'Cache cleanup failed' }, { status: 500 })
+    return apiError(
+      500,
+      'internal_error',
+      'Cache cleanup failed',
+      'Retry the request. Check the server logs for the underlying storage error.'
+    )
   }
+}
+
+export async function GET() {
+  return methodNotAllowed(['POST'])
 }

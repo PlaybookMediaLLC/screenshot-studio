@@ -37,7 +37,7 @@ export function FinalCTA({
               {ctaLabel}
             </Button>
           </Link>
-          <Link href="https://github.com/KartikLabhshetwar/stage" target="_blank">
+          <Link href="https://github.com/PlaybookMediaLLC/screenshot-studio" target="_blank">
             <Button
               variant="outline"
               size="lg"

@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit",
     "quality:check": "npm run format:check && npm run lint -- --max-warnings=0 && npm run typecheck && npm run test && npm run verify:rfcs",
     "test": "tsx --test test/*.test.ts tests/*.test.ts",
+    "test:agents": "tsx --test tests/agent-readiness.test.ts",
     "verify:agents": "tsx tests/verify-agent-endpoints.ts",
     "test:e2e": "playwright test",
     "test:e2e:onboarding": "playwright test e2e/onboarding.spec.ts",

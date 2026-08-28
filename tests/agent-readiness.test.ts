@@ -199,6 +199,37 @@ test("every schema reference resolves", () => {
   }
 });
 
+test("tenant OpenAPI operations declare the implemented X-API-Key scheme", () => {
+  const spec = openApiSpec as unknown as {
+    paths: Record<
+      string,
+      Record<
+        string,
+        { security?: readonly Record<string, readonly unknown[]>[] }
+      >
+    >;
+    components: {
+      securitySchemes: Record<string, Readonly<Record<string, unknown>>>;
+    };
+  };
+  const scheme = spec.components.securitySchemes.workspaceApiKey;
+
+  assert.deepEqual(scheme, {
+    type: "apiKey",
+    in: "header",
+    name: "X-API-Key",
+    description: "Workspace API key with the operation-required scope.",
+  });
+
+  for (const [path, operations] of Object.entries(spec.paths)) {
+    for (const operation of Object.values(operations)) {
+      if (path.startsWith("/api/v1/")) {
+        assert.deepEqual(operation.security, [{ workspaceApiKey: [] }], path);
+      }
+    }
+  }
+});
+
 test("error envelope is stable and backward compatible", () => {
   const body = apiErrorBody(400, "invalid_request", "URL is required", "Send a url.");
   assert.equal(body.error, "URL is required");
@@ -260,4 +291,32 @@ test("agent-facing copy does not claim images never reach a server", () => {
   for (const page of AGENT_PAGES) {
     assert.doesNotMatch(page.summary, claims);
   }
+});
+
+test("agent-facing product copy preserves fork identity and workspace access", () => {
+  const productCopy = [
+    llmsTxt,
+    llmsFullTxt,
+    ...AGENT_PAGES.map((page) => page.summary),
+  ].join("\n");
+
+  assert.doesNotMatch(productCopy, /opennookorg\/screenshot-studio/i);
+  assert.doesNotMatch(productCopy, /no signup|no paid tier|no premium tier/i);
+  assert.match(llmsTxt, /signed-in workspace is required/i);
+  assert.match(llmsFullTxt, /signed-in workspace is required/i);
+  assert.match(productCopy, /github\.com\/PlaybookMediaLLC\/screenshot-studio/);
+});
+
+test("agent-facing API copy distinguishes utility and tenant authentication", () => {
+  const apiCopy = [
+    llmsTxt,
+    llmsFullTxt,
+    ...AGENT_PAGES.filter((page) =>
+      ["/docs", "/docs/authentication", "/developers"].includes(page.path),
+    ).flatMap((page) => [page.summary, ...(page.points ?? [])]),
+  ].join("\n");
+
+  assert.match(apiCopy, /utility endpoints[\s\S]*anonymous/i);
+  assert.match(apiCopy, /\/api\/v1[\s\S]*(X-API-Key|signed-in session)/i);
+  assert.doesNotMatch(apiCopy, /every (?:API )?endpoint is anonymous/i);
 });

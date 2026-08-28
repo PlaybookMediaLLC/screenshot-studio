@@ -31,7 +31,7 @@ export default function PrivacyPolicyPage() {
           Privacy Policy
         </h1>
         <p className="mb-12 text-sm text-muted-foreground">
-          Last updated: August 23, 2026
+          Last updated: August 27, 2026
         </p>
 
         <div className="max-w-none space-y-8">
@@ -43,16 +43,18 @@ export default function PrivacyPolicyPage() {
               Overview
             </h2>
             <p className="mb-3 leading-relaxed text-muted-foreground">
-              Screenshot Studio is a browser-based image editor. There is no
-              account, no signup, and no login, so we never ask you for a name,
-              an email address, or payment details to use the editor.
+              Screenshot Studio combines a browser-based image editor with a
+              workspace platform. An account and workspace membership are
+              required to use the editor. We store the identity, session,
+              membership, and workspace data needed to provide that service.
             </p>
             <p className="leading-relaxed text-muted-foreground">
               Editing, compositing, and preview rendering happen on your device
-              in the browser canvas. Three features do send data off your
-              device: export compression, capturing a screenshot from a URL, and
-              importing a tweet. Each one is described below. We do not sell
-              your data.
+              in the browser canvas. Several operations do send data off your
+              device. Account and workspace operations, export compression, URL
+              capture, tweet import, and remote-image import send the data needed
+              for those operations to our servers or the named providers below.
+              We do not sell your data.
             </p>
           </section>
 
@@ -99,6 +101,16 @@ export default function PrivacyPolicyPage() {
               What Leaves Your Device
             </h2>
             <ul className="list-inside list-disc space-y-3 text-muted-foreground">
+              <li>
+                <strong className="text-foreground">
+                  Account and workspace data:
+                </strong>{" "}
+                we store your name, email address, authentication and session
+                records, workspace memberships, organization settings, audit
+                records, and the releases and assets your workspace creates.
+                Access to tenant data is scoped to workspace membership and
+                role.
+              </li>
               <li>
                 <strong className="text-foreground">Export compression:</strong>{" "}
                 when you export, the rendered image is sent to our{" "}
@@ -152,8 +164,9 @@ export default function PrivacyPolicyPage() {
             <ul className="list-inside list-disc space-y-3 text-muted-foreground">
               <li>
                 <strong className="text-foreground">PostHog:</strong> product
-                analytics for feature usage. It sets a first-party identifier so
-                repeat visits are recognized.
+                analytics for feature usage when the deployment configures a
+                PostHog key. It may set a first-party identifier so repeat visits
+                are recognized.
               </li>
               <li>
                 <strong className="text-foreground">Google AdSense:</strong> ads
@@ -174,15 +187,15 @@ export default function PrivacyPolicyPage() {
                 <strong className="text-foreground">
                   Hosting and network:
                 </strong>{" "}
-                the site runs on Vercel behind Cloudflare. Both keep standard
-                request logs, which include IP addresses, for security and
-                reliability.
+                the deployment&apos;s hosting, storage, and network providers may
+                process standard request metadata, including IP addresses, for
+                security and reliability.
               </li>
               <li>
                 <strong className="text-foreground">Rate limiting:</strong> the
-                screenshot API keeps your IP address in server memory for up to
-                60 seconds to enforce its per-minute limit. It is not written to
-                a database.
+                screenshot API stores a one-way hash derived from your client
+                address in Redis for up to 60 seconds to enforce its per-minute
+                limit. The raw address is not used as the rate-limit key.
               </li>
             </ul>
             <p className="mt-3 leading-relaxed text-muted-foreground">
@@ -199,13 +212,14 @@ export default function PrivacyPolicyPage() {
               Cookies
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              We set one cookie ourselves,{" "}
+              We use secure authentication and session cookies for signed-in
+              users. We also set{" "}
               <code className="rounded bg-muted px-1.5 py-0.5 text-[13px]">
                 NEXT_LOCALE
               </code>
-              , to remember your language choice. Additional cookies and
-              identifiers may be set by PostHog and Google AdSense as described
-              above.
+              {" "}to remember your language choice. Additional cookies and
+              identifiers may be set by configured PostHog analytics and Google
+              AdSense as described above.
             </p>
           </section>
 
@@ -233,6 +247,11 @@ export default function PrivacyPolicyPage() {
               <li>
                 Email us to have a cached screenshot of a page you control
                 removed.
+              </li>
+              <li>
+                Use the workspace administration controls to request deletion
+                of workspace data, subject to the displayed recovery period and
+                records we must retain for security or legal obligations.
               </li>
             </ul>
           </section>

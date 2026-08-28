@@ -55,7 +55,7 @@ const RESOURCES = [
   {
     href: "/docs/authentication",
     label: "Authentication and rate limits",
-    detail: "No API key is required. Per-IP limits and 429 semantics.",
+    detail: "Anonymous utilities, tenant API keys, signed-in sessions, and rate limits.",
   },
   {
     href: "/llms.txt",
@@ -78,7 +78,7 @@ const QUICKSTART = [
   {
     id: "capture",
     title: "1. Capture a live page",
-    body: "No key, no signup. Post a URL and read back a base64 PNG.",
+    body: "This anonymous utility accepts a URL and returns a base64 PNG.",
     code: `curl -s -X POST https://www.screenshot-studio.com/api/screenshot \\
   -H "Content-Type: application/json" \\
   -d '{"url":"https://example.com","deviceType":"desktop"}' \\
@@ -122,11 +122,10 @@ export default function DevelopersPage() {
           Screenshot Studio Developer Portal
         </h1>
         <p className="mb-12 text-lg leading-relaxed text-muted-foreground">
-          Screenshot Studio is an open-source, browser-based screenshot editor
-          with a public REST API. This page is the entry point for building
-          against it: Scalar provides an interactive reference, the contract is
-          published as OpenAPI 3.1, and the whole application is Apache 2.0
-          on GitHub.
+          Screenshot Studio is an open-source screenshot editor and workspace
+          platform with anonymous utility endpoints and an authenticated tenant
+          REST API. Scalar provides an interactive reference, the contract is
+          published as OpenAPI 3.1, and the application is Apache 2.0 on GitHub.
         </p>
 
         <div className="space-y-12">
@@ -163,9 +162,11 @@ export default function DevelopersPage() {
               API keys
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              There are none, and there is nothing to sign up for. The public
-              API is anonymous and governed by per-IP rate limits instead of
-              credentials. Details are in{" "}
+              Utility endpoints such as <code>/api/screenshot</code> are
+              anonymous and governed by per-IP limits. Workspace-scoped
+              <code>/api/v1</code> operations require an organization key in
+              <code>X-API-Key</code> or an authorized signed-in session. Details
+              are in{" "}
               <Link href="/docs/authentication" className={linkClassName}>
                 authentication and rate limits
               </Link>
@@ -205,11 +206,10 @@ export default function DevelopersPage() {
               Sandbox
             </h2>
             <p className="mb-4 leading-relaxed text-muted-foreground">
-              There is no separate sandbox host. Production is safe to
-              experiment against: the endpoints are read-only with respect to
-              your data, nothing is stored against an account, and the editor
-              itself never uploads your images. To run the full stack locally
-              instead:
+              There is no separate sandbox host. Use anonymous utility endpoints
+              only with disposable public inputs. Tenant API calls can read or
+              mutate workspace data and may consume plan quotas, so use a test
+              workspace or run the full stack locally:
             </p>
             <pre className={codeBlockClassName}>
               <code>{`git clone https://github.com/PlaybookMediaLLC/screenshot-studio.git

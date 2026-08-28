@@ -18,11 +18,10 @@ export const openApiSpec = {
     version: '1.0.0',
     summary: 'Public HTTP API for Screenshot Studio.',
     description:
-      'Screenshot Studio is a free, open-source, browser-based screenshot editor. This API exposes the server-side operations the editor uses: capturing a live web page as an image, recompressing an exported image, resolving a tweet for tweet-to-image rendering, and proxying Twitter media. No API key or account is required; requests are anonymous and shaped by per-IP rate limits. Every error response uses the same JSON envelope with a stable `code` and a human-readable `hint`.',
+      'Screenshot Studio exposes anonymous editor utilities for screenshot capture, export compression, tweet resolution, and approved media proxying. Workspace-scoped `/api/v1` operations require an organization API key with the declared scope. Every error response uses the same JSON envelope with a stable `code` and a human-readable `hint`.',
     contact: {
       name: 'Screenshot Studio',
       url: `${BASE_URL}/contact`,
-      email: 'kartik.labhshetwar@gmail.com',
     },
     license: {
       name: 'Apache-2.0',
@@ -228,7 +227,7 @@ export const openApiSpec = {
         summary: 'List workspace releases',
         description: 'Lists releases in the API key workspace. Requires the `artifact:read` scope.',
         tags: ['Workspace'],
-        security: [{ bearerAuth: [] }],
+        security: [{ workspaceApiKey: [] }],
         parameters: [
           {
             in: 'query',
@@ -255,7 +254,7 @@ export const openApiSpec = {
         description:
           'Creates a release in the API key workspace. Accepts `Idempotency-Key` and requires the `release:create` scope.',
         tags: ['Workspace'],
-        security: [{ bearerAuth: [] }],
+        security: [{ workspaceApiKey: [] }],
         parameters: [
           {
             in: 'header',
@@ -292,7 +291,7 @@ export const openApiSpec = {
         description:
           'Registers a release-intake source in the API key workspace. Requires the `source:write` scope.',
         tags: ['Workspace'],
-        security: [{ bearerAuth: [] }],
+        security: [{ workspaceApiKey: [] }],
         requestBody: {
           required: true,
           content: {
@@ -318,7 +317,7 @@ export const openApiSpec = {
         description:
           'Creates an asset record and a short-lived signed upload URL. Requires the `upload:sign` scope.',
         tags: ['Assets'],
-        security: [{ bearerAuth: [] }],
+        security: [{ workspaceApiKey: [] }],
         requestBody: {
           required: true,
           content: {
@@ -344,7 +343,7 @@ export const openApiSpec = {
         description:
           'Marks a signed upload as complete after storage verification. Requires the `asset:write` scope.',
         tags: ['Assets'],
-        security: [{ bearerAuth: [] }],
+        security: [{ workspaceApiKey: [] }],
         parameters: [{ $ref: '#/components/parameters/AssetId' }],
         requestBody: {
           content: {
@@ -368,7 +367,7 @@ export const openApiSpec = {
         description:
           'Returns a short-lived signed download URL for a workspace asset. Requires the `artifact:read` scope.',
         tags: ['Assets'],
-        security: [{ bearerAuth: [] }],
+        security: [{ workspaceApiKey: [] }],
         parameters: [{ $ref: '#/components/parameters/AssetId' }],
         responses: {
           '200': {
@@ -399,7 +398,7 @@ export const openApiSpec = {
         description:
           'Queues deletion of an uploaded asset that is not in use. Requires the `asset:write` scope and the asset deletion workspace entitlement (Pro or higher by default).',
         tags: ['Assets'],
-        security: [{ bearerAuth: [] }],
+        security: [{ workspaceApiKey: [] }],
         parameters: [{ $ref: '#/components/parameters/AssetId' }],
         responses: {
           '202': { description: 'Asset deletion accepted.' },
@@ -476,9 +475,10 @@ export const openApiSpec = {
   },
   components: {
     securitySchemes: {
-      bearerAuth: {
-        type: 'http',
-        scheme: 'bearer',
+      workspaceApiKey: {
+        type: 'apiKey',
+        in: 'header',
+        name: 'X-API-Key',
         description: 'Workspace API key with the operation-required scope.',
       },
     },
@@ -566,6 +566,7 @@ export const openApiSpec = {
               'invalid_url',
               'unsupported_value',
               'unauthorized',
+              'forbidden',
               'forbidden_domain',
               'not_found',
               'method_not_allowed',

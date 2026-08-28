@@ -2,8 +2,6 @@ import { SITE_URL } from "@/lib/seo/metadata";
 
 export const BASE_URL = SITE_URL;
 
-export const MARKDOWN_PATH_HEADER = "x-markdown-path";
-
 export interface AgentPage {
   path: string;
   title: string;
@@ -16,7 +14,7 @@ export const AGENT_PAGES: AgentPage[] = [
     path: "/",
     title: "Screenshot Studio - Free Screenshot Editor & Mockup Maker",
     summary:
-      "The Screenshot Studio editor. Drop in a screenshot and add gradient backgrounds, browser mockups, shadows, 3D perspective, and animation, then export a PNG, JPEG, WebP, MP4, WebM, or GIF. Editing runs client side, so imported images are not uploaded to edit them; only export compression sends the finished image to the server, which returns it without storing it. No signup, no watermark, no paid tier.",
+      "The signed-in Screenshot Studio editor. Drop in a screenshot and add gradient backgrounds, browser mockups, shadows, 3D perspective, and animation, then export a PNG, JPEG, WebP, MP4, WebM, or GIF. Editing runs client side, so imported images are not uploaded merely to edit them; export compression sends the finished image to the server, which returns it without storing it. A free workspace plan is available, some capabilities require a higher plan, and editor exports have no watermark.",
     points: [
       "100+ gradient, mesh, and pattern backgrounds",
       "Safari, Chrome, and Arc browser mockups in light and dark",
@@ -36,7 +34,7 @@ export const AGENT_PAGES: AgentPage[] = [
     path: "/free-screenshot-editor",
     title: "Free Screenshot Editor Online - Screenshot Studio",
     summary:
-      "Free browser-based screenshot editor with no signup and no watermark. Covers the full editing workflow from upload to export.",
+      "Browser-based screenshot editor for signed-in workspaces, with a free plan and no export watermark. Covers the full editing workflow from upload to export.",
   },
   {
     path: "/features",
@@ -96,12 +94,13 @@ export const AGENT_PAGES: AgentPage[] = [
     path: "/docs",
     title: "Screenshot Studio API Documentation",
     summary:
-      "Public HTTP API reference: endpoints, request and response schemas, rate limits, and error codes. The machine-readable contract is published at /openapi.json.",
+      "HTTP API reference for anonymous editor utilities and authenticated /api/v1 tenant operations, including schemas, rate limits, and error codes. The machine-readable contract is published at /openapi.json.",
     points: [
       "POST /api/screenshot - capture a live URL as a base64 PNG",
       "POST /api/export - recompress an image as PNG, JPEG, or WebP",
       "GET /api/tweet/{id} - fetch tweet JSON for tweet-to-image rendering",
       "GET /api/image-proxy - same-origin proxy for Twitter media",
+      "GET and POST /api/v1/* - workspace operations requiring API-key scope or session permission",
       "OpenAPI 3.1 spec: /openapi.json",
     ],
   },
@@ -109,9 +108,10 @@ export const AGENT_PAGES: AgentPage[] = [
     path: "/docs/authentication",
     title: "Screenshot Studio API Authentication",
     summary:
-      "The public Screenshot Studio API needs no API key, token, or account. Requests are anonymous and shaped by per-IP rate limits instead of credentials.",
+      "Editor utility endpoints are anonymous and shaped by per-IP limits. Workspace-scoped /api/v1 operations require an X-API-Key organization key or an authorized signed-in session.",
     points: [
-      "No API key or Authorization header is required",
+      "No credential is required for the editor utility endpoints",
+      "Tenant /api/v1 operations enforce workspace permission, API-key scope, plan feature, and quota checks",
       "POST /api/screenshot is limited to 20 requests per minute per IP",
       "Rate-limited responses return HTTP 429 with Retry-After and X-RateLimit-* headers",
       "Only maintenance endpoints are credentialed, and they are not part of the public surface",
@@ -124,6 +124,7 @@ export const AGENT_PAGES: AgentPage[] = [
       "Developer entry point: API docs, OpenAPI spec, authentication and rate limits, quickstart requests, agent files, and the open-source repository.",
     points: [
       "API docs: /docs",
+      "Interactive API reference: /api-reference",
       "OpenAPI 3.1 spec: /openapi.json",
       "Authentication and rate limits: /docs/authentication",
       "Agent overview: /llms.txt and /llms-full.txt",
@@ -151,7 +152,7 @@ export const AGENT_PAGES: AgentPage[] = [
     path: "/privacy-policy",
     title: "Privacy Policy - Screenshot Studio",
     summary:
-      "How data is handled. Image editing is entirely client side and no image is uploaded to a server.",
+      "How account and workspace data, browser-local editing, server-assisted operations, analytics, ads, and cookies are handled.",
   },
   {
     path: "/terms",

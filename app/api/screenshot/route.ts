@@ -53,9 +53,9 @@ async function getRateLimitResponse(request: NextRequest): Promise<NextResponse 
     console.error('Rate limit check failed:', error)
     return apiError(
       503,
-      'internal_error',
+      'upstream_unavailable',
       'Rate limiting is unavailable. Please try again shortly.',
-      'Retry later. Requests fail closed while abuse controls are unavailable.'
+      'Retry later. Requests fail closed while rate limiting is unavailable.'
     )
   }
 }
@@ -185,6 +185,8 @@ function screenshotFailureResponse(error: unknown): NextResponse {
   )
 }
 
+// Keep fail-closed rate limiting ahead of request parsing, SSRF validation,
+// cache access, and capture so no unthrottled work can cross the public boundary.
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const rateLimitResponse = await getRateLimitResponse(request)
   if (rateLimitResponse) {

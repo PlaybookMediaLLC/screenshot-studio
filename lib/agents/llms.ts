@@ -2,7 +2,7 @@ import { BASE_URL } from "@/lib/agents/site-content";
 
 export const llmsTxt = `# Screenshot Studio
 
-> Free, open-source browser-based screenshot editor. Transform plain screenshots into professional graphics with backgrounds, browser mockups, 3D effects, animations, and video export. No signup, no watermarks.
+> Open-source browser-based screenshot editor and workspace platform. Transform plain screenshots into professional graphics with backgrounds, browser mockups, 3D effects, animations, and video export. A signed-in workspace is required; exports have no watermark.
 
 ## Overview
 
@@ -46,6 +46,7 @@ Screenshot Studio is a client-side image editor: imported images are not uploade
 
 - API Documentation: ${BASE_URL}/docs
 - Developer Portal: ${BASE_URL}/developers
+- Interactive API Reference: ${BASE_URL}/api-reference
 - OpenAPI Specification (OpenAPI 3.1, JSON): ${BASE_URL}/openapi.json
 - API Authentication and Rate Limits: ${BASE_URL}/docs/authentication
 - llms.txt: ${BASE_URL}/llms.txt
@@ -54,7 +55,7 @@ Screenshot Studio is a client-side image editor: imported images are not uploade
 - robots.txt: ${BASE_URL}/robots.txt
 - Source code: https://github.com/PlaybookMediaLLC/screenshot-studio
 
-The Screenshot Studio API is public and needs no API key, token, or account. Every error is JSON with a stable \`code\`, a \`message\`, and a \`hint\`. Any page also serves Markdown when the request sends \`Accept: text/markdown\`.
+The editor utility endpoints under paths such as \`/api/screenshot\` are anonymous and shaped by per-IP limits. Workspace-scoped \`/api/v1\` operations require an organization key in \`X-API-Key\` or an authorized signed-in session. Every error is JSON with a stable \`code\`, a \`message\`, and a \`hint\`. Any page also serves Markdown when the request sends \`Accept: text/markdown\`.
 
 No official CLI tool and no MCP server are published yet. Use the HTTP API described at ${BASE_URL}/docs.
 
@@ -70,7 +71,7 @@ Available in 8 languages: English (default), Spanish (/es), French (/fr), German
 
 ## Pricing
 
-100% free. No signup, no watermarks, no hidden costs, no premium tier. Unlimited exports with full feature access.
+A free workspace plan is available, and some workspace capabilities require a higher plan. A signed-in workspace is required. Editor exports have no watermark.
 
 ## Technology
 
@@ -102,7 +103,7 @@ For the complete, detailed version of this document, see: ${BASE_URL}/llms-full.
 
 export const llmsFullTxt = `# Screenshot Studio - Complete Reference
 
-> Free, open-source browser-based screenshot editor. Transform plain screenshots into professional graphics with backgrounds, browser mockups, 3D effects, animations, and video export. No signup, no watermarks.
+> Open-source browser-based screenshot editor and workspace platform. Transform plain screenshots into professional graphics with backgrounds, browser mockups, 3D effects, animations, and video export. A signed-in workspace is required; exports have no watermark.
 
 ## What is Screenshot Studio?
 
@@ -251,6 +252,7 @@ Locale detection: URL path > cookie > Accept-Language header > default (English)
 |----------|-----|--------|
 | API Documentation | ${BASE_URL}/docs | HTML |
 | Developer Portal | ${BASE_URL}/developers | HTML |
+| Interactive API Reference | ${BASE_URL}/api-reference | HTML |
 | OpenAPI Specification | ${BASE_URL}/openapi.json | OpenAPI 3.1 JSON |
 | API Authentication and Rate Limits | ${BASE_URL}/docs/authentication | HTML |
 | llms.txt | ${BASE_URL}/llms.txt | Markdown |
@@ -260,7 +262,7 @@ Locale detection: URL path > cookie > Accept-Language header > default (English)
 
 ### Authentication
 
-The public API needs no API key, token, or account. Requests are anonymous. Access is shaped by per-IP rate limits rather than credentials: \`POST /api/screenshot\` allows 20 requests per minute per IP and answers 429 with \`Retry-After\` and \`X-RateLimit-*\` headers.
+The editor utility endpoints need no API key, token, or account. Access is shaped by per-IP limits: \`POST /api/screenshot\` allows 20 requests per minute per IP and answers 429 with \`Retry-After\` and \`X-RateLimit-*\` headers. Workspace-scoped \`/api/v1\` operations require an organization key in \`X-API-Key\` or an authorized signed-in session, plus the declared permission, scope, feature, and quota checks.
 
 ### Endpoints
 
@@ -318,11 +320,11 @@ No official CLI tool and no MCP server are published yet. Agents should use the 
 
 ## Pricing
 
-100% free forever. No signup required, no watermarks, no premium tier, no hidden costs. Every feature is available to every user with unlimited exports.
+A free workspace plan is available, and some workspace capabilities require a higher plan. A signed-in workspace is required. Editor exports have no watermark.
 
 ## Privacy
 
-All image processing happens in the browser. No images are uploaded to any server. The only data collected is basic analytics (page views, feature usage) via privacy-respecting analytics. No cookies for advertising or tracking.
+Editing and preview rendering happen in the browser, and imported images are not uploaded merely to edit them. Account and workspace operations use server-side tenant data. Export compression, URL capture, tweet import, and remote-image import send the data needed for those operations to the server or named providers. Authentication uses session cookies, configured analytics may use identifiers, and public pages may load Google AdSense. See ${BASE_URL}/privacy-policy for details.
 
 ## Use Cases
 

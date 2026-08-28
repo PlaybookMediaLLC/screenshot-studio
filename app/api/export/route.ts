@@ -1,13 +1,9 @@
-/**
- * API route for server-side image compression with Sharp.
- * Accepts FormData with raw image bytes and returns optimized image bytes.
- */
 import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
-import { apiError, methodNotAllowed } from '@/lib/api/errors'
 import { isInvalidRequest } from '@/lib/api/request'
 import { exportRequestSchema, type ExportRequest } from '@/lib/api/schemas'
 import { QUALITY_PRESETS } from '@/lib/export/types'
+import { apiError, methodNotAllowed } from '@/lib/api/errors'
 
 type ExportResult = {
   buffer: Buffer
@@ -48,23 +44,29 @@ async function exportImage(input: ExportRequest): Promise<ExportResult> {
   return { buffer, mimeType: getMimeType(input.format) }
 }
 
-// Keep request parsing, authorization, throttling, and export orchestration in
-// one auditable boundary.
-// eslint-disable-next-line max-lines-per-function
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  let formData: FormData
-  try {
-    formData = await request.formData()
-  } catch {
-    return apiError(
-      400,
-      'invalid_request',
-      'Request body must be multipart/form-data',
-      'Send multipart/form-data with "image", "format", and "qualityPreset" parts.'
-    )
+function invalidContentTypeResponse(request: NextRequest): NextResponse | null {
+  const contentType = request.headers.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase()
+  if (
+    contentType === 'multipart/form-data' ||
+    contentType === 'application/x-www-form-urlencoded'
+  ) {
+    return null
   }
 
+  return apiError(
+    400,
+    'invalid_request',
+    'Invalid export request',
+    'Send multipart/form-data with image, format, and qualityPreset fields.'
+  )
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const contentTypeResponse = invalidContentTypeResponse(request)
+  if (contentTypeResponse) return contentTypeResponse
+
   try {
+    const formData = await request.formData()
     const input = exportRequestSchema.parse({
       format: formData.get('format'),
       image: formData.get('image'),
@@ -84,19 +86,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         400,
         'invalid_request',
         'Invalid export request',
-        'Include an image file, a format of png, jpeg, or webp, and a qualityPreset of high, medium, or low.'
+        'Send multipart/form-data with image, format, and qualityPreset fields.'
       )
     }
 
     return apiError(
       500,
       'internal_error',
-      'Failed to process image',
+      error instanceof Error ? error.message : 'Failed to process image',
       'Check that the uploaded file is a decodable PNG, JPEG, or WebP image, then retry.'
     )
   }
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET() {
   return methodNotAllowed(['POST'])
 }

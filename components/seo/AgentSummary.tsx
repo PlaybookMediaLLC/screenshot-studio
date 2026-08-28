@@ -16,6 +16,7 @@ const LINKS = [
   { href: "/docs", label: "API documentation" },
   { href: "/docs/authentication", label: "API authentication and rate limits" },
   { href: "/developers", label: "Developer portal" },
+  { href: "/api-reference", label: "Interactive API reference" },
   { href: "/openapi.json", label: "OpenAPI specification" },
   { href: "/llms.txt", label: "llms.txt" },
   { href: "/sitemap.xml", label: "Sitemap" },
@@ -36,8 +37,9 @@ export function AgentSummary() {
         runs on your device and imported images are not uploaded to edit them;
         only export compression sends the finished image to the server, which
         returns it without storing it.
-        There is no signup, no watermark, and no paid tier, which makes it a
-        free alternative to Pika Style, Shots.so, Screely, and CleanShot X.
+        A signed-in workspace is required. A free plan is available, while some
+        workspace capabilities require a higher plan. The editor does not add
+        watermarks to exports.
       </p>
       <h2>What you can do here</h2>
       <ul>

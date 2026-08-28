@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { apiError, methodNotAllowed } from '@/lib/api/errors'
 import { hasMaintenanceAccess } from '@/lib/api/maintenance-auth'
 import { isInvalidRequest, parseJson } from '@/lib/api/request'
 import { emptyRequestSchema } from '@/lib/api/schemas'
+import { apiError, methodNotAllowed } from '@/lib/api/errors'
 import { clearOldCache } from '@/lib/screenshot-cache'
 
 export const maxDuration = 60
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         401,
         'unauthorized',
         'Unauthorized',
-        'Send the server-only maintenance secret in the maintenance request header.'
+        'This maintenance endpoint requires authorized maintenance access.'
       )
     }
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         400,
         'invalid_request',
         'Invalid cleanup request',
-        'Send an empty JSON object as the request body.'
+        'Send an empty JSON object with authorized maintenance credentials.'
       )
     }
 
@@ -44,6 +44,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET() {
   return methodNotAllowed(['POST'])
 }

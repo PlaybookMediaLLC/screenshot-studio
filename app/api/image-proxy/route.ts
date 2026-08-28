@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { apiError } from '@/lib/api/errors'
 import { imageProxyRequestSchema } from '@/lib/api/schemas'
+import { apiError } from '@/lib/api/errors'
 
 const ALLOWED_DOMAINS = ['pbs.twimg.com', 'abs.twimg.com', 'ton.twitter.com', 'video.twimg.com']
 
@@ -17,7 +17,8 @@ function isAllowedUrl(url: URL): boolean {
   return ALLOWED_DOMAINS.includes(url.hostname)
 }
 
-// Keep SSRF validation and response streaming in one auditable boundary.
+// Keep the validation, upstream fetch, and response hardening together so the
+// proxy's SSRF boundary remains reviewable as one path.
 // eslint-disable-next-line max-lines-per-function
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const url = getUrl(request)
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       400,
       'invalid_request',
       'Missing or invalid url parameter',
-      `Append ?url= followed by an encoded absolute image URL on one of: ${ALLOWED_DOMAINS.join(', ')}.`
+      `Append an encoded absolute image URL hosted on: ${ALLOWED_DOMAINS.join(', ')}.`
     )
   }
   if (!isAllowedUrl(url)) {
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       500,
       'internal_error',
       'Failed to fetch image',
-      'Check that the url parameter points to a live image, then retry.'
+      'Check that the url parameter is a valid absolute URL, then retry.'
     )
   }
 }

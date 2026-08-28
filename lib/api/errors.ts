@@ -7,10 +7,13 @@ export type ApiErrorCode =
   | 'invalid_url'
   | 'unsupported_value'
   | 'unauthorized'
+  | 'forbidden'
   | 'forbidden_domain'
   | 'not_found'
   | 'method_not_allowed'
   | 'rate_limited'
+  | 'workspace_feature_not_entitled'
+  | 'workspace_quota_exceeded'
   | 'upstream_timeout'
   | 'upstream_unavailable'
   | 'upstream_failed'
@@ -41,6 +44,8 @@ export function apiErrorBody(
   }
 }
 
+// The positional arguments mirror the stable error envelope and optional HTTP
+// metadata at every route call site; an options object would obscure that order.
 // eslint-disable-next-line max-params
 export function apiError(
   status: number,

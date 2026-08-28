@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { apiError, methodNotAllowed } from '@/lib/api/errors'
 import { hasMaintenanceAccess } from '@/lib/api/maintenance-auth'
 import { isInvalidRequest, parseJson } from '@/lib/api/request'
 import { cacheInvalidationSchema } from '@/lib/api/schemas'
+import { apiError, methodNotAllowed } from '@/lib/api/errors'
 import { invalidateCache, invalidateCacheBatch } from '@/lib/screenshot-cache'
 
-// Keep maintenance authentication and cache invalidation in one auditable boundary.
+// Keep maintenance authentication and invalidation in one linear handler so a
+// future edit cannot accidentally move cache mutation ahead of authorization.
 // eslint-disable-next-line max-lines-per-function
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         401,
         'unauthorized',
         'Unauthorized',
-        'Send the server-only maintenance secret in the maintenance request header.'
+        'This maintenance endpoint requires authorized maintenance access.'
       )
     }
 
@@ -41,8 +42,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return apiError(
       400,
       'invalid_request',
-      'Invalid invalidation request',
-      'Send either one absolute http or https "url", or a non-empty "urls" array.'
+      'Invalid request',
+      'Provide either one absolute URL or a non-empty array of absolute URLs.'
     )
   } catch (error) {
     console.error('Error invalidating cache:', error)
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         400,
         'invalid_request',
         'Invalid invalidation request',
-        'Send either one absolute http or https "url", or a non-empty "urls" array, but not both.'
+        'Provide either one absolute http or https URL or a non-empty array of them.'
       )
     }
 
@@ -64,6 +65,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET() {
   return methodNotAllowed(['POST'])
 }

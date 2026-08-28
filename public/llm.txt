@@ -1,7 +1,7 @@
 # Screenshot Studio - Free Online Screenshot Editor
 
 ## About
-Screenshot Studio is a free, open-source, browser-based screenshot editor that transforms plain screenshots into professional-quality graphics. Editing runs in your browser: imported images are not uploaded to edit them, and export compression round-trips the finished image through the server without storing it. No signup, no watermarks, no downloads required.
+Screenshot Studio is an open-source, browser-based screenshot editor and workspace platform that transforms plain screenshots into professional-quality graphics. Editing runs in your browser: imported images are not uploaded merely to edit them, and export compression round-trips the finished image through the server without storing it. A signed-in workspace is required; editor exports have no watermark.
 
 ## Core Features
 - **100+ Backgrounds** — Gradients, mesh, radiant, paper textures, patterns, solid colors
@@ -44,14 +44,18 @@ Screenshot Studio is a free, open-source, browser-based screenshot editor that t
 ## Developer Resources
 - API documentation: https://www.screenshot-studio.com/docs
 - Developer portal: https://www.screenshot-studio.com/developers
+- Interactive API reference: https://www.screenshot-studio.com/api-reference
 - OpenAPI 3.1 specification: https://www.screenshot-studio.com/openapi.json
 - Authentication and rate limits: https://www.screenshot-studio.com/docs/authentication
 - Agent index: https://www.screenshot-studio.com/llms.txt
 - Full agent reference: https://www.screenshot-studio.com/llms-full.txt
 - Sitemap: https://www.screenshot-studio.com/sitemap.xml
 
-The public API needs no API key. Every page also serves Markdown to clients that
-send `Accept: text/markdown`. No official CLI tool and no MCP server are published yet.
+Editor utility endpoints such as `/api/screenshot` are anonymous and use per-IP
+limits. Workspace-scoped `/api/v1` operations require an organization key in
+`X-API-Key` or an authorized signed-in session. Every page also serves Markdown
+to clients that send `Accept: text/markdown`. No official CLI tool and no MCP
+server are published yet.
 
 ## Languages
 Available in 8 languages: English, Spanish (/es), French (/fr), German (/de), Japanese (/ja), Portuguese (/pt), Korean (/ko), Chinese (/zh).
@@ -78,7 +82,7 @@ Available in 8 languages: English, Spanish (/es), French (/fr), German (/de), Ja
 Developers, designers, marketers, indie hackers, content creators, and anyone who needs professional visuals without design skills.
 
 ## Pricing
-100% free. No signup, no watermarks, no hidden costs, no premium tier. Unlimited exports with full feature access.
+A free workspace plan is available, and some workspace capabilities require a higher plan. A signed-in workspace is required. Editor exports have no watermark.
 
 ## Contact
 - Website: https://www.screenshot-studio.com

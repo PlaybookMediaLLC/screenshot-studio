@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.3.2...v1.4.0) (2026-08-31)
+
+
+### Features
+
+* **publishing:** add Go backend and orchestrator ([de08504](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/de08504012b99fb1f415ccef6ca5d8852334a9ea))
+* **publishing:** add Go backend and Temporal orchestrator ([e0f1005](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/e0f10054087e86ffa9cb239505251dc767743355))
+* **publishing:** replace poller with Temporal workflows ([7bf8a54](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/7bf8a54e7c21b94e3ba02d6ce3ec18cd0d102aa2))
+
 ## [1.3.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.3.1...v1.3.2) (2026-08-27)
 
 

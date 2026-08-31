@@ -201,6 +201,39 @@ services:
       minio-init:
         condition: service_completed_successfully
 
+  publishing-backend:
+    profiles: ['publishing']
+    build:
+      context: ./services
+      dockerfile: backend/Dockerfile
+    env_file: .local/dev.env
+    environment:
+      PORT: '8080'
+      PUBLISHING_SERVICE_TOKEN: ${PUBLISHING_SERVICE_TOKEN:-local-publishing-service}
+    ports:
+      - '127.0.0.1:8080:8080'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  publishing-orchestrator:
+    profiles: ['publishing']
+    build:
+      context: ./services
+      dockerfile: orchestrator/Dockerfile
+    env_file: .local/dev.env
+    environment:
+      PORT: '8081'
+      POSTIZ_API_URL: ${POSTIZ_API_URL:-https://api.postiz.com/public/v1}
+      STORAGE_API_URL: http://storage:5000
+    ports:
+      - '127.0.0.1:8081:8081'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+
 volumes:
   app_next_cache:
   app_node_modules:

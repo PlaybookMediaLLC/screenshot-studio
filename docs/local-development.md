@@ -100,6 +100,25 @@ The stack contains:
 - MinIO as the local R2-compatible object store.
 - Supabase Storage, PgBouncer, and Imgproxy in front of MinIO.
 
+### Go publishing services
+
+The Postiz publishing backend and orchestrator are an optional Compose profile.
+They share the application's Postgres publishing tables through Ent. Start and
+verify them with:
+
+```sh
+make publishing-up
+curl --fail http://localhost:8080/healthz
+curl --fail http://localhost:8081/healthz
+make publishing-test
+```
+
+The backend is a server-to-server API and requires the local
+`PUBLISHING_SERVICE_TOKEN` for tenant operations. The orchestrator polls durable
+scheduled posts and can run beside the existing maintenance dispatcher because
+both use an atomic `SCHEDULED` to `PROCESSING` claim. Configure a Postiz key only
+when testing an actual publication.
+
 Supabase Storage is private. The server-only storage client creates object keys
 under `org/<organization-id>/<classification>/<asset-id>/<revision>/`. Local setup also generates
 Better Auth and audit secrets. Do not copy `.local/dev.env` to another

@@ -15,6 +15,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/config"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
 
 func main() {
@@ -31,10 +32,22 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
+	temporalClient, err := temporalpublishing.Dial(ctx, temporalpublishing.ConnectionConfig{
+		APIKey: cfg.APIKey, Address: cfg.Address, Namespace: cfg.Namespace, TLS: cfg.TLS,
+	})
+	if err != nil {
+		slog.Error("Temporal unavailable", "error", err)
+		os.Exit(1)
+	}
+	defer temporalClient.Close()
+	scheduler := temporalpublishing.NewScheduler(temporalClient, temporalpublishing.SchedulerConfig{
+		ActivityTaskQueue: cfg.ActivityTaskQueue, ActivityTimeout: cfg.ActivityTimeout,
+		MaxAttempts: cfg.MaxAttempts, RetryDelay: cfg.RetryDelay, WorkflowTaskQueue: cfg.WorkflowTaskQueue,
+	})
 
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
-		Handler:           httpapi.New(publishing.NewRepository(db.Client), cfg.ServiceToken),
+		Handler:           httpapi.New(publishing.NewRepository(db.Client), scheduler, cfg.ServiceToken),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      30 * time.Second,

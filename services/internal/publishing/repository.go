@@ -203,20 +203,20 @@ func (r *Repository) CancelScheduledPost(ctx context.Context, actor Actor, id st
 	return post.Unwrap(), nil
 }
 
-func (r *Repository) DuePostIDs(ctx context.Context, now time.Time, limit int) ([]string, error) {
-	return r.client.ScheduledPost.Query().Where(
-		scheduledpost.StatusEQ(scheduledpost.StatusSCHEDULED),
-		scheduledpost.ScheduledForLTE(now),
-	).Order(ent.Asc(scheduledpost.FieldScheduledFor)).Limit(limit).IDs(ctx)
-}
-
 func (r *Repository) Claim(ctx context.Context, id, runID string, now time.Time) (bool, error) {
 	count, err := r.client.ScheduledPost.Update().Where(
 		scheduledpost.ID(id),
 		scheduledpost.StatusEQ(scheduledpost.StatusSCHEDULED),
 		scheduledpost.ScheduledForLTE(now),
 	).SetStatus(scheduledpost.StatusPROCESSING).SetTriggerRunID(runID).Save(ctx)
-	return count == 1, err
+	if err != nil || count == 1 {
+		return count == 1, err
+	}
+	return r.client.ScheduledPost.Query().Where(
+		scheduledpost.ID(id),
+		scheduledpost.StatusEQ(scheduledpost.StatusPROCESSING),
+		scheduledpost.TriggerRunIDEQ(runID),
+	).Exist(ctx)
 }
 
 func (r *Repository) LoadPublishJob(ctx context.Context, id, runID string) (PublishJob, error) {
@@ -266,7 +266,7 @@ func (r *Repository) LoadPublishJob(ctx context.Context, id, runID string) (Publ
 	}, nil
 }
 
-func (r *Repository) StartAttempt(ctx context.Context, post *ent.ScheduledPost, runID string) (Attempt, error) {
+func (r *Repository) StartAttempt(ctx context.Context, post *ent.ScheduledPost, runID string, attemptNumber int) (Attempt, error) {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
 		return Attempt{}, err
@@ -283,15 +283,24 @@ func (r *Repository) StartAttempt(ctx context.Context, post *ent.ScheduledPost, 
 	if owned != 1 {
 		return Attempt{}, ErrInvalidState
 	}
-	count, err := tx.PublicationAttempt.Query().Where(publicationattempt.ScheduledPostID(post.ID)).Count(ctx)
-	if err != nil {
+	existing, err := tx.PublicationAttempt.Query().Where(
+		publicationattempt.ScheduledPostID(post.ID),
+		publicationattempt.AttemptNumber(attemptNumber),
+	).Only(ctx)
+	if err == nil {
+		if err := tx.Commit(); err != nil {
+			return Attempt{}, err
+		}
+		return Attempt{ID: existing.ID, Number: existing.AttemptNumber}, nil
+	}
+	if !ent.IsNotFound(err) {
 		return Attempt{}, err
 	}
 	attempt, err := tx.PublicationAttempt.Create().
 		SetID(cuid.New()).
 		SetOrganizationID(post.OrganizationID).
 		SetScheduledPostID(post.ID).
-		SetAttemptNumber(count + 1).
+		SetAttemptNumber(attemptNumber).
 		Save(ctx)
 	if err != nil {
 		return Attempt{}, err
@@ -300,6 +309,54 @@ func (r *Repository) StartAttempt(ctx context.Context, post *ent.ScheduledPost, 
 		return Attempt{}, err
 	}
 	return Attempt{ID: attempt.ID, Number: attempt.AttemptNumber}, nil
+}
+
+func (r *Repository) FailUnknown(ctx context.Context, postID, runID string, attemptNumber int) error {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	post, err := tx.ScheduledPost.Query().Where(scheduledpost.ID(postID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if post.Status == scheduledpost.StatusPUBLISHED || post.Status == scheduledpost.StatusFAILED || post.Status == scheduledpost.StatusCANCELLED {
+		return nil
+	}
+	updated, err := tx.ScheduledPost.Update().Where(
+		scheduledpost.ID(postID),
+		scheduledpost.StatusEQ(scheduledpost.StatusPROCESSING),
+		scheduledpost.TriggerRunIDEQ(runID),
+	).SetStatus(scheduledpost.StatusFAILED).Save(ctx)
+	if err != nil || updated != 1 {
+		if err == nil {
+			err = ErrInvalidState
+		}
+		return err
+	}
+	updatedAttempts, err := tx.PublicationAttempt.Update().Where(
+		publicationattempt.ScheduledPostID(postID),
+		publicationattempt.AttemptNumber(attemptNumber),
+		publicationattempt.CompletedAtIsNil(),
+	).SetCompletedAt(time.Now().UTC()).SetOutcome(publicationattempt.OutcomeFAILED).SetFailureCode("UNKNOWN_DELIVERY").Save(ctx)
+	if err != nil || updatedAttempts != 1 {
+		if err == nil {
+			err = ErrInvalidState
+		}
+		return err
+	}
+	if err := appendAudit(ctx, tx, auditInput{
+		Action: "post.publish_recovery_required", Actor: serviceActor(post), EntityID: post.ID,
+		EntityType: "scheduled_post", Organization: post.OrganizationID, Outcome: auditlog.OutcomeFAILED,
+		Metadata: map[string]any{"failureCode": "UNKNOWN_DELIVERY"},
+	}); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (r *Repository) Complete(ctx context.Context, post *ent.ScheduledPost, attempt Attempt, providerPostID, runID string) error {
@@ -396,74 +453,6 @@ func (r *Repository) CancelIneligible(ctx context.Context, post *ent.ScheduledPo
 		return err
 	}
 	return tx.Commit()
-}
-
-func (r *Repository) RecoverStale(ctx context.Context, staleBefore time.Time, limit int) (int, error) {
-	posts, err := r.client.ScheduledPost.Query().Where(
-		scheduledpost.StatusEQ(scheduledpost.StatusPROCESSING), scheduledpost.UpdatedAtLT(staleBefore),
-	).WithAttempts(func(q *ent.PublicationAttemptQuery) {
-		q.Where(publicationattempt.CompletedAtIsNil())
-	}).Limit(limit).All(ctx)
-	if err != nil {
-		return 0, err
-	}
-	recovered := 0
-	for _, post := range posts {
-		if len(post.Edges.Attempts) == 0 {
-			count, updateErr := r.client.ScheduledPost.Update().Where(
-				scheduledpost.ID(post.ID), scheduledpost.StatusEQ(scheduledpost.StatusPROCESSING), scheduledpost.UpdatedAtLT(staleBefore),
-			).SetStatus(scheduledpost.StatusSCHEDULED).ClearTriggerRunID().Save(ctx)
-			if updateErr != nil {
-				return recovered, updateErr
-			}
-			recovered += count
-			continue
-		}
-		failed, err := r.failStale(ctx, post, staleBefore)
-		if err != nil {
-			return recovered, err
-		}
-		if failed {
-			recovered++
-		}
-	}
-	return recovered, nil
-}
-
-func (r *Repository) failStale(ctx context.Context, post *ent.ScheduledPost, staleBefore time.Time) (bool, error) {
-	tx, err := r.client.Tx(ctx)
-	if err != nil {
-		return false, err
-	}
-	defer tx.Rollback()
-	updated, err := tx.ScheduledPost.Update().Where(
-		scheduledpost.ID(post.ID),
-		scheduledpost.StatusEQ(scheduledpost.StatusPROCESSING),
-		scheduledpost.UpdatedAtLT(staleBefore),
-	).SetStatus(scheduledpost.StatusFAILED).Save(ctx)
-	if err != nil {
-		return false, err
-	}
-	if updated == 0 {
-		return false, nil
-	}
-	if _, err := tx.PublicationAttempt.Update().Where(
-		publicationattempt.ScheduledPostID(post.ID),
-		publicationattempt.CompletedAtIsNil(),
-	).SetCompletedAt(time.Now().UTC()).SetOutcome(publicationattempt.OutcomeFAILED).SetFailureCode("UNKNOWN_DELIVERY").Save(ctx); err != nil {
-		return false, err
-	}
-	if err := appendAudit(ctx, tx, auditInput{
-		Action: "post.publish_recovery_required", Actor: serviceActor(post), EntityID: post.ID,
-		EntityType: "scheduled_post", Organization: post.OrganizationID, Outcome: auditlog.OutcomeFAILED,
-		Metadata: map[string]any{"failureCode": "UNKNOWN_DELIVERY"},
-	}); err != nil {
-		return false, err
-	}
-	if err := tx.Commit(); err != nil {
-		return false, err
-	}
-	return true, nil
 }
 
 func serviceActor(post *ent.ScheduledPost) Actor {

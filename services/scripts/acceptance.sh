@@ -7,18 +7,20 @@ DATABASE_URL=${PUBLISHING_ACCEPTANCE_DATABASE_URL:?PUBLISHING_ACCEPTANCE_DATABAS
 BACKEND_PORT=${PUBLISHING_ACCEPTANCE_BACKEND_PORT:-18080}
 ORCHESTRATOR_PORT=${PUBLISHING_ACCEPTANCE_ORCHESTRATOR_PORT:-18081}
 BOUNDARY_PORT=${PUBLISHING_ACCEPTANCE_BOUNDARY_PORT:-15679}
+TEMPORAL_PORT=${PUBLISHING_ACCEPTANCE_TEMPORAL_PORT:-17233}
+TEMPORAL_ADDRESS="127.0.0.1:$TEMPORAL_PORT"
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/publishing-acceptance.XXXXXX")
 
 cleanup() {
   set +e
-  for file in backend.pid orchestrator.pid boundary.pid; do
+  for file in backend.pid orchestrator.pid boundary.pid temporal.pid; do
     [[ -f "$WORK/$file" ]] && kill "$(cat "$WORK/$file")" 2>/dev/null
   done
   rm -rf "$WORK"
 }
 trap cleanup EXIT
 
-for command in curl go psql python3; do
+for command in curl go psql python3 temporal; do
   command -v "$command" >/dev/null || { echo "$command is required" >&2; exit 1; }
 done
 
@@ -87,35 +89,47 @@ PY
 BOUNDARY_PORT="$BOUNDARY_PORT" BOUNDARY_LOG="$WORK/boundary.log" python3 "$WORK/boundary.py" >"$WORK/boundary.out" 2>&1 & echo $! >"$WORK/boundary.pid"
 for _ in $(seq 1 50); do curl -fsS "http://127.0.0.1:$BOUNDARY_PORT/health" >/dev/null 2>&1 && break; sleep 0.1; done
 
+temporal server start-dev --headless --ip 127.0.0.1 --port "$TEMPORAL_PORT" --db-filename "$WORK/temporal.db" >"$WORK/temporal.log" 2>&1 & echo $! >"$WORK/temporal.pid"
+for _ in $(seq 1 100); do temporal operator cluster health --address "$TEMPORAL_ADDRESS" >/dev/null 2>&1 && break; sleep 0.1; done
+temporal operator cluster health --address "$TEMPORAL_ADDRESS" >/dev/null
+
 (cd "$SERVICES" && go build -o "$WORK/backend" ./backend/cmd/backend && go build -o "$WORK/orchestrator" ./orchestrator/cmd/orchestrator)
-DATABASE_URL="$DATABASE_URL" PORT="$BACKEND_PORT" PUBLISHING_SERVICE_TOKEN=acceptance-service "$WORK/backend" >"$WORK/backend.log" 2>&1 & echo $! >"$WORK/backend.pid"
+DATABASE_URL="$DATABASE_URL" PORT="$ORCHESTRATOR_PORT" TEMPORAL_ADDRESS="$TEMPORAL_ADDRESS" STORAGE_API_URL="http://127.0.0.1:$BOUNDARY_PORT" STORAGE_BUCKET=test-bucket STORAGE_SERVICE_KEY=storage-key POSTIZ_API_URL="http://127.0.0.1:$BOUNDARY_PORT/api/public/v1" POSTIZ_API_KEY=postiz-key POSTIZ_REQUEST_TIMEOUT=5s "$WORK/orchestrator" >"$WORK/orchestrator.log" 2>&1 & echo $! >"$WORK/orchestrator.pid"
+DATABASE_URL="$DATABASE_URL" PORT="$BACKEND_PORT" TEMPORAL_ADDRESS="$TEMPORAL_ADDRESS" PUBLISHING_SERVICE_TOKEN=acceptance-service PUBLISHING_ACTIVITY_TIMEOUT=5s PUBLISHING_RETRY_DELAY=100ms "$WORK/backend" >"$WORK/backend.log" 2>&1 & echo $! >"$WORK/backend.pid"
 for _ in $(seq 1 100); do curl -fsS "http://127.0.0.1:$BACKEND_PORT/readyz" >/dev/null 2>&1 && break; sleep 0.1; done
+curl -fsS "http://127.0.0.1:$BACKEND_PORT/readyz" >/dev/null
+for _ in $(seq 1 100); do curl -fsS "http://127.0.0.1:$ORCHESTRATOR_PORT/readyz" >/dev/null 2>&1 && break; sleep 0.1; done
+curl -fsS "http://127.0.0.1:$ORCHESTRATOR_PORT/readyz" >/dev/null
 
 [[ "$(curl -sS -o /dev/null -w '%{http_code}' -H 'X-Organization-ID: org_acceptance' "http://127.0.0.1:$BACKEND_PORT/v1/channel-connections")" == 401 ]]
 headers=(-H 'Authorization: Bearer acceptance-service' -H 'X-Organization-ID: org_acceptance' -H 'X-User-ID: user_acceptance' -H 'X-Request-ID: acceptance-request' -H 'Content-Type: application/json')
 json_field() { python3 -c 'import json,sys; value=json.load(open(sys.argv[1])); print(value[sys.argv[2]] if sys.argv[2] in value else value["scheduledPost"][sys.argv[2]])' "$1" "$2"; }
-future=$(python3 -c 'from datetime import datetime,timedelta,timezone; print((datetime.now(timezone.utc)+timedelta(minutes=1)).isoformat())')
+future=$(python3 -c 'from datetime import datetime,timedelta,timezone; print((datetime.now(timezone.utc)+timedelta(seconds=5)).isoformat())')
+cancel_future=$(python3 -c 'from datetime import datetime,timedelta,timezone; print((datetime.now(timezone.utc)+timedelta(minutes=5)).isoformat())')
 
 [[ "$(curl -sS -o "$WORK/connection.json" -w '%{http_code}' "${headers[@]}" -X POST "http://127.0.0.1:$BACKEND_PORT/v1/channel-connections" --data '{"externalAccountId":"postiz-acceptance","platform":"x","providerSettings":{"who_can_reply_post":"everyone"},"secretReference":"POSTIZ_API_KEY"}')" == 201 ]]
 connection_id=$(json_field "$WORK/connection.json" id)
 publish_payload=$(printf '{"caption":"Acceptance publish","channelConnectionId":"%s","idempotencyKey":"acceptance-publish","scheduledFor":"%s","variantId":"variant_acceptance"}' "$connection_id" "$future")
 [[ "$(curl -sS -o "$WORK/post.json" -w '%{http_code}' "${headers[@]}" -X POST "http://127.0.0.1:$BACKEND_PORT/v1/scheduled-posts" --data "$publish_payload")" == 201 ]]
 post_id=$(json_field "$WORK/post.json" id)
+temporal workflow describe --address "$TEMPORAL_ADDRESS" --workflow-id "post_$post_id" --output json >"$WORK/publish-workflow.json"
+python3 -c 'import json,sys; info=json.load(open(sys.argv[1]))["workflowExecutionInfo"]; assert info["execution"]["workflowId"] == sys.argv[2]; assert info["type"]["name"] == "PostWorkflowV1"; assert info["taskQueue"] == "main"' "$WORK/publish-workflow.json" "post_$post_id"
 [[ "$(curl -sS -o "$WORK/replay.json" -w '%{http_code}' "${headers[@]}" -X POST "http://127.0.0.1:$BACKEND_PORT/v1/scheduled-posts" --data "$publish_payload")" == 200 ]]
 [[ "$(json_field "$WORK/replay.json" id)" == "$post_id" ]]
 
-cancel_payload=$(printf '{"caption":"Acceptance cancel","channelConnectionId":"%s","idempotencyKey":"acceptance-cancel","scheduledFor":"%s","variantId":"variant_acceptance"}' "$connection_id" "$future")
+cancel_payload=$(printf '{"caption":"Acceptance cancel","channelConnectionId":"%s","idempotencyKey":"acceptance-cancel","scheduledFor":"%s","variantId":"variant_acceptance"}' "$connection_id" "$cancel_future")
 [[ "$(curl -sS -o "$WORK/cancel-create.json" -w '%{http_code}' "${headers[@]}" -X POST "http://127.0.0.1:$BACKEND_PORT/v1/scheduled-posts" --data "$cancel_payload")" == 201 ]]
 cancel_id=$(json_field "$WORK/cancel-create.json" id)
 [[ "$(curl -sS -o "$WORK/cancel.json" -w '%{http_code}' "${headers[@]}" -X POST "http://127.0.0.1:$BACKEND_PORT/v1/scheduled-posts/$cancel_id/cancel")" == 200 ]]
 [[ "$(json_field "$WORK/cancel.json" status)" == CANCELLED ]]
 
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -c "UPDATE scheduled_post SET \"scheduledFor\"=now()-interval '1 second' WHERE id='$post_id'"
-DATABASE_URL="$DATABASE_URL" PORT="$ORCHESTRATOR_PORT" STORAGE_API_URL="http://127.0.0.1:$BOUNDARY_PORT" STORAGE_BUCKET=test-bucket STORAGE_SERVICE_KEY=storage-key POSTIZ_API_URL="http://127.0.0.1:$BOUNDARY_PORT/api/public/v1" POSTIZ_API_KEY=postiz-key PUBLISHING_POLL_INTERVAL=100ms PUBLISHING_RETRY_DELAY=100ms PUBLISHING_STALE_AFTER=1m POSTIZ_REQUEST_TIMEOUT=5s "$WORK/orchestrator" >"$WORK/orchestrator.log" 2>&1 & echo $! >"$WORK/orchestrator.pid"
-for _ in $(seq 1 100); do curl -fsS "http://127.0.0.1:$ORCHESTRATOR_PORT/readyz" >/dev/null 2>&1 && break; sleep 0.1; done
 status=''
 for _ in $(seq 1 150); do status=$(psql "$DATABASE_URL" -Atqc "SELECT status::text FROM scheduled_post WHERE id='$post_id'"); [[ "$status" == PUBLISHED ]] && break; sleep 0.1; done
 [[ "$status" == PUBLISHED ]]
+for _ in $(seq 1 100); do workflow_status=$(temporal workflow describe --address "$TEMPORAL_ADDRESS" --workflow-id "post_$post_id" --output json | python3 -c 'import json,sys; print(json.load(sys.stdin)["workflowExecutionInfo"]["status"])'); [[ "$workflow_status" == WORKFLOW_EXECUTION_STATUS_COMPLETED ]] && break; sleep 0.1; done
+[[ "$workflow_status" == WORKFLOW_EXECUTION_STATUS_COMPLETED ]]
+for _ in $(seq 1 100); do cancel_workflow_status=$(temporal workflow describe --address "$TEMPORAL_ADDRESS" --workflow-id "post_$cancel_id" --output json | python3 -c 'import json,sys; print(json.load(sys.stdin)["workflowExecutionInfo"]["status"])'); [[ "$cancel_workflow_status" == WORKFLOW_EXECUTION_STATUS_COMPLETED ]] && break; sleep 0.1; done
+[[ "$cancel_workflow_status" == WORKFLOW_EXECUTION_STATUS_COMPLETED ]]
 
 attempt=$(psql "$DATABASE_URL" -AtF '|' -c "SELECT \"attemptNumber\", outcome::text, \"providerPostId\", COALESCE(\"failureCode\", '') FROM publication_attempt WHERE \"scheduledPostId\"='$post_id'")
 [[ "$attempt" == '1|SUCCEEDED|post-acceptance|' ]]
@@ -123,4 +137,4 @@ actions=$(psql "$DATABASE_URL" -Atc "SELECT action FROM audit_log WHERE \"organi
 for expected in post.connection_created post.scheduled post.cancelled post.published; do grep -qx "$expected" <<<"$actions"; done
 [[ "$(wc -l <"$WORK/boundary.log" | tr -d ' ')" == 3 ]]
 
-echo "publishing acceptance passed: auth, Ent/Prisma schema, idempotency, cancellation, storage, Postiz, publication receipt, and audit state"
+echo "publishing acceptance passed: auth, Ent/Prisma schema, one-post/one-Temporal-workflow, durable timer, idempotency, cancellation signal, storage, Postiz, publication receipt, and audit state"

@@ -11,16 +11,19 @@ The split follows the useful boundary in Postiz's `apps/backend` and
 - **backend** is the control plane. It exposes tenant-scoped APIs for Postiz
   channel connections and scheduled posts, validates approved creative variants,
   preserves idempotency, and writes audit records.
-- **orchestrator** is the execution plane. It polls the durable `scheduled_post`
-  queue, atomically claims work, re-checks workspace and approval eligibility,
+- **orchestrator** is the Temporal execution plane. It runs the versioned post
+  workflow and Postiz activities, re-checks workspace and approval eligibility,
   reads the tenant asset, calls Postiz, and records publication attempts.
 - **Ent** is the shared Go data model. The schemas map to the existing Prisma
   table and column names so the Next.js application and both Go services operate
   on the same durable state machine.
 
-The orchestrator deliberately retries only HTTP 429 responses. A timeout or an
-invalid receipt after the final Postiz mutation is `UNKNOWN_DELIVERY` and is not
-retried automatically because the provider may already have published the post.
+Each scheduled post maps to one Temporal workflow: workflow ID `post_<post-id>`,
+workflow type `PostWorkflowV1`, workflow task queue `main`, and Postiz activity
+task queue `postiz`. The workflow owns the scheduled timer, `cancel` signal, and
+rate-limit retry timer. The outbound Postiz activity has one Temporal attempt.
+A timeout or invalid receipt is `UNKNOWN_DELIVERY` because retrying could create
+a duplicate social post.
 
 ## Database ownership
 
@@ -44,7 +47,7 @@ The backend listens on `:8080` by default:
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/healthz` | Process health |
-| `GET` | `/readyz` | Database readiness |
+| `GET` | `/readyz` | Database and Temporal readiness |
 | `GET` / `POST` | `/v1/channel-connections` | List or create Postiz destinations |
 | `GET` / `POST` | `/v1/scheduled-posts` | List or create scheduled posts |
 | `POST` | `/v1/scheduled-posts/{id}/cancel` | Cancel an unpublished post |
@@ -57,7 +60,9 @@ The orchestrator listens on `:8081` only for `/healthz` and `/readyz`.
 
 ## Configuration
 
-Both services require `DATABASE_URL`. The backend also requires
+Both services require `DATABASE_URL` and connect to Temporal with
+`TEMPORAL_ADDRESS` (default `127.0.0.1:7233`), `TEMPORAL_NAMESPACE` (default
+`default`), `TEMPORAL_API_KEY`, and `TEMPORAL_TLS`. The backend also requires
 `PUBLISHING_SERVICE_TOKEN` and refuses to start or authenticate without it. The
 orchestrator also requires:
 
@@ -66,10 +71,11 @@ orchestrator also requires:
 - each allow-listed credential reference stored by a connection, for example
   `POSTIZ_API_KEY` or `POSTIZ_OAUTH_TOKEN_CUSTOMER_A`
 
-Optional worker controls are `PUBLISHING_BATCH_SIZE`,
-`PUBLISHING_POLL_INTERVAL`, `PUBLISHING_STALE_AFTER`,
-`PUBLISHING_RETRY_DELAY`, `PUBLISHING_MAX_ATTEMPTS`, and
-`POSTIZ_REQUEST_TIMEOUT`.
+Optional workflow controls are `TEMPORAL_TASK_QUEUE`,
+`TEMPORAL_POSTIZ_TASK_QUEUE`,
+`TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_EXECUTORS`,
+`PUBLISHING_ACTIVITY_TIMEOUT`, `PUBLISHING_RETRY_DELAY`,
+`PUBLISHING_MAX_ATTEMPTS`, and `POSTIZ_REQUEST_TIMEOUT`.
 
 ## Development
 
@@ -79,10 +85,11 @@ make check
 make build
 ```
 
-`make acceptance` additionally runs both compiled services against an empty
+`make acceptance` additionally runs Temporal and both compiled services against an empty
 PostgreSQL database created from the repository's real Prisma migration SQL. It
-checks the authenticated HTTP API, Ent compatibility, idempotency, cancellation,
-the storage and Postiz HTTP boundaries, publication receipts, and audit state.
+checks the one-post/one-workflow mapping, durable timer, cancellation signal,
+authenticated HTTP API, Ent compatibility, idempotency, storage and Postiz HTTP
+boundaries, publication receipts, and audit state. The Temporal CLI is required.
 Set `PUBLISHING_ACCEPTANCE_DATABASE_URL` to a disposable empty database whose
 name contains `acceptance` or `test`; the script refuses any other database.
 

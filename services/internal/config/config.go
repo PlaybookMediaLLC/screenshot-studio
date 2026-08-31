@@ -12,23 +12,33 @@ type Common struct {
 	Port        int
 }
 
+type Temporal struct {
+	APIKey            string
+	ActivityTaskQueue string
+	Address           string
+	Namespace         string
+	TLS               bool
+	WorkflowTaskQueue string
+}
+
 type Backend struct {
 	Common
-	ServiceToken string
+	Temporal
+	ActivityTimeout time.Duration
+	MaxAttempts     int
+	RetryDelay      time.Duration
+	ServiceToken    string
 }
 
 type Orchestrator struct {
 	Common
-	BatchSize       int
-	MaxAttempts     int
-	PollInterval    time.Duration
-	PostizAPIURL    string
-	ProviderTimeout time.Duration
-	RetryDelay      time.Duration
-	StaleAfter      time.Duration
-	StorageAPIURL   string
-	StorageBucket   string
-	StorageKey      string
+	Temporal
+	ActivityConcurrency int
+	PostizAPIURL        string
+	ProviderTimeout     time.Duration
+	StorageAPIURL       string
+	StorageBucket       string
+	StorageKey          string
 }
 
 func LoadBackend() (Backend, error) {
@@ -36,9 +46,25 @@ func LoadBackend() (Backend, error) {
 	if err != nil {
 		return Backend{}, err
 	}
-	cfg := Backend{Common: common, ServiceToken: os.Getenv("PUBLISHING_SERVICE_TOKEN")}
+	temporal, err := loadTemporal()
+	if err != nil {
+		return Backend{}, err
+	}
+	cfg := Backend{
+		Common: common, Temporal: temporal,
+		ActivityTimeout: envDuration("PUBLISHING_ACTIVITY_TIMEOUT", 30*time.Second),
+		MaxAttempts:     envInt("PUBLISHING_MAX_ATTEMPTS", 3),
+		RetryDelay:      envDuration("PUBLISHING_RETRY_DELAY", 2*time.Minute),
+		ServiceToken:    os.Getenv("PUBLISHING_SERVICE_TOKEN"),
+	}
 	if cfg.ServiceToken == "" {
 		return Backend{}, fmt.Errorf("PUBLISHING_SERVICE_TOKEN is required")
+	}
+	if cfg.MaxAttempts < 1 || cfg.MaxAttempts > 10 {
+		return Backend{}, fmt.Errorf("PUBLISHING_MAX_ATTEMPTS must be between 1 and 10")
+	}
+	if cfg.ActivityTimeout <= 0 || cfg.RetryDelay <= 0 {
+		return Backend{}, fmt.Errorf("publishing activity timeout and retry delay must be positive")
 	}
 	return cfg, nil
 }
@@ -48,32 +74,46 @@ func LoadOrchestrator() (Orchestrator, error) {
 	if err != nil {
 		return Orchestrator{}, err
 	}
+	temporal, err := loadTemporal()
+	if err != nil {
+		return Orchestrator{}, err
+	}
 	cfg := Orchestrator{
-		Common:          common,
-		BatchSize:       envInt("PUBLISHING_BATCH_SIZE", 100),
-		MaxAttempts:     envInt("PUBLISHING_MAX_ATTEMPTS", 3),
-		PollInterval:    envDuration("PUBLISHING_POLL_INTERVAL", 5*time.Second),
-		PostizAPIURL:    envString("POSTIZ_API_URL", "https://api.postiz.com/public/v1"),
-		ProviderTimeout: envDuration("POSTIZ_REQUEST_TIMEOUT", 15*time.Second),
-		RetryDelay:      envDuration("PUBLISHING_RETRY_DELAY", 2*time.Minute),
-		StaleAfter:      envDuration("PUBLISHING_STALE_AFTER", 10*time.Minute),
-		StorageAPIURL:   os.Getenv("STORAGE_API_URL"),
-		StorageBucket:   os.Getenv("STORAGE_BUCKET"),
-		StorageKey:      os.Getenv("STORAGE_SERVICE_KEY"),
+		Common: common, Temporal: temporal,
+		ActivityConcurrency: envInt("TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_EXECUTORS", 10),
+		PostizAPIURL:        envString("POSTIZ_API_URL", "https://api.postiz.com/public/v1"),
+		ProviderTimeout:     envDuration("POSTIZ_REQUEST_TIMEOUT", 15*time.Second),
+		StorageAPIURL:       os.Getenv("STORAGE_API_URL"), StorageBucket: os.Getenv("STORAGE_BUCKET"), StorageKey: os.Getenv("STORAGE_SERVICE_KEY"),
 	}
-	if cfg.BatchSize < 1 || cfg.BatchSize > 1000 {
-		return Orchestrator{}, fmt.Errorf("PUBLISHING_BATCH_SIZE must be between 1 and 1000")
+	if cfg.ActivityConcurrency < 1 || cfg.ActivityConcurrency > 1000 {
+		return Orchestrator{}, fmt.Errorf("TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_EXECUTORS must be between 1 and 1000")
 	}
-	if cfg.MaxAttempts < 1 || cfg.MaxAttempts > 10 {
-		return Orchestrator{}, fmt.Errorf("PUBLISHING_MAX_ATTEMPTS must be between 1 and 10")
-	}
-	if cfg.PollInterval <= 0 || cfg.ProviderTimeout <= 0 || cfg.RetryDelay <= 0 || cfg.StaleAfter <= 0 {
-		return Orchestrator{}, fmt.Errorf("publishing poll, timeout, retry, and stale durations must be positive")
+	if cfg.ProviderTimeout <= 0 {
+		return Orchestrator{}, fmt.Errorf("POSTIZ_REQUEST_TIMEOUT must be positive")
 	}
 	if cfg.StorageAPIURL == "" || cfg.StorageBucket == "" || cfg.StorageKey == "" {
 		return Orchestrator{}, fmt.Errorf("STORAGE_API_URL, STORAGE_BUCKET, and STORAGE_SERVICE_KEY are required")
 	}
 	return cfg, nil
+}
+
+func loadTemporal() (Temporal, error) {
+	tlsEnabled := false
+	if raw := os.Getenv("TEMPORAL_TLS"); raw != "" {
+		parsed, err := strconv.ParseBool(raw)
+		if err != nil {
+			return Temporal{}, fmt.Errorf("TEMPORAL_TLS must be true or false")
+		}
+		tlsEnabled = parsed
+	}
+	return Temporal{
+		APIKey:            os.Getenv("TEMPORAL_API_KEY"),
+		ActivityTaskQueue: envString("TEMPORAL_POSTIZ_TASK_QUEUE", "postiz"),
+		Address:           envString("TEMPORAL_ADDRESS", "127.0.0.1:7233"),
+		Namespace:         envString("TEMPORAL_NAMESPACE", "default"),
+		TLS:               tlsEnabled,
+		WorkflowTaskQueue: envString("TEMPORAL_TASK_QUEUE", "main"),
+	}, nil
 }
 
 func loadCommon(defaultPort int) (Common, error) {

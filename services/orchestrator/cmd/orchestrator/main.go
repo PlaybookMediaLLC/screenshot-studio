@@ -17,7 +17,11 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/storage"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/orchestrator/internal/worker"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
+	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/worker"
+	"go.temporal.io/sdk/workflow"
 )
 
 func main() {
@@ -34,16 +38,32 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
+	temporalClient, err := temporalpublishing.Dial(ctx, temporalpublishing.ConnectionConfig{
+		APIKey: cfg.APIKey, Address: cfg.Address, Namespace: cfg.Namespace, TLS: cfg.TLS,
+	})
+	if err != nil {
+		slog.Error("Temporal unavailable", "error", err)
+		os.Exit(1)
+	}
+	defer temporalClient.Close()
 	repository := publishing.NewRepository(db.Client)
 	httpClient := &http.Client{Timeout: cfg.ProviderTimeout}
 	assetReader := storage.New(cfg.StorageAPIURL, cfg.StorageBucket, cfg.StorageKey, httpClient)
 	provider := postiz.New(cfg.PostizAPIURL, httpClient, assetReader)
-	publisher := worker.New(repository, provider, worker.Config{
-		BatchSize: cfg.BatchSize, MaxAttempts: cfg.MaxAttempts, PollInterval: cfg.PollInterval,
-		RetryDelay: cfg.RetryDelay, StaleAfter: cfg.StaleAfter,
+	activities := temporalpublishing.NewActivities(repository, provider)
+	workflowWorker := worker.New(temporalClient, cfg.WorkflowTaskQueue, worker.Options{
+		OnFatalError: func(err error) { slog.Error("Temporal workflow worker failed", "error", err); stop() },
 	})
+	workflowWorker.RegisterWorkflowWithOptions(temporalpublishing.PostWorkflowV1, workflow.RegisterOptions{Name: temporalpublishing.WorkflowNameV1})
+	activityWorker := worker.New(temporalClient, cfg.ActivityTaskQueue, worker.Options{
+		DisableWorkflowWorker: true, MaxConcurrentActivityExecutionSize: cfg.ActivityConcurrency,
+		OnFatalError: func(err error) { slog.Error("Temporal activity worker failed", "error", err); stop() },
+	})
+	activityWorker.RegisterActivityWithOptions(activities.Prepare, activity.RegisterOptions{Name: temporalpublishing.PrepareActivityName})
+	activityWorker.RegisterActivityWithOptions(activities.Publish, activity.RegisterOptions{Name: temporalpublishing.PublishActivityName})
+	activityWorker.RegisterActivityWithOptions(activities.MarkUnknown, activity.RegisterOptions{Name: temporalpublishing.MarkUnknownActivityName})
 
-	health := healthHandler(repository)
+	health := healthHandler(repository, temporalClient)
 	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: health, ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		slog.Info("publishing orchestrator health server listening", "port", cfg.Port)
@@ -58,15 +78,26 @@ func main() {
 		defer cancel()
 		_ = server.Shutdown(shutdownCtx)
 	}()
-	if err := publisher.Run(ctx); err != nil {
-		slog.Error("orchestrator stopped", "error", err)
+	if err := activityWorker.Start(); err != nil {
+		slog.Error("Temporal activity worker did not start", "error", err)
 		os.Exit(1)
 	}
+	if err := workflowWorker.Start(); err != nil {
+		activityWorker.Stop()
+		slog.Error("Temporal workflow worker did not start", "error", err)
+		os.Exit(1)
+	}
+	<-ctx.Done()
+	workflowWorker.Stop()
+	activityWorker.Stop()
 }
 
 type healthStore interface{ Ping(context.Context) error }
+type temporalHealth interface {
+	CheckHealth(context.Context, *client.CheckHealthRequest) (*client.CheckHealthResponse, error)
+}
 
-func healthHandler(store healthStore) http.Handler {
+func healthHandler(store healthStore, temporal temporalHealth) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "service": "publishing-orchestrator"})
@@ -76,6 +107,10 @@ func healthHandler(store healthStore) http.Handler {
 		defer cancel()
 		if err := store.Ping(ctx); err != nil {
 			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "database is unavailable"})
+			return
+		}
+		if _, err := temporal.CheckHealth(ctx, nil); err != nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Temporal is unavailable"})
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ready"})

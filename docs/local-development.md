@@ -122,16 +122,18 @@ PUBLISHING_ACCEPTANCE_DATABASE_URL='postgresql://localhost/publishing_acceptance
   make publishing-acceptance
 ```
 
-The acceptance run applies the real Prisma migration SQL, starts both compiled
-Go services, and verifies their HTTP, Ent, storage, Postiz, and audit boundaries.
-It uses a local Postiz protocol endpoint, so it never publishes to a real social
-account.
+The acceptance run applies the real Prisma migration SQL, starts a local
+Temporal development server and both compiled Go services, and verifies their
+workflow, HTTP, Ent, storage, Postiz, and audit boundaries. Install the Temporal
+CLI before running it. The local Postiz protocol endpoint never publishes to a
+real social account.
 
 The backend is a server-to-server API and requires the local
-`PUBLISHING_SERVICE_TOKEN` for tenant operations. The orchestrator polls durable
-scheduled posts and can run beside the existing maintenance dispatcher because
-both use an atomic `SCHEDULED` to `PROCESSING` claim. Configure a Postiz key only
-when testing an actual publication.
+`PUBLISHING_SERVICE_TOKEN` for tenant operations. Each scheduled post starts one
+Temporal workflow named `post_<post-id>`; the workflow owns the durable timer,
+cancel signal, and rate-limit retry. Configure a Postiz key only when testing an
+actual publication. The Compose profile exposes Temporal gRPC on port 7233 and
+its local UI on http://localhost:8233.
 
 Supabase Storage is private. The server-only storage client creates object keys
 under `org/<organization-id>/<classification>/<asset-id>/<revision>/`. Local setup also generates

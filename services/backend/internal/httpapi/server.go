@@ -15,6 +15,7 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
 
 type Store interface {
@@ -26,13 +27,20 @@ type Store interface {
 	CancelScheduledPost(context.Context, publishing.Actor, string) (*ent.ScheduledPost, error)
 }
 
-type Server struct {
-	store        Store
-	serviceToken string
+type WorkflowScheduler interface {
+	Cancel(context.Context, string) error
+	Ping(context.Context) error
+	Start(context.Context, temporalpublishing.ScheduleInput) error
 }
 
-func New(store Store, serviceToken string) http.Handler {
-	s := &Server{store: store, serviceToken: serviceToken}
+type Server struct {
+	scheduler    WorkflowScheduler
+	serviceToken string
+	store        Store
+}
+
+func New(store Store, scheduler WorkflowScheduler, serviceToken string) http.Handler {
+	s := &Server{store: store, scheduler: scheduler, serviceToken: serviceToken}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.health)
 	mux.HandleFunc("GET /readyz", s.ready)
@@ -53,6 +61,10 @@ func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	if err := s.store.Ping(ctx); err != nil {
 		writeError(w, http.StatusServiceUnavailable, "database is unavailable")
+		return
+	}
+	if err := s.scheduler.Ping(ctx); err != nil {
+		writeError(w, http.StatusServiceUnavailable, "Temporal is unavailable")
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ready"})
@@ -179,6 +191,14 @@ func (s *Server) createScheduledPost(w http.ResponseWriter, r *http.Request) {
 		writeStoreError(w, err)
 		return
 	}
+	if err := s.scheduler.Start(r.Context(), temporalpublishing.ScheduleInput{
+		OrganizationID: result.Post.OrganizationID,
+		PostID:         result.Post.ID,
+		ScheduledFor:   result.Post.ScheduledFor,
+	}); err != nil {
+		writeError(w, http.StatusServiceUnavailable, "could not start publishing workflow")
+		return
+	}
 	status := http.StatusOK
 	if result.Created {
 		status = http.StatusCreated
@@ -218,6 +238,10 @@ func (s *Server) cancelScheduledPost(w http.ResponseWriter, r *http.Request) {
 	post, err := s.store.CancelScheduledPost(r.Context(), actor, r.PathValue("id"))
 	if err != nil {
 		writeStoreError(w, err)
+		return
+	}
+	if err := s.scheduler.Cancel(r.Context(), post.ID); err != nil {
+		writeError(w, http.StatusServiceUnavailable, "could not cancel publishing workflow")
 		return
 	}
 	writeJSON(w, http.StatusOK, scheduledPostResponse(post))

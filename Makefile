@@ -88,7 +88,7 @@ publishing-up:
 	@docker compose --env-file .local/dev.env --file compose.yaml --profile publishing up --detach --build publishing-backend publishing-orchestrator
 
 publishing-down:
-	@docker compose --env-file .local/dev.env --file compose.yaml stop publishing-backend publishing-orchestrator
+	@docker compose --env-file .local/dev.env --file compose.yaml stop publishing-backend publishing-orchestrator temporal
 
 publishing-test:
 	@$(MAKE) --directory services check

@@ -13,7 +13,7 @@ test:
 	go test ./...
 
 race:
-	go test -race ./backend/internal/httpapi ./internal/postiz ./internal/publishing ./internal/storage ./orchestrator/internal/worker
+	go test -race ./backend/internal/httpapi ./internal/postiz ./internal/publishing ./internal/storage ./internal/temporalpublishing
 
 vet:
 	go vet ./...

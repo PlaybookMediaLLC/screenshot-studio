@@ -10,11 +10,27 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
 
 type fakeStore struct {
 	connection publishing.CreateConnectionInput
 	scheduled  publishing.CreateScheduledPostInput
+}
+
+type fakeScheduler struct {
+	cancelled string
+	started   temporalpublishing.ScheduleInput
+}
+
+func (f *fakeScheduler) Ping(context.Context) error { return nil }
+func (f *fakeScheduler) Start(_ context.Context, input temporalpublishing.ScheduleInput) error {
+	f.started = input
+	return nil
+}
+func (f *fakeScheduler) Cancel(_ context.Context, postID string) error {
+	f.cancelled = postID
+	return nil
 }
 
 func (f *fakeStore) Ping(context.Context) error { return nil }
@@ -25,9 +41,9 @@ func (f *fakeStore) CreateConnection(_ context.Context, _ publishing.Actor, inpu
 func (f *fakeStore) ListConnections(context.Context, string) ([]*ent.ChannelConnection, error) {
 	return nil, nil
 }
-func (f *fakeStore) CreateScheduledPost(_ context.Context, _ publishing.Actor, input publishing.CreateScheduledPostInput) (publishing.CreateScheduledPostResult, error) {
+func (f *fakeStore) CreateScheduledPost(_ context.Context, actor publishing.Actor, input publishing.CreateScheduledPostInput) (publishing.CreateScheduledPostResult, error) {
 	f.scheduled = input
-	return publishing.CreateScheduledPostResult{Created: true, Post: &ent.ScheduledPost{ID: "post-1", Caption: input.Caption, ScheduledFor: input.ScheduledFor}}, nil
+	return publishing.CreateScheduledPostResult{Created: true, Post: &ent.ScheduledPost{ID: "post-1", OrganizationID: actor.Organization, Caption: input.Caption, ScheduledFor: input.ScheduledFor}}, nil
 }
 func (f *fakeStore) ListScheduledPosts(context.Context, string, int) ([]*ent.ScheduledPost, error) {
 	return nil, nil
@@ -37,7 +53,7 @@ func (f *fakeStore) CancelScheduledPost(context.Context, publishing.Actor, strin
 }
 
 func TestServiceAuthentication(t *testing.T) {
-	handler := New(&fakeStore{}, "secret")
+	handler := New(&fakeStore{}, &fakeScheduler{}, "secret")
 	request := httptest.NewRequest(http.MethodGet, "/v1/channel-connections", nil)
 	request.Header.Set("X-Organization-ID", "org-1")
 	response := httptest.NewRecorder()
@@ -48,7 +64,7 @@ func TestServiceAuthentication(t *testing.T) {
 }
 
 func TestServiceAuthenticationFailsClosedWithoutConfiguredToken(t *testing.T) {
-	handler := New(&fakeStore{}, "")
+	handler := New(&fakeStore{}, &fakeScheduler{}, "")
 	request := httptest.NewRequest(http.MethodGet, "/v1/channel-connections", nil)
 	request.Header.Set("X-Organization-ID", "org-1")
 	response := httptest.NewRecorder()
@@ -60,7 +76,8 @@ func TestServiceAuthenticationFailsClosedWithoutConfiguredToken(t *testing.T) {
 
 func TestCreateScheduledPost(t *testing.T) {
 	store := &fakeStore{}
-	handler := New(store, "secret")
+	scheduler := &fakeScheduler{}
+	handler := New(store, scheduler, "secret")
 	body := `{"caption":"hello","channelConnectionId":"connection-1","idempotencyKey":"request-1","scheduledFor":"2026-08-31T12:00:00Z","variantId":"variant-1"}`
 	request := httptest.NewRequest(http.MethodPost, "/v1/scheduled-posts", strings.NewReader(body))
 	request.Header.Set("Authorization", "Bearer secret")
@@ -74,11 +91,14 @@ func TestCreateScheduledPost(t *testing.T) {
 	if store.scheduled.Caption != "hello" || !store.scheduled.ScheduledFor.Equal(time.Date(2026, 8, 31, 12, 0, 0, 0, time.UTC)) {
 		t.Fatalf("unexpected scheduled input: %#v", store.scheduled)
 	}
+	if scheduler.started.PostID != "post-1" || scheduler.started.OrganizationID != "org-1" {
+		t.Fatalf("workflow was not started for the scheduled post: %#v", scheduler.started)
+	}
 }
 
 func TestCreateConnectionAppliesPostizDefaults(t *testing.T) {
 	store := &fakeStore{}
-	handler := New(store, "secret")
+	handler := New(store, &fakeScheduler{}, "secret")
 	request := httptest.NewRequest(http.MethodPost, "/v1/channel-connections", strings.NewReader(`{"externalAccountId":"account-1"}`))
 	request.Header.Set("Authorization", "Bearer secret")
 	request.Header.Set("X-Organization-ID", "org-1")
@@ -94,7 +114,7 @@ func TestCreateConnectionAppliesPostizDefaults(t *testing.T) {
 }
 
 func TestCreateScheduledPostRejectsPastTime(t *testing.T) {
-	handler := New(&fakeStore{}, "secret")
+	handler := New(&fakeStore{}, &fakeScheduler{}, "secret")
 	body := `{"caption":"hello","channelConnectionId":"connection-1","idempotencyKey":"request-1","scheduledFor":"2020-01-01T00:00:00Z","variantId":"variant-1"}`
 	request := httptest.NewRequest(http.MethodPost, "/v1/scheduled-posts", strings.NewReader(body))
 	request.Header.Set("Authorization", "Bearer secret")

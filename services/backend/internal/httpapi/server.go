@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
@@ -57,7 +58,7 @@ func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 	if err := s.store.Ping(ctx); err != nil {
 		writeError(w, http.StatusServiceUnavailable, "database is unavailable")
@@ -191,13 +192,15 @@ func (s *Server) createScheduledPost(w http.ResponseWriter, r *http.Request) {
 		writeStoreError(w, err)
 		return
 	}
-	if err := s.scheduler.Start(r.Context(), temporalpublishing.ScheduleInput{
-		OrganizationID: result.Post.OrganizationID,
-		PostID:         result.Post.ID,
-		ScheduledFor:   result.Post.ScheduledFor,
-	}); err != nil {
-		writeError(w, http.StatusServiceUnavailable, "could not start publishing workflow")
-		return
+	if result.Post.Status == scheduledpost.StatusSCHEDULED {
+		if err := s.scheduler.Start(r.Context(), temporalpublishing.ScheduleInput{
+			OrganizationID: result.Post.OrganizationID,
+			PostID:         result.Post.ID,
+			ScheduledFor:   result.Post.ScheduledFor,
+		}); err != nil {
+			writeError(w, http.StatusServiceUnavailable, "could not start publishing workflow")
+			return
+		}
 	}
 	status := http.StatusOK
 	if result.Created {

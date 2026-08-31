@@ -36,6 +36,12 @@ func TestPublishUploadsAssetAndCreatesPost(t *testing.T) {
 			}
 			_ = json.NewEncoder(w).Encode(map[string]string{"id": "media-1", "path": "/media/1"})
 		case "/posts":
+			if r.Method == http.MethodGet {
+				_ = json.NewEncoder(w).Encode(map[string]any{"posts": []any{map[string]string{
+					"id": "post-1", "releaseId": "provider-post-1", "state": "PUBLISHED",
+				}}})
+				return
+			}
 			var payload map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 				t.Fatal(err)
@@ -43,7 +49,7 @@ func TestPublishUploadsAssetAndCreatesPost(t *testing.T) {
 			if payload["type"] != "now" {
 				t.Fatalf("unexpected payload: %#v", payload)
 			}
-			_ = json.NewEncoder(w).Encode(map[string]string{"id": "post-1"})
+			_ = json.NewEncoder(w).Encode([]map[string]string{{"postId": "post-1", "integration": "destination-1"}})
 		default:
 			http.NotFound(w, r)
 		}
@@ -60,6 +66,33 @@ func TestPublishUploadsAssetAndCreatesPost(t *testing.T) {
 	}
 	if id != "post-1" {
 		t.Fatalf("id = %q", id)
+	}
+	status, err := client.Status(context.Background(), StatusInput{PostID: id, SecretReference: "POSTIZ_API_KEY_TEST"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.State != "PUBLISHED" || status.ProviderPostID != "provider-post-1" {
+		t.Fatalf("status = %#v", status)
+	}
+}
+
+func TestPublishAcceptsLegacyReceipt(t *testing.T) {
+	t.Setenv("POSTIZ_API_KEY_TEST", "token")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/upload" {
+			_ = json.NewEncoder(w).Encode(map[string]string{"id": "media-1", "path": "/media/1"})
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]string{"id": "post-legacy"})
+	}))
+	defer server.Close()
+	client := New(server.URL, &http.Client{Timeout: time.Second}, staticAssetReader{body: []byte("png")})
+	id, err := client.Publish(context.Background(), PublishInput{
+		AssetMediaType: "image/png", AssetObjectKey: "file.png", Caption: "hello",
+		DestinationID: "destination-1", OrganizationID: "org-1", Platform: "x", SecretReference: "POSTIZ_API_KEY_TEST",
+	})
+	if err != nil || id != "post-legacy" {
+		t.Fatalf("id=%q err=%v", id, err)
 	}
 }
 

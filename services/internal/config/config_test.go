@@ -30,3 +30,31 @@ func TestLoadBackendRejectsInvalidTemporalTLS(t *testing.T) {
 		t.Fatal("expected invalid TEMPORAL_TLS to fail")
 	}
 }
+
+func TestLoadOrchestratorReadsPostizWorkerControls(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgresql://example")
+	t.Setenv("STORAGE_API_URL", "http://storage")
+	t.Setenv("STORAGE_BUCKET", "assets")
+	t.Setenv("STORAGE_SERVICE_KEY", "service-key")
+	t.Setenv("EXCLUDE_QUEUE", "reddit, postiz, ")
+	t.Setenv("WORKER_CONCURRENCY_DIVIDER", "3")
+	t.Setenv("RUN_CRON", "true")
+	cfg, err := LoadOrchestrator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.RunCron || cfg.WorkerConcurrencyDivider != 3 || len(cfg.ExcludedQueues) != 2 || cfg.ExcludedQueues[1] != "postiz" {
+		t.Fatalf("unexpected worker controls: %#v", cfg)
+	}
+}
+
+func TestLoadOrchestratorRejectsInvalidRunCron(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgresql://example")
+	t.Setenv("STORAGE_API_URL", "http://storage")
+	t.Setenv("STORAGE_BUCKET", "assets")
+	t.Setenv("STORAGE_SERVICE_KEY", "service-key")
+	t.Setenv("RUN_CRON", "sometimes")
+	if _, err := LoadOrchestrator(); err == nil {
+		t.Fatal("expected invalid RUN_CRON to fail")
+	}
+}

@@ -39,6 +39,16 @@ type PublishInput struct {
 	SecretReference  string
 }
 
+type StatusInput struct {
+	PostID          string
+	SecretReference string
+}
+
+type StatusResult struct {
+	ProviderPostID string
+	State          string
+}
+
 type Error struct {
 	Status          int
 	UnknownDelivery bool
@@ -99,13 +109,75 @@ func (c *Client) Publish(ctx context.Context, input PublishInput) (string, error
 		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
 		return "", &Error{Status: response.StatusCode, message: fmt.Sprintf("Postiz post failed with status %d", response.StatusCode)}
 	}
-	var result struct {
-		ID string `json:"id"`
-	}
-	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&result); err != nil || result.ID == "" {
+	var result json.RawMessage
+	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&result); err != nil {
 		return "", &Error{UnknownDelivery: true, message: "Postiz returned an invalid post receipt"}
 	}
-	return result.ID, nil
+	var current []struct {
+		PostID string `json:"postId"`
+	}
+	if json.Unmarshal(result, &current) == nil && len(current) > 0 && current[0].PostID != "" {
+		return current[0].PostID, nil
+	}
+	var legacy struct {
+		ID     string `json:"id"`
+		PostID string `json:"postId"`
+	}
+	if json.Unmarshal(result, &legacy) == nil {
+		if legacy.PostID != "" {
+			return legacy.PostID, nil
+		}
+		if legacy.ID != "" {
+			return legacy.ID, nil
+		}
+	}
+	return "", &Error{UnknownDelivery: true, message: "Postiz returned an invalid post receipt"}
+}
+
+func (c *Client) Status(ctx context.Context, input StatusInput) (StatusResult, error) {
+	if !publishing.IsSecretReference(input.SecretReference) {
+		return StatusResult{}, &Error{message: "invalid Postiz credential reference"}
+	}
+	token, ok := os.LookupEnv(input.SecretReference)
+	if !ok || token == "" {
+		return StatusResult{}, &Error{message: "Postiz credentials are unavailable"}
+	}
+	now := time.Now().UTC()
+	query := url.Values{
+		"startDate": []string{now.Add(-48 * time.Hour).Format(time.RFC3339)},
+		"endDate":   []string{now.Add(24 * time.Hour).Format(time.RFC3339)},
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, c.endpoint("posts")+"?"+query.Encode(), nil)
+	if err != nil {
+		return StatusResult{}, err
+	}
+	request.Header.Set("Authorization", token)
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return StatusResult{}, &Error{message: "Postiz status is unavailable: " + err.Error()}
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
+		return StatusResult{}, &Error{Status: response.StatusCode, message: fmt.Sprintf("Postiz status failed with status %d", response.StatusCode)}
+	}
+	var result struct {
+		Posts []struct {
+			ID         string `json:"id"`
+			ReleaseID  string `json:"releaseId"`
+			ReleaseURL string `json:"releaseURL"`
+			State      string `json:"state"`
+		} `json:"posts"`
+	}
+	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&result); err != nil {
+		return StatusResult{}, &Error{message: "Postiz returned an invalid status response"}
+	}
+	for _, post := range result.Posts {
+		if post.ID == input.PostID {
+			return StatusResult{ProviderPostID: post.ReleaseID, State: strings.ToUpper(post.State)}, nil
+		}
+	}
+	return StatusResult{}, &Error{Status: http.StatusNotFound, message: "Postiz post status was not found"}
 }
 
 func (c *Client) upload(ctx context.Context, token, objectKey, mediaType string, content []byte) (map[string]any, error) {

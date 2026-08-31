@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -33,12 +34,18 @@ type Backend struct {
 type Orchestrator struct {
 	Common
 	Temporal
-	ActivityConcurrency int
-	PostizAPIURL        string
-	ProviderTimeout     time.Duration
-	StorageAPIURL       string
-	StorageBucket       string
-	StorageKey          string
+	ActivityConcurrency      int
+	ActivityTimeout          time.Duration
+	ExcludedQueues           []string
+	MaxAttempts              int
+	PostizAPIURL             string
+	ProviderTimeout          time.Duration
+	RetryDelay               time.Duration
+	RunCron                  bool
+	StorageAPIURL            string
+	StorageBucket            string
+	StorageKey               string
+	WorkerConcurrencyDivider int
 }
 
 func LoadBackend() (Backend, error) {
@@ -52,7 +59,7 @@ func LoadBackend() (Backend, error) {
 	}
 	cfg := Backend{
 		Common: common, Temporal: temporal,
-		ActivityTimeout: envDuration("PUBLISHING_ACTIVITY_TIMEOUT", 30*time.Second),
+		ActivityTimeout: envDuration("PUBLISHING_ACTIVITY_TIMEOUT", 30*time.Minute),
 		MaxAttempts:     envInt("PUBLISHING_MAX_ATTEMPTS", 3),
 		RetryDelay:      envDuration("PUBLISHING_RETRY_DELAY", 2*time.Minute),
 		ServiceToken:    os.Getenv("PUBLISHING_SERVICE_TOKEN"),
@@ -78,18 +85,37 @@ func LoadOrchestrator() (Orchestrator, error) {
 	if err != nil {
 		return Orchestrator{}, err
 	}
+	runCron, err := envBool("RUN_CRON", false)
+	if err != nil {
+		return Orchestrator{}, err
+	}
 	cfg := Orchestrator{
 		Common: common, Temporal: temporal,
 		ActivityConcurrency: envInt("TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_EXECUTORS", 10),
+		ActivityTimeout:     envDuration("PUBLISHING_ACTIVITY_TIMEOUT", 30*time.Minute),
+		ExcludedQueues:      splitList(os.Getenv("EXCLUDE_QUEUE")),
+		MaxAttempts:         envInt("PUBLISHING_MAX_ATTEMPTS", 3),
 		PostizAPIURL:        envString("POSTIZ_API_URL", "https://api.postiz.com/public/v1"),
 		ProviderTimeout:     envDuration("POSTIZ_REQUEST_TIMEOUT", 15*time.Second),
+		RetryDelay:          envDuration("PUBLISHING_RETRY_DELAY", 2*time.Minute),
+		RunCron:             runCron,
 		StorageAPIURL:       os.Getenv("STORAGE_API_URL"), StorageBucket: os.Getenv("STORAGE_BUCKET"), StorageKey: os.Getenv("STORAGE_SERVICE_KEY"),
+		WorkerConcurrencyDivider: envInt("WORKER_CONCURRENCY_DIVIDER", 1),
 	}
 	if cfg.ActivityConcurrency < 1 || cfg.ActivityConcurrency > 1000 {
 		return Orchestrator{}, fmt.Errorf("TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_EXECUTORS must be between 1 and 1000")
 	}
 	if cfg.ProviderTimeout <= 0 {
 		return Orchestrator{}, fmt.Errorf("POSTIZ_REQUEST_TIMEOUT must be positive")
+	}
+	if cfg.MaxAttempts < 1 || cfg.MaxAttempts > 10 {
+		return Orchestrator{}, fmt.Errorf("PUBLISHING_MAX_ATTEMPTS must be between 1 and 10")
+	}
+	if cfg.ActivityTimeout <= 0 || cfg.RetryDelay <= 0 {
+		return Orchestrator{}, fmt.Errorf("publishing activity timeout and retry delay must be positive")
+	}
+	if cfg.WorkerConcurrencyDivider < 1 || cfg.WorkerConcurrencyDivider > 1000 {
+		return Orchestrator{}, fmt.Errorf("WORKER_CONCURRENCY_DIVIDER must be between 1 and 1000")
 	}
 	if cfg.StorageAPIURL == "" || cfg.StorageBucket == "" || cfg.StorageKey == "" {
 		return Orchestrator{}, fmt.Errorf("STORAGE_API_URL, STORAGE_BUCKET, and STORAGE_SERVICE_KEY are required")
@@ -98,13 +124,9 @@ func LoadOrchestrator() (Orchestrator, error) {
 }
 
 func loadTemporal() (Temporal, error) {
-	tlsEnabled := false
-	if raw := os.Getenv("TEMPORAL_TLS"); raw != "" {
-		parsed, err := strconv.ParseBool(raw)
-		if err != nil {
-			return Temporal{}, fmt.Errorf("TEMPORAL_TLS must be true or false")
-		}
-		tlsEnabled = parsed
+	tlsEnabled, err := envBool("TEMPORAL_TLS", false)
+	if err != nil {
+		return Temporal{}, err
 	}
 	return Temporal{
 		APIKey:            os.Getenv("TEMPORAL_API_KEY"),
@@ -114,6 +136,28 @@ func loadTemporal() (Temporal, error) {
 		TLS:               tlsEnabled,
 		WorkflowTaskQueue: envString("TEMPORAL_TASK_QUEUE", "main"),
 	}, nil
+}
+
+func envBool(name string, fallback bool) (bool, error) {
+	value := os.Getenv(name)
+	if value == "" {
+		return fallback, nil
+	}
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, fmt.Errorf("%s must be true or false", name)
+	}
+	return parsed, nil
+}
+
+func splitList(value string) []string {
+	var result []string
+	for _, item := range strings.Split(value, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			result = append(result, item)
+		}
+	}
+	return result
 }
 
 func loadCommon(defaultPort int) (Common, error) {

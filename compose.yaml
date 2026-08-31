@@ -241,6 +241,7 @@ services:
     environment:
       PORT: '8081'
       POSTIZ_API_URL: ${POSTIZ_API_URL:-https://api.postiz.com/public/v1}
+      RUN_CRON: ${RUN_CRON:-true}
       STORAGE_API_URL: http://storage:5000
       TEMPORAL_ADDRESS: temporal:7233
     ports:

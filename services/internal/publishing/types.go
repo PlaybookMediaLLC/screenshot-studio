@@ -54,3 +54,9 @@ type Attempt struct {
 	ID     string
 	Number int
 }
+
+type RecoverablePost struct {
+	ID             string
+	OrganizationID string
+	ScheduledFor   time.Time
+}

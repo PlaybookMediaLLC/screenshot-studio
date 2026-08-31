@@ -40,9 +40,16 @@ func main() {
 		os.Exit(1)
 	}
 	defer temporalClient.Close()
+	if !cfg.TLS {
+		if err := temporalpublishing.RegisterSearchAttributes(ctx, temporalClient, cfg.Namespace); err != nil {
+			slog.Error("Temporal search attributes unavailable", "error", err)
+			os.Exit(1)
+		}
+	}
 	scheduler := temporalpublishing.NewScheduler(temporalClient, temporalpublishing.SchedulerConfig{
 		ActivityTaskQueue: cfg.ActivityTaskQueue, ActivityTimeout: cfg.ActivityTimeout,
-		MaxAttempts: cfg.MaxAttempts, RetryDelay: cfg.RetryDelay, WorkflowTaskQueue: cfg.WorkflowTaskQueue,
+		MaxAttempts: cfg.MaxAttempts, Namespace: cfg.Namespace,
+		RetryDelay: cfg.RetryDelay, WorkflowTaskQueue: cfg.WorkflowTaskQueue,
 	})
 
 	server := &http.Server{

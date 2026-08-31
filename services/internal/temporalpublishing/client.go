@@ -8,6 +8,7 @@ import (
 
 	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/api/serviceerror"
+	workflowservice "go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
 )
 
@@ -22,6 +23,7 @@ type SchedulerConfig struct {
 	ActivityTaskQueue string
 	ActivityTimeout   time.Duration
 	MaxAttempts       int
+	Namespace         string
 	RetryDelay        time.Duration
 	WorkflowTaskQueue string
 }
@@ -33,10 +35,11 @@ type Scheduler struct {
 
 func Dial(ctx context.Context, cfg ConnectionConfig) (client.Client, error) {
 	options := client.Options{HostPort: cfg.Address, Namespace: cfg.Namespace}
+	if cfg.TLS {
+		options.ConnectionOptions.TLS = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
 	if cfg.APIKey != "" {
 		options.Credentials = client.NewAPIKeyStaticCredentials(cfg.APIKey)
-	} else if cfg.TLS {
-		options.ConnectionOptions.TLS = &tls.Config{MinVersion: tls.VersionTLS12}
 	}
 	return client.DialContext(ctx, options)
 }
@@ -46,17 +49,19 @@ func NewScheduler(temporalClient client.Client, cfg SchedulerConfig) *Scheduler 
 }
 
 func (s *Scheduler) Start(ctx context.Context, input ScheduleInput) error {
-	_, err := s.client.ExecuteWorkflow(ctx, client.StartWorkflowOptions{
+	_, err := s.client.SignalWithStartWorkflow(ctx, WorkflowID(input.PostID), PokeSignalName, PokeSignal{}, client.StartWorkflowOptions{
 		ID:                                       WorkflowID(input.PostID),
 		TaskQueue:                                s.config.WorkflowTaskQueue,
 		WorkflowIDConflictPolicy:                 enumspb.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING,
-		WorkflowIDReusePolicy:                    enumspb.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE,
+		WorkflowIDReusePolicy:                    enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE,
 		WorkflowExecutionErrorWhenAlreadyStarted: false,
 		Memo:                                     map[string]any{"organizationId": input.OrganizationID, "postId": input.PostID},
-	}, WorkflowNameV1, WorkflowInput{
+		TypedSearchAttributes:                    postSearchAttributes(input.OrganizationID, input.PostID),
+	}, WorkflowNameV2, WorkflowInput{
 		ActivityTaskQueue: s.config.ActivityTaskQueue,
 		ActivityTimeout:   s.config.ActivityTimeout,
 		MaxAttempts:       s.config.MaxAttempts,
+		MainTaskQueue:     s.config.WorkflowTaskQueue,
 		OrganizationID:    input.OrganizationID,
 		PostID:            input.PostID,
 		RetryDelay:        s.config.RetryDelay,
@@ -66,6 +71,16 @@ func (s *Scheduler) Start(ctx context.Context, input ScheduleInput) error {
 	if errors.As(err, &alreadyStarted) {
 		return nil
 	}
+	return err
+}
+
+func (s *Scheduler) StartMissingWorkflow(ctx context.Context) error {
+	_, err := s.client.ExecuteWorkflow(ctx, client.StartWorkflowOptions{
+		ID:                       MissingWorkflowID,
+		TaskQueue:                s.config.WorkflowTaskQueue,
+		WorkflowIDConflictPolicy: enumspb.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING,
+		WorkflowIDReusePolicy:    enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE,
+	}, MissingWorkflowName)
 	return err
 }
 
@@ -79,6 +94,6 @@ func (s *Scheduler) Cancel(ctx context.Context, postID string) error {
 }
 
 func (s *Scheduler) Ping(ctx context.Context) error {
-	_, err := s.client.CheckHealth(ctx, nil)
+	_, err := s.client.WorkflowService().DescribeNamespace(ctx, &workflowservice.DescribeNamespaceRequest{Namespace: s.config.Namespace})
 	return err
 }

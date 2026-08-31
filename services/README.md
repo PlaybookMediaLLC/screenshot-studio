@@ -79,6 +79,13 @@ make check
 make build
 ```
 
+`make acceptance` additionally runs both compiled services against an empty
+PostgreSQL database created from the repository's real Prisma migration SQL. It
+checks the authenticated HTTP API, Ent compatibility, idempotency, cancellation,
+the storage and Postiz HTTP boundaries, publication receipts, and audit state.
+Set `PUBLISHING_ACCEPTANCE_DATABASE_URL` to a disposable empty database whose
+name contains `acceptance` or `test`; the script refuses any other database.
+
 From the repository root, start the optional Compose profile with:
 
 ```sh

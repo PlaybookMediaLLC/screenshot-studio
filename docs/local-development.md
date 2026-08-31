@@ -113,6 +113,20 @@ curl --fail http://localhost:8081/healthz
 make publishing-test
 ```
 
+For a service-level acceptance run, point the guarded test command at a fresh,
+empty PostgreSQL database. Its name must contain `acceptance` or `test`:
+
+```sh
+createdb publishing_acceptance
+PUBLISHING_ACCEPTANCE_DATABASE_URL='postgresql://localhost/publishing_acceptance?sslmode=disable' \
+  make publishing-acceptance
+```
+
+The acceptance run applies the real Prisma migration SQL, starts both compiled
+Go services, and verifies their HTTP, Ent, storage, Postiz, and audit boundaries.
+It uses a local Postiz protocol endpoint, so it never publishes to a real social
+account.
+
 The backend is a server-to-server API and requires the local
 `PUBLISHING_SERVICE_TOKEN` for tenant operations. The orchestrator polls durable
 scheduled posts and can run beside the existing maintenance dispatcher because

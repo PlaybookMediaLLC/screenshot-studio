@@ -1,4 +1,4 @@
-.PHONY: generate fmt fmt-check test race vet check build
+.PHONY: generate fmt fmt-check test race vet check build acceptance
 
 generate:
 	go generate ./ent
@@ -23,3 +23,6 @@ check: generate fmt-check test race vet
 
 build:
 	go build ./backend/cmd/backend ./orchestrator/cmd/orchestrator
+
+acceptance:
+	@./scripts/acceptance.sh

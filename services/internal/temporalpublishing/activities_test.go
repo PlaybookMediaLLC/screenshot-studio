@@ -40,6 +40,9 @@ type rateLimitedProvider struct{}
 func (rateLimitedProvider) Publish(context.Context, postiz.PublishInput) (string, error) {
 	return "", &postiz.Error{Status: 429}
 }
+func (rateLimitedProvider) Status(context.Context, postiz.StatusInput) (postiz.StatusResult, error) {
+	return postiz.StatusResult{}, nil
+}
 
 func TestPublishActivityReturnsDurableRateLimitRetry(t *testing.T) {
 	store := &activityStore{}
@@ -55,5 +58,16 @@ func TestPublishActivityReturnsDurableRateLimitRetry(t *testing.T) {
 	}
 	if result.Outcome != OutcomeRetry || result.NextAttempt != 2 || result.RetryAfter != time.Minute || store.retryAt == nil || !store.retryAt.Equal(fixed.Add(time.Minute)) {
 		t.Fatalf("result=%#v retryAt=%v", result, store.retryAt)
+	}
+}
+
+func TestSubmitActivityLeavesRateLimitRetryToWorkflow(t *testing.T) {
+	activities := NewActivities(&activityStore{}, rateLimitedProvider{})
+	result, err := activities.Submit(context.Background(), SubmitInput{Job: PreparedPublication{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Outcome != OutcomeRetry || result.FailureCode != "429" {
+		t.Fatalf("result=%#v", result)
 	}
 }

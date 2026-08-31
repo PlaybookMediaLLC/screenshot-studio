@@ -43,7 +43,7 @@ func (f *fakeStore) ListConnections(context.Context, string) ([]*ent.ChannelConn
 }
 func (f *fakeStore) CreateScheduledPost(_ context.Context, actor publishing.Actor, input publishing.CreateScheduledPostInput) (publishing.CreateScheduledPostResult, error) {
 	f.scheduled = input
-	return publishing.CreateScheduledPostResult{Created: true, Post: &ent.ScheduledPost{ID: "post-1", OrganizationID: actor.Organization, Caption: input.Caption, ScheduledFor: input.ScheduledFor}}, nil
+	return publishing.CreateScheduledPostResult{Created: true, Post: &ent.ScheduledPost{ID: "post-1", OrganizationID: actor.Organization, Caption: input.Caption, ScheduledFor: input.ScheduledFor, Status: "SCHEDULED"}}, nil
 }
 func (f *fakeStore) ListScheduledPosts(context.Context, string, int) ([]*ent.ScheduledPost, error) {
 	return nil, nil

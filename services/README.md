@@ -19,11 +19,38 @@ The split follows the useful boundary in Postiz's `apps/backend` and
   on the same durable state machine.
 
 Each scheduled post maps to one Temporal workflow: workflow ID `post_<post-id>`,
-workflow type `PostWorkflowV1`, workflow task queue `main`, and Postiz activity
-task queue `postiz`. The workflow owns the scheduled timer, `cancel` signal, and
-rate-limit retry timer. The outbound Postiz activity has one Temporal attempt.
-A timeout or invalid receipt is `UNKNOWN_DELIVERY` because retrying could create
-a duplicate social post.
+workflow type `PostWorkflowV2`, workflow task queue `main`, and Postiz activity
+task queue `postiz`. `PostWorkflowV1` remains registered for replay safety. The
+workflow owns the scheduled timer, `cancel` and `poke` signals, rate-limit retry
+timer, and Postiz status-confirmation timers. The outbound Postiz mutation has
+one Temporal attempt. A timeout or invalid receipt is `UNKNOWN_DELIVERY` because
+retrying could create a duplicate social post.
+
+## Postiz Temporal parity
+
+This contract is pinned to Postiz commit
+`60ffa4df2277130cdbf255e81aa13f0e8f31fd1e` (2026-08-30). The services match
+every Temporal guarantee at Screenshot Studio's provider boundary:
+
+| Postiz guarantee | Screenshot Studio implementation |
+| --- | --- |
+| Versioned workflows remain registered | `PostWorkflowV1` and `PostWorkflowV2` are both workers |
+| Atomic recovery start | `poke` plus `SignalWithStartWorkflow` and `USE_EXISTING` |
+| Searchable ownership | typed `organizationId` and `postId` attributes, registered on self-hosted Temporal |
+| Durable scheduling and provider backoff | Temporal timers; only explicit `429` responses retry |
+| No automatic retry of provider mutations | submit activity has one attempt; timeout becomes `UNKNOWN_DELIVERY` |
+| Pending provider confirmation | read-only status checks retry safely for up to 90 checks at 20-second intervals |
+| Missing-post recovery | `missing-post-workflow` runs immediately and hourly when `RUN_CRON=true` |
+| Worker placement controls | `EXCLUDE_QUEUE` and `WORKER_CONCURRENCY_DIVIDER` |
+| Namespace readiness | `DescribeNamespace` with a 10-second bound |
+| TLS and API-key authentication | both settings apply independently |
+
+Postiz's per-social-network workers, token refresh, comments, plugs, and repeat
+posts remain inside the Postiz provider service. Screenshot Studio calls that
+service through the single adapter required by RFC 020; copying those workers
+here would create a second provider implementation. Postiz's autopost, streak,
+and email workflows are product domains, not publishing transport, and remain
+owned by Screenshot Studio's campaign and email systems.
 
 ## Database ownership
 
@@ -74,6 +101,7 @@ orchestrator also requires:
 Optional workflow controls are `TEMPORAL_TASK_QUEUE`,
 `TEMPORAL_POSTIZ_TASK_QUEUE`,
 `TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_EXECUTORS`,
+`EXCLUDE_QUEUE`, `WORKER_CONCURRENCY_DIVIDER`, `RUN_CRON`,
 `PUBLISHING_ACTIVITY_TIMEOUT`, `PUBLISHING_RETRY_DELAY`,
 `PUBLISHING_MAX_ATTEMPTS`, and `POSTIZ_REQUEST_TIMEOUT`.
 
@@ -87,9 +115,10 @@ make build
 
 `make acceptance` additionally runs Temporal and both compiled services against an empty
 PostgreSQL database created from the repository's real Prisma migration SQL. It
-checks the one-post/one-workflow mapping, durable timer, cancellation signal,
-authenticated HTTP API, Ent compatibility, idempotency, storage and Postiz HTTP
-boundaries, publication receipts, and audit state. The Temporal CLI is required.
+checks the one-post/one-workflow mapping, typed search attributes, durable timer,
+cancellation signal, missing-post recovery, authenticated HTTP API, Ent
+compatibility, idempotency, storage and Postiz HTTP boundaries, confirmed
+publication receipts, and audit state. The Temporal CLI is required.
 Set `PUBLISHING_ACCEPTANCE_DATABASE_URL` to a disposable empty database whose
 name contains `acceptance` or `test`; the script refuses any other database.
 

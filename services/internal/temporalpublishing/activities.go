@@ -3,6 +3,7 @@ package temporalpublishing
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
@@ -22,6 +23,7 @@ type ActivityStore interface {
 
 type Provider interface {
 	Publish(context.Context, postiz.PublishInput) (string, error)
+	Status(context.Context, postiz.StatusInput) (postiz.StatusResult, error)
 }
 
 type Activities struct {
@@ -104,4 +106,82 @@ func (a *Activities) Publish(ctx context.Context, input PublishInput) (PublishRe
 
 func (a *Activities) MarkUnknown(ctx context.Context, input MarkUnknownInput) error {
 	return a.store.FailUnknown(ctx, input.PostID, input.RunID, input.AttemptNumber)
+}
+
+func (a *Activities) Begin(ctx context.Context, input BeginInput) (BeginResult, error) {
+	runID := input.RunID
+	post := &ent.ScheduledPost{
+		ID: input.Job.PostID, OrganizationID: input.Job.OrganizationID,
+		Caption: input.Job.Caption, TriggerRunID: &runID,
+	}
+	attempt, err := a.store.StartAttempt(ctx, post, input.RunID, input.AttemptNumber)
+	if err != nil {
+		return BeginResult{}, err
+	}
+	return BeginResult{AttemptID: attempt.ID, AttemptNumber: attempt.Number}, nil
+}
+
+func (a *Activities) Submit(ctx context.Context, input SubmitInput) (PublishResult, error) {
+	providerID, err := a.provider.Publish(ctx, postiz.PublishInput{
+		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey,
+		Caption: input.Job.Caption, DestinationID: input.Job.DestinationID,
+		OrganizationID: input.Job.OrganizationID, Platform: input.Job.Platform,
+		ProviderSettings: input.Job.ProviderSettings, SecretReference: input.Job.SecretReference,
+	})
+	if err == nil {
+		return PublishResult{Outcome: OutcomePending, ProviderID: providerID}, nil
+	}
+	providerErr := &postiz.Error{}
+	if !errors.As(err, &providerErr) {
+		return PublishResult{FailureCode: "UNKNOWN", Outcome: OutcomeFailed}, nil
+	}
+	failureCode := publishing.ProviderFailureCode(providerErr.Status, providerErr.UnknownDelivery)
+	if providerErr.UnknownDelivery {
+		return PublishResult{FailureCode: failureCode, Outcome: OutcomeUnknown}, nil
+	}
+	if providerErr.Status == 429 {
+		return PublishResult{FailureCode: failureCode, Outcome: OutcomeRetry}, nil
+	}
+	return PublishResult{FailureCode: failureCode, Outcome: OutcomeFailed}, nil
+}
+
+func (a *Activities) Check(ctx context.Context, input CheckInput) (PublishResult, error) {
+	status, err := a.provider.Status(ctx, postiz.StatusInput{
+		PostID: input.ProviderID, SecretReference: input.Job.SecretReference,
+	})
+	if err != nil {
+		return PublishResult{}, err
+	}
+	switch status.State {
+	case "PUBLISHED":
+		return PublishResult{Outcome: OutcomePublished, ProviderID: status.ProviderPostID}, nil
+	case "ERROR":
+		return PublishResult{FailureCode: "POSTIZ_ERROR", Outcome: OutcomeFailed}, nil
+	case "QUEUE":
+		return PublishResult{Outcome: OutcomePending, ProviderID: input.ProviderID}, nil
+	default:
+		return PublishResult{}, fmt.Errorf("unexpected Postiz post state %q", status.State)
+	}
+}
+
+func (a *Activities) CompleteV2(ctx context.Context, input CompleteInput) error {
+	runID := input.RunID
+	post := &ent.ScheduledPost{
+		ID: input.Job.PostID, OrganizationID: input.Job.OrganizationID,
+		Caption: input.Job.Caption, TriggerRunID: &runID,
+	}
+	return a.store.Complete(ctx, post, publishing.Attempt{ID: input.AttemptID}, input.ProviderID, input.RunID)
+}
+
+func (a *Activities) FailV2(ctx context.Context, input FailInput) error {
+	runID := input.RunID
+	post := &ent.ScheduledPost{
+		ID: input.Job.PostID, OrganizationID: input.Job.OrganizationID,
+		Caption: input.Job.Caption, TriggerRunID: &runID,
+	}
+	var retryAt *time.Time
+	if !input.RetryAt.IsZero() {
+		retryAt = &input.RetryAt
+	}
+	return a.store.Fail(ctx, post, publishing.Attempt{ID: input.AttemptID, Number: input.AttemptNumber}, input.FailureCode, retryAt, input.RunID)
 }

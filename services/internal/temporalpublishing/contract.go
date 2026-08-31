@@ -4,10 +4,20 @@ import "time"
 
 const (
 	WorkflowNameV1          = "PostWorkflowV1"
+	WorkflowNameV2          = "PostWorkflowV2"
+	MissingWorkflowName     = "MissingPostWorkflow"
+	MissingWorkflowID       = "missing-post-workflow"
 	PrepareActivityName     = "PreparePostPublication"
 	PublishActivityName     = "PublishPost"
 	MarkUnknownActivityName = "MarkPostDeliveryUnknown"
+	BeginActivityName       = "BeginPostPublication"
+	SubmitActivityName      = "SubmitPost"
+	CheckActivityName       = "CheckPostStatus"
+	CompleteActivityName    = "CompletePostPublication"
+	FailActivityName        = "FailPostPublication"
+	RecoverActivityName     = "RecoverMissingPosts"
 	CancelSignalName        = "cancel"
+	PokeSignalName          = "poke"
 	DefaultWorkflowQueue    = "main"
 	DefaultActivityQueue    = "postiz"
 )
@@ -17,13 +27,16 @@ const (
 	OutcomeRetry     = "RETRY"
 	OutcomeFailed    = "FAILED"
 	OutcomeCancelled = "CANCELLED"
+	OutcomePending   = "PENDING"
 	OutcomeSkipped   = "SKIPPED"
+	OutcomeUnknown   = "UNKNOWN"
 )
 
 type WorkflowInput struct {
 	ActivityTaskQueue string
 	ActivityTimeout   time.Duration
 	MaxAttempts       int
+	MainTaskQueue     string
 	OrganizationID    string
 	PostID            string
 	RetryDelay        time.Duration
@@ -37,6 +50,8 @@ type WorkflowResult struct {
 }
 
 type CancelSignal struct{}
+
+type PokeSignal struct{}
 
 type PrepareInput struct {
 	PostID string
@@ -70,6 +85,42 @@ type PublishResult struct {
 	Outcome     string
 	ProviderID  string
 	RetryAfter  time.Duration
+}
+
+type BeginInput struct {
+	AttemptNumber int
+	Job           PreparedPublication
+	RunID         string
+}
+
+type BeginResult struct {
+	AttemptID     string
+	AttemptNumber int
+}
+
+type SubmitInput struct {
+	Job PreparedPublication
+}
+
+type CheckInput struct {
+	Job        PreparedPublication
+	ProviderID string
+}
+
+type CompleteInput struct {
+	AttemptID  string
+	Job        PreparedPublication
+	ProviderID string
+	RunID      string
+}
+
+type FailInput struct {
+	AttemptID     string
+	AttemptNumber int
+	FailureCode   string
+	Job           PreparedPublication
+	RetryAt       time.Time
+	RunID         string
 }
 
 type MarkUnknownInput struct {

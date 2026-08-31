@@ -156,6 +156,24 @@ func (r *Repository) ListScheduledPosts(ctx context.Context, organizationID stri
 		All(ctx)
 }
 
+func (r *Repository) ListRecoverablePosts(ctx context.Context, since, dueBefore time.Time, limit int) ([]RecoverablePost, error) {
+	posts, err := r.client.ScheduledPost.Query().Where(
+		scheduledpost.StatusEQ(scheduledpost.StatusSCHEDULED),
+		scheduledpost.ScheduledForGTE(since),
+		scheduledpost.ScheduledForLTE(dueBefore),
+	).Order(ent.Asc(scheduledpost.FieldScheduledFor)).Limit(limit).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]RecoverablePost, 0, len(posts))
+	for _, post := range posts {
+		result = append(result, RecoverablePost{
+			ID: post.ID, OrganizationID: post.OrganizationID, ScheduledFor: post.ScheduledFor,
+		})
+	}
+	return result, nil
+}
+
 func (r *Repository) CancelScheduledPost(ctx context.Context, actor Actor, id string) (*ent.ScheduledPost, error) {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
@@ -371,10 +389,28 @@ func (r *Repository) Complete(ctx context.Context, post *ent.ScheduledPost, atte
 		scheduledpost.TriggerRunIDEQ(runID),
 	).SetStatus(scheduledpost.StatusPUBLISHED).Save(ctx)
 	if err != nil || updated != 1 {
-		if err == nil {
-			err = ErrInvalidState
+		if err != nil {
+			return err
 		}
-		return err
+		published, queryErr := tx.ScheduledPost.Query().Where(
+			scheduledpost.ID(post.ID), scheduledpost.StatusEQ(scheduledpost.StatusPUBLISHED),
+		).Exist(ctx)
+		if queryErr != nil {
+			return queryErr
+		}
+		completed, queryErr := tx.PublicationAttempt.Query().Where(
+			publicationattempt.ID(attempt.ID),
+			publicationattempt.OutcomeEQ(publicationattempt.OutcomeSUCCEEDED),
+			publicationattempt.ProviderPostID(providerPostID),
+			publicationattempt.CompletedAtNotNil(),
+		).Exist(ctx)
+		if queryErr != nil {
+			return queryErr
+		}
+		if published && completed {
+			return nil
+		}
+		return ErrInvalidState
 	}
 	if _, err = tx.PublicationAttempt.UpdateOneID(attempt.ID).
 		SetCompletedAt(time.Now()).SetOutcome(publicationattempt.OutcomeSUCCEEDED).SetProviderPostID(providerPostID).Save(ctx); err != nil {
@@ -409,10 +445,32 @@ func (r *Repository) Fail(ctx context.Context, post *ent.ScheduledPost, attempt 
 	}
 	updated, err := postUpdate.Save(ctx)
 	if err != nil || updated != 1 {
-		if err == nil {
-			err = ErrInvalidState
+		if err != nil {
+			return err
 		}
-		return err
+		status := scheduledpost.StatusFAILED
+		if retry {
+			status = scheduledpost.StatusSCHEDULED
+		}
+		postMatches, queryErr := tx.ScheduledPost.Query().Where(
+			scheduledpost.ID(post.ID), scheduledpost.StatusEQ(status),
+		).Exist(ctx)
+		if queryErr != nil {
+			return queryErr
+		}
+		attemptMatches, queryErr := tx.PublicationAttempt.Query().Where(
+			publicationattempt.ID(attempt.ID),
+			publicationattempt.OutcomeEQ(publicationattempt.OutcomeFAILED),
+			publicationattempt.FailureCode(failureCode),
+			publicationattempt.CompletedAtNotNil(),
+		).Exist(ctx)
+		if queryErr != nil {
+			return queryErr
+		}
+		if postMatches && attemptMatches {
+			return nil
+		}
+		return ErrInvalidState
 	}
 	if _, err = tx.PublicationAttempt.UpdateOneID(attempt.ID).
 		SetCompletedAt(time.Now()).SetOutcome(publicationattempt.OutcomeFAILED).SetFailureCode(failureCode).Save(ctx); err != nil {

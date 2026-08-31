@@ -201,6 +201,58 @@ services:
       minio-init:
         condition: service_completed_successfully
 
+  publishing-backend:
+    profiles: ['publishing']
+    build:
+      context: ./services
+      dockerfile: backend/Dockerfile
+    env_file: .local/dev.env
+    environment:
+      PORT: '8080'
+      PUBLISHING_SERVICE_TOKEN: ${PUBLISHING_SERVICE_TOKEN:-local-publishing-service}
+      TEMPORAL_ADDRESS: temporal:7233
+    ports:
+      - '127.0.0.1:8080:8080'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+
+  temporal:
+    profiles: ['publishing']
+    image: temporalio/temporal:1.8.2
+    command: server start-dev --ip 0.0.0.0
+    ports:
+      - '127.0.0.1:7233:7233'
+      - '127.0.0.1:8233:8233'
+    healthcheck:
+      test: ['CMD', 'temporal', 'operator', 'cluster', 'health', '--address', '127.0.0.1:7233']
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  publishing-orchestrator:
+    profiles: ['publishing']
+    build:
+      context: ./services
+      dockerfile: orchestrator/Dockerfile
+    env_file: .local/dev.env
+    environment:
+      PORT: '8081'
+      POSTIZ_API_URL: ${POSTIZ_API_URL:-https://api.postiz.com/public/v1}
+      STORAGE_API_URL: http://storage:5000
+      TEMPORAL_ADDRESS: temporal:7233
+    ports:
+      - '127.0.0.1:8081:8081'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+      temporal:
+        condition: service_healthy
+
 volumes:
   app_next_cache:
   app_node_modules:

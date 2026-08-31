@@ -100,6 +100,41 @@ The stack contains:
 - MinIO as the local R2-compatible object store.
 - Supabase Storage, PgBouncer, and Imgproxy in front of MinIO.
 
+### Go publishing services
+
+The Postiz publishing backend and orchestrator are an optional Compose profile.
+They share the application's Postgres publishing tables through Ent. Start and
+verify them with:
+
+```sh
+make publishing-up
+curl --fail http://localhost:8080/healthz
+curl --fail http://localhost:8081/healthz
+make publishing-test
+```
+
+For a service-level acceptance run, point the guarded test command at a fresh,
+empty PostgreSQL database. Its name must contain `acceptance` or `test`:
+
+```sh
+createdb publishing_acceptance
+PUBLISHING_ACCEPTANCE_DATABASE_URL='postgresql://localhost/publishing_acceptance?sslmode=disable' \
+  make publishing-acceptance
+```
+
+The acceptance run applies the real Prisma migration SQL, starts a local
+Temporal development server and both compiled Go services, and verifies their
+workflow, HTTP, Ent, storage, Postiz, and audit boundaries. Install the Temporal
+CLI before running it. The local Postiz protocol endpoint never publishes to a
+real social account.
+
+The backend is a server-to-server API and requires the local
+`PUBLISHING_SERVICE_TOKEN` for tenant operations. Each scheduled post starts one
+Temporal workflow named `post_<post-id>`; the workflow owns the durable timer,
+cancel signal, and rate-limit retry. Configure a Postiz key only when testing an
+actual publication. The Compose profile exposes Temporal gRPC on port 7233 and
+its local UI on http://localhost:8233.
+
 Supabase Storage is private. The server-only storage client creates object keys
 under `org/<organization-id>/<classification>/<asset-id>/<revision>/`. Local setup also generates
 Better Auth and audit secrets. Do not copy `.local/dev.env` to another

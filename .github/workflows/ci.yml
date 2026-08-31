@@ -13,6 +13,55 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  publishing-services:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PUBLISHING_ACCEPTANCE_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/publishing_acceptance?sslmode=disable
+    services:
+      postgres:
+        image: postgres:16-bookworm
+        env:
+          POSTGRES_DB: publishing_acceptance
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready --username=postgres --dbname=publishing_acceptance"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    defaults:
+      run:
+        working-directory: services
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/go.mod
+          cache-dependency-path: services/go.sum
+      - uses: temporalio/setup-temporal@9af5459e9d25cd191f5384fbd0659858e7633b23
+        with:
+          version: 1.8.2
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      - run: go generate ./ent
+      - name: Verify generated Ent client is current
+        run: git diff --exit-code -- ent
+      - name: Verify Go formatting
+        run: test -z "$(gofmt -l .)"
+      - run: go test ./...
+      - run: go test -race ./backend/internal/httpapi ./internal/postiz ./internal/publishing ./internal/storage ./internal/temporalpublishing
+      - run: go vet ./...
+      - name: Exercise publishing service interfaces
+        run: make acceptance
+      - name: Build publishing service images
+        working-directory: .
+        run: |
+          docker build --file services/backend/Dockerfile --tag screenshot-studio-publishing-backend:${{ github.sha }} services
+          docker build --file services/orchestrator/Dockerfile --tag screenshot-studio-publishing-orchestrator:${{ github.sha }} services
+
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 20

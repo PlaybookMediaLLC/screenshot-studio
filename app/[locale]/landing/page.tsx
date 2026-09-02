@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import { LandingPage } from '@/components/landing/LandingPage'
 
 export const metadata: Metadata = {
-  title: 'Screenshot Studio - Free Screenshot Beautifier & Mockup Tool',
+  title: 'Free Screenshot Beautifier & Mockup Tool',
   description:
     'Transform plain screenshots into professional graphics with Screenshot Studio. Create on-brand browser mockups, 3D effects, animations, and video exports with your team.',
   keywords: [

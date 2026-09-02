@@ -1,72 +1,52 @@
 # Contributing to Screenshot Studio
 
-Thanks for your interest in contributing! Here's what you need to know.
+## Setup
 
-## Getting Started
-
-### Prerequisites
-
-- **Node.js** 18+ and npm
-- **Git**
-- Basic knowledge of React, TypeScript, and Next.js
-
-### Setup
+Requires Node.js 20+ and npm.
 
 ```bash
-git clone https://github.com/your-username/screenshot-studio.git
+git clone https://github.com/<your-username>/screenshot-studio.git
 cd screenshot-studio
 make up
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [localhost:3000](http://localhost:3000). Core features work with no configuration. Copy `.env.example` to `.env.local` only if you need Cloudflare R2 asset storage, the Postgres screenshot cache, or analytics.
 
 See [local development](docs/local-development.md) for Compose, Trigger.dev,
 Supabase Storage, MinIO, and Kind commands.
 
-### Environment Variables (optional)
+## Scripts
 
-Create `.env.local` for optional features:
-
-```env
-# Cloudflare R2 (asset storage)
-R2_ACCESS_KEY_ID=your-access-key
-R2_SECRET_ACCESS_KEY=your-secret-key
-R2_BUCKET_NAME=your-bucket
-R2_ACCOUNT_ID=your-account-id
-
-# Database (screenshot caching)
-DATABASE_URL="postgresql://user:password@host:port/dbname"
-
-# Screenshot API (defaults to free Microlink API)
-SCREENSHOT_API_URL=https://api.microlink.io
+```bash
+npm run dev        # start dev server
+npm run build      # production build
+npm run lint       # eslint
+npm run lint:fix   # eslint --fix
+npm test           # node test runner (tests/*.test.ts)
 ```
-
-Core features work without any configuration.
 
 ## Project Structure
 
 ```
-screenshot-studio/
-├── app/                  # Next.js pages and API routes
-├── components/
-│   ├── canvas/           # HTML/CSS canvas rendering (frames, overlays, dimensions)
-│   ├── controls/         # Editor control panels
-│   ├── editor/           # Editor layout and header
-│   ├── export/           # Export dialogs and progress UI
-│   ├── landing/          # Landing page sections
-│   ├── overlays/         # Image/sticker overlays
-│   ├── templates/        # Template system
-│   ├── text-overlay/     # Text layer components
-│   ├── timeline/         # Animation timeline, tracks, playback
-│   └── ui/               # Shared UI primitives (Radix-based)
-├── lib/
-│   ├── store/            # Zustand state management
-│   ├── animation/        # Animation engine, presets, interpolation
-│   ├── export/           # Image & video export pipeline
-│   ├── constants/        # Backgrounds, presets, fonts
-│   └── seo/              # SEO data and JSON-LD
-├── hooks/                # Custom React hooks
-└── types/                # TypeScript definitions
+app/              Next.js routes, API routes, sitemap, robots
+  [locale]/       Marketing pages, editor (/), code image page (/code)
+components/
+  canvas/         Frames, overlays, canvas dimensions
+  controls/       Editor control panels
+  editor/         Editor layout and sections
+  export/         Export dialogs and progress UI
+  landing/        Landing page sections, Navigation, Footer
+  timeline/       Animation timeline and playback
+  ui/             Shared Radix-based primitives
+lib/
+  store/          Zustand state
+  animation/      Animation engine and presets
+  export/         Image and video export pipeline
+  constants/      Backgrounds, presets, fonts
+  seo/            Metadata, JSON-LD, comparison page data
+hooks/            Custom hooks
+types/            TypeScript definitions
+tests/            Node test files
 ```
 
 ## Coding Standards
@@ -104,31 +84,15 @@ local Docker stack, so local machines do not need a separate dependency setup.
 
 ## Common Tasks
 
-### Adding a New Control
-1. Create component in `components/controls/`
-2. Add to the appropriate editor panel
-3. Connect to Zustand store (`lib/store/`)
-4. Update types if needed
-
-### Adding a Browser Mockup Style
-1. Add toolbar component in `components/canvas/frames/BrowserToolbar.tsx`
-2. The toolbar is shared between 2D (`HTMLMainImageLayer`) and 3D (`Frame3DOverlay`) views
-3. Add frame type to `FrameConfig` in `Frame3DOverlay.tsx`
-4. Update `canvas-dimensions.ts` with header height for the new frame
-5. Add preview card in `components/editor/sections/BrowserMockupSection.tsx`
-
-### Adding a New Background
-1. Add definition to `lib/constants/backgrounds.ts`
-2. Update `BackgroundConfig` type if needed
-
-### Adding an Animation Preset
-1. Add preset to `lib/animation/presets.ts`
-2. Define keyframes with timing, properties, and easing
-3. Use `clonePresetTracks()` when applying to ensure unique IDs
-
-### Modifying Export Logic
-- Image export: `lib/export/export-service.ts`
-- Video export: `lib/export/video-encoder.ts`, `webcodecs-encoder.ts`, `ffmpeg-encoder.ts`
+| Task | Where |
+|------|-------|
+| New editor control | `components/controls/`, wire to `lib/store/` |
+| New browser mockup | `components/canvas/frames/BrowserToolbar.tsx`, `Frame3DOverlay.tsx`, `canvas-dimensions.ts`, `components/editor/sections/BrowserMockupSection.tsx` |
+| New background | `lib/constants/backgrounds.ts` |
+| New animation preset | `lib/animation/presets.ts`, use `clonePresetTracks()` when applying |
+| Export changes | `lib/export/export-service.ts`, `video-encoder.ts`, `webcodecs-encoder.ts`, `ffmpeg-encoder.ts` |
+| New SEO comparison page | Add an entry to `lib/seo/comparisons.ts`; the route and sitemap pick it up |
+| New marketing page | Add `app/[locale]/<path>/page.tsx` with `alternates.canonical`, then add the path to `app/sitemap.ts` |
 
 ## Submitting Changes
 
@@ -197,4 +161,4 @@ Include:
 
 ## License
 
-By contributing, your work is licensed under the same [Apache 2.0 License](./LICENSE) as the project.
+Contributions are licensed under [Apache 2.0](./LICENSE).

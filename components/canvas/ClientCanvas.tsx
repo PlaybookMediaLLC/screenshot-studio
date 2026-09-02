@@ -5,7 +5,8 @@ import { useEditorStore, useImageStore } from "@/lib/store";
 import { generatePattern } from "@/lib/patterns";
 import { useResponsiveCanvasDimensions } from "@/hooks/useAspectRatioDimensions";
 import { generateNoiseTexture } from "@/lib/export/export-utils";
-import { MockupRenderer } from "@/components/mockups/MockupRenderer";
+import { MockupSceneRenderer } from "@/components/mockups/MockupRenderer";
+import { useDeviceUIStore } from "@/lib/store/device-ui";
 import { calculateCanvasDimensions } from "./utils/canvas-dimensions";
 import { CanvasStageShell } from "./CanvasStageShell";
 import { Perspective3DOverlay } from "./overlays/Perspective3DOverlay";
@@ -24,6 +25,10 @@ import {
   HTMLGridLayer,
 } from "./html";
 import { CanvasRulers } from "./CanvasRulers";
+import {
+  hasVisibleMockups,
+  shouldRenderSourceImage,
+} from "@/lib/device-mockups/layouts";
 
 // Reference to the HTML canvas container for export
 let globalCanvasContainer: HTMLDivElement | null = null;
@@ -52,11 +57,13 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     textOverlays,
     imageOverlays,
     mockups,
+    editorMode,
     imageBorder,
     updateTextOverlay,
     updateImageOverlay,
     removeImageOverlay,
     addImageOverlay,
+    removeMockup,
     // Annotations
     annotations,
     activeAnnotationTool,
@@ -94,7 +101,10 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     opacity: imageBorder.opacity,
   };
 
-  const hasMockups = mockups.length > 0 && mockups.some((m) => m.isVisible);
+  const hasDeviceScene = editorMode === "device" && hasVisibleMockups(mockups);
+  const selectedDeviceId = useDeviceUIStore((state) => state.selectedDeviceId);
+  const setSelectedDeviceId = useDeviceUIStore((state) => state.setSelectedDeviceId);
+  const setEditingScreenDeviceId = useDeviceUIStore((state) => state.setEditingScreenDeviceId);
   const responsiveDimensions = useResponsiveCanvasDimensions();
 
   const [viewportSize, setViewportSize] = useState({
@@ -222,6 +232,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
         setSelectedTextId(null);
         setSelectedBlurId(null);
         setSelectedAnnotationId(null);
+        setSelectedDeviceId(null);
       }
     };
 
@@ -229,7 +240,16 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, true);
     };
-  }, [setSelectedAnnotationId]);
+  }, [setSelectedAnnotationId, setSelectedDeviceId]);
+
+  useEffect(() => {
+    if (!selectedDeviceId) return;
+    setSelectedOverlayId(null);
+    setIsMainImageSelected(false);
+    setSelectedTextId(null);
+    setSelectedBlurId(null);
+    setSelectedAnnotationId(null);
+  }, [selectedDeviceId, setSelectedAnnotationId]);
 
   // Keyboard shortcuts for delete and undo/redo
   useEffect(() => {
@@ -243,7 +263,11 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
 
       // Delete selected overlay or main image (only when not typing)
       if ((e.key === "Delete" || e.key === "Backspace") && !isTyping) {
-        if (selectedOverlayId) {
+        if (selectedDeviceId && editorMode === "device") {
+          e.preventDefault();
+          removeMockup(selectedDeviceId);
+          setSelectedDeviceId(null);
+        } else if (selectedOverlayId) {
           e.preventDefault();
           removeImageOverlay(selectedOverlayId);
           setSelectedOverlayId(null);
@@ -268,7 +292,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedOverlayId, removeImageOverlay, isMainImageSelected]);
+  }, [editorMode, isMainImageSelected, removeImageOverlay, removeMockup, selectedDeviceId, selectedOverlayId, setSelectedDeviceId]);
 
   // Get selected overlay for toolbar positioning
   const selectedOverlay = selectedOverlayId
@@ -419,6 +443,8 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setSelectedTextId(null);
     setSelectedBlurId(null);
     setSelectedAnnotationId(null);
+    setEditingScreenDeviceId(null);
+    setSelectedDeviceId(null);
   };
 
   return (
@@ -472,7 +498,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           noiseOpacity={noise.opacity}
         />
 
-        <Perspective3DOverlay
+        {!hasDeviceScene ? <Perspective3DOverlay
           has3DTransform={has3DTransform}
           perspective3D={perspective3D}
           screenshot={screenshot}
@@ -494,9 +520,9 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           image={image}
           imageOpacity={imageOpacity}
           imageFilters={imageFilters}
-        />
+        /> : null}
 
-        {has3DTransform && (
+        {!hasDeviceScene && has3DTransform && (
           <div
             onPointerDown={handle3DDragDown}
             style={{
@@ -527,7 +553,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           />
         )}
 
-        {!hasMockups && !has3DTransform && (
+        {!hasDeviceScene && !has3DTransform && (
           <>
             <SnapAlignmentGuides
               canvasW={canvasW}
@@ -563,12 +589,9 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           </>
         )}
 
-        {mockups.map((mockup) => (
-          <MockupRenderer
-            key={mockup.id}
-            mockup={mockup}
-          />
-        ))}
+        {hasDeviceScene ? (
+          <MockupSceneRenderer canvasWidth={canvasW} canvasHeight={canvasH} />
+        ) : null}
 
         <HTMLTextOverlayLayer
           textOverlays={textOverlays}
@@ -646,13 +669,17 @@ export default function ClientCanvas({
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [loadError, setLoadError] = useState(false);
   const { screenshot, setScreenshot } = useEditorStore();
-  const { uploadedImageUrl } = useImageStore();
+  const { uploadedImageUrl, editorMode, mockups } = useImageStore();
+  const hasDeviceScene = editorMode === "device" && hasVisibleMockups(mockups);
+  const hasSourceImage = !!screenshot.src
+    && !!uploadedImageUrl
+    && shouldRenderSourceImage(editorMode, mockups);
 
   // Load primary image from screenshot.src
   useEffect(() => {
     setLoadError(false);
 
-    if (!screenshot.src || !uploadedImageUrl) {
+    if (!hasSourceImage && !hasDeviceScene) {
       setImage(null);
       return;
     }
@@ -680,12 +707,14 @@ export default function ClientCanvas({
       setScreenshot({ src: null });
     };
 
-    img.src = screenshot.src;
+    img.src = hasSourceImage && screenshot.src
+      ? screenshot.src
+      : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='1200'/%3E";
 
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [screenshot.src, uploadedImageUrl, setScreenshot]);
+  }, [hasDeviceScene, hasSourceImage, screenshot.src, setScreenshot]);
 
   useEffect(() => {
     if (image) {
@@ -693,7 +722,7 @@ export default function ClientCanvas({
     }
   }, [image, onReady]);
 
-  if (loadError || !screenshot.src || !uploadedImageUrl) {
+  if (loadError || (!hasSourceImage && !hasDeviceScene)) {
     return null;
   }
 

@@ -38,6 +38,7 @@ import { SaveToWorkspaceButton } from '@/components/workspace/SaveToWorkspaceBut
 import { FeedbackWidget } from '@/components/FeedbackWidget'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { hasVisibleMockups, shouldRenderSourceImage } from '@/lib/device-mockups/layouts'
 
 export function EditorHeader() {
   const isMobile = useIsMobile()
@@ -46,6 +47,8 @@ export function EditorHeader() {
     selectedAspectRatio,
     slides,
     uploadedImageUrl,
+    editorMode,
+    mockups,
     clearImage,
     timeline,
     animationClips,
@@ -65,11 +68,14 @@ export function EditorHeader() {
   const [exportError, setExportError] = React.useState<string | null>(null)
 
   const currentAspectRatio = aspectRatios.find((ar) => ar.id === selectedAspectRatio)
-  const hasImage = !!screenshot.src
+  const hasImage =
+    (!!screenshot.src && shouldRenderSourceImage(editorMode, mockups)) ||
+    (editorMode === 'device' && hasVisibleMockups(mockups))
 
   // Undo/redo state
   const [canUndo, setCanUndo] = React.useState(false)
   const [canRedo, setCanRedo] = React.useState(false)
+  const showHistoryControls = hasImage || canUndo || canRedo
 
   React.useEffect(() => {
     const updateTemporalState = () => {
@@ -187,7 +193,7 @@ export function EditorHeader() {
             isMobile ? 'gap-1' : 'gap-2.5'
           )}
         >
-          {hasImage ? (
+          {showHistoryControls ? (
             <div className="flex items-center gap-1">
               <button
                 onClick={handleUndo}
@@ -412,7 +418,7 @@ export function EditorHeader() {
               </PopoverContent>
             </Popover>
 
-            {showVideoExport && !isMobile ? (
+            {hasImage && showVideoExport && !isMobile ? (
               <Button
                 onClick={() => setExportSlideshowOpen(true)}
                 size="sm"

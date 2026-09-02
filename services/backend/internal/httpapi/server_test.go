@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -78,7 +79,8 @@ func TestCreateScheduledPost(t *testing.T) {
 	store := &fakeStore{}
 	scheduler := &fakeScheduler{}
 	handler := New(store, scheduler, "secret")
-	body := `{"caption":"hello","channelConnectionId":"connection-1","idempotencyKey":"request-1","scheduledFor":"2026-08-31T12:00:00Z","variantId":"variant-1"}`
+	scheduledFor := time.Now().UTC().Add(24 * time.Hour).Truncate(time.Second)
+	body := fmt.Sprintf(`{"caption":"hello","channelConnectionId":"connection-1","idempotencyKey":"request-1","scheduledFor":%q,"variantId":"variant-1"}`, scheduledFor.Format(time.RFC3339))
 	request := httptest.NewRequest(http.MethodPost, "/v1/scheduled-posts", strings.NewReader(body))
 	request.Header.Set("Authorization", "Bearer secret")
 	request.Header.Set("X-Organization-ID", "org-1")
@@ -88,7 +90,7 @@ func TestCreateScheduledPost(t *testing.T) {
 	if response.Code != http.StatusCreated {
 		t.Fatalf("status = %d body=%s", response.Code, response.Body.String())
 	}
-	if store.scheduled.Caption != "hello" || !store.scheduled.ScheduledFor.Equal(time.Date(2026, 8, 31, 12, 0, 0, 0, time.UTC)) {
+	if store.scheduled.Caption != "hello" || !store.scheduled.ScheduledFor.Equal(scheduledFor) {
 		t.Fatalf("unexpected scheduled input: %#v", store.scheduled)
 	}
 	if scheduler.started.PostID != "post-1" || scheduler.started.OrganizationID != "org-1" {

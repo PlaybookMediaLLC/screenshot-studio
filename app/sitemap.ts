@@ -1,26 +1,11 @@
 import { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo/metadata";
-import { locales } from "@/i18n/routing";
 import { getAllComparisonSlugs } from "@/lib/seo/comparisons";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = SITE_URL;
-  const now = new Date();
 
   const comparisonSlugs = getAllComparisonSlugs();
-
-  function buildAlternates(path: string) {
-    const languages: Record<string, string> = {};
-    for (const locale of locales) {
-      if (locale === "en") {
-        languages[locale] = `${baseUrl}${path}`;
-      } else {
-        languages[locale] = `${baseUrl}/${locale}${path}`;
-      }
-    }
-    languages["x-default"] = `${baseUrl}${path}`;
-    return { languages };
-  }
 
   const staticPages: {
     path: string;
@@ -35,6 +20,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    { path: "/code", changeFrequency: "weekly", priority: 0.9 },
 
     // Features
     { path: "/features", changeFrequency: "monthly", priority: 0.8 },
@@ -60,6 +46,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       path: "/features/browser-mockups",
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      path: "/features/code-snippets",
       changeFrequency: "monthly",
       priority: 0.8,
     },
@@ -90,59 +81,26 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const entries: MetadataRoute.Sitemap = [];
 
-  // Static pages — default locale (en) URLs + alternates for all locales
   for (const page of staticPages) {
     entries.push({
       url: `${baseUrl}${page.path}`,
-      lastModified: now,
       changeFrequency: page.changeFrequency,
       priority: page.priority,
-      alternates: buildAlternates(page.path),
     });
-  }
-
-  // Non-default locale versions of static pages
-  for (const locale of locales) {
-    if (locale === "en") continue;
-    for (const page of staticPages) {
-      entries.push({
-        url: `${baseUrl}/${locale}${page.path}`,
-        lastModified: now,
-        changeFrequency: page.changeFrequency,
-        priority: page.priority,
-        alternates: buildAlternates(page.path),
-      });
-    }
   }
 
   entries.push({
     url: `${baseUrl}/api-reference`,
-    lastModified: now,
     changeFrequency: "monthly",
     priority: 0.8,
   });
 
-  // Comparison pages (dynamic, same pattern)
   for (const slug of comparisonSlugs) {
-    const path = `/compare/${slug}`;
     entries.push({
-      url: `${baseUrl}${path}`,
-      lastModified: now,
+      url: `${baseUrl}/compare/${slug}`,
       changeFrequency: "monthly",
       priority: 0.8,
-      alternates: buildAlternates(path),
     });
-
-    for (const locale of locales) {
-      if (locale === "en") continue;
-      entries.push({
-        url: `${baseUrl}/${locale}${path}`,
-        lastModified: now,
-        changeFrequency: "monthly",
-        priority: 0.8,
-        alternates: buildAlternates(path),
-      });
-    }
   }
 
   return entries;

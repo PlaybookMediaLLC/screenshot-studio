@@ -75,9 +75,10 @@ conversation.
 - **100+ backgrounds** — gradients, solid colors, images, blur, noise
 - **Browser mockups** — Safari and Chrome (light/dark) with realistic toolbars and custom URL
 - **Device frames** — Arc browser, Polaroid, glass, outline, border styles
+- **Device mockups** — iPhone, MacBook, and Apple Watch shells with drag, rotate, and screen crop
 - **3D transforms** — 30+ perspective presets with realistic depth
 - **Draw and markup** — arrows, shapes, blur regions, text overlays
-- **Tweet and code snippets** — import tweets, generate code images
+- **Tweet and code snippets** — import tweets, standalone code image editor at `/code` with syntax themes and shareable links
 - **Animations** — 20+ presets, timeline editor, keyframe control
 - **Video export** — MP4, WebM, GIF with hardware-accelerated encoding
 - **High-res export** — PNG/JPG up to 5x scale, fully in-browser
@@ -234,7 +235,7 @@ npm install
 npm run dev
 ```
 
-Open [localhost:3000](http://localhost:3000).
+Open [localhost:3000](http://localhost:3000). Core features need no environment variables; see `.env.example` for optional R2, database, and analytics config.
 
 ## Agent and API discovery
 

@@ -6,6 +6,7 @@ import {
   CubeIcon,
   MagicWand01Icon,
   Share08Icon,
+  SourceCodeIcon,
   Video01Icon,
 } from "hugeicons-react";
 import { Navigation } from "@/components/landing/Navigation";
@@ -13,9 +14,9 @@ import { Footer } from "@/components/landing/Footer";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = {
-  title: "Features - Screenshot Studio | All Tools & Capabilities",
+  title: "Features: Screenshot & Mockup Tools",
   description:
-    "Explore all Screenshot Studio features: screenshot beautifier, browser mockups, social media graphics, animation creator, and 3D effects. Free browser-based tools.",
+    "All Screenshot Studio features: screenshot beautifier, browser mockups, app and UI mockups, social media graphics, animations, and 3D effects. Free, no signup.",
   keywords: [
     "screenshot editor features",
     "image editing tools",
@@ -29,6 +30,40 @@ export const metadata: Metadata = {
     "image background remover alternative",
     "screenshot gradient background",
     "screenshot presentation tool",
+    "mockup screenshot",
+    "mockup online",
+    "mockup screen",
+    "mockups ui",
+    "mockup ui ux",
+    "app mockup generator",
+    "ui mockup generator",
+    "shots app alternative",
+    "shots net alternative",
+    "moqups alternative",
+    "previewed app alternative",
+    "appshots alternative",
+    "goodmockups alternative",
+    "mockup me alternative",
+    "mockup generator",
+    "free mockup generator",
+    "mockup generator free",
+    "mockup online generator",
+    "mockup online editor",
+    "mockup editor online free",
+    "mockup design online",
+    "mockup free online",
+    "free online mockup generator no watermark",
+    "free mockup generator without watermark",
+    "app mockup generator",
+    "website mockup generator",
+    "free website mockup generator",
+    "website mockup generator from url",
+    "laptop mockup generator",
+    "product mockup generator",
+    "free online 3d mockup generator",
+    "best mockup generator",
+    "best online mockup generator",
+    "mockup app",
   ],
   openGraph: {
     ...OG_DEFAULTS,
@@ -91,6 +126,14 @@ const features = [
       "Add realistic Safari and Chrome browser frames to screenshots. Light and dark modes with custom URL.",
     href: "/features/browser-mockups",
     keywords: ["Safari", "Chrome", "browser frame", "URL bar"],
+  },
+  {
+    icon: SourceCodeIcon,
+    title: "Code Images",
+    description:
+      "Turn code into beautiful, shareable images. Syntax themes, gradient backgrounds, line numbers, and a window frame.",
+    href: "/features/code-snippets",
+    keywords: ["syntax highlighting", "gradients", "line numbers", "shareable links"],
   },
 ] as const;
 
@@ -174,6 +217,38 @@ export default function FeaturesPage() {
                   </span>
                 </Link>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="border-t border-border px-6 py-20">
+          <div className="mx-auto max-w-3xl">
+            <h2
+              className="mb-6 text-3xl font-semibold tracking-[-0.03em] text-foreground"
+              style={{ fontFamily: INTER }}
+            >
+              Mockups for Every Screen
+            </h2>
+            <div className="space-y-4 text-muted-foreground">
+              <p>
+                Screenshot Studio is a free mockup maker that runs entirely in
+                your browser. Drop in a screenshot of an app, website, or UI
+                design and turn it into a polished mockup online in seconds. No
+                account, no watermark, and nothing to install.
+              </p>
+              <p>
+                Wrap any screen in a Safari or Chrome browser mockup, place it on
+                a gradient or solid background, and add shadows, padding, and
+                rounded corners. Tilt it in 3D for a perspective mockup, or
+                animate it into a short product video for a launch post.
+              </p>
+              <p>
+                It works for UI and UX mockups, app store screenshots, landing
+                page hero images, README previews, and social media graphics. If
+                you have used tools like Shots, Moqups, Previewed, AppShots, or
+                Pika Style, you will feel at home, except everything here is
+                free and open source.
+              </p>
             </div>
           </div>
         </section>

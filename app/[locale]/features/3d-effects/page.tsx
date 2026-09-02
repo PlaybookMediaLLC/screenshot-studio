@@ -11,10 +11,13 @@ import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 
 export const metadata: Metadata = {
-  title: "Free 3D Screenshot Effects - Add Perspective & Depth",
+  title: "3D Screenshot Effects & Mockups",
   description:
     "Add stunning 3D effects to screenshots. Perspective tilt, rotation, depth shadows, and realistic lighting. Transform flat images into eye-catching 3D mockups.",
   keywords: [
+    "free online 3d mockup generator",
+    "3d mockup generator",
+    "laptop mockup generator",
     "3d screenshot effects",
     "3d image editor",
     "perspective screenshot",

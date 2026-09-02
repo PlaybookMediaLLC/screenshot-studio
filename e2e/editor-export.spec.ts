@@ -27,7 +27,7 @@ test('an authenticated user can upload an image and export a PNG', async ({ iden
 
   const save = page.getByRole('button', { exact: true, name: 'Save' })
   await save.click()
-  await page.getByRole('tab', { exact: true, name: 'PNG' }).click()
+  await page.getByRole('button', { exact: true, name: 'PNG' }).click()
   const exportButton = page.getByRole('button', { name: 'Export as PNG' })
   await expect(exportButton).toBeVisible()
 
@@ -47,7 +47,7 @@ test('an authenticated user can prepare a social aspect ratio, style it, and cle
   await page.getByRole('button', { name: /Post\s+1:1/ }).click()
   await expect(page.getByRole('banner').getByRole('button', { name: /1:1/ })).toBeVisible()
 
-  await page.getByRole('tab', { name: 'BG' }).click()
+  await page.getByRole('button', { exact: true, name: 'BG' }).click()
   await expect(page.getByText('Custom Background', { exact: true })).toBeVisible()
   await page.getByRole('button', { exact: true, name: 'Transparent' }).click()
 

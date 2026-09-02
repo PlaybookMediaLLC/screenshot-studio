@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.6.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.5.0...v1.6.0) (2026-09-02)
+
+
+### Features
+
+* add device mockups ([d20c7bd](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/d20c7bdfd128e79a5ed560035ecbcd8b624c24a4))
+* add device mockups ([7b2f9f7](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/7b2f9f76711a1c6ce15584d94e15daac50457f65))
+
+
+### Bug Fixes
+
+* **publishing:** stop TestCreateScheduledPost expiring on a hardcoded date ([f6dab02](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/f6dab022ad6ddc8a1a781c12d8c2824b51f4f394))
+
 ## [1.5.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.4.0...v1.5.0) (2026-08-31)
 
 

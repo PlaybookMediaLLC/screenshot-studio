@@ -273,38 +273,6 @@ function SlideCard({
           </span>
         ) : null}
       </button>
-      {!disabled ? (
-        <div className="absolute right-2 top-2 z-20 flex gap-1 rounded-md border border-foreground/10 bg-background/90 p-1 shadow-sm backdrop-blur-sm">
-          <button
-            type="button"
-            disabled={index === 0}
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.stopPropagation();
-              onMove(-1);
-            }}
-            aria-label={`Move screenshot ${index + 1} left`}
-            title="Move left"
-            className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-foreground/[0.07] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30 disabled:pointer-events-none disabled:opacity-30"
-          >
-            <ArrowLeft02Icon size={13} />
-          </button>
-          <button
-            type="button"
-            disabled={index === project.slides.length - 1}
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.stopPropagation();
-              onMove(1);
-            }}
-            aria-label={`Move screenshot ${index + 1} right`}
-            title="Move right"
-            className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-foreground/[0.07] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30 disabled:pointer-events-none disabled:opacity-30"
-          >
-            <ArrowRight02Icon size={13} />
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }

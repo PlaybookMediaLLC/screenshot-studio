@@ -18,6 +18,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StoreScreenshotsShortcut } from "@/components/store-screenshots/StoreScreenshotsFeatureCard";
 import { STORE_SHORTCUT_GAP } from "@/lib/store-screenshots/config";
+import { TEMPLATE_DEMO_IMAGE_NAME } from "@/lib/templates/demo-media";
 
 export function EditorCanvas() {
   const isMobile = useIsMobile();
@@ -31,6 +32,7 @@ export function EditorCanvas() {
     isPreviewing,
     stopPreview,
     uploadedImageUrl,
+    imageName,
     showTimeline,
     editorMode,
     mockups,
@@ -136,7 +138,7 @@ export function EditorCanvas() {
           )}
           style={isMobile ? undefined : { rowGap: STORE_SHORTCUT_GAP }}
         >
-          {!isMobile ? (
+          {!isMobile && imageName !== TEMPLATE_DEMO_IMAGE_NAME ? (
             <div className="shrink-0">
               <StoreScreenshotsShortcut />
             </div>

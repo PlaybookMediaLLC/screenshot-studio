@@ -177,63 +177,65 @@ function EditorMain() {
         </div>
       )}
 
-      <div className="flex-1 flex overflow-hidden">
-        {!isMobile && <LeftEditPanel />}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          {!isMobile && <LeftEditPanel />}
 
-        <div className="flex-1 flex flex-col overflow-hidden bg-background relative min-w-0">
-          <div
-            className={cn(
-              "flex-1 flex items-center justify-center overflow-y-auto overflow-x-hidden relative min-h-0",
-              // Dock space for the Animate chip so portrait stages don't sit under it
-              hasContent && !showTimeline && !isMobile && "pb-14"
-            )}
-          >
-            <EditorContent>
-              <EditorCanvas />
-            </EditorContent>
+          <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
+            <div
+              className={cn(
+                "relative flex min-h-0 flex-1 items-center justify-center overflow-hidden",
+                // Dock space for the Animate chip so portrait stages don't sit under it
+                hasContent && !showTimeline && !isMobile && "pb-14"
+              )}
+            >
+              <EditorContent>
+                <EditorCanvas />
+              </EditorContent>
 
-            <TemplateMediaPrompt />
+              <TemplateMediaPrompt />
 
-            {hasContent && !showTimeline && !isMobile && (
-              <button
-                type="button"
-                onClick={toggleTimeline}
-                className={cn(
-                  'absolute bottom-3 left-1/2 z-20 -translate-x-1/2',
-                  'inline-flex h-9 cursor-pointer items-center gap-2 rounded-md px-4',
-                  'bg-card text-sm font-medium text-foreground',
-                  'border border-foreground/10',
-                  'shadow-lg',
-                  'transition-all duration-150 ease-out',
-                  'hover:bg-muted hover:border-foreground/15',
-                  'active:scale-[0.98]'
-                )}
-              >
-                <VideoReplayIcon size={15} className="text-foreground" />
-                <span>Animate</span>
-              </button>
-            )}
+              {hasContent && !showTimeline && !isMobile && (
+                <button
+                  type="button"
+                  onClick={toggleTimeline}
+                  className={cn(
+                    'absolute bottom-3 left-1/2 z-20 -translate-x-1/2',
+                    'inline-flex h-9 cursor-pointer items-center gap-2 rounded-md px-4',
+                    'bg-card text-sm font-medium text-foreground',
+                    'border border-foreground/10',
+                    'shadow-lg',
+                    'transition-all duration-150 ease-out',
+                    'hover:bg-muted hover:border-foreground/15',
+                    'active:scale-[0.98]'
+                  )}
+                >
+                  <VideoReplayIcon size={15} className="text-foreground" />
+                  <span>Animate</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {hasContent && showTimeline && !isMobile && <TimelineEditor />}
+          {!isMobile && <RightSettingsPanel />}
+
+          {isMobile && (
+            <Sheet open={mobileSheetOpen} onOpenChange={handleMobileSheetOpenChange}>
+              <SheetContent
+                side="left"
+                showCloseButton={false}
+                className="h-full w-full max-w-[min(100%,460px)] gap-0 overflow-hidden p-0 sm:max-w-[min(100%,460px)]"
+              >
+                <SheetTitle className="sr-only">Editor settings</SheetTitle>
+                <UnifiedRightPanel
+                  onClose={() => handleMobileSheetOpenChange(false)}
+                />
+              </SheetContent>
+            </Sheet>
+          )}
         </div>
 
-        {!isMobile && <RightSettingsPanel />}
-
-        {isMobile && (
-          <Sheet open={mobileSheetOpen} onOpenChange={handleMobileSheetOpenChange}>
-            <SheetContent
-              side="left"
-              showCloseButton={false}
-              className="h-full w-full max-w-[min(100%,460px)] gap-0 overflow-hidden p-0 sm:max-w-[min(100%,460px)]"
-            >
-              <SheetTitle className="sr-only">Editor settings</SheetTitle>
-              <UnifiedRightPanel
-                onClose={() => handleMobileSheetOpenChange(false)}
-              />
-            </SheetContent>
-          </Sheet>
-        )}
+        {hasContent && showTimeline && !isMobile && <TimelineEditor />}
       </div>
     </div>
   );

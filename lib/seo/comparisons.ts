@@ -16,6 +16,11 @@ export interface ComparisonData {
   }[];
   verdict: string;
   faqs: { q: string; a: string }[];
+  /**
+   * Where the page's calls to action point. Defaults to the editor; a
+   * comparison against a single-purpose tool links to our matching tool.
+   */
+  cta?: { href: string; label: string };
 }
 
 export const comparisons: ComparisonData[] = [
@@ -526,6 +531,69 @@ export const comparisons: ComparisonData[] = [
         a: "No. Xnapper is macOS only. Screenshot Studio works in any modern browser on Windows, macOS, Linux, and ChromeOS, so you get the same beautified screenshots without installing anything.",
       },
     ],
+  },
+  {
+    slug: "remove-bg",
+    competitorName: "remove.bg",
+    competitorUrl: "https://www.remove.bg",
+    tagline:
+      "Screenshot Studio removes backgrounds on your own device and gives you the full-resolution PNG for free, with no upload and no credits.",
+    metaTitle: "Screenshot Studio vs remove.bg - Free Private Alternative (2026)",
+    metaDescription:
+      "Screenshot Studio vs remove.bg: remove backgrounds on your device and download full-resolution transparent PNGs free. No upload, no credits, no signup.",
+    keywords: [
+      "remove.bg alternative",
+      "remove bg alternative free",
+      "remove.bg free alternative",
+      "screenshot studio vs remove.bg",
+      "remove.bg alternative no upload",
+      "remove.bg full resolution free",
+      "remove.bg moving to canva alternative",
+      "private background remover",
+    ],
+    competitorPricing: "Free previews up to 0.25 MP; 1 credit per high-resolution image",
+    competitorLimitations: [
+      "Free downloads are previews of up to 0.25 megapixels",
+      "Each high-resolution download uses a paid credit",
+      "Images are processed on remote servers",
+      "Standalone site is being migrated into Canva",
+    ],
+    studioAdvantages: [
+      "Full-resolution transparent PNG for free",
+      "Runs on your device, the image is never uploaded",
+      "Works offline once the model is cached",
+      "No credits, signup, or watermark",
+      "Crisp and soft edge styles with a comparison slider",
+      "Open source",
+    ],
+    features: [
+      { name: "Price", studio: "Free forever", competitor: "Free previews, credits for HD" },
+      { name: "Free Output Resolution", studio: "Original resolution", competitor: "Up to 0.25 MP preview" },
+      { name: "Maximum Resolution", studio: "Original image, up to 50 MB file", competitor: "Up to 50 MP with credits" },
+      { name: "Where Processing Happens", studio: "On your device", competitor: "remove.bg servers" },
+      { name: "Image Upload", studio: "Never", competitor: "Required" },
+      { name: "Works Offline", studio: "Yes, after first load", competitor: "Not available" },
+      { name: "API and Apps", studio: "Not available", competitor: "Yes, credit based" },
+      { name: "Screenshot and Mockup Editor", studio: "Included", competitor: "Not available" },
+      { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "No" },
+    ],
+    verdict:
+      "remove.bg is a mature service with apps, an API, and server-side models that handle difficult hair detail well, but free downloads are low-resolution previews. Screenshot Studio is the better fit when you want full-resolution cutouts for free, or when a photo should never leave your device.",
+    faqs: [
+      {
+        q: "Is Screenshot Studio a good remove.bg alternative?",
+        a: "Yes, for everyday cutouts. Screenshot Studio removes backgrounds with an AI model that runs in your browser and returns a transparent PNG at the original resolution for free. remove.bg's free downloads are previews of up to 0.25 megapixels, and high-resolution downloads use credits.",
+      },
+      {
+        q: "Does Screenshot Studio upload my image?",
+        a: "No. The image is processed on your device. The only network request is a one-time download of the model weights from Hugging Face, which contains no image data. remove.bg processes images on its own servers.",
+      },
+      {
+        q: "When should I still use remove.bg?",
+        a: "When you need an API or its apps, or the best possible detail on hard cases like fine hair against a busy background. Its server-side models are not limited by what a browser can run.",
+      },
+    ],
+    cta: { href: "/remove-background", label: "Remove a Background Free" },
   },
 ];
 

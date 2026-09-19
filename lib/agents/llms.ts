@@ -18,6 +18,7 @@ Screenshot Studio is a client-side image editor: imported images are not uploade
 - Video export in MP4, WebM, and GIF
 - Text and image overlays with custom fonts
 - Tweet-to-image and code-snippet-to-image capture
+- On-device AI background remover with full-resolution transparent PNG output (${BASE_URL}/remove-background)
 - High-resolution export up to 5x scale (PNG, JPEG, WebP)
 - One-click professional styling presets
 - Aspect ratio presets for every social platform
@@ -39,12 +40,14 @@ Single-purpose utilities that run entirely in the browser (Canvas plus Web Worke
 - Landing: ${BASE_URL}/landing
 - Free Screenshot Editor: ${BASE_URL}/free-screenshot-editor
 - Image Tools Hub: ${BASE_URL}/tools
+- Remove Background: ${BASE_URL}/remove-background
 - Features: ${BASE_URL}/features
 - Screenshot Beautifier: ${BASE_URL}/features/screenshot-beautifier
 - Social Media Graphics: ${BASE_URL}/features/social-media-graphics
 - Animation Maker: ${BASE_URL}/features/animation-maker
 - 3D Effects: ${BASE_URL}/features/3d-effects
 - Browser Mockups: ${BASE_URL}/features/browser-mockups
+- Background Remover: ${BASE_URL}/features/background-remover
 - For Developers: ${BASE_URL}/for/developers
 - For Marketers: ${BASE_URL}/for/marketers
 - For Designers: ${BASE_URL}/for/designers
@@ -79,6 +82,7 @@ Available in 8 languages: English (default), Spanish (/es), French (/fr), German
 - vs Pika Style: ${BASE_URL}/compare/pika-style
 - vs Shots.so: ${BASE_URL}/compare/shots-so
 - vs Snagit: ${BASE_URL}/compare/snagit
+- vs remove.bg: ${BASE_URL}/compare/remove-bg
 
 ## Pricing
 
@@ -214,6 +218,7 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 | Landing | ${BASE_URL}/landing | Product landing page with overview |
 | Free Screenshot Editor | ${BASE_URL}/free-screenshot-editor | SEO landing page for free editor |
 | Image Tools Hub | ${BASE_URL}/tools | Index of the standalone image utilities |
+| Remove Background | ${BASE_URL}/remove-background | On-device AI background remover that exports a transparent PNG |
 
 ### Image Tools
 Standalone, single-purpose utilities. Each decodes, processes, and re-encodes the image locally with Canvas and a Web Worker, and calls no API. Batch input downloads as one zip.
@@ -241,6 +246,7 @@ Standalone, single-purpose utilities. Each decodes, processes, and re-encodes th
 | Animation Maker | ${BASE_URL}/features/animation-maker | Animation timeline and video export |
 | 3D Effects | ${BASE_URL}/features/3d-effects | Perspective and depth effects |
 | Browser Mockups | ${BASE_URL}/features/browser-mockups | Safari, Chrome, Arc frames |
+| Background Remover | ${BASE_URL}/features/background-remover | On-device AI background removal overview |
 
 ### Audience Pages
 | Page | URL | Description |
@@ -255,6 +261,7 @@ Standalone, single-purpose utilities. Each decodes, processes, and re-encodes th
 | vs Pika Style | ${BASE_URL}/compare/pika-style | Feature comparison with Pika Style |
 | vs Shots.so | ${BASE_URL}/compare/shots-so | Feature comparison with Shots.so |
 | vs Snagit | ${BASE_URL}/compare/snagit | Feature comparison with Snagit |
+| vs remove.bg | ${BASE_URL}/compare/remove-bg | Background remover comparison with remove.bg |
 
 ### Company
 | Page | URL | Description |

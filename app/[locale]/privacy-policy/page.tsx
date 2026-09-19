@@ -135,6 +135,25 @@ export default function PrivacyPolicyPage() {
                 fetch the post content that gets rendered on your canvas.
               </li>
               <li>
+                <strong className="text-foreground">
+                  Removing a background:
+                </strong>{" "}
+                the image is processed entirely in your browser and is never
+                uploaded. The first time you use it, your browser downloads the
+                AI model files directly from{" "}
+                <Link
+                  href="https://huggingface.co"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkClassName}
+                >
+                  Hugging Face
+                </Link>
+                , which receives a standard file request (including your IP
+                address) but no image data. The model is then cached in your
+                browser.
+              </li>
+              <li>
                 <strong className="text-foreground">Remote images:</strong>{" "}
                 images referenced by URL are fetched through our image proxy,
                 which is restricted to an allowlist of hosts.

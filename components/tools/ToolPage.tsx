@@ -138,6 +138,10 @@ export function ToolPage({ tool }: ToolPageProps) {
               and annotations. You can also browse{" "}
               <Link href={TOOLS_HUB_PATH} className="underline">
                 every image tool
+              </Link>{" "}
+              or{" "}
+              <Link href="/remove-background" className="underline">
+                remove an image background
               </Link>
               .
             </p>

@@ -90,6 +90,7 @@ export default async function ComparisonPage({ params }: PageProps) {
   if (!data) notFound();
 
   const otherComparisons = comparisons.filter((c) => c.slug !== slug);
+  const cta = data.cta ?? { href: "/", label: "Try Screenshot Studio Free" };
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -174,8 +175,8 @@ export default async function ComparisonPage({ params }: PageProps) {
             <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground md:text-xl">
               {data.tagline}
             </p>
-            <Link href="/" className={ctaClassName}>
-              Try Screenshot Studio Free
+            <Link href={cta.href} className={ctaClassName}>
+              {cta.label}
             </Link>
           </div>
         </section>
@@ -350,11 +351,12 @@ export default async function ComparisonPage({ params }: PageProps) {
               Try Screenshot Studio Free
             </h2>
             <p className="mb-8 text-lg text-muted-foreground">
-              No signup. No downloads. No watermarks. Open the editor and see
-              the difference.
+              {data.cta
+                ? "No signup. No uploads. No watermarks. Try it on your own image."
+                : "No signup. No downloads. No watermarks. Open the editor and see the difference."}
             </p>
-            <Link href="/" className={ctaClassName}>
-              Open Free Editor
+            <Link href={cta.href} className={ctaClassName}>
+              {data.cta ? cta.label : "Open Free Editor"}
             </Link>
           </div>
         </section>

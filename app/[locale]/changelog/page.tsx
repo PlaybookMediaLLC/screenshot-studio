@@ -40,6 +40,27 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
   {
+    date: "September 17, 2026",
+    version: "2.7.0",
+    title: "Background Remover",
+    description:
+      "Remove image backgrounds with an AI model that runs on your device, and download a full-resolution transparent PNG at /remove-background.",
+    changes: [
+      {
+        type: "added",
+        text: "Standalone Background Remover at /remove-background, powered by BiRefNet-lite running in the browser",
+      },
+      {
+        type: "added",
+        text: "WebGPU acceleration with an automatic WebAssembly fallback, and a model cache so later images work offline",
+      },
+      {
+        type: "added",
+        text: "Crisp and soft edge styles that switch instantly, plus a before and after comparison slider",
+      },
+    ],
+  },
+  {
     date: "August 30, 2026",
     version: "2.6.0",
     title: "Code Images",

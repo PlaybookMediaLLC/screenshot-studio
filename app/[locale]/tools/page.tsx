@@ -140,7 +140,11 @@ export default function ToolsHubPage() {
               <Link href="/code" className="underline">
                 Code Images
               </Link>{" "}
-              does the same for code snippets.
+              does the same for code snippets. Need a cutout? The{" "}
+              <Link href="/remove-background" className="underline">
+                Background Remover
+              </Link>{" "}
+              turns any photo into a transparent PNG on your device.
             </p>
           </div>
         </section>

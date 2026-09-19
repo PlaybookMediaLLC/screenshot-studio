@@ -47,6 +47,24 @@ const nextConfig: NextConfig = {
           { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
         ],
       },
+      // Cross-origin isolation lets the background remover run ONNX WASM
+      // multi-threaded. credentialless still allows the Hugging Face model fetch.
+      {
+        source: "/:locale(es|fr|de|ja|pt|ko|zh)?/remove-background",
+        headers: [
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
+        ],
+      },
+      // A module worker started from an isolated page is blocked unless its own
+      // script response carries a compatible COEP. The header is inert on
+      // ordinary scripts, so it is safe on every static chunk.
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
+        ],
+      },
     ];
   },
 
@@ -107,8 +125,17 @@ const nextConfig: NextConfig = {
   },
 
   // REQUIRED for react-konva
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.externals = [...(config.externals || []), { canvas: "canvas" }];
+    if (!isServer) {
+      // transformers.js (background remover) references Node-only backends
+      // that must never be bundled for the browser. Server code still uses sharp.
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        "sharp$": false,
+        "onnxruntime-node$": false,
+      };
+    }
     return config;
   },
 

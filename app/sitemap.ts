@@ -27,6 +27,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     { path: "/code", changeFrequency: "weekly", priority: 0.9 },
+    { path: "/remove-background", changeFrequency: "weekly", priority: 0.9 },
     { path: TOOLS_HUB_PATH, changeFrequency: "weekly", priority: 0.9 },
 
     // Features
@@ -58,6 +59,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       path: "/features/code-snippets",
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      path: "/features/background-remover",
       changeFrequency: "monthly",
       priority: 0.8,
     },

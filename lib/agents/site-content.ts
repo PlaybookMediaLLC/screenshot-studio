@@ -53,6 +53,19 @@ export const AGENT_PAGES: AgentPage[] = [
     ],
   },
   {
+    path: "/remove-background",
+    title: "Remove Background from Image: Free, Private, No Upload - Screenshot Studio",
+    summary:
+      "A standalone background remover. Drop in a PNG, JPG, WebP, or AVIF image and download a transparent PNG at the original resolution. The BiRefNet-lite model runs on the device with WebGPU, falling back to WebAssembly; the weights download once from Hugging Face and are cached, and the image itself is never uploaded. No signup, no watermark.",
+    points: [
+      "On-device AI background removal, no image upload",
+      "WebGPU acceleration with an automatic WebAssembly fallback",
+      "Crisp or soft edge styles, switchable without rerunning the model",
+      "Before and after comparison slider",
+      "PNG, JPG, WebP, and AVIF input up to 50 MB",
+    ],
+  },
+  {
     path: TOOLS_HUB_PATH,
     title: "Free Online Image Tools - Screenshot Studio",
     summary:
@@ -106,6 +119,12 @@ export const AGENT_PAGES: AgentPage[] = [
     title: "Code to Image Generator: Free Code Screenshots - Screenshot Studio",
     summary:
       "Marketing overview of the code to image tool: syntax themes, gradient backgrounds, line numbers, window frame, and shareable links, positioned as a free ray.so and carbon.now.sh alternative.",
+  },
+  {
+    path: "/features/background-remover",
+    title: "AI Background Remover: Free, Private, On-Device - Screenshot Studio",
+    summary:
+      "Marketing overview of the background remover at /remove-background: on-device BiRefNet-lite inference with WebGPU or WebAssembly, full-resolution transparent PNG output with no credits or watermark, and no image upload. Positioned as a free, private remove.bg alternative.",
   },
   {
     path: "/for/developers",
@@ -215,6 +234,12 @@ export const AGENT_PAGES: AgentPage[] = [
     path: "/compare/screely",
     title: "Screenshot Studio vs Screely",
     summary: "Feature-by-feature comparison with Screely.",
+  },
+  {
+    path: "/compare/remove-bg",
+    title: "Screenshot Studio vs remove.bg",
+    summary:
+      "Background remover comparison with remove.bg: on-device processing and free full-resolution output versus server processing with 0.25 MP free previews and credits for high resolution.",
   },
 ];
 

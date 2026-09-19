@@ -4,6 +4,7 @@ import {
   ArrowRight01Icon,
   BrowserIcon,
   CubeIcon,
+  EraserAutoIcon,
   MagicWand01Icon,
   Share08Icon,
   SourceCodeIcon,
@@ -134,6 +135,14 @@ const features = [
       "Turn code into beautiful, shareable images. Syntax themes, gradient backgrounds, line numbers, and a window frame.",
     href: "/features/code-snippets",
     keywords: ["syntax highlighting", "gradients", "line numbers", "shareable links"],
+  },
+  {
+    icon: EraserAutoIcon,
+    title: "Background Remover",
+    description:
+      "Remove image backgrounds with AI that runs on your device. Full-resolution transparent PNG, nothing uploaded.",
+    href: "/features/background-remover",
+    keywords: ["transparent PNG", "on-device AI", "no upload", "full resolution"],
   },
 ] as const;
 

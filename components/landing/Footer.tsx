@@ -32,6 +32,7 @@ const navCol2 = [
 
 const navCol3 = [
   { href: "/code", label: "Code to image" },
+  { href: "/remove-background", label: "Remove background" },
   { href: "/for/developers", label: "For developers" },
   { href: "/for/marketers", label: "For marketers" },
   { href: "/compare/pika-style", label: "Pika alternative" },

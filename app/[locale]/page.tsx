@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { EditorLayout } from "@/components/editor/EditorLayout";
+import { FAQ } from "@/components/landing/FAQ";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AgentSummary } from "@/components/seo/AgentSummary";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
@@ -81,10 +82,11 @@ export const metadata: Metadata = {
 export default async function EditorPage() {
   return (
     <>
-      <AgentSummary />
       <ErrorBoundary>
         <EditorLayout />
       </ErrorBoundary>
+      <AgentSummary />
+      <FAQ />
     </>
   );
 }

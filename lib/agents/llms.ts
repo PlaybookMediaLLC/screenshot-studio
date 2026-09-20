@@ -1,4 +1,19 @@
 import { BASE_URL } from "@/lib/agents/site-content";
+import { comparisons } from "@/lib/seo/comparisons";
+import { atLeast, PRODUCT_FACTS } from "@/lib/seo/product-facts";
+import { CONVERTER_TOOLS, PRIMARY_TOOLS } from "@/lib/seo/tools";
+
+const converterLinks = CONVERTER_TOOLS.map(
+  (tool) => `${BASE_URL}${tool.slug}`,
+).join(", ");
+
+const primaryToolLines = PRIMARY_TOOLS.map(
+  (tool) => `- ${tool.name}: ${BASE_URL}${tool.slug}`,
+).join("\n");
+
+const comparisonLines = comparisons
+  .map((comparison) => `- vs ${comparison.competitorName}: ${BASE_URL}/compare/${comparison.slug}`)
+  .join("\n");
 
 export const llmsTxt = `# Screenshot Studio
 
@@ -10,16 +25,16 @@ Screenshot Studio is a client-side image editor: imported images are not uploade
 
 ## Key Features
 
-- 100+ gradient, mesh, and pattern backgrounds
+- ${atLeast(PRODUCT_FACTS.backgrounds)} gradient, mesh, and solid backgrounds
 - Safari and Chrome browser mockups (light and dark)
 - Device frames: Arc, Polaroid, glass, outline, border
 - 3D perspective transforms and shadow effects
-- 20+ animation presets with keyframe timeline editor
+- ${PRODUCT_FACTS.animationPresets} animation presets with keyframe timeline editor
 - Video export in MP4, WebM, and GIF
-- Text and image overlays with custom fonts
+- Text and image overlays with ${PRODUCT_FACTS.fonts} Google Fonts
 - Tweet-to-image and code-snippet-to-image capture
 - On-device AI background remover with full-resolution transparent PNG output (${BASE_URL}/remove-background)
-- High-resolution export up to 5x scale (PNG, JPEG, WebP)
+- High-resolution export up to ${PRODUCT_FACTS.maxExportScale}x scale (PNG, JPEG, WebP)
 - One-click professional styling presets
 - Aspect ratio presets for every social platform
 
@@ -27,18 +42,16 @@ Screenshot Studio is a client-side image editor: imported images are not uploade
 
 Single-purpose utilities that run entirely in the browser (Canvas plus Web Workers) and do not call any API. Batch input is supported; several results download as one zip.
 
-- Compress Image: ${BASE_URL}/compress-image
-- Convert Image: ${BASE_URL}/convert-image
-- Resize Image: ${BASE_URL}/resize-image
-- Crop Image: ${BASE_URL}/crop-image
-- Rotate Image: ${BASE_URL}/rotate-image
-- Converters: ${BASE_URL}/png-to-jpg, ${BASE_URL}/jpg-to-png, ${BASE_URL}/png-to-webp, ${BASE_URL}/webp-to-png, ${BASE_URL}/jpg-to-webp, ${BASE_URL}/webp-to-jpg
+${primaryToolLines}
+- Converters: ${converterLinks}
 
 ## Pages
 
 - Editor: ${BASE_URL}/
-- Landing: ${BASE_URL}/landing
+- Product overview: ${BASE_URL}/landing
 - Free Screenshot Editor: ${BASE_URL}/free-screenshot-editor
+- App Store Screenshot Maker: ${BASE_URL}/store-screenshots
+- Code to Image: ${BASE_URL}/code
 - Image Tools Hub: ${BASE_URL}/tools
 - Remove Background: ${BASE_URL}/remove-background
 - Features: ${BASE_URL}/features
@@ -47,10 +60,12 @@ Single-purpose utilities that run entirely in the browser (Canvas plus Web Worke
 - Animation Maker: ${BASE_URL}/features/animation-maker
 - 3D Effects: ${BASE_URL}/features/3d-effects
 - Browser Mockups: ${BASE_URL}/features/browser-mockups
-- Background Remover: ${BASE_URL}/features/background-remover
+- Code Snippet Images: ${BASE_URL}/features/code-snippets
+- Audience Hub: ${BASE_URL}/for
 - For Developers: ${BASE_URL}/for/developers
 - For Marketers: ${BASE_URL}/for/marketers
 - For Designers: ${BASE_URL}/for/designers
+- Comparison Hub: ${BASE_URL}/compare
 - Changelog: ${BASE_URL}/changelog
 - About: ${BASE_URL}/about
 - Contact: ${BASE_URL}/contact
@@ -79,10 +94,7 @@ Available in 8 languages: English (default), Spanish (/es), French (/fr), German
 
 ## Comparison Pages
 
-- vs Pika Style: ${BASE_URL}/compare/pika-style
-- vs Shots.so: ${BASE_URL}/compare/shots-so
-- vs Snagit: ${BASE_URL}/compare/snagit
-- vs remove.bg: ${BASE_URL}/compare/remove-bg
+${comparisonLines}
 
 ## Pricing
 
@@ -129,7 +141,7 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 ## Complete Feature List
 
 ### Backgrounds
-- 100+ gradient backgrounds (linear, radial, mesh, conic)
+- ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds (linear, radial, mesh, conic, solid)
 - Solid color backgrounds with custom color picker
 - Paper texture backgrounds
 - Pattern backgrounds
@@ -175,13 +187,13 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 
 ### Text Overlays
 - Multiple text layers
-- 27+ Google Fonts (Geist, Inter, Poppins, Space Grotesk, Outfit, Plus Jakarta Sans, DM Sans, Sora, Manrope, Raleway, Montserrat, Lexend, Work Sans, Urbanist, Albert Sans, Oswald, Bebas Neue, Righteous, Playfair Display, Lora, Libre Baskerville, Caveat, Pacifico, Dancing Script, JetBrains Mono, Fira Code)
+- ${PRODUCT_FACTS.fonts} Google Fonts across sans-serif, serif, display, handwriting, and monospace
 - Custom font size, weight, color
 - Text shadow and positioning
 - Letter spacing and line height
 
 ### Animation & Video
-- 20+ animation presets (zoom in/out, pan, Ken Burns, tilt, fade, bounce, slide, etc.)
+- ${PRODUCT_FACTS.animationPresets} animation presets (zoom in/out, pan, Ken Burns, tilt, fade, bounce, slide, etc.)
 - Keyframe timeline editor
 - Multi-slide slideshows
 - Video export: MP4, WebM, GIF
@@ -195,7 +207,7 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 - Import code snippets (syntax highlighted)
 
 ### Export
-- PNG (lossless, up to 5x resolution)
+- PNG (lossless, up to ${PRODUCT_FACTS.maxExportScale}x resolution)
 - JPEG (configurable quality)
 - WebP (configurable quality)
 - MP4 video
@@ -246,7 +258,7 @@ Standalone, single-purpose utilities. Each decodes, processes, and re-encodes th
 | Animation Maker | ${BASE_URL}/features/animation-maker | Animation timeline and video export |
 | 3D Effects | ${BASE_URL}/features/3d-effects | Perspective and depth effects |
 | Browser Mockups | ${BASE_URL}/features/browser-mockups | Safari, Chrome, Arc frames |
-| Background Remover | ${BASE_URL}/features/background-remover | On-device AI background removal overview |
+| Background Remover | ${BASE_URL}/remove-background | On-device AI background removal |
 
 ### Audience Pages
 | Page | URL | Description |

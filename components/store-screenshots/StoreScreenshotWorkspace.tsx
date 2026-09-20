@@ -332,9 +332,9 @@ function StoreOverview({
         <div className="mx-auto w-full max-w-[1120px]">
           <div className="mb-5 text-center">
             <div className="mx-auto">
-              <h1 className="text-xl font-semibold tracking-[-0.025em] text-foreground">
+              <h2 className="text-xl font-semibold tracking-[-0.025em] text-foreground">
                 {showStarterChoice ? "App Store screenshot template" : "App Store screenshot set"}
-              </h1>
+              </h2>
               <p className="mt-1.5 text-xs text-muted-foreground">
                 {showStarterChoice ? "Preview the set, then choose how to begin." : "Drag to reorder · Select to edit"}
               </p>

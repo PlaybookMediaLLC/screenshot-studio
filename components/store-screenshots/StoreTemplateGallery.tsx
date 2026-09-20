@@ -42,7 +42,7 @@ export function StoreTemplateGallery({
       <section className="flex h-full min-h-0 flex-col bg-background">
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-foreground/10 px-5 sm:px-6">
           <div>
-            <h1 className="text-sm font-semibold text-foreground">App templates</h1>
+            <h2 className="text-sm font-semibold text-foreground">App templates</h2>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               Start with a complete, coordinated screenshot set.
             </p>

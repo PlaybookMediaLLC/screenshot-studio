@@ -34,7 +34,7 @@ export interface ToolDefinition {
   /** Short label for the hub grid and related-tool links. */
   name: string;
   h1: string;
-  /** <title>. Kept under ~60 characters where possible. */
+  /** <title>. Kept under ~40 characters so the brand suffix fits the SERP budget. */
   title: string;
   /** Meta description. Kept under ~155 characters. */
   description: string;
@@ -44,6 +44,8 @@ export interface ToolDefinition {
   /** Bullets for the SoftwareApplication featureList and the "how it works" list. */
   features: string[];
   faqs: ToolFaq[];
+  /** Prose sections rendered between the feature list and the FAQ. */
+  sections?: { heading: string; body: string }[];
   /** Slugs of related tools, for internal linking. */
   related: string[];
   /** Primary tools lead the hub grid and carry higher sitemap priority. */
@@ -75,7 +77,7 @@ export const TOOLS: ToolDefinition[] = [
     engine: "compress",
     name: "Compress Image",
     h1: "Compress Image",
-    title: "Compress Image Online: Free, Private, No Upload",
+    title: "Compress Image Online: Free, No Upload",
     description:
       "Shrink JPG, PNG, and WebP files in your browser. Batch compression with a live size preview. Free, no signup, no watermark, no upload.",
     keywords: [
@@ -124,7 +126,7 @@ export const TOOLS: ToolDefinition[] = [
     engine: "convert",
     name: "Convert Image",
     h1: "Convert Image Format",
-    title: "Convert Image Format Online: PNG, JPG, WebP, AVIF",
+    title: "Convert Image Online: PNG, JPG, WebP",
     description:
       "Convert between PNG, JPG, WebP, and AVIF in your browser. Batch conversion, quality control, no upload. Free, no signup, no watermark.",
     keywords: [
@@ -175,7 +177,7 @@ export const TOOLS: ToolDefinition[] = [
     engine: "resize",
     name: "Resize Image",
     h1: "Resize Image",
-    title: "Resize Image Online: Exact Pixels or Percentage",
+    title: "Resize Image Online: Pixels or Percent",
     description:
       "Resize images by pixel size or percentage with the aspect ratio locked. Batch resize in your browser. Free, no signup, no upload.",
     keywords: [
@@ -226,7 +228,7 @@ export const TOOLS: ToolDefinition[] = [
     engine: "crop",
     name: "Crop Image",
     h1: "Crop Image",
-    title: "Crop Image Online: Free Cropper With Ratio Presets",
+    title: "Crop Image Online: Free Ratio Presets",
     description:
       "Crop an image by dragging a selection or typing exact pixels. Social media ratio presets included. Free, in your browser, no upload.",
     keywords: [
@@ -320,6 +322,69 @@ export const TOOLS: ToolDefinition[] = [
     primary: true,
   },
 ];
+
+/** Per-format background used to give each converter page format-specific prose. */
+const FORMAT_FACTS: Record<
+  string,
+  { strengths: string; alpha: boolean; lossy: boolean; note: string }
+> = {
+  PNG: {
+    strengths:
+      "PNG stores every pixel exactly as it was, with 8 or 16 bits per channel and a full alpha channel. That makes it the right format for screenshots, UI exports, logos, and line art, where a single softened edge or a shifted flat colour is visible. The cost is size: because it never discards detail, a photograph saved as PNG is routinely several times larger than the same photograph as JPG or WebP.",
+    alpha: true,
+    lossy: false,
+    note: "opens in every browser, operating system, and image editor released since the late 1990s",
+  },
+  JPG: {
+    strengths:
+      "JPG compresses by discarding the fine detail the eye is least sensitive to, which works extremely well on photographs and continuous-tone images and poorly on sharp text and flat colour. It has no alpha channel, and every re-save compounds the artifacts of the previous one, so it is a format to export to rather than to work in.",
+    alpha: false,
+    lossy: true,
+    note: "accepted by effectively every upload form, print service, and photo editor in existence",
+  },
+  WebP: {
+    strengths:
+      "WebP has both a lossy and a lossless mode and supports transparency in both, which is what lets it replace PNG and JPG at once. At matching visual quality it is typically 25 to 35 percent smaller than JPG and meaningfully smaller than PNG for the same graphic. Its one hard limit is dimensional: neither side can exceed 16,383 pixels.",
+    alpha: true,
+    lossy: true,
+    note: "supported by every current browser, though some older desktop software still cannot open it",
+  },
+  AVIF: {
+    strengths:
+      "AVIF applies the AV1 video codec to still images, which buys it the best compression in general use: lossy and lossless modes, an alpha channel, and 10 and 12-bit colour with HDR. Files are commonly half the size of an equivalent JPG and a small fraction of a PNG. Encoding is slower than the older formats, which is the price of the ratio.",
+    alpha: true,
+    lossy: true,
+    note: "supported by Chrome, Firefox, and Safari 16 and later, but not by much older software",
+  },
+};
+
+function conversionSections(
+  from: string,
+  toLabel: string,
+  why: string,
+): { heading: string; body: string }[] {
+  const source = FORMAT_FACTS[from];
+  const target = FORMAT_FACTS[toLabel];
+  const losesAlpha = source.alpha && !target.alpha;
+  const losesDetail = !source.lossy && target.lossy;
+
+  const tradeoffs = [
+    why,
+    losesAlpha
+      ? `Because ${toLabel} has no alpha channel, any transparent pixel has to become a solid colour. Pick that colour before you convert rather than discovering it afterwards.`
+      : `Transparency survives the conversion, so a ${from} with a cut-out subject stays cut out as ${toLabel}.`,
+    losesDetail
+      ? `The move from lossless ${from} to lossy ${toLabel} is one-way: the discarded detail is gone, so keep the original if you expect to edit the image again.`
+      : `Re-encoding always costs something, so convert from the highest-quality copy you have rather than from an already-compressed export.`,
+    `The result ${target.note}.`,
+  ];
+
+  return [
+    { heading: `What ${from} is good at`, body: source.strengths },
+    { heading: `What ${toLabel} gives you`, body: target.strengths },
+    { heading: `Converting ${from} to ${toLabel}`, body: tradeoffs.join(" ") },
+  ];
+}
 
 /** Converter landing pages: one engine, one preset, one keyword each. */
 const CONVERSION_PAGES: {
@@ -429,6 +494,31 @@ const CONVERSION_PAGES: {
   },
 ];
 
+/**
+ * Links each converter to its reverse, its format siblings, and the generic
+ * converter, so no conversion page sits on a single inbound link.
+ */
+function conversionRelated(slug: string, from: string, toLabel: string): string[] {
+  const others = CONVERSION_PAGES.filter((page) => page.slug !== slug);
+  const reverse = others.find(
+    (page) => page.from === toLabel && page.toLabel === from,
+  );
+  const sameTarget = others.filter(
+    (page) => page.toLabel === toLabel && page !== reverse,
+  );
+  const sameSource = others.filter(
+    (page) => page.from === from && page !== reverse,
+  );
+
+  const ordered = [
+    ...(reverse ? [reverse.slug] : []),
+    ...sameSource.map((page) => page.slug),
+    ...sameTarget.map((page) => page.slug),
+  ];
+
+  return [...new Set(ordered)].slice(0, 5).concat("/convert-image");
+}
+
 for (const page of CONVERSION_PAGES) {
   const { slug, from, to, toLabel, why, keywords, extraFaqs } = page;
 
@@ -478,7 +568,8 @@ for (const page of CONVERSION_PAGES) {
       PRIVACY_FAQ,
       FREE_FAQ,
     ],
-    related: ["/convert-image", "/compress-image", "/resize-image"],
+    sections: conversionSections(from, toLabel, why),
+    related: conversionRelated(slug, from, toLabel),
     primary: false,
   });
 }

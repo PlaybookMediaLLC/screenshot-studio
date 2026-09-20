@@ -1,10 +1,11 @@
 import { Metadata } from "next";
 import { LandingPage } from "@/components/landing/LandingPage";
+import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 
 export const metadata: Metadata = {
   title: "Screenshot Mockup Maker",
   description:
-    "Make screenshot mockups in seconds. Browser frames, device mockups, 100+ gradient backgrounds, 3D effects, animations, and video export. Free, no signup.",
+    `Make screenshot mockups in seconds. Browser frames, device mockups, ${atLeast(PRODUCT_FACTS.backgrounds)} gradient backgrounds, 3D effects, animations, and video export. Free, no signup.`,
   keywords: [
     "screenshot beautifier",
     "screenshot mockup maker",
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Screenshot Studio - Screenshot Mockup Maker",
     description:
-      "Transform screenshots into professional graphics. 100+ backgrounds, browser mockups, 3D effects, animations, and video export. No signup required.",
+      `Transform screenshots into professional graphics. ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, browser mockups, 3D effects, animations, and video export. No signup required.`,
     url: "/landing",
   },
   alternates: {

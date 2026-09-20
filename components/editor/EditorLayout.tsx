@@ -139,11 +139,7 @@ function EditorMain() {
     : isTemplateDemoMedia(uploadedImageUrl, imageName);
 
   React.useEffect(() => {
-    document.body.style.overflow = "hidden";
     trackEditorOpen();
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, []);
 
   const handleMobileSheetOpenChange = (open: boolean): void => {
@@ -151,7 +147,7 @@ function EditorMain() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="h-screen flex flex-col bg-background overflow-hidden overscroll-contain">
       <EditorStoreSync />
 
       <MobileBanner />
@@ -160,8 +156,7 @@ function EditorMain() {
       <EditorHeader />
       <TemplateLibraryDrawer />
 
-      {isMobile && (
-        <div className="bg-background border-b border-foreground/10 flex items-center justify-between gap-2 px-3 py-2 z-10 shrink-0">
+      <div className="bg-background border-b border-foreground/10 flex items-center justify-between gap-2 px-3 py-2 z-10 shrink-0 lg:hidden">
           {!isUsingTemplateDemo ? (
             <StoreScreenshotsShortcut compact className="min-w-0" />
           ) : null}
@@ -174,12 +169,13 @@ function EditorMain() {
             <Settings02Icon size={15} />
             <span>Settings</span>
           </Button>
-        </div>
-      )}
+      </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          {!isMobile && <LeftEditPanel />}
+          <div className="hidden lg:contents">
+            <LeftEditPanel />
+          </div>
 
           <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
             <div
@@ -217,7 +213,9 @@ function EditorMain() {
             </div>
           </div>
 
-          {!isMobile && <RightSettingsPanel />}
+          <div className="hidden lg:contents">
+            <RightSettingsPanel />
+          </div>
 
           {isMobile && (
             <Sheet open={mobileSheetOpen} onOpenChange={handleMobileSheetOpenChange}>

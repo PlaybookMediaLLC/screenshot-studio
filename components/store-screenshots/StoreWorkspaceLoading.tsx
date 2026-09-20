@@ -61,9 +61,9 @@ function TemplateLoading({ width, height }: { width: number; height: number }): 
             </span>
             Loading templates
           </div>
-          <h1 className="text-xl font-semibold tracking-[-0.025em] text-foreground">
+          <h2 className="text-xl font-semibold tracking-[-0.025em] text-foreground">
             App Store screenshot template
-          </h1>
+          </h2>
           <p className="mt-1.5 text-xs text-muted-foreground">
             Preparing the complete screenshot set.
           </p>

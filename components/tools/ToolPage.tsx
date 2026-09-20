@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { CheckmarkCircle02Icon, ArrowRight01Icon } from "hugeicons-react";
 import { Navigation } from "@/components/landing/Navigation";
@@ -11,7 +12,10 @@ import {
 import { buildToolJsonLd } from "@/lib/seo/tool-metadata";
 import { getRelatedTools, TOOLS_HUB_PATH, type ToolDefinition } from "@/lib/seo/tools";
 import { ToolWorkspace } from "./ToolWorkspace";
-import { CropWorkspace } from "./CropWorkspace";
+
+const CropWorkspace = dynamic(() =>
+  import("./CropWorkspace").then((mod) => mod.CropWorkspace),
+);
 
 interface ToolPageProps {
   tool: ToolDefinition;
@@ -90,6 +94,17 @@ export function ToolPage({ tool }: ToolPageProps) {
                 </li>
               ))}
             </ul>
+
+            {tool.sections?.map((section) => (
+              <section key={section.heading} className="mb-10">
+                <h2 className="mb-3 text-xl font-semibold tracking-[-0.01em] text-foreground">
+                  {section.heading}
+                </h2>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {section.body}
+                </p>
+              </section>
+            ))}
 
             <h2 className="mb-4 text-xl font-semibold tracking-[-0.01em] text-foreground">
               Frequently asked questions

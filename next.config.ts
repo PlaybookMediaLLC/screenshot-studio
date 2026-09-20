@@ -71,11 +71,15 @@ const nextConfig: NextConfig = {
   // Permanent redirects for SEO (301)
   async redirects() {
     return [
-      // Old /home editor URL → new / root
+      {
+        source: "/features/background-remover",
+        destination: "/remove-background",
+        statusCode: 301,
+      },
       {
         source: "/home",
         destination: "/",
-        permanent: true,
+        statusCode: 301,
       },
     ];
   },
@@ -98,6 +102,10 @@ const nextConfig: NextConfig = {
       {
         source: "/openapi.json",
         destination: "/api/openapi",
+      },
+      {
+        source: "/indexnow-key.txt",
+        destination: "/api/indexnow",
       },
       {
         source: "/.well-known/openapi.json",

@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/accordion';
 
 export const metadata: Metadata = {
-  title: 'Remove Background from Image: Free, Private, No Upload',
+  title: 'Remove Background from Image: Free',
   description:
     'Remove an image background in your browser and download a transparent PNG. Runs on your device with WebGPU. Free, no signup, no watermark.',
   keywords: [
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: 'Remove Background from Image: Free, Private, No Upload',
+    title: 'Remove Background from Image: Free',
     description:
       'Remove an image background on your device and download a transparent PNG. Free, no signup, no watermark.',
     url: '/remove-background',
@@ -63,9 +63,60 @@ const faqs = [
       'Recent Chrome, Edge, Firefox, and Safari. Browsers with WebGPU run on the graphics card; others fall back to WebAssembly on the CPU. PNG, JPG, WebP, and AVIF images up to 50 MB are supported.',
   },
   {
+    question: 'How does it compare to remove.bg?',
+    answer:
+      'remove.bg processes images on its servers and caps free downloads at 0.25 megapixel previews, with full-resolution downloads costing credits. This runs on your device and returns full resolution for free. remove.bg\'s server-side models can still resolve fine hair detail better on difficult photos.',
+  },
+  {
+    question: 'What kinds of images work best?',
+    answer:
+      'Photos with a clear main subject: people, pets, products, cars, and objects. Busy scenes with several overlapping subjects, or subjects that blend into the background, are harder for any background remover.',
+  },
+  {
     question: 'Is it free, and is there a watermark?',
     answer:
       'It is completely free with no signup, no daily limit, and no watermark. The output keeps the full resolution of your original image.',
+  },
+];
+
+const highlights = [
+  {
+    title: 'Your image never leaves your device',
+    description:
+      'The AI model runs inside your browser tab. Photos of people, products, and documents are processed locally and never sent to a server.',
+  },
+  {
+    title: 'Full resolution, no credits',
+    description:
+      'The transparent PNG keeps the exact dimensions of your original image. There are no low-resolution previews, credit packs, or watermarks.',
+  },
+  {
+    title: 'WebGPU speed, works offline',
+    description:
+      'Runs on your graphics card with WebGPU, or on the CPU with WebAssembly. The model is cached after the first image, so it keeps working offline.',
+  },
+  {
+    title: 'Crisp or soft edges',
+    description:
+      'Sharp cutouts for products and logos, or soft edges that keep hair and fur. Switch instantly and compare with the before and after slider.',
+  },
+];
+
+const steps = [
+  {
+    title: 'Select or drop an image',
+    description:
+      'Choose a PNG, JPG, WebP, or AVIF photo up to 50 MB, or drag it onto the page.',
+  },
+  {
+    title: 'Let the model cut it out',
+    description:
+      'BiRefNet-lite finds the subject and removes the background on your device. The first run downloads the model once; later runs start right away.',
+  },
+  {
+    title: 'Download a transparent PNG',
+    description:
+      'Pick crisp or soft edges, check the result with the comparison slider, and download the PNG at full resolution.',
   },
 ];
 
@@ -178,6 +229,41 @@ export default function RemoveBackgroundPage() {
         <section className="border-t border-border px-6 py-16">
           <div className="mx-auto max-w-3xl">
             <h2 className="mb-6 text-xl font-semibold tracking-[-0.01em] text-foreground">
+              How it works
+            </h2>
+            <ol className="mb-12 grid gap-5 sm:grid-cols-3">
+              {steps.map((step, index) => (
+                <li key={step.title}>
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Step {index + 1}
+                  </span>
+                  <h3 className="mt-1 text-sm font-semibold text-foreground">
+                    {step.title}
+                  </h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    {step.description}
+                  </p>
+                </li>
+              ))}
+            </ol>
+
+            <h2 className="mb-6 text-xl font-semibold tracking-[-0.01em] text-foreground">
+              What you get
+            </h2>
+            <div className="mb-12 grid gap-6 sm:grid-cols-2">
+              {highlights.map((highlight) => (
+                <div key={highlight.title}>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {highlight.title}
+                  </h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    {highlight.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <h2 className="mb-6 text-xl font-semibold tracking-[-0.01em] text-foreground">
               Frequently asked questions
             </h2>
             <Accordion type="single" collapsible>
@@ -192,10 +278,6 @@ export default function RemoveBackgroundPage() {
             <p className="mt-12 text-sm text-muted-foreground">
               Coming from remove.bg? See{' '}
               <Link href="/compare/remove-bg" className="underline">how it compares</Link>
-              , or read more about the{' '}
-              <Link href="/features/background-remover" className="underline">
-                background remover feature
-              </Link>
               . Want to put your cutout on a gradient or in a mockup? Open the{' '}
               <Link href="/" className="underline">Screenshot Studio editor</Link>
               , or browse{' '}

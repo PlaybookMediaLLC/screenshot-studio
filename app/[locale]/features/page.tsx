@@ -141,7 +141,7 @@ const features = [
     title: "Background Remover",
     description:
       "Remove image backgrounds with AI that runs on your device. Full-resolution transparent PNG, nothing uploaded.",
-    href: "/features/background-remover",
+    href: "/remove-background",
     keywords: ["transparent PNG", "on-device AI", "no upload", "full resolution"],
   },
 ] as const;

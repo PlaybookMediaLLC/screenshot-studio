@@ -13,7 +13,7 @@ import {
 } from "@/lib/seo/tools";
 
 export const metadata: Metadata = {
-  title: "Free Online Image Tools: Compress, Convert, Resize, Crop",
+  title: "Free Online Image Tools: No Upload",
   description:
     "Compress, convert, resize, crop, and rotate images in your browser. Batch processing, no signup, no watermark, and nothing is ever uploaded.",
   keywords: [
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Free Online Image Tools: Compress, Convert, Resize, Crop",
+    title: "Free Online Image Tools: No Upload",
     description:
       "A suite of free image tools that run entirely in your browser. Batch processing, no signup, no watermark, no upload.",
     url: TOOLS_HUB_PATH,

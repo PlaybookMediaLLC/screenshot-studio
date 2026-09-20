@@ -8,6 +8,8 @@ import {
   comparisons,
   getComparison,
   getAllComparisonSlugs,
+  getComparisonTitle,
+  claimsNote,
 } from "@/lib/seo/comparisons";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
 
@@ -26,13 +28,15 @@ export async function generateMetadata({
   const data = getComparison(slug);
   if (!data) return {};
 
+  const title = getComparisonTitle(data);
+
   return {
-    title: data.metaTitle,
+    title: { absolute: title },
     description: data.metaDescription,
     keywords: data.keywords,
     openGraph: {
       ...OG_DEFAULTS,
-      title: data.metaTitle,
+      title,
       description: data.metaDescription,
       url: `/compare/${data.slug}`,
     },
@@ -131,7 +135,7 @@ export default async function ComparisonPage({ params }: PageProps) {
       },
       {
         "@type": "WebPage",
-        name: data.metaTitle,
+        name: getComparisonTitle(data),
         description: data.metaDescription,
         url: `https://www.screenshot-studio.com/compare/${data.slug}`,
         mainEntity: {
@@ -178,6 +182,15 @@ export default async function ComparisonPage({ params }: PageProps) {
             <Link href={cta.href} className={ctaClassName}>
               {cta.label}
             </Link>
+
+            {data.scopeNote ? (
+              <p className="mx-auto mt-10 max-w-2xl rounded-2xl bg-card p-5 text-left text-sm leading-relaxed text-muted-foreground ring-1 ring-inset ring-border">
+                <strong className="font-semibold text-foreground">
+                  These tools do different jobs.
+                </strong>{" "}
+                {data.scopeNote}
+              </p>
+            ) : null}
           </div>
         </section>
 
@@ -224,6 +237,16 @@ export default async function ComparisonPage({ params }: PageProps) {
                 </tbody>
               </table>
             </div>
+            <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+              {claimsNote(data)}{" "}
+              <a
+                href={data.competitorUrl}
+                rel="nofollow noopener"
+                className="underline underline-offset-4"
+              >
+                {data.competitorName}
+              </a>
+            </p>
           </div>
         </section>
 

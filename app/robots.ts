@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/_next/", "/static/", "/svc/", "/r2-assets/"],
+        disallow: ["/api/", "/_next/", "/static/", "/svc/"],
       },
       // Major search engines — explicit allow
       {
@@ -122,6 +122,22 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "YouBot",
         allow: "/",
       },
+      // SEO toolbars: crawled so the site stays visible in link-intersect tooling
+      {
+        userAgent: "AhrefsBot",
+        allow: "/",
+        crawlDelay: 10,
+      },
+      {
+        userAgent: "SemrushBot",
+        allow: "/",
+        crawlDelay: 10,
+      },
+      {
+        userAgent: "DataForSeoBot",
+        allow: "/",
+        crawlDelay: 10,
+      },
       // Block aggressive/wasteful crawlers
       {
         userAgent: "MJ12bot",
@@ -132,19 +148,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: "/",
       },
       {
-        userAgent: "AhrefsBot",
-        disallow: "/",
-      },
-      {
-        userAgent: "SemrushBot",
-        disallow: "/",
-      },
-      {
         userAgent: "BLEXBot",
-        disallow: "/",
-      },
-      {
-        userAgent: "DataForSeoBot",
         disallow: "/",
       },
       {

@@ -16,27 +16,25 @@ const PEERLIST_BADGE =
 
 const navCol1 = [
   { href: "/", label: "Editor" },
-  { href: "/features", label: "Features" },
-  { href: "/changelog", label: "Changelog" },
   { href: "/free-screenshot-editor", label: "Free editor" },
-  { href: "/docs", label: "API docs" },
+  { href: "/store-screenshots", label: "App store screenshots" },
+  { href: "/code", label: "Code to image" },
+  { href: "/remove-background", label: "Remove background" },
 ] as const;
 
 const navCol2 = [
-  { href: "/features/3d-effects", label: "3D effects" },
-  { href: "/features/animation-maker", label: "Animations" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
-  { href: "/developers", label: "Developers" },
+  { href: "/features", label: "Features" },
+  { href: "/tools", label: "Image tools" },
+  { href: "/compare", label: "Comparisons" },
+  { href: "/for", label: "Who it is for" },
+  { href: "/changelog", label: "Changelog" },
 ] as const;
 
 const navCol3 = [
-  { href: "/code", label: "Code to image" },
-  { href: "/remove-background", label: "Remove background" },
-  { href: "/for/developers", label: "For developers" },
-  { href: "/for/marketers", label: "For marketers" },
-  { href: "/compare/pika-style", label: "Pika alternative" },
-  { href: "/compare/carbon", label: "Carbon alternative" },
+  { href: "/docs", label: "API docs" },
+  { href: "/developers", label: "Developers" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
 ] as const;
 
 function FooterNavLink({

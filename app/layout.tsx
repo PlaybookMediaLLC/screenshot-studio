@@ -36,8 +36,8 @@ import { QueryProvider } from "@/lib/query-client";
 import { GlobalDropZone } from "@/components/GlobalDropZone";
 import { PathTracker } from "@/components/landing/GoBackButton";
 import { getRootJsonLd } from "@/lib/seo/json-ld";
-import { getLocale } from "next-intl/server";
 import { Databuddy } from "@databuddy/sdk/react";
+import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 
 // System UI fonts
 const geistSans = Geist({
@@ -54,84 +54,98 @@ const geistMono = Geist_Mono({
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  preload: false,
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
+  preload: false,
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   subsets: ["latin"],
+  preload: false,
   weight: ["300", "400", "500", "600", "700"],
 });
 
 const outfit = Outfit({
   variable: "--font-outfit",
   subsets: ["latin"],
+  preload: false,
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
   subsets: ["latin"],
+  preload: false,
   weight: ["200", "300", "400", "500", "600", "700", "800"],
 });
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
   subsets: ["latin"],
+  preload: false,
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 const sora = Sora({
   variable: "--font-sora",
   subsets: ["latin"],
+  preload: false,
   weight: ["100", "200", "300", "400", "500", "600", "700", "800"],
 });
 
 const manrope = Manrope({
   variable: "--font-manrope",
   subsets: ["latin"],
+  preload: false,
   weight: ["200", "300", "400", "500", "600", "700", "800"],
 });
 
 const raleway = Raleway({
   variable: "--font-raleway",
   subsets: ["latin"],
+  preload: false,
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
   subsets: ["latin"],
+  preload: false,
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 const lexend = Lexend({
   variable: "--font-lexend",
   subsets: ["latin"],
+  preload: false,
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 const workSans = Work_Sans({
   variable: "--font-work-sans",
   subsets: ["latin"],
+  preload: false,
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 const urbanist = Urbanist({
   variable: "--font-urbanist",
   subsets: ["latin"],
+  preload: false,
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 const albertSans = Albert_Sans({
   variable: "--font-albert-sans",
   subsets: ["latin"],
+  preload: false,
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
@@ -139,18 +153,21 @@ const albertSans = Albert_Sans({
 const oswald = Oswald({
   variable: "--font-oswald",
   subsets: ["latin"],
+  preload: false,
   weight: ["200", "300", "400", "500", "600", "700"],
 });
 
 const bebasNeue = Bebas_Neue({
   variable: "--font-bebas-neue",
   subsets: ["latin"],
+  preload: false,
   weight: ["400"],
 });
 
 const righteous = Righteous({
   variable: "--font-righteous",
   subsets: ["latin"],
+  preload: false,
   weight: ["400"],
 });
 
@@ -158,18 +175,21 @@ const righteous = Righteous({
 const playfairDisplay = Playfair_Display({
   variable: "--font-playfair-display",
   subsets: ["latin"],
+  preload: false,
   weight: ["400", "500", "600", "700", "800", "900"],
 });
 
 const lora = Lora({
   variable: "--font-lora",
   subsets: ["latin"],
+  preload: false,
   weight: ["400", "500", "600", "700"],
 });
 
 const libreBaskerville = Libre_Baskerville({
   variable: "--font-libre-baskerville",
   subsets: ["latin"],
+  preload: false,
   weight: ["400", "700"],
 });
 
@@ -177,17 +197,20 @@ const libreBaskerville = Libre_Baskerville({
 const caveat = Caveat({
   variable: "--font-caveat",
   subsets: ["latin"],
+  preload: false,
 });
 
 const pacifico = Pacifico({
   variable: "--font-pacifico",
   subsets: ["latin"],
+  preload: false,
   weight: ["400"],
 });
 
 const dancingScript = Dancing_Script({
   variable: "--font-dancing-script",
   subsets: ["latin"],
+  preload: false,
   weight: ["400", "500", "600", "700"],
 });
 
@@ -195,12 +218,14 @@ const dancingScript = Dancing_Script({
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
+  preload: false,
   weight: ["100", "200", "300", "400", "500", "600", "700", "800"],
 });
 
 const firaCode = Fira_Code({
   variable: "--font-fira-code",
   subsets: ["latin"],
+  preload: false,
   weight: ["300", "400", "500", "600", "700"],
 });
 
@@ -347,7 +372,7 @@ export const metadata: Metadata = {
     siteName: "Screenshot Studio",
     title: "Screenshot Studio - Free Screenshot Editor Online",
     description:
-      "Free screenshot editor online: create stunning social media graphics in seconds. 100+ backgrounds, animations, 3D effects, video export. No signup required.",
+      `Free screenshot editor online: create stunning social media graphics in seconds. ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, animations, 3D effects, video export. No signup required.`,
     images: [
       {
         url: "https://www.screenshot-studio.com/og.jpg",
@@ -405,10 +430,9 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const rootJsonLd = getRootJsonLd();
-  const locale = await getLocale();
 
   return (
-    <html lang={locale} className="dark">
+    <html lang="en" className="dark">
       <meta name="msvalidate.01" content="A3B8CB50BBD78710971A13FA3EE1E544" />
       <link
         rel="alternate"
@@ -431,14 +455,14 @@ export default async function RootLayout({
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8704843786311642"
           crossOrigin="anonymous"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
         <Script
           async
           src="https://www.googletagmanager.com/gtag/js?id=G-WWTQR26VH4"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
-        <Script id="ga4" strategy="afterInteractive">
+        <Script id="ga4" strategy="lazyOnload">
           {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());

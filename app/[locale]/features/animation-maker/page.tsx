@@ -10,6 +10,7 @@ import {
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
+import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 
 export const metadata: Metadata = {
   title: "Free Screenshot Animation Maker",
@@ -144,7 +145,7 @@ const howToSteps = [
     step: "2",
     title: "Choose Animation Preset",
     description:
-      "Select from 20+ presets like zoom, pan, Ken Burns, or create custom animations with the timeline.",
+      `Select from ${atLeast(PRODUCT_FACTS.animationPresets)} presets like zoom, pan, Ken Burns, or create custom animations with the timeline.`,
   },
   {
     step: "3",
@@ -209,23 +210,6 @@ export default function AnimationMakerPage() {
           "Video export",
           "Slideshow builder",
         ],
-      },
-      {
-        "@type": "HowTo",
-        name: "How to Create Screenshot Animations",
-        description:
-          "Create stunning animations from screenshots in 3 steps using Screenshot Studio's free animation maker.",
-        totalTime: "PT2M",
-        tool: {
-          "@type": "HowToTool",
-          name: "Screenshot Studio",
-        },
-        step: howToSteps.map((item, index) => ({
-          "@type": "HowToStep",
-          name: item.title,
-          text: item.description,
-          position: index + 1,
-        })),
       },
     ],
   };

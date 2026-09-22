@@ -1,294 +1,374 @@
-import { SITE_URL } from "@/lib/seo/metadata";
+import { claimsNote, comparisons, type ComparisonData } from '@/lib/seo/comparisons'
+import { SITE_URL } from '@/lib/seo/metadata'
+import { atLeast, PRODUCT_FACTS } from '@/lib/seo/product-facts'
+import { TOOLS, TOOLS_HUB_PATH } from '@/lib/seo/tools'
 
-export const BASE_URL = SITE_URL;
+export const BASE_URL = SITE_URL
+
+export interface AgentSection {
+  heading: string
+  body: string
+}
 
 export interface AgentPage {
-  path: string;
-  title: string;
-  summary: string;
-  points?: string[];
+  path: string
+  title: string
+  summary: string
+  points?: string[]
+  /** Full page body, so the Markdown alternate carries the same substance as the HTML. */
+  sections?: AgentSection[]
 }
 
 export const AGENT_PAGES: AgentPage[] = [
   {
-    path: "/",
-    title: "Screenshot Studio - Free Screenshot Editor & Mockup Maker",
+    path: '/',
+    title: 'Screenshot Studio - Free Screenshot Editor & Mockup Maker',
     summary:
-      "The signed-in Screenshot Studio editor. Drop in a screenshot and add gradient backgrounds, browser mockups, shadows, 3D perspective, and animation, then export a PNG, JPEG, WebP, MP4, WebM, or GIF. Editing runs client side, so imported images are not uploaded merely to edit them; export compression sends the finished image to the server, which returns it without storing it. A free workspace plan is available, some capabilities require a higher plan, and editor exports have no watermark.",
+      'The signed-in Screenshot Studio editor. Drop in a screenshot and add gradient backgrounds, browser mockups, shadows, 3D perspective, and animation, then export a PNG, JPEG, WebP, MP4, WebM, or GIF. Editing runs client side, so imported images are not uploaded merely to edit them; export compression sends the finished image to the server, which returns it without storing it. A free workspace plan is available, some capabilities require a higher plan, and editor exports have no watermark.',
     points: [
-      "100+ gradient, mesh, and pattern backgrounds",
-      "Safari, Chrome, and Arc browser mockups in light and dark",
-      "3D perspective transforms and fully configurable shadows",
-      "20+ animation presets with a keyframe timeline and video export",
-      "Import a tweet by URL and render it as an image",
-      "Export up to 5x resolution",
+      `${atLeast(PRODUCT_FACTS.backgrounds)} gradient, mesh, and solid backgrounds`,
+      'Safari, Chrome, and Arc browser mockups in light and dark',
+      '3D perspective transforms and fully configurable shadows',
+      `${PRODUCT_FACTS.animationPresets} animation presets with a keyframe timeline and video export`,
+      'Import a tweet by URL and render it as an image',
+      `Export up to ${PRODUCT_FACTS.maxExportScale}x resolution`,
     ],
   },
   {
-    path: "/landing",
-    title: "Screenshot Studio - Product Overview",
+    path: '/landing',
+    title: 'Screenshot Studio - Product Overview',
     summary:
-      "Product landing page: what Screenshot Studio does, who it is for, and how it compares to paid screenshot beautifiers.",
+      'Product landing page: what Screenshot Studio does, who it is for, and how it compares to paid screenshot beautifiers.',
   },
   {
-    path: "/free-screenshot-editor",
-    title: "Free Screenshot Editor Online - Screenshot Studio",
+    path: '/free-screenshot-editor',
+    title: 'Free Screenshot Editor Online - Screenshot Studio',
     summary:
-      "Browser-based screenshot editor for signed-in workspaces, with a free plan and no export watermark. Covers the full editing workflow from upload to export.",
+      'Browser-based screenshot editor for signed-in workspaces, with a free plan and no export watermark. Covers the full editing workflow from upload to export.',
   },
   {
-    path: "/code",
-    title: "Code to Image: Create Beautiful Code Screenshots - Screenshot Studio",
+    path: '/code',
+    title: 'Code to Image: Beautiful Screenshots - Screenshot Studio',
     summary:
-      "A focused code to image editor. Paste code, pick a syntax theme and gradient background, toggle line numbers and a window frame, then export a PNG or copy a shareable link. Rendering happens in the browser, so code is not sent to a server to create the image. Available to signed-in workspaces, with a free plan and no export watermark.",
+      'A focused code to image editor. Paste code, pick a syntax theme and gradient background, toggle line numbers and a window frame, then export a PNG or copy a shareable link. Rendering happens in the browser, so code is not sent to a server to create the image. Available to signed-in workspaces, with a free plan and no export watermark.',
     points: [
-      "14 syntax highlighting themes and 20+ languages, with auto-detect",
-      "11 gradient backgrounds plus a transparent option",
-      "Line numbers, macOS window frame, and 10 monospace fonts",
-      "Shareable links that restore the exact design from the URL",
-      "2x and 3x PNG export, plus copy image to clipboard",
+      `${PRODUCT_FACTS.codeThemes} syntax highlighting themes and ${PRODUCT_FACTS.codeLanguages} languages, with auto-detect`,
+      '11 gradient backgrounds plus a transparent option',
+      `Line numbers, macOS window frame, and ${PRODUCT_FACTS.codeFonts} monospace fonts`,
+      'Shareable links that restore the exact design from the URL',
+      '2x and 3x PNG export, plus copy image to clipboard',
     ],
   },
   {
-    path: "/features",
-    title: "Features - Screenshot Studio",
+    path: '/remove-background',
+    title: 'Remove Background from Image: Free - Screenshot Studio',
     summary:
-      "Index of every Screenshot Studio feature: backgrounds, browser mockups, device frames, 3D effects, animation, text and image overlays, and export formats.",
-  },
-  {
-    path: "/features/screenshot-beautifier",
-    title: "Screenshot Beautifier - Screenshot Studio",
-    summary:
-      "Background, padding, corner radius, and shadow controls that turn a raw screenshot into a presentable graphic.",
-  },
-  {
-    path: "/features/social-media-graphics",
-    title: "Social Media Graphics Maker - Screenshot Studio",
-    summary:
-      "Aspect ratio presets and styling for X/Twitter, Instagram, LinkedIn, and Product Hunt images.",
-  },
-  {
-    path: "/features/animation-maker",
-    title: "Animation Maker - Screenshot Studio",
-    summary:
-      "Keyframe timeline, 20+ animation presets, multi-slide slideshows, and in-browser MP4, WebM, and GIF encoding via FFmpeg WASM.",
-  },
-  {
-    path: "/features/3d-effects",
-    title: "3D Effects - Screenshot Studio",
-    summary:
-      "Perspective transforms, tilt, depth, and shadow controls for pseudo-3D product shots.",
-  },
-  {
-    path: "/features/browser-mockups",
-    title: "Browser Mockups - Screenshot Studio",
-    summary:
-      "Safari, Chrome, and Arc browser frames plus macOS window chrome, with editable URL bar text.",
-  },
-  {
-    path: "/features/code-snippets",
-    title: "Code to Image Generator: Free Code Screenshots - Screenshot Studio",
-    summary:
-      "Marketing overview of the code to image tool: syntax themes, gradient backgrounds, line numbers, window frame, and shareable links, positioned as a free ray.so and carbon.now.sh alternative.",
-  },
-  {
-    path: "/for/developers",
-    title: "Screenshot Studio for Developers",
-    summary:
-      "Ship README, changelog, and docs screenshots that look designed, plus a standalone code to image tool at /code.",
-  },
-  {
-    path: "/for/marketers",
-    title: "Screenshot Studio for Marketers",
-    summary:
-      "Launch graphics, ad creative, and social posts built from product screenshots.",
-  },
-  {
-    path: "/for/designers",
-    title: "Screenshot Studio for Designers",
-    summary:
-      "Present work with mockups, framing, and animation without leaving the browser.",
-  },
-  {
-    path: "/docs",
-    title: "Screenshot Studio API Documentation",
-    summary:
-      "HTTP API reference for anonymous editor utilities and authenticated /api/v1 tenant operations, including schemas, rate limits, and error codes. The machine-readable contract is published at /openapi.json.",
+      'A standalone background remover for signed-in workspaces. Drop in a PNG, JPG, WebP, or AVIF image and download a transparent PNG at the original resolution. The BiRefNet-lite model runs on the device with WebGPU, falling back to WebAssembly; the weights download once from Hugging Face and are cached, and the image itself is never uploaded. A free plan is available and exports have no watermark.',
     points: [
-      "POST /api/screenshot - capture a live URL as a base64 PNG",
-      "POST /api/export - recompress an image as PNG, JPEG, or WebP",
-      "GET /api/tweet/{id} - fetch tweet JSON for tweet-to-image rendering",
-      "GET /api/image-proxy - same-origin proxy for Twitter media",
-      "GET and POST /api/v1/* - workspace operations requiring API-key scope or session permission",
-      "OpenAPI 3.1 spec: /openapi.json",
+      'On-device AI background removal, no image upload',
+      'WebGPU acceleration with an automatic WebAssembly fallback',
+      'Crisp or soft edge styles, switchable without rerunning the model',
+      'Before and after comparison slider',
+      'PNG, JPG, WebP, and AVIF input up to 50 MB',
     ],
   },
   {
-    path: "/docs/authentication",
-    title: "Screenshot Studio API Authentication",
+    path: TOOLS_HUB_PATH,
+    title: 'Free Online Image Tools - Screenshot Studio',
     summary:
-      "Editor utility endpoints are anonymous and shaped by per-IP limits. Workspace-scoped /api/v1 operations require an X-API-Key organization key or an authorized signed-in session.",
+      'Index of the standalone image utilities for signed-in workspaces: compress, convert, resize, crop, and rotate, plus six direct format converters. Every tool decodes, processes, and encodes in the browser using Canvas and Web Workers, so images are never uploaded. Batch input is supported and multiple results download as one zip. A free plan is available and exports have no watermark.',
     points: [
-      "No credential is required for the editor utility endpoints",
-      "Tenant /api/v1 operations enforce workspace permission, API-key scope, plan feature, and quota checks",
-      "POST /api/screenshot is limited to 20 requests per minute per IP",
-      "Rate-limited responses return HTTP 429 with Retry-After and X-RateLimit-* headers",
-      "Only maintenance endpoints are credentialed, and they are not part of the public surface",
+      'Compress: four levels, live before and after file sizes',
+      'Convert: PNG, JPG, and WebP in every direction',
+      'Resize: exact pixels or percentage, aspect ratio locked by default',
+      'Crop: drag a selection or type exact pixels, with ratio presets',
+      'Rotate and flip: quarter turns plus horizontal and vertical mirroring',
     ],
   },
   {
-    path: "/developers",
-    title: "Screenshot Studio Developer Portal",
+    path: '/features',
+    title: 'Features - Screenshot Studio',
     summary:
-      "Developer entry point: API docs, OpenAPI spec, authentication and rate limits, quickstart requests, agent files, and the open-source repository.",
+      'Index of every Screenshot Studio feature: backgrounds, browser mockups, device frames, 3D effects, animation, text and image overlays, and export formats.',
+  },
+  {
+    path: '/features/screenshot-beautifier',
+    title: 'Screenshot Beautifier - Screenshot Studio',
+    summary:
+      'Background, padding, corner radius, and shadow controls that turn a raw screenshot into a presentable graphic.',
+  },
+  {
+    path: '/features/social-media-graphics',
+    title: 'Social Media Graphics Maker - Screenshot Studio',
+    summary:
+      'Aspect ratio presets and styling for X/Twitter, Instagram, LinkedIn, and Product Hunt images.',
+  },
+  {
+    path: '/features/animation-maker',
+    title: 'Animation Maker - Screenshot Studio',
+    summary: `Keyframe timeline, ${PRODUCT_FACTS.animationPresets} animation presets, multi-slide slideshows, and in-browser MP4, WebM, and GIF encoding via FFmpeg WASM.`,
+  },
+  {
+    path: '/features/3d-effects',
+    title: '3D Effects - Screenshot Studio',
+    summary:
+      'Perspective transforms, tilt, depth, and shadow controls for pseudo-3D product shots.',
+  },
+  {
+    path: '/features/browser-mockups',
+    title: 'Browser Mockups - Screenshot Studio',
+    summary:
+      'Safari, Chrome, and Arc browser frames plus macOS window chrome, with editable URL bar text.',
+  },
+  {
+    path: '/features/code-snippets',
+    title: 'Code to Image Generator: Free - Screenshot Studio',
+    summary:
+      'Marketing overview of the code to image tool: syntax themes, gradient backgrounds, line numbers, window frame, and shareable links, positioned as a free ray.so and carbon.now.sh alternative.',
+  },
+  {
+    path: '/for/developers',
+    title: 'Screenshot Studio for Developers',
+    summary:
+      'Ship README, changelog, and docs screenshots that look designed, plus a standalone code to image tool at /code.',
+  },
+  {
+    path: '/for/marketers',
+    title: 'Screenshot Studio for Marketers',
+    summary: 'Launch graphics, ad creative, and social posts built from product screenshots.',
+  },
+  {
+    path: '/for/designers',
+    title: 'Screenshot Studio for Designers',
+    summary: 'Present work with mockups, framing, and animation without leaving the browser.',
+  },
+  {
+    path: '/docs',
+    title: 'Screenshot Studio API Documentation',
+    summary:
+      'HTTP API reference for anonymous editor utilities and authenticated /api/v1 tenant operations, including schemas, rate limits, and error codes. The machine-readable contract is published at /openapi.json.',
     points: [
-      "API docs: /docs",
-      "Interactive API reference: /api-reference",
-      "OpenAPI 3.1 spec: /openapi.json",
-      "Authentication and rate limits: /docs/authentication",
-      "Agent overview: /llms.txt and /llms-full.txt",
-      "Source: https://github.com/PlaybookMediaLLC/screenshot-studio",
+      'POST /api/screenshot - capture a live URL as a base64 PNG',
+      'POST /api/export - recompress an image as PNG, JPEG, or WebP',
+      'GET /api/tweet/{id} - fetch tweet JSON for tweet-to-image rendering',
+      'GET /api/image-proxy - same-origin proxy for Twitter media',
+      'GET and POST /api/v1/* - workspace operations requiring API-key scope or session permission',
+      'OpenAPI 3.1 spec: /openapi.json',
     ],
   },
   {
-    path: "/changelog",
-    title: "Changelog - Screenshot Studio",
-    summary: "Release notes and shipped changes, newest first.",
-  },
-  {
-    path: "/about",
-    title: "About Screenshot Studio",
+    path: '/docs/authentication',
+    title: 'Screenshot Studio API Authentication',
     summary:
-      "Why Screenshot Studio exists, what it offers, and how the open-source project is run.",
+      'Editor utility endpoints are anonymous and shaped by per-IP limits. Workspace-scoped /api/v1 operations require an X-API-Key organization key or an authorized signed-in session.',
+    points: [
+      'No credential is required for the editor utility endpoints',
+      'Tenant /api/v1 operations enforce workspace permission, API-key scope, plan feature, and quota checks',
+      'POST /api/screenshot is limited to 20 requests per minute per IP',
+      'Rate-limited responses return HTTP 429 with Retry-After and X-RateLimit-* headers',
+      'Only maintenance endpoints are credentialed, and they are not part of the public surface',
+    ],
   },
   {
-    path: "/contact",
-    title: "Contact Screenshot Studio",
+    path: '/developers',
+    title: 'Screenshot Studio Developer Portal',
     summary:
-      "Ways to reach the maintainers: GitHub issues, X/Twitter, and email.",
+      'Developer entry point: API docs, OpenAPI spec, authentication and rate limits, quickstart requests, agent files, and the open-source repository.',
+    points: [
+      'API docs: /docs',
+      'Interactive API reference: /api-reference',
+      'OpenAPI 3.1 spec: /openapi.json',
+      'Authentication and rate limits: /docs/authentication',
+      'Agent overview: /llms.txt and /llms-full.txt',
+      'Source: https://github.com/PlaybookMediaLLC/screenshot-studio',
+    ],
   },
   {
-    path: "/privacy-policy",
-    title: "Privacy Policy - Screenshot Studio",
+    path: '/changelog',
+    title: 'Changelog - Screenshot Studio',
+    summary: 'Release notes and shipped changes, newest first.',
+  },
+  {
+    path: '/about',
+    title: 'About Screenshot Studio',
     summary:
-      "How account and workspace data, browser-local editing, server-assisted operations, analytics, ads, and cookies are handled.",
+      'Why Screenshot Studio exists, what it offers, and how the open-source project is run.',
   },
   {
-    path: "/terms",
-    title: "Terms & Conditions - Screenshot Studio",
-    summary: "Terms of use for Screenshot Studio.",
+    path: '/contact',
+    title: 'Contact Screenshot Studio',
+    summary: 'Ways to reach the maintainers: GitHub issues, X/Twitter, and email.',
   },
   {
-    path: "/compare/pika-style",
-    title: "Screenshot Studio vs Pika Style",
-    summary: "Feature-by-feature comparison with Pika Style.",
+    path: '/privacy-policy',
+    title: 'Privacy Policy - Screenshot Studio',
+    summary:
+      'How account and workspace data, browser-local editing, server-assisted operations, analytics, ads, and cookies are handled.',
   },
   {
-    path: "/compare/shots-so",
-    title: "Screenshot Studio vs Shots.so",
-    summary: "Feature-by-feature comparison with Shots.so.",
+    path: '/terms',
+    title: 'Terms & Conditions - Screenshot Studio',
+    summary: 'Terms of use for Screenshot Studio.',
   },
-  {
-    path: "/compare/snagit",
-    title: "Screenshot Studio vs Snagit",
-    summary: "Feature-by-feature comparison with Snagit.",
-  },
-  {
-    path: "/compare/cleanshot-x",
-    title: "Screenshot Studio vs CleanShot X",
-    summary: "Feature-by-feature comparison with CleanShot X.",
-  },
-  {
-    path: "/compare/screely",
-    title: "Screenshot Studio vs Screely",
-    summary: "Feature-by-feature comparison with Screely.",
-  },
-];
+]
+
+function cell(value: string): string {
+  return value.replace(/\|/g, '\\|')
+}
+
+function renderFaqSection(faqs: { question: string; answer: string }[]): AgentSection {
+  return {
+    heading: 'FAQ',
+    body: faqs.map((faq) => `### ${faq.question}\n\n${faq.answer}`).join('\n\n'),
+  }
+}
+
+function comparisonSections(comparison: ComparisonData): AgentSection[] {
+  return [
+    ...(comparison.scopeNote
+      ? [{ heading: 'These tools do different jobs', body: comparison.scopeNote }]
+      : []),
+    {
+      heading: `${comparison.competitorName} pricing`,
+      body: `${comparison.competitorPricing}
+
+${claimsNote(comparison)}`,
+    },
+    {
+      heading: `Where ${comparison.competitorName} falls short`,
+      body: comparison.competitorLimitations.map((limitation) => `- ${limitation}`).join('\n'),
+    },
+    {
+      heading: 'What Screenshot Studio does differently',
+      body: comparison.studioAdvantages.map((advantage) => `- ${advantage}`).join('\n'),
+    },
+    {
+      heading: 'Feature comparison',
+      body: [
+        `| Feature | Screenshot Studio | ${cell(comparison.competitorName)} |`,
+        '| --- | --- | --- |',
+        ...comparison.features.map(
+          (feature) =>
+            `| ${cell(feature.name)} | ${cell(feature.studio)} | ${cell(feature.competitor)} |`
+        ),
+      ].join('\n'),
+    },
+    { heading: 'Verdict', body: comparison.verdict },
+    renderFaqSection(comparison.faqs.map((faq) => ({ question: faq.q, answer: faq.a }))),
+  ]
+}
+
+function workspaceAwareSummary(value: string): string {
+  return value
+    .replace(/free,\s*no signup/gi, 'available with a free workspace plan')
+    .replace(/no signup(?:\s+(?:needed|required))?/gi, 'a signed-in workspace is required')
+}
+
+/**
+ * One agent page per comparison and per image tool, generated from the same
+ * registries that drive the routes and the sitemap so they can never drift apart.
+ */
+for (const comparison of comparisons) {
+  AGENT_PAGES.push({
+    path: `/compare/${comparison.slug}`,
+    title: comparison.metaTitle,
+    summary: workspaceAwareSummary(`${comparison.tagline} ${comparison.metaDescription}`),
+    sections: comparisonSections(comparison),
+  })
+}
+
+for (const tool of TOOLS) {
+  AGENT_PAGES.push({
+    path: tool.slug,
+    title: `${tool.title} - Screenshot Studio`,
+    summary: `${tool.intro} Runs entirely in the browser: the image is decoded, processed, and re-encoded locally and never uploaded. Available to signed-in workspaces with a free plan and no export watermark.`,
+    points: tool.features,
+    sections: [...(tool.sections ?? []), renderFaqSection(tool.faqs)],
+  })
+}
 
 export const AGENT_RESOURCES = [
-  { name: "Interactive API reference", url: `${BASE_URL}/api-reference` },
-  { name: "API documentation", url: `${BASE_URL}/docs` },
-  { name: "Developer portal", url: `${BASE_URL}/developers` },
-  { name: "OpenAPI specification", url: `${BASE_URL}/openapi.json` },
+  { name: 'Interactive API reference', url: `${BASE_URL}/api-reference` },
+  { name: 'API documentation', url: `${BASE_URL}/docs` },
+  { name: 'Developer portal', url: `${BASE_URL}/developers` },
+  { name: 'OpenAPI specification', url: `${BASE_URL}/openapi.json` },
   {
-    name: "Authentication and rate limits",
+    name: 'Authentication and rate limits',
     url: `${BASE_URL}/docs/authentication`,
   },
-  { name: "llms.txt", url: `${BASE_URL}/llms.txt` },
-  { name: "llms-full.txt", url: `${BASE_URL}/llms-full.txt` },
-  { name: "Sitemap", url: `${BASE_URL}/sitemap.xml` },
-  { name: "robots.txt", url: `${BASE_URL}/robots.txt` },
-];
+  { name: 'llms.txt', url: `${BASE_URL}/llms.txt` },
+  { name: 'llms-full.txt', url: `${BASE_URL}/llms-full.txt` },
+  { name: 'Sitemap', url: `${BASE_URL}/sitemap.xml` },
+  { name: 'robots.txt', url: `${BASE_URL}/robots.txt` },
+]
 
-const LOCALE_PREFIX = /^\/(?:es|fr|de|ja|pt|ko|zh)(?=\/|$)/;
+const LOCALE_PREFIX = /^\/(?:es|fr|de|ja|pt|ko|zh)(?=\/|$)/
 
 export function normalizeAgentPath(pathname: string): string {
-  const withoutLocale = pathname.replace(LOCALE_PREFIX, "");
-  const trimmed = withoutLocale.replace(/\/+$/, "");
-  return trimmed === "" ? "/" : trimmed;
+  const withoutLocale = pathname.replace(LOCALE_PREFIX, '')
+  const trimmed = withoutLocale.replace(/\/+$/, '')
+  return trimmed === '' ? '/' : trimmed
 }
 
 export function findAgentPage(pathname: string): AgentPage | undefined {
-  const normalized = normalizeAgentPath(pathname);
-  return AGENT_PAGES.find((page) => page.path === normalized);
+  const normalized = normalizeAgentPath(pathname)
+  return AGENT_PAGES.find((page) => page.path === normalized)
 }
 
 export function renderAgentPageMarkdown(page: AgentPage): string {
-  const lines = [`# ${page.title}`, "", page.summary];
+  const lines = [`# ${page.title}`, '', page.summary]
 
   if (page.points?.length) {
-    lines.push("", ...page.points.map((point) => `- ${point}`));
+    lines.push('', ...page.points.map((point) => `- ${point}`))
+  }
+
+  for (const section of page.sections ?? []) {
+    lines.push('', `## ${section.heading}`, '', section.body)
   }
 
   lines.push(
-    "",
-    "## Canonical URL",
-    "",
-    `${BASE_URL}${page.path === "/" ? "/" : page.path}`,
-    "",
-    "## Machine-readable resources",
-    "",
-    ...AGENT_RESOURCES.map(
-      (resource) => `- [${resource.name}](${resource.url})`,
-    ),
-  );
+    '',
+    '## Canonical URL',
+    '',
+    `${BASE_URL}${page.path === '/' ? '/' : page.path}`,
+    '',
+    '## Machine-readable resources',
+    '',
+    ...AGENT_RESOURCES.map((resource) => `- [${resource.name}](${resource.url})`)
+  )
 
-  return `${lines.join("\n")}\n`;
+  return `${lines.join('\n')}\n`
 }
 
 export function renderNotFoundMarkdown(pathname: string): string {
   return [
-    "# 404 Not Found",
-    "",
+    '# 404 Not Found',
+    '',
     `No page exists at \`${pathname}\` on Screenshot Studio.`,
-    "",
-    "## Where to look next",
-    "",
-    ...AGENT_RESOURCES.map(
-      (resource) => `- [${resource.name}](${resource.url})`,
-    ),
-    "",
-    "## Main pages",
-    "",
-    ...AGENT_PAGES.slice(0, 12).map(
-      (page) => `- [${page.title}](${BASE_URL}${page.path})`,
-    ),
-    "",
-  ].join("\n");
+    '',
+    '## Where to look next',
+    '',
+    ...AGENT_RESOURCES.map((resource) => `- [${resource.name}](${resource.url})`),
+    '',
+    '## Main pages',
+    '',
+    ...AGENT_PAGES.slice(0, 12).map((page) => `- [${page.title}](${BASE_URL}${page.path})`),
+    '',
+  ].join('\n')
 }
 
 export function renderNotAcceptableMarkdown(accept: string): string {
   return [
-    "# 406 Not Acceptable",
-    "",
+    '# 406 Not Acceptable',
+    '',
     `This URL cannot be represented as \`${accept}\`.`,
-    "",
-    "## Supported representations",
-    "",
-    "- `text/html` (default)",
-    "- `text/markdown` (send `Accept: text/markdown`)",
-    "",
+    '',
+    '## Supported representations',
+    '',
+    '- `text/html` (default)',
+    '- `text/markdown` (send `Accept: text/markdown`)',
+    '',
     `Machine-readable index: ${BASE_URL}/llms.txt`,
-    "",
-  ].join("\n");
+    '',
+  ].join('\n')
 }

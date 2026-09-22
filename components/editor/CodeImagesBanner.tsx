@@ -1,11 +1,10 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ArrowRight01Icon, Cancel01Icon, SourceCodeIcon } from "hugeicons-react";
+import { ArrowRight01Icon, Cancel01Icon, QrCodeIcon } from "hugeicons-react";
 
-const DISMISSED_KEY = "screenshotstudio-code-images-banner-dismissed";
+const DISMISSED_KEY = "screenshotstudio-qrtoolset-banner-dismissed";
 
 export function CodeImagesBanner() {
   const isMobile = useIsMobile();
@@ -29,24 +28,26 @@ export function CodeImagesBanner() {
           <span className="inline-flex h-6 shrink-0 items-center rounded-md bg-foreground px-2 text-[10px] font-semibold uppercase tracking-wide text-background">
             New
           </span>
-          <SourceCodeIcon size={16} aria-hidden="true" className="shrink-0 text-foreground" />
+          <QrCodeIcon size={16} aria-hidden="true" className="shrink-0 text-foreground" />
           <p className="truncate text-sm text-foreground">
-            <span className="font-medium">Code Images</span>
+            <span className="font-medium">QR Toolset</span>
             <span className="text-muted-foreground">
-              {" "}turns any snippet into a beautiful shareable image with 14 themes and 150+ backgrounds.
+              {" "}generate, customize, and track QR codes for links, PDF, vCards, WiFi, and more.
             </span>
           </p>
-          <Link
-            href="/code"
+          <a
+            href="https://qrtoolset.com"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-foreground underline-offset-4 hover:underline"
           >
             Try it
             <ArrowRight01Icon size={14} aria-hidden="true" />
-          </Link>
+          </a>
           <button
             type="button"
             onClick={handleDismiss}
-            aria-label="Dismiss code images announcement"
+            aria-label="Dismiss QR Toolset announcement"
             className="ml-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <Cancel01Icon size={14} aria-hidden="true" />

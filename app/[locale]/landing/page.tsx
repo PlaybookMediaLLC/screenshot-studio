@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import { LandingPage } from '@/components/landing/LandingPage'
+import { PRODUCT_FACTS, atLeast } from '@/lib/seo/product-facts'
 
 export const metadata: Metadata = {
   title: 'Free Screenshot Beautifier & Mockup Tool',
@@ -22,8 +23,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: 'Screenshot Studio - Free Screenshot Beautifier & Mockup Tool',
-    description:
-      'Transform screenshots into professional graphics. 100+ backgrounds, browser mockups, 3D effects, animations, and video export. No signup required.',
+    description: `Transform screenshots into professional graphics. ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, browser mockups, 3D effects, animations, and video export. Free workspace plan available.`,
     url: '/landing',
   },
   alternates: {
@@ -68,7 +68,7 @@ export default function LandingPageRoute() {
     <LandingPage
       heroTitle="Beautiful images. Zero effort."
       heroSubtitle="Screenshots, ready to ship."
-      heroDescription="The free browser editor that makes your screenshots, tweets, and code look professional. Browser mockups, 3D effects, and more."
+      heroDescription="The browser editor that makes your screenshots, tweets, and code look professional. Browser mockups, 3D effects, and more."
       ctaLabel="Create workspace"
       ctaHref="/sign-up"
       howItWorks={howItWorks}

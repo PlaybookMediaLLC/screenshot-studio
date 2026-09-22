@@ -8,11 +8,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { PRODUCT_FACTS } from "@/lib/seo/product-facts";
 
 export const metadata: Metadata = {
-  title: 'Code to Image: Create Beautiful Code Screenshots',
+  title: 'Code to Image: Beautiful Screenshots',
   description:
-    'Turn code into a shareable image. 14 themes plus gradient, image, and pattern backgrounds, export a crisp PNG. Free, no signup, no watermark.',
+    `Turn code into a shareable image. ${PRODUCT_FACTS.codeThemes} themes plus gradient, image, and pattern backgrounds, export a crisp PNG. Free, no signup, no watermark.`,
   keywords: [
     'code to image',
     'code snippet screenshot',
@@ -29,9 +30,9 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: 'Code to Image: Create Beautiful Code Screenshots',
+    title: 'Code to Image: Beautiful Screenshots',
     description:
-      'Turn code into beautiful, shareable images. 14 themes, gradients, images, and window frames. Free, no signup.',
+      `Turn code into beautiful, shareable images. ${PRODUCT_FACTS.codeThemes} themes, gradients, images, and window frames. Free, no signup.`,
     url: '/code',
   },
   alternates: {

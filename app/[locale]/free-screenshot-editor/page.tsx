@@ -12,6 +12,7 @@ import {
 } from "hugeicons-react";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
+import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 
 export const metadata: Metadata = {
   title: "Free Screenshot Editor Online",
@@ -45,7 +46,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Free Screenshot Editor Online - Screenshot Studio",
     description:
-      "Beautify screenshots instantly with 100+ backgrounds, 3D effects, and animations. Free, no signup required.",
+      `Beautify screenshots instantly with ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, 3D effects, and animations. Free, no signup required.`,
     url: "/free-screenshot-editor",
   },
   alternates: {
@@ -94,13 +95,13 @@ const capabilities = [
     icon: Video01Icon,
     title: "Animation & Video Export",
     description:
-      "Add keyframe animations with 20+ presets and export as MP4, WebM, or GIF. Bring static screenshots to life.",
+      `Add keyframe animations with ${atLeast(PRODUCT_FACTS.animationPresets)} presets and export as MP4, WebM, or GIF. Bring static screenshots to life.`,
   },
   {
     icon: TextFontIcon,
     title: "Text & Overlays",
     description:
-      "Add captions, labels, and annotations with 25+ fonts. Layer stickers and arrows for tutorials.",
+      `Add captions, labels, and annotations with ${atLeast(PRODUCT_FACTS.fonts)} fonts. Layer stickers and arrows for tutorials.`,
   },
   {
     icon: Download04Icon,
@@ -243,7 +244,7 @@ export default function FreeScreenshotEditorPage() {
           priceCurrency: "USD",
         },
         featureList: [
-          "100+ gradient backgrounds",
+          `${atLeast(PRODUCT_FACTS.backgrounds)} gradient backgrounds`,
           "Custom shadow effects",
           "3D perspective transforms",
           "Device frames (macOS, Windows, Arc)",
@@ -254,29 +255,6 @@ export default function FreeScreenshotEditorPage() {
           "No signup required",
           "No watermarks",
         ],
-        aggregateRating: {
-          "@type": "AggregateRating",
-          ratingValue: "4.8",
-          ratingCount: "150",
-          bestRating: "5",
-        },
-      },
-      {
-        "@type": "HowTo",
-        name: "How to Edit Screenshots Online for Free",
-        description:
-          "Beautify any screenshot in 3 easy steps using Screenshot Studio's free online editor.",
-        totalTime: "PT1M",
-        tool: {
-          "@type": "HowToTool",
-          name: "Screenshot Studio",
-        },
-        step: howItWorks.map((item, index) => ({
-          "@type": "HowToStep",
-          name: item.title,
-          text: item.desc,
-          position: index + 1,
-        })),
       },
       {
         "@type": "FAQPage",

@@ -37,18 +37,16 @@ import { GlobalDropZone } from '@/components/GlobalDropZone'
 import { PathTracker } from '@/components/landing/GoBackButton'
 import { PublicAdScript } from '@/components/marketing/PublicAdScript'
 import { getRootJsonLd } from '@/lib/seo/json-ld'
-import { getLocale } from 'next-intl/server'
+import { PRODUCT_FACTS, atLeast } from '@/lib/seo/product-facts'
 
 // System UI fonts
 const geistSans = Geist({
   variable: '--font-geist-sans',
-  preload: false,
   subsets: ['latin'],
 })
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
-  preload: false,
   subsets: ['latin'],
 })
 
@@ -361,7 +359,7 @@ export const metadata: Metadata = {
   authors: [{ name: 'Screenshot Studio', url: SITE_URL }],
   creator: 'Screenshot Studio',
   publisher: 'Screenshot Studio',
-  metadataBase: new URL(process.env.BETTER_AUTH_URL || SITE_URL),
+  metadataBase: new URL(SITE_URL),
   alternates: {
     canonical: '/',
   },
@@ -371,8 +369,7 @@ export const metadata: Metadata = {
     url: '/',
     siteName: 'Screenshot Studio',
     title: 'Screenshot Studio - Free Screenshot Editor Online',
-    description:
-      'Free screenshot editor online: create stunning social media graphics in seconds. 100+ backgrounds, animations, 3D effects, video export. No signup required.',
+    description: `Screenshot editor online: create stunning social media graphics in seconds. ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, animations, 3D effects, and video export. Free workspace plan available.`,
     images: [
       {
         url: `${SITE_URL}/og.jpg`,
@@ -388,8 +385,8 @@ export const metadata: Metadata = {
     description:
       'Free screenshot editor online — transform screenshots into stunning graphics. Animations, 3D effects, video export. No signup.',
     images: [`${SITE_URL}/og.jpg`],
-    creator: '@code_kartik',
-    site: '@code_kartik',
+    creator: '@screenshotstdio',
+    site: '@screenshotstdio',
   },
   robots: {
     index: true,
@@ -430,10 +427,9 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const rootJsonLd = getRootJsonLd()
-  const locale = await getLocale()
 
   return (
-    <html lang={locale} className="dark">
+    <html lang="en" className="dark">
       <meta name="msvalidate.01" content="A3B8CB50BBD78710971A13FA3EE1E544" />
       <link rel="alternate" type="text/markdown" href="/llms.txt" title="LLMs.txt" />
       <link

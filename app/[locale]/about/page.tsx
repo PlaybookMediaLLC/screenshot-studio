@@ -4,7 +4,7 @@ import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 
 export const metadata: Metadata = {
-  title: "About Us",
+  title: { absolute: "About Screenshot Studio: Free Open-Source Screenshot Editor" },
   description:
     "About Screenshot Studio, the free, open-source browser tool that transforms plain screenshots into professional graphics.",
   alternates: {

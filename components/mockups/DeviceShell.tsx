@@ -18,6 +18,30 @@ interface DeviceShellProps {
   onScreenDoubleClick?: () => void;
   onScreenFile?: (file: File) => void;
   onScreenPointerDown?: PointerEventHandler<HTMLDivElement>;
+  onScreenPointerMove?: PointerEventHandler<HTMLDivElement>;
+  onScreenPointerUp?: PointerEventHandler<HTMLDivElement>;
+  onScreenPointerCancel?: PointerEventHandler<HTMLDivElement>;
+  onScreenKeyDown?: KeyboardEventHandler<HTMLDivElement>;
+}
+
+export function CropGridOverlay({
+  className,
+}: {
+  className?: string;
+}): React.JSX.Element {
+  return (
+    <div
+      data-export-exclude="true"
+      className={cn(
+        "pointer-events-none absolute inset-0 border-2 border-dashed border-background/90 bg-foreground/[0.08]",
+        className,
+      )}
+      style={{
+        "--crop-grid-color": "color-mix(in oklab, var(--background) 45%, transparent)",
+        backgroundImage: "linear-gradient(to right, transparent 33%, var(--crop-grid-color) 33%, var(--crop-grid-color) calc(33% + 1px), transparent calc(33% + 1px), transparent 66%, var(--crop-grid-color) 66%, var(--crop-grid-color) calc(66% + 1px), transparent calc(66% + 1px)), linear-gradient(to bottom, transparent 33%, var(--crop-grid-color) 33%, var(--crop-grid-color) calc(33% + 1px), transparent calc(33% + 1px), transparent 66%, var(--crop-grid-color) 66%, var(--crop-grid-color) calc(66% + 1px), transparent calc(66% + 1px))",
+      } as React.CSSProperties}
+    />
+  );
 }
 
 function Screen({
@@ -32,6 +56,10 @@ function Screen({
   onDoubleClick,
   onFile,
   onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
+  onCropKeyDown,
 }: {
   screen: DeviceScreenContent;
   editing: boolean;
@@ -44,6 +72,10 @@ function Screen({
   onDoubleClick?: () => void;
   onFile?: (file: File) => void;
   onPointerDown?: PointerEventHandler<HTMLDivElement>;
+  onPointerMove?: PointerEventHandler<HTMLDivElement>;
+  onPointerUp?: PointerEventHandler<HTMLDivElement>;
+  onPointerCancel?: PointerEventHandler<HTMLDivElement>;
+  onCropKeyDown?: KeyboardEventHandler<HTMLDivElement>;
 }): React.JSX.Element {
   const acceptDroppedImage = ((event) => {
     if (!onFile) return;
@@ -67,6 +99,7 @@ function Screen({
       className={cn(
         "group absolute overflow-hidden bg-muted",
         editing && "ring-2 ring-primary ring-offset-1 ring-offset-foreground/20",
+        editing && "pointer-events-auto cursor-move touch-none",
         onClick && !screen.src && "cursor-pointer",
         className,
       )}
@@ -76,6 +109,10 @@ function Screen({
         onClick();
       }}
       onKeyDown={((event) => {
+        if (editing) {
+          onCropKeyDown?.(event);
+          return;
+        }
         if (!onClick || (event.key !== "Enter" && event.key !== " ")) return;
         event.preventDefault();
         event.stopPropagation();
@@ -94,9 +131,13 @@ function Screen({
       onDrop={acceptDroppedImage}
       onPaste={acceptPastedImage}
       onPointerDown={onPointerDown}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      aria-label={onClick ? "Upload image to device screen" : undefined}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
+      role={editing ? "group" : onClick ? "button" : undefined}
+      tabIndex={onClick || editing ? 0 : undefined}
+      aria-label={editing ? "Reposition device screen crop" : onClick ? "Upload image to device screen" : undefined}
+      aria-keyshortcuts={editing ? "ArrowUp ArrowDown ArrowLeft ArrowRight Escape" : undefined}
       data-device-screen-dropzone={onFile ? "" : undefined}
       data-export-clean-device-screen={editing ? "true" : undefined}
       style={{ ...style, touchAction: editing ? "none" : undefined }}
@@ -151,10 +192,7 @@ function Screen({
         </div>
       )}
       {editing ? (
-        <div
-          data-export-exclude="true"
-          className="pointer-events-none absolute inset-0 bg-primary/5"
-        />
+        <CropGridOverlay />
       ) : null}
     </div>
   );
@@ -180,6 +218,10 @@ export function DeviceShell({
   onScreenDoubleClick,
   onScreenFile,
   onScreenPointerDown,
+  onScreenPointerMove,
+  onScreenPointerUp,
+  onScreenPointerCancel,
+  onScreenKeyDown,
 }: DeviceShellProps): React.JSX.Element {
   const shellClass = frameClasses(definition.finish);
   const screenProps = {
@@ -189,6 +231,10 @@ export function DeviceShell({
     onDoubleClick: onScreenDoubleClick,
     onFile: onScreenFile,
     onPointerDown: onScreenPointerDown,
+    onPointerMove: onScreenPointerMove,
+    onPointerUp: onScreenPointerUp,
+    onPointerCancel: onScreenPointerCancel,
+    onCropKeyDown: onScreenKeyDown,
   };
 
   if (definition.asset) {

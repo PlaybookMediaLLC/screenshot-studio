@@ -10,9 +10,10 @@ import {
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
+import { PRODUCT_FACTS } from "@/lib/seo/product-facts";
 
 export const metadata: Metadata = {
-  title: "Code to Image Generator: Free Code Screenshots",
+  title: "Code to Image Generator: Free",
   description:
     "Free code to image tool: pick a syntax theme, gradient background, line numbers, and window frame, then export a crisp PNG. A free ray.so and carbon.now.sh alternative. No signup.",
   keywords: [
@@ -120,7 +121,7 @@ const faqs = [
   {
     question: "Which languages are supported?",
     answer:
-      "Auto-detect picks up most popular languages automatically, or you can choose from 20+ languages manually, including TypeScript, Python, Rust, Go, and SQL.",
+      `Auto-detect picks up most popular languages automatically, or you can choose from ${PRODUCT_FACTS.codeLanguages} languages manually, including TypeScript, Python, Rust, Go, and SQL.`,
   },
   {
     question: "Is my code uploaded anywhere?",
@@ -185,23 +186,6 @@ export default function CodeSnippetsFeaturePage() {
           "Shareable links and 2x or 4x PNG export",
           "No signup required",
         ],
-      },
-      {
-        "@type": "HowTo",
-        name: "How to Turn Code Into an Image",
-        description:
-          "Create a shareable code screenshot in three steps using Screenshot Studio.",
-        totalTime: "PT1M",
-        tool: {
-          "@type": "HowToTool",
-          name: "Screenshot Studio",
-        },
-        step: howToSteps.map((item, index) => ({
-          "@type": "HowToStep",
-          name: item.title,
-          text: item.description,
-          position: index + 1,
-        })),
       },
     ],
   };

@@ -12,11 +12,17 @@ export interface BackgroundConfig {
   opacity?: number;
 }
 
+const isCssGradient = (value: string): boolean =>
+  /^(?:linear|radial|conic)-gradient\(/.test(value);
+
 export const getBackgroundStyle = (config: BackgroundConfig): string => {
   const { type, value } = config;
 
   switch (type) {
     case 'gradient': {
+      if (isCssGradient(value)) {
+        return value;
+      }
       if (typeof value === 'string' && value.startsWith('mesh:')) {
         const meshKey = value.replace('mesh:', '') as MeshGradientKey;
         return meshGradients[meshKey] || gradientColors.vibrant_orange_pink;
@@ -56,7 +62,9 @@ export const getBackgroundCSS = (
     case 'gradient': {
       let gradient: string;
 
-      if (typeof value === 'string' && value.startsWith('mesh:')) {
+      if (isCssGradient(value)) {
+        gradient = value;
+      } else if (typeof value === 'string' && value.startsWith('mesh:')) {
         const meshKey = value.replace('mesh:', '') as MeshGradientKey;
         gradient = meshGradients[meshKey] || gradientColors.vibrant_orange_pink;
       } else if (typeof value === 'string' && value.startsWith('magic:')) {

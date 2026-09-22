@@ -218,23 +218,6 @@ export default function BrowserMockupsPage() {
           "No signup required",
         ],
       },
-      {
-        "@type": "HowTo",
-        name: "How to Add a Browser Frame to a Screenshot",
-        description:
-          "Add a realistic Safari or Chrome browser frame to any screenshot in 3 steps using Screenshot Studio.",
-        totalTime: "PT1M",
-        tool: {
-          "@type": "HowToTool",
-          name: "Screenshot Studio",
-        },
-        step: howToSteps.map((item, index) => ({
-          "@type": "HowToStep",
-          name: item.title,
-          text: item.description,
-          position: index + 1,
-        })),
-      },
     ],
   };
 

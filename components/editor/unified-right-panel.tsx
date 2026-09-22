@@ -6,7 +6,6 @@ import {
   Settings02Icon,
   SlidersHorizontalIcon,
   ColorsIcon,
-  MagicWand01Icon,
   RotateSquareIcon,
   VideoReplayIcon,
   Cancel01Icon,
@@ -31,14 +30,8 @@ import {
   ImagePositionSection,
   DeviceFramesSection,
 } from './sections'
-import { cn } from '@/lib/utils'
 import { useImageStore } from '@/lib/store'
 import { SegmentedControl } from '@/components/ui/segmented-control'
-
-const PresetGallery = dynamic(
-  () => import('@/components/presets/PresetGallery').then((module) => module.PresetGallery),
-  { ssr: false }
-)
 
 const TweetImportSection = dynamic(
   () => import('./sections/TweetImportSection').then((module) => module.TweetImportSection),
@@ -76,14 +69,7 @@ export function UnifiedRightPanel({
 }: {
   onClose?: () => void
 } = {}) {
-  const {
-    activeRightPanelTab,
-    setActiveRightPanelTab,
-    showTemplates: templatesOpen,
-    setShowTemplates: setTemplatesOpen,
-    editorMode,
-    setEditorMode,
-  } = useImageStore()
+  const { activeRightPanelTab, setActiveRightPanelTab, editorMode, setEditorMode } = useImageStore()
   const activeTab = activeRightPanelTab
   const setActiveTab = setActiveRightPanelTab
 
@@ -100,15 +86,6 @@ export function UnifiedRightPanel({
       return () => clearTimeout(timeout)
     }
   }, [activeTab, contentKey])
-
-  React.useEffect(() => {
-    if (!templatesOpen) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setTemplatesOpen(false)
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [templatesOpen, setTemplatesOpen])
 
   return (
     <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
@@ -202,35 +179,6 @@ export function UnifiedRightPanel({
           {contentKey === 'transforms' && <TransformsGallery />}
 
           {contentKey === 'animate' && <AnimationPresetGallery />}
-        </div>
-      </div>
-
-      <div
-        className={cn(
-          'absolute inset-0 z-50 flex flex-col bg-background transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none',
-          templatesOpen
-            ? 'translate-x-0 opacity-100'
-            : '-translate-x-full opacity-0 pointer-events-none'
-        )}
-      >
-        <div className="flex shrink-0 items-center justify-between border-b border-foreground/10 px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <MagicWand01Icon size={18} className="text-foreground" />
-            <h2 className="text-sm font-semibold text-foreground">Templates</h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => setTemplatesOpen(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-foreground/[0.08] hover:text-foreground"
-          >
-            <Cancel01Icon size={16} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
-          <div className="p-4">
-            <PresetGallery />
-          </div>
         </div>
       </div>
     </div>

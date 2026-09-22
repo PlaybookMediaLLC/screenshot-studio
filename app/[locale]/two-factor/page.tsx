@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { AuthShell } from '@/components/auth/AuthShell'
 import { TwoFactorForm } from '@/components/auth/TwoFactorForm'
 
@@ -6,8 +7,13 @@ export const metadata: Metadata = { title: 'Verify sign in | Screenshot Studio' 
 
 export default function TwoFactorPage() {
   return (
-    <AuthShell description="Enter a code from your authenticator to continue." title="Verify sign in">
-      <TwoFactorForm />
+    <AuthShell
+      description="Enter a code from your authenticator to continue."
+      title="Verify sign in"
+    >
+      <Suspense fallback={null}>
+        <TwoFactorForm />
+      </Suspense>
     </AuthShell>
   )
 }

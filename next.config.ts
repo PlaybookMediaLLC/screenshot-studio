@@ -54,12 +54,31 @@ const nextConfig: NextConfig = {
           { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
         ],
       },
+      // Cross-origin isolation lets the background remover run ONNX WASM
+      // multi-threaded. credentialless still allows the Hugging Face model fetch.
+      {
+        source: '/:locale(es|fr|de|ja|pt|ko|zh)?/remove-background',
+        headers: [
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+        ],
+      },
+      // An isolated page also requires compatible headers on its module worker.
+      {
+        source: '/_next/static/:path*',
+        headers: [{ key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' }],
+      },
     ]
   },
 
   // Permanent redirects for SEO (301)
   async redirects() {
     return [
+      {
+        source: '/features/background-remover',
+        destination: '/remove-background',
+        permanent: true,
+      },
       // Old /home editor URL → new / root
       {
         source: '/home',
@@ -85,12 +104,16 @@ const nextConfig: NextConfig = {
         destination: '/api/llms-full',
       },
       {
-        source: "/openapi.json",
-        destination: "/api/openapi",
+        source: '/openapi.json',
+        destination: '/api/openapi',
       },
       {
-        source: "/.well-known/openapi.json",
-        destination: "/api/openapi",
+        source: '/indexnow-key.txt',
+        destination: '/api/indexnow',
+      },
+      {
+        source: '/.well-known/openapi.json',
+        destination: '/api/openapi',
       },
       // PostHog reverse proxy — static assets must come first
       {
@@ -114,8 +137,16 @@ const nextConfig: NextConfig = {
   },
 
   // REQUIRED for react-konva
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.externals = [...(config.externals || []), { canvas: 'canvas' }]
+    if (!isServer) {
+      // The background-removal client must not bundle Node-only inference backends.
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        sharp$: false,
+        'onnxruntime-node$': false,
+      }
+    }
     return config
   },
 }

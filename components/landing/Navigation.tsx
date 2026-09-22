@@ -23,7 +23,9 @@ interface NavigationProps {
 
 const resourceLinks = [
   { label: 'Features', href: '/features' },
+  { label: 'Image Tools', href: '/tools' },
   { label: 'Code Images', href: '/code' },
+  { label: 'Remove Background', href: '/remove-background' },
   { label: 'For Designers', href: '/for/designers' },
   { label: 'For Developers', href: '/for/developers' },
   { label: 'Screenshot Editor', href: '/free-screenshot-editor' },

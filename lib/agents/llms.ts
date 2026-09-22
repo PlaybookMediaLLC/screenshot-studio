@@ -1,4 +1,19 @@
 import { BASE_URL } from "@/lib/agents/site-content";
+import { comparisons } from "@/lib/seo/comparisons";
+import { atLeast, PRODUCT_FACTS } from "@/lib/seo/product-facts";
+import { CONVERTER_TOOLS, PRIMARY_TOOLS } from "@/lib/seo/tools";
+
+const converterLinks = CONVERTER_TOOLS.map(
+  (tool) => `${BASE_URL}${tool.slug}`,
+).join(", ");
+
+const primaryToolLines = PRIMARY_TOOLS.map(
+  (tool) => `- ${tool.name}: ${BASE_URL}${tool.slug}`,
+).join("\n");
+
+const comparisonLines = comparisons
+  .map((comparison) => `- vs ${comparison.competitorName}: ${BASE_URL}/compare/${comparison.slug}`)
+  .join("\n");
 
 export const llmsTxt = `# Screenshot Studio
 
@@ -10,32 +25,47 @@ Screenshot Studio is a client-side image editor: imported images are not uploade
 
 ## Key Features
 
-- 100+ gradient, mesh, and pattern backgrounds
+- ${atLeast(PRODUCT_FACTS.backgrounds)} gradient, mesh, and solid backgrounds
 - Safari and Chrome browser mockups (light and dark)
 - Device frames: Arc, Polaroid, glass, outline, border
 - 3D perspective transforms and shadow effects
-- 20+ animation presets with keyframe timeline editor
+- ${PRODUCT_FACTS.animationPresets} animation presets with keyframe timeline editor
 - Video export in MP4, WebM, and GIF
-- Text and image overlays with custom fonts
+- Text and image overlays with ${PRODUCT_FACTS.fonts} Google Fonts
 - Tweet-to-image and code-snippet-to-image capture
-- High-resolution export up to 5x scale (PNG, JPEG, WebP)
+- On-device AI background remover with full-resolution transparent PNG output (${BASE_URL}/remove-background)
+- High-resolution export up to ${PRODUCT_FACTS.maxExportScale}x scale (PNG, JPEG, WebP)
 - One-click professional styling presets
 - Aspect ratio presets for every social platform
+
+## Standalone Image Tools
+
+Single-purpose utilities that run entirely in the browser (Canvas plus Web Workers) and do not call any API. Batch input is supported; several results download as one zip.
+
+${primaryToolLines}
+- Converters: ${converterLinks}
 
 ## Pages
 
 - Editor: ${BASE_URL}/
-- Landing: ${BASE_URL}/landing
+- Product overview: ${BASE_URL}/landing
 - Free Screenshot Editor: ${BASE_URL}/free-screenshot-editor
+- App Store Screenshot Maker: ${BASE_URL}/store-screenshots
+- Code to Image: ${BASE_URL}/code
+- Image Tools Hub: ${BASE_URL}/tools
+- Remove Background: ${BASE_URL}/remove-background
 - Features: ${BASE_URL}/features
 - Screenshot Beautifier: ${BASE_URL}/features/screenshot-beautifier
 - Social Media Graphics: ${BASE_URL}/features/social-media-graphics
 - Animation Maker: ${BASE_URL}/features/animation-maker
 - 3D Effects: ${BASE_URL}/features/3d-effects
 - Browser Mockups: ${BASE_URL}/features/browser-mockups
+- Code Snippet Images: ${BASE_URL}/features/code-snippets
+- Audience Hub: ${BASE_URL}/for
 - For Developers: ${BASE_URL}/for/developers
 - For Marketers: ${BASE_URL}/for/marketers
 - For Designers: ${BASE_URL}/for/designers
+- Comparison Hub: ${BASE_URL}/compare
 - Changelog: ${BASE_URL}/changelog
 - About: ${BASE_URL}/about
 - Contact: ${BASE_URL}/contact
@@ -65,9 +95,7 @@ Available in 8 languages: English (default), Spanish (/es), French (/fr), German
 
 ## Comparison Pages
 
-- vs Pika Style: ${BASE_URL}/compare/pika-style
-- vs Shots.so: ${BASE_URL}/compare/shots-so
-- vs Snagit: ${BASE_URL}/compare/snagit
+${comparisonLines}
 
 ## Pricing
 
@@ -114,7 +142,7 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 ## Complete Feature List
 
 ### Backgrounds
-- 100+ gradient backgrounds (linear, radial, mesh, conic)
+- ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds (linear, radial, mesh, conic, solid)
 - Solid color backgrounds with custom color picker
 - Paper texture backgrounds
 - Pattern backgrounds
@@ -141,6 +169,15 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 - Depth-of-field simulation
 - Custom shadow with blur, spread, offset, and color
 
+### Standalone Image Tools
+- Compress: light, balanced, strong, and extreme levels
+- Convert: PNG, JPG, and WebP, with a chosen background behind transparency
+- Resize: by exact pixels or percentage, with stepped downscaling
+- Crop: drag or type, with 1:1, 16:9, 4:3, 3:2, and 9:16 presets
+- Rotate and flip: 90, 180, 270 degrees plus mirroring
+- Batch input for every tool except crop, downloaded as a zip
+- All of it runs in the browser and calls no API
+
 ### Image Editing
 - Resize and scale
 - Opacity control
@@ -151,13 +188,13 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 
 ### Text Overlays
 - Multiple text layers
-- 27+ Google Fonts (Geist, Inter, Poppins, Space Grotesk, Outfit, Plus Jakarta Sans, DM Sans, Sora, Manrope, Raleway, Montserrat, Lexend, Work Sans, Urbanist, Albert Sans, Oswald, Bebas Neue, Righteous, Playfair Display, Lora, Libre Baskerville, Caveat, Pacifico, Dancing Script, JetBrains Mono, Fira Code)
+- ${PRODUCT_FACTS.fonts} Google Fonts across sans-serif, serif, display, handwriting, and monospace
 - Custom font size, weight, color
 - Text shadow and positioning
 - Letter spacing and line height
 
 ### Animation & Video
-- 20+ animation presets (zoom in/out, pan, Ken Burns, tilt, fade, bounce, slide, etc.)
+- ${PRODUCT_FACTS.animationPresets} animation presets (zoom in/out, pan, Ken Burns, tilt, fade, bounce, slide, etc.)
 - Keyframe timeline editor
 - Multi-slide slideshows
 - Video export: MP4, WebM, GIF
@@ -171,7 +208,7 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 - Import code snippets (syntax highlighted)
 
 ### Export
-- PNG (lossless, up to 5x resolution)
+- PNG (lossless, up to ${PRODUCT_FACTS.maxExportScale}x resolution)
 - JPEG (configurable quality)
 - WebP (configurable quality)
 - MP4 video
@@ -193,6 +230,25 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 | Editor | ${BASE_URL}/ | Main canvas editor for creating designs |
 | Landing | ${BASE_URL}/landing | Product landing page with overview |
 | Free Screenshot Editor | ${BASE_URL}/free-screenshot-editor | SEO landing page for free editor |
+| Image Tools Hub | ${BASE_URL}/tools | Index of the standalone image utilities |
+| Remove Background | ${BASE_URL}/remove-background | On-device AI background remover that exports a transparent PNG |
+
+### Image Tools
+Standalone, single-purpose utilities. Each decodes, processes, and re-encodes the image locally with Canvas and a Web Worker, and calls no API. Batch input downloads as one zip.
+
+| Page | URL | Description |
+|------|-----|-------------|
+| Compress Image | ${BASE_URL}/compress-image | Four compression levels with before and after sizes |
+| Convert Image | ${BASE_URL}/convert-image | PNG, JPG, and WebP in every direction |
+| Resize Image | ${BASE_URL}/resize-image | Exact pixels or percentage, aspect ratio locked by default |
+| Crop Image | ${BASE_URL}/crop-image | Drag a selection or type pixels, with ratio presets |
+| Rotate Image | ${BASE_URL}/rotate-image | Quarter turns plus horizontal and vertical flips |
+| PNG to JPG | ${BASE_URL}/png-to-jpg | Direct converter with a background colour for transparency |
+| JPG to PNG | ${BASE_URL}/jpg-to-png | Direct converter to a lossless format |
+| PNG to WebP | ${BASE_URL}/png-to-webp | Direct converter that keeps transparency |
+| WebP to PNG | ${BASE_URL}/webp-to-png | Direct converter for tools that cannot read WebP |
+| JPG to WebP | ${BASE_URL}/jpg-to-webp | Direct converter for smaller web images |
+| WebP to JPG | ${BASE_URL}/webp-to-jpg | Direct converter for maximum compatibility |
 
 ### Features
 | Page | URL | Description |
@@ -203,6 +259,7 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 | Animation Maker | ${BASE_URL}/features/animation-maker | Animation timeline and video export |
 | 3D Effects | ${BASE_URL}/features/3d-effects | Perspective and depth effects |
 | Browser Mockups | ${BASE_URL}/features/browser-mockups | Safari, Chrome, Arc frames |
+| Background Remover | ${BASE_URL}/remove-background | On-device AI background removal |
 
 ### Audience Pages
 | Page | URL | Description |
@@ -217,6 +274,7 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 | vs Pika Style | ${BASE_URL}/compare/pika-style | Feature comparison with Pika Style |
 | vs Shots.so | ${BASE_URL}/compare/shots-so | Feature comparison with Shots.so |
 | vs Snagit | ${BASE_URL}/compare/snagit | Feature comparison with Snagit |
+| vs remove.bg | ${BASE_URL}/compare/remove-bg | Background remover comparison with remove.bg |
 
 ### Company
 | Page | URL | Description |

@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEditorStore, useImageStore } from '@/lib/store';
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from '@/lib/constants';
-import { isDeviceScreenDropTarget } from '@/lib/drop-routing';
+import { isLocalDropTarget } from '@/lib/drop-routing';
 
 interface GlobalDropZoneProps {
   children: React.ReactNode;
@@ -89,7 +89,7 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
   // Global drag events
   React.useEffect(() => {
     const handleDragEnter = (e: DragEvent) => {
-      if (isDeviceScreenDropTarget(e.target)) {
+      if (isLocalDropTarget(e.target)) {
         dragCounterRef.current = 0;
         setIsDraggingOver(false);
         return;
@@ -103,7 +103,7 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
     };
 
     const handleDragOver = (e: DragEvent) => {
-      if (isDeviceScreenDropTarget(e.target)) return;
+      if (isLocalDropTarget(e.target)) return;
       e.preventDefault();
       if (e.dataTransfer) {
         e.dataTransfer.dropEffect = 'copy';
@@ -111,7 +111,7 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
     };
 
     const handleDragLeave = (e: DragEvent) => {
-      if (isDeviceScreenDropTarget(e.target)) return;
+      if (isLocalDropTarget(e.target)) return;
       e.preventDefault();
       dragCounterRef.current--;
       if (dragCounterRef.current <= 0) {
@@ -121,7 +121,7 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
     };
 
     const handleDrop = (e: DragEvent) => {
-      if (isDeviceScreenDropTarget(e.target)) {
+      if (isLocalDropTarget(e.target)) {
         dragCounterRef.current = 0;
         setIsDraggingOver(false);
         return;

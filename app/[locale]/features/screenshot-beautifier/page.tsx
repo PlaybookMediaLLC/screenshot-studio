@@ -9,6 +9,7 @@ import {
 } from "hugeicons-react";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
+import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 
 export const metadata: Metadata = {
   title: "Free Screenshot Beautifier Online",
@@ -118,7 +119,7 @@ const howToSteps = [
     step: "2",
     title: "Choose Your Style",
     description:
-      "Pick from 100+ backgrounds, adjust shadows, corners, and padding to match your brand.",
+      `Pick from ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, adjust shadows, corners, and padding to match your brand.`,
   },
   {
     step: "3",
@@ -183,23 +184,6 @@ export default function ScreenshotBeautifierPage() {
           "High-resolution export",
           "No signup required",
         ],
-      },
-      {
-        "@type": "HowTo",
-        name: "How to Beautify Screenshots",
-        description:
-          "Transform plain screenshots into professional visuals in 3 easy steps using Screenshot Studio.",
-        totalTime: "PT1M",
-        tool: {
-          "@type": "HowToTool",
-          name: "Screenshot Studio",
-        },
-        step: howToSteps.map((item, index) => ({
-          "@type": "HowToStep",
-          name: item.title,
-          text: item.description,
-          position: index + 1,
-        })),
       },
     ],
   };

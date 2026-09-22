@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.7.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.6.0...v1.7.0) (2026-09-22)
+
+
+### Features
+
+* add App Store screenshot workflow ([33feeba](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/33feeba7ebddd22dd6ca9e9dc2f927e66abc0d8c))
+* **editor:** add image and animated templates ([83a113a](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/83a113a3f400279980f1156096ed9c6f0c1ea957))
+* **editor:** add image and animated templates ([eb1b29f](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/eb1b29fc840975598e53041444362388bdfcf63e))
+* **store-screenshots:** add App Store screenshot workflow ([40cd148](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/40cd14846672c98810fbd91482d861bfa54bec95))
+* **timeline:** simplify animation timeline ([ca14401](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/ca14401818ab85f2297aa338f339fcd3d9769003))
+* **timeline:** simplify animation timeline ([1ffb6a7](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1ffb6a7f303f33f940408a1e233f6933135e51d2))
+
+
+### Bug Fixes
+
+* **auth:** suspend search parameter forms ([e669b74](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/e669b745877b005a7315d10f7ed8981f44dedfe2))
+* **seo:** resolve the full site audit ([53f262f](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/53f262f903b1346faa62febb11f41db10a57a130))
+
 ## [1.6.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.5.0...v1.6.0) (2026-09-02)
 
 

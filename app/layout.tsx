@@ -433,8 +433,6 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className="dark">
-      <meta name="monetag" content="778edef733d65e63a4e56c1e882274be" />
-      <script src="https://quge5.com/88/tag.min.js" data-zone="285245" async data-cfasync="false" />
       <meta name="msvalidate.01" content="A3B8CB50BBD78710971A13FA3EE1E544" />
       <link
         rel="alternate"

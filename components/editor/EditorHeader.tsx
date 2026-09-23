@@ -53,7 +53,6 @@ import {
 } from "@/components/export";
 import { cn } from "@/lib/utils";
 import { GitHubStarButton } from "@/components/ui/github-star-button";
-import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   hasVisibleMockups,
@@ -534,7 +533,6 @@ export function EditorHeader() {
         </div>
 
         <div className="flex items-center gap-1 justify-self-end">
-          {!isMobile ? <FeedbackWidget /> : null}
           {!isMobile ? <GitHubStarButton compact /> : null}
           <a
             href="https://x.com/code_kartik"

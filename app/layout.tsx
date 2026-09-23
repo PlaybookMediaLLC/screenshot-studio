@@ -36,7 +36,6 @@ import { QueryProvider } from "@/lib/query-client";
 import { GlobalDropZone } from "@/components/GlobalDropZone";
 import { PathTracker } from "@/components/landing/GoBackButton";
 import { getRootJsonLd } from "@/lib/seo/json-ld";
-import { Databuddy } from "@databuddy/sdk/react";
 import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 
 // System UI fonts
@@ -468,12 +467,6 @@ function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', 'G-WWTQR26VH4');`}
         </Script>
-        <Databuddy
-          clientId={'961c3ecd-da76-4b89-95cb-ee72a5fb72f4'}
-          trackWebVitals
-          trackErrors
-          trackOutgoingLinks
-        />
         <QueryProvider>
           <GlobalDropZone>
             <PathTracker />

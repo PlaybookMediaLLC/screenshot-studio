@@ -467,6 +467,7 @@ function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', 'G-WWTQR26VH4');`}
         </Script>
+        <Script src="https://clicks.page/t.js" data-site="682g4e3l336g" />
         <QueryProvider>
           <GlobalDropZone>
             <PathTracker />

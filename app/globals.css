@@ -392,6 +392,25 @@
     animation-play-state: paused;
   }
 
+  .canvas-stage-presize {
+    width: min(
+      var(--stage-w),
+      max(100vw - 32px, 320px),
+      max(100vh - 120px, 320px) * var(--stage-ratio)
+    );
+    aspect-ratio: var(--stage-ratio);
+  }
+
+  @media (min-width: 1024px) {
+    .canvas-stage-presize {
+      width: min(
+        var(--stage-w),
+        max(100vw - 576px, 320px),
+        max(100vh - 156px, 160px) * var(--stage-ratio)
+      );
+    }
+  }
+
   /* Editor stage: soft breathe while empty / loading (size stays fixed) */
   @keyframes canvas-stage-breathe {
     0%,

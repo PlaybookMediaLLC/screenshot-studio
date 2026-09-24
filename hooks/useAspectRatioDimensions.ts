@@ -52,7 +52,9 @@ export function useResponsiveCanvasDimensions() {
   const hasContent = useImageStore(
     (s) => !!s.uploadedImageUrl || s.slides.length > 0
   );
-  const [viewportSize, setViewportSize] = useState({ width: 1920, height: 1080 });
+  const [measuredViewport, setViewportSize] = useState<{ width: number; height: number } | null>(null);
+  const viewportSize = measuredViewport ?? { width: 1920, height: 1080 };
+  const measured = measuredViewport !== null;
   
   useEffect(() => {
     const updateViewportSize = () => {
@@ -71,7 +73,7 @@ export function useResponsiveCanvasDimensions() {
   const dimensions = useMemo(() => {
     const preset = getAspectRatioPreset(selectedAspectRatio);
     if (!preset) {
-      return { width: 1920, height: 1080, aspectRatio: '16/9' };
+      return { width: 1920, height: 1080, aspectRatio: '16/9', originalWidth: 1920, originalHeight: 1080, measured };
     }
     
     // On mobile the side panels are hidden inside sheets, so we should not
@@ -120,11 +122,13 @@ export function useResponsiveCanvasDimensions() {
       aspectRatio: getAspectRatioCSS(preset.width, preset.height),
       originalWidth: preset.width,
       originalHeight: preset.height,
+      measured,
     };
   }, [
     selectedAspectRatio,
     viewportSize.width,
     viewportSize.height,
+    measured,
     hasContent,
     showTimeline,
   ]);

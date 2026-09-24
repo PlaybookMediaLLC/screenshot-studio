@@ -62,7 +62,7 @@ function FeatureStatus({
   value: string;
   emphasize?: boolean;
 }): React.JSX.Element {
-  const unavailable = value.toLowerCase() === "not available";
+  const unavailable = ["not available", "not listed"].includes(value.toLowerCase());
 
   return (
     <span className="flex items-center gap-2">

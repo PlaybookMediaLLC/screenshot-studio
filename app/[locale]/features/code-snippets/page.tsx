@@ -15,9 +15,10 @@ import { PRODUCT_FACTS } from "@/lib/seo/product-facts";
 export const metadata: Metadata = {
   title: "Code to Image Generator: Free",
   description:
-    "Free code to image tool: pick a syntax theme, gradient background, line numbers, and window frame, then export a crisp PNG. A free ray.so and carbon.now.sh alternative. No signup.",
+    "Free code to image tool for READMEs, docs, and social posts: pick a syntax theme, gradient or transparent background, line numbers, and window frame, then export a crisp PNG. No signup.",
   keywords: [
     "code to image",
+    "code screenshots for readme",
     "code snippet screenshot",
     "code screenshot generator",
     "code to png",
@@ -114,9 +115,14 @@ const faqs = [
       "It covers the same core workflow, themes, gradients, line numbers, and a window frame, built into Screenshot Studio's own editor, with shareable links and no account required.",
   },
   {
+    question: "How do I add a code screenshot to a GitHub README?",
+    answer:
+      "Export the image at 2x, commit it to your repository (for example docs/code-example.png), and reference it in README.md with a relative path: ![What the code does](./docs/code-example.png). Keep copyable code in a fenced code block as well.",
+  },
+  {
     question: "Can I export a transparent background?",
     answer:
-      'Yes. Set the background to "Transparent" before exporting and the PNG will have no backdrop.',
+      "Yes. Turn the Background switch off before exporting and the PNG will have no backdrop, so it sits cleanly on GitHub light and dark mode.",
   },
   {
     question: "Which languages are supported?",
@@ -186,6 +192,14 @@ export default function CodeSnippetsFeaturePage() {
           "Shareable links and 2x or 4x PNG export",
           "No signup required",
         ],
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: faqs.map((faq) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: { "@type": "Answer", text: faq.answer },
+        })),
       },
     ],
   };

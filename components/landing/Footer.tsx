@@ -19,6 +19,7 @@ const navCol1 = [
   { href: "/free-screenshot-editor", label: "Free editor" },
   { href: "/store-screenshots", label: "App store screenshots" },
   { href: "/code", label: "Code to image" },
+  { href: "/mockup-generator", label: "Mockup generator" },
   { href: "/remove-background", label: "Remove background" },
 ] as const;
 
@@ -31,6 +32,7 @@ const navCol2 = [
 ] as const;
 
 const navCol3 = [
+  { href: "/guides", label: "Guides" },
   { href: "/docs", label: "API docs" },
   { href: "/developers", label: "Developers" },
   { href: "/about", label: "About" },

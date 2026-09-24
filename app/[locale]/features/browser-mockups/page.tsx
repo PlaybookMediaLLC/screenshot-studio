@@ -163,6 +163,7 @@ const howToSteps = [
 ];
 
 const relatedLinks = [
+  { href: "/mockup-generator", label: "Device Mockup Generator" },
   { href: "/features/screenshot-beautifier", label: "Screenshot Beautifier" },
   { href: "/features/3d-effects", label: "3D Effects" },
   { href: "/features/social-media-graphics", label: "Social Media Graphics" },
@@ -350,7 +351,7 @@ export default function BrowserMockupsPage() {
             >
               Explore More Features
             </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {relatedLinks.map((link) => (
                 <Link
                   key={link.href}

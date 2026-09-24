@@ -11,17 +11,20 @@ import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 
 export const metadata: Metadata = {
-  title: "3D Screenshot Effects & Mockups",
+  title: "Make 3D Perspective Screenshots Online, Free",
   description:
-    "Add stunning 3D effects to screenshots. Perspective tilt, rotation, depth shadows, and realistic lighting. Transform flat images into eye-catching 3D mockups.",
+    "Make a 3D perspective screenshot online: upload an image, pick one of 40 tilt presets or set X, Y, and Z rotation, then export a PNG. Free, no signup, no watermark.",
   keywords: [
+    "3d perspective screenshot online",
+    "how to make 3d perspective screenshots",
+    "3d screenshot maker",
+    "tilt screenshot online",
     "free online 3d mockup generator",
     "3d mockup generator",
     "laptop mockup generator",
     "3d screenshot effects",
     "3d image editor",
     "perspective screenshot",
-    "3d mockup generator",
     "screenshot tilt effect",
     "3d rotation effect",
     "image perspective tool",
@@ -34,9 +37,9 @@ export const metadata: Metadata = {
     "landing page screenshot 3d",
   ],
   openGraph: {
-    title: "Free 3D Screenshot Effects - Add Perspective & Depth",
+    title: "Make 3D Perspective Screenshots Online, Free",
     description:
-      "Add stunning 3D effects to screenshots. Perspective, rotation, and realistic shadows.",
+      "Tilt any screenshot into 3D perspective in your browser. 40 presets, X, Y, and Z rotation, depth shadows. Free, no signup.",
     url: "/features/3d-effects",
   },
   alternates: {
@@ -106,11 +109,62 @@ const useCases = [
   },
 ];
 
+const howToSteps = [
+  {
+    title: "Open the editor and add your screenshot",
+    description:
+      "Go to screenshot-studio.com, then drag in a PNG, JPG, or WebP, or paste from your clipboard. Nothing to install and no account needed.",
+  },
+  {
+    title: "Pick a 3D preset from Transforms",
+    description:
+      "Open the Transforms panel and choose one of 40 presets across Popular, Dramatic, Perspective, Zoom, and Float, such as SaaS Hero, Isometric, or Lay Flat.",
+  },
+  {
+    title: "Fine-tune the angle",
+    description:
+      "Adjust perspective, X, Y, and Z rotation, position, and scale with sliders. The preview updates in real time.",
+  },
+  {
+    title: "Add depth and a background",
+    description:
+      "Turn on a shadow, choose a gradient or image background, and optionally place the screenshot inside an iPhone or MacBook mockup.",
+  },
+  {
+    title: "Export",
+    description:
+      "Download a PNG, JPEG, or WebP at up to 5x resolution, or animate the tilt and export MP4, WebM, or GIF. No watermark.",
+  },
+] as const;
+
+const faqs = [
+  {
+    q: "How do I make a 3D perspective screenshot online?",
+    a: "Open Screenshot Studio in your browser, add your screenshot, pick a 3D preset in the Transforms panel, adjust the X, Y, and Z rotation if you want a different angle, then export a PNG. It takes under a minute and needs no signup.",
+  },
+  {
+    q: "Is the 3D screenshot tool free?",
+    a: "Yes. Every 3D preset and control is free, with unlimited exports at up to 5x resolution and no watermark.",
+  },
+  {
+    q: "Can I put a tilted screenshot inside an iPhone or MacBook mockup?",
+    a: "Yes. The editor includes iPhone, MacBook, and Apple Watch device mockups, and several of them, like iPhone 15 and MacBook Air 15-inch, are already shot at a 3D angle.",
+  },
+  {
+    q: "Can I animate the 3D effect?",
+    a: "Yes. 3D animation presets like Showcase Tilt, Orbit, Turntable, and Slide In 3D move the screenshot between angles, and you can export the result as MP4, WebM, or GIF.",
+  },
+  {
+    q: "Do I need Photoshop or 3D software?",
+    a: "No. Screenshot Studio applies CSS-style perspective transforms in the browser, so you get a tilted product shot without Photoshop, Blender, or a desktop app.",
+  },
+] as const;
+
 const whyPoints = [
   {
     title: "Higher Engagement",
     description:
-      "3D images get 30% more clicks than flat screenshots in social media posts.",
+      "An angled product shot breaks the grid of flat screenshots in a feed and draws the eye first.",
   },
   {
     title: "Professional Look",
@@ -125,8 +179,8 @@ const whyPoints = [
 ];
 
 const relatedLinks = [
+  { href: "/mockup-generator", label: "Mockup Generator" },
   { href: "/features/screenshot-beautifier", label: "Screenshot Beautifier" },
-  { href: "/features/social-media-graphics", label: "Social Media Graphics" },
   { href: "/features/animation-maker", label: "Animation Maker" },
 ] as const;
 
@@ -158,23 +212,47 @@ export default function ThreeDEffectsPage() {
 
   const structuredData = {
     "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    name: "Screenshot Studio - 3D Effects",
-    applicationCategory: "DesignApplication",
-    operatingSystem: "Web Browser",
-    description:
-      "Free online tool to add 3D perspective, rotation, and depth effects to screenshots.",
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "USD",
-    },
-    featureList: [
-      "3D perspective transforms",
-      "X, Y, Z rotation",
-      "Depth shadows",
-      "Lighting effects",
-      "Real-time preview",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        name: "Screenshot Studio - 3D Effects",
+        applicationCategory: "DesignApplication",
+        operatingSystem: "Web Browser",
+        description:
+          "Free online tool to add 3D perspective, rotation, and depth effects to screenshots.",
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "USD",
+        },
+        featureList: [
+          "40 3D transform presets",
+          "Perspective and X, Y, Z rotation",
+          "Depth shadows",
+          "3D animation presets with MP4, WebM, and GIF export",
+          "Real-time preview",
+        ],
+      },
+      {
+        "@type": "HowTo",
+        name: "How to make a 3D perspective screenshot online",
+        totalTime: "PT1M",
+        tool: { "@type": "HowToTool", name: "Screenshot Studio (web browser)" },
+        step: howToSteps.map((step, index) => ({
+          "@type": "HowToStep",
+          position: index + 1,
+          name: step.title,
+          text: step.description,
+        })),
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: faqs.map((faq) => ({
+          "@type": "Question",
+          name: faq.q,
+          acceptedAnswer: { "@type": "Answer", text: faq.a },
+        })),
+      },
     ],
   };
 
@@ -198,12 +276,13 @@ export default function ThreeDEffectsPage() {
               className="mb-6 text-4xl font-semibold tracking-[-0.03em] text-foreground md:text-6xl"
               style={{ fontFamily: INTER }}
             >
-              Free 3D Screenshot Effects
+              Make 3D Perspective Screenshots Online
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground md:text-xl">
-              Transform flat screenshots into stunning 3D visuals. Add
-              perspective, rotation, and realistic shadows without any design
-              skills.
+              To make a 3D perspective screenshot online, open Screenshot
+              Studio, add your image, pick one of 40 tilt presets or set the X,
+              Y, and Z rotation yourself, then export a PNG at up to 5x. It runs
+              in your browser, is free, and adds no watermark.
             </p>
             <div className="flex flex-col items-center">
               <Link href="/" className={ctaClassName}>
@@ -215,6 +294,32 @@ export default function ThreeDEffectsPage() {
                 <span>No Signup Required</span>
               </p>
             </div>
+          </div>
+        </section>
+
+        <section className="border-t border-border px-6 py-16">
+          <div className="mx-auto max-w-4xl">
+            <h2
+              className="mb-12 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
+              style={{ fontFamily: INTER }}
+            >
+              How to Make a 3D Perspective Screenshot
+            </h2>
+            <ol className="space-y-8">
+              {howToSteps.map((step, index) => (
+                <li key={step.title} className="flex items-start gap-6">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
+                    {index + 1}
+                  </div>
+                  <div>
+                    <h3 className="mb-1 text-lg font-semibold text-foreground">
+                      {step.title}
+                    </h3>
+                    <p className="text-muted-foreground">{step.description}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
         </section>
 
@@ -332,6 +437,27 @@ export default function ThreeDEffectsPage() {
                     </h3>
                     <p className="text-muted-foreground">{point.description}</p>
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="border-t border-border px-6 py-16">
+          <div className="mx-auto max-w-3xl">
+            <h2
+              className="mb-12 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
+              style={{ fontFamily: INTER }}
+            >
+              Frequently Asked Questions
+            </h2>
+            <div className="space-y-6">
+              {faqs.map((faq) => (
+                <div key={faq.q} className="border-b border-border pb-6 last:border-b-0">
+                  <h3 className="mb-2 text-lg font-semibold text-foreground">
+                    {faq.q}
+                  </h3>
+                  <p className="text-muted-foreground">{faq.a}</p>
                 </div>
               ))}
             </div>

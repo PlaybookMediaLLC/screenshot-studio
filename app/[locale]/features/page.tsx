@@ -7,6 +7,7 @@ import {
   EraserAutoIcon,
   MagicWand01Icon,
   Share08Icon,
+  SmartPhone01Icon,
   SourceCodeIcon,
   Video01Icon,
 } from "hugeicons-react";
@@ -127,6 +128,14 @@ const features = [
       "Add realistic Safari and Chrome browser frames to screenshots. Light and dark modes with custom URL.",
     href: "/features/browser-mockups",
     keywords: ["Safari", "Chrome", "browser frame", "URL bar"],
+  },
+  {
+    icon: SmartPhone01Icon,
+    title: "Device Mockup Generator",
+    description:
+      "Put screenshots on iPhone, MacBook, and Apple Watch mockups, including 3D angles and multi-device layouts.",
+    href: "/mockup-generator",
+    keywords: ["iPhone", "MacBook", "Apple Watch", "multi-device"],
   },
   {
     icon: SourceCodeIcon,

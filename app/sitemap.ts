@@ -2,6 +2,7 @@ import { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo/metadata";
 import { LAST_UPDATED_ISO } from "@/lib/seo/changelog";
 import { getAllComparisonSlugs } from "@/lib/seo/comparisons";
+import { guides } from "@/lib/seo/guides";
 import { TOOLS, TOOLS_HUB_PATH } from "@/lib/seo/tools";
 
 const STATIC_PATHS = [
@@ -9,6 +10,7 @@ const STATIC_PATHS = [
   "/free-screenshot-editor",
   "/store-screenshots",
   "/code",
+  "/mockup-generator",
   "/remove-background",
   TOOLS_HUB_PATH,
 
@@ -26,6 +28,7 @@ const STATIC_PATHS = [
   "/for/designers",
 
   "/compare",
+  "/guides",
   "/changelog",
 
   "/docs",
@@ -45,6 +48,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...STATIC_PATHS,
     ...TOOLS.map((tool) => tool.slug),
     ...getAllComparisonSlugs().map((slug) => `/compare/${slug}`),
+    ...guides.map((guide) => `/guides/${guide.slug}`),
   ];
 
   return paths.map((path) => ({

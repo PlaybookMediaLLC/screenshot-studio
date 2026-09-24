@@ -3,14 +3,11 @@ import Link from 'next/link';
 import { Navigation } from '@/components/landing/Navigation';
 import { Footer } from '@/components/landing/Footer';
 import { RemoveBackgroundLoader } from '@/components/remove-background/RemoveBackgroundLoader';
+import { SectionTitle, ToolFaq, ToolHero } from '@/components/tools/ToolLayout';
+import { CARD_CLASS } from '@/components/tools/ui';
 import { OG_DEFAULTS, SITE_URL } from '@/lib/seo/metadata';
 import { TOOLS_HUB_PATH } from '@/lib/seo/tools';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
+import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: 'Remove Background from Image: Free',
@@ -183,61 +180,34 @@ const jsonLd = {
 
 export default function RemoveBackgroundPage() {
   return (
-    <>
+    <div className="flex min-h-screen flex-col bg-background">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navigation />
 
-      <main className="bg-background">
-        <section className="px-6 pt-28 pb-12">
-          <div className="mx-auto max-w-5xl">
-            <nav aria-label="Breadcrumb" className="mb-4">
-              <ol className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <li>
-                  <Link href="/" className="hover:text-foreground">
-                    Home
-                  </Link>
-                </li>
-                <li aria-hidden="true">/</li>
-                <li>
-                  <Link href={TOOLS_HUB_PATH} className="hover:text-foreground">
-                    Image Tools
-                  </Link>
-                </li>
-                <li aria-hidden="true">/</li>
-                <li className="text-foreground">Remove Background</li>
-              </ol>
-            </nav>
+      <main className="flex-1 px-6 pb-24 pt-16 sm:pt-20">
+        <ToolHero
+          name="Remove Background"
+          title="Remove Background from Image"
+          intro="Drop in a photo and get a transparent PNG back in seconds. The AI model runs on your own device, so your image is never uploaded. No signup, no watermark."
+        />
 
-            <h1 className="mb-3 text-3xl font-semibold tracking-[-0.02em] text-foreground sm:text-4xl">
-              Remove Background from Image
-            </h1>
-            <p className="max-w-2xl text-base text-muted-foreground">
-              Drop in a photo and get a transparent PNG back in seconds. The AI
-              model runs on your own device, so your image is never uploaded.
-              No signup, no watermark.
-            </p>
-          </div>
-        </section>
-
-        <section className="px-6 pb-16">
+        <div className="mt-10 sm:mt-12">
           <RemoveBackgroundLoader />
-        </section>
+        </div>
 
-        <section className="border-t border-border px-6 py-16">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="mb-6 text-xl font-semibold tracking-[-0.01em] text-foreground">
-              How it works
-            </h2>
-            <ol className="mb-12 grid gap-5 sm:grid-cols-3">
+        <div className="mx-auto mt-24 flex max-w-3xl flex-col gap-16">
+          <section>
+            <SectionTitle>How it works</SectionTitle>
+            <ol className="mt-5 grid gap-3 sm:grid-cols-3">
               {steps.map((step, index) => (
-                <li key={step.title}>
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    Step {index + 1}
+                <li key={step.title} className={cn(CARD_CLASS, 'p-5')}>
+                  <span className="flex size-7 items-center justify-center rounded-full bg-foreground/[0.08] text-xs font-semibold text-foreground">
+                    {index + 1}
                   </span>
-                  <h3 className="mt-1 text-sm font-semibold text-foreground">
+                  <h3 className="mt-4 text-sm font-semibold text-foreground">
                     {step.title}
                   </h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
@@ -246,11 +216,11 @@ export default function RemoveBackgroundPage() {
                 </li>
               ))}
             </ol>
+          </section>
 
-            <h2 className="mb-6 text-xl font-semibold tracking-[-0.01em] text-foreground">
-              What you get
-            </h2>
-            <div className="mb-12 grid gap-6 sm:grid-cols-2">
+          <section>
+            <SectionTitle>What you get</SectionTitle>
+            <div className={cn(CARD_CLASS, 'mt-5 grid gap-x-10 gap-y-7 p-6 sm:grid-cols-2')}>
               {highlights.map((highlight) => (
                 <div key={highlight.title}>
                   <h3 className="text-sm font-semibold text-foreground">
@@ -262,33 +232,29 @@ export default function RemoveBackgroundPage() {
                 </div>
               ))}
             </div>
+          </section>
 
-            <h2 className="mb-6 text-xl font-semibold tracking-[-0.01em] text-foreground">
-              Frequently asked questions
-            </h2>
-            <Accordion type="single" collapsible>
-              {faqs.map((faq) => (
-                <AccordionItem key={faq.question} value={faq.question}>
-                  <AccordionTrigger>{faq.question}</AccordionTrigger>
-                  <AccordionContent>{faq.answer}</AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+          <ToolFaq faqs={faqs} />
 
-            <p className="mt-12 text-sm text-muted-foreground">
-              Coming from remove.bg? See{' '}
-              <Link href="/compare/remove-bg" className="underline">how it compares</Link>
-              . Want to put your cutout on a gradient or in a mockup? Open the{' '}
-              <Link href="/editor" className="underline">Screenshot Studio editor</Link>
-              , or browse{' '}
-              <Link href={TOOLS_HUB_PATH} className="underline">every image tool</Link>
-              .
-            </p>
-          </div>
-        </section>
+          <p className="text-center text-sm text-muted-foreground">
+            Coming from remove.bg? See{' '}
+            <Link href="/compare/remove-bg" className="text-foreground underline underline-offset-4">
+              how it compares
+            </Link>
+            . Want your cutout on a gradient or in a mockup? Open the{' '}
+            <Link href="/editor" className="text-foreground underline underline-offset-4">
+              screenshot editor
+            </Link>
+            , or browse{' '}
+            <Link href={TOOLS_HUB_PATH} className="text-foreground underline underline-offset-4">
+              every image tool
+            </Link>
+            .
+          </p>
+        </div>
       </main>
 
       <Footer />
-    </>
+    </div>
   );
 }

@@ -164,7 +164,7 @@ export function CompressOptions({
         label="Compression level"
         hint={
           losslessOutput
-            ? `No effect while the output is ${losslessLabel} — pick a lossy format below to use it.`
+            ? `No effect while the output is ${losslessLabel}. Pick a lossy format below to use it.`
             : active?.hint
         }
       >
@@ -214,7 +214,7 @@ export function CompressOptions({
                   {losslessLabel} output will make these images much bigger.
                 </span>{" "}
                 They are already compressed, and {losslessLabel} has to store
-                every pixel exactly, artefacts included — expect several times
+                every pixel exactly, artefacts included, so expect several times
                 the original size. You will get that larger file, because you
                 asked for this format. Pick another output format to reduce
                 them instead.
@@ -225,7 +225,7 @@ export function CompressOptions({
                   {losslessLabel} is a lossless format.
                 </span>{" "}
                 Compressing it cannot throw pixels away, so the level above
-                changes nothing — every setting produces the same file. Some
+                changes nothing: every setting produces the same file. Some
                 images still shrink a little, because re-saving drops metadata
                 the picture does not need, but that is a few percent at best
                 and never the image itself. When the result is not smaller your

@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { useDropzone, type FileRejection } from "react-dropzone";
-import { Image01Icon, Add01Icon } from "hugeicons-react";
+import { Add01Icon } from "hugeicons-react";
 import { cn } from "@/lib/utils";
 import { TOOL_DROPZONE_ACCEPT } from "./useToolQueue";
+import { DROP_CARD_CLASS, DropSurface } from "./ui";
 
 interface ToolDropzoneProps {
   onFiles: (files: File[]) => void;
@@ -55,8 +56,8 @@ export function ToolDropzone({
         onClick={open}
         {...getRootProps({
           className: cn(
-            "flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground",
-            isDragActive && "border-foreground/50 bg-muted/60 text-foreground"
+            "flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-foreground/[0.03] hover:text-foreground",
+            isDragActive && "border-foreground/50 bg-foreground/[0.06] text-foreground"
           ),
         })}
       >
@@ -70,27 +71,23 @@ export function ToolDropzone({
   return (
     <div
       {...getRootProps({
-        className: cn(
-          "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/20 px-6 py-16 text-center transition-colors hover:border-foreground/30 hover:bg-muted/40",
-          isDragActive && "border-foreground/50 bg-muted/60"
-        ),
+        className: DROP_CARD_CLASS,
         role: "button",
         "aria-label": `Choose ${plural} to process`,
       })}
     >
       <input {...getInputProps()} />
-      <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-        <Image01Icon size={22} aria-hidden="true" />
-      </div>
-      <p className="text-base font-medium text-foreground">
-        {isDragActive ? `Drop your ${plural} here` : `Drop ${plural} here`}
-      </p>
-      <p className="mt-1 text-sm text-muted-foreground">
-        or click to browse, {multiple ? "select as many as you like" : "one image at a time"}
-      </p>
-      <p className="mt-4 text-xs text-muted-foreground">
-        PNG, JPG, WebP, AVIF · processed in your browser, never uploaded
-      </p>
+      <DropSurface
+        active={isDragActive}
+        title={isDragActive ? `Drop to add ${plural}` : `Drop ${plural} here`}
+        detail={
+          multiple
+            ? "Add one image or a whole batch, then pick your settings."
+            : "One image at a time, cropped at full resolution."
+        }
+        action={`Choose ${plural}`}
+        formats="PNG, JPG, WebP, and AVIF"
+      />
     </div>
   );
 }

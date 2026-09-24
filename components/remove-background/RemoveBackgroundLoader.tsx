@@ -10,7 +10,7 @@ const RemoveBackgroundApp = dynamic(
 function RemoveBackgroundSkeleton() {
   return (
     <div className="mx-auto w-full max-w-5xl">
-      <div className="mx-auto h-[420px] w-full max-w-3xl animate-pulse rounded-2xl bg-muted/40" />
+      <div className="mx-auto h-[400px] w-full max-w-3xl animate-pulse rounded-2xl bg-card ring-1 ring-inset ring-border sm:h-[480px]" />
     </div>
   );
 }

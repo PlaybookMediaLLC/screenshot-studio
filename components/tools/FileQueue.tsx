@@ -121,13 +121,13 @@ export function FileQueue({ items, onRemove, disabled = false }: FileQueueProps)
   if (items.length === 0) return null;
 
   return (
-    <ul className="flex flex-col gap-2" aria-label="Images to process">
+    <ul className="flex flex-col" aria-label="Images to process">
       {items.map((item) => (
         <li
           key={item.id}
-          className="flex items-center gap-3 rounded-lg border border-border bg-card p-2.5"
+          className="flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-foreground/[0.03]"
         >
-          <div className="relative size-11 shrink-0 overflow-hidden rounded-md bg-muted">
+          <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-inset ring-border">
             {/* Object URLs are local blobs; next/image cannot optimise them. */}
             <Image
               src={item.previewUrl}
@@ -135,12 +135,12 @@ export function FileQueue({ items, onRemove, disabled = false }: FileQueueProps)
               fill
               unoptimized
               className="object-cover"
-              sizes="44px"
+              sizes="48px"
             />
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-foreground" title={item.name}>
+            <p className="mb-0.5 truncate text-sm font-medium text-foreground" title={item.name}>
               {item.name}
             </p>
             <StatusBadge item={item} />
@@ -151,7 +151,7 @@ export function FileQueue({ items, onRemove, disabled = false }: FileQueueProps)
             onClick={() => onRemove(item.id)}
             disabled={disabled}
             aria-label={`Remove ${item.name}`}
-            className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+            className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
           >
             <Cancel01Icon size={15} aria-hidden="true" />
           </button>

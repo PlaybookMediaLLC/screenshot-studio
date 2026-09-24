@@ -100,7 +100,9 @@ export function buildToolJsonLd(tool: ToolDefinition) {
 }
 
 /** ItemList schema for the /tools hub, so the suite is legible as a set. */
-export function buildToolsHubJsonLd(tools: ToolDefinition[]) {
+export function buildToolsHubJsonLd(
+  tools: Pick<ToolDefinition, "name" | "slug">[],
+) {
   return {
     "@context": "https://schema.org",
     "@graph": [
@@ -110,7 +112,7 @@ export function buildToolsHubJsonLd(tools: ToolDefinition[]) {
         url: `${SITE_URL}${TOOLS_HUB_PATH}`,
         name: "Free Online Image Tools",
         description:
-          "Compress, convert, resize, crop, and rotate images in your browser. Free, no signup, nothing uploaded.",
+          "Compress, convert, resize, crop, and rotate images, or remove a background, in your browser. Free, no signup, nothing uploaded.",
         isPartOf: { "@id": `${SITE_URL}/#website` },
       },
       {

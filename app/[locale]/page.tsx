@@ -10,7 +10,7 @@ import { TOOLS_HUB_PATH } from "@/lib/seo/tools";
 import { cn } from "@/lib/utils";
 
 const DESCRIPTION =
-  "Free browser editors for screenshots, code images, and App Store screenshots, plus image tools that compress, convert, and resize without uploading. No signup, no watermark.";
+  "Free browser editors for screenshots, code images, tweet images, and App Store screenshots, plus image tools that compress, convert, and resize without uploading. No signup, no watermark.";
 
 export const metadata: Metadata = {
   title: "Free Screenshot Editor & Image Tools",
@@ -133,6 +133,40 @@ function CodePreview(): React.JSX.Element {
   );
 }
 
+function TweetPreview(): React.JSX.Element {
+  return (
+    <div
+      className="flex h-full items-center justify-center p-6"
+      style={{ background: "linear-gradient(140deg, #8ec5fc, #4f46e5)" }}
+    >
+      <div
+        className="w-[78%] max-w-[300px] rounded-xl bg-white p-4 shadow-[0_24px_48px_-16px_rgba(0,0,0,0.45)] transition-transform duration-500 ease-out group-hover:-translate-y-1 motion-reduce:transition-none"
+        style={{ fontFamily: INTER }}
+      >
+        <div className="flex items-center gap-2.5">
+          <div
+            className="size-8 shrink-0 rounded-full"
+            style={{ background: gradientColors.orange_pink_dark }}
+          />
+          <div className="min-w-0 flex-1 text-[11px] leading-4">
+            <p className="font-semibold text-neutral-900">Screenshot Studio</p>
+            <p className="text-neutral-500">@screenshotstdio</p>
+          </div>
+          <span className="text-sm font-bold text-neutral-900">𝕏</span>
+        </div>
+        <p className="mt-3 text-[12px] leading-[18px] text-neutral-900">
+          Paste a post link and get a clean image back. Light or dark, any
+          background.
+        </p>
+        <div className="mt-3 flex gap-4 border-t border-black/[0.06] pt-2.5 text-[10px] text-neutral-500">
+          <span>1.2K likes</span>
+          <span>96 replies</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StorePreview(): React.JSX.Element {
   return (
     <div
@@ -230,6 +264,14 @@ const CHOICES = [
     preview: <CodePreview />,
   },
   {
+    href: "/tweet",
+    title: "Turn a post into an image",
+    description:
+      "Paste a link to a post on X, pick light or dark, and download a clean image.",
+    action: "Open editor",
+    preview: <TweetPreview />,
+  },
+  {
     href: "/store-screenshots",
     title: "Make App Store screenshots",
     description:
@@ -272,7 +314,7 @@ export default function StartPage() {
               <Link
                 key={choice.href}
                 href={choice.href}
-                className="group flex flex-col overflow-hidden rounded-2xl bg-card ring-1 ring-inset ring-border shadow-[var(--card-highlight-shadow)] transition-shadow duration-200 hover:ring-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/70"
+                className="group flex flex-col overflow-hidden rounded-2xl first:sm:col-span-2 bg-card ring-1 ring-inset ring-border shadow-[var(--card-highlight-shadow)] transition-shadow duration-200 hover:ring-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/70"
               >
                 <div
                   aria-hidden="true"

@@ -74,6 +74,18 @@ export const AGENT_PAGES: AgentPage[] = [
     ],
   },
   {
+    path: "/tweet",
+    title: "Tweet to Image: Turn Posts on X into Images - Screenshot Studio",
+    summary:
+      "A focused tweet to image editor. Paste a link to a public post on X, pick a light or dark card and a gradient or transparent background, then export a PNG or copy it to the clipboard. No signup, no watermark.",
+    points: [
+      "Loads any public post from an x.com or twitter.com link",
+      "Light and dark card styles with up to four photos",
+      "Gradient, image, and pattern backgrounds, or a transparent backdrop",
+      "2x and 4x PNG export, plus copy image to clipboard",
+    ],
+  },
+  {
     path: "/remove-background",
     title: "Remove Background from Image: Free - Screenshot Studio",
     summary:

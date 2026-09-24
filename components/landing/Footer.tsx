@@ -19,6 +19,7 @@ const navCol1 = [
   { href: "/free-screenshot-editor", label: "Free editor" },
   { href: "/store-screenshots", label: "App store screenshots" },
   { href: "/code", label: "Code to image" },
+  { href: "/tweet", label: "Tweet to image" },
   { href: "/mockup-generator", label: "Mockup generator" },
   { href: "/remove-background", label: "Remove background" },
 ] as const;

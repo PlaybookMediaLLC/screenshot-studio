@@ -29,6 +29,7 @@ const resourceLinks = [
   { label: "Features", href: "/features" },
   { label: "Image Tools", href: "/tools" },
   { label: "Code Images", href: "/code" },
+  { label: "Tweet Images", href: "/tweet" },
   { label: "Remove Background", href: "/remove-background" },
   { label: "For Designers", href: "/for/designers" },
   { label: "For Developers", href: "/for/developers" },

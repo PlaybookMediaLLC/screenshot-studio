@@ -11,6 +11,7 @@ const STATIC_PATHS = [
   "/free-screenshot-editor",
   "/store-screenshots",
   "/code",
+  "/tweet",
   "/mockup-generator",
   "/remove-background",
   TOOLS_HUB_PATH,

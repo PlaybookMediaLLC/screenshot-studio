@@ -2,7 +2,10 @@ import { gradientColors } from '@/lib/constants/gradient-colors';
 import { meshGradients } from '@/lib/constants/mesh-gradients';
 import { backgroundCategories } from '@/lib/r2-backgrounds';
 import { getR2PublicUrl } from '@/lib/r2';
+import type { CSSProperties } from 'react';
 import type { CodeTheme } from './code-themes';
+
+export type GradientTheme = Pick<CodeTheme, 'from' | 'to'>;
 
 export type BackgroundKind = 'theme' | 'gradient' | 'image' | 'pattern';
 
@@ -64,7 +67,7 @@ export interface ResolvedBackground {
 
 export function resolveCodeBackground(
   background: BackgroundSelection,
-  theme: CodeTheme,
+  theme: GradientTheme,
   dark: boolean,
 ): ResolvedBackground {
   const themeGradient: ResolvedBackground = {
@@ -111,6 +114,24 @@ export function resolveCodeBackground(
   }
 
   return themeGradient;
+}
+
+const CHECKER_DARK = 'linear-gradient(45deg, #222 25%, transparent 0), linear-gradient(-45deg, #222 25%, transparent 0), linear-gradient(45deg, transparent 75%, #222 0), linear-gradient(-45deg, transparent 75%, #222 0)';
+const CHECKER_LIGHT = 'linear-gradient(45deg, #eee 25%, transparent 0), linear-gradient(-45deg, #eee 25%, transparent 0), linear-gradient(45deg, transparent 75%, #eee 0), linear-gradient(-45deg, transparent 75%, #eee 0)';
+
+/** Frame backdrop: the chosen background, or a transparency checkerboard when it is off. */
+export function frameBackgroundStyle(
+  showBackground: boolean,
+  resolved: ResolvedBackground,
+  dark: boolean,
+): CSSProperties {
+  if (showBackground) return resolved;
+  return {
+    backgroundImage: dark ? CHECKER_DARK : CHECKER_LIGHT,
+    backgroundColor: dark ? '#111' : '#fafafa',
+    backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0',
+    backgroundSize: '20px 20px',
+  };
 }
 
 export { backgroundCategories };

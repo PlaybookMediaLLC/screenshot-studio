@@ -122,6 +122,7 @@ export function AgentSummary() {
             items={[
               { href: "/free-screenshot-editor", label: "Free screenshot editor" },
               { href: "/code", label: "Code to image" },
+              { href: "/tweet", label: "Tweet to image" },
               { href: "/remove-background", label: "Background remover" },
               { href: "/store-screenshots", label: "App store screenshots" },
             ]}

@@ -1,13 +1,10 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { CodeImageEditorLoader } from '@/components/code-image/CodeImageEditorLoader';
+import { SectionTitle, ToolFaq } from '@/components/tools/ToolLayout';
+import { CARD_CLASS, INTER } from '@/components/tools/ui';
 import { OG_DEFAULTS } from '@/lib/seo/metadata';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
+import { cn } from '@/lib/utils';
 import { PRODUCT_FACTS } from "@/lib/seo/product-facts";
 
 export const metadata: Metadata = {
@@ -139,49 +136,61 @@ export default function CodeImagePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <CodeImageEditorLoader />
-      <section className="bg-background px-6 pt-16 pb-48">
-        <div className="mx-auto max-w-3xl">
-          <h1 className="mb-3 text-2xl font-semibold tracking-[-0.02em] text-foreground">
-            Code to Image Generator
-          </h1>
-          <p className="mb-10 text-muted-foreground">
-            Paste a snippet, pick a theme and background, and export a crisp
-            PNG in seconds. No signup, no watermark, everything runs in your
-            browser.
-          </p>
-          <h2 className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground">
-            Code Screenshots for Your GitHub README
-          </h2>
-          <ol className="mb-6 list-decimal space-y-2 pl-5 text-muted-foreground">
-            {readmeSteps.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-          <p className="mb-2 text-sm text-muted-foreground">Embed it in README.md:</p>
-          <pre className="mb-4 overflow-x-auto rounded-md bg-muted p-4 text-sm text-foreground">
-            <code>{readmeMarkdown}</code>
-          </pre>
-          <p className="mb-2 text-sm text-muted-foreground">
-            Or show a separate image in GitHub dark mode:
-          </p>
-          <pre className="mb-10 overflow-x-auto rounded-md bg-muted p-4 text-sm text-foreground">
-            <code>{readmePicture}</code>
-          </pre>
-          <Accordion type="single" collapsible>
-            {faqs.map((faq) => (
-              <AccordionItem key={faq.question} value={faq.question}>
-                <AccordionTrigger>{faq.question}</AccordionTrigger>
-                <AccordionContent>{faq.answer}</AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-          <p className="mt-10 text-sm text-muted-foreground">
+      <section className="bg-background px-6 pb-48 pt-24">
+        <div className="mx-auto flex max-w-3xl flex-col gap-16">
+          <header className="text-center">
+            <h1
+              className="text-4xl font-semibold tracking-[-0.035em] text-foreground sm:text-5xl"
+              style={{ fontFamily: INTER }}
+            >
+              Code to Image Generator
+            </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+              Paste a snippet, pick a theme and background, and export a crisp
+              PNG in seconds. No signup, no watermark, everything runs in your
+              browser.
+            </p>
+          </header>
+
+          <section>
+            <SectionTitle>Code Screenshots for Your GitHub README</SectionTitle>
+            <ol className="mt-5 grid gap-3 sm:grid-cols-2">
+              {readmeSteps.map((step, index) => (
+                <li key={step} className={cn(CARD_CLASS, 'p-5')}>
+                  <span className="flex size-7 items-center justify-center rounded-full bg-foreground/[0.08] text-xs font-semibold text-foreground">
+                    {index + 1}
+                  </span>
+                  <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                    {step}
+                  </p>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-8 text-sm text-muted-foreground">Embed it in README.md:</p>
+            <pre className={cn(CARD_CLASS, 'mt-2 overflow-x-auto p-4 text-sm text-foreground')}>
+              <code>{readmeMarkdown}</code>
+            </pre>
+            <p className="mt-6 text-sm text-muted-foreground">
+              Or show a separate image in GitHub dark mode:
+            </p>
+            <pre className={cn(CARD_CLASS, 'mt-2 overflow-x-auto p-4 text-sm text-foreground')}>
+              <code>{readmePicture}</code>
+            </pre>
+          </section>
+
+          <ToolFaq faqs={faqs} />
+
+          <p className="text-center text-sm text-muted-foreground">
             Coming from another tool? See how it compares to{' '}
-            <Link href="/compare/carbon" className="underline">Carbon</Link>
+            <Link href="/compare/carbon" className="text-foreground underline underline-offset-4">
+              Carbon
+            </Link>
             {' '}and{' '}
-            <Link href="/compare/ray-so" className="underline">Ray.so</Link>,
-            or explore the{' '}
-            <Link href="/features/code-snippets" className="underline">
+            <Link href="/compare/ray-so" className="text-foreground underline underline-offset-4">
+              Ray.so
+            </Link>
+            , or explore the{' '}
+            <Link href="/features/code-snippets" className="text-foreground underline underline-offset-4">
               code snippet feature
             </Link>
             .

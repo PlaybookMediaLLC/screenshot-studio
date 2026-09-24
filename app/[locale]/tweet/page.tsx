@@ -1,13 +1,10 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { TweetImageEditorLoader } from '@/components/tweet-image/TweetImageEditorLoader';
+import { SectionTitle, ToolFaq } from '@/components/tools/ToolLayout';
+import { CARD_CLASS, INTER } from '@/components/tools/ui';
 import { OG_DEFAULTS } from '@/lib/seo/metadata';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
+import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: 'Tweet to Image: Turn Posts on X into Images',
@@ -120,37 +117,50 @@ export default function TweetImagePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <TweetImageEditorLoader />
-      <section className="bg-background px-6 pt-16 pb-48">
-        <div className="mx-auto max-w-3xl">
-          <h1 className="mb-3 text-2xl font-semibold tracking-[-0.02em] text-foreground">
-            Tweet to Image Generator
-          </h1>
-          <p className="mb-10 text-muted-foreground">
-            Paste a link to any public post on X and get a clean image of it,
-            ready for slides, docs, newsletters, or another thread. No signup,
-            no watermark.
-          </p>
-          <h2 className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground">
-            How to Save a Post from X as an Image
-          </h2>
-          <ol className="mb-10 list-decimal space-y-2 pl-5 text-muted-foreground">
-            {steps.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-          <Accordion type="single" collapsible>
-            {faqs.map((faq) => (
-              <AccordionItem key={faq.question} value={faq.question}>
-                <AccordionTrigger>{faq.question}</AccordionTrigger>
-                <AccordionContent>{faq.answer}</AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-          <p className="mt-10 text-sm text-muted-foreground">
+      <section className="bg-background px-6 pb-48 pt-24">
+        <div className="mx-auto flex max-w-3xl flex-col gap-16">
+          <header className="text-center">
+            <h1
+              className="text-4xl font-semibold tracking-[-0.035em] text-foreground sm:text-5xl"
+              style={{ fontFamily: INTER }}
+            >
+              Tweet to Image Generator
+            </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+              Paste a link to any public post on X and get a clean image of it,
+              ready for slides, docs, newsletters, or another thread. No signup,
+              no watermark.
+            </p>
+          </header>
+
+          <section>
+            <SectionTitle>How to Save a Post from X as an Image</SectionTitle>
+            <ol className="mt-5 grid gap-3 sm:grid-cols-2">
+              {steps.map((step, index) => (
+                <li key={step} className={cn(CARD_CLASS, 'p-5')}>
+                  <span className="flex size-7 items-center justify-center rounded-full bg-foreground/[0.08] text-xs font-semibold text-foreground">
+                    {index + 1}
+                  </span>
+                  <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                    {step}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <ToolFaq faqs={faqs} />
+
+          <p className="text-center text-sm text-muted-foreground">
             Want the post inside a device mockup or next to a screenshot? Open the{' '}
-            <Link href="/editor" className="underline">screenshot editor</Link>
+            <Link href="/editor" className="text-foreground underline underline-offset-4">
+              screenshot editor
+            </Link>
             , or turn a snippet into an image with{' '}
-            <Link href="/code" className="underline">code to image</Link>.
+            <Link href="/code" className="text-foreground underline underline-offset-4">
+              code to image
+            </Link>
+            .
           </p>
         </div>
       </section>

@@ -15,7 +15,6 @@ import {
   ShadowSection,
   BackgroundSection,
   DepthSection,
-  TweetImportSection,
   ImageOverlaySection,
   AnnotateSection,
   TextSection,
@@ -126,7 +125,6 @@ export function LeftEditPanel() {
               {editorMode !== "device" ? (
                 <>
                   <ShadowSection />
-                  <TweetImportSection />
                   <ImageOverlaySection />
                   <AnnotateSection />
                   <TextSection />

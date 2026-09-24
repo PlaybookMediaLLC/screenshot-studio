@@ -25,7 +25,6 @@ import {
   AnnotateSection,
   ImageOverlaySection,
   DepthSection,
-  TweetImportSection,
   ImagePositionSection,
   DeviceFramesSection,
 } from './sections';
@@ -150,7 +149,6 @@ export function UnifiedRightPanel({
                   )}
                   <ImagePositionSection />
                   <ShadowSection />
-                  <TweetImportSection />
                   <ImageOverlaySection />
                   <AnnotateSection />
                   <TextSection />

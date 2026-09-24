@@ -94,7 +94,7 @@ export default async function ComparisonPage({ params }: PageProps) {
   if (!data) notFound();
 
   const otherComparisons = comparisons.filter((c) => c.slug !== slug);
-  const cta = data.cta ?? { href: "/", label: "Try Screenshot Studio Free" };
+  const cta = data.cta ?? { href: "/editor", label: "Try Screenshot Studio Free" };
 
   const structuredData = {
     "@context": "https://schema.org",

@@ -116,7 +116,7 @@ const TopBar = React.memo(function TopBar({
       <div className="flex items-center gap-2">
         <Link
           href="/"
-          aria-label="Open Screenshot Studio editor"
+          aria-label="Choose a Screenshot Studio tool"
           className="shrink-0 transition-opacity hover:opacity-80"
         >
           <Image

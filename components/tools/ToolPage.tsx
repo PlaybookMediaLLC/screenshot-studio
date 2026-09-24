@@ -146,7 +146,7 @@ export function ToolPage({ tool }: ToolPageProps) {
 
             <p className="mt-12 text-sm text-muted-foreground">
               Need more than a quick fix? The{" "}
-              <Link href="/" className="underline">
+              <Link href="/editor" className="underline">
                 Screenshot Studio editor
               </Link>{" "}
               adds gradient backgrounds, browser mockups, shadows, 3D perspective,

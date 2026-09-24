@@ -285,7 +285,7 @@ export default function ThreeDEffectsPage() {
               in your browser, is free, and adds no watermark.
             </p>
             <div className="flex flex-col items-center">
-              <Link href="/" className={ctaClassName}>
+              <Link href="/editor" className={ctaClassName}>
                 Add 3D Effects Free
               </Link>
               <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground/70">
@@ -501,7 +501,7 @@ export default function ThreeDEffectsPage() {
             <p className="mb-8 text-muted-foreground">
               No 3D software required. Create stunning visuals in your browser.
             </p>
-            <Link href="/" className={ctaClassName}>
+            <Link href="/editor" className={ctaClassName}>
               Try 3D Effects Free
             </Link>
           </div>

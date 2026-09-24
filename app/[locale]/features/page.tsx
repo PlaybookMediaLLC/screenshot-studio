@@ -283,7 +283,7 @@ export default function FeaturesPage() {
               All features, zero cost. Start creating in seconds.
             </p>
             <Link href="/" className={ctaClassName}>
-              Open Editor
+              Get Started
             </Link>
           </div>
         </section>

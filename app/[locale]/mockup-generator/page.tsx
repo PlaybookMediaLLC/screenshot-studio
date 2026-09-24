@@ -234,7 +234,7 @@ export default function MockupGeneratorPage() {
               browser, with no signup and no watermark.
             </p>
             <div className="flex flex-col items-center">
-              <Link href="/" className={ctaClassName}>
+              <Link href="/editor" className={ctaClassName}>
                 Make a Mockup
               </Link>
               <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground/70">

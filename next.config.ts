@@ -78,7 +78,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/home",
-        destination: "/",
+        destination: "/editor",
         statusCode: 301,
       },
     ];

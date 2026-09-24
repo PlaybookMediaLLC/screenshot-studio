@@ -17,7 +17,8 @@ Screenshot Studio is a free, open-source, browser-based screenshot editor that t
 - **Templates & Presets** — One-click professional styling
 
 ## Pages
-- Editor: https://www.screenshot-studio.com/
+- Start (choose a tool): https://www.screenshot-studio.com/
+- Screenshot Editor: https://www.screenshot-studio.com/editor
 - Landing: https://www.screenshot-studio.com/landing
 - Free Screenshot Editor: https://www.screenshot-studio.com/free-screenshot-editor
 - Mockup Generator: https://www.screenshot-studio.com/mockup-generator

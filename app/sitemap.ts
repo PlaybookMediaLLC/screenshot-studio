@@ -7,6 +7,7 @@ import { TOOLS, TOOLS_HUB_PATH } from "@/lib/seo/tools";
 
 const STATIC_PATHS = [
   "/",
+  "/editor",
   "/free-screenshot-editor",
   "/store-screenshots",
   "/code",

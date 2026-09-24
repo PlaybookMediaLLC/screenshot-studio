@@ -70,7 +70,7 @@ export default function LandingPageRoute() {
       heroTitle="Beautiful images. Zero effort."
       heroSubtitle="Screenshots, ready to ship."
       heroDescription="The free browser editor that makes your screenshots, tweets, and code look professional. Browser mockups, 3D effects, and more."
-      ctaLabel="Open Editor"
+      ctaLabel="Get Started"
       ctaHref="/"
       howItWorks={howItWorks}
       videoTestimonials={videoTestimonials}

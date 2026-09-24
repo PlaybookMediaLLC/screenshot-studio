@@ -216,7 +216,7 @@ export default function ScreenshotBeautifierPage() {
               resolution.
             </p>
             <div className="flex flex-col items-center">
-              <Link href="/" className={ctaClassName}>
+              <Link href="/editor" className={ctaClassName}>
                 Beautify Your Screenshot
               </Link>
               <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground/70">
@@ -348,7 +348,7 @@ export default function ScreenshotBeautifierPage() {
             <p className="mb-8 text-muted-foreground">
               Join thousands of creators making professional graphics.
             </p>
-            <Link href="/" className={ctaClassName}>
+            <Link href="/editor" className={ctaClassName}>
               Start Free
             </Link>
           </div>

@@ -370,7 +370,7 @@ export default function FreeScreenshotEditorPage() {
               watermark.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link href="/" className={ctaClassName}>
+              <Link href="/editor" className={ctaClassName}>
                 Open Free Editor
               </Link>
               <Link href="/features" className={secondaryCtaClassName}>
@@ -602,7 +602,7 @@ export default function FreeScreenshotEditorPage() {
               No signup. No downloads. No watermarks. Just open the editor and
               create.
             </p>
-            <Link href="/" className={ctaClassName}>
+            <Link href="/editor" className={ctaClassName}>
               Open Free Screenshot Editor
             </Link>
           </div>

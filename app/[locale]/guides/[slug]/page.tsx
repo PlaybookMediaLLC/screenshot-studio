@@ -317,7 +317,7 @@ export default async function GuidePage({ params }: PageProps) {
               No signup. No downloads. No watermarks.
             </p>
             <Link href="/" className={ctaClassName}>
-              Open Free Editor
+              Get Started Free
             </Link>
           </div>
         </section>

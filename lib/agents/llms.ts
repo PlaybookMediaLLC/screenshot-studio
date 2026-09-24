@@ -63,7 +63,8 @@ ${primaryToolLines}
 
 ## Pages
 
-- Editor: ${BASE_URL}/
+- Start (choose a tool): ${BASE_URL}/
+- Screenshot Editor: ${BASE_URL}/editor
 - Product overview: ${BASE_URL}/landing
 - Free Screenshot Editor: ${BASE_URL}/free-screenshot-editor
 - App Store Screenshot Maker: ${BASE_URL}/store-screenshots
@@ -248,7 +249,8 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 ### Core
 | Page | URL | Description |
 |------|-----|-------------|
-| Editor | ${BASE_URL}/ | Main canvas editor for creating designs |
+| Start | ${BASE_URL}/ | Choose the screenshot editor, code images, App Store screenshots, or image tools |
+| Screenshot Editor | ${BASE_URL}/editor | Main canvas editor for creating designs |
 | Landing | ${BASE_URL}/landing | Product landing page with overview |
 | Free Screenshot Editor | ${BASE_URL}/free-screenshot-editor | SEO landing page for free editor |
 | Mockup Generator | ${BASE_URL}/mockup-generator | iPhone, MacBook, and Apple Watch mockups with 3D angles and multi-device layouts |

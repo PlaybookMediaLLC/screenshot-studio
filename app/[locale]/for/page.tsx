@@ -111,7 +111,7 @@ export default function AudienceHubPage() {
 
             <p className="mt-12 max-w-2xl text-sm text-muted-foreground">
               Whatever the use case, start in the{" "}
-              <Link href="/" className="underline">
+              <Link href="/editor" className="underline">
                 editor
               </Link>
               , see{" "}

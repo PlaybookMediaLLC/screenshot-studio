@@ -131,7 +131,7 @@ export default function ToolsHubPage() {
 
             <p className="mt-12 max-w-2xl text-sm text-muted-foreground">
               Looking for something more than a quick fix? The{" "}
-              <Link href="/" className="underline">
+              <Link href="/editor" className="underline">
                 Screenshot Studio editor
               </Link>{" "}
               turns a plain screenshot into a finished graphic with gradient

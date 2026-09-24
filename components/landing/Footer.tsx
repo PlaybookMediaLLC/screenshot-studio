@@ -15,7 +15,7 @@ const PEERLIST_BADGE =
   "https://dqy38fnwh4fqs.cloudfront.net/website/project-spotlight/project-week-rank-one-dark.svg";
 
 const navCol1 = [
-  { href: "/", label: "Editor" },
+  { href: "/editor", label: "Screenshot Editor" },
   { href: "/free-screenshot-editor", label: "Free editor" },
   { href: "/store-screenshots", label: "App store screenshots" },
   { href: "/code", label: "Code to image" },

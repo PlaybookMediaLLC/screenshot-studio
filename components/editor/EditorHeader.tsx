@@ -178,7 +178,7 @@ export function EditorHeader() {
       >
         <div className="flex items-center h-8 justify-self-start min-w-0">
           <Link
-            href="/landing"
+            href="/"
             className="flex items-center gap-2.5 h-8 hover:opacity-80 transition-opacity shrink-0"
           >
             <Image

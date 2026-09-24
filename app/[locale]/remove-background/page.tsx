@@ -279,7 +279,7 @@ export default function RemoveBackgroundPage() {
               Coming from remove.bg? See{' '}
               <Link href="/compare/remove-bg" className="underline">how it compares</Link>
               . Want to put your cutout on a gradient or in a mockup? Open the{' '}
-              <Link href="/" className="underline">Screenshot Studio editor</Link>
+              <Link href="/editor" className="underline">Screenshot Studio editor</Link>
               , or browse{' '}
               <Link href={TOOLS_HUB_PATH} className="underline">every image tool</Link>
               .

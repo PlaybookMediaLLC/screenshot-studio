@@ -108,7 +108,7 @@ export default function CompareHubPage() {
 
             <p className="mt-12 max-w-2xl text-sm text-muted-foreground">
               Rather just try it? Open the{" "}
-              <Link href="/" className="underline">
+              <Link href="/editor" className="underline">
                 Screenshot Studio editor
               </Link>
               , browse the{" "}

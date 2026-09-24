@@ -205,7 +205,7 @@ export default function SocialMediaGraphicsPage() {
               engagement.
             </p>
             <div className="flex flex-col items-center">
-              <Link href="/" className={ctaClassName}>
+              <Link href="/editor" className={ctaClassName}>
                 Create Graphics Free
               </Link>
               <p className="mt-4 inline-flex flex-wrap items-center justify-center gap-2 text-sm font-medium text-muted-foreground/70">
@@ -336,7 +336,7 @@ export default function SocialMediaGraphicsPage() {
             <p className="mb-8 text-muted-foreground">
               No design experience required. Start creating in 30 seconds.
             </p>
-            <Link href="/" className={ctaClassName}>
+            <Link href="/editor" className={ctaClassName}>
               Try Free Now
             </Link>
           </div>

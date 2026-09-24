@@ -24,6 +24,18 @@ export interface AgentPage {
 export const AGENT_PAGES: AgentPage[] = [
   {
     path: "/",
+    title: "Screenshot Studio - Free Screenshot Editor & Image Tools",
+    summary:
+      "Start page. Pick a tool: the screenshot editor, code images, App Store screenshots, or image tools that compress, convert, resize, crop, rotate, and remove backgrounds. All free, no signup, no watermark.",
+    points: [
+      "Screenshot editor: /editor",
+      `Code images, ${PRODUCT_FACTS.codeThemes} themes and ${PRODUCT_FACTS.codeLanguages} languages: /code`,
+      "App Store screenshots: /store-screenshots",
+      "Image tools: /tools",
+    ],
+  },
+  {
+    path: "/editor",
     title: "Screenshot Studio - Free Screenshot Editor & Mockup Maker",
     summary:
       "The Screenshot Studio editor. Drop in a screenshot and add gradient backgrounds, browser mockups, shadows, 3D perspective, and animation, then export a PNG, JPEG, WebP, MP4, WebM, or GIF. Editing runs client side, so imported images are not uploaded to edit them; only export compression sends the finished image to the server, which returns it without storing it. No signup, no watermark, no paid tier.",

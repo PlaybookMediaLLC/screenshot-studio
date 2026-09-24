@@ -249,7 +249,7 @@ export default function BrowserMockupsPage() {
               Light and dark modes, custom URL, adjustable header size.
             </p>
             <div className="flex flex-col items-center">
-              <Link href="/" className={ctaClassName}>
+              <Link href="/editor" className={ctaClassName}>
                 Add Browser Frame
               </Link>
               <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground/70">
@@ -381,7 +381,7 @@ export default function BrowserMockupsPage() {
               Make your screenshots look professional with realistic browser
               mockups.
             </p>
-            <Link href="/" className={ctaClassName}>
+            <Link href="/editor" className={ctaClassName}>
               Start Free
             </Link>
           </div>

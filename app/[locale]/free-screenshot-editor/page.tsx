@@ -12,6 +12,9 @@ import {
 } from "hugeicons-react";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
+import { CARD_CLASS, INTER } from "@/components/tools/ui";
+import { CLAIMS_CHECKED_LABEL, getComparison } from "@/lib/seo/comparisons";
+import { OG_DEFAULTS } from "@/lib/seo/metadata";
 import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 
 export const metadata: Metadata = {
@@ -31,10 +34,13 @@ export const metadata: Metadata = {
     "free image editor for screenshots",
     "pika style alternative free",
     "shots.so alternative free",
+    "screely alternative",
+    "xnapper alternative",
+    "cleanshot x alternative",
+    "snagit alternative",
     "screenshot mockup generator free",
     "browser mockup tool online",
     "screenshot wrapper no watermark",
-    "screenshot editor online free",
     "best screenshot editor online",
     "screenshot editor without watermark",
     "screenshot editor online free without watermark",
@@ -51,6 +57,7 @@ export const metadata: Metadata = {
     "screenshot editor for chromebook",
   ],
   openGraph: {
+    ...OG_DEFAULTS,
     title: "Free Screenshot Editor Online - Screenshot Studio",
     description:
       `Beautify screenshots instantly with ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, 3D effects, and animations. Free, no signup required.`,
@@ -61,17 +68,15 @@ export const metadata: Metadata = {
   },
 };
 
-const INTER =
-  'Inter, "Inter Fallback", Arial, Helvetica, sans-serif';
-
 const ctaClassName =
   "relative inline-flex items-center justify-center rounded-md border-0 bg-[var(--nav-cta-bg)] px-6 py-2.5 text-base font-medium text-[var(--nav-cta-fg)] shadow-none transition-[transform,box-shadow] duration-150 ease-out [text-shadow:var(--nav-cta-text-shadow)] hover:shadow-[var(--nav-cta-hover-shadow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-[0.97]";
 
 const secondaryCtaClassName =
   "inline-flex items-center justify-center rounded-md px-6 py-2.5 text-base font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:scale-[0.99]";
 
-const cardSurface =
-  "rounded-2xl bg-card ring-1 ring-border shadow-[var(--card-edge-shadow)]";
+const cardSurface = CARD_CLASS;
+
+const ALTERNATIVE_SLUGS = ["shots-so", "pika-style", "screely", "xnapper", "cleanshot-x", "snagit"];
 
 const capabilities = [
   {
@@ -275,6 +280,10 @@ const featureLinks = [
 ] as const;
 
 export default function FreeScreenshotEditorPage() {
+  const alternatives = ALTERNATIVE_SLUGS.map((slug) => getComparison(slug)).filter(
+    (entry): entry is NonNullable<typeof entry> => Boolean(entry),
+  );
+
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -344,7 +353,7 @@ export default function FreeScreenshotEditorPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <Navigation brandName="Screenshot Studio" />
+      <Navigation />
 
       <main className="flex-1">
         <section className="px-6 pb-20 pt-32">
@@ -534,6 +543,49 @@ export default function FreeScreenshotEditorPage() {
           </div>
         </section>
 
+        <section className="px-6 py-20">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-10 text-center">
+              <h2
+                className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
+                style={{ fontFamily: INTER }}
+              >
+                How It Compares to Other Screenshot Editors
+              </h2>
+              <p className="mx-auto max-w-3xl text-muted-foreground">
+                Shots.so, Pika Style, Screely, Xnapper, CleanShot X, and Snagit
+                all beautify screenshots too. Screenshot Studio matches the
+                core workflow, backgrounds, shadows, mockups, and export, for
+                free, in any browser, with no signup.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {alternatives.map((comparison) => {
+                const faq = comparison.faqs[0];
+                return (
+                  <div key={comparison.slug} className={`flex flex-col p-6 ${cardSurface}`}>
+                    <h3 className="text-sm font-semibold text-foreground">{faq.q}</h3>
+                    <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted-foreground">
+                      {faq.a}
+                    </p>
+                    <Link
+                      href={`/compare/${comparison.slug}`}
+                      className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-foreground underline underline-offset-4"
+                    >
+                      Full {comparison.competitorName} comparison
+                      <ArrowRight01Icon size={14} aria-hidden />
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-4 text-center text-xs text-muted-foreground/70">
+              Competitor pricing and features checked on {CLAIMS_CHECKED_LABEL}. See each comparison
+              for sourcing, since third-party plans change without notice.
+            </p>
+          </div>
+        </section>
+
         <section className="border-t border-border px-6 py-20">
           <div className="mx-auto max-w-3xl">
             <div className="mb-16 text-center">
@@ -609,7 +661,7 @@ export default function FreeScreenshotEditorPage() {
         </section>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer />
     </div>
   );
 }

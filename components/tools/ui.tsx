@@ -11,6 +11,22 @@ export const CARD_CLASS =
 export const DROP_CARD_CLASS =
   "group block w-full cursor-pointer rounded-2xl bg-card p-2 text-center ring-1 ring-inset ring-border shadow-[var(--card-highlight-shadow)] transition-shadow duration-200 hover:ring-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/70 disabled:cursor-not-allowed disabled:opacity-50";
 
+export const PREVIEW_SHADOW = "shadow-[0_20px_40px_-16px_rgba(0,0,0,0.6)]";
+
+export const MOTION =
+  "duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none";
+
+/** macOS-style traffic light dots for preview window chrome. */
+export function WindowDots() {
+  return (
+    <span className="flex gap-1.5">
+      <span className="size-2 rounded-full bg-[#ff5f57]" />
+      <span className="size-2 rounded-full bg-[#febc2e]" />
+      <span className="size-2 rounded-full bg-[#28c840]" />
+    </span>
+  );
+}
+
 const EASE = "transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none";
 
 function PhotoTile({

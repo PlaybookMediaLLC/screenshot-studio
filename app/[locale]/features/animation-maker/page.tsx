@@ -1,16 +1,13 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import {
-  ArrowRight01Icon,
-  MagicWand01Icon,
-  PlayIcon,
-  SparklesIcon,
-  Video01Icon,
-} from "hugeicons-react";
-import { Navigation } from "@/components/landing/Navigation";
-import { Footer } from "@/components/landing/Footer";
-import { OG_DEFAULTS } from "@/lib/seo/metadata";
-import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
+import { MagicWand01Icon, PlayIcon, SparklesIcon, Video01Icon } from "hugeicons-react";
+import { FeaturePage } from "@/components/features/FeaturePage";
+import { PREVIEW_SHADOW, MOTION } from "@/components/tools/ui";
+import { OG_DEFAULTS, SITE_URL } from "@/lib/seo/metadata";
+import { PRODUCT_FACTS, VIDEO_FORMATS_SENTENCE, atLeast } from "@/lib/seo/product-facts";
+import { gradientColors } from "@/lib/constants/gradient-colors";
+
+const PAGE_URL = `${SITE_URL}/features/animation-maker`;
 
 export const metadata: Metadata = {
   title: "Free Screenshot Animation Maker",
@@ -30,382 +27,197 @@ export const metadata: Metadata = {
     "product demo animation",
     "screenshot gif maker",
     "app preview video maker",
-    "animated mockup generator",
-    "screenshot video export free",
+    "pika style alternative",
+    "shots.so alternative",
+    "free shots.so alternative",
   ],
   openGraph: {
     ...OG_DEFAULTS,
     title: "Free Animation Maker - Create Animated Screenshots & Slideshows",
     description:
       "Create stunning animations from screenshots. Zoom, pan, and fade effects with video export.",
-    url: "/features/animation-maker",
+    url: PAGE_URL,
   },
   alternates: {
     canonical: "/features/animation-maker",
   },
 };
 
-const INTER =
-  'Inter, "Inter Fallback", Arial, Helvetica, sans-serif';
-
-const ctaClassName =
-  "relative inline-flex items-center justify-center rounded-md border-0 bg-[var(--nav-cta-bg)] px-6 py-2.5 text-base font-medium text-[var(--nav-cta-fg)] shadow-none transition-[transform,box-shadow] duration-150 ease-out [text-shadow:var(--nav-cta-text-shadow)] hover:shadow-[var(--nav-cta-hover-shadow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-[0.97]";
-
-const cardSurface =
-  "rounded-2xl bg-card ring-1 ring-border shadow-[var(--card-edge-shadow)]";
-
-const chipLinkClassName =
-  "group flex items-center justify-between rounded-md bg-foreground/[0.04] px-4 py-3 text-sm font-medium text-foreground/90 ring-1 ring-border transition-colors hover:bg-foreground/[0.08] hover:text-foreground";
-
-const animations = [
-  {
-    name: "Zoom In",
-    description: "Dramatic zoom effect that draws attention to key details",
-  },
-  {
-    name: "Zoom Out",
-    description: "Reveal the full picture from a focused starting point",
-  },
-  {
-    name: "Pan Left/Right",
-    description: "Smooth horizontal movement across wide screenshots",
-  },
-  {
-    name: "Ken Burns",
-    description: "Classic documentary-style slow zoom and pan combo",
-  },
-  {
-    name: "Tilt Up/Down",
-    description: "Vertical panning for long screenshots and pages",
-  },
-  {
-    name: "Fade Transitions",
-    description: "Elegant crossfade between multiple slides",
-  },
-];
-
-const features = [
+const capabilities = [
   {
     icon: MagicWand01Icon,
-    title: "20+ Animation Presets",
+    title: `${atLeast(PRODUCT_FACTS.animationPresets)} animation presets`,
     description:
       "One-click animations including zoom, pan, tilt, rotate, and Ken Burns effects.",
   },
   {
     icon: PlayIcon,
-    title: "Timeline Editor",
+    title: "Timeline editor",
     description:
-      "Fine-tune timing with our visual timeline. Adjust duration, easing, and keyframes.",
+      "Fine-tune timing with a visual timeline. Adjust duration, easing, and keyframes.",
   },
   {
     icon: Video01Icon,
-    title: "Video Export",
-    description:
-      "Export as MP4 video or animated GIF. Perfect for social media and presentations.",
+    title: "Video export",
+    description: `Export as ${VIDEO_FORMATS_SENTENCE}. Perfect for social media and presentations.`,
   },
   {
     icon: SparklesIcon,
-    title: "Slideshow Builder",
+    title: "Slideshow builder",
     description:
       "Combine multiple screenshots into animated slideshows with transitions.",
   },
-] as const;
+];
 
-const useCases = [
+const steps = [
   {
-    title: "Product Demos",
+    title: "Upload your screenshots",
     description:
-      "Create engaging product walkthroughs that highlight key features with smooth zoom and pan animations.",
+      "Add one or more screenshots to create a slideshow, or animate a single image.",
   },
   {
-    title: "Social Media Content",
-    description:
-      "Stand out with animated posts that capture attention in crowded feeds on Twitter, LinkedIn, and more.",
+    title: "Choose an animation preset",
+    description: `Select from ${atLeast(PRODUCT_FACTS.animationPresets)} presets like zoom, pan, and Ken Burns, or build a custom animation on the timeline.`,
   },
   {
-    title: "Tutorial Videos",
-    description:
-      "Build step-by-step tutorials by combining screenshots into animated slideshows with clear transitions.",
-  },
-  {
-    title: "Portfolio Showcases",
-    description:
-      "Present your work with cinematic Ken Burns effects that add polish and professionalism.",
+    title: "Export as video",
+    description: `Download as ${VIDEO_FORMATS_SENTENCE}. Share directly to social media or embed anywhere.`,
   },
 ];
 
-const howToSteps = [
+const faqs = [
   {
-    step: "1",
-    title: "Upload Your Screenshots",
-    description:
-      "Add one or more screenshots to create a slideshow or animate a single image.",
+    question: "Is the screenshot animation maker free?",
+    answer:
+      "Yes. Every animation preset, the timeline editor, and video export are free, with no signup and no watermark.",
   },
   {
-    step: "2",
-    title: "Choose Animation Preset",
-    description:
-      `Select from ${atLeast(PRODUCT_FACTS.animationPresets)} presets like zoom, pan, Ken Burns, or create custom animations with the timeline.`,
+    question: "What video formats can I export?",
+    answer: `You can export animations as ${VIDEO_FORMATS_SENTENCE}. GIF works well for chat and docs, MP4 and WebM for social media and presentations.`,
   },
   {
-    step: "3",
-    title: "Export as Video",
-    description:
-      "Download as MP4 video or GIF. Share directly to social media or embed anywhere.",
+    question: "Can I combine multiple screenshots into one animated slideshow?",
+    answer:
+      "Yes. Add several screenshots and the slideshow builder sequences them with transitions, so you can build a product walkthrough or tutorial in one export.",
+  },
+  {
+    question: "Do I need video editing experience?",
+    answer:
+      "No. One-click presets handle the timing and easing for you. The timeline editor is there if you want to fine-tune keyframes yourself.",
+  },
+  {
+    question: "How many animation presets are included?",
+    answer: `${atLeast(PRODUCT_FACTS.animationPresets)} presets, covering zoom, pan, tilt, rotate, and Ken Burns effects, plus a keyframe timeline for fully custom motion.`,
   },
 ];
 
 const relatedLinks = [
-  { href: "/features/screenshot-beautifier", label: "Screenshot Beautifier" },
-  { href: "/features/social-media-graphics", label: "Social Media Graphics" },
-  { href: "/features/3d-effects", label: "3D Effects" },
-] as const;
+  { href: "/features/screenshot-beautifier", label: "Screenshot beautifier" },
+  { href: "/features/social-media-graphics", label: "Social media graphics" },
+  { href: "/features/3d-effects", label: "3D effects" },
+];
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "@id": `${PAGE_URL}#software`,
+      name: "Screenshot Studio - Animation Maker",
+      applicationCategory: "MultimediaApplication",
+      operatingSystem: "Web Browser",
+      description:
+        "Free online tool to create animated screenshots and slideshows with zoom, pan, and fade effects.",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      featureList: [
+        `${atLeast(PRODUCT_FACTS.animationPresets)} animation presets`,
+        "Keyframe timeline editor",
+        "Slideshow builder with transitions",
+        `Video export: ${VIDEO_FORMATS_SENTENCE}`,
+      ],
+    },
+    {
+      "@type": "FAQPage",
+      "@id": `${PAGE_URL}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        "@type": "Question",
+        name: faq.question,
+        acceptedAnswer: { "@type": "Answer", text: faq.answer },
+      })),
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": `${PAGE_URL}#breadcrumb`,
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Features",
+          item: `${SITE_URL}/features`,
+        },
+        { "@type": "ListItem", position: 3, name: "Animation Maker", item: PAGE_URL },
+      ],
+    },
+  ],
+};
+
+function AnimationPreview() {
+  return (
+    <div className="relative flex items-center justify-center">
+      <div
+        className={`w-48 rounded-lg bg-neutral-900 transition-transform ${MOTION} group-hover:scale-105 ${PREVIEW_SHADOW}`}
+      >
+        <div className="flex flex-col gap-2 p-4">
+          <div className="h-2.5 w-14 rounded-full bg-white/25" />
+          <div className="h-2 w-24 rounded-full bg-white/10" />
+          <div className="mt-1 h-12 rounded-md bg-white/10" />
+        </div>
+      </div>
+      <span className="absolute -right-3 -top-3 flex size-8 items-center justify-center rounded-full bg-white text-neutral-900 shadow-[0_10px_24px_-8px_rgba(0,0,0,0.6)]">
+        <Video01Icon size={16} aria-hidden="true" />
+      </span>
+    </div>
+  );
+}
 
 export default function AnimationMakerPage() {
-  const breadcrumb = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: "https://www.screenshot-studio.com",
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "Features",
-        item: "https://www.screenshot-studio.com/features",
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: "Animation Maker",
-        item: "https://www.screenshot-studio.com/features/animation-maker",
-      },
-    ],
-  };
-
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "SoftwareApplication",
-        name: "Screenshot Studio - Animation Maker",
-        applicationCategory: "MultimediaApplication",
-        operatingSystem: "Web Browser",
-        description:
-          "Free online tool to create animated screenshots and slideshows with zoom, pan, and fade effects.",
-        offers: {
-          "@type": "Offer",
-          price: "0",
-          priceCurrency: "USD",
-        },
-        featureList: [
-          "Zoom animations",
-          "Pan effects",
-          "Ken Burns effect",
-          "Timeline editor",
-          "Video export",
-          "Slideshow builder",
-        ],
-      },
-    ],
-  };
-
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
-      />
-
-      <Navigation brandName="Screenshot Studio" />
-
-      <main className="flex-1">
-        <section className="px-6 pb-20 pt-32">
-          <div className="mx-auto max-w-4xl text-center">
-            <h1
-              className="mb-6 text-4xl font-semibold tracking-[-0.03em] text-foreground md:text-6xl"
-              style={{ fontFamily: INTER }}
-            >
-              Free Screenshot Animation Maker
-            </h1>
-            <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground md:text-xl">
-              Bring your screenshots to life with stunning animations. Create
-              zoom effects, smooth pans, and animated slideshows. Export to
-              video or GIF.
-            </p>
-            <div className="flex flex-col items-center">
-              <Link href="/editor" className={ctaClassName}>
-                Create Animation Free
-              </Link>
-              <p className="mt-4 inline-flex flex-wrap items-center justify-center gap-2 text-sm font-medium text-muted-foreground/70">
-                <span>No Signup</span>
-                <span className="h-3 w-px bg-border" aria-hidden />
-                <span>No Watermarks</span>
-                <span className="h-3 w-px bg-border" aria-hidden />
-                <span>Unlimited Exports</span>
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-y border-border px-6 py-16">
-          <div className="mx-auto max-w-6xl">
-            <h2
-              className="mb-12 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Powerful Animation Tools
-            </h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {features.map((feature) => (
-                <div
-                  key={feature.title}
-                  className={`flex gap-4 p-6 ${cardSurface}`}
-                >
-                  <feature.icon
-                    className="size-6 shrink-0 text-foreground"
-                    aria-hidden
-                  />
-                  <div>
-                    <h3 className="mb-2 text-lg font-semibold text-foreground">
-                      {feature.title}
-                    </h3>
-                    <p className="text-muted-foreground">{feature.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-6xl">
-            <h2
-              className="mb-4 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Animation Effects
-            </h2>
-            <p className="mx-auto mb-12 max-w-2xl text-center text-muted-foreground">
-              Choose from our library of professional animation presets or
-              customize your own with the timeline editor.
-            </p>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {animations.map((animation) => (
-                <div key={animation.name} className={`p-6 ${cardSurface}`}>
-                  <h3 className="mb-2 font-semibold text-foreground">
-                    {animation.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {animation.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="border-y border-border px-6 py-16">
-          <div className="mx-auto max-w-4xl">
-            <h2
-              className="mb-12 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Perfect For
-            </h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {useCases.map((useCase) => (
-                <div key={useCase.title} className={`p-6 ${cardSurface}`}>
-                  <h3 className="mb-2 text-lg font-semibold text-foreground">
-                    {useCase.title}
-                  </h3>
-                  <p className="text-muted-foreground">{useCase.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-4xl">
-            <h2
-              className="mb-12 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              How to Create Animations
-            </h2>
-            <div className="space-y-8">
-              {howToSteps.map((item) => (
-                <div key={item.step} className="flex items-start gap-6">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
-                    {item.step}
-                  </div>
-                  <div>
-                    <h3 className="mb-1 text-lg font-semibold text-foreground">
-                      {item.title}
-                    </h3>
-                    <p className="text-muted-foreground">{item.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="border-y border-border px-6 py-16">
-          <div className="mx-auto max-w-4xl">
-            <h2
-              className="mb-8 text-center text-2xl font-semibold tracking-[-0.03em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Explore More Features
-            </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {relatedLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={chipLinkClassName}
-                >
-                  <span>{link.label}</span>
-                  <ArrowRight01Icon
-                    className="size-3.5 text-muted-foreground/70 transition-colors group-hover:text-foreground"
-                    aria-hidden
-                  />
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 py-20">
-          <div className="mx-auto max-w-4xl text-center">
-            <h2
-              className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Start Creating Animations Today
-            </h2>
-            <p className="mb-8 text-muted-foreground">
-              No video editing experience required. Create professional
-              animations in minutes.
-            </p>
-            <Link href="/editor" className={ctaClassName}>
-              Try Animation Maker Free
-            </Link>
-          </div>
-        </section>
-      </main>
-
-      <Footer brandName="Screenshot Studio" />
-    </div>
+    <FeaturePage
+      name="Animation Maker"
+      title="Free Screenshot Animation Maker"
+      intro="Bring your screenshots to life with zoom, pan, and fade animations, or build a slideshow from several screenshots. Export to video or GIF, free with no signup."
+      ctaHref="/editor"
+      ctaLabel="Create Animation Free"
+      previewGradient={gradientColors.cyan_blue_purple}
+      preview={<AnimationPreview />}
+      capabilities={capabilities}
+      steps={steps}
+      alternativesIntro="Pika Style does not list animation or video export. Shots.so has animation presets, and Screenshot Studio matches it with a free keyframe timeline and video export."
+      alternativeSlugs={["pika-style", "shots-so"]}
+      guideLinks={[
+        { href: "/guides/best-free-shots-so-alternatives", label: "Best free Shots.so alternatives" },
+      ]}
+      faqs={faqs}
+      relatedLinks={relatedLinks}
+      closing={
+        <>
+          Compare animation features in the{" "}
+          <Link href="/compare/shots-so" className="text-foreground underline underline-offset-4">
+            Shots.so comparison
+          </Link>
+          , try the{" "}
+          <Link href="/editor" className="text-foreground underline underline-offset-4">
+            editor
+          </Link>
+          , or browse{" "}
+          <Link href="/tools" className="text-foreground underline underline-offset-4">
+            every image tool
+          </Link>
+          .
+        </>
+      }
+      jsonLd={jsonLd}
+    />
   );
 }

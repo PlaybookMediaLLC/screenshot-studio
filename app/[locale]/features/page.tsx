@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight01Icon,
@@ -13,12 +13,20 @@ import {
 } from "hugeicons-react";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
+import { SectionTitle } from "@/components/tools/ToolLayout";
+import { CARD_CLASS, INTER, PREVIEW_SHADOW, MOTION } from "@/components/tools/ui";
+import { gradientColors } from "@/lib/constants/gradient-colors";
+import { buildCollectionJsonLd } from "@/lib/seo/json-ld";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
+import { cn } from "@/lib/utils";
+
+const TITLE = "Features: Screenshot & Mockup Tools";
+const DESCRIPTION =
+  "All Screenshot Studio features: screenshot beautifier, browser and device mockups, social media graphics, animations, 3D effects, and code images. Free, no signup.";
 
 export const metadata: Metadata = {
-  title: "Features: Screenshot & Mockup Tools",
-  description:
-    "All Screenshot Studio features: screenshot beautifier, browser mockups, app and UI mockups, social media graphics, animations, and 3D effects. Free, no signup.",
+  title: TITLE,
+  description: DESCRIPTION,
   keywords: [
     "screenshot editor features",
     "image editing tools",
@@ -29,43 +37,13 @@ export const metadata: Metadata = {
     "3d effects",
     "screenshot mockup features",
     "browser frame mockup",
-    "image background remover alternative",
-    "screenshot gradient background",
-    "screenshot presentation tool",
-    "mockup screenshot",
-    "mockup online",
-    "mockup screen",
-    "mockups ui",
-    "mockup ui ux",
     "app mockup generator",
     "ui mockup generator",
-    "shots app alternative",
-    "shots net alternative",
-    "moqups alternative",
-    "previewed app alternative",
-    "appshots alternative",
-    "goodmockups alternative",
-    "mockup me alternative",
-    "mockup generator",
-    "free mockup generator",
     "mockup generator free",
-    "mockup online generator",
-    "mockup online editor",
-    "mockup editor online free",
-    "mockup design online",
-    "mockup free online",
-    "free online mockup generator no watermark",
-    "free mockup generator without watermark",
-    "app mockup generator",
-    "website mockup generator",
-    "free website mockup generator",
-    "website mockup generator from url",
-    "laptop mockup generator",
-    "product mockup generator",
-    "free online 3d mockup generator",
-    "best mockup generator",
-    "best online mockup generator",
-    "mockup app",
+    "free mockup generator no watermark",
+    "shots.so alternative",
+    "pika.style alternative",
+    "free shots.so alternative",
   ],
   openGraph: {
     ...OG_DEFAULTS,
@@ -79,217 +57,217 @@ export const metadata: Metadata = {
   },
 };
 
-const INTER =
-  'Inter, "Inter Fallback", Arial, Helvetica, sans-serif';
+function Well({ gradient, children }: { gradient: string; children: React.ReactNode }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="m-2 mb-0 flex h-44 items-center justify-center overflow-hidden rounded-xl"
+      style={{ background: gradient }}
+    >
+      {children}
+    </div>
+  );
+}
 
-const ctaClassName =
-  "relative inline-flex items-center justify-center rounded-md border-0 bg-[var(--nav-cta-bg)] px-6 py-2.5 text-base font-medium text-[var(--nav-cta-fg)] shadow-none transition-[transform,box-shadow] duration-150 ease-out [text-shadow:var(--nav-cta-text-shadow)] hover:shadow-[var(--nav-cta-hover-shadow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-[0.97]";
+function IconBadge({ icon: Icon }: { icon: typeof MagicWand01Icon }) {
+  return (
+    <span
+      className={cn(
+        "flex size-14 items-center justify-center rounded-full bg-white text-neutral-900 transition-transform",
+        MOTION,
+        "group-hover:-translate-y-1",
+        PREVIEW_SHADOW,
+      )}
+    >
+      <Icon size={26} />
+    </span>
+  );
+}
 
-const cardSurface =
-  "rounded-2xl bg-card ring-1 ring-border shadow-[var(--card-edge-shadow)]";
-
-const features = [
+const FEATURES = [
   {
-    icon: MagicWand01Icon,
+    href: "/features/screenshot-beautifier",
     title: "Screenshot Beautifier",
     description:
-      "Transform plain screenshots into professional visuals. Add backgrounds, shadows, and rounded corners.",
-    href: "/features/screenshot-beautifier",
-    keywords: ["backgrounds", "shadows", "corners", "padding"],
+      "Add backgrounds, shadows, and rounded corners to turn plain screenshots into professional visuals.",
+    icon: MagicWand01Icon,
+    gradient: gradientColors.vibrant_orange_pink,
   },
   {
-    icon: Share08Icon,
+    href: "/features/social-media-graphics",
     title: "Social Media Graphics",
     description:
-      "Create perfectly sized graphics for Twitter, LinkedIn, and Instagram. No design skills needed.",
-    href: "/features/social-media-graphics",
-    keywords: ["Twitter", "LinkedIn", "Instagram", "posts"],
+      "Perfectly sized graphics for Twitter, LinkedIn, and Instagram. No design skills needed.",
+    icon: Share08Icon,
+    gradient: gradientColors.pink_purple_blue,
   },
   {
-    icon: Video01Icon,
+    href: "/features/animation-maker",
     title: "Animation Maker",
     description:
       "Bring screenshots to life with zoom, pan, and fade animations. Export as video or GIF.",
-    href: "/features/animation-maker",
-    keywords: ["zoom", "pan", "slideshow", "video export"],
+    icon: Video01Icon,
+    gradient: gradientColors.cyan_blue_purple,
   },
   {
-    icon: CubeIcon,
+    href: "/features/3d-effects",
     title: "3D Effects",
     description:
-      "Add stunning 3D perspective, rotation, and depth to flat screenshots. Real-time preview.",
-    href: "/features/3d-effects",
-    keywords: ["perspective", "rotation", "depth", "mockups"],
+      "Add 3D perspective, rotation, and depth to flat screenshots with a real-time preview.",
+    icon: CubeIcon,
+    gradient: gradientColors.store_midnight,
   },
   {
-    icon: BrowserIcon,
+    href: "/features/browser-mockups",
     title: "Browser Mockups",
     description:
-      "Add realistic Safari and Chrome browser frames to screenshots. Light and dark modes with custom URL.",
-    href: "/features/browser-mockups",
-    keywords: ["Safari", "Chrome", "browser frame", "URL bar"],
+      "Add realistic Safari and Chrome browser frames to screenshots, in light and dark mode.",
+    icon: BrowserIcon,
+    gradient: gradientColors.store_ocean,
   },
   {
-    icon: SmartPhone01Icon,
+    href: "/mockup-generator",
     title: "Device Mockup Generator",
     description:
       "Put screenshots on iPhone, MacBook, and Apple Watch mockups, including 3D angles and multi-device layouts.",
-    href: "/mockup-generator",
-    keywords: ["iPhone", "MacBook", "Apple Watch", "multi-device"],
+    icon: SmartPhone01Icon,
+    gradient: gradientColors.store_berry,
   },
   {
-    icon: SourceCodeIcon,
+    href: "/features/code-snippets",
     title: "Code Images",
     description:
-      "Turn code into beautiful, shareable images. Syntax themes, gradient backgrounds, line numbers, and a window frame.",
-    href: "/features/code-snippets",
-    keywords: ["syntax highlighting", "gradients", "line numbers", "shareable links"],
+      "Turn code into shareable images with syntax themes, gradient backgrounds, and a window frame.",
+    icon: SourceCodeIcon,
+    gradient: gradientColors.store_graphite,
   },
   {
-    icon: EraserAutoIcon,
+    href: "/remove-background",
     title: "Background Remover",
     description:
-      "Remove image backgrounds with AI that runs on your device. Full-resolution transparent PNG, nothing uploaded.",
-    href: "/remove-background",
-    keywords: ["transparent PNG", "on-device AI", "no upload", "full resolution"],
+      "Remove image backgrounds with on-device AI. Full-resolution transparent PNG, nothing uploaded.",
+    icon: EraserAutoIcon,
+    gradient: gradientColors.green_teal_navy,
   },
 ] as const;
 
 export default function FeaturesPage() {
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    name: "Screenshot Studio Features",
-    description: "Complete list of Screenshot Studio features and tools",
-    itemListElement: features.map((feature, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      name: feature.title,
-      description: feature.description,
-      url: `https://www.screenshot-studio.com${feature.href}`,
-    })),
-  };
+  const jsonLd = buildCollectionJsonLd(
+    "/features",
+    TITLE,
+    DESCRIPTION,
+    FEATURES.map((feature) => ({ name: feature.title, url: feature.href })),
+  );
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <Navigation />
 
-      <Navigation brandName="Screenshot Studio" />
-
-      <main className="flex-1">
-        <section className="px-6 pb-12 pt-32">
-          <div className="mx-auto max-w-4xl text-center">
+      <main className="flex-1 px-6 pb-24 pt-16 sm:pt-20">
+        <div className="mx-auto max-w-5xl">
+          <header className="text-center">
             <h1
-              className="mb-6 text-4xl font-semibold tracking-[-0.03em] text-foreground md:text-6xl"
+              className="text-4xl font-semibold tracking-[-0.035em] text-foreground sm:text-5xl"
               style={{ fontFamily: INTER }}
             >
-              All Features
+              All features
             </h1>
-            <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground md:text-xl">
-              Everything you need to create stunning visuals from screenshots.
-              100% free, no signup required.
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+              Everything you need to turn a screenshot into a finished visual.
+              100% free, no signup, no watermark.
             </p>
-          </div>
-        </section>
+          </header>
 
-        <section className="px-6 pb-16">
-          <div className="mx-auto max-w-6xl">
-            <div className="grid gap-4 md:grid-cols-2">
-              {features.map((feature, index) => (
-                <Link
-                  key={feature.title}
-                  href={feature.href}
-                  className={`group p-8 transition-[box-shadow,ring-color] duration-150 hover:ring-ring/40 ${cardSurface} ${
-                    index === features.length - 1
-                      ? "md:col-span-2 md:max-w-xl md:justify-self-center"
-                      : ""
-                  }`}
-                >
-                  <feature.icon
-                    className="mb-6 size-8 text-foreground"
-                    aria-hidden
-                  />
-                  <h2 className="mb-3 text-2xl font-semibold tracking-tight text-foreground">
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((feature) => (
+              <Link
+                key={feature.href}
+                href={feature.href}
+                className={cn(
+                  CARD_CLASS,
+                  "group flex flex-col overflow-hidden transition-shadow duration-200 hover:ring-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/70",
+                )}
+              >
+                <Well gradient={feature.gradient}>
+                  <IconBadge icon={feature.icon} />
+                </Well>
+                <div className="flex flex-1 flex-col p-5 pt-4">
+                  <h2
+                    className="flex items-center justify-between gap-2 text-lg font-semibold tracking-[-0.02em] text-foreground"
+                    style={{ fontFamily: INTER }}
+                  >
                     {feature.title}
-                  </h2>
-                  <p className="mb-4 text-muted-foreground">{feature.description}</p>
-                  <div className="mb-4 flex flex-wrap gap-2">
-                    {feature.keywords.map((keyword) => (
-                      <span
-                        key={keyword}
-                        className="rounded-md bg-foreground/[0.04] px-2 py-1 text-xs text-muted-foreground ring-1 ring-border"
-                      >
-                        {keyword}
-                      </span>
-                    ))}
-                  </div>
-                  <span className="inline-flex items-center gap-1 text-sm font-medium text-foreground/90 transition-colors group-hover:text-foreground">
-                    Learn more
                     <ArrowRight01Icon
-                      className="size-3.5 transition-transform group-hover:translate-x-0.5"
-                      aria-hidden
+                      size={18}
+                      className="text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground motion-reduce:transition-none"
+                      aria-hidden="true"
                     />
-                  </span>
-                </Link>
-              ))}
-            </div>
+                  </h2>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    {feature.description}
+                  </p>
+                </div>
+              </Link>
+            ))}
           </div>
-        </section>
 
-        <section className="border-t border-border px-6 py-20">
-          <div className="mx-auto max-w-3xl">
-            <h2
-              className="mb-6 text-3xl font-semibold tracking-[-0.03em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Mockups for Every Screen
-            </h2>
-            <div className="space-y-4 text-muted-foreground">
+          <section className="mt-24 border-t border-border pt-16">
+            <SectionTitle>Mockups for every screen</SectionTitle>
+            <div className="mt-4 max-w-3xl space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
                 Screenshot Studio is a free mockup maker that runs entirely in
                 your browser. Drop in a screenshot of an app, website, or UI
-                design and turn it into a polished mockup online in seconds. No
+                design and turn it into a polished mockup in seconds. No
                 account, no watermark, and nothing to install.
               </p>
               <p>
-                Wrap any screen in a Safari or Chrome browser mockup, place it on
-                a gradient or solid background, and add shadows, padding, and
-                rounded corners. Tilt it in 3D for a perspective mockup, or
-                animate it into a short product video for a launch post.
+                Wrap any screen in a Safari or Chrome browser frame, place it
+                on a gradient or solid background, and add shadows, padding,
+                and rounded corners. Tilt it in 3D for a perspective mockup,
+                or animate it into a short product video for a launch post.
               </p>
               <p>
-                It works for UI and UX mockups, app store screenshots, landing
-                page hero images, README previews, and social media graphics. If
-                you have used tools like Shots, Moqups, Previewed, AppShots, or
-                Pika Style, you will feel at home, except everything here is
-                free and open source.
+                If you have used{" "}
+                <Link href="/compare/shots-so" className="text-foreground underline underline-offset-4">
+                  Shots.so
+                </Link>{" "}
+                or{" "}
+                <Link href="/compare/pika-style" className="text-foreground underline underline-offset-4">
+                  Pika Style
+                </Link>
+                , you will feel at home here. Screenshot Studio covers the
+                same backgrounds, browser frames, and animation workflow for
+                free, with no signup and no watermark. See the full{" "}
+                <Link
+                  href="/guides/best-free-shots-so-alternatives"
+                  className="text-foreground underline underline-offset-4"
+                >
+                  Shots.so alternatives guide
+                </Link>{" "}
+                for a feature-by-feature breakdown.
               </p>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section className="border-t border-border px-6 py-20">
-          <div className="mx-auto max-w-4xl text-center">
-            <h2
-              className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Ready to Create?
-            </h2>
-            <p className="mb-8 text-muted-foreground">
-              All features, zero cost. Start creating in seconds.
-            </p>
-            <Link href="/" className={ctaClassName}>
-              Get Started
+          <p className="mt-20 text-center text-sm text-muted-foreground">
+            Ready to start? Open the{" "}
+            <Link href="/editor" className="text-foreground underline underline-offset-4">
+              screenshot editor
+            </Link>{" "}
+            or browse{" "}
+            <Link href="/tools" className="text-foreground underline underline-offset-4">
+              every image tool
             </Link>
-          </div>
-        </section>
+            .
+          </p>
+        </div>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer />
     </div>
   );
 }

@@ -18,8 +18,12 @@ function Slider({
   max = 100,
   label,
   valueDisplay,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
+  "aria-valuetext": ariaValueText,
   ...props
 }: SliderProps) {
+  const labelId = React.useId()
   const _values = React.useMemo(
     () =>
       Array.isArray(value)
@@ -30,26 +34,28 @@ function Slider({
     [value, defaultValue, min, max]
   )
 
-  const displayValue = valueDisplay ?? (Array.isArray(value) ? value[0] : value ?? (Array.isArray(defaultValue) ? defaultValue[0] : defaultValue ?? min))
+  const showMeta = Boolean(label) || valueDisplay !== undefined
+  const displayValue =
+    valueDisplay ??
+    (Array.isArray(value)
+      ? value[0]
+      : (value ?? (Array.isArray(defaultValue) ? defaultValue[0] : (defaultValue ?? min))))
 
   return (
-    <div className={cn(
-      "relative w-full rounded-lg bg-secondary dark:bg-background",
-      className
-    )}>
-      {/* Label and value overlaid inside the slider */}
-      {(label || displayValue !== undefined) && (
-        <div className="absolute inset-0 z-10 flex items-center justify-between px-3 pointer-events-none select-none">
-          {label && (
-            <span className="text-xs text-muted-foreground">
-              {label}
-            </span>
+    <div className={cn("relative w-full", showMeta ? "space-y-2" : null, className)}>
+      {showMeta ? (
+        <div className="flex items-center justify-between gap-3 select-none">
+          {label ? (
+            <span id={labelId} className="text-xs text-muted-foreground">{label}</span>
+          ) : (
+            <span />
           )}
-          <span className="text-xs text-muted-foreground tabular-nums ml-auto">
+          <span className="text-xs text-muted-foreground tabular-nums shrink-0">
             {displayValue}
           </span>
         </div>
-      )}
+      ) : null}
+
       <SliderPrimitive.Root
         data-slot="slider"
         defaultValue={defaultValue}
@@ -57,25 +63,36 @@ function Slider({
         min={min}
         max={max}
         className={cn(
-          "relative flex touch-none select-none items-center cursor-grab w-full h-8",
+          "relative flex h-4 w-full touch-none cursor-grab select-none items-center active:cursor-grabbing max-[768px]:h-11",
           "data-disabled:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col"
         )}
         {...props}
       >
         <SliderPrimitive.Track
           data-slot="slider-track"
-          className="relative h-full w-full grow overflow-hidden rounded-lg"
+          className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-foreground/[0.08]"
         >
           <SliderPrimitive.Range
             data-slot="slider-range"
-            className="absolute h-full bg-border/30 dark:bg-secondary/50 data-[orientation=vertical]:w-full"
+            className="absolute h-full bg-foreground/40 data-[orientation=vertical]:w-full"
           />
         </SliderPrimitive.Track>
         {Array.from({ length: _values.length }, (_, index) => (
           <SliderPrimitive.Thumb
             data-slot="slider-thumb"
             key={index}
-            className="block h-5 w-1 rounded-full bg-muted-foreground/50 dark:bg-muted-foreground/40 focus:outline-none transition-colors hover:bg-muted-foreground disabled:pointer-events-none disabled:opacity-50"
+            className={cn(
+              "relative block size-3.5 shrink-0 rounded-full bg-primary after:absolute after:-inset-[5px] after:content-['']",
+              "border border-foreground/20 shadow-sm",
+              "transition-[box-shadow,transform] duration-150",
+              "hover:scale-110",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "active:scale-95",
+              "disabled:pointer-events-none disabled:opacity-50"
+            )}
+            aria-label={label ? undefined : ariaLabel}
+            aria-labelledby={label ? labelId : ariaLabelledBy}
+            aria-valuetext={ariaValueText ?? (showMeta ? String(displayValue) : undefined)}
           />
         ))}
       </SliderPrimitive.Root>

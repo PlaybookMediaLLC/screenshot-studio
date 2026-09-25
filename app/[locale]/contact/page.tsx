@@ -13,103 +13,145 @@ export const metadata: Metadata = {
   },
 };
 
+const cardLinkClassName =
+  "group rounded-2xl bg-card p-6 ring-1 ring-inset ring-border shadow-[var(--card-highlight-shadow)] transition-colors hover:bg-foreground/[0.04] hover:ring-ring/40";
+
+const iconWrapClassName =
+  "flex size-9 items-center justify-center rounded-xl bg-foreground/[0.06] text-foreground ring-1 ring-inset ring-border";
+
+const linkClassName =
+  "text-foreground underline decoration-foreground/30 underline-offset-4 transition-colors hover:decoration-foreground/60";
+
+const INTER =
+  "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+
+const contacts = [
+  {
+    href: "https://github.com/opennookorg/screenshot-studio/issues",
+    external: true,
+    icon: GithubIcon,
+    title: "Report a Bug",
+    description:
+      "Found something broken? Open an issue on GitHub and we'll look into it.",
+  },
+  {
+    href: "https://github.com/opennookorg/screenshot-studio/issues/new?labels=enhancement",
+    external: true,
+    icon: GithubIcon,
+    title: "Request a Feature",
+    description:
+      "Have an idea to make Screenshot Studio better? We'd love to hear it.",
+  },
+  {
+    href: "https://x.com/screenshotstdio",
+    external: true,
+    icon: NewTwitterIcon,
+    title: "Twitter / X",
+    description:
+      "Follow @screenshotstdio for release notes, tips, and product updates.",
+  },
+  {
+    href: "mailto:kartik.labhshetwar@gmail.com",
+    external: false,
+    icon: Mail01Icon,
+    title: "Email",
+    description:
+      "For anything else, drop us an email and we'll get back to you.",
+  },
+] as const;
+
 export default function ContactPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navigation ctaLabel="Open Editor" ctaHref="/" />
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <Navigation />
 
-      <main className="flex-1 max-w-3xl mx-auto px-6 py-16 sm:py-24">
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+      <main className="mx-auto max-w-3xl flex-1 px-6 pb-16 pt-28 sm:pb-24">
+        <h1
+          className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl"
+          style={{ fontFamily: INTER }}
+        >
           Contact Us
         </h1>
-        <p className="text-muted-foreground text-lg mb-12">
+        <p className="mb-12 text-lg text-muted-foreground">
           Have a question, found a bug, or want to suggest a feature? Here are
           the best ways to reach us.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-16">
-          <Link
-            href="https://github.com/KartikLabhshetwar/stage/issues"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group p-6 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors"
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <GithubIcon className="w-5 h-5" />
+        <div className="mb-16 grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {contacts.map((item) => (
+            <Link
+              key={item.title}
+              href={item.href}
+              {...(item.external
+                ? { target: "_blank", rel: "noopener noreferrer" }
+                : {})}
+              className={cardLinkClassName}
+            >
+              <div className="mb-3 flex items-center gap-3">
+                <div className={iconWrapClassName}>
+                  <item.icon size={20} strokeWidth={1.75} />
+                </div>
+                <h2
+                  className="font-semibold tracking-[-0.02em] text-foreground"
+                  style={{ fontFamily: INTER }}
+                >
+                  {item.title}
+                </h2>
               </div>
-              <h2 className="font-semibold text-foreground">Report a Bug</h2>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Found something broken? Open an issue on GitHub and we&apos;ll
-              look into it.
-            </p>
-          </Link>
-
-          <Link
-            href="https://github.com/KartikLabhshetwar/stage/issues/new?labels=enhancement"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group p-6 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors"
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <GithubIcon className="w-5 h-5" />
-              </div>
-              <h2 className="font-semibold text-foreground">
-                Request a Feature
-              </h2>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Have an idea to make Screenshot Studio better? We&apos;d love to
-              hear it.
-            </p>
-          </Link>
-
-          <Link
-            href="https://x.com/code_kartik"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group p-6 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors"
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <NewTwitterIcon className="w-5 h-5" />
-              </div>
-              <h2 className="font-semibold text-foreground">Twitter / X</h2>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Follow for updates, tips, and behind-the-scenes. DMs are open.
-            </p>
-          </Link>
-
-          <Link
-            href="mailto:kartik.labhshetwar@gmail.com"
-            className="group p-6 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors"
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <Mail01Icon className="w-5 h-5" />
-              </div>
-              <h2 className="font-semibold text-foreground">Email</h2>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              For anything else, drop us an email and we&apos;ll get back to
-              you.
-            </p>
-          </Link>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {item.description}
+              </p>
+            </Link>
+          ))}
         </div>
 
-        <section className="p-6 rounded-xl bg-muted/30 border border-border">
-          <h2 className="text-lg font-semibold mb-2">Contributing</h2>
-          <p className="text-muted-foreground leading-relaxed">
+        <section className="mb-8 rounded-2xl bg-card p-6 ring-1 ring-inset ring-border shadow-[var(--card-highlight-shadow)]">
+          <h2
+            className="mb-2 text-lg font-semibold tracking-[-0.02em] text-foreground"
+            style={{ fontFamily: INTER }}
+          >
+            Before You Reach Out
+          </h2>
+          <p className="mb-3 leading-relaxed text-muted-foreground">
+            Many questions are already answered on the{" "}
+            <Link href="/features" className={linkClassName}>
+              features
+            </Link>{" "}
+            page, in the{" "}
+            <Link href="/docs" className={linkClassName}>
+              API docs
+            </Link>
+            , or in the{" "}
+            <Link href="/changelog" className={linkClassName}>
+              changelog
+            </Link>
+            . Screenshot Studio is free, needs no account, and processes your
+            images in the browser, so there is nothing to cancel and no
+            subscription to manage.
+          </p>
+          <p className="leading-relaxed text-muted-foreground">
+            When reporting a bug, include your browser and operating system,
+            the steps you took, and a screenshot or exported file if you can.
+            GitHub issues are usually answered within a few days; email may
+            take a little longer.
+          </p>
+        </section>
+
+        <section className="rounded-2xl bg-card p-6 ring-1 ring-inset ring-border shadow-[var(--card-highlight-shadow)]">
+          <h2
+            className="mb-2 text-lg font-semibold tracking-[-0.02em] text-foreground"
+            style={{ fontFamily: INTER }}
+          >
+            Contributing
+          </h2>
+          <p className="leading-relaxed text-muted-foreground">
             Screenshot Studio is open source. If you&apos;re a developer and
             want to contribute, check out the{" "}
             <Link
-              href="https://github.com/KartikLabhshetwar/stage"
+              href="https://github.com/opennookorg/screenshot-studio"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline"
+              className={linkClassName}
             >
               GitHub repository
             </Link>
@@ -119,7 +161,7 @@ export default function ContactPage() {
         </section>
       </main>
 
-      <Footer />
+      <Footer brandName="Screenshot Studio" />
     </div>
   );
 }

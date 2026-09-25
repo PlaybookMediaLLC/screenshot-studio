@@ -49,7 +49,6 @@ export function OptimizedImage({
         className={className}
         priority={priority}
         sizes={sizes}
-        unoptimized
         {...props}
       />
     );
@@ -64,7 +63,6 @@ export function OptimizedImage({
       className={className}
       priority={priority}
       sizes={sizes}
-      unoptimized
       {...props}
     />
   );

@@ -1,11 +1,7 @@
-import { useQuery, useQueries } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 
-/**
- * Hook to cache images in memory using TanStack Query.
- * Images are fetched once and stored as blob URLs for instant access.
- */
-export function useCachedImage(imageUrl: string | null | undefined) {
-  return useQuery({
+function imageQueryOptions(imageUrl: string | null | undefined) {
+  return {
     queryKey: ['image', imageUrl],
     queryFn: async () => {
       if (!imageUrl) return null;
@@ -19,10 +15,17 @@ export function useCachedImage(imageUrl: string | null | undefined) {
       return URL.createObjectURL(blob);
     },
     enabled: !!imageUrl,
-    // Images are static - cache for a long time
     staleTime: Infinity,
-    gcTime: 24 * 60 * 60 * 1000, // 24 hours
-  });
+    gcTime: 24 * 60 * 60 * 1000,
+  };
+}
+
+/**
+ * Hook to cache images in memory using TanStack Query.
+ * Images are fetched once and stored as blob URLs for instant access.
+ */
+export function useCachedImage(imageUrl: string | null | undefined) {
+  return useQuery(imageQueryOptions(imageUrl));
 }
 
 /**
@@ -31,17 +34,6 @@ export function useCachedImage(imageUrl: string | null | undefined) {
  */
 export function usePrefetchImages(imageUrls: string[]) {
   useQueries({
-    queries: imageUrls.map((url) => ({
-      queryKey: ['image', url],
-      queryFn: async () => {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
-        const blob = await response.blob();
-        return URL.createObjectURL(blob);
-      },
-      enabled: !!url,
-      staleTime: Infinity,
-      gcTime: 24 * 60 * 60 * 1000,
-    })),
+    queries: imageUrls.map((imageUrl) => imageQueryOptions(imageUrl)),
   });
 }

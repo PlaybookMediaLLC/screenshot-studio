@@ -40,3 +40,11 @@ test("overlay images keep their aspect ratio inside the square overlay box", () 
   assert.deepEqual(fitOverlayImage(500, 1000), { width: 50, height: 100 });
   assert.deepEqual(fitOverlayImage(0, 0), { width: 100, height: 100 });
 });
+
+test("shared shadow keeps offsets, spread and explicit opacity for existing main-image settings", () => {
+  assert.equal(buildDropShadowFilter({
+    blur: 12, spread: 4, offsetX: -8, offsetY: 20,
+    color: "rgba(16, 32, 48, 0.6)", opacity: 0.5,
+  }), "drop-shadow(-8px 20px 16px rgba(16, 32, 48, 0.5)) drop-shadow(0px 0px 8px rgba(16, 32, 48, 0.1))");
+  assert.equal(buildOverlayShadowFilter(undefined), undefined);
+});

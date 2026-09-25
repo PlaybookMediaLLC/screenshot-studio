@@ -91,7 +91,7 @@ export const predefinedPresets = [
       store.setImageBorder({ enabled: true, type: "glass-light", width: 1, padding: 1, opacity: 0.2 });
       store.setImageShadow({ enabled: true, blur: 30, offsetX: 0, offsetY: 12, spread: 5, color: "rgba(0,0,0,0.5)", opacity: 0.4 });
       store.setBorderRadius(18);
-      store.setBackgroundConfig({ type: "gradient", value: "vibrant_fuchsia_cyan", opacity: 1 });
+      store.setBackgroundConfig({ type: "gradient", value: "linear-gradient(135deg, #d946ef, #06b6d4)", opacity: 1 });
     },
   },
 ];

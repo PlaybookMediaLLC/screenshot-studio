@@ -42,7 +42,7 @@ export const themes: DesignTheme[] = [
       store.setImageBorder({ enabled: true, type: "border-light", width: 3, color: "#c084fc", padding: 2 });
       store.setImageShadow({ enabled: true, blur: 40, offsetX: 0, offsetY: 8, spread: 10, color: "rgba(192,132,252,0.4)", opacity: 0.8 });
       store.setBorderRadius(12);
-      store.setBackgroundConfig({ type: "gradient", value: "vibrant_fuchsia_cyan", opacity: 1 });
+      store.setBackgroundConfig({ type: "gradient", value: "linear-gradient(135deg, #d946ef, #06b6d4)", opacity: 1 });
     },
   },
   {

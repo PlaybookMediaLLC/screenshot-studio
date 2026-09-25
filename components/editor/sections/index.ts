@@ -15,3 +15,8 @@ export { PositionSection } from './PositionSection';
 export { BrowserMockupSection } from './BrowserMockupSection';
 export { ImagePositionSection } from './ImagePositionSection';
 export { DeviceFramesSection } from './DeviceFramesSection';
+export { ScreenshotDesignSection } from "./ScreenshotDesignSection";
+export { ImageEnhanceSection } from "./ImageEnhanceSection";
+export { QuickTemplatesSection } from "./QuickTemplatesSection";
+export { ExportPresetsSection } from "./ExportPresetsSection";
+export { BackgroundEffectsSection } from "./BackgroundEffectsSection";

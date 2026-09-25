@@ -31,9 +31,11 @@ import {
   GridIcon,
   RulerIcon,
   FileZipIcon,
+  KeyboardIcon,
 } from "hugeicons-react";
 import { useEditorStore, useImageStore } from "@/lib/store";
 import { useExport } from "@/hooks/useExport";
+import { KeyboardShortcutsDialog } from "@/components/canvas/dialogs/KeyboardShortcutsDialog";
 import { useBatchExport } from "@/hooks/useBatchExport";
 import { aspectRatios } from "@/lib/constants/aspect-ratios";
 import { AspectRatioPicker } from "@/components/aspect-ratio/aspect-ratio-picker";
@@ -61,6 +63,7 @@ import {
 
 export function EditorHeader() {
   const isMobile = useIsMobile();
+  const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const { screenshot } = useEditorStore();
   const {
     selectedAspectRatio,
@@ -533,6 +536,9 @@ export function EditorHeader() {
         </div>
 
         <div className="flex items-center gap-1 justify-self-end">
+          <Button variant="ghost" size="icon" aria-label="Keyboard shortcuts" onClick={() => setShortcutsOpen(true)}>
+            <KeyboardIcon size={16} />
+          </Button>
           {!isMobile ? <GitHubStarButton compact /> : null}
           <a
             href="https://x.com/code_kartik"
@@ -544,6 +550,8 @@ export function EditorHeader() {
           </a>
         </div>
       </header>
+
+      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 
       <CopyProgressDialog open={isCopying} progress={copyProgress} />
 

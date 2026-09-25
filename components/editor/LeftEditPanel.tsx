@@ -21,6 +21,11 @@ import {
   SettingsSection,
   BrowserMockupSection,
   DeviceFramesSection,
+  ScreenshotDesignSection,
+  ImageEnhanceSection,
+  QuickTemplatesSection,
+  ExportPresetsSection,
+  BackgroundEffectsSection,
 } from "./sections";
 import { useImageStore } from "@/lib/store";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -118,8 +123,12 @@ export function LeftEditPanel() {
                 <BrowserMockupSection />
               ) : (
                 <>
+                  <QuickTemplatesSection />
+                  <ExportPresetsSection />
+                  <ScreenshotDesignSection />
                   <StyleSection />
                   <BorderSection />
+                  <ImageEnhanceSection />
                 </>
               )}
               {editorMode !== "device" ? (
@@ -136,6 +145,7 @@ export function LeftEditPanel() {
 
           {contentKey === "background" && (
             <div className="space-y-1">
+              <BackgroundEffectsSection />
               <BackgroundSection />
             </div>
           )}

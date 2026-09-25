@@ -27,6 +27,11 @@ import {
   DepthSection,
   ImagePositionSection,
   DeviceFramesSection,
+  ScreenshotDesignSection,
+  ImageEnhanceSection,
+  QuickTemplatesSection,
+  ExportPresetsSection,
+  BackgroundEffectsSection,
 } from './sections';
 import { useImageStore } from '@/lib/store';
 import { AnimationPresetGallery } from '@/components/timeline/AnimationPresetGallery';
@@ -143,8 +148,12 @@ export function UnifiedRightPanel({
                     <BrowserMockupSection />
                   ) : (
                     <>
+                      <QuickTemplatesSection />
+                      <ExportPresetsSection />
+                      <ScreenshotDesignSection />
                       <StyleSection />
                       <BorderSection />
+                      <ImageEnhanceSection />
                     </>
                   )}
                   <ImagePositionSection />
@@ -161,6 +170,7 @@ export function UnifiedRightPanel({
 
           {contentKey === 'background' && (
             <div className="space-y-2">
+              <BackgroundEffectsSection />
               <BackgroundSection />
             </div>
           )}

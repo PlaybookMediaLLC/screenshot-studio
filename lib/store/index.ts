@@ -2,6 +2,7 @@
 
 import React from "react";
 import { create } from "zustand";
+import { shallow } from "zustand/shallow";
 import { temporal } from "zundo";
 import { exportImageWithGradient } from "./export-utils";
 import { GradientKey } from "@/lib/constants/gradient-colors";
@@ -83,6 +84,12 @@ export interface TextOverlay {
   textShadow: TextShadow;
 }
 
+export interface ImageOverlayTilt {
+  perspective: number;
+  rotateX: number;
+  rotateY: number;
+}
+
 export interface ImageOverlay {
   id: string;
   src: string;
@@ -96,6 +103,9 @@ export interface ImageOverlay {
   isVisible: boolean;
   isCustom?: boolean; // Whether it's a custom uploaded overlay
   layer?: 'front' | 'back'; // Render in front of or behind the main image
+  tilt?: ImageOverlayTilt;
+  shadow?: ImageShadow;
+  radius?: number;
 }
 
 export interface BlurRegion {
@@ -744,6 +754,12 @@ export interface ImageState {
   toggleRulers: () => void;
   toggleGrid: () => void;
   setRulerInterval: (interval: number) => void;
+
+  // Layer Selection State
+  selectedOverlayId: string | null;
+  isMainImageSelected: boolean;
+  setSelectedOverlayId: (id: string | null) => void;
+  setIsMainImageSelected: (selected: boolean) => void;
 }
 
 export const useImageStore = create<ImageState>()(
@@ -2196,5 +2212,32 @@ export const useImageStore = create<ImageState>()(
     toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),
     setRulerInterval: (interval) =>
       set({ rulerInterval: Math.max(1, Math.round(Number.isFinite(interval) ? interval : 100)) }),
-  }))
+
+    selectedOverlayId: null,
+    isMainImageSelected: false,
+    setSelectedOverlayId: (id: string | null) =>
+      set((state) => ({
+        selectedOverlayId: id,
+        isMainImageSelected: id ? false : state.isMainImageSelected,
+      })),
+    setIsMainImageSelected: (selected: boolean) =>
+      set((state) => ({
+        isMainImageSelected: selected,
+        selectedOverlayId: selected ? null : state.selectedOverlayId,
+      })),
+  }), {
+    partialize: ({ selectedOverlayId: _overlay, isMainImageSelected: _main, ...state }) => state,
+    equality: shallow,
+  })
 );
+
+// Selection is transient: deleting, resetting, restoring, or undoing layers must
+// never leave controls or keyboard shortcuts targeting a removed image.
+useImageStore.subscribe((state) => {
+  if (state.selectedOverlayId && !state.imageOverlays.some((overlay) => overlay.id === state.selectedOverlayId)) {
+    state.setSelectedOverlayId(null);
+  }
+  if (state.isMainImageSelected && !state.uploadedImageUrl) {
+    state.setIsMainImageSelected(false);
+  }
+});

@@ -7,6 +7,7 @@ import { useResponsiveCanvasDimensions } from "@/hooks/useAspectRatioDimensions"
 import { generateNoiseTexture } from "@/lib/export/export-utils";
 import { MockupSceneRenderer } from "@/components/mockups/MockupRenderer";
 import { useDeviceUIStore } from "@/lib/store/device-ui";
+import { shouldIgnoreEditorShortcut } from "@/lib/editor-shortcuts";
 import { calculateCanvasDimensions } from "./utils/canvas-dimensions";
 import { CanvasStageShell } from "./CanvasStageShell";
 import { Perspective3DOverlay } from "./overlays/Perspective3DOverlay";
@@ -263,18 +264,13 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setSelectedDeviceId(null);
   }, [selectedOverlayId, isMainImageSelected, setSelectedAnnotationId, setSelectedDeviceId]);
 
-  // Keyboard shortcuts for delete and undo/redo
+  // Selection shortcuts; history lives in the always-mounted editor header.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input, textarea, or contenteditable
-      const target = e.target as HTMLElement;
-      const isTyping =
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable;
+      if (shouldIgnoreEditorShortcut(e)) return;
 
       // Delete selected overlay or main image (only when not typing)
-      if ((e.key === "Delete" || e.key === "Backspace") && !isTyping) {
+      if (e.key === "Delete" || e.key === "Backspace") {
         if (selectedDeviceId && editorMode === "device") {
           e.preventDefault();
           removeMockup(selectedDeviceId);
@@ -283,6 +279,10 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           e.preventDefault();
           removeImageOverlay(selectedOverlayId);
           setSelectedOverlayId(null);
+        } else if (selectedTextId) {
+          e.preventDefault();
+          useImageStore.getState().removeTextOverlay(selectedTextId);
+          setSelectedTextId(null);
         } else if (isMainImageSelected) {
           e.preventDefault();
           useImageStore.getState().clearImage();
@@ -290,21 +290,21 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
         }
       }
 
-      // Undo/Redo (only when not typing)
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !isTyping) {
+      if (e.key === "Escape") {
         e.preventDefault();
-        const { undo, redo } = useImageStore.temporal.getState();
-        if (e.shiftKey) {
-          redo();
-        } else {
-          undo();
-        }
+        setSelectedOverlayId(null);
+        setIsMainImageSelected(false);
+        setSelectedTextId(null);
+        setSelectedBlurId(null);
+        setSelectedAnnotationId(null);
+        setSelectedDeviceId(null);
+        setEditingScreenDeviceId(null);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [editorMode, isMainImageSelected, removeImageOverlay, removeMockup, selectedDeviceId, selectedOverlayId, setSelectedDeviceId, setSelectedOverlayId, setIsMainImageSelected]);
+  }, [editorMode, isMainImageSelected, removeImageOverlay, removeMockup, selectedDeviceId, selectedOverlayId, selectedTextId, setSelectedDeviceId, setSelectedOverlayId, setIsMainImageSelected, setSelectedAnnotationId, setEditingScreenDeviceId]);
 
   // Get selected overlay for toolbar positioning
   const selectedOverlay = selectedOverlayId
@@ -462,6 +462,12 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   return (
     <div
       ref={containerRef}
+      tabIndex={-1}
+      onPointerDownCapture={(event) => {
+        // Canvas objects prevent pointer defaults while dragging; move focus
+        // out of a previously edited panel field before handling shortcuts.
+        if (!shouldIgnoreEditorShortcut(event)) event.currentTarget.focus({ preventScroll: true });
+      }}
       className="relative h-full w-full"
       style={{
         lineHeight: 0,

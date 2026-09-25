@@ -884,12 +884,6 @@ export const useImageStore = create<ImageState>()(
     },
 
     setImage: (file: File) => {
-      const { uploadedImageUrl: oldUrl } = get();
-      // Revoke old image URL to prevent memory leaks
-      if (oldUrl) {
-        URL.revokeObjectURL(oldUrl);
-      }
-
       // Track image upload
       trackImageUpload('file', file.size);
 
@@ -972,24 +966,8 @@ export const useImageStore = create<ImageState>()(
     },
 
     clearImage: () => {
-      const { uploadedImageUrl, slides, imageOverlays } = get();
-
-      // Revoke main image URL
-      if (uploadedImageUrl) {
-        URL.revokeObjectURL(uploadedImageUrl);
-      }
-      // Revoke all slide URLs to prevent memory leaks
-      slides.forEach((slide) => {
-        if (slide.src) {
-          URL.revokeObjectURL(slide.src);
-        }
-      });
-      // Revoke custom overlay URLs
-      imageOverlays.forEach((overlay) => {
-        if (overlay.isCustom && overlay.src) {
-          URL.revokeObjectURL(overlay.src);
-        }
-      });
+      // ponytail: keep blob URLs for session-long undo; reclaim on history
+      // eviction if history becomes bounded. The browser frees them on unload.
       // Clear everything and reset ALL effects to defaults
       set({
         uploadedImageUrl: null,
@@ -1788,9 +1766,6 @@ export const useImageStore = create<ImageState>()(
 
     removeSlide: (id) => {
       const { slides, activeSlideId } = get();
-      const slide = slides.find((s) => s.id === id);
-      if (slide) URL.revokeObjectURL(slide.src);
-
       const remaining = slides.filter((s) => s.id !== id);
       const nextActive =
         activeSlideId === id ? remaining[0]?.id ?? null : activeSlideId;
@@ -2232,7 +2207,8 @@ export const useImageStore = create<ImageState>()(
         selectedOverlayId: selected ? null : state.selectedOverlayId,
       })),
   }), {
-    partialize: ({ selectedOverlayId: _overlay, isMainImageSelected: _main, ...state }) => state,
+    // Layout measurements change on mount/resize and must not erase redo history.
+    partialize: ({ selectedOverlayId: _overlay, isMainImageSelected: _main, canvasDimensions: _dimensions, ...state }) => state,
     equality: shallow,
   })
 );

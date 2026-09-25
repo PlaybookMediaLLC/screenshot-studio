@@ -188,34 +188,6 @@ export function CleanUploadState() {
     }
   }, []);
 
-  const handlePaste = React.useCallback(
-    (e: React.ClipboardEvent | ClipboardEvent) => {
-      const clipboardData = 'clipboardData' in e ? e.clipboardData : null;
-      const items = clipboardData?.items;
-      if (!items) return;
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        if (item.type.startsWith('image/')) {
-          e.preventDefault();
-          const file = item.getAsFile();
-          if (file) {
-            addImages([file]);
-            handleFile(file);
-          }
-          break;
-        }
-      }
-    },
-    [addImages, handleFile]
-  );
-
-  // Listen on both document and the container for paste events
-  React.useEffect(() => {
-    const handler = (e: ClipboardEvent) => handlePaste(e);
-    document.addEventListener('paste', handler);
-    return () => document.removeEventListener('paste', handler);
-  }, [handlePaste]);
-
   const handleCaptureScreenshot = async () => {
     if (!screenshotUrl.trim()) {
       setError('Please enter a URL');
@@ -264,7 +236,6 @@ export function CleanUploadState() {
       ref={containerRef}
       {...getRootProps()}
       tabIndex={0}
-      onPaste={handlePaste}
       className="relative w-full h-full flex items-center justify-center outline-none overflow-hidden"
     >
       <div

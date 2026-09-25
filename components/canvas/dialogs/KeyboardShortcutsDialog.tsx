@@ -18,10 +18,12 @@ const shortcutGroups: ShortcutGroup[] = [
   {
     title: "Canvas (when not editing text)",
     shortcuts: [
+      { keys: ["⌘/Ctrl", "V"], description: "Paste image" },
       { keys: ["⌘/Ctrl", "Z"], description: "Undo" },
       { keys: ["⌘/Ctrl", "Shift", "Z"], description: "Redo" },
+      { keys: ["⌘/Ctrl", "Y"], description: "Redo (alternative)" },
       { keys: ["Delete / Backspace"], description: "Delete selected item" },
-      { keys: ["Esc"], description: "Close dialog / Deselect annotation" },
+      { keys: ["Esc"], description: "Close dialog / Deselect item" },
     ],
   },
 ];

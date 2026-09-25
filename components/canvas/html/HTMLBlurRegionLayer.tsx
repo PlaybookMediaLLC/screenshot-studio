@@ -1,5 +1,7 @@
 'use client';
 
+import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts';
+
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type { BlurRegion } from '@/lib/store';
 
@@ -147,8 +149,7 @@ function DraggableBlurRegion({
   useEffect(() => {
     if (!isSelected) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      if (shouldIgnoreEditorShortcut(e)) return;
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         onRemove();

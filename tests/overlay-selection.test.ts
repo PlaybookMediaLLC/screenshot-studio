@@ -4,6 +4,32 @@ import { useImageStore } from "../lib/store";
 
 const initialState = useImageStore.getInitialState();
 
+test("undo keeps image URLs readable after replacement, removal, and clearing", async () => {
+  const history = useImageStore.temporal.getState();
+  useImageStore.setState(initialState, true);
+  history.clear();
+  const store = useImageStore.getState();
+  const file = new File(['image bytes'], 'image.png', { type: 'image/png' });
+  store.setImage(file);
+  const original = useImageStore.getState().uploadedImageUrl!;
+  store.setImage(file);
+  history.undo();
+  assert.equal(await (await fetch(original)).text(), 'image bytes');
+  store.addImages([file]);
+  const slide = useImageStore.getState().slides[0];
+  store.removeSlide(slide.id);
+  history.undo();
+  assert.equal(await (await fetch(slide.src)).text(), 'image bytes');
+  store.clearImage();
+  history.undo();
+  store.setCanvasDimensions({ canvasW: 800, canvasH: 600, framedW: 500, framedH: 400 });
+  assert.equal(useImageStore.temporal.getState().futureStates.length, 1,
+    'remeasuring a restored canvas must not erase redo');
+  assert.equal(await (await fetch(useImageStore.getState().uploadedImageUrl!)).text(), 'image bytes');
+  useImageStore.setState(initialState, true);
+  history.clear();
+});
+
 test("overlay selection stays outside undo history and cannot target deleted images", () => {
   useImageStore.setState(initialState, true);
   const store = useImageStore.getState();

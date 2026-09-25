@@ -3,9 +3,12 @@
 import * as React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'sonner';
+import { locales } from '@/i18n/routing';
 import { useEditorStore, useImageStore } from '@/lib/store';
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from '@/lib/constants';
 import { isLocalDropTarget } from '@/lib/drop-routing';
+import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts';
 
 interface GlobalDropZoneProps {
   children: React.ReactNode;
@@ -22,7 +25,9 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
   const { setScreenshot } = useEditorStore();
   const { addImages, addImageOverlay } = useImageStore();
 
-  const isEditorPage = pathname === '/';
+  const locale = locales.find((locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`));
+  const editorPath = `${locale ? `/${locale}` : ''}/editor`;
+  const isEditorPage = pathname === editorPath;
 
   const validateFile = React.useCallback((file: File): string | null => {
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
@@ -42,6 +47,7 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
       const validationError = validateFile(imageFiles[0]);
       if (validationError) {
         setError(validationError);
+        toast.error(validationError);
         setTimeout(() => setError(null), 3000);
         return;
       }
@@ -75,7 +81,7 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
           setScreenshot({ src: imageUrl });
 
           if (!isEditorPage) {
-            router.push('/');
+            router.push(editorPath);
           }
         }
 
@@ -83,7 +89,7 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
         setIsDraggingOver(false);
       }, 300);
     },
-    [validateFile, addImages, addImageOverlay, setScreenshot, isEditorPage, router]
+    [validateFile, addImages, addImageOverlay, setScreenshot, isEditorPage, editorPath, router]
   );
 
   // Global drag events
@@ -149,11 +155,11 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
     };
   }, [handleFiles]);
 
-  // Global paste handler (only on non-editor pages; editor has its own)
+  // Handle image pastes before and after the editor's upload state unmounts.
   React.useEffect(() => {
-    if (isEditorPage) return;
-
     const handlePaste = (e: ClipboardEvent) => {
+      if (shouldIgnoreEditorShortcut(e)) return;
+
       const items = e.clipboardData?.items;
       if (!items) return;
       for (let i = 0; i < items.length; i++) {
@@ -166,9 +172,10 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
       }
     };
 
-    document.addEventListener('paste', handlePaste);
-    return () => document.removeEventListener('paste', handlePaste);
-  }, [isEditorPage, handleFiles]);
+    // Let local paste handlers (for example device screens) consume it first.
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [handleFiles]);
 
   return (
     <>

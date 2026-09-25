@@ -35,6 +35,7 @@ import {
 } from "hugeicons-react";
 import { useEditorStore, useImageStore } from "@/lib/store";
 import { useExport } from "@/hooks/useExport";
+import { shouldIgnoreEditorShortcut } from "@/lib/editor-shortcuts";
 import { KeyboardShortcutsDialog } from "@/components/canvas/dialogs/KeyboardShortcutsDialog";
 import { useBatchExport } from "@/hooks/useBatchExport";
 import { aspectRatios } from "@/lib/constants/aspect-ratios";
@@ -126,6 +127,20 @@ export function EditorHeader() {
     const { redo, futureStates } = useImageStore.temporal.getState();
     if (futureStates.length > 0) redo();
   }, []);
+
+  // Keep history shortcuts mounted even when undo/delete empties the canvas.
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (shouldIgnoreEditorShortcut(event) || event.altKey || !(event.metaKey || event.ctrlKey)) return;
+      const key = event.key.toLowerCase();
+      if (key !== "z" && key !== "y") return;
+      event.preventDefault();
+      if (key === "y" || event.shiftKey) handleRedo();
+      else handleUndo();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleUndo, handleRedo]);
 
   const showVideoExport =
     slides.length > 0 ||

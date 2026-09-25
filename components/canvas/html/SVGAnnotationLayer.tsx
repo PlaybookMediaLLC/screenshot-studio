@@ -1,5 +1,7 @@
 'use client';
 
+import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts';
+
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type { AnnotationShape, AnnotationToolType } from '@/lib/store';
 
@@ -634,8 +636,7 @@ export function SVGAnnotationLayer({
   // --- Keyboard ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      if (shouldIgnoreEditorShortcut(e)) return;
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
         e.preventDefault();
         removeAnnotation(selectedId);

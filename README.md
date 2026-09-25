@@ -1,5 +1,7 @@
 # Screenshot Studio
 
+<a href="https://vercel.com/oss"><img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" /></a>
+
 A free, open-source editor for screenshots, mockups, and social graphics. No signup or watermarks.
 
 [Open the editor](https://www.screenshot-studio.com/editor) · [Image tools](https://www.screenshot-studio.com/tools) · [Code to image](https://www.screenshot-studio.com/code) · [App Store screenshots](https://www.screenshot-studio.com/store-screenshots)

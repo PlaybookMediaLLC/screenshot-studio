@@ -426,4 +426,3 @@ export function StyleTabs() {
     </div>
   );
 }
-

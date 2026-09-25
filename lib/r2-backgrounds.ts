@@ -11,6 +11,26 @@ export interface BackgroundCategory {
   [category: string]: string[];
 }
 
+export const BACKGROUND_CATEGORY_ORDER = [
+  'assets',
+  'mac',
+  'radiant',
+  'mesh',
+  'raycast',
+  'paper',
+  'pattern',
+] as const;
+
+export const BACKGROUND_CATEGORY_LABELS: Record<string, string> = {
+  assets: 'Abstract',
+  mac: 'macOS',
+  radiant: 'Radiant',
+  mesh: 'Mesh',
+  raycast: 'Raycast',
+  paper: 'Paper',
+  pattern: 'Pattern',
+};
+
 // Background image paths in R2 (with actual file extensions)
 export const backgroundCategories: BackgroundCategory = {
   "assets": [

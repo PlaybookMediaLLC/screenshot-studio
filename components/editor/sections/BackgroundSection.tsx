@@ -6,6 +6,8 @@ import { useDropzone } from 'react-dropzone';
 import { useResponsiveCanvasDimensions } from '@/hooks/useAspectRatioDimensions';
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from '@/lib/constants';
 import {
+  BACKGROUND_CATEGORY_LABELS,
+  BACKGROUND_CATEGORY_ORDER,
   backgroundCategories,
   getBackgroundThumbnailUrl,
 } from '@/lib/r2-backgrounds';
@@ -24,17 +26,89 @@ const OVERLAY_SHADOW_IDS = [
 ];
 const OVERLAY_SHADOW_URLS = OVERLAY_SHADOW_IDS.map((id) => `/overlay-shadow/${id}.webp`);
 
-// Category display names (ordered)
-const CATEGORY_ORDER = ['assets', 'mac', 'radiant', 'mesh', 'raycast', 'paper', 'pattern'] as const;
-const CATEGORY_LABELS: Record<string, string> = {
-  assets: 'Abstract',
-  mac: 'macOS',
-  radiant: 'Radiant',
-  mesh: 'Mesh',
-  raycast: 'Raycast',
-  paper: 'Paper',
-  pattern: 'Pattern',
+const normalizeHexColor = (value: string): string | null => {
+  const trimmed = value.trim();
+  const match = trimmed.match(/^#?([\da-f]{3}|[\da-f]{6})$/i);
+  if (!match) return null;
+  const digits = match[1];
+  return `#${digits.length === 3
+    ? digits.split('').map((character) => character.repeat(2)).join('')
+    : digits}`.toUpperCase();
 };
+
+const rgbToHex = (red: string, green: string, blue: string): string =>
+  `#${[red, green, blue]
+    .map((channel) => Math.max(0, Math.min(255, Number(channel))).toString(16).padStart(2, '0'))
+    .join('')}`.toUpperCase();
+
+const parseLinearGradient = (gradient: string): { from: string; to: string; angle: number } | null => {
+  if (!gradient.startsWith('linear-gradient(')) return null;
+
+  const hexColors = gradient.match(/#[\da-f]{6}\b/gi)?.map((color) => color.toUpperCase()) ?? [];
+  const rgbColors = Array.from(
+    gradient.matchAll(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/gi),
+    (match) => rgbToHex(match[1], match[2], match[3]),
+  );
+  const colors = hexColors.length >= 2 ? hexColors : rgbColors;
+  if (colors.length < 2) return null;
+
+  const angle = Number(gradient.match(/linear-gradient\(\s*(-?[\d.]+)deg/i)?.[1] ?? 135);
+  return { from: colors[0], to: colors[colors.length - 1], angle };
+};
+
+function HexColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [draft, setDraft] = React.useState(value);
+
+  React.useEffect(() => {
+    if (document.activeElement !== inputRef.current) setDraft(value);
+  }, [value]);
+
+  const commit = () => {
+    const normalized = normalizeHexColor(draft);
+    if (normalized) onChange(normalized);
+    else setDraft(value);
+  };
+
+  return (
+    <label className="block min-w-0 space-y-1.5 text-[10px] text-muted-foreground">
+      <span>{label}</span>
+      <span className="flex h-8 items-center gap-1.5 rounded-md border border-foreground/10 bg-foreground/[0.035] px-1.5 focus-within:border-foreground/25 focus-within:ring-1 focus-within:ring-foreground/10">
+        <input
+          aria-label={`${label} gradient color`}
+          type="color"
+          value={value}
+          onChange={(event) => onChange(event.target.value.toUpperCase())}
+          className="size-5 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0"
+        />
+        <input
+          ref={inputRef}
+          aria-label={`${label} gradient hex code`}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.currentTarget.blur();
+            if (event.key === 'Escape') {
+              setDraft(value);
+              event.currentTarget.blur();
+            }
+          }}
+          spellCheck={false}
+          className="min-w-0 flex-1 bg-transparent font-mono text-[10px] uppercase text-foreground outline-none"
+        />
+      </span>
+    </label>
+  );
+}
 
 export function BackgroundSection() {
   const {
@@ -49,6 +123,29 @@ export function BackgroundSection() {
   const responsiveDimensions = useResponsiveCanvasDimensions();
   const [bgUploadError, setBgUploadError] = React.useState<string | null>(null);
   const [customColor, setCustomColor] = React.useState('#7dd4ad');
+  const [customGradient, setCustomGradient] = React.useState({
+    from: '#090A0C',
+    to: '#F43F5E',
+    angle: 145,
+  });
+
+  React.useEffect(() => {
+    if (backgroundConfig.type !== 'gradient') return;
+    const value = backgroundConfig.value;
+    const gradient = typeof value === 'string' && value.startsWith('linear-gradient(')
+      ? value
+      : gradientColors[value as GradientKey];
+    if (!gradient) return;
+    const parsed = parseLinearGradient(gradient);
+    if (parsed) setCustomGradient(parsed);
+  }, [backgroundConfig.type, backgroundConfig.value]);
+
+  const updateCustomGradient = (updates: Partial<typeof customGradient>) => {
+    const next = { ...customGradient, ...updates };
+    setCustomGradient(next);
+    setBackgroundType('gradient');
+    setBackgroundValue(`linear-gradient(${next.angle}deg, ${next.from}, ${next.to})`);
+  };
 
   // Track which custom bg option is active
   const customBgType = React.useMemo(() => {
@@ -158,7 +255,7 @@ export function BackgroundSection() {
     setBackgroundValue(`magic:${randomKey}`);
   };
 
-  const availableCategories = CATEGORY_ORDER.filter(
+  const availableCategories = BACKGROUND_CATEGORY_ORDER.filter(
     (cat) => backgroundCategories[cat]?.length > 0
   );
 
@@ -289,7 +386,7 @@ export function BackgroundSection() {
       {availableCategories.map((category) => (
         <SectionWrapper
           key={category}
-          title={CATEGORY_LABELS[category] || category}
+          title={BACKGROUND_CATEGORY_LABELS[category] || category}
           defaultOpen={true}
         >
           <div className="grid grid-cols-4 gap-2 p-1">
@@ -363,10 +460,22 @@ export function BackgroundSection() {
       </SectionWrapper>
 
       <SectionWrapper title="Gradients" defaultOpen={true}>
+        <div className="mb-3 grid grid-cols-2 gap-2 px-1">
+          <HexColorField
+            label="From"
+            value={customGradient.from}
+            onChange={(from) => updateCustomGradient({ from })}
+          />
+          <HexColorField
+            label="To"
+            value={customGradient.to}
+            onChange={(to) => updateCustomGradient({ to })}
+          />
+        </div>
         <div className="overflow-x-auto scrollbar-hide">
           <div
             className="grid grid-flow-col auto-cols-min gap-2 w-max"
-            style={{ gridTemplateRows: 'repeat(2, 1fr)', gridAutoFlow: 'column' }}
+            style={{ gridTemplateRows: 'repeat(4, 1fr)', gridAutoFlow: 'column' }}
           >
             {(Object.keys(gradientColors) as GradientKey[]).map((key, idx) => (
               <button
@@ -383,13 +492,13 @@ export function BackgroundSection() {
                 )}
                 style={{
                   background: gradientColors[key],
-                  gridArea: `${(idx % 2) + 1} / ${Math.floor(idx / 2) + 1}`,
+                  gridArea: `${(idx % 4) + 1} / ${Math.floor(idx / 4) + 1}`,
                 }}
               />
             ))}
             {(Object.keys(meshGradients) as MeshGradientKey[]).map((key, idx) => {
               const classicCount = Object.keys(gradientColors).length;
-              const colOffset = Math.ceil(classicCount / 2);
+              const colOffset = Math.ceil(classicCount / 4);
               return (
                 <button
                   key={`mesh-${key}`}
@@ -405,7 +514,7 @@ export function BackgroundSection() {
                   )}
                   style={{
                     background: meshGradients[key],
-                    gridArea: `${(idx % 2) + 1} / ${Math.floor(idx / 2) + 1 + colOffset}`,
+                    gridArea: `${(idx % 4) + 1} / ${Math.floor(idx / 4) + 1 + colOffset}`,
                   }}
                 />
               );

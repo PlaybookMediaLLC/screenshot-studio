@@ -6,6 +6,17 @@ import Image from "next/image";
 import { NewTwitterIcon } from "hugeicons-react";
 import { Button } from "@/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Download04Icon,
   Copy01Icon,
   AspectRatioIcon,
@@ -42,8 +53,11 @@ import {
 } from "@/components/export";
 import { cn } from "@/lib/utils";
 import { GitHubStarButton } from "@/components/ui/github-star-button";
-import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  hasVisibleMockups,
+  shouldRenderSourceImage,
+} from "@/lib/device-mockups/layouts";
 
 export function EditorHeader() {
   const isMobile = useIsMobile();
@@ -52,6 +66,8 @@ export function EditorHeader() {
     selectedAspectRatio,
     slides,
     uploadedImageUrl,
+    editorMode,
+    mockups,
     clearImage,
     timeline,
     animationClips,
@@ -73,11 +89,16 @@ export function EditorHeader() {
   const currentAspectRatio = aspectRatios.find(
     (ar) => ar.id === selectedAspectRatio,
   );
-  const hasImage = !!screenshot.src;
+  const hasImage = (
+    !!screenshot.src && shouldRenderSourceImage(editorMode, mockups)
+  ) || (
+    editorMode === "device" && hasVisibleMockups(mockups)
+  );
 
   // Undo/redo state
   const [canUndo, setCanUndo] = React.useState(false);
   const [canRedo, setCanRedo] = React.useState(false);
+  const showHistoryControls = hasImage || canUndo || canRedo;
 
   React.useEffect(() => {
     const updateTemporalState = () => {
@@ -157,7 +178,7 @@ export function EditorHeader() {
       >
         <div className="flex items-center h-8 justify-self-start min-w-0">
           <Link
-            href="/landing"
+            href="/"
             className="flex items-center gap-2.5 h-8 hover:opacity-80 transition-opacity shrink-0"
           >
             <Image
@@ -173,30 +194,27 @@ export function EditorHeader() {
             </span>
           </Link>
 
-          <div
-            className={cn(
-              "h-4 w-px bg-foreground/10 shrink-0",
-              isMobile ? "mx-1.5" : "mx-2.5"
-            )}
-            aria-hidden
-          />
-
-          <button
-            type="button"
-            onClick={() => setShowTemplates(!showTemplates)}
-            aria-expanded={showTemplates}
-            aria-label="Templates"
-            className={cn(
-              "inline-flex items-center gap-1.5 h-8 px-2 rounded-md shrink-0 cursor-pointer",
-              "text-sm font-medium leading-none transition-colors duration-150",
-              showTemplates
-                ? "text-foreground hover:text-foreground/70"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <MagicWand01Icon size={14} className="shrink-0" />
-            {!isMobile ? <span>Templates</span> : null}
-          </button>
+          {!isMobile ? (
+            <>
+              <div className="mx-2.5 h-4 w-px shrink-0 bg-foreground/10" aria-hidden />
+              <button
+                type="button"
+                onClick={() => setShowTemplates(!showTemplates)}
+                aria-expanded={showTemplates}
+                aria-label="Templates"
+                className={cn(
+                  "inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2",
+                  "text-sm font-medium leading-none transition-colors duration-150",
+                  showTemplates
+                    ? "text-foreground hover:text-foreground/70"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <MagicWand01Icon size={14} className="shrink-0" />
+                <span>Templates</span>
+              </button>
+            </>
+          ) : null}
         </div>
 
         <div
@@ -205,7 +223,7 @@ export function EditorHeader() {
             isMobile ? "gap-1" : "gap-2.5"
           )}
         >
-          {hasImage ? (
+          {showHistoryControls ? (
             <div className="flex items-center gap-1">
               <button
                 onClick={handleUndo}
@@ -445,7 +463,7 @@ export function EditorHeader() {
               </PopoverContent>
             </Popover>
 
-            {showVideoExport && !isMobile ? (
+            {hasImage && showVideoExport && !isMobile ? (
               <Button
                 onClick={() => setExportSlideshowOpen(true)}
                 size="sm"
@@ -461,19 +479,43 @@ export function EditorHeader() {
             <>
               <div className="w-px h-4 bg-foreground/10 shrink-0" aria-hidden />
               <div className="flex items-center gap-1">
-                {uploadedImageUrl ? (
-                  <button
-                    onClick={resetCanvasSettings}
-                    className={cn(
-                      "flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer",
-                      "text-muted-foreground transition-all duration-150",
-                      "hover:text-foreground active:scale-95",
-                    )}
-                    title="Reset to defaults"
-                  >
-                    <RefreshIcon size={16} />
-                  </button>
-                ) : null}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      type="button"
+                      className={cn(
+                        "inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2.5",
+                        "text-xs font-medium leading-none text-muted-foreground transition-[color,background-color,transform] duration-150",
+                        "hover:bg-muted hover:text-foreground active:scale-[0.98]",
+                      )}
+                      aria-label="Start over"
+                      title="Reset the design and animation"
+                    >
+                      <RefreshIcon size={14} />
+                      <span>Start over</span>
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="sm:max-w-[420px]">
+                    <AlertDialogHeader>
+                      <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-destructive/10 text-destructive sm:mx-0">
+                        <RefreshIcon aria-hidden="true" size={18} />
+                      </div>
+                      <AlertDialogTitle>Start over?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This resets the current design, overlays, and animation. Your uploaded media stays, and you can undo this action.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={resetCanvasSettings}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/30"
+                      >
+                        Start over
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 {hasImage ? (
                   <Button
                     onClick={clearImage}
@@ -491,7 +533,6 @@ export function EditorHeader() {
         </div>
 
         <div className="flex items-center gap-1 justify-self-end">
-          {!isMobile ? <FeedbackWidget /> : null}
           {!isMobile ? <GitHubStarButton compact /> : null}
           <a
             href="https://x.com/code_kartik"

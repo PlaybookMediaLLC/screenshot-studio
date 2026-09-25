@@ -9,10 +9,31 @@ import { AspectRatioKey } from "@/lib/constants/aspect-ratios";
 import { BackgroundConfig, BackgroundType } from "@/lib/constants/backgrounds";
 import { gradientColors } from "@/lib/constants/gradient-colors";
 import { solidColors } from "@/lib/constants/solid-colors";
-import type { Mockup } from "@/types/mockup";
+import type { DeviceLayoutId, Mockup } from "@/types/mockup";
+import { getDeviceLayout, MAX_DEVICE_MOCKUPS } from "@/lib/constants/mockups";
+import {
+  applyLayoutToMockups,
+  cloneMockups,
+  createMockup,
+  createDeviceScreen,
+  restoreMockupsFromLayoutSnapshot,
+} from "@/lib/device-mockups/layouts";
 import type { TimelineState, AnimationTrack, Keyframe, AnimatableProperties, AnimationClip } from "@/types/animation";
-import { DEFAULT_TIMELINE_STATE } from "@/types/animation";
+import { DEFAULT_ANIMATABLE_PROPERTIES, DEFAULT_TIMELINE_STATE } from "@/types/animation";
 import { clonePresetTracks, getPresetById, ANIMATION_PRESETS } from "@/lib/animation/presets";
+import {
+  buildAnimatedTemplateTimeline,
+  getAnimatedTemplateById,
+} from "@/lib/animation/templates";
+import { presets as visualPresets, type PresetConfig } from "@/lib/constants/presets";
+import {
+  TEMPLATE_DEMO_IMAGE_NAME,
+  TEMPLATE_DEMO_IMAGE_URL,
+} from "@/lib/templates/demo-media";
+import {
+  getImageTemplateById,
+  type ImageTemplateScene,
+} from "@/lib/templates/image-templates";
 import {
   trackImageUpload,
   trackBackgroundChange,
@@ -104,6 +125,20 @@ export interface AnnotationShape {
 }
 
 export type ImageStylePreset = 'default' | 'glass-light' | 'glass-dark' | 'outline' | 'border-light' | 'border-dark';
+
+function getImageStylePreset(imageBorder: ImageBorder): ImageStylePreset {
+  switch (imageBorder.type) {
+    case 'glass-light':
+    case 'glass-dark':
+    case 'border-light':
+    case 'border-dark':
+      return imageBorder.type;
+    case 'outline-light':
+      return 'outline';
+    default:
+      return 'default';
+  }
+}
 export type ShadowPreset = 'none' | 'hug' | 'soft' | 'strong';
 
 export interface ImageBorder {
@@ -403,8 +438,11 @@ export function useEditorStoreSync() {
     // Sync background
     const bgConfig = imageStore.backgroundConfig;
     if (bgConfig.type === "gradient") {
+      const isCustomGradient =
+        typeof bgConfig.value === "string" &&
+        /^(?:linear|radial|conic)-gradient\(/.test(bgConfig.value);
       const gradientStr =
-        gradientColors[bgConfig.value as GradientKey] ||
+        (isCustomGradient ? bgConfig.value : gradientColors[bgConfig.value as GradientKey]) ||
         gradientColors.vibrant_orange_pink;
       const { colorA, colorB, direction } = parseGradientColors(gradientStr);
       if (
@@ -541,6 +579,8 @@ export interface ImageState {
   textOverlays: TextOverlay[];
   imageOverlays: ImageOverlay[];
   mockups: Mockup[];
+  activeDeviceLayoutId: DeviceLayoutId | null;
+  deviceLayoutSnapshot: Mockup[] | null;
   imageOpacity: number;
   imageScale: number;
   imageBorder: ImageBorder;
@@ -563,6 +603,7 @@ export interface ImageState {
     fileName: string;
   };
   setUploadedImageUrl: (url: string | null, name: string | null) => void;
+  replaceTemplateMedia: (url: string, name: string, mockupId?: string) => void;
   setImage: (file: File) => void;
   clearImage: () => void;
   setGradient: (gradient: GradientKey) => void;
@@ -584,16 +625,29 @@ export interface ImageState {
   updateImageOverlay: (id: string, updates: Partial<ImageOverlay>) => void;
   removeImageOverlay: (id: string) => void;
   clearImageOverlays: () => void;
-  addMockup: (mockup: Omit<Mockup, "id">) => void;
+  addMockup: (mockup: Omit<Mockup, "id">) => string | null;
   updateMockup: (id: string, updates: Partial<Mockup>) => void;
   removeMockup: (id: string) => void;
   clearMockups: () => void;
+  duplicateMockup: (id: string) => string | null;
+  reorderMockup: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void;
+  clearDeviceLayout: () => void;
+  applyDeviceLayout: (layoutId: DeviceLayoutId) => void;
   setImageOpacity: (opacity: number) => void;
   setImageScale: (scale: number) => void;
   setImageBorder: (border: ImageBorder | Partial<ImageBorder>) => void;
   setImageShadow: (shadow: ImageShadow | Partial<ImageShadow>) => void;
   setImageStylePreset: (preset: ImageStylePreset) => void;
   setShadowPreset: (preset: ShadowPreset) => void;
+  applyVisualPreset: (
+    preset: PresetConfig,
+    options?: {
+      clearAnimation?: boolean;
+      closeTemplates?: boolean;
+      scene?: ImageTemplateScene;
+    },
+  ) => void;
+  applyAnimatedTemplate: (templateId: string) => void;
   setPerspective3D: (perspective: Partial<ImageState["perspective3D"]>) => void;
   setImageFilter: (key: keyof ImageFilters, value: number) => void;
   resetImageFilters: () => void;
@@ -674,8 +728,8 @@ export interface ImageState {
   reorderImageOverlay: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void;
   showTemplates: boolean;
   setShowTemplates: (show: boolean) => void;
-  editorMode: 'screenshot' | 'browser';
-  setEditorMode: (mode: 'screenshot' | 'browser') => void;
+  editorMode: 'screenshot' | 'browser' | 'device';
+  setEditorMode: (mode: 'screenshot' | 'browser' | 'device') => void;
   browserUrl: string;
   setBrowserUrl: (url: string) => void;
   browserHeaderSize: number;
@@ -734,6 +788,8 @@ export const useImageStore = create<ImageState>()(
     textOverlays: [],
     imageOverlays: [],
     mockups: [],
+    activeDeviceLayoutId: null,
+    deviceLayoutSnapshot: null,
     imageOpacity: 1,
     imageScale: 100,
     imageBorder: {
@@ -787,6 +843,33 @@ export const useImageStore = create<ImageState>()(
       });
       // Immediately sync to editor store so canvas updates without
       // waiting for the EditorStoreSync useEffect cycle
+      useEditorStore.getState().setScreenshot({ src: url });
+    },
+
+    replaceTemplateMedia: (url, name, mockupId) => {
+      set((state) => ({
+        uploadedImageUrl: url,
+        imageName: name,
+        ...(mockupId
+          ? {
+              mockups: state.mockups.map((mockup) => (
+                mockup.id === mockupId
+                  ? {
+                      ...mockup,
+                      screen: {
+                        ...mockup.screen,
+                        src: url,
+                        name,
+                        isCustom: true,
+                        scale: 1,
+                        offset: { x: 0, y: 0 },
+                      },
+                    }
+                  : mockup
+              )),
+            }
+          : {}),
+      }));
       useEditorStore.getState().setScreenshot({ src: url });
     },
 
@@ -865,6 +948,8 @@ export const useImageStore = create<ImageState>()(
         textOverlays: [],
         imageOverlays: [],
         mockups: [],
+        activeDeviceLayoutId: null,
+        deviceLayoutSnapshot: null,
         // Reset annotations & blur
         annotations: [],
         activeAnnotationTool: null,
@@ -964,6 +1049,8 @@ export const useImageStore = create<ImageState>()(
         textOverlays: [],
         imageOverlays: [],
         mockups: [],
+        activeDeviceLayoutId: null,
+        deviceLayoutSnapshot: null,
         // Reset annotations & blur
         annotations: [],
         activeAnnotationTool: null,
@@ -1165,12 +1252,16 @@ export const useImageStore = create<ImageState>()(
     },
 
     addMockup: (mockup) => {
+      if (get().mockups.length >= MAX_DEVICE_MOCKUPS) return null;
       const id = `mockup-${Date.now()}-${Math.random()
         .toString(36)
         .substr(2, 9)}`;
       set((state) => ({
         mockups: [...state.mockups, { ...mockup, id }],
+        activeDeviceLayoutId: null,
+        deviceLayoutSnapshot: null,
       }));
+      return id;
     },
 
     updateMockup: (id, updates) => {
@@ -1184,11 +1275,88 @@ export const useImageStore = create<ImageState>()(
     removeMockup: (id) => {
       set((state) => ({
         mockups: state.mockups.filter((mockup) => mockup.id !== id),
+        activeDeviceLayoutId: null,
+        deviceLayoutSnapshot: null,
       }));
     },
 
     clearMockups: () => {
-      set({ mockups: [] });
+      set({ mockups: [], activeDeviceLayoutId: null, deviceLayoutSnapshot: null });
+    },
+
+    duplicateMockup: (id) => {
+      const state = get();
+      if (state.mockups.length >= MAX_DEVICE_MOCKUPS) return null;
+      const source = state.mockups.find((mockup) => mockup.id === id);
+      if (!source) return null;
+      const duplicateId = `mockup-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      set({
+        mockups: [
+          ...state.mockups,
+          {
+            ...source,
+            id: duplicateId,
+            position: {
+              x: Math.min(0.92, source.position.x + 0.04),
+              y: Math.min(0.92, source.position.y + 0.04),
+            },
+            screen: { ...source.screen, offset: { ...source.screen.offset } },
+          },
+        ],
+        activeDeviceLayoutId: null,
+        deviceLayoutSnapshot: null,
+      });
+      return duplicateId;
+    },
+
+    reorderMockup: (id, direction) => {
+      set((state) => {
+        const mockups = [...state.mockups];
+        const index = mockups.findIndex((mockup) => mockup.id === id);
+        if (index === -1) return state;
+        const target = direction === 'top'
+          ? mockups.length - 1
+          : direction === 'bottom'
+            ? 0
+            : direction === 'up'
+              ? Math.min(mockups.length - 1, index + 1)
+              : Math.max(0, index - 1);
+        if (target === index) return state;
+        const [mockup] = mockups.splice(index, 1);
+        mockups.splice(target, 0, mockup);
+        return { mockups };
+      });
+    },
+
+    applyDeviceLayout: (layoutId) => {
+      const layout = getDeviceLayout(layoutId);
+      if (!layout) return;
+      const state = get();
+      if (state.mockups.length > layout.slots.length) return;
+      const fallbackScreen = state.mockups[0]?.screen
+        ?? createDeviceScreen(state.uploadedImageUrl, state.imageName);
+      set({
+        mockups: applyLayoutToMockups(state.mockups, layout, fallbackScreen),
+        activeDeviceLayoutId: layoutId,
+        deviceLayoutSnapshot: state.activeDeviceLayoutId
+          ? state.deviceLayoutSnapshot
+          : cloneMockups(state.mockups),
+      });
+    },
+
+    clearDeviceLayout: () => {
+      set((state) => {
+        const snapshot = state.deviceLayoutSnapshot;
+        if (!snapshot) {
+          return { activeDeviceLayoutId: null, deviceLayoutSnapshot: null };
+        }
+
+        return {
+          mockups: restoreMockupsFromLayoutSnapshot(snapshot, state.mockups),
+          activeDeviceLayoutId: null,
+          deviceLayoutSnapshot: null,
+        };
+      });
     },
 
     setImageOpacity: (opacity: number) => {
@@ -1249,6 +1417,191 @@ export const useImageStore = create<ImageState>()(
       set({
         shadowPreset: preset,
         imageShadow: shadowMap[preset],
+      });
+    },
+
+    applyVisualPreset: (preset, options = {}) => {
+      trackPresetApply(preset.id, preset.name);
+      const shouldUseDemoMedia = !get().uploadedImageUrl;
+      const mediaUrl = get().uploadedImageUrl ?? TEMPLATE_DEMO_IMAGE_URL;
+
+      set((state) => {
+        const mediaUrl = state.uploadedImageUrl ?? TEMPLATE_DEMO_IMAGE_URL;
+        const mediaName = state.imageName ?? TEMPLATE_DEMO_IMAGE_NAME;
+        const retainedOverlays = state.imageOverlays.filter(
+          (overlay) => !(typeof overlay.src === "string" && overlay.src.includes("overlay-shadow")),
+        );
+        const templateShadow: ImageOverlay[] = preset.shadowOverlay
+          ? [{
+              id: `template-shadow-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+              src: preset.shadowOverlay.src,
+              position: { x: 0, y: 0 },
+              size: 100,
+              rotation: 0,
+              opacity: preset.shadowOverlay.opacity,
+              flipX: false,
+              flipY: false,
+              isVisible: true,
+            }]
+          : [];
+        const templateMockups = options.scene?.kind === "device"
+          ? options.scene.devices.map((device, index) => ({
+              ...createMockup(
+                device.definitionId,
+                createDeviceScreen(mediaUrl, mediaName),
+                index,
+              ),
+              position: { ...device.position },
+              size: device.size,
+              rotation: device.rotation,
+            }))
+          : [];
+
+        return {
+          ...(shouldUseDemoMedia
+            ? {
+                uploadedImageUrl: TEMPLATE_DEMO_IMAGE_URL,
+                imageName: TEMPLATE_DEMO_IMAGE_NAME,
+              }
+            : {}),
+          selectedAspectRatio: preset.aspectRatio,
+          backgroundConfig: preset.backgroundConfig,
+          borderRadius: preset.borderRadius,
+          backgroundBorderRadius: preset.backgroundBorderRadius,
+          backgroundBlur: preset.backgroundBlur ?? 0,
+          backgroundNoise: preset.backgroundNoise ?? 0,
+          imageOpacity: preset.imageOpacity,
+          imageScale: preset.imageScale,
+          imageStylePreset: getImageStylePreset(preset.imageBorder),
+          imageBorder: preset.imageBorder,
+          imageShadow: preset.imageShadow,
+          imageOverlays: [...retainedOverlays, ...templateShadow],
+          perspective3D: preset.perspective3D ?? {
+            perspective: DEFAULT_ANIMATABLE_PROPERTIES.perspective,
+            rotateX: DEFAULT_ANIMATABLE_PROPERTIES.rotateX,
+            rotateY: DEFAULT_ANIMATABLE_PROPERTIES.rotateY,
+            rotateZ: DEFAULT_ANIMATABLE_PROPERTIES.rotateZ,
+            translateX: DEFAULT_ANIMATABLE_PROPERTIES.translateX,
+            translateY: DEFAULT_ANIMATABLE_PROPERTIES.translateY,
+            scale: DEFAULT_ANIMATABLE_PROPERTIES.scale,
+          },
+          ...(options.scene
+            ? {
+                editorMode: options.scene.kind === "device" ? "device" as const : "screenshot" as const,
+                mockups: templateMockups,
+                activeDeviceLayoutId: null,
+                deviceLayoutSnapshot: null,
+              }
+            : {}),
+          ...(options.clearAnimation
+            ? {
+                animationClips: [],
+                timeline: { ...DEFAULT_TIMELINE_STATE },
+                showTimeline: false,
+              }
+            : {}),
+          ...(options.closeTemplates ? { showTemplates: false } : {}),
+        };
+      });
+
+      if (shouldUseDemoMedia || options.scene?.kind === "screenshot") {
+        const placement = options.scene?.kind === "screenshot"
+          ? options.scene.placement ?? { offsetX: 0, offsetY: 0, rotation: 0 }
+          : null;
+        useEditorStore.getState().setScreenshot({
+          src: mediaUrl,
+          ...(placement ?? {}),
+        });
+      }
+    },
+
+    applyAnimatedTemplate: (templateId) => {
+      const template = getAnimatedTemplateById(templateId);
+      if (!template) return;
+
+      const imageTemplate = getImageTemplateById(template.visualPresetId);
+      const visualPreset = imageTemplate?.preset
+        ?? visualPresets.find((preset) => preset.id === template.visualPresetId);
+      const animation = buildAnimatedTemplateTimeline(template);
+      if (!visualPreset || !animation) return;
+      const templateImageBorder = template.imageStylePreset === 'default'
+        ? { ...visualPreset.imageBorder, enabled: false, type: 'none' as const }
+        : visualPreset.imageBorder;
+
+      trackPresetApply(`animated:${template.id}`, template.name);
+      const shouldUseDemoMedia = !get().uploadedImageUrl;
+      const mediaUrl = get().uploadedImageUrl ?? TEMPLATE_DEMO_IMAGE_URL;
+
+      set((state) => {
+        const retainedOverlays = state.imageOverlays.filter(
+          (overlay) => !(typeof overlay.src === "string" && overlay.src.includes("overlay-shadow")),
+        );
+        const templateShadow: ImageOverlay[] = visualPreset.shadowOverlay
+          ? [{
+              id: `template-shadow-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+              src: visualPreset.shadowOverlay.src,
+              position: { x: 0, y: 0 },
+              size: 100,
+              rotation: 0,
+              opacity: visualPreset.shadowOverlay.opacity,
+              flipX: false,
+              flipY: false,
+              isVisible: true,
+            }]
+          : [];
+
+        return {
+          ...(shouldUseDemoMedia
+            ? {
+                uploadedImageUrl: TEMPLATE_DEMO_IMAGE_URL,
+                imageName: TEMPLATE_DEMO_IMAGE_NAME,
+              }
+            : {}),
+          selectedAspectRatio: visualPreset.aspectRatio,
+          backgroundConfig: visualPreset.backgroundConfig,
+          borderRadius: visualPreset.borderRadius,
+          backgroundBorderRadius: visualPreset.backgroundBorderRadius,
+          backgroundBlur: visualPreset.backgroundBlur ?? 0,
+          backgroundNoise: visualPreset.backgroundNoise ?? 0,
+          imageOpacity: visualPreset.imageOpacity,
+          imageScale: visualPreset.imageScale,
+          imageStylePreset: getImageStylePreset(templateImageBorder),
+          imageBorder: templateImageBorder,
+          imageShadow: visualPreset.imageShadow,
+          imageOverlays: [...retainedOverlays, ...templateShadow],
+          perspective3D: visualPreset.perspective3D ?? {
+            perspective: DEFAULT_ANIMATABLE_PROPERTIES.perspective,
+            rotateX: DEFAULT_ANIMATABLE_PROPERTIES.rotateX,
+            rotateY: DEFAULT_ANIMATABLE_PROPERTIES.rotateY,
+            rotateZ: DEFAULT_ANIMATABLE_PROPERTIES.rotateZ,
+            translateX: DEFAULT_ANIMATABLE_PROPERTIES.translateX,
+            translateY: DEFAULT_ANIMATABLE_PROPERTIES.translateY,
+            scale: DEFAULT_ANIMATABLE_PROPERTIES.scale,
+          },
+          editorMode: "screenshot" as const,
+          mockups: [],
+          activeDeviceLayoutId: null,
+          deviceLayoutSnapshot: null,
+          animationClips: [animation.clip],
+          timeline: {
+            ...DEFAULT_TIMELINE_STATE,
+            duration: animation.duration,
+            tracks: animation.tracks,
+            isPlaying: true,
+          },
+          showTimeline: true,
+          showTemplates: false,
+        };
+      });
+
+      const placement = imageTemplate?.scene.kind === "screenshot"
+        ? imageTemplate.scene.placement
+        : undefined;
+      useEditorStore.getState().setScreenshot({
+        src: mediaUrl,
+        offsetX: placement?.offsetX ?? 0,
+        offsetY: placement?.offsetY ?? 0,
+        rotation: placement?.rotation ?? 0,
       });
     },
 
@@ -1342,9 +1695,14 @@ export const useImageStore = create<ImageState>()(
         textOverlays: [],
         imageOverlays: [],
         mockups: [],
+        activeDeviceLayoutId: null,
+        deviceLayoutSnapshot: null,
         annotations: [],
         activeAnnotationTool: null,
         blurRegions: [],
+        timeline: { ...DEFAULT_TIMELINE_STATE },
+        animationClips: [],
+        showTimeline: false,
       });
     },
 

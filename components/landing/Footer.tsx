@@ -15,19 +15,29 @@ const PEERLIST_BADGE =
   "https://dqy38fnwh4fqs.cloudfront.net/website/project-spotlight/project-week-rank-one-dark.svg";
 
 const navCol1 = [
-  { href: "/", label: "Editor" },
-  { href: "/features", label: "Features" },
-  { href: "/changelog", label: "Changelog" },
+  { href: "/editor", label: "Screenshot Editor" },
   { href: "/free-screenshot-editor", label: "Free editor" },
-  { href: "/docs", label: "API docs" },
+  { href: "/store-screenshots", label: "App store screenshots" },
+  { href: "/code", label: "Code to image" },
+  { href: "/tweet", label: "Tweet to image" },
+  { href: "/mockup-generator", label: "Mockup generator" },
+  { href: "/remove-background", label: "Remove background" },
 ] as const;
 
 const navCol2 = [
-  { href: "/features/3d-effects", label: "3D effects" },
-  { href: "/features/animation-maker", label: "Animations" },
+  { href: "/features", label: "Features" },
+  { href: "/tools", label: "Image tools" },
+  { href: "/compare", label: "Comparisons" },
+  { href: "/for", label: "Who it is for" },
+  { href: "/changelog", label: "Changelog" },
+] as const;
+
+const navCol3 = [
+  { href: "/guides", label: "Guides" },
+  { href: "/docs", label: "API docs" },
+  { href: "/developers", label: "Developers" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
-  { href: "/developers", label: "Developers" },
 ] as const;
 
 function FooterNavLink({
@@ -97,7 +107,7 @@ export function Footer({ brandName = "Screenshot Studio" }: FooterProps) {
             </a>
           </div>
 
-          <div className="grid h-full w-full grid-cols-2 gap-2 md:max-w-md md:justify-self-end">
+          <div className="grid h-full w-full grid-cols-2 gap-2 sm:grid-cols-3 md:max-w-xl md:justify-self-end">
             <div className="flex h-full flex-col gap-2">
               {navCol1.map((item) => (
                 <FooterNavLink key={item.href} {...item} />
@@ -105,6 +115,11 @@ export function Footer({ brandName = "Screenshot Studio" }: FooterProps) {
             </div>
             <div className="flex h-full flex-col gap-2">
               {navCol2.map((item) => (
+                <FooterNavLink key={item.href} {...item} />
+              ))}
+            </div>
+            <div className="flex h-full flex-col gap-2">
+              {navCol3.map((item) => (
                 <FooterNavLink key={item.href} {...item} />
               ))}
             </div>

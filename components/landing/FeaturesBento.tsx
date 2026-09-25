@@ -7,6 +7,7 @@ import {
   MotionVisual,
   TransformsVisual,
 } from "./BentoCardVisuals";
+import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 
 const FEATURE_CARDS: MagicBentoCard[] = [
   {
@@ -24,7 +25,7 @@ const FEATURE_CARDS: MagicBentoCard[] = [
   {
     title: "Beautiful Backgrounds",
     description:
-      "100+ gradients, solids, images, blur, and noise. One click polish.",
+      `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solids, images, blur, and noise. One click polish.`,
     label: "Style",
     visual: <BackgroundsVisual />,
     large: true,
@@ -32,7 +33,7 @@ const FEATURE_CARDS: MagicBentoCard[] = [
   {
     title: "Animations & Video",
     description:
-      "20+ presets plus a timeline editor. Export MP4, WebM, or GIF.",
+      `${atLeast(PRODUCT_FACTS.animationPresets)} presets plus a timeline editor. Export MP4, WebM, or GIF.`,
     label: "Motion",
     visual: <MotionVisual />,
     large: true,

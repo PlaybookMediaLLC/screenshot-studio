@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { getBackgroundCSS } from '@/lib/constants/backgrounds';
+import { useBackgroundImageReady } from '@/hooks/useBackgroundImageReady';
 
 const TRANSITION_DURATION = 400; // ms
 type ColorScheme = 'light' | 'dark';
@@ -60,6 +61,8 @@ export function CleanUploadState() {
   const prevConfigRef = React.useRef(backgroundConfig);
   const isFirstRender = React.useRef(true);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
+  const backgroundReady = useBackgroundImageReady(backgroundConfig);
+  const placeholderStyle = getBackgroundCSS(backgroundConfig, 32);
 
   React.useEffect(() => {
     if (isFirstRender.current) {
@@ -284,6 +287,16 @@ export function CleanUploadState() {
           zIndex: 0,
         }}
       />
+      <div
+        aria-hidden
+        className={cn(
+          'absolute inset-0 overflow-hidden bg-muted transition-opacity duration-500 ease-out motion-reduce:transition-none',
+          backgroundReady ? 'pointer-events-none opacity-0' : 'opacity-100'
+        )}
+      >
+        <div className="absolute inset-0 scale-110 blur-2xl" style={placeholderStyle} />
+        {!backgroundReady && <div className="canvas-stage-shimmer absolute inset-0" />}
+      </div>
       <input {...getInputProps()} />
 
       <div

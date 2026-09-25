@@ -13,9 +13,9 @@ import {
 } from "hugeicons-react";
 
 export const metadata: Metadata = {
-  title: "Screenshot Editor for Developers - Free Tool",
+  title: "Screenshot Editor for Developers",
   description:
-    "Make your code, projects, and portfolio look professional. Beautify terminal screenshots, code snippets, and app UIs with backgrounds, 3D effects, and animations. Free, no signup.",
+    "Beautify code screenshots, terminal output, and app UIs with backgrounds, 3D effects, and animations. Free screenshot mockup tool for developers, no signup.",
   keywords: [
     "screenshot editor for developers",
     "code screenshot beautifier",
@@ -214,7 +214,7 @@ export default function ForDevelopersPage() {
               screenshot. Free in your browser.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link href="/" className={ctaClassName}>
+              <Link href="/editor" className={ctaClassName}>
                 Open Editor
               </Link>
               <Link href="/features" className={secondaryCtaClassName}>
@@ -326,6 +326,43 @@ export default function ForDevelopersPage() {
         <section className="border-t border-border px-6 py-16">
           <div className="mx-auto max-w-4xl">
             <h2
+              className="mb-6 text-2xl font-semibold tracking-[-0.03em] text-foreground"
+              style={{ fontFamily: INTER }}
+            >
+              Automate it from CI
+            </h2>
+            <p className="mb-4 text-muted-foreground">
+              Everything the editor does by hand is also available over HTTP, with
+              no API key and no account. <code className="rounded bg-muted px-1.5 py-0.5 text-sm">POST /api/screenshot</code>{" "}
+              captures a live URL as a PNG and{" "}
+              <code className="rounded bg-muted px-1.5 py-0.5 text-sm">POST /api/export</code>{" "}
+              recompresses an image, which is enough to regenerate README and docs
+              images on every release rather than redrawing them.
+            </p>
+            <p className="text-muted-foreground">
+              Read the{" "}
+              <Link href="/docs" className="underline underline-offset-4">
+                API documentation
+              </Link>{" "}
+              for runnable examples and the error-code table, the{" "}
+              <Link
+                href="/docs/authentication"
+                className="underline underline-offset-4"
+              >
+                authentication and rate limit notes
+              </Link>
+              , or pull the machine-readable{" "}
+              <Link href="/openapi.json" className="underline underline-offset-4">
+                OpenAPI 3.1 specification
+              </Link>
+              .
+            </p>
+          </div>
+        </section>
+
+        <section className="border-t border-border px-6 py-16">
+          <div className="mx-auto max-w-4xl">
+            <h2
               className="mb-8 text-center text-2xl font-semibold tracking-[-0.03em] text-foreground"
               style={{ fontFamily: INTER }}
             >
@@ -363,7 +400,7 @@ export default function ForDevelopersPage() {
             <p className="mb-8 text-lg text-muted-foreground">
               Free forever. No signup. No watermarks.
             </p>
-            <Link href="/" className={ctaClassName}>
+            <Link href="/editor" className={ctaClassName}>
               Open Editor
             </Link>
           </div>

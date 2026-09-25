@@ -1,18 +1,17 @@
 'use client';
 
 import * as React from 'react';
-import { PresetGallery } from '@/components/presets/PresetGallery';
 import {
   Settings02Icon,
   SlidersHorizontalIcon,
   ColorsIcon,
-  MagicWand01Icon,
   RotateSquareIcon,
   VideoReplayIcon,
   Cancel01Icon,
   LayersLogoIcon,
   Image01Icon,
   Globe02Icon,
+  SmartPhone01Icon,
 } from 'hugeicons-react';
 import {
   SettingsSection,
@@ -26,21 +25,20 @@ import {
   AnnotateSection,
   ImageOverlaySection,
   DepthSection,
-  TweetImportSection,
-  CodeSnippetSection,
   ImagePositionSection,
+  DeviceFramesSection,
 } from './sections';
-import { cn } from '@/lib/utils';
 import { useImageStore } from '@/lib/store';
 import { AnimationPresetGallery } from '@/components/timeline/AnimationPresetGallery';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 
-type EditorMode = 'screenshot' | 'browser';
+type EditorMode = 'screenshot' | 'browser' | 'device';
 type TabType = 'settings' | 'edit' | 'background' | 'transforms' | 'animate' | 'depth';
 
 const modeTabs: { id: EditorMode; icon: React.ReactNode; label: string }[] = [
-  { id: 'screenshot', icon: <Image01Icon size={14} />, label: 'Screenshot' },
+  { id: 'screenshot', icon: <Image01Icon size={14} />, label: 'Image' },
   { id: 'browser', icon: <Globe02Icon size={14} />, label: 'Browser' },
+  { id: 'device', icon: <SmartPhone01Icon size={14} />, label: 'Device' },
 ];
 
 const tabs: { id: TabType; icon: React.ReactNode; label: string }[] = [
@@ -60,8 +58,6 @@ export function UnifiedRightPanel({
   const {
     activeRightPanelTab,
     setActiveRightPanelTab,
-    showTemplates: templatesOpen,
-    setShowTemplates: setTemplatesOpen,
     editorMode,
     setEditorMode,
   } = useImageStore();
@@ -81,15 +77,6 @@ export function UnifiedRightPanel({
       return () => clearTimeout(timeout);
     }
   }, [activeTab, contentKey]);
-
-  React.useEffect(() => {
-    if (!templatesOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setTemplatesOpen(false);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [templatesOpen, setTemplatesOpen]);
 
   return (
     <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
@@ -134,7 +121,7 @@ export function UnifiedRightPanel({
 
       <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-hide">
         <div
-          className="p-3 transition-all duration-150 ease-out sm:p-4"
+          className="p-3 transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none sm:p-4"
           style={{
             opacity: transitioning ? 0 : 1,
             transform: transitioning ? 'translateY(4px)' : 'translateY(0)',
@@ -148,21 +135,25 @@ export function UnifiedRightPanel({
 
           {contentKey === 'edit' && (
             <div className="space-y-2">
-              {editorMode === 'browser' ? (
-                <BrowserMockupSection />
+              {editorMode === 'device' ? (
+                <DeviceFramesSection />
               ) : (
                 <>
-                  <StyleSection />
-                  <BorderSection />
+                  {editorMode === 'browser' ? (
+                    <BrowserMockupSection />
+                  ) : (
+                    <>
+                      <StyleSection />
+                      <BorderSection />
+                    </>
+                  )}
+                  <ImagePositionSection />
+                  <ShadowSection />
+                  <ImageOverlaySection />
+                  <AnnotateSection />
+                  <TextSection />
                 </>
               )}
-              <ImagePositionSection />
-              <ShadowSection />
-              <TweetImportSection />
-              <CodeSnippetSection />
-              <ImageOverlaySection />
-              <AnnotateSection />
-              <TextSection />
             </div>
           )}
 
@@ -180,34 +171,6 @@ export function UnifiedRightPanel({
         </div>
       </div>
 
-      <div
-        className={cn(
-          'absolute inset-0 z-50 flex flex-col bg-background transition-all duration-300 ease-out',
-          templatesOpen
-            ? 'translate-x-0 opacity-100'
-            : '-translate-x-full opacity-0 pointer-events-none'
-        )}
-      >
-        <div className="flex shrink-0 items-center justify-between border-b border-foreground/10 px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <MagicWand01Icon size={18} className="text-foreground" />
-            <h2 className="text-sm font-semibold text-foreground">Templates</h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => setTemplatesOpen(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-foreground/[0.08] hover:text-foreground"
-          >
-            <Cancel01Icon size={16} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
-          <div className="p-4">
-            <PresetGallery />
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

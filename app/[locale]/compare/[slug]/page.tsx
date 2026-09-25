@@ -8,6 +8,8 @@ import {
   comparisons,
   getComparison,
   getAllComparisonSlugs,
+  getComparisonTitle,
+  claimsNote,
 } from "@/lib/seo/comparisons";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
 
@@ -26,13 +28,15 @@ export async function generateMetadata({
   const data = getComparison(slug);
   if (!data) return {};
 
+  const title = getComparisonTitle(data);
+
   return {
-    title: data.metaTitle,
+    title: { absolute: title },
     description: data.metaDescription,
     keywords: data.keywords,
     openGraph: {
       ...OG_DEFAULTS,
-      title: data.metaTitle,
+      title,
       description: data.metaDescription,
       url: `/compare/${data.slug}`,
     },
@@ -58,7 +62,7 @@ function FeatureStatus({
   value: string;
   emphasize?: boolean;
 }): React.JSX.Element {
-  const unavailable = value.toLowerCase() === "not available";
+  const unavailable = ["not available", "not listed"].includes(value.toLowerCase());
 
   return (
     <span className="flex items-center gap-2">
@@ -90,6 +94,7 @@ export default async function ComparisonPage({ params }: PageProps) {
   if (!data) notFound();
 
   const otherComparisons = comparisons.filter((c) => c.slug !== slug);
+  const cta = data.cta ?? { href: "/editor", label: "Try Screenshot Studio Free" };
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -130,7 +135,7 @@ export default async function ComparisonPage({ params }: PageProps) {
       },
       {
         "@type": "WebPage",
-        name: data.metaTitle,
+        name: getComparisonTitle(data),
         description: data.metaDescription,
         url: `https://www.screenshot-studio.com/compare/${data.slug}`,
         mainEntity: {
@@ -174,9 +179,18 @@ export default async function ComparisonPage({ params }: PageProps) {
             <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground md:text-xl">
               {data.tagline}
             </p>
-            <Link href="/" className={ctaClassName}>
-              Try Screenshot Studio Free
+            <Link href={cta.href} className={ctaClassName}>
+              {cta.label}
             </Link>
+
+            {data.scopeNote ? (
+              <p className="mx-auto mt-10 max-w-2xl rounded-2xl bg-card p-5 text-left text-sm leading-relaxed text-muted-foreground ring-1 ring-inset ring-border">
+                <strong className="font-semibold text-foreground">
+                  These tools do different jobs.
+                </strong>{" "}
+                {data.scopeNote}
+              </p>
+            ) : null}
           </div>
         </section>
 
@@ -223,6 +237,16 @@ export default async function ComparisonPage({ params }: PageProps) {
                 </tbody>
               </table>
             </div>
+            <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+              {claimsNote(data)}{" "}
+              <a
+                href={data.competitorUrl}
+                rel="nofollow noopener"
+                className="underline underline-offset-4"
+              >
+                {data.competitorName}
+              </a>
+            </p>
           </div>
         </section>
 
@@ -350,11 +374,12 @@ export default async function ComparisonPage({ params }: PageProps) {
               Try Screenshot Studio Free
             </h2>
             <p className="mb-8 text-lg text-muted-foreground">
-              No signup. No downloads. No watermarks. Open the editor and see
-              the difference.
+              {data.cta
+                ? "No signup. No uploads. No watermarks. Try it on your own image."
+                : "No signup. No downloads. No watermarks. Open the editor and see the difference."}
             </p>
-            <Link href="/" className={ctaClassName}>
-              Open Free Editor
+            <Link href={cta.href} className={ctaClassName}>
+              {data.cta ? cta.label : "Open Free Editor"}
             </Link>
           </div>
         </section>

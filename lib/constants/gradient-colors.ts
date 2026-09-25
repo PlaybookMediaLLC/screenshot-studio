@@ -1,4 +1,12 @@
 export const gradientColors = {
+  store_raycast: 'linear-gradient(145deg, #090A0C, #F43F5E)',
+  store_midnight: 'linear-gradient(155deg, #111827, #312E81)',
+  store_ocean: 'linear-gradient(145deg, #0C4A6E, #38BDF8)',
+  store_mint: 'linear-gradient(160deg, #D1FAE5, #F8FAFC)',
+  store_peach: 'linear-gradient(155deg, #FED7AA, #FFF7ED)',
+  store_paper: 'linear-gradient(180deg, #F8FAFC, #E2E8F0)',
+  store_graphite: 'linear-gradient(150deg, #18181B, #3F3F46)',
+  store_berry: 'linear-gradient(145deg, #831843, #F472B6)',
   vibrant_orange_pink: 'linear-gradient(135deg, rgb(255, 100, 50) 12.8%, rgb(255, 0, 101) 43.52%, rgb(123, 46, 255) 84.34%)',
   peach_pink_purple: 'linear-gradient(135deg, rgb(255, 177, 122) 12.8%, rgb(233, 107, 189) 43.52%, rgb(123, 79, 255) 84.34%)',
   cyan_blue_purple: 'linear-gradient(135deg, rgb(0, 255, 229) 12.8%, rgb(75, 108, 255) 43.52%, rgb(156, 31, 217) 84.34%)',
@@ -104,4 +112,3 @@ export const gradientColors = {
 };
 
 export type GradientKey = keyof typeof gradientColors;
-

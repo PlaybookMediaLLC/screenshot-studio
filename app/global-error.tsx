@@ -167,7 +167,7 @@ export default function GlobalError({
                 Try Again
               </button>
               <a
-                href="/"
+                href="/editor"
                 style={{
                   padding: "0.625rem 1.5rem",
                   borderRadius: "0.5rem",

@@ -1,3 +1,13 @@
+import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
+
+/** The date every competitor pricing and feature claim on /compare/* was last verified. */
+export const CLAIMS_CHECKED = "2026-09-20";
+
+export const CLAIMS_CHECKED_LABEL = new Date(CLAIMS_CHECKED).toLocaleDateString(
+  "en-US",
+  { year: "numeric", month: "long", day: "numeric" },
+);
+
 export interface ComparisonData {
   slug: string;
   competitorName: string;
@@ -16,6 +26,16 @@ export interface ComparisonData {
   }[];
   verdict: string;
   faqs: { q: string; a: string }[];
+  /**
+   * Set where the competitor does a job this product does not, so the page says
+   * so up front instead of implying a like-for-like swap.
+   */
+  scopeNote?: string;
+  /**
+   * Where the page's calls to action point. Defaults to the editor; a
+   * comparison against a single-purpose tool links to our matching tool.
+   */
+  cta?: { href: string; label: string };
 }
 
 export const comparisons: ComparisonData[] = [
@@ -24,10 +44,10 @@ export const comparisons: ComparisonData[] = [
     competitorName: "Pika Style",
     competitorUrl: "https://pika.style",
     tagline:
-      "Screenshot Studio offers more backgrounds, 3D effects, animations, and video export at no cost.",
-    metaTitle: "Screenshot Studio vs Pika Style - Free Alternative (2026)",
+      "Screenshot Studio includes 3D tilt, animations, and video export for free, where Pika Style puts tilt and background images on its Pro plan.",
+    metaTitle: "Screenshot Studio vs Pika Style: Free Alternative",
     metaDescription:
-      "Compare Screenshot Studio vs Pika Style. Both beautify screenshots, but Screenshot Studio adds 3D effects, animations, video export, and 100+ backgrounds for free. No signup needed.",
+      `Compare Screenshot Studio vs Pika Style. Both beautify screenshots; Screenshot Studio includes 3D tilt, animations, video export, and ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds for free. No signup needed.`,
     keywords: [
       "pika style alternative",
       "pika style vs screenshot studio",
@@ -37,51 +57,47 @@ export const comparisons: ComparisonData[] = [
       "better than pika style",
       "pika style competitor",
     ],
-    competitorPricing: "Free tier with limits, paid plans from $5/mo",
+    competitorPricing: "Free plan; Pro $13/mo or $150/yr; Lifetime $299",
     competitorLimitations: [
-      "Limited free backgrounds",
-      "No animation or video export",
-      "No 3D perspective effects",
-      "Watermark on free tier exports",
-      "Requires account for some features",
+      "Tilt is a Pro feature",
+      "Background images are Pro-only",
+      "Some mockup templates need a paid plan",
+      "Animation and video export not listed",
     ],
     studioAdvantages: [
-      "100+ backgrounds included free",
-      "Full animation timeline with 20+ presets",
-      "3D perspective transforms",
+      `${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds included free`,
+      `Full animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets`,
+      "3D perspective transforms, free",
       "Video export (MP4, WebM, GIF)",
       "No watermarks ever",
       "No signup required",
       "Open source",
     ],
     features: [
-      { name: "Price", studio: "Free forever", competitor: "Freemium ($5+/mo)" },
-      { name: "Backgrounds", studio: "100+ gradients, solids, images", competitor: "Limited free set" },
-      { name: "Device Frames", studio: "Safari, Chrome (light/dark), Arc, Polaroid", competitor: "macOS, Windows" },
-      { name: "3D Effects", studio: "Full perspective transforms", competitor: "Not available" },
-      { name: "Animations", studio: "20+ presets, keyframe editor", competitor: "Not available" },
-      { name: "Video Export", studio: "MP4, WebM, GIF", competitor: "Not available" },
-      { name: "Text Overlays", studio: "25+ fonts, shadows, layers", competitor: "Basic text" },
-      { name: "Image Overlays", studio: "Arrows, stickers, icons", competitor: "Limited" },
-      { name: "Export Resolution", studio: "Up to 5x scale", competitor: "Standard" },
-      { name: "Watermarks", studio: "Never", competitor: "On free tier" },
-      { name: "Signup Required", studio: "No", competitor: "For some features" },
+      { name: "Price", studio: "Free forever", competitor: "Free plan, Pro $13/mo" },
+      { name: "Backgrounds", studio: `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solids, images`, competitor: "Gradients free, images on Pro" },
+      { name: "Device Frames", studio: "iPhone, MacBook, Apple Watch, Safari, Chrome, Arc", competitor: "iPhone, iPad, Pixel, MacBook, browser" },
+      { name: "3D Effects", studio: "Full perspective transforms", competitor: "Tilt on Pro" },
+      { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets, keyframe editor`, competitor: "Not listed" },
+      { name: "Video Export", studio: "MP4, WebM, GIF", competitor: "Not listed" },
+      { name: "Export Resolution", studio: "Up to 5x scale", competitor: "Up to 4K on Pro" },
+      { name: "Signup Required", studio: "No", competitor: "For paid features" },
       { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "No" },
     ],
     verdict:
-      "Screenshot Studio is the stronger choice if you want animations, 3D effects, and video export. Pika Style is simpler but charges for features Screenshot Studio includes for free.",
+      "Pika Style has a larger template library and more device models, including iPad and Pixel. Screenshot Studio is the stronger choice if you want 3D tilt, animation, and video export without paying, since Pika Style puts tilt and background images on its $13/mo Pro plan.",
     faqs: [
       {
         q: "Is Screenshot Studio a good Pika Style alternative?",
-        a: "Yes. Screenshot Studio covers all of Pika Style's core features (backgrounds, shadows, device frames) and adds 3D perspective transforms, an animation timeline with 20+ presets, and video export in MP4, WebM, or GIF. All features are free with no signup.",
+        a: `Yes. Screenshot Studio covers Pika Style's core features (backgrounds, shadows, device and browser frames) and includes 3D tilt, an animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets, and video export in MP4, WebM, or GIF for free, with no signup. Pika Style offers more templates and device models, with tilt and background images on its Pro plan.`,
       },
       {
         q: "Does Pika Style offer animation or video export?",
-        a: "No. Pika Style focuses on static screenshot beautification. Screenshot Studio includes a full animation timeline with keyframe editing, 20+ motion presets, and exports to MP4, WebM, and GIF formats.",
+        a: `Pika Style's site does not list animation or video export. Screenshot Studio includes a keyframe animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} motion presets and exports MP4, WebM, and GIF.`,
       },
       {
         q: "Which tool has more backgrounds?",
-        a: "Screenshot Studio includes 100+ gradient, solid, mesh, and custom backgrounds for free. Pika Style offers a smaller set of free backgrounds with more available on paid plans.",
+        a: `Screenshot Studio includes ${atLeast(PRODUCT_FACTS.backgrounds)} gradient, solid, mesh, and image backgrounds for free. Pika Style includes gradients on the free plan and puts background images on Pro.`,
       },
     ],
   },
@@ -90,10 +106,10 @@ export const comparisons: ComparisonData[] = [
     competitorName: "Shots.so",
     competitorUrl: "https://shots.so",
     tagline:
-      "Get everything Shots.so offers plus animations, 3D effects, and video export, all for free.",
-    metaTitle: "Screenshot Studio vs Shots.so - Free Alternative (2026)",
+      "Shots.so is a polished mockup and animation tool with free and paid plans. Screenshot Studio does the same core jobs with every feature free, no account, and open source code.",
+    metaTitle: "Screenshot Studio vs Shots.so: Free Alternative",
     metaDescription:
-      "Compare Screenshot Studio vs Shots.so. Screenshot Studio adds 3D effects, animation timeline, video export, text overlays, and 100+ backgrounds. Free, no signup.",
+      `Compare Screenshot Studio vs Shots.so. Both make device mockups, 3D shots, and animations; Screenshot Studio is free with no tiers, open source, and adds a code image editor and ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds. No signup.`,
     keywords: [
       "shots.so alternative",
       "shots so alternative free",
@@ -103,46 +119,42 @@ export const comparisons: ComparisonData[] = [
       "shots.so free alternative",
       "shots so competitor",
     ],
-    competitorPricing: "Free tier with limits, Pro from $5/mo",
+    competitorPricing: "Free, Basic, and Pro plans",
     competitorLimitations: [
-      "Limited customization on free tier",
-      "No animation or video export",
-      "No 3D perspective effects",
-      "Limited device frame options",
-      "Some features behind paywall",
+      "Some features and assets reserved for Basic and Pro plans",
+      "Closed source",
+      "No dedicated code to image editor",
     ],
     studioAdvantages: [
-      "All features free, no tiers",
-      "Full animation timeline with 20+ presets",
-      "3D perspective and rotation",
-      "Video export in MP4, WebM, GIF",
-      "Text and image overlay layers",
+      "Every feature free, no tiers",
       "No account needed",
-      "Open source code",
+      "Open source (Apache 2.0)",
+      `Animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets and keyframes`,
+      "Video export in MP4, WebM, GIF",
+      "Built-in code to image editor",
+      "Blur tool for redacting sensitive details",
     ],
     features: [
-      { name: "Price", studio: "Free forever", competitor: "Freemium ($5+/mo)" },
-      { name: "Backgrounds", studio: "100+ options", competitor: "Curated set, more on Pro" },
-      { name: "Device Frames", studio: "Safari, Chrome (light/dark), Arc, Polaroid", competitor: "macOS, browser" },
-      { name: "3D Effects", studio: "Perspective tilt & rotation", competitor: "Not available" },
-      { name: "Animations", studio: "20+ presets, keyframes", competitor: "Not available" },
-      { name: "Video Export", studio: "MP4, WebM, GIF", competitor: "Not available" },
-      { name: "Text Overlays", studio: "25+ fonts, full styling", competitor: "Limited" },
-      { name: "Code Snippets", studio: "Syntax highlighting, themes", competitor: "Not available" },
-      { name: "Export Resolution", studio: "Up to 5x scale", competitor: "Up to 2x" },
-      { name: "Signup Required", studio: "No", competitor: "For Pro features" },
+      { name: "Price", studio: "Free forever", competitor: "Free, Basic, and Pro plans" },
+      { name: "Device Frames", studio: "iPhone, MacBook, Apple Watch, Safari, Chrome, Arc", competitor: "iPhone, Android, iPad, desktop, and more" },
+      { name: "3D Effects", studio: "Perspective tilt & rotation", competitor: "3D shapes and shadow overlays" },
+      { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets, keyframes`, competitor: "Animation presets" },
+      { name: "Video Export", studio: "MP4, WebM, GIF", competitor: "Animated video export" },
+      { name: "Code Snippets", studio: "Code to image editor", competitor: "Not available" },
+      { name: "Export Resolution", studio: "Up to 5x scale", competitor: "Varies by plan" },
+      { name: "Signup Required", studio: "No", competitor: "For paid plans" },
       { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "No" },
     ],
     verdict:
-      "Shots.so is polished for basic screenshot beautification. Screenshot Studio matches that quality and adds animations, 3D effects, video export, and code snippet support at no cost.",
+      "Shots.so is a polished mockup and animation tool with a wider range of device models, including Android and iPad. Screenshot Studio covers the same core jobs with every feature free, no account, and open source code, and adds a code image editor and a blur tool for redaction.",
     faqs: [
       {
         q: "Is Screenshot Studio better than Shots.so?",
-        a: "Screenshot Studio offers everything Shots.so does plus additional capabilities: 3D perspective effects, a full animation timeline with 20+ presets, video export (MP4/WebM/GIF), code snippet beautification, and text/image overlays. All free with no signup.",
+        a: `It depends on what you need. Shots.so has more device models, including Android phones and iPads. Screenshot Studio gives you everything for free with no account: iPhone, MacBook, and Apple Watch mockups, 3D perspective, an animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets, video export in MP4, WebM, or GIF, a code to image editor, and blur for redacting. It is also open source.`,
       },
       {
         q: "Does Shots.so have animation features?",
-        a: "No. Shots.so is a static screenshot editor. Screenshot Studio includes a full animation timeline with keyframe editing and 20+ motion presets like zoom, pan, Ken Burns, and fade effects.",
+        a: `Yes. Shots.so has animation presets for short product videos. Screenshot Studio also animates screenshots, with a keyframe timeline and ${atLeast(PRODUCT_FACTS.animationPresets)} presets, and exports MP4, WebM, or GIF for free.`,
       },
       {
         q: "Can I switch from Shots.so to Screenshot Studio?",
@@ -152,11 +164,13 @@ export const comparisons: ComparisonData[] = [
   },
   {
     slug: "snagit",
+    scopeNote:
+      "Snagit captures your screen and records it. Screenshot Studio does not: it starts from an image you already have. Take the shot with your operating system shortcut (Cmd+Shift+4 on macOS, Win+Shift+S on Windows) or with Snagit itself, then bring the file here for backgrounds, mockups, 3D, and animation. If screen capture and recording are what you need, Snagit is the right tool.",
     competitorName: "Snagit",
     competitorUrl: "https://www.techsmith.com/snagit",
     tagline:
       "A free, browser-based alternative to Snagit for screenshot beautification and sharing.",
-    metaTitle: "Screenshot Studio vs Snagit - Free Browser Alternative (2026)",
+    metaTitle: "Screenshot Studio vs Snagit: Free In-Browser",
     metaDescription:
       "Compare Screenshot Studio vs Snagit. Screenshot Studio is free and runs in your browser with gradient backgrounds, 3D effects, animations, and video export. No download required.",
     keywords: [
@@ -180,9 +194,9 @@ export const comparisons: ComparisonData[] = [
     studioAdvantages: [
       "Free, runs in any browser",
       "No installation needed",
-      "100+ styled backgrounds",
+      `${atLeast(PRODUCT_FACTS.backgrounds)} styled backgrounds`,
       "3D perspective effects",
-      "Animation with 20+ presets",
+      `Animation with ${atLeast(PRODUCT_FACTS.animationPresets)} presets`,
       "Video export (MP4, WebM, GIF)",
       "Works on any OS including Chromebook",
     ],
@@ -191,10 +205,10 @@ export const comparisons: ComparisonData[] = [
       { name: "Platform", studio: "Any browser (web app)", competitor: "Windows, Mac desktop" },
       { name: "Installation", studio: "None required", competitor: "Desktop app download" },
       { name: "Screen Capture", studio: "Via browser or OS tools", competitor: "Built-in capture" },
-      { name: "Backgrounds", studio: "100+ gradients, solids", competitor: "Solid colors only" },
-      { name: "Device Frames", studio: "Safari, Chrome (light/dark), Arc, Polaroid", competitor: "Not available" },
+      { name: "Backgrounds", studio: `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solids`, competitor: "Solid colors only" },
+      { name: "Device Frames", studio: "iPhone, MacBook, Apple Watch, Safari, Chrome, Arc", competitor: "Not available" },
       { name: "3D Effects", studio: "Perspective transforms", competitor: "Not available" },
-      { name: "Animations", studio: "20+ presets, keyframes", competitor: "Basic GIF recording" },
+      { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets, keyframes`, competitor: "Basic GIF recording" },
       { name: "Video Export", studio: "MP4, WebM, GIF from timeline", competitor: "Screen recording only" },
       { name: "Annotations", studio: "Text, arrows, overlays", competitor: "Text, arrows, shapes" },
       { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "No" },
@@ -218,12 +232,14 @@ export const comparisons: ComparisonData[] = [
   },
   {
     slug: "cleanshot-x",
+    scopeNote:
+      "CleanShot X is a macOS capture app: screen recording, scrolling capture, pinned overlays, and a capture hotkey. Screenshot Studio does none of that. It picks up after the capture, turning an existing image into a presentable graphic in any browser on any operating system. If you want the capture workflow itself, and you are on a Mac, CleanShot X is the right tool.",
     competitorName: "CleanShot X",
     competitorUrl: "https://cleanshot.com",
     tagline:
       "A free, cross-platform alternative to CleanShot X that runs in your browser.",
     metaTitle:
-      "Screenshot Studio vs CleanShot X - Free Cross-Platform Alternative (2026)",
+      "Screenshot Studio vs CleanShot X: Free Alternative",
     metaDescription:
       "Compare Screenshot Studio vs CleanShot X. Screenshot Studio is free, cross-platform, and adds gradient backgrounds, 3D effects, animations, and video export. No macOS required.",
     keywords: [
@@ -247,7 +263,7 @@ export const comparisons: ComparisonData[] = [
     studioAdvantages: [
       "Free, works on any OS",
       "Runs in browser (no install)",
-      "100+ gradient backgrounds",
+      `${atLeast(PRODUCT_FACTS.backgrounds)} gradient backgrounds`,
       "3D perspective effects",
       "Full animation timeline",
       "Video export (MP4, WebM, GIF)",
@@ -257,10 +273,10 @@ export const comparisons: ComparisonData[] = [
       { name: "Price", studio: "Free forever", competitor: "$29+ one-time" },
       { name: "Platform", studio: "Any browser", competitor: "macOS only" },
       { name: "Screen Capture", studio: "Via browser/OS tools", competitor: "Built-in (excellent)" },
-      { name: "Background Styling", studio: "100+ gradients, images", competitor: "Basic solid backgrounds" },
-      { name: "Device Frames", studio: "Safari, Chrome (light/dark), Arc, Polaroid", competitor: "Not available" },
+      { name: "Background Styling", studio: `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, images`, competitor: "Basic solid backgrounds" },
+      { name: "Device Frames", studio: "iPhone, MacBook, Apple Watch, Safari, Chrome, Arc", competitor: "Not available" },
       { name: "3D Effects", studio: "Full perspective transforms", competitor: "Not available" },
-      { name: "Animations", studio: "20+ presets, keyframes", competitor: "Not available" },
+      { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets, keyframes`, competitor: "Not available" },
       { name: "Video Export", studio: "MP4, WebM, GIF", competitor: "Screen recording" },
       { name: "Cloud Storage", studio: "Local (privacy-first)", competitor: "CleanShot Cloud" },
       { name: "Annotations", studio: "Text, arrows, overlays", competitor: "Text, arrows, shapes, blur" },
@@ -279,19 +295,19 @@ export const comparisons: ComparisonData[] = [
       },
       {
         q: "Does CleanShot X have animation features?",
-        a: "No. CleanShot X focuses on screen capture and basic annotation. Screenshot Studio provides a full animation timeline with 20+ presets and exports animations as MP4, WebM, or GIF.",
+        a: `No. CleanShot X focuses on screen capture and basic annotation. Screenshot Studio provides a full animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets and exports animations as MP4, WebM, or GIF.`,
       },
     ],
   },
   {
     slug: "screely",
     competitorName: "Screely",
-    competitorUrl: "https://screely.com",
+    competitorUrl: "https://screely.app",
     tagline:
       "More backgrounds, effects, and export options than Screely, all free.",
-    metaTitle: "Screenshot Studio vs Screely - More Features, Still Free (2026)",
+    metaTitle: "Screenshot Studio vs Screely: More Features, Free",
     metaDescription:
-      "Compare Screenshot Studio vs Screely. Both are free screenshot editors, but Screenshot Studio adds 3D effects, animations, video export, device frames, and 100+ backgrounds.",
+      `Compare Screenshot Studio vs Screely. Both are free screenshot editors, but Screenshot Studio adds 3D effects, animations, video export, device frames, and ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds.`,
     keywords: [
       "screely alternative",
       "screely vs screenshot studio",
@@ -303,46 +319,293 @@ export const comparisons: ComparisonData[] = [
     competitorPricing: "Free",
     competitorLimitations: [
       "Limited background options",
-      "No device frames",
+      "macOS and Windows window frames only, no device mockups",
       "No 3D effects",
-      "No animations or video",
+      "No animation timeline (tab recording via Chrome extension only)",
       "No text overlays",
       "Basic shadow options only",
     ],
     studioAdvantages: [
-      "100+ backgrounds (gradients, images, mesh)",
-      "Device frames (macOS, Windows, Arc, Polaroid)",
+      `${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds (gradients, images, mesh)`,
+      "iPhone, MacBook, and Apple Watch mockups plus window frames",
       "3D perspective transforms",
-      "Animation timeline with 20+ presets",
+      `Animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets`,
       "Video export (MP4, WebM, GIF)",
       "Text and image overlay layers",
       "High-res export up to 5x",
     ],
     features: [
       { name: "Price", studio: "Free forever", competitor: "Free" },
-      { name: "Backgrounds", studio: "100+ gradients, solids, images", competitor: "Solid colors" },
-      { name: "Device Frames", studio: "Safari, Chrome (light/dark), Arc, Polaroid", competitor: "Browser frame only" },
+      { name: "Backgrounds", studio: `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solids, images`, competitor: "Solid colors" },
+      { name: "Device Frames", studio: "iPhone, MacBook, Apple Watch, Safari, Chrome, Arc", competitor: "macOS and Windows windows" },
       { name: "Shadows", studio: "Blur, spread, offset, color", competitor: "Basic drop shadow" },
       { name: "3D Effects", studio: "Perspective tilt & rotation", competitor: "Not available" },
-      { name: "Animations", studio: "20+ presets, keyframes", competitor: "Not available" },
-      { name: "Video Export", studio: "MP4, WebM, GIF", competitor: "Not available" },
-      { name: "Text Overlays", studio: "25+ fonts, shadows", competitor: "Not available" },
-      { name: "Export Resolution", studio: "Up to 5x scale", competitor: "Standard" },
-      { name: "Undo/Redo", studio: "Unlimited history", competitor: "Not available" },
+      { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets, keyframes`, competitor: "Not available" },
+      { name: "Video Export", studio: "MP4, WebM, GIF", competitor: "Tab recording (Chrome extension)" },
+      { name: "Text Overlays", studio: `${atLeast(PRODUCT_FACTS.fonts)} fonts, shadows`, competitor: "Not available" },
+      { name: "Export", studio: "PNG, JPEG, WebP up to 5x", competitor: "High-resolution PNG or PDF" },
       { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "No" },
     ],
     verdict:
-      "Screely is a simple tool for adding a window frame to screenshots. Screenshot Studio does everything Screely does and much more: 100+ backgrounds, 3D effects, animations, video export, and device frames.",
+      `Screely is a simple tool for adding a window frame to screenshots. Screenshot Studio does everything Screely does and much more: ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, 3D effects, animations, video export, and device frames.`,
     faqs: [
       {
         q: "How does Screenshot Studio compare to Screely?",
-        a: "Screenshot Studio covers all of Screely's features and adds significantly more: 100+ gradient backgrounds, multiple device frames (macOS, Windows, Arc), 3D perspective transforms, animation timeline, video export, text overlays, and high-res export up to 5x.",
+        a: `Screenshot Studio covers Screely's screenshot styling and adds much more: ${atLeast(PRODUCT_FACTS.backgrounds)} gradient backgrounds, multiple device frames (macOS, Windows, Arc), 3D perspective transforms, animation timeline, video export, text overlays, and high-res export up to 5x.`,
       },
       {
         q: "Is Screely or Screenshot Studio better for developers?",
-        a: "Screenshot Studio is the better choice for developers. It offers code snippet beautification, terminal window frames, 3D perspective mockups for portfolio images, and animation export for demo videos, none of which Screely provides.",
+        a: "Screenshot Studio is the better choice for most developer visuals. It offers a code to image editor, 3D perspective mockups for portfolio images, and animated MP4, WebM, or GIF exports. Screely is simpler and its Chrome extension records tab demos, which Screenshot Studio does not.",
       },
     ],
+  },
+  {
+    slug: "carbon",
+    competitorName: "Carbon",
+    competitorUrl: "https://carbon.now.sh",
+    tagline:
+      "Carbon has more syntax themes and SVG export. Screenshot Studio adds gradient and pattern backgrounds, transparent PNGs, and a full screenshot and mockup editor for everything else.",
+    metaTitle: "Screenshot Studio vs Carbon: Free Code to Image",
+    metaDescription:
+      "Compare Screenshot Studio vs Carbon for code screenshots. Carbon has more themes and SVG export; Screenshot Studio adds gradient backgrounds, then browser mockups, 3D effects, and video in its main editor. Free, no signup.",
+    keywords: [
+      "carbon alternative",
+      "carbon.now.sh alternative",
+      "carbon code screenshot alternative",
+      "code to image tool",
+      "code snippet screenshot generator",
+      "screenshot studio vs carbon",
+      "beautiful code screenshots",
+    ],
+    competitorPricing: "Free",
+    competitorLimitations: [
+      "Code only, no screenshot or mockup editing",
+      "No gradient background presets",
+      "No 3D perspective or animations",
+      "PNG and SVG export only",
+      "No browser or device frames",
+    ],
+    studioAdvantages: [
+      "Gradient, image, and pattern backgrounds, or a transparent PNG",
+      "Code images plus screenshot and mockup editing in one tool",
+      "Shareable links that reopen your exact design",
+      "Open the PNG in the main editor for browser frames, 3D, and animation",
+      "Video export (MP4, WebM, GIF) from the main editor",
+      "No signup, no watermarks",
+      "Open source",
+    ],
+    features: [
+      { name: "Price", studio: "Free forever", competitor: "Free" },
+      { name: "Syntax Themes", studio: `${PRODUCT_FACTS.codeThemes}`, competitor: "29" },
+      { name: "Backgrounds", studio: "Theme gradients, gradient presets, images, patterns", competitor: "Any color or your own image" },
+      { name: "Screenshot Editing", studio: "Full editor", competitor: "Not available" },
+      { name: "Device Frames", studio: "macOS title bar; Safari, Chrome, Arc in the main editor", competitor: "macOS-style window only" },
+      { name: "3D Effects", studio: "In the main editor", competitor: "Not available" },
+      { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets in the main editor`, competitor: "Not available" },
+      { name: "Video Export", studio: "MP4, WebM, GIF from the main editor", competitor: "Not available" },
+      { name: "Image Export", studio: "PNG at 2x or 4x", competitor: "PNG, SVG" },
+      { name: "Signup Required", studio: "No", competitor: "No" },
+      { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "Yes (MIT)" },
+    ],
+    verdict:
+      "Carbon is the more established single-purpose code image tool, with more themes (29) and SVG export. Pick Screenshot Studio if you want gradient or image backgrounds and a main editor that frames, tilts, and animates the result.",
+    faqs: [
+      {
+        q: "Is Screenshot Studio a good Carbon alternative?",
+        a: `Yes, for most uses. Screenshot Studio makes code images with ${PRODUCT_FACTS.codeThemes} syntax themes, line numbers, a macOS title bar, gradient and image backgrounds, and transparent export. Carbon has more themes (29) and SVG export. Screenshot Studio's main editor adds browser mockups, 3D transforms, animations, and video export. Both are free with no signup.`,
+      },
+      {
+        q: "Can I export code images as video?",
+        a: "Yes. Export the code image as a PNG, open it in the Screenshot Studio editor, add an animation preset, and export MP4, WebM, or GIF. Carbon exports static PNG and SVG only.",
+      },
+    ],
+  },
+  {
+    slug: "ray-so",
+    competitorName: "Ray.so",
+    competitorUrl: "https://ray.so",
+    tagline:
+      "Ray.so has more themes. Screenshot Studio adds image and pattern backgrounds plus a full screenshot and mockup editor for frames, 3D, and video.",
+    metaTitle: "Screenshot Studio vs Ray.so: Free Code Images",
+    metaDescription:
+      "Compare Screenshot Studio vs Ray.so for code screenshots. Ray.so has more themes; Screenshot Studio adds image and pattern backgrounds, then browser mockups, 3D effects, animations, and video in its main editor. Free, no signup.",
+    keywords: [
+      "ray.so alternative",
+      "ray so alternative",
+      "ray.so vs screenshot studio",
+      "code screenshot tool",
+      "code to image generator",
+      "raycast code image alternative",
+      "code snippet to image",
+    ],
+    competitorPricing: "Free",
+    competitorLimitations: [
+      "Code only, no screenshot editing",
+      "Fixed set of gradient themes",
+      "No browser or device frames",
+      "No 3D effects or animations",
+      "Static image export only",
+    ],
+    studioAdvantages: [
+      "Gradient, image, and pattern backgrounds",
+      "Screenshot and mockup editor in the same tool",
+      "Browser frames and device mockups in the main editor",
+      "3D perspective transforms and animations in the main editor",
+      "Video export (MP4, WebM, GIF)",
+      "No signup, no watermarks",
+      "Open source",
+    ],
+    features: [
+      { name: "Price", studio: "Free forever", competitor: "Free" },
+      { name: "Syntax Themes", studio: `${PRODUCT_FACTS.codeThemes}`, competitor: "About 20" },
+      { name: "Backgrounds", studio: "Theme gradients, gradient presets, images, patterns", competitor: "Theme gradients" },
+      { name: "Screenshot Editing", studio: "Full editor", competitor: "Not available" },
+      { name: "Device Frames", studio: "macOS title bar; Safari, Chrome, Arc in the main editor", competitor: "Not available" },
+      { name: "3D Effects", studio: "In the main editor", competitor: "Not available" },
+      { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets in the main editor`, competitor: "Not available" },
+      { name: "Video Export", studio: "MP4, WebM, GIF from the main editor", competitor: "Not available" },
+      { name: "Image Export", studio: "PNG at 2x or 4x", competitor: "PNG, SVG" },
+      { name: "Signup Required", studio: "No", competitor: "No" },
+      { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "Yes (MIT)" },
+    ],
+    verdict:
+      "Ray.so is fast and pretty for a quick code snippet and has more themes. Screenshot Studio covers the same job and, through its main editor, adds frames, 3D effects, animations, and video export, all free.",
+    faqs: [
+      {
+        q: "Is Screenshot Studio a good Ray.so alternative?",
+        a: `Yes. Screenshot Studio produces clean code images with ${PRODUCT_FACTS.codeThemes} themes, gradient, image, and pattern backgrounds, and transparent export, and its main editor adds browser mockups, 3D perspective, animations, and video export. It is free, open source, and needs no signup.`,
+      },
+      {
+        q: "Does Ray.so support browser mockups or animations?",
+        a: "No. Ray.so exports static code images only. With Screenshot Studio you can open the code PNG in the main editor, put it in a Safari, Chrome, or macOS frame, tilt it in 3D, animate it, and export as MP4, WebM, or GIF.",
+      },
+    ],
+  },
+  {
+    slug: "xnapper",
+    scopeNote:
+      "Xnapper captures the screen and cleans the result up, including automatic text redaction. Screenshot Studio starts from an image you already have: it has no capture step and no automatic redaction, only a manual blur tool. Use your operating system capture shortcut first, then bring the file here for backgrounds, mockups, 3D, and animation.",
+    competitorName: "Xnapper",
+    competitorUrl: "https://xnapper.com",
+    tagline:
+      "Screenshot Studio gives you Xnapper-style beautified screenshots in the browser, on any OS, with 3D effects, animations, and video export at no cost.",
+    metaTitle: "Screenshot Studio vs Xnapper: Free Online",
+    metaDescription:
+      `Compare Screenshot Studio vs Xnapper. Xnapper is a paid macOS app; Screenshot Studio runs free in any browser with ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, browser mockups, 3D effects, animations, and video export.`,
+    keywords: [
+      "xnapper alternative",
+      "xnapper free alternative",
+      "xnapper for windows",
+      "xnapper vs screenshot studio",
+      "screenshot beautifier app alternative",
+      "xnapper online alternative",
+      "beautiful screenshots mac windows",
+    ],
+    competitorPricing: "One-time purchase from $29.99, macOS only",
+    competitorLimitations: [
+      "macOS only, requires install",
+      "Paid license required",
+      "No 3D perspective effects",
+      "No animations or video export",
+      "Limited device frame options",
+    ],
+    studioAdvantages: [
+      "Runs in any browser on macOS, Windows, and Linux",
+      "Free forever, no license",
+      `${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds and browser mockups`,
+      "3D perspective transforms",
+      "Animation timeline and video export",
+      "No signup, no watermarks",
+      "Open source",
+    ],
+    features: [
+      { name: "Price", studio: "Free forever", competitor: "$29.99+ one-time" },
+      { name: "Platform", studio: "Any browser", competitor: "macOS app" },
+      { name: "Backgrounds", studio: `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solids, images`, competitor: "Gradients and wallpapers" },
+      { name: "Device Frames", studio: "Safari, Chrome, Arc, Polaroid, macOS window", competitor: "macOS window" },
+      { name: "Screen Capture", studio: "Upload or paste", competitor: "Built-in capture" },
+      { name: "3D Effects", studio: "Full perspective transforms", competitor: "Not available" },
+      { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets, keyframe editor`, competitor: "Not available" },
+      { name: "Video Export", studio: "MP4, WebM, GIF", competitor: "Not available" },
+      { name: "Export Resolution", studio: "Up to 5x scale", competitor: "Retina" },
+      { name: "Signup Required", studio: "No", competitor: "License key" },
+      { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "No" },
+    ],
+    verdict:
+      "Xnapper is a good native macOS capture tool if you want to pay for it. Screenshot Studio delivers the same beautified result for free in the browser, on any OS, and adds 3D, animation, and video export.",
+    faqs: [
+      {
+        q: "Is there a free alternative to Xnapper?",
+        a: "Yes. Screenshot Studio is a free, open-source alternative to Xnapper that runs in your browser. It adds backgrounds, shadows, browser mockups, 3D effects, and animations to any screenshot with no signup and no watermark.",
+      },
+      {
+        q: "Does Xnapper work on Windows?",
+        a: "No. Xnapper is macOS only. Screenshot Studio works in any modern browser on Windows, macOS, Linux, and ChromeOS, so you get the same beautified screenshots without installing anything.",
+      },
+    ],
+  },
+  {
+    slug: "remove-bg",
+    competitorName: "remove.bg",
+    competitorUrl: "https://www.remove.bg",
+    tagline:
+      "Screenshot Studio removes backgrounds on your own device and gives you the full-resolution PNG for free, with no upload and no credits.",
+    metaTitle: "Screenshot Studio vs remove.bg: Free, No Upload",
+    metaDescription:
+      "Screenshot Studio vs remove.bg: remove backgrounds on your device and download full-resolution transparent PNGs free. No upload, no credits, no signup.",
+    keywords: [
+      "remove.bg alternative",
+      "remove bg alternative free",
+      "remove.bg free alternative",
+      "screenshot studio vs remove.bg",
+      "remove.bg alternative no upload",
+      "remove.bg full resolution free",
+      "remove.bg moving to canva alternative",
+      "private background remover",
+    ],
+    competitorPricing: "Free previews up to 0.25 MP; 1 credit per high-resolution image",
+    competitorLimitations: [
+      "Free downloads are previews of up to 0.25 megapixels",
+      "Each high-resolution download uses a paid credit",
+      "Images are processed on remote servers",
+      "Standalone site is being migrated into Canva",
+    ],
+    studioAdvantages: [
+      "Full-resolution transparent PNG for free",
+      "Runs on your device, the image is never uploaded",
+      "Works offline once the model is cached",
+      "No credits, signup, or watermark",
+      "Crisp and soft edge styles with a comparison slider",
+      "Open source",
+    ],
+    features: [
+      { name: "Price", studio: "Free forever", competitor: "Free previews, credits for HD" },
+      { name: "Free Output Resolution", studio: "Original resolution", competitor: "Up to 0.25 MP preview" },
+      { name: "Maximum Resolution", studio: "Original image, up to 50 MB file", competitor: "Up to 50 MP with credits" },
+      { name: "Where Processing Happens", studio: "On your device", competitor: "remove.bg servers" },
+      { name: "Image Upload", studio: "Never", competitor: "Required" },
+      { name: "Works Offline", studio: "Yes, after first load", competitor: "Not available" },
+      { name: "API and Apps", studio: "Not available", competitor: "Yes, credit based" },
+      { name: "Screenshot and Mockup Editor", studio: "Included", competitor: "Not available" },
+      { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "No" },
+    ],
+    verdict:
+      "remove.bg is a mature service with apps, an API, and server-side models that handle difficult hair detail well, but free downloads are low-resolution previews. Screenshot Studio is the better fit when you want full-resolution cutouts for free, or when a photo should never leave your device.",
+    faqs: [
+      {
+        q: "Is Screenshot Studio a good remove.bg alternative?",
+        a: "Yes, for everyday cutouts. Screenshot Studio removes backgrounds with an AI model that runs in your browser and returns a transparent PNG at the original resolution for free. remove.bg's free downloads are previews of up to 0.25 megapixels, and high-resolution downloads use credits.",
+      },
+      {
+        q: "Does Screenshot Studio upload my image?",
+        a: "No. The image is processed on your device. The only network request is a one-time download of the model weights from Hugging Face, which contains no image data. remove.bg processes images on its own servers.",
+      },
+      {
+        q: "When should I still use remove.bg?",
+        a: "When you need an API or its apps, or the best possible detail on hard cases like fine hair against a busy background. Its server-side models are not limited by what a browser can run.",
+      },
+    ],
+    cta: { href: "/remove-background", label: "Remove a Background Free" },
   },
 ];
 
@@ -352,4 +615,14 @@ export function getComparison(slug: string): ComparisonData | undefined {
 
 export function getAllComparisonSlugs(): string[] {
   return comparisons.map((c) => c.slug);
+}
+
+/** Sourcing line shown under every competitor claim, so no price is asserted unattributed. */
+export function claimsNote(comparison: ComparisonData): string {
+  return `${comparison.competitorName} pricing and feature details checked on ${CLAIMS_CHECKED_LABEL} against ${comparison.competitorUrl}. Third-party plans change without notice, so confirm current pricing on their site before deciding.`;
+}
+
+/** SERP title: the brand already opens the `vs` construction, so no suffix, and the year is never hardcoded. */
+export function getComparisonTitle(comparison: ComparisonData): string {
+  return `${comparison.metaTitle} (${new Date().getFullYear()})`;
 }

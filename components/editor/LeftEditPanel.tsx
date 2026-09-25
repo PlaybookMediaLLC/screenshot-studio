@@ -1,15 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { PresetGallery } from "@/components/presets/PresetGallery";
 import {
   SlidersHorizontalIcon,
   ColorsIcon,
-  MagicWand01Icon,
-  Cancel01Icon,
   LayersLogoIcon,
   Image01Icon,
   Globe02Icon,
+  SmartPhone01Icon,
 } from "hugeicons-react";
 import {
   StyleSection,
@@ -17,15 +15,13 @@ import {
   ShadowSection,
   BackgroundSection,
   DepthSection,
-  TweetImportSection,
-  CodeSnippetSection,
   ImageOverlaySection,
   AnnotateSection,
   TextSection,
   SettingsSection,
   BrowserMockupSection,
+  DeviceFramesSection,
 } from "./sections";
-import { cn } from "@/lib/utils";
 import { useImageStore } from "@/lib/store";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 
@@ -44,13 +40,13 @@ function ModeSegmentedControl(): React.JSX.Element {
   return (
     <SegmentedControl
       value={editorMode}
-      onChange={(id) => setEditorMode(id as "screenshot" | "browser")}
+      onChange={(id) => setEditorMode(id as "screenshot" | "browser" | "device")}
       options={[
         {
           id: "screenshot",
-          label: "Screenshot",
+          label: "Image",
           icon: <Image01Icon size={14} />,
-          ariaLabel: "Screenshot",
+          ariaLabel: "Image",
         },
         {
           id: "browser",
@@ -58,14 +54,18 @@ function ModeSegmentedControl(): React.JSX.Element {
           icon: <Globe02Icon size={14} />,
           ariaLabel: "Browser",
         },
+        {
+          id: "device",
+          label: "Device",
+          icon: <SmartPhone01Icon size={14} />,
+          ariaLabel: "Device",
+        },
       ]}
     />
   );
 }
 
 export function LeftEditPanel() {
-  const templatesOpen = useImageStore((s) => s.showTemplates);
-  const setTemplatesOpen = useImageStore((s) => s.setShowTemplates);
   const editorMode = useImageStore((s) => s.editorMode);
   const [activeTab, setActiveTab] = React.useState<LeftTabType>("edit");
 
@@ -82,15 +82,6 @@ export function LeftEditPanel() {
       return () => clearTimeout(timeout);
     }
   }, [activeTab, contentKey]);
-
-  React.useEffect(() => {
-    if (!templatesOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setTemplatesOpen(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [templatesOpen, setTemplatesOpen]);
 
   return (
     <div className="w-[260px] h-full bg-background flex flex-col overflow-hidden border-r border-foreground/10 relative shrink-0">
@@ -113,7 +104,7 @@ export function LeftEditPanel() {
 
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         <div
-          className="p-4 transition-all duration-150 ease-out"
+          className="p-4 transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none"
           style={{
             opacity: transitioning ? 0 : 1,
             transform: transitioning ? "translateY(4px)" : "translateY(0)",
@@ -121,7 +112,9 @@ export function LeftEditPanel() {
         >
           {contentKey === "edit" && (
             <div className="space-y-1">
-              {editorMode === "browser" ? (
+              {editorMode === "device" ? (
+                <DeviceFramesSection />
+              ) : editorMode === "browser" ? (
                 <BrowserMockupSection />
               ) : (
                 <>
@@ -129,13 +122,15 @@ export function LeftEditPanel() {
                   <BorderSection />
                 </>
               )}
-              <ShadowSection />
-              <TweetImportSection />
-              <CodeSnippetSection />
-              <ImageOverlaySection />
-              <AnnotateSection />
-              <TextSection />
-              <SettingsSection />
+              {editorMode !== "device" ? (
+                <>
+                  <ShadowSection />
+                  <ImageOverlaySection />
+                  <AnnotateSection />
+                  <TextSection />
+                  <SettingsSection />
+                </>
+              ) : null}
             </div>
           )}
 
@@ -149,32 +144,6 @@ export function LeftEditPanel() {
         </div>
       </div>
 
-      <div
-        className={cn(
-          "absolute inset-0 z-50 bg-background flex flex-col transition-all duration-300 ease-out",
-          templatesOpen
-            ? "translate-x-0 opacity-100"
-            : "-translate-x-full opacity-0 pointer-events-none",
-        )}
-      >
-        <div className="flex items-center justify-between px-3 py-3 border-b border-foreground/10 shrink-0">
-          <div className="flex items-center gap-2">
-            <MagicWand01Icon size={16} className="text-foreground" />
-            <h2 className="text-sm font-semibold text-foreground">Templates</h2>
-          </div>
-          <button
-            onClick={() => setTemplatesOpen(false)}
-            className="flex items-center justify-center w-7 h-7 rounded-md hover:bg-foreground/[0.06] transition-colors duration-150 text-muted-foreground hover:text-foreground cursor-pointer"
-          >
-            <Cancel01Icon size={16} />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
-          <div className="p-3">
-            <PresetGallery />
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

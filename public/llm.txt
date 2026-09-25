@@ -17,9 +17,12 @@ Screenshot Studio is a free, open-source, browser-based screenshot editor that t
 - **Templates & Presets** — One-click professional styling
 
 ## Pages
-- Editor: https://www.screenshot-studio.com/
+- Start (choose a tool): https://www.screenshot-studio.com/
+- Screenshot Editor: https://www.screenshot-studio.com/editor
 - Landing: https://www.screenshot-studio.com/landing
 - Free Screenshot Editor: https://www.screenshot-studio.com/free-screenshot-editor
+- Mockup Generator: https://www.screenshot-studio.com/mockup-generator
+- Code to Image: https://www.screenshot-studio.com/code
 - Features: https://www.screenshot-studio.com/features
 - Screenshot Beautifier: https://www.screenshot-studio.com/features/screenshot-beautifier
 - Social Media Graphics: https://www.screenshot-studio.com/features/social-media-graphics
@@ -32,6 +35,11 @@ Screenshot Studio is a free, open-source, browser-based screenshot editor that t
 - vs Pika Style: https://www.screenshot-studio.com/compare/pika-style
 - vs Shots.so: https://www.screenshot-studio.com/compare/shots-so
 - vs Snagit: https://www.screenshot-studio.com/compare/snagit
+- Guides: https://www.screenshot-studio.com/guides
+- Best Free Screenshot Mockup Generators: https://www.screenshot-studio.com/guides/best-free-screenshot-mockup-generators
+- Best Free Screenshot Editors With No Watermark: https://www.screenshot-studio.com/guides/best-free-screenshot-editors-no-watermark
+- Best Code to Image Tools: https://www.screenshot-studio.com/guides/best-code-to-image-tools
+- Best Free Shots.so Alternatives: https://www.screenshot-studio.com/guides/best-free-shots-so-alternatives
 - API Documentation: https://www.screenshot-studio.com/docs
 - API Authentication: https://www.screenshot-studio.com/docs/authentication
 - Developer Portal: https://www.screenshot-studio.com/developers

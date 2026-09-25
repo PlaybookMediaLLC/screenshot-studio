@@ -1,50 +1,363 @@
 import type { Metadata } from "next";
-import { EditorLayout } from "@/components/editor/EditorLayout";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AgentSummary } from "@/components/seo/AgentSummary";
+import Link from "next/link";
+import { ArrowRight01Icon } from "hugeicons-react";
+import { Navigation } from "@/components/landing/Navigation";
+import { Footer } from "@/components/landing/Footer";
+import { CODE_THEME_SOURCES } from "@/components/code-image/code-themes-data";
+import { gradientColors } from "@/lib/constants/gradient-colors";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
+import { TOOLS_HUB_PATH } from "@/lib/seo/tools";
+import { cn } from "@/lib/utils";
+
+const DESCRIPTION =
+  "Free browser editors for screenshots, code images, tweet images, and App Store screenshots, plus image tools that compress, convert, and resize without uploading. No signup, no watermark.";
 
 export const metadata: Metadata = {
-  title: "Screenshot Studio - Free Screenshot Editor & Mockup Maker",
-  description:
-    "Free screenshot editor and mockup maker online — add gradient backgrounds, Safari and Chrome browser mockups, shadows, 3D effects, and animations to your screenshots. Import tweets and generate code snippets as images. Better free alternative to Pika Style and Shots.so. Export as PNG, JPG, or video. No signup needed.",
-  keywords: [
-    "screenshot editor online free",
-    "free screenshot editor",
-    "online image editor",
-    "screenshot beautifier online",
-    "screenshot mockup tool",
-    "pika style alternative",
-    "shots.so alternative",
-    "browser mockup generator",
-    "safari browser mockup",
-    "chrome browser mockup",
-    "browser frame screenshot",
-    "screenshot wrapper tool",
-    "add background to screenshot free",
-    "tweet to screenshot",
-    "code snippet screenshot",
-    "code to image generator",
-  ],
+  title: "Free Screenshot Editor & Image Tools",
+  description: DESCRIPTION,
   alternates: {
     canonical: "/",
   },
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Screenshot Studio - Free Screenshot Editor & Mockup Maker",
-    description:
-      "Free screenshot editor online — add backgrounds, shadows, 3D effects, and animations. Export as PNG, JPG, or video.",
+    title: "Screenshot Studio - Free Screenshot Editor & Image Tools",
+    description: DESCRIPTION,
     url: "/",
   },
 };
 
-export default async function EditorPage() {
+const INTER =
+  "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+
+const CODE_THEME =
+  CODE_THEME_SOURCES.find((theme) => theme.id === "midnight") ??
+  CODE_THEME_SOURCES[0];
+const SYNTAX = CODE_THEME.dark;
+
+const CODE_LINES: [string, string | undefined][][] = [
+  [
+    ["async function ", SYNTAX.keyword],
+    ["fetchUser", SYNTAX.function],
+    ["(", SYNTAX.punctuation],
+    ["id", SYNTAX.parameter],
+    [") {", SYNTAX.punctuation],
+  ],
+  [
+    ["  const ", SYNTAX.keyword],
+    ["res ", SYNTAX.foreground],
+    ["= ", SYNTAX.punctuation],
+    ["await ", SYNTAX.keyword],
+    ["fetch", SYNTAX.function],
+    ["(", SYNTAX.punctuation],
+    ["url", SYNTAX.foreground],
+    [");", SYNTAX.punctuation],
+  ],
+  [
+    ["  return ", SYNTAX.keyword],
+    ["res", SYNTAX.foreground],
+    [".", SYNTAX.punctuation],
+    ["json", SYNTAX.function],
+    ["();", SYNTAX.punctuation],
+  ],
+  [["}", SYNTAX.punctuation]],
+];
+
+const STORE_HEADLINES = ["Plan your week", "Stay on track", "Share progress"];
+
+function WindowDots(): React.JSX.Element {
   return (
-    <>
-      <AgentSummary />
-      <ErrorBoundary>
-        <EditorLayout />
-      </ErrorBoundary>
-    </>
+    <div className="flex gap-1.5">
+      <span className="size-2 rounded-full bg-[#ff5f57]" />
+      <span className="size-2 rounded-full bg-[#febc2e]" />
+      <span className="size-2 rounded-full bg-[#28c840]" />
+    </div>
+  );
+}
+
+function ScreenshotPreview(): React.JSX.Element {
+  return (
+    <div
+      className="flex h-full items-center justify-center [perspective:1200px]"
+      style={{ background: gradientColors.orange_pink_dark }}
+    >
+      <div className="w-[70%] max-w-[300px] overflow-hidden rounded-lg bg-white shadow-[0_30px_60px_-20px_rgba(0,0,0,0.55)] transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] [transform:rotateX(12deg)_rotateY(-18deg)_rotateZ(3deg)] group-hover:[transform:none] motion-reduce:transition-none">
+        <div className="flex items-center gap-3 border-b border-black/[0.06] bg-neutral-100 px-3 py-2">
+          <WindowDots />
+          <span className="h-3 flex-1 rounded bg-black/[0.06]" />
+        </div>
+        <div className="space-y-2 p-4">
+          <div className="h-2 w-12 rounded-full bg-neutral-300" />
+          <div className="h-3 w-4/5 rounded bg-neutral-800" />
+          <div className="h-3 w-1/2 rounded bg-neutral-800" />
+          <div className="h-4 w-16 rounded bg-neutral-900" />
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            <div className="aspect-video rounded bg-neutral-100" />
+            <div className="aspect-video rounded bg-neutral-100" />
+            <div className="aspect-video rounded bg-neutral-100" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CodePreview(): React.JSX.Element {
+  return (
+    <div
+      className="flex h-full items-center justify-center p-6"
+      style={{
+        background: `linear-gradient(140deg, ${CODE_THEME.from}, ${CODE_THEME.to})`,
+      }}
+    >
+      <div className="rounded-lg bg-black/75 p-4 pr-6 shadow-[0_24px_48px_-16px_rgba(0,0,0,0.6)] ring-1 ring-white/10 transition-transform duration-500 ease-out group-hover:-translate-y-1 motion-reduce:transition-none">
+        <WindowDots />
+        <pre className="mt-3 font-[family-name:var(--font-geist-mono)] text-[11px] leading-[18px]">
+          {CODE_LINES.map((line, lineIndex) => (
+            <div key={lineIndex} className="whitespace-pre">
+              <span
+                className="mr-3 inline-block w-2 text-right"
+                style={{ color: SYNTAX.comment }}
+              >
+                {lineIndex + 1}
+              </span>
+              {line.map(([text, color], tokenIndex) => (
+                <span key={tokenIndex} style={{ color }}>
+                  {text}
+                </span>
+              ))}
+            </div>
+          ))}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+function TweetPreview(): React.JSX.Element {
+  return (
+    <div
+      className="flex h-full items-center justify-center p-6"
+      style={{ background: "linear-gradient(140deg, #8ec5fc, #4f46e5)" }}
+    >
+      <div
+        className="w-[78%] max-w-[300px] rounded-xl bg-white p-4 shadow-[0_24px_48px_-16px_rgba(0,0,0,0.45)] transition-transform duration-500 ease-out group-hover:-translate-y-1 motion-reduce:transition-none"
+        style={{ fontFamily: INTER }}
+      >
+        <div className="flex items-center gap-2.5">
+          <div
+            className="size-8 shrink-0 rounded-full"
+            style={{ background: gradientColors.orange_pink_dark }}
+          />
+          <div className="min-w-0 flex-1 text-[11px] leading-4">
+            <p className="font-semibold text-neutral-900">Screenshot Studio</p>
+            <p className="text-neutral-500">@screenshotstdio</p>
+          </div>
+          <span className="text-sm font-bold text-neutral-900">𝕏</span>
+        </div>
+        <p className="mt-3 text-[12px] leading-[18px] text-neutral-900">
+          Paste a post link and get a clean image back. Light or dark, any
+          background.
+        </p>
+        <div className="mt-3 flex gap-4 border-t border-black/[0.06] pt-2.5 text-[10px] text-neutral-500">
+          <span>1.2K likes</span>
+          <span>96 replies</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StorePreview(): React.JSX.Element {
+  return (
+    <div
+      className="flex h-full items-end justify-center gap-3 overflow-hidden px-6"
+      style={{ background: gradientColors.store_raycast }}
+    >
+      {STORE_HEADLINES.map((headline, index) => (
+        <div
+          key={headline}
+          className={cn(
+            "-mb-6 flex w-[72px] flex-col items-center gap-2 transition-transform duration-500 ease-out motion-reduce:transition-none",
+            index === 1
+              ? "-translate-y-3 group-hover:-translate-y-5"
+              : "group-hover:-translate-y-1",
+          )}
+        >
+          <p className="text-center text-[9px] font-semibold leading-tight text-white">
+            {headline}
+          </p>
+          <div className="h-[118px] w-full rounded-t-[14px] bg-white p-1.5 pt-2 ring-[3px] ring-black">
+            <div className="mx-auto h-1.5 w-6 rounded-full bg-black" />
+            <div className="mt-3 space-y-1.5 px-1">
+              <div className="h-1.5 w-3/4 rounded-full bg-neutral-800" />
+              <div className="h-1 w-full rounded-full bg-neutral-200" />
+              <div className="h-1 w-5/6 rounded-full bg-neutral-200" />
+              <div className="mt-2 h-8 rounded-md bg-neutral-100" />
+              <div className="h-1 w-2/3 rounded-full bg-neutral-200" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FileChip({
+  name,
+  size,
+  sizeClassName,
+}: {
+  name: string;
+  size: string;
+  sizeClassName: string;
+}): React.JSX.Element {
+  return (
+    <div className="flex items-center gap-2.5 rounded-lg bg-white p-2 pr-3.5 shadow-[0_16px_32px_-12px_rgba(0,0,0,0.5)]">
+      <div
+        className="size-9 shrink-0 rounded-md"
+        style={{ background: gradientColors.peach_pink_purple }}
+      />
+      <div className="text-[11px] leading-4">
+        <p className="font-medium text-neutral-900">{name}</p>
+        <p className={sizeClassName}>{size}</p>
+      </div>
+    </div>
+  );
+}
+
+function ImageToolsPreview(): React.JSX.Element {
+  return (
+    <div
+      className="flex h-full items-center justify-center gap-2 px-4"
+      style={{ background: gradientColors.store_ocean }}
+    >
+      <FileChip name="photo.png" size="2.4 MB" sizeClassName="text-neutral-500" />
+      <ArrowRight01Icon
+        size={18}
+        className="shrink-0 text-white transition-transform duration-500 ease-out group-hover:translate-x-0.5 motion-reduce:transition-none"
+        aria-hidden="true"
+      />
+      <FileChip
+        name="photo.webp"
+        size="380 KB"
+        sizeClassName="font-medium text-emerald-600"
+      />
+    </div>
+  );
+}
+
+const CHOICES = [
+  {
+    href: "/editor",
+    title: "Edit a screenshot",
+    description:
+      "Add a background, a browser or device frame, and shadows. Save it as an image or a video.",
+    action: "Open editor",
+    preview: <ScreenshotPreview />,
+  },
+  {
+    href: "/code",
+    title: "Turn code into an image",
+    description:
+      "Paste your code, pick a color theme, and download a clean image to share.",
+    action: "Open editor",
+    preview: <CodePreview />,
+  },
+  {
+    href: "/tweet",
+    title: "Turn a post into an image",
+    description:
+      "Paste a link to a post on X, pick light or dark, and download a clean image.",
+    action: "Open editor",
+    preview: <TweetPreview />,
+  },
+  {
+    href: "/store-screenshots",
+    title: "Make App Store screenshots",
+    description:
+      "Put your app screens in phone frames with short headlines, sized for the App Store.",
+    action: "Open editor",
+    preview: <StorePreview />,
+  },
+  {
+    href: TOOLS_HUB_PATH,
+    title: "Quick image fixes",
+    description:
+      "Make images smaller, change the format, resize, crop, or remove the background.",
+    action: "See all tools",
+    preview: <ImageToolsPreview />,
+  },
+];
+
+export default function StartPage() {
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <Navigation />
+
+      <main className="flex-1 px-6 pb-20 pt-16 sm:pt-20">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center">
+            <h1
+              className="text-4xl font-semibold tracking-[-0.035em] text-foreground sm:text-5xl"
+              style={{ fontFamily: INTER }}
+            >
+              What do you want to make?
+            </h1>
+            <p className="mt-3 text-base text-muted-foreground sm:text-lg">
+              Pick one to get started. Everything is free and works right in
+              your browser.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-4 sm:grid-cols-2">
+            {CHOICES.map((choice) => (
+              <Link
+                key={choice.href}
+                href={choice.href}
+                className="group flex flex-col overflow-hidden rounded-2xl first:sm:col-span-2 bg-card ring-1 ring-inset ring-border shadow-[var(--card-highlight-shadow)] transition-shadow duration-200 hover:ring-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/70"
+              >
+                <div
+                  aria-hidden="true"
+                  className="m-2 mb-0 h-48 overflow-hidden rounded-xl sm:h-56"
+                >
+                  {choice.preview}
+                </div>
+                <div className="flex flex-1 flex-col p-5 pt-4">
+                  <h2
+                    className="text-lg font-semibold tracking-[-0.02em] text-foreground"
+                    style={{ fontFamily: INTER }}
+                  >
+                    {choice.title}
+                  </h2>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    {choice.description}
+                  </p>
+                  <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-foreground">
+                    {choice.action}
+                    <ArrowRight01Icon
+                      size={16}
+                      className="transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none"
+                      aria-hidden="true"
+                    />
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          <p className="mt-10 text-center text-sm text-muted-foreground">
+            New to Screenshot Studio?{" "}
+            <Link
+              href="/landing"
+              className="text-foreground underline underline-offset-4"
+            >
+              See how it works
+            </Link>
+          </p>
+        </div>
+      </main>
+
+      <Footer brandName="Screenshot Studio" />
+    </div>
   );
 }

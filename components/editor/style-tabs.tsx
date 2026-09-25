@@ -213,8 +213,6 @@ export function StyleTabs() {
                   title="Delete"
                   onClick={() => {
                     removeImageOverlay(selectedOverlay.id);
-                    setSelectedOverlayId(null);
-                    setIsMainImageSelected(true);
                   }}
                 >
                   <Delete02Icon size={14} />

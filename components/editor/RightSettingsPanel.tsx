@@ -327,7 +327,7 @@ function PerspectiveSliders() {
 }
 
 function ZoomSlider() {
-const {
+  const {
     imageScale,
     setImageScale,
     imageOverlays,
@@ -338,7 +338,7 @@ const {
   const selectedOverlay = selectedOverlayId
     ? imageOverlays.find((o) => o.id === selectedOverlayId)
     : null;
-   // If a second image / overlay is selected, zoom/scale its size:
+  // If a second image / overlay is selected, zoom/scale its size:
   if (selectedOverlay) {
     return (
       <Slider
@@ -367,7 +367,6 @@ const {
     />
   );
 }
-
 
 function TransformControls() {
   const perspective3D = useImageStore((s) => s.perspective3D);

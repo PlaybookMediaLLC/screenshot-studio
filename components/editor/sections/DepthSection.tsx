@@ -93,11 +93,8 @@ export function DepthSection() {
     removeBlurRegion,
   } = useImageStore();
 
-  const [selectedLayerId, setSelectedLayerId] = React.useState<string | null>(selectedOverlayId);
-
-  React.useEffect(() => {
-    setSelectedLayerId(selectedOverlayId);
-  }, [selectedOverlayId]);
+  const [selectedOtherLayerId, setSelectedOtherLayerId] = React.useState<string | null>(null);
+  const selectedLayerId = selectedOverlayId ?? selectedOtherLayerId;
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Build unified layer list (bottom to top: image overlays order, then text, then annotations, then blur)
@@ -228,7 +225,7 @@ export function DepthSection() {
         break;
     }
     if (selectedLayerId === layer.id) {
-      setSelectedLayerId(null);
+      setSelectedOtherLayerId(null);
     }
   };
 
@@ -288,13 +285,20 @@ export function DepthSection() {
                   )}
                 >
                   <div
-                    onClick={() => {
-                      const nextId = selectedLayerId === layer.id ? null : layer.id;
-                      setSelectedLayerId(nextId);
-                      if (layer.type === 'image-overlay') {
-                        setSelectedOverlayId(nextId);
-                        setIsMainImageSelected(!nextId);
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isSelected}
+                    onKeyDown={(event) => {
+                      if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                        event.preventDefault();
+                        event.currentTarget.click();
                       }
+                    }}
+                    onClick={() => {
+                      const nextId = isSelected ? null : layer.id;
+                      setSelectedOtherLayerId(isImageOverlay ? null : nextId);
+                      setSelectedOverlayId(isImageOverlay ? nextId : null);
+                      setIsMainImageSelected(false);
                     }}
                     className={cn(
                       'flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 group',
@@ -430,7 +434,7 @@ export function DepthSection() {
             onUpdate={(updates) => updateImageOverlay(selectedOverlay.id, updates)}
             onRemove={() => {
               removeImageOverlay(selectedOverlay.id);
-              setSelectedLayerId(null);
+              setSelectedOtherLayerId(null);
             }}
           />
         </SectionWrapper>

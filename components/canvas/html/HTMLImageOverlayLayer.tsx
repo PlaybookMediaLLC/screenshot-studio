@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import Moveable from 'react-moveable';
 import type { ImageOverlay } from '@/lib/store';
 import { cn } from '@/lib/utils';
@@ -212,6 +212,7 @@ export function HTMLImageOverlayLayer({
 }: HTMLImageOverlayLayerProps) {
   const [selectedEl, setSelectedEl] = useState<HTMLDivElement | null>(null);
   const [interacting, setInteracting] = useState(false);
+  const moveableRef = useRef<Moveable | null>(null);
 
   const handleSelect = useCallback(
     (id: string) => {
@@ -227,6 +228,21 @@ export function HTMLImageOverlayLayer({
     : null;
 
   const isShadow = selectedOverlay?.src.includes('overlay-shadow');
+
+  // Keep Moveable bounding box synchronized with external slider / store changes
+  useEffect(() => {
+    if (moveableRef.current) {
+      moveableRef.current.updateRect();
+    }
+  }, [
+    selectedOverlay?.size,
+    selectedOverlay?.position.x,
+    selectedOverlay?.position.y,
+    selectedOverlay?.rotation,
+    selectedOverlay?.flipX,
+    selectedOverlay?.flipY,
+    selectedOverlay?.blur,
+  ]);
 
   return (
     <div
@@ -257,6 +273,7 @@ export function HTMLImageOverlayLayer({
       {selectedOverlay && selectedEl && !isShadow && (
         <>
           <Moveable
+            ref={moveableRef}
             target={selectedEl}
             draggable={true}
             resizable={true}

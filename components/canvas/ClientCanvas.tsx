@@ -84,6 +84,10 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     showRulers,
     showGrid,
     rulerInterval,
+    selectedOverlayId,
+    setSelectedOverlayId,
+    isMainImageSelected,
+    setIsMainImageSelected,
   } = useImageStore();
 
   // Split overlays into front (default) and back (behind main image)
@@ -121,10 +125,6 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     null
   );
 
-  const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(
-    null
-  );
-  const [isMainImageSelected, setIsMainImageSelected] = useState(false);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [isDraggingMainImage, setIsDraggingMainImage] = useState(false);
   const [selectedBlurId, setSelectedBlurId] = useState<string | null>(null);
@@ -154,7 +154,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setIsMainImageSelected(true);
     setSelectedOverlayId(null);
     setSelectedTextId(null);
-  }, []);
+  }, [setIsMainImageSelected, setSelectedOverlayId]);
 
   useEffect(() => {
     if (!is3DPointerDown) return;
@@ -241,7 +241,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, true);
     };
-  }, [setSelectedAnnotationId, setSelectedDeviceId]);
+  }, [setSelectedAnnotationId, setSelectedDeviceId, setSelectedOverlayId, setIsMainImageSelected]);
 
   useEffect(() => {
     if (!selectedDeviceId) return;
@@ -250,7 +250,16 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setSelectedTextId(null);
     setSelectedBlurId(null);
     setSelectedAnnotationId(null);
-  }, [selectedDeviceId, setSelectedAnnotationId]);
+  }, [selectedDeviceId, setSelectedAnnotationId, setSelectedOverlayId, setIsMainImageSelected]);
+
+  // Panel selection must clear the same competing selections as a canvas click.
+  useEffect(() => {
+    if (!selectedOverlayId && !isMainImageSelected) return;
+    setSelectedTextId(null);
+    setSelectedBlurId(null);
+    setSelectedAnnotationId(null);
+    setSelectedDeviceId(null);
+  }, [selectedOverlayId, isMainImageSelected, setSelectedAnnotationId, setSelectedDeviceId]);
 
   // Keyboard shortcuts for delete and undo/redo
   useEffect(() => {
@@ -293,7 +302,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [editorMode, isMainImageSelected, removeImageOverlay, removeMockup, selectedDeviceId, selectedOverlayId, setSelectedDeviceId]);
+  }, [editorMode, isMainImageSelected, removeImageOverlay, removeMockup, selectedDeviceId, selectedOverlayId, setSelectedDeviceId, setSelectedOverlayId, setIsMainImageSelected]);
 
   // Get selected overlay for toolbar positioning
   const selectedOverlay = selectedOverlayId

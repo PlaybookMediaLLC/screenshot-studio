@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import {
+  atLeast,
+  FRAMES_SENTENCE,
+  IMAGE_FORMATS_SENTENCE,
+  PRODUCT_FACTS,
+  VIDEO_FORMATS_SENTENCE,
+} from "@/lib/seo/product-facts";
 
 interface FAQItem {
   question: string;
@@ -17,6 +24,11 @@ interface FAQProps {
 
 const defaultFAQs: FAQItem[] = [
   {
+    question: "What is Screenshot Studio?",
+    answer:
+      `Screenshot Studio is a free, browser-based screenshot editor that turns plain screenshots into professional graphics. It offers ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, Safari and Chrome browser mockups, 3D perspective effects, an animation timeline with ${PRODUCT_FACTS.animationPresets} presets, and video export. It is open source under ${PRODUCT_FACTS.license}, with no signup, no download, and no watermark.`,
+  },
+  {
     question: "Is Screenshot Studio really free?",
     answer:
       "Yes. Screenshot Studio is 100% free with no hidden costs. Unlimited exports, all features, no watermarks. No signup required.",
@@ -27,14 +39,34 @@ const defaultFAQs: FAQItem[] = [
       "No. Just open the editor and start creating. Your work saves automatically in your browser with unlimited undo/redo.",
   },
   {
+    question: "Is there a free screenshot editor I can use online?",
+    answer:
+      "Yes. Screenshot Studio runs entirely in your browser, so there is nothing to download and nothing to install. Open the editor and start adding backgrounds, shadows, frames, and 3D effects to your screenshots straight away.",
+  },
+  {
     question: "What frames and styles are available?",
     answer:
-      "macOS and Windows browser frames, Arc-style rounded frames, Polaroid borders, 3D perspective transforms, and customizable shadows with blur, spread, and color controls.",
+      `${FRAMES_SENTENCE}, plus 3D perspective transforms and customizable shadows with blur, spread, and color controls.`,
   },
   {
     question: "What export formats are supported?",
     answer:
-      "PNG with transparency or JPG. Export up to 5x resolution for crisp output on any platform.",
+      `Still images export as ${IMAGE_FORMATS_SENTENCE}, and animations export as ${VIDEO_FORMATS_SENTENCE}. Export up to ${PRODUCT_FACTS.maxExportScale}x resolution, and PNG keeps transparency.`,
+  },
+  {
+    question: "Can I create animations and videos?",
+    answer:
+      `Yes. The timeline editor ships ${PRODUCT_FACTS.animationPresets} animation presets covering zoom, pan, rotate, and 3D perspective moves. Add keyframes, preview in real time, and export as ${VIDEO_FORMATS_SENTENCE}.`,
+  },
+  {
+    question: "Can I create tweet screenshots or code snippet images?",
+    answer:
+      `Yes. Paste a tweet URL to capture it as a high-resolution image in light or dark theme. The code snippet generator supports ${PRODUCT_FACTS.codeThemes} syntax themes, ${PRODUCT_FACTS.codeLanguages} programming languages, and ${PRODUCT_FACTS.codeFonts} monospace fonts.`,
+  },
+  {
+    question: "What makes Screenshot Studio different from other screenshot editors?",
+    answer:
+      `It is purpose-built for making screenshots presentable rather than for general image editing: one-click design presets, ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, ${PRODUCT_FACTS.deviceMockups} device mockups, 3D perspective transforms, an animation timeline, and video export. All of it is free, watermark-free, and needs no account.`,
   },
   {
     question: "Is my data stored on your servers?",
@@ -118,10 +150,10 @@ export function FAQ({
   title = "Questions",
   faqs = defaultFAQs,
   ctaLabel = "Open Editor",
-  ctaHref = "/",
+  ctaHref = "/editor",
 }: FAQProps) {
   const [openId, setOpenId] = useState<number | null>(null);
-  const items = faqs.slice(0, 5);
+  const items = faqs;
 
   const faqSchema = {
     "@context": "https://schema.org",

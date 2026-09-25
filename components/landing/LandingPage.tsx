@@ -5,7 +5,6 @@ import { HowItWorks } from "./HowItWorks";
 import { Footer } from "./Footer";
 import { FAQ } from "./FAQ";
 import { VideoTestimonials } from "./VideoTestimonials";
-import { StructuredData } from "./StructuredData";
 import { FeaturesBento } from "./FeaturesBento";
 import { ProductOverview } from "./ProductOverview";
 import { MasonryGrid } from "./MasonryGrid";
@@ -52,7 +51,6 @@ export function LandingPage({
 }: LandingPageProps) {
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <StructuredData />
 
       <div className="relative isolate">
         <HeroAtmosphere />

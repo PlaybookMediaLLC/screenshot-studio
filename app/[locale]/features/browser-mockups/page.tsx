@@ -1,15 +1,12 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import {
-  ArrowRight01Icon,
-  BrowserIcon,
-  ComputerIcon,
-  Settings01Icon,
-  Sun01Icon,
-} from "hugeicons-react";
-import { Navigation } from "@/components/landing/Navigation";
-import { Footer } from "@/components/landing/Footer";
-import { OG_DEFAULTS } from "@/lib/seo/metadata";
+import { BrowserIcon, ComputerIcon, Settings01Icon, Sun01Icon } from "hugeicons-react";
+import { FeaturePage } from "@/components/features/FeaturePage";
+import { PREVIEW_SHADOW, MOTION, WindowDots } from "@/components/tools/ui";
+import { OG_DEFAULTS, SITE_URL } from "@/lib/seo/metadata";
+import { gradientColors } from "@/lib/constants/gradient-colors";
+
+const PAGE_URL = `${SITE_URL}/features/browser-mockups`;
 
 export const metadata: Metadata = {
   title: "Free Browser Mockup Generator",
@@ -17,41 +14,6 @@ export const metadata: Metadata = {
     "Free browser mockup generator. Add Safari and Chrome frames to screenshots with light and dark modes, custom URL bar, and 3D perspective. No signup required.",
   keywords: [
     "browser mockup generator",
-    "mockup screenshot",
-    "mockup online",
-    "mockup screen",
-    "mockups ui",
-    "mockup ui ux",
-    "app mockup generator",
-    "ui mockup generator",
-    "shots app alternative",
-    "shots net alternative",
-    "moqups alternative",
-    "previewed app alternative",
-    "appshots alternative",
-    "goodmockups alternative",
-    "mockup me alternative",
-    "mockup generator",
-    "free mockup generator",
-    "mockup generator free",
-    "mockup online generator",
-    "mockup online editor",
-    "mockup editor online free",
-    "mockup design online",
-    "mockup free online",
-    "free online mockup generator no watermark",
-    "free mockup generator without watermark",
-    "app mockup generator",
-    "website mockup generator",
-    "free website mockup generator",
-    "website mockup generator from url",
-    "laptop mockup generator",
-    "product mockup generator",
-    "free online 3d mockup generator",
-    "best mockup generator",
-    "best online mockup generator",
-    "mockup app",
-
     "safari browser mockup",
     "chrome browser mockup",
     "browser frame screenshot",
@@ -62,349 +24,210 @@ export const metadata: Metadata = {
     "screenshot browser frame",
     "mac browser mockup",
     "website mockup generator",
-    "browser screenshot tool",
     "add browser frame to screenshot",
     "safari dark mode mockup",
     "chrome dark mode mockup",
+    "screely alternative",
+    "shots.so alternative",
+    "pika.style alternative",
   ],
   openGraph: {
     ...OG_DEFAULTS,
     title: "Free Browser Mockup Generator - Safari & Chrome Frames",
     description:
       "Add realistic Safari and Chrome browser frames to screenshots. Light and dark modes, custom URL. Free, no signup.",
-    url: "/features/browser-mockups",
+    url: PAGE_URL,
   },
   alternates: {
     canonical: "/features/browser-mockups",
   },
 };
 
-const INTER =
-  'Inter, "Inter Fallback", Arial, Helvetica, sans-serif';
-
-const ctaClassName =
-  "relative inline-flex items-center justify-center rounded-md border-0 bg-[var(--nav-cta-bg)] px-6 py-2.5 text-base font-medium text-[var(--nav-cta-fg)] shadow-none transition-[transform,box-shadow] duration-150 ease-out [text-shadow:var(--nav-cta-text-shadow)] hover:shadow-[var(--nav-cta-hover-shadow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-[0.97]";
-
-const cardSurface =
-  "rounded-2xl bg-card ring-1 ring-border shadow-[var(--card-edge-shadow)]";
-
-const chipLinkClassName =
-  "group flex items-center justify-between rounded-md bg-foreground/[0.04] px-4 py-3 text-sm font-medium text-foreground/90 ring-1 ring-border transition-colors hover:bg-foreground/[0.08] hover:text-foreground";
-
-const features = [
+const capabilities = [
   {
     icon: BrowserIcon,
-    title: "Safari Browser Frame",
+    title: "Safari browser frame",
     description:
-      "Realistic macOS Safari toolbar with traffic lights, sidebar, back/forward navigation, and centered address bar with lock icon.",
+      "Realistic macOS Safari toolbar with traffic lights, back/forward navigation, and a centered address bar.",
   },
   {
     icon: ComputerIcon,
-    title: "Chrome Browser Frame",
+    title: "Chrome browser frame",
     description:
-      "Authentic Chrome toolbar with tab bar, active tab, colored traffic lights, and omnibox address bar.",
+      "Authentic Chrome toolbar with tab bar, active tab, and an omnibox address bar.",
   },
   {
     icon: Sun01Icon,
-    title: "Light & Dark Modes",
+    title: "Light & dark modes",
     description:
-      "Every browser frame comes in both light and dark variants to match your screenshot content or brand style.",
+      "Every browser frame comes in light and dark variants to match your screenshot or brand.",
   },
   {
     icon: Settings01Icon,
-    title: "Custom URL & Header Size",
+    title: "Custom URL & header size",
     description:
-      "Set a custom URL displayed in the address bar and adjust the toolbar height from 50% to 200% of the default size.",
-  },
-] as const;
-
-const useCases = [
-  {
-    title: "SaaS Landing Pages",
-    description:
-      "Show your product in a browser frame to give visitors a realistic preview of your web app.",
-  },
-  {
-    title: "Portfolio & Case Studies",
-    description:
-      "Present website designs with professional browser chrome for client portfolios.",
-  },
-  {
-    title: "Blog & Documentation",
-    description:
-      "Add browser context to screenshots in tutorials, guides, and technical articles.",
-  },
-  {
-    title: "Social Media Posts",
-    description:
-      "Make your product screenshots stand out on Twitter, LinkedIn, and Product Hunt with polished browser frames.",
+      "Set a custom URL in the address bar and adjust the toolbar height to your liking.",
   },
 ];
 
-const howToSteps = [
+const steps = [
   {
-    step: "1",
-    title: "Upload Your Screenshot",
+    title: "Upload your screenshot",
     description:
       "Drag and drop any image or paste from clipboard. Supports PNG, JPG, and WebP.",
   },
   {
-    step: "2",
-    title: "Choose a Browser Frame",
+    title: "Choose a browser frame",
     description:
-      "Select Safari or Chrome in light or dark mode. Set a custom URL and adjust the header size to your liking.",
+      "Select Safari or Chrome in light or dark mode. Set a custom URL and adjust the header size.",
   },
   {
-    step: "3",
     title: "Export",
     description:
       "Download as PNG or JPG at up to 5x resolution. Add 3D perspective for even more depth.",
   },
 ];
 
+const faqs = [
+  {
+    question: "Is the browser mockup generator free?",
+    answer:
+      "Yes. Safari and Chrome frames, both light and dark, are free with no signup and no watermark.",
+  },
+  {
+    question: "Which browsers can I add a frame for?",
+    answer:
+      "Safari and Chrome, each in light and dark mode. Pick whichever matches your screenshot's platform or your brand style.",
+  },
+  {
+    question: "Can I set a custom URL in the address bar?",
+    answer:
+      "Yes. Type any URL into the address bar field and it renders in the frame, useful for showing a real-looking domain in marketing screenshots.",
+  },
+  {
+    question: "Can I combine a browser frame with a 3D tilt?",
+    answer:
+      "Yes. Add a browser frame first, then apply a 3D perspective preset for an angled, product-shot look.",
+  },
+  {
+    question: "What resolution can I export at?",
+    answer:
+      "Export PNG or JPG at up to 5x resolution, sharp enough for retina displays and print.",
+  },
+];
+
 const relatedLinks = [
-  { href: "/features/screenshot-beautifier", label: "Screenshot Beautifier" },
-  { href: "/features/3d-effects", label: "3D Effects" },
-  { href: "/features/social-media-graphics", label: "Social Media Graphics" },
-] as const;
+  { href: "/mockup-generator", label: "Device mockup generator" },
+  { href: "/features/screenshot-beautifier", label: "Screenshot beautifier" },
+  { href: "/features/3d-effects", label: "3D effects" },
+  { href: "/features/social-media-graphics", label: "Social media graphics" },
+];
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "@id": `${PAGE_URL}#software`,
+      name: "Screenshot Studio - Browser Mockup Generator",
+      applicationCategory: "DesignApplication",
+      operatingSystem: "Web Browser",
+      description:
+        "Free online tool to add Safari and Chrome browser frames to screenshots with light/dark modes and custom URL.",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      featureList: [
+        "Safari browser frame (light & dark)",
+        "Chrome browser frame (light & dark)",
+        "Custom URL display",
+        "Adjustable header size",
+        "3D perspective support",
+        "No signup required",
+      ],
+    },
+    {
+      "@type": "FAQPage",
+      "@id": `${PAGE_URL}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        "@type": "Question",
+        name: faq.question,
+        acceptedAnswer: { "@type": "Answer", text: faq.answer },
+      })),
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": `${PAGE_URL}#breadcrumb`,
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Features",
+          item: `${SITE_URL}/features`,
+        },
+        { "@type": "ListItem", position: 3, name: "Browser Mockups", item: PAGE_URL },
+      ],
+    },
+  ],
+};
+
+function BrowserPreview() {
+  return (
+    <div
+      className={`w-64 overflow-hidden rounded-lg bg-white/95 transition-transform ${MOTION} group-hover:-translate-y-1 ${PREVIEW_SHADOW}`}
+    >
+      <div className="flex items-center gap-3 border-b border-black/10 bg-neutral-100 px-3 py-2">
+        <WindowDots />
+        <div className="h-4 flex-1 rounded-full bg-black/5" />
+      </div>
+      <div className="flex flex-col gap-2 p-4">
+        <div className="h-2.5 w-16 rounded-full bg-black/15" />
+        <div className="h-2 w-28 rounded-full bg-black/10" />
+        <div className="mt-1 h-14 rounded-md bg-black/5" />
+      </div>
+    </div>
+  );
+}
 
 export default function BrowserMockupsPage() {
-  const breadcrumb = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: "https://www.screenshot-studio.com",
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "Features",
-        item: "https://www.screenshot-studio.com/features",
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: "Browser Mockups",
-        item: "https://www.screenshot-studio.com/features/browser-mockups",
-      },
-    ],
-  };
-
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "SoftwareApplication",
-        name: "Screenshot Studio - Browser Mockup Generator",
-        applicationCategory: "DesignApplication",
-        operatingSystem: "Web Browser",
-        description:
-          "Free online tool to add Safari and Chrome browser frames to screenshots with light/dark modes and custom URL.",
-        offers: {
-          "@type": "Offer",
-          price: "0",
-          priceCurrency: "USD",
-        },
-        featureList: [
-          "Safari browser frame (light & dark)",
-          "Chrome browser frame (light & dark)",
-          "Custom URL display",
-          "Adjustable header size",
-          "3D perspective support",
-          "No signup required",
-        ],
-      },
-      {
-        "@type": "HowTo",
-        name: "How to Add a Browser Frame to a Screenshot",
-        description:
-          "Add a realistic Safari or Chrome browser frame to any screenshot in 3 steps using Screenshot Studio.",
-        totalTime: "PT1M",
-        tool: {
-          "@type": "HowToTool",
-          name: "Screenshot Studio",
-        },
-        step: howToSteps.map((item, index) => ({
-          "@type": "HowToStep",
-          name: item.title,
-          text: item.description,
-          position: index + 1,
-        })),
-      },
-    ],
-  };
-
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-      />
-
-      <Navigation brandName="Screenshot Studio" />
-
-      <main className="flex-1">
-        <section className="px-6 pb-20 pt-32">
-          <div className="mx-auto max-w-4xl text-center">
-            <h1
-              className="mb-6 text-4xl font-semibold tracking-[-0.03em] text-foreground md:text-6xl"
-              style={{ fontFamily: INTER }}
-            >
-              Free Browser Mockup Generator
-            </h1>
-            <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground md:text-xl">
-              Add realistic Safari and Chrome browser frames to your screenshots.
-              Light and dark modes, custom URL, adjustable header size.
-            </p>
-            <div className="flex flex-col items-center">
-              <Link href="/" className={ctaClassName}>
-                Add Browser Frame
-              </Link>
-              <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground/70">
-                <span>100% Free</span>
-                <span className="h-3 w-px bg-border" aria-hidden />
-                <span>No Signup Required</span>
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-y border-border px-6 py-16">
-          <div className="mx-auto max-w-6xl">
-            <h2
-              className="mb-12 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Realistic Browser Frames for Any Screenshot
-            </h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {features.map((feature) => (
-                <div
-                  key={feature.title}
-                  className={`flex gap-4 p-6 ${cardSurface}`}
-                >
-                  <feature.icon
-                    className="size-6 shrink-0 text-foreground"
-                    aria-hidden
-                  />
-                  <div>
-                    <h3 className="mb-2 text-lg font-semibold text-foreground">
-                      {feature.title}
-                    </h3>
-                    <p className="text-muted-foreground">{feature.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-6xl">
-            <h2
-              className="mb-4 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Perfect For Every Use Case
-            </h2>
-            <p className="mx-auto mb-12 max-w-2xl text-center text-muted-foreground">
-              Browser mockups add context and professionalism to any screenshot.
-            </p>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {useCases.map((useCase) => (
-                <div key={useCase.title} className={`p-6 ${cardSurface}`}>
-                  <h3 className="mb-2 font-semibold text-foreground">
-                    {useCase.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {useCase.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="border-y border-border px-6 py-16">
-          <div className="mx-auto max-w-4xl">
-            <h2
-              className="mb-12 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              How to Add a Browser Frame
-            </h2>
-            <div className="space-y-8">
-              {howToSteps.map((item) => (
-                <div key={item.step} className="flex items-start gap-6">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
-                    {item.step}
-                  </div>
-                  <div>
-                    <h3 className="mb-1 text-lg font-semibold text-foreground">
-                      {item.title}
-                    </h3>
-                    <p className="text-muted-foreground">{item.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-4xl">
-            <h2
-              className="mb-8 text-center text-2xl font-semibold tracking-[-0.03em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Explore More Features
-            </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {relatedLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={chipLinkClassName}
-                >
-                  <span>{link.label}</span>
-                  <ArrowRight01Icon
-                    className="size-3.5 text-muted-foreground/70 transition-colors group-hover:text-foreground"
-                    aria-hidden
-                  />
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="border-t border-border px-6 py-20">
-          <div className="mx-auto max-w-4xl text-center">
-            <h2
-              className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Ready to Add Browser Frames?
-            </h2>
-            <p className="mb-8 text-muted-foreground">
-              Make your screenshots look professional with realistic browser
-              mockups.
-            </p>
-            <Link href="/" className={ctaClassName}>
-              Start Free
-            </Link>
-          </div>
-        </section>
-      </main>
-
-      <Footer brandName="Screenshot Studio" />
-    </div>
+    <FeaturePage
+      name="Browser Mockups"
+      title="Free Browser Mockup Generator"
+      intro="Add realistic Safari and Chrome browser frames to your screenshots. Light and dark modes, custom URL, adjustable header size, free with no signup."
+      ctaHref="/editor"
+      ctaLabel="Add Browser Frame"
+      previewGradient={gradientColors.store_ocean}
+      preview={<BrowserPreview />}
+      capabilities={capabilities}
+      steps={steps}
+      alternativesIntro="Screely only adds a macOS or Windows window frame, with no device mockups or 3D effects. Screenshot Studio adds Safari and Chrome browser frames alongside device mockups, 3D tilt, and animation, all free."
+      alternativeSlugs={["screely", "shots-so", "pika-style"]}
+      guideLinks={[
+        {
+          href: "/guides/best-free-screenshot-mockup-generators",
+          label: "Best free screenshot mockup generators",
+        },
+      ]}
+      faqs={faqs}
+      relatedLinks={relatedLinks}
+      closing={
+        <>
+          See the full{" "}
+          <Link href="/compare/screely" className="text-foreground underline underline-offset-4">
+            Screely comparison
+          </Link>
+          , try the{" "}
+          <Link href="/editor" className="text-foreground underline underline-offset-4">
+            editor
+          </Link>
+          , or browse{" "}
+          <Link href="/tools" className="text-foreground underline underline-offset-4">
+            every image tool
+          </Link>
+          .
+        </>
+      }
+      jsonLd={jsonLd}
+    />
   );
 }

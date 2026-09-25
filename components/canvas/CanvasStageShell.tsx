@@ -24,9 +24,10 @@ export function CanvasStageShell({
 }: CanvasStageShellProps): React.JSX.Element {
   const backgroundBorderRadius = useImageStore((s) => s.backgroundBorderRadius);
   const backgroundConfig = useImageStore((s) => s.backgroundConfig);
-  const responsiveDimensions = useResponsiveCanvasDimensions();
+  const { measured, width, height, originalWidth } =
+    useResponsiveCanvasDimensions();
   const backgroundStyle = showBackground
-    ? getBackgroundCSS(backgroundConfig)
+    ? getBackgroundCSS(backgroundConfig, 32)
     : undefined;
 
   return (
@@ -36,17 +37,24 @@ export function CanvasStageShell({
         "relative shrink-0 transition-[border-radius] duration-300",
         "shadow-xl ring-1 ring-foreground/10",
         breathe && "canvas-stage-breathe",
+        !measured && "canvas-stage-presize",
         className
       )}
       style={{
-        width: `${responsiveDimensions.width}px`,
-        height: `${responsiveDimensions.height}px`,
+        ...(measured
+          ? { width: `${width}px`, height: `${height}px` }
+          : ({
+              "--stage-w": `${originalWidth}px`,
+              "--stage-ratio": width / height,
+            } as React.CSSProperties)),
         borderRadius: `${backgroundBorderRadius}px`,
         ...style,
       }}
     >
       {showBackground ? (
-        <div className="absolute inset-0" style={backgroundStyle} aria-hidden />
+        <div className="absolute inset-0 overflow-hidden rounded-[inherit] bg-muted" aria-hidden>
+          <div className="absolute inset-0 scale-110 blur-2xl" style={backgroundStyle} />
+        </div>
       ) : null}
       {children}
     </div>

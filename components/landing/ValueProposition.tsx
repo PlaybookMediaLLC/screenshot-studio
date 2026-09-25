@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 
 interface ValuePropositionProps {
   eyebrow?: string;
@@ -11,7 +12,7 @@ const features = [
   {
     title: "Beautiful Backgrounds",
     description:
-      "100+ gradients, solid colors, images, blur, and noise effects. Make any screenshot look stunning.",
+      `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solid colors, images, blur, and noise effects. Make any screenshot look stunning.`,
     icon: (
       <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
         <rect x="2" y="2" width="16" height="16" rx="3" />
@@ -69,7 +70,7 @@ const features = [
   {
     title: "Tweet & Code Snippets",
     description:
-      "Import tweets by URL. Generate beautiful code snippet images with 20+ themes.",
+      `Import tweets by URL. Generate beautiful code snippet images with ${PRODUCT_FACTS.codeThemes} themes.`,
     icon: (
       <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path d="M7 7l-4 3 4 3" />

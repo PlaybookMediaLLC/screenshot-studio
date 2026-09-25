@@ -11,8 +11,6 @@ export { TextSection } from './TextSection';
 export { AnnotateSection } from './AnnotateSection';
 export { ImageOverlaySection } from './ImageOverlaySection';
 export { DepthSection } from './DepthSection';
-export { TweetImportSection } from './TweetImportSection';
-export { CodeImagesLinkCard } from './CodeImagesLinkCard';
 export { PositionSection } from './PositionSection';
 export { BrowserMockupSection } from './BrowserMockupSection';
 export { ImagePositionSection } from './ImagePositionSection';

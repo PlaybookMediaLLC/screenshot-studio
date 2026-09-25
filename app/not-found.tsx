@@ -49,7 +49,7 @@ export default function NotFound() {
         <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
           <GoBackButton />
           <Link
-            href="/"
+            href="/editor"
             className="inline-flex h-10 items-center justify-center rounded-md bg-[var(--nav-cta-bg)] px-5 text-sm font-medium text-[var(--nav-cta-fg)] shadow-sm transition-[transform,box-shadow] duration-150 ease-out [text-shadow:var(--nav-cta-text-shadow)] hover:shadow-[var(--nav-cta-hover-shadow)] active:scale-[0.98]"
           >
             Open editor

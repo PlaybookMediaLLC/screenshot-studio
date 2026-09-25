@@ -4,6 +4,7 @@ import * as React from 'react';
 import { MockupGallery, MockupControls } from '@/components/mockups';
 import { useImageStore } from '@/lib/store';
 import { useDeviceUIStore } from '@/lib/store/device-ui';
+import { StoreScreenshotsFeatureCard } from '@/components/store-screenshots/StoreScreenshotsFeatureCard';
 import { SectionWrapper } from './SectionWrapper';
 
 export function DeviceFramesSection(): React.JSX.Element {
@@ -32,16 +33,19 @@ export function DeviceFramesSection(): React.JSX.Element {
   }, [contentKey, view]);
 
   return (
-    <SectionWrapper title="Devices">
-      <div
-        className="min-w-0 transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none"
-        style={{
-          opacity: transitioning ? 0 : 1,
-          transform: transitioning ? 'translateY(4px)' : 'translateY(0)',
-        }}
-      >
-        {contentKey === 'gallery' ? <MockupGallery /> : <MockupControls />}
-      </div>
-    </SectionWrapper>
+    <>
+      <StoreScreenshotsFeatureCard />
+      <SectionWrapper title="Devices">
+        <div
+          className="min-w-0 transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none"
+          style={{
+            opacity: transitioning ? 0 : 1,
+            transform: transitioning ? 'translateY(4px)' : 'translateY(0)',
+          }}
+        >
+          {contentKey === 'gallery' ? <MockupGallery /> : <MockupControls />}
+        </div>
+      </SectionWrapper>
+    </>
   );
 }

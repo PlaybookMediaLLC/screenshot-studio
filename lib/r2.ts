@@ -95,6 +95,12 @@ export function getR2ImageUrl(options: {
   return getR2PublicUrl(src);
 }
 
+/** Same-origin image URL resized by the Next.js image optimizer; width must be a configured image size. */
+export function getResizedImageUrl(url: string, width: number): string {
+  if (!url.startsWith('/') || url.startsWith('//')) return url;
+  return `/_next/image?url=${encodeURIComponent(url)}&w=${width}&q=75`;
+}
+
 /**
  * R2 configuration type
  */

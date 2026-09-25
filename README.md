@@ -5,7 +5,7 @@
 
 Free, open-source screenshot editor and mockup maker that runs in the browser. No signup, no watermarks.
 
-**Live:** [screenshot-studio.com](https://www.screenshot-studio.com) · **Code to image:** [screenshot-studio.com/code](https://www.screenshot-studio.com/code)
+**Live:** [screenshot-studio.com](https://www.screenshot-studio.com) · **Code to image:** [screenshot-studio.com/code](https://www.screenshot-studio.com/code) . **Image Tools:** [screenshot-studio.com/tools](https://www.screenshot-studio.com/tools)
 
 ## Features
 

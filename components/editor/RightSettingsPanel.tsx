@@ -126,7 +126,7 @@ function TransformPreview({ mode }: { mode: ControlMode }) {
     { pointer: { touch: true }, filterTaps: true }
   );
 
-  const backgroundStyle = getBackgroundCSS(backgroundConfig);
+  const backgroundStyle = getBackgroundCSS(backgroundConfig, 384);
 
   // Convert pixel offset to percentage for the preview image transform
   const offsetXPct = canvasDimensions && canvasDimensions.canvasW > 0
@@ -423,7 +423,7 @@ function AnimationControls() {
     setShowTimeline(true);
   };
 
-  const backgroundStyle = getBackgroundCSS(backgroundConfig);
+  const backgroundStyle = getBackgroundCSS(backgroundConfig, 384);
   const hasAnimation = animationClips.length > 0;
 
   return (

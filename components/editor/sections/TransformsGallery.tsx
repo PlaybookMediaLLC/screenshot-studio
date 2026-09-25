@@ -151,7 +151,7 @@ export function TransformsGallery() {
   const previewImageUrl = uploadedImageUrl || screenshot?.src || null;
 
   // Use the same background CSS as the main canvas
-  const backgroundStyle = getBackgroundCSS(backgroundConfig);
+  const backgroundStyle = getBackgroundCSS(backgroundConfig, 384);
   const previewBorderRadius = Math.round(backgroundBorderRadius * 0.15);
   const previewImageRadius = Math.round(Math.min(borderRadius, 20) * 0.3);
 

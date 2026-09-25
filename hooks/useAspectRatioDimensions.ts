@@ -2,6 +2,8 @@ import { useMemo, useState, useEffect } from 'react';
 import { useImageStore } from '@/lib/store';
 import { getAspectRatioPreset, calculateFitDimensions, getAspectRatioCSS } from '@/lib/aspect-ratio-utils';
 import { MOBILE_BREAKPOINT } from '@/hooks/use-mobile';
+import { STORE_SHORTCUT_ROW_HEIGHT } from '@/lib/store-screenshots/config';
+import { TIMELINE_HEIGHT } from '@/lib/constants/editor-layout';
 
 export function useAspectRatioDimensions(options?: {
   maxWidth?: number;
@@ -50,7 +52,9 @@ export function useResponsiveCanvasDimensions() {
   const hasContent = useImageStore(
     (s) => !!s.uploadedImageUrl || s.slides.length > 0
   );
-  const [viewportSize, setViewportSize] = useState({ width: 1920, height: 1080 });
+  const [measuredViewport, setViewportSize] = useState<{ width: number; height: number } | null>(null);
+  const viewportSize = measuredViewport ?? { width: 1920, height: 1080 };
+  const measured = measuredViewport !== null;
   
   useEffect(() => {
     const updateViewportSize = () => {
@@ -69,7 +73,7 @@ export function useResponsiveCanvasDimensions() {
   const dimensions = useMemo(() => {
     const preset = getAspectRatioPreset(selectedAspectRatio);
     if (!preset) {
-      return { width: 1920, height: 1080, aspectRatio: '16/9' };
+      return { width: 1920, height: 1080, aspectRatio: '16/9', originalWidth: 1920, originalHeight: 1080, measured };
     }
     
     // On mobile the side panels are hidden inside sheets, so we should not
@@ -84,6 +88,12 @@ export function useResponsiveCanvasDimensions() {
     const horizontalPadding = isMobileViewport ? 32 : 56;
     // header (h-16 = 64) + stage vertical pad
     let verticalPadding = isMobileViewport ? 120 : 112;
+    if (!isMobileViewport) {
+      verticalPadding += STORE_SHORTCUT_ROW_HEIGHT;
+      if (showTimeline) {
+        verticalPadding += TIMELINE_HEIGHT;
+      }
+    }
     // Desktop Animate chip docks under the stage (h-9 + bottom-4 + gap).
     // Portrait ratios are height-bound, so without this the chip overlaps.
     const reserveAnimateChip =
@@ -97,9 +107,8 @@ export function useResponsiveCanvasDimensions() {
 
     // Fit exactly to the stage viewport — no overscale then CSS max-width clamp
     // (that combo was shrinking the empty upload frame).
-    const MIN_AVAILABLE = 320;
-    const maxWidth = Math.max(rawAvailableWidth, MIN_AVAILABLE);
-    const maxHeight = Math.max(rawAvailableHeight, MIN_AVAILABLE);
+    const maxWidth = Math.max(rawAvailableWidth, 320);
+    const maxHeight = Math.max(rawAvailableHeight, isMobileViewport ? 320 : 160);
     
     const fitDimensions = calculateFitDimensions(
       preset.width,
@@ -113,11 +122,13 @@ export function useResponsiveCanvasDimensions() {
       aspectRatio: getAspectRatioCSS(preset.width, preset.height),
       originalWidth: preset.width,
       originalHeight: preset.height,
+      measured,
     };
   }, [
     selectedAspectRatio,
     viewportSize.width,
     viewportSize.height,
+    measured,
     hasContent,
     showTimeline,
   ]);

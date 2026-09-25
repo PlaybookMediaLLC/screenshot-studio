@@ -15,8 +15,14 @@ import {
   hasVisibleMockups,
   shouldRenderSourceImage,
 } from "@/lib/device-mockups/layouts";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { StoreScreenshotsShortcut } from "@/components/store-screenshots/StoreScreenshotsFeatureCard";
+import { STORE_SHORTCUT_GAP } from "@/lib/store-screenshots/config";
+import { TEMPLATE_DEMO_IMAGE_NAME } from "@/lib/templates/demo-media";
+import { useBackgroundImageReady } from "@/hooks/useBackgroundImageReady";
 
 export function EditorCanvas() {
+  const isMobile = useIsMobile();
   const { screenshot } = useEditorStore();
   const {
     slides,
@@ -27,10 +33,13 @@ export function EditorCanvas() {
     isPreviewing,
     stopPreview,
     uploadedImageUrl,
+    imageName,
     showTimeline,
     editorMode,
     mockups,
+    backgroundConfig,
   } = useImageStore();
+  const backgroundReady = useBackgroundImageReady(backgroundConfig);
 
   // Check both stores - imageStore is the source of truth (tracked by undo/redo)
   const hasImage = !!uploadedImageUrl
@@ -112,7 +121,8 @@ export function EditorCanvas() {
     stopPreview,
   ]);
 
-  const showLoading = hasRenderableContent && !canvasReady;
+  const stageReady = canvasReady && backgroundReady;
+  const showLoading = hasRenderableContent && !stageReady;
 
   return (
     <>
@@ -124,13 +134,25 @@ export function EditorCanvas() {
 
         <div
           data-canvas-viewport
-          className="relative flex-1 flex items-center justify-center overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6"
+          className={cn(
+            "relative flex-1 overflow-hidden p-3 sm:p-4 md:p-6",
+            isMobile
+              ? "flex items-center justify-center"
+              : "flex flex-col items-center justify-center",
+          )}
+          style={isMobile ? undefined : { rowGap: STORE_SHORTCUT_GAP }}
         >
+          {!isMobile && imageName !== TEMPLATE_DEMO_IMAGE_NAME ? (
+            <div className="shrink-0 max-lg:hidden">
+              <StoreScreenshotsShortcut />
+            </div>
+          ) : null}
+
           <CanvasStageShell
             id="image-render-card"
-            breathe={!canvasReady}
-            showBackground={!canvasReady}
-            className="overflow-hidden"
+            breathe={!stageReady}
+            showBackground={!stageReady}
+            className="shrink-0 overflow-hidden"
           >
             {!hasRenderableContent ? (
               <CleanUploadState />
@@ -139,7 +161,7 @@ export function EditorCanvas() {
                 <div
                   className={cn(
                     "absolute inset-0 transition-opacity duration-300 ease-out",
-                    canvasReady ? "opacity-100" : "opacity-0"
+                    stageReady ? "opacity-100" : "opacity-0"
                   )}
                 >
                   <ClientCanvas

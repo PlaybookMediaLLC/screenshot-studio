@@ -1,29 +1,51 @@
+import { claimsNote, comparisons, type ComparisonData } from "@/lib/seo/comparisons";
 import { SITE_URL } from "@/lib/seo/metadata";
+import { atLeast, PRODUCT_FACTS } from "@/lib/seo/product-facts";
+import { TOOLS, TOOLS_HUB_PATH } from "@/lib/seo/tools";
 
 export const BASE_URL = SITE_URL;
 
 export const MARKDOWN_PATH_HEADER = "x-markdown-path";
+
+export interface AgentSection {
+  heading: string;
+  body: string;
+}
 
 export interface AgentPage {
   path: string;
   title: string;
   summary: string;
   points?: string[];
+  /** Full page body, so the Markdown alternate carries the same substance as the HTML. */
+  sections?: AgentSection[];
 }
 
 export const AGENT_PAGES: AgentPage[] = [
   {
     path: "/",
+    title: "Screenshot Studio - Free Screenshot Editor & Image Tools",
+    summary:
+      "Start page. Pick a tool: the screenshot editor, code images, App Store screenshots, or image tools that compress, convert, resize, crop, rotate, and remove backgrounds. All free, no signup, no watermark.",
+    points: [
+      "Screenshot editor: /editor",
+      `Code images, ${PRODUCT_FACTS.codeThemes} themes and ${PRODUCT_FACTS.codeLanguages} languages: /code`,
+      "App Store screenshots: /store-screenshots",
+      "Image tools: /tools",
+    ],
+  },
+  {
+    path: "/editor",
     title: "Screenshot Studio - Free Screenshot Editor & Mockup Maker",
     summary:
       "The Screenshot Studio editor. Drop in a screenshot and add gradient backgrounds, browser mockups, shadows, 3D perspective, and animation, then export a PNG, JPEG, WebP, MP4, WebM, or GIF. Editing runs client side, so imported images are not uploaded to edit them; only export compression sends the finished image to the server, which returns it without storing it. No signup, no watermark, no paid tier.",
     points: [
-      "100+ gradient, mesh, and pattern backgrounds",
+      `${atLeast(PRODUCT_FACTS.backgrounds)} gradient, mesh, and solid backgrounds`,
       "Safari, Chrome, and Arc browser mockups in light and dark",
       "3D perspective transforms and fully configurable shadows",
-      "20+ animation presets with a keyframe timeline and video export",
+      `${PRODUCT_FACTS.animationPresets} animation presets with a keyframe timeline and video export`,
       "Import a tweet by URL and render it as an image",
-      "Export up to 5x resolution",
+      `Export up to ${PRODUCT_FACTS.maxExportScale}x resolution`,
     ],
   },
   {
@@ -40,15 +62,53 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: "/code",
-    title: "Code to Image: Create Beautiful Code Screenshots - Screenshot Studio",
+    title: "Code to Image: Beautiful Screenshots - Screenshot Studio",
     summary:
       "A focused code to image editor. Paste code, pick a syntax theme and gradient background, toggle line numbers and a window frame, then export a PNG or copy a shareable link. Rendering happens in the browser, so code is not sent to a server to create the image. No signup, no watermark.",
     points: [
-      "12 syntax highlighting themes and 20+ languages, with auto-detect",
+      `${PRODUCT_FACTS.codeThemes} syntax highlighting themes and ${PRODUCT_FACTS.codeLanguages} languages, with auto-detect`,
       "11 gradient backgrounds plus a transparent option",
-      "Line numbers, macOS window frame, and 10 monospace fonts",
+      `Line numbers, macOS window frame, and ${PRODUCT_FACTS.codeFonts} monospace fonts`,
       "Shareable links that restore the exact design from the URL",
       "2x and 3x PNG export, plus copy image to clipboard",
+    ],
+  },
+  {
+    path: "/tweet",
+    title: "Tweet to Image: Turn Posts on X into Images - Screenshot Studio",
+    summary:
+      "A focused tweet to image editor. Paste a link to a public post on X, pick a light or dark card and a gradient or transparent background, then export a PNG or copy it to the clipboard. No signup, no watermark.",
+    points: [
+      "Loads any public post from an x.com or twitter.com link",
+      "Light and dark card styles with up to four photos",
+      "Gradient, image, and pattern backgrounds, or a transparent backdrop",
+      "2x and 4x PNG export, plus copy image to clipboard",
+    ],
+  },
+  {
+    path: "/remove-background",
+    title: "Remove Background from Image: Free - Screenshot Studio",
+    summary:
+      "A standalone background remover. Drop in a PNG, JPG, WebP, or AVIF image and download a transparent PNG at the original resolution. The BiRefNet-lite model runs on the device with WebGPU, falling back to WebAssembly; the weights download once from Hugging Face and are cached, and the image itself is never uploaded. No signup, no watermark.",
+    points: [
+      "On-device AI background removal, no image upload",
+      "WebGPU acceleration with an automatic WebAssembly fallback",
+      "Crisp or soft edge styles, switchable without rerunning the model",
+      "Before and after comparison slider",
+      "PNG, JPG, WebP, and AVIF input up to 50 MB",
+    ],
+  },
+  {
+    path: TOOLS_HUB_PATH,
+    title: "Free Online Image Tools - Screenshot Studio",
+    summary:
+      "Index of the standalone image utilities: compress, convert, resize, crop, and rotate, plus six direct format converters. Every tool decodes, processes, and encodes in the browser using Canvas and Web Workers, so images are never uploaded. Batch input is supported and multiple results download as one zip. Free, no signup, no watermark.",
+    points: [
+      "Compress: four levels, live before and after file sizes",
+      "Convert: PNG, JPG, and WebP in every direction",
+      "Resize: exact pixels or percentage, aspect ratio locked by default",
+      "Crop: drag a selection or type exact pixels, with ratio presets",
+      "Rotate and flip: quarter turns plus horizontal and vertical mirroring",
     ],
   },
   {
@@ -73,7 +133,7 @@ export const AGENT_PAGES: AgentPage[] = [
     path: "/features/animation-maker",
     title: "Animation Maker - Screenshot Studio",
     summary:
-      "Keyframe timeline, 20+ animation presets, multi-slide slideshows, and in-browser MP4, WebM, and GIF encoding via FFmpeg WASM.",
+      `Keyframe timeline, ${PRODUCT_FACTS.animationPresets} animation presets, multi-slide slideshows, and in-browser MP4, WebM, and GIF encoding via FFmpeg WASM.`,
   },
   {
     path: "/features/3d-effects",
@@ -89,7 +149,7 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: "/features/code-snippets",
-    title: "Code to Image Generator: Free Code Screenshots - Screenshot Studio",
+    title: "Code to Image Generator: Free - Screenshot Studio",
     summary:
       "Marketing overview of the code to image tool: syntax themes, gradient backgrounds, line numbers, window frame, and shareable links, positioned as a free ray.so and carbon.now.sh alternative.",
   },
@@ -177,32 +237,86 @@ export const AGENT_PAGES: AgentPage[] = [
     title: "Terms & Conditions - Screenshot Studio",
     summary: "Terms of use for Screenshot Studio.",
   },
-  {
-    path: "/compare/pika-style",
-    title: "Screenshot Studio vs Pika Style",
-    summary: "Feature-by-feature comparison with Pika Style.",
-  },
-  {
-    path: "/compare/shots-so",
-    title: "Screenshot Studio vs Shots.so",
-    summary: "Feature-by-feature comparison with Shots.so.",
-  },
-  {
-    path: "/compare/snagit",
-    title: "Screenshot Studio vs Snagit",
-    summary: "Feature-by-feature comparison with Snagit.",
-  },
-  {
-    path: "/compare/cleanshot-x",
-    title: "Screenshot Studio vs CleanShot X",
-    summary: "Feature-by-feature comparison with CleanShot X.",
-  },
-  {
-    path: "/compare/screely",
-    title: "Screenshot Studio vs Screely",
-    summary: "Feature-by-feature comparison with Screely.",
-  },
 ];
+
+function cell(value: string): string {
+  return value.replace(/\|/g, "\\|");
+}
+
+function renderFaqSection(
+  faqs: { question: string; answer: string }[],
+): AgentSection {
+  return {
+    heading: "FAQ",
+    body: faqs
+      .map((faq) => `### ${faq.question}\n\n${faq.answer}`)
+      .join("\n\n"),
+  };
+}
+
+function comparisonSections(comparison: ComparisonData): AgentSection[] {
+  return [
+    ...(comparison.scopeNote
+      ? [{ heading: "These tools do different jobs", body: comparison.scopeNote }]
+      : []),
+    {
+      heading: `${comparison.competitorName} pricing`,
+      body: `${comparison.competitorPricing}
+
+${claimsNote(comparison)}`,
+    },
+    {
+      heading: `Where ${comparison.competitorName} falls short`,
+      body: comparison.competitorLimitations
+        .map((limitation) => `- ${limitation}`)
+        .join("\n"),
+    },
+    {
+      heading: "What Screenshot Studio does differently",
+      body: comparison.studioAdvantages
+        .map((advantage) => `- ${advantage}`)
+        .join("\n"),
+    },
+    {
+      heading: "Feature comparison",
+      body: [
+        `| Feature | Screenshot Studio | ${cell(comparison.competitorName)} |`,
+        "| --- | --- | --- |",
+        ...comparison.features.map(
+          (feature) =>
+            `| ${cell(feature.name)} | ${cell(feature.studio)} | ${cell(feature.competitor)} |`,
+        ),
+      ].join("\n"),
+    },
+    { heading: "Verdict", body: comparison.verdict },
+    renderFaqSection(
+      comparison.faqs.map((faq) => ({ question: faq.q, answer: faq.a })),
+    ),
+  ];
+}
+
+/**
+ * One agent page per comparison and per image tool, generated from the same
+ * registries that drive the routes and the sitemap so they can never drift apart.
+ */
+for (const comparison of comparisons) {
+  AGENT_PAGES.push({
+    path: `/compare/${comparison.slug}`,
+    title: comparison.metaTitle,
+    summary: `${comparison.tagline} ${comparison.metaDescription}`,
+    sections: comparisonSections(comparison),
+  });
+}
+
+for (const tool of TOOLS) {
+  AGENT_PAGES.push({
+    path: tool.slug,
+    title: `${tool.title} - Screenshot Studio`,
+    summary: `${tool.intro} Runs entirely in the browser: the image is decoded, processed, and re-encoded locally and never uploaded. Free, no signup, no watermark.`,
+    points: tool.features,
+    sections: [...(tool.sections ?? []), renderFaqSection(tool.faqs)],
+  });
+}
 
 export const AGENT_RESOURCES = [
   { name: "API documentation", url: `${BASE_URL}/docs` },
@@ -236,6 +350,10 @@ export function renderAgentPageMarkdown(page: AgentPage): string {
 
   if (page.points?.length) {
     lines.push("", ...page.points.map((point) => `- ${point}`));
+  }
+
+  for (const section of page.sections ?? []) {
+    lines.push("", `## ${section.heading}`, "", section.body);
   }
 
   lines.push(

@@ -1,6 +1,6 @@
 import { AspectRatioKey } from './aspect-ratios';
 import { BackgroundConfig } from './backgrounds';
-import { ImageBorder, ImageShadow } from '@/lib/store';
+import type { ImageBorder, ImageShadow } from '@/lib/store';
 
 export interface PresetConfig {
   id: string;

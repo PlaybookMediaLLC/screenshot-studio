@@ -13,92 +13,107 @@ interface DesignTheme {
   apply: () => void;
 }
 
-export function ScreenshotDesignSection() {
-  const themes: DesignTheme[] = [
-    {
-      id: "glass",
-      name: "Glass",
-      description: "Frosted glass with blur",
-      preview: "bg-white/10 backdrop-blur-xl",
-      apply: () => {
-        const store = useImageStore.getState();
-        store.setImageBorder({ enabled: true, type: "glass-light", width: 1, padding: 1, opacity: 0.25 });
-        store.setImageShadow({ enabled: true, blur: 30, offsetX: 0, offsetY: 12, spread: 5, color: "rgba(0,0,0,0.6)", opacity: 0.4 });
-        store.setBorderRadius(16);
-        store.setImageStylePreset("glass-light");
-      },
+export const themes: DesignTheme[] = [
+  {
+    id: "glass",
+    name: "Glass",
+    description: "Frosted glass with blur",
+    preview: "bg-white/10 backdrop-blur-xl",
+    apply: () => {
+      const store = useImageStore.getState();
+      store.resetImageFilters();
+      store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
+      store.setImageStylePreset("glass-light");
+      store.setImageBorder({ enabled: true, type: "glass-light", width: 1, padding: 1, opacity: 0.25 });
+      store.setImageShadow({ enabled: true, blur: 30, offsetX: 0, offsetY: 12, spread: 5, color: "rgba(0,0,0,0.6)", opacity: 0.4 });
+      store.setBorderRadius(16);
     },
-    {
-      id: "neon",
-      name: "Neon",
-      description: "Vibrant glow with neon border",
-      preview: "bg-gradient-to-br from-fuchsia-500/20 to-cyan-500/20",
-      apply: () => {
-        const store = useImageStore.getState();
-        store.setImageBorder({ enabled: true, type: "border-light", width: 3, color: "#c084fc", padding: 2 });
-        store.setImageShadow({ enabled: true, blur: 40, offsetX: 0, offsetY: 8, spread: 10, color: "rgba(192,132,252,0.4)", opacity: 0.8 });
-        store.setBorderRadius(12);
-        store.setBackgroundConfig({ type: "gradient", value: "vibrant_fuchsia_cyan", opacity: 1 });
-      },
+  },
+  {
+    id: "neon",
+    name: "Neon",
+    description: "Vibrant glow with neon border",
+    preview: "bg-gradient-to-br from-fuchsia-500/20 to-cyan-500/20",
+    apply: () => {
+      const store = useImageStore.getState();
+      store.resetImageFilters();
+      store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
+      store.setImageStylePreset("default");
+      store.setImageBorder({ enabled: true, type: "border-light", width: 3, color: "#c084fc", padding: 2 });
+      store.setImageShadow({ enabled: true, blur: 40, offsetX: 0, offsetY: 8, spread: 10, color: "rgba(192,132,252,0.4)", opacity: 0.8 });
+      store.setBorderRadius(12);
+      store.setBackgroundConfig({ type: "gradient", value: "vibrant_fuchsia_cyan", opacity: 1 });
     },
-    {
-      id: "minimal",
-      name: "Minimal",
-      description: "Clean, thin border with soft shadow",
-      preview: "bg-white/5 border border-white/10",
-      apply: () => {
-        const store = useImageStore.getState();
-        store.setImageBorder({ enabled: true, type: "outline-light", width: 1, color: "#ffffff", padding: 0.5, opacity: 0.35 });
-        store.setImageShadow({ enabled: true, blur: 20, offsetX: 0, offsetY: 6, spread: 2, color: "rgba(0,0,0,0.4)", opacity: 0.3 });
-        store.setBorderRadius(8);
-        store.setImageStylePreset("outline");
-      },
+  },
+  {
+    id: "minimal",
+    name: "Minimal",
+    description: "Clean, thin border with soft shadow",
+    preview: "bg-white/5 border border-white/10",
+    apply: () => {
+      const store = useImageStore.getState();
+      store.resetImageFilters();
+      store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
+      store.setImageStylePreset("outline");
+      store.setImageBorder({ enabled: true, type: "outline-light", width: 1, color: "#ffffff", padding: 0.5, opacity: 0.35 });
+      store.setImageShadow({ enabled: true, blur: 20, offsetX: 0, offsetY: 6, spread: 2, color: "rgba(0,0,0,0.4)", opacity: 0.3 });
+      store.setBorderRadius(8);
     },
-    {
-      id: "vintage",
-      name: "Vintage",
-      description: "Warm tones with sepia and photograph frame",
-      preview: "bg-amber-900/20 sepia",
-      apply: () => {
-        const store = useImageStore.getState();
-        store.setImageBorder({ enabled: true, type: "photograph", width: 12, color: "#ffffff", padding: 3 });
-        store.setImageShadow({ enabled: true, blur: 25, offsetX: 3, offsetY: 8, spread: 4, color: "rgba(0,0,0,0.5)", opacity: 0.45 });
-        store.setBorderRadius(4);
-        store.setImageFilter("sepia", 40);
-        store.setImageFilter("saturate", 80);
-        store.setBackgroundConfig({ type: "solid", value: "#faf6f0", opacity: 1 });
-      },
+  },
+  {
+    id: "vintage",
+    name: "Vintage",
+    description: "Warm tones with sepia and photograph frame",
+    preview: "bg-amber-900/20 sepia",
+    apply: () => {
+      const store = useImageStore.getState();
+      store.resetImageFilters();
+      store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
+      store.setImageStylePreset("default");
+      store.setImageBorder({ enabled: true, type: "photograph", width: 12, color: "#ffffff", padding: 3 });
+      store.setImageShadow({ enabled: true, blur: 25, offsetX: 3, offsetY: 8, spread: 4, color: "rgba(0,0,0,0.5)", opacity: 0.45 });
+      store.setBorderRadius(4);
+      store.setImageFilter("sepia", 40);
+      store.setImageFilter("saturate", 80);
+      store.setBackgroundConfig({ type: "solid", value: "#faf6f0", opacity: 1 });
     },
-    {
-      id: "dark-elegant",
-      name: "Dark Elegant",
-      description: "Dark mode with subtle glow",
-      preview: "bg-zinc-900 border border-zinc-700",
-      apply: () => {
-        const store = useImageStore.getState();
-        store.setImageBorder({ enabled: true, type: "border-dark", width: 2, color: "#3f3f46", padding: 1.5 });
-        store.setImageShadow({ enabled: true, blur: 50, offsetX: 0, offsetY: 16, spread: 8, color: "rgba(0,0,0,0.8)", opacity: 0.6 });
-        store.setBorderRadius(10);
-        store.setImageStylePreset("border-dark");
-        store.setBackgroundConfig({ type: "solid", value: "#18181b", opacity: 1 });
-      },
+  },
+  {
+    id: "dark-elegant",
+    name: "Dark Elegant",
+    description: "Dark mode with subtle glow",
+    preview: "bg-zinc-900 border border-zinc-700",
+    apply: () => {
+      const store = useImageStore.getState();
+      store.resetImageFilters();
+      store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
+      store.setImageStylePreset("border-dark");
+      store.setImageBorder({ enabled: true, type: "border-dark", width: 2, color: "#3f3f46", padding: 1.5 });
+      store.setImageShadow({ enabled: true, blur: 50, offsetX: 0, offsetY: 16, spread: 8, color: "rgba(0,0,0,0.8)", opacity: 0.6 });
+      store.setBorderRadius(10);
+      store.setBackgroundConfig({ type: "solid", value: "#18181b", opacity: 1 });
     },
-    {
-      id: "polaroid",
-      name: "Polaroid",
-      description: "Classic instant photo with white border",
-      preview: "bg-white p-2 shadow-xl",
-      apply: () => {
-        const store = useImageStore.getState();
-        store.setImageBorder({ enabled: true, type: "photograph", width: 20, color: "#ffffff", padding: 4, title: "polaroid moment" });
-        store.setImageShadow({ enabled: true, blur: 30, offsetX: 2, offsetY: 10, spread: 4, color: "rgba(0,0,0,0.4)", opacity: 0.5 });
-        store.setBorderRadius(2);
-        store.setImageFilter("contrast", 110);
-        store.setImageFilter("saturate", 105);
-      },
+  },
+  {
+    id: "polaroid",
+    name: "Polaroid",
+    description: "Classic instant photo with white border",
+    preview: "bg-white p-2 shadow-xl",
+    apply: () => {
+      const store = useImageStore.getState();
+      store.resetImageFilters();
+      store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
+      store.setImageStylePreset("default");
+      store.setImageBorder({ enabled: true, type: "photograph", width: 20, color: "#ffffff", padding: 4, title: "polaroid moment" });
+      store.setImageShadow({ enabled: true, blur: 30, offsetX: 2, offsetY: 10, spread: 4, color: "rgba(0,0,0,0.4)", opacity: 0.5 });
+      store.setBorderRadius(2);
+      store.setImageFilter("contrast", 110);
+      store.setImageFilter("saturate", 105);
     },
-  ];
+  },
+];
 
+export function ScreenshotDesignSection() {
   return (
     <SectionWrapper
       title="Design Themes"

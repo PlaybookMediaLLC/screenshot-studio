@@ -1,8 +1,8 @@
 import { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/seo/metadata";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl =
-    process.env.BETTER_AUTH_URL || "https://screenshot-studio.com";
+  const baseUrl = SITE_URL;
 
   return {
     rules: [
@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/_next/", "/static/", "/svc/", "/r2-assets/"],
+        disallow: ["/api/", "/_next/", "/static/", "/svc/"],
       },
       // Major search engines — explicit allow
       {
@@ -62,6 +62,82 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "Applebot",
         allow: "/",
       },
+      {
+        userAgent: "Applebot-Extended",
+        allow: "/",
+      },
+      {
+        userAgent: "OAI-SearchBot",
+        allow: "/",
+      },
+      {
+        userAgent: "Claude-User",
+        allow: "/",
+      },
+      {
+        userAgent: "Claude-SearchBot",
+        allow: "/",
+      },
+      {
+        userAgent: "Claude-Web",
+        allow: "/",
+      },
+      {
+        userAgent: "Perplexity-User",
+        allow: "/",
+      },
+      {
+        userAgent: "DeepSeekBot",
+        allow: "/",
+      },
+      {
+        userAgent: "MistralAI-User",
+        allow: "/",
+      },
+      {
+        userAgent: "cohere-ai",
+        allow: "/",
+      },
+      {
+        userAgent: "meta-externalagent",
+        allow: "/",
+      },
+      {
+        userAgent: "meta-externalfetcher",
+        allow: "/",
+      },
+      {
+        userAgent: "Amazonbot",
+        allow: "/",
+      },
+      {
+        userAgent: "ora-agent",
+        allow: "/",
+      },
+      {
+        userAgent: "DuckAssistBot",
+        allow: "/",
+      },
+      {
+        userAgent: "YouBot",
+        allow: "/",
+      },
+      // SEO toolbars: crawled so the site stays visible in link-intersect tooling
+      {
+        userAgent: "AhrefsBot",
+        allow: "/",
+        crawlDelay: 10,
+      },
+      {
+        userAgent: "SemrushBot",
+        allow: "/",
+        crawlDelay: 10,
+      },
+      {
+        userAgent: "DataForSeoBot",
+        allow: "/",
+        crawlDelay: 10,
+      },
       // Block aggressive/wasteful crawlers
       {
         userAgent: "MJ12bot",
@@ -72,19 +148,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: "/",
       },
       {
-        userAgent: "AhrefsBot",
-        disallow: "/",
-      },
-      {
-        userAgent: "SemrushBot",
-        disallow: "/",
-      },
-      {
         userAgent: "BLEXBot",
-        disallow: "/",
-      },
-      {
-        userAgent: "DataForSeoBot",
         disallow: "/",
       },
       {

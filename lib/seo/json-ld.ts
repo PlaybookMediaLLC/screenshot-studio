@@ -3,7 +3,33 @@
  * Added to the root layout so every page inherits Organization and WebSite schema.
  */
 
-const BASE_URL = "https://screenshot-studio.com";
+import { LAST_UPDATED_ISO, LATEST_VERSION } from "@/lib/seo/changelog";
+import {
+  BROWSER_MOCKUPS,
+  IMAGE_EXPORT_FORMATS,
+  IMAGE_FRAMES,
+  PRODUCT_FACTS,
+  VIDEO_EXPORT_FORMATS,
+  WINDOW_FRAMES,
+  atLeast,
+} from "@/lib/seo/product-facts";
+
+const BASE_URL = "https://www.screenshot-studio.com";
+
+export const PERSON_ID = `${BASE_URL}/#founder`;
+
+export function getFounderSchema() {
+  return {
+    "@type": "Person",
+    "@id": PERSON_ID,
+    name: "Kartik Labhshetwar",
+    url: `${BASE_URL}/about`,
+    sameAs: [
+      "https://x.com/code_kartik",
+      "https://github.com/KartikLabhshetwar",
+    ],
+  };
+}
 
 export function getOrganizationSchema() {
   return {
@@ -13,13 +39,43 @@ export function getOrganizationSchema() {
     url: BASE_URL,
     logo: {
       "@type": "ImageObject",
-      url: `${BASE_URL}/icon`,
-      width: 32,
-      height: 32,
+      url: `${BASE_URL}/icon-512.png`,
+      width: 512,
+      height: 512,
     },
     sameAs: [
-      "https://github.com/KartikLabhshetwar/screenshot-studio",
-      "https://x.com/code_kartik",
+      "https://github.com/opennookorg/screenshot-studio",
+      "https://x.com/screenshotstdio",
+    ],
+    founder: { "@id": PERSON_ID },
+    email: "kartik.labhshetwar@gmail.com",
+    address: {
+      "@type": "PostalAddress",
+      addressCountry: "IN",
+    },
+    contactPoint: [
+      {
+        "@type": "ContactPoint",
+        contactType: "customer support",
+        email: "kartik.labhshetwar@gmail.com",
+        url: `${BASE_URL}/contact`,
+        availableLanguage: [
+          "English",
+          "Spanish",
+          "French",
+          "German",
+          "Japanese",
+          "Portuguese",
+          "Korean",
+          "Chinese",
+        ],
+      },
+      {
+        "@type": "ContactPoint",
+        contactType: "technical support",
+        url: "https://github.com/opennookorg/screenshot-studio/issues",
+        email: "kartik.labhshetwar@gmail.com",
+      },
     ],
     description:
       "Free, open-source screenshot editor with backgrounds, browser mockups, 3D effects, animations, and video export.",
@@ -35,14 +91,7 @@ export function getWebSiteSchema() {
     publisher: {
       "@id": `${BASE_URL}/#organization`,
     },
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: `${BASE_URL}/features?q={search_term_string}`,
-      },
-      "query-input": "required name=search_term_string",
-    },
+    inLanguage: "en",
   };
 }
 
@@ -55,29 +104,36 @@ export function getSoftwareApplicationSchema() {
     applicationCategory: "DesignApplication",
     applicationSubCategory: "Screenshot Editor",
     operatingSystem: "Any (Web Browser)",
+    softwareHelp: {
+      "@type": "CreativeWork",
+      name: "Screenshot Studio API Documentation",
+      url: `${BASE_URL}/docs`,
+    },
     offers: {
       "@type": "Offer",
       price: "0",
       priceCurrency: "USD",
     },
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.8",
-      ratingCount: "150",
-      bestRating: "5",
-    },
+    softwareVersion: LATEST_VERSION,
+    dateModified: LAST_UPDATED_ISO,
+    releaseNotes: `${BASE_URL}/changelog`,
+    author: { "@id": PERSON_ID },
+    publisher: { "@id": `${BASE_URL}/#organization` },
+    license: "https://www.apache.org/licenses/LICENSE-2.0",
     featureList: [
-      "100+ gradient backgrounds",
-      "Safari and Chrome browser mockups (light & dark)",
-      "Device frames (Arc, Polaroid, glass, outline, border)",
+      `${atLeast(PRODUCT_FACTS.backgrounds)} gradient, mesh, and solid backgrounds`,
+      `${BROWSER_MOCKUPS.join(" and ")} browser mockups (light and dark)`,
+      `${WINDOW_FRAMES.join(", ")} window frames`,
+      `${IMAGE_FRAMES.join(", ")} image frames`,
       "3D perspective transforms",
-      "20+ animation presets with keyframe editor",
-      "Video export (MP4, WebM, GIF)",
-      "Text and image overlays",
-      "High-res export up to 5x scale",
+      `${atLeast(PRODUCT_FACTS.animationPresets)} animation presets with keyframe editor`,
+      `Video export (${VIDEO_EXPORT_FORMATS.join(", ")})`,
+      `Text and image overlays with ${PRODUCT_FACTS.fonts} Google Fonts`,
+      `${PRODUCT_FACTS.codeThemes} code-snippet themes`,
+      `High-res ${IMAGE_EXPORT_FORMATS.join("/")} export up to ${PRODUCT_FACTS.maxExportScale}x scale`,
       "No signup required",
       "No watermarks",
-      "Open source (Apache 2.0)",
+      `Open source (${PRODUCT_FACTS.license})`,
     ],
   };
 }
@@ -86,9 +142,42 @@ export function getRootJsonLd() {
   return {
     "@context": "https://schema.org",
     "@graph": [
+      getFounderSchema(),
       getOrganizationSchema(),
       getWebSiteSchema(),
       getSoftwareApplicationSchema(),
+    ],
+  };
+}
+
+/** ItemList + CollectionPage graph for a hub page that links out to a set of URLs. */
+export function buildCollectionJsonLd(
+  path: string,
+  name: string,
+  description: string,
+  items: { name: string; url: string }[],
+) {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        "@id": `${BASE_URL}${path}#page`,
+        url: `${BASE_URL}${path}`,
+        name,
+        description,
+        isPartOf: { "@id": `${BASE_URL}/#website` },
+      },
+      {
+        "@type": "ItemList",
+        "@id": `${BASE_URL}${path}#items`,
+        itemListElement: items.map((item, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          name: item.name,
+          url: `${BASE_URL}${item.url}`,
+        })),
+      },
     ],
   };
 }

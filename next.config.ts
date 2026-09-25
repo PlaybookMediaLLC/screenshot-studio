@@ -29,6 +29,7 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-DNS-Prefetch-Control", value: "on" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Vary", value: "Accept" },
         ],
       },
       // COOP/COEP for editor routes (FFmpeg WASM)
@@ -46,17 +47,39 @@ const nextConfig: NextConfig = {
           { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
         ],
       },
+      // Cross-origin isolation lets the background remover run ONNX WASM
+      // multi-threaded. credentialless still allows the Hugging Face model fetch.
+      {
+        source: "/:locale(es|fr|de|ja|pt|ko|zh)?/remove-background",
+        headers: [
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
+        ],
+      },
+      // A module worker started from an isolated page is blocked unless its own
+      // script response carries a compatible COEP. The header is inert on
+      // ordinary scripts, so it is safe on every static chunk.
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
+        ],
+      },
     ];
   },
 
   // Permanent redirects for SEO (301)
   async redirects() {
     return [
-      // Old /home editor URL → new / root
+      {
+        source: "/features/background-remover",
+        destination: "/remove-background",
+        statusCode: 301,
+      },
       {
         source: "/home",
-        destination: "/",
-        permanent: true,
+        destination: "/editor",
+        statusCode: 301,
       },
     ];
   },
@@ -75,6 +98,18 @@ const nextConfig: NextConfig = {
       {
         source: "/llms-full.txt",
         destination: "/api/llms-full",
+      },
+      {
+        source: "/openapi.json",
+        destination: "/api/openapi",
+      },
+      {
+        source: "/indexnow-key.txt",
+        destination: "/api/indexnow",
+      },
+      {
+        source: "/.well-known/openapi.json",
+        destination: "/api/openapi",
       },
       // PostHog reverse proxy — static assets must come first
       {
@@ -98,8 +133,17 @@ const nextConfig: NextConfig = {
   },
 
   // REQUIRED for react-konva
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.externals = [...(config.externals || []), { canvas: "canvas" }];
+    if (!isServer) {
+      // transformers.js (background remover) references Node-only backends
+      // that must never be bundled for the browser. Server code still uses sharp.
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        "sharp$": false,
+        "onnxruntime-node$": false,
+      };
+    }
     return config;
   },
 

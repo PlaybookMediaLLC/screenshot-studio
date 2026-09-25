@@ -8,17 +8,105 @@ import {
   EditorState,
   ImageState,
 } from "@/lib/store";
+import { toast } from "sonner";
+import {
+  compactDeviceScreenForDraft,
+} from "@/lib/device-mockups/layouts";
+import {
+  normalizeDraftMockups,
+  resolveRestoredEditorMode,
+} from "@/lib/device-mockups/draft-migration";
 import {
   saveDraft,
   getDraft,
   blobUrlToBase64,
   deleteDraft,
   migrateFromLocalStorage,
-  checkStorageAndCleanup,
   autoCleanIndexedDB,
 } from "@/lib/draft-storage";
+import type { PersistedImageState } from "@/lib/draft-storage";
 
 const AUTOSAVE_DELAY = 1000;
+
+/**
+ * Live session state. It is written to the draft so the persisted shape stays
+ * complete, but always at its idle value — a restored draft should open with
+ * nothing playing and no tool armed, whatever the user was doing when they left.
+ */
+const IDLE_SESSION_STATE = {
+  isPreviewing: false,
+  previewIndex: 0,
+  previewStartedAt: null,
+  activeAnnotationTool: null,
+  selectedAnnotationId: null,
+  showTemplates: false,
+} satisfies Partial<OmitFunctions<ImageState>>;
+
+/**
+ * Blob URLs die with the page, so anything blob-backed must be inlined as a
+ * data URL to survive a reload. Re-encoding a 4K image on every autosave tick
+ * is far too slow, so conversions are cached by blob URL.
+ */
+const MAX_CACHED_BLOBS = 24;
+const blobToDataUrlCache = new Map<string, string>();
+
+async function toPersistableSrc(src: string): Promise<string> {
+  if (!src.startsWith("blob:")) return src;
+
+  const cached = blobToDataUrlCache.get(src);
+  if (cached) return cached;
+
+  const dataUrl = await blobUrlToBase64(src);
+  if (blobToDataUrlCache.size >= MAX_CACHED_BLOBS) {
+    const oldest = blobToDataUrlCache.keys().next().value;
+    if (oldest !== undefined) blobToDataUrlCache.delete(oldest);
+  }
+  blobToDataUrlCache.set(src, dataUrl);
+  return dataUrl;
+}
+
+/**
+ * Derive the persisted image state from the store rather than listing fields by
+ * hand. Hand-listing is what silently dropped annotations, blur regions, slides
+ * and timeline data: anything a developer forgot to add was written as an empty
+ * default. Deriving inverts that — new state is persisted unless explicitly
+ * normalized above.
+ */
+function toPersistedImageState(state: ImageState): OmitFunctions<ImageState> {
+  const persisted: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(state)) {
+    if (typeof value === "function") continue;
+    persisted[key] = value;
+  }
+
+  return {
+    ...(persisted as OmitFunctions<ImageState>),
+    ...IDLE_SESSION_STATE,
+    timeline: { ...state.timeline, isPlaying: false, playhead: 0 },
+  };
+}
+
+/**
+ * Long strings in the fingerprint are base64 image payloads; comparing them in
+ * full would stringify tens of MB on every keystroke. Length plus a prefix is
+ * enough to notice the image being swapped.
+ */
+function fingerprintReplacer(_key: string, value: unknown) {
+  if (typeof value === "string" && value.length > 256) {
+    return `${value.length}:${value.slice(0, 64)}`;
+  }
+  return value;
+}
+
+/** Drop undefined keys so an older draft falls back to store defaults instead of
+ * overwriting them with undefined. */
+function definedOnly<T extends object>(obj: T): Partial<T> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) out[key] = value;
+  }
+  return out as Partial<T>;
+}
 
 export function useAutosaveDraft() {
   const editorStore = useEditorStore();
@@ -26,6 +114,8 @@ export function useAutosaveDraft() {
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
   const hasLoadedRef = useRef(false);
   const lastSnapshotRef = useRef<string>('');
+  // Warn about a full quota once per session, not once per autosave tick.
+  const hasWarnedQuotaRef = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
@@ -39,7 +129,10 @@ export function useAutosaveDraft() {
         await migrateFromLocalStorage();
 
         // Auto-clean IndexedDB on startup (removes old/corrupted data)
-        await autoCleanIndexedDB();
+        const cleanResult = await autoCleanIndexedDB();
+        if (cleanResult.cleaned) {
+          console.warn('[draft] autoCleanIndexedDB wiped the draft:', cleanResult.reason);
+        }
 
         const draft = await getDraft();
         if (!draft) {
@@ -47,10 +140,59 @@ export function useAutosaveDraft() {
           return;
         }
 
-        // CRITICAL: Restore imageStore.uploadedImageUrl FIRST
+        // Restore the whole image state in one shot. Restoring field-by-field
+        // is what lost annotations, blur regions and slides: any field without
+        // an explicit line here silently stayed at its default.
         const img = draft.imageState;
-        if (img?.uploadedImageUrl) {
-          imageStore.setUploadedImageUrl(img.uploadedImageUrl, img.imageName);
+        if (img) {
+          const {
+            timeline,
+            browserUrl,
+            mockups,
+            deviceLayoutSnapshot,
+            deviceScreenAssets,
+            editorMode,
+            ...rest
+          } = img;
+          const normalizeMockups = (draftMockups: typeof mockups) => normalizeDraftMockups(
+            draftMockups,
+            {
+              uploadedImageUrl: img.uploadedImageUrl ?? null,
+              imageName: img.imageName ?? null,
+              canvasDimensions: img.canvasDimensions,
+              deviceScreenAssets,
+            },
+          );
+          const normalized = normalizeMockups(mockups);
+          useImageStore.setState({
+            ...definedOnly(rest),
+            mockups: normalized.mockups,
+            ...(editorMode !== undefined || normalized.migratedLegacyMockups
+              ? {
+                  editorMode: resolveRestoredEditorMode(
+                    editorMode,
+                    normalized.migratedLegacyMockups,
+                  ),
+                }
+              : {}),
+            ...(deviceLayoutSnapshot !== undefined
+              ? {
+                  deviceLayoutSnapshot: deviceLayoutSnapshot
+                    ? normalizeMockups(deviceLayoutSnapshot).mockups
+                    : null,
+                }
+              : {}),
+            ...IDLE_SESSION_STATE,
+            ...(timeline
+              ? { timeline: { ...timeline, isPlaying: false, playhead: 0 } }
+              : {}),
+            // Drafts written before browserUrl existed fall back to the frame title.
+            ...(browserUrl !== undefined
+              ? { browserUrl }
+              : img.imageBorder?.title
+                ? { browserUrl: img.imageBorder.title }
+                : {}),
+          });
         }
 
         // Then restore editor state
@@ -74,46 +216,6 @@ export function useAutosaveDraft() {
         }
         if (draft.editorState?.noise) {
           editorStore.setNoise(draft.editorState.noise);
-        }
-
-        // Restore rest of image state
-        if (img) {
-          if (img.selectedGradient)
-            imageStore.setGradient(img.selectedGradient);
-          if (img.borderRadius !== undefined)
-            imageStore.setBorderRadius(img.borderRadius);
-          if (img.backgroundBorderRadius !== undefined)
-            imageStore.setBackgroundBorderRadius(img.backgroundBorderRadius);
-          if (img.selectedAspectRatio)
-            imageStore.setAspectRatio(img.selectedAspectRatio);
-          if (img.backgroundConfig)
-            imageStore.setBackgroundConfig(img.backgroundConfig);
-          if (img.backgroundBlur !== undefined)
-            imageStore.setBackgroundBlur(img.backgroundBlur);
-          if (img.backgroundNoise !== undefined)
-            imageStore.setBackgroundNoise(img.backgroundNoise);
-          if (img.imageOpacity !== undefined)
-            imageStore.setImageOpacity(img.imageOpacity);
-          if (img.imageScale !== undefined)
-            imageStore.setImageScale(img.imageScale);
-          if (img.imageBorder) imageStore.setImageBorder(img.imageBorder);
-          if (img.imageShadow) imageStore.setImageShadow(img.imageShadow);
-          if (img.perspective3D) imageStore.setPerspective3D(img.perspective3D);
-          if (img.watermarkSettings) imageStore.setWatermarkSettings(img.watermarkSettings);
-
-          imageStore.clearTextOverlays();
-          imageStore.clearImageOverlays();
-          imageStore.clearMockups();
-
-          img.textOverlays?.forEach((overlay) => {
-            imageStore.addTextOverlay(overlay);
-          });
-          img.imageOverlays?.forEach((overlay) => {
-            imageStore.addImageOverlay(overlay);
-          });
-          img.mockups?.forEach((mockup) => {
-            imageStore.addMockup(mockup);
-          });
         }
 
         setLastSaved(new Date(draft.timestamp));
@@ -150,51 +252,19 @@ export function useAutosaveDraft() {
             noise,
           } = editorStore;
 
-          const {
-            imageName,
-            selectedGradient,
-            borderRadius,
-            backgroundBorderRadius,
-            selectedAspectRatio,
-            backgroundConfig,
-            backgroundBlur,
-            backgroundNoise,
-            textOverlays,
-            imageOverlays,
-            mockups,
-            imageOpacity,
-            imageScale,
-            imageBorder,
-            imageShadow,
-            perspective3D,
-            watermarkSettings,
-          } = imageStore;
+          const persistedImage = toPersistedImageState(useImageStore.getState());
 
-          // Quick dirty check: fingerprint non-blob state to skip redundant saves
-          const snapshot = JSON.stringify({
-            ss: screenshot.src ? screenshot.src.slice(0, 40) : null,
-            bg: background,
-            sh: shadow,
-            pt: pattern,
-            fr: frame,
-            cv: canvas,
-            ns: noise,
-            br: borderRadius,
-            bbr: backgroundBorderRadius,
-            ar: selectedAspectRatio,
-            bgt: backgroundConfig.type,
-            bbl: backgroundBlur,
-            bbn: backgroundNoise,
-            io: imageOpacity,
-            is: imageScale,
-            ib: imageBorder,
-            ish: imageShadow,
-            p3d: perspective3D,
-            tc: textOverlays.length,
-            oc: imageOverlays.length,
-            mc: mockups.length,
-            wm: watermarkSettings,
-          });
+          // The dirty check covers everything that actually gets persisted, so
+          // editing any feature — including ones added later — marks the draft
+          // dirty. Previously it tracked a hand-picked subset, so changes to
+          // untracked state were skipped as "nothing changed".
+          const snapshot = JSON.stringify(
+            {
+              e: { screenshot, background, shadow, pattern, frame, canvas, noise },
+              i: persistedImage,
+            },
+            fingerprintReplacer
+          );
 
           if (snapshot === lastSnapshotRef.current) {
             return; // Nothing changed — skip save
@@ -202,49 +272,87 @@ export function useAutosaveDraft() {
 
           setIsSaving(true);
 
-          // Check storage limits periodically
-          await checkStorageAndCleanup();
+          // Inline every blob-backed source as a data URL — blob: references are
+          // dead on the next page load.
+          const processedScreenshotSrc = screenshot.src
+            ? await toPersistableSrc(screenshot.src)
+            : screenshot.src;
 
-          // Convert screenshot blob URL to base64
-          let processedScreenshotSrc = screenshot.src;
-          if (screenshot.src && screenshot.src.startsWith("blob:")) {
-            processedScreenshotSrc = await blobUrlToBase64(screenshot.src);
-          }
+          // Prefer the store's own value over the editor screenshot: with slides,
+          // uploadedImageUrl tracks the *active* slide, so aliasing it to
+          // screenshot.src would restore a deck pointing at the wrong image.
+          const rawUploadedImageUrl =
+            persistedImage.uploadedImageUrl ?? screenshot.src;
+          const processedUploadedImageUrl = rawUploadedImageUrl
+            ? await toPersistableSrc(rawUploadedImageUrl)
+            : null;
 
-          // Convert background config blob URL to base64
-          const processedBackgroundConfig = { ...backgroundConfig };
+          const processedBackgroundConfig = { ...persistedImage.backgroundConfig };
           if (
-            backgroundConfig.type === "image" &&
-            typeof backgroundConfig.value === "string" &&
-            backgroundConfig.value.startsWith("blob:")
+            processedBackgroundConfig.type === "image" &&
+            typeof processedBackgroundConfig.value === "string"
           ) {
-            processedBackgroundConfig.value = await blobUrlToBase64(
-              backgroundConfig.value
+            processedBackgroundConfig.value = await toPersistableSrc(
+              processedBackgroundConfig.value
             );
           }
 
-          // Convert watermark logo blob URL to base64
-          const processedWatermarkSettings = { ...watermarkSettings };
-          if (
-            watermarkSettings.type === "image" &&
-            typeof watermarkSettings.imageUrl === "string" &&
-            watermarkSettings.imageUrl.startsWith("blob:")
-          ) {
-            processedWatermarkSettings.imageUrl = await blobUrlToBase64(
-              watermarkSettings.imageUrl
-            );
-          }
-
-          // Process image overlays
           const processedImageOverlays = await Promise.all(
-            imageOverlays.map(async (overlay) => {
-              if (overlay.src.startsWith("blob:") && overlay.isCustom) {
-                const base64Src = await blobUrlToBase64(overlay.src);
-                return { ...overlay, src: base64Src };
-              }
-              return overlay;
-            })
+            persistedImage.imageOverlays.map(async (overlay) =>
+              overlay.isCustom
+                ? { ...overlay, src: await toPersistableSrc(overlay.src) }
+                : overlay
+            )
           );
+
+          // Slides hold blob URLs created from the uploaded File objects. Without
+          // this they restore as dead references and the deck renders empty —
+          // which also silently removes batch export, since it needs 2+ slides.
+          const processedSlides = await Promise.all(
+            persistedImage.slides.map(async (slide) => ({
+              ...slide,
+              src: await toPersistableSrc(slide.src),
+            }))
+          );
+
+          const deviceScreenAssets: Record<string, string> = {};
+          const deviceScreenAssetIds = new Map<string, string>();
+          const processMockups = async (mockups: typeof persistedImage.mockups) => (
+            Promise.all(mockups.map(async (mockup) => {
+              const screen = compactDeviceScreenForDraft(
+                mockup.screen,
+                rawUploadedImageUrl ?? null,
+              );
+              const src = screen.src ? await toPersistableSrc(screen.src) : null;
+              if (screen.isCustom && src) {
+                let assetId = deviceScreenAssetIds.get(src);
+                if (!assetId) {
+                  assetId = `screen-${deviceScreenAssetIds.size + 1}`;
+                  deviceScreenAssetIds.set(src, assetId);
+                  deviceScreenAssets[assetId] = src;
+                }
+                return {
+                  ...mockup,
+                  screen: {
+                    ...screen,
+                    src: null,
+                    sourceRef: `device-screen:${assetId}` as const,
+                  },
+                };
+              }
+              return {
+                ...mockup,
+                screen: {
+                  ...screen,
+                  src,
+                },
+              };
+            }))
+          );
+          const processedMockups = await processMockups(persistedImage.mockups);
+          const processedDeviceLayoutSnapshot = persistedImage.deviceLayoutSnapshot
+            ? await processMockups(persistedImage.deviceLayoutSnapshot)
+            : persistedImage.deviceLayoutSnapshot;
 
           const editorState: OmitFunctions<EditorState> = {
             screenshot: {
@@ -259,87 +367,40 @@ export function useAutosaveDraft() {
             noise,
           };
 
-          const imageState: OmitFunctions<ImageState> = {
-            uploadedImageUrl: processedScreenshotSrc,
-            imageName,
-            selectedGradient,
-            borderRadius,
-            backgroundBorderRadius,
-            selectedAspectRatio,
+          // Spread the derived state, then override only the fields whose blob
+          // sources had to be inlined above.
+          const imageState: PersistedImageState = {
+            ...persistedImage,
+            uploadedImageUrl: processedUploadedImageUrl,
             backgroundConfig: processedBackgroundConfig,
-            backgroundBlur,
-            backgroundNoise,
-            textOverlays,
             imageOverlays: processedImageOverlays,
-            mockups,
-            imageOpacity,
-            imageScale,
-            imageBorder,
-            imageShadow,
-            imageStylePreset: 'default',
-            shadowPreset: 'soft',
-            perspective3D,
-            watermarkSettings: processedWatermarkSettings,
-            imageFilters: {
-              brightness: 100,
-              contrast: 100,
-              grayscale: 0,
-              blur: 0,
-              hueRotate: 0,
-              invert: 0,
-              saturate: 100,
-              sepia: 0,
-              sharpen: 0,
-              vignette: 0,
-            },
-            exportSettings: {
-              quality: '2x',
-              format: 'png',
-              fileName: '',
-            },
-            slides: [],
-            activeSlideId: null,
-            slideshow: {
-              enabled: false,
-              defaultDuration: 0,
-              animation: "none",
-            },
-            isPreviewing: false,
-            previewIndex: 0,
-            previewStartedAt: null,
-            timeline: {
-              duration: 3000,
-              playhead: 0,
-              isPlaying: false,
-              isLooping: true,
-              tracks: [],
-              zoom: 1,
-              snapToKeyframes: true,
-            },
-            showTimeline: false,
-            animationClips: [],
-            annotations: [],
-            activeAnnotationTool: null,
-            selectedAnnotationId: null,
-            annotationDefaults: { strokeColor: '#ef4444', strokeWidth: 6, fillColor: 'transparent' },
-            blurRegions: [],
-            activeRightPanelTab: 'edit',
-            showTemplates: false,
-            editorMode: 'screenshot',
-            browserUrl: '',
-            browserHeaderSize: 100,
-            canvasDimensions: null,
-            customDimensions: null,
-            showRulers: imageStore.showRulers,
-            showGrid: imageStore.showGrid,
-            rulerInterval: imageStore.rulerInterval,
+            slides: processedSlides,
+            mockups: processedMockups,
+            deviceLayoutSnapshot: processedDeviceLayoutSnapshot,
+            deviceScreenAssets,
           };
 
-          await saveDraft(editorState, imageState);
+          const result = await saveDraft(editorState, imageState);
+
+          if (!result.ok) {
+            // Leave lastSnapshotRef untouched so the next change retries this
+            // save instead of treating the failed write as already persisted.
+            console.warn("[draft] autosave failed:", result.reason, result.error);
+            if (result.reason === "quota" && !hasWarnedQuotaRef.current) {
+              hasWarnedQuotaRef.current = true;
+              toast.error("Couldn't save your draft", {
+                description:
+                  "Browser storage is full. Export your work — recent changes may not survive a reload.",
+                duration: 10000,
+              });
+            }
+            return;
+          }
+
           lastSnapshotRef.current = snapshot;
           setLastSaved(new Date());
-        } catch {
-          // Failed to auto-save — non-critical
+        } catch (error) {
+          console.warn("[draft] autosave threw:", error);
         } finally {
           setIsSaving(false);
         }
@@ -353,34 +414,11 @@ export function useAutosaveDraft() {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [
-    editorStore.screenshot,
-    editorStore.background,
-    editorStore.shadow,
-    editorStore.pattern,
-    editorStore.frame,
-    editorStore.canvas,
-    editorStore.noise,
-    imageStore.uploadedImageUrl,
-    imageStore.selectedGradient,
-    imageStore.borderRadius,
-    imageStore.backgroundBorderRadius,
-    imageStore.selectedAspectRatio,
-    imageStore.backgroundConfig,
-    imageStore.backgroundBlur,
-    imageStore.backgroundNoise,
-    imageStore.textOverlays,
-    imageStore.imageOverlays,
-    imageStore.mockups,
-    imageStore.imageOpacity,
-    imageStore.imageScale,
-    imageStore.imageBorder,
-    imageStore.imageShadow,
-    imageStore.perspective3D,
-    imageStore.watermarkSettings,
-    editorStore,
-    imageStore,
-  ]);
+  // Both stores are consumed without a selector, so their identity changes on
+  // any state update — that is enough to re-run this effect for every field.
+  // The previous hand-listed dependency array had the same drift problem as the
+  // hand-listed snapshot: new state was simply not watched.
+  }, [editorStore, imageStore]);
 
   // Warn before closing if saving
   useEffect(() => {

@@ -25,11 +25,9 @@ export function ImageEnhanceSection() {
     { key: "grayscale" as const, label: "Grayscale", min: 0, max: 100, step: 1, unit: "%" },
     { key: "sepia" as const, label: "Sepia", min: 0, max: 100, step: 1, unit: "%" },
     { key: "invert" as const, label: "Invert", min: 0, max: 100, step: 1, unit: "%" },
-    { key: "sharpen" as const, label: "Sharpen", min: 0, max: 100, step: 1, unit: "%" },
-    { key: "vignette" as const, label: "Vignette", min: 0, max: 100, step: 1, unit: "%" },
   ];
 
-  const hasChanges = Object.entries(imageFilters).some(
+  const hasChanges = backgroundNoise !== 0 || Object.entries(imageFilters).some(
     ([key, val]) =>
       (key === "brightness" && val !== 100) ||
       (key === "contrast" && val !== 100) ||
@@ -38,9 +36,7 @@ export function ImageEnhanceSection() {
       (key === "hueRotate" && val !== 0) ||
       (key === "grayscale" && val !== 0) ||
       (key === "sepia" && val !== 0) ||
-      (key === "invert" && val !== 0) ||
-      (key === "sharpen" && val !== 0) ||
-      (key === "vignette" && val !== 0)
+      (key === "invert" && val !== 0)
   );
 
   return (
@@ -65,7 +61,7 @@ export function ImageEnhanceSection() {
           min={0}
           max={100}
           step={1}
-          label="Film Grain"
+          label="Background Grain"
           valueDisplay={`${backgroundNoise}%`}
         />
 
@@ -73,7 +69,7 @@ export function ImageEnhanceSection() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={resetImageFilters}
+            onClick={() => { resetImageFilters(); setBackgroundNoise(0); }}
             className="w-full h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
           >
             <RefreshIcon size={12} />

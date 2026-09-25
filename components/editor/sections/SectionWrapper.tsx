@@ -24,7 +24,7 @@ export function SectionWrapper({
   return (
     <div className={cn('mb-1', className)}>
       <div
-        className="w-full flex items-center justify-between gap-2 py-3 px-2 hover:bg-card/30 rounded-lg transition-colors group"
+        className="w-full flex items-center justify-between gap-2 py-3 px-2 group"
       >
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -45,7 +45,7 @@ export function SectionWrapper({
       </div>
 
       <div className={cn(
-        'overflow-hidden transition-all duration-200',
+        'overflow-hidden transition-[max-height,opacity] duration-200 motion-reduce:transition-none',
         isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
       )}>
         <div className="px-2 pb-4 space-y-4">

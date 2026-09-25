@@ -16,39 +16,12 @@ interface ShortcutGroup {
 
 const shortcutGroups: ShortcutGroup[] = [
   {
-    title: "General",
+    title: "Canvas (when not editing text)",
     shortcuts: [
       { keys: ["⌘/Ctrl", "Z"], description: "Undo" },
       { keys: ["⌘/Ctrl", "Shift", "Z"], description: "Redo" },
-      { keys: ["Delete", "Backspace"], description: "Delete selected overlay" },
-      { keys: ["Esc"], description: "Close panel / Deselect" },
-    ],
-  },
-  {
-    title: "Tools",
-    shortcuts: [
-      { keys: ["V"], description: "Select tool" },
-      { keys: ["T"], description: "Add text overlay" },
-      { keys: ["R"], description: "Add rectangle annotation" },
-      { keys: ["O"], description: "Add circle annotation" },
-      { keys: ["A"], description: "Add arrow annotation" },
-      { keys: ["B"], description: "Blur tool" },
-    ],
-  },
-  {
-    title: "Canvas",
-    shortcuts: [
-      { keys: ["⌘/Ctrl", "C"], description: "Copy to clipboard" },
-      { keys: ["⌘/Ctrl", "S"], description: "Export image" },
-      { keys: ["⌘/Ctrl", "Shift", "E"], description: "Export video" },
-      { keys: ["⌘/Ctrl", "Shift", "D"], description: "Download all slides" },
-    ],
-  },
-  {
-    title: "View",
-    shortcuts: [
-      { keys: ["R"], description: "Toggle rulers" },
-      { keys: ["G"], description: "Toggle grid" },
+      { keys: ["Delete / Backspace"], description: "Delete selected item" },
+      { keys: ["Esc"], description: "Close dialog / Deselect annotation" },
     ],
   },
 ];

@@ -4,12 +4,15 @@ import * as React from "react";
 import { useImageStore } from "@/lib/store";
 import { toast } from "sonner";
 
-const predefinedPresets = [
+export const predefinedPresets = [
   {
     id: "social-instagram",
     name: "Instagram Story",
     apply: () => {
       const store = useImageStore.getState();
+      store.resetImageFilters();
+      store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
+      store.setImageStylePreset("default");
       store.setAspectRatio("9_16");
       store.setImageBorder({ enabled: true, type: "border-light", width: 2, color: "#ffffff", padding: 2 });
       store.setImageShadow({ enabled: true, blur: 25, offsetX: 0, offsetY: 10, spread: 4, color: "rgba(0,0,0,0.5)", opacity: 0.4 });
@@ -22,11 +25,13 @@ const predefinedPresets = [
     name: "Twitter/X Post",
     apply: () => {
       const store = useImageStore.getState();
+      store.resetImageFilters();
+      store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
+      store.setImageStylePreset("glass-light");
       store.setAspectRatio("16_9");
       store.setImageBorder({ enabled: true, type: "outline-light", width: 1, color: "#ffffff", padding: 0.5, opacity: 0.3 });
       store.setImageShadow({ enabled: true, blur: 20, offsetX: 0, offsetY: 6, spread: 2, color: "rgba(0,0,0,0.35)", opacity: 0.3 });
       store.setBorderRadius(8);
-      store.setImageStylePreset("glass-light");
     },
   },
   {
@@ -34,12 +39,14 @@ const predefinedPresets = [
     name: "Product Showcase",
     apply: () => {
       const store = useImageStore.getState();
+      store.resetImageFilters();
+      store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
+      store.setImageStylePreset("glass-dark");
       store.setAspectRatio("4_3");
       store.setImageBorder({ enabled: true, type: "border-dark", width: 3, color: "#1a1a2e", padding: 3 });
       store.setImageShadow({ enabled: true, blur: 40, offsetX: 0, offsetY: 15, spread: 6, color: "rgba(0,0,0,0.6)", opacity: 0.5 });
       store.setBorderRadius(12);
       store.setBackgroundConfig({ type: "solid", value: "#0f0f1a", opacity: 1 });
-      store.setImageStylePreset("glass-dark");
     },
   },
   {
@@ -47,6 +54,9 @@ const predefinedPresets = [
     name: "Minimal Clean",
     apply: () => {
       const store = useImageStore.getState();
+      store.resetImageFilters();
+      store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
+      store.setImageStylePreset("default");
       store.setAspectRatio("3_2");
       store.setImageBorder({ enabled: true, type: "outline-light", width: 1, color: "#e5e7eb", padding: 1, opacity: 0.4 });
       store.setImageShadow({ enabled: false, blur: 0, offsetX: 0, offsetY: 0, spread: 0, color: "rgba(0,0,0,0)", opacity: 0 });
@@ -59,12 +69,14 @@ const predefinedPresets = [
     name: "Dark Premium",
     apply: () => {
       const store = useImageStore.getState();
+      store.resetImageFilters();
+      store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
+      store.setImageStylePreset("border-dark");
       store.setAspectRatio("16_9");
       store.setImageBorder({ enabled: true, type: "border-dark", width: 1, color: "#2d2d3d", padding: 2 });
       store.setImageShadow({ enabled: true, blur: 50, offsetX: 0, offsetY: 20, spread: 8, color: "rgba(0,0,0,0.8)", opacity: 0.6 });
       store.setBorderRadius(10);
       store.setBackgroundConfig({ type: "solid", value: "#0a0a0f", opacity: 1 });
-      store.setImageStylePreset("border-dark");
     },
   },
   {
@@ -72,12 +84,14 @@ const predefinedPresets = [
     name: "Vibrant Gradient",
     apply: () => {
       const store = useImageStore.getState();
+      store.resetImageFilters();
+      store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
+      store.setImageStylePreset("glass-light");
       store.setAspectRatio("4_5");
       store.setImageBorder({ enabled: true, type: "glass-light", width: 1, padding: 1, opacity: 0.2 });
       store.setImageShadow({ enabled: true, blur: 30, offsetX: 0, offsetY: 12, spread: 5, color: "rgba(0,0,0,0.5)", opacity: 0.4 });
       store.setBorderRadius(18);
       store.setBackgroundConfig({ type: "gradient", value: "vibrant_fuchsia_cyan", opacity: 1 });
-      store.setImageStylePreset("glass-light");
     },
   },
 ];

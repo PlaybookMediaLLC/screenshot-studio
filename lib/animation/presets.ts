@@ -675,8 +675,8 @@ export const ANIMATION_PRESETS: AnimationPreset[] = [
   },
   {
     id: 'blur-in',
-    name: 'Blur In',
-    description: 'Sharpens from blur to crisp focus',
+    name: 'Soft Zoom In',
+    description: 'Gently zooms and fades into view',
     category: 'effects',
     duration: 1200,
     tracks: [
@@ -797,7 +797,7 @@ export function getPresetById(id: string): AnimationPreset | undefined {
 }
 
 // Category display names
-export const CATEGORY_LABELS: Record<string, string> = {
+export const CATEGORY_LABELS: Record<AnimationPreset['category'], string> = {
   reveal: 'Reveal',
   slide: 'Slide',
   fade: 'Fade',

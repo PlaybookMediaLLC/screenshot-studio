@@ -11,18 +11,32 @@ export function getStatusMessage(progress: number): string {
   return "Polishing your masterpiece...";
 }
 
-export function ImageExportProgressView({ progress, format }: { progress: number; format: ExportFormat }) {
-  const statusMessage = useMemo(() => getStatusMessage(progress), [progress]);
+export function ImageExportProgressView({
+  progress,
+  format,
+  slideIndex,
+  slideTotal,
+}: {
+  progress: number;
+  format: ExportFormat;
+  slideIndex?: number;
+  slideTotal?: number;
+}) {
+  const statusMessage = useMemo(() => {
+    if (slideIndex !== undefined && slideTotal !== undefined) {
+      return `Exporting slide ${slideIndex} of ${slideTotal}...`;
+    }
+    return getStatusMessage(progress);
+  }, [progress, slideIndex, slideTotal]);
   const formatLabel = format === "jpeg" ? "JPEG" : format === "webp" ? "WebP" : "PNG";
 
   return (
-    <div className="flex flex-col items-center py-8 space-y-6">
-      {/* Bouncing ball loader */}
+    <div className="flex flex-col items-center py-6 space-y-5">
       <style>{`
         .bounce-loader {
           height: 60px;
           aspect-ratio: 2;
-          border-bottom: 3px solid hsl(var(--muted-foreground) / 0.3);
+          border-bottom: 3px solid color-mix(in srgb, var(--foreground) 12%, transparent);
           position: relative;
           overflow: hidden;
         }
@@ -48,12 +62,10 @@ export function ImageExportProgressView({ progress, format }: { progress: number
       `}</style>
       <div className="bounce-loader" />
 
-      {/* Percentage */}
-      <span className="text-2xl font-bold text-primary tabular-nums">{progress}%</span>
+      <span className="text-2xl font-bold text-foreground tabular-nums">{progress}%</span>
 
-      {/* Progress bar */}
       <div className="w-full">
-        <div className="h-1.5 bg-accent rounded-full overflow-hidden">
+        <div className="h-1.5 bg-foreground/10 rounded-full overflow-hidden">
           <div
             className="h-full bg-primary rounded-full transition-all duration-200 ease-out"
             style={{ width: `${progress}%` }}
@@ -61,13 +73,11 @@ export function ImageExportProgressView({ progress, format }: { progress: number
         </div>
       </div>
 
-      {/* Status message */}
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-muted-foreground text-center">
         {statusMessage}
       </p>
 
-      {/* Format tag */}
-      <div className="px-3 py-1 rounded-full bg-accent border border-border/50">
+      <div className="px-3 py-1 rounded-md bg-foreground/[0.04] border border-foreground/10">
         <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
           Exporting as {formatLabel}
         </span>

@@ -1,10 +1,11 @@
 import { Metadata } from "next";
 import { LandingPage } from "@/components/landing/LandingPage";
+import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 
 export const metadata: Metadata = {
-  title: "Screenshot Studio - Free Screenshot Beautifier & Mockup Tool",
+  title: "Screenshot Mockup Maker",
   description:
-    "Transform plain screenshots into professional graphics with Screenshot Studio. 100+ gradient backgrounds, Safari and Chrome browser mockups, 3D effects, animations, and video export. Import tweets and code snippets. Better free alternative to Pika Style and Shots.so. No signup, no watermarks.",
+    `Make screenshot mockups in seconds. Browser frames, device mockups, ${atLeast(PRODUCT_FACTS.backgrounds)} gradient backgrounds, 3D effects, animations, and video export. Free, no signup.`,
   keywords: [
     "screenshot beautifier",
     "screenshot mockup maker",
@@ -21,9 +22,9 @@ export const metadata: Metadata = {
     "code snippet to image",
   ],
   openGraph: {
-    title: "Screenshot Studio - Free Screenshot Beautifier & Mockup Tool",
+    title: "Screenshot Studio - Screenshot Mockup Maker",
     description:
-      "Transform screenshots into professional graphics. 100+ backgrounds, browser mockups, 3D effects, animations, and video export. No signup required.",
+      `Transform screenshots into professional graphics. ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, browser mockups, 3D effects, animations, and video export. No signup required.`,
     url: "/landing",
   },
   alternates: {
@@ -36,17 +37,17 @@ const howItWorks = [
   {
     step: 1,
     title: "Drop Your Image",
-    description: "Drag any screenshot or photo",
+    description: "Drag any screenshot or photo into the editor to get started.",
   },
   {
     step: 2,
     title: "Style It",
-    description: "Add backgrounds, shadows, text",
+    description: "Add backgrounds, shadows, frames, and text in a few clicks.",
   },
   {
     step: 3,
     title: "Export",
-    description: "Download in seconds",
+    description: "Download a polished image ready to share in seconds.",
   },
 ];
 
@@ -66,10 +67,10 @@ const videoTestimonials = [
 export default function LandingPageRoute() {
   return (
     <LandingPage
-      heroTitle="Beautiful images."
-      heroSubtitle="Zero effort."
-      heroDescription="The free browser editor that makes your screenshots, tweets, and code snippets look professional. Add Safari and Chrome browser mockups, 3D effects, and more."
-      ctaLabel="Open Editor"
+      heroTitle="Beautiful images. Zero effort."
+      heroSubtitle="Screenshots, ready to ship."
+      heroDescription="The free browser editor that makes your screenshots, tweets, and code look professional. Browser mockups, 3D effects, and more."
+      ctaLabel="Get Started"
       ctaHref="/"
       howItWorks={howItWorks}
       videoTestimonials={videoTestimonials}

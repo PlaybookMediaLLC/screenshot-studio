@@ -175,7 +175,7 @@ export function HTMLMainImageLayer({
   canvasH,
   framedW,
   framedH,
-  frameOffset,
+  frameOffset: _frameOffset,
   windowPadding,
   windowHeader,
   imageScaledW,

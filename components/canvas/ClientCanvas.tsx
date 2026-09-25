@@ -49,6 +49,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
 
   const {
     backgroundConfig,
+    uploadedImageUrl,
     backgroundBorderRadius,
     backgroundBlur,
     backgroundNoise,
@@ -107,6 +108,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   };
 
   const hasDeviceScene = editorMode === "device" && hasVisibleMockups(mockups);
+  const hasSourceImage = !!uploadedImageUrl && !!screenshot.src && shouldRenderSourceImage(editorMode, mockups);
   const selectedDeviceId = useDeviceUIStore((state) => state.selectedDeviceId);
   const setSelectedDeviceId = useDeviceUIStore((state) => state.setSelectedDeviceId);
   const setEditingScreenDeviceId = useDeviceUIStore((state) => state.setEditingScreenDeviceId);
@@ -508,7 +510,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           noiseOpacity={noise.opacity}
         />
 
-        {!hasDeviceScene ? <Perspective3DOverlay
+        {hasSourceImage ? <Perspective3DOverlay
           has3DTransform={has3DTransform}
           perspective3D={perspective3D}
           screenshot={screenshot}
@@ -532,7 +534,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           imageFilters={imageFilters}
         /> : null}
 
-        {!hasDeviceScene && has3DTransform && (
+        {hasSourceImage && has3DTransform && (
           <div
             onPointerDown={handle3DDragDown}
             style={{
@@ -563,7 +565,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           />
         )}
 
-        {!hasDeviceScene && !has3DTransform && (
+        {hasSourceImage && !has3DTransform && (
           <>
             <SnapAlignmentGuides
               canvasW={canvasW}
@@ -679,7 +681,8 @@ export default function ClientCanvas({
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [loadError, setLoadError] = useState(false);
   const { screenshot, setScreenshot } = useEditorStore();
-  const { uploadedImageUrl, editorMode, mockups } = useImageStore();
+  const { uploadedImageUrl, editorMode, mockups, textOverlays } = useImageStore();
+  const hasText = textOverlays.length > 0;
   const hasDeviceScene = editorMode === "device" && hasVisibleMockups(mockups);
   const hasSourceImage = !!screenshot.src
     && !!uploadedImageUrl
@@ -689,7 +692,7 @@ export default function ClientCanvas({
   useEffect(() => {
     setLoadError(false);
 
-    if (!hasSourceImage && !hasDeviceScene) {
+    if (!hasSourceImage && !hasDeviceScene && !hasText) {
       setImage(null);
       return;
     }
@@ -724,7 +727,7 @@ export default function ClientCanvas({
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [hasDeviceScene, hasSourceImage, screenshot.src, setScreenshot]);
+  }, [hasDeviceScene, hasSourceImage, hasText, screenshot.src, setScreenshot]);
 
   useEffect(() => {
     if (image) {
@@ -732,7 +735,7 @@ export default function ClientCanvas({
     }
   }, [image, onReady]);
 
-  if (loadError || (!hasSourceImage && !hasDeviceScene)) {
+  if (loadError || (!hasSourceImage && !hasDeviceScene && !hasText)) {
     return null;
   }
 

@@ -69,6 +69,7 @@ export function EditorHeader() {
     selectedAspectRatio,
     slides,
     uploadedImageUrl,
+    textOverlays,
     editorMode,
     mockups,
     clearImage,
@@ -97,6 +98,8 @@ export function EditorHeader() {
   ) || (
     editorMode === "device" && hasVisibleMockups(mockups)
   );
+
+  const hasContent = hasImage || textOverlays.length > 0;
 
   // Undo/redo state
   const [canUndo, setCanUndo] = React.useState(false);
@@ -366,7 +369,7 @@ export function EditorHeader() {
           <div className={cn("flex items-center", isMobile ? "gap-1" : "gap-1.5")}>
             <Button
               onClick={() => copyImage()}
-              disabled={!hasImage || isExporting || isCopying}
+              disabled={!hasContent || isExporting || isCopying}
               variant="ghost"
               size="sm"
               aria-label="Copy"
@@ -385,7 +388,7 @@ export function EditorHeader() {
             >
               <PopoverTrigger asChild>
                 <Button
-                  disabled={!hasImage}
+                  disabled={!hasContent}
                   size="sm"
                   aria-label="Save"
                   className={cn(
@@ -478,7 +481,7 @@ export function EditorHeader() {
             ) : null}
           </div>
 
-          {(hasImage || uploadedImageUrl) && !isMobile ? (
+          {(hasContent || uploadedImageUrl) && !isMobile ? (
             <>
               <div className="w-px h-4 bg-foreground/10 shrink-0" aria-hidden />
               <div className="flex items-center gap-1">
@@ -519,7 +522,7 @@ export function EditorHeader() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-                {hasImage ? (
+                {hasContent ? (
                   <Button
                     onClick={clearImage}
                     variant="ghost"

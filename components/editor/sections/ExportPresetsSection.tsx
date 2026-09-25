@@ -6,6 +6,8 @@ import { useImageStore } from "@/lib/store";
 import { toast } from "sonner";
 
 export const exportPresets = [
+  { id: "chrome-web-store", name: "Chrome Web Store", platform: "Extension", width: 1280, height: 800 },
+  { id: "chrome-web-store-small", name: "Chrome Web Store Small", platform: "Extension", width: 640, height: 400 },
   { id: "twitter-post", name: "Twitter/X", platform: "Social", width: 1200, height: 675 },
   { id: "instagram-square", name: "Instagram Square", platform: "Social", width: 1080, height: 1080 },
   { id: "instagram-story", name: "Instagram Story", platform: "Social", width: 1080, height: 1920 },

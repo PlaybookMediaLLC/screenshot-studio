@@ -38,6 +38,7 @@ export function EditorCanvas() {
     editorMode,
     mockups,
     backgroundConfig,
+    textOverlays,
   } = useImageStore();
   const backgroundReady = useBackgroundImageReady(backgroundConfig);
 
@@ -46,7 +47,7 @@ export function EditorCanvas() {
     && !!screenshot.src
     && shouldRenderSourceImage(editorMode, mockups);
   const hasDeviceScene = editorMode === "device" && hasVisibleMockups(mockups);
-  const hasRenderableContent = hasImage || hasDeviceScene;
+  const hasRenderableContent = hasImage || hasDeviceScene || textOverlays.length > 0;
   const [exportOpen, setExportOpen] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
   const loadStartedAtRef = React.useRef<number | null>(null);

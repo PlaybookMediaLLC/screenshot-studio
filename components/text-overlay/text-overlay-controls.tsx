@@ -49,32 +49,7 @@ export const TextOverlayControls = () => {
   }, [selectedOverlayId]);
 
   const handleAddText = () => {
-    const availableWeights = getAvailableFontWeights('system');
-    addTextOverlay({
-      text: 'Text',
-      position: { x: 50, y: 50 },
-      fontSize: 24,
-      fontWeight: availableWeights[0] || 'normal',
-      fontFamily: 'system',
-      color: '#ffffff',
-      opacity: 1,
-      isVisible: true,
-      orientation: 'horizontal',
-      textShadow: {
-        enabled: true,
-        color: 'rgba(0, 0, 0, 0.5)',
-        blur: 4,
-        offsetX: 2,
-        offsetY: 2,
-      },
-    });
-    // Auto-select the newly added overlay after a tick (ID is generated in store)
-    setTimeout(() => {
-      const latest = useImageStore.getState().textOverlays;
-      if (latest.length > 0) {
-        setSelectedOverlayId(latest[latest.length - 1].id);
-      }
-    }, 0);
+    setSelectedOverlayId(addTextOverlay());
   };
 
   return (
@@ -96,7 +71,6 @@ export const TextOverlayControls = () => {
             return (
               <div
                 key={overlay.id}
-                onClick={() => setSelectedOverlayId(isSelected ? null : overlay.id)}
                 className={cn(
                   'flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer transition-all group',
                   isSelected
@@ -110,15 +84,20 @@ export const TextOverlayControls = () => {
                 )}>
                   <TextIcon size={13} />
                 </div>
-                <span
+                <button
+                  type="button"
+                  aria-label={`Edit text: ${overlay.text || 'Empty text'}`}
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedOverlayId(isSelected ? null : overlay.id)}
                   className={cn(
-                    'flex-1 text-xs font-medium truncate',
+                    'flex-1 text-left text-xs font-medium truncate',
                     !overlay.isVisible && 'text-muted-foreground line-through'
                   )}
                 >
                   {overlay.text || 'Empty text'}
-                </span>
+                </button>
                 <button
+                  aria-label={overlay.isVisible ? "Hide text" : "Show text"}
                   onClick={(e) => {
                     e.stopPropagation();
                     updateTextOverlay(overlay.id, { isVisible: !overlay.isVisible });
@@ -130,6 +109,7 @@ export const TextOverlayControls = () => {
                     : <ViewOffSlashIcon size={13} />}
                 </button>
                 <button
+                  aria-label="Delete text"
                   onClick={(e) => {
                     e.stopPropagation();
                     removeTextOverlay(overlay.id);
@@ -162,6 +142,7 @@ export const TextOverlayControls = () => {
           <div className="space-y-1.5">
             <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Content</label>
             <textarea
+              aria-label="Text content"
               ref={editInputRef}
               value={selectedOverlay.text}
               onChange={(e) => updateTextOverlay(selectedOverlay.id, { text: e.target.value })}
@@ -178,6 +159,7 @@ export const TextOverlayControls = () => {
               {QUICK_COLORS.map((color) => (
                 <button
                   key={color}
+                  aria-label={`Text color ${color}`}
                   onClick={() => updateTextOverlay(selectedOverlay.id, { color })}
                   className={cn(
                     'w-5 h-5 rounded-full transition-all shrink-0',
@@ -193,6 +175,7 @@ export const TextOverlayControls = () => {
               ))}
               <div className="w-px h-4 bg-border/40 mx-0.5" />
               <input
+                aria-label="Custom text color"
                 type="color"
                 value={selectedOverlay.color}
                 onChange={(e) => updateTextOverlay(selectedOverlay.id, { color: e.target.value })}
@@ -207,6 +190,7 @@ export const TextOverlayControls = () => {
 
             {/* Font family */}
             <select
+              aria-label="Font family"
               value={selectedOverlay.fontFamily}
               onChange={(e) => {
                 const fontFamily = e.target.value;
@@ -227,6 +211,7 @@ export const TextOverlayControls = () => {
 
             {/* Weight */}
             <select
+              aria-label="Font weight"
               value={selectedOverlay.fontWeight}
               onChange={(e) => updateTextOverlay(selectedOverlay.id, { fontWeight: e.target.value })}
               className="w-full h-9 px-2.5 text-xs rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
@@ -259,6 +244,45 @@ export const TextOverlayControls = () => {
             valueDisplay={`${Math.round(selectedOverlay.opacity * 100)}%`}
           />
 
+          <div className="space-y-2">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Position on canvas</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => updateTextOverlay(selectedOverlay.id, { position: { ...selectedOverlay.position, x: 50 } })}
+                className="flex-1 rounded-md border border-border px-2 py-2 text-xs hover:bg-accent"
+              >
+                Center horizontally
+              </button>
+              <button
+                type="button"
+                onClick={() => updateTextOverlay(selectedOverlay.id, { position: { ...selectedOverlay.position, y: 50 } })}
+                className="flex-1 rounded-md border border-border px-2 py-2 text-xs hover:bg-accent"
+              >
+                Center vertically
+              </button>
+            </div>
+            <div className="flex gap-2">
+              {(['x', 'y'] as const).map((axis) => (
+                <label key={axis} className="flex flex-1 items-center gap-1 text-xs text-muted-foreground">
+                  {axis.toUpperCase()} (%)
+                  <input
+                    type="number" min={0} max={100} step={0.1}
+                    aria-label={`Text ${axis.toUpperCase()} position`}
+                    value={Math.round(selectedOverlay.position[axis] * 10) / 10}
+                    onChange={(event) => {
+                      const value = event.currentTarget.valueAsNumber;
+                      if (Number.isFinite(value)) updateTextOverlay(selectedOverlay.id, {
+                        position: { ...selectedOverlay.position, [axis]: Math.min(100, Math.max(0, value)) },
+                      });
+                    }}
+                    className="h-8 min-w-0 w-full rounded-md border border-border bg-background px-2 text-foreground"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+
           {/* Orientation */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Orientation</label>
@@ -285,6 +309,8 @@ export const TextOverlayControls = () => {
             <div className="flex items-center justify-between">
               <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Shadow</label>
               <button
+                aria-label="Text shadow"
+                aria-pressed={selectedOverlay.textShadow.enabled}
                 onClick={() => updateTextOverlay(selectedOverlay.id, {
                   textShadow: { ...selectedOverlay.textShadow, enabled: !selectedOverlay.textShadow.enabled },
                 })}

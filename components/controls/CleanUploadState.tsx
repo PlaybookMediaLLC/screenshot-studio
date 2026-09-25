@@ -46,7 +46,7 @@ export function CleanUploadState() {
   const [isCapturing, setIsCapturing] = React.useState(false);
 
   const { setScreenshot } = useEditorStore();
-  const { addImages, setImage, backgroundConfig } = useImageStore();
+  const { addImages, setImage, backgroundConfig, addTextOverlay } = useImageStore();
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   // Crossfade state
@@ -351,6 +351,11 @@ export function CleanUploadState() {
               <span className="text-[10px] text-foreground/40">or</span>
               <div className="flex-1 h-px bg-foreground/20" />
             </div>
+
+            <Button variant="outline" onClick={() => addTextOverlay()}>
+              Start with text
+            </Button>
+            <p className="text-xs text-foreground/60">No image needed. Edit in Design → Add Text.</p>
 
             <div className="flex items-center gap-2 w-full">
               <div className="flex flex-1 min-w-0 items-center gap-0 h-10 rounded-xl bg-background/35 border border-foreground/15 backdrop-blur-md focus-within:border-foreground/30 focus-within:ring-1 focus-within:ring-foreground/20 transition-[border-color,box-shadow]">

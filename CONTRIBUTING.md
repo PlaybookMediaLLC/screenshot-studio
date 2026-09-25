@@ -1,84 +1,46 @@
-# Contributing to Screenshot Studio
+# Contributing
 
-## Setup
+Small, focused pull requests are easiest to review. For larger changes, open an issue first to agree on scope.
 
-Requires Node.js 20+ and npm.
+## Get started
+
+1. Fork the repository and follow the [local setup](./README.md#run-locally), using your fork's clone URL.
+2. Branch from the latest `main`: `git switch -c fix/short-description` or `feat/short-description`.
+3. Make the change, verify it, and open a pull request against `main`.
+
+Keep secrets in your local `.env`; never commit them. The placeholder database URL in the setup is enough for browser-only development. Use real service credentials only when testing those integrations.
+
+## Where to look
+
+| Area | Location |
+|---|---|
+| Pages and API routes | `app/` — editor at `/editor`, tools at `/tools` |
+| Editor controls and canvas | `components/editor/`, `components/canvas/` |
+| State, presets, and export | `lib/store/`, `lib/constants/`, `lib/export/` |
+| Draft persistence and hooks | `lib/draft-storage.ts`, `hooks/` |
+| Regression tests | `tests/` |
+
+## Keep changes focused
+
+- Reuse existing components and helpers before adding dependencies or abstractions.
+- Use TypeScript and accessible controls; preserve keyboard and mobile behavior.
+- Use theme tokens for UI colors. Custom colors belong in the user's design.
+- Add a regression test for behavior changes. Check that editing, undo, draft restoration, and export still work when affected.
+- Keep unrelated cleanup out of the PR. Comments should explain decisions that the code cannot.
+
+## Verify
 
 ```bash
-git clone https://github.com/<your-username>/screenshot-studio.git
-cd screenshot-studio
-npm install
-npm run dev
+npm test
+npm run lint
+npx tsc --noEmit
+npm run build
 ```
 
-Open [localhost:3000](http://localhost:3000). Core features work with no configuration. Copy `.env.example` to `.env.local` only if you need Cloudflare R2 asset storage, the Postgres screenshot cache, or analytics.
+Run these from the repository root with `.env` configured. Check visual changes in a browser and verify exported output, not only the preview. Existing lint warnings should not grow.
 
-## Scripts
+## Open a pull request
 
-```bash
-npm run dev        # start dev server
-npm run build      # production build
-npm run lint       # eslint
-npm run lint:fix   # eslint --fix
-npm test           # node test runner (tests/*.test.ts)
-```
+Use a clear title such as `fix(text): preserve font weight`. Explain the problem, resulting behavior, and checks you ran. Link the issue (`Fixes #123` when fully resolved), and include screenshots or a short recording for UI changes.
 
-## Project Structure
-
-```
-app/              Next.js routes, API routes, sitemap, robots
-  [locale]/       Marketing pages, editor (/), code image page (/code)
-components/
-  canvas/         Frames, overlays, canvas dimensions
-  controls/       Editor control panels
-  editor/         Editor layout and sections
-  export/         Export dialogs and progress UI
-  landing/        Landing page sections, Navigation, Footer
-  timeline/       Animation timeline and playback
-  ui/             Shared Radix-based primitives
-lib/
-  store/          Zustand state
-  animation/      Animation engine and presets
-  export/         Image and video export pipeline
-  constants/      Backgrounds, presets, fonts
-  seo/            Metadata, JSON-LD, comparison page data
-hooks/            Custom hooks
-types/            TypeScript definitions
-tests/            Node test files
-```
-
-## Coding Standards
-
-- TypeScript everywhere. No `any`; use `unknown` when the type is truly unknown.
-- Functional components, named exports, `'use client'` only where needed.
-- Use Tailwind theme tokens (`bg-background`, `text-foreground`, `border-border`). Never hardcode colors.
-- Components are `PascalCase.tsx`, utilities are `kebab-case.ts`.
-- No code comments; make names explain the code.
-- Run `npm run lint` and `npm run build` before opening a PR.
-
-## Common Tasks
-
-| Task | Where |
-|------|-------|
-| New editor control | `components/controls/`, wire to `lib/store/` |
-| New browser mockup | `components/canvas/frames/BrowserToolbar.tsx`, `Frame3DOverlay.tsx`, `canvas-dimensions.ts`, `components/editor/sections/BrowserMockupSection.tsx` |
-| New background | `lib/constants/backgrounds.ts` |
-| New animation preset | `lib/animation/presets.ts`, use `clonePresetTracks()` when applying |
-| Export changes | `lib/export/export-service.ts`, `video-encoder.ts`, `webcodecs-encoder.ts`, `ffmpeg-encoder.ts` |
-| New SEO comparison page | Add an entry to `lib/seo/comparisons.ts`; the route and sitemap pick it up |
-| New marketing page | Add `app/[locale]/<path>/page.tsx` with `alternates.canonical`, then add the path to `app/sitemap.ts` |
-
-## Pull Requests
-
-1. Branch from `main`: `feat/short-name` or `fix/short-name`.
-2. Use conventional commits: `feat(export): add watermark option`, `fix(canvas): image offset on resize`.
-3. Describe what changed, why, and how to test. Add screenshots for visual changes.
-4. Checklist: `npm run build` and `npm run lint` pass, tested in the browser, no console errors.
-
-## Bug Reports
-
-Open a [GitHub issue](https://github.com/opennookorg/screenshot-studio/issues) with steps to reproduce, expected vs actual behavior, browser and OS, and screenshots or console errors.
-
-## License
-
-Contributions are licensed under [Apache 2.0](./LICENSE).
+For bug reports, include reproduction steps, expected and actual results, browser/OS, and relevant screenshots or errors. Contributions are licensed under [Apache 2.0](./LICENSE).

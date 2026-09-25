@@ -1,41 +1,34 @@
-<a href="https://vercel.com/oss"><img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" /></a>
-<a href="https://peerlist.io/code_kartik/project/screenshot-studio"><img alt="Peerlist Project Spotlight, Rank 1" src="https://dqy38fnwh4fqs.cloudfront.net/website/project-spotlight/project-week-rank-one-dark.svg" height="40" /></a>
-
 # Screenshot Studio
 
-Free, open-source screenshot editor and mockup maker that runs in the browser. No signup, no watermarks.
+A free, open-source editor for screenshots, mockups, and social graphics. No signup or watermarks.
 
-**Live:** [screenshot-studio.com](https://www.screenshot-studio.com) · **Code to image:** [screenshot-studio.com/code](https://www.screenshot-studio.com/code) . **Image Tools:** [screenshot-studio.com/tools](https://www.screenshot-studio.com/tools)
+[Open the editor](https://www.screenshot-studio.com/editor) · [Image tools](https://www.screenshot-studio.com/tools) · [Code to image](https://www.screenshot-studio.com/code) · [App Store screenshots](https://www.screenshot-studio.com/store-screenshots)
 
-## Features
+## What you can make
 
-- 100+ backgrounds: gradients, mesh, images, blur, noise
-- Browser mockups: Safari, Chrome, Arc, macOS window, Polaroid, glass frames
-- 3D perspective transforms with configurable shadows
-- Annotations: arrows, shapes, blur regions, text and image overlays
-- Code to image with 32 syntax themes; tweet to image
-- Animation timeline with 20+ presets and keyframe control
-- Export PNG, JPEG, WebP up to 5x, and MP4, WebM, GIF encoded in the browser
+- **Screenshot designs:** backgrounds, browser and device frames, shadows, and 3D perspective.
+- **Text-only graphics:** start without an image; choose Inter, Geist, or other fonts, then drag or center your text.
+- **Layered compositions:** text, images, annotations, and blur regions.
+- **Store and social assets:** ready-made layouts and exact export sizes, including Chrome Web Store screenshots.
+- **Images and motion:** PNG, JPEG, WebP, batch ZIP, MP4, WebM, and GIF exports.
+- **Quick edits:** resize, crop, convert, compress, and remove image backgrounds.
 
-## Quick Start
+## Run locally
+
+Requires Node.js 20.9+ and npm.
 
 ```bash
 git clone https://github.com/opennookorg/screenshot-studio.git
 cd screenshot-studio
-npm install
+npm ci
+printf 'DATABASE_URL="postgresql://localhost:5432/screenshot_studio"\n' > .env
 npm run dev
 ```
 
-Open [localhost:3000](http://localhost:3000). Core features need no environment variables; see `.env.example` for optional R2, database, and analytics config.
+Open [localhost:3000](http://localhost:3000). The browser editor needs no running database; `DATABASE_URL` is required by Prisma during startup and builds. Server-side screenshot caching requires PostgreSQL and R2 credentials; see the [cache configuration](./lib/screenshot-cache.ts).
 
-## Tech Stack
+## Contribute
 
-Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Zustand · Radix UI · Motion · FFmpeg WASM · WebCodecs · Prisma
+Read [CONTRIBUTING.md](./CONTRIBUTING.md) for the workflow and checks. Built with Next.js, React, TypeScript, Tailwind CSS, and Zustand.
 
-## Contributing
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md).
-
-## License
-
-[Apache License 2.0](./LICENSE)
+[Apache 2.0 license](./LICENSE) · Supported by the [Vercel OSS Program](https://vercel.com/oss)

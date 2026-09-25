@@ -1,8 +1,18 @@
 'use client';
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { getFontCSS } from '@/lib/constants/fonts';
 import type { TextOverlay } from '@/lib/store';
+
+export function getDraggedTextPosition(
+  start: TextOverlay['position'], deltaX: number, deltaY: number, width: number, height: number,
+): TextOverlay['position'] {
+  if (width <= 0 || height <= 0) return start;
+  return {
+    x: Math.min(100, Math.max(0, start.x + deltaX / width * 100)),
+    y: Math.min(100, Math.max(0, start.y + deltaY / height * 100)),
+  };
+}
 
 interface HTMLTextOverlayLayerProps {
   textOverlays: TextOverlay[];
@@ -32,52 +42,12 @@ function DraggableText({
   onSelect,
   onUpdate,
 }: DraggableTextProps) {
-  const ref = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ x: number; y: number; position: TextOverlay["position"] } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [initialPos, setInitialPos] = useState({ x: 0, y: 0 });
 
   // Convert percentage position to pixels
   const textX = (overlay.position.x / 100) * canvasW;
   const textY = (overlay.position.y / 100) * canvasH;
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
-    setInitialPos({ x: textX, y: textY });
-    onSelect();
-  }, [textX, textY, onSelect]);
-
-  useEffect(() => {
-    if (!isDragging) return;
-
-    const handleMouseMove = (e: PointerEvent) => {
-      const deltaX = e.clientX - dragStart.x;
-      const deltaY = e.clientY - dragStart.y;
-      const newX = initialPos.x + deltaX;
-      const newY = initialPos.y + deltaY;
-
-      // Convert back to percentage
-      const newXPercent = (newX / canvasW) * 100;
-      const newYPercent = (newY / canvasH) * 100;
-
-      onUpdate({ position: { x: newXPercent, y: newYPercent } });
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
-
-    window.addEventListener('pointermove', handleMouseMove);
-    window.addEventListener('pointerup', handleMouseUp);
-
-    return () => {
-      window.removeEventListener('pointermove', handleMouseMove);
-      window.removeEventListener('pointerup', handleMouseUp);
-    };
-  }, [isDragging, dragStart, initialPos, canvasW, canvasH, onUpdate]);
 
   // Build text shadow CSS
   const textShadow = overlay.textShadow?.enabled
@@ -88,23 +58,46 @@ function DraggableText({
 
   return (
     <div
-      ref={ref}
       data-text-overlay-id={overlay.id}
       data-export-clean-outline={isSelected ? 'true' : undefined}
-      onMouseDown={handleMouseDown}
+      onPointerDown={(event) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        drag.current = { x: event.clientX, y: event.clientY, position: overlay.position };
+        setIsDragging(true);
+        onSelect();
+      }}
+      onPointerMove={(event) => {
+        if (!drag.current) return;
+        const bounds = event.currentTarget.parentElement!.getBoundingClientRect();
+        onUpdate({ position: getDraggedTextPosition(
+          drag.current.position,
+          event.clientX - drag.current.x,
+          event.clientY - drag.current.y,
+          bounds.width,
+          bounds.height,
+        ) });
+      }}
+      onPointerUp={() => { drag.current = null; setIsDragging(false); }}
+      onPointerCancel={() => { drag.current = null; setIsDragging(false); }}
+      onLostPointerCapture={() => { drag.current = null; setIsDragging(false); }}
       style={{
         position: 'absolute',
         left: `${textX}px`,
         top: `${textY}px`,
         transform: 'translate(-50%, -50%)',
         fontSize: `${overlay.fontSize}px`,
-        fontWeight: overlay.fontWeight.includes('bold') ? 'bold' : 'normal',
+        fontWeight: overlay.fontWeight.includes('bold') ? 'bold' : overlay.fontWeight === 'italic' ? 'normal' : overlay.fontWeight,
         fontStyle: overlay.fontWeight.includes('italic') ? 'italic' : 'normal',
         fontFamily: getFontCSS(overlay.fontFamily),
         color: overlay.color,
         opacity: overlay.opacity,
         textShadow,
-        whiteSpace: 'nowrap',
+        whiteSpace: 'pre',
+        lineHeight: 1.2,
+        touchAction: 'none',
         cursor: isDragging ? 'grabbing' : 'grab',
         userSelect: 'none',
         writingMode: overlay.orientation === 'vertical' ? 'vertical-rl' : 'horizontal-tb',

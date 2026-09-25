@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { aspectRatios } from '@/lib/constants/aspect-ratios';
 import { useImageStore } from '@/lib/store';
-import { getStandardDimensions } from '@/lib/aspect-ratio-utils';
+import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils';
 import { cn } from '@/lib/utils';
 import {
   InstagramIcon,
@@ -12,6 +12,7 @@ import {
   PinterestIcon,
   DribbbleIcon,
   AppStoreIcon,
+  ChromeIcon,
 } from 'hugeicons-react';
 
 interface AspectRatioPickerProps {
@@ -21,6 +22,14 @@ interface AspectRatioPickerProps {
 const standardRatioIds = ['16_9', '3_2', '4_3', '5_4', '1_1', '4_5', '3_4', '2_3', '9_16'];
 
 const socialSections = [
+  {
+    name: 'Chrome Web Store',
+    icon: ChromeIcon,
+    presets: [
+      { label: '1280 × 800', ratio: '1280:800', id: 'chrome_web_store' },
+      { label: '640 × 400', ratio: '640:400', id: 'chrome_web_store_small' },
+    ],
+  },
   {
     name: 'Instagram',
     icon: InstagramIcon,
@@ -103,7 +112,7 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
   const currentDimensions = selectedAspectRatio === 'custom' && customDimensions
     ? customDimensions
     : currentAR
-      ? getStandardDimensions(currentAR.width, currentAR.height)
+      ? getAspectRatioPreset(currentAR.id)!
       : { width: 1920, height: 1080 };
 
   const [customW, setCustomW] = React.useState(currentDimensions.width.toString());
@@ -114,7 +123,7 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
       setCustomW(customDimensions.width.toString());
       setCustomH(customDimensions.height.toString());
     } else if (currentAR) {
-      const dims = getStandardDimensions(currentAR.width, currentAR.height);
+      const dims = getAspectRatioPreset(currentAR.id)!;
       setCustomW(dims.width.toString());
       setCustomH(dims.height.toString());
     }

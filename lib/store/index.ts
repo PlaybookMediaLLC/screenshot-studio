@@ -627,7 +627,7 @@ export interface ImageState {
   setBackgroundOpacity: (opacity: number) => void;
   setBackgroundBlur: (blur: number) => void;
   setBackgroundNoise: (noise: number) => void;
-  addTextOverlay: (overlay: Omit<TextOverlay, "id">) => void;
+  addTextOverlay: (overlay?: Omit<TextOverlay, "id">) => string;
   updateTextOverlay: (id: string, updates: Partial<TextOverlay>) => void;
   removeTextOverlay: (id: string) => void;
   clearTextOverlays: () => void;
@@ -1174,7 +1174,12 @@ export const useImageStore = create<ImageState>()(
       set({ backgroundNoise: noise });
     },
 
-    addTextOverlay: (overlay) => {
+    addTextOverlay: (overlay = {
+      text: 'Text', position: { x: 50, y: 50 }, fontSize: 32,
+      fontWeight: 'normal', fontFamily: 'inter', color: '#ffffff',
+      opacity: 1, isVisible: true, orientation: 'horizontal',
+      textShadow: { enabled: true, color: 'rgba(0, 0, 0, 0.5)', blur: 4, offsetX: 2, offsetY: 2 },
+    }) => {
       trackOverlayAdd('text');
       const id = `text-${Date.now()}-${Math.random()
         .toString(36)
@@ -1182,6 +1187,7 @@ export const useImageStore = create<ImageState>()(
       set((state) => ({
         textOverlays: [...state.textOverlays, { ...overlay, id }],
       }));
+      return id;
     },
 
     updateTextOverlay: (id, updates) => {

@@ -38,7 +38,7 @@ export const themes: DesignTheme[] = [
       const store = useImageStore.getState();
       store.resetImageFilters();
       store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
-      store.setImageStylePreset("default");
+      store.setImageStylePreset("border-light");
       store.setImageBorder({ enabled: true, type: "border-light", width: 3, color: "#c084fc", padding: 2 });
       store.setImageShadow({ enabled: true, blur: 40, offsetX: 0, offsetY: 8, spread: 10, color: "rgba(192,132,252,0.4)", opacity: 0.8 });
       store.setBorderRadius(12);

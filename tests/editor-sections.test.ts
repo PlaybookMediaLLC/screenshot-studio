@@ -45,9 +45,11 @@ test('designs and templates clear inherited filters and keep their explicit fram
   }
   predefinedPresets.find(({ id }) => id === 'social-twitter')!.apply();
   assert.equal(useImageStore.getState().imageBorder.type, 'outline-light');
+  assert.equal(useImageStore.getState().imageStylePreset, 'outline');
   assert.equal(useImageStore.getState().imageBorder.opacity, 0.3);
   predefinedPresets.find(({ id }) => id === 'product-showcase')!.apply();
   assert.equal(useImageStore.getState().imageBorder.type, 'border-dark');
+  assert.equal(useImageStore.getState().imageStylePreset, 'border-dark');
   assert.equal(useImageStore.getState().imageBorder.padding, 3);
 });
 

@@ -12,7 +12,7 @@ export const predefinedPresets = [
       const store = useImageStore.getState();
       store.resetImageFilters();
       store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
-      store.setImageStylePreset("default");
+      store.setImageStylePreset("border-light");
       store.setAspectRatio("9_16");
       store.setImageBorder({ enabled: true, type: "border-light", width: 2, color: "#ffffff", padding: 2 });
       store.setImageShadow({ enabled: true, blur: 25, offsetX: 0, offsetY: 10, spread: 4, color: "rgba(0,0,0,0.5)", opacity: 0.4 });
@@ -27,7 +27,7 @@ export const predefinedPresets = [
       const store = useImageStore.getState();
       store.resetImageFilters();
       store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
-      store.setImageStylePreset("glass-light");
+      store.setImageStylePreset("outline");
       store.setAspectRatio("16_9");
       store.setImageBorder({ enabled: true, type: "outline-light", width: 1, color: "#ffffff", padding: 0.5, opacity: 0.3 });
       store.setImageShadow({ enabled: true, blur: 20, offsetX: 0, offsetY: 6, spread: 2, color: "rgba(0,0,0,0.35)", opacity: 0.3 });
@@ -41,7 +41,7 @@ export const predefinedPresets = [
       const store = useImageStore.getState();
       store.resetImageFilters();
       store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
-      store.setImageStylePreset("glass-dark");
+      store.setImageStylePreset("border-dark");
       store.setAspectRatio("4_3");
       store.setImageBorder({ enabled: true, type: "border-dark", width: 3, color: "#1a1a2e", padding: 3 });
       store.setImageShadow({ enabled: true, blur: 40, offsetX: 0, offsetY: 15, spread: 6, color: "rgba(0,0,0,0.6)", opacity: 0.5 });
@@ -56,7 +56,7 @@ export const predefinedPresets = [
       const store = useImageStore.getState();
       store.resetImageFilters();
       store.setImageBorder({ ...useImageStore.getInitialState().imageBorder, opacity: 1 });
-      store.setImageStylePreset("default");
+      store.setImageStylePreset("outline");
       store.setAspectRatio("3_2");
       store.setImageBorder({ enabled: true, type: "outline-light", width: 1, color: "#e5e7eb", padding: 1, opacity: 0.4 });
       store.setImageShadow({ enabled: false, blur: 0, offsetX: 0, offsetY: 0, spread: 0, color: "rgba(0,0,0,0)", opacity: 0 });

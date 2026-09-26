@@ -108,12 +108,15 @@ export interface ImageOverlay {
   radius?: number;
 }
 
+export type BlurRegionStyle = 'blur' | 'mosaic';
+
 export interface BlurRegion {
   id: string;
   position: { x: number; y: number };
   size: { width: number; height: number };
-  blurAmount: number;
+  blurAmount: number; // Mosaic block size when style is 'mosaic'
   isVisible: boolean;
+  style?: BlurRegionStyle; // Missing on regions saved before mosaic existed; treated as 'blur'
 }
 
 export type AnnotationToolType = 'arrow' | 'curved-arrow' | 'rectangle' | 'circle' | 'line' | 'blur';

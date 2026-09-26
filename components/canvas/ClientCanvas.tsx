@@ -660,6 +660,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
               size: { width: rect.w, height: rect.h },
               blurAmount: 10,
               isVisible: true,
+              style: 'mosaic',
             });
           }}
         />

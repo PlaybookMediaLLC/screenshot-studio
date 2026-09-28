@@ -2,13 +2,14 @@
 
 import * as React from 'react';
 import {
+  ArrowLeftRightIcon,
   Cancel01Icon,
   Download04Icon,
-  Image01Icon,
   RefreshIcon,
 } from 'hugeicons-react';
 import { Button } from '@/components/ui/button';
 import { SegmentedControl } from '@/components/ui/segmented-control';
+import { CARD_CLASS, DROP_CARD_CLASS, DropSurface } from '@/components/tools/ui';
 import { cn } from '@/lib/utils';
 import { downloadBlob } from '@/lib/image-tools/download';
 import { formatBytes } from '@/lib/image-tools/format';
@@ -94,8 +95,8 @@ function CompareSlider({ sourceUrl, resultUrl, width, height }: {
 
   return (
     <div
-      className="relative mx-auto max-h-[62dvh] max-w-full overflow-hidden rounded-xl border border-border"
-      style={{ aspectRatio: `${width} / ${height}`, width: `min(100%, calc(62dvh * ${width / height}))` }}
+      className="relative mx-auto max-h-[60dvh] max-w-full overflow-hidden rounded-lg"
+      style={{ aspectRatio: `${width} / ${height}`, width: `min(100%, calc(60dvh * ${width / height}))` }}
     >
       <div className="absolute inset-0" style={CHECKERBOARD} />
       <img src={resultUrl} alt="Image with background removed" className="absolute inset-0 h-full w-full object-contain" />
@@ -108,17 +109,17 @@ function CompareSlider({ sourceUrl, resultUrl, width, height }: {
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.25)]"
+        className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.25)]"
         style={{ left: `${position}%` }}
       >
-        <span className="absolute top-1/2 left-1/2 flex size-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-background text-[10px] font-semibold text-foreground shadow-md ring-1 ring-border">
-          ⇆
+        <span className="absolute top-1/2 left-1/2 flex size-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-neutral-900 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.5)]">
+          <ArrowLeftRightIcon size={16} />
         </span>
       </div>
-      <span className="pointer-events-none absolute top-2 left-2 rounded bg-foreground/70 px-1.5 py-0.5 text-[11px] text-background">
+      <span className="pointer-events-none absolute top-2.5 left-2.5 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
         Before
       </span>
-      <span className="pointer-events-none absolute top-2 right-2 rounded bg-foreground/70 px-1.5 py-0.5 text-[11px] text-background">
+      <span className="pointer-events-none absolute top-2.5 right-2.5 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
         After
       </span>
       <input
@@ -331,25 +332,20 @@ export function RemoveBackgroundApp() {
 
       <div className="w-full max-w-3xl">
         {phase.kind === 'idle' || phase.kind === 'error' ? (
-          <div className="flex flex-col items-center gap-5">
+          <div className="flex flex-col items-center gap-4">
             <button
               type="button"
               onClick={openPicker}
               disabled={unsupported}
-              className={cn(
-                'flex w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/20 px-6 py-16 text-center transition-colors hover:border-foreground/30 hover:bg-muted/40 focus-visible:border-foreground/40 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:py-24',
-                dragging && 'border-foreground/50 bg-muted/60'
-              )}
+              className={DROP_CARD_CLASS}
             >
-              <span className="mb-4 flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <Image01Icon size={22} aria-hidden="true" />
-              </span>
-              <span className="text-base font-medium text-foreground">
-                {dragging ? 'Release to start' : 'Choose a photo'}
-              </span>
-              <span className="mt-1 text-sm text-muted-foreground">
-                or drag it onto this page · PNG, JPG, WebP, or AVIF up to 50 MB
-              </span>
+              <DropSurface
+                active={dragging}
+                title={dragging ? 'Release to start' : 'Drop a photo here'}
+                detail="The subject stays, the background turns transparent."
+                action="Choose a photo"
+                formats="PNG, JPG, WebP, or AVIF up to 50 MB"
+              />
             </button>
 
             {phase.kind === 'error' ? (
@@ -363,80 +359,94 @@ export function RemoveBackgroundApp() {
         ) : null}
 
         {phase.kind === 'working' ? (
-          <div className="flex flex-col items-center gap-6">
-            <div className="relative overflow-hidden rounded-xl border border-border">
+          <div className={cn(CARD_CLASS, 'p-2')}>
+            <div className="relative flex justify-center overflow-hidden rounded-xl bg-background/70 p-4 sm:p-6">
               <img
                 src={phase.sourceUrl}
                 alt="Image being processed"
-                className="max-h-[52dvh] max-w-full object-contain opacity-40 blur-[1px]"
+                className="max-h-[52dvh] max-w-full rounded-lg object-contain opacity-40 blur-[1px]"
               />
-              <div className="absolute inset-0 animate-pulse bg-muted/40" />
+              <div className="absolute inset-0 animate-pulse bg-foreground/[0.03]" />
             </div>
-            <div className="w-full max-w-sm" aria-live="polite">
-              <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-                <span>{phase.progress.label}</span>
-                <span className="tabular-nums">{Math.round(phase.progress.value * 100)}%</span>
-              </div>
-              <div
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(phase.progress.value * 100)}
-                aria-label="Background removal progress"
-                className="h-1.5 overflow-hidden rounded-full bg-muted"
-              >
+            <div className="flex items-center gap-4 px-3 pb-1 pt-3">
+              <div className="min-w-0 flex-1" aria-live="polite">
+                <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{phase.progress.label}</span>
+                  <span className="tabular-nums">{Math.round(phase.progress.value * 100)}%</span>
+                </div>
                 <div
-                  className="h-full rounded-full bg-foreground transition-[width] duration-300 ease-out"
-                  style={{ width: `${Math.max(2, phase.progress.value * 100)}%` }}
-                />
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(phase.progress.value * 100)}
+                  aria-label="Background removal progress"
+                  className="h-1.5 overflow-hidden rounded-full bg-muted"
+                >
+                  <div
+                    className="h-full rounded-full bg-foreground transition-[width] duration-300 ease-out"
+                    style={{ width: `${Math.max(2, phase.progress.value * 100)}%` }}
+                  />
+                </div>
               </div>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={cancel}
-              className="text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              <Cancel01Icon size={16} />
-              Stop
-            </Button>
-          </div>
-        ) : null}
-
-        {phase.kind === 'done' ? (
-          <div className="flex flex-col items-center gap-5">
-            <CompareSlider
-              sourceUrl={phase.sourceUrl}
-              resultUrl={phase.resultUrl}
-              width={phase.result.width}
-              height={phase.result.height}
-            />
-
-            <div className="flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
-              <SegmentedControl
-                options={EDGE_OPTIONS}
-                value={edgeStyle}
-                onChange={changeEdgeStyle}
-                ariaLabel="Edge style"
-                size="sm"
-                className="w-full sm:w-56"
-              />
-              <Button type="button" size="sm" onClick={download} disabled={restyling} className="w-full sm:w-auto">
-                <Download04Icon size={16} />
-                Download PNG
-              </Button>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={openPicker}
-                disabled={busy}
-                className="w-full text-muted-foreground hover:bg-muted hover:text-foreground sm:w-auto"
+                onClick={cancel}
+                className="text-muted-foreground hover:bg-muted hover:text-foreground"
               >
-                <RefreshIcon size={16} />
-                New image
+                <Cancel01Icon size={16} />
+                Stop
               </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {phase.kind === 'done' ? (
+          <div className="flex flex-col items-center gap-4">
+            <div className={cn(CARD_CLASS, 'w-full p-2')}>
+              <div className="flex justify-center rounded-xl bg-background/70 p-4 sm:p-6">
+                <CompareSlider
+                  sourceUrl={phase.sourceUrl}
+                  resultUrl={phase.resultUrl}
+                  width={phase.result.width}
+                  height={phase.result.height}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 px-1 pb-1 pt-2 sm:flex-row sm:items-center">
+                <SegmentedControl
+                  options={EDGE_OPTIONS}
+                  value={edgeStyle}
+                  onChange={changeEdgeStyle}
+                  ariaLabel="Edge style"
+                  size="sm"
+                  className="w-full sm:w-56"
+                />
+                <div className="flex gap-2 sm:ml-auto">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={openPicker}
+                    disabled={busy}
+                    className="flex-1 text-muted-foreground hover:bg-muted hover:text-foreground sm:flex-none"
+                  >
+                    <RefreshIcon size={16} />
+                    New image
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={download}
+                    disabled={restyling}
+                    className="flex-1 sm:flex-none"
+                  >
+                    <Download04Icon size={16} />
+                    Download PNG
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <p className="text-xs text-muted-foreground">

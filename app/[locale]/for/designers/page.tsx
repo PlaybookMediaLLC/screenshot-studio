@@ -156,7 +156,7 @@ export default function ForDesignersPage() {
               and control that designers demand. No compromises on quality.
             </p>
             <div className="mb-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link href="/" className={ctaClassName}>
+              <Link href="/editor" className={ctaClassName}>
                 Start Designing Free
               </Link>
               <Link href="/features" className={secondaryCtaClassName}>
@@ -278,7 +278,7 @@ export default function ForDesignersPage() {
             <p className="mb-8 text-xl text-muted-foreground">
               Join thousands of designers creating stunning visual content
             </p>
-            <Link href="/" className={ctaClassName}>
+            <Link href="/editor" className={ctaClassName}>
               Start Creating Free
             </Link>
           </div>

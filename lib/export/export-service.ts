@@ -13,6 +13,7 @@
 
 import { domToCanvas } from 'modern-screenshot';
 import { cleanExportClone, shouldIncludeInExport } from './export-filter';
+import { getMosaicGrid } from './mosaic';
 import { processWithSharp } from './sharp-client';
 import type { ExportFormat, QualityPreset } from './types';
 import { useImageStore, type ImageState } from '@/lib/store';
@@ -59,6 +60,9 @@ function applyBlurRegionsToCanvas(
   if (!sourceCtx) return;
   sourceCtx.drawImage(canvas, 0, 0);
 
+  const mosaicCanvas = document.createElement('canvas');
+  const mosaicCtx = mosaicCanvas.getContext('2d');
+
   for (const region of blurRegions) {
     if (!region.isVisible) continue;
 
@@ -67,14 +71,29 @@ function applyBlurRegionsToCanvas(
     const rw = region.size.width * scaleX;
     const rh = region.size.height * scaleY;
     const blurPx = region.blurAmount * Math.max(scaleX, scaleY);
+    // A perfectly straight drag draws a zero-area region; drawing a 0x0 mosaic canvas would throw
+    if (rw <= 0 || rh <= 0) continue;
 
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(rx, ry, rw, rh, 4 * Math.max(scaleX, scaleY));
     ctx.clip();
-    ctx.filter = `blur(${blurPx}px)`;
-    ctx.drawImage(sourceCanvas, 0, 0);
-    ctx.filter = 'none';
+    if (region.style === 'mosaic' && mosaicCtx) {
+      const { columns, rows } = getMosaicGrid(rw, rh, blurPx);
+      const coveredW = columns * blurPx;
+      const coveredH = rows * blurPx;
+      mosaicCanvas.width = columns;
+      mosaicCanvas.height = rows;
+      // Downscaling with smoothing averages each block; scaling back up without it keeps the edges hard
+      mosaicCtx.imageSmoothingQuality = 'high';
+      mosaicCtx.drawImage(sourceCanvas, rx, ry, coveredW, coveredH, 0, 0, columns, rows);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(mosaicCanvas, rx, ry, coveredW, coveredH);
+    } else {
+      ctx.filter = `blur(${blurPx}px)`;
+      ctx.drawImage(sourceCanvas, 0, 0);
+      ctx.filter = 'none';
+    }
     ctx.restore();
   }
 }

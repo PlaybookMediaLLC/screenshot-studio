@@ -29,11 +29,7 @@ export function GitHubIcon({ className }: { className?: string }) {
 }
 
 function formatStarCount(count: number): string {
-  const rounded = Math.round(count);
-  if (rounded < 1000) return rounded.toLocaleString();
-  const thousands = rounded / 1000;
-  if (thousands >= 100) return `${Math.round(thousands)}K`;
-  return `${thousands.toFixed(1).replace(/\.0$/, "")}K`;
+  return Math.round(count).toLocaleString("en-US");
 }
 
 function useStarCount() {

@@ -2,6 +2,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { NewTwitterIcon } from "hugeicons-react";
 import { GitHubIcon } from "@/components/ui/github-star-button";
+import { AdSenseScript } from "@/components/AdSenseScript";
+import { TOOLS } from "@/lib/seo/tools";
+import { guides } from "@/lib/seo/guides";
 
 interface FooterProps {
   brandName?: string;
@@ -15,10 +18,12 @@ const PEERLIST_BADGE =
   "https://dqy38fnwh4fqs.cloudfront.net/website/project-spotlight/project-week-rank-one-dark.svg";
 
 const navCol1 = [
-  { href: "/", label: "Editor" },
+  { href: "/editor", label: "Screenshot Editor" },
   { href: "/free-screenshot-editor", label: "Free editor" },
   { href: "/store-screenshots", label: "App store screenshots" },
   { href: "/code", label: "Code to image" },
+  { href: "/tweet", label: "Tweet to image" },
+  { href: "/mockup-generator", label: "Mockup generator" },
   { href: "/remove-background", label: "Remove background" },
 ] as const;
 
@@ -31,11 +36,26 @@ const navCol2 = [
 ] as const;
 
 const navCol3 = [
+  { href: "/guides", label: "Guides" },
   { href: "/docs", label: "API docs" },
   { href: "/developers", label: "Developers" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ] as const;
+
+const directoryRows = [
+  {
+    label: "Image tools",
+    links: TOOLS.map((tool) => ({ href: tool.slug, label: tool.name })),
+  },
+  {
+    label: "Guides",
+    links: guides.map((guide) => ({
+      href: `/guides/${guide.slug}`,
+      label: guide.title,
+    })),
+  },
+];
 
 function FooterNavLink({
   href,
@@ -59,6 +79,7 @@ export function Footer({ brandName = "Screenshot Studio" }: FooterProps) {
 
   return (
     <footer className="bg-background px-6 pb-8 pt-4 sm:pb-10">
+      <AdSenseScript />
       <div className="mx-auto max-w-6xl rounded-2xl bg-card px-6 py-12 ring-1 ring-border shadow-[var(--card-edge-shadow)] sm:px-8 sm:py-14">
         <div className="grid grid-cols-1 items-stretch gap-10 md:grid-cols-2 md:gap-12 lg:gap-16">
           <div className="flex h-full flex-col gap-6">
@@ -90,18 +111,33 @@ export function Footer({ brandName = "Screenshot Studio" }: FooterProps) {
               <br />
               you can ship.
             </p>
-            <a
-              href={PEERLIST_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-auto inline-flex w-fit opacity-90 transition-opacity duration-150 hover:opacity-100"
-            >
-              <img
-                src={PEERLIST_BADGE}
-                alt="Peerlist Project Spotlight. Rank 1"
-                className="h-10 w-auto"
-              />
-            </a>
+            <div className="mt-auto flex flex-wrap items-center gap-3">
+              <a
+                href={PEERLIST_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex w-fit opacity-90 transition-opacity duration-150 hover:opacity-100"
+              >
+                <img
+                  src={PEERLIST_BADGE}
+                  alt="Peerlist Project Spotlight. Rank 1"
+                  className="h-10 w-auto"
+                />
+              </a>
+              <a
+                href="https://usefulshelf.co/apps/screenshot-studio?utm_source=screenshot-studio&utm_medium=referral&utm_campaign=badge&utm_content=dark"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src="https://usefulshelf.co/badge/screenshot-studio.svg?theme=dark"
+                  alt="Featured on UsefulShelf"
+                  width={210}
+                  height={56}
+                  className="h-10 w-auto"
+                />
+              </a>
+            </div>
           </div>
 
           <div className="grid h-full w-full grid-cols-2 gap-2 sm:grid-cols-3 md:max-w-xl md:justify-self-end">
@@ -123,7 +159,31 @@ export function Footer({ brandName = "Screenshot Studio" }: FooterProps) {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <nav
+          aria-label="Site directory"
+          className="mt-10 flex flex-col gap-3 border-t border-border pt-6"
+        >
+          {directoryRows.map((row) => (
+            <p key={row.label} className="text-xs leading-6 text-muted-foreground">
+              <span className="mr-2 font-medium text-foreground/80">
+                {row.label}
+              </span>
+              {row.links.map((link, index) => (
+                <span key={link.href}>
+                  {index > 0 && <span aria-hidden="true"> · </span>}
+                  <Link
+                    href={link.href}
+                    className="transition-colors duration-150 hover:text-foreground"
+                  >
+                    {link.label}
+                  </Link>
+                </span>
+              ))}
+            </p>
+          ))}
+        </nav>
+
+        <div className="mt-6 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <div className="flex flex-wrap items-center gap-2">
             <a
               href={GITHUB_URL}

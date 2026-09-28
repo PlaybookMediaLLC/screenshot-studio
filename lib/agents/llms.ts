@@ -1,5 +1,6 @@
 import { BASE_URL } from "@/lib/agents/site-content";
 import { comparisons } from "@/lib/seo/comparisons";
+import { guides } from "@/lib/seo/guides";
 import { atLeast, PRODUCT_FACTS } from "@/lib/seo/product-facts";
 import { CONVERTER_TOOLS, PRIMARY_TOOLS } from "@/lib/seo/tools";
 
@@ -13,6 +14,24 @@ const primaryToolLines = PRIMARY_TOOLS.map(
 
 const comparisonLines = comparisons
   .map((comparison) => `- vs ${comparison.competitorName}: ${BASE_URL}/compare/${comparison.slug}`)
+  .join("\n");
+
+const guideLines = guides
+  .map((guide) => `- ${guide.title}: ${BASE_URL}/guides/${guide.slug}`)
+  .join("\n");
+
+const comparisonRows = comparisons
+  .map(
+    (comparison) =>
+      `| vs ${comparison.competitorName} | ${BASE_URL}/compare/${comparison.slug} | Feature comparison with ${comparison.competitorName} |`,
+  )
+  .join("\n");
+
+const guideRows = guides
+  .map(
+    (guide) =>
+      `| ${guide.title} | ${BASE_URL}/guides/${guide.slug} | ${guide.kind === "roundup" ? "Dated roundup with prices and limits" : "Step-by-step how-to"} |`,
+  )
   .join("\n");
 
 export const llmsTxt = `# Screenshot Studio
@@ -47,11 +66,13 @@ ${primaryToolLines}
 
 ## Pages
 
-- Editor: ${BASE_URL}/
+- Start (choose a tool): ${BASE_URL}/
+- Screenshot Editor: ${BASE_URL}/editor
 - Product overview: ${BASE_URL}/landing
 - Free Screenshot Editor: ${BASE_URL}/free-screenshot-editor
 - App Store Screenshot Maker: ${BASE_URL}/store-screenshots
 - Code to Image: ${BASE_URL}/code
+- Mockup Generator: ${BASE_URL}/mockup-generator
 - Image Tools Hub: ${BASE_URL}/tools
 - Remove Background: ${BASE_URL}/remove-background
 - Features: ${BASE_URL}/features
@@ -66,6 +87,7 @@ ${primaryToolLines}
 - For Marketers: ${BASE_URL}/for/marketers
 - For Designers: ${BASE_URL}/for/designers
 - Comparison Hub: ${BASE_URL}/compare
+- Guides Hub: ${BASE_URL}/guides
 - Changelog: ${BASE_URL}/changelog
 - About: ${BASE_URL}/about
 - Contact: ${BASE_URL}/contact
@@ -96,6 +118,10 @@ Available in 8 languages: English (default), Spanish (/es), French (/fr), German
 ## Comparison Pages
 
 ${comparisonLines}
+
+## Guides
+
+${guideLines}
 
 ## Pricing
 
@@ -227,9 +253,11 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 ### Core
 | Page | URL | Description |
 |------|-----|-------------|
-| Editor | ${BASE_URL}/ | Main canvas editor for creating designs |
+| Start | ${BASE_URL}/ | Choose the screenshot editor, code images, App Store screenshots, or image tools |
+| Screenshot Editor | ${BASE_URL}/editor | Main canvas editor for creating designs |
 | Landing | ${BASE_URL}/landing | Product landing page with overview |
 | Free Screenshot Editor | ${BASE_URL}/free-screenshot-editor | SEO landing page for free editor |
+| Mockup Generator | ${BASE_URL}/mockup-generator | iPhone, MacBook, and Apple Watch mockups with 3D angles and multi-device layouts |
 | Image Tools Hub | ${BASE_URL}/tools | Index of the standalone image utilities |
 | Remove Background | ${BASE_URL}/remove-background | On-device AI background remover that exports a transparent PNG |
 
@@ -271,10 +299,13 @@ Standalone, single-purpose utilities. Each decodes, processes, and re-encodes th
 ### Comparison Pages
 | Page | URL | Description |
 |------|-----|-------------|
-| vs Pika Style | ${BASE_URL}/compare/pika-style | Feature comparison with Pika Style |
-| vs Shots.so | ${BASE_URL}/compare/shots-so | Feature comparison with Shots.so |
-| vs Snagit | ${BASE_URL}/compare/snagit | Feature comparison with Snagit |
-| vs remove.bg | ${BASE_URL}/compare/remove-bg | Background remover comparison with remove.bg |
+${comparisonRows}
+
+### Guides
+| Page | URL | Description |
+|------|-----|-------------|
+| Guides Hub | ${BASE_URL}/guides | Index of how-to guides and tool roundups |
+${guideRows}
 
 ### Company
 | Page | URL | Description |

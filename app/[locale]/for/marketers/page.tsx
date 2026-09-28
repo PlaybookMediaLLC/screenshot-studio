@@ -201,7 +201,7 @@ export default function ForMarketersPage() {
               required.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link href="/" className={ctaClassName}>
+              <Link href="/editor" className={ctaClassName}>
                 Create Marketing Images
               </Link>
               <Link href="/features" className={secondaryCtaClassName}>
@@ -316,7 +316,7 @@ export default function ForMarketersPage() {
             <p className="mb-8 text-lg text-muted-foreground">
               Free forever. No signup. No watermarks.
             </p>
-            <Link href="/" className={ctaClassName}>
+            <Link href="/editor" className={ctaClassName}>
               Open Editor
             </Link>
           </div>

@@ -22,7 +22,7 @@ import typescript from 'react-syntax-highlighter/dist/esm/languages/hljs/typescr
 import xml from 'react-syntax-highlighter/dist/esm/languages/hljs/xml';
 import yaml from 'react-syntax-highlighter/dist/esm/languages/hljs/yaml';
 import { buildHljsStyle } from './hljs-theme';
-import { resolveCodeBackground, type BackgroundSelection } from './code-backgrounds';
+import { frameBackgroundStyle, resolveCodeBackground, type BackgroundSelection } from './code-backgrounds';
 import {
   CODE_THEMES,
   FONTS,
@@ -210,15 +210,7 @@ export const CodeFrame = React.forwardRef<HTMLDivElement, CodeFrameProps>(
         ref={ref}
         className="relative transition-[background-color] duration-200 ease-out motion-reduce:transition-none"
         style={{
-          backgroundImage: showBackground
-            ? resolvedBackground.backgroundImage
-            : dark
-              ? 'linear-gradient(45deg, #222 25%, transparent 0), linear-gradient(-45deg, #222 25%, transparent 0), linear-gradient(45deg, transparent 75%, #222 0), linear-gradient(-45deg, transparent 75%, #222 0)'
-              : 'linear-gradient(45deg, #eee 25%, transparent 0), linear-gradient(-45deg, #eee 25%, transparent 0), linear-gradient(45deg, transparent 75%, #eee 0), linear-gradient(-45deg, transparent 75%, #eee 0)',
-          backgroundColor: showBackground ? resolvedBackground.backgroundColor : dark ? '#111' : '#fafafa',
-          backgroundPosition: showBackground ? resolvedBackground.backgroundPosition : '0 0, 0 10px, 10px -10px, -10px 0',
-          backgroundSize: showBackground ? resolvedBackground.backgroundSize : '20px 20px',
-          backgroundRepeat: showBackground ? resolvedBackground.backgroundRepeat : undefined,
+          ...frameBackgroundStyle(showBackground, resolvedBackground, dark),
           padding: `${padding}px`,
         }}
       >

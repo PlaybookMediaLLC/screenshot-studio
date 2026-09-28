@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/button'
 import { Settings02Icon, Upload01Icon, VideoReplayIcon } from 'hugeicons-react'
 import { useAutosaveDraft } from '@/hooks/useAutosaveDraft'
 import { MobileBanner } from './MobileBanner'
-import { CodeImagesBanner } from './CodeImagesBanner'
 import { useImageStore } from '@/lib/store'
 import { trackEditorOpen } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
@@ -149,7 +148,6 @@ function EditorMain() {
       <WorkspaceAssetLoader />
 
       <MobileBanner />
-      <CodeImagesBanner />
 
       <EditorHeader />
       <TemplateLibraryDrawer />

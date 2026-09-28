@@ -174,7 +174,7 @@ export default function ChangelogPage() {
               All features are free. No signup required.
             </p>
             <Link href="/" className={ctaClassName}>
-              Open Editor
+              Get Started
             </Link>
           </div>
         </div>

@@ -26,17 +26,16 @@ import {
   AnnotateSection,
   ImageOverlaySection,
   DepthSection,
-  CodeImagesLinkCard,
   ImagePositionSection,
   DeviceFramesSection,
+  ScreenshotDesignSection,
+  ImageEnhanceSection,
+  QuickTemplatesSection,
+  ExportPresetsSection,
+  BackgroundEffectsSection,
 } from './sections'
 import { useImageStore } from '@/lib/store'
 import { SegmentedControl } from '@/components/ui/segmented-control'
-
-const TweetImportSection = dynamic(
-  () => import('./sections/TweetImportSection').then((module) => module.TweetImportSection),
-  { ssr: false }
-)
 
 const AnimationPresetGallery = dynamic(
   () =>
@@ -152,14 +151,16 @@ export function UnifiedRightPanel({
                     <BrowserMockupSection />
                   ) : (
                     <>
+                      <QuickTemplatesSection />
+                      <ExportPresetsSection />
+                      <ScreenshotDesignSection />
                       <StyleSection />
                       <BorderSection />
+                      <ImageEnhanceSection />
                     </>
                   )}
                   <ImagePositionSection />
                   <ShadowSection />
-                  <TweetImportSection />
-                  <CodeImagesLinkCard />
                   <ImageOverlaySection />
                   <AnnotateSection />
                   <TextSection />
@@ -172,6 +173,7 @@ export function UnifiedRightPanel({
 
           {contentKey === 'background' && (
             <div className="space-y-2">
+              <BackgroundEffectsSection />
               <BackgroundSection />
             </div>
           )}

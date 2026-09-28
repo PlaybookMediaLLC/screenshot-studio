@@ -55,7 +55,7 @@ export default function Error({
           <button type="button" onClick={() => reset()} className={primaryCtaClassName}>
             Try again
           </button>
-          <Link href="/" className={secondaryCtaClassName}>
+          <Link href="/editor" className={secondaryCtaClassName}>
             Open editor
           </Link>
           <Link href="/landing" className={secondaryCtaClassName}>

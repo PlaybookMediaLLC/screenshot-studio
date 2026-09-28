@@ -10,6 +10,16 @@ export interface AspectRatio {
 }
 
 export const aspectRatios: AspectRatio[] = [
+  {
+    id: 'chrome_web_store', name: 'Chrome Web Store', ratio: 1.6,
+    width: 1280, height: 800, category: 'Chrome Web Store',
+    description: 'Extension listing screenshot (1280×800px)',
+  },
+  {
+    id: 'chrome_web_store_small', name: 'Chrome Web Store Small', ratio: 1.6,
+    width: 640, height: 400, category: 'Chrome Web Store',
+    description: 'Extension listing screenshot (640×400px)',
+  },
   // Instagram Formats
   {
     id: '1_1',

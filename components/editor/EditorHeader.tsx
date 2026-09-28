@@ -31,9 +31,12 @@ import {
   GridIcon,
   RulerIcon,
   FileZipIcon,
+  KeyboardIcon,
 } from 'hugeicons-react'
 import { useEditorStore, useImageStore } from '@/lib/store'
 import { useExport } from '@/hooks/useExport'
+import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts'
+import { KeyboardShortcutsDialog } from '@/components/canvas/dialogs/KeyboardShortcutsDialog'
 import { useBatchExport } from '@/hooks/useBatchExport'
 import { aspectRatios } from '@/lib/constants/aspect-ratios'
 import { AspectRatioPicker } from '@/components/aspect-ratio/aspect-ratio-picker'
@@ -53,11 +56,13 @@ import { hasVisibleMockups, shouldRenderSourceImage } from '@/lib/device-mockups
 
 export function EditorHeader() {
   const isMobile = useIsMobile()
+  const [shortcutsOpen, setShortcutsOpen] = React.useState(false)
   const { screenshot } = useEditorStore()
   const {
     selectedAspectRatio,
     slides,
     uploadedImageUrl,
+    textOverlays,
     editorMode,
     mockups,
     clearImage,
@@ -82,6 +87,8 @@ export function EditorHeader() {
   const hasImage =
     (!!screenshot.src && shouldRenderSourceImage(editorMode, mockups)) ||
     (editorMode === 'device' && hasVisibleMockups(mockups))
+
+  const hasContent = hasImage || textOverlays.length > 0
 
   // Undo/redo state
   const [canUndo, setCanUndo] = React.useState(false)
@@ -108,6 +115,21 @@ export function EditorHeader() {
     const { redo, futureStates } = useImageStore.temporal.getState()
     if (futureStates.length > 0) redo()
   }, [])
+
+  // Keep history shortcuts mounted even when undo/delete empties the canvas.
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (shouldIgnoreEditorShortcut(event) || event.altKey || !(event.metaKey || event.ctrlKey))
+        return
+      const key = event.key.toLowerCase()
+      if (key !== 'z' && key !== 'y') return
+      event.preventDefault()
+      if (key === 'y' || event.shiftKey) handleRedo()
+      else handleUndo()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleUndo, handleRedo])
 
   const showVideoExport =
     slides.length > 0 || timeline.tracks.length > 0 || animationClips.length > 0
@@ -159,7 +181,7 @@ export function EditorHeader() {
       >
         <div className="flex items-center h-8 justify-self-start min-w-0">
           <Link
-            href="/landing"
+            href="/"
             className="flex items-center gap-2.5 h-8 hover:opacity-80 transition-opacity shrink-0"
           >
             <Image
@@ -342,7 +364,7 @@ export function EditorHeader() {
           <div className={cn('flex items-center', isMobile ? 'gap-1' : 'gap-1.5')}>
             <Button
               onClick={() => copyImage()}
-              disabled={!hasImage || isExporting || isCopying}
+              disabled={!hasContent || isExporting || isCopying}
               variant="ghost"
               size="sm"
               aria-label="Copy"
@@ -358,7 +380,7 @@ export function EditorHeader() {
             <Popover open={exportOpen} onOpenChange={isExporting ? undefined : setExportOpen}>
               <PopoverTrigger asChild>
                 <Button
-                  disabled={!hasImage}
+                  disabled={!hasContent}
                   size="sm"
                   aria-label="Save"
                   className={cn(
@@ -438,7 +460,7 @@ export function EditorHeader() {
             ) : null}
           </div>
 
-          {(hasImage || uploadedImageUrl) && !isMobile ? (
+          {(hasContent || uploadedImageUrl) && !isMobile ? (
             <>
               <div className="w-px h-4 bg-foreground/10 shrink-0" aria-hidden />
               <div className="flex items-center gap-1">
@@ -480,7 +502,7 @@ export function EditorHeader() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-                {hasImage ? (
+                {hasContent ? (
                   <Button
                     onClick={clearImage}
                     variant="ghost"
@@ -497,6 +519,14 @@ export function EditorHeader() {
         </div>
 
         <div className="flex items-center gap-1 justify-self-end">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Keyboard shortcuts"
+            onClick={() => setShortcutsOpen(true)}
+          >
+            <KeyboardIcon size={16} />
+          </Button>
           <AccountMenu />
           {!isMobile ? <FeedbackWidget /> : null}
           {!isMobile ? <GitHubStarButton compact /> : null}
@@ -510,6 +540,8 @@ export function EditorHeader() {
           </a>
         </div>
       </header>
+
+      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 
       <CopyProgressDialog open={isCopying} progress={copyProgress} />
 

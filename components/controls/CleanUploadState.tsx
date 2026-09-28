@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { getBackgroundCSS } from '@/lib/constants/backgrounds'
+import { useBackgroundImageReady } from '@/hooks/useBackgroundImageReady'
 
 const TRANSITION_DURATION = 400 // ms
 type ColorScheme = 'light' | 'dark'
@@ -40,7 +41,7 @@ export function CleanUploadState() {
   const [isCapturing, setIsCapturing] = React.useState(false)
 
   const { setScreenshot } = useEditorStore()
-  const { addImages, setImage, backgroundConfig } = useImageStore()
+  const { addImages, setImage, backgroundConfig, addTextOverlay } = useImageStore()
   const containerRef = React.useRef<HTMLDivElement>(null)
 
   // Crossfade state
@@ -55,6 +56,8 @@ export function CleanUploadState() {
   const prevConfigRef = React.useRef(backgroundConfig)
   const isFirstRender = React.useRef(true)
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout>>(undefined)
+  const backgroundReady = useBackgroundImageReady(backgroundConfig)
+  const placeholderStyle = getBackgroundCSS(backgroundConfig, 32)
 
   React.useEffect(() => {
     if (isFirstRender.current) {
@@ -185,33 +188,6 @@ export function CleanUploadState() {
     containerRef.current?.focus()
   }, [])
 
-  const handlePaste = React.useCallback(
-    (e: React.ClipboardEvent | ClipboardEvent) => {
-      const clipboardData = 'clipboardData' in e ? e.clipboardData : null
-      const items = clipboardData?.items
-      if (!items) return
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i]
-        if (item.type.startsWith('image/')) {
-          e.preventDefault()
-          const file = item.getAsFile()
-          if (file) {
-            handleFiles([file])
-          }
-          break
-        }
-      }
-    },
-    [handleFiles]
-  )
-
-  // Listen on both document and the container for paste events
-  React.useEffect(() => {
-    const handler = (e: ClipboardEvent) => handlePaste(e)
-    document.addEventListener('paste', handler)
-    return () => document.removeEventListener('paste', handler)
-  }, [handlePaste])
-
   const handleCaptureScreenshot = async () => {
     if (!screenshotUrl.trim()) {
       setError('Please enter a URL')
@@ -260,7 +236,6 @@ export function CleanUploadState() {
       ref={containerRef}
       {...getRootProps()}
       tabIndex={0}
-      onPaste={handlePaste}
       className="relative w-full h-full flex items-center justify-center outline-none overflow-hidden"
     >
       <div
@@ -283,6 +258,16 @@ export function CleanUploadState() {
           zIndex: 0,
         }}
       />
+      <div
+        aria-hidden
+        className={cn(
+          'absolute inset-0 overflow-hidden bg-muted transition-opacity duration-500 ease-out motion-reduce:transition-none',
+          backgroundReady ? 'pointer-events-none opacity-0' : 'opacity-100'
+        )}
+      >
+        <div className="absolute inset-0 scale-110 blur-2xl" style={placeholderStyle} />
+        {!backgroundReady && <div className="canvas-stage-shimmer absolute inset-0" />}
+      </div>
       <input
         accept="image/jpeg,image/png,image/webp"
         aria-label="Upload image"
@@ -359,6 +344,13 @@ export function CleanUploadState() {
               <span className="text-[10px] text-foreground/40">or</span>
               <div className="flex-1 h-px bg-foreground/20" />
             </div>
+
+            <Button variant="outline" onClick={() => addTextOverlay()}>
+              Start with text
+            </Button>
+            <p className="text-xs text-foreground/60">
+              No image needed. Edit in Design → Add Text.
+            </p>
 
             <div className="flex items-center gap-2 w-full">
               <div className="flex flex-1 min-w-0 items-center gap-0 h-10 rounded-xl bg-background/35 border border-foreground/15 backdrop-blur-md focus-within:border-foreground/30 focus-within:ring-1 focus-within:ring-foreground/20 transition-[border-color,box-shadow]">

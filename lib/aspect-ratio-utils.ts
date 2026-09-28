@@ -31,6 +31,8 @@ const STANDARD_DIMENSIONS: Record<string, { width: number; height: number }> = {
 
 // Special dimensions for specific aspect ratio IDs that share common ratios
 const SPECIAL_DIMENSIONS: Record<string, { width: number; height: number }> = {
+  'chrome_web_store': { width: 1280, height: 800 },
+  'chrome_web_store_small': { width: 640, height: 400 },
   'youtube_banner': { width: 2560, height: 1440 }, // YouTube Channel Banner - Higher resolution 16:9
   'instagram_banner': { width: 1080, height: 1080 }, // Instagram Highlight Cover - Square format
   'youtube_thumbnail': { width: 1280, height: 720 }, // YouTube Thumbnail

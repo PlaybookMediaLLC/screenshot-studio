@@ -85,6 +85,21 @@ const nextConfig: NextConfig = {
         destination: '/',
         permanent: true,
       },
+      {
+        source: '/free-screenshot-editor-online',
+        destination: '/free-screenshot-editor',
+        permanent: true,
+      },
+      {
+        source: '/free-screenshot-studio/:path*',
+        destination: '/free-screenshot-editor',
+        permanent: true,
+      },
+      {
+        source: '/blog/:slug*',
+        destination: '/guides/:slug*',
+        permanent: true,
+      },
     ]
   },
 

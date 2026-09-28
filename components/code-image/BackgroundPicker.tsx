@@ -17,11 +17,11 @@ import {
   patternCss,
   resolveCodeBackground,
   type BackgroundSelection,
+  type GradientTheme,
 } from './code-backgrounds';
-import type { CodeTheme } from './code-themes';
 
 interface BackgroundPickerProps {
-  theme: CodeTheme;
+  theme: GradientTheme;
   dark: boolean;
   background: BackgroundSelection;
   onBackgroundChange: (background: BackgroundSelection) => void;

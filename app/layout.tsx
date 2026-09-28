@@ -35,8 +35,9 @@ import { QueryProvider } from '@/lib/query-client'
 import { TRPCReactProvider } from '@/lib/trpc/provider'
 import { GlobalDropZone } from '@/components/GlobalDropZone'
 import { PathTracker } from '@/components/landing/GoBackButton'
-import { PublicAdScript } from '@/components/marketing/PublicAdScript'
+import { AdFreeRouteLinks } from '@/components/AdFreeRouteLinks'
 import { getRootJsonLd } from '@/lib/seo/json-ld'
+import { ADSENSE_CLIENT } from '@/components/AdSenseScript'
 import { PRODUCT_FACTS, atLeast } from '@/lib/seo/product-facts'
 
 // System UI fonts
@@ -412,6 +413,9 @@ export const metadata: Metadata = {
   },
   manifest: '/site.webmanifest',
   category: 'Design Tools',
+  other: {
+    'google-adsense-account': ADSENSE_CLIENT,
+  },
 }
 
 export const viewport: Viewport = {
@@ -443,11 +447,11 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(rootJsonLd) }}
         />
-        <PublicAdScript />
         <QueryProvider>
           <TRPCReactProvider>
             <GlobalDropZone>
               <PathTracker />
+              <AdFreeRouteLinks />
               {children}
             </GlobalDropZone>
             <Toaster />

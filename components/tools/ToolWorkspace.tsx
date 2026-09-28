@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Download04Icon,
   MagicWand01Icon,
@@ -25,6 +26,7 @@ import type { ToolDefinition, ToolEngine } from "@/lib/seo/tools";
 import { ToolDropzone } from "./ToolDropzone";
 import { FileQueue } from "./FileQueue";
 import { useToolQueue } from "./useToolQueue";
+import { CARD_CLASS } from "./ui";
 import {
   CompressOptions,
   ConvertOptions,
@@ -138,6 +140,9 @@ export function ToolWorkspace({ tool }: ToolWorkspaceProps) {
     )
   );
   const hasItems = queue.items.length > 0;
+  const finished =
+    queue.hasResults &&
+    queue.items.every((item) => item.status === "done" || item.status === "error");
   const totalSaved = savingsPercent(
     queue.totalInputBytes,
     queue.totalOutputBytes
@@ -155,21 +160,47 @@ export function ToolWorkspace({ tool }: ToolWorkspaceProps) {
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="flex flex-col gap-3">
+    <div className="mx-auto grid w-full max-w-5xl items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className={cn(CARD_CLASS, "p-2")}>
+        <div className="flex items-center justify-between gap-3 px-3 pb-2 pt-2">
+          <p className="text-sm font-medium text-foreground">
+            {queue.items.length} {queue.items.length === 1 ? "image" : "images"}
+            <span className="font-normal text-muted-foreground">
+              {" "}
+              · {formatBytes(queue.totalInputBytes)}
+            </span>
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={queue.clear}
+            disabled={queue.isRunning}
+            className="text-muted-foreground"
+          >
+            <Delete02Icon size={15} aria-hidden="true" />
+            Clear all
+          </Button>
+        </div>
         <FileQueue
           items={queue.items}
           onRemove={queue.removeItem}
           disabled={queue.isRunning}
         />
-        <ToolDropzone
-          onFiles={queue.addFiles}
-          sourceLabel={tool.preset?.sourceLabel}
-          compact
-        />
+        <div className="mt-2">
+          <ToolDropzone
+            onFiles={queue.addFiles}
+            sourceLabel={tool.preset?.sourceLabel}
+            compact
+          />
+        </div>
       </div>
 
-      <aside className="flex h-fit flex-col gap-5 rounded-xl border border-border bg-card p-5 lg:sticky lg:top-24">
+      <aside
+        className={cn(
+          CARD_CLASS,
+          "flex flex-col gap-5 p-5 lg:sticky lg:top-24",
+        )}
+      >
         <Panel
           settings={settings}
           onChange={updateSettings}
@@ -179,10 +210,32 @@ export function ToolWorkspace({ tool }: ToolWorkspaceProps) {
           sourceFormats={sourceFormats}
         />
 
-        <div className="flex flex-col gap-2 border-t border-border pt-4">
+        <div className="flex flex-col gap-2 border-t border-border pt-5">
+          {finished && !queue.isRunning ? (
+            <div className="mb-2 flex items-center justify-between rounded-xl bg-foreground/[0.04] px-3.5 py-3 text-sm">
+              <span className="text-muted-foreground">
+                {formatBytes(queue.totalInputBytes)} →{" "}
+                <span className="text-foreground">
+                  {formatBytes(queue.totalOutputBytes)}
+                </span>
+              </span>
+              {totalSaved > 0 ? (
+                <span className="font-semibold text-emerald-500">
+                  {totalSaved}% smaller
+                </span>
+              ) : totalSaved < 0 ? (
+                <span className="font-semibold text-amber-500">
+                  {Math.abs(totalSaved)}% bigger
+                </span>
+              ) : (
+                <span className="text-muted-foreground">Same size</span>
+              )}
+            </div>
+          ) : null}
+
           {queue.isRunning ? (
             <>
-              <Button disabled className="w-full">
+              <Button disabled size="lg" className="w-full">
                 <Loading03Icon size={16} className="animate-spin" aria-hidden="true" />
                 {queue.completed} of {queue.items.length}
               </Button>
@@ -190,55 +243,35 @@ export function ToolWorkspace({ tool }: ToolWorkspaceProps) {
                 Stop
               </Button>
             </>
-          ) : (
-            <Button onClick={handleRun} className="w-full">
-              <MagicWand01Icon size={16} aria-hidden="true" />
-              {ACTION_LABEL[engine]}
-              {queue.items.length > 1 ? ` ${queue.items.length} images` : ""}
-            </Button>
-          )}
-
-          {queue.hasResults ? (
+          ) : finished ? (
             <Button
-              variant="secondary"
+              size="lg"
               onClick={() => void queue.download()}
-              disabled={queue.isRunning}
               className="w-full"
             >
               <Download04Icon size={16} aria-hidden="true" />
               {queue.doneCount > 1 ? "Download all as zip" : "Download"}
             </Button>
-          ) : null}
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={queue.clear}
-            disabled={queue.isRunning}
-            className="w-full text-muted-foreground"
-          >
-            <Delete02Icon size={15} aria-hidden="true" />
-            Clear
-          </Button>
+          ) : (
+            <>
+              <Button size="lg" onClick={handleRun} className="w-full">
+                <MagicWand01Icon size={16} aria-hidden="true" />
+                {ACTION_LABEL[engine]}
+                {queue.items.length > 1 ? ` ${queue.items.length} images` : ""}
+              </Button>
+              {queue.hasResults ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => void queue.download()}
+                  className="w-full"
+                >
+                  <Download04Icon size={16} aria-hidden="true" />
+                  Download finished
+                </Button>
+              ) : null}
+            </>
+          )}
         </div>
-
-        {queue.hasResults && !queue.isRunning ? (
-          <p className="text-center text-xs text-muted-foreground">
-            {formatBytes(queue.totalInputBytes)} →{" "}
-            {formatBytes(queue.totalOutputBytes)}
-            {totalSaved > 0 ? (
-              <span className="font-medium text-emerald-600 dark:text-emerald-500">
-                {" "}
-                ({totalSaved}% smaller)
-              </span>
-            ) : totalSaved < 0 ? (
-              <span className="font-medium text-amber-600 dark:text-amber-500">
-                {" "}
-                ({Math.abs(totalSaved)}% bigger)
-              </span>
-            ) : null}
-          </p>
-        ) : null}
       </aside>
     </div>
   );

@@ -1,6 +1,8 @@
 'use client';
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts';
+
+import { useRef, useState, useCallback, useEffect, useSyncExternalStore } from 'react';
 import type { BlurRegion } from '@/lib/store';
 
 interface HTMLBlurRegionLayerProps {
@@ -11,15 +13,24 @@ interface HTMLBlurRegionLayerProps {
   removeBlurRegion: (id: string) => void;
 }
 
+// Firefox and Safari accept url() in backdrop-filter (CSS.supports even says yes) but
+// render nothing, leaving the region readable. Only Chromium draws the SVG mosaic, so
+// other browsers preview mosaic regions as blur; the export is pixelated everywhere.
+const subscribeNoop = () => () => {};
+const canPreviewMosaic = () => 'userAgentData' in navigator;
+const cannotPreviewOnServer = () => false;
+
 function DraggableBlurRegion({
   region,
   isSelected,
   onSelect,
   onUpdate,
   onRemove,
+  showMosaic,
 }: {
   region: BlurRegion;
   isSelected: boolean;
+  showMosaic: boolean;
   onSelect: () => void;
   onUpdate: (updates: Partial<BlurRegion>) => void;
   onRemove: () => void;
@@ -147,8 +158,7 @@ function DraggableBlurRegion({
   useEffect(() => {
     if (!isSelected) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      if (shouldIgnoreEditorShortcut(e)) return;
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         onRemove();
@@ -159,6 +169,14 @@ function DraggableBlurRegion({
   }, [isSelected, onRemove]);
 
   if (!region.isVisible) return null;
+
+  const isMosaic = region.style === 'mosaic' && showMosaic;
+  const filterId = `mosaic-${region.id}`;
+  const block = region.blurAmount;
+  const sampleOffset = Math.floor(block / 2);
+  const backdropFilter = isMosaic
+    ? `blur(${block / 2}px) url(#${filterId})`
+    : `blur(${block}px)`;
 
   return (
     <div
@@ -171,8 +189,8 @@ function DraggableBlurRegion({
         top: `${region.position.y}px`,
         width: `${region.size.width}px`,
         height: `${region.size.height}px`,
-        backdropFilter: `blur(${region.blurAmount}px)`,
-        WebkitBackdropFilter: `blur(${region.blurAmount}px)`,
+        backdropFilter,
+        WebkitBackdropFilter: backdropFilter,
         cursor: isDragging ? 'grabbing' : 'grab',
         outline: isSelected ? '2px solid hsl(var(--primary) / 0.6)' : '1px dashed hsl(var(--primary) / 0.3)',
         outlineOffset: '0px',
@@ -182,6 +200,38 @@ function DraggableBlurRegion({
         userSelect: 'none',
       }}
     >
+      {isMosaic && (
+        <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+          {/* Center samples miss edge blocks cut below half a block and would let the backdrop show
+              through, so corner samples fill in underneath. The extra block of margin keeps them unclipped. */}
+          <filter
+            id={filterId}
+            filterUnits="userSpaceOnUse"
+            x={-block}
+            y={-block}
+            width={region.size.width + 2 * block}
+            height={region.size.height + 2 * block}
+            colorInterpolationFilters="sRGB"
+          >
+            <feFlood x="0" y="0" width="1" height="1" />
+            <feComposite x="0" y="0" width={block} height={block} />
+            <feTile result="cornerGrid" />
+            <feComposite in="SourceGraphic" in2="cornerGrid" operator="in" />
+            <feMorphology operator="dilate" radius={sampleOffset} />
+            <feOffset dx={sampleOffset} dy={sampleOffset} result="corners" />
+            <feFlood x={sampleOffset} y={sampleOffset} width="1" height="1" />
+            <feComposite x="0" y="0" width={block} height={block} />
+            <feTile result="centerGrid" />
+            <feComposite in="SourceGraphic" in2="centerGrid" operator="in" />
+            <feMorphology operator="dilate" radius={sampleOffset} result="centers" />
+            <feMerge>
+              <feMergeNode in="corners" />
+              <feMergeNode in="centers" />
+            </feMerge>
+          </filter>
+        </svg>
+      )}
+
       {/* Resize handles + delete button */}
       {isSelected && (
         <>
@@ -288,6 +338,8 @@ export function HTMLBlurRegionLayer({
   updateBlurRegion,
   removeBlurRegion,
 }: HTMLBlurRegionLayerProps) {
+  const showMosaic = useSyncExternalStore(subscribeNoop, canPreviewMosaic, cannotPreviewOnServer);
+
   return (
     <div
       style={{
@@ -304,6 +356,7 @@ export function HTMLBlurRegionLayer({
           key={region.id}
           region={region}
           isSelected={selectedBlurId === region.id}
+          showMosaic={showMosaic}
           onSelect={() => setSelectedBlurId(region.id)}
           onUpdate={(updates) => updateBlurRegion(region.id, updates)}
           onRemove={() => {

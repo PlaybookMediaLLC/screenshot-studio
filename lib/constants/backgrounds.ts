@@ -1,7 +1,7 @@
 import { gradientColors, GradientKey } from './gradient-colors';
 import { SolidColorKey, solidColors } from './solid-colors';
 import { meshGradients, magicGradients, MeshGradientKey, MagicGradientKey } from './mesh-gradients';
-import { getR2ImageUrl } from '@/lib/r2';
+import { getR2ImageUrl, getResizedImageUrl } from '@/lib/r2';
 import { backgroundPaths } from '@/lib/r2-backgrounds';
 
 export type BackgroundType = 'gradient' | 'solid' | 'image';
@@ -53,8 +53,22 @@ export const getBackgroundStyle = (config: BackgroundConfig): string => {
   }
 };
 
+/** Resolved URL of an image background, or null for gradients and solids. */
+export const getBackgroundImageUrl = (config: BackgroundConfig): string | null => {
+  const { type, value } = config;
+  if (type !== 'image' || typeof value !== 'string') return null;
+  const isR2Path =
+    !value.startsWith('/') &&
+    !value.startsWith('blob:') &&
+    !value.startsWith('http') &&
+    !value.startsWith('data:') &&
+    backgroundPaths.includes(value);
+  return isR2Path ? getR2ImageUrl({ src: value }) : value;
+};
+
 export const getBackgroundCSS = (
-  config: BackgroundConfig
+  config: BackgroundConfig,
+  imageWidth?: number
 ): React.CSSProperties => {
   const { type, value, opacity = 1 } = config;
 
@@ -103,21 +117,8 @@ export const getBackgroundCSS = (
     }
 
     case 'image': {
-      // Local assets (from /public) are served directly
-      const isLocalPath = typeof value === 'string' && value.startsWith('/');
-
-      // Check if it's a known R2 background path
-      const isR2Path = typeof value === 'string' &&
-        !isLocalPath &&
-        !value.startsWith('blob:') &&
-        !value.startsWith('http') &&
-        !value.startsWith('data:') &&
-        backgroundPaths.includes(value);
-
-      // Get the image URL (R2 URL if it's a known path, otherwise use as-is)
-      const imageUrl = isR2Path
-        ? getR2ImageUrl({ src: value })
-        : value as string;
+      const url = getBackgroundImageUrl(config) ?? (value as string);
+      const imageUrl = imageWidth ? getResizedImageUrl(url, imageWidth) : url;
 
       return {
         backgroundImage: `url(${imageUrl})`,

@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import dynamic from 'next/dynamic'
 import {
   SlidersHorizontalIcon,
   ColorsIcon,
@@ -16,21 +15,20 @@ import {
   ShadowSection,
   BackgroundSection,
   DepthSection,
-  CodeImagesLinkCard,
   ImageOverlaySection,
   AnnotateSection,
   TextSection,
   SettingsSection,
   BrowserMockupSection,
   DeviceFramesSection,
+  ScreenshotDesignSection,
+  ImageEnhanceSection,
+  QuickTemplatesSection,
+  ExportPresetsSection,
+  BackgroundEffectsSection,
 } from './sections'
 import { useImageStore } from '@/lib/store'
 import { SegmentedControl } from '@/components/ui/segmented-control'
-
-const TweetImportSection = dynamic(
-  () => import('./sections/TweetImportSection').then((module) => module.TweetImportSection),
-  { ssr: false }
-)
 
 type LeftTabType = 'edit' | 'background' | 'depth'
 
@@ -125,15 +123,17 @@ export function LeftEditPanel() {
                 <BrowserMockupSection />
               ) : (
                 <>
+                  <QuickTemplatesSection />
+                  <ExportPresetsSection />
+                  <ScreenshotDesignSection />
                   <StyleSection />
                   <BorderSection />
+                  <ImageEnhanceSection />
                 </>
               )}
               {editorMode !== 'device' ? (
                 <>
                   <ShadowSection />
-                  <TweetImportSection />
-                  <CodeImagesLinkCard />
                   <ImageOverlaySection />
                   <AnnotateSection />
                   <TextSection />
@@ -145,6 +145,7 @@ export function LeftEditPanel() {
 
           {contentKey === 'background' && (
             <div className="space-y-1">
+              <BackgroundEffectsSection />
               <BackgroundSection />
             </div>
           )}

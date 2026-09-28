@@ -33,6 +33,7 @@ import {
 import type { ToolDefinition } from "@/lib/seo/tools";
 import { ToolDropzone } from "./ToolDropzone";
 import { OptionGroup } from "./ToolOptions";
+import { CARD_CLASS } from "./ui";
 
 const RATIO_PRESETS: { id: string; label: string; ratio: number | null }[] = [
   { id: "free", label: "Free", ratio: null },
@@ -308,88 +309,80 @@ export function CropWorkspace({ tool }: CropWorkspaceProps) {
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="flex justify-center rounded-xl border border-border bg-muted/20 p-4">
-        <div
-          ref={frameRef}
-          className="relative inline-block touch-none select-none"
-          onPointerMove={handlePointerMove}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
-        >
-          <Image
-            src={previewUrl}
-            alt={file.name}
-            width={source.width}
-            height={source.height}
-            unoptimized
-            draggable={false}
-            className="block h-auto max-h-[60vh] w-auto max-w-full rounded-md"
-          />
-
-          {/* Dimmed area outside the selection. */}
+    <div className="mx-auto grid w-full max-w-5xl items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className={cn(CARD_CLASS, "p-2")}>
+        <div className="flex w-full justify-center rounded-xl bg-background/70 p-4 sm:p-6">
           <div
-            className="pointer-events-none absolute inset-0 rounded-md bg-black/50"
-            style={{
-              clipPath: `polygon(0% 0%, 0% 100%, ${crop.x * scale}px 100%, ${
-                crop.x * scale
-              }px ${crop.y * scale}px, ${(crop.x + crop.width) * scale}px ${
-                crop.y * scale
-              }px, ${(crop.x + crop.width) * scale}px ${
-                (crop.y + crop.height) * scale
-              }px, ${crop.x * scale}px ${
-                (crop.y + crop.height) * scale
-              }px, ${crop.x * scale}px 100%, 100% 100%, 100% 0%)`,
-            }}
-            aria-hidden="true"
-          />
-
-          <div
-            role="group"
-            aria-label="Crop selection"
-            onPointerDown={beginDrag("move")}
-            className="absolute cursor-move border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]"
-            style={{
-              left: crop.x * scale,
-              top: crop.y * scale,
-              width: crop.width * scale,
-              height: crop.height * scale,
-            }}
+            ref={frameRef}
+            className="relative inline-block touch-none select-none"
+            onPointerMove={handlePointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
           >
-            {(Object.keys(HANDLE_POSITIONS) as Handle[]).map((handle) => (
-              <span
-                key={handle}
-                onPointerDown={beginDrag(handle)}
-                className={cn(
-                  "absolute size-3 rounded-full border-2 border-white bg-foreground shadow",
-                  HANDLE_POSITIONS[handle]
-                )}
-              />
-            ))}
+            <Image
+              src={previewUrl}
+              alt={file.name}
+              width={source.width}
+              height={source.height}
+              unoptimized
+              draggable={false}
+              className="block h-auto max-h-[60vh] w-auto max-w-full rounded-md"
+            />
+
+            {/* Dimmed area outside the selection. */}
+            <div
+              className="pointer-events-none absolute inset-0 rounded-md bg-black/50"
+              style={{
+                clipPath: `polygon(0% 0%, 0% 100%, ${crop.x * scale}px 100%, ${
+                  crop.x * scale
+                }px ${crop.y * scale}px, ${(crop.x + crop.width) * scale}px ${
+                  crop.y * scale
+                }px, ${(crop.x + crop.width) * scale}px ${
+                  (crop.y + crop.height) * scale
+                }px, ${crop.x * scale}px ${
+                  (crop.y + crop.height) * scale
+                }px, ${crop.x * scale}px 100%, 100% 100%, 100% 0%)`,
+              }}
+              aria-hidden="true"
+            />
+
+            <div
+              role="group"
+              aria-label="Crop selection"
+              onPointerDown={beginDrag("move")}
+              className="absolute cursor-move border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]"
+              style={{
+                left: crop.x * scale,
+                top: crop.y * scale,
+                width: crop.width * scale,
+                height: crop.height * scale,
+              }}
+            >
+              {(Object.keys(HANDLE_POSITIONS) as Handle[]).map((handle) => (
+                <span
+                  key={handle}
+                  onPointerDown={beginDrag(handle)}
+                  className={cn(
+                    "absolute size-3 rounded-full border-2 border-white bg-foreground shadow",
+                    HANDLE_POSITIONS[handle]
+                  )}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      <aside className="flex h-fit flex-col gap-5 rounded-xl border border-border bg-card p-5 lg:sticky lg:top-24">
+      <aside className={cn(CARD_CLASS, "flex flex-col gap-5 p-5 lg:sticky lg:top-24")}>
         <OptionGroup label="Aspect ratio">
           <SegmentedControl
-            options={RATIO_PRESETS.slice(0, 3).map((preset) => ({
+            options={RATIO_PRESETS.map((preset) => ({
               id: preset.id,
               label: preset.label,
             }))}
-            value={RATIO_PRESETS.slice(0, 3).some((p) => p.id === ratioId) ? ratioId : "free"}
+            value={ratioId}
             onChange={handleRatioChange}
             ariaLabel="Aspect ratio"
-            size="sm"
-          />
-          <SegmentedControl
-            options={RATIO_PRESETS.slice(3).map((preset) => ({
-              id: preset.id,
-              label: preset.label,
-            }))}
-            value={RATIO_PRESETS.slice(3).some((p) => p.id === ratioId) ? ratioId : "free"}
-            onChange={handleRatioChange}
-            ariaLabel="More aspect ratios"
             size="sm"
           />
         </OptionGroup>
@@ -424,8 +417,8 @@ export function CropWorkspace({ tool }: CropWorkspaceProps) {
           </div>
         </OptionGroup>
 
-        <div className="flex flex-col gap-2 border-t border-border pt-4">
-          <Button onClick={() => void handleCrop()} disabled={isRunning} className="w-full">
+        <div className="flex flex-col gap-2 border-t border-border pt-5">
+          <Button size="lg" onClick={() => void handleCrop()} disabled={isRunning} className="w-full">
             {isRunning ? (
               <Loading03Icon size={16} className="animate-spin" aria-hidden="true" />
             ) : (

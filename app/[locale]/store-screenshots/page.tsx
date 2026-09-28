@@ -122,7 +122,7 @@ export default async function StoreScreenshotsPage(): Promise<React.JSX.Element>
 
         <p className="mt-10 text-sm text-muted-foreground">
           Need something other than a store listing? Open the{" "}
-          <Link href="/" className="underline underline-offset-4">
+          <Link href="/editor" className="underline underline-offset-4">
             screenshot editor
           </Link>{" "}
           for backgrounds and browser mockups, add{" "}

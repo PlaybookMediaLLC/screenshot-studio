@@ -126,7 +126,7 @@ function TransformPreview({ mode }: { mode: ControlMode }) {
     { pointer: { touch: true }, filterTaps: true }
   );
 
-  const backgroundStyle = getBackgroundCSS(backgroundConfig);
+  const backgroundStyle = getBackgroundCSS(backgroundConfig, 384);
 
   // Convert pixel offset to percentage for the preview image transform
   const offsetXPct = canvasDimensions && canvasDimensions.canvasW > 0
@@ -327,9 +327,34 @@ function PerspectiveSliders() {
 }
 
 function ZoomSlider() {
-  const imageScale = useImageStore((s) => s.imageScale);
-  const setImageScale = useImageStore((s) => s.setImageScale);
+  const {
+    imageScale,
+    setImageScale,
+    imageOverlays,
+    updateImageOverlay,
+    selectedOverlayId,
+  } = useImageStore();
 
+  const selectedOverlay = selectedOverlayId
+    ? imageOverlays.find((o) => o.id === selectedOverlayId)
+    : null;
+  // If a second image / overlay is selected, zoom/scale its size:
+  if (selectedOverlay) {
+    return (
+      <Slider
+        value={[selectedOverlay.size]}
+        onValueChange={(value) =>
+          updateImageOverlay(selectedOverlay.id, { size: value[0] })
+        }
+        min={20}
+        max={1200}
+        step={5}
+        label="Size / Zoom (Selected Overlay)"
+        valueDisplay={`${selectedOverlay.size}px`}
+      />
+    );
+  }
+  // Otherwise, scale the main base image:
   return (
     <Slider
       value={[imageScale / 100]}
@@ -423,7 +448,7 @@ function AnimationControls() {
     setShowTimeline(true);
   };
 
-  const backgroundStyle = getBackgroundCSS(backgroundConfig);
+  const backgroundStyle = getBackgroundCSS(backgroundConfig, 384);
   const hasAnimation = animationClips.length > 0;
 
   return (

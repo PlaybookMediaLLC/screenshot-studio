@@ -51,6 +51,7 @@ public/backgrounds
 !/scripts/verify-tenant-isolation.ts
 !/scripts/verify-trpc-smoke.ts
 !/scripts/verify-rfcs.py
+!/scripts/indexnow.ts
 
 /lib/generated/prisma
 # Prisma

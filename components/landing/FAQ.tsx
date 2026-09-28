@@ -150,7 +150,7 @@ export function FAQ({
   title = "Questions",
   faqs = defaultFAQs,
   ctaLabel = "Open Editor",
-  ctaHref = "/",
+  ctaHref = "/editor",
 }: FAQProps) {
   const [openId, setOpenId] = useState<number | null>(null);
   const items = faqs;

@@ -1,9 +1,15 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import Moveable from 'react-moveable';
 import type { ImageOverlay } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import {
+  buildOverlayShadowFilter,
+  buildOverlayTiltTransform,
+  fitOverlayImage,
+  hasOverlayTilt,
+} from '@/lib/overlay-style';
 import {
   Delete02Icon,
   Copy01Icon,
@@ -70,10 +76,12 @@ function OverlayElement({
     );
   }
 
-  const flipTransform = [
+  const imageTransform = [
+    buildOverlayTiltTransform(overlay.tilt),
     overlay.flipX ? 'scaleX(-1)' : '',
     overlay.flipY ? 'scaleY(-1)' : '',
   ].filter(Boolean).join(' ');
+  const fitted = fitOverlayImage(overlayImg.naturalWidth, overlayImg.naturalHeight);
 
   return (
     <div
@@ -89,7 +97,11 @@ function OverlayElement({
         top: `${overlay.position.y - overlay.size / 2}px`,
         width: `${overlay.size}px`,
         height: `${overlay.size}px`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         transform: `rotate(${overlay.rotation}deg)`,
+        perspective: hasOverlayTilt(overlay.tilt) ? `${overlay.tilt.perspective}px` : undefined,
         opacity: overlay.opacity,
         filter: (overlay.blur ?? 0) > 0 ? `blur(${overlay.blur}px)` : undefined,
         cursor: 'grab',
@@ -102,11 +114,13 @@ function OverlayElement({
         alt="Overlay"
         draggable={false}
         style={{
-          width: '100%',
-          height: '100%',
+          width: `${fitted.width}%`,
+          height: `${fitted.height}%`,
           objectFit: 'contain',
           display: 'block',
-          transform: flipTransform || undefined,
+          borderRadius: overlay.radius ? `${overlay.radius}px` : undefined,
+          filter: buildOverlayShadowFilter(overlay.shadow),
+          transform: imageTransform || undefined,
           pointerEvents: 'none',
         }}
       />
@@ -198,6 +212,7 @@ export function HTMLImageOverlayLayer({
 }: HTMLImageOverlayLayerProps) {
   const [selectedEl, setSelectedEl] = useState<HTMLDivElement | null>(null);
   const [interacting, setInteracting] = useState(false);
+  const moveableRef = useRef<Moveable | null>(null);
 
   const handleSelect = useCallback(
     (id: string) => {
@@ -213,6 +228,21 @@ export function HTMLImageOverlayLayer({
     : null;
 
   const isShadow = selectedOverlay?.src.includes('overlay-shadow');
+
+  // Keep Moveable bounding box synchronized with external slider / store changes
+  useEffect(() => {
+    if (moveableRef.current) {
+      moveableRef.current.updateRect();
+    }
+  }, [
+    selectedOverlay?.size,
+    selectedOverlay?.position.x,
+    selectedOverlay?.position.y,
+    selectedOverlay?.rotation,
+    selectedOverlay?.flipX,
+    selectedOverlay?.flipY,
+    selectedOverlay?.blur,
+  ]);
 
   return (
     <div
@@ -243,6 +273,7 @@ export function HTMLImageOverlayLayer({
       {selectedOverlay && selectedEl && !isShadow && (
         <>
           <Moveable
+            ref={moveableRef}
             target={selectedEl}
             draggable={true}
             resizable={true}
@@ -306,6 +337,7 @@ export function HTMLImageOverlayLayer({
 
           {!interacting && (
             <div
+              data-export-exclude="true"
               style={{
                 position: 'absolute',
                 left: `${selectedOverlay.position.x - selectedOverlay.size / 2}px`,

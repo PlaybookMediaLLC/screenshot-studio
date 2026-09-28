@@ -2,11 +2,12 @@
 
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
-import type { AnnotationToolType } from '@/lib/store';
+import type { AnnotationToolType, BlurRegionStyle } from '@/lib/store';
 import { SectionWrapper } from './SectionWrapper';
 import { cn } from '@/lib/utils';
 import { ColorPickerIcon, Delete02Icon } from 'hugeicons-react';
 import { Slider } from '@/components/ui/slider';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 
 // ── Tool definitions ──────────────────────────────────────────────────────────
 
@@ -69,6 +70,11 @@ const TOOLS: { id: AnnotationToolType; label: string; svg: React.ReactNode }[] =
       </svg>
     ),
   },
+];
+
+const BLUR_STYLES: { id: BlurRegionStyle; label: string }[] = [
+  { id: 'mosaic', label: 'Mosaic' },
+  { id: 'blur', label: 'Blur' },
 ];
 
 const COLORS = [
@@ -254,9 +260,25 @@ export function AnnotateSection() {
             {blurRegions.map((region, index) => (
               <div
                 key={region.id}
-                className="flex items-center gap-2 py-1.5 px-2.5 rounded-md bg-foreground/[0.04] border border-foreground/10"
+                className="space-y-2 py-1.5 px-2.5 rounded-md bg-foreground/[0.04] border border-foreground/10"
               >
-                <span className="text-[11px] text-muted-foreground shrink-0 w-8">#{index + 1}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-muted-foreground shrink-0 w-8">#{index + 1}</span>
+                  <SegmentedControl
+                    size="sm"
+                    ariaLabel={`Region ${index + 1} style`}
+                    options={BLUR_STYLES}
+                    value={region.style ?? 'blur'}
+                    onChange={(style) => updateBlurRegion(region.id, { style: style as BlurRegionStyle })}
+                  />
+                  <button
+                    onClick={() => removeBlurRegion(region.id)}
+                    className="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0 rounded hover:bg-destructive/10"
+                    title="Remove"
+                  >
+                    <Delete02Icon size={12} />
+                  </button>
+                </div>
                 <Slider
                   value={[region.blurAmount]}
                   onValueChange={(v) =>
@@ -267,13 +289,6 @@ export function AnnotateSection() {
                   step={1}
                   valueDisplay={`${region.blurAmount}px`}
                 />
-                <button
-                  onClick={() => removeBlurRegion(region.id)}
-                  className="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0 rounded hover:bg-destructive/10"
-                  title="Remove"
-                >
-                  <Delete02Icon size={12} />
-                </button>
               </div>
             ))}
           </div>

@@ -1,22 +1,73 @@
-import { Metadata } from "next";
-import Link from "next/link";
-import { Navigation } from "@/components/landing/Navigation";
-import { Footer } from "@/components/landing/Footer";
+import { Metadata } from 'next'
+import Link from 'next/link'
+import { Navigation } from '@/components/landing/Navigation'
+import { Footer } from '@/components/landing/Footer'
 
 export const metadata: Metadata = {
-  title: "Privacy Policy",
+  title: 'Privacy Policy',
   description:
-    "Privacy Policy for Screenshot Studio. What stays on your device, what is sent to our server, and which third parties are involved.",
+    'Privacy Policy for Screenshot Studio. What stays on your device, what is sent to our server, how ads and analytics use cookies, and how to opt out.',
   alternates: {
-    canonical: "/privacy-policy",
+    canonical: '/privacy-policy',
   },
-};
+}
+
+const CONTACT_EMAIL = 'kartik.labhshetwar@gmail.com'
 
 const linkClassName =
-  "text-foreground underline decoration-foreground/30 underline-offset-4 transition-colors hover:decoration-foreground/60";
+  'text-foreground underline decoration-foreground/30 underline-offset-4 transition-colors hover:decoration-foreground/60'
 
 const INTER =
-  "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+  "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+
+function Section({
+  id,
+  title,
+  children,
+}: {
+  id?: string
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <section id={id} className="scroll-mt-28">
+      <h2
+        className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
+        style={{ fontFamily: INTER }}
+      >
+        {title}
+      </h2>
+      {children}
+    </section>
+  )
+}
+
+function ExternalLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} target="_blank" rel="noopener noreferrer" className={linkClassName}>
+      {children}
+    </Link>
+  )
+}
+
+function Code({ children }: { children: React.ReactNode }) {
+  return <code className="rounded bg-muted px-1.5 py-0.5 text-[13px]">{children}</code>
+}
+
+const THIRD_PARTY_COOKIES = [
+  {
+    name: 'Google AdSense',
+    purpose:
+      'Serving ads, limiting how often you see the same ad, measuring ad performance, fraud prevention, and (only where you allow it) ad personalization.',
+    policy: 'https://policies.google.com/technologies/ads',
+  },
+  {
+    name: 'PostHog',
+    purpose:
+      'Product analytics for feature usage when the deployment configures a PostHog key. May store a first-party identifier so repeat visits are recognized.',
+    policy: 'https://posthog.com/privacy',
+  },
+]
 
 export default function PrivacyPolicyPage() {
   return (
@@ -30,318 +81,339 @@ export default function PrivacyPolicyPage() {
         >
           Privacy Policy
         </h1>
-        <p className="mb-12 text-sm text-muted-foreground">
-          Last updated: August 27, 2026
-        </p>
+        <p className="mb-12 text-sm text-muted-foreground">Last updated: September 27, 2026</p>
 
         <div className="max-w-none space-y-8">
-          <section>
-            <h2
-              className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Overview
-            </h2>
+          <Section title="Overview">
             <p className="mb-3 leading-relaxed text-muted-foreground">
-              Screenshot Studio combines a browser-based image editor with a
-              workspace platform. An account and workspace membership are
-              required to use the editor. We store the identity, session,
-              membership, and workspace data needed to provide that service.
+              Screenshot Studio combines a browser-based image editor with a workspace platform. An
+              account and workspace membership are required to use the editor. We store the
+              identity, session, membership, and workspace data needed to provide that service.
             </p>
             <p className="leading-relaxed text-muted-foreground">
-              Editing, compositing, and preview rendering happen on your device
-              in the browser canvas. Several operations do send data off your
-              device. Account and workspace operations, export compression, URL
-              capture, tweet import, and remote-image import send the data needed
-              for those operations to our servers or the named providers below.
-              We do not sell your data.
+              Editing, compositing, and preview rendering happen on your device in the browser
+              canvas. Several operations do send data off your device. Account and workspace
+              operations, export compression, URL capture, tweet import, and remote-image import
+              send the data needed for those operations to our servers or the named providers below.
+              Public content pages are funded by advertising. We do not sell your personal
+              information.
             </p>
-          </section>
+          </Section>
 
-          <section>
-            <h2
-              className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              What Stays On Your Device
-            </h2>
+          <Section title="What Stays On Your Device">
             <p className="mb-3 leading-relaxed text-muted-foreground">
-              Images you import from your device are read in the browser and are
-              never uploaded to us for editing. The editor also stores your work
-              in your own browser:
+              Images you import from your device are read in the browser and are never uploaded to
+              us for editing. The editor also stores your work in your own browser:
             </p>
             <ul className="list-inside list-disc space-y-2 text-muted-foreground">
               <li>
-                <strong className="text-foreground">Drafts:</strong> your
-                in-progress canvas is autosaved to IndexedDB and deleted
-                automatically after 7 days.
+                <strong className="text-foreground">Drafts:</strong> your in-progress canvas is
+                autosaved to IndexedDB and deleted automatically after 7 days.
               </li>
               <li>
-                <strong className="text-foreground">Images:</strong> imported
-                images under 500KB are kept in local storage so a reload does
-                not lose them. Larger images are held in memory only.
+                <strong className="text-foreground">Images:</strong> imported images under 500KB are
+                kept in local storage so a reload does not lose them. Larger images are held in
+                memory only.
               </li>
               <li>
-                <strong className="text-foreground">Preferences:</strong> aspect
-                ratio, export settings, custom presets, theme, and recent
-                exports.
+                <strong className="text-foreground">Preferences:</strong> aspect ratio, export
+                settings, custom presets, theme, and recent exports.
+              </li>
+              <li>
+                <strong className="text-foreground">Image tools:</strong> the compress, convert,
+                resize, crop, rotate, and background removal tools process files in your browser tab
+                and write the result straight to your downloads. Re-encoding also drops embedded
+                EXIF metadata such as camera details and GPS location.
               </li>
             </ul>
             <p className="mt-3 leading-relaxed text-muted-foreground">
-              None of this reaches our servers. Clearing site data in your
-              browser removes all of it.
+              None of this reaches our servers. Clearing site data in your browser removes all of
+              it.
             </p>
-          </section>
+          </Section>
 
-          <section>
-            <h2
-              className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              What Leaves Your Device
-            </h2>
+          <Section title="What Leaves Your Device">
             <ul className="list-inside list-disc space-y-3 text-muted-foreground">
               <li>
-                <strong className="text-foreground">
-                  Account and workspace data:
-                </strong>{" "}
-                we store your name, email address, authentication and session
-                records, workspace memberships, organization settings, audit
-                records, and the releases and assets your workspace creates.
-                Access to tenant data is scoped to workspace membership and
-                role.
+                <strong className="text-foreground">Account and workspace data:</strong> we store
+                your name, email address, authentication and session records, workspace
+                memberships, organization settings, audit records, and the releases and assets your
+                workspace creates. Access to tenant data is scoped to workspace membership and role.
               </li>
               <li>
-                <strong className="text-foreground">Export compression:</strong>{" "}
-                when you export, the rendered image is sent to our{" "}
-                <code className="rounded bg-muted px-1.5 py-0.5 text-[13px]">
-                  /api/export
-                </code>{" "}
-                endpoint, recompressed in memory with Sharp, and returned to
-                you. It is not written to disk, not stored, and not logged.
-                Images above 4MB, and any failure or timeout, fall back to
-                compression inside your browser.
+                <strong className="text-foreground">Export compression:</strong> when you export,
+                the rendered image is sent to our <Code>/api/export</Code> endpoint, recompressed in
+                memory with Sharp, and returned to you. It is not written to disk, not stored, and
+                not logged. Images above 4MB, and any failure or timeout, fall back to compression
+                inside your browser.
               </li>
               <li>
-                <strong className="text-foreground">
-                  Capturing a screenshot from a URL:
-                </strong>{" "}
-                the address you enter is sent to{" "}
-                <Link
-                  href="https://microlink.io"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={linkClassName}
-                >
-                  Microlink
-                </Link>
-                , which loads that page and captures it. The resulting image is
-                cached in Cloudflare R2, and our database stores the normalized
-                URL, a hash of it, the device and color-scheme options, and the
-                storage key so repeat captures are fast. Only public web pages
-                you explicitly submit are captured.
+                <strong className="text-foreground">Capturing a screenshot from a URL:</strong> the
+                address you enter is sent to{' '}
+                <ExternalLink href="https://microlink.io">Microlink</ExternalLink>, which loads that
+                page and captures it. The resulting image is cached in Cloudflare R2, and our
+                database stores the normalized URL, a hash of it, the device and color-scheme
+                options, and the storage key so repeat captures are fast. Only public web pages you
+                explicitly submit are captured.
               </li>
               <li>
-                <strong className="text-foreground">Importing a tweet:</strong>{" "}
-                the numeric post id is sent to X&apos;s public syndication API to
-                fetch the post content that gets rendered on your canvas.
+                <strong className="text-foreground">Importing a tweet:</strong> the numeric post id
+                is sent to X&apos;s public syndication API to fetch the post content that gets
+                rendered on your canvas.
               </li>
               <li>
-                <strong className="text-foreground">
-                  Removing a background:
-                </strong>{" "}
-                the image is processed entirely in your browser and is never
-                uploaded. The first time you use it, your browser downloads the
-                AI model files directly from{" "}
-                <Link
-                  href="https://huggingface.co"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={linkClassName}
-                >
-                  Hugging Face
-                </Link>
-                , which receives a standard file request (including your IP
-                address) but no image data. The model is then cached in your
-                browser.
+                <strong className="text-foreground">Removing a background:</strong> the image is
+                processed entirely in your browser and is never uploaded. The first time you use it,
+                your browser downloads the AI model files directly from{' '}
+                <ExternalLink href="https://huggingface.co">Hugging Face</ExternalLink>, which
+                receives a standard file request (including your IP address) but no image data. The
+                model is then cached in your browser.
               </li>
               <li>
-                <strong className="text-foreground">Remote images:</strong>{" "}
-                images referenced by URL are fetched through our image proxy,
-                which is restricted to an allowlist of hosts.
+                <strong className="text-foreground">Remote images:</strong> images referenced by URL
+                are fetched through our image proxy, which is restricted to an allowlist of hosts.
               </li>
             </ul>
-          </section>
+          </Section>
 
-          <section>
-            <h2
-              className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Analytics, Ads, and Third Parties
-            </h2>
+          <Section id="advertising" title="Advertising">
+            <p className="mb-3 leading-relaxed text-muted-foreground">
+              Screenshot Studio is free because it shows ads served by Google AdSense on content
+              pages such as guides, comparisons, and tool pages. The images you edit are never
+              shared with Google or any ad partner.
+            </p>
             <ul className="list-inside list-disc space-y-3 text-muted-foreground">
               <li>
-                <strong className="text-foreground">PostHog:</strong> product
-                analytics for feature usage when the deployment configures a
-                PostHog key. It may set a first-party identifier so repeat visits
-                are recognized.
+                Third-party vendors, including Google, use cookies to serve ads based on your prior
+                visits to this website or other websites.
               </li>
               <li>
-                <strong className="text-foreground">Google AdSense:</strong> ads
-                are served on this site. Google may set cookies and use them for
-                ad delivery, measurement, and personalization under its own
-                policies. You can control this at{" "}
-                <Link
-                  href="https://myadcenter.google.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={linkClassName}
-                >
-                  My Ad Center
-                </Link>
+                Google&apos;s use of advertising cookies enables it and its partners to serve ads to
+                you based on your visit to this site and/or other sites on the Internet.
+              </li>
+              <li>
+                You may opt out of personalized advertising by visiting{' '}
+                <ExternalLink href="https://www.google.com/settings/ads">
+                  Google Ads Settings
+                </ExternalLink>{' '}
+                or <ExternalLink href="https://myadcenter.google.com">My Ad Center</ExternalLink>.
+                You can also opt out of some third-party vendors&apos; use of cookies for
+                personalized advertising at{' '}
+                <ExternalLink href="https://optout.aboutads.info">aboutads.info</ExternalLink> (US)
+                or{' '}
+                <ExternalLink href="https://www.youronlinechoices.eu">
+                  youronlinechoices.eu
+                </ExternalLink>{' '}
+                (EU).
+              </li>
+              <li>
+                Google may also work with other certified ad vendors when serving ads here. The list
+                of these vendors is available in{' '}
+                <ExternalLink href="https://support.google.com/admanager/answer/9012903">
+                  Google&apos;s ad technology providers list
+                </ExternalLink>
                 .
               </li>
               <li>
-                <strong className="text-foreground">
-                  Hosting and network:
-                </strong>{" "}
-                the deployment&apos;s hosting, storage, and network providers may
-                process standard request metadata, including IP addresses, for
-                security and reliability.
-              </li>
-              <li>
-                <strong className="text-foreground">Rate limiting:</strong> the
-                screenshot API stores a one-way hash derived from your client
-                address in Redis for up to 60 seconds to enforce its per-minute
-                limit. The raw address is not used as the rate-limit key.
+                Learn more about{' '}
+                <ExternalLink href="https://policies.google.com/technologies/partner-sites">
+                  how Google uses information from sites or apps that use its services
+                </ExternalLink>
+                .
               </li>
             </ul>
             <p className="mt-3 leading-relaxed text-muted-foreground">
-              We do not run cross-site advertising pixels of our own, and we do
-              not sell or share your data with data brokers.
+              If you opt out, you will still see ads, but they will not be personalized based on
+              your browsing.
             </p>
-          </section>
+          </Section>
 
-          <section>
-            <h2
-              className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Cookies
-            </h2>
-            <p className="leading-relaxed text-muted-foreground">
-              We use secure authentication and session cookies for signed-in
-              users. We also set{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 text-[13px]">
-                NEXT_LOCALE
-              </code>
-              {" "}to remember your language choice. Additional cookies and
-              identifiers may be set by configured PostHog analytics and Google
-              AdSense as described above.
+          <Section title="Analytics">
+            <p className="mb-3 leading-relaxed text-muted-foreground">
+              We use analytics to learn which pages and features are useful and to find bugs. We
+              look at aggregate numbers, not at individuals.
             </p>
-          </section>
-
-          <section>
-            <h2
-              className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Your Choices
-            </h2>
-            <ul className="list-inside list-disc space-y-2 text-muted-foreground">
+            <ul className="list-inside list-disc space-y-3 text-muted-foreground">
               <li>
-                Clear site data in your browser to remove every draft, image,
-                and preference stored locally.
-              </li>
-              <li>
-                Block cookies or use an ad or tracker blocker. The editor works
-                without analytics and without ads.
-              </li>
-              <li>
-                Skip URL capture and tweet import if you do not want those
-                requests made. Importing images from your device never leaves
-                the browser.
-              </li>
-              <li>
-                Email us to have a cached screenshot of a page you control
-                removed.
-              </li>
-              <li>
-                Use the workspace administration controls to request deletion
-                of workspace data, subject to the displayed recovery period and
-                records we must retain for security or legal obligations.
+                <strong className="text-foreground">PostHog:</strong> when the deployment configures
+                a PostHog key, feature usage events, such as which editor controls are used and
+                whether an export succeeded. Events never contain your images.
               </li>
             </ul>
-          </section>
+          </Section>
 
-          <section>
-            <h2
-              className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Children
-            </h2>
-            <p className="leading-relaxed text-muted-foreground">
-              Screenshot Studio is not directed at children under 13, and we do
-              not knowingly collect information from them.
+          <Section title="Hosting and Security">
+            <ul className="list-inside list-disc space-y-3 text-muted-foreground">
+              <li>
+                <strong className="text-foreground">Hosting and network:</strong> the
+                deployment&apos;s hosting, storage, and network providers may process standard
+                request metadata, including IP addresses, for security and reliability.
+              </li>
+              <li>
+                <strong className="text-foreground">Rate limiting:</strong> the screenshot API
+                stores a one-way hash derived from your client address in Redis for up to 60 seconds
+                to enforce its per-minute limit. The raw address is not used as the rate-limit key.
+              </li>
+            </ul>
+          </Section>
+
+          <Section id="cookies" title="Cookies">
+            <p className="mb-3 leading-relaxed text-muted-foreground">
+              We use secure authentication and session cookies for signed-in users. We also set{' '}
+              <Code>NEXT_LOCALE</Code> to remember your language choice, and{' '}
+              <Code>screenshot-studio-store-active</Code> only when you have an App Store screenshot
+              project open, so the page can restore it on your next visit. That cookie holds the
+              value 1 and no identifier.
             </p>
-          </section>
+            <p className="mb-3 leading-relaxed text-muted-foreground">
+              The following third parties may set cookies or similar identifiers when you visit the
+              site:
+            </p>
+            <ul className="list-inside list-disc space-y-3 text-muted-foreground">
+              {THIRD_PARTY_COOKIES.map((vendor) => (
+                <li key={vendor.name}>
+                  <strong className="text-foreground">{vendor.name}:</strong> {vendor.purpose}{' '}
+                  <ExternalLink href={vendor.policy}>Policy</ExternalLink>.
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 leading-relaxed text-muted-foreground">
+              You can block or delete cookies in your browser settings. Signing in requires the
+              authentication cookies; the other cookies are optional.
+            </p>
+          </Section>
 
-          <section>
-            <h2
-              className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Open Source
-            </h2>
+          <Section title="Consent in the EEA, UK, and Switzerland">
             <p className="leading-relaxed text-muted-foreground">
-              Screenshot Studio is open source. Every claim on this page can be
-              checked against the{" "}
-              <Link
-                href="https://github.com/PlaybookMediaLLC/screenshot-studio"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={linkClassName}
-              >
-                source code on GitHub
+              If you visit from the European Economic Area, the United Kingdom, or Switzerland, a
+              consent message from a Google-certified consent management platform asks for your
+              choice before Google and its ad partners use cookies or your data for personalized
+              ads. If you decline, Google may still show non-personalized ads, which use cookies
+              only for frequency capping, aggregated reporting, and fraud prevention. You can change
+              your choice at any time from the &quot;Privacy and cookie settings&quot; link at the
+              bottom of the page.
+            </p>
+          </Section>
+
+          <Section title="Legal Bases">
+            <p className="leading-relaxed text-muted-foreground">
+              Where data protection laws such as the GDPR apply, we process data on these bases:
+              your consent for personalized advertising and non-essential cookies; our legitimate
+              interest in keeping the site secure, reliable, and improving it, for request logs,
+              rate limiting, and aggregate analytics; and performance of the service you ask for,
+              when you use URL capture, tweet import, or export compression.
+            </p>
+          </Section>
+
+          <Section title="Data Retention">
+            <ul className="list-inside list-disc space-y-2 text-muted-foreground">
+              <li>
+                Images you edit: never stored on our servers. Export compression happens in memory
+                and is discarded immediately.
+              </li>
+              <li>
+                Cached URL screenshots: kept so repeat captures are fast, and removed on request for
+                pages you control.
+              </li>
+              <li>
+                Account and workspace data: kept while your workspace is active, then deleted after
+                the displayed recovery period, except records we must retain for security or legal
+                obligations.
+              </li>
+              <li>Rate-limit entries: up to 60 seconds in Redis.</li>
+              <li>
+                Analytics and advertising data: retained by each provider under its own policy and
+                retention settings.
+              </li>
+            </ul>
+          </Section>
+
+          <Section title="Your Rights">
+            <p className="mb-3 leading-relaxed text-muted-foreground">
+              Depending on where you live, you may have the right to access, correct, delete, or
+              port your personal data, to object to or restrict processing, and to withdraw consent
+              at any time. We will help with any request we can act on.
+            </p>
+            <p className="mb-3 leading-relaxed text-muted-foreground">
+              California and other US state residents: we do not sell personal information for
+              money. Personalized advertising by Google may be considered &quot;sharing&quot; under
+              some state laws; you can opt out using the advertising links above or by emailing us.
+            </p>
+            <p className="leading-relaxed text-muted-foreground">
+              To make a request, email{' '}
+              <Link href={`mailto:${CONTACT_EMAIL}`} className={linkClassName}>
+                {CONTACT_EMAIL}
               </Link>
+              . You also have the right to complain to your local data protection authority.
+            </p>
+          </Section>
+
+          <Section title="Your Choices">
+            <ul className="list-inside list-disc space-y-2 text-muted-foreground">
+              <li>
+                Clear site data in your browser to remove every draft, image, and preference stored
+                locally.
+              </li>
+              <li>
+                Opt out of personalized ads with Google Ads Settings, and block cookies or use a
+                content blocker. The editor works without analytics and without ads.
+              </li>
+              <li>
+                Skip URL capture and tweet import if you do not want those requests made. Importing
+                images from your device never leaves the browser.
+              </li>
+              <li>Email us to have a cached screenshot of a page you control removed.</li>
+              <li>
+                Use the workspace administration controls to request deletion of workspace data,
+                subject to the displayed recovery period and records we must retain for security or
+                legal obligations.
+              </li>
+            </ul>
+          </Section>
+
+          <Section title="Children">
+            <p className="leading-relaxed text-muted-foreground">
+              Screenshot Studio is not directed at children under 13 (or under 16 in the EEA and
+              UK), and we do not knowingly collect information from them. Ads on this site are not
+              intended for children.
+            </p>
+          </Section>
+
+          <Section title="Open Source">
+            <p className="leading-relaxed text-muted-foreground">
+              Screenshot Studio is open source. Every claim on this page about how the editor
+              handles your images can be checked against the{' '}
+              <ExternalLink href="https://github.com/PlaybookMediaLLC/screenshot-studio">
+                source code on GitHub
+              </ExternalLink>
               .
             </p>
-          </section>
+          </Section>
 
-          <section>
-            <h2
-              className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Changes
-            </h2>
+          <Section title="Changes">
             <p className="leading-relaxed text-muted-foreground">
-              We may update this policy from time to time. Changes will be
-              reflected on this page with an updated date.
+              We update this policy when the site changes, for example when we add or remove a
+              third-party service. Changes are reflected on this page with an updated date.
             </p>
-          </section>
+          </Section>
 
-          <section>
-            <h2
-              className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
-              style={{ fontFamily: INTER }}
-            >
-              Contact
-            </h2>
+          <Section title="Contact">
             <p className="leading-relaxed text-muted-foreground">
-              If you have questions about this policy, reach out via our{" "}
+              Questions about this policy or your data: email{' '}
+              <Link href={`mailto:${CONTACT_EMAIL}`} className={linkClassName}>
+                {CONTACT_EMAIL}
+              </Link>{' '}
+              or use our{' '}
               <Link href="/contact" className={linkClassName}>
                 contact page
               </Link>
               .
             </p>
-          </section>
+          </Section>
         </div>
       </main>
 
       <Footer brandName="Screenshot Studio" />
     </div>
-  );
+  )
 }

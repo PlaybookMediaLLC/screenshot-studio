@@ -535,7 +535,7 @@ export function EditorPreview(): React.JSX.Element {
 
               <div className="flex items-center justify-end px-3">
                 <Link
-                  href="/"
+                  href="/editor"
                   onClick={() =>
                     trackCTAClick("hero-preview", "Open in editor")
                   }

@@ -19,6 +19,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { StoreScreenshotsShortcut } from "@/components/store-screenshots/StoreScreenshotsFeatureCard";
 import { STORE_SHORTCUT_GAP } from "@/lib/store-screenshots/config";
 import { TEMPLATE_DEMO_IMAGE_NAME } from "@/lib/templates/demo-media";
+import { useBackgroundImageReady } from "@/hooks/useBackgroundImageReady";
 
 export function EditorCanvas() {
   const isMobile = useIsMobile();
@@ -36,14 +37,17 @@ export function EditorCanvas() {
     showTimeline,
     editorMode,
     mockups,
+    backgroundConfig,
+    textOverlays,
   } = useImageStore();
+  const backgroundReady = useBackgroundImageReady(backgroundConfig);
 
   // Check both stores - imageStore is the source of truth (tracked by undo/redo)
   const hasImage = !!uploadedImageUrl
     && !!screenshot.src
     && shouldRenderSourceImage(editorMode, mockups);
   const hasDeviceScene = editorMode === "device" && hasVisibleMockups(mockups);
-  const hasRenderableContent = hasImage || hasDeviceScene;
+  const hasRenderableContent = hasImage || hasDeviceScene || textOverlays.length > 0;
   const [exportOpen, setExportOpen] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
   const loadStartedAtRef = React.useRef<number | null>(null);
@@ -118,7 +122,8 @@ export function EditorCanvas() {
     stopPreview,
   ]);
 
-  const showLoading = hasRenderableContent && !canvasReady;
+  const stageReady = canvasReady && backgroundReady;
+  const showLoading = hasRenderableContent && !stageReady;
 
   return (
     <>
@@ -139,15 +144,15 @@ export function EditorCanvas() {
           style={isMobile ? undefined : { rowGap: STORE_SHORTCUT_GAP }}
         >
           {!isMobile && imageName !== TEMPLATE_DEMO_IMAGE_NAME ? (
-            <div className="shrink-0">
+            <div className="shrink-0 max-lg:hidden">
               <StoreScreenshotsShortcut />
             </div>
           ) : null}
 
           <CanvasStageShell
             id="image-render-card"
-            breathe={!canvasReady}
-            showBackground={!canvasReady}
+            breathe={!stageReady}
+            showBackground={!stageReady}
             className="shrink-0 overflow-hidden"
           >
             {!hasRenderableContent ? (
@@ -157,7 +162,7 @@ export function EditorCanvas() {
                 <div
                   className={cn(
                     "absolute inset-0 transition-opacity duration-300 ease-out",
-                    canvasReady ? "opacity-100" : "opacity-0"
+                    stageReady ? "opacity-100" : "opacity-0"
                   )}
                 >
                   <ClientCanvas

@@ -1,5 +1,51 @@
 # Changelog
 
+## [1.8.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.7.0...v1.8.0) (2026-09-28)
+
+
+### Features
+
+* 3D tilt, shadow and corner radius for image overlays; list main image in Layers ([f43d4f6](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/f43d4f663cc33c464c918614cf7373016a45e2ff))
+* add blur-up background loading and stable pre-hydration canvas in editor ([707c6dc](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/707c6dcfd748c0490c7b8d98a35f57d3816fc7eb))
+* add clicks.page analytics script ([5ebeaea](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/5ebeaea31943092ab622db36a327ad042b359cd1))
+* add editor presets, image controls and shortcut reference ([8c10dd9](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/8c10dd9ee7171f132ca62b653abc168f1ba2e6ed))
+* add mosaic style for blur regions ([dc2c42d](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/dc2c42dc3419750038e8bbf2f429ab22286e4779))
+* add mosaic style for blur regions ([0246323](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/02463231ef0854f5d9452bc22a030f7d0f74fa8c))
+* add text-only graphics and Chrome Web Store presets ([c07d2f9](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/c07d2f9aa39e510891624b32d6053d4966e4872a))
+* add tool chooser at / and move screenshot editor to /editor ([fb1c319](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/fb1c3196fbdc913b35feb7cac4ef022bb8b5cd49))
+* add tweet to image editor at /tweet and remove Code Images card from editor ([ca3b590](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/ca3b590d8b537f3691fce2a978b4cbe9cb26ce52))
+* **adsense:** add original content, rewrite privacy policy, limit ads to content pages ([419228f](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/419228f56e924e08c2707ad4bcd486adf65c9e80))
+* **footer:** add Featured on UsefulShelf badge ([c215764](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/c21576402d4c51d16d09bbf3f03fff45c6afd88d))
+* **footer:** use Screenshot Studio listing badge from UsefulShelf ([ec47161](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/ec47161a18c7aa015b5be718f77d7c39a4ce62f2))
+* **guides:** redesign the guides hub, guide pages, and Resources menu ([127b437](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/127b4370eb836628b69a5302364456030565ee50))
+* **nav:** add Blog link to guides and redirect /blog to /guides ([220509a](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/220509a59294bb18dc16a317c4e39b4a90b84215))
+* redesign feature pages and free screenshot editor page with SEO alternative blocks ([08acf84](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/08acf84ab839456f5d8b275f29926660ac58f398))
+* redesign image tools hub, tool pages, and background remover ([05d5b99](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/05d5b99690c96d5ee0183cc48a3170365d0b9f44))
+* remove tweet import from editor sidebar and match code and tweet page FAQs to image tools ([fc90805](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/fc908057d6bfcaedd4d5ee4862b70dae6a42964c))
+* **seo:** add 13 how-to guides and Screely roundup, redesign compare and guide pages ([b459e64](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/b459e643048cd784ce689a623b9bc43499e86227))
+* **seo:** add mockup generator, guides hub, and accurate comparisons for AI search visibility ([acf9a7f](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/acf9a7ffa77f4d6441724c3f9b57df418fe08941))
+* **seo:** submit only changed pages to IndexNow after each production deploy ([9839fdb](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/9839fdb8c0e8b822fe4b71bb29881c8dec0880c5))
+* simplify tool chooser with plain task cards ([cfc7e05](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/cfc7e05d1b0e0bc11cd2dadd86900373da01ce76))
+
+
+### Bug Fixes
+
+* **adsense:** open editor workspaces from content pages with a full page load so the ads script never carries over ([ed49ba5](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/ed49ba5fcfd1290f2e63074f512c49c875c9b444))
+* keep image paste in editor and restore keyboard history ([f6ad58d](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/f6ad58d412f8af065e1dbf8a6257985d3fa4345a))
+* keep overlay selection transient and safe across edits ([f734ec3](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/f734ec33912f70775b133ba668861f1677a7ee99))
+* **mockups:** keep Dynamic Island mask aligned with frame ([c2dd22e](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/c2dd22e12ea666fa5e96b070dce929dc5e239de9))
+* **mockups:** preserve screenshot viewport when extending mask ([a42010b](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/a42010b761aa38c5af1156feb0d230e0a3323384))
+* **mockups:** repair iPhone frame mattes and edge coverage ([082b2e3](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/082b2e3030f205d1f9c2b43c1453f21564f87942))
+* **privacy:** scope the EEA consent description to ad personalization and name the revocation link ([141941a](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/141941a518e635af76107cbae1ea1fe5eab39b58))
+* **seo:** link tools and guides site-wide, accurate sitemap lastmod, redirect dead URLs ([8278981](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/82789819c0cbb3acf7beb72b9e92a9c6f60dc6b8))
+* **seo:** track the IndexNow script that the workflow and test import ([366feab](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/366feabf8a29b759f52fcdb8cc302ef9a154530d))
+* show full GitHub star count instead of abbreviated K ([ca0db40](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/ca0db4071d697a8cd5e19107d1f8b90b7d9f5bf2))
+
+
+### Reverts
+
+* remove Monetag ad script, meta tag, and sw.js ([9939739](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/99397394b981398d4934278f95f802c45011ab73))
+
 ## [1.7.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.6.0...v1.7.0) (2026-09-22)
 
 

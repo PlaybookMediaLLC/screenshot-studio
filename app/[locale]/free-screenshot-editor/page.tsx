@@ -8,12 +8,12 @@ import {
   Download04Icon,
   Layers01Icon,
   MagicWand01Icon,
+  TextFontIcon,
   Video01Icon,
 } from "hugeicons-react";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { CARD_CLASS, INTER } from "@/components/tools/ui";
-import { CLAIMS_CHECKED_LABEL, getComparison } from "@/lib/seo/comparisons";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
 import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 
@@ -34,10 +34,6 @@ export const metadata: Metadata = {
     "free image editor for screenshots",
     "pika style alternative free",
     "shots.so alternative free",
-    "screely alternative",
-    "xnapper alternative",
-    "cleanshot x alternative",
-    "snagit alternative",
     "screenshot mockup generator free",
     "browser mockup tool online",
     "screenshot wrapper no watermark",
@@ -51,9 +47,6 @@ export const metadata: Metadata = {
     "blur screenshot online",
     "annotate screenshot online free",
     "redact screenshot online",
-    "sharex alternative",
-    "greenshot alternative",
-    "flameshot alternative",
     "screenshot editor for chromebook",
   ],
   openGraph: {
@@ -76,14 +69,13 @@ const secondaryCtaClassName =
 
 const cardSurface = CARD_CLASS;
 
-const ALTERNATIVE_SLUGS = ["shots-so", "pika-style", "screely", "xnapper", "cleanshot-x", "snagit"];
 
 const capabilities = [
   {
     icon: BlurIcon,
-    title: "Blur, Annotate & Text",
+    title: "Blur & Annotate",
     description:
-      `Blur emails, names, and API keys, draw arrows, lines, rectangles, and circles, and add captions with ${atLeast(PRODUCT_FACTS.fonts)} fonts.`,
+      "Blur emails, names, and API keys, and draw arrows, lines, rectangles, and circles to point out what matters.",
   },
   {
     icon: ColorsIcon,
@@ -114,6 +106,12 @@ const capabilities = [
     title: "Animation & Video Export",
     description:
       `Add keyframe animations with ${atLeast(PRODUCT_FACTS.animationPresets)} presets and export as MP4, WebM, or GIF. Bring static screenshots to life.`,
+  },
+  {
+    icon: TextFontIcon,
+    title: "Text & Overlays",
+    description:
+      `Add captions, labels, and annotations with ${atLeast(PRODUCT_FACTS.fonts)} fonts. Layer stickers and arrows for tutorials.`,
   },
   {
     icon: Download04Icon,
@@ -196,10 +194,6 @@ const faqs = [
     a: "Yes. Pick Blur in the Annotate panel and drag over emails, API keys, or names. The blur is part of the exported image. For anything truly secret, crop the area out instead, since a light blur on short text can sometimes be guessed.",
   },
   {
-    q: "Is this a good ShareX, Greenshot, or Flameshot alternative?",
-    a: "For editing, yes. For capturing, no. Screenshot Studio has no capture button, so take the screenshot with your OS shortcut (Cmd+Shift+4 on macOS, Win+Shift+S on Windows) or a capture tool, then paste it in. You get blur, arrows, shapes, and text like those tools, plus backgrounds, device mockups, 3D, and animation, in any browser with nothing to install.",
-  },
-  {
     q: "Does it work on Linux and Chromebook?",
     a: "Yes. It runs in any modern browser, including Chrome on ChromeOS and Chrome or Firefox on Linux. Nothing is installed, so it also works on work laptops where you cannot install software.",
   },
@@ -213,44 +207,6 @@ const faqs = [
   },
 ];
 
-const desktopTools = [
-  {
-    name: "Screenshot Studio",
-    platforms: "Any browser: Mac, Windows, Linux, ChromeOS",
-    install: "None",
-    capture: "No (use your OS shortcut)",
-    markup: "Blur, arrows, lines, shapes, text",
-    mockups: "Yes: iPhone, MacBook, Apple Watch, browsers",
-    price: "Free, open source (Apache 2.0)",
-  },
-  {
-    name: "ShareX",
-    platforms: "Windows",
-    install: "Desktop app",
-    capture: "Yes, incl. scrolling capture and recording",
-    markup: "Arrows, shapes, text, blur, pixelate, step numbers",
-    mockups: "No",
-    price: "Free, open source (GPL-3.0)",
-  },
-  {
-    name: "Greenshot",
-    platforms: "Windows (free), macOS ($1.99)",
-    install: "Desktop app",
-    capture: "Yes",
-    markup: "Annotate, highlight, obfuscate",
-    mockups: "No",
-    price: "Free on Windows, open source",
-  },
-  {
-    name: "Flameshot",
-    platforms: "Windows, macOS, Linux",
-    install: "Desktop app",
-    capture: "Yes, region capture",
-    markup: "Pencil, arrows, shapes, text, blur, pixelate",
-    mockups: "No",
-    price: "Free, open source (GPL-3.0)",
-  },
-];
 
 const featureLinks = [
   {
@@ -280,10 +236,6 @@ const featureLinks = [
 ] as const;
 
 export default function FreeScreenshotEditorPage() {
-  const alternatives = ALTERNATIVE_SLUGS.map((slug) => getComparison(slug)).filter(
-    (entry): entry is NonNullable<typeof entry> => Boolean(entry),
-  );
-
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -488,105 +440,6 @@ export default function FreeScreenshotEditorPage() {
         </section>
 
         <section className="px-6 py-20">
-          <div className="mx-auto max-w-6xl">
-            <div className="mb-10 text-center">
-              <h2
-                className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
-                style={{ fontFamily: INTER }}
-              >
-                Screenshot Studio vs ShareX, Greenshot, and Flameshot
-              </h2>
-              <p className="mx-auto max-w-3xl text-muted-foreground">
-                ShareX, Greenshot, and Flameshot are desktop capture tools: they
-                take the screenshot and let you mark it up. Screenshot Studio
-                starts after the capture. It runs in any browser with nothing to
-                install, so it works on a Chromebook or a locked-down work
-                laptop, and it adds backgrounds, device mockups, 3D, and
-                animation. Many people use both: capture with ShareX or
-                Flameshot, then finish here.
-              </p>
-            </div>
-            <div className={`overflow-x-auto ${cardSurface}`}>
-              <table className="w-full min-w-[760px] text-left text-sm">
-                <thead className="border-b border-border text-foreground">
-                  <tr>
-                    <th className="p-4 font-semibold">Tool</th>
-                    <th className="p-4 font-semibold">Runs on</th>
-                    <th className="p-4 font-semibold">Install</th>
-                    <th className="p-4 font-semibold">Screen capture</th>
-                    <th className="p-4 font-semibold">Blur and markup</th>
-                    <th className="p-4 font-semibold">Device mockups</th>
-                    <th className="p-4 font-semibold">Price and license</th>
-                  </tr>
-                </thead>
-                <tbody className="text-muted-foreground">
-                  {desktopTools.map((tool) => (
-                    <tr key={tool.name} className="border-b border-border last:border-b-0">
-                      <th scope="row" className="p-4 font-semibold text-foreground">
-                        {tool.name}
-                      </th>
-                      <td className="p-4">{tool.platforms}</td>
-                      <td className="p-4">{tool.install}</td>
-                      <td className="p-4">{tool.capture}</td>
-                      <td className="p-4">{tool.markup}</td>
-                      <td className="p-4">{tool.mockups}</td>
-                      <td className="p-4">{tool.price}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="mt-4 text-center text-xs text-muted-foreground/70">
-              Details checked on each project&apos;s official site in September
-              2026.
-            </p>
-          </div>
-        </section>
-
-        <section className="px-6 py-20">
-          <div className="mx-auto max-w-6xl">
-            <div className="mb-10 text-center">
-              <h2
-                className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
-                style={{ fontFamily: INTER }}
-              >
-                How It Compares to Other Screenshot Editors
-              </h2>
-              <p className="mx-auto max-w-3xl text-muted-foreground">
-                Shots.so, Pika Style, Screely, Xnapper, CleanShot X, and Snagit
-                all beautify screenshots too. Screenshot Studio matches the
-                core workflow, backgrounds, shadows, mockups, and export, for
-                free, in any browser, with no signup.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {alternatives.map((comparison) => {
-                const faq = comparison.faqs[0];
-                return (
-                  <div key={comparison.slug} className={`flex flex-col p-6 ${cardSurface}`}>
-                    <h3 className="text-sm font-semibold text-foreground">{faq.q}</h3>
-                    <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted-foreground">
-                      {faq.a}
-                    </p>
-                    <Link
-                      href={`/compare/${comparison.slug}`}
-                      className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-foreground underline underline-offset-4"
-                    >
-                      Full {comparison.competitorName} comparison
-                      <ArrowRight01Icon size={14} aria-hidden />
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="mt-4 text-center text-xs text-muted-foreground/70">
-              Competitor pricing and features checked on {CLAIMS_CHECKED_LABEL}. See each comparison
-              for sourcing, since third-party plans change without notice.
-            </p>
-          </div>
-        </section>
-
-        <section className="border-t border-border px-6 py-20">
           <div className="mx-auto max-w-3xl">
             <div className="mb-16 text-center">
               <h2

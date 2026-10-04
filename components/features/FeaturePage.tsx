@@ -34,8 +34,8 @@ export interface FeaturePageProps {
   preview: React.ReactNode;
   capabilities: FeatureCapability[];
   steps: FeatureStep[];
-  alternativesIntro: string;
-  alternativeSlugs: string[];
+  alternativesIntro?: string;
+  alternativeSlugs?: string[];
   guideLinks?: FeatureLink[];
   faqs: { question: string; answer: string }[];
   relatedLinks: FeatureLink[];
@@ -63,7 +63,7 @@ export function FeaturePage({
   capabilities,
   steps,
   alternativesIntro,
-  alternativeSlugs,
+  alternativeSlugs = [],
   guideLinks,
   faqs,
   relatedLinks,

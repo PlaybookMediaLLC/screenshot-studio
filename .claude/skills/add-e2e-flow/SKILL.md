@@ -25,7 +25,7 @@ boundary.
 
 ## Test boundaries
 
-- Use the running Compose services for Postgres, Redis, MinIO, and Storage.
+- Use the running Compose services for Postgres, Redis, RustFS, and Storage.
   They are real local dependencies, not mocks.
 - Mock browser-originated third-party calls with
   `e2e/framework/downstream.ts`. Assert the request method, body, and number

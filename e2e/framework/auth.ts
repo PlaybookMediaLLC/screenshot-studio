@@ -87,11 +87,18 @@ async function waitForEditorHydration(page: Page): Promise<void> {
   // first keeps the retry loop about hydration rather than about rendering,
   // which matters on a cold Next.js route that compiles on first request.
   await expect(templates).toBeVisible({ timeout: 60_000 })
+  // Templates opens a modal sheet, which marks the rest of the page
+  // aria-hidden. The button then leaves the accessibility tree, so the proof
+  // of a hydrated click is the open dialog, not the button's aria-expanded.
+  const library = page.getByRole('dialog', { name: 'Templates' })
   await expect(async () => {
-    await templates.click()
-    expect(await templates.getAttribute('aria-expanded')).toBe('true')
+    if (!(await library.isVisible())) {
+      await templates.click({ timeout: 5_000 })
+    }
+    await expect(library).toBeVisible({ timeout: 2_000 })
   }).toPass({ timeout: 60_000 })
-  await templates.click()
+  await library.getByRole('button', { name: 'Close templates' }).click()
+  await expect(library).toBeHidden()
   await expect(templates).toHaveAttribute('aria-expanded', 'false')
 }
 

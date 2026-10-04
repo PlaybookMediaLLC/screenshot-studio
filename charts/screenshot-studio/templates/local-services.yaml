@@ -230,7 +230,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $fullName }}-minio
+  name: {{ $fullName }}-rustfs
 spec:
   ports:
     - name: s3
@@ -240,71 +240,79 @@ spec:
       port: 9001
       targetPort: console
   selector:
-    app.kubernetes.io/component: minio
+    app.kubernetes.io/component: rustfs
     {{- include "screenshot-studio.selectorLabels" . | nindent 4 }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ $fullName }}-minio
+  name: {{ $fullName }}-rustfs
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/component: minio
+      app.kubernetes.io/component: rustfs
       {{- include "screenshot-studio.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/component: minio
+        app.kubernetes.io/component: rustfs
         {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
     spec:
       containers:
-        - name: minio
-          image: {{ .Values.local.minio.image | quote }}
-          args: ["server", "--console-address", ":9001", "/data"]
+        - name: rustfs
+          image: {{ .Values.local.rustfs.image | quote }}
           ports:
             - name: s3
               containerPort: 9000
             - name: console
               containerPort: 9001
           env:
-            - name: MINIO_ROOT_USER
+            - name: RUSTFS_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ $secretName }}
-                  key: MINIO_ROOT_USER
-            - name: MINIO_ROOT_PASSWORD
+                  key: RUSTFS_ACCESS_KEY
+            - name: RUSTFS_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ $secretName }}
-                  key: MINIO_ROOT_PASSWORD
+                  key: RUSTFS_SECRET_KEY
+            - name: RUSTFS_CONSOLE_ENABLE
+              value: "true"
           readinessProbe:
             httpGet:
-              path: /minio/health/live
+              path: /health/live
               port: s3
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ $fullName }}-minio-init
+  name: {{ $fullName }}-rustfs-init
 spec:
   backoffLimit: 8
   template:
     metadata:
       labels:
-        app.kubernetes.io/component: minio-init
+        app.kubernetes.io/component: rustfs-init
         {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
     spec:
       restartPolicy: OnFailure
       containers:
-        - name: minio-init
-          image: {{ .Values.local.minio.clientImage | quote }}
-          command: ["sh", "-c"]
+        - name: rustfs-init
+          image: {{ .Values.local.curlImage | quote }}
+          command: ["/bin/sh", "-ec"]
           args:
             - >-
-              mc alias set local http://{{ $fullName }}-minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
-              && mc mb --ignore-existing local/$STORAGE_BUCKET
+              bucket_url=http://{{ $fullName }}-rustfs:9000/$STORAGE_BUCKET;
+              if curl --fail --silent --head
+              --aws-sigv4 "aws:amz:us-east-1:s3"
+              --user "$RUSTFS_ACCESS_KEY:$RUSTFS_SECRET_KEY"
+              "$bucket_url" >/dev/null 2>&1; then exit 0; fi;
+              curl --fail --silent --show-error --request PUT
+              --aws-sigv4 "aws:amz:us-east-1:s3"
+              --user "$RUSTFS_ACCESS_KEY:$RUSTFS_SECRET_KEY"
+              "$bucket_url" >/dev/null
           envFrom:
             - secretRef:
                 name: {{ $secretName }}
@@ -415,7 +423,7 @@ spec:
                   name: {{ $secretName }}
                   key: STORAGE_BUCKET
             - name: STORAGE_S3_ENDPOINT
-              value: http://{{ $fullName }}-minio:9000
+              value: http://{{ $fullName }}-rustfs:9000
             - name: STORAGE_S3_FORCE_PATH_STYLE
               value: "true"
             - name: STORAGE_S3_REGION
@@ -424,12 +432,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ $secretName }}
-                  key: MINIO_ROOT_USER
+                  key: RUSTFS_ACCESS_KEY
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ $secretName }}
-                  key: MINIO_ROOT_PASSWORD
+                  key: RUSTFS_SECRET_KEY
             - name: IMGPROXY_URL
               value: http://{{ $fullName }}-imgproxy:8080
             - name: ENABLE_IMAGE_TRANSFORMATION

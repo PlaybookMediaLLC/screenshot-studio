@@ -9,7 +9,7 @@ E2E_BASE_URL ?= http://localhost:3000
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down reset status smoke rate-limit-smoke tenant-isolation e2e e2e-file e2e-onboarding e2e-recovery check publishing-up publishing-down publishing-test publishing-acceptance logs logs-app logs-postgres logs-redis logs-minio logs-storage trigger-login trigger-config trigger-dev kind-up kind-down kind-status kind-logs
+.PHONY: help up down reset status smoke rate-limit-smoke tenant-isolation e2e e2e-file e2e-onboarding e2e-recovery check publishing-up publishing-down publishing-test publishing-acceptance logs logs-app logs-postgres logs-redis logs-rustfs logs-storage trigger-login trigger-config trigger-dev kind-up kind-down kind-status kind-logs
 
 help: ## Show local development commands.
 	@echo "Screenshot Studio local development"
@@ -35,7 +35,7 @@ help: ## Show local development commands.
 	@echo "  make logs-app                   Follow app logs"
 	@echo "  make logs-postgres              Follow Postgres logs"
 	@echo "  make logs-redis                 Follow Redis logs"
-	@echo "  make logs-minio                 Follow MinIO logs"
+	@echo "  make logs-rustfs                Follow RustFS logs"
 	@echo "  make logs-storage               Follow Supabase Storage logs"
 	@echo ""
 	@echo "  make trigger-login              Log in to Trigger.dev Cloud"
@@ -108,8 +108,8 @@ logs-postgres:
 logs-redis:
 	@$(STUDIO) logs redis
 
-logs-minio:
-	@$(STUDIO) logs minio
+logs-rustfs:
+	@$(STUDIO) logs rustfs
 
 logs-storage:
 	@$(STUDIO) logs storage

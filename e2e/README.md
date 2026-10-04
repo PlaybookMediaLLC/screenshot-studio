@@ -32,7 +32,7 @@ test('creates a release', async ({ app, identity, page }) => {
 The framework automatically attaches the test email and workspace name on a
 failure. It never writes the test password to an artifact.
 
-`e2e/framework/services.ts` creates a disposable direct Postgres or MinIO
+`e2e/framework/services.ts` creates a disposable direct Postgres or RustFS
 client for durable assertions. Use it only after a user-visible API action.
 The test runner provides host-safe connection values in `E2E_*` variables; do
 not use an app container hostname from a browser test.

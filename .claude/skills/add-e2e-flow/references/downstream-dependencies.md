@@ -7,7 +7,7 @@ contract.
 | ---------------------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
 | Browser request to a third party         | `mockBrowserJson`                        | Browser or protocol behavior is the feature contract.      |
 | Server request to a third party          | Inject a local mock URL before app start | The SDK, protocol, or callback contract must run for real. |
-| Postgres, Redis, MinIO, Storage          | Existing Compose stack                   | A different version or dependency topology is under test.  |
+| Postgres, Redis, RustFS, Storage         | Existing Compose stack                   | A different version or dependency topology is under test.  |
 | New queue, database, or protocol service | Testcontainers                           | It is not part of Compose and its real behavior matters.   |
 
 ## Browser mocks

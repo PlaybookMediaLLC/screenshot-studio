@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.8.1...v1.8.2) (2026-10-04)
+
+
+### Bug Fixes
+
+* **local:** replace MinIO with RustFS for the local object store ([e4d4911](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/e4d49110eb42f9d21f3676362a996c08dcd5b043))
+* **local:** replace MinIO with RustFS for the local object store ([8b8dd21](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/8b8dd219ba39157de719c10754adf495651e9c51))
+
 ## [1.8.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.8.0...v1.8.1) (2026-10-04)
 
 

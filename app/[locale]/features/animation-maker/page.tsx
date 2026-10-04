@@ -27,9 +27,6 @@ export const metadata: Metadata = {
     "product demo animation",
     "screenshot gif maker",
     "app preview video maker",
-    "pika style alternative",
-    "shots.so alternative",
-    "free shots.so alternative",
   ],
   openGraph: {
     ...OG_DEFAULTS,
@@ -193,11 +190,6 @@ export default function AnimationMakerPage() {
       preview={<AnimationPreview />}
       capabilities={capabilities}
       steps={steps}
-      alternativesIntro="Pika Style does not list animation or video export. Shots.so has animation presets, and Screenshot Studio matches it with a free keyframe timeline and video export."
-      alternativeSlugs={["pika-style", "shots-so"]}
-      guideLinks={[
-        { href: "/guides/best-free-shots-so-alternatives", label: "Best free Shots.so alternatives" },
-      ]}
       faqs={faqs}
       relatedLinks={relatedLinks}
       closing={

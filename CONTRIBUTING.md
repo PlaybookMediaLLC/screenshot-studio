@@ -13,7 +13,7 @@ make up
 Open [localhost:3000](http://localhost:3000). Core features work with no configuration. Copy `.env.example` to `.env.local` only if you need Cloudflare R2 asset storage, the Postgres screenshot cache, or analytics.
 
 See [local development](docs/local-development.md) for Compose, Trigger.dev,
-Supabase Storage, MinIO, and Kind commands.
+Supabase Storage, RustFS, and Kind commands.
 
 ## Scripts
 

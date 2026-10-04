@@ -66,9 +66,8 @@ local:
     image: bitnamilegacy/pgbouncer:latest
   redis:
     image: redis:7.4-alpine
-  minio:
-    image: minio/minio:latest
-    clientImage: minio/mc:latest
+  rustfs:
+    image: rustfs/rustfs:1.0.1
   storage:
     image: supabase/storage-api:v1.37.8
   curlImage: curlimages/curl:8.12.1

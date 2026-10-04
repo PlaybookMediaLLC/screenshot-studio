@@ -75,7 +75,7 @@ test('required dependencies return a safe failure or recover without data loss',
     )
 
   await verifyServiceRecovery('redis', async () => (await screenshotRequest()).status, 503, 200)
-  await verifyServiceRecovery('minio', async () => (await screenshotRequest()).status, 200, 200)
+  await verifyServiceRecovery('rustfs', async () => (await screenshotRequest()).status, 200, 200)
   await verifyServiceRecovery(
     'storage',
     async () => (await requestJson(page, '/api/tenant/assets/upload-url', assetUpload)).status,

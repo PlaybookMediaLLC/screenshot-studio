@@ -59,10 +59,11 @@ ensure_env() {
 const fs = require("node:fs");
 const [file] = process.argv.slice(2);
 const current = fs.readFileSync(file, "utf8");
-const next = current.replace(
-  /^(STORAGE_DATABASE_POOL_URL=.*@pgbouncer:6432)\/storage$/m,
-  "$1/postgres"
-);
+const next = current
+  .replace(/^(STORAGE_DATABASE_POOL_URL=.*@pgbouncer:6432)\/storage$/m, "$1/postgres")
+  .replace(/^MINIO_ROOT_USER=/m, "RUSTFS_ACCESS_KEY=")
+  .replace(/^MINIO_ROOT_PASSWORD=/m, "RUSTFS_SECRET_KEY=")
+  .replace(/^R2_ENDPOINT=http:\/\/minio:9000$/m, "R2_ENDPOINT=http://rustfs:9000");
     if (next !== current) fs.writeFileSync(file, next);
 NODE
     ensure_env_value CLEANUP_SECRET "$(random_hex 32)"
@@ -85,7 +86,7 @@ NODE
   local postgres_super_password
   local postgres_app_password
   local postgres_storage_password
-  local minio_password
+  local rustfs_secret_key
   local storage_jwt_secret
   local storage_service_key
   local cleanup_secret
@@ -96,7 +97,7 @@ NODE
   postgres_super_password="$(random_hex 24)"
   postgres_app_password="$(random_hex 24)"
   postgres_storage_password="$(random_hex 24)"
-  minio_password="$(random_hex 24)"
+  rustfs_secret_key="$(random_hex 24)"
   storage_jwt_secret="$(random_hex 32)"
   storage_service_key="$(create_storage_key "$storage_jwt_secret")"
   cleanup_secret="$(random_hex 32)"
@@ -109,8 +110,8 @@ NODE
 POSTGRES_SUPER_PASSWORD=$postgres_super_password
 POSTGRES_APP_PASSWORD=$postgres_app_password
 POSTGRES_STORAGE_PASSWORD=$postgres_storage_password
-MINIO_ROOT_USER=screenshot-studio
-MINIO_ROOT_PASSWORD=$minio_password
+RUSTFS_ACCESS_KEY=screenshot-studio
+RUSTFS_SECRET_KEY=$rustfs_secret_key
 STORAGE_JWT_SECRET=$storage_jwt_secret
 STORAGE_SERVICE_KEY=$storage_service_key
 STORAGE_BUCKET=tenant-assets
@@ -131,11 +132,11 @@ STORAGE_HOST_URL=http://127.0.0.1:5000
 STORAGE_PROXY_URL=http://localhost:3000/api/tenant/storage
 POSTIZ_API_URL=http://host.docker.internal:5679/api/public/v1
 POSTIZ_API_KEY=e2e-postiz-token
-R2_ENDPOINT=http://minio:9000
+R2_ENDPOINT=http://rustfs:9000
 R2_REGION=us-east-1
 R2_FORCE_PATH_STYLE=true
 R2_ACCESS_KEY_ID=screenshot-studio
-R2_SECRET_ACCESS_KEY=$minio_password
+R2_SECRET_ACCESS_KEY=$rustfs_secret_key
 R2_BUCKET_NAME=tenant-assets
 REDIS_URL=redis://redis:6379
 TRIGGER_PROJECT_REF=
@@ -171,8 +172,8 @@ write_kind_env() {
 POSTGRES_SUPER_PASSWORD=$POSTGRES_SUPER_PASSWORD
 POSTGRES_APP_PASSWORD=$POSTGRES_APP_PASSWORD
 POSTGRES_STORAGE_PASSWORD=$POSTGRES_STORAGE_PASSWORD
-MINIO_ROOT_USER=$MINIO_ROOT_USER
-MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD
+RUSTFS_ACCESS_KEY=$RUSTFS_ACCESS_KEY
+RUSTFS_SECRET_KEY=$RUSTFS_SECRET_KEY
 STORAGE_JWT_SECRET=$STORAGE_JWT_SECRET
 STORAGE_SERVICE_KEY=$STORAGE_SERVICE_KEY
 STORAGE_BUCKET=$STORAGE_BUCKET
@@ -191,11 +192,11 @@ STORAGE_DATABASE_POOL_URL=postgresql://postgres:$POSTGRES_SUPER_PASSWORD@screens
 STORAGE_API_URL=http://screenshot-studio-storage:5000
 STORAGE_HOST_URL=http://127.0.0.1:5000
 STORAGE_PROXY_URL=http://127.0.0.1:3000/api/tenant/storage
-R2_ENDPOINT=http://screenshot-studio-minio:9000
+R2_ENDPOINT=http://screenshot-studio-rustfs:9000
 R2_REGION=us-east-1
 R2_FORCE_PATH_STYLE=true
-R2_ACCESS_KEY_ID=$MINIO_ROOT_USER
-R2_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD
+R2_ACCESS_KEY_ID=$RUSTFS_ACCESS_KEY
+R2_SECRET_ACCESS_KEY=$RUSTFS_SECRET_KEY
 R2_BUCKET_NAME=$STORAGE_BUCKET
 REDIS_URL=redis://screenshot-studio-redis:6379
 EOF
@@ -242,7 +243,7 @@ smoke() {
   load_env
   compose exec -T postgres pg_isready --username=postgres --dbname=postgres >/dev/null
   compose exec -T redis redis-cli ping | grep -qx PONG
-  wait_for_http "http://127.0.0.1:9003/minio/health/live" "MinIO"
+  wait_for_http "http://127.0.0.1:9003/health/live" "RustFS"
   wait_for_http "http://127.0.0.1:5000/status" "Supabase Storage"
   storage_response="$(curl --fail --silent --show-error --request POST \
     "http://127.0.0.1:5000/object/upload/sign/$STORAGE_BUCKET/$storage_test_key" \
@@ -388,9 +389,9 @@ check() {
 
 up() {
   ensure_env
-  compose rm --force --stop minio-init >/dev/null 2>&1 || true
+  compose rm --force --stop rustfs-init >/dev/null 2>&1 || true
   compose rm --force --stop storage-init >/dev/null 2>&1 || true
-  compose up --detach --build postgres pgbouncer redis minio minio-init imgproxy storage storage-init
+  compose up --detach --build postgres pgbouncer redis rustfs rustfs-init imgproxy storage storage-init
   sync_dependencies
   compose up --detach app
   compose exec -T postgres psql --username=postgres --dbname=screenshot_studio --command \
@@ -399,7 +400,7 @@ up() {
   smoke
   echo "App:     http://localhost:3000"
   echo "Storage: http://localhost:5000"
-  echo "MinIO:   http://localhost:9004"
+  echo "RustFS:  http://localhost:9004/rustfs/console/"
   echo "Run '$0 trigger-dev' after '$0 trigger-config <project-ref>'."
 }
 
@@ -419,7 +420,7 @@ down() {
 
   ensure_env
   if [[ -z "$mode" ]]; then
-    read -r -p "Preserve Postgres, Redis, and MinIO data? [Y/n] " response
+    read -r -p "Preserve Postgres, Redis, and RustFS data? [Y/n] " response
     if [[ "$response" =~ ^[Nn]$ ]]; then
       mode="purge"
     else

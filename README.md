@@ -258,7 +258,7 @@ The deployed product publishes machine-readable interfaces for agents and API cl
 The app ships a production Docker image, a portable Helm chart, Fly.io deployment
 configuration, and GitHub Actions workflows. See [deployment instructions](docs/deployment.md).
 
-For the hot-reload local stack, Trigger.dev development worker, Supabase Storage, MinIO, and
+For the hot-reload local stack, Trigger.dev development worker, Supabase Storage, RustFS, and
 Kind commands, see [local development](docs/local-development.md). Start with `make help` to
 view the team workflow.
 

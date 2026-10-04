@@ -288,7 +288,7 @@ operation for a short expiry. The renderer and storage adapter verify that the
 key prefix matches the tenant context; an object metadata field is not an
 access-control mechanism.
 
-The local Supabase Storage service may front MinIO for development. It is an
+The local Supabase Storage service may front RustFS for development. It is an
 R2-compatible storage adapter, not the authorization source. Production keeps
 the same key and signing contract whether requests go through that adapter or
 directly to R2.
@@ -411,7 +411,7 @@ changing the identity or storage boundary established by an earlier stage.
 - Tenant data access is scoped in the database query before a resource is
   returned or changed; shared middleware enforces the same rule for RPC, routes,
   API keys, webhooks, workers, and scoped support access.
-- R2 object keys, signed URLs, storage adapters, and local MinIO flows enforce
+- R2 object keys, signed URLs, storage adapters, and local RustFS flows enforce
   the same organization boundary as Postgres.
 - The isolation verification matrix passes for two organizations in Compose,
   Kind, and the deployment environment.

@@ -18,12 +18,12 @@ make down
 ```
 
 The app reloads at `http://localhost:3000`. Postgres is available on port
-`54329`, Supabase Storage on `5000`, and the MinIO console on `9004`.
+`54329`, Supabase Storage on `5000`, and the RustFS console on `9004` (`/rustfs/console/`).
 
 `make down` asks whether to preserve data. Use `make reset` to remove all
 Compose volumes without a second prompt.
 
-`make smoke` checks the app, Postgres, Redis, MinIO, Storage, the
+`make smoke` checks the app, Postgres, Redis, RustFS, Storage, the
 Redis-backed screenshot rate limit, and a temporary signed Storage
 upload/read/delete operation. It also proves cache invalidation rejects an
 unauthenticated request and validates an authenticated request body.
@@ -48,7 +48,7 @@ make e2e-recovery
 The browser suite creates unique local users and workspaces. It covers sign-in,
 tenant assets, release webhooks, Redis limits, cache lifecycle, workspace
 settings, audit controls, identity controls, and secret exposure.
-`make e2e-recovery` runs serial failure and recovery checks for Redis, MinIO,
+`make e2e-recovery` runs serial failure and recovery checks for Redis, RustFS,
 Storage, and Postgres. Use a Kind port-forward with
 `E2E_MANAGE_SCREENSHOT_MOCK=false` so the command does not recreate Compose.
 See [`e2e/README.md`](../e2e/README.md) to add flows with shared lifecycle hooks.
@@ -97,8 +97,8 @@ The stack contains:
 
 - Screenshot Studio in Next.js development mode with hot reload.
 - Postgres and Redis.
-- MinIO as the local R2-compatible object store.
-- Supabase Storage, PgBouncer, and Imgproxy in front of MinIO.
+- RustFS as the local R2-compatible object store.
+- Supabase Storage, PgBouncer, and Imgproxy in front of RustFS.
 
 ### Go publishing services
 
@@ -188,7 +188,7 @@ make kind-down
 
 `kind-up` builds the production image, loads it into the `screenshot-studio-dev`
 Kind cluster, generates a Kubernetes Secret from the local values, and installs
-the Helm chart with local Postgres, Redis, MinIO, Storage, PgBouncer, and
+the Helm chart with local Postgres, Redis, RustFS, Storage, PgBouncer, and
 Imgproxy enabled. Kind is a production-like image test, not a hot-reload loop.
 Its migration job uses `prisma db push` because the local database retains the
 legacy screenshot-cache table. Production uses the reviewed Prisma migration
@@ -197,7 +197,7 @@ path in RFC 002.
 ## Production storage
 
 The Storage service uses an S3-compatible backend. Local development sets it to
-MinIO. Production should set the same S3 settings to private Cloudflare R2
+RustFS. Production should set the same S3 settings to private Cloudflare R2
 credentials and endpoint. The application remains responsible for tenant checks
 and issuing short-lived upload URLs. Local Storage has no browser CORS gateway,
 so `STORAGE_PROXY_URL` sends signed transfers through the authenticated Next.js

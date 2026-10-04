@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.8.0...v1.8.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* **seo:** refocus free screenshot editor and animation maker pages on their core queries ([086d250](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/086d25063b9d9e2d01ee6615f9dcdd514feb1fdb))
+
 ## [1.8.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.7.0...v1.8.0) (2026-09-28)
 
 

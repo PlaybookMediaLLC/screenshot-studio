@@ -104,7 +104,11 @@ test('organization switching goes through membership checks', async ({
   const outsider = await outsiderContext.newPage()
   try {
     await signUpAndCreateWorkspace(
-      { ...identity, email: `outsider-${identity.email}`, workspaceName: 'Outsider workspace' },
+      {
+        ...identity,
+        email: `outsider-${identity.email}`,
+        workspaceName: `Outsider ${identity.workspaceName}`,
+      },
       outsider
     )
     expect(

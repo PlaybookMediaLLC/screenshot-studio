@@ -8,6 +8,7 @@ import { EditorContent } from './EditorContent'
 import { EditorCanvas } from '@/components/canvas/EditorCanvas'
 import { EditorStoreSync } from '@/components/canvas/EditorStoreSync'
 import { WorkspaceAssetLoader } from '@/components/workspace/WorkspaceAssetLoader'
+import { WorkspaceDesignLoader } from '@/components/workspace/WorkspaceDesignLoader'
 import { EditorHeader } from './EditorHeader'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
@@ -146,6 +147,7 @@ function EditorMain() {
     <div className="h-screen flex flex-col bg-background overflow-hidden overscroll-contain">
       <EditorStoreSync />
       <WorkspaceAssetLoader />
+      <WorkspaceDesignLoader />
 
       <MobileBanner />
 

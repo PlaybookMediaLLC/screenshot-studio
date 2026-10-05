@@ -6,12 +6,24 @@ import type { TenantContext } from '@/lib/auth/access'
 import { getAuditActor } from '@/lib/auth/principal'
 import { prisma } from '@/lib/db'
 import { assertPublicCaptureUrl } from '@/lib/screenshot-service'
+import {
+  createDesignRenderer,
+  type DesignRenderer,
+  isDesignRendererAvailable,
+} from '@/lib/design/renderer'
 import { CampaignError } from '@/lib/tenant/campaigns'
 import { models, normalizeTokenUsage } from '../models'
-import { CAMPAIGN_STUDIO_INSTRUCTIONS, formatCampaignStudioBrief } from '../prompts/campaign-studio'
+import {
+  CAMPAIGN_STUDIO_INSTRUCTIONS,
+  DESIGN_STUDIO_INSTRUCTIONS,
+  formatCampaignStudioBrief,
+} from '../prompts/campaign-studio'
 import { type CampaignStudioRecord, createCampaignStudioTools } from '../tools/campaign-studio'
+import { createDesignStudioTools } from '../tools/design-studio'
 
 const MAX_STEPS = 14
+/** Design runs explore templates and variants, so they get more steps. */
+const MAX_DESIGN_STEPS = 32
 
 export function isCampaignStudioConfigured(): boolean {
   return Boolean(process.env.OPENROUTER_API_KEY)
@@ -59,6 +71,24 @@ export async function runCampaignStudio(tenant: TenantContext, campaignId: strin
 
   const record: CampaignStudioRecord = { assets: [], savedPosts: 0 }
   const modelId = models.modelId('deep')
+  const scope = {
+    allowedUrls: captureUrls as [string, ...string[]],
+    campaignId: campaign.id,
+    tenant,
+  }
+  const baseTools = createCampaignStudioTools(scope, record)
+  const designMode = isDesignRendererAvailable()
+  // One browser per run, started on the first render and closed when the run ends.
+  let renderer: Promise<DesignRenderer> | null = null
+  const getRenderer = () => (renderer ??= createDesignRenderer())
+  const tools = designMode
+    ? {
+        captureProductPage: baseTools.captureProductPage,
+        saveCampaignCopy: baseTools.saveCampaignCopy,
+        ...createDesignStudioTools(scope, record, getRenderer),
+      }
+    : baseTools
+
   const result = await generateText({
     model: models.languageModel('deep'),
     prompt: formatCampaignStudioBrief({
@@ -71,12 +101,11 @@ export async function runCampaignStudio(tenant: TenantContext, campaignId: strin
       sourceUrls,
       title: campaign.release.title,
     }),
-    stopWhen: stepCountIs(MAX_STEPS),
-    system: CAMPAIGN_STUDIO_INSTRUCTIONS,
-    tools: createCampaignStudioTools(
-      { allowedUrls: captureUrls as [string, ...string[]], campaignId: campaign.id, tenant },
-      record
-    ),
+    stopWhen: stepCountIs(designMode ? MAX_DESIGN_STEPS : MAX_STEPS),
+    system: designMode ? DESIGN_STUDIO_INSTRUCTIONS : CAMPAIGN_STUDIO_INSTRUCTIONS,
+    tools,
+  }).finally(async () => {
+    if (renderer) await (await renderer).close().catch(() => undefined)
   })
 
   const usage = normalizeTokenUsage(result.totalUsage)
@@ -92,6 +121,7 @@ export async function runCampaignStudio(tenant: TenantContext, campaignId: strin
         inputUsage: usage.inputTokens,
         modelId,
         outputUsage: usage.outputTokens,
+        designMode,
         postCount: record.savedPosts,
         steps: result.steps.length,
       },

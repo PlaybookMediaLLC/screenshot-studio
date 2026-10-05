@@ -9,6 +9,7 @@ import { isCampaignStudioConfigured } from '@/lib/ai/agents/campaign-studio'
 import { hasPermission } from '@/lib/auth/permissions'
 import { createTenantDownloadUrl } from '@/lib/storage/client'
 import { getCampaign } from '@/lib/tenant/campaigns'
+import { listCampaignDesigns } from '@/lib/tenant/designs'
 import { requireCampaignPageAccess } from '../page-access'
 
 export const metadata: Metadata = { title: 'Campaign | Screenshot Studio' }
@@ -41,14 +42,32 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
   // Scoped to the active workspace: another workspace's id is a 404.
   const campaign = await getCampaign(access.organization.id, campaignId)
   if (!campaign) notFound()
-  const productShots = await Promise.all(
-    campaign.assets
+  const designs = await listCampaignDesigns(access.organization.id, campaign.id)
+  const captionByAsset = new Map(campaign.assets.map((link) => [link.assetId, link.caption]))
+  // Rendered designs open as editable compositions; legacy product shots as images.
+  const gallery = await Promise.all([
+    ...designs
+      .filter((design) => design.renderedAsset)
+      .map(async (design) => ({
+        caption: captionByAsset.get(design.renderedAsset!.id) ?? design.name,
+        editHref: `/?design=${design.id}`,
+        height: design.renderedAsset!.height,
+        id: design.id,
+        url: await signAssetUrl(access.organization.id, design.renderedAsset!.objectKey),
+        width: design.renderedAsset!.width,
+      })),
+    ...campaign.assets
       .filter((link) => link.kind === 'product-shot')
       .map(async (link) => ({
-        ...link,
+        caption: link.caption,
+        editHref: `/?asset=${link.asset.id}`,
+        height: link.asset.height,
+        id: link.id,
         url: await signAssetUrl(access.organization.id, link.asset.objectKey),
-      }))
-  )
+        width: link.asset.width,
+      })),
+  ])
+  const draftDesigns = designs.filter((design) => !design.renderedAsset)
   const captureCount = campaign.assets.filter((link) => link.kind.startsWith('capture-')).length
 
   return (
@@ -99,32 +118,29 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
               hasAssets={campaign.assets.length > 0}
             />
           </div>
-          {productShots.length === 0 ? (
+          {gallery.length === 0 ? (
             <div className="mt-3 rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-              Product shots for this release will appear here.
+              Designs for this release will appear here.
             </div>
           ) : (
             <ul className="mt-4 grid items-start gap-4 sm:grid-cols-2">
-              {productShots.map((shot) => (
+              {gallery.map((shot) => (
                 <li className="overflow-hidden rounded-lg border" key={shot.id}>
                   {shot.url ? (
                     // Signed, short-lived tenant URLs: next/image would cache them past expiry.
                     <img
                       alt={shot.caption ?? 'Product shot'}
                       className="aspect-auto w-full bg-muted"
-                      height={shot.asset.height ?? undefined}
+                      height={shot.height ?? undefined}
                       src={shot.url}
-                      width={shot.asset.width ?? undefined}
+                      width={shot.width ?? undefined}
                     />
                   ) : (
                     <div className="p-6 text-sm text-muted-foreground">Preview unavailable.</div>
                   )}
                   <div className="flex items-start justify-between gap-3 p-3">
                     <p className="text-xs text-muted-foreground">{shot.caption}</p>
-                    <Link
-                      className="shrink-0 text-xs font-medium underline"
-                      href={`/?asset=${shot.asset.id}`}
-                    >
+                    <Link className="shrink-0 text-xs font-medium underline" href={shot.editHref}>
                       Open in editor
                     </Link>
                   </div>
@@ -132,6 +148,26 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
               ))}
             </ul>
           )}
+          {draftDesigns.length > 0 ? (
+            <div className="mt-4">
+              <p className="text-xs font-medium text-muted-foreground">
+                {draftDesigns.length} more variation{draftDesigns.length === 1 ? '' : 's'}, not
+                rendered
+              </p>
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {draftDesigns.map((design) => (
+                  <li key={design.id}>
+                    <Link
+                      className="rounded-md border px-2.5 py-1 text-xs hover:bg-muted"
+                      href={`/?design=${design.id}`}
+                    >
+                      {design.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {captureCount > 0 ? (
             <p className="mt-2 text-xs text-muted-foreground">
               Built from {captureCount} live capture{captureCount === 1 ? '' : 's'} of your product.

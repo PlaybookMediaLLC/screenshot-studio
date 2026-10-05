@@ -206,3 +206,52 @@ editor at `/?asset=<id>`. Every write is audited (`product.asset_generated`,
 `product.campaign_copy_generated`, `product.campaign_generated` with model id,
 step count, and token usage). Prompt and completion text are never logged.
 
+### Designs: every editor capability as AI tools
+
+When `PLATFORM_DESIGN_RENDERER=enabled`, the agent designs with the editor
+itself instead of the fixed sharp compositor.
+
+- **Design document** (`lib/design/document.ts`): a versioned, Zod-validated
+  JSON form of one editor composition. It is a `template` plus overrides for
+  canvas/aspect ratio, background (gradients, mesh/magic gradients, solids,
+  images), pattern, main image (scale, radius, offset, rotation, shadow,
+  frame/browser chrome, 3D perspective, filters), device mockups, text,
+  overlays, annotations (arrows, boxes, circles, lines), redactions
+  (blur/mosaic), and animation. Positions are normalized, so a document renders
+  the same at any viewport. Images are references (`asset:<id>` or built-in
+  `/paths`) that must belong to the workspace.
+- **Catalog** (`lib/design/catalog.ts`): every option id the editor has
+  (27 aspect ratios, ~110 gradients, 130+ mesh/magic gradients, solids,
+  ~100 background images, 34 fonts, 18 mockups, 6 device layouts, 13 frames,
+  overlays, 43 animation presets). Documents are validated against it.
+- **Templates** (`lib/design/templates.ts`): the editor's own 6 image
+  templates and 8 presets, applied through `applyVisualPreset` exactly as the
+  editor does, plus 8 marketing layouts (headline spotlight, browser launch,
+  laptop launch, product suite, phone duo, social phone card, story phone,
+  editorial) that fill screenshot and headline slots.
+- **Tools** (`lib/ai/tools/design-studio.ts`): `listDesignOptions` (the
+  catalog by section), `createDesignFromTemplate`, `editDesign` (any change to
+  any section, saved as a new variant by default), and `renderDesign`. A render
+  returns a preview image to the model, so the agent checks legibility and
+  cropping and fixes its own designs before finishing.
+- **Rendering** (`lib/design/renderer.ts`): headless Chromium (`playwright-core`)
+  opens `/render/<designId>?token=…`, a chrome-free page that mounts the
+  editor's canvas, loads the document with the same loader the editor uses,
+  and runs the editor's export at 2×. The token is an HMAC capability for one
+  design and workspace that expires in five minutes, and workspace images are
+  inlined as data URLs so the capture never sees a cross-origin image. Renders
+  are stored as `export` assets and set as the design's `renderedAssetId`.
+- **Editing**: every design, rendered or not, opens fully editable in the
+  editor at `/?design=<id>`, with every layer live rather than a flat image.
+
+| Variable | Purpose |
+| --- | --- |
+| `PLATFORM_DESIGN_RENDERER=enabled` | Use editor designs instead of sharp product shots |
+| `PLATFORM_RENDER_BASE_URL` | Where the renderer reaches the app (default: `NEXT_PUBLIC_APP_URL`) |
+| `PLATFORM_RENDER_CHROMIUM_PATH` | Chromium binary; defaults to the Playwright-managed browser |
+
+The production image does not ship Chromium yet (`npx playwright install
+chromium` adds about 400 MB). Run the renderer where a browser is available, such
+as a render worker or a Trigger.dev task with the Playwright build extension,
+and leave the flag off elsewhere. The sharp product-shot path is the fallback.
+

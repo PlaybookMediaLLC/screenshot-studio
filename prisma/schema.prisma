@@ -24,6 +24,7 @@ model User {
   auditLogs              AuditLog[]           @relation("AuditActor")
   approvedSupportGrants  SupportAccessGrant[] @relation("SupportGrantApprover")
   createdCampaigns       Campaign[]           @relation("CampaignCreator")
+  createdDesigns         Design[]             @relation("DesignCreator")
   createdReleases        Release[]            @relation("ReleaseCreator")
   createdVariants        CreativeVariant[]    @relation("VariantCreator")
   invitations            Invitation[]
@@ -124,6 +125,7 @@ model Organization {
   productSurfaces         ProductSurface[]
   campaigns               Campaign[]
   campaignAssets          CampaignAsset[]
+  designs                 Design[]
   contentAngles           ContentAngle[]
   campaignPosts           CampaignPost[]
   audienceSubscribers     AudienceSubscriber[]
@@ -744,6 +746,7 @@ model Asset {
   parentAsset    Asset?            @relation("AssetDerivation", fields: [parentAssetId], references: [id], onDelete: SetNull)
   derivedAssets  Asset[]           @relation("AssetDerivation")
   campaignLinks  CampaignAsset[]
+  designRenders  Design[]          @relation("DesignRender")
   sourceVariants CreativeVariant[] @relation("VariantSourceAsset")
 
   @@index([organizationId, createdAt])
@@ -919,6 +922,7 @@ model Campaign {
   createdByUser    User?           @relation("CampaignCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
   angles           ContentAngle[]
   assets           CampaignAsset[]
+  designs          Design[]
   posts            CampaignPost[]
 
   @@index([organizationId, createdAt])
@@ -945,6 +949,32 @@ model CampaignAsset {
   @@unique([campaignId, assetId])
   @@index([organizationId, campaignId, createdAt])
   @@map("campaign_asset")
+}
+
+/// An editor composition stored as a versioned DesignDocument (see
+/// lib/design/document.ts). Variants point at the design they were derived
+/// from; the latest render is kept as a tenant asset.
+model Design {
+  id               String       @id @default(cuid())
+  organizationId   String
+  campaignId       String?
+  parentDesignId   String?
+  name             String
+  templateId       String?
+  document         Json
+  renderedAssetId  String?
+  createdByUserId  String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign         Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  parentDesign     Design?      @relation("DesignVariant", fields: [parentDesignId], references: [id], onDelete: SetNull)
+  variants         Design[]     @relation("DesignVariant")
+  renderedAsset    Asset?       @relation("DesignRender", fields: [renderedAssetId], references: [id], onDelete: SetNull)
+  createdByUser    User?        @relation("DesignCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, campaignId, createdAt])
+  @@map("design")
 }
 
 model ContentAngle {

@@ -124,7 +124,9 @@ function assertSafeScreenshotDownloadUrl(url: URL): void {
 
 function getViewport(deviceType: ScreenshotRequest['deviceType']): Viewport {
   if (deviceType === 'mobile') {
-    return { height: '667', isMobile: 'true', width: '375' }
+    // A current iPhone viewport: phone mockups have tall screens, and a 375x667
+    // capture had to be cropped at the sides to fill them.
+    return { height: '844', isMobile: 'true', width: '390' }
   }
 
   return { height: '1080', isMobile: 'false', width: '1920' }

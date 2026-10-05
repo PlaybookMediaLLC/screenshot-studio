@@ -265,6 +265,11 @@ view the team workflow.
 Better Auth, fixed organization RBAC, SSO, SCIM, audit logs, retention, and SIEM drains are
 documented in [authentication and enterprise access](docs/authentication.md).
 
+The backend is Playbook Core, the organization control plane every Playbook shell
+uses. Its API classes, the `/api/v1/bootstrap` shell contract, ownership rules for
+other repositories, and the campaign workflow rollout are documented in
+[Playbook Core](docs/playbook-core.md).
+
 Email templating, release announcements, audience consent, and unsubscribe
 handling are documented in
 [customer email and release broadcast](docs/email-and-broadcast.md).

@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { prisma } from '@/lib/db'
+import { isCampaignWorkflowEnabled } from '@/lib/tenant/entitlements'
 import { resolveActiveOrganizationId } from './access'
 import { auth } from './server'
 
@@ -45,6 +46,9 @@ export async function getPageAccess(requestHeaders: Headers) {
     prisma.member.count({ where: { userId: session.user.id } }),
   ])
   return {
+    campaignWorkflowEnabled: membership
+      ? await isCampaignWorkflowEnabled(membership.organization.id)
+      : false,
     hasOrganization: membershipCount > 0,
     isWorkspaceOperational: isPageWorkspaceOperational(membership),
     organization: membership?.organization ?? null,

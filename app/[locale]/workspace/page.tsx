@@ -17,6 +17,7 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
 
   return (
     <WorkspaceSettings
+      campaignsEnabled={access.campaignWorkflowEnabled}
       email={access.session.user.email}
       name={access.session.user.name || ''}
       organization={access.organization}

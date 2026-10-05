@@ -10,6 +10,7 @@ import { InvalidTenantObjectKeyError } from '@/lib/tenant/object-key'
 import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
 import { CampaignError } from '@/lib/tenant/campaigns'
 import { CreativeWorkflowError } from '@/lib/tenant/creative'
+import { ReleaseError } from '@/lib/tenant/releases'
 import { WorkspaceError } from '@/lib/workspace/errors'
 import { WorkspaceEntitlementError, WorkspaceQuotaError } from '@/lib/tenant/entitlements'
 
@@ -32,6 +33,7 @@ function getWorkflowErrorResponse(error: unknown): NextResponse | null {
     error instanceof ScheduledPostError ||
     error instanceof CreativeWorkflowError ||
     error instanceof CampaignError ||
+    error instanceof ReleaseError ||
     error instanceof WorkspaceError
   ) {
     return NextResponse.json({ error: error.message }, { status: error.status })

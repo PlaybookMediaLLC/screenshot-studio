@@ -1,12 +1,19 @@
 import 'server-only'
 
 import { randomUUID } from 'node:crypto'
+import type { CampaignStatus, Prisma } from '@prisma/client'
 import { appendAuditLog } from '@/lib/audit/log'
-import type { TenantContext } from '@/lib/auth/access'
+import type { OrganizationAccess, TenantContext } from '@/lib/auth/access'
+import { hasPermission } from '@/lib/auth/permissions'
 import { getAuditActor } from '@/lib/auth/principal'
 import { prisma } from '@/lib/db'
 import { getNextWorkspacePublishTime } from '@/lib/workspace/schedule'
-import { type CampaignApprovalDecision, campaignPostTransitions } from './campaign-status'
+import {
+  type CampaignApprovalDecision,
+  campaignPostTransitions,
+  getCampaignTransitionPermission,
+} from './campaign-status'
+import { requireWorkspaceProductSurface } from './releases'
 import { createScheduledPost } from './scheduled-posts'
 import type { CampaignCreateInput, CampaignPostScheduleInput } from './schemas'
 
@@ -15,12 +22,25 @@ const SCHEDULED_POST_CAPTION_LIMIT = 3_000
 const campaignInclude = {
   angles: { orderBy: { position: 'asc' as const } },
   posts: { orderBy: { createdAt: 'asc' as const } },
+  productSurface: { select: { environment: true, id: true, name: true, url: true } },
+  release: {
+    select: {
+      audience: true,
+      benefitStatement: true,
+      description: true,
+      id: true,
+      sourceUrls: true,
+      status: true,
+      title: true,
+      updatedAt: true,
+    },
+  },
 }
 
 export class CampaignError extends Error {
   constructor(
     message: string,
-    readonly status: 400 | 404 | 409
+    readonly status: 400 | 403 | 404 | 409
   ) {
     super(message)
     this.name = 'CampaignError'
@@ -29,6 +49,7 @@ export class CampaignError extends Error {
 
 export async function listCampaigns(organizationId: string) {
   return prisma.campaign.findMany({
+    include: { release: { select: { id: true, title: true } } },
     orderBy: { createdAt: 'desc' },
     where: { organizationId },
   })
@@ -41,6 +62,33 @@ export async function getCampaign(organizationId: string, campaignId: string) {
   })
 }
 
+/**
+ * Resolve the release and surface a new campaign links to, rejecting ids from
+ * another workspace. A campaign created from a release inherits the release's
+ * surface unless the caller names one.
+ */
+async function resolveCampaignContext(
+  transaction: Prisma.TransactionClient,
+  organizationId: string,
+  input: Pick<CampaignCreateInput, 'productSurfaceId' | 'releaseId'>
+): Promise<{ productSurfaceId: string | null; releaseId: string | null }> {
+  await requireWorkspaceProductSurface(transaction, organizationId, input.productSurfaceId)
+  if (!input.releaseId) {
+    return { productSurfaceId: input.productSurfaceId ?? null, releaseId: null }
+  }
+  const release = await transaction.release.findFirst({
+    select: { id: true, productSurfaceId: true },
+    where: { id: input.releaseId, organizationId },
+  })
+  if (!release) {
+    throw new CampaignError('Release not found.', 404)
+  }
+  return {
+    productSurfaceId: input.productSurfaceId ?? release.productSurfaceId,
+    releaseId: release.id,
+  }
+}
+
 export async function createCampaign(context: TenantContext, input: CampaignCreateInput) {
   for (const post of input.posts) {
     if (post.angleIndex !== undefined && post.angleIndex >= input.angles.length) {
@@ -48,14 +96,24 @@ export async function createCampaign(context: TenantContext, input: CampaignCrea
     }
   }
   return prisma.$transaction(async (transaction) => {
+    const links = await resolveCampaignContext(transaction, context.organizationId, input)
+    const organization = await transaction.organization.findUniqueOrThrow({
+      select: { createdAt: true },
+      where: { id: context.organizationId },
+    })
+    // New campaigns always start as DRAFT, and a draft may be empty: generated
+    // content is only required when the campaign moves to review.
     const campaign = await transaction.campaign.create({
       data: {
         audience: input.audience ?? null,
+        createdByUserId: context.principal.kind === 'session' ? context.principal.userId : null,
         feature: input.feature ?? null,
         messaging: input.messaging ?? null,
         name: input.name,
         objective: input.objective,
         organizationId: context.organizationId,
+        productSurfaceId: links.productSurfaceId,
+        releaseId: links.releaseId,
       },
     })
     const angleIds: string[] = []
@@ -88,7 +146,14 @@ export async function createCampaign(context: TenantContext, input: CampaignCrea
       actor: getAuditActor(context.principal),
       entityId: campaign.id,
       entityType: 'campaign',
-      metadata: { angleCount: input.angles.length, postCount: input.posts.length },
+      metadata: {
+        angleCount: input.angles.length,
+        postCount: input.posts.length,
+        productSurfaceId: links.productSurfaceId,
+        releaseId: links.releaseId,
+        // Time-to-first-draft is the earliest of these per workspace.
+        workspaceAgeSeconds: Math.round((Date.now() - organization.createdAt.getTime()) / 1_000),
+      },
       organizationId: context.organizationId,
       requestId: context.requestId,
     })
@@ -96,6 +161,55 @@ export async function createCampaign(context: TenantContext, input: CampaignCrea
       include: campaignInclude,
       where: { id: campaign.id },
     })
+  })
+}
+
+/**
+ * Move a campaign through its lifecycle. The permission comes from the
+ * transition table, and the current role is re-checked here because the
+ * required permission depends on the stored status. The write is
+ * conditional on that status, so two racing transitions cannot both apply.
+ */
+export async function transitionCampaign(
+  access: OrganizationAccess,
+  campaignId: string,
+  to: CampaignStatus
+) {
+  return prisma.$transaction(async (transaction) => {
+    const campaign = await transaction.campaign.findFirst({
+      select: { _count: { select: { posts: true } }, id: true, status: true },
+      where: { id: campaignId, organizationId: access.organizationId },
+    })
+    if (!campaign) {
+      throw new CampaignError('Campaign not found.', 404)
+    }
+    const permission = getCampaignTransitionPermission(campaign.status, to)
+    if (!permission) {
+      throw new CampaignError(`A ${campaign.status} campaign cannot move to ${to}.`, 409)
+    }
+    if (!hasPermission(access.role, permission)) {
+      throw new CampaignError('You do not have permission for this transition.', 403)
+    }
+    if (to === 'READY_FOR_REVIEW' && campaign._count.posts === 0) {
+      throw new CampaignError('Add at least one post before submitting for review.', 409)
+    }
+    const updated = await transaction.campaign.updateMany({
+      data: { status: to },
+      where: { id: campaign.id, status: campaign.status },
+    })
+    if (updated.count === 0) {
+      throw new CampaignError('The campaign changed. Please retry.', 409)
+    }
+    await appendAuditLog(transaction, {
+      action: 'product.campaign_status_changed',
+      actor: getAuditActor(access.principal),
+      entityId: campaign.id,
+      entityType: 'campaign',
+      metadata: { from: campaign.status, to },
+      organizationId: access.organizationId,
+      requestId: access.requestId,
+    })
+    return { id: campaign.id, status: to }
   })
 }
 

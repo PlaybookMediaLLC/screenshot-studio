@@ -5,6 +5,7 @@ import { getRedisClient } from '@/lib/redis'
 import {
   evaluateWorkspaceFeature,
   getWorkspaceQuota,
+  workspaceFeatureSchema,
   type WorkspaceFeature,
   type WorkspacePlan,
   type WorkspaceQuota,
@@ -106,6 +107,50 @@ export async function invalidateWorkspaceEntitlement(organizationId: string): Pr
     await redis.del(cacheKey(organizationId))
   } catch {
     // The bounded local/Redis TTL prevents indefinite stale authorization.
+  }
+}
+
+export async function isWorkspaceFeatureEnabled(
+  organizationId: string,
+  feature: WorkspaceFeature
+): Promise<boolean> {
+  const entitlement = await getEntitlementSnapshot(organizationId)
+  return evaluateWorkspaceFeature(entitlement, feature).allowed
+}
+
+/**
+ * The campaign workflow rollout flag. Design-partner workspaces receive it
+ * through featureOverrides; PLATFORM_CAMPAIGN_WORKFLOW=enabled turns it on for
+ * every workspace in an environment (local development, staging, e2e).
+ */
+export async function isCampaignWorkflowEnabled(organizationId: string): Promise<boolean> {
+  return (
+    process.env.PLATFORM_CAMPAIGN_WORKFLOW === 'enabled' ||
+    isWorkspaceFeatureEnabled(organizationId, 'campaign:workflow')
+  )
+}
+
+/**
+ * The resolved plan and feature decisions, safe to hand to any shell. Billing
+ * provider ids and raw overrides stay server-side.
+ */
+export async function getWorkspaceEntitlementSummary(organizationId: string): Promise<{
+  features: Record<WorkspaceFeature, boolean>
+  plan: WorkspacePlan
+  status: string
+}> {
+  const entitlement = await getEntitlementSnapshot(organizationId)
+  const features = Object.fromEntries(
+    workspaceFeatureSchema.options.map((feature) => [
+      feature,
+      evaluateWorkspaceFeature(entitlement, feature).allowed,
+    ])
+  ) as Record<WorkspaceFeature, boolean>
+  features['campaign:workflow'] ||= process.env.PLATFORM_CAMPAIGN_WORKFLOW === 'enabled'
+  return {
+    features,
+    plan: evaluateWorkspaceFeature(entitlement, 'asset:read').currentPlan,
+    status: entitlement?.status ?? 'active',
   }
 }
 

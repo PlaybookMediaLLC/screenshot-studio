@@ -8,12 +8,14 @@ import {
   getCampaign,
   listCampaigns,
   scheduleCampaignPost,
+  transitionCampaign,
   transitionCampaignPosts,
 } from '@/lib/tenant/campaigns'
 import {
   campaignApprovalSchema,
   campaignCreateSchema,
   campaignPostScheduleSchema,
+  campaignTransitionSchema,
 } from '@/lib/tenant/schemas'
 import { requireActiveOrganizationPermission } from '@/lib/auth/access'
 import { router, publicProcedure } from '../init'
@@ -41,6 +43,12 @@ export const campaignRouter = router({
       const campaign = await createCampaign(ctx.access, input)
       return { campaign }
     }),
+  /** The transition table decides the permission; artifact:read only gates membership. */
+  transition: organizationProcedure('artifact:read')
+    .input(campaignTransitionSchema)
+    .mutation(async ({ ctx, input }) => ({
+      campaign: await transitionCampaign(ctx.access, input.campaignId, input.status),
+    })),
   decideApproval: publicProcedure
     .input(campaignApprovalSchema.extend({ campaignId: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {

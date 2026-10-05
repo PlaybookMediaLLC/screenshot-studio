@@ -13,6 +13,9 @@ export const workspaceFeatureSchema = z.enum([
   'enterprise:audit-drain',
   'enterprise:sso',
   'enterprise:scim',
+  // Rollout flag, not a plan feature: no plan includes it, and design-partner
+  // workspaces receive it through featureOverrides.
+  'campaign:workflow',
 ])
 export type WorkspaceFeature = z.infer<typeof workspaceFeatureSchema>
 
@@ -69,6 +72,7 @@ const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
   'enterprise:audit-drain': 'enterprise',
   'enterprise:sso': 'enterprise',
   'enterprise:scim': 'enterprise',
+  'campaign:workflow': 'enterprise',
 }
 
 const planQuotas = {

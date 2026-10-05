@@ -23,6 +23,7 @@ model User {
   accounts               Account[]
   auditLogs              AuditLog[]           @relation("AuditActor")
   approvedSupportGrants  SupportAccessGrant[] @relation("SupportGrantApprover")
+  createdCampaigns       Campaign[]           @relation("CampaignCreator")
   createdReleases        Release[]            @relation("ReleaseCreator")
   createdVariants        CreativeVariant[]    @relation("VariantCreator")
   invitations            Invitation[]
@@ -541,12 +542,19 @@ model Release {
   organizationId   String
   title            String
   benefitStatement String
+  /// Free-form release brief. Plain text; markup is rejected at the API boundary.
+  description      String?
+  audience         String?
+  sourceUrls       Json              @default("[]")
+  productSurfaceId String?
   status           ReleaseStatus     @default(DRAFT)
   createdByUserId  String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdByUser    User?             @relation("ReleaseCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  productSurface   ProductSurface?   @relation(fields: [productSurfaceId], references: [id], onDelete: SetNull)
+  campaigns        Campaign[]
   captures         Capture[]
   captureJobs      CaptureJob[]
   documents        ReleaseDocument[]
@@ -554,6 +562,7 @@ model Release {
 
   @@index([organizationId, status, updatedAt])
   @@index([organizationId, createdAt])
+  @@index([organizationId, productSurfaceId])
   @@map("release")
 }
 
@@ -872,12 +881,16 @@ model ProductSurface {
   organizationId     String
   name               String
   url                String
+  /// Deployment label such as production, staging, or demo.
+  environment        String       @default("production")
   description        String?
   featureTags        Json
   screenshotAssetIds Json
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaigns          Campaign[]
+  releases           Release[]
 
   @@unique([organizationId, name])
   @@index([organizationId, createdAt])
@@ -885,21 +898,29 @@ model ProductSurface {
 }
 
 model Campaign {
-  id             String         @id @default(cuid())
-  organizationId String
-  name           String
-  objective      String
-  audience       String?
-  feature        String?
-  messaging      String?
-  status         CampaignStatus @default(DRAFT)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  angles         ContentAngle[]
-  posts          CampaignPost[]
+  id               String          @id @default(cuid())
+  organizationId   String
+  name             String
+  objective        String
+  audience         String?
+  feature          String?
+  messaging        String?
+  status           CampaignStatus  @default(DRAFT)
+  releaseId        String?
+  productSurfaceId String?
+  createdByUserId  String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  organization     Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  release          Release?        @relation(fields: [releaseId], references: [id], onDelete: SetNull)
+  productSurface   ProductSurface? @relation(fields: [productSurfaceId], references: [id], onDelete: SetNull)
+  createdByUser    User?           @relation("CampaignCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  angles           ContentAngle[]
+  posts            CampaignPost[]
 
   @@index([organizationId, createdAt])
+  @@index([organizationId, releaseId])
+  @@index([organizationId, productSurfaceId])
   @@map("campaign")
 }
 

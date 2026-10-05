@@ -22,7 +22,11 @@ export default async function AssetsPage({ params }: AssetsPageProps) {
 
   return (
     <>
-      <AppHeader current="/assets" orgName={access.organization.name} />
+      <AppHeader
+        campaignsEnabled={access.campaignWorkflowEnabled}
+        current="/assets"
+        orgName={access.organization.name}
+      />
       <main className="mx-auto max-w-5xl px-6 py-10">
         <header className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight">Assets</h1>

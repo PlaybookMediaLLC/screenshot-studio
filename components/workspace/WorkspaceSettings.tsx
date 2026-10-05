@@ -33,6 +33,7 @@ export type SettingItem = {
 }
 
 export type WorkspaceSettingsProps = {
+  campaignsEnabled?: boolean
   email: string
   name: string
   organization: {
@@ -136,6 +137,7 @@ function SettingsCard({ item, onOpen }: { item: SettingItem; onOpen: (id: Settin
 }
 
 export function WorkspaceSettings({
+  campaignsEnabled = false,
   email,
   name,
   organization,
@@ -157,7 +159,11 @@ export function WorkspaceSettings({
   ) {
     return (
       <main className="min-h-screen bg-background text-foreground">
-        <AppHeader current="/workspace" orgName={organization.name} />
+        <AppHeader
+          campaignsEnabled={campaignsEnabled}
+          current="/workspace"
+          orgName={organization.name}
+        />
         <WorkspaceDeletionRecovery
           canRestore={organization.workspaceDeletion.requestedByUserId === userId}
           scheduledFor={organization.workspaceDeletion.scheduledFor}
@@ -168,7 +174,11 @@ export function WorkspaceSettings({
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <AppHeader current="/workspace" orgName={organization.name} />
+      <AppHeader
+        campaignsEnabled={campaignsEnabled}
+        current="/workspace"
+        orgName={organization.name}
+      />
 
       <div className="w-full px-5 py-8 sm:px-8 lg:py-10">
         <header>

@@ -60,15 +60,47 @@ const channelSlugSchema = z
   .regex(/^[a-z0-9-]+$/)
   .max(64)
 
-export const productSurfaceCreateSchema = z.object({
-  description: z.string().trim().max(1_000).optional(),
-  featureTags: z.array(z.string().trim().min(1).max(100)).max(50).default([]),
+/** Absolute http(s) URL. Rejects javascript:, data:, and other schemes. */
+const webUrlSchema = z
+  .string()
+  .trim()
+  .url()
+  .max(2_000)
+  .refine((value) => ['http:', 'https:'].includes(new URL(value).protocol), 'Use an http(s) URL.')
+
+/**
+ * Plain-text prose. Release briefs are rendered as text, never as HTML, and
+ * markup is rejected here so no stored value depends on output escaping alone.
+ */
+const plainTextSchema = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .refine((value) => !/<\/?[a-z!][^>]*>/i.test(value), 'HTML is not allowed.')
+
+export const productEnvironments = ['production', 'staging', 'demo', 'development'] as const
+
+const productSurfaceFields = {
+  description: z.string().trim().max(1_000),
+  environment: z.enum(productEnvironments),
+  featureTags: z.array(z.string().trim().min(1).max(100)).max(50),
   name: z.string().trim().min(1).max(160),
-  screenshotAssetIds: z.array(z.string().uuid()).max(50).default([]),
-  url: z.string().trim().url().max(2_000),
+  screenshotAssetIds: z.array(z.string().uuid()).max(50),
+  url: webUrlSchema,
+}
+
+export const productSurfaceCreateSchema = z.object({
+  ...productSurfaceFields,
+  description: productSurfaceFields.description.optional(),
+  environment: productSurfaceFields.environment.default('production'),
+  featureTags: productSurfaceFields.featureTags.default([]),
+  screenshotAssetIds: productSurfaceFields.screenshotAssetIds.default([]),
 })
 
-export const productSurfaceUpdateSchema = productSurfaceCreateSchema.partial()
+// Built from the undefaulted fields: a partial of the create schema would
+// apply its defaults and reset omitted arrays and the environment on update.
+export const productSurfaceUpdateSchema = z.object(productSurfaceFields).partial()
 
 export const campaignCreateSchema = z.object({
   angles: z
@@ -85,6 +117,8 @@ export const campaignCreateSchema = z.object({
   messaging: z.string().trim().max(2_000).optional(),
   name: z.string().trim().min(1).max(160),
   objective: z.string().trim().min(1).max(500),
+  productSurfaceId: z.string().cuid().optional(),
+  releaseId: z.string().uuid().optional(),
   posts: z
     .array(
       z.object({
@@ -103,6 +137,11 @@ export const campaignApprovalSchema = z.object({
   postIds: z.array(z.string().cuid()).min(1).max(100).optional(),
 })
 
+export const campaignTransitionSchema = z.object({
+  campaignId: z.string().cuid(),
+  status: z.enum(['DRAFT', 'READY_FOR_REVIEW', 'APPROVED', 'ARCHIVED']),
+})
+
 export const campaignPostScheduleSchema = z.object({
   channelConnectionId: z.string().cuid(),
   scheduledAt: z.coerce
@@ -113,10 +152,32 @@ export const campaignPostScheduleSchema = z.object({
     .optional(),
 })
 
-export const releaseCreateSchema = z.object({
+const releaseFields = {
+  audience: plainTextSchema(1_000),
   benefitStatement: z.string().trim().min(1).max(500),
+  description: plainTextSchema(10_000),
+  productSurfaceId: z.string().cuid(),
+  sourceUrls: z.array(webUrlSchema).max(20),
   title: z.string().trim().min(1).max(160),
+}
+
+export const releaseCreateSchema = z.object({
+  ...releaseFields,
+  audience: releaseFields.audience.optional(),
+  description: releaseFields.description.optional(),
+  productSurfaceId: releaseFields.productSurfaceId.optional(),
+  sourceUrls: releaseFields.sourceUrls.optional(),
 })
+
+/** Edits the brief only; linked campaigns and generated artifacts are untouched. */
+export const releaseUpdateSchema = z
+  .object({
+    ...releaseFields,
+    audience: releaseFields.audience.nullable(),
+    description: releaseFields.description.nullable(),
+    productSurfaceId: releaseFields.productSurfaceId.nullable(),
+  })
+  .partial()
 
 export const releaseListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
@@ -251,6 +312,7 @@ export type BrandProfileUpsertInput = z.infer<typeof brandProfileUpsertSchema>
 export type CampaignApprovalInput = z.infer<typeof campaignApprovalSchema>
 export type CampaignCreateInput = z.infer<typeof campaignCreateSchema>
 export type CampaignPostScheduleInput = z.infer<typeof campaignPostScheduleSchema>
+export type CampaignTransitionInput = z.infer<typeof campaignTransitionSchema>
 export type ProductSurfaceCreateInput = z.infer<typeof productSurfaceCreateSchema>
 export type ProductSurfaceUpdateInput = z.infer<typeof productSurfaceUpdateSchema>
 export type ChannelConnectionCreateInput = z.infer<typeof channelConnectionCreateSchema>
@@ -258,5 +320,6 @@ export type CreativeTemplateCreateInput = z.infer<typeof creativeTemplateCreateS
 export type CreativeVariantApprovalInput = z.infer<typeof creativeVariantApprovalSchema>
 export type CreativeVariantCreateInput = z.infer<typeof creativeVariantCreateSchema>
 export type ReleaseCreateInput = z.infer<typeof releaseCreateSchema>
+export type ReleaseUpdateInput = z.infer<typeof releaseUpdateSchema>
 export type ScheduledPostCreateInput = z.infer<typeof scheduledPostCreateSchema>
 export type SourceAppCreateInput = z.infer<typeof sourceAppCreateSchema>

@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 
 const NAV_LINKS = [
   { href: '/', label: 'Editor' },
+  { href: '/campaigns', label: 'Campaigns' },
   { href: '/assets', label: 'Assets' },
   { href: '/activity', label: 'Activity' },
   { href: '/workspace', label: 'Settings' },
@@ -21,13 +22,16 @@ const NAV_LINKS = [
 export type AppNavHref = (typeof NAV_LINKS)[number]['href']
 
 export interface AppHeaderProps {
+  /** Show the Campaigns link; the campaign workflow is behind a rollout flag. */
+  campaignsEnabled?: boolean
   /** The nav link that matches the current page. */
   current?: AppNavHref
   /** The active organization name, shown before the account menu. */
   orgName?: string
 }
 
-export function AppHeader({ current, orgName }: AppHeaderProps) {
+export function AppHeader({ campaignsEnabled = false, current, orgName }: AppHeaderProps) {
+  const links = NAV_LINKS.filter((link) => campaignsEnabled || link.href !== '/campaigns')
   return (
     <header className="h-16 border-b border-foreground/10 bg-background">
       <div className="flex h-full items-center justify-between gap-3 px-4">
@@ -50,7 +54,7 @@ export function AppHeader({ current, orgName }: AppHeaderProps) {
           </Link>
           <span aria-hidden className="mx-2.5 h-4 w-px shrink-0 bg-foreground/10" />
           <nav aria-label="Workspace" className="flex items-center gap-1">
-            {NAV_LINKS.map((link) => (
+            {links.map((link) => (
               <Link
                 aria-current={link.href === current ? 'page' : undefined}
                 className={cn(

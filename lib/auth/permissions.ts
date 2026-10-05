@@ -75,6 +75,10 @@ export const betterAuthOrganizationRoles = {
   viewer: defaultAc.newRole({ ac: ['read'] }),
 }
 
+export function getRolePermissions(role: string): readonly Permission[] {
+  return rolePermissions[normalizeOrganizationRole(role)]
+}
+
 export function hasPermission(role: string, permission: Permission): boolean {
   return rolePermissions[normalizeOrganizationRole(role)].includes(permission)
 }

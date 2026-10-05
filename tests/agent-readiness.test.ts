@@ -224,7 +224,12 @@ test("tenant OpenAPI operations declare the implemented X-API-Key scheme", () =>
   for (const [path, operations] of Object.entries(spec.paths)) {
     for (const operation of Object.values(operations)) {
       if (path.startsWith("/api/v1/")) {
-        assert.deepEqual(operation.security, [{ workspaceApiKey: [] }], path);
+        // Tenant operations take an API key; shell operations describe the
+        // signed-in user and take only a session.
+        const expected = (operation as { tags?: string[] }).tags?.includes("Shell")
+          ? [{ workspaceSession: [] }]
+          : [{ workspaceApiKey: [] }];
+        assert.deepEqual(operation.security, expected, path);
       }
     }
   }

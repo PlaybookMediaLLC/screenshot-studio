@@ -11,6 +11,37 @@ const errorResponse = (description: string) => ({
   },
 })
 
+const shellOperation = (
+  operationId: string,
+  summary: string,
+  description: string,
+  success: Record<string, unknown> = { type: 'object' }
+) => ({
+  operationId,
+  summary,
+  description,
+  tags: ['Shell'],
+  security: [{ workspaceSession: [] }],
+  responses: {
+    '200': {
+      description: 'The resolved resource.',
+      content: { 'application/json': { schema: success } },
+    },
+    '401': errorResponse('A signed-in user session is required.'),
+    '403': errorResponse(
+      'The user is not a member of the active organization, lacks the permission, or sent an API key.'
+    ),
+    '503': errorResponse('A required dependency is unavailable.'),
+  },
+})
+
+const organizationIdParameter = {
+  in: 'path',
+  name: 'organizationId',
+  required: true,
+  schema: { type: 'string' },
+} as const
+
 export const openApiSpec = {
   openapi: '3.1.0',
   info: {
@@ -18,7 +49,7 @@ export const openApiSpec = {
     version: '1.0.0',
     summary: 'Public HTTP API for Screenshot Studio.',
     description:
-      'Screenshot Studio exposes anonymous editor utilities for screenshot capture, export compression, tweet resolution, and approved media proxying. Workspace-scoped `/api/v1` operations require an organization API key with the declared scope. Every error response uses the same JSON envelope with a stable `code` and a human-readable `hint`.',
+      'Screenshot Studio exposes anonymous editor utilities for screenshot capture, export compression, tweet resolution, and approved media proxying. Workspace-scoped `/api/v1` operations require an organization API key with the declared scope. Shell operations under `/api/v1` (bootstrap, organizations, membership) describe the signed-in user and require a session; they refuse API keys. Every error response uses the same JSON envelope with a stable `code` and a human-readable `hint`.',
     contact: {
       name: 'Screenshot Studio',
       url: `${BASE_URL}/contact`,
@@ -49,6 +80,11 @@ export const openApiSpec = {
     {
       name: 'Assets',
       description: 'Authenticated workspace asset upload and download operations.',
+    },
+    {
+      name: 'Shell',
+      description:
+        'Signed-in user context for Playbook shells: bootstrap, organizations, membership, and capabilities. Rendering hints only; every mutation is re-authorized server-side.',
     },
     {
       name: 'Discovery',
@@ -421,6 +457,99 @@ export const openApiSpec = {
         },
       },
     },
+    '/api/v1/me': {
+      get: shellOperation(
+        'getCurrentUser',
+        'Get the signed-in user',
+        'Returns the id, name, email, and avatar of the user behind the session cookie.'
+      ),
+    },
+    '/api/v1/bootstrap': {
+      get: shellOperation(
+        'getShellBootstrap',
+        'Bootstrap a Playbook shell',
+        'Returns the user, active organization, memberships, resolved permissions, workspace settings, entitlements, capabilities, and counters. Call after sign-in and again after any 401 or 403.',
+        { $ref: '#/components/schemas/PlaybookBootstrap' }
+      ),
+    },
+    '/api/v1/organizations': {
+      get: shellOperation(
+        'listOrganizations',
+        'List the user organizations',
+        'Lists every organization the signed-in user belongs to, with their normalized role in each.'
+      ),
+    },
+    '/api/v1/organizations/{organizationId}': {
+      get: {
+        ...shellOperation(
+          'getOrganization',
+          'Get the active organization',
+          'Returns identity fields for the organization. The organization must be the active one; activate it first otherwise.'
+        ),
+        parameters: [organizationIdParameter],
+      },
+    },
+    '/api/v1/organizations/{organizationId}/members': {
+      get: {
+        ...shellOperation(
+          'listOrganizationMembers',
+          'List organization members',
+          'Lists members and their roles in the active organization. Requires the member:read permission.'
+        ),
+        parameters: [organizationIdParameter],
+      },
+    },
+    '/api/v1/organizations/{organizationId}/invitations': {
+      get: {
+        ...shellOperation(
+          'listOrganizationInvitations',
+          'List organization invitations',
+          'Lists invitations for the active organization. Requires the invitation:read permission.'
+        ),
+        parameters: [organizationIdParameter],
+      },
+    },
+    '/api/v1/organizations/{organizationId}/settings': {
+      get: {
+        ...shellOperation(
+          'getOrganizationSettings',
+          'Get workspace settings',
+          'Returns locale, time zone, default publishing time, and description for the active organization.'
+        ),
+        parameters: [organizationIdParameter],
+      },
+    },
+    '/api/v1/organizations/{organizationId}/permissions': {
+      get: {
+        ...shellOperation(
+          'getOrganizationPermissions',
+          'Get the user permissions',
+          'Returns the normalized role and resolved permission list of the signed-in user in the active organization.'
+        ),
+        parameters: [organizationIdParameter],
+      },
+    },
+    '/api/v1/organizations/{organizationId}/capabilities': {
+      get: {
+        ...shellOperation(
+          'getOrganizationCapabilities',
+          'Get organization capabilities',
+          'Returns capability flags and the safe entitlement view (plan, status, features) for the active organization.'
+        ),
+        parameters: [organizationIdParameter],
+      },
+    },
+    '/api/v1/organizations/{organizationId}/activate': {
+      post: {
+        ...shellOperation(
+          'activateOrganization',
+          'Switch the active organization',
+          'Makes the organization active for this session after checking membership and deletion state, then returns the refreshed bootstrap.',
+          { $ref: '#/components/schemas/PlaybookBootstrap' }
+        ),
+        parameters: [organizationIdParameter],
+      },
+    },
     '/openapi.json': {
       get: {
         operationId: 'getOpenApiSpec',
@@ -481,6 +610,12 @@ export const openApiSpec = {
         name: 'X-API-Key',
         description: 'Workspace API key with the operation-required scope.',
       },
+      workspaceSession: {
+        type: 'apiKey',
+        in: 'cookie',
+        name: 'better-auth.session_token',
+        description: 'Signed-in user session cookie issued by sign-in.',
+      },
     },
     parameters: {
       AssetId: {
@@ -498,6 +633,50 @@ export const openApiSpec = {
         properties: {
           title: { type: 'string', minLength: 1, maxLength: 160 },
           benefitStatement: { type: 'string', minLength: 1, maxLength: 500 },
+          description: {
+            type: 'string',
+            maxLength: 10000,
+            description: 'Plain-text brief. Markup is rejected.',
+          },
+          audience: { type: 'string', maxLength: 1000 },
+          sourceUrls: {
+            type: 'array',
+            maxItems: 20,
+            items: { type: 'string', format: 'uri' },
+          },
+          productSurfaceId: {
+            type: 'string',
+            description: 'A product surface in the same workspace.',
+          },
+        },
+      },
+      PlaybookBootstrap: {
+        type: 'object',
+        required: [
+          'user',
+          'organization',
+          'organizations',
+          'membership',
+          'workspace',
+          'entitlements',
+          'capabilities',
+          'counters',
+        ],
+        properties: {
+          user: { type: 'object' },
+          organization: { type: 'object' },
+          organizations: { type: 'array', items: { type: 'object' } },
+          membership: {
+            type: 'object',
+            properties: {
+              role: { type: 'string' },
+              permissions: { type: 'array', items: { type: 'string' } },
+            },
+          },
+          workspace: { type: 'object' },
+          entitlements: { type: 'object' },
+          capabilities: { type: 'object' },
+          counters: { type: 'object' },
         },
       },
       ReleaseListResponse: {

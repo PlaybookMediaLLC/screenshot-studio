@@ -5,7 +5,7 @@ import type { ZodType } from 'zod'
 import type { ApiKeyScope } from '@/lib/auth/api-key-scopes'
 import type { Permission } from '@/lib/auth/permissions'
 import type { WorkspaceFeature, WorkspaceQuota } from '@/lib/billing/plans'
-import type { TenantContext } from '@/lib/auth/access'
+import { AuthorizationError, type TenantContext } from '@/lib/auth/access'
 import { apiError, type ApiErrorCode } from '@/lib/api/errors'
 import { getRouteErrorResponse } from '@/lib/api/route-errors'
 import { requireTenantAccess } from '@/lib/tenant/access'
@@ -88,5 +88,67 @@ export function createTenantJsonRoute<
     } catch (error) {
       return getPublicRouteErrorResponse(error)
     }
+  }
+}
+
+const shellClients = new Set(['cli', 'openwhispr', 'wanta', 'web'])
+
+/**
+ * The calling shell, for metrics only. The header is client-supplied, so it
+ * never reaches an authorization decision.
+ */
+export function getShellClient(headers: Headers): string {
+  const client = headers.get('x-playbook-client')?.trim().toLowerCase() ?? ''
+  return shellClients.has(client) ? client : 'unknown'
+}
+
+type ShellJsonRouteDefinition<Output, Params extends Record<string, string>> = {
+  /** Stable metric name, such as `bootstrap` or `organizations.activate`. */
+  name: string
+  execute: (request: NextRequest, params: Params) => Promise<Output>
+}
+
+/**
+ * A human-shell endpoint under /api/v1. These describe a signed-in user and
+ * their organizations, so an organization API key is refused rather than
+ * silently treated as a session. Responses are per-user and never cached by
+ * intermediaries.
+ */
+export function createShellJsonRoute<
+  Output,
+  Params extends Record<string, string> = Record<string, string>,
+>(definition: ShellJsonRouteDefinition<Output, Params>) {
+  return async function shellJsonRoute(
+    request: NextRequest,
+    routeContext: RestRouteContext<Params>
+  ): Promise<NextResponse> {
+    const startedAt = performance.now()
+    let response: NextResponse
+    try {
+      if (request.headers.has('x-api-key')) {
+        throw new AuthorizationError(
+          'Shell endpoints require a signed-in user session, not an API key.',
+          403
+        )
+      }
+      const output = await definition.execute(request, await routeContext.params)
+      response = NextResponse.json(output)
+    } catch (error) {
+      response = await getPublicRouteErrorResponse(error)
+    }
+    response.headers.set('cache-control', 'private, no-store')
+    // One structured line per shell request: latency, denials (401/403), and
+    // active-org switches are counted from these in the log pipeline.
+    // eslint-disable-next-line no-console
+    console.info(
+      JSON.stringify({
+        client: getShellClient(request.headers),
+        durationMs: Math.round(performance.now() - startedAt),
+        event: 'playbook.shell_request',
+        route: definition.name,
+        status: response.status,
+      })
+    )
+    return response
   }
 }

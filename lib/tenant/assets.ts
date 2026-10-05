@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { type Prisma } from '@prisma/client'
 import { appendAuditLog } from '@/lib/audit/log'
 import { requireWorkspaceFeature, requireWorkspaceQuotaCapacity } from '@/lib/tenant/entitlements'
@@ -9,9 +9,12 @@ import { getAuditActor } from '@/lib/auth/principal'
 import { prisma } from '@/lib/db'
 import {
   assertTenantObjectExists,
+  buildTenantObjectKey,
   createTenantDownloadUrl,
   createTenantUploadUrl,
+  writeTenantObject,
 } from '@/lib/storage/client'
+import type { AssetClassification } from './object-key'
 import type { AssetUploadInput } from './schemas'
 
 const signedUrlSeconds = 120
@@ -288,5 +291,79 @@ export async function deleteAsset(
       requestId: context.requestId,
     })
     return 'deleted'
+  })
+}
+
+/**
+ * Store an image generated on the server (capture or composite) as an
+ * UPLOADED tenant asset. Mirrors a completed browser upload: storage quota,
+ * the asset.uploaded outbox event, and an audit entry all still apply.
+ */
+export async function storeGeneratedAsset(
+  context: TenantContext,
+  input: {
+    body: Uint8Array
+    classification: AssetClassification
+    contentType: 'image/jpeg' | 'image/png' | 'image/webp'
+    fileName: string
+    height: number
+    parentAssetId?: string
+    width: number
+  }
+) {
+  const storage = await prisma.asset.aggregate({
+    _sum: { bytes: true },
+    where: { organizationId: context.organizationId, status: { not: 'DELETED' } },
+  })
+  await requireWorkspaceQuotaCapacity(
+    context.organizationId,
+    'storage:bytes',
+    storage._sum.bytes ?? 0,
+    input.body.byteLength
+  )
+  const assetId = randomUUID()
+  const objectKey = buildTenantObjectKey({
+    assetId,
+    classification: input.classification,
+    fileName: input.fileName,
+    organizationId: context.organizationId,
+    revision: 1,
+  })
+  await writeTenantObject({
+    body: input.body,
+    contentType: input.contentType,
+    objectKey,
+    organizationId: context.organizationId,
+  })
+  return prisma.$transaction(async (transaction) => {
+    const asset = await transaction.asset.create({
+      data: {
+        bytes: input.body.byteLength,
+        height: input.height,
+        id: assetId,
+        mediaType: input.contentType,
+        objectKey,
+        organizationId: context.organizationId,
+        parentAssetId: input.parentAssetId ?? null,
+        sha256: createHash('sha256').update(input.body).digest('hex'),
+        status: 'UPLOADED',
+        width: input.width,
+      },
+      select: { id: true, mediaType: true },
+    })
+    await enqueueAssetUpload(transaction, context.organizationId, asset.id)
+    await appendAuditLog(transaction, {
+      action: 'product.asset_generated',
+      actor: getAuditActor(context.principal),
+      entityId: asset.id,
+      entityType: 'asset',
+      metadata: {
+        classification: input.classification,
+        parentAssetId: input.parentAssetId ?? null,
+      },
+      organizationId: context.organizationId,
+      requestId: context.requestId,
+    })
+    return asset
   })
 }

@@ -302,6 +302,7 @@ variables that configure it, so you can trace a credential back to its console.
 | [Trigger.dev](https://trigger.dev) ([dashboard](https://cloud.trigger.dev)) | Background jobs for artifact generation and media processing | `TRIGGER_ACCESS_TOKEN`, `TRIGGER_PROJECT_REF`         |
 | [Postiz](https://postiz.com) ([docs](https://docs.postiz.com))              | Social scheduling and publishing                             | `POSTIZ_API_URL`                                      |
 | [Microlink](https://microlink.io) ([docs](https://microlink.io/docs))       | Screenshot capture API                                       | `SCREENSHOT_API_URL`                                  |
+| [OpenRouter](https://openrouter.ai) ([models](https://openrouter.ai/models)) | Model access for the campaign studio agent                   | `OPENROUTER_API_KEY`, optional `PLATFORM_AI_MODEL_*`  |
 | [PostHog](https://posthog.com) ([app](https://app.posthog.com))             | Product analytics and session insight                        | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` |
 | [Google Cloud](https://console.cloud.google.com/apis/credentials)           | Google OAuth sign-in                                         | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`            |
 | [GitHub OAuth](https://github.com/settings/developers)                      | GitHub sign-in and release intake                            | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`            |

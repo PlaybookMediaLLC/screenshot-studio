@@ -21,6 +21,12 @@ const SCHEDULED_POST_CAPTION_LIMIT = 3_000
 
 const campaignInclude = {
   angles: { orderBy: { position: 'asc' as const } },
+  assets: {
+    include: {
+      asset: { select: { height: true, id: true, mediaType: true, objectKey: true, width: true } },
+    },
+    orderBy: { createdAt: 'asc' as const },
+  },
   posts: { orderBy: { createdAt: 'asc' as const } },
   productSurface: { select: { environment: true, id: true, name: true, url: true } },
   release: {

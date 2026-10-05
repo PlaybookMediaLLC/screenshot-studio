@@ -202,3 +202,24 @@ export async function readTenantObject(input: {
   })
   return new Uint8Array(await response.arrayBuffer())
 }
+
+/**
+ * Write bytes produced on the server (generated images) straight to tenant
+ * storage with the service key. Browser uploads keep using signed URLs; this
+ * path exists so server code never round-trips through its own public proxy.
+ */
+export async function writeTenantObject(input: {
+  body: Uint8Array
+  contentType: string
+  objectKey: string
+  organizationId: string
+}): Promise<void> {
+  const bucket = getRequiredEnvironment('STORAGE_BUCKET')
+  assertTenantObjectKey(input.organizationId, input.objectKey)
+  await fetchStorage(getRequestUrl(`/object/${bucket}/${input.objectKey}`), {
+    body: Buffer.from(input.body),
+    headers: { ...getStorageHeaders(), 'content-type': input.contentType },
+    method: 'POST',
+    signal: AbortSignal.timeout(30_000),
+  })
+}

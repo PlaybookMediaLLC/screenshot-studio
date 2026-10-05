@@ -1,9 +1,13 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import { CampaignBrief } from '@/components/campaigns/CampaignBrief'
+import { CampaignStudioButton } from '@/components/campaigns/CampaignStudioButton'
 import { Badge } from '@/components/ui/badge'
 import { AppHeader } from '@/components/workspace/AppHeader'
+import { isCampaignStudioConfigured } from '@/lib/ai/agents/campaign-studio'
 import { hasPermission } from '@/lib/auth/permissions'
+import { createTenantDownloadUrl } from '@/lib/storage/client'
 import { getCampaign } from '@/lib/tenant/campaigns'
 import { requireCampaignPageAccess } from '../page-access'
 
@@ -11,6 +15,15 @@ export const metadata: Metadata = { title: 'Campaign | Screenshot Studio' }
 
 type CampaignPageProps = {
   params: Promise<{ campaignId: string; locale: string }>
+}
+
+/** Signed for long enough to render the page; a refresh re-signs. */
+async function signAssetUrl(organizationId: string, objectKey: string): Promise<string | null> {
+  try {
+    return await createTenantDownloadUrl({ expiresIn: 900, objectKey, organizationId })
+  } catch {
+    return null
+  }
 }
 
 function formatTimestamp(value: Date): string {
@@ -28,6 +41,15 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
   // Scoped to the active workspace: another workspace's id is a 404.
   const campaign = await getCampaign(access.organization.id, campaignId)
   if (!campaign) notFound()
+  const productShots = await Promise.all(
+    campaign.assets
+      .filter((link) => link.kind === 'product-shot')
+      .map(async (link) => ({
+        ...link,
+        url: await signAssetUrl(access.organization.id, link.asset.objectKey),
+      }))
+  )
+  const captureCount = campaign.assets.filter((link) => link.kind.startsWith('capture-')).length
 
   return (
     <>
@@ -67,9 +89,54 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
           <h2 className="text-base font-semibold" id="campaign-assets">
             Assets
           </h2>
-          <div className="mt-3 rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-            Screenshots and video for this release will appear here.
+          <div className="mt-3">
+            <CampaignStudioButton
+              campaignId={campaign.id}
+              canGenerate={
+                hasPermission(access.role, 'release:create') && Boolean(campaign.release)
+              }
+              configured={isCampaignStudioConfigured()}
+              hasAssets={campaign.assets.length > 0}
+            />
           </div>
+          {productShots.length === 0 ? (
+            <div className="mt-3 rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+              Product shots for this release will appear here.
+            </div>
+          ) : (
+            <ul className="mt-4 grid items-start gap-4 sm:grid-cols-2">
+              {productShots.map((shot) => (
+                <li className="overflow-hidden rounded-lg border" key={shot.id}>
+                  {shot.url ? (
+                    // Signed, short-lived tenant URLs: next/image would cache them past expiry.
+                    <img
+                      alt={shot.caption ?? 'Product shot'}
+                      className="aspect-auto w-full bg-muted"
+                      height={shot.asset.height ?? undefined}
+                      src={shot.url}
+                      width={shot.asset.width ?? undefined}
+                    />
+                  ) : (
+                    <div className="p-6 text-sm text-muted-foreground">Preview unavailable.</div>
+                  )}
+                  <div className="flex items-start justify-between gap-3 p-3">
+                    <p className="text-xs text-muted-foreground">{shot.caption}</p>
+                    <Link
+                      className="shrink-0 text-xs font-medium underline"
+                      href={`/?asset=${shot.asset.id}`}
+                    >
+                      Open in editor
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {captureCount > 0 ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Built from {captureCount} live capture{captureCount === 1 ? '' : 's'} of your product.
+            </p>
+          ) : null}
         </section>
 
         <section aria-labelledby="campaign-copy" className="mt-10">
@@ -88,6 +155,9 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
                     {post.channel} · {post.status}
                   </p>
                   <p className="mt-2 whitespace-pre-wrap text-sm">{post.copy}</p>
+                  {post.callToAction ? (
+                    <p className="mt-2 text-xs font-medium">CTA: {post.callToAction}</p>
+                  ) : null}
                 </li>
               ))}
             </ul>

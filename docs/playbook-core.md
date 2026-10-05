@@ -167,3 +167,42 @@ form opened), and `campaign_opened`. The audit trail records
 `product.campaign_status_changed`. `product.campaign_created` carries
 `workspaceAgeSeconds`, and the earliest one per organization is the time from
 workspace creation to the first campaign draft.
+
+## Campaign studio (AI)
+
+`lib/ai` is the platform's AI package. It is ported from `@canvas/ai` (oppulence-canvas)
+and keeps its shape: `models/` (role-based model catalog, OpenRouter provider,
+registry, settings/usage/logging middleware), `tools/`, `prompts/`, and `agents/`.
+Models are addressed by role, not id:
+
+| Role | Default (OpenRouter id) | Override |
+| --- | --- | --- |
+| `deep` | `anthropic/claude-opus-5.5` | `PLATFORM_AI_MODEL_DEEP` |
+| `drafting` | `anthropic/claude-sonnet-5.5` | `PLATFORM_AI_MODEL_DRAFTING` |
+| `fast` | `anthropic/claude-haiku-4.5` | `PLATFORM_AI_MODEL_FAST` |
+| `nano` | `anthropic/claude-haiku-4.5` | `PLATFORM_AI_MODEL_NANO` |
+
+`OPENROUTER_API_KEY` turns the studio on. Without it, the campaign page shows
+"Generate launch kit" disabled and `campaign.generate` returns 503.
+
+`campaign.generate` (permission `release:create`, one unit of the
+`generation:monthly` quota per run) runs the campaign studio agent
+(`lib/ai/agents/campaign-studio.ts`) in the caller's tenant context. Its tools
+are built per run around one workspace and one campaign:
+
+- `captureProductPage` captures a screenshot through the existing screenshot
+  service. It accepts only the product surface URL and the release's source
+  links (SSRF-checked, at most five), shares the screenshot rate limit, rejects
+  near-blank captures, and stores the image as a `capture` asset.
+- `createProductShot` composites a capture into a front-facing device frame
+  from the editor's mockup set (`lib/ai/images/product-shot.ts`, sharp, bundled
+  SF Pro fonts) on a gradient with a headline, and stores it as a `derived`
+  asset whose parent is the capture. Phone frames require a mobile capture.
+- `saveCampaignCopy` appends angles and draft posts to the campaign once per
+  run. It never overwrites earlier generations.
+
+Generated images link to the campaign through `CampaignAsset` and open in the
+editor at `/?asset=<id>`. Every write is audited (`product.asset_generated`,
+`product.campaign_copy_generated`, `product.campaign_generated` with model id,
+step count, and token usage). Prompt and completion text are never logged.
+

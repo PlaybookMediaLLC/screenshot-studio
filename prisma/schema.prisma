@@ -123,6 +123,7 @@ model Organization {
   brandProfile            BrandProfile?
   productSurfaces         ProductSurface[]
   campaigns               Campaign[]
+  campaignAssets          CampaignAsset[]
   contentAngles           ContentAngle[]
   campaignPosts           CampaignPost[]
   audienceSubscribers     AudienceSubscriber[]
@@ -742,6 +743,7 @@ model Asset {
   capture        Capture?          @relation(fields: [captureId], references: [id], onDelete: SetNull)
   parentAsset    Asset?            @relation("AssetDerivation", fields: [parentAssetId], references: [id], onDelete: SetNull)
   derivedAssets  Asset[]           @relation("AssetDerivation")
+  campaignLinks  CampaignAsset[]
   sourceVariants CreativeVariant[] @relation("VariantSourceAsset")
 
   @@index([organizationId, createdAt])
@@ -916,12 +918,33 @@ model Campaign {
   productSurface   ProductSurface? @relation(fields: [productSurfaceId], references: [id], onDelete: SetNull)
   createdByUser    User?           @relation("CampaignCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
   angles           ContentAngle[]
+  assets           CampaignAsset[]
   posts            CampaignPost[]
 
   @@index([organizationId, createdAt])
   @@index([organizationId, releaseId])
   @@index([organizationId, productSurfaceId])
   @@map("campaign")
+}
+
+/// A tenant asset attached to a campaign, such as a captured product
+/// screenshot or a generated product shot. Removing the link never deletes
+/// the asset; deleting the asset or campaign removes the link.
+model CampaignAsset {
+  id             String       @id @default(cuid())
+  organizationId String
+  campaignId     String
+  assetId        String
+  kind           String
+  caption        String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign       Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  asset          Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, assetId])
+  @@index([organizationId, campaignId, createdAt])
+  @@map("campaign_asset")
 }
 
 model ContentAngle {

@@ -76,6 +76,7 @@ NODE
     ensure_env_value STORAGE_PROXY_URL "http://localhost:3000/api/tenant/storage"
     ensure_env_value POSTIZ_API_URL "http://host.docker.internal:5679/api/public/v1"
     ensure_env_value POSTIZ_API_KEY "e2e-postiz-token"
+    ensure_env_value PLATFORM_RENDER_SERVICE_SECRET "$(random_hex 32)"
     database_url="$(grep '^DATABASE_URL=' "$LOCAL_ENV" | cut -d= -f2-)"
     ensure_env_value AUDIT_RETENTION_DATABASE_URL "$database_url"
     chmod 600 "$LOCAL_ENV"
@@ -132,6 +133,7 @@ STORAGE_HOST_URL=http://127.0.0.1:5000
 STORAGE_PROXY_URL=http://localhost:3000/api/tenant/storage
 POSTIZ_API_URL=http://host.docker.internal:5679/api/public/v1
 POSTIZ_API_KEY=e2e-postiz-token
+PLATFORM_RENDER_SERVICE_SECRET=$(random_hex 32)
 R2_ENDPOINT=http://rustfs:9000
 R2_REGION=us-east-1
 R2_FORCE_PATH_STYLE=true
@@ -322,6 +324,9 @@ run_e2e() {
   load_env
   e2e_trusted_origins="$BETTER_AUTH_TRUSTED_ORIGINS,http://localhost:5680,http://host.docker.internal:5680"
   if [[ "$manage_screenshot_mock" == "true" ]]; then
+    # Recreating app would strand the renderer, which shares app's network;
+    # end-to-end flows do not render designs, so it is simply stopped.
+    compose --profile renderer stop design-renderer >/dev/null 2>&1 || true
     BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" SCREENSHOT_API_URL="http://screenshot-mock:5678" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" compose --profile e2e up --detach --force-recreate screenshot-mock app
     wait_for_screenshot_mock
   fi
@@ -393,12 +398,28 @@ up() {
   compose rm --force --stop storage-init >/dev/null 2>&1 || true
   compose up --detach --build postgres pgbouncer redis rustfs rustfs-init imgproxy storage storage-init
   sync_dependencies
-  compose up --detach app
+  # The design renderer runs locally by default for parity with production.
+  # CI skips it (its flows do not render designs, and the Playwright image is
+  # large); STUDIO_RENDERER=off skips it locally. Without it, the app falls
+  # back to sharp product shots.
+  local renderer="on"
+  if [[ "${CI:-}" == "true" || "${STUDIO_RENDERER:-on}" == "off" ]]; then
+    renderer="off"
+  fi
+  if [[ "$renderer" == "on" ]]; then
+    PLATFORM_DESIGN_RENDERER=enabled compose up --detach app
+    compose --profile renderer up --detach --build design-renderer
+  else
+    compose up --detach app
+  fi
   compose exec -T postgres psql --username=postgres --dbname=screenshot_studio --command \
     "ALTER TABLE IF EXISTS screenshot_cache OWNER TO screenshot_studio;" >/dev/null
   compose exec -T app npx prisma db push --skip-generate
   smoke
   echo "App:     http://localhost:3000"
+  if [[ "$renderer" == "on" ]]; then
+    echo "Design renderer: running (STUDIO_RENDERER=off to skip)"
+  fi
   echo "Storage: http://localhost:5000"
   echo "RustFS:  http://localhost:9004/rustfs/console/"
   echo "Run '$0 trigger-dev' after '$0 trigger-config <project-ref>'."
@@ -429,11 +450,11 @@ down() {
   fi
 
   if [[ "$mode" == "purge" ]]; then
-    compose --profile trigger --profile e2e down --volumes --remove-orphans
+    compose --profile trigger --profile e2e --profile renderer down --volumes --remove-orphans
     return
   fi
 
-  compose --profile trigger --profile e2e down --remove-orphans
+  compose --profile trigger --profile e2e --profile renderer down --remove-orphans
 }
 
 trigger_login() {

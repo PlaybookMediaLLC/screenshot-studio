@@ -344,3 +344,16 @@ export function definedChanges(changes: Record<string, unknown>): Record<string,
       ])
   )
 }
+
+export type DesignChanges = z.output<typeof designChangesSchema>
+
+/** One copilot edit: a change set plus a summary for the user. */
+export const designEditSchema = z.object({
+  changes: designChangesSchema,
+  summary: z
+    .string()
+    .trim()
+    .min(1)
+    .max(200)
+    .describe('What this change does, for the undo history.'),
+})

@@ -255,3 +255,46 @@ chromium` adds about 400 MB). Run the renderer where a browser is available, suc
 as a render worker or a Trigger.dev task with the Playwright build extension,
 and leave the flag off elsewhere. The sharp product-shot path is the fallback.
 
+
+### In-editor AI
+
+The editor has an AI panel (the **AI** button, or ⌘K) for signed-in workspace
+members when `OPENROUTER_API_KEY` is set. It is built on the same design layer
+as the campaign agent:
+
+- **Copilot.** A conversation that edits the live canvas. `/api/ai/editor` runs
+  the model; the editing tools (`inspectCanvas`, `applyChanges`,
+  `undoLastChange`) have no server `execute`, so each call returns to the
+  browser. There it runs through the editor's own store actions
+  (`applyDesignChanges`), and the result goes back with a canvas snapshot so
+  the model checks its work. Each change is one undo step. The route counts one
+  `generation:monthly` unit per user request, caps tool round trips per
+  request, accepts only user/assistant/tool messages, and drops all but the
+  newest snapshot to bound cost.
+- **Scoped commands.** ⌘K opens the copilot on the selected text, device,
+  overlay, annotation, or main image, and the agent changes only that element.
+  Selection is read from the stores and from the DOM markers the canvas
+  already renders, with no changes to editor components.
+- **Suggestions.** `editorAi.critique` reviews the canvas snapshot and
+  returns up to three one-click changes, each validated against the current
+  document before it is offered. It runs once when the panel opens and on
+  demand, never while you edit.
+- **Directions.** `editorAi.explore` saves the current image to the workspace,
+  has the model propose variations, stores each as a variant `Design`, renders
+  them with the headless renderer, and shows the previews. Choosing one loads
+  it as a single undoable step. It requires `PLATFORM_DESIGN_RENDERER`.
+
+`exportDesignDocument` (`lib/design/export.ts`) is the inverse of the loader:
+it reads the live editor into a DesignDocument, normalizes pixel layers, and
+drops anything not portable (local uploads, CSS-variable colors) section by
+section.
+
+Critique and directions use tool calls rather than structured output. The
+change schema has far more optional fields than providers allow in constrained
+JSON (OpenRouter's Vertex route caps it at 24), so tool arguments are validated
+in code instead, and an invalid proposal goes back to the model to correct.
+
+Upstream merges: all of this lives in fork-owned directories
+(`lib/design`, `lib/ai`, `components/editor-ai`, `app/api/ai`). The only
+upstream editor file touched is `components/editor/EditorLayout.tsx`, which
+mounts `<EditorPlatformLayer />` in one line.

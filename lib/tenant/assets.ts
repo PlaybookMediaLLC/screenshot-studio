@@ -349,7 +349,7 @@ export async function storeGeneratedAsset(
         status: 'UPLOADED',
         width: input.width,
       },
-      select: { id: true, mediaType: true },
+      select: { id: true, mediaType: true, objectKey: true },
     })
     await enqueueAssetUpload(transaction, context.organizationId, asset.id)
     await appendAuditLog(transaction, {

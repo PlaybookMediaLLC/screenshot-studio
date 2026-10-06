@@ -4,7 +4,8 @@ import { tool } from 'ai'
 import sharp from 'sharp'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
-import { designCatalog, designCatalogSections } from '@/lib/design/catalog'
+import { designCatalogSections } from '@/lib/design/catalog'
+import { describeDesignCatalog } from '@/lib/design/catalog-sections'
 import {
   type DesignDocument,
   definedChanges,
@@ -34,44 +35,6 @@ const MAX_DESIGNS = 10
 const MAX_RENDERS = 8
 
 /** Any section of a DesignDocument; omitted sections are left as they are. */
-function catalogSection(section: (typeof designCatalogSections)[number]) {
-  switch (section) {
-    case 'templates':
-      return designTemplates.map(({ aspectRatio, description, id, kind, name, usesCopy }) => ({
-        aspectRatio,
-        description,
-        id,
-        kind,
-        name,
-        usesCopy,
-      }))
-    case 'aspectRatios':
-      return designCatalog.aspectRatios
-    case 'backgrounds':
-      return {
-        gradients: designCatalog.gradients,
-        images: designCatalog.backgroundImages,
-        magicGradients: designCatalog.magicGradients,
-        meshGradients: designCatalog.meshGradients,
-        solidColors: designCatalog.solidColors,
-      }
-    case 'fonts':
-      return designCatalog.fonts
-    case 'mockups':
-      return { layouts: designCatalog.deviceLayouts, mockups: designCatalog.mockups }
-    case 'frames':
-      return {
-        frames: designCatalog.frames,
-        patterns: designCatalog.patterns,
-        shadowPresets: designCatalog.shadowPresets,
-      }
-    case 'overlays':
-      return { arrows: designCatalog.arrowOverlays, shadows: designCatalog.shadowOverlays }
-    case 'animation':
-      return designCatalog.animationPresets
-  }
-}
-
 export function createDesignStudioTools(
   scope: CampaignStudioScope,
   record: CampaignStudioRecord,
@@ -120,7 +83,7 @@ export function createDesignStudioTools(
     inputSchema: z.object({ section: z.enum(designCatalogSections) }),
     execute: async ({ section }) => ({
       ok: true as const,
-      options: catalogSection(section),
+      options: describeDesignCatalog(section),
       section,
     }),
   })

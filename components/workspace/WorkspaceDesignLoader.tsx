@@ -2,10 +2,7 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
-import { applyDesignDocument, applyDesignLayout, waitForSettledCanvas } from '@/lib/design/apply'
-import { getDesignAssetIds } from '@/lib/design/document'
-import { useImageStore } from '@/lib/store'
+import { openDesignInEditor } from '@/lib/design/open-design'
 import { useTRPCClient } from '@/lib/trpc/react'
 
 /**
@@ -27,19 +24,7 @@ export function WorkspaceDesignLoader() {
     startedRef.current = true
 
     async function load(id: string): Promise<void> {
-      const { design } = await trpcClient.design.get.query({ designId: id })
-      const sources: Record<string, string> = {}
-      for (const assetId of getDesignAssetIds(design.document)) {
-        const { downloadUrl } = await trpcClient.asset.signDownload.query({ assetId })
-        const response = await fetch(downloadUrl)
-        if (!response.ok) throw new Error(`The download failed with status ${response.status}.`)
-        sources[`asset:${assetId}`] = URL.createObjectURL(await response.blob())
-      }
-      const resolve = (ref: string) => sources[ref] ?? ref
-      applyDesignDocument(design.document, resolve)
-      const preset = getAspectRatioPreset(useImageStore.getState().selectedAspectRatio)
-      const canvas = await waitForSettledCanvas(preset ? preset.width / preset.height : null)
-      applyDesignLayout(design.document, resolve, canvas)
+      const design = await openDesignInEditor(trpcClient, id)
       const url = new URL(window.location.href)
       url.searchParams.delete('design')
       window.history.replaceState(null, '', url)

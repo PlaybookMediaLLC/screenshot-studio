@@ -78,25 +78,25 @@ const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
 const planQuotas = {
   free: {
     'api:write:minute': 30,
-    'generation:monthly': 25,
+    'generation:monthly': 250,
     'jobs:concurrent': 1,
     'storage:bytes': 250 * 1024 * 1024,
   },
   pro: {
     'api:write:minute': 300,
-    'generation:monthly': 1_000,
+    'generation:monthly': 5_000,
     'jobs:concurrent': 5,
     'storage:bytes': 25 * 1024 * 1024 * 1024,
   },
   business: {
     'api:write:minute': 1_500,
-    'generation:monthly': 10_000,
+    'generation:monthly': 25_000,
     'jobs:concurrent': 25,
     'storage:bytes': 250 * 1024 * 1024 * 1024,
   },
   enterprise: {
     'api:write:minute': 10_000,
-    'generation:monthly': 100_000,
+    'generation:monthly': 250_000,
     'jobs:concurrent': 250,
     'storage:bytes': 5 * 1024 * 1024 * 1024 * 1024,
   },

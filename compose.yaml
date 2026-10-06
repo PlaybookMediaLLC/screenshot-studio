@@ -16,6 +16,8 @@ services:
       # shares this container's network, so both sides use localhost.
       PLATFORM_DESIGN_RENDERER: ${PLATFORM_DESIGN_RENDERER:-}
       PLATFORM_RENDER_BASE_URL: http://localhost:3000
+      # Same interpolation as design-renderer, so both sides always agree.
+      PLATFORM_RENDER_SERVICE_SECRET: ${PLATFORM_RENDER_SERVICE_SECRET:-}
       PLATFORM_RENDER_SERVICE_URL: http://localhost:8080
       POSTIZ_API_KEY: ${POSTIZ_API_KEY:-}
       POSTIZ_API_URL: ${POSTIZ_API_URL:-}

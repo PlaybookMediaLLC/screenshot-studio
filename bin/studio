@@ -407,8 +407,9 @@ up() {
     renderer="off"
   fi
   if [[ "$renderer" == "on" ]]; then
-    PLATFORM_DESIGN_RENDERER=enabled compose up --detach app
-    compose --profile renderer up --detach --build design-renderer
+    # One call: the renderer depends on app, so a separate `up design-renderer`
+    # without the variable would recreate app with the renderer disabled.
+    PLATFORM_DESIGN_RENDERER=enabled compose --profile renderer up --detach --build app design-renderer
   else
     compose up --detach app
   fi

@@ -94,3 +94,12 @@ test('a change set leaves omitted fields alone instead of resetting them to defa
   assert.equal(tilted.image.src, screenshot)
   assert.equal(tilted.image.frame?.type, 'macos-dark')
 })
+
+test('change sets carry only the fields that were sent, at every depth', () => {
+  assert.deepEqual(designChangesSchema.parse({ image: { perspective: { rotateY: 12 } } }), {
+    image: { perspective: { rotateY: 12 } },
+  })
+  assert.deepEqual(designChangesSchema.parse({ background: { value: 'mesh:mesh_ocean' } }), {
+    background: { value: 'mesh:mesh_ocean' },
+  })
+})

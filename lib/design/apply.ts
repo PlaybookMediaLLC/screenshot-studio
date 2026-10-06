@@ -4,7 +4,14 @@ import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { createDeviceScreen, createMockup } from '@/lib/device-mockups/layouts'
 import type { DeviceLayoutId } from '@/types/mockup'
 import { useEditorStore, useImageStore } from '@/lib/store'
-import type { DesignChanges, DesignDocument } from './document'
+import {
+  type DesignChanges,
+  type DesignDocument,
+  type DesignSections,
+  patchDesignDocument,
+  pickChangedSections,
+} from './document'
+import { exportDesignDocument } from './export'
 import { resolveEditorTemplate } from './templates'
 
 /**
@@ -81,7 +88,7 @@ function inHistory(mode: DesignHistoryMode, write: () => void) {
 }
 
 /** Phase 1 for whichever sections `changes` carries; untouched sections stay as they are. */
-function writeSections(changes: DesignChanges, resolve: ResolveDesignSource) {
+function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
   const image = useImageStore.getState()
   const editor = useEditorStore.getState()
 
@@ -185,7 +192,7 @@ function writeSections(changes: DesignChanges, resolve: ResolveDesignSource) {
 }
 
 /** Phase 2 for whichever layout sections `changes` carries. Lists replace the current list. */
-function writeLayout(changes: DesignChanges, resolve: ResolveDesignSource, canvas: CanvasSize) {
+function writeLayout(changes: DesignSections, resolve: ResolveDesignSource, canvas: CanvasSize) {
   const { canvasH, canvasW } = canvas
   if (changes.image?.offset) {
     useEditorStore.getState().setScreenshot({
@@ -303,7 +310,11 @@ export function applyDesignLayout(
  * grouped into one undo step; when the edit changes the aspect ratio, layout
  * waits for the canvas to settle at the new size first.
  */
-export async function applyDesignChanges(changes: DesignChanges, resolve: ResolveDesignSource) {
+export async function applyDesignChanges(rawChanges: DesignChanges, resolve: ResolveDesignSource) {
+  // Merge into the current design first, so a partial change ("rotateY: 12")
+  // keeps every field it did not name, and the result is validated as a whole.
+  const merged = patchDesignDocument(exportDesignDocument(), rawChanges)
+  const changes = pickChangedSections(merged, rawChanges)
   const start = beginHistoryStep()
   writeSections(changes, resolve)
   const changesLayout =

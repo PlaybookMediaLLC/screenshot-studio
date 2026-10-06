@@ -51,6 +51,7 @@ test('a design survives being loaded into the editor and exported back', () => {
 test('an AI edit changes only what it names and undoes in one step', async () => {
   loadDesign()
   const before = useImageStore.getState().backgroundConfig.value
+  const perspectiveBefore = useImageStore.getState().perspective3D.perspective
   await applyDesignChanges(
     {
       background: { blur: 0, noise: 0, opacity: 1, type: 'gradient', value: 'mesh:mesh_ocean' },
@@ -63,6 +64,11 @@ test('an AI edit changes only what it names and undoes in one step', async () =>
   close(edited.image.perspective?.rotateY, -12, 'rotateY')
   assert.equal(edited.texts[0]?.text, 'Your docs, in one place', 'untouched layers stay')
   assert.equal(edited.annotations.length, 1, 'untouched layers stay')
+  assert.equal(
+    useImageStore.getState().perspective3D.perspective,
+    perspectiveBefore,
+    'a partial perspective change keeps the fields it did not name'
+  )
 
   useImageStore.temporal.getState().undo()
   assert.equal(useImageStore.getState().backgroundConfig.value, before)

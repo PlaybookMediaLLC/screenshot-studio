@@ -287,49 +287,53 @@ export function getDesignAssetIds(document: DesignDocument): string[] {
   ]
 }
 
-const shape = designDocumentSchema.shape
-
 /**
- * A section schema with its top-level default removed. Defaults belong to new
- * documents; in a change set an omitted field must stay omitted, or a change
- * to the background would reset the headline and the screenshot.
+ * The same schema with every default removed, at every depth. Defaults belong
+ * to new documents: in a change set an omitted field must stay omitted, or
+ * `image.perspective: { rotateY: 12 }` would reset the other perspective
+ * fields, and a background change would reset the headline. Objects become
+ * partial; list items stay complete because a list replaces the whole list.
  */
-function changeable<T extends z.ZodType>(schema: T) {
-  return (schema instanceof z.ZodDefault ? schema.removeDefault() : schema) as z.ZodType<
-    z.output<T>
-  >
+function withoutDefaults(schema: z.ZodType): z.ZodType {
+  if (schema instanceof z.ZodDefault) return withoutDefaults(schema.removeDefault() as z.ZodType)
+  if (schema instanceof z.ZodOptional)
+    return withoutDefaults(schema.unwrap() as z.ZodType).optional()
+  if (schema instanceof z.ZodNullable)
+    return withoutDefaults(schema.unwrap() as z.ZodType).nullable()
+  if (schema instanceof z.ZodObject) {
+    return z.object(
+      Object.fromEntries(
+        Object.entries(schema.shape as Record<string, z.ZodType>).map(([key, field]) => [
+          key,
+          withoutDefaults(field).optional(),
+        ])
+      )
+    )
+  }
+  return schema
 }
 
-const imageChanges = z.object(
-  Object.fromEntries(
-    Object.entries(shape.image.shape).map(([key, field]) => [key, changeable(field).optional()])
-  ) as {
-    [K in keyof typeof shape.image.shape]: z.ZodOptional<
-      z.ZodType<z.output<(typeof shape.image.shape)[K]>>
-    >
-  }
-)
+type DeepPartial<T> = T extends readonly unknown[]
+  ? T
+  : T extends object
+    ? { [K in keyof T]?: DeepPartial<T[K]> }
+    : T
 
-/** Any section of a DesignDocument; omitted sections are left as they are. */
-export const designChangesSchema = z
-  .object({
-    animation: shape.animation,
-    annotations: changeable(shape.annotations).optional(),
-    background: shape.background,
-    canvas: shape.canvas,
-    devices: shape.devices,
-    image: imageChanges.optional(),
-    mode: shape.mode,
-    overlays: changeable(shape.overlays).optional(),
-    pattern: shape.pattern,
-    redactions: changeable(shape.redactions).optional(),
-    template: shape.template,
-    texts: changeable(shape.texts).optional(),
-  })
-  .describe(
-    'Sections to change. Objects merge field by field; arrays (texts, overlays, annotations, ' +
-      'redactions, devices.mockups) replace the whole list, so resend items you want to keep.'
-  )
+/** A change set as sent by a model or a user: any fields of any sections. */
+export type DesignChanges = DeepPartial<Omit<DesignDocument, 'version'>>
+
+/** Complete values for some sections, ready to write into the editor. */
+export type DesignSections = Partial<Omit<DesignDocument, 'image' | 'version'>> & {
+  image?: Partial<DesignDocument['image']>
+}
+
+/** Any section of a DesignDocument; omitted sections and fields are left as they are. */
+export const designChangesSchema = (
+  withoutDefaults(designDocumentSchema.omit({ version: true })) as z.ZodType<DesignChanges>
+).describe(
+  'Sections to change. Objects merge field by field; arrays (texts, overlays, annotations, ' +
+    'redactions, devices.mockups) replace the whole list, so resend items you want to keep.'
+)
 
 /** Drop keys a validator filled with undefined so they cannot clear the base document. */
 export function definedChanges(changes: Record<string, unknown>): Record<string, unknown> {
@@ -345,7 +349,29 @@ export function definedChanges(changes: Record<string, unknown>): Record<string,
   )
 }
 
-export type DesignChanges = z.output<typeof designChangesSchema>
+/**
+ * Narrow a full document to the sections (and image fields) a change named,
+ * with complete, validated values taken from the merged document.
+ */
+export function pickChangedSections(
+  merged: DesignDocument,
+  changes: DesignChanges
+): DesignSections {
+  const picked: Record<string, unknown> = {}
+  for (const key of Object.keys(changes) as Array<keyof DesignChanges>) {
+    if (key === 'image') {
+      picked.image = Object.fromEntries(
+        Object.keys(changes.image ?? {}).map((field) => [
+          field,
+          merged.image[field as keyof DesignDocument['image']],
+        ])
+      )
+    } else {
+      picked[key] = merged[key as keyof DesignDocument]
+    }
+  }
+  return picked as DesignSections
+}
 
 /** One copilot edit: a change set plus a summary for the user. */
 export const designEditSchema = z.object({

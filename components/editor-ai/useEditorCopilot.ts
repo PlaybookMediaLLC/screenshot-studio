@@ -40,22 +40,27 @@ const nextFrame = () =>
 
 /** The model may restyle the design but never swap the user's images. */
 function withoutImageSources(changes: DesignChanges): DesignChanges {
-  const { image, devices, ...rest } = changes
+  const { devices, image, ...rest } = changes
+  const { src: _ignored, ...imageWithoutSource } = image ?? {}
   return {
     ...rest,
-    ...(image ? { image: { ...image, src: undefined } } : {}),
+    ...(image ? { image: imageWithoutSource } : {}),
     ...(devices
       ? {
           devices: {
             ...devices,
-            mockups: devices.mockups.map((mockup) => ({
-              ...mockup,
-              screen: { ...mockup.screen, src: null },
-            })),
+            ...(devices.mockups
+              ? {
+                  mockups: devices.mockups.map((mockup) => ({
+                    ...mockup,
+                    screen: { ...mockup.screen, src: null },
+                  })),
+                }
+              : {}),
           },
         }
       : {}),
-  } as DesignChanges
+  }
 }
 
 async function snapshotParts(text: string): Promise<ToolResultPart['output']> {

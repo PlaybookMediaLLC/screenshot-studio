@@ -246,14 +246,22 @@ itself instead of the fixed sharp compositor.
 
 | Variable | Purpose |
 | --- | --- |
-| `PLATFORM_DESIGN_RENDERER=enabled` | Use editor designs instead of sharp product shots |
-| `PLATFORM_RENDER_BASE_URL` | Where the renderer reaches the app (default: `NEXT_PUBLIC_APP_URL`) |
-| `PLATFORM_RENDER_CHROMIUM_PATH` | Chromium binary; defaults to the Playwright-managed browser |
+| `PLATFORM_DESIGN_RENDERER=enabled` | Use editor designs instead of sharp product shots, and enable Directions |
+| `PLATFORM_RENDER_SERVICE_URL` | The design render service; recommended in production |
+| `PLATFORM_RENDER_SERVICE_SECRET` | Shared secret sent to the render service |
+| `PLATFORM_RENDER_BASE_URL` | Where the browser reaches the app (default: `NEXT_PUBLIC_APP_URL`) |
+| `PLATFORM_RENDER_CHROMIUM_PATH` | Local Chromium binary when no service is set |
 
-The production image does not ship Chromium yet (`npx playwright install
-chromium` adds about 400 MB). Run the renderer where a browser is available, such
-as a render worker or a Trigger.dev task with the Playwright build extension,
-and leave the flag off elsewhere. The sharp product-shot path is the fallback.
+Production rendering runs in the **design render service**
+(`services/design-renderer`). It is a small Playwright container, so the web
+image never ships Chromium. It renders only `/render/<id>` pages on the
+configured app origin, requires the shared secret, and holds no tenant
+credentials: every page carries its own five-minute, single-design token.
+Deploy it as its own Fly app (or any container host) from its Dockerfile and
+give it about 1 GB per two concurrent renders. Without a service URL, the app
+renders in-process with a local Chromium, which is fine for development. With
+the flag off, the campaign agent falls back to sharp product shots and
+Directions is hidden.
 
 
 ### In-editor AI

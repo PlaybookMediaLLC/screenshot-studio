@@ -10,10 +10,13 @@ import { createRenderToken } from './render-token'
  * report ready, and runs the editor's own export in the page, so a rendered
  * design is the same PNG the editor's Export button would produce.
  *
- * Enable with PLATFORM_DESIGN_RENDERER=enabled on hosts that have Chromium
- * (`npx playwright install chromium`, or PLATFORM_RENDER_CHROMIUM_PATH). The
- * renderer reaches the app at PLATFORM_RENDER_BASE_URL (default: the public
- * app URL); a separate render worker can point that at an internal address.
+ * Enable with PLATFORM_DESIGN_RENDERER=enabled. In production, point
+ * PLATFORM_RENDER_SERVICE_URL (+ PLATFORM_RENDER_SERVICE_SECRET) at the
+ * design render service (services/design-renderer), which keeps Chromium out
+ * of the web image. Without it, Chromium runs in this process (local
+ * development; `npx playwright install chromium` or
+ * PLATFORM_RENDER_CHROMIUM_PATH). Either way the browser opens the app at
+ * PLATFORM_RENDER_BASE_URL (default: the public app URL).
  */
 
 const RENDER_TIMEOUT_MS = 60_000
@@ -38,8 +41,42 @@ export type DesignRenderer = {
   ) => Promise<{ height: number; png: Buffer; width: number }>
 }
 
-/** One browser per agent run; each render gets a fresh page. */
+function renderPageUrl(designId: string, organizationId: string): URL {
+  const url = new URL(`/render/${designId}`, getRenderBaseUrl())
+  url.searchParams.set('token', createRenderToken(designId, organizationId))
+  return url
+}
+
+/** Renders through the design render service over HTTP. */
+function createServiceRenderer(serviceUrl: string): DesignRenderer {
+  return {
+    close: async () => {},
+    render: async (designId, organizationId) => {
+      const response = await fetch(new URL('/render', serviceUrl), {
+        body: JSON.stringify({ url: renderPageUrl(designId, organizationId).toString() }),
+        headers: {
+          'content-type': 'application/json',
+          'x-render-secret': process.env.PLATFORM_RENDER_SERVICE_SECRET ?? '',
+        },
+        method: 'POST',
+        signal: AbortSignal.timeout(RENDER_TIMEOUT_MS + 15_000),
+      })
+      if (!response.ok) throw new Error(`Render service returned ${response.status}.`)
+      const result = (await response.json()) as { base64: string; height: number; width: number }
+      return {
+        height: result.height,
+        png: Buffer.from(result.base64, 'base64'),
+        width: result.width,
+      }
+    },
+  }
+}
+
+/** One renderer per agent run; locally, one browser with a fresh page per render. */
 export async function createDesignRenderer(): Promise<DesignRenderer> {
+  const serviceUrl = process.env.PLATFORM_RENDER_SERVICE_URL
+  if (serviceUrl) return createServiceRenderer(serviceUrl)
+
   const browser: Browser = await chromium.launch({
     executablePath: process.env.PLATFORM_RENDER_CHROMIUM_PATH || undefined,
     headless: true,
@@ -64,9 +101,9 @@ export async function createDesignRenderer(): Promise<DesignRenderer> {
             ? route.continue()
             : route.abort()
         })
-        const url = new URL(`/render/${designId}`, baseUrl)
-        url.searchParams.set('token', createRenderToken(designId, organizationId))
-        const response = await page.goto(url.toString(), { timeout: RENDER_TIMEOUT_MS })
+        const response = await page.goto(renderPageUrl(designId, organizationId).toString(), {
+          timeout: RENDER_TIMEOUT_MS,
+        })
         if (!response?.ok())
           throw new Error(`Render page returned ${response?.status() ?? 'no response'}.`)
         await page.waitForFunction(() => window.__designReady === true, undefined, {

@@ -148,6 +148,12 @@ jobs:
           npm ci
           DATABASE_URL=postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio npx prisma generate
           npx playwright install --with-deps chromium
+      - name: Test the design render service
+        # Real Chromium against a fake app: auth, origin and path guards,
+        # load shedding, and metrics. Once is enough, so only on shard 1.
+        if: matrix.shard_index == 1
+        timeout-minutes: 5
+        run: npm --prefix services/design-renderer test
       - name: Start and smoke-test the local stack
         run: ./bin/studio up
       - name: Run local stack smoke test

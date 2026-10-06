@@ -1,0 +1,42 @@
+# Deploy: fly launch --copy-config --no-deploy (first time), then
+#   fly secrets set RENDER_SERVICE_SECRET=<32+ chars>
+#   fly deploy
+# Reach it from the web app over Fly's private network:
+#   PLATFORM_RENDER_SERVICE_URL=http://playbook-design-renderer.internal:8080
+app = "playbook-design-renderer"
+primary_region = "iad"
+kill_signal = "SIGTERM"
+# Matches the service's 30s drain: in-flight renders finish before shutdown.
+kill_timeout = "35s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  RENDER_ALLOWED_ORIGIN = "https://shots.oppulence.io"
+  RENDER_CONCURRENCY = "2"
+  RENDER_MAX_QUEUE = "20"
+
+# No [http_service]: the service is only reachable on the private network.
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+  auto_start_machines = true
+  auto_stop_machines = "stop"
+  min_machines_running = 0
+
+  [services.concurrency]
+    type = "requests"
+    soft_limit = 2
+    hard_limit = 22
+
+  [[services.http_checks]]
+    path = "/ready"
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "20s"
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "2gb"

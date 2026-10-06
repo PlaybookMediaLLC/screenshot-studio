@@ -16,6 +16,9 @@ import { createTenantDownloadUrl } from '@/lib/storage/client'
 import { storeGeneratedAsset } from '@/lib/tenant/assets'
 import { createDesign, setDesignRender } from '@/lib/tenant/designs'
 import { models } from '../models'
+
+/** Previews in flight at once; the render service queues anything beyond its own limit. */
+const PREVIEW_CONCURRENCY = 3
 import {
   EDITOR_CRITIC_INSTRUCTIONS,
   EDITOR_DIRECTIONS_INSTRUCTIONS,
@@ -138,25 +141,29 @@ export async function exploreDesignDirections(
   const base = await createDesign(tenant, { document, name: 'Editor design' })
   const renderer = await createDesignRenderer()
   try {
-    const directions = []
-    for (const proposal of proposals) {
+    // Previews only: a 1x JPEG renders faster and loads faster than the 2x
+    // PNG export, and choosing a direction loads the design, not the image.
+    const rendered = await mapWithConcurrency(proposals, PREVIEW_CONCURRENCY, async (proposal) => {
       const design = await createDesign(tenant, {
         document: patchDesignDocument(document, proposal.changes),
         name: proposal.title,
         parentDesignId: base.id,
       })
       try {
-        const rendered = await renderer.render(design.id, tenant.organizationId)
+        const preview = await renderer.render(design.id, tenant.organizationId, {
+          format: 'jpeg',
+          scale: 1,
+        })
         const asset = await storeGeneratedAsset(tenant, {
-          body: rendered.png,
+          body: preview.bytes,
           classification: 'export',
-          contentType: 'image/png',
-          fileName: 'direction.png',
-          height: rendered.height,
-          width: rendered.width,
+          contentType: preview.mediaType,
+          fileName: 'direction.jpg',
+          height: preview.height,
+          width: preview.width,
         })
         await setDesignRender(tenant, design.id, asset.id)
-        directions.push({
+        return {
           designId: design.id,
           name: proposal.title,
           previewUrl: await createTenantDownloadUrl({
@@ -165,16 +172,38 @@ export async function exploreDesignDirections(
             organizationId: tenant.organizationId,
           }).catch(() => null),
           rationale: proposal.reason,
-        })
+        }
       } catch (error) {
         console.error('Direction render failed.', {
           designId: design.id,
           reason: error instanceof Error ? error.message : 'unknown',
         })
+        return null
       }
+    })
+    return {
+      baseDesignId: base.id,
+      directions: rendered.filter((direction) => direction !== null),
     }
-    return { baseDesignId: base.id, directions }
   } finally {
     await renderer.close()
   }
+}
+
+/** Run `work` over `items` with at most `limit` in flight, keeping input order. */
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  work: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let next = 0
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next++
+      results[index] = await work(items[index]!)
+    }
+  })
+  await Promise.all(runners)
+  return results
 }

@@ -11,7 +11,7 @@ export const metadata: Metadata = { robots: { follow: false, index: false } }
 
 type RenderPageProps = {
   params: Promise<{ designId: string }>
-  searchParams: Promise<{ token?: string }>
+  searchParams: Promise<{ format?: string; scale?: string; token?: string }>
 }
 
 /**
@@ -21,7 +21,7 @@ type RenderPageProps = {
  * the page needs no storage session.
  */
 export default async function RenderPage({ params, searchParams }: RenderPageProps) {
-  const [{ designId }, { token }] = await Promise.all([params, searchParams])
+  const [{ designId }, { format, scale, token }] = await Promise.all([params, searchParams])
   const claims = verifyRenderToken(token, designId)
   if (!claims) notFound()
   const design = await getDesign(claims.organizationId, designId)
@@ -42,5 +42,11 @@ export default async function RenderPage({ params, searchParams }: RenderPagePro
       `data:${asset.mediaType};base64,${Buffer.from(bytes).toString('base64')}`
   }
 
-  return <DesignRenderStage document={design.document} sources={sources} />
+  // The editor's defaults: PNG at 2x.
+  const output = {
+    format: format === 'jpeg' || format === 'webp' ? format : 'png',
+    scale: scale === '1' ? 1 : scale === '3' ? 3 : 2,
+  } as const
+
+  return <DesignRenderStage document={design.document} output={output} sources={sources} />
 }

@@ -14,12 +14,20 @@ import { useEditorStore, useImageStore } from '@/lib/store'
 declare global {
   interface Window {
     __designReady?: boolean
-    __exportDesign?: () => Promise<{ base64: string; height: number; width: number }>
+    __exportDesign?: () => Promise<{
+      base64: string
+      height: number
+      mediaType: string
+      width: number
+    }>
   }
 }
 
+export type DesignRenderOutput = { format: 'jpeg' | 'png' | 'webp'; scale: 1 | 2 | 3 }
+
 type DesignRenderStageProps = {
   document: DesignDocument
+  output: DesignRenderOutput
   sources: Record<string, string>
 }
 
@@ -37,7 +45,7 @@ async function blobToBase64(blob: Blob): Promise<string> {
  * exposes `window.__exportDesign` for the headless renderer. Nothing here is
  * interactive; it is the editor stage without the editor.
  */
-export function DesignRenderStage({ document, sources }: DesignRenderStageProps) {
+export function DesignRenderStage({ document, output, sources }: DesignRenderStageProps) {
   const [applied, setApplied] = useState(false)
   const [canvasReady, setCanvasReady] = useState(false)
   const [layoutApplied, setLayoutApplied] = useState(false)
@@ -83,10 +91,9 @@ export function DesignRenderStage({ document, sources }: DesignRenderStageProps)
           {
             exportHeight: preset.height,
             exportWidth: preset.width,
-            format: 'png',
+            format: output.format,
             qualityPreset: 'high',
-            // The editor's default export scale.
-            scale: 2,
+            scale: output.scale,
             skipSharp: true,
           },
           getCanvasContainer(),
@@ -103,8 +110,9 @@ export function DesignRenderStage({ document, sources }: DesignRenderStageProps)
         )
         return {
           base64: await blobToBase64(blob),
-          height: preset.height * 2,
-          width: preset.width * 2,
+          height: preset.height * output.scale,
+          mediaType: blob.type || `image/${output.format}`,
+          width: preset.width * output.scale,
         }
       }
       window.__designReady = true
@@ -112,7 +120,7 @@ export function DesignRenderStage({ document, sources }: DesignRenderStageProps)
     return () => {
       cancelled = true
     }
-  }, [backgroundReady, canvasReady, layoutApplied])
+  }, [backgroundReady, canvasReady, layoutApplied, output.format, output.scale])
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-transparent p-6">

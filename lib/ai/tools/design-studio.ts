@@ -193,9 +193,9 @@ export function createDesignStudioTools(
         return failure('The design could not be rendered. Try a simpler variant.')
       }
       const asset = await storeGeneratedAsset(scope.tenant, {
-        body: rendered.png,
+        body: rendered.bytes,
         classification: 'export',
-        contentType: 'image/png',
+        contentType: rendered.mediaType,
         fileName: 'design.png',
         height: rendered.height,
         width: rendered.width,
@@ -212,7 +212,7 @@ export function createDesignStudioTools(
       })
       record.assets.push({ assetId: asset.id, kind: 'design-render' })
       // A small preview lets the model review its own work without a full-size image.
-      const preview = await sharp(rendered.png)
+      const preview = await sharp(rendered.bytes)
         .resize({ width: 960, withoutEnlargement: true })
         .jpeg({ quality: 70 })
         .toBuffer()

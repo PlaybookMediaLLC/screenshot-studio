@@ -33,17 +33,49 @@ function getRenderBaseUrl(): string {
   )
 }
 
+export type DesignRenderOptions = {
+  /** Default `png`. JPEG suits previews and photo-heavy designs. */
+  format?: 'jpeg' | 'png' | 'webp'
+  /** Multiple of the aspect ratio's base size. Default 2, the editor's export default. */
+  scale?: 1 | 2 | 3
+}
+
+export type RenderedDesign = {
+  bytes: Buffer
+  height: number
+  mediaType: 'image/jpeg' | 'image/png' | 'image/webp'
+  width: number
+}
+
 export type DesignRenderer = {
   close: () => Promise<void>
   render: (
     designId: string,
-    organizationId: string
-  ) => Promise<{ height: number; png: Buffer; width: number }>
+    organizationId: string,
+    options?: DesignRenderOptions
+  ) => Promise<RenderedDesign>
 }
 
-function renderPageUrl(designId: string, organizationId: string): URL {
+type ExportResult = { base64: string; height: number; mediaType?: string; width: number }
+
+function toRenderedDesign(result: ExportResult, options: DesignRenderOptions): RenderedDesign {
+  return {
+    bytes: Buffer.from(result.base64, 'base64'),
+    height: result.height,
+    mediaType: `image/${options.format ?? 'png'}` as RenderedDesign['mediaType'],
+    width: result.width,
+  }
+}
+
+function renderPageUrl(
+  designId: string,
+  organizationId: string,
+  options: DesignRenderOptions
+): URL {
   const url = new URL(`/render/${designId}`, getRenderBaseUrl())
   url.searchParams.set('token', createRenderToken(designId, organizationId))
+  url.searchParams.set('format', options.format ?? 'png')
+  url.searchParams.set('scale', String(options.scale ?? 2))
   return url
 }
 
@@ -51,9 +83,9 @@ function renderPageUrl(designId: string, organizationId: string): URL {
 function createServiceRenderer(serviceUrl: string): DesignRenderer {
   return {
     close: async () => {},
-    render: async (designId, organizationId) => {
+    render: async (designId, organizationId, options = {}) => {
       const response = await fetch(new URL('/render', serviceUrl), {
-        body: JSON.stringify({ url: renderPageUrl(designId, organizationId).toString() }),
+        body: JSON.stringify({ url: renderPageUrl(designId, organizationId, options).toString() }),
         headers: {
           'content-type': 'application/json',
           'x-render-secret': process.env.PLATFORM_RENDER_SERVICE_SECRET ?? '',
@@ -62,12 +94,7 @@ function createServiceRenderer(serviceUrl: string): DesignRenderer {
         signal: AbortSignal.timeout(RENDER_TIMEOUT_MS + 15_000),
       })
       if (!response.ok) throw new Error(`Render service returned ${response.status}.`)
-      const result = (await response.json()) as { base64: string; height: number; width: number }
-      return {
-        height: result.height,
-        png: Buffer.from(result.base64, 'base64'),
-        width: result.width,
-      }
+      return toRenderedDesign((await response.json()) as ExportResult, options)
     },
   }
 }
@@ -85,7 +112,7 @@ export async function createDesignRenderer(): Promise<DesignRenderer> {
 
   return {
     close: () => browser.close(),
-    render: async (designId, organizationId) => {
+    render: async (designId, organizationId, options = {}) => {
       const context = await browser.newContext({
         deviceScaleFactor: 1,
         viewport: { height: 1400, width: 2200 },
@@ -101,20 +128,18 @@ export async function createDesignRenderer(): Promise<DesignRenderer> {
             ? route.continue()
             : route.abort()
         })
-        const response = await page.goto(renderPageUrl(designId, organizationId).toString(), {
-          timeout: RENDER_TIMEOUT_MS,
-        })
+        const response = await page.goto(
+          renderPageUrl(designId, organizationId, options).toString(),
+          {
+            timeout: RENDER_TIMEOUT_MS,
+          }
+        )
         if (!response?.ok())
           throw new Error(`Render page returned ${response?.status() ?? 'no response'}.`)
         await page.waitForFunction(() => window.__designReady === true, undefined, {
           timeout: RENDER_TIMEOUT_MS,
         })
-        const result = await page.evaluate(() => window.__exportDesign!())
-        return {
-          height: result.height,
-          png: Buffer.from(result.base64, 'base64'),
-          width: result.width,
-        }
+        return toRenderedDesign(await page.evaluate(() => window.__exportDesign!()), options)
       } finally {
         await context.close()
       }

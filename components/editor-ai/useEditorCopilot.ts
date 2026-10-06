@@ -4,7 +4,8 @@ import type { ModelMessage, ToolResultPart } from 'ai'
 import { useCallback, useRef, useState } from 'react'
 import { applyDesignChanges } from '@/lib/design/apply'
 import { type DesignChanges, designEditSchema } from '@/lib/design/document'
-import { captureCanvasSnapshot, describeSelection, exportDesignDocument } from '@/lib/design/export'
+import { describeSelection, exportDesignDocument } from '@/lib/design/export'
+import { captureCanvasSnapshot } from '@/lib/design/snapshot'
 import { useImageStore } from '@/lib/store'
 
 /**

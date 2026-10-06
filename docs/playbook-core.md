@@ -252,6 +252,29 @@ itself instead of the fixed sharp compositor.
 | `PLATFORM_RENDER_BASE_URL` | Where the browser reaches the app (default: `NEXT_PUBLIC_APP_URL`) |
 | `PLATFORM_RENDER_CHROMIUM_PATH` | Local Chromium binary when no service is set |
 
+Every render goes through `renderDesignForTenant` (`lib/design/render-design.ts`):
+
+- **Render cache.** A render key hashes the document, the output format and
+  scale, and the content (SHA-256) of every image the design references. When
+  any design in the workspace already has a render with that key (the same
+  design re-checked, or an identical variant), its stored image is reused and
+  no render runs. The key lives on `Design.renderKey` next to
+  `renderedAssetId`. Images live in object storage, not Redis.
+- **Per-workspace fairness.** Real renders are limited to 60 a minute per
+  workspace with the existing Redis rate limiter, so one burst cannot crowd
+  out everyone else on the shared service. Cache hits don't count. If Redis
+  is down the limit fails open, because the service bounds its own load.
+- **Fallback.** `isDesignRendererReady` probes the service's `/ready`. It
+  caches the answer briefly and waits long enough for a scaled-to-zero
+  machine to wake. When the service is down, campaign runs use sharp product
+  shots instead of failing, the agent keeps `createProductShot` for renders
+  that fail mid-run, and Directions reports itself unavailable.
+
+Renders stay synchronous HTTP on purpose: callers wait for the bytes (the
+agent reviews each render), renders take 1.5-3s, and a lost request is cheap
+to retry. Long or batch work (video, bulk exports, scheduled kits) should run
+as Trigger.dev tasks that call the service, not through a separate queue.
+
 Production rendering runs in the **design render service**
 (`services/design-renderer`). It is a small Playwright container, so the web
 image never ships Chromium. It renders only `/render/<id>` pages on the

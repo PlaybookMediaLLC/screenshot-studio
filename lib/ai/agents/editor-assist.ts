@@ -11,10 +11,10 @@ import {
   designChangesSchema,
   patchDesignDocument,
 } from '@/lib/design/document'
-import { createDesignRenderer } from '@/lib/design/renderer'
+import { renderDesignForTenant } from '@/lib/design/render-design'
+import { createDesignRenderer, type DesignRenderer } from '@/lib/design/renderer'
 import { createTenantDownloadUrl } from '@/lib/storage/client'
-import { storeGeneratedAsset } from '@/lib/tenant/assets'
-import { createDesign, setDesignRender } from '@/lib/tenant/designs'
+import { createDesign } from '@/lib/tenant/designs'
 import { models } from '../models'
 
 /** Previews in flight at once; the render service queues anything beyond its own limit. */
@@ -139,7 +139,9 @@ export async function exploreDesignDirections(
   })
 
   const base = await createDesign(tenant, { document, name: 'Editor design' })
-  const renderer = await createDesignRenderer()
+  // Started on the first cache miss, so a fully cached batch never opens a browser.
+  const lazy: { renderer: Promise<DesignRenderer> | null } = { renderer: null }
+  const getRenderer = () => (lazy.renderer ??= createDesignRenderer())
   try {
     // Previews only: a 1x JPEG renders faster and loads faster than the 2x
     // PNG export, and choosing a direction loads the design, not the image.
@@ -150,25 +152,16 @@ export async function exploreDesignDirections(
         parentDesignId: base.id,
       })
       try {
-        const preview = await renderer.render(design.id, tenant.organizationId, {
+        const preview = await renderDesignForTenant(tenant, getRenderer, design, {
           format: 'jpeg',
           scale: 1,
         })
-        const asset = await storeGeneratedAsset(tenant, {
-          body: preview.bytes,
-          classification: 'export',
-          contentType: preview.mediaType,
-          fileName: 'direction.jpg',
-          height: preview.height,
-          width: preview.width,
-        })
-        await setDesignRender(tenant, design.id, asset.id)
         return {
           designId: design.id,
           name: proposal.title,
           previewUrl: await createTenantDownloadUrl({
             expiresIn: 900,
-            objectKey: asset.objectKey,
+            objectKey: preview.asset.objectKey,
             organizationId: tenant.organizationId,
           }).catch(() => null),
           rationale: proposal.reason,
@@ -186,7 +179,7 @@ export async function exploreDesignDirections(
       directions: rendered.filter((direction) => direction !== null),
     }
   } finally {
-    await renderer.close()
+    if (lazy.renderer) await (await lazy.renderer).close().catch(() => undefined)
   }
 }
 

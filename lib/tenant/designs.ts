@@ -136,9 +136,14 @@ export async function updateDesignDocument(
   })
 }
 
-export async function setDesignRender(context: TenantContext, designId: string, assetId: string) {
+export async function setDesignRender(
+  context: TenantContext,
+  designId: string,
+  assetId: string,
+  renderKey: string | null = null
+) {
   const updated = await prisma.design.updateMany({
-    data: { renderedAssetId: assetId },
+    data: { renderedAssetId: assetId, renderKey },
     where: { id: designId, organizationId: context.organizationId },
   })
   if (updated.count === 0) throw new DesignError('Design not found.', 404)

@@ -12,10 +12,10 @@ import {
   designChangesSchema,
   patchDesignDocument,
 } from '@/lib/design/document'
+import { DesignRenderLimitError, renderDesignForTenant } from '@/lib/design/render-design'
 import type { DesignRenderer } from '@/lib/design/renderer'
 import { designTemplates, getDesignTemplate } from '@/lib/design/templates'
-import { storeGeneratedAsset } from '@/lib/tenant/assets'
-import { createDesign, getDesign, setDesignRender } from '@/lib/tenant/designs'
+import { createDesign, getDesign } from '@/lib/tenant/designs'
 import type { CampaignStudioRecord, CampaignStudioScope } from './campaign-studio'
 
 /**
@@ -184,40 +184,40 @@ export function createDesignStudioTools(
       renders += 1
       let rendered
       try {
-        rendered = await (await getRenderer()).render(design.id, scope.tenant.organizationId)
+        rendered = await renderDesignForTenant(scope.tenant, getRenderer, design)
       } catch (error) {
+        if (error instanceof DesignRenderLimitError) return failure(error.message)
         console.error('Design render failed.', {
           designId,
           reason: error instanceof Error ? error.message : 'unknown',
         })
-        return failure('The design could not be rendered. Try a simpler variant.')
+        return failure(
+          'The design could not be rendered. If this keeps happening, use createProductShot instead.'
+        )
       }
-      const asset = await storeGeneratedAsset(scope.tenant, {
-        body: rendered.bytes,
-        classification: 'export',
-        contentType: rendered.mediaType,
-        fileName: 'design.png',
-        height: rendered.height,
-        width: rendered.width,
-      })
-      await setDesignRender(scope.tenant, design.id, asset.id)
-      await prisma.campaignAsset.create({
-        data: {
-          assetId: asset.id,
+      // A re-render of an unchanged design reuses the same asset; link it once.
+      await prisma.campaignAsset.upsert({
+        create: {
+          assetId: rendered.asset.id,
           campaignId: scope.campaignId,
           caption,
           kind: 'design-render',
           organizationId: scope.tenant.organizationId,
         },
+        update: { caption },
+        where: { campaignId_assetId: { assetId: rendered.asset.id, campaignId: scope.campaignId } },
       })
-      record.assets.push({ assetId: asset.id, kind: 'design-render' })
+      if (!record.assets.some((asset) => asset.assetId === rendered.asset.id)) {
+        record.assets.push({ assetId: rendered.asset.id, kind: 'design-render' })
+      }
       // A small preview lets the model review its own work without a full-size image.
-      const preview = await sharp(rendered.bytes)
+      const preview = await sharp(await rendered.readBytes())
         .resize({ width: 960, withoutEnlargement: true })
         .jpeg({ quality: 70 })
         .toBuffer()
       return {
-        assetId: asset.id,
+        assetId: rendered.asset.id,
+        cached: rendered.cached,
         designId: design.id,
         height: rendered.height,
         ok: true as const,

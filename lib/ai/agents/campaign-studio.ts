@@ -9,7 +9,7 @@ import { assertPublicCaptureUrl } from '@/lib/screenshot-service'
 import {
   createDesignRenderer,
   type DesignRenderer,
-  isDesignRendererAvailable,
+  isDesignRendererReady,
 } from '@/lib/design/renderer'
 import { CampaignError } from '@/lib/tenant/campaigns'
 import { models, normalizeTokenUsage } from '../models'
@@ -77,13 +77,17 @@ export async function runCampaignStudio(tenant: TenantContext, campaignId: strin
     tenant,
   }
   const baseTools = createCampaignStudioTools(scope, record)
-  const designMode = isDesignRendererAvailable()
+  // Design mode needs the renderer; if it is down, the run still produces
+  // visuals with sharp product shots instead of failing.
+  const designMode = await isDesignRendererReady()
   // One browser per run, started on the first render and closed when the run ends.
   let renderer: Promise<DesignRenderer> | null = null
   const getRenderer = () => (renderer ??= createDesignRenderer())
   const tools = designMode
     ? {
         captureProductPage: baseTools.captureProductPage,
+        // Kept as a fallback for renders that fail mid-run.
+        createProductShot: baseTools.createProductShot,
         saveCampaignCopy: baseTools.saveCampaignCopy,
         ...createDesignStudioTools(scope, record, getRenderer),
       }

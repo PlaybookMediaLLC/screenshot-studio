@@ -25,6 +25,26 @@ export function isDesignRendererAvailable(): boolean {
   return process.env.PLATFORM_DESIGN_RENDERER === 'enabled'
 }
 
+let readiness: { expiresAt: number; ready: boolean } | null = null
+
+/**
+ * Whether renders can run right now. With a render service, ask its /ready
+ * (cached briefly); the timeout is long enough for a scaled-to-zero machine to
+ * wake, so a cold start is not mistaken for an outage. Callers fall back to
+ * sharp product shots when this is false.
+ */
+export async function isDesignRendererReady(): Promise<boolean> {
+  if (!isDesignRendererAvailable()) return false
+  const serviceUrl = process.env.PLATFORM_RENDER_SERVICE_URL
+  if (!serviceUrl) return true
+  if (readiness && readiness.expiresAt > Date.now()) return readiness.ready
+  const ready = await fetch(new URL('/ready', serviceUrl), { signal: AbortSignal.timeout(8_000) })
+    .then((response) => response.ok)
+    .catch(() => false)
+  readiness = { expiresAt: Date.now() + (ready ? 30_000 : 10_000), ready }
+  return ready
+}
+
 function getRenderBaseUrl(): string {
   return (
     process.env.PLATFORM_RENDER_BASE_URL ??

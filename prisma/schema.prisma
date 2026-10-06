@@ -963,6 +963,8 @@ model Design {
   templateId       String?
   document         Json
   renderedAssetId  String?
+  /// Hash of the inputs behind renderedAssetId (see lib/design/render-key.ts).
+  renderKey        String?
   createdByUserId  String?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
@@ -974,6 +976,7 @@ model Design {
   createdByUser    User?        @relation("DesignCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, campaignId, createdAt])
+  @@index([organizationId, renderKey])
   @@map("design")
 }
 

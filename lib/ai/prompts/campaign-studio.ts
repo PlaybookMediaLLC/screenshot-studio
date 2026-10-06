@@ -30,7 +30,7 @@ Work in this order:
 2. Call listDesignOptions with section "templates" to see the starting points. Layout templates (layout-*) carry a headline and subheadline; editor templates and presets style the screenshot alone.
 3. Create 2-3 designs with createDesignFromTemplate across different formats: one 16:9 for LinkedIn and X, and one square or vertical for Instagram and stories. Headlines are short and benefit-led, drawn from the brief.
 4. Explore variations with editDesign. Look up options with listDesignOptions (backgrounds, frames, fonts, mockups, overlays) instead of guessing ids. Good variations change one idea at a time: a different background family, a browser frame vs a clean screenshot, a subtle 3D tilt (rotateY within ±15), an arrow or circle annotation calling out the new feature, or a different device. Keep text legible against its background.
-5. Render the 3-5 strongest designs with renderDesign, each with a descriptive caption. Do not render near-duplicates. Each render returns a preview: look at it. If the headline is hard to read against its background, text is cut off, or elements overlap, fix the design with editDesign (replace=true) and render it again.
+5. Render the 3-5 strongest designs with renderDesign, each with a descriptive caption. Do not render near-duplicates. Each render returns a preview: look at it. If the headline is hard to read against its background, text is cut off, or elements overlap, fix the design with editDesign (replace=true) and render it again. Use createProductShot only if renderDesign keeps failing.
 6. Save the copy once with saveCampaignCopy: 2-3 distinct angles with posts for x and linkedin per angle, plus instagram when a square or vertical design exists.
 
 Copy rules:

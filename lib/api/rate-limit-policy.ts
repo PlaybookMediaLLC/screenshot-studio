@@ -48,3 +48,14 @@ export const WORKSPACE_INVITATION_RESEND_RATE_LIMIT: RateLimitPolicy = {
   name: 'workspace-invitation-resend',
   windowMs: 60 * 60 * 1_000,
 }
+
+/**
+ * Design renders per workspace. The render service is shared, so one
+ * workspace bursting (an agent run, a directions request) must not crowd out
+ * everyone else. Cache hits do not count; only real renders do.
+ */
+export const DESIGN_RENDER_RATE_LIMIT: RateLimitPolicy = {
+  maxRequests: 60,
+  name: 'design-render',
+  windowMs: 60_000,
+}

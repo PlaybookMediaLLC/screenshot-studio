@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth/client'
 import type { SocialProvider } from '@/lib/auth/methods'
 import { getAuthErrorMessage } from './error-message'
+import { AuthField, Divider, FormAlert, SubmitButton } from './fields'
 import { SsoSignInForm } from './SsoSignInForm'
 
 const signInSchema = z.object({
@@ -104,104 +105,84 @@ export function AuthForm({ mode, passwordAuthEnabled, socialProviders }: AuthFor
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {passwordAuthEnabled ? (
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-5" onSubmit={handleSubmit}>
           {isSignUp ? (
-            <label className="grid gap-1.5 text-sm font-medium" htmlFor="name">
-              Name
-              <input
-                autoComplete="name"
-                className="h-10 rounded-md border bg-background px-3"
-                id="name"
-                name="name"
-                required
-              />
-            </label>
+            <AuthField autoComplete="name" id="name" label="Name" name="name" required />
           ) : null}
-          <label className="grid gap-1.5 text-sm font-medium" htmlFor="email">
-            Email
-            <input
-              autoComplete="email"
-              className="h-10 rounded-md border bg-background px-3"
-              id="email"
-              name="email"
-              required
-              type="email"
-            />
-          </label>
-          <label className="grid gap-1.5 text-sm font-medium" htmlFor="password">
-            Password
-            <input
-              autoComplete={isSignUp ? 'new-password' : 'current-password'}
-              className="h-10 rounded-md border bg-background px-3"
-              id="password"
-              minLength={isSignUp ? 12 : undefined}
-              name="password"
-              required
-              type="password"
-            />
-          </label>
-          {error ? (
-            <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
-          {error}
-        </p>
-          ) : null}
-          {message ? (
-            <p className="rounded-md bg-primary/10 p-3 text-sm text-foreground">{message}</p>
-          ) : null}
-          <Button className="w-full" disabled={!isHydrated || isSubmitting} type="submit">
-            {isSubmitting ? 'Please wait…' : isSignUp ? 'Create account' : 'Sign in'}
-          </Button>
+          <AuthField
+            autoComplete="email"
+            id="email"
+            label="Email"
+            name="email"
+            placeholder="you@company.com"
+            required
+            type="email"
+          />
+          <AuthField
+            autoComplete={isSignUp ? 'new-password' : 'current-password'}
+            hint={isSignUp ? 'At least 12 characters.' : undefined}
+            id="password"
+            label="Password"
+            minLength={isSignUp ? 12 : undefined}
+            name="password"
+            required
+            type="password"
+          />
+          {error ? <FormAlert>{error}</FormAlert> : null}
+          {message ? <FormAlert tone="info">{message}</FormAlert> : null}
+          <SubmitButton
+            busy={isSubmitting}
+            busyLabel={isSignUp ? 'Creating account…' : 'Signing in…'}
+            disabled={!isHydrated}
+          >
+            {isSignUp ? 'Create account' : 'Sign in'}
+          </SubmitButton>
         </form>
       ) : null}
 
-      {passwordAuthEnabled && hasSocialProviders ? (
-        <div className="relative py-2 text-center text-xs text-muted-foreground before:absolute before:inset-x-0 before:top-1/2 before:border-t before:border-border">
-          <span className="relative bg-background px-2">or continue with</span>
-        </div>
-      ) : null}
+      {!passwordAuthEnabled && error ? <FormAlert>{error}</FormAlert> : null}
 
-      {!passwordAuthEnabled && error ? (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
-          {error}
-        </p>
-      ) : null}
-
-      {hasSocialProviders ? (
-        <div
-          className={
-            socialProviders.length > 2 ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-1 gap-2'
-          }
-        >
-          {socialProviders.map((provider) => (
-            <Button
-              key={provider}
-              onClick={() => handleSocialSignIn(provider)}
-              type="button"
-              variant="outline"
+      {hasSocialProviders || !isSignUp ? (
+        <div className="space-y-3">
+          {passwordAuthEnabled ? <Divider>or</Divider> : null}
+          {hasSocialProviders ? (
+            <div
+              className={
+                socialProviders.length > 2 ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-1 gap-2'
+              }
             >
-              {socialProviders.length > 2
-                ? PROVIDER_LABELS[provider]
-                : `Continue with ${PROVIDER_LABELS[provider]}`}
-            </Button>
-          ))}
+              {socialProviders.map((provider) => (
+                <Button
+                  className="h-11 rounded-lg"
+                  key={provider}
+                  onClick={() => handleSocialSignIn(provider)}
+                  type="button"
+                  variant="outline"
+                >
+                  {socialProviders.length > 2
+                    ? PROVIDER_LABELS[provider]
+                    : `Continue with ${PROVIDER_LABELS[provider]}`}
+                </Button>
+              ))}
+            </div>
+          ) : null}
+          {!isSignUp ? <SsoSignInForm callbackURL={callbackURL} /> : null}
         </div>
       ) : null}
 
       {passwordAuthEnabled ? (
         <p className="text-center text-sm text-muted-foreground">
-          {isSignUp ? 'Already have an account?' : 'Need an account?'}{' '}
+          {isSignUp ? 'Already have an account?' : 'New to Screenshot Studio?'}{' '}
           <Link
-            className="font-medium text-foreground underline"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
             href={`${isSignUp ? '/sign-in' : '/sign-up'}?callbackURL=${encodeURIComponent(callbackURL)}`}
           >
-            {isSignUp ? 'Sign in' : 'Create one'}
+            {isSignUp ? 'Sign in' : 'Create an account'}
           </Link>
         </p>
       ) : null}
-
-      {!isSignUp ? <SsoSignInForm callbackURL={callbackURL} /> : null}
     </div>
   )
 }

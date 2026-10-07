@@ -59,6 +59,7 @@ async function signInWithSso(browser: Browser, email: string): Promise<Page> {
   const context = await browser.newContext()
   const page = await context.newPage()
   await page.goto('/sign-in')
+  await page.getByRole('button', { name: 'Use single sign-on' }).click()
   await page.getByLabel('Work email').fill(email)
   await page.getByRole('button', { name: 'Continue with SSO' }).click()
   await expect.poll(() => new URL(page.url()).pathname).toBe('/')

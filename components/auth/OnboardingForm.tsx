@@ -1,12 +1,12 @@
 'use client'
 
-import { ArrowRight, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { workspaceCreateSchema } from '@/lib/workspace/input-schemas'
+import { workspaceInitials } from '@/lib/workspace/initials'
 import { getAuthErrorMessage } from './error-message'
+import { authInputClassName, FormAlert, SubmitButton } from './fields'
 
 function slugify(value: string): string {
   return value
@@ -14,15 +14,6 @@ function slugify(value: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '')
 }
-
-function initials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean)
-  return (
-    words.length > 1 ? words[0]![0]! + words[1]![0]! : (words[0]?.slice(0, 2) ?? '')
-  ).toUpperCase()
-}
-
-const fieldClassName = 'h-11 rounded-lg px-3.5 md:text-sm'
 
 export function OnboardingForm() {
   const trpcClient = useTRPCClient()
@@ -91,7 +82,7 @@ export function OnboardingForm() {
           aria-hidden
           className="grid size-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-fuchsia-500 via-violet-500 to-indigo-500 text-base font-semibold text-white shadow-lg shadow-violet-500/20"
         >
-          {initials(name) || 'W'}
+          {workspaceInitials(name) || 'W'}
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{name.trim() || 'Your workspace'}</p>
@@ -108,7 +99,7 @@ export function OnboardingForm() {
         <Input
           autoComplete="organization"
           autoFocus
-          className={fieldClassName}
+          className={authInputClassName}
           id="workspace-name"
           name="name"
           onChange={(event) => {
@@ -145,32 +136,11 @@ export function OnboardingForm() {
         </p>
       </div>
 
-      {error ? (
-        <p
-          className="rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-3 text-sm text-destructive"
-          role="alert"
-        >
-          {error}
-        </p>
-      ) : null}
+      {error ? <FormAlert>{error}</FormAlert> : null}
 
-      <Button
-        className="h-11 w-full rounded-lg"
-        disabled={!isHydrated || isSubmitting}
-        type="submit"
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="animate-spin" />
-            Creating workspace…
-          </>
-        ) : (
-          <>
-            Create workspace
-            <ArrowRight />
-          </>
-        )}
-      </Button>
+      <SubmitButton busy={isSubmitting} busyLabel="Creating workspace…" disabled={!isHydrated}>
+        Create workspace
+      </SubmitButton>
     </form>
   )
 }

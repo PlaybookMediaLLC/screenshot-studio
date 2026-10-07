@@ -247,6 +247,11 @@ smoke() {
   compose exec -T redis redis-cli ping | grep -qx PONG
   wait_for_http "http://127.0.0.1:9003/health/live" "RustFS"
   wait_for_http "http://127.0.0.1:5000/status" "Supabase Storage"
+  # An interrupted earlier run can leave the object behind, and signing an
+  # upload for an existing key fails with a duplicate error.
+  curl --silent --request DELETE "http://127.0.0.1:5000/object/$STORAGE_BUCKET/$storage_test_key" \
+    --header "authorization: Bearer $STORAGE_SERVICE_KEY" \
+    --header "apikey: $STORAGE_SERVICE_KEY" >/dev/null || true
   storage_response="$(curl --fail --silent --show-error --request POST \
     "http://127.0.0.1:5000/object/upload/sign/$STORAGE_BUCKET/$storage_test_key" \
     --header "authorization: Bearer $STORAGE_SERVICE_KEY" \

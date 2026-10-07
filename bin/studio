@@ -392,6 +392,35 @@ check() {
   compose run --rm --no-deps app npm run quality:check
 }
 
+# A local account with a workspace, so a fresh database never leaves you at a
+# sign-in page with nothing to sign in with. Safe to run repeatedly.
+dev_login() {
+  local app="http://localhost:3000"
+  local email="dev@localhost.test"
+  local jar
+  local password
+
+  ensure_env_value STUDIO_DEV_PASSWORD "dev-$(random_hex 12)"
+  password="$(grep '^STUDIO_DEV_PASSWORD=' "$LOCAL_ENV" | cut -d= -f2-)"
+  jar="$(mktemp)"
+  # Fails harmlessly when the account already exists.
+  curl --silent --output /dev/null --header "content-type: application/json" --header "origin: $app" \
+    --data "{\"name\":\"Dev\",\"email\":\"$email\",\"password\":\"$password\"}" "$app/api/auth/sign-up/email" || true
+  if ! curl --fail --silent --output /dev/null --cookie-jar "$jar" --header "content-type: application/json" \
+    --header "origin: $app" --data "{\"email\":\"$email\",\"password\":\"$password\"}" "$app/api/auth/sign-in/email"; then
+    echo "Dev login: could not sign in as $email; sign up at $app/sign-up instead." >&2
+    rm -f "$jar"
+    return 0
+  fi
+  if ! curl --silent --cookie "$jar" "$app/api/trpc/workspace.listMine" | grep -q '"slug"'; then
+    curl --fail --silent --output /dev/null --cookie "$jar" --header "content-type: application/json" \
+      --header "origin: $app" --data '{"json":{"name":"Playbook Dev","slug":"playbook-dev"}}' \
+      "$app/api/trpc/workspace.create" || echo "Dev login: could not create its workspace." >&2
+  fi
+  rm -f "$jar"
+  echo "Dev login: $email (password: STUDIO_DEV_PASSWORD in .local/dev.env)"
+}
+
 up() {
   ensure_env
   compose rm --force --stop rustfs-init >/dev/null 2>&1 || true
@@ -417,6 +446,7 @@ up() {
     "ALTER TABLE IF EXISTS screenshot_cache OWNER TO screenshot_studio;" >/dev/null
   compose exec -T app npx prisma db push --skip-generate
   smoke
+  dev_login
   echo "App:     http://localhost:3000"
   if [[ "$renderer" == "on" ]]; then
     echo "Design renderer: running (STUDIO_RENDERER=off to skip)"

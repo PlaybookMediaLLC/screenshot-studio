@@ -20,6 +20,10 @@ make down
 The app reloads at `http://localhost:3000`. Postgres is available on port
 `54329`, Supabase Storage on `5000`, and the RustFS console on `9004` (`/rustfs/console/`).
 
+`make up` also makes sure a local account exists, so a fresh database still has
+a login: sign in as `dev@localhost.test` with the `STUDIO_DEV_PASSWORD` value
+from `.local/dev.env`. It owns a workspace named Playbook Dev.
+
 `make down` asks whether to preserve data. Use `make reset` to remove all
 Compose volumes without a second prompt.
 

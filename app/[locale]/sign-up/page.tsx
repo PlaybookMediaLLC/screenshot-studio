@@ -10,6 +10,7 @@ export default function SignUpPage() {
   return (
     <AuthShell
       description="Create an account, then set up your team workspace."
+      eyebrow="Step 1 of 2"
       title="Create your account"
     >
       <Suspense fallback={null}>

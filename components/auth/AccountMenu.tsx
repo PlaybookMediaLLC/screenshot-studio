@@ -12,7 +12,12 @@ function getInitial(name: string | null | undefined, email: string): string {
 
 type Workspace = { id: string; isScheduledForDeletion: boolean; name: string; slug: string }
 
-export function AccountMenu() {
+export function AccountMenu({
+  side = 'bottom',
+}: {
+  /** Where the menu opens; the sidebar opens it upward or to the right. */
+  side?: 'bottom' | 'right' | 'top'
+} = {}) {
   const trpcClient = useTRPCClient()
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isSwitchingWorkspace, setIsSwitchingWorkspace] = useState(false)
@@ -94,7 +99,7 @@ export function AccountMenu() {
           {getInitial(session.user.name, session.user.email)}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-64 p-2">
+      <PopoverContent align="end" className="w-64 p-2" side={side}>
         <div className="border-b px-2 py-2.5">
           <p className="truncate text-sm font-medium">{name}</p>
           <p className="truncate text-xs text-muted-foreground">{session.user.email}</p>

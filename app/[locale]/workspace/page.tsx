@@ -1,5 +1,6 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { WorkspaceSettings } from '@/components/workspace/WorkspaceSettings'
 import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
 
@@ -16,14 +17,18 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
   }
 
   return (
-    <WorkspaceSettings
+    <PlatformShell
       campaignsEnabled={access.campaignWorkflowEnabled}
-      email={access.session.user.email}
-      name={access.session.user.name || ''}
-      organization={access.organization}
-      role={access.role}
-      twoFactorEnabled={Boolean(access.session.user.twoFactorEnabled)}
-      userId={access.session.user.id}
-    />
+      organizationName={access.organization.name}
+    >
+      <WorkspaceSettings
+        email={access.session.user.email}
+        name={access.session.user.name || ''}
+        organization={access.organization}
+        role={access.role}
+        twoFactorEnabled={Boolean(access.session.user.twoFactorEnabled)}
+        userId={access.session.user.id}
+      />
+    </PlatformShell>
   )
 }

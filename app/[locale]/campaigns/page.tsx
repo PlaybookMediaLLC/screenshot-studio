@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { AppHeader } from '@/components/workspace/AppHeader'
+import { ButtonLink } from '@/components/platform-shell/ButtonLink'
+import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { listCampaigns } from '@/lib/tenant/campaigns'
 import { requireCampaignPageAccess } from './page-access'
 
@@ -18,8 +18,7 @@ export default async function CampaignsPage({ params }: CampaignsPageProps) {
   const campaigns = await listCampaigns(access.organization.id)
 
   return (
-    <>
-      <AppHeader campaignsEnabled current="/campaigns" orgName={access.organization.name} />
+    <PlatformShell campaignsEnabled organizationName={access.organization.name}>
       <main className="mx-auto max-w-5xl px-6 py-10">
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
@@ -28,9 +27,7 @@ export default async function CampaignsPage({ params }: CampaignsPageProps) {
               Each campaign starts from a release brief and keeps its context as you build it out.
             </p>
           </div>
-          <Button asChild>
-            <Link href="/campaigns/new">New campaign</Link>
-          </Button>
+          <ButtonLink href="/campaigns/new">New campaign</ButtonLink>
         </header>
         {campaigns.length === 0 ? (
           <div className="rounded-lg border border-dashed p-10 text-center">
@@ -63,6 +60,6 @@ export default async function CampaignsPage({ params }: CampaignsPageProps) {
           </ul>
         )}
       </main>
-    </>
+    </PlatformShell>
   )
 }

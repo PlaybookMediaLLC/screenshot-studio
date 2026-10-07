@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { CampaignSetupForm } from '@/components/campaigns/CampaignSetupForm'
-import { AppHeader } from '@/components/workspace/AppHeader'
+import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { hasPermission } from '@/lib/auth/permissions'
 import { listProductSurfaces } from '@/lib/tenant/product-surfaces'
 import { requireCampaignPageAccess } from '../page-access'
@@ -17,8 +17,7 @@ export default async function NewCampaignPage({ params }: NewCampaignPageProps) 
   const surfaces = await listProductSurfaces(access.organization.id)
 
   return (
-    <>
-      <AppHeader campaignsEnabled current="/campaigns" orgName={access.organization.name} />
+    <PlatformShell campaignsEnabled organizationName={access.organization.name}>
       <main className="mx-auto max-w-2xl px-6 py-10">
         <header className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight">New campaign</h1>
@@ -38,6 +37,6 @@ export default async function NewCampaignPage({ params }: NewCampaignPageProps) 
           }))}
         />
       </main>
-    </>
+    </PlatformShell>
   )
 }

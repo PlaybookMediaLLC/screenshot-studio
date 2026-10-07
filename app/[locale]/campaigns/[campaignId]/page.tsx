@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { CampaignBrief } from '@/components/campaigns/CampaignBrief'
 import { CampaignStudioButton } from '@/components/campaigns/CampaignStudioButton'
 import { Badge } from '@/components/ui/badge'
-import { AppHeader } from '@/components/workspace/AppHeader'
+import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { isCampaignStudioConfigured } from '@/lib/ai/agents/campaign-studio'
 import { hasPermission } from '@/lib/auth/permissions'
 import { createTenantDownloadUrl } from '@/lib/storage/client'
@@ -71,8 +71,7 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
   const captureCount = campaign.assets.filter((link) => link.kind.startsWith('capture-')).length
 
   return (
-    <>
-      <AppHeader campaignsEnabled current="/campaigns" orgName={access.organization.name} />
+    <PlatformShell campaignsEnabled organizationName={access.organization.name}>
       <main className="mx-auto max-w-4xl px-6 py-10">
         <header className="mb-8">
           <div className="flex flex-wrap items-center gap-3">
@@ -200,6 +199,6 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
           )}
         </section>
       </main>
-    </>
+    </PlatformShell>
   )
 }

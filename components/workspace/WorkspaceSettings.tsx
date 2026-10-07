@@ -16,7 +16,6 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AppHeader } from './AppHeader'
 import { WorkspaceSettingDetail } from './WorkspaceSettingDetail'
 import { WorkspaceDeletionRecovery } from './WorkspaceDeletionSettings'
 
@@ -33,7 +32,6 @@ export type SettingItem = {
 }
 
 export type WorkspaceSettingsProps = {
-  campaignsEnabled?: boolean
   email: string
   name: string
   organization: {
@@ -137,7 +135,6 @@ function SettingsCard({ item, onOpen }: { item: SettingItem; onOpen: (id: Settin
 }
 
 export function WorkspaceSettings({
-  campaignsEnabled = false,
   email,
   name,
   organization,
@@ -159,11 +156,6 @@ export function WorkspaceSettings({
   ) {
     return (
       <main className="min-h-screen bg-background text-foreground">
-        <AppHeader
-          campaignsEnabled={campaignsEnabled}
-          current="/workspace"
-          orgName={organization.name}
-        />
         <WorkspaceDeletionRecovery
           canRestore={organization.workspaceDeletion.requestedByUserId === userId}
           scheduledFor={organization.workspaceDeletion.scheduledFor}
@@ -174,12 +166,6 @@ export function WorkspaceSettings({
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <AppHeader
-        campaignsEnabled={campaignsEnabled}
-        current="/workspace"
-        orgName={organization.name}
-      />
-
       <div className="w-full px-5 py-8 sm:px-8 lg:py-10">
         <header>
           <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>

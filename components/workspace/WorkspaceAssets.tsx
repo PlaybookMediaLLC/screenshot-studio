@@ -1,10 +1,10 @@
 'use client'
 
-import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from './settings-client'
 
@@ -143,13 +143,18 @@ export function WorkspaceAssets() {
               </p>
               <div className="mt-3 flex items-center gap-1.5">
                 {isImage ? (
-                  <Button asChild size="sm" variant="outline">
+                  <ButtonLink href={`/?asset=${asset.id}`} size="sm" variant="outline">
                     {/* The editor reads this parameter on load and pulls
                         the asset onto the canvas for another pass. */}
-                    <Link href={`/?asset=${asset.id}`}>Edit</Link>
-                  </Button>
+                    Edit
+                  </ButtonLink>
                 ) : null}
-                <Button onClick={() => handleOpen(asset.id)} size="sm" type="button" variant="ghost">
+                <Button
+                  onClick={() => handleOpen(asset.id)}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
                   Download
                 </Button>
                 <Button
@@ -171,7 +176,12 @@ export function WorkspaceAssets() {
       </ul>
 
       {cursor ? (
-        <Button disabled={isLoading} onClick={() => loadPage(cursor)} type="button" variant="outline">
+        <Button
+          disabled={isLoading}
+          onClick={() => loadPage(cursor)}
+          type="button"
+          variant="outline"
+        >
           {isLoading ? 'Loading…' : 'Load more'}
         </Button>
       ) : null}

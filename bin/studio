@@ -400,7 +400,12 @@ e2e_file() {
 check() {
   ensure_env
   sync_dependencies
-  compose run --rm --no-deps app npm run quality:check
+  # quality:check minus verify:rfcs, which shells out to git and python3.
+  # Those run on the host: inside the container a worktree's .git points at
+  # a host path that does not exist.
+  compose run --rm --no-deps app sh -c \
+    'npm run format:check && npm run lint -- --max-warnings=0 && npm run typecheck && npm run test'
+  npm run verify:rfcs
 }
 
 # A local account with a workspace, so a fresh database never leaves you at a

@@ -20,7 +20,7 @@ export default async function NewCampaignPage({ params }: NewCampaignPageProps) 
     <PlatformShell campaignsEnabled organizationName={access.organization.name}>
       <main className="mx-auto max-w-2xl px-6 py-10">
         <header className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">New campaign</h1>
+          <h1 className="text-2xl font-medium tracking-tight">New campaign</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Tell us which product you run and what you just shipped. The campaign draft is saved as
             soon as you submit.

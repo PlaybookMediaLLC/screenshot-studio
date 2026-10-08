@@ -98,8 +98,7 @@ export default async function EditorPage({ params }: EditorPageProps) {
     <PlatformShell
       campaignsEnabled={access.campaignWorkflowEnabled}
       organizationName={access.organization?.name}
-      showAccount={false}
-      showMobileBar={false}
+      variant="editor"
     >
       <ErrorBoundary>
         <EditorLayout />

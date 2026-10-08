@@ -1,35 +1,45 @@
 'use client'
 
 import {
-  Activity,
-  Images,
-  Megaphone,
-  Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
-  PencilRuler,
-  Settings,
-  type LucideIcon,
-} from 'lucide-react'
+  Activity01Icon,
+  Album02Icon,
+  Megaphone01Icon,
+  Menu01Icon,
+  PaintBoardIcon,
+  SidebarLeftIcon,
+  SlidersHorizontalIcon,
+  UnfoldMoreIcon,
+} from 'hugeicons-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { type ComponentType, useState } from 'react'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { authClient } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
 import { workspaceInitials } from '@/lib/workspace/initials'
-import { PLATFORM_SIDEBAR_COOKIE } from './sidebar-state'
+import { PLATFORM_SIDEBAR_COOKIE, surface } from './shell-config'
 
-type NavItem = { href: string; icon: LucideIcon; label: string }
+type IconComponent = ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
+type NavItem = { href: string; icon: IconComponent; label: string }
 
-const NAV_ITEMS: NavItem[] = [
-  { href: '/', icon: PencilRuler, label: 'Editor' },
-  { href: '/campaigns', icon: Megaphone, label: 'Campaigns' },
-  { href: '/assets', icon: Images, label: 'Assets' },
-  { href: '/activity', icon: Activity, label: 'Activity' },
-  { href: '/workspace', icon: Settings, label: 'Settings' },
+const NAV_GROUPS: { items: NavItem[]; label?: string }[] = [
+  {
+    items: [
+      { href: '/', icon: PaintBoardIcon, label: 'Editor' },
+      { href: '/campaigns', icon: Megaphone01Icon, label: 'Campaigns' },
+      { href: '/assets', icon: Album02Icon, label: 'Assets' },
+    ],
+  },
+  {
+    items: [
+      { href: '/activity', icon: Activity01Icon, label: 'Activity' },
+      { href: '/workspace', icon: SlidersHorizontalIcon, label: 'Settings' },
+    ],
+    label: 'Workspace',
+  },
 ]
 
 /** The path without a leading locale segment, e.g. /fr/assets → /assets. */
@@ -46,70 +56,125 @@ function WorkspaceBadge({ name }: { name: string }) {
   return (
     <span
       aria-hidden
-      className="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-fuchsia-500 via-violet-500 to-indigo-500 text-xs font-semibold text-white"
+      className="grid size-6 shrink-0 place-items-center rounded-md bg-gradient-to-br from-fuchsia-500 via-violet-500 to-indigo-500 text-[10px] font-semibold text-white"
     >
       {workspaceInitials(name) || 'W'}
     </span>
   )
 }
 
-function NavLinks({
+function NavLink({
   collapsed,
-  items,
+  item: { href, icon: Icon, label },
   onNavigate,
 }: {
   collapsed: boolean
-  items: NavItem[]
+  item: NavItem
   onNavigate?: () => void
 }) {
-  const pathname = usePathname()
+  const active = isActive(usePathname(), href)
+  const link = (
+    <Link
+      aria-current={active ? 'page' : undefined}
+      aria-label={collapsed ? label : undefined}
+      className={cn(
+        // Polar-style: quiet text that brightens on hover, and a raised pill
+        // one surface lighter for the current page instead of an accent color.
+        'flex h-8 items-center gap-2.5 rounded-lg border px-2 text-sm font-medium transition-colors',
+        active
+          ? cn(surface.panel, surface.border, 'text-white shadow-xs')
+          : 'border-transparent text-neutral-500 hover:text-neutral-200',
+        collapsed && 'size-8 justify-center px-0'
+      )}
+      href={href}
+      onClick={onNavigate}
+    >
+      <Icon className="shrink-0" size={16} strokeWidth={1.8} />
+      {collapsed ? null : <span className="truncate">{label}</span>}
+    </Link>
+  )
+  if (!collapsed) return link
   return (
-    <nav aria-label="Workspace" className="grid gap-0.5">
-      {items.map(({ href, icon: Icon, label }) => {
-        const active = isActive(pathname, href)
-        const link = (
-          <Link
-            aria-current={active ? 'page' : undefined}
-            aria-label={collapsed ? label : undefined}
-            className={cn(
-              'flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm font-medium transition-colors',
-              active
-                ? 'bg-muted text-foreground'
-                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
-              collapsed && 'justify-center px-0'
-            )}
-            href={href}
-            onClick={onNavigate}
-          >
-            <Icon aria-hidden className="size-[18px] shrink-0" strokeWidth={1.75} />
-            {collapsed ? null : <span className="truncate">{label}</span>}
-          </Link>
-        )
-        return collapsed ? (
-          <Tooltip key={href}>
-            <TooltipTrigger asChild>{link}</TooltipTrigger>
-            <TooltipContent side="right">{label}</TooltipContent>
-          </Tooltip>
-        ) : (
-          <div key={href}>{link}</div>
-        )
-      })}
+    <Tooltip>
+      <TooltipTrigger asChild>{link}</TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+function Navigation({
+  campaignsEnabled,
+  collapsed,
+  onNavigate,
+}: {
+  campaignsEnabled: boolean
+  collapsed: boolean
+  onNavigate?: () => void
+}) {
+  return (
+    <nav aria-label="Workspace" className="grid gap-6">
+      {NAV_GROUPS.map((group, index) => (
+        <div className="grid gap-0.5" key={index}>
+          {group.label && !collapsed ? (
+            <p className="mb-1.5 px-2 text-xs font-medium text-neutral-600">{group.label}</p>
+          ) : null}
+          {group.items
+            .filter((item) => campaignsEnabled || item.href !== '/campaigns')
+            .map((item) => (
+              <NavLink collapsed={collapsed} item={item} key={item.href} onNavigate={onNavigate} />
+            ))}
+        </div>
+      ))}
     </nav>
   )
 }
 
-function AccountRow({ collapsed }: { collapsed: boolean }) {
+/** Workspace and account in one row, like a team switcher; opens the account menu. */
+function WorkspaceSwitcher({
+  collapsed,
+  organizationName,
+}: {
+  collapsed: boolean
+  organizationName: string
+}) {
   const { data: session } = authClient.useSession()
   return (
-    <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
-      <AccountMenu side={collapsed ? 'right' : 'top'} />
-      {collapsed || !session ? null : (
-        <div className="min-w-0 text-xs">
-          <p className="truncate font-medium">{session.user.name || 'Account'}</p>
-          <p className="truncate text-muted-foreground">{session.user.email}</p>
-        </div>
+    <AccountMenu
+      align={collapsed ? 'end' : 'start'}
+      side={collapsed ? 'right' : 'top'}
+      triggerClassName={cn(
+        'flex h-11 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors hover:bg-white/[0.04]',
+        collapsed && 'size-8 justify-center px-0'
       )}
-    </div>
+    >
+      <WorkspaceBadge name={organizationName} />
+      {collapsed ? null : (
+        <>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium text-neutral-100">
+              {organizationName}
+            </span>
+            <span className="block truncate text-xs text-neutral-500">
+              {session?.user.email ?? 'Account'}
+            </span>
+          </span>
+          <UnfoldMoreIcon className="shrink-0 text-neutral-500" size={14} />
+        </>
+      )}
+    </AccountMenu>
+  )
+}
+
+function Brand({ collapsed }: { collapsed: boolean }) {
+  return (
+    <Link className="flex min-w-0 items-center gap-2.5" href="/">
+      <Image alt="" className="size-6 rounded-md" height={24} src="/logo-mark.png" width={24} />
+      {collapsed ? null : (
+        <span className="truncate text-sm font-semibold tracking-tight text-neutral-100">
+          Screenshot Studio
+        </span>
+      )}
+    </Link>
   )
 }
 
@@ -117,20 +182,19 @@ export interface PlatformSidebarProps {
   campaignsEnabled: boolean
   defaultCollapsed: boolean
   organizationName?: string
-  showAccount: boolean
-  showMobileBar: boolean
+  variant: 'editor' | 'page'
 }
 
 export function PlatformSidebar({
   campaignsEnabled,
   defaultCollapsed,
   organizationName = 'Workspace',
-  showAccount,
-  showMobileBar,
+  variant,
 }: PlatformSidebarProps) {
+  // The editor brings its own logo, account menu, and mobile chrome.
+  const isPage = variant === 'page'
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const items = NAV_ITEMS.filter((item) => campaignsEnabled || item.href !== '/campaigns')
 
   function toggle() {
     const next = !collapsed
@@ -138,86 +202,101 @@ export function PlatformSidebar({
     document.cookie = `${PLATFORM_SIDEBAR_COOKIE}=${next ? 'collapsed' : 'expanded'}; path=/; max-age=31536000; samesite=lax`
   }
 
-  const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose
   const toggleLabel = collapsed ? 'Expand sidebar' : 'Collapse sidebar'
 
   return (
     <>
       <aside
         className={cn(
-          'sticky top-0 hidden h-screen shrink-0 flex-col border-r border-foreground/10 bg-background py-3 transition-[width] duration-200 ease-out md:flex',
-          collapsed ? 'w-[60px] px-2' : 'w-60 px-3'
+          'sticky top-0 hidden h-screen shrink-0 flex-col py-3 transition-[width] duration-200 ease-out md:flex',
+          surface.base,
+          collapsed ? 'w-[60px] items-center px-2' : 'w-60 px-3'
         )}
       >
-        <div className={cn('flex items-center gap-2.5 px-1', collapsed && 'flex-col px-0')}>
-          <WorkspaceBadge name={organizationName} />
-          {collapsed ? null : (
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">{organizationName}</p>
-              <p className="truncate text-xs text-muted-foreground">Workspace</p>
-            </div>
+        <div
+          className={cn(
+            'flex h-8 items-center justify-between gap-2 px-2',
+            collapsed && 'h-auto flex-col gap-3 px-0'
           )}
+        >
+          {isPage ? <Brand collapsed={collapsed} /> : <span />}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 aria-label={toggleLabel}
-                className="grid size-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="grid size-7 shrink-0 place-items-center rounded-md text-neutral-500 transition-colors hover:bg-white/[0.04] hover:text-neutral-200"
                 onClick={toggle}
                 type="button"
               >
-                <ToggleIcon aria-hidden className="size-4" />
+                <SidebarLeftIcon size={16} strokeWidth={1.8} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="right">{toggleLabel}</TooltipContent>
           </Tooltip>
         </div>
 
-        <div className="mt-5 flex-1">
-          <NavLinks collapsed={collapsed} items={items} />
+        <div className="mt-6 flex-1">
+          <Navigation campaignsEnabled={campaignsEnabled} collapsed={collapsed} />
         </div>
 
-        {showAccount ? (
+        {isPage ? (
           // In development, room for the Next.js dev badge, which otherwise
-          // sits on the avatar and swallows clicks.
+          // sits on the switcher and swallows clicks.
           <div
             className={cn(
-              'border-t border-foreground/10 px-1 pt-3',
+              'w-full border-t border-white/[0.06] pt-2',
+              collapsed && 'flex justify-center',
               process.env.NODE_ENV === 'development' && 'mb-12'
             )}
           >
-            <AccountRow collapsed={collapsed} />
+            <WorkspaceSwitcher collapsed={collapsed} organizationName={organizationName} />
           </div>
         ) : null}
       </aside>
 
-      {showMobileBar ? (
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-foreground/10 bg-background/90 px-4 backdrop-blur md:hidden">
+      {isPage ? (
+        <header
+          className={cn(
+            'sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-white/[0.06] px-4 md:hidden',
+            surface.base
+          )}
+        >
           <Sheet onOpenChange={setMobileOpen} open={mobileOpen}>
             <SheetTrigger asChild>
               <button
                 aria-label="Open navigation"
-                className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="grid size-9 place-items-center rounded-lg text-neutral-400 hover:bg-white/[0.04] hover:text-neutral-100"
                 type="button"
               >
-                <Menu aria-hidden className="size-5" />
+                <Menu01Icon size={18} strokeWidth={1.8} />
               </button>
             </SheetTrigger>
-            <SheetContent className="w-72 gap-0 p-3" side="left">
+            <SheetContent
+              className={cn('w-72 gap-0 border-white/[0.06] p-3', surface.base)}
+              side="left"
+            >
               <SheetTitle className="sr-only">Navigation</SheetTitle>
-              <div className="flex items-center gap-2.5 px-1 py-1">
-                <WorkspaceBadge name={organizationName} />
-                <p className="truncate text-sm font-semibold">{organizationName}</p>
+              <div className="px-2 py-1">
+                <Brand collapsed={false} />
               </div>
-              <div className="mt-5 flex-1">
-                <NavLinks collapsed={false} items={items} onNavigate={() => setMobileOpen(false)} />
+              <div className="mt-6 flex-1">
+                <Navigation
+                  campaignsEnabled={campaignsEnabled}
+                  collapsed={false}
+                  onNavigate={() => setMobileOpen(false)}
+                />
               </div>
-              <div className="border-t border-foreground/10 px-1 pt-3">
-                <AccountRow collapsed={false} />
+              <div
+                className={cn(
+                  'border-t border-white/[0.06] pt-2',
+                  process.env.NODE_ENV === 'development' && 'mb-12'
+                )}
+              >
+                <WorkspaceSwitcher collapsed={false} organizationName={organizationName} />
               </div>
             </SheetContent>
           </Sheet>
-          <WorkspaceBadge name={organizationName} />
-          <p className="min-w-0 flex-1 truncate text-sm font-semibold">{organizationName}</p>
+          <Brand collapsed={false} />
         </header>
       ) : null}
     </>

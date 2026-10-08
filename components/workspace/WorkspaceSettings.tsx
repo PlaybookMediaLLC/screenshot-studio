@@ -155,7 +155,7 @@ export function WorkspaceSettings({
     organization.workspaceDeletion?.status === 'PROCESSING'
   ) {
     return (
-      <main className="min-h-screen bg-background text-foreground">
+      <main className="text-foreground">
         <WorkspaceDeletionRecovery
           canRestore={organization.workspaceDeletion.requestedByUserId === userId}
           scheduledFor={organization.workspaceDeletion.scheduledFor}
@@ -165,10 +165,10 @@ export function WorkspaceSettings({
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="text-foreground">
       <div className="w-full px-5 py-8 sm:px-8 lg:py-10">
         <header>
-          <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Settings</h1>
           <p className="mt-2 text-base text-muted-foreground">
             Manage your workspace, access, and brand preferences.
           </p>

@@ -27,7 +27,7 @@ export default async function ActivityPage({ params }: ActivityPageProps) {
     >
       <main className="mx-auto max-w-5xl px-6 py-10">
         <header className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Activity</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Releases, campaigns, announcements, and scheduled posts in this workspace.
           </p>

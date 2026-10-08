@@ -27,7 +27,7 @@ export default async function AssetsPage({ params }: AssetsPageProps) {
     >
       <main className="mx-auto max-w-5xl px-6 py-10">
         <header className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Assets</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Assets</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Screenshots and video your team has saved from the editor.
           </p>

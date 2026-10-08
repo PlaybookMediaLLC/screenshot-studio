@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { authClient } from '@/lib/auth/client'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useTRPCClient } from '@/lib/trpc/react'
@@ -13,10 +13,17 @@ function getInitial(name: string | null | undefined, email: string): string {
 type Workspace = { id: string; isScheduledForDeletion: boolean; name: string; slug: string }
 
 export function AccountMenu({
+  align = 'end',
+  children,
   side = 'bottom',
+  triggerClassName,
 }: {
+  align?: 'center' | 'end' | 'start'
+  /** Custom trigger content, e.g. the sidebar's workspace row; defaults to an avatar. */
+  children?: ReactNode
   /** Where the menu opens; the sidebar opens it upward or to the right. */
   side?: 'bottom' | 'right' | 'top'
+  triggerClassName?: string
 } = {}) {
   const trpcClient = useTRPCClient()
   const [isSigningOut, setIsSigningOut] = useState(false)
@@ -93,13 +100,16 @@ export function AccountMenu({
       <PopoverTrigger asChild>
         <button
           aria-label="Open account menu"
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background transition-opacity hover:opacity-80"
+          className={
+            triggerClassName ??
+            'flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background transition-opacity hover:opacity-80'
+          }
           type="button"
         >
-          {getInitial(session.user.name, session.user.email)}
+          {children ?? getInitial(session.user.name, session.user.email)}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-64 p-2" side={side}>
+      <PopoverContent align={align} className="w-64 p-2" side={side}>
         <div className="border-b px-2 py-2.5">
           <p className="truncate text-sm font-medium">{name}</p>
           <p className="truncate text-xs text-muted-foreground">{session.user.email}</p>

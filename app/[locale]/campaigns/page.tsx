@@ -22,7 +22,7 @@ export default async function CampaignsPage({ params }: CampaignsPageProps) {
       <main className="mx-auto max-w-5xl px-6 py-10">
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
+            <h1 className="text-2xl font-medium tracking-tight">Campaigns</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Each campaign starts from a release brief and keeps its context as you build it out.
             </p>

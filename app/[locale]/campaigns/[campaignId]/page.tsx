@@ -75,7 +75,7 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
       <main className="mx-auto max-w-4xl px-6 py-10">
         <header className="mb-8">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">{campaign.name}</h1>
+            <h1 className="text-2xl font-medium tracking-tight">{campaign.name}</h1>
             <Badge variant="outline">{campaign.status}</Badge>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">

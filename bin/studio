@@ -347,6 +347,12 @@ run_e2e() {
   # machine: /two-factor 10s, /workspace 15s, /onboarding 31s.
   # A 307 is a warm hit too, the redirect still compiles the route.
   wait_for_redirect_or_ok "${app_url%/}/sign-in" "Screenshot Studio sign-in route"
+  # Every spec starts at sign-up, and a cold compile there reloads the page
+  # mid-typing; the campaign pages stalled the same way.
+  wait_for_redirect_or_ok "${app_url%/}/sign-up" "Screenshot Studio sign-up route"
+  wait_for_redirect_or_ok "${app_url%/}/campaigns" "Screenshot Studio campaigns route"
+  wait_for_redirect_or_ok "${app_url%/}/campaigns/new" "Screenshot Studio new campaign route"
+  wait_for_redirect_or_ok "${app_url%/}/assets" "Screenshot Studio assets route"
   wait_for_redirect_or_ok "${app_url%/}/two-factor" "Screenshot Studio two-factor route"
   wait_for_redirect_or_ok "${app_url%/}/onboarding" "Screenshot Studio onboarding route"
   wait_for_redirect_or_ok "${app_url%/}/workspace" "Screenshot Studio workspace route"

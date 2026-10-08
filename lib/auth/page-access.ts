@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { isCampaignWorkflowEnabled } from '@/lib/tenant/entitlements'
 import { resolveActiveOrganizationId } from './access'
@@ -59,4 +60,23 @@ export async function getPageAccess(requestHeaders: Headers) {
 
 export function getLocalizedPath(locale: string, path: string): string {
   return locale === 'en' ? path : `/${locale}${path}`
+}
+
+/**
+ * Sign-in and sign-up send someone who is already signed in on to the app,
+ * or to the in-app page they were headed for. Only same-origin paths are
+ * followed, matching the form's own callbackURL check.
+ */
+export async function redirectIfSignedIn(
+  requestHeaders: Headers,
+  locale: string,
+  callbackURL: string | string[] | undefined
+): Promise<void> {
+  const session = await auth.api.getSession({ headers: requestHeaders })
+  if (!session) return
+  const target =
+    typeof callbackURL === 'string' && callbackURL.startsWith('/') && !callbackURL.startsWith('//')
+      ? callbackURL
+      : '/'
+  redirect(getLocalizedPath(locale, target))
 }

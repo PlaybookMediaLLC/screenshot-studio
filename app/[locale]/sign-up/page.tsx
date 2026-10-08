@@ -1,12 +1,26 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { Suspense } from 'react'
 import { AuthForm } from '@/components/auth/AuthForm'
 import { AuthShell } from '@/components/auth/AuthShell'
 import { getEnabledSocialProviders, isPasswordAuthEnabled } from '@/lib/auth/methods'
+import { redirectIfSignedIn } from '@/lib/auth/page-access'
 
 export const metadata: Metadata = { title: 'Create account | Screenshot Studio' }
 
-export default function SignUpPage() {
+type AuthPageProps = {
+  params: Promise<{ locale: string }>
+  searchParams: Promise<{ callbackURL?: string | string[] }>
+}
+
+export default async function SignUpPage({ params, searchParams }: AuthPageProps) {
+  const [{ locale }, { callbackURL }, requestHeaders] = await Promise.all([
+    params,
+    searchParams,
+    headers(),
+  ])
+  await redirectIfSignedIn(requestHeaders, locale, callbackURL)
+
   return (
     <AuthShell
       description="Create an account, then set up your team workspace."

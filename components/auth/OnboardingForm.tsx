@@ -76,71 +76,87 @@ export function OnboardingForm() {
   }
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
-      <div className="flex items-center gap-4 rounded-xl border bg-muted/30 p-4">
-        <div
-          aria-hidden
-          className="grid size-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-fuchsia-500 via-violet-500 to-indigo-500 text-base font-semibold text-white shadow-lg shadow-violet-500/20"
-        >
-          {workspaceInitials(name) || 'W'}
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{name.trim() || 'Your workspace'}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            {slug ? `/${slug}` : 'Brand, assets, and campaigns in one place'}
+    <form className="flex flex-1 flex-col" onSubmit={handleSubmit}>
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-8 px-6 py-12">
+        <div>
+          <h1 className="text-xl font-medium text-white">Create your workspace</h1>
+          <p className="mt-1.5 text-neutral-400">
+            A shared home for your team&apos;s brand, assets, and campaigns.
           </p>
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="workspace-name">
-          Workspace name
-        </label>
-        <Input
-          autoComplete="organization"
-          autoFocus
-          className={authInputClassName}
-          id="workspace-name"
-          name="name"
-          onChange={(event) => {
-            setName(event.target.value)
-            syncSlugFromName(event.target.value)
-          }}
-          placeholder="Acme, Inc."
-          ref={nameInputRef}
-          required
-        />
-      </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-neutral-300" htmlFor="workspace-name">
+              Workspace name
+            </label>
+            <Input
+              autoComplete="organization"
+              autoFocus
+              className={authInputClassName}
+              id="workspace-name"
+              name="name"
+              onChange={(event) => {
+                setName(event.target.value)
+                syncSlugFromName(event.target.value)
+              }}
+              placeholder="Acme, Inc."
+              ref={nameInputRef}
+              required
+            />
+          </div>
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="workspace-slug">
-          Workspace slug
-        </label>
-        <div className="flex h-11 items-center rounded-lg border border-input shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 dark:bg-input/30">
-          <span className="pl-3.5 text-sm text-muted-foreground select-none">/</span>
-          <input
-            className="h-full min-w-0 flex-1 bg-transparent pr-3.5 pl-1 text-sm outline-none placeholder:text-muted-foreground"
-            id="workspace-slug"
-            name="slug"
-            onChange={(event) => {
-              setSlug(event.target.value)
-              slugEdited.current = event.target.value !== ''
-            }}
-            pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-            placeholder="acme-inc"
-            ref={slugInputRef}
-          />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-neutral-300" htmlFor="workspace-slug">
+              Workspace slug
+            </label>
+            <div className="flex h-10 items-center rounded-lg border border-white/[0.08] bg-white/[0.03] transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
+              <span className="pl-3.5 text-sm text-neutral-500 select-none">/</span>
+              <input
+                className="h-full min-w-0 flex-1 bg-transparent pr-3.5 pl-1 text-sm outline-none placeholder:text-neutral-600"
+                id="workspace-slug"
+                name="slug"
+                onChange={(event) => {
+                  setSlug(event.target.value)
+                  slugEdited.current = event.target.value !== ''
+                }}
+                pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                placeholder="acme-inc"
+                ref={slugInputRef}
+              />
+            </div>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Lowercase letters, numbers, and hyphens. You can change it later.
+        <p className="-mt-5 text-xs text-neutral-500">
+          The slug uses lowercase letters, numbers, and hyphens. You can change both later.
         </p>
+
+        {error ? <FormAlert>{error}</FormAlert> : null}
       </div>
 
-      {error ? <FormAlert>{error}</FormAlert> : null}
-
-      <SubmitButton busy={isSubmitting} busyLabel="Creating workspace…" disabled={!isHydrated}>
-        Create workspace
-      </SubmitButton>
+      <div className="flex items-center justify-between gap-4 border-t border-[#1c1c1c] p-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span
+            aria-hidden
+            className="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-fuchsia-500 via-violet-500 to-indigo-500 text-xs font-semibold text-white"
+          >
+            {workspaceInitials(name) || 'W'}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium text-white">
+              {name.trim() || 'Your workspace'}
+            </span>
+            <span className="block truncate text-xs text-neutral-500">
+              {slug ? `/${slug}` : 'Brand, assets, and campaigns'}
+            </span>
+          </span>
+        </div>
+        <div className="shrink-0">
+          <SubmitButton busy={isSubmitting} busyLabel="Creating workspace…" disabled={!isHydrated}>
+            Create workspace
+          </SubmitButton>
+        </div>
+      </div>
     </form>
   )
 }

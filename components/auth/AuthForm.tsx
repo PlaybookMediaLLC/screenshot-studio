@@ -155,7 +155,7 @@ export function AuthForm({ mode, passwordAuthEnabled, socialProviders }: AuthFor
             >
               {socialProviders.map((provider) => (
                 <Button
-                  className="h-11 rounded-lg"
+                  className="h-10 rounded-lg border-white/[0.08] bg-white/[0.04] shadow-none hover:bg-white/[0.07] dark:border-white/[0.08] dark:bg-white/[0.04]"
                   key={provider}
                   onClick={() => handleSocialSignIn(provider)}
                   type="button"

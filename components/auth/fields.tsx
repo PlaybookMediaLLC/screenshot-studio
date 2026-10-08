@@ -5,14 +5,15 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
 /** Shared look for the auth and onboarding forms. */
-export const authInputClassName = 'h-11 rounded-lg px-3.5 md:text-sm'
+export const authInputClassName =
+  'h-10 rounded-lg border-white/[0.08] bg-white/[0.03] px-3.5 md:text-sm dark:bg-white/[0.03]'
 
 type AuthFieldProps = ComponentProps<typeof Input> & { hint?: ReactNode; id: string; label: string }
 
 export function AuthField({ className, hint, id, label, ...props }: AuthFieldProps) {
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium" htmlFor={id}>
+      <label className="text-sm font-medium text-neutral-300" htmlFor={id}>
         {label}
       </label>
       <Input className={cn(authInputClassName, className)} id={id} {...props} />
@@ -55,7 +56,7 @@ export function SubmitButton({
   disabled?: boolean
 }) {
   return (
-    <Button className="h-11 w-full rounded-lg" disabled={disabled || busy} type="submit">
+    <Button className="h-10 w-full rounded-lg px-4" disabled={disabled || busy} type="submit">
       {busy ? (
         <>
           <Loader2 aria-hidden className="animate-spin" />
@@ -73,10 +74,10 @@ export function SubmitButton({
 
 export function Divider({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-      <span className="h-px flex-1 bg-border" />
+    <div className="flex items-center gap-6 text-sm text-neutral-500">
+      <span className="h-px flex-1 bg-white/[0.08]" />
       {children}
-      <span className="h-px flex-1 bg-border" />
+      <span className="h-px flex-1 bg-white/[0.08]" />
     </div>
   )
 }

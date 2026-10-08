@@ -5,66 +5,52 @@ import Link from 'next/link'
 type AuthShellProps = {
   children: ReactNode
   description: string
-  /** Small label above the title, e.g. "Step 2 of 2". */
+  /** Small label above the title, e.g. "Step 1 of 2". */
   eyebrow?: string
   footer?: ReactNode
   title: string
 }
 
-function Brand() {
-  return (
-    <Link className="inline-flex items-center gap-2.5 text-sm font-semibold" href="/landing">
-      <Image alt="" className="size-7 rounded-lg" height={28} src="/logo-mark.png" width={28} />
-      Screenshot Studio
-    </Link>
-  )
-}
-
+/**
+ * Auth pages after Polar's: one borderless card on a flat near-black page,
+ * a large logo, a light title, and the terms underneath.
+ */
 export function AuthShell({ children, description, eyebrow, footer, title }: AuthShellProps) {
   return (
-    <main className="grid min-h-screen bg-background text-foreground lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-      <section className="flex flex-col px-6 py-8 sm:px-12 lg:py-10">
-        <Brand />
-        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-12">
-          {eyebrow ? (
-            <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              {eyebrow}
-            </p>
-          ) : null}
-          <h1 className="text-[28px] leading-tight font-semibold tracking-tight">{title}</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
-          <div className="mt-8">{children}</div>
-        </div>
-        {footer ? <div className="text-xs text-muted-foreground">{footer}</div> : null}
-      </section>
-
-      <section className="relative m-3 hidden overflow-hidden rounded-2xl border border-white/10 lg:block">
-        <Image alt="" className="object-cover" fill priority sizes="55vw" src="/mesh/Dusk.webp" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-        <div className="relative flex h-full flex-col justify-between p-10 text-white">
-          <p className="w-fit rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs backdrop-blur">
-            Marketing assets, ready to ship
-          </p>
-          <div className="mx-auto w-full max-w-xl [perspective:1600px]">
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-[#090909] px-4 py-12 text-white">
+      <div className="flex w-full max-w-md flex-col gap-8 rounded-3xl bg-[#111111] p-8 sm:p-12">
+        <header className="flex flex-col gap-4">
+          <Link className="w-fit" href="/landing">
             <Image
-              alt="A product screenshot framed in Screenshot Studio"
-              className="w-full rounded-xl shadow-2xl ring-1 shadow-black/50 ring-white/10 [transform:rotateX(8deg)_rotateY(-10deg)]"
-              height={1080}
+              alt="Screenshot Studio"
+              className="size-12 rounded-xl"
+              height={48}
               priority
-              src="/demo/demo-1.png"
-              width={1920}
+              src="/logo-mark.png"
+              width={48}
             />
+          </Link>
+          <div className="flex flex-col gap-1.5">
+            {eyebrow ? <p className="text-xs font-medium text-neutral-500">{eyebrow}</p> : null}
+            <h1 className="text-2xl text-white">{title}</h1>
+            <p className="text-lg text-balance text-neutral-400">{description}</p>
           </div>
-          <div className="max-w-md">
-            <h2 className="text-3xl leading-tight font-semibold tracking-tight">
-              Create on-brand product content with your team.
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-white/70">
-              Turn releases, screenshots, and product updates into content your audience can use.
-            </p>
-          </div>
-        </div>
-      </section>
+        </header>
+        {children}
+      </div>
+      {footer ?? (
+        <p className="mt-6 max-w-sm text-center text-xs text-balance text-neutral-500">
+          By continuing you agree to our{' '}
+          <Link className="text-neutral-300 hover:text-white" href="/terms">
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link className="text-neutral-300 hover:text-white" href="/privacy-policy">
+            Privacy Policy
+          </Link>
+          .
+        </p>
+      )}
     </main>
   )
 }

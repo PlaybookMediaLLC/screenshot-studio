@@ -50,7 +50,7 @@ export function SsoSignInForm({ callbackURL }: SsoSignInFormProps) {
   if (!isOpen) {
     return (
       <Button
-        className="h-11 w-full rounded-lg"
+        className="h-10 w-full rounded-lg border-white/[0.08] bg-white/[0.04] shadow-none hover:bg-white/[0.07] dark:border-white/[0.08] dark:bg-white/[0.04]"
         onClick={() => setIsOpen(true)}
         type="button"
         variant="outline"
@@ -62,7 +62,10 @@ export function SsoSignInForm({ callbackURL }: SsoSignInFormProps) {
   }
 
   return (
-    <form className="space-y-4 rounded-xl border bg-muted/20 p-4" onSubmit={handleSubmit}>
+    <form
+      className="space-y-4 rounded-2xl bg-white/[0.02] p-4 ring-1 ring-white/[0.06]"
+      onSubmit={handleSubmit}
+    >
       <AuthField
         autoComplete="email"
         autoFocus

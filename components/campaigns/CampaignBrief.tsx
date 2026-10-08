@@ -1,7 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, type ReactNode, useEffect, useState } from 'react'
+import { Group, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,6 +52,37 @@ function getStatusActions(
     case 'ARCHIVED':
       return edit({ label: 'Restore as draft', to: 'DRAFT', variant: 'outline' })
   }
+}
+
+const inputClassName = 'h-10 rounded-lg'
+const textareaClassName = 'min-h-24 rounded-lg'
+
+/** A label above its control, inside a free-form Row. */
+function Field({
+  children,
+  htmlFor,
+  label,
+}: {
+  children: ReactNode
+  htmlFor: string
+  label: string
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {children}
+    </div>
+  )
+}
+
+/** A read-only key/value row: muted label on the left, value on the right. */
+function DetailRow({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    <div className="flex flex-col gap-1 px-5 py-4 md:flex-row md:gap-6">
+      <dt className="text-sm text-neutral-500 md:w-40 md:shrink-0">{label}</dt>
+      <dd className="min-w-0 text-sm text-white">{children}</dd>
+    </div>
+  )
 }
 
 function field(data: FormData, name: string): string {
@@ -117,161 +149,197 @@ export function CampaignBrief({
   }
 
   return (
-    <section aria-labelledby="campaign-brief" className="rounded-lg border p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <h2 className="text-base font-semibold" id="campaign-brief">
-          Release brief
-        </h2>
-        {canEdit && release && !isEditing ? (
-          <Button onClick={() => setIsEditing(true)} size="sm" type="button" variant="outline">
-            Edit brief
-          </Button>
+    <>
+      <Section
+        actions={
+          canEdit && release && !isEditing ? (
+            <Button
+              className="rounded-lg"
+              onClick={() => setIsEditing(true)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              Edit brief
+            </Button>
+          ) : null
+        }
+        id="campaign-brief"
+        title="Release brief"
+      >
+        {!release ? (
+          <Group>
+            <Row>
+              <p className="text-sm text-neutral-500">No release is linked to this campaign.</p>
+            </Row>
+          </Group>
+        ) : isEditing ? (
+          <form onSubmit={handleSave}>
+            <Group>
+              <Row>
+                <Field htmlFor="brief-title" label="Release title">
+                  <Input
+                    className={inputClassName}
+                    defaultValue={release.title}
+                    id="brief-title"
+                    maxLength={160}
+                    name="title"
+                    required
+                  />
+                </Field>
+                <Field htmlFor="brief-benefit" label="Why it matters">
+                  <Input
+                    className={inputClassName}
+                    defaultValue={release.benefitStatement}
+                    id="brief-benefit"
+                    maxLength={500}
+                    name="benefitStatement"
+                    required
+                  />
+                </Field>
+                <Field htmlFor="brief-description" label="Description">
+                  <Textarea
+                    className={textareaClassName}
+                    defaultValue={release.description ?? ''}
+                    id="brief-description"
+                    maxLength={10_000}
+                    name="description"
+                  />
+                </Field>
+                <Field htmlFor="brief-audience" label="Target audience">
+                  <Input
+                    className={inputClassName}
+                    defaultValue={release.audience ?? ''}
+                    id="brief-audience"
+                    maxLength={1_000}
+                    name="audience"
+                  />
+                </Field>
+                <Field htmlFor="brief-sources" label="Source links">
+                  <Textarea
+                    className={textareaClassName}
+                    defaultValue={release.sourceUrls.join('\n')}
+                    id="brief-sources"
+                    name="sourceUrls"
+                  />
+                </Field>
+              </Row>
+              <Row>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    className="rounded-lg"
+                    onClick={() => setIsEditing(false)}
+                    type="button"
+                    variant="ghost"
+                  >
+                    Cancel
+                  </Button>
+                  <Button className="rounded-lg" disabled={isSaving} type="submit">
+                    {isSaving ? 'Saving…' : 'Save brief'}
+                  </Button>
+                </div>
+              </Row>
+            </Group>
+          </form>
+        ) : (
+          <Group>
+            <dl className="divide-y divide-white/[0.07]">
+              <DetailRow label="Release">{release.title}</DetailRow>
+              <DetailRow label="Why it matters">{release.benefitStatement}</DetailRow>
+              {release.description ? (
+                <DetailRow label="Description">
+                  <span className="whitespace-pre-wrap">{release.description}</span>
+                </DetailRow>
+              ) : null}
+              {release.audience ? <DetailRow label="Audience">{release.audience}</DetailRow> : null}
+              {release.sourceUrls.length > 0 ? (
+                <DetailRow label="Sources">
+                  <span className="grid gap-1">
+                    {release.sourceUrls.map((url) => (
+                      <a
+                        className="truncate hover:underline"
+                        href={url}
+                        key={url}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        {url}
+                      </a>
+                    ))}
+                  </span>
+                </DetailRow>
+              ) : null}
+            </dl>
+          </Group>
+        )}
+
+        {error ? (
+          <Alert
+            className="rounded-xl border-0 bg-red-500/5 ring-1 ring-red-500/20"
+            variant="destructive"
+          >
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         ) : null}
-      </div>
+        {message ? (
+          <Alert className="rounded-xl border-0 bg-white/[0.02] ring-1 ring-white/[0.08]">
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        ) : null}
+      </Section>
 
       {productSurface ? (
-        <p className="mt-2 text-sm text-muted-foreground">
-          {productSurface.name} · {productSurface.environment} ·{' '}
-          <a className="underline" href={productSurface.url} rel="noreferrer" target="_blank">
-            {productSurface.url}
-          </a>
-        </p>
-      ) : null}
-
-      {!release ? (
-        <p className="mt-4 text-sm text-muted-foreground">No release is linked to this campaign.</p>
-      ) : isEditing ? (
-        <form className="mt-4 grid gap-4" onSubmit={handleSave}>
-          <Label className="grid gap-1.5" htmlFor="brief-title">
-            Release title
-            <Input
-              defaultValue={release.title}
-              id="brief-title"
-              maxLength={160}
-              name="title"
-              required
-            />
-          </Label>
-          <Label className="grid gap-1.5" htmlFor="brief-benefit">
-            Why it matters
-            <Input
-              defaultValue={release.benefitStatement}
-              id="brief-benefit"
-              maxLength={500}
-              name="benefitStatement"
-              required
-            />
-          </Label>
-          <Label className="grid gap-1.5" htmlFor="brief-description">
-            Description
-            <Textarea
-              defaultValue={release.description ?? ''}
-              id="brief-description"
-              maxLength={10_000}
-              name="description"
-            />
-          </Label>
-          <Label className="grid gap-1.5" htmlFor="brief-audience">
-            Target audience
-            <Input
-              defaultValue={release.audience ?? ''}
-              id="brief-audience"
-              maxLength={1_000}
-              name="audience"
-            />
-          </Label>
-          <Label className="grid gap-1.5" htmlFor="brief-sources">
-            Source links
-            <Textarea
-              defaultValue={release.sourceUrls.join('\n')}
-              id="brief-sources"
-              name="sourceUrls"
-            />
-          </Label>
-          <div className="flex gap-2">
-            <Button disabled={isSaving} type="submit">
-              {isSaving ? 'Saving…' : 'Save brief'}
-            </Button>
-            <Button onClick={() => setIsEditing(false)} type="button" variant="ghost">
-              Cancel
-            </Button>
-          </div>
-        </form>
-      ) : (
-        <dl className="mt-4 grid gap-4 text-sm">
-          <div>
-            <dt className="text-xs font-medium uppercase text-muted-foreground">Release</dt>
-            <dd className="mt-1 font-medium">{release.title}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-muted-foreground">Why it matters</dt>
-            <dd className="mt-1">{release.benefitStatement}</dd>
-          </div>
-          {release.description ? (
-            <div>
-              <dt className="text-xs font-medium uppercase text-muted-foreground">Description</dt>
-              <dd className="mt-1 whitespace-pre-wrap">{release.description}</dd>
-            </div>
-          ) : null}
-          {release.audience ? (
-            <div>
-              <dt className="text-xs font-medium uppercase text-muted-foreground">Audience</dt>
-              <dd className="mt-1">{release.audience}</dd>
-            </div>
-          ) : null}
-          {release.sourceUrls.length > 0 ? (
-            <div>
-              <dt className="text-xs font-medium uppercase text-muted-foreground">Sources</dt>
-              <dd className="mt-1 grid gap-1">
-                {release.sourceUrls.map((url) => (
-                  <a
-                    className="truncate underline"
-                    href={url}
-                    key={url}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {url}
-                  </a>
-                ))}
-              </dd>
-            </div>
-          ) : null}
-        </dl>
-      )}
-
-      {error ? (
-        <Alert className="mt-4" variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-      {message ? (
-        <Alert className="mt-4">
-          <AlertDescription>{message}</AlertDescription>
-        </Alert>
+        <Section title="Product">
+          <Group>
+            <dl>
+              <DetailRow label="Product surface">
+                {productSurface.name} · {productSurface.environment} ·{' '}
+                <a
+                  className="text-neutral-400 hover:underline"
+                  href={productSurface.url}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {productSurface.url}
+                </a>
+              </DetailRow>
+            </dl>
+          </Group>
+        </Section>
       ) : null}
 
       {statusActions.length > 0 ? (
-        <div className="mt-6 flex flex-wrap items-center gap-2 border-t pt-4">
-          {statusActions.map((action) => (
-            <Button
-              disabled={isSaving || (action.to === 'READY_FOR_REVIEW' && campaign.postCount === 0)}
-              key={action.to}
-              onClick={() => handleTransition(action.to)}
-              size="sm"
-              type="button"
-              variant={action.variant}
+        <Section title="Review">
+          <Group>
+            <Row
+              description={
+                campaign.status === 'DRAFT' && campaign.postCount === 0
+                  ? 'Review opens once the campaign has copy.'
+                  : 'Move the campaign through review.'
+              }
+              label="Status"
             >
-              {action.label}
-            </Button>
-          ))}
-          {campaign.status === 'DRAFT' && campaign.postCount === 0 ? (
-            <span className="text-xs text-muted-foreground">
-              Review opens once the campaign has copy.
-            </span>
-          ) : null}
-        </div>
+              <div className="flex flex-wrap gap-2 md:justify-end">
+                {statusActions.map((action) => (
+                  <Button
+                    className="rounded-lg"
+                    disabled={
+                      isSaving || (action.to === 'READY_FOR_REVIEW' && campaign.postCount === 0)
+                    }
+                    key={action.to}
+                    onClick={() => handleTransition(action.to)}
+                    size="sm"
+                    type="button"
+                    variant={action.variant}
+                  >
+                    {action.label}
+                  </Button>
+                ))}
+              </div>
+            </Row>
+          </Group>
+        </Section>
       ) : null}
-    </section>
+    </>
   )
 }

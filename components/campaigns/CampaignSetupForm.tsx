@@ -1,7 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { type FormEvent, useRef, useState } from 'react'
+import { type FormEvent, type ReactNode, useRef, useState } from 'react'
+import { Group, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,8 +30,28 @@ type CampaignSetupFormProps = {
 
 const NEW_PRODUCT = 'new'
 
+const inputClassName = 'h-10 rounded-lg'
+const textareaClassName = 'min-h-24 rounded-lg'
 const selectClassName =
-  'h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs disabled:opacity-50'
+  'h-10 w-full rounded-lg border border-input bg-transparent px-3 text-sm disabled:opacity-50 dark:bg-input/30'
+
+/** A label above its control, inside a free-form Row. */
+function Field({
+  children,
+  htmlFor,
+  label,
+}: {
+  children: ReactNode
+  htmlFor: string
+  label: string
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {children}
+    </div>
+  )
+}
 
 function field(data: FormData, name: string): string {
   return String(data.get(name) ?? '').trim()
@@ -120,133 +141,154 @@ export function CampaignSetupForm({
 
   if (!canCreate) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-neutral-500">
         Your role cannot create campaigns. Ask a workspace admin for creator access.
       </p>
     )
   }
 
   return (
-    <form className="grid gap-8" onSubmit={handleSubmit}>
-      <fieldset className="grid gap-4">
-        <legend className="mb-2 text-base font-semibold">Product</legend>
-        <Label className="grid gap-1.5" htmlFor="campaign-product">
-          Product
-          <select
-            className={selectClassName}
-            id="campaign-product"
-            onChange={(event) => setSurfaceChoice(event.target.value)}
-            value={surfaceChoice}
-          >
-            {surfaces.map((surface) => (
-              <option key={surface.id} value={surface.id}>
-                {surface.name} ({surface.environment})
-              </option>
-            ))}
-            {canManageProducts ? <option value={NEW_PRODUCT}>Add a product…</option> : null}
-            {!canManageProducts && surfaces.length === 0 ? (
-              <option value="">No product connected</option>
-            ) : null}
-          </select>
-        </Label>
-        {isNewProduct ? (
-          <>
-            <Label className="grid gap-1.5" htmlFor="campaign-product-name">
-              Product name
-              <Input id="campaign-product-name" maxLength={160} name="productName" required />
-            </Label>
-            <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
-              <Label className="grid gap-1.5" htmlFor="campaign-app-url">
-                App URL
+    <form className="flex flex-col gap-10" onSubmit={handleSubmit}>
+      <Section description="The app this campaign captures and promotes." title="Product">
+        <Group>
+          <Row>
+            <Field htmlFor="campaign-product" label="Product">
+              <select
+                className={selectClassName}
+                id="campaign-product"
+                onChange={(event) => setSurfaceChoice(event.target.value)}
+                value={surfaceChoice}
+              >
+                {surfaces.map((surface) => (
+                  <option key={surface.id} value={surface.id}>
+                    {surface.name} ({surface.environment})
+                  </option>
+                ))}
+                {canManageProducts ? <option value={NEW_PRODUCT}>Add a product…</option> : null}
+                {!canManageProducts && surfaces.length === 0 ? (
+                  <option value="">No product connected</option>
+                ) : null}
+              </select>
+            </Field>
+          </Row>
+          {isNewProduct ? (
+            <Row>
+              <Field htmlFor="campaign-product-name" label="Product name">
                 <Input
-                  id="campaign-app-url"
-                  name="appUrl"
-                  placeholder="https://app.example.com"
+                  className={inputClassName}
+                  id="campaign-product-name"
+                  maxLength={160}
+                  name="productName"
                   required
+                />
+              </Field>
+              <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
+                <Field htmlFor="campaign-app-url" label="App URL">
+                  <Input
+                    className={inputClassName}
+                    id="campaign-app-url"
+                    name="appUrl"
+                    placeholder="https://app.example.com"
+                    required
+                    type="url"
+                  />
+                </Field>
+                <Field htmlFor="campaign-environment" label="Environment">
+                  <select
+                    className={selectClassName}
+                    defaultValue="production"
+                    id="campaign-environment"
+                    name="environment"
+                  >
+                    {productEnvironments.map((environment) => (
+                      <option key={environment} value={environment}>
+                        {environment}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+              <Field htmlFor="campaign-marketing-url" label="Marketing site URL (optional)">
+                <Input
+                  className={inputClassName}
+                  id="campaign-marketing-url"
+                  name="marketingUrl"
+                  placeholder="https://example.com"
                   type="url"
                 />
-              </Label>
-              <Label className="grid gap-1.5" htmlFor="campaign-environment">
-                Environment
-                <select
-                  className={selectClassName}
-                  defaultValue="production"
-                  id="campaign-environment"
-                  name="environment"
-                >
-                  {productEnvironments.map((environment) => (
-                    <option key={environment} value={environment}>
-                      {environment}
-                    </option>
-                  ))}
-                </select>
-              </Label>
-            </div>
-            <Label className="grid gap-1.5" htmlFor="campaign-marketing-url">
-              Marketing site URL (optional)
-              <Input
-                id="campaign-marketing-url"
-                name="marketingUrl"
-                placeholder="https://example.com"
-                type="url"
-              />
-            </Label>
-          </>
-        ) : null}
-      </fieldset>
+              </Field>
+            </Row>
+          ) : null}
+        </Group>
+      </Section>
 
-      <fieldset className="grid gap-4">
-        <legend className="mb-2 text-base font-semibold">What did you ship?</legend>
-        <Label className="grid gap-1.5" htmlFor="campaign-release-title">
-          Release title
-          <Input id="campaign-release-title" maxLength={160} name="title" required />
-        </Label>
-        <Label className="grid gap-1.5" htmlFor="campaign-benefit">
-          Why it matters
-          <Input
-            id="campaign-benefit"
-            maxLength={500}
-            name="benefitStatement"
-            placeholder="One sentence on what this changes for your users"
-            required
-          />
-        </Label>
-        <Label className="grid gap-1.5" htmlFor="campaign-description">
-          Description
-          <Textarea
-            id="campaign-description"
-            maxLength={10_000}
-            name="description"
-            placeholder="What changed, in your own words. Plain text."
-          />
-        </Label>
-        <Label className="grid gap-1.5" htmlFor="campaign-audience">
-          Target audience
-          <Input
-            id="campaign-audience"
-            maxLength={1_000}
-            name="audience"
-            placeholder="Who should hear about this?"
-          />
-        </Label>
-        <Label className="grid gap-1.5" htmlFor="campaign-sources">
-          Source links (optional)
-          <Textarea
-            id="campaign-sources"
-            name="sourceUrls"
-            placeholder="Changelog, pull request, or docs URLs, one per line"
-          />
-        </Label>
-      </fieldset>
+      <Section description="What did you ship? This becomes the campaign brief." title="Release">
+        <Group>
+          <Row>
+            <Field htmlFor="campaign-release-title" label="Release title">
+              <Input
+                className={inputClassName}
+                id="campaign-release-title"
+                maxLength={160}
+                name="title"
+                required
+              />
+            </Field>
+            <Field htmlFor="campaign-benefit" label="Why it matters">
+              <Input
+                className={inputClassName}
+                id="campaign-benefit"
+                maxLength={500}
+                name="benefitStatement"
+                placeholder="One sentence on what this changes for your users"
+                required
+              />
+            </Field>
+          </Row>
+          <Row>
+            <Field htmlFor="campaign-description" label="Description">
+              <Textarea
+                className={textareaClassName}
+                id="campaign-description"
+                maxLength={10_000}
+                name="description"
+                placeholder="What changed, in your own words. Plain text."
+              />
+            </Field>
+            <Field htmlFor="campaign-audience" label="Target audience">
+              <Input
+                className={inputClassName}
+                id="campaign-audience"
+                maxLength={1_000}
+                name="audience"
+                placeholder="Who should hear about this?"
+              />
+            </Field>
+            <Field htmlFor="campaign-sources" label="Source links (optional)">
+              <Textarea
+                className={textareaClassName}
+                id="campaign-sources"
+                name="sourceUrls"
+                placeholder="Changelog, pull request, or docs URLs, one per line"
+              />
+            </Field>
+          </Row>
+        </Group>
+      </Section>
 
       {error ? (
-        <Alert variant="destructive">
+        <Alert
+          className="rounded-xl border-0 bg-red-500/5 ring-1 ring-red-500/20"
+          variant="destructive"
+        >
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
-      <Button className="w-fit" disabled={isSaving} type="submit">
-        {isSaving ? 'Creating…' : 'Create campaign'}
-      </Button>
+      <div className="flex justify-end">
+        <Button className="h-10 rounded-lg px-5" disabled={isSaving} type="submit">
+          {isSaving ? 'Creating…' : 'Create campaign'}
+        </Button>
+      </div>
     </form>
   )
 }

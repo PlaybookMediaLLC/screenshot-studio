@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { Group, Row } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { getErrorMessage } from '@/components/workspace/settings-client'
@@ -52,30 +53,42 @@ export function CampaignStudioButton({
   if (!canGenerate) return null
 
   return (
-    <div className="grid gap-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <Button disabled={!configured || isRunning} onClick={handleGenerate} type="button">
-          {isRunning
-            ? 'Generating launch kit…'
-            : hasAssets
-              ? 'Generate more'
-              : 'Generate launch kit'}
-        </Button>
-        <span className="text-xs text-muted-foreground">
-          {configured
-            ? isRunning
-              ? 'Capturing your product and drafting posts. This takes about a minute.'
-              : 'Captures your product, builds product shots, and drafts posts for review.'
-            : 'AI generation is not configured for this environment.'}
-        </span>
-      </div>
+    <div className="flex flex-col gap-3">
+      <Group>
+        <Row
+          description={
+            configured
+              ? isRunning
+                ? 'Capturing your product and drafting posts. This takes about a minute.'
+                : 'Captures your product, builds product shots, and drafts posts for review.'
+              : 'AI generation is not configured for this environment.'
+          }
+          label="Launch kit"
+        >
+          <Button
+            className="rounded-lg"
+            disabled={!configured || isRunning}
+            onClick={handleGenerate}
+            type="button"
+          >
+            {isRunning
+              ? 'Generating launch kit…'
+              : hasAssets
+                ? 'Generate more'
+                : 'Generate launch kit'}
+          </Button>
+        </Row>
+      </Group>
       {summary ? (
-        <Alert>
+        <Alert className="rounded-xl border-0 bg-white/[0.02] ring-1 ring-white/[0.08]">
           <AlertDescription>{summary}</AlertDescription>
         </Alert>
       ) : null}
       {error ? (
-        <Alert variant="destructive">
+        <Alert
+          className="rounded-xl border-0 bg-red-500/5 ring-1 ring-red-500/20"
+          variant="destructive"
+        >
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}

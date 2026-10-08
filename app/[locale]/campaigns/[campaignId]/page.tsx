@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
+import type { ReactNode } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { CampaignBrief } from '@/components/campaigns/CampaignBrief'
 import { CampaignStudioButton } from '@/components/campaigns/CampaignStudioButton'
-import { Badge } from '@/components/ui/badge'
+import { CampaignStatusPill } from '@/components/campaigns/CampaignStatusPill'
+import { Group, Page, Row, Section } from '@/components/platform-ui'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { isCampaignStudioConfigured } from '@/lib/ai/agents/campaign-studio'
 import { hasPermission } from '@/lib/auth/permissions'
@@ -29,6 +31,15 @@ async function signAssetUrl(organizationId: string, objectKey: string): Promise<
 
 function formatTimestamp(value: Date): string {
   return value.toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })
+}
+
+/** A quiet placeholder for a section with nothing in it yet. */
+function Placeholder({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-2xl bg-white/[0.015] px-6 py-10 text-center text-sm text-neutral-500 ring-1 ring-white/[0.06]">
+      {children}
+    </div>
+  )
 }
 
 /**
@@ -72,18 +83,19 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
 
   return (
     <PlatformShell campaignsEnabled organizationName={access.organization.name}>
-      <main className="mx-auto max-w-4xl px-6 py-10">
-        <header className="mb-8">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-medium tracking-tight">{campaign.name}</h1>
-            <Badge variant="outline">{campaign.status}</Badge>
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Created {formatTimestamp(campaign.createdAt)} UTC · Updated{' '}
-            {formatTimestamp(campaign.updatedAt)} UTC
-          </p>
-        </header>
-
+      <Page
+        description={
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <CampaignStatusPill status={campaign.status} />
+            <span>
+              Created {formatTimestamp(campaign.createdAt)} UTC · Updated{' '}
+              {formatTimestamp(campaign.updatedAt)} UTC
+            </span>
+          </span>
+        }
+        title={campaign.name}
+        width="md"
+      >
         <CampaignBrief
           campaign={{
             id: campaign.id,
@@ -103,43 +115,44 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
           }
         />
 
-        <section aria-labelledby="campaign-assets" className="mt-10">
-          <h2 className="text-base font-semibold" id="campaign-assets">
-            Assets
-          </h2>
-          <div className="mt-3">
-            <CampaignStudioButton
-              campaignId={campaign.id}
-              canGenerate={
-                hasPermission(access.role, 'release:create') && Boolean(campaign.release)
-              }
-              configured={isCampaignStudioConfigured()}
-              hasAssets={campaign.assets.length > 0}
-            />
-          </div>
+        <Section
+          description="Product shots and designs built for this release."
+          id="campaign-assets"
+          title="Assets"
+        >
+          <CampaignStudioButton
+            campaignId={campaign.id}
+            canGenerate={hasPermission(access.role, 'release:create') && Boolean(campaign.release)}
+            configured={isCampaignStudioConfigured()}
+            hasAssets={campaign.assets.length > 0}
+          />
           {gallery.length === 0 ? (
-            <div className="mt-3 rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-              Designs for this release will appear here.
-            </div>
+            <Placeholder>Designs for this release will appear here.</Placeholder>
           ) : (
-            <ul className="mt-4 grid items-start gap-4 sm:grid-cols-2">
+            <ul className="grid items-start gap-4 sm:grid-cols-2">
               {gallery.map((shot) => (
-                <li className="overflow-hidden rounded-lg border" key={shot.id}>
+                <li
+                  className="overflow-hidden rounded-xl bg-white/[0.015] ring-1 ring-white/[0.08]"
+                  key={shot.id}
+                >
                   {shot.url ? (
                     // Signed, short-lived tenant URLs: next/image would cache them past expiry.
                     <img
                       alt={shot.caption ?? 'Product shot'}
-                      className="aspect-auto w-full bg-muted"
+                      className="aspect-auto w-full bg-neutral-900"
                       height={shot.height ?? undefined}
                       src={shot.url}
                       width={shot.width ?? undefined}
                     />
                   ) : (
-                    <div className="p-6 text-sm text-muted-foreground">Preview unavailable.</div>
+                    <div className="p-6 text-sm text-neutral-500">Preview unavailable.</div>
                   )}
-                  <div className="flex items-start justify-between gap-3 p-3">
-                    <p className="text-xs text-muted-foreground">{shot.caption}</p>
-                    <Link className="shrink-0 text-xs font-medium underline" href={shot.editHref}>
+                  <div className="flex items-start justify-between gap-3 border-t border-white/[0.07] px-4 py-3">
+                    <p className="text-xs text-neutral-500">{shot.caption}</p>
+                    <Link
+                      className="shrink-0 text-xs font-medium text-white hover:underline"
+                      href={shot.editHref}
+                    >
                       Open in editor
                     </Link>
                   </div>
@@ -148,16 +161,16 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
             </ul>
           )}
           {draftDesigns.length > 0 ? (
-            <div className="mt-4">
-              <p className="text-xs font-medium text-muted-foreground">
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-medium text-neutral-500">
                 {draftDesigns.length} more variation{draftDesigns.length === 1 ? '' : 's'}, not
                 rendered
               </p>
-              <ul className="mt-2 flex flex-wrap gap-2">
+              <ul className="flex flex-wrap gap-2">
                 {draftDesigns.map((design) => (
                   <li key={design.id}>
                     <Link
-                      className="rounded-md border px-2.5 py-1 text-xs hover:bg-muted"
+                      className="inline-flex rounded-lg px-2.5 py-1 text-xs text-neutral-300 ring-1 ring-white/[0.08] transition-colors hover:bg-white/[0.04] hover:text-white"
                       href={`/?design=${design.id}`}
                     >
                       {design.name}
@@ -168,37 +181,34 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
             </div>
           ) : null}
           {captureCount > 0 ? (
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="text-xs text-neutral-500">
               Built from {captureCount} live capture{captureCount === 1 ? '' : 's'} of your product.
             </p>
           ) : null}
-        </section>
+        </Section>
 
-        <section aria-labelledby="campaign-copy" className="mt-10">
-          <h2 className="text-base font-semibold" id="campaign-copy">
-            Copy
-          </h2>
+        <Section description="Posts drafted for each channel." id="campaign-copy" title="Copy">
           {campaign.posts.length === 0 ? (
-            <div className="mt-3 rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+            <Placeholder>
               Posts for each channel will appear here. Editing the brief keeps them intact.
-            </div>
+            </Placeholder>
           ) : (
-            <ul className="mt-3 grid gap-3">
+            <Group>
               {campaign.posts.map((post) => (
-                <li className="rounded-lg border p-4" key={post.id}>
-                  <p className="text-xs font-medium uppercase text-muted-foreground">
+                <Row key={post.id}>
+                  <p className="text-xs font-medium tracking-wide text-neutral-500 uppercase">
                     {post.channel} · {post.status}
                   </p>
-                  <p className="mt-2 whitespace-pre-wrap text-sm">{post.copy}</p>
+                  <p className="text-sm whitespace-pre-wrap text-white">{post.copy}</p>
                   {post.callToAction ? (
-                    <p className="mt-2 text-xs font-medium">CTA: {post.callToAction}</p>
+                    <p className="text-xs font-medium text-neutral-300">CTA: {post.callToAction}</p>
                   ) : null}
-                </li>
+                </Row>
               ))}
-            </ul>
+            </Group>
           )}
-        </section>
-      </main>
+        </Section>
+      </Page>
     </PlatformShell>
   )
 }

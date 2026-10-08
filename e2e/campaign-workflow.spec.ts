@@ -43,7 +43,7 @@ test('a founder connects a product, describes a release, and returns to the same
     await expect(
       target.getByRole('heading', { level: 1, name: 'Recurring invoices' })
     ).toBeVisible()
-    await expect(target.getByText('DRAFT', { exact: true })).toBeVisible()
+    await expect(target.getByText('Draft', { exact: true })).toBeVisible()
     await expect(target.getByText('Invoices now send themselves every month.')).toBeVisible()
     await expect(target.getByText('Freelancers who bill monthly')).toBeVisible()
     await expect(target.getByText(/Ledgerly · staging ·/)).toBeVisible()

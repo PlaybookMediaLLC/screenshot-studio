@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import {
+  acceptInvitation,
   getActiveOrganizationId,
-  getE2EUrl,
   signUp,
   signUpAndCreateWorkspace,
 } from './framework/auth'
@@ -56,19 +56,9 @@ test('a role downgrade denies privileged actions and member removal revokes the 
 
   try {
     await signUp(member, memberPage)
-    await memberPage.goto(getE2EUrl(`/accept-invitation?invitationId=${invitation.id}`))
-    await memberPage.getByRole('button', { name: 'Accept invitation' }).click()
-    await expect
-      .poll(async () => {
-        try {
-          await getMemberId(member.email, organizationId)
-          return true
-        } catch {
-          return false
-        }
-      })
-      .toBe(true)
-    await memberPage.goto(getE2EUrl('/workspace'))
+    // Accepting navigates to /workspace by itself; a second goto here raced
+    // it and aborted. The helper waits for that navigation instead.
+    await acceptInvitation(memberPage, invitation.id)
     const memberId = await getMemberId(member.email, organizationId)
 
     expect(

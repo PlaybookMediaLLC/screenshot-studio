@@ -111,6 +111,9 @@ async function assertRolePermissions(
 configureE2EFlow()
 
 test('workspace roles permit only their assigned actions', async ({ browser, identity, page }) => {
+  // One full sign-up, invitation, and permission sweep per role, in series;
+  // under a loaded suite it ran past the default timeout.
+  test.slow()
   await signUpAndCreateWorkspace(identity, page)
   const organizationId = await getActiveOrganizationId(page)
 

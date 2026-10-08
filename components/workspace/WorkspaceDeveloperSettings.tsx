@@ -2,6 +2,7 @@
 
 import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import { z } from 'zod'
+import { Group, Pill, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -117,22 +118,37 @@ export function WorkspaceDeveloperSettings({ canManage }: WorkspaceDeveloperSett
   }
 
   return (
-    <div className="grid max-w-3xl gap-8">
+    <div className="flex flex-col gap-10">
       {newKey ? <NewKeyNotice apiKey={newKey} onDismiss={() => setNewKey(null)} /> : null}
-      <section className="grid gap-4">
-        <div>
-          <h3 className="text-sm font-semibold">Organization API keys</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Keys are shown once. Revoke a key when it is no longer needed.
-          </p>
-        </div>
-        {canManage ? (
-          <ApiKeyForm isSubmitting={pendingId === 'create-key'} onSubmit={createKey} />
-        ) : null}
-        <ApiKeyList canManage={canManage} isRevoking={pendingId} keys={keys} onRevoke={revokeKey} />
-      </section>
+      <Section
+        description="Keys are shown once. Revoke a key when it is no longer needed."
+        title="Organization API keys"
+      >
+        <Group>
+          <ApiKeyList
+            canManage={canManage}
+            isRevoking={pendingId}
+            keys={keys}
+            onRevoke={revokeKey}
+          />
+          {canManage ? (
+            <Row>
+              <ApiKeyForm isSubmitting={pendingId === 'create-key'} onSubmit={createKey} />
+            </Row>
+          ) : null}
+        </Group>
+      </Section>
       {canManage ? (
-        <SourceForm isSubmitting={pendingId === 'create-source'} onSubmit={createSource} />
+        <Section
+          description="Allow a Git provider or release tool to send content to this workspace."
+          title="Inbound release source"
+        >
+          <Group>
+            <Row>
+              <SourceForm isSubmitting={pendingId === 'create-source'} onSubmit={createSource} />
+            </Row>
+          </Group>
+        </Section>
       ) : null}
       {error ? (
         <Alert variant="destructive">
@@ -143,17 +159,23 @@ export function WorkspaceDeveloperSettings({ canManage }: WorkspaceDeveloperSett
   )
 }
 
+const fieldLabel = 'text-xs font-medium text-neutral-400'
+
 function NewKeyNotice({ apiKey, onDismiss }: { apiKey: string; onDismiss: () => void }) {
   async function copyKey(): Promise<void> {
     await navigator.clipboard.writeText(apiKey)
   }
 
   return (
-    <div className="grid gap-3 rounded-md border border-primary/30 bg-primary/10 p-4">
-      <p className="text-sm font-semibold">Copy this API key now. It cannot be shown again.</p>
-      <code className="overflow-x-auto rounded bg-background p-3 text-xs">{apiKey}</code>
+    <div className="flex flex-col gap-3 rounded-2xl bg-emerald-500/5 p-5 ring-1 ring-emerald-500/20">
+      <p className="text-sm font-medium text-white">
+        Copy this API key now. It cannot be shown again.
+      </p>
+      <code className="overflow-x-auto rounded-lg bg-black/30 p-3 font-mono text-xs text-neutral-300 ring-1 ring-white/[0.08]">
+        {apiKey}
+      </code>
       <div className="flex gap-2">
-        <Button onClick={() => void copyKey()} size="sm" type="button">
+        <Button className="rounded-lg" onClick={() => void copyKey()} size="sm" type="button">
           Copy key
         </Button>
         <Button onClick={onDismiss} size="sm" type="button" variant="ghost">
@@ -172,28 +194,53 @@ function ApiKeyForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
   return (
-    <form
-      className="grid gap-4 rounded-md border border-foreground/10 bg-background p-4"
-      onSubmit={onSubmit}
-    >
+    <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+      <h3 className="text-sm font-medium text-white">Create a key</h3>
       <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
-        <Input name="name" placeholder="Production deploys" required />
-        <Input min="1" name="expiresInDays" placeholder="Expires in days" type="number" />
+        <div className="flex flex-col gap-1.5">
+          <label className={fieldLabel} htmlFor="api-key-name">
+            Key name
+          </label>
+          <Input
+            className="h-10 rounded-lg"
+            id="api-key-name"
+            name="name"
+            placeholder="Production deploys"
+            required
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className={fieldLabel} htmlFor="api-key-expires">
+            Expiry (optional)
+          </label>
+          <Input
+            className="h-10 rounded-lg"
+            id="api-key-expires"
+            min="1"
+            name="expiresInDays"
+            placeholder="Expires in days"
+            type="number"
+          />
+        </div>
       </div>
-      <fieldset className="grid gap-2">
-        <legend className="text-sm font-medium">Scopes</legend>
+      <fieldset className="flex flex-col gap-2">
+        <legend className={`mb-2 ${fieldLabel}`}>Scopes</legend>
         <div className="grid gap-2 sm:grid-cols-2">
           {apiKeyScopes.map((scope) => (
             <div className="flex items-center gap-2" key={scope}>
               <Checkbox defaultChecked id={`scope-${scope}`} name="scopes" value={scope} />
-              <Label htmlFor={`scope-${scope}`}>{scope}</Label>
+              <Label className="font-mono text-xs text-neutral-300" htmlFor={`scope-${scope}`}>
+                {scope}
+              </Label>
             </div>
           ))}
         </div>
       </fieldset>
-      <Button className="w-fit" disabled={isSubmitting} type="submit">
-        {isSubmitting ? 'Creating…' : 'Create API key'}
-      </Button>
+      <div className="flex justify-end">
+        <Button className="rounded-lg" disabled={isSubmitting} type="submit">
+          {isSubmitting ? 'Creating…' : 'Create API key'}
+        </Button>
+      </div>
     </form>
   )
 }
@@ -210,35 +257,34 @@ function ApiKeyList({
   onRevoke: (keyId: string) => Promise<void>
 }) {
   if (keys.length === 0)
-    return <p className="text-sm text-muted-foreground">No API keys have been created.</p>
-  return (
-    <ul className="overflow-hidden rounded-md border border-foreground/10">
-      {keys.map((key) => (
-        <li
-          className="flex items-center justify-between gap-3 border-b border-foreground/10 px-4 py-3 text-sm last:border-b-0"
-          key={key.id}
+    return (
+      <Row>
+        <p className="text-sm text-neutral-500">No API keys have been created.</p>
+      </Row>
+    )
+  return keys.map((key) => (
+    <div className="flex items-center gap-4 px-5 py-4" key={key.id}>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm text-white">{key.name ?? 'Untitled key'}</p>
+        <p className="truncate font-mono text-xs text-neutral-500">
+          {key.start ?? key.prefix ?? 'Hidden key'}
+        </p>
+      </div>
+      <Pill tone={key.enabled ? 'green' : 'gray'}>{key.enabled ? 'active' : 'disabled'}</Pill>
+      {canManage ? (
+        <Button
+          className="text-red-400 hover:text-red-300"
+          disabled={isRevoking === key.id}
+          onClick={() => void onRevoke(key.id)}
+          size="sm"
+          type="button"
+          variant="ghost"
         >
-          <div>
-            <p className="font-medium">{key.name ?? 'Untitled key'}</p>
-            <p className="text-xs text-muted-foreground">
-              {key.start ?? key.prefix ?? 'Hidden key'} · {key.enabled ? 'active' : 'disabled'}
-            </p>
-          </div>
-          {canManage ? (
-            <Button
-              disabled={isRevoking === key.id}
-              onClick={() => void onRevoke(key.id)}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              Revoke
-            </Button>
-          ) : null}
-        </li>
-      ))}
-    </ul>
-  )
+          Revoke
+        </Button>
+      ) : null}
+    </div>
+  ))
 }
 
 function SourceForm({
@@ -249,30 +295,54 @@ function SourceForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
   return (
-    <form className="grid gap-4 border-t border-foreground/10 pt-8" onSubmit={onSubmit}>
-      <div>
-        <h3 className="text-sm font-semibold">Inbound release source</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Allow a Git provider or release tool to send content to this workspace.
-        </p>
+    <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+      <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
+        <div className="flex flex-col gap-1.5">
+          <label className={fieldLabel} htmlFor="source-name">
+            Source name
+          </label>
+          <Input
+            className="h-10 rounded-lg"
+            id="source-name"
+            name="name"
+            placeholder="GitHub production"
+            required
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className={fieldLabel} htmlFor="source-provider">
+            Provider
+          </label>
+          <Select defaultValue="github" name="provider">
+            <SelectTrigger className="h-10 w-full rounded-lg" id="source-provider">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="github">GitHub</SelectItem>
+              <SelectItem value="gitlab">GitLab</SelectItem>
+              <SelectItem value="generic">Generic webhook</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Input name="name" placeholder="GitHub production" required />
-        <Select defaultValue="github" name="provider">
-          <SelectTrigger className="h-10 w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="github">GitHub</SelectItem>
-            <SelectItem value="gitlab">GitLab</SelectItem>
-            <SelectItem value="generic">Generic webhook</SelectItem>
-          </SelectContent>
-        </Select>
-        <Input name="allowedHost" placeholder="https://api.github.com" required type="url" />
+      <div className="flex flex-col gap-1.5">
+        <label className={fieldLabel} htmlFor="source-allowed-host">
+          Allowed host
+        </label>
+        <Input
+          className="h-10 rounded-lg"
+          id="source-allowed-host"
+          name="allowedHost"
+          placeholder="https://api.github.com"
+          required
+          type="url"
+        />
       </div>
-      <Button className="w-fit" disabled={isSubmitting} type="submit">
-        {isSubmitting ? 'Adding…' : 'Add source'}
-      </Button>
+      <div className="flex justify-end">
+        <Button className="rounded-lg" disabled={isSubmitting} type="submit">
+          {isSubmitting ? 'Adding…' : 'Add source'}
+        </Button>
+      </div>
     </form>
   )
 }

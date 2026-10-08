@@ -19,11 +19,13 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/s
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { authClient } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
+import { SETTINGS_SECTIONS, settingsHref } from '@/components/workspace/settings-sections'
 import { workspaceInitials } from '@/lib/workspace/initials'
 import { PLATFORM_SIDEBAR_COOKIE, surface } from './shell-config'
 
 type IconComponent = ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
-type NavItem = { href: string; icon: IconComponent; label: string }
+type SubItem = { href: string; label: string }
+type NavItem = { children?: SubItem[]; href: string; icon: IconComponent; label: string }
 
 const NAV_GROUPS: { items: NavItem[]; label?: string }[] = [
   {
@@ -36,7 +38,15 @@ const NAV_GROUPS: { items: NavItem[]; label?: string }[] = [
   {
     items: [
       { href: '/activity', icon: Activity01Icon, label: 'Activity' },
-      { href: '/workspace', icon: SlidersHorizontalIcon, label: 'Settings' },
+      {
+        children: SETTINGS_SECTIONS.map((section) => ({
+          href: settingsHref(section),
+          label: section.title,
+        })),
+        href: '/workspace',
+        icon: SlidersHorizontalIcon,
+        label: 'Settings',
+      },
     ],
     label: 'Workspace',
   },
@@ -63,9 +73,46 @@ function WorkspaceBadge({ name }: { name: string }) {
   )
 }
 
+/** Polar-style sub-links under the current section, on a hairline rail. */
+function SubNav({
+  items,
+  label,
+  onNavigate,
+}: {
+  items: SubItem[]
+  label: string
+  onNavigate?: () => void
+}) {
+  const path = routePath(usePathname())
+  return (
+    <nav
+      aria-label={`Workspace ${label.toLowerCase()}`}
+      className="my-1.5 ml-[17px] flex flex-col gap-0.5 border-l border-white/[0.08] pl-3"
+    >
+      {items.map((item) => {
+        const active = path === item.href
+        return (
+          <Link
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+              'rounded-md py-1 text-sm font-medium transition-colors',
+              active ? 'text-white' : 'text-neutral-500 hover:text-neutral-200'
+            )}
+            href={item.href}
+            key={item.href}
+            onClick={onNavigate}
+          >
+            {item.label}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
+
 function NavLink({
   collapsed,
-  item: { href, icon: Icon, label },
+  item: { children, href, icon: Icon, label },
   onNavigate,
 }: {
   collapsed: boolean
@@ -93,7 +140,16 @@ function NavLink({
       {collapsed ? null : <span className="truncate">{label}</span>}
     </Link>
   )
-  if (!collapsed) return link
+  if (!collapsed) {
+    return active && children ? (
+      <div>
+        {link}
+        <SubNav items={children} label={label} onNavigate={onNavigate} />
+      </div>
+    ) : (
+      link
+    )
+  }
   return (
     <Tooltip>
       <TooltipTrigger asChild>{link}</TooltipTrigger>

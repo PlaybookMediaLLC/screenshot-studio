@@ -1,7 +1,8 @@
 'use client'
 
-import { type FormEvent, useCallback, useEffect, useState } from 'react'
+import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from 'react'
 import { z } from 'zod'
+import { Group, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -143,23 +144,43 @@ export function WorkspaceIdentitySettings({
 
   if (!canManage)
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-neutral-500">
         SSO and SCIM configuration is available to workspace admins.
       </p>
     )
   return (
-    <div className="grid max-w-3xl gap-8">
-      <Alert>
+    <div className="flex flex-col gap-10">
+      <Alert className="border-white/[0.08] bg-white/[0.015] text-neutral-400">
         <AlertDescription>
           SSO and SCIM are enterprise features. Configuration requires a recent sign-in and
           two-factor authentication.
         </AlertDescription>
       </Alert>
       {token ? <ScimTokenNotice onDismiss={() => setToken(null)} token={token} /> : null}
-      <SsoForm isSubmitting={pending === 'sso'} onSubmit={registerSso} />
-      <WorkspaceSsoList providers={ssoProviders} />
-      {isOwner ? <ScimForm isSubmitting={pending === 'scim'} onSubmit={generateScimToken} /> : null}
-      <ScimList isDeleting={pending} onDelete={removeScimProvider} providers={scimProviders} />
+      <Section
+        description="Connect Okta, Microsoft Entra ID, or another OIDC identity provider."
+        title="OpenID Connect SSO"
+      >
+        <Group>
+          <WorkspaceSsoList providers={ssoProviders} />
+          <Row>
+            <SsoForm isSubmitting={pending === 'sso'} onSubmit={registerSso} />
+          </Row>
+        </Group>
+      </Section>
+      <Section
+        description="Create a provisioning token for your directory provider."
+        title="SCIM directory sync"
+      >
+        <Group>
+          <ScimList isDeleting={pending} onDelete={removeScimProvider} providers={scimProviders} />
+          {isOwner ? (
+            <Row>
+              <ScimForm isSubmitting={pending === 'scim'} onSubmit={generateScimToken} />
+            </Row>
+          ) : null}
+        </Group>
+      </Section>
       {error ? (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -169,6 +190,27 @@ export function WorkspaceIdentitySettings({
   )
 }
 
+function Field({
+  children,
+  htmlFor,
+  label,
+}: {
+  children: ReactNode
+  htmlFor: string
+  label: string
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-medium text-neutral-400" htmlFor={htmlFor}>
+        {label}
+      </label>
+      {children}
+    </div>
+  )
+}
+
+const inputClassName = 'h-10 rounded-lg'
+
 function SsoForm({
   isSubmitting,
   onSubmit,
@@ -177,29 +219,69 @@ function SsoForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
   return (
-    <form className="grid gap-4" onSubmit={onSubmit}>
+    <form className="flex flex-col gap-4" onSubmit={onSubmit}>
       <div>
-        <h3 className="text-sm font-semibold">OpenID Connect SSO</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Connect Okta, Microsoft Entra ID, or another OIDC identity provider.
+        <h3 className="text-sm font-medium text-white">Add a provider</h3>
+        <p className="mt-0.5 text-xs text-neutral-500">
+          Use the issuer and client credentials from your identity provider.
         </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Input name="providerId" placeholder="acme-okta" required />
-        <Input name="domain" placeholder="company.com" required />
-        <Input name="issuer" placeholder="https://company.okta.com" required type="url" />
-        <Input name="clientId" placeholder="Client ID" required />
-        <Input
-          className="sm:col-span-2"
-          name="clientSecret"
-          placeholder="Client secret"
-          required
-          type="password"
-        />
+        <Field htmlFor="sso-provider-id" label="Provider ID">
+          <Input
+            className={inputClassName}
+            id="sso-provider-id"
+            name="providerId"
+            placeholder="acme-okta"
+            required
+          />
+        </Field>
+        <Field htmlFor="sso-domain" label="Email domain">
+          <Input
+            className={inputClassName}
+            id="sso-domain"
+            name="domain"
+            placeholder="company.com"
+            required
+          />
+        </Field>
+        <Field htmlFor="sso-issuer" label="Issuer URL">
+          <Input
+            className={inputClassName}
+            id="sso-issuer"
+            name="issuer"
+            placeholder="https://company.okta.com"
+            required
+            type="url"
+          />
+        </Field>
+        <Field htmlFor="sso-client-id" label="Client ID">
+          <Input
+            className={inputClassName}
+            id="sso-client-id"
+            name="clientId"
+            placeholder="Client ID"
+            required
+          />
+        </Field>
+        <div className="sm:col-span-2">
+          <Field htmlFor="sso-client-secret" label="Client secret">
+            <Input
+              className={inputClassName}
+              id="sso-client-secret"
+              name="clientSecret"
+              placeholder="Client secret"
+              required
+              type="password"
+            />
+          </Field>
+        </div>
       </div>
-      <Button className="w-fit" disabled={isSubmitting} type="submit">
-        {isSubmitting ? 'Connecting…' : 'Connect SSO provider'}
-      </Button>
+      <div className="flex justify-end">
+        <Button className="rounded-lg" disabled={isSubmitting} type="submit">
+          {isSubmitting ? 'Connecting…' : 'Connect SSO provider'}
+        </Button>
+      </div>
     </form>
   )
 }
@@ -212,16 +294,19 @@ function ScimForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
   return (
-    <form className="grid gap-4 border-t border-foreground/10 pt-8" onSubmit={onSubmit}>
-      <div>
-        <h3 className="text-sm font-semibold">SCIM directory sync</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Create a provisioning token for your directory provider.
-        </p>
-      </div>
+    <form className="flex flex-col gap-3" onSubmit={onSubmit}>
+      <label className="text-xs font-medium text-neutral-400" htmlFor="scim-provider-id">
+        Provider ID
+      </label>
       <div className="flex gap-3">
-        <Input className="flex-1" name="providerId" placeholder="acme-scim" required />
-        <Button disabled={isSubmitting} type="submit">
+        <Input
+          className="h-10 flex-1 rounded-lg"
+          id="scim-provider-id"
+          name="providerId"
+          placeholder="acme-scim"
+          required
+        />
+        <Button className="h-10 rounded-lg" disabled={isSubmitting} type="submit">
           {isSubmitting ? 'Generating…' : 'Generate token'}
         </Button>
       </div>
@@ -231,10 +316,14 @@ function ScimForm({
 
 function ScimTokenNotice({ onDismiss, token }: { onDismiss: () => void; token: string }) {
   return (
-    <div className="grid gap-3 rounded-md border border-primary/30 bg-primary/10 p-4">
-      <p className="text-sm font-semibold">Copy this SCIM token now. It cannot be shown again.</p>
-      <code className="overflow-x-auto rounded bg-background p-3 text-xs">{token}</code>
-      <Button className="w-fit" onClick={onDismiss} size="sm" type="button">
+    <div className="flex flex-col gap-3 rounded-2xl bg-emerald-500/5 p-5 ring-1 ring-emerald-500/20">
+      <p className="text-sm font-medium text-white">
+        Copy this SCIM token now. It cannot be shown again.
+      </p>
+      <code className="overflow-x-auto rounded-lg bg-black/30 p-3 font-mono text-xs text-neutral-300 ring-1 ring-white/[0.08]">
+        {token}
+      </code>
+      <Button className="w-fit rounded-lg" onClick={onDismiss} size="sm" type="button">
         Done
       </Button>
     </div>
@@ -250,32 +339,28 @@ function ScimList({
   onDelete: (provider: ScimProvider) => Promise<void>
   providers: ScimProvider[]
 }) {
-  return (
-    <section className="grid gap-3">
-      <h3 className="text-sm font-semibold">SCIM connections</h3>
-      {providers.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No directory connections are configured.</p>
-      ) : (
-        <ul className="overflow-hidden rounded-md border border-foreground/10">
-          {providers.map((provider) => (
-            <li
-              className="flex items-center justify-between gap-3 border-b border-foreground/10 px-4 py-3 text-sm last:border-b-0"
-              key={provider.id}
-            >
-              <span>{provider.providerId}</span>
-              <Button
-                disabled={isDeleting === provider.id}
-                onClick={() => void onDelete(provider)}
-                size="sm"
-                type="button"
-                variant="ghost"
-              >
-                Remove
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  )
+  if (providers.length === 0)
+    return (
+      <Row>
+        <p className="text-sm text-neutral-500">No directory connections are configured.</p>
+      </Row>
+    )
+  return providers.map((provider) => (
+    <div className="flex items-center gap-4 px-5 py-4" key={provider.id}>
+      <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-emerald-500" />
+      <span className="min-w-0 flex-1 truncate font-mono text-sm text-white">
+        {provider.providerId}
+      </span>
+      <Button
+        className="text-red-400 hover:text-red-300"
+        disabled={isDeleting === provider.id}
+        onClick={() => void onDelete(provider)}
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        Remove
+      </Button>
+    </div>
+  ))
 }

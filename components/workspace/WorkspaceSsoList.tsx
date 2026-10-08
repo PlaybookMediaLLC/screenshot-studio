@@ -1,26 +1,23 @@
+import { Pill, Row } from '@/components/platform-ui'
 import type { SsoProvider } from './WorkspaceIdentitySettings'
 
 type WorkspaceSsoListProps = { providers: SsoProvider[] }
 
+/** Connected SSO providers as rows of a platform-ui Group. */
 export function WorkspaceSsoList({ providers }: WorkspaceSsoListProps) {
-  return (
-    <section className="grid gap-3">
-      <h3 className="text-sm font-semibold">Connected SSO providers</h3>
-      {providers.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No SSO providers are connected.</p>
-      ) : (
-        <ul className="overflow-hidden rounded-md border border-foreground/10">
-          {providers.map((provider) => (
-            <li
-              className="border-b border-foreground/10 px-4 py-3 text-sm last:border-b-0"
-              key={provider.providerId}
-            >
-              <p className="font-medium">{provider.providerId}</p>
-              <p className="text-xs text-muted-foreground">{provider.domain}</p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  )
+  if (providers.length === 0)
+    return (
+      <Row>
+        <p className="text-sm text-neutral-500">No SSO providers are connected.</p>
+      </Row>
+    )
+  return providers.map((provider) => (
+    <div className="flex items-center gap-4 px-5 py-4" key={provider.providerId}>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-mono text-sm text-white">{provider.providerId}</p>
+        <p className="truncate text-xs text-neutral-500">{provider.domain}</p>
+      </div>
+      <Pill tone="green">Connected</Pill>
+    </div>
+  ))
 }

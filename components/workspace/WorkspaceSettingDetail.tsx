@@ -1,6 +1,5 @@
 import { type ReactNode } from 'react'
 import { ProfileForm } from '@/components/auth/ProfileForm'
-import { Button } from '@/components/ui/button'
 import { WorkspaceAuditSettings } from './WorkspaceAuditSettings'
 import { WorkspaceBrandSettings } from './WorkspaceBrandSettings'
 import { WorkspaceDeveloperSettings } from './WorkspaceDeveloperSettings'
@@ -10,13 +9,12 @@ import { WorkspaceMembersSettings } from './WorkspaceMembersSettings'
 import { WorkspaceRolesSettings } from './WorkspaceRolesSettings'
 import { WorkspaceSecuritySettings } from './WorkspaceSecuritySettings'
 import { hasPermission } from '@/lib/auth/permissions'
-import type { SettingId, SettingItem, WorkspaceSettingsProps } from './WorkspaceSettings'
+import type { WorkspaceSettingsProps } from './WorkspaceSettings'
+import type { SettingId } from './settings-sections'
 
-type WorkspaceSettingDetailProps = {
+type WorkspaceSettingContentProps = {
   email: string
-  item: SettingItem
   name: string
-  onBack: () => void
   organization: WorkspaceSettingsProps['organization']
   role: string
   twoFactorEnabled: boolean
@@ -30,7 +28,7 @@ function getDetailContent({
   role,
   twoFactorEnabled,
   userId,
-}: Omit<WorkspaceSettingDetailProps, 'item' | 'onBack'>): Record<SettingId, ReactNode> {
+}: WorkspaceSettingContentProps): Record<SettingId, ReactNode> {
   const canManage = hasPermission(role, 'workspace:update')
   return {
     api: <WorkspaceDeveloperSettings canManage={canManage} />,
@@ -71,44 +69,10 @@ function getDetailContent({
   }
 }
 
-export function WorkspaceSettingDetail({
-  email,
-  item,
-  name,
-  onBack,
-  organization,
-  role,
-  twoFactorEnabled,
-  userId,
-}: WorkspaceSettingDetailProps) {
-  const Icon = item.icon
-  const content = getDetailContent({
-    email,
-    name,
-    organization,
-    role,
-    twoFactorEnabled,
-    userId,
-  })
-
-  return (
-    <section className="w-full">
-      <Button
-        className="text-sm font-medium text-muted-foreground hover:text-foreground"
-        onClick={onBack}
-        type="button"
-        variant="ghost"
-      >
-        All settings
-      </Button>
-      <div className="mt-6 rounded-lg border border-foreground/10 bg-card p-6 sm:p-8">
-        <span className="flex h-11 w-11 items-center justify-center rounded-md bg-muted text-muted-foreground">
-          <Icon size={22} />
-        </span>
-        <h2 className="mt-5 text-xl font-semibold">{item.title}</h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
-        <div className="mt-8 border-t pt-6">{content[item.id]}</div>
-      </div>
-    </section>
-  )
+/** The body of one settings section. */
+export function WorkspaceSettingContent({
+  section,
+  ...props
+}: WorkspaceSettingContentProps & { section: SettingId }) {
+  return getDetailContent(props)[section]
 }

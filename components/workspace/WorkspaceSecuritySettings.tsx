@@ -3,10 +3,10 @@
 import { type FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
+import { Group, Pill, Row } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { authClient } from '@/lib/auth/client'
 import { getAuthErrorMessage } from '@/components/auth/error-message'
 
@@ -101,15 +101,23 @@ function EnableSecurityForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
   return (
-    <form className="grid max-w-xl gap-5" onSubmit={onSubmit}>
-      <p className="text-sm text-muted-foreground">
-        Add a time-based authenticator to protect sensitive workspace actions.
-      </p>
-      <PasswordField />
+    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+      <Group>
+        <Row
+          description="Add a time-based authenticator to protect sensitive workspace actions."
+          label="Two-factor authentication"
+          layout="inline"
+        >
+          <Pill>Off</Pill>
+        </Row>
+        <PasswordField />
+      </Group>
       <FormError error={error} />
-      <Button className="w-fit" disabled={isSubmitting} type="submit">
-        {isSubmitting ? 'Starting…' : 'Set up authenticator'}
-      </Button>
+      <div className="flex justify-end">
+        <Button className="rounded-lg" disabled={isSubmitting} type="submit">
+          {isSubmitting ? 'Starting…' : 'Set up authenticator'}
+        </Button>
+      </div>
     </form>
   )
 }
@@ -126,33 +134,48 @@ function VerifySecurityForm({
   setup: SetupState
 }) {
   return (
-    <form className="grid max-w-xl gap-5" onSubmit={onSubmit}>
-      <p className="text-sm text-muted-foreground">
-        Add this URI to your authenticator, store the backup codes, then enter the generated code.
-      </p>
-      <code className="overflow-x-auto rounded-md border border-foreground/10 bg-background p-3 text-xs">
-        {setup.totpURI}
-      </code>
-      <div className="grid grid-cols-2 gap-2 rounded-md border border-foreground/10 bg-background p-3 text-xs">
-        {setup.backupCodes.map((backupCode) => (
-          <code key={backupCode}>{backupCode}</code>
-        ))}
-      </div>
-      <Label className="grid gap-1.5" htmlFor="two-factor-code">
-        Verification code
-        <Input
-          autoComplete="one-time-code"
-          className="h-10 rounded-md border border-foreground/10 bg-background px-3"
-          id="two-factor-code"
-          inputMode="numeric"
-          name="code"
-          required
-        />
-      </Label>
+    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+      <Group>
+        <Row
+          description="Add this URI to your authenticator, store the backup codes, then enter the generated code."
+          label="Authenticator URI"
+          layout="stacked"
+        >
+          <code className="w-full overflow-x-auto rounded-lg bg-black/30 p-3 font-mono text-xs text-neutral-300 ring-1 ring-white/[0.08]">
+            {setup.totpURI}
+          </code>
+        </Row>
+        <Row
+          description="Each code signs you in once if you lose your authenticator."
+          label="Backup codes"
+          layout="stacked"
+        >
+          <div className="grid w-full grid-cols-2 gap-2 rounded-lg bg-black/30 p-3 font-mono text-xs text-neutral-300 ring-1 ring-white/[0.08]">
+            {setup.backupCodes.map((backupCode) => (
+              <code key={backupCode}>{backupCode}</code>
+            ))}
+          </div>
+        </Row>
+        <Row
+          description="The six-digit code your authenticator shows."
+          label={<label htmlFor="two-factor-code">Verification code</label>}
+        >
+          <Input
+            autoComplete="one-time-code"
+            className="h-10 rounded-lg md:w-72"
+            id="two-factor-code"
+            inputMode="numeric"
+            name="code"
+            required
+          />
+        </Row>
+      </Group>
       <FormError error={error} />
-      <Button className="w-fit" disabled={isSubmitting} type="submit">
-        {isSubmitting ? 'Verifying…' : 'Verify and enable'}
-      </Button>
+      <div className="flex justify-end">
+        <Button className="rounded-lg" disabled={isSubmitting} type="submit">
+          {isSubmitting ? 'Verifying…' : 'Verify and enable'}
+        </Button>
+      </div>
     </form>
   )
 }
@@ -167,32 +190,51 @@ function EnabledSecurityForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
   return (
-    <form className="grid max-w-xl gap-5" onSubmit={onSubmit}>
-      <p className="text-sm text-muted-foreground">
-        Two-factor authentication is enabled for this account.
-      </p>
-      <PasswordField />
+    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+      <Group>
+        <Row
+          description="Two-factor authentication is enabled for this account."
+          label="Two-factor authentication"
+          layout="inline"
+        >
+          <Pill tone="green">Enabled</Pill>
+        </Row>
+        <PasswordField />
+        <Row
+          description="Removes the authenticator from your account."
+          label="Turn off two-factor"
+          layout="inline"
+        >
+          <Button
+            className="rounded-lg"
+            disabled={isSubmitting}
+            type="submit"
+            variant="destructive"
+          >
+            {isSubmitting ? 'Disabling…' : 'Disable two-factor authentication'}
+          </Button>
+        </Row>
+      </Group>
       <FormError error={error} />
-      <Button disabled={isSubmitting} type="submit" variant="outline">
-        {isSubmitting ? 'Disabling…' : 'Disable two-factor authentication'}
-      </Button>
     </form>
   )
 }
 
 function PasswordField() {
   return (
-    <Label className="grid gap-1.5" htmlFor="two-factor-password">
-      Current password
+    <Row
+      description="Confirm it is you before changing two-factor settings."
+      label={<label htmlFor="two-factor-password">Current password</label>}
+    >
       <Input
         autoComplete="current-password"
-        className="h-10 rounded-md border border-foreground/10 bg-background px-3"
+        className="h-10 rounded-lg md:w-72"
         id="two-factor-password"
         name="password"
         required
         type="password"
       />
-    </Label>
+    </Row>
   )
 }
 

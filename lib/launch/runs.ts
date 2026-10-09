@@ -51,8 +51,18 @@ function view(run: LaunchRunView): LaunchRunView {
   return run
 }
 
+/** Provider responses a retry will not fix, said so plainly. */
+const PROVIDER_FAILURES: Record<number, string> = {
+  401: 'The AI provider rejected its credentials. An administrator needs to check the AI configuration.',
+  402: 'The AI provider account is out of credit. An administrator needs to top it up.',
+  403: 'The AI provider refused the request. An administrator needs to check the AI configuration.',
+  429: 'The AI provider is rate limiting requests. Try again in a minute.',
+}
+
 function failureMessage(error: unknown): string {
   if (error instanceof LaunchError) return error.message
+  const status = (error as { statusCode?: unknown } | null)?.statusCode
+  if (typeof status === 'number' && PROVIDER_FAILURES[status]) return PROVIDER_FAILURES[status]
   if (error instanceof Error && /quota|rate|limit/i.test(error.message)) return error.message
   return 'The AI step failed. Try again in a moment.'
 }

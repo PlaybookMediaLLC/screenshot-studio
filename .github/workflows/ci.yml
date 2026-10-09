@@ -117,7 +117,9 @@ jobs:
   # on changes that fail validation.
   integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Stack start, route warm-up, a third of the suite with retries, and on
+    # the last shard the recovery check; 30 minutes no longer covered it.
+    timeout-minutes: 45
     env:
       E2E_DOCKER_HOST_GATEWAY: 'true'
     strategy:

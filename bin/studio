@@ -405,6 +405,10 @@ run_e2e() {
     test_result=1
   fi
   if [[ "$manage_screenshot_mock" == "true" ]]; then
+    # Recreating app discards the logs of the server that ran the suite; keep
+    # them beside the Playwright results, which CI uploads on failure.
+    mkdir -p "$ROOT_DIR/test-results"
+    compose logs --no-color app >"$ROOT_DIR/test-results/app.log" 2>&1 || true
     SCREENSHOT_API_URL="" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="" compose up --detach --force-recreate app
   fi
   return "$test_result"

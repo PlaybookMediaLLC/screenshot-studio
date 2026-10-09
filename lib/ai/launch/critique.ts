@@ -1,8 +1,11 @@
 import 'server-only'
 
+import sharp from 'sharp'
 import { z } from 'zod'
 import { type BrandKitValues } from '@/lib/launch/brand'
 import { defuseMarkup } from '@/lib/launch/sanitize'
+import { listSpecClaims } from '@/lib/launch/spec-schema'
+import { getActiveBrand, getWorkingSpec, loadLaunchCampaign } from '@/lib/launch/store'
 import { formatBrandKit } from './context'
 import { CRITIQUE_INSTRUCTIONS } from './prompts'
 import { runSubmitStage } from './run'
@@ -75,4 +78,33 @@ export async function critiqueRender(input: {
     })
     return null
   }
+}
+
+/**
+ * Review a render that a reviewer's revision produced, the way production
+ * reviews its own: against the campaign's working spec and the active brand
+ * kit. Returns null when there is nothing to review against or the review
+ * fails, so applying the revision never depends on it.
+ */
+export async function reviewRevisedRender(input: {
+  campaignId: string
+  imageBytes: Uint8Array
+  organizationId: string
+  texts: string[]
+}): Promise<RenderCritique | null> {
+  const campaign = await loadLaunchCampaign(input.organizationId, input.campaignId)
+  const [brand, spec] = await Promise.all([
+    getActiveBrand(input.organizationId),
+    campaign.release ? getWorkingSpec(input.organizationId, campaign.release.id) : null,
+  ])
+  const preview = await sharp(input.imageBytes)
+    .resize({ width: 960, withoutEnlargement: true })
+    .jpeg({ quality: 70 })
+    .toBuffer()
+  return critiqueRender({
+    brand: brand.kit,
+    claims: spec ? listSpecClaims(spec.content).map((claim) => claim.text) : [],
+    previewJpegBase64: preview.toString('base64'),
+    texts: input.texts,
+  })
 }

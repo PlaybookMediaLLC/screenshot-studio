@@ -4,12 +4,14 @@ import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { isCampaignStudioConfigured } from '@/lib/ai/agents/campaign-studio'
 import { captureUrlsFor } from '@/lib/ai/launch/context'
+import { reviewRevisedRender } from '@/lib/ai/launch/critique'
 import { draftCampaignPlan } from '@/lib/ai/launch/plan'
 import { produceCampaign } from '@/lib/ai/launch/produce'
 import { proposeCampaignRevision } from '@/lib/ai/launch/revise'
 import { draftReleaseSpec } from '@/lib/ai/launch/spec'
 import { LAUNCH_AI_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
 import type { OrganizationAccess } from '@/lib/auth/access'
+import { prisma } from '@/lib/db'
 import { renderDesignForTenant } from '@/lib/design/render-design'
 import {
   createDesignRenderer,
@@ -296,8 +298,21 @@ export const launchRouter = router({
             for (const designId of result.designIds) {
               const design = await getDesign(ctx.access.organizationId, designId)
               if (!design) continue
-              await renderDesignForTenant(ctx.access, getRenderer, design)
+              const render = await renderDesignForTenant(ctx.access, getRenderer, design)
               rendered += 1
+              // Every render is reviewed, including the ones a reviewer asked for.
+              const critique = await reviewRevisedRender({
+                campaignId: result.revision.campaignId,
+                imageBytes: await render.readBytes(),
+                organizationId: ctx.access.organizationId,
+                texts: design.document.texts.map((text) => text.text),
+              }).catch(() => null)
+              if (critique) {
+                await prisma.design.updateMany({
+                  data: { critique },
+                  where: { id: design.id, organizationId: ctx.access.organizationId },
+                })
+              }
             }
           } catch (error) {
             console.error('Re-render after revision failed.', {

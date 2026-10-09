@@ -55,7 +55,7 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     title: 'Audit log',
   },
   {
-    description: 'Colors, typography, and reusable content templates.',
+    description: 'Brand voice for AI copy, plus colors and typography for visuals.',
     id: 'brand',
     slug: 'brand-kit',
     title: 'Brand kit',

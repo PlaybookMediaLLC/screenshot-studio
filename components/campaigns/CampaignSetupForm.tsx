@@ -126,7 +126,9 @@ export function CampaignSetupForm({
       const { campaign } = await trpcClient.campaign.create.mutate({
         audience: audience || undefined,
         name: title,
-        objective: benefitStatement,
+        // The release may skip why it matters when sources are linked; a
+        // campaign still needs an objective, so the title stands in.
+        objective: benefitStatement || title,
         releaseId: release.id,
       })
       trackEvent('campaign_draft_created', {
@@ -236,13 +238,16 @@ export function CampaignSetupForm({
             </Field>
             <Field htmlFor="campaign-benefit" label="Why it matters">
               <Input
+                aria-describedby="campaign-benefit-hint"
                 className={inputClassName}
                 id="campaign-benefit"
                 maxLength={500}
                 name="benefitStatement"
                 placeholder="One sentence on what this changes for your users"
-                required
               />
+              <p className="text-xs text-neutral-500" id="campaign-benefit-hint">
+                Can be left empty when you add a source link; the AI drafts it from your sources.
+              </p>
             </Field>
           </Row>
           <Row>

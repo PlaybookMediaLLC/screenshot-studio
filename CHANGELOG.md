@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.8.2...v1.9.0) (2026-10-09)
+
+
+### Features
+
+* Week 01 product connection, first campaign shell, and Playbook Core bootstrap ([#54](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/54)) ([c5d738d](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/c5d738d238a7b881c8d87e0ac6edd1737e72a56b))
+
 ## [1.8.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.8.1...v1.8.2) (2026-10-04)
 
 

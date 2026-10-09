@@ -1,29 +1,33 @@
+import { Group, Pill, type PillTone, Row } from '@/components/platform-ui'
 import type { AuditLog } from './WorkspaceAuditSettings'
 
 type WorkspaceAuditLogListProps = { logs: AuditLog[] }
 
+const outcomeTones: Record<string, PillTone> = { DENIED: 'red', FAILED: 'red', SUCCEEDED: 'green' }
+
 export function WorkspaceAuditLogList({ logs }: WorkspaceAuditLogListProps) {
   return (
-    <section className="grid gap-3">
-      <h3 className="text-sm font-semibold">Recent events</h3>
+    <Group>
       {logs.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No audit events have been recorded.</p>
+        <Row>
+          <p className="text-sm text-neutral-500">No audit events have been recorded.</p>
+        </Row>
       ) : (
-        <ul className="overflow-hidden rounded-md border border-foreground/10">
-          {logs.map((log) => (
-            <li
-              className="grid gap-1 border-b border-foreground/10 px-4 py-3 text-sm last:border-b-0"
-              key={log.id}
-            >
-              <span className="font-medium">{log.action}</span>
-              <span className="text-xs text-muted-foreground">
+        logs.map((log) => (
+          <div className="flex items-center gap-4 px-5 py-4" key={log.id}>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-mono text-sm text-white">{log.action}</p>
+              <p className="truncate text-xs text-neutral-500">
                 {log.actorDisplay ?? 'System'} · {log.entityType} ·{' '}
                 {new Date(log.createdAt).toLocaleString()}
-              </span>
-            </li>
-          ))}
-        </ul>
+              </p>
+            </div>
+            <Pill tone={outcomeTones[log.outcome] ?? 'gray'}>
+              <span className="capitalize">{log.outcome.toLowerCase()}</span>
+            </Pill>
+          </div>
+        ))
       )}
-    </section>
+    </Group>
   )
 }

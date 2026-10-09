@@ -7,6 +7,7 @@ const webhookMaxAgeMilliseconds = 5 * 60 * 1_000
 const githubReleaseSchema = z.object({
   release: z.object({
     body: z.string().trim().max(10_000).optional(),
+    html_url: z.string().url().optional(),
     name: z.string().trim().max(160).optional(),
     tag_name: z.string().trim().max(160).optional(),
   }),
@@ -16,7 +17,22 @@ const gitlabReleaseSchema = z.object({
   description: z.string().trim().max(10_000).optional(),
   name: z.string().trim().max(160).optional(),
   tag: z.string().trim().max(160).optional(),
+  url: z.string().url().optional(),
 })
+
+const BENEFIT_MAX = 500
+
+/**
+ * Release notes run long; the benefit statement holds their opening, and the
+ * release page becomes a source the spec drafter reads in full (fetched and
+ * fenced as untrusted, like any source link).
+ */
+function releaseNotes(text: string | undefined, url: string | undefined) {
+  const notes = text?.trim() ?? ''
+  const benefitStatement =
+    notes.length <= BENEFIT_MAX ? notes : `${notes.slice(0, BENEFIT_MAX - 1).trimEnd()}…`
+  return { benefitStatement, ...(url ? { sourceUrls: [url] } : {}) }
+}
 
 function hasFreshTimestamp(timestamp: number): boolean {
   return Math.abs(Date.now() - timestamp) <= webhookMaxAgeMilliseconds
@@ -86,7 +102,7 @@ export function getWebhookReleaseInput(
   if (provider === 'gitlab' && eventName === 'Release Hook') {
     const release = gitlabReleaseSchema.parse(payload)
     return releaseCreateSchema.parse({
-      benefitStatement: release.description || release.tag || release.name,
+      ...releaseNotes(release.description || release.tag || release.name, release.url),
       title: release.name || release.tag,
     })
   }
@@ -96,7 +112,7 @@ export function getWebhookReleaseInput(
 
   const release = githubReleaseSchema.parse(payload).release
   return releaseCreateSchema.parse({
-    benefitStatement: release.body || release.tag_name || release.name,
+    ...releaseNotes(release.body || release.tag_name || release.name, release.html_url),
     title: release.name || release.tag_name,
   })
 }

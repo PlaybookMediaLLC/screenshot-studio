@@ -7,6 +7,9 @@ import { assetRouter } from './routers/asset'
 import { campaignRouter } from './routers/campaign'
 import { brandKitRouter, brandProfileRouter, sourceAppRouter } from './routers/configuration'
 import { creativeTemplateRouter, creativeVariantRouter } from './routers/creative'
+import { designRouter } from './routers/design'
+import { editorAiRouter } from './routers/editor-ai'
+import { launchRouter } from './routers/launch'
 import { productSurfaceRouter } from './routers/product-surface'
 import { channelConnectionRouter, scheduledPostRouter } from './routers/publishing'
 import { releaseRouter } from './routers/release'
@@ -23,6 +26,9 @@ export const appRouter = router({
   channelConnection: channelConnectionRouter,
   creativeTemplate: creativeTemplateRouter,
   creativeVariant: creativeVariantRouter,
+  design: designRouter,
+  editorAi: editorAiRouter,
+  launch: launchRouter,
   productSurface: productSurfaceRouter,
   release: releaseRouter,
   scheduledPost: scheduledPostRouter,

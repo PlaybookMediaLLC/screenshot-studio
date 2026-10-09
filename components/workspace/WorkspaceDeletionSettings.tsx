@@ -1,6 +1,7 @@
 'use client'
 
 import { type FormEvent, useState } from 'react'
+import { Group, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,27 +36,38 @@ export function WorkspaceDeletionSettings({
   }
 
   return (
-    <section className="mt-10 border-t border-destructive/30 pt-6">
-      <h3 className="text-sm font-semibold text-destructive">Delete workspace</h3>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Access stops immediately. You can restore this workspace for 14 days before its data is
-        purged.
-      </p>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Two-factor authentication and a fresh sign-in are required.
-      </p>
-      <form className="mt-4 grid max-w-md gap-3" onSubmit={handleSubmit}>
-        <Input name="confirmation" placeholder={workspaceName} required />
-        {error ? (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : null}
-        <Button disabled={isSubmitting} type="submit" variant="destructive">
-          {isSubmitting ? 'Scheduling deletion…' : 'Schedule deletion'}
-        </Button>
-      </form>
-    </section>
+    <Section description="Irreversible after the 14-day restore window." title="Danger zone">
+      <Group>
+        <Row
+          description="Access stops immediately. You can restore this workspace for 14 days before its data is purged. Two-factor authentication and a fresh sign-in are required."
+          label="Delete workspace"
+          layout="stacked"
+        >
+          <form className="flex w-full flex-col gap-3 sm:flex-row" onSubmit={handleSubmit}>
+            <Input
+              aria-label={`Type ${workspaceName} to confirm`}
+              className="h-10 rounded-lg sm:max-w-xs"
+              name="confirmation"
+              placeholder={workspaceName}
+              required
+            />
+            <Button
+              className="rounded-lg"
+              disabled={isSubmitting}
+              type="submit"
+              variant="destructive"
+            >
+              {isSubmitting ? 'Scheduling deletion…' : 'Schedule deletion'}
+            </Button>
+          </form>
+          {error ? (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+        </Row>
+      </Group>
+    </Section>
   )
 }
 

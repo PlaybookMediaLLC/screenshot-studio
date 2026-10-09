@@ -87,9 +87,12 @@ async function createIngestedRelease(
 ): Promise<void> {
   await transaction.release.create({
     data: {
+      audience: input.release.audience,
       benefitStatement: input.release.benefitStatement,
+      description: input.release.description,
       id: releaseId,
       organizationId: input.source.organizationId,
+      sourceUrls: input.release.sourceUrls ?? [],
       title: input.release.title,
     },
   })

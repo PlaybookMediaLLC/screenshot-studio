@@ -15,7 +15,8 @@ import { organizationProcedure } from '../procedures'
 const surfaceIdSchema = z.string().cuid()
 
 export const productSurfaceRouter = router({
-  list: organizationProcedure('brand:manage').query(async ({ ctx }) => {
+  // Any member who can read campaigns can see which surfaces they link to.
+  list: organizationProcedure('artifact:read').query(async ({ ctx }) => {
     const productSurfaces = await listProductSurfaces(ctx.access.organizationId)
     return { productSurfaces }
   }),

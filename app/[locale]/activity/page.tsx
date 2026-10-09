@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { AppHeader } from '@/components/workspace/AppHeader'
+import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { WorkspaceActivity } from '@/components/workspace/WorkspaceActivity'
 import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
 
@@ -21,17 +21,19 @@ export default async function ActivityPage({ params }: ActivityPageProps) {
   if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
 
   return (
-    <>
-      <AppHeader current="/activity" orgName={access.organization.name} />
+    <PlatformShell
+      campaignsEnabled={access.campaignWorkflowEnabled}
+      organizationName={access.organization.name}
+    >
       <main className="mx-auto max-w-5xl px-6 py-10">
         <header className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Activity</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Releases, campaigns, announcements, and scheduled posts in this workspace.
           </p>
         </header>
         <WorkspaceActivity />
       </main>
-    </>
+    </PlatformShell>
   )
 }

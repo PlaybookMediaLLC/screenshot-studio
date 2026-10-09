@@ -76,6 +76,7 @@ NODE
     ensure_env_value STORAGE_PROXY_URL "http://localhost:3000/api/tenant/storage"
     ensure_env_value POSTIZ_API_URL "http://host.docker.internal:5679/api/public/v1"
     ensure_env_value POSTIZ_API_KEY "e2e-postiz-token"
+    ensure_env_value PLATFORM_RENDER_SERVICE_SECRET "$(random_hex 32)"
     database_url="$(grep '^DATABASE_URL=' "$LOCAL_ENV" | cut -d= -f2-)"
     ensure_env_value AUDIT_RETENTION_DATABASE_URL "$database_url"
     chmod 600 "$LOCAL_ENV"
@@ -132,6 +133,7 @@ STORAGE_HOST_URL=http://127.0.0.1:5000
 STORAGE_PROXY_URL=http://localhost:3000/api/tenant/storage
 POSTIZ_API_URL=http://host.docker.internal:5679/api/public/v1
 POSTIZ_API_KEY=e2e-postiz-token
+PLATFORM_RENDER_SERVICE_SECRET=$(random_hex 32)
 R2_ENDPOINT=http://rustfs:9000
 R2_REGION=us-east-1
 R2_FORCE_PATH_STYLE=true
@@ -245,6 +247,11 @@ smoke() {
   compose exec -T redis redis-cli ping | grep -qx PONG
   wait_for_http "http://127.0.0.1:9003/health/live" "RustFS"
   wait_for_http "http://127.0.0.1:5000/status" "Supabase Storage"
+  # An interrupted earlier run can leave the object behind, and signing an
+  # upload for an existing key fails with a duplicate error.
+  curl --silent --request DELETE "http://127.0.0.1:5000/object/$STORAGE_BUCKET/$storage_test_key" \
+    --header "authorization: Bearer $STORAGE_SERVICE_KEY" \
+    --header "apikey: $STORAGE_SERVICE_KEY" >/dev/null || true
   storage_response="$(curl --fail --silent --show-error --request POST \
     "http://127.0.0.1:5000/object/upload/sign/$STORAGE_BUCKET/$storage_test_key" \
     --header "authorization: Bearer $STORAGE_SERVICE_KEY" \
@@ -311,6 +318,26 @@ wait_for_redirect_or_ok() {
   exit 1
 }
 
+warm_route() {
+  local url="$1"
+  local label="$2"
+  local attempt
+  local status
+
+  # Like wait_for_redirect_or_ok, for API routes: signed out they answer 401,
+  # which proves the route compiled just as well. A 5xx does not.
+  for attempt in $(seq 1 60); do
+    status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 120 "$url" || true)"
+    if [[ "$status" =~ ^[234] ]]; then
+      return
+    fi
+    sleep 1
+  done
+
+  echo "$label did not become ready: $url (last status ${status:-none})" >&2
+  exit 1
+}
+
 run_e2e() {
   local test_script="$1"
   shift
@@ -322,10 +349,16 @@ run_e2e() {
   load_env
   e2e_trusted_origins="$BETTER_AUTH_TRUSTED_ORIGINS,http://localhost:5680,http://host.docker.internal:5680"
   if [[ "$manage_screenshot_mock" == "true" ]]; then
-    BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" SCREENSHOT_API_URL="http://screenshot-mock:5678" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" compose --profile e2e up --detach --force-recreate screenshot-mock app
+    # Recreating app would strand the renderer, which shares app's network;
+    # end-to-end flows do not render designs, so it is simply stopped.
+    compose --profile renderer stop design-renderer >/dev/null 2>&1 || true
+    BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" SCREENSHOT_API_URL="http://screenshot-mock:5678" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" PLATFORM_AI_SCRIPTED=1 compose --profile e2e up --detach --force-recreate screenshot-mock app
     wait_for_screenshot_mock
   fi
   wait_for_http "${app_url%/}/api/health" "Screenshot Studio"
+  # Every spec signs up first; a cold Better Auth route compiles during that
+  # first POST and the dev server reloads the page under it, emptying the form.
+  wait_for_http "${app_url%/}/api/auth/ok" "Better Auth"
   wait_for_http "${app_url%/}/sign-up" "Screenshot Studio sign-up route"
   # The stack runs `next dev`, so a route is compiled on its first request.
   # A browser navigation to an uncompiled route keeps `page.url()` on the
@@ -337,9 +370,25 @@ run_e2e() {
   # machine: /two-factor 10s, /workspace 15s, /onboarding 31s.
   # A 307 is a warm hit too, the redirect still compiles the route.
   wait_for_redirect_or_ok "${app_url%/}/sign-in" "Screenshot Studio sign-in route"
+  # Every spec starts at sign-up, and a cold compile there reloads the page
+  # mid-typing; the campaign pages stalled the same way.
+  wait_for_redirect_or_ok "${app_url%/}/sign-up" "Screenshot Studio sign-up route"
+  wait_for_redirect_or_ok "${app_url%/}/campaigns" "Screenshot Studio campaigns route"
+  wait_for_redirect_or_ok "${app_url%/}/campaigns/new" "Screenshot Studio new campaign route"
+  # A campaign's pages redirect signed-out traffic after compiling, so any id warms them.
+  for campaign_page in "" /spec /plan /assets /copy; do
+    wait_for_redirect_or_ok "${app_url%/}/campaigns/warm-up${campaign_page}" "Screenshot Studio campaign${campaign_page:- overview} route"
+  done
+  wait_for_redirect_or_ok "${app_url%/}/assets" "Screenshot Studio assets route"
   wait_for_redirect_or_ok "${app_url%/}/two-factor" "Screenshot Studio two-factor route"
   wait_for_redirect_or_ok "${app_url%/}/onboarding" "Screenshot Studio onboarding route"
   wait_for_redirect_or_ok "${app_url%/}/workspace" "Screenshot Studio workspace route"
+  wait_for_redirect_or_ok "${app_url%/}/accept-invitation" "Screenshot Studio invitation route"
+  # API routes the suite calls mid-test; a cold compile there ran tests out of time.
+  warm_route "${app_url%/}/api/tenant/releases" "Tenant releases API"
+  warm_route "${app_url%/}/api/tenant/assets/upload-url" "Tenant assets API"
+  warm_route "${app_url%/}/api/v1/bootstrap" "Shell bootstrap API"
+  warm_route "${app_url%/}/api/v1/organizations/warm-up" "Shell organizations API"
   wait_for_http "$app_url" "Screenshot Studio editor route"
   if ! E2E_BASE_URL="$app_url" \
     E2E_DATABASE_URL="${E2E_DATABASE_URL:-$HOST_DATABASE_URL}" \
@@ -356,6 +405,10 @@ run_e2e() {
     test_result=1
   fi
   if [[ "$manage_screenshot_mock" == "true" ]]; then
+    # Recreating app discards the logs of the server that ran the suite; keep
+    # them beside the Playwright results, which CI uploads on failure.
+    mkdir -p "$ROOT_DIR/test-results"
+    compose logs --no-color app >"$ROOT_DIR/test-results/app.log" 2>&1 || true
     SCREENSHOT_API_URL="" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="" compose up --detach --force-recreate app
   fi
   return "$test_result"
@@ -384,7 +437,41 @@ e2e_file() {
 check() {
   ensure_env
   sync_dependencies
-  compose run --rm --no-deps app npm run quality:check
+  # quality:check minus verify:rfcs, which shells out to git and python3.
+  # Those run on the host: inside the container a worktree's .git points at
+  # a host path that does not exist.
+  compose run --rm --no-deps app sh -c \
+    'npm run format:check && npm run lint -- --max-warnings=0 && npm run typecheck && npm run test'
+  npm run verify:rfcs
+}
+
+# A local account with a workspace, so a fresh database never leaves you at a
+# sign-in page with nothing to sign in with. Safe to run repeatedly.
+dev_login() {
+  local app="http://localhost:3000"
+  local email="dev@localhost.test"
+  local jar
+  local password
+
+  ensure_env_value STUDIO_DEV_PASSWORD "dev-$(random_hex 12)"
+  password="$(grep '^STUDIO_DEV_PASSWORD=' "$LOCAL_ENV" | cut -d= -f2-)"
+  jar="$(mktemp)"
+  # Fails harmlessly when the account already exists.
+  curl --silent --output /dev/null --header "content-type: application/json" --header "origin: $app" \
+    --data "{\"name\":\"Dev\",\"email\":\"$email\",\"password\":\"$password\"}" "$app/api/auth/sign-up/email" || true
+  if ! curl --fail --silent --output /dev/null --cookie-jar "$jar" --header "content-type: application/json" \
+    --header "origin: $app" --data "{\"email\":\"$email\",\"password\":\"$password\"}" "$app/api/auth/sign-in/email"; then
+    echo "Dev login: could not sign in as $email; sign up at $app/sign-up instead." >&2
+    rm -f "$jar"
+    return 0
+  fi
+  if ! curl --silent --cookie "$jar" "$app/api/trpc/workspace.listMine" | grep -q '"slug"'; then
+    curl --fail --silent --output /dev/null --cookie "$jar" --header "content-type: application/json" \
+      --header "origin: $app" --data '{"json":{"name":"Playbook Dev","slug":"playbook-dev"}}' \
+      "$app/api/trpc/workspace.create" || echo "Dev login: could not create its workspace." >&2
+  fi
+  rm -f "$jar"
+  echo "Dev login: $email (password: STUDIO_DEV_PASSWORD in .local/dev.env)"
 }
 
 up() {
@@ -393,12 +480,30 @@ up() {
   compose rm --force --stop storage-init >/dev/null 2>&1 || true
   compose up --detach --build postgres pgbouncer redis rustfs rustfs-init imgproxy storage storage-init
   sync_dependencies
-  compose up --detach app
+  # The design renderer runs locally by default for parity with production.
+  # CI skips it (its flows do not render designs, and the Playwright image is
+  # large); STUDIO_RENDERER=off skips it locally. Without it, the app falls
+  # back to sharp product shots.
+  local renderer="on"
+  if [[ "${CI:-}" == "true" || "${STUDIO_RENDERER:-on}" == "off" ]]; then
+    renderer="off"
+  fi
+  if [[ "$renderer" == "on" ]]; then
+    # One call: the renderer depends on app, so a separate `up design-renderer`
+    # without the variable would recreate app with the renderer disabled.
+    PLATFORM_DESIGN_RENDERER=enabled compose --profile renderer up --detach --build app design-renderer
+  else
+    compose up --detach app
+  fi
   compose exec -T postgres psql --username=postgres --dbname=screenshot_studio --command \
     "ALTER TABLE IF EXISTS screenshot_cache OWNER TO screenshot_studio;" >/dev/null
   compose exec -T app npx prisma db push --skip-generate
   smoke
+  dev_login
   echo "App:     http://localhost:3000"
+  if [[ "$renderer" == "on" ]]; then
+    echo "Design renderer: running (STUDIO_RENDERER=off to skip)"
+  fi
   echo "Storage: http://localhost:5000"
   echo "RustFS:  http://localhost:9004/rustfs/console/"
   echo "Run '$0 trigger-dev' after '$0 trigger-config <project-ref>'."
@@ -429,11 +534,11 @@ down() {
   fi
 
   if [[ "$mode" == "purge" ]]; then
-    compose --profile trigger --profile e2e down --volumes --remove-orphans
+    compose --profile trigger --profile e2e --profile renderer down --volumes --remove-orphans
     return
   fi
 
-  compose --profile trigger --profile e2e down --remove-orphans
+  compose --profile trigger --profile e2e --profile renderer down --remove-orphans
 }
 
 trigger_login() {

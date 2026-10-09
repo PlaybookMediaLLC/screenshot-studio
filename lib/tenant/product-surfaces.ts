@@ -21,6 +21,7 @@ export async function createProductSurface(
     const surface = await transaction.productSurface.create({
       data: {
         description: input.description ?? null,
+        environment: input.environment,
         featureTags: input.featureTags,
         name: input.name,
         organizationId: context.organizationId,
@@ -33,6 +34,7 @@ export async function createProductSurface(
       actor: getAuditActor(context.principal),
       entityId: surface.id,
       entityType: 'product_surface',
+      metadata: { environment: surface.environment },
       organizationId: context.organizationId,
       requestId: context.requestId,
     })
@@ -56,6 +58,7 @@ export async function updateProductSurface(
     const surface = await transaction.productSurface.update({
       data: {
         ...(input.description !== undefined && { description: input.description }),
+        ...(input.environment !== undefined && { environment: input.environment }),
         ...(input.featureTags !== undefined && { featureTags: input.featureTags }),
         ...(input.name !== undefined && { name: input.name }),
         ...(input.screenshotAssetIds !== undefined && {

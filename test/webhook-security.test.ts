@@ -49,3 +49,31 @@ test('GitLab signing tokens bind a fresh event ID, timestamp, and body', () => {
     title: 'v2.0.0',
   })
 })
+
+test('long release notes stay short in the brief and are read in full from the release page', () => {
+  const url = 'https://github.com/acme/ledgerly/releases/tag/v2.0.0'
+  const release = getWebhookReleaseInput(
+    'github',
+    'release',
+    JSON.stringify({
+      release: {
+        body: 'Recurring invoices send themselves. '.repeat(40),
+        html_url: url,
+        name: 'v2.0.0',
+      },
+    })
+  )
+  assert.ok(release.benefitStatement.length <= 500)
+  assert.ok(release.benefitStatement.endsWith('…'))
+  assert.deepEqual(release.sourceUrls, [url])
+  const gitlab = getWebhookReleaseInput(
+    'gitlab',
+    'Release Hook',
+    JSON.stringify({
+      description: 'Short notes',
+      name: 'v3',
+      url: 'https://gitlab.com/acme/app/-/releases/v3',
+    })
+  )
+  assert.deepEqual(gitlab.sourceUrls, ['https://gitlab.com/acme/app/-/releases/v3'])
+})

@@ -233,7 +233,7 @@ export function WebsiteScreenshotInput() {
           </Select>
         </div>
         <p className="text-xs text-muted-foreground">
-          Enter a website URL to capture a viewport screenshot. Choose desktop (1920x1080) or mobile (375x667) viewport size.
+          Enter a website URL to capture a viewport screenshot. Choose desktop (1920x1080) or mobile (390x844) viewport size.
         </p>
       </div>
 

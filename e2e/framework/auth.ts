@@ -151,7 +151,7 @@ export async function openWorkspaceSetting(page: Page, name: string): Promise<vo
   await page.goto('/workspace', { timeout: 20_000, waitUntil: 'load' })
   await page
     .getByRole('navigation', { name: 'Workspace settings' })
-    .getByRole('button', { exact: true, name })
+    .getByRole('link', { exact: true, name })
     .click()
   await expect(page.getByRole('heading', { exact: true, level: 2, name })).toBeVisible()
 }

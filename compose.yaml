@@ -10,6 +10,17 @@ services:
     environment:
       BETTER_AUTH_TRUSTED_ORIGINS: ${BETTER_AUTH_TRUSTED_ORIGINS:-http://localhost:3000}
       NODE_ENV: development
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}
+      # Set by bin/studio for e2e runs: a deterministic stand-in model (lib/ai/models/scripted.ts).
+      PLATFORM_AI_SCRIPTED: ${PLATFORM_AI_SCRIPTED:-}
+      # Set by bin/studio when the design-renderer service runs. The renderer
+      # shares this container's network, so both sides use localhost.
+      PLATFORM_DESIGN_RENDERER: ${PLATFORM_DESIGN_RENDERER:-}
+      PLATFORM_RENDER_BASE_URL: http://localhost:3000
+      # Same interpolation as design-renderer, so both sides always agree.
+      PLATFORM_RENDER_SERVICE_SECRET: ${PLATFORM_RENDER_SERVICE_SECRET:-}
+      PLATFORM_RENDER_SERVICE_URL: http://localhost:8080
       POSTIZ_API_KEY: ${POSTIZ_API_KEY:-}
       POSTIZ_API_URL: ${POSTIZ_API_URL:-}
       SCREENSHOT_API_URL: ${SCREENSHOT_API_URL:-https://api.microlink.io}
@@ -30,6 +41,29 @@ services:
         condition: service_completed_successfully
       storage-init:
         condition: service_completed_successfully
+
+  # Design render service (services/design-renderer), as in production.
+  # Started by `make up` unless STUDIO_RENDERER=off or CI=true.
+  design-renderer:
+    profiles: [renderer]
+    build:
+      context: services/design-renderer
+    # Shares the app container's network namespace: Chromium loads the app at
+    # localhost:3000, the origin the Next dev server serves dev assets to, and
+    # the app reaches the service at localhost:8080. Nothing is published.
+    network_mode: service:app
+    environment:
+      PORT: '8080'
+      RENDER_ALLOWED_ORIGIN: http://localhost:3000
+      RENDER_SERVICE_SECRET: ${PLATFORM_RENDER_SERVICE_SECRET:?run make up to generate it}
+      # The dev server compiles a route on its first render.
+      RENDER_TIMEOUT_MS: '120000'
+    # Chromium needs more shared memory than Docker's 64 MB default.
+    shm_size: 1gb
+    depends_on:
+      app:
+        condition: service_started
+    restart: unless-stopped
 
   postgres:
     image: postgres:16-bookworm

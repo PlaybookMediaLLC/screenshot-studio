@@ -23,6 +23,8 @@ model User {
   accounts               Account[]
   auditLogs              AuditLog[]           @relation("AuditActor")
   approvedSupportGrants  SupportAccessGrant[] @relation("SupportGrantApprover")
+  createdCampaigns       Campaign[]           @relation("CampaignCreator")
+  createdDesigns         Design[]             @relation("DesignCreator")
   createdReleases        Release[]            @relation("ReleaseCreator")
   createdVariants        CreativeVariant[]    @relation("VariantCreator")
   invitations            Invitation[]
@@ -122,8 +124,14 @@ model Organization {
   brandProfile            BrandProfile?
   productSurfaces         ProductSurface[]
   campaigns               Campaign[]
+  campaignAssets          CampaignAsset[]
+  designs                 Design[]
   contentAngles           ContentAngle[]
   campaignPosts           CampaignPost[]
+  releaseSpecs            ReleaseSpec[]
+  campaignPlans           CampaignPlan[]
+  campaignRevisions       CampaignRevision[]
+  launchRuns              LaunchRun[]
   audienceSubscribers     AudienceSubscriber[]
   communicationRecipients CommunicationRecipient[]
   workspaceDeletion       WorkspaceDeletion?
@@ -541,19 +549,28 @@ model Release {
   organizationId   String
   title            String
   benefitStatement String
+  /// Free-form release brief. Plain text; markup is rejected at the API boundary.
+  description      String?
+  audience         String?
+  sourceUrls       Json              @default("[]")
+  productSurfaceId String?
   status           ReleaseStatus     @default(DRAFT)
   createdByUserId  String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdByUser    User?             @relation("ReleaseCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  productSurface   ProductSurface?   @relation(fields: [productSurfaceId], references: [id], onDelete: SetNull)
+  campaigns        Campaign[]
   captures         Capture[]
   captureJobs      CaptureJob[]
   documents        ReleaseDocument[]
   variants         CreativeVariant[]
+  specs            ReleaseSpec[]
 
   @@index([organizationId, status, updatedAt])
   @@index([organizationId, createdAt])
+  @@index([organizationId, productSurfaceId])
   @@map("release")
 }
 
@@ -733,6 +750,8 @@ model Asset {
   capture        Capture?          @relation(fields: [captureId], references: [id], onDelete: SetNull)
   parentAsset    Asset?            @relation("AssetDerivation", fields: [parentAssetId], references: [id], onDelete: SetNull)
   derivedAssets  Asset[]           @relation("AssetDerivation")
+  campaignLinks  CampaignAsset[]
+  designRenders  Design[]          @relation("DesignRender")
   sourceVariants CreativeVariant[] @relation("VariantSourceAsset")
 
   @@index([organizationId, createdAt])
@@ -872,12 +891,16 @@ model ProductSurface {
   organizationId     String
   name               String
   url                String
+  /// Deployment label such as production, staging, or demo.
+  environment        String       @default("production")
   description        String?
   featureTags        Json
   screenshotAssetIds Json
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaigns          Campaign[]
+  releases           Release[]
 
   @@unique([organizationId, name])
   @@index([organizationId, createdAt])
@@ -885,22 +908,96 @@ model ProductSurface {
 }
 
 model Campaign {
-  id             String         @id @default(cuid())
-  organizationId String
-  name           String
-  objective      String
-  audience       String?
-  feature        String?
-  messaging      String?
-  status         CampaignStatus @default(DRAFT)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  angles         ContentAngle[]
-  posts          CampaignPost[]
+  id               String          @id @default(cuid())
+  organizationId   String
+  name             String
+  objective        String
+  audience         String?
+  feature          String?
+  messaging        String?
+  status           CampaignStatus  @default(DRAFT)
+  releaseId        String?
+  productSurfaceId String?
+  createdByUserId  String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  organization     Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  release          Release?        @relation(fields: [releaseId], references: [id], onDelete: SetNull)
+  productSurface   ProductSurface? @relation(fields: [productSurfaceId], references: [id], onDelete: SetNull)
+  createdByUser    User?           @relation("CampaignCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  angles           ContentAngle[]
+  assets           CampaignAsset[]
+  designs          Design[]
+  posts            CampaignPost[]
+  plans            CampaignPlan[]
+  revisions        CampaignRevision[]
+  launchRuns       LaunchRun[]
 
   @@index([organizationId, createdAt])
+  @@index([organizationId, releaseId])
+  @@index([organizationId, productSurfaceId])
   @@map("campaign")
+}
+
+/// A tenant asset attached to a campaign, such as a captured product
+/// screenshot or a generated product shot. Removing the link never deletes
+/// the asset; deleting the asset or campaign removes the link.
+model CampaignAsset {
+  id             String       @id @default(cuid())
+  organizationId String
+  campaignId     String
+  assetId        String
+  kind           String
+  caption        String?
+  /// Plan asset this realizes (A1, A2…) and its A/B label, for generated visuals.
+  planAssetKey   String?
+  variantLabel   String?
+  /// Plan version whose production made it.
+  planVersion    Int?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign       Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  asset          Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, assetId])
+  @@index([organizationId, campaignId, createdAt])
+  @@map("campaign_asset")
+}
+
+/// An editor composition stored as a versioned DesignDocument (see
+/// lib/design/document.ts). Variants point at the design they were derived
+/// from; the latest render is kept as a tenant asset.
+model Design {
+  id               String       @id @default(cuid())
+  organizationId   String
+  campaignId       String?
+  parentDesignId   String?
+  name             String
+  templateId       String?
+  document         Json
+  renderedAssetId  String?
+  /// Hash of the inputs behind renderedAssetId (see lib/design/render-key.ts).
+  renderKey        String?
+  /// Plan asset this design realizes (A1, A2…), and its A/B label.
+  planAssetKey     String?
+  variantLabel     String?
+  /// Plan version whose production made it.
+  planVersion      Int?
+  /// Self-critique of the latest render against the spec, brand, and legibility.
+  critique         Json?
+  createdByUserId  String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign         Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  parentDesign     Design?      @relation("DesignVariant", fields: [parentDesignId], references: [id], onDelete: SetNull)
+  variants         Design[]     @relation("DesignVariant")
+  renderedAsset    Asset?       @relation("DesignRender", fields: [renderedAssetId], references: [id], onDelete: SetNull)
+  createdByUser    User?        @relation("DesignCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, campaignId, createdAt])
+  @@index([organizationId, renderKey])
+  @@map("design")
 }
 
 model ContentAngle {
@@ -929,6 +1026,20 @@ model CampaignPost {
   channel           String
   copy              String
   callToAction      String?
+  /// Email subject, Product Hunt tagline, or changelog heading; null for social posts.
+  title             String?
+  /// teaser, launch, or follow_up, from the campaign plan.
+  phase             String?
+  /// Plan angle key (G1…) the post was written for.
+  planItemKey       String?
+  /// Spec version the copy was written from; claims reference its content.
+  specVersion       Int?
+  /// Plan version whose production wrote it.
+  planVersion       Int?
+  /// The spec claims this post relies on: [{ text, ref }].
+  claims            Json               @default("[]")
+  /// Reviewer's note when rejecting or requesting changes.
+  reviewNote        String?
   status            CampaignPostStatus @default(DRAFT)
   scheduledAt       DateTime?
   creativeVariantId String?
@@ -944,6 +1055,115 @@ model CampaignPost {
   @@index([organizationId, status])
   @@index([campaignId])
   @@map("campaign_post")
+}
+
+/// A versioned product spec for a release, drafted by AI from the release
+/// brief and its sources, then edited and approved by people. Every claim
+/// cites the brief or a source in the snapshot (lib/launch/spec-schema.ts).
+model ReleaseSpec {
+  id               String               @id @default(cuid())
+  organizationId   String
+  releaseId        String
+  version          Int
+  status           LaunchArtifactStatus @default(DRAFT)
+  /// ai, human, or revision.
+  origin           String
+  content          Json
+  /// The sources the claims cite: ids, urls, excerpts, and injection flags.
+  sources          Json                 @default("[]")
+  changeSummary    String?
+  modelId          String?
+  createdByUserId  String?
+  approvedByUserId String?
+  approvedAt       DateTime?
+  createdAt        DateTime             @default(now())
+  organization     Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  release          Release              @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  plans            CampaignPlan[]
+
+  @@unique([releaseId, version])
+  @@index([organizationId, releaseId, createdAt])
+  @@map("release_spec")
+}
+
+/// A versioned launch plan for a campaign: channels, angles, assets, and a
+/// timeline, built from one spec version (lib/launch/spec-schema.ts).
+model CampaignPlan {
+  id               String               @id @default(cuid())
+  organizationId   String
+  campaignId       String
+  specId           String?
+  version          Int
+  status           LaunchArtifactStatus @default(DRAFT)
+  /// ai, human, or revision.
+  origin           String
+  content          Json
+  changeSummary    String?
+  modelId          String?
+  createdByUserId  String?
+  approvedByUserId String?
+  approvedAt       DateTime?
+  createdAt        DateTime             @default(now())
+  organization     Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign         Campaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  spec             ReleaseSpec?         @relation(fields: [specId], references: [id], onDelete: SetNull)
+
+  @@unique([campaignId, version])
+  @@index([organizationId, campaignId, createdAt])
+  @@map("campaign_plan")
+}
+
+/// A reviewer's "revise with AI" request and the AI's proposal: the new
+/// version of the target plus consistency updates for related pieces.
+/// Nothing changes until a reviewer applies it.
+model CampaignRevision {
+  id              String                 @id @default(cuid())
+  organizationId  String
+  campaignId      String
+  /// spec_section, post, design, or plan.
+  targetType      String
+  targetId        String
+  /// Spec section key when targetType is spec_section.
+  targetKey       String?
+  comment         String
+  status          CampaignRevisionStatus @default(PROPOSED)
+  proposal        Json
+  modelId         String?
+  createdByUserId String?
+  decidedByUserId String?
+  decidedAt       DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign        Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, campaignId, createdAt])
+  @@index([organizationId, status, createdAt])
+  @@map("campaign_revision")
+}
+
+/// One background AI action in the launch pipeline (spec, plan, produce,
+/// revision). Long runs outlive the request that starts them; the UI polls
+/// the run and shows its outcome.
+model LaunchRun {
+  id              String          @id @default(cuid())
+  organizationId  String
+  campaignId      String
+  /// spec, plan, produce, or revision.
+  kind            String
+  status          LaunchRunStatus @default(RUNNING)
+  /// The spec, plan, or revision the run produced.
+  resultId        String?
+  summary         String?
+  error           String?
+  createdByUserId String?
+  startedAt       DateTime        @default(now())
+  finishedAt      DateTime?
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign        Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, campaignId, startedAt])
+  @@map("launch_run")
 }
 
 model OutboxEvent {
@@ -1066,6 +1286,24 @@ enum CampaignPostStatus {
   NEEDS_CHANGES
   SCHEDULED
   PUBLISHED
+}
+
+enum LaunchArtifactStatus {
+  DRAFT
+  APPROVED
+  SUPERSEDED
+}
+
+enum LaunchRunStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum CampaignRevisionStatus {
+  PROPOSED
+  APPLIED
+  DISCARDED
 }
 
 enum ApprovalStatus {

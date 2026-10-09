@@ -4,13 +4,14 @@ import Link from 'next/link'
 import { type FormEvent, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { z } from 'zod'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { authClient } from '@/lib/auth/client'
 import { getAuthErrorMessage } from './error-message'
+import { AuthField, FormAlert, SubmitButton } from './fields'
 
-const totpCodeSchema = z.string().trim().regex(/^\d{6}$/, 'Enter the six-digit code.')
+const totpCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/, 'Enter the six-digit code.')
 const backupCodeSchema = z.string().trim().min(1, 'Enter a recovery code.')
 
 function getCallbackUrl(value: string | null): string {
@@ -57,48 +58,48 @@ export function TwoFactorForm() {
 
   const inputLabel = isBackupCode ? 'Recovery code' : 'Authenticator code'
   return (
-    <form className="space-y-4" onSubmit={verifyCode}>
-      <label className="grid gap-1.5 text-sm font-medium" htmlFor="two-factor-code">
-        {inputLabel}
-        <Input
-          autoComplete="one-time-code"
-          id="two-factor-code"
-          inputMode={isBackupCode ? 'text' : 'numeric'}
-          name="code"
-          required
-        />
-      </label>
-      <label className="flex items-center gap-2 text-sm text-muted-foreground">
+    <form className="space-y-5" onSubmit={verifyCode}>
+      <AuthField
+        autoComplete="one-time-code"
+        autoFocus
+        className="font-mono tracking-[0.3em]"
+        id="two-factor-code"
+        inputMode={isBackupCode ? 'text' : 'numeric'}
+        label={inputLabel}
+        name="code"
+        placeholder={isBackupCode ? undefined : '123456'}
+        required
+      />
+      <label className="flex items-center gap-2.5 text-sm text-muted-foreground">
         <input
           checked={trustDevice}
+          className="size-4 rounded accent-foreground"
           disabled={!isHydrated}
           onChange={(event) => setTrustDevice(event.target.checked)}
           type="checkbox"
         />
         Trust this device for 30 days
       </label>
-      {error ? (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-      <Button className="w-full" disabled={!isHydrated || isSubmitting} type="submit">
-        {isSubmitting ? 'Verifying…' : 'Verify and sign in'}
-      </Button>
-      <Button
-        className="w-full"
-        disabled={!isHydrated}
-        onClick={() => setIsBackupCode((value) => !value)}
-        type="button"
-        variant="outline"
-      >
-        {isBackupCode ? 'Use an authenticator code' : 'Use a recovery code'}
-      </Button>
-      <p className="text-center text-sm text-muted-foreground">
-        <Link className="font-medium text-foreground underline" href="/sign-in">
-          Return to sign in
+      {error ? <FormAlert>{error}</FormAlert> : null}
+      <SubmitButton busy={isSubmitting} busyLabel="Verifying…" disabled={!isHydrated}>
+        Verify and sign in
+      </SubmitButton>
+      <div className="flex items-center justify-between text-sm">
+        <button
+          className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+          disabled={!isHydrated}
+          onClick={() => setIsBackupCode((value) => !value)}
+          type="button"
+        >
+          {isBackupCode ? 'Use an authenticator code' : 'Use a recovery code'}
+        </button>
+        <Link
+          className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          href="/sign-in"
+        >
+          Back to sign in
         </Link>
-      </p>
+      </div>
     </form>
   )
 }

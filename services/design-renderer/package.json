@@ -1,0 +1,12 @@
+{
+  "name": "playbook-design-renderer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "playwright-core": "1.63.0"
+  }
+}

@@ -1,10 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
+import { Button, type buttonVariants } from '@/components/ui/button'
+import type { VariantProps } from 'class-variance-authority'
 import { authClient } from '@/lib/auth/client'
 
-export function SignOutButton() {
+export function SignOutButton({
+  className,
+  variant = 'outline',
+}: {
+  className?: string
+  variant?: VariantProps<typeof buttonVariants>['variant']
+}) {
   const [isSigningOut, setIsSigningOut] = useState(false)
 
   async function handleSignOut() {
@@ -18,7 +25,7 @@ export function SignOutButton() {
   }
 
   return (
-    <Button disabled={isSigningOut} onClick={handleSignOut} variant="outline">
+    <Button className={className} disabled={isSigningOut} onClick={handleSignOut} variant={variant}>
       {isSigningOut ? 'Signing out…' : 'Sign out'}
     </Button>
   )

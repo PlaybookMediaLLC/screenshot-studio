@@ -20,6 +20,10 @@ make down
 The app reloads at `http://localhost:3000`. Postgres is available on port
 `54329`, Supabase Storage on `5000`, and the RustFS console on `9004` (`/rustfs/console/`).
 
+`make up` also makes sure a local account exists, so a fresh database still has
+a login: sign in as `dev@localhost.test` with the `STUDIO_DEV_PASSWORD` value
+from `.local/dev.env`. It owns a workspace named Playbook Dev.
+
 `make down` asks whether to preserve data. Use `make reset` to remove all
 Compose volumes without a second prompt.
 
@@ -33,6 +37,33 @@ proves session and organization API-key requests cannot list another
 organization's releases or access its asset by ID. It also proves key revocation
 takes effect on the next request. It runs only against localhost; use `make
 reset` when you want to remove its local fixtures.
+
+## Design renderer
+
+`make up` also starts the design render service (`services/design-renderer`),
+as in production, so AI campaign designs and editor Directions render locally.
+It runs in the `renderer` Compose profile and shares the app container's
+network: Chromium loads the app at `localhost:3000`, and the app reaches the
+service at `localhost:8080`. Nothing new is published on the host.
+`bin/studio` generates the shared `PLATFORM_RENDER_SERVICE_SECRET` in
+`.local/dev.env`.
+
+The first build pulls the Playwright image, which is large. Set
+`STUDIO_RENDERER=off make up` to skip it; the app then falls back to sharp
+product shots and Directions is hidden. CI skips the renderer for the same
+reason, and `make e2e` stops it because those flows recreate the app
+container. Run `make up` again afterwards to bring it back. AI features also
+need `OPENROUTER_API_KEY` in your shell when you run `make up`.
+
+The renderer shares the app container's network, so restarting the app on its
+own (`docker restart`) leaves the renderer unreachable until it is restarted
+too; `make up` does both. AI generation then quietly falls back to product
+shots.
+
+`make e2e` runs the app with `PLATFORM_AI_SCRIPTED=1`: a deterministic
+stand-in model (`lib/ai/models/scripted.ts`) answers every AI stage, so the
+launch pipeline is tested end to end without a provider key. It is refused in
+production builds. `make up` turns it off again.
 
 ## Onboarding browser test
 

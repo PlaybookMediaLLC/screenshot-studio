@@ -1,43 +1,56 @@
 import type { ReactNode } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 
 type AuthShellProps = {
   children: ReactNode
   description: string
+  /** Small label above the title, e.g. "Step 1 of 2". */
+  eyebrow?: string
+  footer?: ReactNode
   title: string
 }
 
-export function AuthShell({ children, description, title }: AuthShellProps) {
+/**
+ * Auth pages after Polar's: one borderless card on a flat near-black page,
+ * a large logo, a light title, and the terms underneath.
+ */
+export function AuthShell({ children, description, eyebrow, footer, title }: AuthShellProps) {
   return (
-    <main className="grid min-h-screen bg-background lg:grid-cols-2">
-      <section className="hidden flex-col justify-between bg-foreground p-12 text-background lg:flex">
-        <Link className="text-lg font-semibold" href="/landing">
-          Screenshot Studio
-        </Link>
-        <div className="max-w-md">
-          <p className="text-sm font-medium text-background/70">Marketing assets, ready to ship</p>
-          <h2 className="mt-4 text-4xl font-semibold tracking-tight">
-            Create on-brand product content with your team.
-          </h2>
-          <p className="mt-5 text-base leading-7 text-background/70">
-            Turn releases, screenshots, and product updates into content your audience can use.
-          </p>
-        </div>
-        <p className="text-sm text-background/60">Secure workspaces with role-based access.</p>
-      </section>
-      <section className="flex items-center justify-center px-6 py-12 sm:px-12">
-        <div className="w-full max-w-md">
-          <Link
-            className="text-sm text-muted-foreground hover:text-foreground lg:hidden"
-            href="/landing"
-          >
-            ← Screenshot Studio
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-[#090909] px-4 py-12 text-white">
+      <div className="flex w-full max-w-md flex-col gap-8 rounded-3xl bg-[#111111] p-8 sm:p-12">
+        <header className="flex flex-col gap-4">
+          <Link className="w-fit" href="/landing">
+            <Image
+              alt="Screenshot Studio"
+              className="size-12 rounded-xl"
+              height={48}
+              priority
+              src="/logo-mark.png"
+              width={48}
+            />
           </Link>
-          <h1 className="mt-10 text-3xl font-semibold tracking-tight lg:mt-0">{title}</h1>
-          <p className="mt-2 text-muted-foreground">{description}</p>
-          <div className="mt-8 rounded-xl border bg-card p-6 shadow-sm">{children}</div>
-        </div>
-      </section>
+          <div className="flex flex-col gap-1.5">
+            {eyebrow ? <p className="text-xs font-medium text-neutral-500">{eyebrow}</p> : null}
+            <h1 className="text-2xl text-white">{title}</h1>
+            <p className="text-lg text-balance text-neutral-400">{description}</p>
+          </div>
+        </header>
+        {children}
+      </div>
+      {footer ?? (
+        <p className="mt-6 max-w-sm text-center text-xs text-balance text-neutral-500">
+          By continuing you agree to our{' '}
+          <Link className="text-neutral-300 hover:text-white" href="/terms">
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link className="text-neutral-300 hover:text-white" href="/privacy-policy">
+            Privacy Policy
+          </Link>
+          .
+        </p>
+      )}
     </main>
   )
 }

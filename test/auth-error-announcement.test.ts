@@ -17,6 +17,8 @@ import test from 'node:test'
  */
 const AUTH_COMPONENTS = join(process.cwd(), 'components/auth')
 const ERROR_BLOCK = /text-destructive"[^>]*>\s*\{error\}/g
+/** The shared alert; its default error tone is a live region (checked below). */
+const FORM_ALERT_ERROR = /<FormAlert>\s*\{error\}/g
 
 function authSources(): { name: string; source: string }[] {
   return readdirSync(AUTH_COMPONENTS)
@@ -36,9 +38,18 @@ test('every auth error block renders as a live region', () => {
   assert.deepEqual(offenders, [])
 })
 
+test('the shared FormAlert announces errors', () => {
+  const fields = readFileSync(join(AUTH_COMPONENTS, 'fields.tsx'), 'utf8')
+  assert.match(fields, /tone = 'error'/)
+  assert.match(fields, /role=\{tone === 'error' \? 'alert' : 'status'\}/)
+})
+
 test('the scan covers real error blocks rather than passing vacuously', () => {
   const announced = authSources().reduce(
-    (total, { source }) => total + (source.match(ERROR_BLOCK) ?? []).length,
+    (total, { source }) =>
+      total +
+      (source.match(ERROR_BLOCK) ?? []).length +
+      (source.match(FORM_ALERT_ERROR) ?? []).length,
     0
   )
   assert.ok(announced >= 5, `expected at least 5 auth error blocks, found ${announced}`)

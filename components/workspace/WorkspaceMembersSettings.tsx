@@ -12,6 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Group, Pill, Row, Section } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -32,6 +33,7 @@ const invitationSchema = z.object({
 })
 
 type WorkspaceMember = {
+  createdAt: Date | string
   id: string
   role: string
   user: { email: string; id: string; image: string | null; name: string }
@@ -168,24 +170,44 @@ export function WorkspaceMembersSettings({
   }
 
   if (!canRead) {
-    return <p className="text-sm text-muted-foreground">Your role cannot view workspace members.</p>
+    return <p className="text-sm text-neutral-500">Your role cannot view workspace members.</p>
   }
 
   return (
-    <div className="grid max-w-3xl gap-8">
+    <div className="flex flex-col gap-10">
       {canInvite ? (
         <InviteForm isSubmitting={pendingId === 'invite'} onSubmit={handleInvite} />
       ) : null}
-      <section className="grid gap-3">
-        <h3 className="text-sm font-semibold">Members</h3>
+      {message ? (
+        <p
+          className="rounded-lg bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300 ring-1 ring-emerald-500/20"
+          role="status"
+        >
+          {message}
+        </p>
+      ) : null}
+      {error ? (
+        <p
+          className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-300 ring-1 ring-red-500/20"
+          role="alert"
+        >
+          {error}
+        </p>
+      ) : null}
+      <Group>
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading members…</p>
+          <Row>
+            <p className="text-sm text-neutral-500">Loading members…</p>
+          </Row>
         ) : members.length === 0 ? (
-          <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-            This workspace has no members yet.
-          </p>
+          <Row>
+            <p className="text-sm text-neutral-500">This workspace has no members yet.</p>
+          </Row>
         ) : (
-          <div className="overflow-hidden rounded-md border border-foreground/10">
+          <>
+            <div className="px-5 py-3 text-xs font-medium text-neutral-500">
+              {members.length} {members.length === 1 ? 'member' : 'members'}
+            </div>
             {members.map((member) => (
               <MemberRow
                 canManage={canManageMembers}
@@ -207,31 +229,35 @@ export function WorkspaceMembersSettings({
                 onTransfer={() => setConfirmation({ member, type: 'transfer' })}
               />
             ))}
-          </div>
+          </>
         )}
-      </section>
+      </Group>
       {canManageMembers ? (
-        <section className="grid gap-3">
-          <h3 className="text-sm font-semibold">Pending invitations</h3>
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading invitations…</p>
-          ) : invitations.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No invitations are pending.</p>
-          ) : (
-            <div className="overflow-hidden rounded-md border border-foreground/10">
-              {invitations.map((invitation) => (
+        <Section title="Pending invitations">
+          <Group>
+            {isLoading ? (
+              <Row>
+                <p className="text-sm text-neutral-500">Loading invitations…</p>
+              </Row>
+            ) : invitations.length === 0 ? (
+              <Row>
+                <p className="text-sm text-neutral-500">No invitations are pending.</p>
+              </Row>
+            ) : (
+              invitations.map((invitation) => (
                 <div
-                  className="flex flex-col gap-3 border-b border-foreground/10 px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4"
                   key={invitation.id}
                 >
-                  <div>
-                    <p className="text-sm font-medium">{invitation.email}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {invitation.role ?? 'viewer'} · expires{' '}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-white">{invitation.email}</p>
+                    <p className="text-xs text-neutral-500">
+                      <span className="capitalize">{invitation.role ?? 'viewer'}</span> · expires{' '}
                       {new Date(invitation.expiresAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
+                    <Pill tone="yellow">Pending</Pill>
                     <Button
                       disabled={pendingId === invitation.id}
                       onClick={() =>
@@ -246,11 +272,12 @@ export function WorkspaceMembersSettings({
                       }
                       size="sm"
                       type="button"
-                      variant="outline"
+                      variant="secondary"
                     >
                       Resend
                     </Button>
                     <Button
+                      className="text-red-400 hover:text-red-300"
                       disabled={pendingId === invitation.id}
                       onClick={() => setConfirmation({ invitation, type: 'revoke' })}
                       size="sm"
@@ -261,14 +288,10 @@ export function WorkspaceMembersSettings({
                     </Button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
-      ) : null}
-      {message ? <p className="rounded-md bg-primary/10 p-3 text-sm">{message}</p> : null}
-      {error ? (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
+              ))
+            )}
+          </Group>
+        </Section>
       ) : null}
       <ConfirmationDialog
         confirmation={confirmation}
@@ -288,21 +311,32 @@ function InviteForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
   return (
-    <form className="grid gap-4 border-b border-foreground/10 pb-8" onSubmit={onSubmit}>
-      <h3 className="text-sm font-semibold">Invite a member</h3>
-      <div className="grid gap-3 sm:grid-cols-[1fr_10rem_auto]">
-        <Input
-          autoComplete="email"
-          name="email"
-          placeholder="teammate@company.com"
-          required
-          type="email"
-        />
-        <RoleSelect name="role" />
-        <Button disabled={isSubmitting} type="submit">
-          {isSubmitting ? 'Inviting…' : 'Invite'}
-        </Button>
-      </div>
+    <form onSubmit={onSubmit}>
+      <Group>
+        <Row>
+          <div>
+            <h3 className="text-sm font-medium text-white">Invite a member</h3>
+            <p className="mt-0.5 text-xs text-neutral-500">
+              Send an email invitation and choose the role they join with.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-[1fr_9rem_auto]">
+            <Input
+              aria-label="Email address"
+              autoComplete="email"
+              className="h-10 rounded-lg"
+              name="email"
+              placeholder="teammate@company.com"
+              required
+              type="email"
+            />
+            <RoleSelect name="role" />
+            <Button className="h-10 rounded-lg" disabled={isSubmitting} type="submit">
+              {isSubmitting ? 'Inviting…' : 'Invite'}
+            </Button>
+          </div>
+        </Row>
+      </Group>
     </form>
   )
 }
@@ -330,15 +364,32 @@ function MemberRow({
 }) {
   const isCurrentUser = member.user.id === currentUserId
   const isOwner = member.role === 'owner'
+  const displayName = member.user.name || member.user.email
+  const rolePill = (
+    <Pill tone={isOwner ? 'purple' : 'gray'}>
+      <span className="capitalize">{member.role}</span>
+    </Pill>
+  )
+  // The e2e suite finds a member's actions two levels up from the email line,
+  // so the email <p> stays a direct child of a direct child of this row.
   return (
-    <div className="flex flex-col gap-3 border-b border-foreground/10 px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium">
-          {member.user.name || member.user.email}
-          {isCurrentUser ? ' (you)' : ''}
-        </p>
-        <p className="truncate text-xs text-muted-foreground">{member.user.email}</p>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4">
+      <div
+        aria-hidden="true"
+        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-xs font-medium text-neutral-300 uppercase ring-1 ring-white/10"
+      >
+        {displayName.charAt(0)}
       </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm text-white">
+          {displayName}
+          {isCurrentUser ? <span className="text-neutral-500"> (you)</span> : null}
+        </p>
+        <p className="truncate text-xs text-neutral-500">{member.user.email}</p>
+      </div>
+      <span className="hidden text-xs text-neutral-500 md:block">
+        Joined {new Date(member.createdAt).toLocaleDateString()}
+      </span>
       {canManage && !isOwner ? (
         <div className="flex flex-wrap items-center gap-2">
           <RoleSelect disabled={isPending} onValueChange={onRoleChange} value={member.role} />
@@ -348,12 +399,13 @@ function MemberRow({
               onClick={onTransfer}
               size="sm"
               type="button"
-              variant="outline"
+              variant="secondary"
             >
               Make owner
             </Button>
           ) : null}
           <Button
+            className="text-red-400 hover:text-red-300"
             disabled={isPending}
             onClick={isCurrentUser ? onLeave : onRemove}
             size="sm"
@@ -364,11 +416,21 @@ function MemberRow({
           </Button>
         </div>
       ) : isCurrentUser && !isOwner ? (
-        <Button disabled={isPending} onClick={onLeave} size="sm" type="button" variant="ghost">
-          Leave
-        </Button>
+        <div className="flex items-center gap-2">
+          {rolePill}
+          <Button
+            className="text-red-400 hover:text-red-300"
+            disabled={isPending}
+            onClick={onLeave}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            Leave
+          </Button>
+        </div>
       ) : (
-        <span className="text-sm capitalize text-muted-foreground">{member.role}</span>
+        rolePill
       )}
     </div>
   )
@@ -393,7 +455,11 @@ function RoleSelect({
       onValueChange={onValueChange}
       value={value}
     >
-      <SelectTrigger className="h-10 w-32">
+      <SelectTrigger
+        aria-label="Role"
+        className={name ? 'h-10 w-full rounded-lg' : 'w-32 rounded-lg'}
+        size={name ? 'default' : 'sm'}
+      >
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

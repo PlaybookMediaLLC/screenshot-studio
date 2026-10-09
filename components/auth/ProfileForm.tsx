@@ -3,10 +3,10 @@
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
+import { Group, Row } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { authClient } from '@/lib/auth/client'
 import { getAuthErrorMessage } from './error-message'
 
@@ -49,28 +49,34 @@ export function ProfileForm({ email, name }: ProfileFormProps) {
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
-      <Label className="grid gap-1.5" htmlFor="profile-name">
-        Name
-        <Input
-          autoComplete="name"
-          className="h-10 rounded-md border bg-background px-3"
-          defaultValue={name}
-          id="profile-name"
-          name="name"
-          required
-        />
-      </Label>
-      <Label className="grid gap-1.5" htmlFor="profile-email">
-        Email
-        <Input
-          className="cursor-not-allowed bg-muted text-muted-foreground"
-          defaultValue={email}
-          disabled
-          id="profile-email"
-          type="email"
-        />
-      </Label>
+    <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+      <Group>
+        <Row
+          description="Shown to your teammates across the workspace."
+          label={<label htmlFor="profile-name">Name</label>}
+        >
+          <Input
+            autoComplete="name"
+            className="h-10 rounded-lg md:w-72"
+            defaultValue={name}
+            id="profile-name"
+            name="name"
+            required
+          />
+        </Row>
+        <Row
+          description="Used to sign in. It cannot be changed here."
+          label={<label htmlFor="profile-email">Email</label>}
+        >
+          <Input
+            className="h-10 cursor-not-allowed rounded-lg text-neutral-500 md:w-72"
+            defaultValue={email}
+            disabled
+            id="profile-email"
+            type="email"
+          />
+        </Row>
+      </Group>
       {error ? (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -81,9 +87,11 @@ export function ProfileForm({ email, name }: ProfileFormProps) {
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       ) : null}
-      <Button disabled={isSubmitting} type="submit">
-        {isSubmitting ? 'Saving…' : 'Save profile'}
-      </Button>
+      <div className="flex justify-end">
+        <Button className="rounded-lg" disabled={isSubmitting} type="submit">
+          {isSubmitting ? 'Saving…' : 'Save profile'}
+        </Button>
+      </div>
     </form>
   )
 }

@@ -49,6 +49,20 @@ COPY prisma.config.ts ./
 
 CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
 
+# Just the Prisma CLI, at the locked version, for Fly's release_command
+# (fly.toml): the standalone server has no CLI, and the migrate stage's full
+# dependency tree would multiply the image size.
+FROM base AS migrator
+
+WORKDIR /migrator
+
+COPY package-lock.json /tmp/package-lock.json
+RUN versions="$(node -p "const p = require('/tmp/package-lock.json').packages; ['prisma', 'dotenv'].map((name) => name + '@' + p['node_modules/' + name].version).join(' ')")" \
+    && npm install --no-audit --no-fund --no-package-lock $versions
+
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+
 FROM base AS runner
 
 WORKDIR /app
@@ -64,6 +78,7 @@ RUN groupadd --system --gid 1001 nodejs \
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=migrator --chown=nextjs:nodejs /migrator ./migrator
 
 USER nextjs
 

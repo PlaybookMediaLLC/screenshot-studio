@@ -99,6 +99,11 @@ must not update or delete audit records.
 
 ## Database migrations
 
+Fly deploys apply pending migrations themselves: the `release_command` in
+`fly.toml` runs `prisma migrate deploy` with the app's secrets before the new
+version takes traffic, and a failed migration stops the deploy while the
+running version stays up.
+
 Apply the reviewed Prisma migration to the PlanetScale development branch
 before deploying code that depends on it:
 

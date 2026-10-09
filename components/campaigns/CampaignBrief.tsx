@@ -189,13 +189,16 @@ export function CampaignBrief({
                 </Field>
                 <Field htmlFor="brief-benefit" label="Why it matters">
                   <Input
+                    aria-describedby="brief-benefit-hint"
                     className={inputClassName}
                     defaultValue={release.benefitStatement}
                     id="brief-benefit"
                     maxLength={500}
                     name="benefitStatement"
-                    required
                   />
+                  <p className="text-xs text-neutral-500" id="brief-benefit-hint">
+                    Can be left empty while the release has a source link; the spec drafts it.
+                  </p>
                 </Field>
                 <Field htmlFor="brief-description" label="Description">
                   <Textarea
@@ -245,7 +248,13 @@ export function CampaignBrief({
           <Group>
             <dl className="divide-y divide-white/[0.07]">
               <DetailRow label="Release">{release.title}</DetailRow>
-              <DetailRow label="Why it matters">{release.benefitStatement}</DetailRow>
+              <DetailRow label="Why it matters">
+                {release.benefitStatement || (
+                  <span className="text-neutral-500">
+                    Not set; the spec drafts it from the sources.
+                  </span>
+                )}
+              </DetailRow>
               {release.description ? (
                 <DetailRow label="Description">
                   <span className="whitespace-pre-wrap">{release.description}</span>

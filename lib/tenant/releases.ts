@@ -206,11 +206,16 @@ export async function updateRelease(
 ) {
   return prisma.$transaction(async (transaction) => {
     const existing = await transaction.release.findFirst({
-      select: { id: true },
+      select: { benefitStatement: true, id: true, sourceUrls: true },
       where: { id: releaseId, organizationId: context.organizationId },
     })
     if (!existing) {
       throw new ReleaseError('Release not found.', 404)
+    }
+    const benefit = input.benefitStatement ?? existing.benefitStatement
+    const sources = input.sourceUrls ?? (existing.sourceUrls as unknown[])
+    if (!benefit.trim() && sources.length === 0) {
+      throw new ReleaseError('Say why it matters, or add a source link the spec can draw on.', 400)
     }
     await requireWorkspaceProductSurface(
       transaction,

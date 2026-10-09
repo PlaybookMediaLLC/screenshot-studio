@@ -179,6 +179,8 @@ export const releaseUpdateSchema = z
   .object({
     ...releaseFields,
     audience: releaseFields.audience.nullable(),
+    // May be cleared while a source link remains (checked in updateRelease).
+    benefitStatement: z.string().trim().max(500),
     description: releaseFields.description.nullable(),
     productSurfaceId: releaseFields.productSurfaceId.nullable(),
   })

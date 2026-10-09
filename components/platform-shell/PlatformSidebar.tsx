@@ -17,7 +17,7 @@ import { type ComponentType, useState } from 'react'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { authClient } from '@/lib/auth/client'
+import { useHydratedSession } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
 import { SETTINGS_SECTIONS, settingsHref } from '@/components/workspace/settings-sections'
 import { workspaceInitials } from '@/lib/workspace/initials'
@@ -193,7 +193,7 @@ function WorkspaceSwitcher({
   collapsed: boolean
   organizationName: string
 }) {
-  const { data: session } = authClient.useSession()
+  const { data: session } = useHydratedSession()
   return (
     <AccountMenu
       align={collapsed ? 'end' : 'start'}

@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { authClient } from '@/lib/auth/client'
+import { useHydratedSession } from '@/lib/auth/client'
 import { useTRPCClient } from '@/lib/trpc/react'
 import {
   buildExportFileName,
@@ -31,7 +31,7 @@ type SaveState = 'idle' | 'saving' | 'saved'
 
 export function SaveToWorkspaceButton({ createExport, disabled }: SaveToWorkspaceButtonProps) {
   const trpcClient = useTRPCClient()
-  const { data: session, isPending } = authClient.useSession()
+  const { data: session, isPending } = useHydratedSession()
   const [state, setState] = React.useState<SaveState>('idle')
 
   // Signing in is a separate flow with its own call to action. Rendering

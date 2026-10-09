@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
-import { authClient } from '@/lib/auth/client'
+import { authClient, useHydratedSession } from '@/lib/auth/client'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useTRPCClient } from '@/lib/trpc/react'
 
@@ -30,7 +30,7 @@ export function AccountMenu({
   const [isSwitchingWorkspace, setIsSwitchingWorkspace] = useState(false)
   const [workspaceError, setWorkspaceError] = useState<string | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
-  const { data: session, isPending } = authClient.useSession()
+  const { data: session, isPending } = useHydratedSession()
 
   useEffect(() => {
     if (!session) {
@@ -75,7 +75,7 @@ export function AccountMenu({
     }
   }
 
-  if (isPending) return <div aria-hidden className="h-8 w-8" />
+  if (isPending) return <div aria-hidden className={triggerClassName ?? 'h-8 w-8'} />
 
   if (!session) {
     return (

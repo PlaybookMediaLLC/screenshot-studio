@@ -715,16 +715,22 @@ async function movePostsToSpecVersion(
     chosen.filter((change) => change.targetType === 'post').map((change) => change.targetId)
   )
   const posts = await transaction.campaignPost.findMany({
-    select: { claims: true, id: true },
-    where: { campaignId: revision.campaignId, specVersion: versions.from },
+    select: { claims: true, id: true, specVersion: true },
+    where: {
+      campaignId: revision.campaignId,
+      // An updated post may come from an earlier version whose claims still held.
+      OR: [{ specVersion: versions.from }, { id: { in: [...updated] } }],
+    },
   })
   const movable = posts
     .filter(
       (post) =>
         updated.has(post.id) ||
-        !(Array.isArray(post.claims) ? (post.claims as Array<{ ref?: string }>) : []).some(
-          (claim) => typeof claim.ref === 'string' && claim.ref.split('.')[0] === revision.targetKey
-        )
+        (post.specVersion === versions.from &&
+          !(Array.isArray(post.claims) ? (post.claims as Array<{ ref?: string }>) : []).some(
+            (claim) =>
+              typeof claim.ref === 'string' && claim.ref.split('.')[0] === revision.targetKey
+          ))
     )
     .map((post) => post.id)
   if (movable.length > 0) {

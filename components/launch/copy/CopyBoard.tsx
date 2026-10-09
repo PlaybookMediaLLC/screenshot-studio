@@ -23,7 +23,7 @@ export type CopyPost = {
   angle: string | null
   callToAction: string | null
   channel: string
-  /** Spec claims the post relies on; `current` is false once the spec no longer has the ref. */
+  /** Spec claims the post relies on; `current` is false once the working spec says something else there. */
   claims: { current: boolean; ref: string; text: string }[]
   copy: string
   /** Written for an earlier plan version than the one the campaign works from now. */
@@ -307,7 +307,7 @@ function PostCard({ permissions, post }: { permissions: Permissions; post: CopyP
                 >
                   <code className="font-mono text-neutral-400">{claim.ref}</code>
                   <span className="text-neutral-300">{claim.text}</span>
-                  {claim.current ? null : <Pill tone="yellow">Not in the current spec</Pill>}
+                  {claim.current ? null : <Pill tone="yellow">Changed in the current spec</Pill>}
                 </li>
               ))}
             </ul>

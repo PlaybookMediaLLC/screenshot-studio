@@ -199,6 +199,23 @@ export function resolveClaimRef(spec: ReleaseSpecContent, ref: string): SpecClai
   return listSpecClaims(spec).find((entry) => entry.ref === ref) ?? null
 }
 
+/**
+ * Whether claim refs mean the same in two spec versions: each resolves in
+ * both, to the same text. A post written from an earlier version whose refs
+ * pass still agrees with the later one, so its claims can be trusted there.
+ */
+export function claimsMeanTheSame(
+  refs: readonly string[],
+  from: ReleaseSpecContent,
+  to: ReleaseSpecContent
+): boolean {
+  return refs.every((ref) => {
+    const before = resolveClaimRef(from, ref)
+    const after = resolveClaimRef(to, ref)
+    return before !== null && after !== null && before.text.trim() === after.text.trim()
+  })
+}
+
 /** The spec section a claim ref belongs to. */
 export function claimRefSection(ref: string): SpecSectionKey | null {
   const head = ref.split('.')[0] as SpecSectionKey

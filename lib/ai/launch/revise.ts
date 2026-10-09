@@ -12,6 +12,7 @@ import { formatTeamPreferences } from '@/lib/launch/preferences-format'
 import { defuseMarkup, fenceSource } from '@/lib/launch/sanitize'
 import {
   claimRefSection,
+  claimsMeanTheSame,
   LAUNCH_CHANNEL_LABELS,
   type LaunchChannel,
   LAUNCH_CHANNELS,
@@ -177,7 +178,7 @@ export async function proposeCampaignRevision(
   } else if (target.type === 'spec_section') {
     const spec = await getSpecById(organizationId, target.specId)
     if (spec.releaseId !== release.id) throw new LaunchError('Spec not found.', 404)
-    const { latest } = await getReleaseSpecs(organizationId, release.id)
+    const { latest, versions } = await getReleaseSpecs(organizationId, release.id)
     if (latest && latest.id !== spec.id)
       throw new LaunchError('Revise the latest spec version.', 409)
     const section = target.section
@@ -187,13 +188,26 @@ export async function proposeCampaignRevision(
     const posts = await prisma.campaignPost.findMany({
       where: { campaignId: campaign.id, organizationId },
     })
-    // Only posts written from this spec version: their refs mean what this version says.
+    const refsOf = (post: (typeof posts)[number]) =>
+      (Array.isArray(post.claims) ? (post.claims as Array<{ ref?: unknown }>) : [])
+        .map((claim) => claim.ref)
+        .filter((ref): ref is string => typeof ref === 'string')
+    // Posts written from this version, or from an earlier one whose claims say
+    // the same thing here (a redraft that kept them): their refs mean what
+    // this version says.
+    const earlier = new Map<number, ReleaseSpecContent>()
+    for (const version of new Set(posts.map((post) => post.specVersion))) {
+      const match = versions.find((entry) => entry.version === version)
+      if (version === null || version === spec.version || !match) continue
+      earlier.set(version, (await getSpecById(organizationId, match.id)).content)
+    }
+    const agrees = (post: (typeof posts)[number]) => {
+      if (post.specVersion === spec.version) return true
+      const from = post.specVersion === null ? undefined : earlier.get(post.specVersion)
+      return from !== undefined && claimsMeanTheSame(refsOf(post), from, spec.content)
+    }
     const dependents = posts.filter(
-      (post) =>
-        post.specVersion === spec.version &&
-        (Array.isArray(post.claims) ? (post.claims as Array<{ ref?: string }>) : []).some(
-          (claim) => typeof claim.ref === 'string' && claimRefSection(claim.ref) === section
-        )
+      (post) => agrees(post) && refsOf(post).some((ref) => claimRefSection(ref) === section)
     )
     const dependentIds = new Set(dependents.map((post) => post.id))
     const guardFor = (content: ReleaseSpecContent) =>

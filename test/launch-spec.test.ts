@@ -3,6 +3,7 @@ import test from 'node:test'
 import { enforceCitations, findCitationIssues } from '@/lib/launch/citations'
 import {
   campaignPlanSchema,
+  claimsMeanTheSame,
   isRegisteredCaptureUrl,
   listSpecClaims,
   releaseSpecSchema,
@@ -159,4 +160,19 @@ test('capture URLs may add a section fragment but never change the page', () => 
     isRegisteredCaptureUrl('https://evil.example/#https://nextjs.org/blog/next-15', allowed),
     false
   )
+})
+
+test('claims from an earlier spec version count only while they still say the same thing', () => {
+  const v1 = sampleSpec()
+  // A redraft that keeps the pillar and rewrites a capability.
+  const v2 = {
+    ...v1,
+    capabilities: v1.capabilities.map((capability, index) =>
+      index === 0 ? { ...capability, description: 'Rewritten in the redraft' } : capability
+    ),
+  }
+  assert.equal(claimsMeanTheSame(['messaging.pillars.0', 'summary'], v1, v2), true)
+  assert.equal(claimsMeanTheSame(['messaging.pillars.0', 'capabilities.0'], v1, v2), false)
+  // A ref the later version no longer has does not carry over.
+  assert.equal(claimsMeanTheSame(['problem.9'], v1, v2), false)
 })

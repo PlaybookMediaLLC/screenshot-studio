@@ -8,15 +8,17 @@ import { EmptyState, Section } from '@/components/platform-ui'
 import { isCampaignStudioConfigured } from '@/lib/ai/agents/campaign-studio'
 import { hasPermission } from '@/lib/auth/permissions'
 import {
+  claimsMeanTheSame,
   LAUNCH_CHANNEL_LABELS,
   LAUNCH_CHANNELS,
   type LaunchChannel,
   PLAN_PHASE_LABELS,
   PLAN_PHASES,
   type PlanPhase,
+  type ReleaseSpecContent,
   resolveClaimRef,
 } from '@/lib/launch/spec-schema'
-import { getCampaignPlans, getReleaseSpecs } from '@/lib/launch/store'
+import { getCampaignPlans, getReleaseSpecs, getSpecById } from '@/lib/launch/store'
 import { getCampaign } from '@/lib/tenant/campaigns'
 import { requireCampaignPageAccess } from '../../page-access'
 
@@ -68,7 +70,23 @@ export default async function CampaignCopyPage({ params }: CampaignCopyPageProps
   ])
   const workingPlan = plans.approved ?? plans.latest
   const plan = workingPlan?.content
-  const spec = (specs?.approved ?? specs?.latest)?.content
+  const workingSpec = specs?.approved ?? specs?.latest
+  const spec = workingSpec?.content
+  // Claim refs are positions in the spec version a post was written from, so
+  // each post's claims are compared against that version.
+  const postSpecs = new Map<number, ReleaseSpecContent>()
+  if (specs && workingSpec) {
+    for (const version of new Set(campaign.posts.map((post) => post.specVersion))) {
+      const match = specs.versions.find((entry) => entry.version === version)
+      if (version === null || !match) continue
+      postSpecs.set(
+        version,
+        version === workingSpec.version
+          ? workingSpec.content
+          : (await getSpecById(organizationId, match.id)).content
+      )
+    }
+  }
   const planAngles = new Map(plan?.angles.map((angle) => [angle.key, angle.title]))
   // Posts from before the plan carry a content angle instead.
   const contentAngles = new Map(campaign.angles.map((angle) => [angle.id, angle.title]))
@@ -89,11 +107,19 @@ export default async function CampaignCopyPage({ params }: CampaignCopyPageProps
           : ((post.angleId && contentAngles.get(post.angleId)) ?? post.planItemKey),
         callToAction: post.callToAction,
         channel: post.channel,
-        claims: claimsSchema.parse(post.claims).map((claim) => ({
-          ...claim,
-          // Without a spec there is nothing to check against.
-          current: !spec || resolveClaimRef(spec, claim.ref) !== null,
-        })),
+        claims: claimsSchema.parse(post.claims).map((claim) => {
+          const from = post.specVersion === null ? undefined : postSpecs.get(post.specVersion)
+          return {
+            ...claim,
+            // Without a spec there is nothing to check against. A claim is
+            // current while it says the same thing in the working spec.
+            current:
+              !spec ||
+              (from
+                ? claimsMeanTheSame([claim.ref], from, spec)
+                : resolveClaimRef(spec, claim.ref) !== null),
+          }
+        }),
         copy: post.copy,
         fromEarlierPlan:
           workingPlan !== null &&

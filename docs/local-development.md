@@ -55,6 +55,16 @@ reason, and `make e2e` stops it because those flows recreate the app
 container. Run `make up` again afterwards to bring it back. AI features also
 need `OPENROUTER_API_KEY` in your shell when you run `make up`.
 
+The renderer shares the app container's network, so restarting the app on its
+own (`docker restart`) leaves the renderer unreachable until it is restarted
+too; `make up` does both. AI generation then quietly falls back to product
+shots.
+
+`make e2e` runs the app with `PLATFORM_AI_SCRIPTED=1`: a deterministic
+stand-in model (`lib/ai/models/scripted.ts`) answers every AI stage, so the
+launch pipeline is tested end to end without a provider key. It is refused in
+production builds. `make up` turns it off again.
+
 ## Onboarding browser test
 
 After `make up`, run the full sign-up and workspace onboarding flow in Chromium:

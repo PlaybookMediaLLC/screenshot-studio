@@ -168,6 +168,15 @@ form opened), and `campaign_opened`. The audit trail records
 `workspaceAgeSeconds`, and the earliest one per organization is the time from
 workspace creation to the first campaign draft.
 
+## Launch intelligence
+
+Campaigns built from a release go through a staged, reviewable pipeline:
+a cited product spec drafted from the brief and the release's sources, a
+campaign plan, production of on-brand visuals and channel copy, and AI
+revisions that a reviewer applies or discards. See
+[launch-intelligence.md](launch-intelligence.md) for the stages, data model,
+and guardrails.
+
 ## Campaign studio (AI)
 
 `lib/ai` is the platform's AI package. It is ported from `@canvas/ai` (oppulence-canvas)
@@ -182,13 +191,17 @@ Models are addressed by role, not id:
 | `fast` | `anthropic/claude-haiku-4.5` | `PLATFORM_AI_MODEL_FAST` |
 | `nano` | `anthropic/claude-haiku-4.5` | `PLATFORM_AI_MODEL_NANO` |
 
-`OPENROUTER_API_KEY` turns the studio on. Without it, the campaign page shows
-"Generate launch kit" disabled and `campaign.generate` returns 503.
+`OPENROUTER_API_KEY` turns the studio on. Without it, the campaign pages show
+their AI actions disabled, and `campaign.generate` and the `launch.*` AI
+procedures refuse to run.
 
-`campaign.generate` (permission `release:create`, one unit of the
-`generation:monthly` quota per run) runs the campaign studio agent
-(`lib/ai/agents/campaign-studio.ts`) in the caller's tenant context. Its tools
-are built per run around one workspace and one campaign:
+The campaign pages drive the launch pipeline (`docs/launch-intelligence.md`);
+"Produce campaign" on a campaign's Assets page uses the tools below, briefed
+with the approved spec and plan. `campaign.generate` (permission
+`release:create`, one unit of the `generation:monthly` quota per run) runs the
+campaign studio agent (`lib/ai/agents/campaign-studio.ts`) from the release
+brief alone, for API callers, in the caller's tenant context. Its tools are
+built per run around one workspace and one campaign:
 
 - `captureProductPage` captures a screenshot through the existing screenshot
   service. It accepts only the product surface URL and the release's source

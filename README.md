@@ -270,6 +270,12 @@ uses. Its API classes, the `/api/v1/bootstrap` shell contract, ownership rules f
 other repositories, and the campaign workflow rollout are documented in
 [Playbook Core](docs/playbook-core.md).
 
+Campaigns built from a release run through a reviewable AI pipeline: a cited
+product spec drafted from the release's sources (with prompt-injection
+defenses), a campaign plan, on-brand visuals that review themselves, channel
+copy traceable to the spec, and AI revisions a reviewer applies or discards.
+See [launch intelligence](docs/launch-intelligence.md).
+
 Email templating, release announcements, audience consent, and unsubscribe
 handling are documented in
 [customer email and release broadcast](docs/email-and-broadcast.md).

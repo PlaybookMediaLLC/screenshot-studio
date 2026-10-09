@@ -6,6 +6,11 @@ primary_region = "iad"
 [build]
   dockerfile = "Dockerfile"
 
+[deploy]
+  # Pending migrations run before the new version takes traffic; a failed
+  # migration stops the deploy and the running version stays up.
+  release_command = "sh -c 'cd /app/migrator && node node_modules/prisma/build/index.js migrate deploy'"
+
 [env]
   HOSTNAME = "0.0.0.0"
   NODE_ENV = "production"

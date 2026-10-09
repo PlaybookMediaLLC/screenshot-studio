@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import {
+  acceptInvitation,
   getActiveOrganizationId,
-  getE2EUrl,
   signUp,
   signUpAndCreateWorkspace,
 } from './framework/auth'
@@ -148,8 +148,8 @@ test('a cached permission can show an action, but the server denies it after a r
   const memberPage = await memberContext.newPage()
   try {
     await signUp(member, memberPage)
-    await memberPage.goto(getE2EUrl(`/accept-invitation?invitationId=${invitation.id}`))
-    await memberPage.getByRole('button', { name: 'Accept invitation' }).click()
+    // Accepting navigates to /workspace; a request sent before that lands is aborted.
+    await acceptInvitation(memberPage, invitation.id)
     await expect
       .poll(async () => (await browserRequest(memberPage, '/api/v1/bootstrap')).status)
       .toBe(200)

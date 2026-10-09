@@ -318,6 +318,26 @@ wait_for_redirect_or_ok() {
   exit 1
 }
 
+warm_route() {
+  local url="$1"
+  local label="$2"
+  local attempt
+  local status
+
+  # Like wait_for_redirect_or_ok, for API routes: signed out they answer 401,
+  # which proves the route compiled just as well. A 5xx does not.
+  for attempt in $(seq 1 60); do
+    status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 120 "$url" || true)"
+    if [[ "$status" =~ ^[234] ]]; then
+      return
+    fi
+    sleep 1
+  done
+
+  echo "$label did not become ready: $url (last status ${status:-none})" >&2
+  exit 1
+}
+
 run_e2e() {
   local test_script="$1"
   shift
@@ -332,10 +352,13 @@ run_e2e() {
     # Recreating app would strand the renderer, which shares app's network;
     # end-to-end flows do not render designs, so it is simply stopped.
     compose --profile renderer stop design-renderer >/dev/null 2>&1 || true
-    BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" SCREENSHOT_API_URL="http://screenshot-mock:5678" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" compose --profile e2e up --detach --force-recreate screenshot-mock app
+    BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" SCREENSHOT_API_URL="http://screenshot-mock:5678" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" PLATFORM_AI_SCRIPTED=1 compose --profile e2e up --detach --force-recreate screenshot-mock app
     wait_for_screenshot_mock
   fi
   wait_for_http "${app_url%/}/api/health" "Screenshot Studio"
+  # Every spec signs up first; a cold Better Auth route compiles during that
+  # first POST and the dev server reloads the page under it, emptying the form.
+  wait_for_http "${app_url%/}/api/auth/ok" "Better Auth"
   wait_for_http "${app_url%/}/sign-up" "Screenshot Studio sign-up route"
   # The stack runs `next dev`, so a route is compiled on its first request.
   # A browser navigation to an uncompiled route keeps `page.url()` on the
@@ -352,10 +375,20 @@ run_e2e() {
   wait_for_redirect_or_ok "${app_url%/}/sign-up" "Screenshot Studio sign-up route"
   wait_for_redirect_or_ok "${app_url%/}/campaigns" "Screenshot Studio campaigns route"
   wait_for_redirect_or_ok "${app_url%/}/campaigns/new" "Screenshot Studio new campaign route"
+  # A campaign's pages redirect signed-out traffic after compiling, so any id warms them.
+  for campaign_page in "" /spec /plan /assets /copy; do
+    wait_for_redirect_or_ok "${app_url%/}/campaigns/warm-up${campaign_page}" "Screenshot Studio campaign${campaign_page:- overview} route"
+  done
   wait_for_redirect_or_ok "${app_url%/}/assets" "Screenshot Studio assets route"
   wait_for_redirect_or_ok "${app_url%/}/two-factor" "Screenshot Studio two-factor route"
   wait_for_redirect_or_ok "${app_url%/}/onboarding" "Screenshot Studio onboarding route"
   wait_for_redirect_or_ok "${app_url%/}/workspace" "Screenshot Studio workspace route"
+  wait_for_redirect_or_ok "${app_url%/}/accept-invitation" "Screenshot Studio invitation route"
+  # API routes the suite calls mid-test; a cold compile there ran tests out of time.
+  warm_route "${app_url%/}/api/tenant/releases" "Tenant releases API"
+  warm_route "${app_url%/}/api/tenant/assets/upload-url" "Tenant assets API"
+  warm_route "${app_url%/}/api/v1/bootstrap" "Shell bootstrap API"
+  warm_route "${app_url%/}/api/v1/organizations/warm-up" "Shell organizations API"
   wait_for_http "$app_url" "Screenshot Studio editor route"
   if ! E2E_BASE_URL="$app_url" \
     E2E_DATABASE_URL="${E2E_DATABASE_URL:-$HOST_DATABASE_URL}" \

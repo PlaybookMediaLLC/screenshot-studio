@@ -12,6 +12,8 @@ services:
       NODE_ENV: development
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}
+      # Set by bin/studio for e2e runs: a deterministic stand-in model (lib/ai/models/scripted.ts).
+      PLATFORM_AI_SCRIPTED: ${PLATFORM_AI_SCRIPTED:-}
       # Set by bin/studio when the design-renderer service runs. The renderer
       # shares this container's network, so both sides use localhost.
       PLATFORM_DESIGN_RENDERER: ${PLATFORM_DESIGN_RENDERER:-}

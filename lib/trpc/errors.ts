@@ -18,6 +18,7 @@ const domainErrorNames = new Set([
   'CampaignError',
   'CreativeWorkflowError',
   'DesignError',
+  'LaunchError',
   'ReleaseError',
   'ScheduledPostError',
   'WorkspaceEntitlementError',

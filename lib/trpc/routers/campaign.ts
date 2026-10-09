@@ -74,10 +74,21 @@ export const campaignRouter = router({
         ctx.headers,
         campaignPostTransitions[input.decision].permission
       )
-      return transitionCampaignPosts(access, input.campaignId, input.decision, input.postIds)
+      return transitionCampaignPosts(
+        access,
+        input.campaignId,
+        input.decision,
+        input.postIds,
+        input.note
+      )
     }),
   schedulePost: organizationProcedure('publish:manage')
-    .input(campaignPostScheduleSchema.extend({ campaignId: z.string().cuid(), postId: z.string().cuid() }))
+    .input(
+      campaignPostScheduleSchema.extend({
+        campaignId: z.string().cuid(),
+        postId: z.string().cuid(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const { campaignId, postId, ...schedule } = input
       const post = await scheduleCampaignPost(ctx.access, campaignId, postId, schedule)

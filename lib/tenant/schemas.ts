@@ -134,6 +134,8 @@ export const campaignCreateSchema = z.object({
 
 export const campaignApprovalSchema = z.object({
   decision: z.enum(['submit', 'approve', 'reject', 'request_changes']),
+  /** Why, when rejecting or requesting changes; it guides the next generation. */
+  note: z.string().trim().max(1_000).optional(),
   postIds: z.array(z.string().cuid()).min(1).max(100).optional(),
 })
 
@@ -164,6 +166,9 @@ const releaseFields = {
 export const releaseCreateSchema = z.object({
   ...releaseFields,
   audience: releaseFields.audience.optional(),
+  // Optional when a source link is given (checked in createRelease): the spec
+  // drafter reads why it matters from the sources.
+  benefitStatement: z.string().trim().max(500).default(''),
   description: releaseFields.description.optional(),
   productSurfaceId: releaseFields.productSurfaceId.optional(),
   sourceUrls: releaseFields.sourceUrls.optional(),

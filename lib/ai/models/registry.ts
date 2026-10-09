@@ -11,6 +11,7 @@ import { MODEL_ROLES, type ModelRole } from './catalog'
 import { type EnvSource, resolveModelIds } from './env'
 import { createModelMiddleware, type ModelMiddlewareOptions } from './middleware'
 import { openRouterLanguageModel } from './provider'
+import { createScriptedModel, isScriptedModelEnabled } from './scripted'
 
 /**
  * Role-addressed access to language models.
@@ -74,9 +75,13 @@ export function createModelRegistry(options: ModelRegistryOptions = {}): ModelRe
   const modelIds = resolveModelIds(env)
 
   const languageModels = {} as Record<ModelRole, LanguageModel>
+  // End-to-end tests run without a provider key; see ./scripted.ts.
+  const scripted = isScriptedModelEnabled()
   for (const role of MODEL_ROLES) {
     languageModels[role] = wrapLanguageModel({
-      model: openRouterLanguageModel(modelIds[role]),
+      model: scripted
+        ? createScriptedModel(modelIds[role])
+        : openRouterLanguageModel(modelIds[role]),
       middleware: createModelMiddleware(role, modelIds[role], middlewareOptions),
     })
   }

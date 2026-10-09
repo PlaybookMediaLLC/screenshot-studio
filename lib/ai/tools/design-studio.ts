@@ -16,7 +16,32 @@ import { DesignRenderLimitError, renderDesignForTenant } from '@/lib/design/rend
 import type { DesignRenderer } from '@/lib/design/renderer'
 import { designTemplates, getDesignTemplate } from '@/lib/design/templates'
 import { createDesign, getDesign } from '@/lib/tenant/designs'
+import { type BrandKitValues, brandDesignChanges } from '@/lib/launch/brand'
+import type { RenderCritique } from '../launch/critique'
 import type { CampaignStudioRecord, CampaignStudioScope } from './campaign-studio'
+
+/** Extra behavior when the tools run inside the launch pipeline. */
+export type LaunchToolOptions = {
+  /** Applied to every new design: brand gradient, text color, and font. */
+  brand: BrandKitValues | null
+  /** Reviews each render; a "fix" verdict is returned to the agent to act on. */
+  critique: (input: {
+    previewJpegBase64: string
+    texts: string[]
+  }) => Promise<RenderCritique | null>
+  /** Per-run budgets sized to the plan. */
+  limits?: { designs?: number; renders?: number }
+}
+
+const planAssetKeySchema = z
+  .string()
+  .regex(/^A\d{1,2}$/)
+  .optional()
+  .describe('The plan asset this design realizes, e.g. A1.')
+const variantLabelSchema = z
+  .enum(['A', 'B'])
+  .optional()
+  .describe('A or B when the plan asks for an A/B pair.')
 
 /**
  * Design tools: every editor capability, exposed as templates plus typed
@@ -38,8 +63,11 @@ const MAX_RENDERS = 8
 export function createDesignStudioTools(
   scope: CampaignStudioScope,
   record: CampaignStudioRecord,
-  getRenderer: () => Promise<DesignRenderer>
+  getRenderer: () => Promise<DesignRenderer>,
+  launch?: LaunchToolOptions
 ) {
+  const maxDesigns = launch?.limits?.designs ?? MAX_DESIGNS
+  const maxRenders = launch?.limits?.renders ?? MAX_RENDERS
   let designs = 0
   let renders = 0
   const failure = (message: string) => ({ error: message, ok: false as const })
@@ -68,10 +96,16 @@ export function createDesignStudioTools(
     document: DesignDocument
     name: string
     parentDesignId?: string
+    planAssetKey?: string
     templateId?: string
+    variantLabel?: string
   }) {
     designs += 1
-    const design = await createDesign(scope.tenant, { campaignId: scope.campaignId, ...input })
+    const design = await createDesign(scope.tenant, {
+      campaignId: scope.campaignId,
+      planVersion: scope.planVersion,
+      ...input,
+    })
     return { designId: design.id, ok: true as const }
   }
 
@@ -97,6 +131,7 @@ export function createDesignStudioTools(
       headline: z.string().trim().max(60).optional(),
       mobileScreenshotAssetId: z.string().uuid().optional(),
       name: z.string().trim().min(1).max(120),
+      planAssetKey: planAssetKeySchema,
       screenshotAssetId: z.string().uuid(),
       subheadline: z.string().trim().max(100).optional(),
       templateId: z.enum(designTemplates.map((template) => template.id) as [string, ...string[]]),
@@ -104,9 +139,10 @@ export function createDesignStudioTools(
         .string()
         .regex(/^#[0-9a-f]{6}$/i)
         .optional(),
+      variantLabel: variantLabelSchema,
     }),
     execute: async (input) => {
-      if (designs >= MAX_DESIGNS) return failure(`At most ${MAX_DESIGNS} designs per run.`)
+      if (designs >= maxDesigns) return failure(`At most ${maxDesigns} designs per run.`)
       if (
         !(await requireCapture(input.screenshotAssetId)) ||
         !(await requireCapture(input.mobileScreenshotAssetId))
@@ -115,14 +151,29 @@ export function createDesignStudioTools(
       }
       const template = getDesignTemplate(input.templateId)
       if (!template) return failure('Unknown template.')
-      const document = template.build({
+      let document = template.build({
         headline: input.headline,
         mobileScreenshot: input.mobileScreenshotAssetId && `asset:${input.mobileScreenshotAssetId}`,
         screenshot: `asset:${input.screenshotAssetId}`,
         subheadline: input.subheadline,
         textColor: input.textColor,
       })
-      return saveDesign({ document, name: input.name, templateId: template.id })
+      if (launch?.brand) {
+        // Every launch design starts on brand; edits may vary within the palette.
+        document = patchDesignDocument(
+          document,
+          brandDesignChanges(launch.brand, document.texts) as Parameters<
+            typeof patchDesignDocument
+          >[1]
+        )
+      }
+      return saveDesign({
+        document,
+        name: input.name,
+        planAssetKey: input.planAssetKey,
+        templateId: template.id,
+        variantLabel: input.variantLabel,
+      })
     },
   })
 
@@ -138,8 +189,9 @@ export function createDesignStudioTools(
       designId: z.string().cuid(),
       name: z.string().trim().min(1).max(120).optional(),
       replace: z.boolean().default(false),
+      variantLabel: variantLabelSchema,
     }),
-    execute: async ({ changes, designId, name, replace }) => {
+    execute: async ({ changes, designId, name, replace, variantLabel }) => {
       const design = await requireCampaignDesign(designId)
       if (!design) return failure('Unknown designId for this campaign.')
       let document: DesignDocument
@@ -152,17 +204,19 @@ export function createDesignStudioTools(
       }
       if (replace) {
         await prisma.design.updateMany({
-          data: { document, ...(name ? { name } : {}) },
+          data: { document, ...(name ? { name } : {}), ...(variantLabel ? { variantLabel } : {}) },
           where: { id: design.id, organizationId: scope.tenant.organizationId },
         })
         return { designId: design.id, ok: true as const }
       }
-      if (designs >= MAX_DESIGNS) return failure(`At most ${MAX_DESIGNS} designs per run.`)
+      if (designs >= maxDesigns) return failure(`At most ${maxDesigns} designs per run.`)
       return saveDesign({
         document,
         name: name ?? `${design.name} variant`,
         parentDesignId: design.id,
+        planAssetKey: design.planAssetKey ?? undefined,
         templateId: document.template,
+        variantLabel: variantLabel ?? undefined,
       })
     },
   })
@@ -178,7 +232,7 @@ export function createDesignStudioTools(
       designId: z.string().cuid(),
     }),
     execute: async ({ caption, designId }) => {
-      if (renders >= MAX_RENDERS) return failure(`At most ${MAX_RENDERS} renders per run.`)
+      if (renders >= maxRenders) return failure(`At most ${maxRenders} renders per run.`)
       const design = await requireCampaignDesign(designId)
       if (!design) return failure('Unknown designId for this campaign.')
       renders += 1
@@ -196,6 +250,11 @@ export function createDesignStudioTools(
         )
       }
       // A re-render of an unchanged design reuses the same asset; link it once.
+      const provenance = {
+        planAssetKey: design.planAssetKey,
+        planVersion: design.planVersion,
+        variantLabel: design.variantLabel,
+      }
       await prisma.campaignAsset.upsert({
         create: {
           assetId: rendered.asset.id,
@@ -203,8 +262,9 @@ export function createDesignStudioTools(
           caption,
           kind: 'design-render',
           organizationId: scope.tenant.organizationId,
+          ...provenance,
         },
-        update: { caption },
+        update: { caption, ...provenance },
         where: { campaignId_assetId: { assetId: rendered.asset.id, campaignId: scope.campaignId } },
       })
       if (!record.assets.some((asset) => asset.assetId === rendered.asset.id)) {
@@ -215,13 +275,33 @@ export function createDesignStudioTools(
         .resize({ width: 960, withoutEnlargement: true })
         .jpeg({ quality: 70 })
         .toBuffer()
+      const previewBase64 = preview.toString('base64')
+      let review: { issues: string[]; scores: string; verdict: 'fix' | 'pass' } | null = null
+      if (launch) {
+        const critique = await launch.critique({
+          previewJpegBase64: previewBase64,
+          texts: design.document.texts.map((text) => text.text),
+        })
+        if (critique) {
+          await prisma.design.updateMany({
+            data: { critique },
+            where: { id: design.id, organizationId: scope.tenant.organizationId },
+          })
+          review = {
+            issues: critique.issues,
+            scores: `spec ${critique.specFidelity}/5, brand ${critique.brand}/5, legibility ${critique.legibility}/5`,
+            verdict: critique.verdict,
+          }
+        }
+      }
       return {
         assetId: rendered.asset.id,
         cached: rendered.cached,
         designId: design.id,
         height: rendered.height,
         ok: true as const,
-        preview: preview.toString('base64'),
+        preview: previewBase64,
+        ...(review ? { review } : {}),
         width: rendered.width,
       }
     },

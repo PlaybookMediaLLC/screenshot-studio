@@ -223,9 +223,11 @@ export async function transitionCampaignPosts(
   context: TenantContext,
   campaignId: string,
   decision: CampaignApprovalDecision,
-  postIds?: readonly string[]
+  postIds?: readonly string[],
+  note?: string
 ) {
   const transition = campaignPostTransitions[decision]
+  const keepsNote = decision === 'reject' || decision === 'request_changes'
   return prisma.$transaction(async (transaction) => {
     const campaign = await transaction.campaign.findFirst({
       select: { id: true },
@@ -251,7 +253,12 @@ export async function transitionCampaignPosts(
     }
     const eligibleIds = eligiblePosts.map((post) => post.id)
     await transaction.campaignPost.updateMany({
-      data: { status: transition.to },
+      data: {
+        status: transition.to,
+        // A note explains a rejection or a change request; approval clears it.
+        ...(keepsNote && note ? { reviewNote: note } : {}),
+        ...(decision === 'approve' ? { reviewNote: null } : {}),
+      },
       where: { id: { in: eligibleIds } },
     })
     await appendAuditLog(transaction, {
@@ -259,7 +266,7 @@ export async function transitionCampaignPosts(
       actor: getAuditActor(context.principal),
       entityId: campaignId,
       entityType: 'campaign',
-      metadata: { decision, postCount: eligibleIds.length },
+      metadata: { decision, noted: Boolean(keepsNote && note), postCount: eligibleIds.length },
       organizationId: context.organizationId,
       requestId: context.requestId,
     })

@@ -13,6 +13,7 @@ import {
 } from '@/lib/design/renderer'
 import { CampaignError } from '@/lib/tenant/campaigns'
 import { models, normalizeTokenUsage } from '../models'
+import { isScriptedModelEnabled } from '../models/scripted'
 import {
   CAMPAIGN_STUDIO_INSTRUCTIONS,
   DESIGN_STUDIO_INSTRUCTIONS,
@@ -26,7 +27,7 @@ const MAX_STEPS = 14
 const MAX_DESIGN_STEPS = 32
 
 export function isCampaignStudioConfigured(): boolean {
-  return Boolean(process.env.OPENROUTER_API_KEY)
+  return Boolean(process.env.OPENROUTER_API_KEY) || isScriptedModelEnabled()
 }
 
 /** Registered product and release URLs the agent may capture, in priority order. */

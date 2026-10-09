@@ -12,6 +12,7 @@ import { prisma } from '@/lib/db'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { captureScreenshot } from '@/lib/screenshot-service'
 import { readTenantObject } from '@/lib/storage/client'
+import { isRegisteredCaptureUrl } from '@/lib/launch/spec-schema'
 import { storeGeneratedAsset } from '@/lib/tenant/assets'
 import {
   composeProductShot,
@@ -32,13 +33,15 @@ import {
 
 export const campaignChannels = ['x', 'linkedin', 'instagram', 'threads', 'bluesky'] as const
 
-const MAX_CAPTURES = 4
+const MAX_CAPTURES = 6
 const MAX_PRODUCT_SHOTS = 4
 
 export type CampaignStudioScope = {
   /** Product and release URLs the agent may capture, already validated. */
   allowedUrls: readonly [string, ...string[]]
   campaignId: string
+  /** Plan version being produced, recorded on everything the run makes. */
+  planVersion?: number
   tenant: TenantContext
 }
 
@@ -56,7 +59,8 @@ async function linkAsset(
   scope: CampaignStudioScope,
   assetId: string,
   kind: string,
-  caption?: string
+  caption?: string,
+  provenance: { planAssetKey?: string; variantLabel?: string } = {}
 ) {
   await prisma.campaignAsset.create({
     data: {
@@ -65,14 +69,21 @@ async function linkAsset(
       caption: caption ?? null,
       kind,
       organizationId: scope.tenant.organizationId,
+      planAssetKey: provenance.planAssetKey ?? null,
+      planVersion: scope.planVersion ?? null,
+      variantLabel: provenance.variantLabel ?? null,
     },
   })
 }
 
 export function createCampaignStudioTools(
   scope: CampaignStudioScope,
-  record: CampaignStudioRecord
+  record: CampaignStudioRecord,
+  /** Per-run budgets; the launch pipeline sizes them to the plan. */
+  limits: { captures?: number; productShots?: number } = {}
 ) {
+  const maxCaptures = limits.captures ?? MAX_CAPTURES
+  const maxProductShots = limits.productShots ?? MAX_PRODUCT_SHOTS
   let captures = 0
   let productShots = 0
 
@@ -84,10 +95,18 @@ export function createCampaignStudioTools(
     inputSchema: z.object({
       colorScheme: z.enum(['light', 'dark']).default('light'),
       device: z.enum(['desktop', 'mobile']),
-      url: z.enum(scope.allowedUrls),
+      url: z
+        .string()
+        .max(2_100)
+        .describe(
+          'A registered URL, optionally with a #section from the capture list to show that part of the page.'
+        ),
     }),
     execute: async ({ colorScheme, device, url }) => {
-      if (captures >= MAX_CAPTURES) return failure(`At most ${MAX_CAPTURES} captures per run.`)
+      if (!isRegisteredCaptureUrl(url, scope.allowedUrls)) {
+        return failure(`Capture one of the registered URLs: ${scope.allowedUrls.join(', ')}.`)
+      }
+      if (captures >= maxCaptures) return failure(`At most ${maxCaptures} captures per run.`)
       captures += 1
       const limit = await checkRateLimit(
         `campaign-studio:${scope.tenant.organizationId}`,
@@ -142,15 +161,21 @@ export function createCampaignStudioTools(
       format: z.enum(Object.keys(productShotFormats) as [keyof typeof productShotFormats]),
       headline: z.string().trim().max(60).optional(),
       mockupId: z.enum(productShotMockups),
+      planAssetKey: z
+        .string()
+        .regex(/^A\d{1,2}$/)
+        .optional()
+        .describe('The plan asset this shot realizes, e.g. A1.'),
       subheadline: z.string().trim().max(100).optional(),
       textColor: z
         .string()
         .regex(/^#[0-9a-f]{6}$/i)
         .optional(),
+      variantLabel: z.enum(['A', 'B']).optional().describe('A or B for an A/B pair.'),
     }),
     execute: async (input) => {
-      if (productShots >= MAX_PRODUCT_SHOTS) {
-        return failure(`At most ${MAX_PRODUCT_SHOTS} product shots per run.`)
+      if (productShots >= maxProductShots) {
+        return failure(`At most ${maxProductShots} product shots per run.`)
       }
       const link = await prisma.campaignAsset.findFirst({
         include: { asset: { select: { objectKey: true, status: true } } },
@@ -186,7 +211,10 @@ export function createCampaignStudioTools(
         parentAssetId: input.captureAssetId,
         width: shot.width,
       })
-      await linkAsset(scope, asset.id, 'product-shot', input.caption)
+      await linkAsset(scope, asset.id, 'product-shot', input.caption, {
+        planAssetKey: input.planAssetKey,
+        variantLabel: input.variantLabel,
+      })
       record.assets.push({ assetId: asset.id, kind: 'product-shot' })
       return { assetId: asset.id, format: input.format, ok: true as const }
     },

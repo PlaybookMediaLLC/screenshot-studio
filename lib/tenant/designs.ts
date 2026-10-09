@@ -24,9 +24,12 @@ const designSelect = {
   id: true,
   name: true,
   parentDesignId: true,
+  planAssetKey: true,
+  planVersion: true,
   renderedAssetId: true,
   templateId: true,
   updatedAt: true,
+  variantLabel: true,
 } as const
 
 /**
@@ -56,7 +59,11 @@ export async function createDesign(
     document: unknown
     name: string
     parentDesignId?: string
+    /** Plan asset this design realizes (A1…) and its A/B label. */
+    planAssetKey?: string
+    planVersion?: number
     templateId?: string
+    variantLabel?: string
   }
 ) {
   const document = designDocumentSchema.parse(input.document)
@@ -84,7 +91,10 @@ export async function createDesign(
         name: input.name,
         organizationId: context.organizationId,
         parentDesignId: input.parentDesignId ?? null,
+        planAssetKey: input.planAssetKey ?? null,
+        planVersion: input.planVersion ?? null,
         templateId: input.templateId ?? document.template ?? null,
+        variantLabel: input.variantLabel ?? null,
       },
       select: designSelect,
     })

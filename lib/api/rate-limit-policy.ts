@@ -59,3 +59,14 @@ export const DESIGN_RENDER_RATE_LIMIT: RateLimitPolicy = {
   name: 'design-render',
   windowMs: 60_000,
 }
+
+/**
+ * Launch pipeline AI actions (spec, plan, produce, revise) per workspace.
+ * Each action is also one unit of the monthly generation quota; this keeps a
+ * burst of clicks or a script from spending it in seconds.
+ */
+export const LAUNCH_AI_RATE_LIMIT: RateLimitPolicy = {
+  maxRequests: 20,
+  name: 'launch-ai',
+  windowMs: 60_000,
+}

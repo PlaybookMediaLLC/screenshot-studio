@@ -142,6 +142,9 @@ async function createReleaseInTransaction(
   input: CreateReleaseInput,
   releaseId: string
 ): Promise<ReleaseResult> {
+  if (!input.benefitStatement.trim() && (input.sourceUrls?.length ?? 0) === 0) {
+    throw new ReleaseError('Say why it matters, or add a source link the spec can draw on.', 400)
+  }
   const existing = await getIdempotentRelease(
     transaction,
     context.organizationId,

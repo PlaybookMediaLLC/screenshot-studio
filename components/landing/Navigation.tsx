@@ -24,6 +24,7 @@ import {
   NewTwitterIcon,
   PaintBoardIcon,
   SourceCodeIcon,
+  Video01Icon,
 } from "hugeicons-react";
 import { GitHubStarButton } from "@/components/ui/github-star-button";
 import {
@@ -65,6 +66,12 @@ const resourceGroups = [
         description: "Cut the subject out of any image",
         href: "/remove-background",
         icon: EraserIcon,
+      },
+      {
+        label: "Compress Video",
+        description: "Shrink videos to any size in MB",
+        href: "/compress-video",
+        icon: Video01Icon,
       },
       {
         label: "Image Tools",

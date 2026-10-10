@@ -2,12 +2,15 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface SegmentedControlOption {
   id: string;
   label?: string;
   icon?: React.ReactNode;
   ariaLabel?: string;
+  /** Plain-language explanation shown on hover and keyboard focus. */
+  tooltip?: string;
 }
 
 interface SegmentedControlProps {
@@ -61,7 +64,7 @@ export function SegmentedControl({
       />
       {options.map((option) => {
         const isActive = value === option.id;
-        return (
+        const button = (
           <button
             key={option.id}
             type="button"
@@ -85,7 +88,7 @@ export function SegmentedControl({
               buttons?.[nextIndex]?.focus();
             }}
             aria-label={option.ariaLabel ?? option.label}
-            title={option.ariaLabel ?? option.label}
+            title={option.tooltip ? undefined : option.ariaLabel ?? option.label}
             className={cn(
               'relative z-10 flex h-full min-h-0 min-w-0 flex-1 items-center justify-center gap-1.5',
               'rounded-[5px] transition-colors duration-150',
@@ -110,6 +113,15 @@ export function SegmentedControl({
               <span className="truncate font-medium">{option.label}</span>
             ) : null}
           </button>
+        );
+        if (!option.tooltip) return button;
+        return (
+          <Tooltip key={option.id} delayDuration={300}>
+            <TooltipTrigger asChild>{button}</TooltipTrigger>
+            <TooltipContent side="top" sideOffset={6} className="max-w-60 text-pretty">
+              {option.tooltip}
+            </TooltipContent>
+          </Tooltip>
         );
       })}
     </div>

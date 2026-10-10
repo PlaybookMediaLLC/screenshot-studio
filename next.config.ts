@@ -56,6 +56,15 @@ const nextConfig: NextConfig = {
           { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
         ],
       },
+      // Same isolation as the editor, so the video compressor gets the
+      // multi-threaded FFmpeg core instead of the much slower single thread.
+      {
+        source: "/:locale(es|fr|de|ja|pt|ko|zh)?/compress-video",
+        headers: [
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
+        ],
+      },
       // A module worker started from an isolated page is blocked unless its own
       // script response carries a compatible COEP. The header is inert on
       // ordinary scripts, so it is safe on every static chunk.

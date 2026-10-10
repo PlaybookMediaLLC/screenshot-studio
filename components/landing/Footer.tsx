@@ -25,6 +25,7 @@ const navCol1 = [
   { href: "/tweet", label: "Tweet to image" },
   { href: "/mockup-generator", label: "Mockup generator" },
   { href: "/remove-background", label: "Remove background" },
+  { href: "/compress-video", label: "Compress video" },
 ] as const;
 
 const navCol2 = [

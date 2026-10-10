@@ -112,7 +112,7 @@ export function buildToolsHubJsonLd(
         url: `${SITE_URL}${TOOLS_HUB_PATH}`,
         name: "Free Online Image Tools",
         description:
-          "Compress, convert, resize, crop, and rotate images, or remove a background, in your browser. Free, no signup, nothing uploaded.",
+          "Compress, convert, resize, crop, and rotate images, remove a background, or compress a video, in your browser. Free, no signup, nothing uploaded.",
         isPartOf: { "@id": `${SITE_URL}/#website` },
       },
       {

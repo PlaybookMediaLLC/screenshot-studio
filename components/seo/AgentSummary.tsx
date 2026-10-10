@@ -124,6 +124,7 @@ export function AgentSummary() {
               { href: "/code", label: "Code to image" },
               { href: "/tweet", label: "Tweet to image" },
               { href: "/remove-background", label: "Background remover" },
+              { href: "/compress-video", label: "Video compressor" },
               { href: "/store-screenshots", label: "App store screenshots" },
             ]}
           />

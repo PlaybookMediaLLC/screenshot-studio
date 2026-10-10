@@ -53,6 +53,7 @@ Screenshot Studio is a client-side image editor: imported images are not uploade
 - Text and image overlays with ${PRODUCT_FACTS.fonts} Google Fonts
 - Tweet-to-image and code-snippet-to-image capture
 - On-device AI background remover with full-resolution transparent PNG output (${BASE_URL}/remove-background)
+- In-browser video compressor with quality levels or a target size in MB, MP4 output (${BASE_URL}/compress-video)
 - High-resolution export up to ${PRODUCT_FACTS.maxExportScale}x scale (PNG, JPEG, WebP)
 - One-click professional styling presets
 - Aspect ratio presets for every social platform
@@ -75,6 +76,7 @@ ${primaryToolLines}
 - Mockup Generator: ${BASE_URL}/mockup-generator
 - Image Tools Hub: ${BASE_URL}/tools
 - Remove Background: ${BASE_URL}/remove-background
+- Compress Video: ${BASE_URL}/compress-video
 - Features: ${BASE_URL}/features
 - Screenshot Beautifier: ${BASE_URL}/features/screenshot-beautifier
 - Social Media Graphics: ${BASE_URL}/features/social-media-graphics
@@ -259,6 +261,7 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 | Mockup Generator | ${BASE_URL}/mockup-generator | iPhone, MacBook, and Apple Watch mockups with 3D angles and multi-device layouts |
 | Image Tools Hub | ${BASE_URL}/tools | Index of the standalone image utilities |
 | Remove Background | ${BASE_URL}/remove-background | On-device AI background remover that exports a transparent PNG |
+| Compress Video | ${BASE_URL}/compress-video | FFmpeg WebAssembly video compressor: quality levels or a target size in MB, MP4 output |
 
 ### Image Tools
 Standalone, single-purpose utilities. Each decodes, processes, and re-encodes the image locally with Canvas and a Web Worker, and calls no API. Batch input downloads as one zip.

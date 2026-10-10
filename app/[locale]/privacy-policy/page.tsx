@@ -147,8 +147,9 @@ export default function PrivacyPolicyPage() {
               </li>
               <li>
                 <strong className="text-foreground">Image tools:</strong> the
-                compress, convert, resize, crop, rotate, and background removal
-                tools process files in your browser tab and write the result
+                compress, convert, resize, crop, rotate, background removal,
+                and video compression tools process files in your browser tab
+                and write the result
                 straight to your downloads. Re-encoding also drops embedded
                 EXIF metadata such as camera details and GPS location.
               </li>
@@ -198,6 +199,16 @@ export default function PrivacyPolicyPage() {
                 </ExternalLink>
                 , which receives a standard file request (including your IP
                 address) but no image data. The model is then cached in your
+                browser.
+              </li>
+              <li>
+                <strong className="text-foreground">Compressing a video:</strong>{" "}
+                the video is compressed entirely in your browser and is never
+                uploaded. The first time you use it, or export a video from the
+                editor, your browser downloads the FFmpeg engine from the{" "}
+                <ExternalLink href="https://unpkg.com">unpkg</ExternalLink> CDN,
+                which receives a standard file request (including your IP
+                address) but no video data. The engine is then cached in your
                 browser.
               </li>
               <li>

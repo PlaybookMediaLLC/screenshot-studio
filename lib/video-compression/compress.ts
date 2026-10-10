@@ -7,7 +7,7 @@
  * FFmpeg's in-memory filesystem.
  */
 
-import { FFFSType, type FFmpeg } from "@ffmpeg/ffmpeg";
+import type { FFFSType, FFmpeg } from "@ffmpeg/ffmpeg";
 import { loadFFmpeg, terminateFFmpeg } from "@/lib/export/ffmpeg-encoder";
 import {
   INPUT_PATH,
@@ -75,7 +75,9 @@ async function mountSource(ffmpeg: FFmpeg, file: File): Promise<{ path: string; 
 
   try {
     await ffmpeg.createDir(INPUT_PATH).catch(() => {});
-    await ffmpeg.mount(FFFSType.WORKERFS, { files: [source] }, INPUT_PATH);
+    // The enum is only a type here: the server build resolves @ffmpeg/ffmpeg to
+    // an empty module, so importing its runtime value breaks there.
+    await ffmpeg.mount("WORKERFS" as FFFSType, { files: [source] }, INPUT_PATH);
     return {
       path: `${INPUT_PATH}/${name}`,
       release: async () => {

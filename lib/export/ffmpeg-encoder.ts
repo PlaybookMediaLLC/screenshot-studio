@@ -46,6 +46,16 @@ let exportLock: Promise<void> = Promise.resolve();
 const CACHE_NAME = 'ffmpeg-wasm-cache-v1';
 
 /**
+ * @ffmpeg/ffmpeg's own worker loads the core with a runtime
+ * `import(coreURL)`. Next's production webpack build rewrites that into its
+ * module loader despite the webpackIgnore comment, so the worker can never
+ * load the core and the engine fails only in deployed builds. An unbundled
+ * copy of the worker is served from public/ instead; tests keep it identical
+ * to the installed package.
+ */
+export const FFMPEG_CLASS_WORKER_PATH = '/ffmpeg/0.12.15/worker.js';
+
+/**
  * Check if the page is cross-origin isolated (required for SharedArrayBuffer / MT)
  */
 function isCrossOriginIsolated(): boolean {
@@ -111,10 +121,15 @@ export async function loadFFmpeg(
       return blobUrl;
     };
 
+    // Absolute, because webpack replaces import.meta.url (the base the library
+    // resolves this against) with a build-time file:// path.
+    const classWorkerURL = new URL(FFMPEG_CLASS_WORKER_PATH, window.location.origin).href;
+
     try {
       if (useMT) {
         const baseURL = 'https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm';
         await ffmpeg.load({
+          classWorkerURL,
           coreURL: await trackedBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
           wasmURL: await trackedBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
           workerURL: await trackedBlobURL(`${baseURL}/ffmpeg-core.worker.js`, 'text/javascript'),
@@ -122,6 +137,7 @@ export async function loadFFmpeg(
       } else {
         const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
         await ffmpeg.load({
+          classWorkerURL,
           coreURL: await trackedBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
           wasmURL: await trackedBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
         });

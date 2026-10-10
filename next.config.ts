@@ -68,6 +68,14 @@ const nextConfig: NextConfig = {
       // A module worker started from an isolated page is blocked unless its own
       // script response carries a compatible COEP. The header is inert on
       // ordinary scripts, so it is safe on every static chunk.
+      // The unbundled FFmpeg worker (see lib/export/ffmpeg-encoder.ts) is a
+      // module worker too, so it needs the same header.
+      {
+        source: "/ffmpeg/:path*",
+        headers: [
+          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
+        ],
+      },
       {
         source: "/_next/static/:path*",
         headers: [

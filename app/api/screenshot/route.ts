@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCachedScreenshot, cacheScreenshot, normalizeUrl, invalidateCache } from '@/lib/screenshot-cache'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { apiError, methodNotAllowed } from '@/lib/api/errors'
+import { isBlankImage } from '@/lib/screenshot-blank'
 
 export const maxDuration = 60
 
@@ -9,10 +10,14 @@ const MICROLINK_API_URL = process.env.SCREENSHOT_API_URL || 'https://api.microli
 type DeviceType = 'desktop' | 'mobile'
 type ColorScheme = 'light' | 'dark'
 
+/** How long a blank capture's retry waits after page load, for intro and fade-in animations. */
+const SETTLE_WAIT_MS = 4000
+
 async function captureViaService(
   url: string,
   deviceType: DeviceType = 'desktop',
-  colorScheme: ColorScheme = 'light'
+  colorScheme: ColorScheme = 'light',
+  waitForTimeout?: number
 ): Promise<{ screenshot: string; strategy: string }> {
   try {
     const viewport = deviceType === 'mobile'
@@ -28,6 +33,7 @@ async function captureViaService(
       'viewport.isMobile': viewport.isMobile,
       colorScheme,
     })
+    if (waitForTimeout) params.set('waitForTimeout', String(waitForTimeout))
 
     const metaResponse = await fetch(`${MICROLINK_API_URL}/?${params.toString()}`, {
       method: 'GET',
@@ -87,6 +93,23 @@ async function captureViaService(
     console.error('Screenshot service error:', error)
     throw error
   }
+}
+
+function isBlankScreenshot(base64: string): Promise<boolean> {
+  return isBlankImage(Buffer.from(base64, 'base64'))
+}
+
+/**
+ * Captures once and, when the result is a single flat colour, once more after
+ * letting the page settle. Pages with an intro animation are still blank when
+ * the service shoots right after load. Throws 'blank_capture' if it stays blank.
+ */
+async function captureSettled(url: string, deviceType: DeviceType, colorScheme: ColorScheme) {
+  const first = await captureViaService(url, deviceType, colorScheme)
+  if (!(await isBlankScreenshot(first.screenshot))) return first
+  const settled = await captureViaService(url, deviceType, colorScheme, SETTLE_WAIT_MS)
+  if (await isBlankScreenshot(settled.screenshot)) throw new Error('blank_capture')
+  return settled
 }
 
 export async function POST(request: NextRequest) {
@@ -175,7 +198,8 @@ export async function POST(request: NextRequest) {
     if (!forceRefresh) {
       try {
         const cachedScreenshot = await getCachedScreenshot(cacheKey)
-        if (cachedScreenshot) {
+        // Blank captures were cached before they were detected; recapture those.
+        if (cachedScreenshot && !(await isBlankScreenshot(cachedScreenshot))) {
           return NextResponse.json({
             screenshot: cachedScreenshot,
             url: normalizedUrl,
@@ -189,7 +213,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { screenshot, strategy } = await captureViaService(normalizedUrl, deviceType, colorScheme)
+    const { screenshot, strategy } = await captureSettled(normalizedUrl, deviceType, colorScheme)
 
     try {
       await cacheScreenshot(cacheKey, screenshot)
@@ -209,6 +233,15 @@ export async function POST(request: NextRequest) {
     console.error('Screenshot error:', error)
 
     if (error instanceof Error) {
+      if (error.message === 'blank_capture') {
+        return apiError(
+          502,
+          'upstream_failed',
+          'The page was still blank after waiting for it to load. It may need a login or block screenshots.',
+          'Check that the page shows content to a logged-out visitor, then retry.'
+        )
+      }
+
       if (error.message.includes('timeout') || error.message.includes('Timeout')) {
         return apiError(
           408,

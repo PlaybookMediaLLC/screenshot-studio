@@ -11,6 +11,7 @@ import {
 import { Moon, Sun } from 'lucide-react';
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from '@/lib/constants';
 import { useEditorStore, useImageStore } from '@/lib/store';
+import { browserDisplayUrl } from '@/lib/browser-url';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,7 +47,7 @@ export function CleanUploadState() {
   const [isCapturing, setIsCapturing] = React.useState(false);
 
   const { setScreenshot } = useEditorStore();
-  const { addImages, setImage, backgroundConfig, addTextOverlay } = useImageStore();
+  const { addImages, setImage, setBrowserUrl, backgroundConfig, addTextOverlay } = useImageStore();
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   // Crossfade state
@@ -221,6 +222,8 @@ export function CleanUploadState() {
       const file = new File([blob], `screenshot-${colorScheme}.png`, { type: 'image/png' });
       setScreenshot({ src: blobUrl });
       setImage(file);
+      // Show the captured page's address in the browser frame, not the default URL.
+      setBrowserUrl(browserDisplayUrl(finalUrl));
       setScreenshotUrl('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to capture screenshot');

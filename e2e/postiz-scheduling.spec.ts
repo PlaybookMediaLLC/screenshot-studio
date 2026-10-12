@@ -161,7 +161,10 @@ test('an approved variant schedules through Postiz once, retries a throttle, and
       postAttempts += 1
       return postAttempts === 1
         ? { body: { message: 'Retry later.' }, status: 429 }
-        : { body: { id: `post-${postAttempts}` }, status: 201 }
+        : {
+            body: [{ postId: `post-${postAttempts}`, integration: 'postiz-x-integration' }],
+            status: 201,
+          }
     }
     return { body: { error: 'Not found.' }, status: 404 }
   }, 5679)
@@ -257,10 +260,10 @@ test('a queued post is cancelled when its approval or destination is revoked bef
   page,
 }) => {
   const provider = await startHttpMockServer(
-    (request) => ({
-      body: { id: request.url === '/api/public/v1/upload' ? 'media' : 'post' },
-      status: 201,
-    }),
+    (request) =>
+      request.url === '/api/public/v1/upload'
+        ? { body: { id: 'media', path: 'https://postiz.test/media.png' }, status: 201 }
+        : { body: [{ postId: 'post', integration: 'revocation-integration' }], status: 201 },
     5679
   )
 
@@ -361,7 +364,10 @@ test('a worker recovers an unclaimed post and does not retry uncertain delivery'
     (request) =>
       request.url === '/api/public/v1/upload'
         ? { body: { id: 'media', path: 'https://postiz.test/media.png' }, status: 201 }
-        : { body: { id: 'published-post' }, status: 201 },
+        : {
+            body: [{ postId: 'published-post', integration: 'recovery-integration' }],
+            status: 201,
+          },
     5679
   )
 

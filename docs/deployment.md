@@ -142,6 +142,10 @@ Create a Secret with the optional keys described in
 Set `REDIS_URL` whenever the screenshot API route is enabled. Configure Ingress
 or Gateway API through the existing `ingress` or `httpRoute` values.
 
+The optional Go Postiz replacement has separate Fly configs and an isolated
+database and Temporal namespace. See [Screenshot Studio backend and
+orchestrator](postiz-go-deployment.md) for its local and production setup.
+
 ## Cost sources
 
 - [Fly.io pricing](https://fly.io/docs/about/pricing/)

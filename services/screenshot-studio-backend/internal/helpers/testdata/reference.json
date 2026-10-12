@@ -1,0 +1,2166 @@
+{
+ "strip": [
+  {
+   "type": "normal",
+   "val": "<p>Hello <strong>world</strong></p><p>Second &amp; line</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello world\nSecond & line"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hello <strong>world</strong></p><p>Second &amp; line</p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello 𝘄𝗼𝗿𝗹𝗱\nSecond & line"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hello <strong>world</strong></p><p>Second &amp; line</p>",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello world\nSecond & line"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hello <strong>world</strong></p><p>Second &amp; line</p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Hello 𝘄𝗼𝗿𝗹𝗱\nSecond & line"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>Hello <strong>world</strong></p><p>Second &amp; line</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello **world**\nSecond & line\n"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>Hello <strong>world</strong></p><p>Second &amp; line</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Hello **world**\nSecond & line\n"
+  },
+  {
+   "type": "html",
+   "val": "<p>Hello <strong>world</strong></p><p>Second &amp; line</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>Hello <strong>world</strong></p><p>Second & line</p>"
+  },
+  {
+   "type": "html",
+   "val": "<p>Hello <strong>world</strong></p><p>Second &amp; line</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "<p>Hello <strong>world</strong></p><p>Second & line</p>"
+  },
+  {
+   "type": "none",
+   "val": "<p>Hello <strong>world</strong></p><p>Second &amp; line</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello worldSecond & line"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hello <strong>world</strong></p><p>Second &amp; line</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>Hello <strong>world</strong></p><p>Second &amp; line</p>"
+  },
+  {
+   "type": "normal",
+   "val": "Hello & <b>x</b> \"q\" 's' a b",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello &amp; <b>x</b> \"q\" 's' a&nbsp;b"
+  },
+  {
+   "type": "normal",
+   "val": "Hello & <b>x</b> \"q\" 's' a b",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello &amp; <b>x</b> \"q\" 's' a&nbsp;b"
+  },
+  {
+   "type": "normal",
+   "val": "Hello & <b>x</b> \"q\" 's' a b",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello & x \"q\" 's' a b"
+  },
+  {
+   "type": "normal",
+   "val": "Hello & <b>x</b> \"q\" 's' a b",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Hello &amp; <b>x</b> \"q\" 's' a&nbsp;b"
+  },
+  {
+   "type": "markdown",
+   "val": "Hello & <b>x</b> \"q\" 's' a b",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello & x \"q\" 's' a b"
+  },
+  {
+   "type": "markdown",
+   "val": "Hello & <b>x</b> \"q\" 's' a b",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Hello & x \"q\" 's' a b"
+  },
+  {
+   "type": "html",
+   "val": "Hello & <b>x</b> \"q\" 's' a b",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello & x \"q\" 's' a b"
+  },
+  {
+   "type": "html",
+   "val": "Hello & <b>x</b> \"q\" 's' a b",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "Hello & x \"q\" 's' a b"
+  },
+  {
+   "type": "none",
+   "val": "Hello & <b>x</b> \"q\" 's' a b",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello & x \"q\" 's' a b"
+  },
+  {
+   "type": "normal",
+   "val": "Hello & <b>x</b> \"q\" 's' a b",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello & <b>x</b> \"q\" 's' a b"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hi <strong>bold</strong> and <u>under</u></p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>Link <a href=\"https://x.com/a?b=1&amp;c=2\" target=\"_blank\">site</a></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hi bold and under<ul><li>\none</li><li>\ntwo</li></ul>\nLink site"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hi <strong>bold</strong> and <u>under</u></p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>Link <a href=\"https://x.com/a?b=1&amp;c=2\" target=\"_blank\">site</a></p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hi 𝗯𝗼𝗹𝗱 and u̲n̲d̲e̲r̲\n- one\n- two\nLink https://x.com/a?b=1&c=2"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hi <strong>bold</strong> and <u>under</u></p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>Link <a href=\"https://x.com/a?b=1&amp;c=2\" target=\"_blank\">site</a></p>",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hi bold and under\none\ntwo\nLink site"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hi <strong>bold</strong> and <u>under</u></p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>Link <a href=\"https://x.com/a?b=1&amp;c=2\" target=\"_blank\">site</a></p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Hi 𝗯𝗼𝗹𝗱 and u̲n̲d̲e̲r̲\n- one\n- two\nLink https://x.com/a?b=1&c=2"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>Hi <strong>bold</strong> and <u>under</u></p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>Link <a href=\"https://x.com/a?b=1&amp;c=2\" target=\"_blank\">site</a></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hi **bold** and __under__\n- one\n- two\nLink [site](https://x.com/a?b=1&c=2)\n"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>Hi <strong>bold</strong> and <u>under</u></p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>Link <a href=\"https://x.com/a?b=1&amp;c=2\" target=\"_blank\">site</a></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Hi **bold** and __under__\n- one\n- two\nLink [site](https://x.com/a?b=1&c=2)\n"
+  },
+  {
+   "type": "html",
+   "val": "<p>Hi <strong>bold</strong> and <u>under</u></p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>Link <a href=\"https://x.com/a?b=1&amp;c=2\" target=\"_blank\">site</a></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>Hi <strong>bold</strong> and <u>under</u></p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>Link <a href=\"https://x.com/a?b=1&c=2\" target=\"_blank\">site</a></p>"
+  },
+  {
+   "type": "html",
+   "val": "<p>Hi <strong>bold</strong> and <u>under</u></p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>Link <a href=\"https://x.com/a?b=1&amp;c=2\" target=\"_blank\">site</a></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "<p>Hi <strong>bold</strong> and <u>under</u></p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>Link <a href=\"https://x.com/a?b=1&c=2\" target=\"_blank\">site</a></p>"
+  },
+  {
+   "type": "none",
+   "val": "<p>Hi <strong>bold</strong> and <u>under</u></p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>Link <a href=\"https://x.com/a?b=1&amp;c=2\" target=\"_blank\">site</a></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hi bold and underonetwoLink site"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hi <strong>bold</strong> and <u>under</u></p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>Link <a href=\"https://x.com/a?b=1&amp;c=2\" target=\"_blank\">site</a></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>Hi <strong>bold</strong> and <u>under</u></p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>Link <a href=\"https://x.com/a?b=1&amp;c=2\" target=\"_blank\">site</a></p>"
+  },
+  {
+   "type": "normal",
+   "val": "<p>a &lt;tag&gt; b</p><p>c&nbsp;d</p><p></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "a <tag> b\nc d\n"
+  },
+  {
+   "type": "normal",
+   "val": "<p>a &lt;tag&gt; b</p><p>c&nbsp;d</p><p></p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "a <tag> b\nc d\n"
+  },
+  {
+   "type": "normal",
+   "val": "<p>a &lt;tag&gt; b</p><p>c&nbsp;d</p><p></p>",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "a <tag> b\nc d\n"
+  },
+  {
+   "type": "normal",
+   "val": "<p>a &lt;tag&gt; b</p><p>c&nbsp;d</p><p></p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "a <tag> b\nc d\n"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>a &lt;tag&gt; b</p><p>c&nbsp;d</p><p></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "a <tag> b\nc d\n\n"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>a &lt;tag&gt; b</p><p>c&nbsp;d</p><p></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "a <tag> b\nc d\n\n"
+  },
+  {
+   "type": "html",
+   "val": "<p>a &lt;tag&gt; b</p><p>c&nbsp;d</p><p></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>a <tag> b</p><p>c d</p><p></p>"
+  },
+  {
+   "type": "html",
+   "val": "<p>a &lt;tag&gt; b</p><p>c&nbsp;d</p><p></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "<p>a <tag> b</p><p>c d</p><p></p>"
+  },
+  {
+   "type": "none",
+   "val": "<p>a &lt;tag&gt; b</p><p>c&nbsp;d</p><p></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "a <tag> bc d"
+  },
+  {
+   "type": "normal",
+   "val": "<p>a &lt;tag&gt; b</p><p>c&nbsp;d</p><p></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>a &lt;tag&gt; b</p><p>c&nbsp;d</p><p></p>"
+  },
+  {
+   "type": "normal",
+   "val": "<h1>Title</h1><p>Text <strong>b</strong> <u>u</u> <a href=\"https://a.com\">link</a></p><ul><li><p>x</p></li><li><p>y\nz</p></li></ul><h2 class=\"x\">Sub</h2><h3>S3</h3>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<h1>Title</h1>\nText b u link<ul><li>\nx</li><li>\ny\nz</li></ul><h2 class=\"x\">Sub</h2><h3>S3</h3>"
+  },
+  {
+   "type": "normal",
+   "val": "<h1>Title</h1><p>Text <strong>b</strong> <u>u</u> <a href=\"https://a.com\">link</a></p><ul><li><p>x</p></li><li><p>y\nz</p></li></ul><h2 class=\"x\">Sub</h2><h3>S3</h3>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Title\nText 𝗯 u https://a.com\n- x\n- yz\nSubS3"
+  },
+  {
+   "type": "normal",
+   "val": "<h1>Title</h1><p>Text <strong>b</strong> <u>u</u> <a href=\"https://a.com\">link</a></p><ul><li><p>x</p></li><li><p>y\nz</p></li></ul><h2 class=\"x\">Sub</h2><h3>S3</h3>",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Title\nText b u link\nx\ny\nzSubS3"
+  },
+  {
+   "type": "normal",
+   "val": "<h1>Title</h1><p>Text <strong>b</strong> <u>u</u> <a href=\"https://a.com\">link</a></p><ul><li><p>x</p></li><li><p>y\nz</p></li></ul><h2 class=\"x\">Sub</h2><h3>S3</h3>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Title\nText 𝗯 u https://a.com\n- x\n- yz\nSubS3"
+  },
+  {
+   "type": "markdown",
+   "val": "<h1>Title</h1><p>Text <strong>b</strong> <u>u</u> <a href=\"https://a.com\">link</a></p><ul><li><p>x</p></li><li><p>y\nz</p></li></ul><h2 class=\"x\">Sub</h2><h3>S3</h3>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "# Title\nText **b** __u__ [link](https://a.com)\n- x\n- yz\n## Sub\n### S3\n"
+  },
+  {
+   "type": "markdown",
+   "val": "<h1>Title</h1><p>Text <strong>b</strong> <u>u</u> <a href=\"https://a.com\">link</a></p><ul><li><p>x</p></li><li><p>y\nz</p></li></ul><h2 class=\"x\">Sub</h2><h3>S3</h3>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "# Title\nText **b** __u__ [link](https://a.com)\n- x\n- yz\n## Sub\n### S3\n"
+  },
+  {
+   "type": "html",
+   "val": "<h1>Title</h1><p>Text <strong>b</strong> <u>u</u> <a href=\"https://a.com\">link</a></p><ul><li><p>x</p></li><li><p>y\nz</p></li></ul><h2 class=\"x\">Sub</h2><h3>S3</h3>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<h1>Title</h1><p>Text <strong>b</strong> <u>u</u> <a href=\"https://a.com\">link</a></p><ul><li><p>x</p></li><li><p>y\nz</p></li></ul><h2 class=\"x\">Sub</h2><h3>S3</h3>"
+  },
+  {
+   "type": "html",
+   "val": "<h1>Title</h1><p>Text <strong>b</strong> <u>u</u> <a href=\"https://a.com\">link</a></p><ul><li><p>x</p></li><li><p>y\nz</p></li></ul><h2 class=\"x\">Sub</h2><h3>S3</h3>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "<h1>Title</h1><p>Text <strong>b</strong> <u>u</u> <a href=\"https://a.com\">link</a></p><ul><li><p>x</p></li><li><p>y\nz</p></li></ul><h2 class=\"x\">Sub</h2><h3>S3</h3>"
+  },
+  {
+   "type": "none",
+   "val": "<h1>Title</h1><p>Text <strong>b</strong> <u>u</u> <a href=\"https://a.com\">link</a></p><ul><li><p>x</p></li><li><p>y\nz</p></li></ul><h2 class=\"x\">Sub</h2><h3>S3</h3>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "TitleText b u linkxy\nzSubS3"
+  },
+  {
+   "type": "normal",
+   "val": "<h1>Title</h1><p>Text <strong>b</strong> <u>u</u> <a href=\"https://a.com\">link</a></p><ul><li><p>x</p></li><li><p>y\nz</p></li></ul><h2 class=\"x\">Sub</h2><h3>S3</h3>",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<h1>Title</h1><p>Text <strong>b</strong> <u>u</u> <a href=\"https://a.com\">link</a></p><ul><li><p>x</p></li><li><p>y\nz</p></li></ul><h2 class=\"x\">Sub</h2><h3>S3</h3>"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hello <span data-mention-id=\"123\" data-mention-label=\"john\" class=\"mention\">@john</span> &amp; \"quotes\" it's</p><img src=\"https://img.com/a.png?x=1&amp;y=2\" alt=\"pic\"><img src=\"data:image/png;base64,xx\"><img alt=\"no src\">",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello @john & \"quotes\" it's"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hello <span data-mention-id=\"123\" data-mention-label=\"john\" class=\"mention\">@john</span> &amp; \"quotes\" it's</p><img src=\"https://img.com/a.png?x=1&amp;y=2\" alt=\"pic\"><img src=\"data:image/png;base64,xx\"><img alt=\"no src\">",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello @john & \"quotes\" it's"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hello <span data-mention-id=\"123\" data-mention-label=\"john\" class=\"mention\">@john</span> &amp; \"quotes\" it's</p><img src=\"https://img.com/a.png?x=1&amp;y=2\" alt=\"pic\"><img src=\"data:image/png;base64,xx\"><img alt=\"no src\">",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello @john & \"quotes\" it's"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hello <span data-mention-id=\"123\" data-mention-label=\"john\" class=\"mention\">@john</span> &amp; \"quotes\" it's</p><img src=\"https://img.com/a.png?x=1&amp;y=2\" alt=\"pic\"><img src=\"data:image/png;base64,xx\"><img alt=\"no src\">",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Hello @[@john](123) & \"quotes\" it's"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>Hello <span data-mention-id=\"123\" data-mention-label=\"john\" class=\"mention\">@john</span> &amp; \"quotes\" it's</p><img src=\"https://img.com/a.png?x=1&amp;y=2\" alt=\"pic\"><img src=\"data:image/png;base64,xx\"><img alt=\"no src\">",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello @john & \"quotes\" it's\n"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>Hello <span data-mention-id=\"123\" data-mention-label=\"john\" class=\"mention\">@john</span> &amp; \"quotes\" it's</p><img src=\"https://img.com/a.png?x=1&amp;y=2\" alt=\"pic\"><img src=\"data:image/png;base64,xx\"><img alt=\"no src\">",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Hello @[@john](123) & \"quotes\" it's\n"
+  },
+  {
+   "type": "html",
+   "val": "<p>Hello <span data-mention-id=\"123\" data-mention-label=\"john\" class=\"mention\">@john</span> &amp; \"quotes\" it's</p><img src=\"https://img.com/a.png?x=1&amp;y=2\" alt=\"pic\"><img src=\"data:image/png;base64,xx\"><img alt=\"no src\">",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>Hello @john & \"quotes\" it's</p>"
+  },
+  {
+   "type": "html",
+   "val": "<p>Hello <span data-mention-id=\"123\" data-mention-label=\"john\" class=\"mention\">@john</span> &amp; \"quotes\" it's</p><img src=\"https://img.com/a.png?x=1&amp;y=2\" alt=\"pic\"><img src=\"data:image/png;base64,xx\"><img alt=\"no src\">",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "<p>Hello @[@john](123) & \"quotes\" it's</p><img src=\"https://img.com/a.png?x=1&y=2\" alt=\"pic\">"
+  },
+  {
+   "type": "none",
+   "val": "<p>Hello <span data-mention-id=\"123\" data-mention-label=\"john\" class=\"mention\">@john</span> &amp; \"quotes\" it's</p><img src=\"https://img.com/a.png?x=1&amp;y=2\" alt=\"pic\"><img src=\"data:image/png;base64,xx\"><img alt=\"no src\">",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello @john & \"quotes\" it's"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hello <span data-mention-id=\"123\" data-mention-label=\"john\" class=\"mention\">@john</span> &amp; \"quotes\" it's</p><img src=\"https://img.com/a.png?x=1&amp;y=2\" alt=\"pic\"><img src=\"data:image/png;base64,xx\"><img alt=\"no src\">",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>Hello <span data-mention-id=\"123\" data-mention-label=\"john\" class=\"mention\">@john</span> &amp; \"quotes\" it's</p><img src=\"https://img.com/a.png?x=1&amp;y=2\" alt=\"pic\"><img src=\"data:image/png;base64,xx\"><img alt=\"no src\">"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hello&nbsp;<strong>World</strong> &lt;3 'x' \"y\"</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello World <3 'x' \"y\""
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hello&nbsp;<strong>World</strong> &lt;3 'x' \"y\"</p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello 𝗪𝗼𝗿𝗹𝗱 <3 'x' \"y\""
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hello&nbsp;<strong>World</strong> &lt;3 'x' \"y\"</p>",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello World <3 'x' \"y\""
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hello&nbsp;<strong>World</strong> &lt;3 'x' \"y\"</p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Hello 𝗪𝗼𝗿𝗹𝗱 <3 'x' \"y\""
+  },
+  {
+   "type": "markdown",
+   "val": "<p>Hello&nbsp;<strong>World</strong> &lt;3 'x' \"y\"</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello **World** <3 'x' \"y\"\n"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>Hello&nbsp;<strong>World</strong> &lt;3 'x' \"y\"</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Hello **World** <3 'x' \"y\"\n"
+  },
+  {
+   "type": "html",
+   "val": "<p>Hello&nbsp;<strong>World</strong> &lt;3 'x' \"y\"</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>Hello <strong>World</strong> <3 'x' \"y\"</p>"
+  },
+  {
+   "type": "html",
+   "val": "<p>Hello&nbsp;<strong>World</strong> &lt;3 'x' \"y\"</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "<p>Hello <strong>World</strong> <3 'x' \"y\"</p>"
+  },
+  {
+   "type": "none",
+   "val": "<p>Hello&nbsp;<strong>World</strong> &lt;3 'x' \"y\"</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Hello World <3 'x' \"y\""
+  },
+  {
+   "type": "normal",
+   "val": "<p>Hello&nbsp;<strong>World</strong> &lt;3 'x' \"y\"</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>Hello&nbsp;<strong>World</strong> &lt;3 'x' \"y\"</p>"
+  },
+  {
+   "type": "normal",
+   "val": "<p><strong>s</strong> <strong>&lt;tag&gt;</strong> <u>&gt;</u> <strong>a$&amp;b</strong></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "s <tag> > a$&b"
+  },
+  {
+   "type": "normal",
+   "val": "<p><strong>s</strong> <strong>&lt;tag&gt;</strong> <u>&gt;</u> <strong>a$&amp;b</strong></p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "s <𝘁𝗮𝗴> > 𝗮a$&b𝗯"
+  },
+  {
+   "type": "normal",
+   "val": "<p><strong>s</strong> <strong>&lt;tag&gt;</strong> <u>&gt;</u> <strong>a$&amp;b</strong></p>",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "s <tag> > a$&b"
+  },
+  {
+   "type": "normal",
+   "val": "<p><strong>s</strong> <strong>&lt;tag&gt;</strong> <u>&gt;</u> <strong>a$&amp;b</strong></p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "s <𝘁𝗮𝗴> > 𝗮a$&b𝗯"
+  },
+  {
+   "type": "markdown",
+   "val": "<p><strong>s</strong> <strong>&lt;tag&gt;</strong> <u>&gt;</u> <strong>a$&amp;b</strong></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "**s** **<tag>** __>__ **a$&b**\n"
+  },
+  {
+   "type": "markdown",
+   "val": "<p><strong>s</strong> <strong>&lt;tag&gt;</strong> <u>&gt;</u> <strong>a$&amp;b</strong></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "**s** **<tag>** __>__ **a$&b**\n"
+  },
+  {
+   "type": "html",
+   "val": "<p><strong>s</strong> <strong>&lt;tag&gt;</strong> <u>&gt;</u> <strong>a$&amp;b</strong></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p><strong>s</strong> <strong><tag></strong> <u>></u> <strong>a$&b</strong></p>"
+  },
+  {
+   "type": "html",
+   "val": "<p><strong>s</strong> <strong>&lt;tag&gt;</strong> <u>&gt;</u> <strong>a$&amp;b</strong></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "<p><strong>s</strong> <strong><tag></strong> <u>></u> <strong>a$&b</strong></p>"
+  },
+  {
+   "type": "none",
+   "val": "<p><strong>s</strong> <strong>&lt;tag&gt;</strong> <u>&gt;</u> <strong>a$&amp;b</strong></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "s <tag> > a$&b"
+  },
+  {
+   "type": "normal",
+   "val": "<p><strong>s</strong> <strong>&lt;tag&gt;</strong> <u>&gt;</u> <strong>a$&amp;b</strong></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p><strong>s</strong> <strong>&lt;tag&gt;</strong> <u>&gt;</u> <strong>a$&amp;b</strong></p>"
+  },
+  {
+   "type": "normal",
+   "val": "<p>a<b>c</p>d<p>x</p><script>alert(\"<p>\")</script>a < b > c",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "acd\nxalert(\"\n\")a < b > c"
+  },
+  {
+   "type": "normal",
+   "val": "<p>a<b>c</p>d<p>x</p><script>alert(\"<p>\")</script>a < b > c",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "acd\nxalert(\"\n\")a < b > c"
+  },
+  {
+   "type": "normal",
+   "val": "<p>a<b>c</p>d<p>x</p><script>alert(\"<p>\")</script>a < b > c",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "acd\nxalert(\"\n\")a < b > c"
+  },
+  {
+   "type": "normal",
+   "val": "<p>a<b>c</p>d<p>x</p><script>alert(\"<p>\")</script>a < b > c",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "acd\nxalert(\"\n\")a < b > c"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>a<b>c</p>d<p>x</p><script>alert(\"<p>\")</script>a < b > c",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "ac\ndx\nalert(\"\")a < b > c"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>a<b>c</p>d<p>x</p><script>alert(\"<p>\")</script>a < b > c",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "ac\ndx\nalert(\"\")a < b > c"
+  },
+  {
+   "type": "html",
+   "val": "<p>a<b>c</p>d<p>x</p><script>alert(\"<p>\")</script>a < b > c",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>ac</p>d<p>x</p>alert(\"<p>\")a < b > c"
+  },
+  {
+   "type": "html",
+   "val": "<p>a<b>c</p>d<p>x</p><script>alert(\"<p>\")</script>a < b > c",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "<p>ac</p>d<p>x</p>alert(\"<p>\")a < b > c"
+  },
+  {
+   "type": "none",
+   "val": "<p>a<b>c</p>d<p>x</p><script>alert(\"<p>\")</script>a < b > c",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "acdxalert(\"\")a < b > c"
+  },
+  {
+   "type": "normal",
+   "val": "<p>a<b>c</p>d<p>x</p><script>alert(\"<p>\")</script>a < b > c",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>a<b>c</p>d<p>x</p><script>alert(\"<p>\")</script>a < b > c"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Café 😀 — “quotes” 日本語</p><p>Line<br>break</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Café 😀 — “quotes” 日本語\nLinebreak"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Café 😀 — “quotes” 日本語</p><p>Line<br>break</p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Café 😀 — “quotes” 日本語\nLinebreak"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Café 😀 — “quotes” 日本語</p><p>Line<br>break</p>",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Café 😀 — “quotes” 日本語\nLinebreak"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Café 😀 — “quotes” 日本語</p><p>Line<br>break</p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Café 😀 — “quotes” 日本語\nLinebreak"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>Café 😀 — “quotes” 日本語</p><p>Line<br>break</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Café 😀 — “quotes” 日本語\nLinebreak\n"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>Café 😀 — “quotes” 日本語</p><p>Line<br>break</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Café 😀 — “quotes” 日本語\nLinebreak\n"
+  },
+  {
+   "type": "html",
+   "val": "<p>Café 😀 — “quotes” 日本語</p><p>Line<br>break</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>Café 😀 — “quotes” 日本語</p><p>Linebreak</p>"
+  },
+  {
+   "type": "html",
+   "val": "<p>Café 😀 — “quotes” 日本語</p><p>Line<br>break</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "<p>Café 😀 — “quotes” 日本語</p><p>Linebreak</p>"
+  },
+  {
+   "type": "none",
+   "val": "<p>Café 😀 — “quotes” 日本語</p><p>Line<br>break</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Café 😀 — “quotes” 日本語Linebreak"
+  },
+  {
+   "type": "normal",
+   "val": "<p>Café 😀 — “quotes” 日本語</p><p>Line<br>break</p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>Café 😀 — “quotes” 日本語</p><p>Line<br>break</p>"
+  },
+  {
+   "type": "normal",
+   "val": "<p dir=\"ltr\">One</p>\n<p>Two <span data-mention-id=\"u1\" data-mention-label=\"x\">@x</span></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "One\n\nTwo @x"
+  },
+  {
+   "type": "normal",
+   "val": "<p dir=\"ltr\">One</p>\n<p>Two <span data-mention-id=\"u1\" data-mention-label=\"x\">@x</span></p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "One\n\nTwo @x"
+  },
+  {
+   "type": "normal",
+   "val": "<p dir=\"ltr\">One</p>\n<p>Two <span data-mention-id=\"u1\" data-mention-label=\"x\">@x</span></p>",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "One\n\nTwo @x"
+  },
+  {
+   "type": "normal",
+   "val": "<p dir=\"ltr\">One</p>\n<p>Two <span data-mention-id=\"u1\" data-mention-label=\"x\">@x</span></p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "One\n\nTwo @[@x](u1)"
+  },
+  {
+   "type": "markdown",
+   "val": "<p dir=\"ltr\">One</p>\n<p>Two <span data-mention-id=\"u1\" data-mention-label=\"x\">@x</span></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "One\n\nTwo @x\n"
+  },
+  {
+   "type": "markdown",
+   "val": "<p dir=\"ltr\">One</p>\n<p>Two <span data-mention-id=\"u1\" data-mention-label=\"x\">@x</span></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "One\n\nTwo @[@x](u1)\n"
+  },
+  {
+   "type": "html",
+   "val": "<p dir=\"ltr\">One</p>\n<p>Two <span data-mention-id=\"u1\" data-mention-label=\"x\">@x</span></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p dir=\"ltr\">One</p>\n<p>Two @x</p>"
+  },
+  {
+   "type": "html",
+   "val": "<p dir=\"ltr\">One</p>\n<p>Two <span data-mention-id=\"u1\" data-mention-label=\"x\">@x</span></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "<p dir=\"ltr\">One</p>\n<p>Two @[@x](u1)</p>"
+  },
+  {
+   "type": "none",
+   "val": "<p dir=\"ltr\">One</p>\n<p>Two <span data-mention-id=\"u1\" data-mention-label=\"x\">@x</span></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "One\nTwo @x"
+  },
+  {
+   "type": "normal",
+   "val": "<p dir=\"ltr\">One</p>\n<p>Two <span data-mention-id=\"u1\" data-mention-label=\"x\">@x</span></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p dir=\"ltr\">One</p>\n<p>Two <span data-mention-id=\"u1\" data-mention-label=\"x\">@x</span></p>"
+  },
+  {
+   "type": "normal",
+   "val": "<p>T <a href=\"https://a.com/x\"   rel=\"noopener\">A</a> and <a class=\"c\" href=\"https://b.com\">B</a></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "T A and B"
+  },
+  {
+   "type": "normal",
+   "val": "<p>T <a href=\"https://a.com/x\"   rel=\"noopener\">A</a> and <a class=\"c\" href=\"https://b.com\">B</a></p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "T https://a.com/x and https://b.com"
+  },
+  {
+   "type": "normal",
+   "val": "<p>T <a href=\"https://a.com/x\"   rel=\"noopener\">A</a> and <a class=\"c\" href=\"https://b.com\">B</a></p>",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "T A and B"
+  },
+  {
+   "type": "normal",
+   "val": "<p>T <a href=\"https://a.com/x\"   rel=\"noopener\">A</a> and <a class=\"c\" href=\"https://b.com\">B</a></p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "T https://a.com/x and https://b.com"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>T <a href=\"https://a.com/x\"   rel=\"noopener\">A</a> and <a class=\"c\" href=\"https://b.com\">B</a></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "T [A](https://a.com/x) and [B](https://b.com)\n"
+  },
+  {
+   "type": "markdown",
+   "val": "<p>T <a href=\"https://a.com/x\"   rel=\"noopener\">A</a> and <a class=\"c\" href=\"https://b.com\">B</a></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "T [A](https://a.com/x) and [B](https://b.com)\n"
+  },
+  {
+   "type": "html",
+   "val": "<p>T <a href=\"https://a.com/x\"   rel=\"noopener\">A</a> and <a class=\"c\" href=\"https://b.com\">B</a></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>T <a href=\"https://a.com/x\" rel=\"noopener\">A</a> and <a class=\"c\" href=\"https://b.com\">B</a></p>"
+  },
+  {
+   "type": "html",
+   "val": "<p>T <a href=\"https://a.com/x\"   rel=\"noopener\">A</a> and <a class=\"c\" href=\"https://b.com\">B</a></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "<p>T <a href=\"https://a.com/x\" rel=\"noopener\">A</a> and <a class=\"c\" href=\"https://b.com\">B</a></p>"
+  },
+  {
+   "type": "none",
+   "val": "<p>T <a href=\"https://a.com/x\"   rel=\"noopener\">A</a> and <a class=\"c\" href=\"https://b.com\">B</a></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "T A and B"
+  },
+  {
+   "type": "normal",
+   "val": "<p>T <a href=\"https://a.com/x\"   rel=\"noopener\">A</a> and <a class=\"c\" href=\"https://b.com\">B</a></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>T <a href=\"https://a.com/x\"   rel=\"noopener\">A</a> and <a class=\"c\" href=\"https://b.com\">B</a></p>"
+  },
+  {
+   "type": "normal",
+   "val": "plain text no tags",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "plain text no tags"
+  },
+  {
+   "type": "normal",
+   "val": "plain text no tags",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "plain text no tags"
+  },
+  {
+   "type": "normal",
+   "val": "plain text no tags",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "plain text no tags"
+  },
+  {
+   "type": "normal",
+   "val": "plain text no tags",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "plain text no tags"
+  },
+  {
+   "type": "markdown",
+   "val": "plain text no tags",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "plain text no tags"
+  },
+  {
+   "type": "markdown",
+   "val": "plain text no tags",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "plain text no tags"
+  },
+  {
+   "type": "html",
+   "val": "plain text no tags",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "plain text no tags"
+  },
+  {
+   "type": "html",
+   "val": "plain text no tags",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "plain text no tags"
+  },
+  {
+   "type": "none",
+   "val": "plain text no tags",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "plain text no tags"
+  },
+  {
+   "type": "normal",
+   "val": "plain text no tags",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "plain text no tags"
+  },
+  {
+   "type": "normal",
+   "val": "",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": ""
+  },
+  {
+   "type": "normal",
+   "val": "",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": ""
+  },
+  {
+   "type": "normal",
+   "val": "",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": ""
+  },
+  {
+   "type": "normal",
+   "val": "",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": ""
+  },
+  {
+   "type": "markdown",
+   "val": "",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": ""
+  },
+  {
+   "type": "markdown",
+   "val": "",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": ""
+  },
+  {
+   "type": "html",
+   "val": "",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": ""
+  },
+  {
+   "type": "html",
+   "val": "",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": ""
+  },
+  {
+   "type": "none",
+   "val": "",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": ""
+  },
+  {
+   "type": "normal",
+   "val": "",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": ""
+  },
+  {
+   "type": "normal",
+   "val": "<P CLASS=\"x\">Up</P><ul><li>no p</li></ul>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Up<ul><li>no p</li></ul>"
+  },
+  {
+   "type": "normal",
+   "val": "<P CLASS=\"x\">Up</P><ul><li>no p</li></ul>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Up\n- no p\n"
+  },
+  {
+   "type": "normal",
+   "val": "<P CLASS=\"x\">Up</P><ul><li>no p</li></ul>",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Upno p"
+  },
+  {
+   "type": "normal",
+   "val": "<P CLASS=\"x\">Up</P><ul><li>no p</li></ul>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Up\n- no p\n"
+  },
+  {
+   "type": "markdown",
+   "val": "<P CLASS=\"x\">Up</P><ul><li>no p</li></ul>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Up\n- no p"
+  },
+  {
+   "type": "markdown",
+   "val": "<P CLASS=\"x\">Up</P><ul><li>no p</li></ul>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "Up\n- no p"
+  },
+  {
+   "type": "html",
+   "val": "<P CLASS=\"x\">Up</P><ul><li>no p</li></ul>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p class=\"x\">Up</p><ul><li>no p</li></ul>"
+  },
+  {
+   "type": "html",
+   "val": "<P CLASS=\"x\">Up</P><ul><li>no p</li></ul>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "<p class=\"x\">Up</p><ul><li>no p</li></ul>"
+  },
+  {
+   "type": "none",
+   "val": "<P CLASS=\"x\">Up</P><ul><li>no p</li></ul>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "Upno p"
+  },
+  {
+   "type": "normal",
+   "val": "<P CLASS=\"x\">Up</P><ul><li>no p</li></ul>",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<P CLASS=\"x\">Up</P><ul><li>no p</li></ul>"
+  },
+  {
+   "type": "normal",
+   "val": "<p><!-- comment -->x<textarea><b></textarea><style>p{}</style></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "x<b>p{}"
+  },
+  {
+   "type": "normal",
+   "val": "<p><!-- comment -->x<textarea><b></textarea><style>p{}</style></p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "x<b>p{}"
+  },
+  {
+   "type": "normal",
+   "val": "<p><!-- comment -->x<textarea><b></textarea><style>p{}</style></p>",
+   "replaceBold": false,
+   "none": true,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "x<b>p{}"
+  },
+  {
+   "type": "normal",
+   "val": "<p><!-- comment -->x<textarea><b></textarea><style>p{}</style></p>",
+   "replaceBold": true,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "x<b>p{}"
+  },
+  {
+   "type": "markdown",
+   "val": "<p><!-- comment -->x<textarea><b></textarea><style>p{}</style></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "x<b>p{}\n"
+  },
+  {
+   "type": "markdown",
+   "val": "<p><!-- comment -->x<textarea><b></textarea><style>p{}</style></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": false,
+   "want": "x<b>p{}\n"
+  },
+  {
+   "type": "html",
+   "val": "<p><!-- comment -->x<textarea><b></textarea><style>p{}</style></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p>x<b>p{}</p>"
+  },
+  {
+   "type": "html",
+   "val": "<p><!-- comment -->x<textarea><b></textarea><style>p{}</style></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": true,
+   "inlineImages": true,
+   "want": "<p>x<b>p{}</p>"
+  },
+  {
+   "type": "none",
+   "val": "<p><!-- comment -->x<textarea><b></textarea><style>p{}</style></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": false,
+   "mention": false,
+   "inlineImages": false,
+   "want": "x<b>p{}"
+  },
+  {
+   "type": "normal",
+   "val": "<p><!-- comment -->x<textarea><b></textarea><style>p{}</style></p>",
+   "replaceBold": false,
+   "none": false,
+   "plain": true,
+   "mention": false,
+   "inlineImages": false,
+   "want": "<p><!-- comment -->x<textarea><b></textarea><style>p{}</style></p>"
+  }
+ ],
+ "stripTags": [
+  {
+   "html": "<a href=\"x>y\">t</a><!-- c --> <b>z</b> < x <<p>>",
+   "allowed": [
+    "a"
+   ],
+   "want": "<a href=\"xy\">t</a> z < x "
+  },
+  {
+   "html": "<p>abc<span",
+   "allowed": [],
+   "want": "abc"
+  },
+  {
+   "html": "<\nx < y",
+   "allowed": [],
+   "want": "< x < y"
+  },
+  {
+   "html": "a<!-->b<!-- x -->c",
+   "allowed": [],
+   "want": "abc"
+  },
+  {
+   "html": "<P>Up</P><br/><img src=\"a\"/>",
+   "allowed": [
+    "p",
+    "br"
+   ],
+   "want": "<P>Up</P><br/>"
+  },
+  {
+   "html": "<a title='it\"s'>q</a>",
+   "allowed": [],
+   "want": "q"
+  },
+  {
+   "html": "</ b>x<\tb>y",
+   "allowed": [
+    "b"
+   ],
+   "want": "xy"
+  },
+  {
+   "html": "<ul><li>1</li></ul><h4>h</h4>",
+   "allowed": [
+    "ul",
+    "li"
+   ],
+   "want": "<ul><li>1</li></ul>h"
+  }
+ ],
+ "weighted": [
+  {
+   "text": "",
+   "want": 0
+  },
+  {
+   "text": "hello",
+   "want": 5
+  },
+  {
+   "text": "日本語テキスト",
+   "want": 14
+  },
+  {
+   "text": "😀",
+   "want": 2
+  },
+  {
+   "text": "👨‍👩‍👧‍👦 family",
+   "want": 9
+  },
+  {
+   "text": "🇺🇸🇫🇷",
+   "want": 4
+  },
+  {
+   "text": "1️⃣ #️⃣",
+   "want": 5
+  },
+  {
+   "text": "❤️ ☺ ✔",
+   "want": 8
+  },
+  {
+   "text": "https://postiz.com/very/long/path?x=1",
+   "want": 23
+  },
+  {
+   "text": "visit postiz.com today",
+   "want": 35
+  },
+  {
+   "text": "email me@postiz.com",
+   "want": 19
+  },
+  {
+   "text": "a.b",
+   "want": 3
+  },
+  {
+   "text": "t.co/abc",
+   "want": 23
+  },
+  {
+   "text": "https://t.co/abcdef?x=1",
+   "want": 23
+  },
+  {
+   "text": "é café",
+   "want": 6
+  },
+  {
+   "text": "see example.co.uk/path and http://localhost:3000",
+   "want": 53
+  },
+  {
+   "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "want": 300
+  },
+  {
+   "text": "Hello﻿world",
+   "want": 12
+  },
+  {
+   "text": "“smart” — dash…",
+   "want": 16
+  },
+  {
+   "text": "www.google.com, foo.bar",
+   "want": 48
+  },
+  {
+   "text": "Ünicode.com and xn--bcher-kva.com",
+   "want": 52
+  },
+  {
+   "text": "a b",
+   "want": 4
+  },
+  {
+   "text": "http://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.com",
+   "want": 81
+  },
+  {
+   "text": "#hashtag @mention $CASH",
+   "want": 23
+  },
+  {
+   "text": "mixed 日本 and emoji 🎉 and https://a.io",
+   "want": 51
+  }
+ ],
+ "slicer": [
+  {
+   "type": "x",
+   "end": 280,
+   "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "want": 279
+  },
+  {
+   "type": "x",
+   "end": 10,
+   "text": "日本語日本語日本語",
+   "want": 4
+  },
+  {
+   "type": "x",
+   "end": 280,
+   "text": "short",
+   "want": 280
+  },
+  {
+   "type": "linkedin",
+   "end": 3000,
+   "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "want": 3000
+  },
+  {
+   "type": "x",
+   "end": 25,
+   "text": "see https://postiz.com/a/b/c and more text here",
+   "want": 3
+  },
+  {
+   "type": "x",
+   "end": 5,
+   "text": "😀😀😀😀",
+   "want": 3
+  },
+  {
+   "type": "x",
+   "end": 4,
+   "text": "ééééé",
+   "want": 8
+  },
+  {
+   "type": "x",
+   "end": 280,
+   "text": "",
+   "want": 0
+  }
+ ],
+ "count": [
+  {
+   "type": "threads",
+   "text": "héllo😀",
+   "want": 10
+  },
+  {
+   "type": "linkedin",
+   "text": "héllo😀",
+   "want": 7
+  },
+  {
+   "type": "x",
+   "text": "héllo😀 https://a.com",
+   "want": 31
+  },
+  {
+   "type": "bluesky",
+   "text": "日本",
+   "want": 2
+  }
+ ],
+ "links": [
+  {
+   "text": "Check https://postiz.com/x now",
+   "has": true,
+   "strip": "Check now"
+  },
+  {
+   "text": "visit postiz.com today",
+   "has": true,
+   "strip": "visit today"
+  },
+  {
+   "text": "mail me at user@postiz.com",
+   "has": false,
+   "strip": "mail me at user@postiz.com"
+  },
+  {
+   "text": "path a/b.com",
+   "has": false,
+   "strip": "path a/b.com"
+  },
+  {
+   "text": "no links here",
+   "has": false,
+   "strip": "no links here"
+  },
+  {
+   "text": "<a href=\"https://x.com\">https://x.com</a> after",
+   "has": true,
+   "strip": "after"
+  },
+  {
+   "text": "multiple  spaces https://a.io  here \nnext",
+   "has": true,
+   "strip": "multiple spaces here\nnext"
+  },
+  {
+   "text": "bit.ly/abc",
+   "has": true,
+   "strip": ""
+  },
+  {
+   "text": "sub.domain.co.uk/path",
+   "has": true,
+   "strip": ""
+  },
+  {
+   "text": "version 1.2.3",
+   "has": false,
+   "strip": "version 1.2.3"
+  },
+  {
+   "text": "example.comma",
+   "has": false,
+   "strip": "example.comma"
+  },
+  {
+   "text": "see.it",
+   "has": true,
+   "strip": ""
+  },
+  {
+   "text": "  EXAMPLE.COM/A  ",
+   "has": true,
+   "strip": ""
+  },
+  {
+   "text": "v1.2 api.dev/x?y=1",
+   "has": true,
+   "strip": "v1.2"
+  },
+  {
+   "text": "hello.world",
+   "has": true,
+   "strip": ""
+  },
+  {
+   "text": "-x.com _y.com .z.com",
+   "has": true,
+   "strip": "_y.com .z.com"
+  }
+ ],
+ "markdown": [
+  {
+   "text": "# Title\n\n**bold** and _it_ and `code`\n- item\n* star\n1. num\n> quote\n[link](http://x)\n![alt](img.png)\n~~strike~~\n---\n",
+   "want": "Title\n\nbold and it and code\nitem\nstar\nnum\nquote\nlink\nalt\nstrike\n"
+  },
+  {
+   "text": "Setext\n===\nmore",
+   "want": "Setext\n\nmore"
+  },
+  {
+   "text": "```\ncode\n```\nafter",
+   "want": "code\nafter"
+  },
+  {
+   "text": "## Heading ##\ntext",
+   "want": "Heading\ntext"
+  },
+  {
+   "text": "snake_case_word and __dunder__",
+   "want": "snake_case_word and dunder"
+  },
+  {
+   "text": "<b>html</b> text",
+   "want": "html text"
+  },
+  {
+   "text": "[^1]: note\nref [a]: http://x",
+   "want": ": note\nref"
+  },
+  {
+   "text": "a *b* c **d** e ***f***",
+   "want": "a b c d e f"
+  },
+  {
+   "text": "~single~ tilde",
+   "want": "single tilde"
+  },
+  {
+   "text": "  [id]: http://example.com \"Title\"",
+   "want": ""
+  },
+  {
+   "text": "a\r\n# h\r\n- x",
+   "want": "a\r\nh\r\nx"
+  }
+ ],
+ "sanitize": [
+  {
+   "value": "<p dir=\"ltr\">Hi <span data-mention-id=\"1\" data-mention-label=\"a\" class=\"m\">@a</span></p>",
+   "want": "<p>Hi <span data-mention-id=\"1\" data-mention-label=\"a\" class=\"m\">@a</span></p>",
+   "plain": "Hi @a"
+  },
+  {
+   "value": "<a href=\"javascript:alert(1)\" target=\"_blank\" rel=\"noopener\">x</a>",
+   "want": "<a>x</a>",
+   "plain": "x"
+  },
+  {
+   "value": "<a href=\"https://x.com\" target=\"_blank\">x</a>",
+   "want": "<a href=\"https://x.com\">x</a>",
+   "plain": "x"
+  },
+  {
+   "value": "<img src=\"data:image/png;base64,aa\"><p>t</p>",
+   "want": "<p>t</p>",
+   "plain": "t"
+  },
+  {
+   "value": "<img src=\"https://x.com/a.png\" onerror=\"x\" alt=\"a\">",
+   "want": "<img src=\"https://x.com/a.png\" alt=\"a\">",
+   "plain": ""
+  },
+  {
+   "value": "<script>alert(1)</script><p>ok</p>",
+   "want": "<p>ok</p>",
+   "plain": "ok"
+  },
+  {
+   "value": "<div><b>bold</b> text</div>",
+   "want": "bold text",
+   "plain": "bold text"
+  },
+  {
+   "value": "  <p>lead</p>",
+   "want": "  <p>lead</p>",
+   "plain": "  lead"
+  },
+  {
+   "value": "a & b",
+   "want": "a & b",
+   "plain": "a & b"
+  },
+  {
+   "value": "<style>p{}</style><p>a</p>",
+   "want": "<p>a</p>",
+   "plain": "a"
+  },
+  {
+   "value": "<p>&lt;b&gt;<!--c--></p>",
+   "want": "",
+   "plain": ""
+  },
+  {
+   "value": "<svg><a href=\"#\">x</a></svg>y",
+   "want": "y",
+   "plain": "y"
+  },
+  {
+   "value": "<p data-foo=\"1\" aria-label=\"x\" id=\"y\" title=\"t\">z</p>",
+   "want": "<p data-foo=\"1\" aria-label=\"x\">z</p>",
+   "plain": "z"
+  },
+  {
+   "value": "<table><tr><td>cell</td></tr></table>",
+   "want": "cell",
+   "plain": "cell"
+  },
+  {
+   "value": "<p>a&nbsp;b &amp; c &lt;d&gt;</p>",
+   "want": "<p>a&nbsp;b &amp; c &lt;d&gt;</p>",
+   "plain": "a b & c <d>"
+  },
+  {
+   "value": "<template><p>t</p></template>x",
+   "want": "x",
+   "plain": "x"
+  },
+  {
+   "value": "<a href=\" https://x.com \">x</a>",
+   "want": "<a href=\"https://x.com\">x</a>",
+   "plain": "x"
+  },
+  {
+   "value": "<img src=\" https://x.com/a.png\">",
+   "want": "",
+   "plain": ""
+  },
+  {
+   "value": "<P CLASS=\"x\">U</P>",
+   "want": "<p class=\"x\">U</p>",
+   "plain": "U"
+  },
+  {
+   "value": "<a href=\"https://a\" href=\"javascript:x\">d</a>",
+   "want": "<a href=\"https://a\">d</a>",
+   "plain": "d"
+  },
+  {
+   "value": "<h4>h4</h4><br><ul><li>1</li></ul>",
+   "want": "h4<br><ul><li>1</li></ul>",
+   "plain": "h41"
+  },
+  {
+   "value": "<p>x</p><!-- <b> -->",
+   "want": "<p>x</p>",
+   "plain": "x"
+  },
+  {
+   "value": "<a href=\"mailto:a@b.c\">m</a><a href=\"/rel\">r</a><a href=\"#h\">h</a><a href=\"ftp://x\">f</a>",
+   "want": "<a href=\"mailto:a@b.c\">m</a><a href=\"/rel\">r</a><a href=\"#h\">h</a><a>f</a>",
+   "plain": "mrhf"
+  },
+  {
+   "value": "<span class=\"a\" style=\"color:red\">s</span>",
+   "want": "<span class=\"a\">s</span>",
+   "plain": "s"
+  },
+  {
+   "value": "<p>a</p>\n<p>b</p>",
+   "want": "<p>a</p>\n<p>b</p>",
+   "plain": "a\nb"
+  },
+  {
+   "value": "",
+   "want": "",
+   "plain": ""
+  },
+  {
+   "value": "<math><mi>x</mi></math>z",
+   "want": "z",
+   "plain": "z"
+  },
+  {
+   "value": "<p><textarea>&lt;b&gt;</textarea></p>",
+   "want": "<p>&lt;b&gt;</p>",
+   "plain": "<b>"
+  },
+  {
+   "value": "<noscript><p>n</p></noscript>k",
+   "want": "<p>n</p>k",
+   "plain": "nk"
+  },
+  {
+   "value": "<title>t</title><p>after</p>",
+   "want": "<p>after</p>",
+   "plain": "after"
+  },
+  {
+   "value": "<frameset></frameset>",
+   "want": "",
+   "plain": ""
+  },
+  {
+   "value": "<p>x \"q\"</p>",
+   "want": "<p>x&nbsp;\"q\"</p>",
+   "plain": "x \"q\""
+  }
+ ],
+ "cookie": [
+  {
+   "domain": "https://app.postiz.com",
+   "want": ".postiz.com"
+  },
+  {
+   "domain": "http://localhost:4200",
+   "want": "localhost"
+  },
+  {
+   "domain": "http://127.0.0.1:3000",
+   "want": "127.0.0.1"
+  },
+  {
+   "domain": "https://postiz.co.uk",
+   "want": ".postiz.co.uk"
+  },
+  {
+   "domain": "https://foo.vercel.app",
+   "want": ".vercel.app"
+  },
+  {
+   "domain": "https://a.b.example.com/path",
+   "want": ".example.com"
+  },
+  {
+   "domain": "postiz.com",
+   "want": ".postiz.com"
+  },
+  {
+   "domain": "localhost",
+   "want": "localhost"
+  },
+  {
+   "domain": "https://app.localhost:3000",
+   "want": ".app.localhost"
+  },
+  {
+   "domain": "https://APP.Example.COM.",
+   "want": ".example.com"
+  },
+  {
+   "domain": "https://x.github.io",
+   "want": ".github.io"
+  }
+ ]
+}

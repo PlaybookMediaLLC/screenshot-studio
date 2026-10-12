@@ -88,6 +88,7 @@ export default defineConfig([
       '.vercel/**',
       'coverage/**',
       'prisma/migrations/**',
+      'services/screenshot-studio-backend/internal/helpers/testdata/**',
       'scripts/**',
       '*.tsbuildinfo',
       'next-env.d.ts',

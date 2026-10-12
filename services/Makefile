@@ -1,7 +1,7 @@
 .PHONY: generate fmt fmt-check test race vet check build acceptance
 
 generate:
-	go generate ./ent
+	go generate ./ent ./screenshot-studio-backend/ent
 
 fmt:
 	gofmt -w .
@@ -19,10 +19,10 @@ vet:
 	go vet ./...
 
 check: generate fmt-check test race vet
-	git diff --exit-code -- ent
+	git diff --exit-code -- ent screenshot-studio-backend/ent
 
 build:
-	go build ./backend/cmd/backend ./orchestrator/cmd/orchestrator
+	go build ./backend/cmd/backend ./orchestrator/cmd/orchestrator ./screenshot-studio-backend/backend/cmd/screenshot-studio-backend ./screenshot-studio-backend/orchestrator/cmd/screenshot-studio-orchestrator ./screenshot-studio-backend/cmd/postiz-migrate
 
 acceptance:
 	@./scripts/acceptance.sh

@@ -1,0 +1,26 @@
+{{ define "model/additional/prismajson" }}
+// MarshalJSON renders the row the way Prisma serializes it: column names as
+// keys, null for empty optional columns, JavaScript Date strings for times,
+// and loaded relations inline. Sensitive columns are never serialized.
+func ({{ $.Receiver }} *{{ $.Name }}) MarshalJSON() ([]byte, error) {
+	w := newPrismaJSON()
+	{{- if $.HasOneFieldID }}
+	w.field("{{ $.ID.StorageKey }}", {{ $.Receiver }}.ID)
+	{{- end }}
+	{{- range $f := $.Fields }}
+		{{- if not $f.Sensitive }}
+	w.field("{{ $f.StorageKey }}", {{ $.Receiver }}.{{ $f.StructField }})
+		{{- end }}
+	{{- end }}
+	{{- range $i, $e := $.Edges }}
+	if {{ $.Receiver }}.Edges.loadedTypes[{{ $i }}] {
+		{{- if $e.Unique }}
+		w.field("{{ $e.Name }}", {{ $.Receiver }}.Edges.{{ $e.StructField }})
+		{{- else }}
+		w.field("{{ $e.Name }}", prismaList({{ $.Receiver }}.Edges.{{ $e.StructField }}))
+		{{- end }}
+	}
+	{{- end }}
+	return w.bytes()
+}
+{{ end }}

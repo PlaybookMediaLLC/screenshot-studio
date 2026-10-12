@@ -132,3 +132,91 @@ curl --fail http://localhost:8081/healthz
 
 The backend and orchestrator images use the `services` directory as their Docker
 build context.
+
+## screenshot-studio-backend and screenshot-studio-orchestrator
+
+`screenshot-studio-backend/` is a Go port of Postiz's NestJS `apps/backend` and
+`apps/orchestrator` (plus the `nestjs-libraries` and `helpers` code they use).
+It is a drop-in replacement: same Prisma tables, HTTP routes, JSON shapes,
+Temporal workflow and activity names, task queues, IDs, signals and search
+attributes, and the same provider calls.
+
+Layout:
+
+- `screenshot-studio-backend/backend/cmd/screenshot-studio-backend`: `main.ts`. CORS, MCP (`startMcp`), the controllers in
+  Nest's registration order (honors `MCP_ONLY`), the search-attribute and
+  `missingPostWorkflow` registration, the configuration check, and `/docs`.
+- `screenshot-studio-backend/orchestrator/cmd/screenshot-studio-orchestrator`: the workers (`main` plus one queue per
+  provider, `email`, `email-bulk`) and `GET /health/status`.
+- `screenshot-studio-backend/internal/app`: builds the service graph once from the environment, for
+  both binaries. Consumer-interface adapters live in `adapters.go`.
+- `screenshot-studio-backend/backend/{auth,api/*,publicapi}`: the controllers, guards and auth.
+- `screenshot-studio-backend/orchestrator/{workflows,activities,worker}`: the Temporal side.
+- `screenshot-studio-backend/internal/database/<domain>`: the Prisma repositories and services.
+- `screenshot-studio-backend/internal/integrations/social/<provider>`: one package per provider.
+- `screenshot-studio-backend/internal/*`: the support libraries.
+- `screenshot-studio-backend/ent`: the generated Ent client.
+- `screenshot-studio-backend/migrations`: the DDL.
+
+**Environment.** The services read the same variables as Postiz's
+`.env.example`, under the same names and defaults: `DATABASE_URL`, `REDIS_URL`
+(unset = in-memory), `TEMPORAL_*`, `JWT_SECRET`, `FRONTEND_URL`, `MAIN_URL`,
+`NEXT_PUBLIC_BACKEND_URL`, `STORAGE_PROVIDER`/`UPLOAD_DIRECTORY`/`CLOUDFLARE_*`,
+`NOT_SECURED`, `STRIPE_*`, provider keys, `RUN_CRON`, `EXCLUDE_QUEUE`,
+`WORKER_CONCURRENCY_DIVIDER`, `PORT` (default 3000), and `ORCHESTRATOR_PORT`
+(default 3002). Each process forces `time.Local = time.UTC`, as Postiz sets
+`TZ=UTC`.
+
+**Migrations.** Postiz migrates with Prisma, so by default the Go services use
+the schema as they find it. Set `POSTIZ_GO_MIGRATE=true` to apply
+`screenshot-studio-backend/migrations` at startup; this records the run in `_postiz_go_migrations`
+and adopts an existing Postiz schema.
+The deployable backend image also contains `/postiz-migrate`, a one-shot
+command used by Compose and Fly before the API and workers start.
+
+See [the deployment guide](../docs/postiz-go-deployment.md) for the optional
+local stack and the two Fly service configurations.
+
+```sh
+go build ./screenshot-studio-backend/backend/cmd/screenshot-studio-backend ./screenshot-studio-backend/orchestrator/cmd/screenshot-studio-orchestrator
+POSTIZ_TEST_DATABASE_URL=postgresql://postgres@localhost:55432/postiz_test?sslmode=disable go test ./screenshot-studio-backend/...
+temporal server start-dev   # then run both binaries with the Postiz .env
+```
+
+**Parity notes and known deviations** (each package's details are in
+`.context/postiz-go/reports/`):
+
+- **Temporal.** Workflow names, IDs and arguments match the TypeScript code, but
+  Go workers cannot replay workflows that a TypeScript worker started (Go has
+  different `patched` markers). Drain or cut over the `main` workflow workers.
+  Activity workers are interchangeable with the TypeScript ones.
+  `cancellationType: ABANDON` is not available in Go. `SignalWithStart` sends one
+  `null` argument.
+- **HTTP.**
+  - Express-style response compression is supported (Brotli, gzip, and deflate).
+  - Cookies use `Max-Age=0` and Go's attribute order.
+  - JSON type mismatches fail at decode with a 400 instead of class-validator's
+    "must be a string" messages.
+  - `/docs` serves Swagger UI with a minimal OpenAPI document that lists every
+    route (method and path) without schemas. `/docs-json` serves the same
+    document.
+- **AI.** OpenAI is called with chat completions over HTTP, not the AI SDK's
+  Responses API. Mastra and LangGraph are reproduced at the level of their events
+  and memory tables, not their internals. CopilotKit 1.72 is spoken through its
+  single-route envelope.
+- **Libraries.** Several libraries are replaced:
+  - googleapis, Neynar, the Facebook SDK, Transloadit, rss-parser, JSDOM and
+    music-metadata: plain HTTP or the standard library.
+  - DOMPurify, parse5, striptags, twitter-text and remove-markdown: hand ports
+    verified against golden outputs.
+  - Stripe uses stripe-go v84, with API version `2026-02-25.clover`.
+- **Data.**
+  - Ent returns its in-memory timestamps, while Prisma returns the stored
+    `timestamp(3)` values. The two can differ by 1 ms of rounding.
+  - Some internal lookups load full rows where Prisma selected a few columns.
+    Sensitive columns are never serialized.
+- **Unbounded recursion.** Where TypeScript recursion has no bound, the Go code
+  caps it:
+  - the `getMissingContent` refresh retry runs once
+  - the random draft time search stops after 10,000 tries
+  - a negative `intervalInDays` shows the post once

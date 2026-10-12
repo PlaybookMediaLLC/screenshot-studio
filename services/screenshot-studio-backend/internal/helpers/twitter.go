@@ -1,0 +1,400 @@
+package helpers
+
+import (
+	"regexp"
+	"slices"
+	"strconv"
+
+	"github.com/dlclark/regexp2"
+	"golang.org/x/text/unicode/norm"
+)
+
+// twitter-text@3.1.0 parseTweet with the v3 config (count.length.ts passes
+// the same values as configs.defaults, only maxWeightedTweetLength varies).
+// Everything runs on UTF-16 code units so indices match JavaScript.
+
+const (
+	tweetScale                = 100
+	tweetDefaultWeight        = 200
+	tweetTransformedURLLength = 23
+	tweetMaxURLLength         = 4096
+	tweetMaxTcoSlugLength     = 40
+)
+
+var tweetRanges = []struct{ start, end, weight int }{
+	{0, 4351, 100},
+	{8192, 8205, 100},
+	{8208, 8223, 100},
+	{8242, 8247, 100},
+}
+
+// regexp2 mangles runs of literal surrogates (`\ud83c\uddfa` never matches)
+// and its alternation optimizations then misbehave, so surrogate code units
+// are moved to plane 15 (+0xF0000) in both the patterns and the input.
+const surrogateShift = 0xf0000
+
+var surrogateEscapeRe = regexp.MustCompile(`\\u[dD][89a-fA-F][0-9a-fA-F]{2}`)
+
+func jsRegexp(source string, opts regexp2.RegexOptions) *regexp2.Regexp {
+	source = surrogateEscapeRe.ReplaceAllStringFunc(source, func(escape string) string {
+		v, _ := strconv.ParseUint(escape[2:], 16, 32)
+		return string(rune(v + surrogateShift))
+	})
+	return regexp2.MustCompile(source, regexp2.ECMAScript|opts)
+}
+
+// shiftSurrogates prepares UTF-16 units for a jsRegexp.
+func shiftSurrogates(units []rune) []rune {
+	out := make([]rune, len(units))
+	for i, c := range units {
+		if c >= 0xd800 && c <= 0xdfff {
+			c += surrogateShift
+		}
+		out[i] = c
+	}
+	return out
+}
+
+func unshiftSurrogates(runes []rune) []rune {
+	out := make([]rune, len(runes))
+	for i, c := range runes {
+		if c >= 0xd800+surrogateShift && c <= 0xdfff+surrogateShift {
+			c -= surrogateShift
+		}
+		out[i] = c
+	}
+	return out
+}
+
+var (
+	extractURLRe             = jsRegexp(extractURLSource, regexp2.IgnoreCase)
+	validASCIIDomainRe       = jsRegexp(validASCIIDomainSource, regexp2.IgnoreCase)
+	validTcoURLRe            = jsRegexp(validTcoURLSource, regexp2.IgnoreCase)
+	invalidURLWithoutProtoRe = jsRegexp(invalidURLWithoutProtocolPrecedingCharsSource, 0)
+	invalidCharsRe           = jsRegexp(invalidCharsSource, 0)
+	twemojiRe                = jsRegexp(twemojiSource, 0)
+)
+
+// TextSlicer is count.length.ts textSlicer (twitter-text for x).
+func TextSlicer(integrationType string, end int, text string) (int, int) {
+	if integrationType != "x" {
+		return 0, end
+	}
+	_, valid, validRangeEnd := parseTweet(text, end)
+	if valid {
+		return 0, end
+	}
+	return 0, validRangeEnd
+}
+
+// WeightedLength is twitter-text parseTweet(text).weightedLength.
+func WeightedLength(text string) int {
+	weighted, _, _ := parseTweet(text, 280)
+	return weighted
+}
+
+// CountLength is count.length.ts countLength.
+func CountLength(integrationType, text string) int {
+	if integrationType == "x" {
+		return WeightedLength(text)
+	}
+	if integrationType == "threads" {
+		return len(text) // TextEncoder: UTF-8 bytes
+	}
+	return jsLength(text)
+}
+
+func parseTweet(text string, maxWeightedTweetLength int) (weightedLength int, valid bool, validRangeEnd int) {
+	normalized := utf16Units(norm.NFC.String(text))
+	shifted := shiftSurrogates(normalized)
+
+	// Hash all entities by their startIndex for fast lookup
+	urlEntities := map[int]int{}
+	for _, u := range extractURLsWithIndices(shifted) {
+		urlEntities[u.start] = len(u.url)
+	}
+	emojiEntities := map[int]int{}
+	for m, _ := twemojiRe.FindRunesMatch(shifted); m != nil; m, _ = twemojiRe.FindNextMatch(m) {
+		emojiEntities[m.Index] = m.Length
+	}
+
+	weighted := 0
+	validDisplayIndex := 0
+	valid = true
+	for charIndex := 0; charIndex < len(normalized); charIndex++ {
+		if urlLen, ok := urlEntities[charIndex]; ok {
+			weighted += tweetTransformedURLLength * tweetScale
+			charIndex += urlLen - 1
+		} else if emojiLen, ok := emojiEntities[charIndex]; ok {
+			weighted += tweetDefaultWeight
+			charIndex += emojiLen - 1
+		} else {
+			if isSurrogatePair(normalized, charIndex) {
+				charIndex++
+			}
+			weighted += characterWeight(normalized[charIndex])
+		}
+
+		// Only test for validity of character if it is still valid
+		if valid && charIndex < len(normalized) {
+			ok, _ := invalidCharsRe.MatchRunes(shifted[charIndex : charIndex+1])
+			valid = !ok
+		}
+		if valid && weighted <= maxWeightedTweetLength*tweetScale {
+			validDisplayIndex = charIndex
+		}
+	}
+
+	weightedLength = weighted / tweetScale
+	valid = valid && weightedLength > 0 && weightedLength <= maxWeightedTweetLength
+	validDisplayIndex += jsLength(text) - len(normalized)
+	return weightedLength, valid, validDisplayIndex
+}
+
+func isSurrogatePair(text []rune, i int) bool {
+	if i < len(text)-1 {
+		c, next := text[i], text[i+1]
+		return 0xd800 <= c && c <= 0xdbff && 0xdc00 <= next && next <= 0xdfff
+	}
+	return false
+}
+
+func characterWeight(unit rune) int {
+	for _, r := range tweetRanges {
+		if int(unit) >= r.start && int(unit) <= r.end {
+			return r.weight
+		}
+	}
+	return tweetDefaultWeight
+}
+
+type urlEntity struct {
+	url        []rune
+	start, end int
+}
+
+// extractURLsWithIndices is twitter-text's extractUrlsWithIndices with
+// extractUrlsWithoutProtocol: true, on surrogate-shifted units.
+func extractURLsWithIndices(text []rune) []*urlEntity {
+	if !slices.Contains(text, '.') {
+		return nil
+	}
+
+	var urls []*urlEntity
+	for m, _ := extractURLRe.FindRunesMatch(text); m != nil; m, _ = extractURLRe.FindNextMatch(m) {
+		before := m.GroupByNumber(2).Runes()
+		url := m.GroupByNumber(3).Runes()
+		protocol := m.GroupByNumber(4).Runes()
+		domain := m.GroupByNumber(5).Runes()
+		path := m.GroupByNumber(7).Runes()
+		endPosition := m.Index + m.Length
+		startPosition := endPosition - len(url)
+
+		protocolLen := len(protocol)
+		if protocolLen == 0 {
+			protocolLen = len("https://")
+		}
+		if !isValidTweetURL(url, protocolLen, domain) {
+			continue
+		}
+
+		// extract ASCII-only domains.
+		if len(protocol) == 0 {
+			if ok, _ := invalidURLWithoutProtoRe.MatchRunes(before); ok {
+				continue
+			}
+
+			var lastURL *urlEntity
+			asciiEndPosition := 0
+			for am, _ := validASCIIDomainRe.FindRunesMatch(domain); am != nil; am, _ = validASCIIDomainRe.FindNextMatch(am) {
+				asciiDomain := am.Runes()
+				asciiStartPosition := indexRunes(domain, asciiDomain, asciiEndPosition)
+				asciiEndPosition = asciiStartPosition + len(asciiDomain)
+				lastURL = &urlEntity{
+					url:   asciiDomain,
+					start: startPosition + asciiStartPosition,
+					end:   startPosition + asciiEndPosition,
+				}
+				urls = append(urls, lastURL)
+			}
+
+			// no ASCII-only domain found. Skip the entire URL.
+			if lastURL == nil {
+				continue
+			}
+
+			// lastUrl only contains domain. Need to add path and query if they exist.
+			if len(path) > 0 {
+				if i := indexRunes(url, domain, 0); i >= 0 {
+					lastURL.url = slices.Concat(url[:i], lastURL.url, url[i+len(domain):])
+				}
+				lastURL.end = endPosition
+			}
+			continue
+		}
+
+		// In the case of t.co URLs, don't allow additional path characters.
+		if tm, _ := validTcoURLRe.FindRunesMatch(url); tm != nil {
+			if len(tm.GroupByNumber(1).Runes()) > tweetMaxTcoSlugLength {
+				continue
+			}
+			url = tm.Runes()
+			endPosition = startPosition + len(url)
+		}
+		urls = append(urls, &urlEntity{url: url, start: startPosition, end: endPosition})
+	}
+	return urls
+}
+
+func indexRunes(s, sub []rune, from int) int {
+	for i := from; i+len(sub) <= len(s); i++ {
+		if slices.Equal(s[i:i+len(sub)], sub) {
+			return i
+		}
+	}
+	return -1
+}
+
+// isValidTweetURL is extractUrlsWithIndices' isValidUrl. twitter-text's
+// idna.toAscii returns the domain unchanged when every label punycodes to
+// 1..63 characters, so only the label check and the total length matter.
+func isValidTweetURL(url []rune, protocolLen int, domain []rune) bool {
+	if len(domain) >= 4 && string(domain[:4]) == "xn--" {
+		// Punycode encoded url cannot contain non ASCII characters
+		if ok, _ := validASCIIDomainRe.MatchRunes(domain); !ok {
+			return false
+		}
+	}
+	for _, label := range splitRunes(domain, func(r rune) bool { return r == '.' }) {
+		if n := punycodeToASCIILength(unshiftSurrogates(label)); n < 1 || n > 63 {
+			return false
+		}
+	}
+	return protocolLen+len(url) <= tweetMaxURLLength
+}
+
+func splitRunes(s []rune, sep func(rune) bool) [][]rune {
+	var out [][]rune
+	start := 0
+	for i, r := range s {
+		if sep(r) {
+			out = append(out, s[start:i])
+			start = i + 1
+		}
+	}
+	return append(out, s[start:])
+}
+
+// punycodeToASCIILength is len(punycode@1.4.1 toASCII(label)) for UTF-16 units.
+func punycodeToASCIILength(label []rune) int {
+	parts := splitRunes(label, func(r rune) bool { return r == '.' || r == 0x3002 || r == 0xff0e || r == 0xff61 })
+	total := len(parts) - 1
+	for _, part := range parts {
+		nonASCII := slices.ContainsFunc(part, func(r rune) bool { return r < 0x20 || r > 0x7e })
+		if !nonASCII {
+			total += len(part)
+			continue
+		}
+		total += 4 + len(punycodeEncode(ucs2Decode(part)))
+	}
+	return total
+}
+
+// ucs2Decode combines surrogate pairs into code points (lone ones stay).
+func ucs2Decode(units []rune) []rune {
+	out := make([]rune, 0, len(units))
+	for i := 0; i < len(units); i++ {
+		if isSurrogatePair(units, i) {
+			out = append(out, (units[i]-0xd800)<<10+(units[i+1]-0xdc00)+0x10000)
+			i++
+			continue
+		}
+		out = append(out, units[i])
+	}
+	return out
+}
+
+// punycodeEncode is RFC 3492 encode (punycode.js encode).
+func punycodeEncode(input []rune) string {
+	const (
+		base        = 36
+		tMin        = 1
+		tMax        = 26
+		skew        = 38
+		damp        = 700
+		initialBias = 72
+		initialN    = 128
+	)
+	digit := func(d int) byte {
+		if d < 26 {
+			return byte('a' + d)
+		}
+		return byte('0' + d - 26)
+	}
+	adapt := func(delta, numPoints int, first bool) int {
+		if first {
+			delta /= damp
+		} else {
+			delta /= 2
+		}
+		delta += delta / numPoints
+		k := 0
+		for delta > ((base-tMin)*tMax)/2 {
+			delta /= base - tMin
+			k += base
+		}
+		return k + (base-tMin+1)*delta/(delta+skew)
+	}
+
+	var out []byte
+	for _, r := range input {
+		if r < 0x80 {
+			out = append(out, byte(r))
+		}
+	}
+	basicLength := len(out)
+	handled := basicLength
+	if basicLength > 0 {
+		out = append(out, '-')
+	}
+
+	n, delta, bias := initialN, 0, initialBias
+	for handled < len(input) {
+		m := int(^uint(0) >> 1)
+		for _, r := range input {
+			if int(r) >= n && int(r) < m {
+				m = int(r)
+			}
+		}
+		delta += (m - n) * (handled + 1)
+		n = m
+		for _, r := range input {
+			if int(r) < n {
+				delta++
+			}
+			if int(r) == n {
+				q := delta
+				for k := base; ; k += base {
+					t := k - bias
+					if k <= bias {
+						t = tMin
+					} else if k >= bias+tMax {
+						t = tMax
+					}
+					if q < t {
+						break
+					}
+					out = append(out, digit(t+(q-t)%(base-t)))
+					q = (q - t) / (base - t)
+				}
+				out = append(out, digit(q))
+				bias = adapt(delta, handled+1, handled == basicLength)
+				delta = 0
+				handled++
+			}
+		}
+		delta++
+		n++
+	}
+	return string(out)
+}

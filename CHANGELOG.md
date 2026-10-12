@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.10.1...v1.11.0) (2026-10-12)
+
+
+### Features
+
+* validate LinkedIn OAuth and live publishing through Go backend ([#61](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/61)) ([9b4ed6c](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/9b4ed6cee00cd327a3ea84614a50b7ca894bf3fc))
+
 ## [1.10.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.10.0...v1.10.1) (2026-10-12)
 
 

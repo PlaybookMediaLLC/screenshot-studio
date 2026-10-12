@@ -361,6 +361,7 @@ services:
       FRONTEND_URL: http://localhost:3000
       MAIN_URL: http://localhost:3100
       NEXT_PUBLIC_BACKEND_URL: http://localhost:3100
+      BACKEND_INTERNAL_URL: http://screenshot-studio-backend:3000
       STORAGE_PROVIDER: local
       UPLOAD_DIRECTORY: /tmp/postiz-uploads
       PORT: '3000'
@@ -388,6 +389,7 @@ services:
       FRONTEND_URL: http://localhost:3000
       MAIN_URL: http://localhost:3100
       NEXT_PUBLIC_BACKEND_URL: http://localhost:3100
+      BACKEND_INTERNAL_URL: http://screenshot-studio-backend:3000
       STORAGE_PROVIDER: local
       UPLOAD_DIRECTORY: /tmp/postiz-uploads
       ORCHESTRATOR_PORT: '3002'

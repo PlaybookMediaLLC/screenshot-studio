@@ -161,7 +161,8 @@ Layout:
 **Environment.** The services read the same variables as Postiz's
 `.env.example`, under the same names and defaults: `DATABASE_URL`, `REDIS_URL`
 (unset = in-memory), `TEMPORAL_*`, `JWT_SECRET`, `FRONTEND_URL`, `MAIN_URL`,
-`NEXT_PUBLIC_BACKEND_URL`, `STORAGE_PROVIDER`/`UPLOAD_DIRECTORY`/`CLOUDFLARE_*`,
+`NEXT_PUBLIC_BACKEND_URL`, `BACKEND_INTERNAL_URL`,
+`STORAGE_PROVIDER`/`UPLOAD_DIRECTORY`/`CLOUDFLARE_*`,
 `NOT_SECURED`, `STRIPE_*`, provider keys, `RUN_CRON`, `EXCLUDE_QUEUE`,
 `WORKER_CONCURRENCY_DIVIDER`, `PORT` (default 3000), and `ORCHESTRATOR_PORT`
 (default 3002). Each process forces `time.Local = time.UTC`, as Postiz sets

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.10.0...v1.10.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* set internal URL for Postiz Go services ([#59](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/59)) ([7d0e9f3](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/7d0e9f301e52013a514e482c9c7b7d159f6ddc84))
+
 ## [1.10.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.9.0...v1.10.0) (2026-10-12)
 
 

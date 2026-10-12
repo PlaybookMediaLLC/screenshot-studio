@@ -79,7 +79,7 @@ func TestInfo(t *testing.T) {
 func TestAuthenticate(t *testing.T) {
 	t.Setenv("FRONTEND_URL", "https://app.example")
 	calls := serve(t, map[string]http.HandlerFunc{
-		"POST /oauth/v2/accessToken": jsonReply(map[string]any{"access_token": "at", "expires_in": 60, "scope": strings.Join(linkedin.Scopes, " ")}),
+		"POST /oauth/v2/accessToken": jsonReply(map[string]any{"access_token": "at", "expires_in": 60, "scope": strings.Join(linkedin.PageScopes, " ")}),
 		"GET /v2/userinfo":           jsonReply(map[string]any{"name": "Jane", "sub": "abc"}),
 		"GET /v2/me":                 jsonReply(map[string]any{"vanityName": "jane"}),
 	})

@@ -1,0 +1,32 @@
+app = "screenshot-studio-backend"
+primary_region = "iad"
+kill_signal = "SIGTERM"
+kill_timeout = "15s"
+
+# Run fly deploy from services/ so the Docker context contains go.mod.
+[build]
+  dockerfile = "screenshot-studio-backend/backend/Dockerfile"
+
+# This runs against the separate Postiz database before the new API starts.
+[deploy]
+  release_command = "/postiz-migrate"
+
+[env]
+  PORT = "3000"
+  RUN_CRON = "true"
+  STORAGE_PROVIDER = "cloudflare"
+
+# No proxy service: the web app calls this API over Fly's private 6PN network.
+[checks]
+  [checks.status]
+    port = 3000
+    type = "http"
+    path = "/"
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "30s"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "1gb"

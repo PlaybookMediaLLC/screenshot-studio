@@ -9,7 +9,7 @@ E2E_BASE_URL ?= http://localhost:3000
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down reset status smoke rate-limit-smoke tenant-isolation e2e e2e-file e2e-onboarding e2e-recovery check publishing-up publishing-down publishing-test publishing-acceptance logs logs-app logs-postgres logs-redis logs-rustfs logs-storage trigger-login trigger-config trigger-dev kind-up kind-down kind-status kind-logs
+.PHONY: help up down reset status smoke rate-limit-smoke tenant-isolation e2e e2e-file e2e-onboarding e2e-recovery check publishing-up publishing-down publishing-test publishing-acceptance postiz-go-up postiz-go-down logs logs-app logs-postgres logs-redis logs-rustfs logs-storage trigger-login trigger-config trigger-dev kind-up kind-down kind-status kind-logs
 
 help: ## Show local development commands.
 	@echo "Screenshot Studio local development"
@@ -30,6 +30,8 @@ help: ## Show local development commands.
 	@echo "  make publishing-down            Stop the Go publishing services"
 	@echo "  make publishing-test            Run Go generation, tests, race checks, and vet"
 	@echo "  make publishing-acceptance      Exercise both Go services against an empty test database"
+	@echo "  make postiz-go-up               Start the optional Postiz Go API and workers"
+	@echo "  make postiz-go-down             Stop the optional Postiz Go API and workers"
 	@echo ""
 	@echo "  make logs [SERVICE=app]         Follow Compose logs"
 	@echo "  make logs-app                   Follow app logs"
@@ -95,6 +97,12 @@ publishing-test:
 
 publishing-acceptance:
 	@$(MAKE) --directory services acceptance
+
+postiz-go-up:
+	@$(STUDIO) postiz-go-up
+
+postiz-go-down:
+	@$(STUDIO) postiz-go-down
 
 logs:
 	@$(STUDIO) logs $(SERVICE)

@@ -76,6 +76,7 @@ NODE
     ensure_env_value STORAGE_PROXY_URL "http://localhost:3000/api/tenant/storage"
     ensure_env_value POSTIZ_API_URL "http://host.docker.internal:5679/api/public/v1"
     ensure_env_value POSTIZ_API_KEY "e2e-postiz-token"
+    ensure_env_value POSTIZ_GO_JWT_SECRET "$(random_hex 32)"
     ensure_env_value PLATFORM_RENDER_SERVICE_SECRET "$(random_hex 32)"
     database_url="$(grep '^DATABASE_URL=' "$LOCAL_ENV" | cut -d= -f2-)"
     ensure_env_value AUDIT_RETENTION_DATABASE_URL "$database_url"
@@ -133,6 +134,7 @@ STORAGE_HOST_URL=http://127.0.0.1:5000
 STORAGE_PROXY_URL=http://localhost:3000/api/tenant/storage
 POSTIZ_API_URL=http://host.docker.internal:5679/api/public/v1
 POSTIZ_API_KEY=e2e-postiz-token
+POSTIZ_GO_JWT_SECRET=$(random_hex 32)
 PLATFORM_RENDER_SERVICE_SECRET=$(random_hex 32)
 R2_ENDPOINT=http://rustfs:9000
 R2_REGION=us-east-1
@@ -509,6 +511,20 @@ up() {
   echo "Run '$0 trigger-dev' after '$0 trigger-config <project-ref>'."
 }
 
+postiz_go_up() {
+  ensure_env
+  compose --profile postiz-go up --detach --build screenshot-studio-backend screenshot-studio-orchestrator
+  wait_for_http http://localhost:3100/ "Postiz Go backend"
+  wait_for_http http://localhost:3102/health/status "Postiz Go orchestrator"
+  echo "Postiz Go API: http://localhost:3100/public/v1"
+  echo "Postiz Go worker: http://localhost:3102/health/status"
+}
+
+postiz_go_down() {
+  ensure_env
+  compose --profile postiz-go stop screenshot-studio-backend screenshot-studio-orchestrator postiz-go-temporal postiz-go-redis
+}
+
 down() {
   local mode=""
   local response=""
@@ -534,11 +550,11 @@ down() {
   fi
 
   if [[ "$mode" == "purge" ]]; then
-    compose --profile trigger --profile e2e --profile renderer down --volumes --remove-orphans
+    compose --profile trigger --profile e2e --profile renderer --profile postiz-go down --volumes --remove-orphans
     return
   fi
 
-  compose --profile trigger --profile e2e --profile renderer down --remove-orphans
+  compose --profile trigger --profile e2e --profile renderer --profile postiz-go down --remove-orphans
 }
 
 trigger_login() {
@@ -638,6 +654,8 @@ Usage: bin/studio <command>
 
 Commands:
   up                         Start the hot-reload Compose stack.
+  postiz-go-up               Start the optional Postiz Go API and workers.
+  postiz-go-down             Stop the optional Postiz Go API and workers.
   down [--keep-data|--purge] Stop the Compose stack and prompt for data handling.
   reset                      Stop the Compose stack and remove all local data.
   smoke                      Verify Compose service health.
@@ -660,6 +678,8 @@ EOF
 
 case "${1:-}" in
   up) up ;;
+  postiz-go-up) postiz_go_up ;;
+  postiz-go-down) postiz_go_down ;;
   down) shift; down "$@" ;;
   reset) down --purge --yes ;;
   smoke) smoke ;;

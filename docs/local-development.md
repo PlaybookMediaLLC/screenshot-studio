@@ -166,6 +166,11 @@ cancel signal, and rate-limit retry. Configure a Postiz key only when testing an
 actual publication. The Compose profile exposes Temporal gRPC on port 7233 and
 its local UI on http://localhost:8233.
 
+The Go Postiz replacement is a separate optional profile with its own database,
+Redis, and Temporal server. Run `make postiz-go-up` and see
+[Screenshot Studio backend and orchestrator](postiz-go-deployment.md) for the
+local API key and production configuration.
+
 Supabase Storage is private. The server-only storage client creates object keys
 under `org/<organization-id>/<classification>/<asset-id>/<revision>/`. Local setup also generates
 Better Auth and audit secrets. Do not copy `.local/dev.env` to another

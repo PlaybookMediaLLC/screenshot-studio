@@ -1,0 +1,27 @@
+app = "screenshot-studio-orchestrator"
+primary_region = "iad"
+kill_signal = "SIGTERM"
+kill_timeout = "30s"
+
+# Run fly deploy from services/ so the Docker context contains go.mod.
+[build]
+  dockerfile = "screenshot-studio-backend/orchestrator/Dockerfile"
+
+[env]
+  ORCHESTRATOR_PORT = "3002"
+  STORAGE_PROVIDER = "cloudflare"
+
+# Temporal workers stay running; the HTTP port is for private health checks.
+[checks]
+  [checks.status]
+    port = 3002
+    type = "http"
+    path = "/health/status"
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "30s"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "1gb"

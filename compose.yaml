@@ -294,10 +294,118 @@ services:
       temporal:
         condition: service_healthy
 
+  postiz-go-db:
+    profiles: ['postiz-go']
+    image: postgres:16-bookworm
+    environment:
+      PGPASSWORD: ${POSTGRES_SUPER_PASSWORD}
+    entrypoint: ['/bin/sh', '-ec']
+    command:
+      - |
+        if ! psql -h postgres -U postgres -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'postiz_go'" | grep -q 1; then
+          createdb -h postgres -U postgres postiz_go
+        fi
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postiz-go-redis:
+    profiles: ['postiz-go']
+    image: redis:7.4-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - postiz_go_redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  postiz-go-temporal:
+    profiles: ['postiz-go']
+    image: temporalio/temporal:1.8.2
+    command: server start-dev --ip 0.0.0.0
+    ports:
+      - '127.0.0.1:7243:7233'
+      - '127.0.0.1:8243:8233'
+    healthcheck:
+      test: ['CMD', 'temporal', 'operator', 'cluster', 'health', '--address', '127.0.0.1:7233']
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  postiz-go-migrate:
+    profiles: ['postiz-go']
+    build:
+      context: ./services
+      dockerfile: screenshot-studio-backend/backend/Dockerfile
+    image: screenshot-studio-postiz-backend:local
+    entrypoint: ['/postiz-migrate']
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/postiz_go?sslmode=disable
+    depends_on:
+      postiz-go-db:
+        condition: service_completed_successfully
+
+  screenshot-studio-backend:
+    profiles: ['postiz-go']
+    build:
+      context: ./services
+      dockerfile: screenshot-studio-backend/backend/Dockerfile
+    image: screenshot-studio-postiz-backend:local
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/postiz_go?sslmode=disable
+      REDIS_URL: redis://postiz-go-redis:6379
+      TEMPORAL_ADDRESS: postiz-go-temporal:7233
+      JWT_SECRET: ${POSTIZ_GO_JWT_SECRET:-local-postiz-go-only}
+      FRONTEND_URL: http://localhost:3000
+      MAIN_URL: http://localhost:3100
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:3100
+      STORAGE_PROVIDER: local
+      UPLOAD_DIRECTORY: /tmp/postiz-uploads
+      PORT: '3000'
+      RUN_CRON: 'true'
+    ports:
+      - '127.0.0.1:3100:3000'
+    depends_on:
+      postiz-go-migrate:
+        condition: service_completed_successfully
+      postiz-go-redis:
+        condition: service_healthy
+      postiz-go-temporal:
+        condition: service_healthy
+
+  screenshot-studio-orchestrator:
+    profiles: ['postiz-go']
+    build:
+      context: ./services
+      dockerfile: screenshot-studio-backend/orchestrator/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/postiz_go?sslmode=disable
+      REDIS_URL: redis://postiz-go-redis:6379
+      TEMPORAL_ADDRESS: postiz-go-temporal:7233
+      JWT_SECRET: ${POSTIZ_GO_JWT_SECRET:-local-postiz-go-only}
+      FRONTEND_URL: http://localhost:3000
+      MAIN_URL: http://localhost:3100
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:3100
+      STORAGE_PROVIDER: local
+      UPLOAD_DIRECTORY: /tmp/postiz-uploads
+      ORCHESTRATOR_PORT: '3002'
+    ports:
+      - '127.0.0.1:3102:3002'
+    depends_on:
+      postiz-go-migrate:
+        condition: service_completed_successfully
+      postiz-go-redis:
+        condition: service_healthy
+      postiz-go-temporal:
+        condition: service_healthy
+
 volumes:
   app_next_cache:
   app_node_modules:
   postgres_data:
+  postiz_go_redis_data:
   redis_data:
   rustfs_data:
   trigger_node_modules:

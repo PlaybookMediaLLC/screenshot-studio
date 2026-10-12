@@ -5,7 +5,9 @@ import { readTenantObject } from '@/lib/storage/client'
 
 const defaultPostizUrl = 'https://api.postiz.com/public/v1'
 const postizUploadSchema = z.object({ id: z.string(), path: z.string() })
-const postizPostSchema = z.object({ id: z.string() })
+const postizPostSchema = z
+  .array(z.object({ postId: z.string(), integration: z.string() }))
+  .length(1)
 
 type PostizAsset = {
   mediaType: string
@@ -120,11 +122,15 @@ export async function publishPostizPost(input: PostizPublishInput): Promise<stri
     tags: [],
     type: 'now',
   }
-  return postizPostSchema.parse(
+  const [post] = postizPostSchema.parse(
     await requestPostiz(configuration, 'posts', {
       body: JSON.stringify(payload),
       headers: { 'content-type': 'application/json' },
       method: 'POST',
     })
-  ).id
+  )
+  if (post.integration !== input.destinationId) {
+    throw new PostizProviderError('Postiz returned an unexpected destination.', null)
+  }
+  return post.postId
 }

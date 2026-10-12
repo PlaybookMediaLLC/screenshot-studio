@@ -7,7 +7,7 @@ the tenant authority and calls the backend through the Postiz public API.
 
 ## Optional local stack
 
-Start the API, workers, a dedicated `postiz_go` PostgreSQL database, Redis, and
+Start the API, workers, a dedicated `postiz_go` PostgreSQL container, Redis, and
 Temporal with:
 
 ```sh
@@ -18,8 +18,9 @@ make postiz-go-down
 ```
 
 The one-shot `postiz-go-migrate` service applies the Postiz schema before the
-API or workers start. Its migration is repeatable. The database is separate
-from `screenshot_studio`; the Postiz Temporal server uses ports 7243 and 8243
+API or workers start. Its migration is repeatable. The database volume and
+credentials are separate from Screenshot Studio's PostgreSQL instance. The
+Postiz Temporal server uses ports 7243 and 8243
 to avoid competing with the publishing service's `main` task queue.
 
 To connect the web app to this fixture, create a Postiz organization through
@@ -34,17 +35,21 @@ POSTIZ_API_KEY=<Postiz organization's publicApi key>
 
 The default local values still point at the deterministic E2E Postiz mock.
 Local file storage is ephemeral and is intended for API and workflow testing;
-it does not provide public media URLs for a real social network. Use a separate
-public Postiz media bucket for real publishing.
+it does not provide media URLs reachable by the Go worker in a real social
+network post. For the live LinkedIn image smoke test, we kept the separate R2
+bucket private and passed a one-hour presigned object URL in the post's media
+path. The worker fetched it and uploaded the image to LinkedIn. Generate the
+URL close to publication time; scheduled posts need a durable delivery path.
 
 ## Fly production configuration
 
 The two Fly configs live at `services/screenshot-studio-backend/backend/fly.toml` and
 `services/screenshot-studio-backend/orchestrator/fly.toml`. They define private Fly services, so
 the web app can reach the API over Fly's private network without exposing its
-administrative routes to the internet. A separate Postiz frontend and public
-OAuth callback path are required before enabling self-service social account
-connection.
+administrative routes to the internet. The web app handles the personal LinkedIn
+OAuth callback at `/integrations/social/linkedin` and forwards it to the private
+Go API using `POSTIZ_API_URL`. Other providers still need their callback UI and
+self-service connection flow before customers can connect them.
 
 Provision before deployment:
 
@@ -54,11 +59,24 @@ Provision before deployment:
 2. A dedicated Redis instance and Temporal namespace. The Go workers use the
    `main` task queue; sharing a namespace with Screenshot Studio's publishing
    workers would dispatch workflows to the wrong implementation.
-3. A separate Cloudflare R2 bucket with a public media URL and the Postiz
-   storage credentials. Do not reuse Screenshot Studio's private tenant asset
-   bucket.
+3. A separate Cloudflare R2 bucket and Postiz storage credentials for media
+   posts. Do not reuse Screenshot Studio's private tenant asset bucket. With a
+   private bucket, the current uploader's bare object URLs are not fetchable by
+   the worker. Supply a short-lived presigned URL at publication time or add a
+   durable media delivery service before enabling scheduled media posts.
 4. Postiz organization API keys and social integrations in that database. An
    empty database has no connected social destinations.
+
+For a personal LinkedIn connection, create a LinkedIn developer app associated
+with a company page you administer, enable **Sign In with LinkedIn using OpenID
+Connect** and **Share on LinkedIn**, and register
+`https://<FRONTEND_URL host>/integrations/social/linkedin` as an exact redirect
+URL. Set `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET` on the Go API. The
+personal provider requests only `openid`, `profile`, and `w_member_social`;
+LinkedIn Page publishing requires separate Community Management access. Start
+the connection with an authenticated `GET /integrations/social/linkedin` on the
+Go API, then visit the returned authorization URL. The callback consumes the
+one-use state and saves the channel in the Go database.
 
 Set `DATABASE_URL`, `REDIS_URL`, `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`,
 `JWT_SECRET`, `FRONTEND_URL`, `MAIN_URL`, `NEXT_PUBLIC_BACKEND_URL`,

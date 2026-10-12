@@ -187,8 +187,8 @@ func TestGenerateAuthURL(t *testing.T) {
 	t.Setenv("FRONTEND_URL", "https://app.example")
 	t.Setenv("LINKEDIN_CLIENT_ID", "cid")
 	got, _ := New().GenerateAuthURL(context.Background(), nil)
-	want := "https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=cid&prompt=none&redirect_uri=https%3A%2F%2Fapp.example%2Fintegrations%2Fsocial%2Flinkedin&state=" +
-		got.State + "&scope=openid%20profile%20w_member_social%20r_basicprofile%20rw_organization_admin%20w_organization_social%20r_organization_social"
+	want := "https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=cid&redirect_uri=https%3A%2F%2Fapp.example%2Fintegrations%2Fsocial%2Flinkedin&state=" +
+		got.State + "&scope=openid%20profile%20w_member_social"
 	if got.URL != want || len(got.State) != 6 || len(got.CodeVerifier) != 30 {
 		t.Fatalf("got %+v", got)
 	}

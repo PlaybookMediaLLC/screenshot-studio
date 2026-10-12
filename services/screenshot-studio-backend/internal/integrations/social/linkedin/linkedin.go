@@ -31,11 +31,18 @@ var (
 
 const Rules = "LinkedIn can have maximum one attachment when selecting video, when choosing a carousel on LinkedIn minimum amount of attachment must be two, and only pictures, if uploading a video, LinkedIn can have only one attachment"
 
+// Scopes are available through LinkedIn's self-service Sign In and Share
+// products. Organization permissions require the separate Community Management
+// product and must not be requested when connecting a personal profile.
 var Scopes = []string{
 	"openid",
 	"profile",
 	"w_member_social",
-	"r_basicprofile",
+}
+
+var PageScopes = []string{
+	"openid",
+	"profile",
 	"rw_organization_admin",
 	"w_organization_social",
 	"r_organization_social",
@@ -260,7 +267,7 @@ func (p *Provider) GenerateAuthURL(context.Context, *integrations.ClientInformat
 	state := ids.Secure(6)
 	return &integrations.GenerateAuthURLResponse{
 		URL: "https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=" + os.Getenv("LINKEDIN_CLIENT_ID") +
-			"&prompt=none&redirect_uri=" + EncodeURIComponent(os.Getenv("FRONTEND_URL")+"/integrations/social/linkedin") +
+			"&redirect_uri=" + EncodeURIComponent(os.Getenv("FRONTEND_URL")+"/integrations/social/linkedin") +
 			"&state=" + state + "&scope=" + EncodeURIComponent(strings.Join(Scopes, " ")),
 		CodeVerifier: ids.Secure(30),
 		State:        state,
@@ -270,13 +277,17 @@ func (p *Provider) GenerateAuthURL(context.Context, *integrations.ClientInformat
 // ExchangeCode is authenticate's body after the redirect URI: code exchange,
 // scope check, userinfo and vanity name.
 func (p *Provider) ExchangeCode(ctx context.Context, code, redirectURI string) (*integrations.AuthTokenDetails, error) {
+	return p.ExchangeCodeForScopes(ctx, code, redirectURI, Scopes)
+}
+
+func (p *Provider) ExchangeCodeForScopes(ctx context.Context, code, redirectURI string, scopes []string) (*integrations.AuthTokenDetails, error) {
 	token, err := requestToken(ctx, clientForm(url.Values{
 		"grant_type": {"authorization_code"}, "code": {code}, "redirect_uri": {redirectURI},
 	}))
 	if err != nil {
 		return nil, err
 	}
-	if err := p.CheckScopes(Scopes, token.Scope); err != nil {
+	if err := p.CheckScopes(scopes, token.Scope); err != nil {
 		return nil, err
 	}
 	info, err := fetchUserInfo(ctx, token.AccessToken)

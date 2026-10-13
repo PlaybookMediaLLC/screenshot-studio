@@ -14,7 +14,7 @@ if (mode === 'gate') {
   const { apiKey } = JSON.parse(await readFile(input, 'utf8'))
   if (!apiKey) throw new Error('Go API key is missing')
   env.POSTIZ_API_KEY_SOCIAL_GATE = apiKey
-  env.POSTIZ_API_URL = 'http://host.docker.internal:3110/public/v1'
+  env.POSTIZ_API_URL = 'http://social-gate-go:3000/public/v1'
 } else {
   delete env.POSTIZ_API_KEY_SOCIAL_GATE
   delete env.POSTIZ_API_URL

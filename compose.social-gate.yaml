@@ -48,15 +48,20 @@ services:
     image: node:22-alpine
     command: node /fake-social.mjs
     environment:
-      POSTIZ_E2E_MEDIA_ORIGIN: http://host.docker.internal:9003
+      POSTIZ_E2E_MEDIA_ORIGIN: http://rustfs:9000
     volumes:
       - ./e2e/fixtures/fake-social.mjs:/fake-social.mjs:ro
     ports:
       - '127.0.0.1:5680:8080'
-    extra_hosts:
-      - host.docker.internal:host-gateway
+    networks: [default, web]
     healthcheck:
-      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
       interval: 2s
       timeout: 2s
       retries: 20
@@ -78,7 +83,7 @@ services:
       NEXT_PUBLIC_BACKEND_URL: http://localhost:3110
       BACKEND_INTERNAL_URL: http://screenshot-studio-backend:3000
       POSTIZ_E2E_SOCIAL_URL: http://fake-social:8080
-      POSTIZ_E2E_R2_ENDPOINT: http://host.docker.internal:9003
+      POSTIZ_E2E_R2_ENDPOINT: http://rustfs:9000
       STORAGE_PROVIDER: cloudflare
       POSTIZ_PRIVATE_MEDIA: 'true'
       CLOUDFLARE_ACCOUNT_ID: local
@@ -86,11 +91,13 @@ services:
       CLOUDFLARE_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:?Set R2_SECRET_ACCESS_KEY in the local test env}
       CLOUDFLARE_REGION: ${R2_REGION:-us-east-1}
       CLOUDFLARE_BUCKETNAME: ${R2_BUCKET_NAME:?Set R2_BUCKET_NAME in the local test env}
-      CLOUDFLARE_BUCKET_URL: http://host.docker.internal:9003/${R2_BUCKET_NAME:?Set R2_BUCKET_NAME in the local test env}
+      CLOUDFLARE_BUCKET_URL: http://rustfs:9000/${R2_BUCKET_NAME:?Set R2_BUCKET_NAME in the local test env}
       RUN_CRON: 'true'
       PORT: '3000'
-    extra_hosts:
-      - host.docker.internal:host-gateway
+    networks:
+      default: {}
+      web:
+        aliases: [social-gate-go]
     ports:
       - '127.0.0.1:3110:3000'
     depends_on:
@@ -114,8 +121,7 @@ services:
     environment:
       <<: *postiz-environment
       ORCHESTRATOR_PORT: '3002'
-    extra_hosts:
-      - host.docker.internal:host-gateway
+    networks: [default, web]
     ports:
       - '127.0.0.1:3112:3002'
     depends_on:
@@ -127,3 +133,8 @@ services:
         condition: service_healthy
       fake-social:
         condition: service_healthy
+
+networks:
+  web:
+    external: true
+    name: ${SOCIAL_GATE_WEB_NETWORK:-screenshot-studio_default}

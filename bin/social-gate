@@ -11,6 +11,17 @@ if [[ ! -f .local/dev.env ]]; then
 fi
 
 mkdir -p .context
+APP_CONTAINER_ID="$(docker compose --env-file .local/dev.env --file compose.yaml ps -q app)"
+if [[ -z "$APP_CONTAINER_ID" ]]; then
+  echo 'The local web app is not running.' >&2
+  exit 1
+fi
+export SOCIAL_GATE_WEB_NETWORK
+SOCIAL_GATE_WEB_NETWORK="$(docker inspect "$APP_CONTAINER_ID" --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}')"
+if [[ -z "$SOCIAL_GATE_WEB_NETWORK" ]]; then
+  echo 'The local web app has no Docker network.' >&2
+  exit 1
+fi
 BOOTSTRAP_FILE="$(mktemp "$ROOT_DIR/.context/social-gate-XXXXXX.json")"
 chmod 600 "$BOOTSTRAP_FILE"
 WEB_RECONFIGURED=false
@@ -50,6 +61,21 @@ for attempt in $(seq 1 60); do
   fi
   sleep 1
 done
+APP_CONTAINER_ID="$(docker compose --env-file .local/dev.env --file compose.yaml ps -q app)"
+docker exec "$APP_CONTAINER_ID" node -e '
+  const base = process.env.POSTIZ_API_URL;
+  const headers = { Authorization: process.env.POSTIZ_API_KEY_SOCIAL_GATE };
+  Promise.all(["me", "integrations"].map(async (path) => {
+    const response = await fetch(new URL(path, `${base}/`), { headers });
+    if (!response.ok) throw new Error(`Go ${path} returned ${response.status}`);
+    return response.json();
+  })).then(([me, integrations]) => {
+    if (!me.organization?.id || !integrations.some((item) => item.identifier === "e2e")) {
+      throw new Error("The web app cannot see its isolated Go destination");
+    }
+    process.stdout.write("Web-to-Go destination verified.\n");
+  }).catch((error) => { process.stderr.write(`${error.message}\n`); process.exit(1) });
+'
 
 set -a
 # shellcheck source=/dev/null

@@ -1396,7 +1396,7 @@ if (process.env.E2E_SOCIAL_GATE_BOOTSTRAP) {
         ],
         { encoding: 'utf8' }
       )
-      expect(storedImage).toContain('host.docker.internal:9003')
+      expect(storedImage).toContain('rustfs:9000')
       expect(storedImage).not.toContain('X-Amz-Signature')
       expect(storedImage).not.toContain('X-Amz-Expires')
       const storedMedia = z
@@ -1405,6 +1405,7 @@ if (process.env.E2E_SOCIAL_GATE_BOOTSTRAP) {
       expect(storedMedia).toHaveLength(1)
       const unsignedURL = new URL(storedMedia[0].path)
       unsignedURL.hostname = '127.0.0.1'
+      unsignedURL.port = '9003'
       expect((await fetch(unsignedURL)).status).toBe(403)
 
       const cancelled = await createScheduledPost(

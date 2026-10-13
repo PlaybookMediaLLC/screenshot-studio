@@ -2,7 +2,7 @@
 
 **Status:** Implemented (see `lib/tenant/postiz.ts`, `lib/tenant/publishing.ts`, `lib/tenant/scheduled-posts.ts`)
 **Date:** 2026-08-17
-**Revised:** 2026-08-26
+**Revised:** 2026-10-13
 **Depends on:** RFC 005 and RFC 019
 **Owners:** Engineering
 
@@ -22,8 +22,8 @@ implement one function.
 This RFC is a backfill. The scheduling and publication path shipped before the
 document described it in full. The "Shipped contract" sections record behavior
 in `main` today. "Planned refinements" records proposed work that has not
-shipped, including OAuth account connection, which the original version of this
-RFC described as if it existed.
+shipped. The web app now starts and completes X and Instagram OAuth through
+the Go service, while live provider validation remains a release gate.
 
 ## Goals
 
@@ -64,9 +64,9 @@ Postiz HTTP API                 upload media, create post
 X / LinkedIn / Instagram
 ```
 
-Only the bottom two layers know Postiz exists. `lib/tenant/postiz.ts` is the
-entire provider surface: 130 lines, two schemas, one exported publish function,
-one exported credential-reference validator.
+The adapter in `lib/tenant/postiz.ts` owns Go public API calls. The scheduling
+layer also checks the operator-provisioned web-to-Go organization binding,
+and the OAuth routes register returned Go destinations against that binding.
 
 ## Provider contract
 
@@ -81,6 +81,7 @@ publish(input: {
   asset: { objectKey: string; mediaType: string }
   providerSettings: unknown  // opaque, provider-validated
   secretReference: string    // env var name, never a secret value
+  expectedGoOrganizationId: string // operator-verified tenant binding
 }): Promise<string>          // provider post ID
 ```
 
@@ -97,11 +98,11 @@ row. It does not mean touching the state machine.
 Capability limits are a per-platform table, resolved before a post is
 scheduled rather than discovered at publish time.
 
-| Platform  | Caption limit | Media                    | Notes                            |
-| --------- | ------------- | ------------------------ | -------------------------------- |
-| X         | 280           | 1 image                  | Long-form needs a paid tier      |
-| LinkedIn  | 3,000         | 1 image                  | First 140 characters are visible |
-| Instagram | 2,200         | 1 image, requires media  | Caption-only posts are invalid   |
+| Platform  | Caption limit | Media                   | Notes                            |
+| --------- | ------------- | ----------------------- | -------------------------------- |
+| X         | 280           | 1 image                 | Long-form needs a paid tier      |
+| LinkedIn  | 3,000         | 1 image                 | First 140 characters are visible |
+| Instagram | 2,200         | 1 image, requires media | Caption-only posts are invalid   |
 
 The shipped implementation enforces a single global 3,000-character limit in
 `scheduleCampaignPost`. That is permissive for X and strict for nothing. The
@@ -126,8 +127,14 @@ This gives three properties:
    without the pattern check it would be an environment-variable disclosure
    primitive.
 
-The cost is that connections are operator-provisioned rather than
-self-service. Multi-tenant OAuth is the planned refinement below.
+An operator creates a one-to-one `PostizTenantBinding` between the web
+organization, Go organization, and credential reference. The binding command
+reads Go `/public/v1/me` before writing it. Channel registration requires the
+same reference and checks Go `/me` and `/integrations`; publishing checks them
+again before media upload. X and both Instagram variants have web-initiated
+OAuth routes that tie Go's one-use state to the active web organization, user,
+and session before registering the returned destination. Live provider
+connections are still unverified.
 
 ## Authorization
 
@@ -141,13 +148,14 @@ Read and write operations are not guarded equally. `lib/trpc/routers/publishing.
 uses `organizationProcedure('publish:manage')` for listing and
 `sensitiveOrganizationProcedure('publish:manage')` for every mutation:
 
-| Operation                    | Procedure                            | Requires fresh 2FA |
-| ---------------------------- | ------------------------------------ | ------------------ |
-| List channel connections     | `organizationProcedure`              | no                 |
-| Create a channel connection  | `sensitiveOrganizationProcedure`     | yes                |
-| List scheduled posts         | `organizationProcedure`              | no                 |
-| Create a scheduled post      | `sensitiveOrganizationProcedure`     | yes                |
-| Cancel a scheduled post      | `sensitiveOrganizationProcedure`     | yes                |
+| Operation                   | Procedure                                | Requires fresh 2FA |
+| --------------------------- | ---------------------------------------- | ------------------ |
+| List channel connections    | `organizationProcedure`                  | no                 |
+| Create a channel connection | `sensitiveOrganizationProcedure`         | yes                |
+| Start X/Instagram OAuth     | `requireSensitiveOrganizationPermission` | yes                |
+| List scheduled posts        | `organizationProcedure`                  | no                 |
+| Create a scheduled post     | `sensitiveOrganizationProcedure`         | yes                |
+| Cancel a scheduled post     | `sensitiveOrganizationProcedure`         | yes                |
 
 `sensitiveOrganizationProcedure` checks the permission twice: once against the
 active organization, then again through `requireSensitiveOrganizationPermission`,
@@ -232,6 +240,11 @@ and re-checks eligibility:
 - `variant.approval.status === 'APPROVED'`
 - the workspace is operational, meaning not suspended or pending deletion
 
+The worker also checks the web-to-Go organization binding and whether the Go
+destination remains enabled. A missing binding or disabled Go destination
+fails the post before upload with a visible publication attempt. It is not
+recorded as a user cancellation.
+
 Failing any check cancels the post and writes `post.cancelled`. Approval can be
 revoked and a connection can be disabled between scheduling and the scheduled
 instant, and the system must honor the newer decision. Nothing publishes on the
@@ -264,11 +277,11 @@ the provider states that it did nothing.
 A sweep runs before each processing batch and handles workers that died while
 holding a claim, using a 10-minute threshold:
 
-| Condition                                          | Interpretation                     | Action                                    |
-| -------------------------------------------------- | ---------------------------------- | ----------------------------------------- |
-| `PROCESSING`, stale, **no** open attempt            | Died before calling the provider   | Return to `SCHEDULED` for a clean retry   |
-| `PROCESSING`, stale, open attempt **without** Go ID | Died with an in-flight call        | Mark `FAILED` with `UNKNOWN_DELIVERY`     |
-| `PROCESSING`, open attempt **with** Go ID           | Go accepted; remote result pending | Poll Go status, never create again         |
+| Condition                                           | Interpretation                     | Action                                  |
+| --------------------------------------------------- | ---------------------------------- | --------------------------------------- |
+| `PROCESSING`, stale, **no** open attempt            | Died before calling the provider   | Return to `SCHEDULED` for a clean retry |
+| `PROCESSING`, stale, open attempt **without** Go ID | Died with an in-flight call        | Mark `FAILED` with `UNKNOWN_DELIVERY`   |
+| `PROCESSING`, open attempt **with** Go ID           | Go accepted; remote result pending | Poll Go status, never create again      |
 
 The second case is the ambiguous one and it fails closed. The attempt row is
 completed as `FAILED`, the post is `FAILED`, and
@@ -319,33 +332,33 @@ foreign keys, so attribution is a join rather than an inference.
 
 ## Failure matrix
 
-| Failure                            | Detection                    | Behavior                              |
-| ---------------------------------- | ---------------------------- | ------------------------------------- |
-| Postiz unreachable                 | fetch throws, 15s timeout    | Attempt fails, post `FAILED`          |
-| Postiz `429`                       | status check                 | Requeue, up to 3 attempts             |
-| Postiz `4xx` other                 | status check                 | Post `FAILED`, no retry               |
-| Postiz `5xx`                       | status check                 | Post `FAILED`, no retry               |
-| Malformed provider response        | Zod parse failure            | Post `FAILED`                         |
-| Missing credential env var         | lookup returns undefined     | Post `FAILED` before any network call |
-| Invalid secret reference pattern   | regex check                  | Post `FAILED` before any lookup       |
-| Asset missing from R2              | storage read throws          | Post `FAILED`                         |
-| Connection revoked before publish  | eligibility re-check         | Post `CANCELLED`                      |
-| Approval revoked before publish    | eligibility re-check         | Post `CANCELLED`                      |
-| Workspace suspended                | operational check            | Post `CANCELLED`                      |
-| Worker crash before provider call  | stale sweep, no open attempt | Requeued to `SCHEDULED`               |
-| Worker crash during provider call  | stale sweep, open attempt    | `FAILED` with `UNKNOWN_DELIVERY`      |
+| Failure                           | Detection                    | Behavior                              |
+| --------------------------------- | ---------------------------- | ------------------------------------- |
+| Postiz unreachable                | fetch throws, 15s timeout    | Attempt fails, post `FAILED`          |
+| Postiz `429`                      | status check                 | Requeue, up to 3 attempts             |
+| Postiz `4xx` other                | status check                 | Post `FAILED`, no retry               |
+| Postiz `5xx`                      | status check                 | Post `FAILED`, no retry               |
+| Malformed provider response       | Zod parse failure            | Post `FAILED`                         |
+| Missing credential env var        | lookup returns undefined     | Post `FAILED` before any network call |
+| Invalid secret reference pattern  | regex check                  | Post `FAILED` before any lookup       |
+| Asset missing from R2             | storage read throws          | Post `FAILED`                         |
+| Connection revoked before publish | eligibility re-check         | Post `CANCELLED`                      |
+| Approval revoked before publish   | eligibility re-check         | Post `CANCELLED`                      |
+| Workspace suspended               | operational check            | Post `CANCELLED`                      |
+| Worker crash before provider call | stale sweep, no open attempt | Requeued to `SCHEDULED`               |
+| Worker crash during provider call | stale sweep, open attempt    | `FAILED` with `UNKNOWN_DELIVERY`      |
 
 ## Security threats
 
-| Threat                                        | Mitigation                                              |
-| --------------------------------------------- | ------------------------------------------------------- |
-| Arbitrary environment variable disclosure     | Strict regex on `secretReference`                       |
-| Credential leakage through logs               | Errors carry status codes only, never bodies or tokens  |
-| Cross-tenant publication                      | Connection and variant queries filter `organizationId`  |
-| Publishing unapproved content                 | Eligibility re-checked immediately before the call      |
-| Duplicate public posts                        | Claim CAS, unique idempotency key, no ambiguous retries |
-| Publication from a suspended workspace        | Operational check inside the worker                     |
-| Provider response injection into stored state | Zod parses the response before persistence              |
+| Threat                                        | Mitigation                                                                 |
+| --------------------------------------------- | -------------------------------------------------------------------------- |
+| Arbitrary environment variable disclosure     | Strict regex on `secretReference`                                          |
+| Credential leakage through logs               | Errors carry status codes only, never bodies or tokens                     |
+| Cross-tenant publication                      | Tenant-scoped queries, one-to-one Go binding, `/me` and destination checks |
+| Publishing unapproved content                 | Eligibility re-checked immediately before the call                         |
+| Duplicate public posts                        | Claim CAS, unique idempotency key, no ambiguous retries                    |
+| Publication from a suspended workspace        | Operational check inside the worker                                        |
+| Provider response injection into stored state | Zod parses the response before persistence                                 |
 
 ## Observability
 
@@ -364,7 +377,7 @@ a broken product even though every state transition was correct.
 ## Acceptance criteria
 
 1. An approved post schedules, publishes at its scheduled time, and stores a
-   `providerPostId`.
+   Go post ID plus a confirmed remote release ID before marking `PUBLISHED`.
 2. Cancelling before publish prevents the publication and audits the cancel.
 3. Cancelling a `PROCESSING` post returns `409`.
 4. Two identical schedule calls with the same idempotency key create one row.
@@ -375,18 +388,16 @@ a broken product even though every state transition was correct.
 8. A revoked connection cancels the post instead of publishing it.
 9. A variant whose approval is revoked after scheduling is cancelled.
 10. A `secretReference` of `DATABASE_URL` is rejected before any lookup.
-11. A worker killed mid-call leaves the post `FAILED` with `UNKNOWN_DELIVERY`
-    and an audit entry.
+11. A worker killed after an uncertain Go create request does not issue a
+    second create request; the attempt remains pending for reconciliation.
 12. No log line, error message, or audit entry contains a provider token.
 
 ## Planned refinements
 
-1. **Postiz OAuth connection.** Replace operator-provisioned env-var references
-   with the Postiz OAuth 2.0 flow. Users connect once; the platform stores an
-   encrypted refresh token in a secrets manager and keeps `secretReference` as
-   an indirection. This changes credential storage, not the state machine. Until
-   it ships, self-service publishing is blocked and this is the single largest
-   gap in the RFC 021 chargeable milestone.
+1. **Live OAuth proof.** Validate X and both Instagram variants with dedicated
+   developer apps and test accounts. The Go service owns social access and
+   refresh tokens; the web app retains only an organization credential
+   reference and a destination ID.
 2. **Per-platform capability enforcement.** Move the caption limit and media
    requirements into the capability table above and validate at schedule time.
 3. **Future-dated provider scheduling.** The adapter currently sends

@@ -79,6 +79,7 @@ NODE
     ensure_env_value STORAGE_PROXY_URL "http://localhost:3000/api/tenant/storage"
     ensure_env_value POSTIZ_API_URL "http://host.docker.internal:5679/api/public/v1"
     ensure_env_value POSTIZ_API_KEY "e2e-postiz-token"
+    ensure_env_value POSTIZ_API_KEY_E2E "e2e-postiz-token"
     ensure_env_value POSTIZ_GO_JWT_SECRET "$(random_hex 32)"
     ensure_env_value PLATFORM_RENDER_SERVICE_SECRET "$(random_hex 32)"
     database_url="$(grep '^DATABASE_URL=' "$LOCAL_ENV" | cut -d= -f2-)"
@@ -137,6 +138,7 @@ STORAGE_HOST_URL=http://127.0.0.1:5000
 STORAGE_PROXY_URL=http://localhost:3000/api/tenant/storage
 POSTIZ_API_URL=http://host.docker.internal:5679/api/public/v1
 POSTIZ_API_KEY=e2e-postiz-token
+POSTIZ_API_KEY_E2E=e2e-postiz-token
 POSTIZ_GO_JWT_SECRET=$(random_hex 32)
 PLATFORM_RENDER_SERVICE_SECRET=$(random_hex 32)
 R2_ENDPOINT=http://rustfs:9000

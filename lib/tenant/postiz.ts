@@ -14,6 +14,14 @@ const postizPostStatusSchema = z.object({
   releaseId: z.string().nullable(),
   releaseURL: z.string().nullable(),
 })
+const postizMeSchema = z.object({ organization: z.object({ id: z.string().min(1) }) })
+const postizIntegrationsSchema = z.array(
+  z.object({
+    id: z.string(),
+    identifier: z.string(),
+    disabled: z.boolean(),
+  })
+)
 
 type PostizAsset = {
   mediaType: string
@@ -24,10 +32,55 @@ export type PostizPublishInput = {
   asset: PostizAsset
   caption: string
   destinationId: string
+  expectedGoOrganizationId: string
   organizationId: string
   platform: string
   providerSettings: unknown
   secretReference: string
+}
+
+async function verifyPostizOrganization(
+  configuration: { baseUrl: string; token: string },
+  expectedGoOrganizationId: string
+): Promise<void> {
+  const me = postizMeSchema.parse(await requestPostiz(configuration, 'me', { method: 'GET' }))
+  if (me.organization.id !== expectedGoOrganizationId) {
+    throw new PostizProviderError('Postiz organization does not match this workspace.', 403)
+  }
+}
+
+export async function verifyPostizDestination(input: {
+  destinationId: string
+  expectedGoOrganizationId: string
+  platform: string
+  secretReference: string
+}): Promise<void> {
+  const configuration = getPostizConfiguration(input.secretReference)
+  await verifyPostizOrganization(configuration, input.expectedGoOrganizationId)
+  const integrations = postizIntegrationsSchema.parse(
+    await requestPostiz(configuration, 'integrations', { method: 'GET' })
+  )
+  if (
+    !integrations.some(
+      (item) =>
+        item.id === input.destinationId && item.identifier === input.platform && !item.disabled
+    )
+  ) {
+    throw new PostizProviderError('Postiz destination is unavailable for this workspace.', 404)
+  }
+}
+
+export async function beginPostizOAuth(input: {
+  expectedGoOrganizationId: string
+  provider: 'x' | 'instagram' | 'instagram-standalone'
+  secretReference: string
+}): Promise<string> {
+  const configuration = getPostizConfiguration(input.secretReference)
+  await verifyPostizOrganization(configuration, input.expectedGoOrganizationId)
+  const response = z
+    .object({ url: z.string().url() })
+    .parse(await requestPostiz(configuration, `social/${input.provider}`, { method: 'GET' }))
+  return response.url
 }
 
 export class PostizProviderError extends Error {
@@ -114,6 +167,12 @@ function getPostizSettings(platform: string, providerSettings: unknown): Record<
 
 export async function publishPostizPost(input: PostizPublishInput): Promise<string> {
   const configuration = getPostizConfiguration(input.secretReference)
+  await verifyPostizDestination({
+    destinationId: input.destinationId,
+    expectedGoOrganizationId: input.expectedGoOrganizationId,
+    platform: input.platform,
+    secretReference: input.secretReference,
+  })
   const image = await uploadPostizAsset(configuration, input)
   const payload = {
     date: new Date().toISOString(),

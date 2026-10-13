@@ -8,21 +8,25 @@ published post.
 
 ## Current evidence (2026-10-13)
 
-| Destination | Automated tests | Live local post | Production | Status |
-| --- | --- | --- | --- | --- |
-| Personal LinkedIn | Go and web scheduling tests pass | Scheduled image published from private R2; [post](https://www.linkedin.com/feed/update/urn:li:share:7515573217172869120/) | Go services not deployed | Local canary passed |
-| X | Go adapter and signed media tests pass | No dedicated test account or developer app | Not deployed | Unverified |
-| Instagram with Facebook Login | Go adapter and signed media tests pass | No professional test account or Meta app | Not deployed | Unverified |
-| Instagram with Instagram Login | Go adapter and signed media tests pass | No professional test account or Meta app | Not deployed | Unverified |
-| Other registered providers | Provider-specific mock tests vary | No live canary | Not deployed | Unverified |
+| Destination                    | Automated tests                        | Live local post                                                                                                           | Production               | Status              |
+| ------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ------------------- |
+| Personal LinkedIn              | Go and web scheduling tests pass       | Scheduled image published from private R2; [post](https://www.linkedin.com/feed/update/urn:li:share:7515573217172869120/) | Go services not deployed | Local canary passed |
+| X                              | Go adapter and signed media tests pass | No dedicated test account or developer app                                                                                | Not deployed             | Unverified          |
+| Instagram with Facebook Login  | Go adapter and signed media tests pass | No professional test account or Meta app                                                                                  | Not deployed             | Unverified          |
+| Instagram with Instagram Login | Go adapter and signed media tests pass | No professional test account or Meta app                                                                                  | Not deployed             | Unverified          |
+| Other registered providers     | Provider-specific mock tests vary      | No live canary                                                                                                            | Not deployed             | Unverified          |
 
-On 2026-10-13, `go test -p 1 ./...` passed for the updated Go tree, as did
-TypeScript checking, formatting, and the three tests in
-`e2e/postiz-scheduling.spec.ts`. The browser tests prove acceptance stays
-pending, a later published receipt completes it, a Go error fails it, a 429
-retries, cancellation stops handoff, and uncertain recovery avoids a duplicate.
-They use a mock Postiz public API. They do not exercise the real Go API and
-worker together; Gate 1 is still required.
+On 2026-10-13, `go test -p 1 ./...` passed for the updated Go tree. TypeScript
+checking, formatting, five OAuth callback unit tests, and all nine Playwright
+tests in `e2e/postiz-scheduling.spec.ts` pass locally in one run. The Playwright tests
+exercise the real web HTTP routes and tenant database with a mock Go API. They
+prove acceptance stays pending until a remote receipt, a Go error fails it, a
+429 retries, cancellation stops handoff, uncertain recovery avoids a duplicate,
+and missing tenant bindings or disabled Go destinations stop upload. They also
+check cross-tenant destination isolation and the X and both Instagram OAuth
+callbacks, including one-use state and Facebook Page selection. They do not
+exercise the real Go API and worker together; Gate 1 is
+still required.
 
 The first audit found that the web app marked a post `PUBLISHED` as soon as Go
 returned a post ID, before the social network confirmed publication. The web
@@ -80,9 +84,14 @@ separate tests for X image, X video, Instagram feed image, Instagram carousel,
 and Instagram Reel. Test both Instagram login variants independently if both
 will be offered.
 
-The web app currently forwards only the personal LinkedIn callback. Add and
-test X and Instagram connection and callback paths before attempting their
-live canaries. A successful Go adapter unit test does not replace this gate.
+The web app now has an authenticated OAuth start route for X and both Instagram
+variants. It stores the Go one-use state against the active web organization,
+user, and session, forwards callbacks to Go, and registers the returned Go
+destination only after checking the operator binding. Instagram with Facebook
+Login includes a Page selection step. The callback contract has mock tests and
+web-route end-to-end tests; the live provider flows still need evidence before
+live canaries. A successful Go adapter unit test or callback mock does not
+replace this gate.
 
 ## Gate 3: isolated live canaries
 
@@ -90,11 +99,11 @@ Use dedicated test accounts and developer apps. The owner must approve each
 OAuth grant and live post destination. Keep harmless, clearly labeled test
 content and use only media owned by the test organization.
 
-| Provider | Prerequisite | Minimum live canaries |
-| --- | --- | --- |
-| X | Test account and developer app with posting and media access | Scheduled PNG image, scheduled MP4 video |
-| Instagram with Facebook Login | Professional test account, linked Facebook Page, Meta app and publishing permission | Scheduled feed JPEG, PNG conversion, Reel; add carousel if exposed |
-| Instagram with Instagram Login | Professional test account and Meta app with Instagram publishing permission | Feed image and Reel through this distinct OAuth flow |
+| Provider                       | Prerequisite                                                                        | Minimum live canaries                                              |
+| ------------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| X                              | Test account and developer app with posting and media access                        | Scheduled PNG image, scheduled MP4 video                           |
+| Instagram with Facebook Login  | Professional test account, linked Facebook Page, Meta app and publishing permission | Scheduled feed JPEG, PNG conversion, Reel; add carousel if exposed |
+| Instagram with Instagram Login | Professional test account and Meta app with Instagram publishing permission         | Feed image and Reel through this distinct OAuth flow               |
 
 For every canary, save the scheduled time, local post and attempt IDs, remote
 post ID and URL, provider-visible caption, media dimensions and bytes or a

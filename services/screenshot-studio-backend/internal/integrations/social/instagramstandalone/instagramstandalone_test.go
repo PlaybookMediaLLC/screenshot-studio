@@ -148,6 +148,7 @@ func TestRejectInsecureCallback(t *testing.T) {
 		"https://redirectmeto.com/http://localhost:4200",
 		"https://user@studio.example.test",
 		"https://studio.example.test/path",
+		"https://studio.example.test?",
 	} {
 		t.Run(frontend, func(t *testing.T) {
 			t.Setenv("FRONTEND_URL", frontend)

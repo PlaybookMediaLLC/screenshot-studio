@@ -92,7 +92,7 @@ func (p *Provider) CheckValidity(_ context.Context, posts [][]integrations.Valid
 func redirectURI() (string, error) {
 	frontend, err := url.Parse(os.Getenv("FRONTEND_URL"))
 	if err != nil || frontend.Scheme != "https" || frontend.Host == "" || frontend.User != nil ||
-		(frontend.Path != "" && frontend.Path != "/") || frontend.RawQuery != "" || frontend.Fragment != "" {
+		(frontend.Path != "" && frontend.Path != "/") || frontend.ForceQuery || frontend.RawQuery != "" || frontend.Fragment != "" {
 		return "", errors.New("FRONTEND_URL must be an HTTPS origin for Instagram OAuth")
 	}
 	return strings.TrimSuffix(frontend.String(), "/") + "/integrations/social/instagram-standalone", nil

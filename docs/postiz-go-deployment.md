@@ -147,18 +147,25 @@ Go API, then visit the returned authorization URL. The callback consumes the
 one-use state and saves the channel in the Go database.
 
 For X, register `/integrations/social/x` on the web host as an OAuth 1.0a
-callback and grant Read and write access. Set `X_API_KEY` and `X_API_SECRET` on
-the combined Go backend. For Instagram with Facebook Login, set
-`FACEBOOK_APP_ID` and `FACEBOOK_APP_SECRET`; for Instagram Login, set
-`INSTAGRAM_APP_ID` and `INSTAGRAM_APP_SECRET`. The optional local Compose stack
-passes these names to the combined backend service. Keep the credentials in
-ignored local env files or the production secret store, never in Compose or Git.
+callback and grant Read and write access. The Go process reads `X_API_KEY` and
+`X_API_SECRET`. For Instagram with Facebook Login, it reads `FACEBOOK_APP_ID`
+and `FACEBOOK_APP_SECRET`; for Instagram Login, it reads `INSTAGRAM_APP_ID` and
+`INSTAGRAM_APP_SECRET`. In the optional local Compose stack, set these in an
+ignored env file with a `POSTIZ_GO_` prefix (for example,
+`POSTIZ_GO_X_API_KEY` and `POSTIZ_GO_INSTAGRAM_APP_SECRET`). Compose maps them
+to the Go process names. Use the Go process names in the production secret
+store. Never commit the credentials.
 Instagram Login requires a direct HTTPS `FRONTEND_URL`; the Go adapter rejects
 HTTP instead of sending authorization codes through a redirect service. For a
-local canary, point a temporary HTTPS tunnel at the web app, set
-`POSTIZ_GO_FRONTEND_URL` to that tunnel origin in the ignored local env file,
-and register its exact `/integrations/social/instagram-standalone` callback in
-Meta. Stop the tunnel after the canary.
+local canary, point a temporary HTTPS tunnel at the web app. In the ignored
+local env file, set `POSTIZ_GO_FRONTEND_URL` and `NEXT_PUBLIC_APP_URL` to the
+tunnel origin, include it in `BETTER_AUTH_TRUSTED_ORIGINS`, and set
+`BETTER_AUTH_URL` to it if that variable is in use. Recreate the web app and Go
+backend, then register the exact tunnel
+`/integrations/social/instagram-standalone` callback in Meta. Visit the tunnel
+origin, sign in there, and start OAuth there: a `localhost` session cookie does
+not authenticate a callback on the tunnel hostname. After the canary, restore
+the local web origins, recreate the services, and stop the tunnel.
 
 Set `DATABASE_URL`, `REDIS_URL`, `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`,
 `JWT_SECRET`, `FRONTEND_URL`, `MAIN_URL`, `NEXT_PUBLIC_BACKEND_URL`,

@@ -87,6 +87,11 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
             self.assertEqual(entry["value"], secrets[key])
             self.assertEqual(entry["type"], "SECRET")
             self.assertNotIn(key, {item["key"] for item in next(service for service in spec["services"] if service["name"] == "web")["envs"]})
+        repeated = cutover.consolidate(spec, self.digest, secrets)
+        updated = next(item for item in repeated["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertEqual(len({item["key"] for item in updated["envs"]}), len(updated["envs"]))
+        for key in cutover.OPTIONAL_SOCIAL_SECRETS:
+            self.assertEqual(next(item for item in updated["envs"] if item["key"] == key)["type"], "SECRET")
         with self.assertRaisesRegex(ValueError, "POSTIZ_DATABASE_URL"):
             cutover.consolidate(self.base, self.digest, {})
 

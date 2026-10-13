@@ -1,9 +1,17 @@
-# Screenshot Studio backend and orchestrator
+# Screenshot Studio social backend
 
-The Go Postiz port runs as `screenshot-studio-backend` and
-`screenshot-studio-orchestrator`. It uses Postiz's database schema and API; it
+The Go Postiz port runs its API and Temporal workers in one
+`screenshot-studio-backend` process when `RUN_WORKER=true`. It uses Postiz's database schema and API; it
 does not share Screenshot Studio's tenant database. The existing web app remains
 the tenant authority and calls the backend through the Postiz public API.
+
+The worker is disabled by default. During the App Platform cutover, deploy the
+combined backend image with `RUN_WORKER=true`, verify both `/` and
+`/health/status` on ports 3000 and 3002, then remove the old standalone
+Postiz orchestrator component. Keep one backend instance until its worker
+queue and memory use have been checked at production load; additional API
+instances also start additional workers. The backend process exits if the
+embedded worker fails, so App Platform restarts the unit as a whole.
 
 ## Optional local stack
 
@@ -94,11 +102,10 @@ private R2 S3 hostname is not configured as a verified TikTok media source, so
 photo publishing must remain unadvertised until that path is designed and
 tested without exposing the bucket.
 
-## Fly production configuration
+## App Platform production configuration
 
-The two Fly configs live at `services/screenshot-studio-backend/backend/fly.toml` and
-`services/screenshot-studio-backend/orchestrator/fly.toml`. They define private Fly services, so
-the web app can reach the API over Fly's private network without exposing its
+Run the backend as one private App Platform service. The web app reaches it over
+App Platform's private network without exposing its
 administrative routes to the internet. The web app handles LinkedIn, X, and
 Instagram callbacks under `/integrations/social/` and forwards them to the
 private Go API using `POSTIZ_API_URL`. X and Instagram start at
@@ -109,13 +116,13 @@ still need provider credentials and canary evidence before customer use.
 Provision before deployment:
 
 1. A dedicated PostgreSQL database for Postiz, with a role allowed to create
-   and alter its schema. Do not point either service at the web app's
+   and alter its schema. Do not point the backend at the web app's
    `DATABASE_URL`.
 2. A dedicated Redis instance and Temporal namespace. The Go workers use the
    `main` task queue; sharing a namespace with Screenshot Studio's publishing
    workers would dispatch workflows to the wrong implementation.
 3. A separate private Cloudflare R2 bucket and Postiz storage credentials for
-   both API and worker. Do not reuse Screenshot Studio's tenant asset bucket.
+   the combined API and worker. Do not reuse Screenshot Studio's tenant asset bucket.
    Set `CLOUDFLARE_BUCKET_URL` to the private path-style S3 URL shown above.
    The backend omits public-read ACLs, and the worker signs its own bucket
    objects at publication time. External media URLs are left unchanged.
@@ -143,32 +150,23 @@ Set `DATABASE_URL`, `REDIS_URL`, `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`,
 `JWT_SECRET`, `FRONTEND_URL`, `MAIN_URL`, `NEXT_PUBLIC_BACKEND_URL`,
 `BACKEND_INTERNAL_URL`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_ACCESS_KEY`,
 `CLOUDFLARE_SECRET_ACCESS_KEY`, `CLOUDFLARE_REGION`,
-`CLOUDFLARE_BUCKETNAME`, and `CLOUDFLARE_BUCKET_URL` as Fly secrets for both
-apps. `POSTIZ_PRIVATE_MEDIA=true` is set in the Fly configs. Set
+`CLOUDFLARE_BUCKETNAME`, and `CLOUDFLARE_BUCKET_URL` as encrypted App Platform
+environment variables on the backend. Set `POSTIZ_PRIVATE_MEDIA=true` and
+`RUN_WORKER=true`. Set
 `TEMPORAL_TLS=true` and `TEMPORAL_API_KEY` when using
 Temporal Cloud. Keep the Postiz and web app secrets separate.
 
-From `services/`, deploy the API first and then the workers:
-
-```sh
-flyctl config validate --config screenshot-studio-backend/backend/fly.toml
-flyctl config validate --config screenshot-studio-backend/orchestrator/fly.toml
-flyctl deploy --config screenshot-studio-backend/backend/fly.toml --app screenshot-studio-backend
-flyctl deploy --config screenshot-studio-backend/orchestrator/fly.toml --app screenshot-studio-orchestrator
-```
-
-The API's Fly release command runs `/postiz-migrate` before the new API takes
-traffic. Keep schema changes compatible with the running workers during a
-rolling deployment. Confirm the API's `/` check and the worker's
-`/health/status` check in Fly, then test a Postiz public API read with an
-organization key. Set the web app's `POSTIZ_API_URL` to
-`http://screenshot-studio-backend.internal:3000/public/v1`, provision distinct
+Run `/postiz-migrate` as a pre-deploy job before the combined backend takes
+traffic. Keep schema changes compatible with running workers during a rolling
+deployment. Confirm the API's `/` check and the worker's `/health/status`
+check, then test a Postiz public API read with an organization key. Set the web
+app's `POSTIZ_API_URL` to the combined backend's private URL plus `/public/v1`, provision distinct
 `POSTIZ_API_KEY_<TENANT>` secrets, and bind each web organization to the matching
 Go organization only after that check.
 
-If replacing TypeScript Postiz workers, drain their workflows before moving
-the `main` queue. Go workers cannot replay TypeScript workflow histories.
-Deploying into a fresh Temporal namespace avoids that collision but does not
-migrate in-flight workflows. For rollback, restore the previous API and worker
-images together; database migrations are forward-only, so review their
-backward compatibility before deployment.
+Remove the standalone Postiz orchestrator App Platform component only after the
+combined backend is serving worker health checks and processing its Temporal
+queues. Remove the old component from the complete live app spec as well so a
+later deployment does not recreate it. The publishing backend and publishing
+orchestrator are separate tenant scheduling services; deleting them requires
+their own usage and workflow-history audit.

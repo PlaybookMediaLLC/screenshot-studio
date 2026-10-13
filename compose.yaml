@@ -375,43 +375,9 @@ services:
       UPLOAD_DIRECTORY: /tmp/postiz-uploads
       PORT: '3000'
       RUN_CRON: 'true'
+      RUN_WORKER: 'true'
     ports:
       - '127.0.0.1:3100:3000'
-    depends_on:
-      postiz-go-migrate:
-        condition: service_completed_successfully
-      postiz-go-redis:
-        condition: service_healthy
-      postiz-go-temporal:
-        condition: service_healthy
-
-  screenshot-studio-orchestrator:
-    profiles: ['postiz-go']
-    build:
-      context: ./services
-      dockerfile: screenshot-studio-backend/orchestrator/Dockerfile
-    environment:
-      DATABASE_URL: postgresql://postiz_go:${POSTIZ_GO_DB_PASSWORD:-local-postiz-go-only}@postiz-go-db:5432/postiz_go?sslmode=disable
-      REDIS_URL: redis://postiz-go-redis:6379
-      TEMPORAL_ADDRESS: postiz-go-temporal:7233
-      JWT_SECRET: ${POSTIZ_GO_JWT_SECRET:-local-postiz-go-only}
-      FRONTEND_URL: http://localhost:3000
-      MAIN_URL: http://localhost:3100
-      NEXT_PUBLIC_BACKEND_URL: http://localhost:3100
-      BACKEND_INTERNAL_URL: http://screenshot-studio-backend:3000
-      LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID:-}
-      LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET:-}
-      STORAGE_PROVIDER: ${POSTIZ_GO_STORAGE_PROVIDER:-local}
-      POSTIZ_PRIVATE_MEDIA: ${POSTIZ_PRIVATE_MEDIA:-false}
-      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
-      CLOUDFLARE_ACCESS_KEY: ${CLOUDFLARE_ACCESS_KEY:-}
-      CLOUDFLARE_SECRET_ACCESS_KEY: ${CLOUDFLARE_SECRET_ACCESS_KEY:-}
-      CLOUDFLARE_REGION: ${CLOUDFLARE_REGION:-auto}
-      CLOUDFLARE_BUCKETNAME: ${CLOUDFLARE_BUCKETNAME:-}
-      CLOUDFLARE_BUCKET_URL: ${CLOUDFLARE_BUCKET_URL:-}
-      UPLOAD_DIRECTORY: /tmp/postiz-uploads
-      ORCHESTRATOR_PORT: '3002'
-    ports:
       - '127.0.0.1:3102:3002'
     depends_on:
       postiz-go-migrate:

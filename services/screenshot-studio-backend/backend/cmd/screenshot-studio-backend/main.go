@@ -28,6 +28,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/httpx"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/sentryx"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/temporalx"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/orchestrator/activities"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/orchestrator/worker"
 )
 
@@ -56,6 +57,24 @@ func main() {
 		os.Exit(1)
 	}
 	worker.StartMissingPostWorkflow(ctx, a.Temporal)
+	workerErr := make(chan error, 1)
+	if strings.EqualFold(os.Getenv("RUN_WORKER"), "true") {
+		go func() {
+			workerErr <- worker.Run(ctx, worker.Deps{
+				Client:  a.Temporal,
+				Manager: a.Manager,
+				Post: activities.NewPostActivities(a.Posts, a.Notifications, a.Manager, a.Integrations, a.Refresh, a.Webhooks,
+					a.Temporal, a.Subscriptions),
+				Autopost:     activities.NewAutopostActivities(a.Autopost),
+				Email:        activities.NewEmailActivities(a.Email, a.Organizations),
+				Integrations: activities.NewIntegrationsActivities(a.Integrations),
+				Video:        activities.NewVideoActivities(a.Media, a.Organizations),
+				Media:        activities.NewMediaActivities(a.Media),
+				Clipping:     activities.NewClippingActivities(a.Clipping, a.ClippingRepo),
+			})
+			stop()
+		}()
+	}
 
 	router := newRouter(a)
 	loadSwagger(router)
@@ -89,6 +108,14 @@ func main() {
 	if err := server.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("screenshot-studio-backend stopped", "error", err)
 		os.Exit(1)
+	}
+	select {
+	case err := <-workerErr:
+		if err != nil {
+			slog.Error("screenshot-studio worker stopped", "error", err)
+			os.Exit(1)
+		}
+	default:
 	}
 }
 

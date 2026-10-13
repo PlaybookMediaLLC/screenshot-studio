@@ -150,16 +150,18 @@ For X, register `/integrations/social/x` on the web host as an OAuth 1.0a
 callback and grant Read and write access. The Go process reads `X_API_KEY` and
 `X_API_SECRET`. For Instagram with Facebook Login, it reads `FACEBOOK_APP_ID`
 and `FACEBOOK_APP_SECRET`; for Instagram Login, it reads `INSTAGRAM_APP_ID` and
-`INSTAGRAM_APP_SECRET`. In the optional local Compose stack, set these in an
-ignored env file with a `POSTIZ_GO_` prefix (for example,
+`INSTAGRAM_APP_SECRET`. In the optional local Compose stack, set these in the
+ignored `.local/postiz-go.env` overlay with a `POSTIZ_GO_` prefix (for example,
 `POSTIZ_GO_X_API_KEY` and `POSTIZ_GO_INSTAGRAM_APP_SECRET`). Compose maps them
-to the Go process names. Use the Go process names in the production secret
-store. Never commit the credentials.
+to the Go process names, and `make postiz-go-up` reads the overlay only for the
+Go services. Use the Go process names in the production secret store. Never
+commit the credentials.
 Instagram Login requires a direct HTTPS `FRONTEND_URL`; the Go adapter rejects
 HTTP instead of sending authorization codes through a redirect service. For a
-local canary, point a temporary HTTPS tunnel at the web app. In the ignored
-local env file, set `POSTIZ_GO_FRONTEND_URL` and `NEXT_PUBLIC_APP_URL` to the
-tunnel origin, include it in `BETTER_AUTH_TRUSTED_ORIGINS`, and set
+local canary, point a temporary HTTPS tunnel at the web app. Set
+`POSTIZ_GO_FRONTEND_URL` to the tunnel origin in `.local/postiz-go.env`. In
+`.local/dev.env`, set `NEXT_PUBLIC_APP_URL` to the tunnel origin, include it in
+`BETTER_AUTH_TRUSTED_ORIGINS`, and set
 `BETTER_AUTH_URL` to it if that variable is in use. Recreate the web app and Go
 backend, then register the exact tunnel
 `/integrations/social/instagram-standalone` callback in Meta. Visit the tunnel

@@ -11,7 +11,7 @@ app ID `c525b0ba-b92a-4174-ae91-4ab4d7c92fd2`, at
 | `design-renderer` | `services/design-renderer/Dockerfile` | `/ready`, port 8080 | Internal |
 | `screenshot-studio-backend` | Public GHCR image built on GitHub | `/readyz`, port 3003 | `/postiz` on port 3000; prefix stripped |
 
-The web component retains its two replicas and image digest. The single Go
+The web component retains its two replicas. The single Go
 backend container starts the Postiz API and worker plus the tenant publishing
 and maintenance orchestrator. Its readiness endpoint checks all three local
 HTTP endpoints, including the tenant database and Temporal namespace. The
@@ -88,10 +88,11 @@ and renderer without backend credentials; it does not remove already deployed
 components. Generated specs contain plaintext secrets and must never enter git
 or logs. Delete local exported secrets when finished.
 
-For a web release, update the web image digest in the private base spec before
-rendering. The pre-deploy web migration job uses that same image. App Platform
-service builds use the selected Git branch; the default is `main` and there is
-no automatic deployment of an agent's uncommitted files.
+For a web release, review pending Prisma migrations, then dispatch the `Web
+image` GitHub workflow on `main` with `deploy=true`. It builds the web image on
+GitHub, refreshes encrypted web and migration credentials from Infisical, and
+updates both web and `web-migrate` to the same commit SHA tag. App Platform does
+not deploy uncommitted files.
 
 ## Migrations and database permissions
 
@@ -125,9 +126,8 @@ Temporal worker logs for a completed recovery activity followed by its timer.
 Do not publish a social post as a smoke test.
 
 Use App Platform's previous successful deployment for a code/configuration
-rollback. Keep its database compatibility in mind. The old Fly resources were
-not removed by this deployment; decommission them separately after confirming
-that nothing still depends on them.
+recovery. Keep its database compatibility in mind. The Fly deployment is
+retired and is not a recovery target.
 
 ## Deployment record: 2026-10-13
 

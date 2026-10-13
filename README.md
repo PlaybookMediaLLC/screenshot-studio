@@ -255,8 +255,8 @@ The deployed product publishes machine-readable interfaces for agents and API cl
 
 ## Deployment
 
-The app ships a production Docker image, a portable Helm chart, Fly.io deployment
-configuration, and GitHub Actions workflows. See [deployment instructions](docs/deployment.md).
+The app ships production Docker images, a portable Helm chart, and GitHub
+Actions workflows for DigitalOcean App Platform. See [deployment instructions](docs/deployment.md).
 
 For the hot-reload local stack, Temporal Go workers, Supabase Storage, RustFS, and
 Kind commands, see [local development](docs/local-development.md). Start with `make help` to
@@ -294,7 +294,7 @@ variables that configure it, so you can trace a credential back to its console.
 
 | Provider                                                                                                           | Role                                               | Environment variables                                                                                                                  |
 | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| [Fly.io](https://fly.io) ([dashboard](https://fly.io/dashboard))                                                   | Application hosting and runtime secrets            | `FLY_API_TOKEN` (CI only)                                                                                                              |
+| [DigitalOcean App Platform](https://www.digitalocean.com/products/app-platform)                                   | Application hosting                                | `DIGITALOCEAN_PRODUCTION_TOKEN` (CI only)                                                                                             |
 | [PlanetScale](https://planetscale.com) ([console](https://app.planetscale.com))                                    | Managed Postgres, primary datastore                | `DATABASE_URL`                                                                                                                         |
 | [Upstash](https://upstash.com) ([console](https://console.upstash.com))                                            | Serverless Redis for rate limiting and caching     | `REDIS_URL`                                                                                                                            |
 | [Cloudflare R2](https://developers.cloudflare.com/r2/) ([dashboard](https://dash.cloudflare.com/?to=/:account/r2)) | Object storage for exports, uploads, and assets    | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`, `R2_REGION`, `NEXT_PUBLIC_R2_PUBLIC_URL` |

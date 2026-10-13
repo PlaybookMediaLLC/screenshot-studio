@@ -5,15 +5,17 @@ Production runs on DigitalOcean App Platform at `shots.oppulence.io`. The
 components, secrets, migration jobs, health checks, and release procedure.
 
 The web and combined backend images are built on GitHub and stored in the
-public GitHub Container Registry package. App Platform uses a digest for the
-web image and a unique commit SHA tag for the backend image. The backend
+public GitHub Container Registry package. App Platform selects each image with
+a unique commit SHA tag. The backend
 container runs the social API, social Temporal worker,
 tenant publishing worker, and six maintenance schedules as one service.
 
-The `Social backend image` GitHub workflow publishes the combined backend on
-changes to its Go code. Its manual `deploy` input performs the guarded
-production topology update after the image is published. The old Fly deploy
-workflow has been removed.
+The `Web image` and `Social backend image` GitHub workflows publish their
+respective images when relevant code lands on `main`. Their manual `deploy`
+inputs load production secrets from Infisical using GitHub OIDC, validate the
+live app topology, and update the corresponding App Platform components. Review
+web schema migrations before using the web deploy input. The Fly deployment
+workflow and configuration have been removed.
 
 Release Please reads Conventional Commit messages merged into `main`. It opens
 version and changelog pull requests, then creates Git tags and GitHub Releases.

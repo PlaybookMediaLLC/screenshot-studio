@@ -49,8 +49,8 @@ COPY prisma.config.ts ./
 
 CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
 
-# Just the Prisma CLI, at the locked version, for Fly's release_command
-# (fly.toml): the standalone server has no CLI, and the migrate stage's full
+# Just the Prisma CLI, at the locked version, for App Platform's web-migrate
+# predeploy job: the standalone server has no CLI, and the migrate stage's full
 # dependency tree would multiply the image size.
 FROM base AS migrator
 

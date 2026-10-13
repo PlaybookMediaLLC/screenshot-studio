@@ -1,0 +1,56 @@
+name: Social backend image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - services/screenshot-studio-backend/**
+      - services/go.mod
+      - services/go.sum
+      - .github/workflows/social-backend-image.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Build and publish combined backend
+        id: build
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: services
+          file: services/screenshot-studio-backend/backend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          tags: ghcr.io/playbookmediallc/screenshot-studio:social-backend-${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=social-backend
+          cache-to: type=gha,mode=max,ignore-error=true,scope=social-backend
+      - name: Record immutable image reference
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: echo "Social backend image: ghcr.io/playbookmediallc/screenshot-studio@$IMAGE_DIGEST" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify public pull
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          docker logout ghcr.io
+          docker buildx imagetools inspect "ghcr.io/playbookmediallc/screenshot-studio@$IMAGE_DIGEST"

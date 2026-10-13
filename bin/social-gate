@@ -37,6 +37,11 @@ gate_compose() {
 cleanup() {
   local original_status=$?
   trap - EXIT
+  if [[ "$original_status" -ne 0 ]]; then
+    echo 'Social gate service logs (last 200 lines per container):' >&2
+    gate_compose logs --no-color --tail=200 2>&1 |
+      sed -E 's#(https?://[^[:space:]"]+)\?[^[:space:]"]+#\1?[redacted]#g' >&2 || true
+  fi
   if [[ "$WEB_RECONFIGURED" == true ]]; then
     node e2e/fixtures/configure-web.mjs restore || original_status=1
   fi

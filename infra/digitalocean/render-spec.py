@@ -126,7 +126,7 @@ def render(base, secrets, *, stack="full", branch="main"):
             "TEMPORAL_ADDRESS": required("POSTIZ_TEMPORAL_ADDRESS"),
             "TEMPORAL_NAMESPACE": required("POSTIZ_TEMPORAL_NAMESPACE"), "TEMPORAL_TLS": "true",
             "FRONTEND_URL": origin, "MAIN_URL": origin,
-            "NEXT_PUBLIC_BACKEND_URL": origin + "/postiz", "BACKEND_INTERNAL_URL": "http://postiz-backend:3000",
+            "NEXT_PUBLIC_BACKEND_URL": origin + "/postiz", "BACKEND_INTERNAL_URL": "http://127.0.0.1:3000",
             "STORAGE_PROVIDER": "cloudflare", "POSTIZ_PRIVATE_MEDIA": "true",
             "CLOUDFLARE_ACCOUNT_ID": required("CLOUDFLARE_ACCOUNT_ID"),
             "CLOUDFLARE_BUCKETNAME": required("CLOUDFLARE_BUCKETNAME"),
@@ -134,37 +134,41 @@ def render(base, secrets, *, stack="full", branch="main"):
         }.items()]
         postiz_env += [secret(key) for key in ["CLOUDFLARE_ACCESS_KEY", "CLOUDFLARE_SECRET_ACCESS_KEY"]]
         postiz_env += [secret(key) for key in ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "X_API_KEY", "X_API_SECRET"] if secrets.get(key)]
-        backend = service("postiz-backend", "services", "services/screenshot-studio-backend/backend/Dockerfile", 3000, "/")
-        merge_env(backend, postiz_env + [env("PORT", "3000"), env("RUN_CRON", "true")])
-        # Public Postiz callbacks/API use their own prefix; publishing stays private.
+        backend = service("screenshot-studio-backend", "services", "services/screenshot-studio-backend/backend/Dockerfile", 3000, "/readyz", "apps-s-1vcpu-2gb")
+        merge_env(backend, postiz_env + [env("PORT", "3000"), env("RUN_CRON", "true"), env("RUN_WORKER", "true")])
+        # Public Postiz callbacks/API use their own prefix; tenant publishing stays private.
         backend["http_port"] = 3000
-        del backend["internal_ports"]
+        backend["internal_ports"] = [3003]
+        backend["health_check"]["port"] = 3003
+        # Once GitHub has cut production over to a digest, subsequent config
+        # renders must keep that image source instead of switching to DO builds.
+        existing_backend = services.get(backend["name"])
+        if existing_backend and existing_backend.get("image"):
+            for key in ("git", "source_dir", "dockerfile_path"):
+                backend.pop(key, None)
+            backend["image"] = copy.deepcopy(existing_backend["image"])
         services[backend["name"]] = backend
-        worker = service("postiz-orchestrator", "services", "services/screenshot-studio-backend/orchestrator/Dockerfile", 3002, "/health/status")
-        merge_env(worker, postiz_env + [env("ORCHESTRATOR_PORT", "3002")])
-        services[worker["name"]] = worker
         job = {k: copy.deepcopy(v) for k, v in backend.items() if k not in ["envs", "http_port", "health_check"]}
+        job.pop("internal_ports", None)
         job.update(name="postiz-migrate", kind="PRE_DEPLOY", run_command="/postiz-migrate", envs=[secret("DATABASE_URL", "POSTIZ_DATABASE_URL")])
         jobs[job["name"]] = job
 
         temporal_env = [secret("TEMPORAL_API_KEY"), env("TEMPORAL_ADDRESS", required("TEMPORAL_ADDRESS")),
                         env("TEMPORAL_NAMESPACE", required("TEMPORAL_NAMESPACE")), env("TEMPORAL_TLS", "true")]
-        backend = service("publishing-backend", "services", "services/backend/Dockerfile", 8080, "/readyz")
-        merge_env(backend, temporal_env + [secret("DATABASE_URL"), secret("PUBLISHING_SERVICE_TOKEN"), env("PORT", "8080")])
-        services[backend["name"]] = backend
-        worker = service("publishing-orchestrator", "services", "services/orchestrator/Dockerfile", 8081, "/readyz")
-        merge_env(worker, temporal_env + [secret("DATABASE_URL"), secret("STORAGE_SERVICE_KEY"), secret("POSTIZ_API_KEY"),
+        tenant_env = temporal_env + [secret("DATABASE_URL"), secret("STORAGE_SERVICE_KEY"), secret("POSTIZ_API_KEY"),
                   env("PORT", "8081"), env("RUN_CRON", "true"), env("STORAGE_API_URL", "http://storage:5000"),
-                  env("STORAGE_BUCKET", required("STORAGE_BUCKET")), env("POSTIZ_API_URL", "http://postiz-backend:3000/public/v1"),
+                  env("STORAGE_BUCKET", required("STORAGE_BUCKET")), env("POSTIZ_API_URL", "http://127.0.0.1:3000/public/v1"),
                   env("RUN_MAINTENANCE", "true"), secret("AUDIT_RETENTION_DATABASE_URL"),
                   secret("AUDIT_DRAIN_ENCRYPTION_KEY"), secret("RESEND_API_KEY"), secret("BETTER_AUTH_SECRET"),
                   env("BETTER_AUTH_URL", origin), env("AUTH_EMAIL_FROM", required("AUTH_EMAIL_FROM")),
-                  env("COMPANY_POSTAL_ADDRESS", secrets.get("COMPANY_POSTAL_ADDRESS", ""))])
-        services[worker["name"]] = worker
-        merge_env(web, [env("POSTIZ_API_URL", "http://postiz-backend:3000/public/v1"), secret("POSTIZ_API_KEY")])
+                  env("COMPANY_POSTAL_ADDRESS", secrets.get("COMPANY_POSTAL_ADDRESS", ""))]
+        merge_env(backend, [dict(item, key="TENANT_" + item["key"]) for item in tenant_env])
+        for old_name in ("postiz-backend", "postiz-orchestrator", "publishing-backend", "publishing-orchestrator"):
+            services.pop(old_name, None)
+        merge_env(web, [env("POSTIZ_API_URL", "http://screenshot-studio-backend:3000/public/v1"), secret("POSTIZ_API_KEY")])
         rules = spec.setdefault("ingress", {}).setdefault("rules", [])
-        rules[:] = [rule for rule in rules if rule.get("component", {}).get("name") != "postiz-backend"]
-        rules.insert(0, {"match": {"path": {"prefix": "/postiz"}}, "component": {"name": "postiz-backend"}})
+        rules[:] = [rule for rule in rules if rule.get("component", {}).get("name") not in ("postiz-backend", "screenshot-studio-backend")]
+        rules.insert(0, {"match": {"path": {"prefix": "/postiz"}}, "component": {"name": "screenshot-studio-backend"}})
 
     spec["services"] = list(services.values())
     spec["jobs"] = list(jobs.values())

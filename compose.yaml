@@ -331,6 +331,9 @@ services:
       context: ./services
       dockerfile: screenshot-studio-backend/backend/Dockerfile
     image: screenshot-studio-postiz-backend:local
+    # The local Postiz profile has no tenant publishing database; production
+    # uses the image's combined-backend entrypoint with TENANT_* settings.
+    entrypoint: ['/screenshot-studio-backend']
     environment:
       DATABASE_URL: postgresql://postiz_go:${POSTIZ_GO_DB_PASSWORD:-local-postiz-go-only}@postiz-go-db:5432/postiz_go?sslmode=disable
       REDIS_URL: redis://postiz-go-redis:6379

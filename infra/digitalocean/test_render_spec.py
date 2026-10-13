@@ -28,20 +28,25 @@ class DeploymentSpecTest(unittest.TestCase):
         self.assertEqual(services["web"]["image"], self.base["services"][0]["image"])
         self.assertEqual(services["web"]["instance_count"], 2)
         self.assertEqual(spec["domains"], self.base["domains"])
-        for name in ["storage", "design-renderer", "publishing-backend", "publishing-orchestrator", "postiz-orchestrator"]:
+        for name in ["storage", "design-renderer"]:
             self.assertNotIn("http_port", services[name])
             self.assertTrue(services[name]["internal_ports"])
-        self.assertEqual({r["component"]["name"] for r in spec["ingress"]["rules"]}, {"web", "postiz-backend"})
+        self.assertEqual(set(services), {"web", "storage", "design-renderer", "screenshot-studio-backend"})
+        self.assertEqual({r["component"]["name"] for r in spec["ingress"]["rules"]}, {"web", "screenshot-studio-backend"})
         for component in spec["services"] + spec["jobs"]:
             for item in component.get("envs", []):
                 if item["key"] != "EXISTING_SETTING":
                     self.assertEqual(item.get("scope"), "RUN_TIME")
-                if item["key"] in ["DATABASE_URL", "JWT_SECRET", "TEMPORAL_API_KEY", "PUBLISHING_SERVICE_TOKEN", "STORAGE_SERVICE_KEY", "RENDER_SERVICE_SECRET"]:
+                if item["key"] in ["DATABASE_URL", "JWT_SECRET", "TEMPORAL_API_KEY", "TENANT_DATABASE_URL", "TENANT_TEMPORAL_API_KEY", "TENANT_STORAGE_SERVICE_KEY", "RENDER_SERVICE_SECRET"]:
                     self.assertEqual(item["type"], "SECRET")
         self.assertNotIn("AUDIT_RETENTION_DATABASE_URL", {e["key"] for e in services["web"]["envs"]})
-        worker_env = {e["key"]: e for e in services["publishing-orchestrator"]["envs"]}
-        self.assertEqual(worker_env["RUN_MAINTENANCE"]["value"], "true")
-        self.assertEqual(worker_env["AUDIT_RETENTION_DATABASE_URL"]["type"], "SECRET")
+        backend = services["screenshot-studio-backend"]
+        self.assertEqual(backend["health_check"]["port"], 3003)
+        self.assertEqual(backend["instance_size_slug"], "apps-s-1vcpu-2gb")
+        worker_env = {e["key"]: e for e in backend["envs"]}
+        self.assertEqual(worker_env["RUN_WORKER"]["value"], "true")
+        self.assertEqual(worker_env["TENANT_RUN_MAINTENANCE"]["value"], "true")
+        self.assertEqual(worker_env["TENANT_AUDIT_RETENTION_DATABASE_URL"]["type"], "SECRET")
         self.assertEqual({j["kind"] for j in spec["jobs"]}, {"PRE_DEPLOY"})
 
     def test_requires_separate_database_even_with_different_credentials(self):
@@ -63,6 +68,19 @@ class DeploymentSpecTest(unittest.TestCase):
         self.assertEqual(render_spec.render(spec, self.secrets), spec)
         self.assertEqual(render_spec.render([{"spec": self.base}], self.secrets), spec)
         self.assertEqual(len(self.base["services"]), 1)
+
+    def test_repeat_render_keeps_existing_github_image_digest(self):
+        spec = render_spec.render(self.base, self.secrets)
+        backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
+        backend.pop("git")
+        backend.pop("source_dir")
+        backend.pop("dockerfile_path")
+        backend["image"] = {"registry_type": "GHCR", "registry": "playbookmediallc",
+                            "repository": "screenshot-studio", "digest": "sha256:" + "a" * 64}
+        rerendered = render_spec.render(spec, self.secrets)
+        updated = next(item for item in rerendered["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertEqual(updated["image"], backend["image"])
+        self.assertNotIn("git", updated)
 
 
 if __name__ == "__main__":

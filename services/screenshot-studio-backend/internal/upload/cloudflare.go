@@ -29,6 +29,7 @@ func newR2Client(accountID, accessKey, secretKey, region string) *s3.Client {
 	return s3.New(s3.Options{
 		BaseEndpoint:               aws.String(r2Endpoint(accountID)),
 		Region:                     region,
+		UsePathStyle:               true,
 		Credentials:                credentials.NewStaticCredentialsProvider(accessKey, secretKey, ""),
 		RequestChecksumCalculation: aws.RequestChecksumCalculationWhenRequired,
 		ResponseChecksumValidation: aws.ResponseChecksumValidationWhenRequired,
@@ -83,7 +84,7 @@ func (s *CloudflareStorage) UploadFile(ctx context.Context, file File) (*Uploade
 
 		if _, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 			Bucket:      aws.String(s.bucketName),
-			ACL:         types.ObjectCannedACLPublicRead,
+			ACL:         privateMediaACL(),
 			Key:         aws.String(key),
 			Body:        bytes.NewReader(file.Buffer),
 			ContentType: aws.String(detected.Mime),
@@ -114,7 +115,7 @@ func (s *CloudflareStorage) UploadStream(ctx context.Context, body io.Reader, mi
 		// of the whole body, and does not need to know the length up front
 		if err := streamToR2(ctx, s.client, &s3.CreateMultipartUploadInput{
 			Bucket:      aws.String(s.bucketName),
-			ACL:         types.ObjectCannedACLPublicRead,
+			ACL:         privateMediaACL(),
 			Key:         aws.String(key),
 			ContentType: aws.String(mimetype),
 		}, body); err != nil {

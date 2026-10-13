@@ -1,0 +1,85 @@
+package upload
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/url"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+)
+
+// PrivateMediaSigner turns a stored, stable R2 object URL into a short-lived
+// download URL when a post is actually published. A post scheduled months
+// ahead must not store a presigned URL that expires before the worker runs.
+type PrivateMediaSigner struct {
+	base   *url.URL
+	bucket string
+	client *s3.PresignClient
+}
+
+// NewPrivateMediaSigner reads the dedicated Postiz bucket configuration. Nil
+// means the existing public-bucket or local-storage behavior is in use.
+func NewPrivateMediaSigner() (*PrivateMediaSigner, error) {
+	if os.Getenv("POSTIZ_PRIVATE_MEDIA") != "true" {
+		return nil, nil
+	}
+	if os.Getenv("STORAGE_PROVIDER") != "cloudflare" {
+		return nil, errors.New("POSTIZ_PRIVATE_MEDIA requires STORAGE_PROVIDER=cloudflare")
+	}
+	base, err := url.Parse(strings.TrimRight(os.Getenv("CLOUDFLARE_BUCKET_URL"), "/"))
+	if err != nil || base == nil || (base.Scheme != "https" && base.Scheme != "http") || base.Host == "" || base.RawQuery != "" || base.Fragment != "" {
+		return nil, errors.New("POSTIZ_PRIVATE_MEDIA requires a valid CLOUDFLARE_BUCKET_URL")
+	}
+	for _, name := range []string{"CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_ACCESS_KEY", "CLOUDFLARE_SECRET_ACCESS_KEY", "CLOUDFLARE_BUCKETNAME"} {
+		if os.Getenv(name) == "" {
+			return nil, fmt.Errorf("POSTIZ_PRIVATE_MEDIA requires %s", name)
+		}
+	}
+	return &PrivateMediaSigner{
+		base:   base,
+		bucket: os.Getenv("CLOUDFLARE_BUCKETNAME"),
+		client: s3.NewPresignClient(newR2Client(os.Getenv("CLOUDFLARE_ACCOUNT_ID"), os.Getenv("CLOUDFLARE_ACCESS_KEY"), os.Getenv("CLOUDFLARE_SECRET_ACCESS_KEY"), "auto")),
+	}, nil
+}
+
+const privateMediaExpiry = 24 * time.Hour
+
+// SignURL leaves external media alone. It also refreshes an older presigned
+// URL for our bucket; only the object key, never its old query, is retained.
+func (s *PrivateMediaSigner) SignURL(ctx context.Context, raw string) (string, error) {
+	if s == nil || raw == "" {
+		return raw, nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != s.base.Scheme || !strings.EqualFold(u.Host, s.base.Host) {
+		return raw, nil
+	}
+	basePath := strings.TrimRight(s.base.Path, "/") + "/"
+	if !strings.HasPrefix(u.Path, basePath) {
+		return raw, nil
+	}
+	key := strings.TrimPrefix(u.Path, basePath)
+	if key == "" || strings.HasPrefix(key, "/") || strings.Contains(key, "..") || strings.ContainsAny(key, "\\\x00") {
+		return "", errors.New("invalid private media key")
+	}
+	request, err := s.client.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket), Key: aws.String(key),
+	}, s3.WithPresignExpires(privateMediaExpiry))
+	if err != nil {
+		return "", fmt.Errorf("sign private media: %w", err)
+	}
+	return request.URL, nil
+}
+
+func privateMediaACL() types.ObjectCannedACL {
+	if os.Getenv("POSTIZ_PRIVATE_MEDIA") == "true" {
+		return ""
+	}
+	return types.ObjectCannedACLPublicRead
+}

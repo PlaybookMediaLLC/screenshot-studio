@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.11.0...v1.11.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* sign private Postiz media when scheduled posts publish ([#63](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/63)) ([4fa4983](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/4fa49834215d15f59dc45950b669f8b2ade72d63))
+
 ## [1.11.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.10.1...v1.11.0) (2026-10-12)
 
 

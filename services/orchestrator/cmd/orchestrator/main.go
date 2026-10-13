@@ -15,9 +15,11 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/config"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/maintenance"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/storage"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalmaintenance"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 	workflowservice "go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/activity"
@@ -92,6 +94,41 @@ func main() {
 		activityWorker.RegisterActivityWithOptions(activities.MarkUnknown, activity.RegisterOptions{Name: temporalpublishing.MarkUnknownActivityName})
 		activityWorker.RegisterActivityWithOptions(activities.Submit, activity.RegisterOptions{Name: temporalpublishing.SubmitActivityName})
 		activityWorker.RegisterActivityWithOptions(activities.Check, activity.RegisterOptions{Name: temporalpublishing.CheckActivityName})
+	}
+
+	if cfg.RunMaintenance {
+		retention, err := database.Open(ctx, cfg.AuditRetentionDatabaseURL)
+		if err != nil {
+			slog.Error("audit retention database unavailable")
+			os.Exit(1)
+		}
+		defer retention.Close()
+		jobs := &maintenance.Store{DB: db.SQL, RetentionDB: retention.SQL, Objects: assetReader,
+			Drains: maintenance.NewDrainSender(cfg.AuditDrainEncryptionKey),
+			Mail:   &maintenance.Mailer{APIKey: cfg.ResendAPIKey, From: cfg.EmailFrom, BaseURL: cfg.AuthBaseURL, SigningSecret: cfg.AuthSecret, PostalAddress: cfg.CompanyPostalAddress},
+		}
+		maintenanceWorker := worker.New(temporalClient, temporalmaintenance.TaskQueue, worker.Options{
+			MaxConcurrentActivityExecutionSize: 5, OnFatalError: func(err error) { slog.Error("maintenance worker failed"); stop() },
+		})
+		temporalmaintenance.Register(maintenanceWorker, temporalmaintenance.RunnerFunc(func(ctx context.Context, job string) (int, error) {
+			if job == "scheduled-posts" {
+				return recovery.DispatchDue(ctx)
+			}
+			return jobs.Run(ctx, job)
+		}))
+		if err := maintenanceWorker.Start(); err != nil {
+			slog.Error("maintenance worker did not start")
+			os.Exit(1)
+		}
+		defer maintenanceWorker.Stop()
+		reconcileCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		err = temporalmaintenance.Reconcile(reconcileCtx, temporalClient.ScheduleClient())
+		cancel()
+		if err != nil {
+			slog.Error("maintenance schedules unavailable", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("maintenance schedules ready", "count", len(temporalmaintenance.Jobs))
 	}
 
 	health := healthHandler(repository, temporalClient, cfg.Namespace)

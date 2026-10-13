@@ -1,11 +1,13 @@
 ---
 name: add-background-task
-description: Add or change a Screenshot Studio Trigger.dev background task. Use for artifact generation, media processing, Steel capture, scheduled delivery, provider reconciliation, retries, queues, outbox dispatch, or task observability.
+description: Add or change a Screenshot Studio Go/Temporal background task. Use for artifact generation, media processing, Steel capture, scheduled delivery, provider reconciliation, retries, queues, outbox dispatch, or task observability.
 ---
 
 # Add Background Task
 
-Read RFC 004, RFC 005, RFC 006, and RFC 007. A task executes a durable side
+Read the current deployment guide in `docs/digitalocean-deployment.md` and
+`services/internal/temporalmaintenance` / `services/internal/maintenance`.
+RFC 004–007 describe the original design; their Trigger.dev runtime has been replaced. A task executes a durable side
 effect; PlanetScale remains the tenant state and authorization source.
 
 ## Task contract
@@ -14,12 +16,16 @@ effect; PlanetScale remains the tenant state and authorization source.
    retry classes before writing task code.
 2. Write the state transition, audit event, and `OutboxEvent` in one database
    transaction. Dispatch after commit.
-3. Send only stable IDs, versions, idempotency key, and request ID to Trigger.
+3. Send only stable IDs, versions, idempotency key, and request ID to Temporal.
    Do not send sessions, raw keys, provider tokens, or R2 signed URLs.
 4. Re-read the record, organization status, approval, and connection state
    immediately before an external side effect.
 5. Atomically claim the business action, save a receipt or safe failure code,
    and make retries return when the prior action completed.
+
+Implement activities in Go and register durable Temporal schedules in the Go
+orchestrator. Do not add Trigger.dev tasks or call TypeScript handlers from a
+Temporal activity. Prisma migrations remain the schema authority.
 
 ## Queue rules
 

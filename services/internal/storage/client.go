@@ -73,3 +73,33 @@ func safeSegment(value string) bool {
 	}
 	return true
 }
+
+// Delete is idempotent and only accepts keys inside the requested tenant.
+func (c *Client) Delete(ctx context.Context, organizationID, objectKey string) error {
+	if !safeSegment(organizationID) || !strings.HasPrefix(objectKey, "org/"+organizationID+"/") {
+		return fmt.Errorf("asset object key is outside the active organization")
+	}
+	path := []string{"object", url.PathEscape(c.bucket)}
+	for _, part := range strings.Split(objectKey, "/") {
+		if !safeSegment(part) {
+			return fmt.Errorf("asset object key contains an unsafe segment")
+		}
+		path = append(path, url.PathEscape(part))
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.apiURL+"/"+strings.Join(path, "/"), nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("apikey", c.serviceKey)
+	req.Header.Set("Authorization", "Bearer "+c.serviceKey)
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("delete tenant asset failed")
+	}
+	defer res.Body.Close()
+	_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, 4096))
+	if (res.StatusCode < 200 || res.StatusCode >= 300) && res.StatusCode != http.StatusNotFound {
+		return fmt.Errorf("storage delete failed with status %d", res.StatusCode)
+	}
+	return nil
+}

@@ -1,4 +1,8 @@
 .git
+**/.context
+**/.env*
+**/node_modules
+**/dist
 **/*_test.go
 bin
 coverage.out

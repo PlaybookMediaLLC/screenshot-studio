@@ -23,7 +23,17 @@ func NewRecoveryActivities(store *publishing.Repository, scheduler *Scheduler) *
 
 func (a *RecoveryActivities) Recover(ctx context.Context) (int, error) {
 	now := time.Now().UTC()
-	posts, err := a.store.ListRecoverablePosts(ctx, now.Add(-recoveryLookback), now, recoveryBatchSize)
+	return a.dispatch(ctx, now.Add(-recoveryLookback), now)
+}
+
+// DispatchDue replaces the former minute TypeScript publisher. It only starts
+// stable post workflows; all provider sends remain in the publishing worker.
+func (a *RecoveryActivities) DispatchDue(ctx context.Context) (int, error) {
+	return a.dispatch(ctx, time.Time{}, time.Now().UTC())
+}
+
+func (a *RecoveryActivities) dispatch(ctx context.Context, since, now time.Time) (int, error) {
+	posts, err := a.store.ListRecoverablePosts(ctx, since, now, recoveryBatchSize)
 	if err != nil {
 		return 0, err
 	}

@@ -9,7 +9,7 @@ E2E_BASE_URL ?= http://localhost:3000
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down reset status smoke rate-limit-smoke tenant-isolation e2e e2e-file e2e-onboarding e2e-recovery check publishing-up publishing-down publishing-test publishing-acceptance postiz-go-up postiz-go-down logs logs-app logs-postgres logs-redis logs-rustfs logs-storage trigger-login trigger-config trigger-dev kind-up kind-down kind-status kind-logs
+.PHONY: help up down reset status smoke rate-limit-smoke tenant-isolation e2e e2e-file e2e-onboarding e2e-recovery check publishing-up publishing-down publishing-test publishing-acceptance postiz-go-up postiz-go-down logs logs-app logs-postgres logs-redis logs-rustfs logs-storage kind-up kind-down kind-status kind-logs
 
 help: ## Show local development commands.
 	@echo "Screenshot Studio local development"
@@ -39,10 +39,6 @@ help: ## Show local development commands.
 	@echo "  make logs-redis                 Follow Redis logs"
 	@echo "  make logs-rustfs                Follow RustFS logs"
 	@echo "  make logs-storage               Follow Supabase Storage logs"
-	@echo ""
-	@echo "  make trigger-login              Log in to Trigger.dev Cloud"
-	@echo "  make trigger-config PROJECT_REF=proj_xxx"
-	@echo "  make trigger-dev                Start the local Trigger.dev worker"
 	@echo ""
 	@echo "  make kind-up                    Build and install the Kind stack"
 	@echo "  make kind-down                  Delete the Kind cluster after confirmation"
@@ -121,16 +117,6 @@ logs-rustfs:
 
 logs-storage:
 	@$(STUDIO) logs storage
-
-trigger-login:
-	@$(STUDIO) trigger-login
-
-trigger-config:
-	@test -n "$(PROJECT_REF)" || { echo "Usage: make trigger-config PROJECT_REF=proj_xxx" >&2; exit 2; }
-	@$(STUDIO) trigger-config "$(PROJECT_REF)"
-
-trigger-dev:
-	@$(STUDIO) trigger-dev
 
 kind-up:
 	@$(STUDIO) kind-up

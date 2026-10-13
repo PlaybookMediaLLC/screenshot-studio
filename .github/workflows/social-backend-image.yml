@@ -47,7 +47,8 @@ jobs:
       - name: Record immutable image reference
         env:
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
-        run: echo "Social backend image: ghcr.io/playbookmediallc/screenshot-studio@$IMAGE_DIGEST" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo "Social backend image: ghcr.io/playbookmediallc/screenshot-studio@$IMAGE_DIGEST" >> "$GITHUB_STEP_SUMMARY"
       - name: Verify public pull
         env:
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}

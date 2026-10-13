@@ -142,7 +142,7 @@ func TestSingleReelQuery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "video_url=https://cdn/v.mp4&media_type=REELS&thumb_offset=1500" +
+	want := "video_url=https%3A%2F%2Fcdn%2Fv.mp4&media_type=REELS&thumb_offset=1500" +
 		"&trial_params=%7B%22graduation_strategy%22%3A%22MANUAL%22%7D" +
 		"&audio_configuration=%7B%22audio_id%22%3A%22a1%22%2C%22audio_volume%22%3A40%7D" +
 		"&access_token=page&caption=a%20b"
@@ -151,6 +151,44 @@ func TestSingleReelQuery(t *testing.T) {
 	}
 	if !strings.Contains(string(res[0].PendingData), `"postType":"single"`) {
 		t.Fatalf("%s", res[0].PendingData)
+	}
+}
+
+func TestSignedMediaURLsReachGraphIntact(t *testing.T) {
+	imageURL := "https://r2.example/bucket/photo.jpg?X-Amz-Date=20261013T000000Z&X-Amz-Signature=abc%2Fdef"
+	videoURL := "https://r2.example/bucket/clip.mp4?X-Amz-Date=20261013T000000Z&X-Amz-Signature=video"
+	coverURL := "https://r2.example/bucket/cover.jpg?X-Amz-Date=20261013T000000Z&X-Amz-Signature=cover"
+	tests := []struct {
+		name, host, field, mediaURL, coverURL string
+	}{
+		{"facebook-login-image", FacebookHost, "image_url", imageURL, ""},
+		{"instagram-login-image", "graph.instagram.com", "image_url", imageURL, ""},
+		{"reel-with-cover", FacebookHost, "video_url", videoURL, coverURL},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mux := http.NewServeMux()
+			mux.HandleFunc("POST /v25.0/ig1/media", func(w http.ResponseWriter, r *http.Request) {
+				query := r.URL.Query()
+				if got := query.Get(test.field); got != test.mediaURL {
+					t.Errorf("%s = %q, want %q", test.field, got, test.mediaURL)
+				}
+				if got := query.Get("cover_url"); got != test.coverURL {
+					t.Errorf("cover_url = %q, want %q", got, test.coverURL)
+				}
+				if query.Has("X-Amz-Date") || query.Has("X-Amz-Signature") {
+					t.Errorf("signature escaped the media URL: %s", r.URL.RawQuery)
+				}
+				w.Write([]byte(`{"id":"c1"}`))
+			})
+			p := setup(t, mux)
+			_, err := p.PostPendingOn(context.Background(), "ig1", "page", []integrations.PostDetails{{
+				ID: "post", Media: []integrations.MediaContent{{Path: test.mediaURL, Thumbnail: test.coverURL}},
+			}}, &ent.Integration{}, test.host)
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
 

@@ -57,6 +57,7 @@ func (p *Provider) Info() integrations.Info {
 		Scopes:           scopes,
 		RefreshCron:      true,
 		MaxConcurrentJob: 200, // Instagram standalone has stricter limits
+		ConvertToJPEG:    true,
 		Rules:            instagram.Rules,
 	}
 }

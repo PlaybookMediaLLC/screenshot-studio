@@ -363,7 +363,8 @@ func (b *Base) get(ctx context.Context, url string, headers map[string]string) (
 	return io.ReadAll(res.Body)
 }
 
-// MediaSize returns the byte size of a URL (HEAD) or local file.
+// MediaSize returns the byte size of a URL or local file. An R2 presigned GET
+// URL cannot be used with HEAD because the HTTP method is part of its signature.
 func (b *Base) MediaSize(ctx context.Context, path, identifier string) (int64, error) {
 	if !strings.HasPrefix(path, "http") {
 		info, err := os.Stat(path)
@@ -373,17 +374,32 @@ func (b *Base) MediaSize(ctx context.Context, path, identifier string) (int64, e
 		return info.Size(), nil
 	}
 	temporalx.SetHeartbeatDetails(ctx, "media size "+temporalx.StripQuery(path))
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, path, nil)
+	method := http.MethodHead
+	if u, err := url.Parse(path); err == nil && u.Query().Has("X-Amz-Signature") {
+		method = http.MethodGet
+	}
+	req, err := http.NewRequestWithContext(ctx, method, path, nil)
 	if err != nil {
 		return 0, err
 	}
 	req.Header.Set("Accept-Encoding", "identity")
+	if method == http.MethodGet {
+		req.Header.Set("Range", "bytes=0-0")
+	}
 	res, err := ssrf.Client().Do(req)
 	if err != nil {
 		return 0, err
 	}
 	res.Body.Close()
 	length, _ := strconv.ParseInt(res.Header.Get("Content-Length"), 10, 64)
+	if res.StatusCode == http.StatusPartialContent {
+		_, total, ok := strings.Cut(res.Header.Get("Content-Range"), "/")
+		if !ok {
+			length = 0
+		} else {
+			length, _ = strconv.ParseInt(total, 10, 64)
+		}
+	}
 	if res.StatusCode < 200 || res.StatusCode > 299 || length <= 0 {
 		return 0, temporalx.BadBody(identifier, "{}", "{}", "Could not determine the media size for upload")
 	}

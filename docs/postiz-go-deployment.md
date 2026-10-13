@@ -48,6 +48,31 @@ for 24 hours, then gives those temporary URLs to the provider. An activity
 retry signs again. The web UI does not yet proxy private Postiz media for
 pre-publication previews.
 
+## Social provider readiness
+
+The Go port registers X, both Instagram login variants, Facebook, Threads,
+TikTok, Pinterest, and other providers. Registration and passing mocked API
+tests do not establish that a customer can connect or publish to a live
+account. The current local setup has completed live text, image, and scheduled
+image publishing only for a personal LinkedIn account. X and Instagram still
+need their own developer apps, publishing permissions, OAuth connection flows,
+and a harmless live scheduled-media test. The web app currently forwards the
+personal LinkedIn OAuth callback only. Do not label other destinations ready
+for customers until their connection and live publishing paths are verified.
+
+Private media is signed at publication time for the worker's media fields.
+Provider-specific paths need separate review: X article covers and inline
+images are signed when uploaded, while Instagram and Threads receive an
+encoded temporary URL that their servers fetch. The URL expires after 24
+hours; a provider fetch delayed beyond that window will fail. Both Instagram
+variants convert PNG attachments to JPEG before handoff. X video sizing uses a
+ranged GET because a private R2 URL signed for GET rejects HEAD.
+TikTok video uses file upload from the worker, but TikTok photo publishing
+requires `PULL_FROM_URL` from a verified domain or URL prefix. The current
+private R2 S3 hostname is not configured as a verified TikTok media source, so
+photo publishing must remain unadvertised until that path is designed and
+tested without exposing the bucket.
+
 ## Fly production configuration
 
 The two Fly configs live at `services/screenshot-studio-backend/backend/fly.toml` and

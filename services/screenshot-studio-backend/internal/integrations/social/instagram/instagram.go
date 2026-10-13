@@ -74,6 +74,7 @@ func (p *Provider) Info() integrations.Info {
 		IsBetweenSteps:   true,
 		ToolTip:          "Instagram must be business and connected to a Facebook page",
 		MaxConcurrentJob: 400,
+		ConvertToJPEG:    true,
 		Rules:            Rules,
 	}
 }
@@ -625,20 +626,23 @@ func (p *Provider) PostPendingOn(ctx context.Context, id, token string, posts []
 			thumbOffset = strconv.FormatInt(*m.ThumbnailTimestamp, 10)
 		}
 		isVideo := helpers.HasExtension(m.Path, "mp4")
+		// Private media URLs carry their own query parameters. Encode the entire
+		// URL as one Graph API parameter so its signature reaches Meta intact.
+		mediaURL := facebook.EncodeURIComponent(m.Path)
 		var mediaType string
 		switch {
 		case isVideo && isStory:
-			mediaType = "video_url=" + m.Path + "&media_type=STORIES"
+			mediaType = "video_url=" + mediaURL + "&media_type=STORIES"
 		case isVideo && single && m.Thumbnail != "":
-			mediaType = "video_url=" + m.Path + "&media_type=REELS&cover_url=" + facebook.EncodeURIComponent(m.Thumbnail)
+			mediaType = "video_url=" + mediaURL + "&media_type=REELS&cover_url=" + facebook.EncodeURIComponent(m.Thumbnail)
 		case isVideo && single:
-			mediaType = "video_url=" + m.Path + "&media_type=REELS&thumb_offset=" + thumbOffset
+			mediaType = "video_url=" + mediaURL + "&media_type=REELS&thumb_offset=" + thumbOffset
 		case isVideo:
-			mediaType = "video_url=" + m.Path + "&media_type=VIDEO&thumb_offset=" + thumbOffset
+			mediaType = "video_url=" + mediaURL + "&media_type=VIDEO&thumb_offset=" + thumbOffset
 		case isStory:
-			mediaType = "image_url=" + m.Path + "&media_type=STORIES"
+			mediaType = "image_url=" + mediaURL + "&media_type=STORIES"
 		default:
-			mediaType = "image_url=" + m.Path
+			mediaType = "image_url=" + mediaURL
 		}
 
 		trialParams := ""

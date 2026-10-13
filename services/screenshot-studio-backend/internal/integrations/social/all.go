@@ -45,7 +45,7 @@ import (
 // All returns a new instance of every registered provider. mastodoncustom is
 // ported but, as in Postiz, not registered.
 func All() []integrations.Provider {
-	return []integrations.Provider{
+	providers := []integrations.Provider{
 		x.New(),
 		linkedin.New(),
 		linkedinpage.New(),
@@ -82,6 +82,7 @@ func All() []integrations.Provider {
 		mewe.New(),
 		tumblr.New(),
 	}
+	return append(providers, e2eProviders()...)
 }
 
 // NewManager is the IntegrationManager over All().

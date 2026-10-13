@@ -41,10 +41,14 @@ func NewPrivateMediaSigner() (*PrivateMediaSigner, error) {
 			return nil, fmt.Errorf("POSTIZ_PRIVATE_MEDIA requires %s", name)
 		}
 	}
+	region := os.Getenv("CLOUDFLARE_REGION")
+	if region == "" {
+		region = "auto"
+	}
 	return &PrivateMediaSigner{
 		base:   base,
 		bucket: os.Getenv("CLOUDFLARE_BUCKETNAME"),
-		client: s3.NewPresignClient(newR2Client(os.Getenv("CLOUDFLARE_ACCOUNT_ID"), os.Getenv("CLOUDFLARE_ACCESS_KEY"), os.Getenv("CLOUDFLARE_SECRET_ACCESS_KEY"), "auto")),
+		client: s3.NewPresignClient(newR2Client(os.Getenv("CLOUDFLARE_ACCOUNT_ID"), os.Getenv("CLOUDFLARE_ACCESS_KEY"), os.Getenv("CLOUDFLARE_SECRET_ACCESS_KEY"), region)),
 	}, nil
 }
 

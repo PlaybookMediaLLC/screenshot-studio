@@ -1,0 +1,151 @@
+name: Design renderer image and deployment
+
+on:
+  push:
+    paths:
+      - services/design-renderer/**
+      - .github/workflows/design-renderer.yml
+  pull_request:
+    paths:
+      - services/design-renderer/**
+      - .github/workflows/design-renderer.yml
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy to the existing production app (main only)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: services/design-renderer
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/design-renderer/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck && npm run lint
+      - run: npm exec -- playwright-core install --with-deps chromium
+      - run: npm test
+
+  publish:
+    needs: check
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Build and publish the renderer in the existing image package
+        id: build
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: services/design-renderer
+          file: services/design-renderer/Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          tags: ghcr.io/playbookmediallc/screenshot-studio:design-renderer-${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=design-renderer
+          cache-to: type=gha,mode=max,ignore-error=true,scope=design-renderer
+      - name: Record the immutable image reference
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          echo "Renderer image: ghcr.io/playbookmediallc/screenshot-studio@$IMAGE_DIGEST" >> "$GITHUB_STEP_SUMMARY"
+      - name: Check App Platform can pull the image
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          docker logout ghcr.io
+          docker buildx imagetools inspect "ghcr.io/playbookmediallc/screenshot-studio@$IMAGE_DIGEST"
+
+  deploy:
+    needs: publish
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    # Same lock as the existing shared App Platform deployment workflow.
+    concurrency:
+      group: do-app-${{ github.repository }}-${{ vars.SCREENSHOT_STUDIO_APP_ID }}
+      cancel-in-progress: false
+    env:
+      APP_ID: ${{ vars.SCREENSHOT_STUDIO_APP_ID }}
+      IMAGE_DIGEST: ${{ needs.publish.outputs.digest }}
+      RENDER_ALLOWED_ORIGIN: https://shots.oppulence.io
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/design-renderer/package-lock.json
+      - run: npm --prefix services/design-renderer ci
+      - name: Load existing production secrets
+        uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d # v1.0.18
+        with:
+          method: oidc
+          identity-id: ${{ vars.SCREENSHOT_STUDIO_INFISICAL_IDENTITY_ID }}
+          project-id: ${{ vars.SCREENSHOT_STUDIO_INFISICAL_PROJECT_ID }}
+          env-slug: prod
+          secret-path: /screenshot-studio
+          include-imports: 'false'
+          recursive: 'false'
+      - uses: digitalocean/action-doctl@3cb3953159719656269e044e0e24ca16dd2a690f # v2.5.2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_PRODUCTION_TOKEN }}
+          version: 1.180.0
+      - name: Update renderer and verify the active deployment
+        working-directory: services/design-renderer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          umask 077
+          test -n "$APP_ID"
+          # Refuse to deploy a superseded main commit after waiting for approval.
+          head_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
+          test "$head_sha" = "$GITHUB_SHA"
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          doctl apps get "$APP_ID" -o json > "$work/before.json"
+          previous_id="$(jq -r '.[0].active_deployment.id // empty' "$work/before.json")"
+          npm exec -- tsx deploy/cli.ts render "$work/before.json" "$work/spec.json"
+          doctl apps propose --app "$APP_ID" --spec "$work/spec.json" -o json > "$work/proposal.json"
+          # Do not refresh unrelated git/image sources during this component update.
+          doctl apps update "$APP_ID" --spec "$work/spec.json" --wait > "$work/update.log"
+          doctl apps get "$APP_ID" -o json > "$work/after.json"
+          npm exec -- tsx deploy/cli.ts verify "$work/after.json" "$work/spec.json" "$previous_id"
+          curl --fail --silent --show-error --retry 6 --retry-delay 5 https://shots.oppulence.io/api/health
+          echo "Renderer deployment verified: https://cloud.digitalocean.com/apps/$APP_ID" >> "$GITHUB_STEP_SUMMARY"

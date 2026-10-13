@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -94,6 +95,10 @@ func redirectURI() (string, error) {
 	frontend, err := url.Parse(os.Getenv("FRONTEND_URL"))
 	if err != nil || frontend.Scheme != "https" || frontend.Hostname() == "" || strings.HasSuffix(frontend.Host, ":") || frontend.User != nil ||
 		(frontend.Path != "" && frontend.Path != "/") || frontend.ForceQuery || frontend.RawQuery != "" || frontend.Fragment != "" {
+		return "", errors.New("FRONTEND_URL must be an HTTPS origin for Instagram OAuth")
+	}
+	if strings.Contains(frontend.Hostname(), ":") &&
+		(!strings.HasPrefix(frontend.Host, "[") || net.ParseIP(frontend.Hostname()) == nil) {
 		return "", errors.New("FRONTEND_URL must be an HTTPS origin for Instagram OAuth")
 	}
 	if port := frontend.Port(); port != "" {

@@ -153,6 +153,8 @@ func TestRejectInsecureCallback(t *testing.T) {
 		"https://studio.example.test:",
 		"https://studio.example.test:65536",
 		"https://studio.example.test:0",
+		"https://studio.example.test::443",
+		"https://::1:443",
 	} {
 		t.Run(frontend, func(t *testing.T) {
 			t.Setenv("FRONTEND_URL", frontend)
@@ -177,6 +179,10 @@ func TestRejectInsecureCallback(t *testing.T) {
 	}
 	if got := parsed.Query().Get("redirect_uri"); got != "https://studio.example.test/integrations/social/instagram-standalone" {
 		t.Fatalf("unexpected callback %q", got)
+	}
+	t.Setenv("FRONTEND_URL", "https://[::1]:443")
+	if got, err := redirectURI(); err != nil || got != "https://[::1]:443/integrations/social/instagram-standalone" {
+		t.Fatalf("unexpected IPv6 callback %q: %v", got, err)
 	}
 }
 

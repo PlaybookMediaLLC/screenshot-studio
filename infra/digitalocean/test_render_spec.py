@@ -69,6 +69,19 @@ class DeploymentSpecTest(unittest.TestCase):
         self.assertEqual(render_spec.render([{"spec": self.base}], self.secrets), spec)
         self.assertEqual(len(self.base["services"]), 1)
 
+    def test_repeat_render_keeps_existing_github_image_digest(self):
+        spec = render_spec.render(self.base, self.secrets)
+        backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
+        backend.pop("git")
+        backend.pop("source_dir")
+        backend.pop("dockerfile_path")
+        backend["image"] = {"registry_type": "GHCR", "registry": "playbookmediallc",
+                            "repository": "screenshot-studio", "digest": "sha256:" + "a" * 64}
+        rerendered = render_spec.render(spec, self.secrets)
+        updated = next(item for item in rerendered["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertEqual(updated["image"], backend["image"])
+        self.assertNotIn("git", updated)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -140,6 +140,13 @@ def render(base, secrets, *, stack="full", branch="main"):
         backend["http_port"] = 3000
         backend["internal_ports"] = [3003]
         backend["health_check"]["port"] = 3003
+        # Once GitHub has cut production over to a digest, subsequent config
+        # renders must keep that image source instead of switching to DO builds.
+        existing_backend = services.get(backend["name"])
+        if existing_backend and existing_backend.get("image"):
+            for key in ("git", "source_dir", "dockerfile_path"):
+                backend.pop(key, None)
+            backend["image"] = copy.deepcopy(existing_backend["image"])
         services[backend["name"]] = backend
         job = {k: copy.deepcopy(v) for k, v in backend.items() if k not in ["envs", "http_port", "health_check"]}
         job.pop("internal_ports", None)

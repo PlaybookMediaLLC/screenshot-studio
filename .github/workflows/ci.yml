@@ -70,7 +70,6 @@ jobs:
           docker build --file services/backend/Dockerfile --tag screenshot-studio-publishing-backend:${{ github.sha }} services
           docker build --file services/orchestrator/Dockerfile --tag screenshot-studio-publishing-orchestrator:${{ github.sha }} services
           docker build --file services/screenshot-studio-backend/backend/Dockerfile --tag screenshot-studio-backend:${{ github.sha }} services
-          docker build --file services/screenshot-studio-backend/orchestrator/Dockerfile --tag screenshot-studio-orchestrator:${{ github.sha }} services
 
   validate:
     runs-on: ubuntu-latest

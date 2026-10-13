@@ -106,11 +106,11 @@ func TestPendingFlowOnInstagramHost(t *testing.T) {
 
 func TestAuthenticate(t *testing.T) {
 	t.Setenv("INSTAGRAM_APP_ID", "app")
-	t.Setenv("FRONTEND_URL", "http://localhost:4200")
+	t.Setenv("FRONTEND_URL", "https://studio.example.test")
 	permissions := "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_comments,instagram_business_manage_insights"
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /oauth/access_token", func(w http.ResponseWriter, r *http.Request) {
-		if r.FormValue("redirect_uri") != "https://redirectmeto.com/http://localhost:4200/integrations/social/instagram-standalone" || r.FormValue("code") != "code1" {
+		if r.FormValue("redirect_uri") != "https://studio.example.test/integrations/social/instagram-standalone" || r.FormValue("code") != "code1" {
 			t.Errorf("form %v", r.Form)
 		}
 		json.NewEncoder(w).Encode(map[string]any{"access_token": "short", "user_id": 1, "permissions": permissions})
@@ -138,6 +138,40 @@ func TestAuthenticate(t *testing.T) {
 	var scopesErr *integrations.NotEnoughScopes
 	if !errors.As(err, &scopesErr) {
 		t.Fatalf("expected NotEnoughScopes, got %v", err)
+	}
+}
+
+func TestRejectInsecureCallback(t *testing.T) {
+	for _, frontend := range []string{
+		"",
+		"http://localhost:4200",
+		"https://redirectmeto.com/http://localhost:4200",
+		"https://user@studio.example.test",
+		"https://studio.example.test/path",
+	} {
+		t.Run(frontend, func(t *testing.T) {
+			t.Setenv("FRONTEND_URL", frontend)
+			p := New()
+			if _, err := p.GenerateAuthURL(context.Background(), nil); err == nil {
+				t.Fatal("expected an invalid callback error")
+			}
+			if _, err := p.Authenticate(context.Background(), integrations.AuthenticateParams{Code: "code"}, nil); err == nil {
+				t.Fatal("expected an invalid callback error before token exchange")
+			}
+		})
+	}
+
+	t.Setenv("FRONTEND_URL", "https://studio.example.test/")
+	link, err := New().GenerateAuthURL(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := url.Parse(link.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := parsed.Query().Get("redirect_uri"); got != "https://studio.example.test/integrations/social/instagram-standalone" {
+		t.Fatalf("unexpected callback %q", got)
 	}
 }
 

@@ -8,8 +8,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -85,14 +87,15 @@ func (p *Provider) CheckValidity(_ context.Context, posts [][]integrations.Valid
 	return "", nil
 }
 
-// redirectURI sends non-https frontends through redirectmeto.com, since
-// Instagram only accepts https redirects.
-func redirectURI() string {
-	frontend := os.Getenv("FRONTEND_URL")
-	if frontend != "" && !strings.Contains(frontend, "https") {
-		frontend = "https://redirectmeto.com/" + frontend
+// Instagram requires an HTTPS callback. Never send an authorization code
+// through a third-party redirect service to reach a local HTTP frontend.
+func redirectURI() (string, error) {
+	frontend, err := url.Parse(os.Getenv("FRONTEND_URL"))
+	if err != nil || frontend.Scheme != "https" || frontend.Host == "" || frontend.User != nil ||
+		(frontend.Path != "" && frontend.Path != "/") || frontend.RawQuery != "" || frontend.Fragment != "" {
+		return "", errors.New("FRONTEND_URL must be an HTTPS origin for Instagram OAuth")
 	}
-	return frontend + "/integrations/social/instagram-standalone"
+	return strings.TrimSuffix(frontend.String(), "/") + "/integrations/social/instagram-standalone", nil
 }
 
 // flexID accepts a JSON string or number id.
@@ -146,10 +149,14 @@ func (p *Provider) RefreshToken(ctx context.Context, refreshToken string) (*inte
 }
 
 func (p *Provider) GenerateAuthURL(context.Context, *integrations.ClientInformation) (*integrations.GenerateAuthURLResponse, error) {
+	callback, err := redirectURI()
+	if err != nil {
+		return nil, err
+	}
 	state := ids.Secure(6)
 	return &integrations.GenerateAuthURLResponse{
 		URL: "https://www.instagram.com/oauth/authorize?enable_fb_login=0&client_id=" + os.Getenv("INSTAGRAM_APP_ID") +
-			"&redirect_uri=" + facebook.EncodeURIComponent(redirectURI()) +
+			"&redirect_uri=" + facebook.EncodeURIComponent(callback) +
 			"&response_type=code&scope=" + facebook.EncodeURIComponent(strings.Join(scopes, ",")) +
 			"&state=" + state,
 		CodeVerifier: ids.Secure(10),
@@ -158,13 +165,17 @@ func (p *Provider) GenerateAuthURL(context.Context, *integrations.ClientInformat
 }
 
 func (p *Provider) Authenticate(ctx context.Context, params integrations.AuthenticateParams, _ *integrations.ClientInformation) (*integrations.AuthTokenDetails, error) {
+	callback, err := redirectURI()
+	if err != nil {
+		return nil, err
+	}
 	var form bytes.Buffer
 	writer := multipart.NewWriter(&form)
 	for _, field := range [][2]string{
 		{"client_id", os.Getenv("INSTAGRAM_APP_ID")},
 		{"client_secret", os.Getenv("INSTAGRAM_APP_SECRET")},
 		{"grant_type", "authorization_code"},
-		{"redirect_uri", redirectURI()},
+		{"redirect_uri", callback},
 		{"code", params.Code},
 	} {
 		if err := writer.WriteField(field[0], field[1]); err != nil {

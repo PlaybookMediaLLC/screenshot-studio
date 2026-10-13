@@ -148,11 +148,17 @@ one-use state and saves the channel in the Go database.
 
 For X, register `/integrations/social/x` on the web host as an OAuth 1.0a
 callback and grant Read and write access. Set `X_API_KEY` and `X_API_SECRET` on
-both the Go API and worker. For Instagram with Facebook Login, set
+the combined Go backend. For Instagram with Facebook Login, set
 `FACEBOOK_APP_ID` and `FACEBOOK_APP_SECRET`; for Instagram Login, set
 `INSTAGRAM_APP_ID` and `INSTAGRAM_APP_SECRET`. The optional local Compose stack
-passes these names to both services. Keep the credentials in ignored local env
-files or the production secret store, never in Compose or Git.
+passes these names to the combined backend service. Keep the credentials in
+ignored local env files or the production secret store, never in Compose or Git.
+Instagram Login requires a direct HTTPS `FRONTEND_URL`; the Go adapter rejects
+HTTP instead of sending authorization codes through a redirect service. For a
+local canary, point a temporary HTTPS tunnel at the web app, set
+`POSTIZ_GO_FRONTEND_URL` to that tunnel origin in the ignored local env file,
+and register its exact `/integrations/social/instagram-standalone` callback in
+Meta. Stop the tunnel after the canary.
 
 Set `DATABASE_URL`, `REDIS_URL`, `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`,
 `JWT_SECRET`, `FRONTEND_URL`, `MAIN_URL`, `NEXT_PUBLIC_BACKEND_URL`,

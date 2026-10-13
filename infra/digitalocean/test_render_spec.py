@@ -76,6 +76,11 @@ class DeploymentSpecTest(unittest.TestCase):
                     self.assertEqual(envs[key]["type"], "SECRET")
             else:
                 self.assertTrue(set(keys).isdisjoint(envs))
+        del self.secrets["POSTIZ_GO_X_API_KEY"]
+        del self.secrets["POSTIZ_GO_X_API_SECRET"]
+        rerendered = render_spec.render(spec, self.secrets)
+        backend = next(item for item in rerendered["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertTrue({"X_API_KEY", "X_API_SECRET"}.isdisjoint({item["key"] for item in backend["envs"]}))
 
     def test_fails_closed_for_missing_secrets_or_colliding_queues(self):
         del self.secrets["STORAGE_SERVICE_KEY"]

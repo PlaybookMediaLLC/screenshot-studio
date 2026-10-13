@@ -95,6 +95,14 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         self.assertEqual(len({item["key"] for item in updated["envs"]}), len(updated["envs"]))
         for key in cutover.OPTIONAL_SOCIAL_SECRETS:
             self.assertEqual(next(item for item in updated["envs"] if item["key"] == key)["type"], "SECRET")
+        withdrawn = dict(secrets)
+        del withdrawn["POSTIZ_GO_FACEBOOK_APP_SECRET"]
+        retired = cutover.consolidate(spec, self.digest, withdrawn)
+        retired_backend = next(item for item in retired["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertNotIn("FACEBOOK_APP_SECRET", {item["key"] for item in retired_backend["envs"]})
+        retired_initial = cutover.consolidate(self.base, self.digest, withdrawn)
+        retired_initial_backend = next(item for item in retired_initial["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertNotIn("FACEBOOK_APP_SECRET", {item["key"] for item in retired_initial_backend["envs"]})
         with self.assertRaisesRegex(ValueError, "POSTIZ_DATABASE_URL"):
             cutover.consolidate(self.base, self.digest, {})
 

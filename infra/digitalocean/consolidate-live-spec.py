@@ -48,6 +48,8 @@ def refresh_secrets(envs, secrets):
         if item.get("type") != "SECRET":
             continue
         key = item["key"]
+        if key in OPTIONAL_SOCIAL_SECRETS:
+            continue
         source = key.removeprefix("TENANT_") if key.startswith("TENANT_") else SOCIAL_SECRET_SOURCES.get(key, key)
         if not secrets.get(source):
             raise ValueError(f"Missing Infisical secret: {source}")
@@ -57,6 +59,8 @@ def refresh_secrets(envs, secrets):
 def add_optional_social_secrets(envs, secrets):
     if secrets is None:
         return
+    envs[:] = [item for item in envs if item["key"] not in OPTIONAL_SOCIAL_SECRETS or
+               secrets.get(SOCIAL_SECRET_SOURCES.get(item["key"], item["key"]))]
     existing = {item["key"]: item for item in envs}
     for key in OPTIONAL_SOCIAL_SECRETS:
         if value := secrets.get(SOCIAL_SECRET_SOURCES.get(key, key)):

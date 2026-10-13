@@ -113,13 +113,16 @@ jobs:
           previous_id="$(jq -r '.[0].active_deployment.id // empty' "$work/before.json")"
           python3 infra/digitalocean/consolidate-live-spec.py \
             --base "$work/before.json" --digest "$IMAGE_DIGEST" \
+            --tag "social-backend-$GITHUB_SHA" \
             --from-infisical-env --output "$work/spec.json"
           doctl apps propose --app "$APP_ID" --spec "$work/spec.json" -o json > "$work/proposal.json"
           doctl apps update "$APP_ID" --spec "$work/spec.json" --wait > "$work/update.log"
           doctl apps get "$APP_ID" -o json > "$work/after.json"
           test "$(jq -r '.[0].spec.services | length' "$work/after.json")" = 4
-          test "$(jq -r --arg digest "$IMAGE_DIGEST" '.[0].spec.services[] | select(.name == "screenshot-studio-backend") | .image.digest' "$work/after.json")" = "$IMAGE_DIGEST"
-          test "$(jq -r '.[0].active_deployment.id // empty' "$work/after.json")" != "$previous_id"
+          test "$(jq -r '.[0].spec.services[] | select(.name == "screenshot-studio-backend") | .image.tag' "$work/after.json")" = "social-backend-$GITHUB_SHA"
+          if test "$(jq -r '.[0].active_deployment.id // empty' "$work/after.json")" = "$previous_id"; then
+            test "$(jq -r '.[0].spec.services[] | select(.name == "screenshot-studio-backend") | .image.tag' "$work/before.json")" = "social-backend-$GITHUB_SHA"
+          fi
           test "$(jq -r '.[0].active_deployment.phase // empty' "$work/after.json")" = ACTIVE
           curl --fail --silent --show-error --retry 6 --retry-delay 5 https://shots.oppulence.io/api/health > /dev/null
           echo "Combined backend active: https://cloud.digitalocean.com/apps/$APP_ID" >> "$GITHUB_STEP_SUMMARY"

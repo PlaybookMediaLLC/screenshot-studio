@@ -55,6 +55,21 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "topology changed"):
             cutover.consolidate(self.base, self.digest)
 
+    def test_uses_commit_tag_and_supports_repeat_deployments(self):
+        first_tag = "social-backend-" + "a" * 40
+        second_tag = "social-backend-" + "b" * 40
+        first = cutover.consolidate(self.base, self.digest, tag=first_tag)
+        backend = next(item for item in first["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertEqual(backend["image"]["tag"], first_tag)
+        self.assertNotIn("digest", backend["image"])
+        repeated = cutover.consolidate(first, self.digest, tag=second_tag)
+        updated = next(item for item in repeated["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertEqual(updated["image"]["tag"], second_tag)
+        self.assertEqual(repeated["jobs"][1]["image"]["tag"], second_tag)
+        self.assertEqual(len(repeated["services"]), 4)
+        with self.assertRaisesRegex(ValueError, "commit SHA"):
+            cutover.consolidate(self.base, self.digest, tag="latest")
+
     def test_uses_infisical_for_new_backend_credentials(self):
         secrets = {key: "infisical-" + key for key in
                    "POSTIZ_DATABASE_URL POSTIZ_TEMPORAL_API_KEY DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET".split()}

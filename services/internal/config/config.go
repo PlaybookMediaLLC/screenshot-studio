@@ -1,7 +1,9 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -34,18 +36,26 @@ type Backend struct {
 type Orchestrator struct {
 	Common
 	Temporal
-	ActivityConcurrency      int
-	ActivityTimeout          time.Duration
-	ExcludedQueues           []string
-	MaxAttempts              int
-	PostizAPIURL             string
-	ProviderTimeout          time.Duration
-	RetryDelay               time.Duration
-	RunCron                  bool
-	StorageAPIURL            string
-	StorageBucket            string
-	StorageKey               string
-	WorkerConcurrencyDivider int
+	ActivityConcurrency       int
+	ActivityTimeout           time.Duration
+	ExcludedQueues            []string
+	MaxAttempts               int
+	PostizAPIURL              string
+	ProviderTimeout           time.Duration
+	RetryDelay                time.Duration
+	RunCron                   bool
+	RunMaintenance            bool
+	AuditRetentionDatabaseURL string
+	AuditDrainEncryptionKey   []byte
+	ResendAPIKey              string
+	EmailFrom                 string
+	AuthBaseURL               string
+	AuthSecret                string
+	CompanyPostalAddress      string
+	StorageAPIURL             string
+	StorageBucket             string
+	StorageKey                string
+	WorkerConcurrencyDivider  int
 }
 
 func LoadBackend() (Backend, error) {
@@ -89,18 +99,43 @@ func LoadOrchestrator() (Orchestrator, error) {
 	if err != nil {
 		return Orchestrator{}, err
 	}
+	runMaintenance, err := envBool("RUN_MAINTENANCE", false)
+	if err != nil {
+		return Orchestrator{}, err
+	}
 	cfg := Orchestrator{
 		Common: common, Temporal: temporal,
-		ActivityConcurrency: envInt("TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_EXECUTORS", 10),
-		ActivityTimeout:     envDuration("PUBLISHING_ACTIVITY_TIMEOUT", 30*time.Minute),
-		ExcludedQueues:      splitList(os.Getenv("EXCLUDE_QUEUE")),
-		MaxAttempts:         envInt("PUBLISHING_MAX_ATTEMPTS", 3),
-		PostizAPIURL:        envString("POSTIZ_API_URL", "https://api.postiz.com/public/v1"),
-		ProviderTimeout:     envDuration("POSTIZ_REQUEST_TIMEOUT", 15*time.Second),
-		RetryDelay:          envDuration("PUBLISHING_RETRY_DELAY", 2*time.Minute),
-		RunCron:             runCron,
-		StorageAPIURL:       os.Getenv("STORAGE_API_URL"), StorageBucket: os.Getenv("STORAGE_BUCKET"), StorageKey: os.Getenv("STORAGE_SERVICE_KEY"),
+		ActivityConcurrency:       envInt("TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_EXECUTORS", 10),
+		ActivityTimeout:           envDuration("PUBLISHING_ACTIVITY_TIMEOUT", 30*time.Minute),
+		ExcludedQueues:            splitList(os.Getenv("EXCLUDE_QUEUE")),
+		MaxAttempts:               envInt("PUBLISHING_MAX_ATTEMPTS", 3),
+		PostizAPIURL:              envString("POSTIZ_API_URL", "https://api.postiz.com/public/v1"),
+		ProviderTimeout:           envDuration("POSTIZ_REQUEST_TIMEOUT", 15*time.Second),
+		RetryDelay:                envDuration("PUBLISHING_RETRY_DELAY", 2*time.Minute),
+		RunCron:                   runCron,
+		RunMaintenance:            runMaintenance,
+		AuditRetentionDatabaseURL: os.Getenv("AUDIT_RETENTION_DATABASE_URL"),
+		ResendAPIKey:              os.Getenv("RESEND_API_KEY"), EmailFrom: os.Getenv("AUTH_EMAIL_FROM"),
+		AuthBaseURL: os.Getenv("BETTER_AUTH_URL"), AuthSecret: os.Getenv("BETTER_AUTH_SECRET"),
+		CompanyPostalAddress: os.Getenv("COMPANY_POSTAL_ADDRESS"),
+		StorageAPIURL:        os.Getenv("STORAGE_API_URL"), StorageBucket: os.Getenv("STORAGE_BUCKET"), StorageKey: os.Getenv("STORAGE_SERVICE_KEY"),
 		WorkerConcurrencyDivider: envInt("WORKER_CONCURRENCY_DIVIDER", 1),
+	}
+	if cfg.RunMaintenance {
+		cfg.AuditDrainEncryptionKey, err = base64.StdEncoding.DecodeString(os.Getenv("AUDIT_DRAIN_ENCRYPTION_KEY"))
+		if err != nil || len(cfg.AuditDrainEncryptionKey) != 32 {
+			return Orchestrator{}, fmt.Errorf("AUDIT_DRAIN_ENCRYPTION_KEY must encode 32 bytes")
+		}
+		if cfg.AuditRetentionDatabaseURL == "" {
+			return Orchestrator{}, fmt.Errorf("AUDIT_RETENTION_DATABASE_URL is required for maintenance")
+		}
+		if cfg.ResendAPIKey == "" || cfg.EmailFrom == "" || cfg.AuthSecret == "" {
+			return Orchestrator{}, fmt.Errorf("RESEND_API_KEY, AUTH_EMAIL_FROM and BETTER_AUTH_SECRET are required for maintenance")
+		}
+		u, err := url.Parse(cfg.AuthBaseURL)
+		if err != nil || u.Scheme != "https" || u.Host == "" {
+			return Orchestrator{}, fmt.Errorf("BETTER_AUTH_URL must be HTTPS for maintenance")
+		}
 	}
 	if cfg.ActivityConcurrency < 1 || cfg.ActivityConcurrency > 1000 {
 		return Orchestrator{}, fmt.Errorf("TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_EXECUTORS must be between 1 and 1000")

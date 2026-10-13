@@ -219,28 +219,6 @@ services:
       storage:
         condition: service_started
 
-  trigger-dev:
-    profiles: ['trigger']
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    command: npx trigger.dev@4.5.11 dev --config trigger.config.ts --profile screenshot-studio-local
-    env_file: .local/dev.env
-    environment:
-      NODE_ENV: development
-      WATCHPACK_POLLING: 'true'
-    volumes:
-      - .:/workspace
-      - trigger_node_modules:/workspace/node_modules
-      - ./.local/trigger:/root/.trigger
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rustfs-init:
-        condition: service_completed_successfully
-
   publishing-backend:
     profiles: ['publishing']
     build:
@@ -429,4 +407,3 @@ volumes:
   postiz_go_redis_data:
   redis_data:
   rustfs_data:
-  trigger_node_modules:

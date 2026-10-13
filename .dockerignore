@@ -1,5 +1,7 @@
 .git
 .github
+.context
+**/.context
 .next
 node_modules
 coverage

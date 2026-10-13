@@ -187,24 +187,25 @@ tests, file size, function size, complexity, nesting, and parameter count for
 the server boundary. `npm install` installs the same check as the Git
 pre-commit hook.
 
-## Trigger.dev Cloud development
+## Temporal maintenance development
 
-Trigger.dev Cloud remains the workflow service. The local Compose profile runs
-only the hot-reload Trigger.dev development worker.
+Maintenance jobs run directly in the Go publishing orchestrator. There is no
+Trigger.dev worker or project to configure. The `publishing` Compose profile
+provides Temporal and the Go workers; `RUN_MAINTENANCE` defaults to false locally
+so a normal editor development session cannot send customer announcements.
+
+For isolated maintenance integration tests, create a `maintenance_test` PostgreSQL
+database, apply the Prisma migrations, and run from `services/`:
 
 ```sh
-make trigger-login
-make trigger-config PROJECT_REF=proj_your_project_ref
-make trigger-dev
+MAINTENANCE_TEST_DATABASE_URL='postgresql://postgres:password@localhost:5432/maintenance_test' \
+  go test -race ./internal/maintenance ./internal/temporalmaintenance
 ```
 
-The Trigger.dev account and project reference are the only values the local CLI
-cannot generate. It does not self-host Trigger.dev.
+The tests use disposable fixtures and fake mail/drain transports. Production
+configuration and the six schedule IDs are documented in
+[digitalocean-deployment.md](digitalocean-deployment.md).
 
-Trigger.dev also dispatches pending SIEM audit-drain events every minute and
-purges expired audit records daily. See [authentication and enterprise
-access](authentication.md) for production-only credentials and database-role
-requirements.
 
 ## Production task deployment
 

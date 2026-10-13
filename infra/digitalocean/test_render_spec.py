@@ -1,0 +1,69 @@
+"""Deployment safety checks; no provider credentials or network required."""
+
+import importlib.util
+from pathlib import Path
+import unittest
+
+module = importlib.util.spec_from_file_location("render_spec", Path(__file__).with_name("render-spec.py"))
+render_spec = importlib.util.module_from_spec(module)
+module.loader.exec_module(render_spec)
+
+
+class DeploymentSpecTest(unittest.TestCase):
+    def setUp(self):
+        self.base = {
+            "name": "existing-production", "region": "nyc",
+            "domains": [{"domain": "app.example.com", "type": "PRIMARY"}],
+            "services": [{"name": "web", "image": {"registry_type": "GHCR", "registry": "example", "repository": "web", "digest": "sha256:existing"},
+                          "instance_count": 2, "envs": [{"key": "EXISTING_SETTING", "value": "preserve"}]}],
+            "ingress": {"rules": [{"match": {"path": {"prefix": "/"}}, "component": {"name": "web"}}]},
+        }
+        keys = "DATABASE_URL BETTER_AUTH_SECRET AUDIT_IP_HASH_SECRET AUDIT_DRAIN_ENCRYPTION_KEY REDIS_URL STORAGE_SERVICE_KEY R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY PLATFORM_RENDER_SERVICE_SECRET BETTER_AUTH_URL BETTER_AUTH_TRUSTED_ORIGINS STORAGE_BUCKET STORAGE_DATABASE_URL STORAGE_JWT_SECRET R2_BUCKET_NAME R2_ENDPOINT MIGRATION_DATABASE_URL TEMPORAL_NAMESPACE POSTIZ_TEMPORAL_NAMESPACE POSTIZ_DATABASE_URL POSTIZ_REDIS_URL POSTIZ_JWT_SECRET POSTIZ_TEMPORAL_API_KEY POSTIZ_TEMPORAL_ADDRESS CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_BUCKETNAME CLOUDFLARE_BUCKET_URL CLOUDFLARE_ACCESS_KEY CLOUDFLARE_SECRET_ACCESS_KEY TEMPORAL_API_KEY TEMPORAL_ADDRESS PUBLISHING_SERVICE_TOKEN POSTIZ_API_KEY AUDIT_RETENTION_DATABASE_URL RESEND_API_KEY AUTH_EMAIL_FROM"
+        self.secrets = {key: "fixture-" + key for key in keys.split()}
+        self.secrets.update(DATABASE_URL="postgresql://web:secret@db:5432/tenant", POSTIZ_DATABASE_URL="postgresql://postiz:secret@db:5432/postiz", BETTER_AUTH_URL="https://app.example.com")
+
+    def test_preserves_web_and_restricts_internal_services(self):
+        spec = render_spec.render(self.base, self.secrets)
+        services = {item["name"]: item for item in spec["services"]}
+        self.assertEqual(services["web"]["image"], self.base["services"][0]["image"])
+        self.assertEqual(services["web"]["instance_count"], 2)
+        self.assertEqual(spec["domains"], self.base["domains"])
+        for name in ["storage", "design-renderer", "publishing-backend", "publishing-orchestrator", "postiz-orchestrator"]:
+            self.assertNotIn("http_port", services[name])
+            self.assertTrue(services[name]["internal_ports"])
+        self.assertEqual({r["component"]["name"] for r in spec["ingress"]["rules"]}, {"web", "postiz-backend"})
+        for component in spec["services"] + spec["jobs"]:
+            for item in component.get("envs", []):
+                if item["key"] != "EXISTING_SETTING":
+                    self.assertEqual(item.get("scope"), "RUN_TIME")
+                if item["key"] in ["DATABASE_URL", "JWT_SECRET", "TEMPORAL_API_KEY", "PUBLISHING_SERVICE_TOKEN", "STORAGE_SERVICE_KEY", "RENDER_SERVICE_SECRET"]:
+                    self.assertEqual(item["type"], "SECRET")
+        self.assertNotIn("AUDIT_RETENTION_DATABASE_URL", {e["key"] for e in services["web"]["envs"]})
+        worker_env = {e["key"]: e for e in services["publishing-orchestrator"]["envs"]}
+        self.assertEqual(worker_env["RUN_MAINTENANCE"]["value"], "true")
+        self.assertEqual(worker_env["AUDIT_RETENTION_DATABASE_URL"]["type"], "SECRET")
+        self.assertEqual({j["kind"] for j in spec["jobs"]}, {"PRE_DEPLOY"})
+
+    def test_requires_separate_database_even_with_different_credentials(self):
+        self.secrets["POSTIZ_DATABASE_URL"] = "postgresql://other:password@db:5432/tenant"
+        with self.assertRaisesRegex(ValueError, "separate database"):
+            render_spec.render(self.base, self.secrets)
+
+    def test_fails_closed_for_missing_secrets_or_colliding_queues(self):
+        del self.secrets["STORAGE_SERVICE_KEY"]
+        with self.assertRaisesRegex(ValueError, "STORAGE_SERVICE_KEY"):
+            render_spec.render(self.base, self.secrets)
+        self.secrets["STORAGE_SERVICE_KEY"] = "fixture"
+        self.secrets["POSTIZ_TEMPORAL_NAMESPACE"] = self.secrets["TEMPORAL_NAMESPACE"]
+        with self.assertRaisesRegex(ValueError, "different Temporal namespaces"):
+            render_spec.render(self.base, self.secrets)
+
+    def test_repeat_render_does_not_duplicate_components_jobs_or_routes(self):
+        spec = render_spec.render(self.base, self.secrets)
+        self.assertEqual(render_spec.render(spec, self.secrets), spec)
+        self.assertEqual(render_spec.render([{"spec": self.base}], self.secrets), spec)
+        self.assertEqual(len(self.base["services"]), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

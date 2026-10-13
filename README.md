@@ -56,7 +56,7 @@ The target experience:
                                │
              ┌─────────────────┼────────────────┐
              ▼                 ▼                ▼
-      Screenshot Studio   Trigger.dev       Postiz
+      Screenshot Studio   Temporal          Postiz
       rendering engine    durable work      publishing
 ```
 
@@ -101,7 +101,7 @@ conversation.
 - Workspace-scoped assets, scoped API keys, and source-app webhooks
 - Brand kits, creative templates, variant approval, and scheduled posts through Postiz
 - Typed tRPC API for browser and API-key callers, with REST intake routes for machines
-- Durable background execution on Trigger.dev with outbox recovery
+- Durable Go backend execution on Temporal with outbox recovery
 
 ## Roadmap
 
@@ -147,7 +147,7 @@ The build order, in sequence:
 3. **The editor as the agent's rendering API.** The agent does not "make an image". It calls
    `createCreative({template, captureId, headline, perspective, brandKitId})` and the editor
    renders the asset deterministically.
-4. **Durable agent execution on [Trigger.dev](https://trigger.dev/changelog/v4-5-0).**
+4. **Durable execution on Temporal.**
    Campaign generation fans out into capture, copy, render, and scheduling jobs. The run
    pauses for human approval before `publishPost`.
 5. **[Postiz OAuth](https://postiz.com/blog/direct-postiz-integration-oauth-api) as the social
@@ -258,7 +258,7 @@ The deployed product publishes machine-readable interfaces for agents and API cl
 The app ships a production Docker image, a portable Helm chart, Fly.io deployment
 configuration, and GitHub Actions workflows. See [deployment instructions](docs/deployment.md).
 
-For the hot-reload local stack, Trigger.dev development worker, Supabase Storage, RustFS, and
+For the hot-reload local stack, Temporal Go workers, Supabase Storage, RustFS, and
 Kind commands, see [local development](docs/local-development.md). Start with `make help` to
 view the team workflow.
 
@@ -283,7 +283,7 @@ handling are documented in
 ## Tech stack
 
 Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Prisma · Zustand · Radix UI · Motion ·
-FFmpeg WASM · WebCodecs · Trigger.dev · Postiz
+FFmpeg WASM · WebCodecs · Temporal · Postiz
 
 ## Third-party providers
 
@@ -301,11 +301,13 @@ variables that configure it, so you can trace a credential back to its console.
 | [Better Auth](https://www.better-auth.com) ([docs](https://www.better-auth.com/docs))                              | Authentication, sessions, organization RBAC        | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `BETTER_AUTH_TRUSTED_ORIGINS`                                                                 |
 | [Resend](https://resend.com) ([dashboard](https://resend.com/overview))                                            | Verification, password reset, and invitation email | `RESEND_API_KEY`, `AUTH_EMAIL_FROM`                                                                                                    |
 
+Temporal runs publishing and maintenance in the Go backend. See
+[production deployment](docs/digitalocean-deployment.md) for schedules and credentials.
+
 ### Optional integrations
 
 | Provider                                                                    | Role                                                         | Environment variables                                 |
 | --------------------------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------- |
-| [Trigger.dev](https://trigger.dev) ([dashboard](https://cloud.trigger.dev)) | Background jobs for artifact generation and media processing | `TRIGGER_ACCESS_TOKEN`, `TRIGGER_PROJECT_REF`         |
 | [Postiz](https://postiz.com) ([docs](https://docs.postiz.com))              | Social scheduling and publishing                             | `POSTIZ_API_URL`                                      |
 | [Microlink](https://microlink.io) ([docs](https://microlink.io/docs))       | Screenshot capture API                                       | `SCREENSHOT_API_URL`                                  |
 | [OpenRouter](https://openrouter.ai) ([models](https://openrouter.ai/models)) | Model access for the campaign studio agent                   | `OPENROUTER_API_KEY`, optional `PLATFORM_AI_MODEL_*`  |

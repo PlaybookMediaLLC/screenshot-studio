@@ -1,5 +1,10 @@
 # Deployment
 
+Production now runs on DigitalOcean App Platform. See the
+[DigitalOcean deployment guide](digitalocean-deployment.md) for the web,
+backend, workers, storage, renderer, Infisical configuration, and migration jobs.
+The Fly instructions below describe the earlier hosting configuration.
+
 ## Recommended host: Fly.io
 
 Use Fly.io for the first production deployment. This app needs a normal Node.js
@@ -74,7 +79,7 @@ Git tag and GitHub Release when that pull request merges.
 Before the first release, create a fine-grained GitHub token that can write
 repository contents and pull requests. Store it as the `RELEASE_PLEASE_TOKEN`
 repository secret. Do not use the default `GITHUB_TOKEN`: release-created
-commits and tags must start the Fly.io and Trigger.dev workflows.
+commits and tags must start the app deployment workflows.
 
 In GitHub branch protection for `main`, require the `CI` and `Commitlint`
 checks, enable auto-merge, and allow the token owner to bypass neither rule.

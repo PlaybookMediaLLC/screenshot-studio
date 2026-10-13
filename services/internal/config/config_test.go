@@ -58,3 +58,32 @@ func TestLoadOrchestratorRejectsInvalidRunCron(t *testing.T) {
 		t.Fatal("expected invalid RUN_CRON to fail")
 	}
 }
+
+func TestMaintenanceRequiresDedicatedDependencies(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgresql://runtime")
+	t.Setenv("STORAGE_API_URL", "http://storage")
+	t.Setenv("STORAGE_BUCKET", "assets")
+	t.Setenv("STORAGE_SERVICE_KEY", "key")
+	t.Setenv("RUN_MAINTENANCE", "true")
+	t.Setenv("AUDIT_DRAIN_ENCRYPTION_KEY", "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=")
+	t.Setenv("AUDIT_RETENTION_DATABASE_URL", "")
+	if _, err := LoadOrchestrator(); err == nil {
+		t.Fatal("maintenance accepted missing retention credentials")
+	}
+	t.Setenv("AUDIT_RETENTION_DATABASE_URL", "postgresql://retention")
+	t.Setenv("RESEND_API_KEY", "resend-test")
+	t.Setenv("AUTH_EMAIL_FROM", "test@example.invalid")
+	t.Setenv("BETTER_AUTH_SECRET", "test-secret")
+	t.Setenv("BETTER_AUTH_URL", "https://app.example")
+	cfg, err := LoadOrchestrator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.RunMaintenance || len(cfg.AuditDrainEncryptionKey) != 32 {
+		t.Fatal("maintenance configuration not loaded")
+	}
+	t.Setenv("BETTER_AUTH_URL", "http://app.example")
+	if _, err := LoadOrchestrator(); err == nil {
+		t.Fatal("insecure unsubscribe origin accepted")
+	}
+}

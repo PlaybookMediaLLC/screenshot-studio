@@ -133,7 +133,10 @@ def render(base, secrets, *, stack="full", branch="main"):
             "CLOUDFLARE_BUCKET_URL": required("CLOUDFLARE_BUCKET_URL"), "CLOUDFLARE_REGION": "auto",
         }.items()]
         postiz_env += [secret(key) for key in ["CLOUDFLARE_ACCESS_KEY", "CLOUDFLARE_SECRET_ACCESS_KEY"]]
-        postiz_env += [secret(key) for key in ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "X_API_KEY", "X_API_SECRET"] if secrets.get(key)]
+        postiz_env += [secret(key) for key in [
+            "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "X_API_KEY", "X_API_SECRET",
+            "FACEBOOK_APP_ID", "FACEBOOK_APP_SECRET", "INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET",
+        ] if secrets.get(key)]
         backend = service("screenshot-studio-backend", "services", "services/screenshot-studio-backend/backend/Dockerfile", 3000, "/readyz", "apps-s-1vcpu-2gb")
         merge_env(backend, postiz_env + [env("PORT", "3000"), env("RUN_CRON", "true"), env("RUN_WORKER", "true")])
         # Public Postiz callbacks/API use their own prefix; tenant publishing stays private.

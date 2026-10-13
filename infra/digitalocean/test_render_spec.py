@@ -54,6 +54,23 @@ class DeploymentSpecTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "separate database"):
             render_spec.render(self.base, self.secrets)
 
+    def test_optional_instagram_credentials_only_reach_backend(self):
+        keys = ("FACEBOOK_APP_ID", "FACEBOOK_APP_SECRET", "INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET")
+        spec = render_spec.render(self.base, self.secrets)
+        backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertTrue(set(keys).isdisjoint({item["key"] for item in backend["envs"]}))
+
+        self.secrets.update({key: "fixture-" + key for key in keys})
+        spec = render_spec.render(self.base, self.secrets)
+        for component in spec["services"] + spec["jobs"]:
+            envs = {item["key"]: item for item in component.get("envs", [])}
+            if component["name"] == "screenshot-studio-backend":
+                for key in keys:
+                    self.assertEqual(envs[key]["value"], self.secrets[key])
+                    self.assertEqual(envs[key]["type"], "SECRET")
+            else:
+                self.assertTrue(set(keys).isdisjoint(envs))
+
     def test_fails_closed_for_missing_secrets_or_colliding_queues(self):
         del self.secrets["STORAGE_SERVICE_KEY"]
         with self.assertRaisesRegex(ValueError, "STORAGE_SERVICE_KEY"):

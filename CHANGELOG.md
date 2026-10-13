@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.16.0...v1.16.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* deploy combined backend from repeatable GHCR tag ([#85](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/85)) ([22f8d97](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/22f8d9706555846571006bc4a349602cfcd203d3))
+
 ## [1.16.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.15.0...v1.16.0) (2026-10-13)
 
 

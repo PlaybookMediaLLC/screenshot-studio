@@ -146,6 +146,14 @@ the connection with an authenticated `GET /integrations/social/linkedin` on the
 Go API, then visit the returned authorization URL. The callback consumes the
 one-use state and saves the channel in the Go database.
 
+For X, register `/integrations/social/x` on the web host as an OAuth 1.0a
+callback and grant Read and write access. Set `X_API_KEY` and `X_API_SECRET` on
+both the Go API and worker. For Instagram with Facebook Login, set
+`FACEBOOK_APP_ID` and `FACEBOOK_APP_SECRET`; for Instagram Login, set
+`INSTAGRAM_APP_ID` and `INSTAGRAM_APP_SECRET`. The optional local Compose stack
+passes these names to both services. Keep the credentials in ignored local env
+files or the production secret store, never in Compose or Git.
+
 Set `DATABASE_URL`, `REDIS_URL`, `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`,
 `JWT_SECRET`, `FRONTEND_URL`, `MAIN_URL`, `NEXT_PUBLIC_BACKEND_URL`,
 `BACKEND_INTERNAL_URL`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_ACCESS_KEY`,

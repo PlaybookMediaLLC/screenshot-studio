@@ -24,6 +24,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/ssrf"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/temporalx"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/upload"
 	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
@@ -324,6 +325,10 @@ var htmlTag = regexp.MustCompile(`(?i)</?[a-z][\s\S]*>`)
 // inlineImages is only asked by postSocial (postComment never passed it).
 func (a *PostActivities) mapPosts(ctx context.Context, provider integrations.Provider, list []*ent.Post, inlineImages bool) ([]integrations.PostDetails, error) {
 	info := provider.Info()
+	mediaSigner, err := upload.NewPrivateMediaSigner()
+	if err != nil {
+		return nil, err
+	}
 	var mention func(string, string) string
 	if m, ok := provider.(integrations.MentionFormatter); ok {
 		mention = m.MentionFormat
@@ -355,6 +360,14 @@ func (a *PostActivities) mapPosts(ctx context.Context, provider integrations.Pro
 		media, err := mediaContent(a.posts.UpdateMedia(ctx, p.ID, images, info.ConvertToJPEG))
 		if err != nil {
 			return nil, err
+		}
+		for i := range media {
+			if media[i].Path, err = mediaSigner.SignURL(ctx, media[i].Path); err != nil {
+				return nil, err
+			}
+			if media[i].Thumbnail, err = mediaSigner.SignURL(ctx, media[i].Thumbnail); err != nil {
+				return nil, err
+			}
 		}
 
 		out = append(out, integrations.PostDetails{

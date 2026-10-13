@@ -34,12 +34,19 @@ POSTIZ_API_KEY=<Postiz organization's publicApi key>
 ```
 
 The default local values still point at the deterministic E2E Postiz mock.
-Local file storage is ephemeral and is intended for API and workflow testing;
-it does not provide media URLs reachable by the Go worker in a real social
-network post. For the live LinkedIn image smoke test, we kept the separate R2
-bucket private and passed a one-hour presigned object URL in the post's media
-path. The worker fetched it and uploaded the image to LinkedIn. Generate the
-URL close to publication time; scheduled posts need a durable delivery path.
+Local file storage is ephemeral and is intended for API and workflow testing.
+For live media publishing from a private Postiz R2 bucket, set
+`POSTIZ_GO_STORAGE_PROVIDER=cloudflare`, `POSTIZ_PRIVATE_MEDIA=true`, and the
+`CLOUDFLARE_*` variables in the ignored, mode-0600 `.local/postiz-go.env`.
+`make postiz-go-up` reads this optional overlay only for the Postiz services;
+the web app does not receive the Postiz R2 token through its `dev.env`. Set
+`CLOUDFLARE_BUCKET_URL` to the private path-style S3 URL
+`https://<account-id>.r2.cloudflarestorage.com/<bucket-name>`. Do not attach a
+public bucket domain. The stored post keeps this stable object URL. When the
+scheduled worker actually publishes, it signs its media and thumbnail URLs
+for 24 hours, then gives those temporary URLs to the provider. An activity
+retry signs again. The web UI does not yet proxy private Postiz media for
+pre-publication previews.
 
 ## Fly production configuration
 
@@ -59,11 +66,11 @@ Provision before deployment:
 2. A dedicated Redis instance and Temporal namespace. The Go workers use the
    `main` task queue; sharing a namespace with Screenshot Studio's publishing
    workers would dispatch workflows to the wrong implementation.
-3. A separate Cloudflare R2 bucket and Postiz storage credentials for media
-   posts. Do not reuse Screenshot Studio's private tenant asset bucket. With a
-   private bucket, the current uploader's bare object URLs are not fetchable by
-   the worker. Supply a short-lived presigned URL at publication time or add a
-   durable media delivery service before enabling scheduled media posts.
+3. A separate private Cloudflare R2 bucket and Postiz storage credentials for
+   both API and worker. Do not reuse Screenshot Studio's tenant asset bucket.
+   Set `CLOUDFLARE_BUCKET_URL` to the private path-style S3 URL shown above.
+   The backend omits public-read ACLs, and the worker signs its own bucket
+   objects at publication time. External media URLs are left unchanged.
 4. Postiz organization API keys and social integrations in that database. An
    empty database has no connected social destinations.
 
@@ -82,8 +89,9 @@ Set `DATABASE_URL`, `REDIS_URL`, `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`,
 `JWT_SECRET`, `FRONTEND_URL`, `MAIN_URL`, `NEXT_PUBLIC_BACKEND_URL`,
 `BACKEND_INTERNAL_URL`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_ACCESS_KEY`,
 `CLOUDFLARE_SECRET_ACCESS_KEY`, `CLOUDFLARE_REGION`,
-`CLOUDFLARE_BUCKETNAME`, and `CLOUDFLARE_BUCKET_URL` as Fly secrets for the
-appropriate app. Set `TEMPORAL_TLS=true` and `TEMPORAL_API_KEY` when using
+`CLOUDFLARE_BUCKETNAME`, and `CLOUDFLARE_BUCKET_URL` as Fly secrets for both
+apps. `POSTIZ_PRIVATE_MEDIA=true` is set in the Fly configs. Set
+`TEMPORAL_TLS=true` and `TEMPORAL_API_KEY` when using
 Temporal Cloud. Keep the Postiz and web app secrets separate.
 
 From `services/`, deploy the API first and then the workers:

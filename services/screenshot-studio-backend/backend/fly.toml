@@ -15,6 +15,7 @@ kill_timeout = "15s"
   PORT = "3000"
   RUN_CRON = "true"
   STORAGE_PROVIDER = "cloudflare"
+  POSTIZ_PRIVATE_MEDIA = "true"
 
 # No proxy service: the web app calls this API over Fly's private 6PN network.
 [checks]

@@ -10,6 +10,7 @@ kill_timeout = "30s"
 [env]
   ORCHESTRATOR_PORT = "3002"
   STORAGE_PROVIDER = "cloudflare"
+  POSTIZ_PRIVATE_MEDIA = "true"
 
 # Temporal workers stay running; the HTTP port is for private health checks.
 [checks]

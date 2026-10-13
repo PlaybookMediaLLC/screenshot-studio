@@ -127,6 +127,14 @@ func (s *Service) updateMedia(ctx context.Context, id string, imagesList []map[s
 // JPEG (sharp().jpeg({quality: 100})); transparency flattens onto black, as
 // with sharp.
 func (s *Service) convertToJPEG(ctx context.Context, url string) (*upload.UploadedStream, error) {
+	signer, err := upload.NewPrivateMediaSigner()
+	if err != nil {
+		return nil, err
+	}
+	url, err = signer.SignURL(ctx, url)
+	if err != nil {
+		return nil, err
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err

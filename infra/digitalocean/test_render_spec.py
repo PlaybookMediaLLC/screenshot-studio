@@ -54,6 +54,34 @@ class DeploymentSpecTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "separate database"):
             render_spec.render(self.base, self.secrets)
 
+    def test_optional_social_credentials_only_reach_backend(self):
+        keys = ("X_API_KEY", "X_API_SECRET", "FACEBOOK_APP_ID", "FACEBOOK_APP_SECRET",
+                "INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET")
+        spec = render_spec.render(self.base, self.secrets)
+        backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertTrue(set(keys).isdisjoint({item["key"] for item in backend["envs"]}))
+
+        self.secrets.update({key: "other-service-" + key for key in keys})
+        spec = render_spec.render(self.base, self.secrets)
+        backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertTrue(set(keys).isdisjoint({item["key"] for item in backend["envs"]}))
+
+        self.secrets.update({"POSTIZ_GO_" + key: "fixture-" + key for key in keys})
+        spec = render_spec.render(self.base, self.secrets)
+        for component in spec["services"] + spec["jobs"]:
+            envs = {item["key"]: item for item in component.get("envs", [])}
+            if component["name"] == "screenshot-studio-backend":
+                for key in keys:
+                    self.assertEqual(envs[key]["value"], self.secrets["POSTIZ_GO_" + key])
+                    self.assertEqual(envs[key]["type"], "SECRET")
+            else:
+                self.assertTrue(set(keys).isdisjoint(envs))
+        del self.secrets["POSTIZ_GO_X_API_KEY"]
+        del self.secrets["POSTIZ_GO_X_API_SECRET"]
+        rerendered = render_spec.render(spec, self.secrets)
+        backend = next(item for item in rerendered["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertTrue({"X_API_KEY", "X_API_SECRET"}.isdisjoint({item["key"] for item in backend["envs"]}))
+
     def test_fails_closed_for_missing_secrets_or_colliding_queues(self):
         del self.secrets["STORAGE_SERVICE_KEY"]
         with self.assertRaisesRegex(ValueError, "STORAGE_SERVICE_KEY"):

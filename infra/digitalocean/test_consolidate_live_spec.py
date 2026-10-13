@@ -73,12 +73,36 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
     def test_uses_infisical_for_new_backend_credentials(self):
         secrets = {key: "infisical-" + key for key in
                    "POSTIZ_DATABASE_URL POSTIZ_TEMPORAL_API_KEY DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET".split()}
+        secrets.update({cutover.SOCIAL_SECRET_SOURCES.get(key, key): "infisical-" + key
+                        for key in cutover.OPTIONAL_SOCIAL_SECRETS})
+        secrets.update({key: "other-service-" + key for key in cutover.OPTIONAL_SOCIAL_SECRETS
+                        if key in cutover.SOCIAL_SECRET_SOURCES})
+        social = next(service for service in self.base["spec"]["services"] if service["name"] == "postiz-backend")
+        social["envs"].append({"key": "FACEBOOK_APP_SECRET", "value": "old-plain-value", "type": "GENERAL", "scope": "RUN_TIME"})
         spec = cutover.consolidate(self.base, self.digest, secrets)
         backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
         values = {item["key"]: item["value"] for item in backend["envs"]}
         self.assertEqual(values["DATABASE_URL"], "infisical-POSTIZ_DATABASE_URL")
         self.assertEqual(values["TENANT_DATABASE_URL"], "infisical-DATABASE_URL")
         self.assertEqual(values["TENANT_AUDIT_RETENTION_DATABASE_URL"], "infisical-AUDIT_RETENTION_DATABASE_URL")
+        for key in cutover.OPTIONAL_SOCIAL_SECRETS:
+            entry = next(item for item in backend["envs"] if item["key"] == key)
+            self.assertEqual(entry["value"], secrets[cutover.SOCIAL_SECRET_SOURCES.get(key, key)])
+            self.assertEqual(entry["type"], "SECRET")
+            self.assertNotIn(key, {item["key"] for item in next(service for service in spec["services"] if service["name"] == "web")["envs"]})
+        repeated = cutover.consolidate(spec, self.digest, secrets)
+        updated = next(item for item in repeated["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertEqual(len({item["key"] for item in updated["envs"]}), len(updated["envs"]))
+        for key in cutover.OPTIONAL_SOCIAL_SECRETS:
+            self.assertEqual(next(item for item in updated["envs"] if item["key"] == key)["type"], "SECRET")
+        withdrawn = dict(secrets)
+        del withdrawn["POSTIZ_GO_FACEBOOK_APP_SECRET"]
+        retired = cutover.consolidate(spec, self.digest, withdrawn)
+        retired_backend = next(item for item in retired["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertNotIn("FACEBOOK_APP_SECRET", {item["key"] for item in retired_backend["envs"]})
+        retired_initial = cutover.consolidate(self.base, self.digest, withdrawn)
+        retired_initial_backend = next(item for item in retired_initial["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertNotIn("FACEBOOK_APP_SECRET", {item["key"] for item in retired_initial_backend["envs"]})
         with self.assertRaisesRegex(ValueError, "POSTIZ_DATABASE_URL"):
             cutover.consolidate(self.base, self.digest, {})
 

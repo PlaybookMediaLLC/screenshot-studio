@@ -104,6 +104,8 @@ model Organization {
   captureJobs             CaptureJob[]
   captures                Capture[]
   channelConnections      ChannelConnection[]
+  postizTenantBinding     PostizTenantBinding?
+  socialOAuthStarts       SocialOAuthStart[]
   creativeTemplates       CreativeTemplate[]
   creativeVariants        CreativeVariant[]
   communicationAttempts   CommunicationAttempt[]
@@ -804,6 +806,34 @@ model Approval {
 
   @@index([organizationId, createdAt])
   @@map("approval")
+}
+
+// An operator binds exactly one Go organization and credential reference to
+// one web organization before any social destination can be connected.
+model PostizTenantBinding {
+  organizationId     String       @id
+  goOrganizationId   String       @unique
+  secretReference    String       @unique
+  createdAt          DateTime     @default(now())
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("postiz_tenant_binding")
+}
+
+model SocialOAuthStart {
+  state           String       @id
+  organizationId  String
+  userId          String
+  sessionId       String
+  provider        String
+  secretReference String
+  integrationId   String?
+  expiresAt       DateTime
+  createdAt       DateTime     @default(now())
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("social_oauth_start")
 }
 
 model ChannelConnection {

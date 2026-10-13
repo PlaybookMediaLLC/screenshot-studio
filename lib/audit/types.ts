@@ -23,6 +23,7 @@ export const auditActions = [
   'post.cancelled',
   'post.connection_created',
   'post.publish_failed',
+  'post.accepted_by_scheduler',
   'post.publish_recovery_required',
   'post.published',
   'post.scheduled',

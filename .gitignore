@@ -52,6 +52,7 @@ public/backgrounds
 !/scripts/verify-trpc-smoke.ts
 !/scripts/verify-rfcs.py
 !/scripts/indexnow.ts
+!/scripts/bind-postiz-tenant.ts
 
 /lib/generated/prisma
 # Prisma

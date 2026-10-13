@@ -7,6 +7,7 @@ import type { TenantContext } from '@/lib/auth/access'
 import { getAuditActor } from '@/lib/auth/principal'
 import { prisma } from '@/lib/db'
 import type { ChannelConnectionCreateInput, ScheduledPostCreateInput } from './schemas'
+import { PostizProviderError, verifyPostizDestination } from './postiz'
 
 type CreateScheduledPostInput = ScheduledPostCreateInput & { idempotencyKey: string }
 
@@ -42,6 +43,12 @@ async function createChannelConnectionInTransaction(
   context: TenantContext,
   input: ChannelConnectionCreateInput
 ) {
+  const binding = await transaction.postizTenantBinding.findUnique({
+    where: { organizationId: context.organizationId },
+  })
+  if (!binding || binding.secretReference !== input.secretReference) {
+    throw new ScheduledPostError('Postiz is not configured for this workspace.', 409)
+  }
   const connection = await transaction.channelConnection.create({
     data: {
       createdByUserId: getConnectionCreatorId(context),
@@ -68,6 +75,25 @@ export async function createPostizConnection(
   context: TenantContext,
   input: ChannelConnectionCreateInput
 ) {
+  const binding = await prisma.postizTenantBinding.findUnique({
+    where: { organizationId: context.organizationId },
+  })
+  if (!binding || binding.secretReference !== input.secretReference) {
+    throw new ScheduledPostError('Postiz is not configured for this workspace.', 409)
+  }
+  try {
+    await verifyPostizDestination({
+      destinationId: input.externalAccountId,
+      expectedGoOrganizationId: binding.goOrganizationId,
+      platform: input.platform,
+      secretReference: binding.secretReference,
+    })
+  } catch (error) {
+    if (error instanceof PostizProviderError && error.status === 404) {
+      throw new ScheduledPostError('Postiz destination was not found.', 404)
+    }
+    throw new ScheduledPostError('Postiz destination could not be verified.', 409)
+  }
   try {
     return await prisma.$transaction((transaction) =>
       createChannelConnectionInTransaction(transaction, context, input)

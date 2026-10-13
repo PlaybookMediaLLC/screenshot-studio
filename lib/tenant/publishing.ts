@@ -4,7 +4,7 @@ import { appendAuditLog } from '@/lib/audit/log'
 import { getAuditActor, type TriggerServicePrincipal } from '@/lib/auth/principal'
 import { prisma } from '@/lib/db'
 import { isWorkspaceOperational } from '@/lib/workspace/access'
-import { PostizProviderError, publishPostizPost } from './postiz'
+import { getPostizPostStatus, PostizProviderError, publishPostizPost } from './postiz'
 
 const maxPublicationAttempts = 3
 const staleProcessingMilliseconds = 10 * 60 * 1000
@@ -40,7 +40,7 @@ async function failUncertainStalePosts(staleBefore: Date): Promise<void> {
     select: { id: true, organizationId: true },
     take: 100,
     where: {
-      attempts: { some: { completedAt: null } },
+      attempts: { some: { completedAt: null, providerPostId: null } },
       status: 'PROCESSING',
       updatedAt: { lt: staleBefore },
     },
@@ -126,18 +126,18 @@ async function createPublicationAttempt(organizationId: string, scheduledPostId:
 }
 
 async function completePublication(
-  post: NonNullable<Awaited<ReturnType<typeof loadScheduledPost>>>,
-  attemptId: string,
-  providerPostId: string
+  post: { id: string; organizationId: string },
+  attemptId: string
 ): Promise<void> {
   await prisma.$transaction(async (transaction) => {
-    await transaction.publicationAttempt.update({
-      data: { completedAt: new Date(), outcome: 'SUCCEEDED', providerPostId },
-      where: { id: attemptId },
+    const completed = await transaction.publicationAttempt.updateMany({
+      data: { completedAt: new Date(), outcome: 'SUCCEEDED' },
+      where: { id: attemptId, completedAt: null, providerPostId: { not: null } },
     })
-    await transaction.scheduledPost.update({
+    if (completed.count === 0) return
+    await transaction.scheduledPost.updateMany({
       data: { status: 'PUBLISHED' },
-      where: { id: post.id },
+      where: { id: post.id, status: 'PROCESSING' },
     })
     await appendAuditLog(transaction, {
       action: 'post.published',
@@ -148,6 +148,98 @@ async function completePublication(
       requestId: post.id,
     })
   })
+}
+
+async function acceptPublication(
+  post: { id: string; organizationId: string },
+  attemptId: string,
+  providerPostId: string
+): Promise<void> {
+  await prisma.$transaction(async (transaction) => {
+    await transaction.publicationAttempt.update({
+      data: { providerPostId },
+      where: { id: attemptId },
+    })
+    await appendAuditLog(transaction, {
+      action: 'post.accepted_by_scheduler',
+      actor: getAuditActor(getTriggerPrincipal(post.organizationId, post.id)),
+      entityId: post.id,
+      entityType: 'scheduled_post',
+      metadata: { providerPostId },
+      organizationId: post.organizationId,
+      requestId: post.id,
+    })
+  })
+}
+
+async function reconcileAcceptedPosts(): Promise<void> {
+  const posts = await prisma.scheduledPost.findMany({
+    include: {
+      attempts: { orderBy: { attemptNumber: 'desc' }, take: 1 },
+      channelConnection: { select: { secretReference: true } },
+    },
+    orderBy: { updatedAt: 'asc' },
+    take: 100,
+    where: {
+      attempts: { some: { completedAt: null, providerPostId: { not: null } } },
+      status: 'PROCESSING',
+    },
+  })
+  for (let offset = 0; offset < posts.length; offset += 10) {
+    await Promise.all(
+      posts.slice(offset, offset + 10).map(async (post) => {
+        const attempt = post.attempts[0]
+        if (!attempt?.providerPostId || attempt.completedAt) return
+        try {
+          const receipt = await getPostizPostStatus(
+            post.channelConnection.secretReference,
+            attempt.providerPostId
+          )
+          if (
+            receipt.state === 'PUBLISHED' &&
+            receipt.releaseId &&
+            receipt.releaseId !== 'missing'
+          ) {
+            await completePublication(post, attempt.id)
+          } else if (receipt.state === 'ERROR') {
+            await prisma.$transaction(async (transaction) => {
+              const failed = await transaction.publicationAttempt.updateMany({
+                data: { completedAt: new Date(), failureCode: 'PROVIDER_ERROR', outcome: 'FAILED' },
+                where: { id: attempt.id, completedAt: null },
+              })
+              if (failed.count === 0) return
+              await transaction.scheduledPost.updateMany({
+                data: { status: 'FAILED' },
+                where: { id: post.id, status: 'PROCESSING' },
+              })
+              await appendAuditLog(transaction, {
+                action: 'post.publish_failed',
+                actor: getAuditActor(getTriggerPrincipal(post.organizationId, post.id)),
+                entityId: post.id,
+                entityType: 'scheduled_post',
+                metadata: { failureCode: 'PROVIDER_ERROR', retry: false },
+                organizationId: post.organizationId,
+                outcome: 'FAILED',
+                requestId: post.id,
+              })
+            })
+          }
+        } catch {
+          // Preserve the accepted post and its remote ID. A later poll can
+          // recover from a temporary API failure without a duplicate create.
+        } finally {
+          // Move this post behind other pending receipts so a stalled provider
+          // cannot starve newer posts when the batch exceeds 100.
+          await prisma.scheduledPost
+            .updateMany({
+              data: { updatedAt: new Date() },
+              where: { id: post.id, status: 'PROCESSING' },
+            })
+            .catch(() => undefined)
+        }
+      })
+    )
+  }
 }
 
 function canRetry(error: unknown, attemptNumber: number): boolean {
@@ -193,30 +285,45 @@ async function dispatchClaimedPost(id: string): Promise<void> {
   if (!post) {
     return
   }
+  const binding = await prisma.postizTenantBinding.findUnique({
+    where: { organizationId: post.organizationId },
+  })
   if (!(await isWorkspaceOperational(post.organizationId)) || !isEligible(post)) {
     await cancelIneligiblePost(post.id, post.organizationId)
     return
   }
 
   const attempt = await createPublicationAttempt(post.organizationId, post.id)
+  if (!binding || binding.secretReference !== post.channelConnection.secretReference) {
+    await failPublication(
+      post,
+      attempt,
+      new PostizProviderError('Postiz organization binding is unavailable.', 403)
+    )
+    return
+  }
+  let providerPostId: string
   try {
-    const providerPostId = await publishPostizPost({
+    providerPostId = await publishPostizPost({
       asset: post.variant.sourceAsset,
       caption: post.caption,
       destinationId: post.channelConnection.externalAccountId,
+      expectedGoOrganizationId: binding.goOrganizationId,
       organizationId: post.organizationId,
       platform: post.channelConnection.platform,
       providerSettings: post.channelConnection.providerSettings,
       secretReference: post.channelConnection.secretReference,
     })
-    await completePublication(post, attempt.id, providerPostId)
   } catch (error) {
     await failPublication(post, attempt, error)
+    return
   }
+  await acceptPublication(post, attempt.id, providerPostId)
 }
 
 export async function dispatchDueScheduledPosts(): Promise<number> {
   await recoverStaleScheduledPosts()
+  await reconcileAcceptedPosts()
   const posts = await prisma.scheduledPost.findMany({
     orderBy: { scheduledFor: 'asc' },
     select: { id: true },

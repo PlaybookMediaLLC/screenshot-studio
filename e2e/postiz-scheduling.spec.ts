@@ -1,17 +1,12 @@
 import { createHash } from 'node:crypto'
 import { expect, type Page } from '@playwright/test'
 import { z } from 'zod'
-import {
-  enableTwoFactor,
-  getActiveOrganizationId,
-  signUpAndCreateWorkspace,
-} from './framework/auth'
-import { requestJson, uploadSignedAsset } from './framework/browser'
-import { configureE2EFlow, test } from './framework/flow'
+import { getE2EUrl } from './framework/auth'
+import { configureE2EFlow, test, type E2EIdentity } from './framework/flow'
 import { startHttpMockServer, type HttpMockRequest } from './framework/http-server'
 import { getMaintenanceHeaders } from './framework/maintenance'
 import { createE2EDatabaseClient } from './framework/services'
-import { trpcMutation } from './framework/trpc'
+import { getTotpCode } from './framework/totp'
 
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFgAI/ScL6fQAAAABJRU5ErkJggg==',
@@ -34,6 +29,142 @@ const scheduledPostSchema = z.object({
   created: z.boolean(),
   scheduledPost: z.object({ id: z.string().cuid(), status: z.string() }),
 })
+const e2eSecretReference = 'POSTIZ_API_KEY_E2E'
+const activeSessionSchema = z.object({
+  session: z.object({ activeOrganizationId: z.string().min(1) }),
+})
+
+async function apiRequest(
+  page: Page,
+  path: string,
+  input: { body?: unknown; headers?: Record<string, string>; method?: string } = {}
+): Promise<{ body: unknown; status: number }> {
+  const response = await page.context().request.fetch(getE2EUrl(path), {
+    data: input.body === undefined ? undefined : JSON.stringify(input.body),
+    headers: {
+      ...(input.body === undefined ? {} : { 'content-type': 'application/json' }),
+      origin: new URL(getE2EUrl('/')).origin,
+      ...input.headers,
+    },
+    method: input.method ?? 'GET',
+  })
+  const raw = await response.text()
+  let body: unknown = raw
+  try {
+    body = JSON.parse(raw)
+  } catch {
+    // Plain-text and empty responses are valid for some routes.
+  }
+  return { body, status: response.status() }
+}
+
+async function getActiveOrganizationId(page: Page): Promise<string> {
+  const response = await apiRequest(page, '/api/auth/get-session')
+  expect(response.status).toBe(200)
+  return activeSessionSchema.parse(response.body).session.activeOrganizationId
+}
+
+async function trpcMutation(
+  page: Page,
+  path: string,
+  input: unknown
+): Promise<{ body: unknown; status: number }> {
+  const response = await apiRequest(page, `/api/trpc/${path}`, {
+    body: { json: input },
+    method: 'POST',
+  })
+  if (typeof response.body !== 'object' || response.body === null) return response
+  if ('result' in response.body) {
+    const result = response.body as { result: { data?: { json?: unknown } } }
+    return { body: result.result.data?.json ?? null, status: response.status }
+  }
+  if ('error' in response.body) {
+    const error = response.body as { error: { json?: unknown } }
+    return { body: error.error.json ?? error.error, status: response.status }
+  }
+  return response
+}
+
+async function requestJson(
+  page: Page,
+  path: string,
+  body: unknown,
+  method: 'POST' | 'PUT' | 'DELETE' = 'POST',
+  headers: Record<string, string> = {}
+): Promise<{ body: unknown; status: number }> {
+  return apiRequest(page, path, { body, headers, method })
+}
+
+async function uploadSignedAsset(
+  page: Page,
+  uploadUrl: string,
+  bytes: readonly number[],
+  contentType: string
+): Promise<number> {
+  const response = await page.context().request.put(uploadUrl, {
+    data: Buffer.from(bytes),
+    headers: { 'content-type': contentType },
+  })
+  return response.status()
+}
+
+async function createPublishingWorkspace(identity: E2EIdentity, page: Page): Promise<void> {
+  const signup = await apiRequest(page, '/api/auth/sign-up/email', {
+    body: { email: identity.email, name: identity.name, password: identity.password },
+    method: 'POST',
+  })
+  expect(signup.status).toBe(200)
+  const workspace = await trpcMutation(page, 'workspace.create', {
+    name: identity.workspaceName,
+    slug: identity.workspaceName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+  })
+  expect(workspace.status).toBe(200)
+  await getActiveOrganizationId(page)
+}
+
+async function enablePublishingTwoFactor(page: Page, password: string): Promise<void> {
+  const headers = { origin: new URL(getE2EUrl('/')).origin }
+  const enable = await page.context().request.post(getE2EUrl('/api/auth/two-factor/enable'), {
+    data: { password },
+    headers,
+  })
+  expect(enable.status()).toBe(200)
+  const setup = z.object({ totpURI: z.string() }).parse(await enable.json())
+  const verify = await page.context().request.post(getE2EUrl('/api/auth/two-factor/verify-totp'), {
+    data: { code: getTotpCode(setup.totpURI) },
+    headers,
+  })
+  expect(verify.status()).toBe(200)
+}
+
+async function bindTestGoOrganization(page: Page): Promise<string> {
+  const organizationId = await getActiveOrganizationId(page)
+  const goOrganizationId = `go-${organizationId}`
+  const database = createE2EDatabaseClient()
+  try {
+    await database.postizTenantBinding.deleteMany({
+      where: { secretReference: e2eSecretReference },
+    })
+    await database.postizTenantBinding.create({
+      data: { goOrganizationId, organizationId, secretReference: e2eSecretReference },
+    })
+  } finally {
+    await database.$disconnect()
+  }
+  return organizationId
+}
+
+async function unbindTestGoOrganization(organizationId: string | null): Promise<void> {
+  if (!organizationId) return
+  const database = createE2EDatabaseClient()
+  try {
+    await database.postizTenantBinding.deleteMany({
+      where: { organizationId, secretReference: e2eSecretReference },
+    })
+  } finally {
+    await database.$disconnect()
+  }
+}
 
 async function createUploadedAsset(page: Page): Promise<string> {
   const sha256 = createHash('sha256').update(png).digest('hex')
@@ -150,7 +281,15 @@ test('an approved variant schedules through Postiz once, retries a throttle, and
   page,
 }) => {
   let postAttempts = 0
+  let remoteState: 'QUEUE' | 'PUBLISHED' = 'QUEUE'
+  let organizationId: string | null = null
   const provider = await startHttpMockServer((request) => {
+    if (request.url === '/api/public/v1/me') {
+      return { body: { organization: { id: `go-${organizationId}` } } }
+    }
+    if (request.url === '/api/public/v1/integrations') {
+      return { body: [{ id: 'postiz-x-integration', identifier: 'x', disabled: false }] }
+    }
     if (request.url === '/api/public/v1/upload') {
       return {
         body: { id: `media-${postAttempts}`, path: 'https://postiz.test/media.png' },
@@ -166,17 +305,61 @@ test('an approved variant schedules through Postiz once, retries a throttle, and
             status: 201,
           }
     }
+    if (request.url === '/api/public/v1/posts/post-2/status') {
+      return {
+        body: {
+          postId: 'post-2',
+          state: remoteState,
+          releaseId: remoteState === 'PUBLISHED' ? 'remote-post-2' : null,
+          releaseURL: remoteState === 'PUBLISHED' ? 'https://social.test/post/2' : null,
+        },
+        status: 200,
+      }
+    }
+    if (request.url === '/api/public/v1/posts/post-3/status') {
+      return {
+        body: { postId: 'post-3', state: 'ERROR', releaseId: null, releaseURL: null },
+        status: 200,
+      }
+    }
     return { body: { error: 'Not found.' }, status: 404 }
   }, 5679)
 
   try {
-    await signUpAndCreateWorkspace(identity, page)
-    await enableTwoFactor(page, identity.password)
+    await createPublishingWorkspace(identity, page)
+    await enablePublishingTwoFactor(page, identity.password)
     const variantId = await createApprovedVariant(page)
+    const unbound = await trpcMutation(page, 'channelConnection.create', {
+      externalAccountId: 'postiz-x-integration',
+      platform: 'x',
+      secretReference: e2eSecretReference,
+    })
+    expect(unbound.status).toBe(409)
+    expect(provider.calls).toHaveLength(0)
+
+    organizationId = await bindTestGoOrganization(page)
+    const wrongCredential = await trpcMutation(page, 'channelConnection.create', {
+      externalAccountId: 'postiz-x-integration',
+      platform: 'x',
+      secretReference: 'POSTIZ_API_KEY',
+    })
+    expect(wrongCredential.status).toBe(409)
+    expect(provider.calls).toHaveLength(0)
+    const foreignDestination = await trpcMutation(page, 'channelConnection.create', {
+      externalAccountId: 'another-organizations-destination',
+      platform: 'x',
+      secretReference: e2eSecretReference,
+    })
+    expect(foreignDestination.status).toBe(404)
+    expect(provider.calls.map((call) => call.url)).toEqual([
+      '/api/public/v1/me',
+      '/api/public/v1/integrations',
+    ])
     const connectionResponse = await trpcMutation(page, 'channelConnection.create', {
       externalAccountId: 'postiz-x-integration',
       platform: 'x',
       providerSettings: { who_can_reply_post: 'everyone' },
+      secretReference: e2eSecretReference,
     })
     expect(connectionResponse.status).toBe(200)
     const connectionId = connectionSchema.parse(connectionResponse.body).connection.id
@@ -197,7 +380,8 @@ test('an approved variant schedules through Postiz once, retries a throttle, and
       'POST',
       getMaintenanceHeaders()
     )
-    expect(firstDispatch).toMatchObject({ body: { dispatched: 1 }, status: 200 })
+    // The maintenance endpoint drains all tenants; assert this post's attempts below.
+    expect(firstDispatch.status).toBe(200)
     const secondDispatch = await requestJson(
       page,
       '/api/internal/scheduled-posts/dispatch',
@@ -205,10 +389,43 @@ test('an approved variant schedules through Postiz once, retries a throttle, and
       'POST',
       getMaintenanceHeaders()
     )
-    expect(secondDispatch).toMatchObject({ body: { dispatched: 1 }, status: 200 })
+    expect(secondDispatch.status).toBe(200)
 
     const database = createE2EDatabaseClient()
     try {
+      const accepted = await database.scheduledPost.findUnique({
+        include: { attempts: { orderBy: { attemptNumber: 'asc' } } },
+        where: { id: first.scheduledPost.id },
+      })
+      expect(accepted).toMatchObject({ status: 'PROCESSING' })
+      expect(accepted?.attempts).toMatchObject([
+        { failureCode: '429', outcome: 'FAILED' },
+        { outcome: null, providerPostId: 'post-2' },
+      ])
+      expect(
+        (
+          await requestJson(
+            page,
+            '/api/internal/scheduled-posts/dispatch',
+            {},
+            'POST',
+            getMaintenanceHeaders()
+          )
+        ).status
+      ).toBe(200)
+      expect(
+        await database.scheduledPost.findUnique({ where: { id: first.scheduledPost.id } })
+      ).toMatchObject({
+        status: 'PROCESSING',
+      })
+      remoteState = 'PUBLISHED'
+      await requestJson(
+        page,
+        '/api/internal/scheduled-posts/dispatch',
+        {},
+        'POST',
+        getMaintenanceHeaders()
+      )
       const published = await database.scheduledPost.findUnique({
         include: { attempts: { orderBy: { attemptNumber: 'asc' } } },
         where: { id: first.scheduledPost.id },
@@ -250,8 +467,45 @@ test('an approved variant schedules through Postiz once, retries a throttle, and
       getMaintenanceHeaders()
     )
     expect(postRequests(provider.calls)).toHaveLength(2)
+
+    const rejected = await createScheduledPost(
+      page,
+      connectionId,
+      'postiz-provider-error',
+      variantId
+    )
+    await makeScheduledPostDue(rejected.scheduledPost.id)
+    await requestJson(
+      page,
+      '/api/internal/scheduled-posts/dispatch',
+      {},
+      'POST',
+      getMaintenanceHeaders()
+    )
+    await requestJson(
+      page,
+      '/api/internal/scheduled-posts/dispatch',
+      {},
+      'POST',
+      getMaintenanceHeaders()
+    )
+    const databaseAfterError = createE2EDatabaseClient()
+    try {
+      const failed = await databaseAfterError.scheduledPost.findUnique({
+        include: { attempts: true },
+        where: { id: rejected.scheduledPost.id },
+      })
+      expect(failed).toMatchObject({
+        attempts: [{ failureCode: 'PROVIDER_ERROR', outcome: 'FAILED', providerPostId: 'post-3' }],
+        status: 'FAILED',
+      })
+    } finally {
+      await databaseAfterError.$disconnect()
+    }
+    expect(postRequests(provider.calls)).toHaveLength(3)
   } finally {
     await provider.close()
+    await unbindTestGoOrganization(organizationId)
   }
 })
 
@@ -259,17 +513,23 @@ test('a queued post is cancelled when its approval or destination is revoked bef
   identity,
   page,
 }) => {
+  let organizationId: string | null = null
   const provider = await startHttpMockServer(
     (request) =>
-      request.url === '/api/public/v1/upload'
-        ? { body: { id: 'media', path: 'https://postiz.test/media.png' }, status: 201 }
-        : { body: [{ postId: 'post', integration: 'revocation-integration' }], status: 201 },
+      request.url === '/api/public/v1/me'
+        ? { body: { organization: { id: `go-${organizationId}` } } }
+        : request.url === '/api/public/v1/integrations'
+          ? { body: [{ id: 'revocation-integration', identifier: 'x', disabled: false }] }
+          : request.url === '/api/public/v1/upload'
+            ? { body: { id: 'media', path: 'https://postiz.test/media.png' }, status: 201 }
+            : { body: [{ postId: 'post', integration: 'revocation-integration' }], status: 201 },
     5679
   )
 
   try {
-    await signUpAndCreateWorkspace(identity, page)
-    await enableTwoFactor(page, identity.password)
+    await createPublishingWorkspace(identity, page)
+    organizationId = await bindTestGoOrganization(page)
+    await enablePublishingTwoFactor(page, identity.password)
     const variantId = await createApprovedVariant(page)
     const connection = connectionSchema.parse(
       (
@@ -277,6 +537,7 @@ test('a queued post is cancelled when its approval or destination is revoked bef
           externalAccountId: 'revocation-integration',
           platform: 'x',
           providerSettings: {},
+          secretReference: e2eSecretReference,
         })
       ).body
     ).connection
@@ -353,6 +614,7 @@ test('a queued post is cancelled when its approval or destination is revoked bef
     expect(postRequests(provider.calls)).toHaveLength(0)
   } finally {
     await provider.close()
+    await unbindTestGoOrganization(organizationId)
   }
 })
 
@@ -360,21 +622,37 @@ test('a worker recovers an unclaimed post and does not retry uncertain delivery'
   identity,
   page,
 }) => {
+  let boundOrganizationId: string | null = null
   const provider = await startHttpMockServer(
     (request) =>
-      request.url === '/api/public/v1/upload'
-        ? { body: { id: 'media', path: 'https://postiz.test/media.png' }, status: 201 }
-        : {
-            body: [{ postId: 'published-post', integration: 'recovery-integration' }],
-            status: 201,
-          },
+      request.url === '/api/public/v1/me'
+        ? { body: { organization: { id: `go-${boundOrganizationId}` } } }
+        : request.url === '/api/public/v1/integrations'
+          ? { body: [{ id: 'recovery-integration', identifier: 'x', disabled: false }] }
+          : request.url === '/api/public/v1/upload'
+            ? { body: { id: 'media', path: 'https://postiz.test/media.png' }, status: 201 }
+            : request.url === '/api/public/v1/posts/published-post/status'
+              ? {
+                  body: {
+                    postId: 'published-post',
+                    state: 'PUBLISHED',
+                    releaseId: 'remote-1',
+                    releaseURL: 'https://social.test/post/1',
+                  },
+                  status: 200,
+                }
+              : {
+                  body: [{ postId: 'published-post', integration: 'recovery-integration' }],
+                  status: 201,
+                },
     5679
   )
 
   try {
-    await signUpAndCreateWorkspace(identity, page)
+    await createPublishingWorkspace(identity, page)
     const organizationId = await getActiveOrganizationId(page)
-    await enableTwoFactor(page, identity.password)
+    boundOrganizationId = await bindTestGoOrganization(page)
+    await enablePublishingTwoFactor(page, identity.password)
     const variantId = await createApprovedVariant(page)
     const connection = connectionSchema.parse(
       (
@@ -382,6 +660,7 @@ test('a worker recovers an unclaimed post and does not retry uncertain delivery'
           externalAccountId: 'recovery-integration',
           platform: 'x',
           providerSettings: {},
+          secretReference: e2eSecretReference,
         })
       ).body
     ).connection
@@ -419,9 +698,21 @@ test('a worker recovers an unclaimed post and does not retry uncertain delivery'
         )
       ).toMatchObject({ body: { dispatched: expect.any(Number) }, status: 200 })
       expect(provider.calls.map((call) => call.url)).toEqual([
+        '/api/public/v1/me',
+        '/api/public/v1/integrations',
+        '/api/public/v1/me',
+        '/api/public/v1/integrations',
         '/api/public/v1/upload',
         '/api/public/v1/posts',
       ])
+
+      await requestJson(
+        page,
+        '/api/internal/scheduled-posts/dispatch',
+        {},
+        'POST',
+        getMaintenanceHeaders()
+      )
 
       const [recovered, stopped, audit] = await Promise.all([
         database.scheduledPost.findUnique({
@@ -455,5 +746,474 @@ test('a worker recovers an unclaimed post and does not retry uncertain delivery'
     expect(postRequests(provider.calls)).toHaveLength(1)
   } finally {
     await provider.close()
+    await unbindTestGoOrganization(boundOrganizationId)
+  }
+})
+
+test('a removed Go organization binding fails a queued post before media upload', async ({
+  identity,
+  page,
+}) => {
+  let organizationId: string | null = null
+  const backend = await startHttpMockServer(
+    (request) =>
+      request.url === '/api/public/v1/me'
+        ? { body: { organization: { id: `go-${organizationId}` } } }
+        : request.url === '/api/public/v1/integrations'
+          ? { body: [{ id: 'bound-x-destination', identifier: 'x', disabled: false }] }
+          : { body: { error: 'Unexpected request.' }, status: 500 },
+    5679
+  )
+  try {
+    await createPublishingWorkspace(identity, page)
+    await enablePublishingTwoFactor(page, identity.password)
+    organizationId = await bindTestGoOrganization(page)
+    const variantId = await createApprovedVariant(page)
+    const connection = connectionSchema.parse(
+      (
+        await trpcMutation(page, 'channelConnection.create', {
+          externalAccountId: 'bound-x-destination',
+          platform: 'x',
+          secretReference: e2eSecretReference,
+        })
+      ).body
+    ).connection
+    const post = await createScheduledPost(page, connection.id, 'binding-revoked', variantId)
+    await makeScheduledPostDue(post.scheduledPost.id)
+    await unbindTestGoOrganization(organizationId)
+    const dispatched = await requestJson(
+      page,
+      '/api/internal/scheduled-posts/dispatch',
+      {},
+      'POST',
+      getMaintenanceHeaders()
+    )
+    expect(dispatched).toMatchObject({ body: { dispatched: 1 }, status: 200 })
+    const database = createE2EDatabaseClient()
+    try {
+      expect(
+        await database.scheduledPost.findUnique({
+          select: { status: true },
+          where: { id: post.scheduledPost.id },
+        })
+      ).toEqual({ status: 'FAILED' })
+      expect(
+        await database.publicationAttempt.findFirst({
+          select: { failureCode: true, outcome: true },
+          where: { scheduledPostId: post.scheduledPost.id },
+        })
+      ).toEqual({ failureCode: '403', outcome: 'FAILED' })
+    } finally {
+      await database.$disconnect()
+    }
+    expect(backend.calls.map((call) => call.url)).toEqual([
+      '/api/public/v1/me',
+      '/api/public/v1/integrations',
+    ])
+  } finally {
+    await unbindTestGoOrganization(organizationId)
+    await backend.close()
+  }
+})
+
+test('a Go destination disabled after scheduling fails before media upload', async ({
+  identity,
+  page,
+}) => {
+  let organizationId: string | null = null
+  let disabled = false
+  const backend = await startHttpMockServer(
+    (request) =>
+      request.url === '/api/public/v1/me'
+        ? { body: { organization: { id: `go-${organizationId}` } } }
+        : request.url === '/api/public/v1/integrations'
+          ? { body: [{ id: 'disabled-x-destination', identifier: 'x', disabled }] }
+          : { body: { error: 'Unexpected request.' }, status: 500 },
+    5679
+  )
+  try {
+    await createPublishingWorkspace(identity, page)
+    await enablePublishingTwoFactor(page, identity.password)
+    organizationId = await bindTestGoOrganization(page)
+    const variantId = await createApprovedVariant(page)
+    const connection = connectionSchema.parse(
+      (
+        await trpcMutation(page, 'channelConnection.create', {
+          externalAccountId: 'disabled-x-destination',
+          platform: 'x',
+          secretReference: e2eSecretReference,
+        })
+      ).body
+    ).connection
+    const post = await createScheduledPost(page, connection.id, 'destination-disabled', variantId)
+    await makeScheduledPostDue(post.scheduledPost.id)
+    disabled = true
+    expect(
+      await requestJson(
+        page,
+        '/api/internal/scheduled-posts/dispatch',
+        {},
+        'POST',
+        getMaintenanceHeaders()
+      )
+    ).toMatchObject({ body: { dispatched: 1 }, status: 200 })
+    const database = createE2EDatabaseClient()
+    try {
+      expect(
+        await database.scheduledPost.findUnique({
+          select: { status: true },
+          where: { id: post.scheduledPost.id },
+        })
+      ).toEqual({ status: 'FAILED' })
+    } finally {
+      await database.$disconnect()
+    }
+    expect(backend.calls.map((call) => call.url)).toEqual([
+      '/api/public/v1/me',
+      '/api/public/v1/integrations',
+      '/api/public/v1/me',
+      '/api/public/v1/integrations',
+    ])
+  } finally {
+    await unbindTestGoOrganization(organizationId)
+    await backend.close()
+  }
+})
+
+test('another workspace cannot attach or control a bound Go destination', async ({
+  browser,
+  identity,
+  page,
+}) => {
+  let organizationId: string | null = null
+  const backend = await startHttpMockServer(
+    (request) =>
+      request.url === '/api/public/v1/me'
+        ? { body: { organization: { id: `go-${organizationId}` } } }
+        : request.url === '/api/public/v1/integrations'
+          ? { body: [{ id: 'tenant-a-destination', identifier: 'x', disabled: false }] }
+          : { body: { error: 'Unexpected request.' }, status: 500 },
+    5679
+  )
+  const secondContext = await browser.newContext()
+  try {
+    await createPublishingWorkspace(identity, page)
+    await enablePublishingTwoFactor(page, identity.password)
+    organizationId = await bindTestGoOrganization(page)
+    const variantId = await createApprovedVariant(page)
+    const connection = connectionSchema.parse(
+      (
+        await trpcMutation(page, 'channelConnection.create', {
+          externalAccountId: 'tenant-a-destination',
+          platform: 'x',
+          secretReference: e2eSecretReference,
+        })
+      ).body
+    ).connection
+    const post = await createScheduledPost(page, connection.id, 'tenant-a-post', variantId)
+    const providerCallCount = backend.calls.length
+
+    const secondPage = await secondContext.newPage()
+    const secondIdentity = {
+      ...identity,
+      email: `foreign-${identity.email}`,
+      workspaceName: `Foreign ${identity.workspaceName}`,
+    }
+    await createPublishingWorkspace(secondIdentity, secondPage)
+    await enablePublishingTwoFactor(secondPage, secondIdentity.password)
+    expect(
+      (
+        await trpcMutation(secondPage, 'channelConnection.create', {
+          externalAccountId: 'tenant-a-destination',
+          platform: 'x',
+          secretReference: e2eSecretReference,
+        })
+      ).status
+    ).toBe(409)
+    expect(
+      (
+        await trpcMutation(secondPage, 'scheduledPost.create', {
+          caption: 'A foreign post',
+          channelConnectionId: connection.id,
+          idempotencyKey: 'foreign-schedule',
+          scheduledFor: new Date(Date.now() + 60_000).toISOString(),
+          variantId,
+        })
+      ).status
+    ).toBe(404)
+    expect(
+      (
+        await trpcMutation(secondPage, 'scheduledPost.cancel', {
+          scheduledPostId: post.scheduledPost.id,
+        })
+      ).status
+    ).toBe(404)
+    expect(backend.calls).toHaveLength(providerCallCount)
+  } finally {
+    await secondContext.close()
+    await unbindTestGoOrganization(organizationId)
+    await backend.close()
+  }
+})
+
+test('X OAuth start binds its one-use callback to the active workspace', async ({
+  identity,
+  page,
+}) => {
+  let organizationId: string | null = null
+  const state = 'oauth-state-for-x'
+  const integrationId = 'go-x-test-integration'
+  const backend = await startHttpMockServer((request) => {
+    if (request.url === '/api/public/v1/me') {
+      return { body: { organization: { id: `go-${organizationId}` } } }
+    }
+    if (request.url === '/api/public/v1/social/x') {
+      return {
+        body: { url: `https://api.x.com/oauth/authenticate?oauth_token=${state}` },
+      }
+    }
+    if (request.url === '/integrations/social-connect/x') {
+      return { body: { id: integrationId, pages: [] } }
+    }
+    if (request.url === '/api/public/v1/integrations') {
+      return { body: [{ id: integrationId, identifier: 'x', disabled: false }] }
+    }
+    return { body: { error: 'Not found.' }, status: 404 }
+  }, 5679)
+
+  try {
+    await createPublishingWorkspace(identity, page)
+    organizationId = await getActiveOrganizationId(page)
+    await enablePublishingTwoFactor(page, identity.password)
+
+    const database = createE2EDatabaseClient()
+    try {
+      await database.postizTenantBinding.deleteMany({
+        where: { secretReference: 'POSTIZ_API_KEY_E2E' },
+      })
+      await database.postizTenantBinding.create({
+        data: {
+          goOrganizationId: `go-${organizationId}`,
+          organizationId,
+          secretReference: 'POSTIZ_API_KEY_E2E',
+        },
+      })
+    } finally {
+      await database.$disconnect()
+    }
+
+    const start = await page
+      .context()
+      .request.get('http://localhost:3000/integrations/social/x/start', {
+        maxRedirects: 0,
+      })
+    expect(start.status(), `${await start.text()} ${backend.calls.map((call) => call.url)}`).toBe(
+      303
+    )
+    expect(start.headers().location).toBe(
+      `https://api.x.com/oauth/authenticate?oauth_token=${state}`
+    )
+
+    await page.goto(`/integrations/social/x?oauth_token=${state}&oauth_verifier=test-verifier`)
+    await expect(page.getByText('x connected to Screenshot Studio Backend.')).toBeVisible()
+
+    const verifier = createE2EDatabaseClient()
+    try {
+      const connection = await verifier.channelConnection.findFirst({
+        where: { externalAccountId: integrationId, organizationId },
+      })
+      expect(connection?.platform).toBe('x')
+      expect(connection?.secretReference).toBe('POSTIZ_API_KEY_E2E')
+      expect(await verifier.socialOAuthStart.findUnique({ where: { state } })).toBeNull()
+    } finally {
+      await verifier.$disconnect()
+    }
+
+    const callsBeforeReplay = backend.calls.length
+    const replay = await page
+      .context()
+      .request.get(
+        `http://localhost:3000/integrations/social/x?oauth_token=${state}&oauth_verifier=test-verifier`
+      )
+    expect(replay.status()).toBe(403)
+    expect(backend.calls).toHaveLength(callsBeforeReplay)
+  } finally {
+    const database = createE2EDatabaseClient()
+    try {
+      await database.socialOAuthStart.deleteMany({ where: { state } })
+      if (organizationId) {
+        await database.postizTenantBinding.deleteMany({
+          where: { organizationId, secretReference: 'POSTIZ_API_KEY_E2E' },
+        })
+      }
+    } finally {
+      await database.$disconnect()
+    }
+    await backend.close()
+  }
+})
+
+test('Instagram with Facebook Login registers the selected Page once', async ({
+  identity,
+  page,
+}) => {
+  let organizationId: string | null = null
+  const state = 'oauth-state-for-instagram'
+  const integrationId = 'go-instagram-test-integration'
+  const backend = await startHttpMockServer((request) => {
+    if (request.url === '/api/public/v1/me') {
+      return { body: { organization: { id: `go-${organizationId}` } } }
+    }
+    if (request.url === '/api/public/v1/social/instagram') {
+      return {
+        body: { url: `https://www.facebook.com/v24.0/dialog/oauth?state=${state}` },
+      }
+    }
+    if (request.url === '/integrations/social-connect/instagram') {
+      return {
+        body: {
+          id: integrationId,
+          pages: [
+            { id: 'instagram-test-account', name: 'Test Page', pageId: 'facebook-test-page' },
+          ],
+        },
+      }
+    }
+    if (request.url === `/integrations/public/provider/${integrationId}/connect`) {
+      return { body: { success: true } }
+    }
+    if (request.url === '/api/public/v1/integrations') {
+      return { body: [{ id: integrationId, identifier: 'instagram', disabled: false }] }
+    }
+    return { body: { error: 'Not found.' }, status: 404 }
+  }, 5679)
+  try {
+    await createPublishingWorkspace(identity, page)
+    organizationId = await bindTestGoOrganization(page)
+    await enablePublishingTwoFactor(page, identity.password)
+
+    const start = await page
+      .context()
+      .request.get(getE2EUrl('/integrations/social/instagram/start'), {
+        maxRedirects: 0,
+      })
+    expect(start.status(), `${await start.text()} ${backend.calls.map((call) => call.url)}`).toBe(
+      303
+    )
+    expect(start.headers().location).toBe(
+      `https://www.facebook.com/v24.0/dialog/oauth?state=${state}`
+    )
+
+    const callbackURL = getE2EUrl(`/integrations/social/instagram?code=test-code&state=${state}`)
+    const picker = await page.context().request.get(callbackURL)
+    expect(picker.status()).toBe(200)
+    const choice = (await picker.text()).match(/name="choice" value="([^"]+)"/)?.[1]
+    expect(choice).toBeTruthy()
+    const selection = await page.context().request.post(callbackURL, {
+      form: { choice: choice as string },
+      headers: { origin: new URL(getE2EUrl('/')).origin },
+    })
+    expect(selection.status()).toBe(200)
+
+    const database = createE2EDatabaseClient()
+    try {
+      expect(
+        await database.channelConnection.findFirst({
+          select: { platform: true, secretReference: true },
+          where: { externalAccountId: integrationId, organizationId },
+        })
+      ).toEqual({ platform: 'instagram', secretReference: e2eSecretReference })
+      expect(await database.socialOAuthStart.findUnique({ where: { state } })).toBeNull()
+    } finally {
+      await database.$disconnect()
+    }
+
+    const callsBeforeReplay = backend.calls.length
+    const replay = await page.context().request.post(callbackURL, {
+      form: { choice: choice as string },
+      headers: { origin: new URL(getE2EUrl('/')).origin },
+    })
+    expect(replay.status()).toBe(403)
+    expect(backend.calls).toHaveLength(callsBeforeReplay)
+  } finally {
+    const database = createE2EDatabaseClient()
+    try {
+      await database.socialOAuthStart.deleteMany({ where: { state } })
+    } finally {
+      await database.$disconnect()
+    }
+    await unbindTestGoOrganization(organizationId)
+    await backend.close()
+  }
+})
+
+test('Instagram Login registers its destination after a one-use callback', async ({
+  identity,
+  page,
+}) => {
+  let organizationId: string | null = null
+  const state = 'oauth-state-for-instagram-login'
+  const integrationId = 'go-instagram-login-test-integration'
+  const backend = await startHttpMockServer((request) => {
+    if (request.url === '/api/public/v1/me') {
+      return { body: { organization: { id: `go-${organizationId}` } } }
+    }
+    if (request.url === '/api/public/v1/social/instagram-standalone') {
+      return { body: { url: `https://www.instagram.com/oauth/authorize?state=${state}` } }
+    }
+    if (request.url === '/integrations/social-connect/instagram-standalone') {
+      return { body: { id: integrationId, pages: [] } }
+    }
+    if (request.url === '/api/public/v1/integrations') {
+      return { body: [{ id: integrationId, identifier: 'instagram-standalone', disabled: false }] }
+    }
+    return { body: { error: 'Not found.' }, status: 404 }
+  }, 5679)
+  try {
+    await createPublishingWorkspace(identity, page)
+    organizationId = await bindTestGoOrganization(page)
+    await enablePublishingTwoFactor(page, identity.password)
+
+    const start = await page
+      .context()
+      .request.get(getE2EUrl('/integrations/social/instagram-standalone/start'), {
+        maxRedirects: 0,
+      })
+    expect(start.status(), `${await start.text()} ${backend.calls.map((call) => call.url)}`).toBe(
+      303
+    )
+    expect(start.headers().location).toBe(
+      `https://www.instagram.com/oauth/authorize?state=${state}`
+    )
+
+    const callbackURL = getE2EUrl(
+      `/integrations/social/instagram-standalone?code=test-code&state=${state}`
+    )
+    const callback = await page.context().request.get(callbackURL)
+    expect(callback.status()).toBe(200)
+    const database = createE2EDatabaseClient()
+    try {
+      expect(
+        await database.channelConnection.findFirst({
+          select: { platform: true, secretReference: true },
+          where: { externalAccountId: integrationId, organizationId },
+        })
+      ).toEqual({ platform: 'instagram-standalone', secretReference: e2eSecretReference })
+      expect(await database.socialOAuthStart.findUnique({ where: { state } })).toBeNull()
+    } finally {
+      await database.$disconnect()
+    }
+    const callsBeforeReplay = backend.calls.length
+    expect((await page.context().request.get(callbackURL)).status()).toBe(403)
+    expect(backend.calls).toHaveLength(callsBeforeReplay)
+  } finally {
+    const database = createE2EDatabaseClient()
+    try {
+      await database.socialOAuthStart.deleteMany({ where: { state } })
+    } finally {
+      await database.$disconnect()
+    }
+    await unbindTestGoOrganization(organizationId)
+    await backend.close()
   }
 })

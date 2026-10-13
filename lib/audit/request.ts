@@ -1,8 +1,5 @@
 import { createHmac } from 'node:crypto'
-
-function getClientIp(headers: Headers): string | null {
-  return headers.get('cf-connecting-ip') ?? headers.get('x-forwarded-for')?.split(',', 1)[0] ?? null
-}
+import { getClientIp } from '@/lib/api/client-identity'
 
 function getAuditIpHashSecret(): string | undefined {
   return process.env.AUDIT_IP_HASH_SECRET

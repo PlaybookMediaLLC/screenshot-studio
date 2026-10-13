@@ -1,18 +1,14 @@
 /**
  * Client IP resolution for rate limiting and abuse controls.
  *
- * The app runs on Fly.io behind the Cloudflare proxy, so every request
- * carries proxy headers. Order matters: `cf-connecting-ip` is set by
- * Cloudflare itself and cannot be spoofed by the client, whereas
- * `x-forwarded-for` is a client-supplied list that proxies append to.
- * Reading the first `x-forwarded-for` entry without checking
- * `cf-connecting-ip` first lets an attacker rotate the value per request
- * and bypass any per-IP limit entirely.
+ * DigitalOcean App Platform supplies `do-connecting-ip`. Its deployment sets
+ * CLIENT_IP_SOURCE so requests cannot select their own rate-limit bucket with
+ * proxy headers. Other installations retain their existing proxy behavior.
  */
 
 const UNKNOWN_CLIENT = 'unknown'
 
-export function getClientIp(headers: Headers): string | null {
+function getProxyClientIp(headers: Headers): string | null {
   const cloudflareIp = headers.get('cf-connecting-ip')?.trim()
   if (cloudflareIp) {
     return cloudflareIp
@@ -24,6 +20,13 @@ export function getClientIp(headers: Headers): string | null {
   }
 
   return headers.get('x-real-ip')?.trim() || null
+}
+
+export function getClientIp(headers: Headers): string | null {
+  if (process.env.CLIENT_IP_SOURCE === 'digitalocean') {
+    return headers.get('do-connecting-ip')?.trim() || null
+  }
+  return getProxyClientIp(headers)
 }
 
 /**

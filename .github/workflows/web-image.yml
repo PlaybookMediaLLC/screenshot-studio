@@ -1,0 +1,123 @@
+name: Web image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - app/**
+      - components/**
+      - lib/**
+      - prisma/**
+      - public/**
+      - Dockerfile
+      - package.json
+      - package-lock.json
+      - next.config.ts
+      - .github/workflows/web-image.yml
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy the web image and run the reviewed predeploy migration
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Build and publish web
+        id: build
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          tags: ghcr.io/playbookmediallc/screenshot-studio:web-${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          build-args: |
+            NEXT_PUBLIC_POSTHOG_HOST=${{ vars.NEXT_PUBLIC_POSTHOG_HOST }}
+            NEXT_PUBLIC_POSTHOG_KEY=${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
+            NEXT_PUBLIC_R2_PUBLIC_URL=${{ vars.NEXT_PUBLIC_R2_PUBLIC_URL }}
+          cache-from: type=gha,scope=screenshot-studio-web
+          cache-to: type=gha,mode=max,ignore-error=true,scope=screenshot-studio-web
+      - name: Verify public image pull
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          docker logout ghcr.io
+          docker buildx imagetools inspect "ghcr.io/playbookmediallc/screenshot-studio@$IMAGE_DIGEST"
+
+  deploy:
+    needs: publish
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: do-app-${{ github.repository }}-${{ vars.SCREENSHOT_STUDIO_APP_ID }}
+      cancel-in-progress: false
+    env:
+      APP_ID: ${{ vars.SCREENSHOT_STUDIO_APP_ID }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Load scoped production credentials
+        uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d # v1.0.18
+        with:
+          method: oidc
+          identity-id: ${{ vars.SCREENSHOT_STUDIO_INFISICAL_IDENTITY_ID }}
+          project-id: ${{ vars.SCREENSHOT_STUDIO_INFISICAL_PROJECT_ID }}
+          env-slug: prod
+          secret-path: /screenshot-studio
+          include-imports: 'false'
+          recursive: 'false'
+      - uses: digitalocean/action-doctl@3cb3953159719656269e044e0e24ca16dd2a690f # v2.5.2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_PRODUCTION_TOKEN }}
+          version: 1.180.0
+      - name: Deploy web and its migration job
+        run: |
+          set -euo pipefail
+          umask 077
+          test -n "$APP_ID"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA"
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          doctl apps get "$APP_ID" -o json > "$work/before.json"
+          python3 infra/digitalocean/update-web-image.py \
+            --base "$work/before.json" --tag "web-$GITHUB_SHA" \
+            --from-infisical-env --output "$work/spec.json"
+          doctl apps propose --app "$APP_ID" --spec "$work/spec.json" -o json > "$work/proposal.json"
+          doctl apps update "$APP_ID" --spec "$work/spec.json" --wait > "$work/update.log"
+          doctl apps get "$APP_ID" -o json > "$work/after.json"
+          test "$(jq -r '.[0].spec.services[] | select(.name == "web") | .image.tag' "$work/after.json")" = "web-$GITHUB_SHA"
+          test "$(jq -r '.[0].spec.jobs[] | select(.name == "web-migrate") | .image.tag' "$work/after.json")" = "web-$GITHUB_SHA"
+          test "$(jq -r '.[0].active_deployment.phase // empty' "$work/after.json")" = ACTIVE
+          curl --fail --silent --show-error --retry 6 --retry-delay 5 https://shots.oppulence.io/api/health > /dev/null
+          echo "Web active: https://cloud.digitalocean.com/apps/$APP_ID" >> "$GITHUB_STEP_SUMMARY"

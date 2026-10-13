@@ -97,14 +97,13 @@ When merging the separate full-app deployment branch, retain the renderer and
 its web environment variables in `.do/screenshot-studio-production.yaml`.
 A complete app spec replaces the live topology; applying a web-only spec would
 remove the renderer. Use the renderer's published immutable digest (never
-`ci-placeholder`, which the web-image workflow replaces with the web digest).
+`ci-placeholder`).
 For a coordinated full-stack release, the generated full spec must likewise
 use this GHCR digest rather than a Git source for the renderer.
 
 The Dockerfile uses `npm ci`, compiled JavaScript, a non-root runtime user, and
 `tini` to forward shutdown signals and reap browser processes. Chromium and
-`playwright-core` are pinned to the same version. The existing `fly.toml` is
-retained for compatibility. App settings follow the
+`playwright-core` are pinned to the same version. App settings follow the
 [DigitalOcean App Spec reference](https://docs.digitalocean.com/products/app-platform/reference/app-spec/).
 
 ## Container smoke test

@@ -1292,6 +1292,9 @@ if (process.env.E2E_SOCIAL_GATE_BOOTSTRAP) {
           )
           .toBe(status)
       }
+      await database.postizTenantBinding.deleteMany({
+        where: { secretReference: 'POSTIZ_API_KEY_SOCIAL_GATE' },
+      })
       await database.postizTenantBinding.create({
         data: {
           goOrganizationId: bootstrap.goOrganizationId,

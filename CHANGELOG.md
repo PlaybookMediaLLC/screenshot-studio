@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.11.1...v1.11.2) (2026-10-13)
+
+
+### Bug Fixes
+
+* handle private media for X and Instagram posts ([#66](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/66)) ([b376f81](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/b376f813ba6694f888eb39886e640db854ca6192))
+
 ## [1.11.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.11.0...v1.11.1) (2026-10-13)
 
 

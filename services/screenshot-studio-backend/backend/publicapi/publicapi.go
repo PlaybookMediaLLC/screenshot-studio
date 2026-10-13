@@ -49,6 +49,7 @@ type PostsService interface {
 	ValidatePosts(ctx context.Context, orgID string, posts []postsdto.Post) ([]posts.PostValidation, error)
 	CreatePost(ctx context.Context, orgID string, body *postsdto.CreatePostDto, creationMethod post.CreationMethod, keepGroup bool) ([]posts.CreatedPost, error)
 	GetPost(ctx context.Context, orgID, id string, convertToJPEG bool) (map[string]any, error)
+	GetPostByID(ctx context.Context, postID, orgID string) (*ent.Post, error)
 	DeletePost(ctx context.Context, orgID, group string) (map[string]bool, error)
 	GetPostTimeline(ctx context.Context, postID, orgID string) (*posts.PostTimeline, error)
 	GetMissingContent(ctx context.Context, orgID, postID string, forceRefresh bool) ([]integrations.MissingPost, error)
@@ -104,6 +105,7 @@ func RegisterPublicIntegrationsController(r *httpx.Router, d Deps) {
 	g.Post("/upload-from-url", h.uploadsFromURL)
 	g.Get("/find-slot/:id", h.findSlotIntegration)
 	g.Get("/posts", h.getPosts)
+	g.Get("/posts/:id/status", h.getPostStatus)
 	g.Post("/posts", h.createPost, d.Perms.CheckPolicies(auth.Policy(auth.ActionCreate, auth.SectionPostsPerMonth)))
 	g.Delete("/posts/:id", h.deletePost)
 	g.Delete("/posts/group/:group", h.deletePostByGroup)
@@ -200,6 +202,24 @@ func (h *controller) getPosts(c *httpx.Ctx) (any, error) {
 		return nil, err
 	}
 	return map[string]any{"posts": list}, nil
+}
+
+// getPostStatus exposes only the publication receipt for a post owned by the
+// authenticated organization. The full post record contains private data.
+func (h *controller) getPostStatus(c *httpx.Ctx) (any, error) {
+	p, err := h.Posts.GetPostByID(c.R.Context(), c.Param("id"), c.Org.ID)
+	if err != nil {
+		return nil, err
+	}
+	if p == nil || p.DeletedAt != nil {
+		return nil, msg(http.StatusNotFound, "Post not found")
+	}
+	return map[string]any{
+		"postId":     p.ID,
+		"state":      p.State,
+		"releaseId":  p.ReleaseID,
+		"releaseURL": p.ReleaseURL,
+	}, nil
 }
 
 func (h *controller) createPost(c *httpx.Ctx) (any, error) {

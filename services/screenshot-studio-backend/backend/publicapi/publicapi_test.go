@@ -56,6 +56,16 @@ type fakePosts struct {
 	mapped     *postsdto.CreatePostDto
 	created    *postsdto.CreatePostDto
 	method     post.CreationMethod
+	statusPost *ent.Post
+	statusOrg  string
+}
+
+func (f *fakePosts) GetPostByID(_ context.Context, postID, orgID string) (*ent.Post, error) {
+	f.statusOrg = orgID
+	if f.statusPost == nil || f.statusPost.ID != postID || f.statusPost.OrganizationID != orgID {
+		return nil, nil
+	}
+	return f.statusPost, nil
 }
 
 func (f *fakePosts) MapTypeToPost(_ context.Context, body *postsdto.CreatePostDto, _ string, replaceDraft bool) (*postsdto.CreatePostDto, error) {
@@ -154,6 +164,33 @@ func TestCreatePostValidation(t *testing.T) {
 	status, body = do(t, r, http.MethodPost, "/public/v1/posts", "key", withImage)
 	if status != http.StatusBadRequest || !strings.Contains(body, `"msg":"All media must be uploaded`) {
 		t.Fatalf("restrict: %d %s", status, body)
+	}
+}
+
+func TestPostStatusIsScopedAndMinimal(t *testing.T) {
+	r, fp := setup(t)
+	releaseID, releaseURL := "remote-1", "https://example.test/post/1"
+	fp.statusPost = &ent.Post{
+		ID: "p1", OrganizationID: "org1", State: post.StatePUBLISHED,
+		ReleaseID: &releaseID, ReleaseURL: &releaseURL, Content: "private caption",
+	}
+	status, body := do(t, r, http.MethodGet, "/public/v1/posts/p1/status", "key", "")
+	if status != http.StatusOK || fp.statusOrg != "org1" {
+		t.Fatalf("status %d org %q body %s", status, fp.statusOrg, body)
+	}
+	var receipt map[string]any
+	if err := json.Unmarshal([]byte(body), &receipt); err != nil {
+		t.Fatal(err)
+	}
+	if receipt["postId"] != "p1" || receipt["state"] != "PUBLISHED" || receipt["releaseId"] != releaseID || receipt["releaseURL"] != releaseURL || len(receipt) != 4 {
+		t.Fatalf("unexpected receipt: %v", receipt)
+	}
+	if status, _ := do(t, r, http.MethodGet, "/public/v1/posts/p2/status", "key", ""); status != http.StatusNotFound {
+		t.Fatalf("other post status: %d", status)
+	}
+	fp.statusPost.OrganizationID = "org2"
+	if status, _ := do(t, r, http.MethodGet, "/public/v1/posts/p1/status", "key", ""); status != http.StatusNotFound {
+		t.Fatalf("other organization status: %d", status)
 	}
 }
 

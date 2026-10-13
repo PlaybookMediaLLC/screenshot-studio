@@ -8,6 +8,12 @@ const postizUploadSchema = z.object({ id: z.string(), path: z.string() })
 const postizPostSchema = z
   .array(z.object({ postId: z.string(), integration: z.string() }))
   .length(1)
+const postizPostStatusSchema = z.object({
+  postId: z.string(),
+  state: z.enum(['QUEUE', 'PUBLISHED', 'ERROR', 'DRAFT']),
+  releaseId: z.string().nullable(),
+  releaseURL: z.string().nullable(),
+})
 
 type PostizAsset = {
   mediaType: string
@@ -133,4 +139,17 @@ export async function publishPostizPost(input: PostizPublishInput): Promise<stri
     throw new PostizProviderError('Postiz returned an unexpected destination.', null)
   }
   return post.postId
+}
+
+export async function getPostizPostStatus(secretReference: string, postId: string) {
+  const configuration = getPostizConfiguration(secretReference)
+  const status = postizPostStatusSchema.parse(
+    await requestPostiz(configuration, `posts/${encodeURIComponent(postId)}/status`, {
+      method: 'GET',
+    })
+  )
+  if (status.postId !== postId) {
+    throw new PostizProviderError('Postiz returned an unexpected post.', null)
+  }
+  return status
 }

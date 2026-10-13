@@ -24,6 +24,10 @@ fi
 BOOTSTRAP_FILE="$(mktemp "$ROOT_DIR/.local/social-gate-XXXXXX.json")"
 chmod 600 "$BOOTSTRAP_FILE"
 WEB_RECONFIGURED=false
+export SOCIAL_GATE_RENDERER_WAS_RUNNING=false
+if [[ -n "$(docker compose --env-file .local/dev.env --file compose.yaml --profile renderer ps -q design-renderer)" ]]; then
+  SOCIAL_GATE_RENDERER_WAS_RUNNING=true
+fi
 
 gate_compose() {
   docker compose --env-file .local/dev.env --file compose.social-gate.yaml \
@@ -60,6 +64,9 @@ for attempt in $(seq 1 60); do
 done
 node e2e/fixtures/bootstrap-go.mjs "$BOOTSTRAP_FILE"
 WEB_RECONFIGURED=true
+if [[ "$SOCIAL_GATE_RENDERER_WAS_RUNNING" == true ]]; then
+  docker compose --env-file .local/dev.env --file compose.yaml --profile renderer stop design-renderer
+fi
 node e2e/fixtures/configure-web.mjs gate "$BOOTSTRAP_FILE"
 for attempt in $(seq 1 60); do
   if curl --fail --silent --output /dev/null http://127.0.0.1:3000/api/health; then

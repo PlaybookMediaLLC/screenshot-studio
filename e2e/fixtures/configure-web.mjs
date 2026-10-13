@@ -8,6 +8,7 @@ if (!['gate', 'restore'].includes(mode)) {
   )
 }
 const env = { ...process.env }
+const restoreRenderer = mode === 'restore' && env.SOCIAL_GATE_RENDERER_WAS_RUNNING === 'true'
 if (mode === 'gate') {
   const input = process.argv[3]
   if (!input) throw new Error('Gate mode requires the private bootstrap file')
@@ -19,6 +20,8 @@ if (mode === 'gate') {
   delete env.POSTIZ_API_KEY_SOCIAL_GATE
   delete env.POSTIZ_API_URL
 }
+if (restoreRenderer) env.PLATFORM_DESIGN_RENDERER = 'enabled'
+else delete env.PLATFORM_DESIGN_RENDERER
 const command = [
   'compose',
   '--env-file',
@@ -26,12 +29,14 @@ const command = [
   '--file',
   'compose.yaml',
   ...(env.E2E_DOCKER_HOST_GATEWAY === 'true' ? ['--file', 'compose.ci.yaml'] : []),
+  ...(restoreRenderer ? ['--profile', 'renderer'] : []),
   'up',
   '--detach',
   '--no-build',
   '--no-deps',
   '--force-recreate',
   'app',
+  ...(restoreRenderer ? ['design-renderer'] : []),
 ]
 const result = spawnSync('docker', command, { env, stdio: 'inherit' })
 if (result.status !== 0) process.exit(result.status ?? 1)

@@ -1323,7 +1323,16 @@ if (process.env.E2E_SOCIAL_GATE_BOOTSTRAP) {
         variantId
       )
       expect(duplicate.scheduledPost.id).toBe(first.scheduledPost.id)
-      expect((await fakeState()).posts).toHaveLength(0)
+      await dispatch()
+      const notDue = await database.scheduledPost.findUnique({
+        include: { attempts: true },
+        where: { id: first.scheduledPost.id },
+      })
+      expect(notDue?.status).toBe('SCHEDULED')
+      expect(notDue?.attempts).toHaveLength(0)
+      const beforeDue = await fakeState()
+      expect(beforeDue.posts).toHaveLength(0)
+      expect(beforeDue.requests).toBe(0)
 
       await makeScheduledPostDue(first.scheduledPost.id)
       const publicationStart = Date.now()

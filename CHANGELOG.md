@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.13.1...v1.14.0) (2026-10-13)
+
+
+### Features
+
+* run Screenshot Studio social API and worker in one backend ([#76](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/76)) ([7a83bce](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/7a83bce2e31baae38b57b957f6405c5006b19e0a))
+
 ## [1.13.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.13.0...v1.13.1) (2026-10-13)
 
 

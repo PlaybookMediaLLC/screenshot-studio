@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.15.0...v1.16.0) (2026-10-13)
+
+
+### Features
+
+* consolidate Screenshot Studio backend and maintenance jobs ([#83](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/83)) ([1db7394](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1db739418ebd8b3de9f4df6792af7c28b1e89264))
+
 ## [1.15.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.14.0...v1.15.0) (2026-10-13)
 
 

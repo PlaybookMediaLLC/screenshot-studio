@@ -21,6 +21,10 @@ SOCIAL_SECRET_SOURCES = {
     "JWT_SECRET": "POSTIZ_JWT_SECRET",
     "TEMPORAL_API_KEY": "POSTIZ_TEMPORAL_API_KEY",
 }
+OPTIONAL_SOCIAL_SECRETS = (
+    "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "X_API_KEY", "X_API_SECRET",
+    "FACEBOOK_APP_ID", "FACEBOOK_APP_SECRET", "INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET",
+)
 
 
 def set_env(envs, key, value):
@@ -44,6 +48,19 @@ def refresh_secrets(envs, secrets):
         item["value"] = secrets[source]
 
 
+def add_optional_social_secrets(envs, secrets):
+    if secrets is None:
+        return
+    existing = {item["key"]: item for item in envs}
+    for key in OPTIONAL_SOCIAL_SECRETS:
+        if value := secrets.get(key):
+            item = existing.get(key)
+            if item is None:
+                envs.append({"key": key, "value": value, "type": "SECRET", "scope": "RUN_TIME"})
+            else:
+                item.update(value=value, type="SECRET", scope="RUN_TIME")
+
+
 def consolidate(base, digest, secrets=None, tag=None):
     if not digest.startswith("sha256:") or len(digest) != 71:
         raise ValueError("Expected an immutable SHA-256 image digest")
@@ -61,6 +78,7 @@ def consolidate(base, digest, secrets=None, tag=None):
         if backend.get("image", {}).get("registry_type") != "GHCR":
             raise ValueError("Combined backend image source changed")
         refresh_secrets(backend["envs"], secrets)
+        add_optional_social_secrets(backend["envs"], secrets)
         backend["image"] = image
         migration = next((item for item in spec.get("jobs", []) if item["name"] == "postiz-migrate"), None)
         if migration is None:
@@ -83,6 +101,7 @@ def consolidate(base, digest, secrets=None, tag=None):
     if not required <= {item["key"] for item in tenant_env}:
         raise ValueError("Tenant orchestrator is missing required runtime settings")
     refresh_secrets(social_env, secrets)
+    add_optional_social_secrets(social_env, secrets)
     for item in tenant_env:
         entry = copy.deepcopy(item)
         entry["key"] = "TENANT_" + entry["key"]

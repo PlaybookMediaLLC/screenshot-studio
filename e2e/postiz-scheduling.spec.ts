@@ -1246,6 +1246,7 @@ if (process.env.E2E_SOCIAL_GATE_BOOTSTRAP) {
               media: z.array(
                 z.object({
                   bytes: z.number(),
+                  contentType: z.string(),
                   expires: z.string(),
                   sha256: z.string(),
                   signedAt: z.string(),
@@ -1350,6 +1351,7 @@ if (process.env.E2E_SOCIAL_GATE_BOOTSTRAP) {
         media: [
           {
             bytes: png.length,
+            contentType: 'image/png',
             expires: '86400',
             sha256: createHash('sha256').update(png).digest('hex'),
           },

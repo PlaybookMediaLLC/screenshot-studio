@@ -73,6 +73,9 @@ services:
       args:
         GO_BUILD_TAGS: e2e
     image: screenshot-studio-postiz-backend:e2e
+    # The local gate has no tenant publishing database; run the social child
+    # from the combined production image, as the local Postiz profile does.
+    entrypoint: ['/screenshot-studio-backend']
     environment:
       DATABASE_URL: postgresql://postiz_go:local-social-gate-only@postiz-go-db:5432/postiz_go?sslmode=disable
       REDIS_URL: redis://postiz-go-redis:6379

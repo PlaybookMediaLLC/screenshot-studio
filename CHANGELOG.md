@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.11.2...v1.11.3) (2026-10-13)
+
+
+### Bug Fixes
+
+* **publishing:** reconcile Go receipts before marking posts published ([#68](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/68)) ([ced38e4](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/ced38e446995cd610166c0fb29c74bdfd6255388))
+
 ## [1.11.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.11.1...v1.11.2) (2026-10-13)
 
 

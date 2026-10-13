@@ -34,7 +34,8 @@ matching Chromium version. Generated `dist/` is not committed.
 | `PORT` | `8080` | Listen port on `0.0.0.0` (1–65535) |
 | `RENDER_CONCURRENCY` | `2` | Concurrent render contexts (1–32) |
 | `RENDER_MAX_QUEUE` | `20` | Queued requests (0–1000); excess returns 503 with `Retry-After` |
-| `RENDER_TIMEOUT_MS` | `60000` | Timeout for each page/export attempt (100–300000 ms); browser launch has the same timeout |
+| `RENDER_QUEUE_TIMEOUT_MS` | `10000` | Maximum queue wait; expired work returns 503 with `Retry-After` |
+| `RENDER_TIMEOUT_MS` | `60000` | Shared deadline for browser startup, navigation, export and one retry (100–300000 ms) |
 | `RENDER_RECYCLE_AFTER` | `200` | Completed attempts before recycling Chromium when other renders are idle |
 | `RENDER_SHUTDOWN_TIMEOUT_MS` | `30000` | Maximum shutdown wait; the platform grace period must be longer |
 | `CHROMIUM_PATH` | bundled browser | Optional local Chromium executable override; omit in App Platform |
@@ -87,7 +88,9 @@ health endpoint.
 The renderer uses internal port 8080, readiness `/ready`, liveness `/health`,
 and a 35-second platform grace period for its 30-second shutdown deadline.
 A new component defaults to one 2 GB instance with two concurrent renders;
-existing instance count and size are preserved. The web service uses
+existing instance count, size, concurrency, queue and render deadlines are preserved.
+The deploy helper rejects queue + render deadlines above 70 seconds so they
+fit the web caller's 75-second timeout with cleanup/network margin. The web service uses
 `http://design-renderer:8080`. No public renderer route is added.
 
 When merging the separate full-app deployment branch, retain the renderer and
@@ -133,9 +136,55 @@ Only the configured app origin and render paths are accepted. Browser contexts
 block external HTTP requests and service workers. The web app must embed design
 assets or proxy them through its origin. Non-2xx pages and invalid exports fail
 with 502; transient browser errors get one retry in a new context. Export calls
-are bounded even when the page never resolves its export promise. Queuing time
-is additional to render time; tune the queue to fit the web client's timeout.
+are bounded even when the page never resolves its export promise. Queued work
+expires after 10 seconds by default; the total render deadline is 60 seconds
+including a retry. When the caller disconnects, queued work is removed and an
+active browser context is closed so another caller can use the slot. Cancellation
+is counted separately in `design_renders_total{status="cancelled"}`.
 
 SIGTERM stops admission, rejects queued work with 503, and lets active renders
 finish up to the shutdown deadline. Redeploy the previous image/commit to roll
 back; this service has no database migrations.
+
+
+## Multiple users and capacity
+
+Each request gets a fresh browser context; cookies, local storage, and pages are
+not reused across requests. A shared warm Chromium avoids starting a new browser
+for every image. The app already caches identical renders within each workspace
+and limits uncached renders to 60 per workspace per minute (Redis-backed; fails
+open on Redis outages). Service admission is FIFO, not a per-workspace fair queue;
+a single workspace can still fill the bounded queue during a burst.
+
+Start with two active contexts per 2 GB instance. The queue absorbs short bursts;
+it is not extra rendering capacity or durable job storage. Full and expired queues
+return 503 plus `Retry-After: 5`; callers should retry with bounded backoff, rather
+than immediately flooding the service again. The current web client surfaces the
+busy response; it does not retry it automatically. Browser failures get one retry
+inside the render deadline; overload does not trigger a browser restart.
+
+Monitor active/queued requests, rejection counts and render latency under actual
+editor workloads. Sustained queue waits or busy responses require more renderer
+instances or CPU capacity, not a larger queue. Instance counts are independent of
+web replicas. The renderer stores no durable state; generated files and access
+checks remain in the web app. Increasing concurrency increases Chromium memory
+and CPU contention, so benchmark before changing it.
+
+A repeatable synthetic PNG load smoke is available:
+
+```sh
+# From repository root:
+docker build --platform linux/amd64 -t playbook-design-renderer:multiuser services/design-renderer
+cd services/design-renderer
+npm run test:load -- playbook-design-renderer:multiuser
+```
+
+It runs the non-root production image with 1 CPU / 2 GB, six concurrent callers,
+and 60 real 2400×1350 canvas PNG exports. It honors overload responses with bounded
+backoff, checks PNG output and readiness, and reports busy responses, p50/p95
+latency, observed active/queued work and sampled cgroup memory. Set
+`RENDER_LOAD_CLIENTS=2` for a no-queue baseline. The fixture is deliberately local
+and synthetic: these numbers are not an editor benchmark or production capacity
+promise. Real templates, fonts, remote images and CPU architecture affect results.
+The regular test suite also exercises 50-request bursts, storage isolation,
+cancellation, queue expiry, FIFO admission and shutdown.

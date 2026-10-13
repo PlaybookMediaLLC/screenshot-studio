@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src test deploy",
     "test": "npm run build && tsx --test test/*.test.ts",
+    "test:load": "tsx test/load.ts",
     "test:unit": "npm run build && tsx --test test/schemas.test.ts",
     "browsers:install": "playwright-core install chromium"
   },

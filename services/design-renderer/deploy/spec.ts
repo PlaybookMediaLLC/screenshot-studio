@@ -71,6 +71,27 @@ export function renderSpec(input: unknown, rawEnvironment: unknown) {
   const web = spec.services.find((service) => service.name === 'web')
   if (!web) throw new Error('The target app has no web service.')
   const existing = spec.services.find((service) => service.name === 'design-renderer')
+  const tuningKeys = [
+    'RENDER_CONCURRENCY',
+    'RENDER_MAX_QUEUE',
+    'RENDER_QUEUE_TIMEOUT_MS',
+    'RENDER_TIMEOUT_MS',
+    'RENDER_RECYCLE_AFTER',
+  ]
+  const tuning = Object.fromEntries(
+    (existing?.envs ?? [])
+      .filter((item) => tuningKeys.includes(item.key))
+      .map((item) => [item.key, item.value])
+  )
+  const runtime = environmentSchema.parse({
+    ...tuning,
+    RENDER_ALLOWED_ORIGIN: env.RENDER_ALLOWED_ORIGIN,
+    RENDER_SERVICE_SECRET: env.PLATFORM_RENDER_SERVICE_SECRET,
+  })
+  // The web caller currently gives up after 75 seconds. Leave cleanup/network margin.
+  if (runtime.queueTimeoutMs + runtime.timeoutMs > 70000) {
+    throw new Error('Renderer queue and render deadlines must total at most 70000 ms.')
+  }
   // This component must stay internal, including when replacing an old service.
   const ingress = z
     .object({
@@ -119,8 +140,11 @@ export function renderSpec(input: unknown, rawEnvironment: unknown) {
     envs: [
       runtimeEnv('RENDER_ALLOWED_ORIGIN', env.RENDER_ALLOWED_ORIGIN),
       runtimeEnv('RENDER_SERVICE_SECRET', env.PLATFORM_RENDER_SERVICE_SECRET, true),
-      runtimeEnv('RENDER_CONCURRENCY', '2'),
-      runtimeEnv('RENDER_MAX_QUEUE', '20'),
+      runtimeEnv('RENDER_CONCURRENCY', String(runtime.concurrency)),
+      runtimeEnv('RENDER_MAX_QUEUE', String(runtime.maxQueue)),
+      runtimeEnv('RENDER_QUEUE_TIMEOUT_MS', String(runtime.queueTimeoutMs)),
+      runtimeEnv('RENDER_TIMEOUT_MS', String(runtime.timeoutMs)),
+      runtimeEnv('RENDER_RECYCLE_AFTER', String(runtime.recycleAfter)),
     ],
   }
   web.envs = mergeEnv(web, [

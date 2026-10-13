@@ -65,6 +65,22 @@ test('repeated deployments replace the renderer without adding duplicate service
   assert.deepEqual(again, spec)
 })
 
+test('redeploys preserve tuned capacity and reject deadlines beyond the web timeout', () => {
+  const spec = renderSpec(base, env)
+  const renderer = spec.services.find((service) => service.name === 'design-renderer')!
+  renderer.instance_count = 3
+  renderer.instance_size_slug = 'apps-s-2vcpu-4gb'
+  renderer.envs!.find((item) => item.key === 'RENDER_CONCURRENCY')!.value = '4'
+  renderer.envs!.find((item) => item.key === 'RENDER_MAX_QUEUE')!.value = '8'
+  const again = renderSpec({ ...base, spec }, env)
+  assert.deepEqual(
+    again.services.find((service) => service.name === 'design-renderer'),
+    renderer
+  )
+  renderer.envs!.find((item) => item.key === 'RENDER_QUEUE_TIMEOUT_MS')!.value = '20000'
+  assert.throws(() => renderSpec({ ...base, spec }, env), /70000/)
+})
+
 test('refuses wrong apps, missing secrets, mutable image tags, and concurrent deployments', () => {
   assert.throws(() => renderSpec({ ...base, id: 'db01f48f-bde7-4a0a-9934-9d4130637697' }, env))
   assert.throws(() => renderSpec(base, { ...env, PLATFORM_RENDER_SERVICE_SECRET: '' }))

@@ -13,6 +13,7 @@ import {
   type OutgoingHttpHeaders,
 } from 'node:http'
 import { chromium, type Browser } from 'playwright-core'
+import { RenderQueue, QueueFullError, QueueTimeoutError, DrainingError } from './queue.js'
 import {
   environmentSchema,
   renderRequestSchema,
@@ -31,6 +32,7 @@ if (!parsedConfig.success) {
   process.exit(1)
 }
 const config = parsedConfig.data
+const queue = new RenderQueue(config.concurrency, config.maxQueue, config.queueTimeoutMs)
 const log = (event: string, fields: Record<string, unknown> = {}) =>
   process.stdout.write(JSON.stringify({ event, ...fields }) + '\n')
 
@@ -41,7 +43,7 @@ const metrics = {
   buckets: DURATION_BUCKETS.map(() => 0),
   durationCount: 0,
   durationSum: 0,
-  renders: { failed: 0, ok: 0, rejected: 0 },
+  renders: { cancelled: 0, failed: 0, ok: 0, rejected: 0 },
   restarts: 0,
 }
 
@@ -68,9 +70,9 @@ function prometheus() {
     `design_render_duration_seconds_sum ${metrics.durationSum.toFixed(3)}`,
     `design_render_duration_seconds_count ${metrics.durationCount}`,
     '# TYPE design_render_active gauge',
-    `design_render_active ${active}`,
+    `design_render_active ${queue.active}`,
     '# TYPE design_render_queued gauge',
-    `design_render_queued ${waiting.length}`,
+    `design_render_queued ${queue.queued}`,
     '# TYPE design_render_browser_restarts_total counter',
     `design_render_browser_restarts_total ${metrics.restarts}`,
     '',
@@ -120,42 +122,38 @@ async function retireBrowser(reason: string) {
 
 // ------------------------------------------------------------------ queue --
 
-let active = 0
-const waiting: Array<{ resolve: () => void; reject: (error: Error) => void }> = []
-let draining = false
-
-class QueueFullError extends Error {}
-class DrainingError extends Error {}
 class PermanentRenderError extends Error {}
 class RenderTimeoutError extends Error {}
 
-async function withSlot<T>(work: () => Promise<T>): Promise<T> {
-  if (draining) throw new DrainingError()
-  if (active >= config.concurrency) {
-    if (waiting.length >= config.maxQueue) throw new QueueFullError()
-    await new Promise<void>((resolve, reject) => waiting.push({ resolve, reject }))
-    if (draining) throw new DrainingError()
-  }
-  active += 1
-  try {
-    return await work()
-  } finally {
-    active -= 1
-    waiting.shift()?.resolve()
-  }
+/** Stop awaiting shared browser startup or page work when this caller leaves. */
+function abortable<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(signal.reason)
+    signal.addEventListener('abort', abort, { once: true })
+    if (signal.aborted) abort()
+    work.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort))
+  })
 }
 
 // ----------------------------------------------------------------- render --
 
-async function renderOnce(target: URL): Promise<RenderResult> {
-  const browser = await getBrowser()
-  const context = await browser.newContext({
+async function renderOnce(target: URL, signal: AbortSignal): Promise<RenderResult> {
+  const browser = await abortable(getBrowser(), signal)
+  signal.throwIfAborted()
+  const creatingContext = browser.newContext({
     deviceScaleFactor: 1,
     serviceWorkers: 'block',
     viewport: { height: 1400, width: 2200 },
   })
-  let timer: NodeJS.Timeout | undefined
+  // Context creation may finish after cancellation; never leave it orphaned.
+  void creatingContext
+    .then((context) => {
+      if (signal.aborted) return context.close().catch(() => undefined)
+    })
+    .catch(() => undefined)
+  const context = await abortable(creatingContext, signal)
   try {
+    signal.throwIfAborted()
     const work = async () => {
       const page = await context.newPage()
       await context.route('**/*', (route) => {
@@ -184,16 +182,9 @@ async function renderOnce(target: URL): Promise<RenderResult> {
       if (!parsed.success) throw new PermanentRenderError('Invalid design export.')
       return parsed.data
     }
-    // page.evaluate has no timeout: bound the complete page/export operation,
-    // then close its context so a hung exporter cannot monopolize a slot.
-    return await Promise.race([
-      work(),
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new RenderTimeoutError()), config.timeoutMs)
-      }),
-    ])
+    // The signal covers startup, navigation, export, and both retry attempts.
+    return await abortable(work(), signal)
   } finally {
-    clearTimeout(timer)
     await context.close().catch(() => undefined)
     rendersOnBrowser += 1
   }
@@ -201,14 +192,21 @@ async function renderOnce(target: URL): Promise<RenderResult> {
 
 /** Retry a transient failure in a fresh context. A disconnected browser is replaced
  * by getBrowser; never close a connected browser underneath another render. */
-async function render(target: URL): Promise<RenderResult> {
+async function render(target: URL, clientSignal: AbortSignal): Promise<RenderResult> {
+  const deadline = new AbortController()
+  const timer = setTimeout(() => deadline.abort(new RenderTimeoutError()), config.timeoutMs)
+  const signal = AbortSignal.any([clientSignal, deadline.signal])
   try {
-    return await renderOnce(target)
-  } catch (error) {
-    if (error instanceof PermanentRenderError || error instanceof RenderTimeoutError) throw error
-    return await renderOnce(target)
+    try {
+      return await renderOnce(target, signal)
+    } catch (error) {
+      signal.throwIfAborted()
+      if (error instanceof PermanentRenderError) throw error
+      return await renderOnce(target, signal)
+    }
   } finally {
-    if (rendersOnBrowser >= config.recycleAfter && active <= 1) await retireBrowser('recycle')
+    clearTimeout(timer)
+    if (rendersOnBrowser >= config.recycleAfter && queue.active <= 1) await retireBrowser('recycle')
   }
 }
 
@@ -242,7 +240,8 @@ function send(
 }
 
 async function handleRender(request: IncomingMessage, response: ServerResponse, requestId: string) {
-  if (draining) return send(response, 503, { error: 'Shutting down.' }, { 'retry-after': '5' })
+  if (queue.draining)
+    return send(response, 503, { error: 'Shutting down.' }, { 'retry-after': '5' })
   if (!authorized(request.headers['x-render-secret'])) {
     metrics.renders.rejected += 1
     return send(response, 401, { error: 'Unauthorized.' })
@@ -261,25 +260,43 @@ async function handleRender(request: IncomingMessage, response: ServerResponse, 
     })
   }
   const started = performance.now()
+  const client = new AbortController()
+  const disconnected = () => {
+    if (!response.writableEnded) client.abort(new Error('Client disconnected.'))
+  }
+  response.on('close', disconnected)
+  if (response.destroyed) disconnected()
   try {
-    const result = await withSlot(() => render(target))
+    const result = await queue.run(client.signal, () => render(target, client.signal))
     const seconds = (performance.now() - started) / 1_000
     observeDuration(seconds)
     metrics.renders.ok += 1
     log('render.done', { durationMs: Math.round(seconds * 1_000), requestId })
     send(response, 200, result)
   } catch (error) {
+    if (client.signal.aborted) {
+      metrics.renders.cancelled += 1
+      return
+    }
     if (error instanceof DrainingError)
       return send(response, 503, { error: 'Shutting down.' }, { 'retry-after': '5' })
-    if (error instanceof QueueFullError) {
+    if (error instanceof QueueFullError || error instanceof QueueTimeoutError) {
       metrics.renders.rejected += 1
-      log('render.rejected', { reason: 'queue-full', requestId })
-      return send(response, 503, { error: 'The render queue is full.' }, { 'retry-after': '5' })
+      const reason = error instanceof QueueTimeoutError ? 'queue-timeout' : 'queue-full'
+      log('render.rejected', { reason, requestId })
+      return send(
+        response,
+        503,
+        { error: 'Renderer is busy; retry later.' },
+        { 'retry-after': '5' }
+      )
     }
     metrics.renders.failed += 1
     // Playwright error messages may contain signed render URLs. Log only the class.
     log('render.failed', { reason: error instanceof Error ? error.name : 'unknown', requestId })
     send(response, 502, { error: 'The design could not be rendered.' })
+  } finally {
+    response.removeListener('close', disconnected)
   }
 }
 
@@ -290,7 +307,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
     return send(response, 200, { ok: true })
   if (request.method === 'GET' && request.url === '/ready') {
     const ready =
-      !draining &&
+      !queue.draining &&
       Boolean(
         await getBrowser()
           .then((browser) => browser.isConnected())
@@ -327,16 +344,15 @@ server.listen(config.port, '0.0.0.0', () => {
 
 /** Stop taking work, finish what is in flight, then close the browser. */
 async function shutdown(signal: string) {
-  if (draining) return
-  draining = true
-  log('render.draining', { active, queued: waiting.length, signal })
-  for (const waiter of waiting.splice(0)) waiter.reject(new DrainingError())
+  if (queue.draining) return
+  log('render.draining', { active: queue.active, queued: queue.queued, signal })
+  queue.drain()
   server.close()
   // Enforce the deadline even if Chromium itself hangs while closing.
   const forcedExit = setTimeout(() => process.exit(1), config.shutdownTimeoutMs)
   forcedExit.unref()
   const deadline = Date.now() + config.shutdownTimeoutMs
-  while ((active > 0 || waiting.length > 0) && Date.now() < deadline) {
+  while ((queue.active > 0 || queue.queued > 0) && Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 200))
   }
   await browserPromise?.then((browser) => browser.close()).catch(() => undefined)

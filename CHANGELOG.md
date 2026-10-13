@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.12.0...v1.13.0) (2026-10-13)
+
+
+### Features
+
+* **renderer:** migrate to TypeScript and add App Platform delivery ([47ea231](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/47ea2316f04c29922f71db7f54757a1d8bcbca47))
+
 ## [1.12.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.11.3...v1.12.0) (2026-10-13)
 
 

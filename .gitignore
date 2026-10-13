@@ -55,6 +55,7 @@ public/backgrounds
 !/scripts/bind-postiz-tenant.ts
 
 /lib/generated/prisma
+/services/.social-gate-bin/
 # Prisma
 prisma/*.db
 prisma/*.db-journal

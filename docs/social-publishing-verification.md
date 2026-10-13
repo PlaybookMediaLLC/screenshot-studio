@@ -24,9 +24,26 @@ prove acceptance stays pending until a remote receipt, a Go error fails it, a
 429 retries, cancellation stops handoff, uncertain recovery avoids a duplicate,
 and missing tenant bindings or disabled Go destinations stop upload. They also
 check cross-tenant destination isolation and the X and both Instagram OAuth
-callbacks, including one-use state and Facebook Page selection. They do not
-exercise the real Go API and worker together; Gate 1 is
-still required.
+callbacks, including one-use state and Facebook Page selection. The separate
+real-service gate below covers the Go API and worker with a fake provider.
+
+The isolated real-service gate now runs from `./bin/social-gate` and in the
+`social-gate` CI job. It starts a separate Go PostgreSQL, Redis, Temporal, Go
+API, Go worker, and build-tag-only fake social provider alongside the local web
+app and private RustFS bucket. The local run passed with the real worker:
+duplicate schedule and dispatch produced one remote receipt; a post originally
+scheduled 25 hours ahead stayed queued until the test moved it due; signed
+media had the expected bytes and content and was signed at dispatch; the Go row retained
+an unsigned stable path; cancellation produced no request; HTTP 429 and 500
+each retried into one remote post; an expired credential failed without a
+remote post. The test also checks the web and Go final receipts. This gate
+does not establish that X or Instagram can publish through their live APIs.
+
+Run it after `./bin/studio up` and `./bin/studio smoke`:
+
+```bash
+./bin/social-gate
+```
 
 The first audit found that the web app marked a post `PUBLISHED` as soon as Go
 returned a post ID, before the social network confirmed publication. The web
@@ -34,7 +51,8 @@ worker now keeps that post `PROCESSING`, records the Go ID, and polls a
 tenant-scoped Go status endpoint. It marks `PUBLISHED` only after the Go worker
 reports `PUBLISHED` with a remote release ID. `QUEUE`, missing receipts, and
 temporary lookup failures remain pending without another create request;
-`ERROR` becomes `FAILED`. The local browser gate must prove these transitions.
+`ERROR` becomes `FAILED`. The local browser gate proves these transitions for
+its controlled fake destination.
 
 ## Gate 1: real local services, fake social API
 
@@ -70,9 +88,11 @@ IDs. Assert these observations across the service boundary:
 8. A second tenant cannot read, modify, cancel, or dispatch the first tenant's
    schedule or media.
 
-Keep this gate in CI. It must run against real local dependencies and fake
-social responses. Provider adapters still need their own contract tests for
-request shape and media rules.
+Keep this gate in CI. It runs against real local dependencies and fake social
+responses. Remaining Gate 1 fault injection includes lost responses, media
+fetch failure, malformed provider replies, worker restart, and a second-tenant
+attack against the real Go service. Provider adapters still need their own
+contract tests for request shape and media rules.
 
 ## Gate 2: provider contract and OAuth tests
 

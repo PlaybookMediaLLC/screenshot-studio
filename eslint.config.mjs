@@ -49,6 +49,18 @@ export default defineConfig([
     ...tseslint.configs.disableTypeChecked,
   },
   {
+    files: ['e2e/fixtures/*.mjs'],
+    languageOptions: {
+      globals: {
+        AbortSignal: 'readonly',
+        Buffer: 'readonly',
+        URL: 'readonly',
+        fetch: 'readonly',
+        process: 'readonly',
+      },
+    },
+  },
+  {
     files: [
       'app/api/cleanup-cache/route.ts',
       'app/api/auth/**/*.ts',

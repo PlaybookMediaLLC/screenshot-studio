@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto'
+import { execFileSync } from 'node:child_process'
+import { readFile } from 'node:fs/promises'
 import { expect, type Page } from '@playwright/test'
 import { z } from 'zod'
 import { getE2EUrl } from './framework/auth'
@@ -234,13 +236,14 @@ async function createScheduledPost(
   page: Page,
   channelConnectionId: string,
   idempotencyKey: string,
-  variantId: string
+  variantId: string,
+  scheduledFor = new Date(Date.now() + 60_000)
 ) {
   const response = await trpcMutation(page, 'scheduledPost.create', {
     caption: 'The launch is ready.',
     channelConnectionId,
     idempotencyKey,
-    scheduledFor: new Date(Date.now() + 60_000).toISOString(),
+    scheduledFor: scheduledFor.toISOString(),
     variantId,
   })
   return { response, scheduledPost: scheduledPostSchema.parse(response.body).scheduledPost }
@@ -1217,3 +1220,271 @@ test('Instagram Login registers its destination after a one-use callback', async
     await backend.close()
   }
 })
+
+if (process.env.E2E_SOCIAL_GATE_BOOTSTRAP) {
+  test('the real Go worker handles private media, retries, cancellation, and expired credentials', async ({
+    identity,
+    page,
+  }) => {
+    test.setTimeout(10 * 60_000)
+    const bootstrap = z
+      .object({
+        apiKey: z.string().min(1),
+        destinationId: z.string().min(1),
+        expiredDestinationId: z.string().min(1),
+        goOrganizationId: z.string().min(1),
+      })
+      .parse(JSON.parse(await readFile(process.env.E2E_SOCIAL_GATE_BOOTSTRAP!, 'utf8')))
+    const fakeURL = process.env.E2E_SOCIAL_GATE_FAKE_URL ?? 'http://127.0.0.1:5680'
+    const fakeState = async () =>
+      z
+        .object({
+          posts: z.array(
+            z.object({
+              caption: z.string(),
+              id: z.string(),
+              media: z.array(
+                z.object({
+                  bytes: z.number(),
+                  contentType: z.string(),
+                  expires: z.string(),
+                  sha256: z.string(),
+                  signedAt: z.string(),
+                })
+              ),
+            })
+          ),
+          requests: z.number(),
+        })
+        .parse(await (await fetch(`${fakeURL}/state`)).json())
+    const reset = async (mode: 'normal' | 'throttle-once' | 'server-error-once') => {
+      const response = await fetch(`${fakeURL}/control`, {
+        body: JSON.stringify({ mode }),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      })
+      expect(response.status).toBe(200)
+    }
+    await reset('normal')
+    await createPublishingWorkspace(identity, page)
+    await enablePublishingTwoFactor(page, identity.password)
+    const organizationId = await getActiveOrganizationId(page)
+    const database = createE2EDatabaseClient()
+    try {
+      const dispatch = async () => {
+        const response = await requestJson(
+          page,
+          '/api/internal/scheduled-posts/dispatch',
+          {},
+          'POST',
+          getMaintenanceHeaders()
+        )
+        expect(response.status).toBe(200)
+      }
+      const awaitStatus = async (id: string, status: string) => {
+        await expect
+          .poll(
+            async () => {
+              await dispatch()
+              return (await database.scheduledPost.findUnique({ where: { id } }))?.status
+            },
+            { timeout: 120_000 }
+          )
+          .toBe(status)
+      }
+      await database.postizTenantBinding.deleteMany({
+        where: { secretReference: 'POSTIZ_API_KEY_SOCIAL_GATE' },
+      })
+      await database.postizTenantBinding.create({
+        data: {
+          goOrganizationId: bootstrap.goOrganizationId,
+          organizationId,
+          secretReference: 'POSTIZ_API_KEY_SOCIAL_GATE',
+        },
+      })
+      const variantId = await createApprovedVariant(page)
+      const connection = await trpcMutation(page, 'channelConnection.create', {
+        externalAccountId: bootstrap.destinationId,
+        platform: 'e2e',
+        secretReference: 'POSTIZ_API_KEY_SOCIAL_GATE',
+      })
+      expect(connection.status, JSON.stringify(connection.body)).toBe(200)
+      const connectionId = connectionSchema.parse(connection.body).connection.id
+      const futureTime = new Date(Date.now() + 25 * 60 * 60_000)
+      const first = await createScheduledPost(
+        page,
+        connectionId,
+        'social-gate-success',
+        variantId,
+        futureTime
+      )
+      expect(first.response.status).toBe(200)
+      expect(first.scheduledPost.status).toBe('SCHEDULED')
+      const duplicate = await createScheduledPost(
+        page,
+        connectionId,
+        'social-gate-success',
+        variantId
+      )
+      expect(duplicate.scheduledPost.id).toBe(first.scheduledPost.id)
+      await dispatch()
+      const notDue = await database.scheduledPost.findUnique({
+        include: { attempts: true },
+        where: { id: first.scheduledPost.id },
+      })
+      expect(notDue?.status).toBe('SCHEDULED')
+      expect(notDue?.attempts).toHaveLength(0)
+      const beforeDue = await fakeState()
+      expect(beforeDue.posts).toHaveLength(0)
+      expect(beforeDue.requests).toBe(0)
+
+      await makeScheduledPostDue(first.scheduledPost.id)
+      const publicationStart = Date.now()
+      await dispatch()
+      await dispatch()
+      await expect.poll(async () => (await fakeState()).posts.length, { timeout: 120_000 }).toBe(1)
+      await awaitStatus(first.scheduledPost.id, 'PUBLISHED')
+      await dispatch()
+
+      const remote = await fakeState()
+      expect(remote.requests).toBe(1)
+      expect(remote.posts).toHaveLength(1)
+      expect(remote.posts[0]).toMatchObject({
+        caption: 'The launch is ready.',
+        media: [
+          {
+            bytes: png.length,
+            contentType: 'image/png',
+            expires: '86400',
+            sha256: createHash('sha256').update(png).digest('hex'),
+          },
+        ],
+      })
+      expect(remote.posts[0]?.media[0]?.signedAt).toMatch(/^\d{8}T\d{6}Z$/)
+      const signedAt = remote.posts[0]?.media[0]?.signedAt
+      const signedAtMilliseconds = Date.parse(
+        `${signedAt?.slice(0, 4)}-${signedAt?.slice(4, 6)}-${signedAt?.slice(6, 8)}T${signedAt?.slice(9, 11)}:${signedAt?.slice(11, 13)}:${signedAt?.slice(13, 15)}Z`
+      )
+      expect(signedAtMilliseconds).toBeGreaterThanOrEqual(publicationStart - 120_000)
+      expect(signedAtMilliseconds).toBeLessThanOrEqual(Date.now() + 120_000)
+      const published = await database.scheduledPost.findUnique({
+        include: { attempts: true },
+        where: { id: first.scheduledPost.id },
+      })
+      expect(published?.attempts).toHaveLength(1)
+      expect(published?.attempts[0]).toMatchObject({ outcome: 'SUCCEEDED' })
+      const goPostId = z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .parse(published?.attempts[0]?.providerPostId)
+      const goReceipt = await fetch(`http://127.0.0.1:3110/public/v1/posts/${goPostId}/status`, {
+        headers: { Authorization: bootstrap.apiKey },
+      })
+      expect(goReceipt.status).toBe(200)
+      expect(await goReceipt.json()).toMatchObject({
+        releaseId: remote.posts[0]?.id,
+        state: 'PUBLISHED',
+      })
+      // The Go database keeps the stable private object path, never the expiring signature.
+      const sql = `SELECT "image" FROM "Post" WHERE id = '${goPostId}'`
+      const storedImage = execFileSync(
+        'docker',
+        [
+          'compose',
+          '--env-file',
+          '.local/dev.env',
+          '--file',
+          'compose.social-gate.yaml',
+          '--project-name',
+          'screenshot-studio-social-gate',
+          'exec',
+          '-T',
+          'postiz-go-db',
+          'psql',
+          '-U',
+          'postiz_go',
+          '-d',
+          'postiz_go',
+          '-Atc',
+          sql,
+        ],
+        { encoding: 'utf8' }
+      )
+      expect(storedImage).toContain('rustfs:9000')
+      expect(storedImage).not.toContain('X-Amz-Signature')
+      expect(storedImage).not.toContain('X-Amz-Expires')
+      const storedMedia = z
+        .array(z.object({ path: z.string().url() }))
+        .parse(JSON.parse(storedImage))
+      expect(storedMedia).toHaveLength(1)
+      const unsignedURL = new URL(storedMedia[0].path)
+      unsignedURL.hostname = '127.0.0.1'
+      unsignedURL.port = '9003'
+      expect((await fetch(unsignedURL)).status).toBe(403)
+
+      const cancelled = await createScheduledPost(
+        page,
+        connectionId,
+        'social-gate-cancelled',
+        variantId
+      )
+      expect(cancelled.response.status).toBe(200)
+      expect(
+        await trpcMutation(page, 'scheduledPost.cancel', {
+          scheduledPostId: cancelled.scheduledPost.id,
+        })
+      ).toMatchObject({ body: { scheduledPost: { status: 'CANCELLED' } }, status: 200 })
+      await makeScheduledPostDue(cancelled.scheduledPost.id)
+      await dispatch()
+      expect((await fakeState()).requests).toBe(1)
+
+      for (const mode of ['throttle-once', 'server-error-once'] as const) {
+        await reset(mode)
+        const retry = await createScheduledPost(
+          page,
+          connectionId,
+          `social-gate-${mode}`,
+          variantId
+        )
+        expect(retry.response.status).toBe(200)
+        await makeScheduledPostDue(retry.scheduledPost.id)
+        await dispatch()
+        await expect
+          .poll(async () => (await fakeState()).posts.length, { timeout: 120_000 })
+          .toBe(1)
+        await awaitStatus(retry.scheduledPost.id, 'PUBLISHED')
+        const retryState = await fakeState()
+        expect(retryState.requests).toBe(2)
+        expect(retryState.posts).toHaveLength(1)
+        const retryResult = await database.scheduledPost.findUnique({
+          include: { attempts: true },
+          where: { id: retry.scheduledPost.id },
+        })
+        expect(retryResult?.attempts).toHaveLength(1)
+        expect(retryResult?.attempts[0]?.outcome).toBe('SUCCEEDED')
+      }
+
+      await reset('normal')
+      const expiredConnection = await trpcMutation(page, 'channelConnection.create', {
+        externalAccountId: bootstrap.expiredDestinationId,
+        platform: 'e2e',
+        secretReference: 'POSTIZ_API_KEY_SOCIAL_GATE',
+      })
+      expect(expiredConnection.status, JSON.stringify(expiredConnection.body)).toBe(200)
+      const expiredId = connectionSchema.parse(expiredConnection.body).connection.id
+      const expired = await createScheduledPost(page, expiredId, 'social-gate-expired', variantId)
+      expect(expired.response.status).toBe(200)
+      await makeScheduledPostDue(expired.scheduledPost.id)
+      await awaitStatus(expired.scheduledPost.id, 'FAILED')
+      expect((await fakeState()).posts).toHaveLength(0)
+      const expiredResult = await database.scheduledPost.findUnique({
+        include: { attempts: true },
+        where: { id: expired.scheduledPost.id },
+      })
+      expect(expiredResult?.attempts.some((attempt) => attempt.outcome === 'FAILED')).toBe(true)
+    } finally {
+      await database.postizTenantBinding.deleteMany({ where: { organizationId } })
+      await database.$disconnect()
+    }
+  })
+}

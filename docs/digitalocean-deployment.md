@@ -15,7 +15,8 @@ The web component retains its two replicas and image digest. The single Go
 backend container starts the Postiz API and worker plus the tenant publishing
 and maintenance orchestrator. Its readiness endpoint checks all three local
 HTTP endpoints, including the tenant database and Temporal namespace. The
-backend image is built on GitHub and pinned by digest in App Platform.
+backend image is built on GitHub and selected by a unique commit SHA tag in
+App Platform. The image workflow verifies the public digest before deployment.
 
 Storage and renderer use `internal_ports` and have no public ingress rules.
 See DigitalOcean's [internal routing documentation](https://docs.digitalocean.com/products/app-platform/how-to/manage-internal-routing/)

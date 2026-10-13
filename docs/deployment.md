@@ -5,8 +5,9 @@ Production runs on DigitalOcean App Platform at `shots.oppulence.io`. The
 components, secrets, migration jobs, health checks, and release procedure.
 
 The web and combined backend images are built on GitHub and stored in the
-public GitHub Container Registry package. App Platform pulls immutable image
-digests. The backend container runs the social API, social Temporal worker,
+public GitHub Container Registry package. App Platform uses a digest for the
+web image and a unique commit SHA tag for the backend image. The backend
+container runs the social API, social Temporal worker,
 tenant publishing worker, and six maintenance schedules as one service.
 
 The `Social backend image` GitHub workflow publishes the combined backend on

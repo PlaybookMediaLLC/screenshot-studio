@@ -285,18 +285,30 @@ async function dispatchClaimedPost(id: string): Promise<void> {
   if (!post) {
     return
   }
+  const binding = await prisma.postizTenantBinding.findUnique({
+    where: { organizationId: post.organizationId },
+  })
   if (!(await isWorkspaceOperational(post.organizationId)) || !isEligible(post)) {
     await cancelIneligiblePost(post.id, post.organizationId)
     return
   }
 
   const attempt = await createPublicationAttempt(post.organizationId, post.id)
+  if (!binding || binding.secretReference !== post.channelConnection.secretReference) {
+    await failPublication(
+      post,
+      attempt,
+      new PostizProviderError('Postiz organization binding is unavailable.', 403)
+    )
+    return
+  }
   let providerPostId: string
   try {
     providerPostId = await publishPostizPost({
       asset: post.variant.sourceAsset,
       caption: post.caption,
       destinationId: post.channelConnection.externalAccountId,
+      expectedGoOrganizationId: binding.goOrganizationId,
       organizationId: post.organizationId,
       platform: post.channelConnection.platform,
       providerSettings: post.channelConnection.providerSettings,

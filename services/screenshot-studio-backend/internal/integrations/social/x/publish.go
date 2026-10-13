@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"mime"
+	"net/url"
 	"path"
 	"strconv"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/helpers"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/temporalx"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/upload"
 )
 
 // pendingData travels through the workflow history between postPending,
@@ -57,6 +59,9 @@ func marshal(v any) json.RawMessage {
 
 // lookup is mime-types' lookup(path) ("" for unknown extensions).
 func lookup(p string) string {
+	if u, err := url.Parse(p); err == nil && u.Path != "" {
+		p = u.Path
+	}
 	t := mime.TypeByExtension(strings.ToLower(path.Ext(p)))
 	t, _, _ = strings.Cut(t, ";")
 	return t
@@ -206,7 +211,7 @@ func (p *Provider) uploadImage(ctx context.Context, c *client, mediaPath string,
 	if err != nil {
 		return "", err
 	}
-	return c.uploadMedia(ctx, gif, lookup(mediaPath), "")
+	return c.uploadMedia(ctx, gif, "image/gif", "")
 }
 
 type mediaEntry struct {
@@ -225,10 +230,18 @@ func entryOf(post integrations.PostDetails) mediaEntry {
 // uploadMediaEntries uploads sequentially on purpose: uploading everything at
 // once holds every file in memory at the same time.
 func (p *Provider) uploadMediaEntries(ctx context.Context, c *client, entries []mediaEntry, asArticleImage bool) (map[string][]string, []string, error) {
+	mediaSigner, err := upload.NewPrivateMediaSigner()
+	if err != nil {
+		return nil, nil, err
+	}
 	media := map[string][]string{}
 	processingIDs := []string{}
 	for _, e := range entries {
 		for _, mediaPath := range e.paths {
+			mediaPath, err = mediaSigner.SignURL(ctx, mediaPath)
+			if err != nil {
+				return nil, nil, err
+			}
 			temporalx.SetHeartbeatDetails(ctx, "x: upload media "+temporalx.StripQuery(mediaPath))
 			up, err := integrations.RunInConcurrent(p.Base, func() (uploaded, error) {
 				if helpers.HasExtension(mediaPath, "mp4") {

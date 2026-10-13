@@ -160,6 +160,50 @@ func pngBytes() []byte {
 	return buf.Bytes()
 }
 
+func TestSignedImageUpload(t *testing.T) {
+	t.Setenv("POSTIZ_PRIVATE_MEDIA", "false")
+	calls, done := fakeX(t, func(r recorded) (int, string) {
+		switch r.path {
+		case "/pic.png":
+			return 200, string(pngBytes())
+		case "/2/media/upload/initialize", "/2/media/upload/img1/finalize":
+			return 200, `{"data":{"id":"img1"}}`
+		case "/2/media/upload/img1/append":
+			return 200, `{}`
+		}
+		return 404, `{}`
+	})
+	defer done()
+	signed := apiBase + "/pic.png?X-Amz-Date=20261013T000000Z&X-Amz-Signature=abc%2Fdef"
+	res, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{{
+		ID: "p", Message: "image", Media: []integrations.MediaContent{{Path: signed}},
+	}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res[0].Status != "pending" {
+		t.Fatalf("unexpected response: %+v", res[0])
+	}
+	var fetched, uploaded bool
+	for _, call := range *calls {
+		switch call.path {
+		case "/pic.png":
+			fetched = call.query.Get("X-Amz-Signature") == "abc/def"
+		case "/2/media/upload/initialize":
+			var body struct {
+				MediaType string `json:"media_type"`
+			}
+			if err := json.Unmarshal(call.body, &body); err != nil {
+				t.Fatal(err)
+			}
+			uploaded = body.MediaType == "image/gif"
+		}
+	}
+	if !fetched || !uploaded || lookup(signed) != "image/png" {
+		t.Fatalf("signed image fetch=%t upload=%t lookup=%q", fetched, uploaded, lookup(signed))
+	}
+}
+
 func TestArticleFlow(t *testing.T) {
 	var base string
 	calls, done := fakeX(t, func(r recorded) (int, string) {

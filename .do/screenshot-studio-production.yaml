@@ -1,0 +1,319 @@
+name: screenshot-studio-production
+region: nyc
+domains:
+  - domain: shots.oppulence.io
+    type: PRIMARY
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
+ingress:
+  rules:
+    - component:
+        name: web
+      match:
+        path:
+          prefix: /
+services:
+  - name: web
+    image:
+      registry_type: GHCR
+      registry: playbookmediallc
+      repository: screenshot-studio
+      tag: ci-placeholder
+    http_port: 3000
+    instance_size_slug: apps-s-1vcpu-1gb
+    instance_count: 2
+    health_check:
+      http_path: /api/health
+      initial_delay_seconds: 20
+      period_seconds: 15
+      timeout_seconds: 5
+      failure_threshold: 3
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://DATABASE_URL
+      - key: BETTER_AUTH_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://BETTER_AUTH_SECRET
+      - key: AUDIT_IP_HASH_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://AUDIT_IP_HASH_SECRET
+      - key: AUDIT_DRAIN_ENCRYPTION_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://AUDIT_DRAIN_ENCRYPTION_KEY
+      - key: REDIS_URL
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://REDIS_URL
+      - key: RESEND_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://RESEND_API_KEY
+      - key: GITHUB_CLIENT_ID
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://GITHUB_CLIENT_ID
+      - key: GITHUB_CLIENT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://GITHUB_CLIENT_SECRET
+      - key: GOOGLE_CLIENT_ID
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://GOOGLE_CLIENT_ID
+      - key: GOOGLE_CLIENT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://GOOGLE_CLIENT_SECRET
+      - key: R2_ACCESS_KEY_ID
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://R2_ACCESS_KEY_ID
+      - key: R2_SECRET_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://R2_SECRET_ACCESS_KEY
+      - key: STORAGE_SERVICE_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://STORAGE_SERVICE_KEY
+      - key: BETTER_AUTH_URL
+        scope: RUN_TIME
+        value: https://shots.oppulence.io
+      - key: BETTER_AUTH_TRUSTED_ORIGINS
+        scope: RUN_TIME
+        value: https://shots.oppulence.io
+      - key: NEXT_PUBLIC_APP_URL
+        scope: RUN_AND_BUILD_TIME
+        value: https://shots.oppulence.io
+      - key: NEXT_PUBLIC_R2_PUBLIC_URL
+        scope: RUN_TIME
+        value: https://shots-assets.oppulence.io
+      - key: NEXT_PUBLIC_POSTHOG_HOST
+        scope: RUN_TIME
+        value: https://us.i.posthog.com
+      - key: R2_ACCOUNT_ID
+        scope: RUN_TIME
+        value: de345701e5dc7e14d3c079da3e637448
+      - key: R2_BUCKET_NAME
+        scope: RUN_TIME
+        value: screenshot-studio
+      - key: R2_ENDPOINT
+        scope: RUN_TIME
+        value: https://de345701e5dc7e14d3c079da3e637448.r2.cloudflarestorage.com
+      - key: R2_REGION
+        scope: RUN_TIME
+        value: auto
+      - key: AUTH_ENABLE_PASSWORD
+        scope: RUN_TIME
+        value: "false"
+      - key: AUTH_EMAIL_FROM
+        scope: RUN_TIME
+        value: Screenshot Studio <noreply@oppulence.app>
+      - key: STORAGE_API_URL
+        scope: RUN_TIME
+        value: ${storage.PRIVATE_URL}
+      - key: STORAGE_BUCKET
+        scope: RUN_TIME
+        value: tenant-assets
+      - key: SCREENSHOT_API_URL
+        scope: RUN_TIME
+        value: https://api.microlink.io
+      - key: STORAGE_PROXY_URL
+        scope: RUN_TIME
+        value: https://shots.oppulence.io/api/tenant/storage
+  - name: storage
+    image:
+      registry_type: DOCKER_HUB
+      registry: supabase
+      repository: storage-api
+      digest: sha256:0d97bacea3a87b9505279c7ac4258afeb28ee73988c1fccf44285a49764551a4
+    internal_ports:
+      - 5000
+    instance_size_slug: apps-s-1vcpu-1gb
+    instance_count: 1
+    health_check:
+      http_path: /status
+      initial_delay_seconds: 20
+      period_seconds: 15
+      timeout_seconds: 5
+      failure_threshold: 3
+    envs:
+      - key: SERVER_PORT
+        scope: RUN_TIME
+        value: "5000"
+      - key: AUTH_JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://STORAGE_JWT_SECRET
+      - key: AUTH_JWT_ALGORITHM
+        scope: RUN_TIME
+        value: HS256
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://STORAGE_DATABASE_URL
+      - key: DB_INSTALL_ROLES
+        scope: RUN_TIME
+        value: "false"
+      - key: STORAGE_BACKEND
+        scope: RUN_TIME
+        value: s3
+      - key: STORAGE_S3_BUCKET
+        scope: RUN_TIME
+        value: screenshot-studio
+      - key: STORAGE_S3_ENDPOINT
+        scope: RUN_TIME
+        value: https://de345701e5dc7e14d3c079da3e637448.r2.cloudflarestorage.com
+      - key: STORAGE_S3_FORCE_PATH_STYLE
+        scope: RUN_TIME
+        value: "true"
+      - key: STORAGE_S3_REGION
+        scope: RUN_TIME
+        value: auto
+      - key: AWS_ACCESS_KEY_ID
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://R2_ACCESS_KEY_ID
+      - key: AWS_SECRET_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://R2_SECRET_ACCESS_KEY
+      - key: UPLOAD_FILE_SIZE_LIMIT
+        scope: RUN_TIME
+        value: "52428800"
+      - key: UPLOAD_FILE_SIZE_LIMIT_STANDARD
+        scope: RUN_TIME
+        value: "52428800"
+      - key: UPLOAD_SIGNED_URL_EXPIRATION_TIME
+        scope: RUN_TIME
+        value: "120"
+      - key: TUS_URL_PATH
+        scope: RUN_TIME
+        value: /upload/resumable
+      - key: TUS_URL_EXPIRY_MS
+        scope: RUN_TIME
+        value: "3600000"
+      - key: ENABLE_IMAGE_TRANSFORMATION
+        scope: RUN_TIME
+        value: "false"
+  - name: backend
+    image:
+      registry_type: GHCR
+      registry: playbookmediallc
+      repository: screenshot-studio
+      tag: ci-placeholder
+    run_command: /app/bin/backend
+    internal_ports:
+      - 8080
+    instance_size_slug: apps-s-1vcpu-1gb
+    instance_count: 1
+    health_check:
+      http_path: /readyz
+      port: 8080
+      initial_delay_seconds: 20
+      period_seconds: 15
+      timeout_seconds: 5
+      failure_threshold: 3
+    envs:
+      - key: PORT
+        scope: RUN_TIME
+        value: "8080"
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://DATABASE_URL
+      - key: PUBLISHING_SERVICE_TOKEN
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://PUBLISHING_SERVICE_TOKEN
+      - key: TEMPORAL_ADDRESS
+        scope: RUN_TIME
+        value: screenshot-studio-publishing.kpisa.tmprl.cloud:7233
+      - key: TEMPORAL_NAMESPACE
+        scope: RUN_TIME
+        value: screenshot-studio-publishing.kpisa
+      - key: TEMPORAL_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://TEMPORAL_API_KEY
+      - key: TEMPORAL_TLS
+        scope: RUN_TIME
+        value: "true"
+  - name: orchestrator
+    image:
+      registry_type: GHCR
+      registry: playbookmediallc
+      repository: screenshot-studio
+      tag: ci-placeholder
+    run_command: /app/bin/orchestrator
+    internal_ports:
+      - 8081
+    instance_size_slug: apps-s-1vcpu-1gb
+    instance_count: 1
+    health_check:
+      http_path: /readyz
+      port: 8081
+      initial_delay_seconds: 20
+      period_seconds: 15
+      timeout_seconds: 5
+      failure_threshold: 3
+    envs:
+      - key: PORT
+        scope: RUN_TIME
+        value: "8081"
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://DATABASE_URL
+      - key: TEMPORAL_ADDRESS
+        scope: RUN_TIME
+        value: screenshot-studio-publishing.kpisa.tmprl.cloud:7233
+      - key: TEMPORAL_NAMESPACE
+        scope: RUN_TIME
+        value: screenshot-studio-publishing.kpisa
+      - key: TEMPORAL_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://TEMPORAL_API_KEY
+      - key: TEMPORAL_TLS
+        scope: RUN_TIME
+        value: "true"
+      - key: STORAGE_API_URL
+        scope: RUN_TIME
+        value: ${storage.PRIVATE_URL}
+      - key: STORAGE_BUCKET
+        scope: RUN_TIME
+        value: tenant-assets
+      - key: STORAGE_SERVICE_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://STORAGE_SERVICE_KEY
+      - key: POSTIZ_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://POSTIZ_API_KEY
+      - key: RUN_CRON
+        scope: RUN_TIME
+        value: "true"
+jobs:
+  - name: migrate
+    kind: PRE_DEPLOY
+    image:
+      registry_type: GHCR
+      registry: playbookmediallc
+      repository: screenshot-studio
+      tag: ci-placeholder
+    instance_size_slug: apps-s-1vcpu-1gb
+    instance_count: 1
+    run_command: cd /app/migrator && node node_modules/prisma/build/index.js migrate deploy
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+        value: infisical://MIGRATION_DATABASE_URL

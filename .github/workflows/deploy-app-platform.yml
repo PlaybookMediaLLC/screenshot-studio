@@ -1,0 +1,46 @@
+name: Deploy to DigitalOcean App Platform
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  deploy:
+    if: >-
+      vars.SCREENSHOT_STUDIO_FULL_SPEC_READY == 'true' &&
+      vars.SCREENSHOT_STUDIO_APP_ID != '' &&
+      (github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push'))
+    uses: Oppulence-Engineering/shared-workflows/.github/workflows/digitalocean-app-platform.yml@02b25d91c072071208dcaa9121e11826143f9263
+    with:
+      app_id: ${{ vars.SCREENSHOT_STUDIO_APP_ID }}
+      app_spec_path: .do/screenshot-studio-production.yaml
+      deploy_ref: refs/heads/main
+      environment: production
+      build_image: true
+      image_registry_type: GHCR
+      image_registry: playbookmediallc
+      image_repository: screenshot-studio
+      dockerfile_path: Dockerfile
+      build_context: .
+      healthcheck_url: https://shots.oppulence.io/api/health
+      infisical_identity_id: ${{ vars.SCREENSHOT_STUDIO_INFISICAL_IDENTITY_ID }}
+      infisical_project_id: ${{ vars.SCREENSHOT_STUDIO_INFISICAL_PROJECT_ID }}
+      infisical_environment: prod
+      infisical_secret_path: /screenshot-studio
+      build_args: |
+        NEXT_PUBLIC_APP_URL=https://shots.oppulence.io
+        NEXT_PUBLIC_POSTHOG_HOST=${{ vars.NEXT_PUBLIC_POSTHOG_HOST }}
+        NEXT_PUBLIC_POSTHOG_KEY=${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
+        NEXT_PUBLIC_R2_PUBLIC_URL=${{ vars.NEXT_PUBLIC_R2_PUBLIC_URL }}
+    secrets:
+      digitalocean_token: ${{ secrets.DIGITALOCEAN_PRODUCTION_TOKEN }}

@@ -14,6 +14,18 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --prefer-offline --no-audit
 
+# The same immutable image runs the web app, publishing API, and Temporal worker.
+# This keeps one GitHub-built digest across all App Platform components.
+FROM golang:1.26-alpine AS publishing
+
+WORKDIR /src
+COPY services/go.mod services/go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+COPY services/ ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/backend ./backend/cmd/backend \
+    && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/orchestrator ./orchestrator/cmd/orchestrator
+
 FROM dependencies AS builder
 
 WORKDIR /app
@@ -25,12 +37,14 @@ COPY . .
 ARG NEXT_PUBLIC_POSTHOG_HOST
 ARG NEXT_PUBLIC_POSTHOG_KEY
 ARG NEXT_PUBLIC_R2_PUBLIC_URL
+ARG NEXT_PUBLIC_APP_URL
 ARG DATABASE_URL=postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio
 
 ENV DATABASE_URL=$DATABASE_URL \
     NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
     NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
-    NEXT_PUBLIC_R2_PUBLIC_URL=$NEXT_PUBLIC_R2_PUBLIC_URL
+    NEXT_PUBLIC_R2_PUBLIC_URL=$NEXT_PUBLIC_R2_PUBLIC_URL \
+    NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 
 RUN npm run build
 
@@ -79,6 +93,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=migrator --chown=nextjs:nodejs /migrator ./migrator
+COPY --from=publishing --chown=nextjs:nodejs /out/backend /app/bin/backend
+COPY --from=publishing --chown=nextjs:nodejs /out/orchestrator /app/bin/orchestrator
 
 USER nextjs
 

@@ -27,7 +27,23 @@ before(async () => {
   await new Promise<void>((resolve) => external.listen(0, '127.0.0.1', resolve))
   const externalOrigin = `http://127.0.0.1:${(external.address() as AddressInfo).port}`
   app = createServer((request, response) => {
-    const path = new URL(request.url ?? '/', 'http://x').pathname
+    const url = new URL(request.url ?? '/', 'http://x')
+    const path = url.pathname
+    if (path === '/render/isolation') {
+      const user = JSON.stringify(url.searchParams.get('user'))
+      response.end(
+        page(`
+        const previous = { cookie: document.cookie, storage: localStorage.getItem('user') };
+        document.cookie = 'user=' + ${user}; localStorage.setItem('user', ${user});
+        window.__designReady = true;
+        window.__exportDesign = async () => {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          return { base64: btoa(JSON.stringify({ previous, user: localStorage.getItem('user') })), width: 1, height: 1 };
+        };
+      `)
+      )
+      return
+    }
     if (path === '/render/ok' || path === '/en/render/ok') {
       response.end(
         page(
@@ -56,6 +72,12 @@ before(async () => {
           `window.__designReady = true; window.__exportDesign = () => { throw new Error('bad export') }`
         )
       )
+    } else if (path === '/render/slow-failure') {
+      response.end(
+        page(`window.__designReady = true; window.__exportDesign = async () => {
+        await new Promise(resolve => setTimeout(resolve, 1250)); throw new Error('retry');
+      }`)
+      )
     } else if (path === '/render/external') {
       response.end(
         page(`window.__designReady = true; window.__exportDesign = async () => {
@@ -82,6 +104,7 @@ before(async () => {
       RENDER_ALLOWED_ORIGIN: appOrigin,
       RENDER_CONCURRENCY: '2',
       RENDER_MAX_QUEUE: '1',
+      RENDER_QUEUE_TIMEOUT_MS: '1000',
       RENDER_SERVICE_SECRET: SECRET,
       RENDER_TIMEOUT_MS: '2000',
       RENDER_RECYCLE_AFTER: '5',
@@ -115,8 +138,9 @@ after(async () => {
   external?.close()
 })
 
-const render = (url: string, secret = SECRET) =>
+const render = (url: string, secret = SECRET, signal?: AbortSignal) =>
   fetch(`${service}/render`, {
+    signal,
     body: JSON.stringify({ url }),
     headers: { 'content-type': 'application/json', 'x-render-secret': secret },
     method: 'POST',
@@ -204,11 +228,94 @@ test('a retry does not interrupt another active render', async () => {
   assert.ok(!output.includes(SECRET))
 })
 
+test('retry attempts share one deadline instead of doubling the render timeout', async () => {
+  const started = performance.now()
+  assert.equal((await render(`${appOrigin}/render/slow-failure`)).status, 502)
+  assert.ok(performance.now() - started < 3000)
+  assert.equal((await render(`${appOrigin}/render/ok`)).status, 200)
+})
+
 test('exposes liveness and readiness after browser recycling', async () => {
   assert.equal((await fetch(`${service}/health`)).status, 200)
   assert.equal((await fetch(`${service}/ready`)).status, 200)
   assert.equal((await fetch(`${service}/unknown`)).status, 404)
   assert.match(output, /browser.recycled/)
+})
+
+async function waitForMetric(expected: string) {
+  for (let attempt = 0; attempt < 300; attempt += 1) {
+    const metrics = await (await fetch(`${service}/metrics`)).text()
+    if (metrics.includes(expected)) return
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  assert.fail(`Did not observe ${expected}`)
+}
+
+test('disconnecting queued and active callers frees capacity for other users', async () => {
+  const clients = [new AbortController(), new AbortController(), new AbortController()]
+  const active = clients
+    .slice(0, 2)
+    .map((client) => render(`${appOrigin}/render/hang`, SECRET, client.signal).catch(() => null))
+  await waitForMetric('design_render_active 2')
+  const queued = render(`${appOrigin}/render/ok`, SECRET, clients[2]!.signal).catch(() => null)
+  await waitForMetric('design_render_queued 1')
+  clients[2]!.abort()
+  await queued
+  await waitForMetric('design_render_queued 0')
+  clients[0]!.abort()
+  clients[1]!.abort()
+  await Promise.all(active)
+  await waitForMetric('design_render_active 0')
+  assert.equal((await render(`${appOrigin}/render/ok`)).status, 200)
+})
+
+test('requests expire in the queue while busy users keep their active slots', async () => {
+  const clients = [new AbortController(), new AbortController()]
+  const active = clients.map((client) =>
+    render(`${appOrigin}/render/hang`, SECRET, client.signal).catch(() => null)
+  )
+  try {
+    await waitForMetric('design_render_active 2')
+    const waiting = await render(`${appOrigin}/render/ok`)
+    assert.equal(waiting.status, 503)
+    assert.equal(waiting.headers.get('retry-after'), '5')
+    assert.match(output, /queue-timeout/)
+  } finally {
+    clients.forEach((client) => client.abort())
+    await Promise.all(active)
+    await waitForMetric('design_render_active 0')
+  }
+})
+
+test('bursts shed excess load and never share cookies or local storage between users', async () => {
+  let successes = 0
+  let rejected = 0
+  for (let wave = 0; wave < 5; wave += 1) {
+    await Promise.all(
+      Array.from({ length: 10 }, async (_, index) => {
+        const user = `user-${wave}-${index}`
+        const response = await render(`${appOrigin}/render/isolation?user=${user}`)
+        if (response.status === 503) {
+          rejected += 1
+          assert.equal(response.headers.get('retry-after'), '5')
+          return
+        }
+        assert.equal(response.status, 200)
+        const result = (await response.json()) as { base64: string }
+        assert.deepEqual(JSON.parse(Buffer.from(result.base64, 'base64').toString()), {
+          previous: { cookie: '', storage: null },
+          user,
+        })
+        successes += 1
+      })
+    )
+    await waitForMetric('design_render_active 0')
+    await waitForMetric('design_render_queued 0')
+  }
+  assert.ok(successes >= 10, `${successes} successful renders`)
+  assert.ok(rejected > 0)
+  assert.equal(successes + rejected, 50)
+  assert.equal((await fetch(`${service}/ready`)).status, 200)
 })
 
 test('SIGTERM finishes active renders and rejects queued work', async () => {

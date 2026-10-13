@@ -12,6 +12,7 @@ test('configuration has typed defaults and supports a zero-length queue', () => 
   const config = environmentSchema.parse(env)
   assert.equal(config.port, 8080)
   assert.equal(config.concurrency, 2)
+  assert.equal(config.queueTimeoutMs, 10000)
   assert.equal(environmentSchema.parse({ ...env, RENDER_MAX_QUEUE: '0' }).maxQueue, 0)
 })
 
@@ -29,6 +30,7 @@ test('rejects invalid configuration instead of starting a broken service', () =>
     { RENDER_CONCURRENCY: '0' },
     { RENDER_CONCURRENCY: '1.5' },
     { RENDER_MAX_QUEUE: '-1' },
+    { RENDER_QUEUE_TIMEOUT_MS: '0' },
     { RENDER_TIMEOUT_MS: '' },
     { RENDER_RECYCLE_AFTER: '0' },
     { RENDER_SHUTDOWN_TIMEOUT_MS: '0' },

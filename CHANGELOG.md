@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.13.0...v1.13.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* **renderer:** bound concurrent workload and cancel abandoned renders ([#77](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/77)) ([386c429](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/386c429d969a2b73e3982588e6016d47599d60b2))
+
 ## [1.13.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.12.0...v1.13.0) (2026-10-13)
 
 

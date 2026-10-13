@@ -149,6 +149,10 @@ func TestRejectInsecureCallback(t *testing.T) {
 		"https://user@studio.example.test",
 		"https://studio.example.test/path",
 		"https://studio.example.test?",
+		"https://:443",
+		"https://studio.example.test:",
+		"https://studio.example.test:65536",
+		"https://studio.example.test:0",
 	} {
 		t.Run(frontend, func(t *testing.T) {
 			t.Setenv("FRONTEND_URL", frontend)

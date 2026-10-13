@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/ent"
@@ -91,9 +92,15 @@ func (p *Provider) CheckValidity(_ context.Context, posts [][]integrations.Valid
 // through a third-party redirect service to reach a local HTTP frontend.
 func redirectURI() (string, error) {
 	frontend, err := url.Parse(os.Getenv("FRONTEND_URL"))
-	if err != nil || frontend.Scheme != "https" || frontend.Host == "" || frontend.User != nil ||
+	if err != nil || frontend.Scheme != "https" || frontend.Hostname() == "" || strings.HasSuffix(frontend.Host, ":") || frontend.User != nil ||
 		(frontend.Path != "" && frontend.Path != "/") || frontend.ForceQuery || frontend.RawQuery != "" || frontend.Fragment != "" {
 		return "", errors.New("FRONTEND_URL must be an HTTPS origin for Instagram OAuth")
+	}
+	if port := frontend.Port(); port != "" {
+		n, err := strconv.Atoi(port)
+		if err != nil || n < 1 || n > 65535 {
+			return "", errors.New("FRONTEND_URL must be an HTTPS origin for Instagram OAuth")
+		}
 	}
 	return strings.TrimSuffix(frontend.String(), "/") + "/integrations/social/instagram-standalone", nil
 }

@@ -112,6 +112,21 @@ func TestOutboxTenantClaimsDeadLettersAndPausedWorkspaces(t *testing.T) {
 }
 func TestRetentionHonorsLegalHoldAndDefaultPolicy(t *testing.T) {
 	s, _ := setup(t)
+	exec(t, s.DB, `DO $$ BEGIN CREATE ROLE maintenance_retention_test LOGIN PASSWORD 'local-test-only'; EXCEPTION WHEN duplicate_object THEN NULL; END $$`)
+	exec(t, s.DB, `GRANT USAGE ON SCHEMA public TO maintenance_retention_test`)
+	exec(t, s.DB, `GRANT SELECT ON organization,audit_retention_policy,audit_drain TO maintenance_retention_test`)
+	exec(t, s.DB, `GRANT SELECT,INSERT,DELETE ON audit_log TO maintenance_retention_test`)
+	exec(t, s.DB, `GRANT SELECT,INSERT ON audit_outbox,audit_drain_delivery TO maintenance_retention_test`)
+	retentionURL, _ := url.Parse(os.Getenv("MAINTENANCE_TEST_DATABASE_URL"))
+	retentionURL.User = url.UserPassword("maintenance_retention_test", "local-test-only")
+	limited, err := sql.Open("pgx", retentionURL.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { limited.Close() })
+	s.RetentionDB = limited
+	exec(t, s.DB, `INSERT INTO audit_drain(id,"organizationId",name,endpoint,"encryptedSigningSecret","updatedAt") VALUES('retention-drain','a','test','https://example.invalid','unused',now())`)
+
 	exec(t, s.DB, `INSERT INTO audit_retention_policy("organizationId","legalHold","updatedAt") VALUES('b',true,now())`)
 	exec(t, s.DB, `INSERT INTO audit_log(id,"organizationId","requestId","actorType",action,"entityType","createdAt") VALUES('old-a','a','r','SERVICE','test','test',now()-interval '91 days'),('new-a','a','r','SERVICE','test','test',now()-interval '1 day'),('old-b','b','r','SERVICE','test','test',now()-interval '365 days')`)
 	if n := run(t, s, "audit-retention"); n != 1 {

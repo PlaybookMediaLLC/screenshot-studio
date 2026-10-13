@@ -72,9 +72,10 @@ python3 infra/digitalocean/render-spec.py \
   --secrets .context/digitalocean/secrets.json \
   --output .context/digitalocean/app.json
 python3 -m unittest discover -s infra/digitalocean -p 'test_*.py'
-# Validation echoes the spec, including secrets; suppress successful output.
+# Schema validation echoes secrets; suppress output. The update validates
+# against the existing app, which is required for preserved encrypted values.
 doctl --context solomonai-cluster apps spec validate \
-  .context/digitalocean/app.json > /dev/null
+  .context/digitalocean/app.json --schema-only > /dev/null
 doctl --context solomonai-cluster apps update \
   c525b0ba-b92a-4174-ae91-4ab4d7c92fd2 \
   --spec .context/digitalocean/app.json > /dev/null
@@ -204,3 +205,23 @@ Tests in `services/internal/maintenance` use a disposable, fully migrated
 `maintenance_test` database and fake provider transports. CI runs these tests
 with the race detector, plus Temporal workflow retry/schedule reconciliation
 tests. Crypto fixtures are checked against independently generated Node values.
+
+The maintenance rollout builds the orchestrator from the PR branch
+`yoanyombapro1234/digital-ocean-backend-deploy-v1`. After merging, render/apply
+the spec with the default `--branch main` before deleting that branch. The
+running deployment is immutable; this change prepares subsequent deployments.
+
+### Production maintenance verification: 2026-10-13
+
+Deployment `665ff091-5d23-465e-8491-fda7115851f6` reached `ACTIVE` with
+orchestrator source commit `0330d757f4bf10e2fe854344743453e20d48e2a3`.
+All five minute schedules completed automatically at 10:47 UTC. The daily
+retention schedule was manually exercised at 10:46:28 UTC and completed too.
+The web health endpoint returned 200, and a signed unsubscribe request for a
+nonexistent test subscriber returned 204, confirming compatibility with the
+running web secret without changing a customer's subscription.
+
+The production preflight found no scheduled announcements, scheduled posts, or
+pending workspace deletions. No customer email or social post was sent as a
+smoke test. Local retention integration tests also passed using a role with the
+same restricted grants as production, including audit-drain receipt creation.

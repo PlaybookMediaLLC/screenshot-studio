@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.14.0...v1.15.0) (2026-10-13)
+
+
+### Features
+
+* **platform:** move maintenance to Go and Temporal, remove Trigger.dev ([#80](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/80)) ([c2161b3](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/c2161b344bc6868cf14bbc854a50c36969842de0))
+
 ## [1.14.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.13.1...v1.14.0) (2026-10-13)
 
 

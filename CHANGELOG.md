@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.16.1...v1.16.2) (2026-10-13)
+
+
+### Bug Fixes
+
+* retire Fly config and deploy web with trusted client IP ([#87](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/87)) ([cd4e537](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/cd4e537851597da75fe66b8b1f3b730901899557))
+
 ## [1.16.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.16.0...v1.16.1) (2026-10-13)
 
 

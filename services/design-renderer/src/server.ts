@@ -1,4 +1,3 @@
-/* global Buffer, URL, console, performance, process, setTimeout, window */
 // Design render service: renders Playbook design pages with headless Chromium.
 //
 // The web app keeps Chromium out of its own image and calls this service
@@ -7,30 +6,33 @@
 // and runs the editor's export inside the page, so the image matches what the
 // editor's Export button produces.
 import { randomUUID, timingSafeEqual } from 'node:crypto'
-import { createServer } from 'node:http'
-import { chromium } from 'playwright-core'
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+  type OutgoingHttpHeaders,
+} from 'node:http'
+import { chromium, type Browser } from 'playwright-core'
+import {
+  environmentSchema,
+  renderRequestSchema,
+  renderResultSchema,
+  renderPath,
+  type RenderResult,
+} from './schemas.js'
 
-const config = {
-  appOrigin: process.env.RENDER_ALLOWED_ORIGIN
-    ? new URL(process.env.RENDER_ALLOWED_ORIGIN).origin
-    : '',
-  chromiumPath: process.env.CHROMIUM_PATH || undefined,
-  concurrency: Number(process.env.RENDER_CONCURRENCY ?? 2),
-  maxQueue: Number(process.env.RENDER_MAX_QUEUE ?? 20),
-  port: Number(process.env.PORT ?? 8080),
-  // Chromium accumulates memory; a fresh browser every N renders bounds it.
-  recycleAfter: Number(process.env.RENDER_RECYCLE_AFTER ?? 200),
-  secret: process.env.RENDER_SERVICE_SECRET ?? '',
-  timeoutMs: Number(process.env.RENDER_TIMEOUT_MS ?? 60_000),
-}
-
-if (config.secret.length < 32 || !config.appOrigin) {
-  console.error('RENDER_SERVICE_SECRET (32+ chars) and RENDER_ALLOWED_ORIGIN are required.')
+const parsedConfig = environmentSchema.safeParse(process.env)
+if (!parsedConfig.success) {
+  // Report field names, never environment values (especially the shared secret).
+  console.error(
+    'Invalid renderer configuration:',
+    parsedConfig.error.issues.map((issue) => issue.path.join('.')).join(', ')
+  )
   process.exit(1)
 }
-
-const RENDER_PATH = /^\/(?:[a-z]{2}\/)?render\/[\w-]+$/
-const log = (event, fields = {}) => console.info(JSON.stringify({ event, ...fields }))
+const config = parsedConfig.data
+const log = (event: string, fields: Record<string, unknown> = {}) =>
+  process.stdout.write(JSON.stringify({ event, ...fields }) + '\n')
 
 // ---------------------------------------------------------------- metrics --
 
@@ -43,11 +45,11 @@ const metrics = {
   restarts: 0,
 }
 
-function observeDuration(seconds) {
+function observeDuration(seconds: number) {
   metrics.durationSum += seconds
   metrics.durationCount += 1
   DURATION_BUCKETS.forEach((bucket, index) => {
-    if (seconds <= bucket) metrics.buckets[index] += 1
+    if (seconds <= bucket) metrics.buckets[index] = (metrics.buckets[index] ?? 0) + 1
   })
 }
 
@@ -77,7 +79,7 @@ function prometheus() {
 
 // ---------------------------------------------------------------- browser --
 
-let browserPromise
+let browserPromise: Promise<Browser> | undefined
 let rendersOnBrowser = 0
 
 function getBrowser() {
@@ -90,6 +92,7 @@ function getBrowser() {
       handleSIGINT: false,
       handleSIGTERM: false,
       headless: true,
+      timeout: config.timeoutMs,
     })
     browserPromise = launching
     launching
@@ -106,7 +109,7 @@ function getBrowser() {
   return browserPromise
 }
 
-async function retireBrowser(reason) {
+async function retireBrowser(reason: string) {
   const current = browserPromise
   browserPromise = undefined
   rendersOnBrowser = 0
@@ -118,66 +121,92 @@ async function retireBrowser(reason) {
 // ------------------------------------------------------------------ queue --
 
 let active = 0
-const waiting = []
+const waiting: Array<{ resolve: () => void; reject: (error: Error) => void }> = []
 let draining = false
 
 class QueueFullError extends Error {}
+class DrainingError extends Error {}
+class PermanentRenderError extends Error {}
+class RenderTimeoutError extends Error {}
 
-async function withSlot(work) {
+async function withSlot<T>(work: () => Promise<T>): Promise<T> {
+  if (draining) throw new DrainingError()
   if (active >= config.concurrency) {
     if (waiting.length >= config.maxQueue) throw new QueueFullError()
-    await new Promise((resolve) => waiting.push(resolve))
+    await new Promise<void>((resolve, reject) => waiting.push({ resolve, reject }))
+    if (draining) throw new DrainingError()
   }
   active += 1
   try {
     return await work()
   } finally {
     active -= 1
-    waiting.shift()?.()
+    waiting.shift()?.resolve()
   }
 }
 
 // ----------------------------------------------------------------- render --
 
-async function renderOnce(target) {
+async function renderOnce(target: URL): Promise<RenderResult> {
   const browser = await getBrowser()
   const context = await browser.newContext({
     deviceScaleFactor: 1,
+    serviceWorkers: 'block',
     viewport: { height: 1400, width: 2200 },
   })
+  let timer: NodeJS.Timeout | undefined
   try {
-    const page = await context.newPage()
-    // Only the app itself: no analytics or ad scripts in a render.
-    await page.route('**/*', (route) => {
-      const url = new URL(route.request().url())
-      return url.protocol === 'data:' || url.protocol === 'blob:' || url.origin === config.appOrigin
-        ? route.continue()
-        : route.abort()
-    })
-    const response = await page.goto(target.toString(), { timeout: config.timeoutMs })
-    if (!response?.ok()) {
-      const error = new Error(`Render page returned ${response?.status() ?? 'no response'}.`)
-      error.permanent = true
-      throw error
+    const work = async () => {
+      const page = await context.newPage()
+      await context.route('**/*', (route) => {
+        const url = new URL(route.request().url())
+        return url.protocol === 'data:' ||
+          url.protocol === 'blob:' ||
+          url.origin === config.appOrigin
+          ? route.continue()
+          : route.abort()
+      })
+      const response = await page.goto(target.toString(), { timeout: config.timeoutMs })
+      if (!response?.ok())
+        throw new PermanentRenderError('Render page returned a non-success status.')
+      await page.waitForFunction(
+        () => (window as Window & { __designReady?: boolean }).__designReady === true,
+        undefined,
+        { timeout: config.timeoutMs }
+      )
+      const result: unknown = await page.evaluate(() => {
+        const exportDesign = (window as Window & { __exportDesign?: () => Promise<unknown> })
+          .__exportDesign
+        if (!exportDesign) throw new Error('The page has no design exporter.')
+        return exportDesign()
+      })
+      const parsed = renderResultSchema.safeParse(result)
+      if (!parsed.success) throw new PermanentRenderError('Invalid design export.')
+      return parsed.data
     }
-    await page.waitForFunction(() => window.__designReady === true, undefined, {
-      timeout: config.timeoutMs,
-    })
-    return await page.evaluate(() => window.__exportDesign())
+    // page.evaluate has no timeout: bound the complete page/export operation,
+    // then close its context so a hung exporter cannot monopolize a slot.
+    return await Promise.race([
+      work(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new RenderTimeoutError()), config.timeoutMs)
+      }),
+    ])
   } finally {
+    clearTimeout(timer)
     await context.close().catch(() => undefined)
     rendersOnBrowser += 1
   }
 }
 
-/** One retry on a fresh browser: a crashed Chromium should cost a retry, not a failure. */
-async function render(target) {
+/** Retry a transient failure in a fresh context. A disconnected browser is replaced
+ * by getBrowser; never close a connected browser underneath another render. */
+async function render(target: URL): Promise<RenderResult> {
   try {
     return await renderOnce(target)
   } catch (error) {
-    if (error?.permanent) throw error
-    await retireBrowser('render-error')
-    return renderOnce(target)
+    if (error instanceof PermanentRenderError || error instanceof RenderTimeoutError) throw error
+    return await renderOnce(target)
   } finally {
     if (rendersOnBrowser >= config.recycleAfter && active <= 1) await retireBrowser('recycle')
   }
@@ -185,14 +214,14 @@ async function render(target) {
 
 // ------------------------------------------------------------------- http --
 
-function authorized(header) {
+function authorized(header: string | string[] | undefined) {
   const provided = Buffer.from(String(header ?? ''))
   const expected = Buffer.from(config.secret)
   return provided.length === expected.length && timingSafeEqual(provided, expected)
 }
 
-async function readJson(request) {
-  const chunks = []
+async function readJson(request: IncomingMessage): Promise<unknown> {
+  const chunks: Buffer[] = []
   let size = 0
   for await (const chunk of request) {
     size += chunk.length
@@ -202,25 +231,30 @@ async function readJson(request) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'))
 }
 
-function send(response, status, body, headers = {}) {
+function send(
+  response: ServerResponse,
+  status: number,
+  body: unknown,
+  headers: OutgoingHttpHeaders = {}
+) {
   response.writeHead(status, { 'content-type': 'application/json', ...headers })
   response.end(typeof body === 'string' ? body : JSON.stringify(body))
 }
 
-async function handleRender(request, response, requestId) {
+async function handleRender(request: IncomingMessage, response: ServerResponse, requestId: string) {
   if (draining) return send(response, 503, { error: 'Shutting down.' }, { 'retry-after': '5' })
   if (!authorized(request.headers['x-render-secret'])) {
     metrics.renders.rejected += 1
     return send(response, 401, { error: 'Unauthorized.' })
   }
-  let target
+  let target: URL
   try {
-    target = new URL((await readJson(request)).url)
+    target = new URL(renderRequestSchema.parse(await readJson(request)).url)
   } catch {
     metrics.renders.rejected += 1
     return send(response, 400, { error: 'Send { "url": "<app>/render/<id>?token=…" }.' })
   }
-  if (target.origin !== config.appOrigin || !RENDER_PATH.test(target.pathname)) {
+  if (target.origin !== config.appOrigin || !renderPath.test(target.pathname)) {
     metrics.renders.rejected += 1
     return send(response, 403, {
       error: 'Only design render pages on the app origin can be rendered.',
@@ -235,24 +269,33 @@ async function handleRender(request, response, requestId) {
     log('render.done', { durationMs: Math.round(seconds * 1_000), requestId })
     send(response, 200, result)
   } catch (error) {
+    if (error instanceof DrainingError)
+      return send(response, 503, { error: 'Shutting down.' }, { 'retry-after': '5' })
     if (error instanceof QueueFullError) {
       metrics.renders.rejected += 1
       log('render.rejected', { reason: 'queue-full', requestId })
       return send(response, 503, { error: 'The render queue is full.' }, { 'retry-after': '5' })
     }
     metrics.renders.failed += 1
-    log('render.failed', { reason: error instanceof Error ? error.message : 'unknown', requestId })
+    // Playwright error messages may contain signed render URLs. Log only the class.
+    log('render.failed', { reason: error instanceof Error ? error.name : 'unknown', requestId })
     send(response, 502, { error: 'The design could not be rendered.' })
   }
 }
 
-const server = createServer(async (request, response) => {
+async function handleRequest(request: IncomingMessage, response: ServerResponse) {
   const requestId = String(request.headers['x-request-id'] ?? randomUUID())
   response.setHeader('x-request-id', requestId)
   if (request.method === 'GET' && request.url === '/health')
     return send(response, 200, { ok: true })
   if (request.method === 'GET' && request.url === '/ready') {
-    const ready = !draining && Boolean(await browserPromise?.catch(() => null))
+    const ready =
+      !draining &&
+      Boolean(
+        await getBrowser()
+          .then((browser) => browser.isConnected())
+          .catch(() => false)
+      )
     return send(response, ready ? 200 : 503, { ready })
   }
   if (request.method === 'GET' && request.url === '/metrics') {
@@ -263,23 +306,36 @@ const server = createServer(async (request, response) => {
     return handleRender(request, response, requestId)
   }
   send(response, 404, { error: 'Not found.' })
-})
+}
 
-server.listen(config.port, () => {
+const server = createServer((request, response) => {
+  void handleRequest(request, response).catch(() => {
+    if (!response.headersSent) send(response, 500, { error: 'Internal server error.' })
+    else response.destroy()
+  })
+})
+server.requestTimeout = 15000
+server.headersTimeout = 10000
+
+server.listen(config.port, '0.0.0.0', () => {
   log('render.listening', { port: config.port })
   // Warm start: the first render should not pay for launching Chromium.
   getBrowser()
     .then(() => log('browser.ready'))
-    .catch((error) => log('browser.failed', { reason: error.message }))
+    .catch(() => log('browser.failed'))
 })
 
 /** Stop taking work, finish what is in flight, then close the browser. */
-async function shutdown(signal) {
+async function shutdown(signal: string) {
   if (draining) return
   draining = true
   log('render.draining', { active, queued: waiting.length, signal })
+  for (const waiter of waiting.splice(0)) waiter.reject(new DrainingError())
   server.close()
-  const deadline = Date.now() + 30_000
+  // Enforce the deadline even if Chromium itself hangs while closing.
+  const forcedExit = setTimeout(() => process.exit(1), config.shutdownTimeoutMs)
+  forcedExit.unref()
+  const deadline = Date.now() + config.shutdownTimeoutMs
   while ((active > 0 || waiting.length > 0) && Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 200))
   }

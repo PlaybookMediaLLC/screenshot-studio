@@ -169,7 +169,12 @@ jobs:
         # load shedding, and metrics. Once is enough, so only on shard 1.
         if: matrix.shard_index == 1
         timeout-minutes: 5
-        run: npm --prefix services/design-renderer test
+        run: |
+          npm --prefix services/design-renderer ci
+          npm --prefix services/design-renderer run typecheck
+          npm --prefix services/design-renderer run lint
+          npm --prefix services/design-renderer exec -- playwright-core install --with-deps chromium
+          npm --prefix services/design-renderer test
       - name: Start and smoke-test the local stack
         run: ./bin/studio up
       - name: Run local stack smoke test

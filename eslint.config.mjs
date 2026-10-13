@@ -77,6 +77,7 @@ export default defineConfig([
   {
     ignores: [
       'node_modules/**',
+      'services/design-renderer/**',
       '.context/**',
       '.next/**',
       'out/**',

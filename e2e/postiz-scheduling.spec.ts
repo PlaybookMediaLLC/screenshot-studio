@@ -150,6 +150,7 @@ test('an approved variant schedules through Postiz once, retries a throttle, and
   page,
 }) => {
   let postAttempts = 0
+  let remoteState: 'QUEUE' | 'PUBLISHED' = 'QUEUE'
   const provider = await startHttpMockServer((request) => {
     if (request.url === '/api/public/v1/upload') {
       return {
@@ -165,6 +166,23 @@ test('an approved variant schedules through Postiz once, retries a throttle, and
             body: [{ postId: `post-${postAttempts}`, integration: 'postiz-x-integration' }],
             status: 201,
           }
+    }
+    if (request.url === '/api/public/v1/posts/post-2/status') {
+      return {
+        body: {
+          postId: 'post-2',
+          state: remoteState,
+          releaseId: remoteState === 'PUBLISHED' ? 'remote-post-2' : null,
+          releaseURL: remoteState === 'PUBLISHED' ? 'https://social.test/post/2' : null,
+        },
+        status: 200,
+      }
+    }
+    if (request.url === '/api/public/v1/posts/post-3/status') {
+      return {
+        body: { postId: 'post-3', state: 'ERROR', releaseId: null, releaseURL: null },
+        status: 200,
+      }
     }
     return { body: { error: 'Not found.' }, status: 404 }
   }, 5679)
@@ -209,6 +227,37 @@ test('an approved variant schedules through Postiz once, retries a throttle, and
 
     const database = createE2EDatabaseClient()
     try {
+      const accepted = await database.scheduledPost.findUnique({
+        include: { attempts: { orderBy: { attemptNumber: 'asc' } } },
+        where: { id: first.scheduledPost.id },
+      })
+      expect(accepted).toMatchObject({ status: 'PROCESSING' })
+      expect(accepted?.attempts).toMatchObject([
+        { failureCode: '429', outcome: 'FAILED' },
+        { outcome: null, providerPostId: 'post-2' },
+      ])
+      expect(
+        await requestJson(
+          page,
+          '/api/internal/scheduled-posts/dispatch',
+          {},
+          'POST',
+          getMaintenanceHeaders()
+        )
+      ).toMatchObject({ body: { dispatched: 0 }, status: 200 })
+      expect(
+        await database.scheduledPost.findUnique({ where: { id: first.scheduledPost.id } })
+      ).toMatchObject({
+        status: 'PROCESSING',
+      })
+      remoteState = 'PUBLISHED'
+      await requestJson(
+        page,
+        '/api/internal/scheduled-posts/dispatch',
+        {},
+        'POST',
+        getMaintenanceHeaders()
+      )
       const published = await database.scheduledPost.findUnique({
         include: { attempts: { orderBy: { attemptNumber: 'asc' } } },
         where: { id: first.scheduledPost.id },
@@ -250,6 +299,42 @@ test('an approved variant schedules through Postiz once, retries a throttle, and
       getMaintenanceHeaders()
     )
     expect(postRequests(provider.calls)).toHaveLength(2)
+
+    const rejected = await createScheduledPost(
+      page,
+      connectionId,
+      'postiz-provider-error',
+      variantId
+    )
+    await makeScheduledPostDue(rejected.scheduledPost.id)
+    await requestJson(
+      page,
+      '/api/internal/scheduled-posts/dispatch',
+      {},
+      'POST',
+      getMaintenanceHeaders()
+    )
+    await requestJson(
+      page,
+      '/api/internal/scheduled-posts/dispatch',
+      {},
+      'POST',
+      getMaintenanceHeaders()
+    )
+    const databaseAfterError = createE2EDatabaseClient()
+    try {
+      const failed = await databaseAfterError.scheduledPost.findUnique({
+        include: { attempts: true },
+        where: { id: rejected.scheduledPost.id },
+      })
+      expect(failed).toMatchObject({
+        attempts: [{ failureCode: 'PROVIDER_ERROR', outcome: 'FAILED', providerPostId: 'post-3' }],
+        status: 'FAILED',
+      })
+    } finally {
+      await databaseAfterError.$disconnect()
+    }
+    expect(postRequests(provider.calls)).toHaveLength(3)
   } finally {
     await provider.close()
   }
@@ -364,10 +449,20 @@ test('a worker recovers an unclaimed post and does not retry uncertain delivery'
     (request) =>
       request.url === '/api/public/v1/upload'
         ? { body: { id: 'media', path: 'https://postiz.test/media.png' }, status: 201 }
-        : {
-            body: [{ postId: 'published-post', integration: 'recovery-integration' }],
-            status: 201,
-          },
+        : request.url === '/api/public/v1/posts/published-post/status'
+          ? {
+              body: {
+                postId: 'published-post',
+                state: 'PUBLISHED',
+                releaseId: 'remote-1',
+                releaseURL: 'https://social.test/post/1',
+              },
+              status: 200,
+            }
+          : {
+              body: [{ postId: 'published-post', integration: 'recovery-integration' }],
+              status: 201,
+            },
     5679
   )
 
@@ -422,6 +517,14 @@ test('a worker recovers an unclaimed post and does not retry uncertain delivery'
         '/api/public/v1/upload',
         '/api/public/v1/posts',
       ])
+
+      await requestJson(
+        page,
+        '/api/internal/scheduled-posts/dispatch',
+        {},
+        'POST',
+        getMaintenanceHeaders()
+      )
 
       const [recovered, stopped, audit] = await Promise.all([
         database.scheduledPost.findUnique({

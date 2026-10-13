@@ -198,7 +198,7 @@ when no explicit time is given.
 ## Publication lifecycle
 
 ```text
-SCHEDULED ──claim──► PROCESSING ──success──► PUBLISHED
+SCHEDULED ──claim──► PROCESSING ──Go receipt──► PROCESSING ──remote receipt──► PUBLISHED
                           │
                           ├──retryable (429, attempts < 3)──► SCHEDULED
                           │
@@ -239,9 +239,12 @@ strength of a check performed hours earlier.
 
 ### Attempts
 
-Each provider call creates a `PublicationAttempt` row before the call and
-completes it after. The attempt is the durability record: a row with
-`completedAt = null` means the outcome of a network call is unknown.
+Each provider call creates a `PublicationAttempt` row before the call. The Go
+create response saves its post ID on that attempt, but does not complete it.
+The worker polls the organization-scoped Go status endpoint. `QUEUE` stays
+`PROCESSING`; `PUBLISHED` with a remote release ID completes the attempt as
+`SUCCEEDED`; `ERROR` completes it as `FAILED`. A lookup failure leaves the
+attempt open and never issues another create request.
 
 Retry policy is narrow by design:
 
@@ -264,7 +267,8 @@ holding a claim, using a 10-minute threshold:
 | Condition                                          | Interpretation                     | Action                                    |
 | -------------------------------------------------- | ---------------------------------- | ----------------------------------------- |
 | `PROCESSING`, stale, **no** open attempt            | Died before calling the provider   | Return to `SCHEDULED` for a clean retry   |
-| `PROCESSING`, stale, **has** an open attempt        | Died with an in-flight call        | Mark `FAILED` with `UNKNOWN_DELIVERY`     |
+| `PROCESSING`, stale, open attempt **without** Go ID | Died with an in-flight call        | Mark `FAILED` with `UNKNOWN_DELIVERY`     |
+| `PROCESSING`, open attempt **with** Go ID           | Go accepted; remote result pending | Poll Go status, never create again         |
 
 The second case is the ambiguous one and it fails closed. The attempt row is
 completed as `FAILED`, the post is `FAILED`, and
@@ -296,8 +300,10 @@ platform-agnostic.
 
 ## Receipts and lineage
 
-A successful publish stores `providerPostId` on the attempt, sets the post to
-`PUBLISHED`, and audits `post.published`. The full chain is queryable:
+A Go acceptance stores `providerPostId` on the attempt and audits
+`post.accepted_by_scheduler`. The post becomes `PUBLISHED` and the attempt
+`SUCCEEDED` only after Go reports a remote release ID and published state.
+The full chain is queryable:
 
 ```text
 Release → Asset → CreativeVariant → Approval

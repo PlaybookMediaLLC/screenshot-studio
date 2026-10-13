@@ -154,8 +154,11 @@ and `FACEBOOK_APP_SECRET`; for Instagram Login, it reads `INSTAGRAM_APP_ID` and
 ignored `.local/postiz-go.env` overlay with a `POSTIZ_GO_` prefix (for example,
 `POSTIZ_GO_X_API_KEY` and `POSTIZ_GO_INSTAGRAM_APP_SECRET`). Compose maps them
 to the Go process names, and `make postiz-go-up` reads the overlay only for the
-Go services. Use the Go process names in the production secret store. Never
-commit the credentials.
+Go services. Use the same `POSTIZ_GO_` source names for X, Facebook, and
+Instagram in the production secret store; the DigitalOcean spec renderer and
+cutover map them to the Go process names. Existing LinkedIn production keys
+remain `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET`. Never commit the
+credentials.
 Instagram Login requires a direct HTTPS `FRONTEND_URL`; the Go adapter rejects
 HTTP instead of sending authorization codes through a redirect service. For a
 local canary, point a temporary HTTPS tunnel at the web app. Set

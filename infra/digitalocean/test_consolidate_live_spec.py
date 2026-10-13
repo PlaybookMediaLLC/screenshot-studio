@@ -73,7 +73,10 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
     def test_uses_infisical_for_new_backend_credentials(self):
         secrets = {key: "infisical-" + key for key in
                    "POSTIZ_DATABASE_URL POSTIZ_TEMPORAL_API_KEY DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET".split()}
-        secrets.update({key: "infisical-" + key for key in cutover.OPTIONAL_SOCIAL_SECRETS})
+        secrets.update({cutover.SOCIAL_SECRET_SOURCES.get(key, key): "infisical-" + key
+                        for key in cutover.OPTIONAL_SOCIAL_SECRETS})
+        secrets.update({key: "other-service-" + key for key in cutover.OPTIONAL_SOCIAL_SECRETS
+                        if key in cutover.SOCIAL_SECRET_SOURCES})
         social = next(service for service in self.base["spec"]["services"] if service["name"] == "postiz-backend")
         social["envs"].append({"key": "FACEBOOK_APP_SECRET", "value": "old-plain-value", "type": "GENERAL", "scope": "RUN_TIME"})
         spec = cutover.consolidate(self.base, self.digest, secrets)
@@ -84,7 +87,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         self.assertEqual(values["TENANT_AUDIT_RETENTION_DATABASE_URL"], "infisical-AUDIT_RETENTION_DATABASE_URL")
         for key in cutover.OPTIONAL_SOCIAL_SECRETS:
             entry = next(item for item in backend["envs"] if item["key"] == key)
-            self.assertEqual(entry["value"], secrets[key])
+            self.assertEqual(entry["value"], secrets[cutover.SOCIAL_SECRET_SOURCES.get(key, key)])
             self.assertEqual(entry["type"], "SECRET")
             self.assertNotIn(key, {item["key"] for item in next(service for service in spec["services"] if service["name"] == "web")["envs"]})
         repeated = cutover.consolidate(spec, self.digest, secrets)

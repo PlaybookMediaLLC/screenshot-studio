@@ -20,6 +20,12 @@ SOCIAL_SECRET_SOURCES = {
     "REDIS_URL": "POSTIZ_REDIS_URL",
     "JWT_SECRET": "POSTIZ_JWT_SECRET",
     "TEMPORAL_API_KEY": "POSTIZ_TEMPORAL_API_KEY",
+    "X_API_KEY": "POSTIZ_GO_X_API_KEY",
+    "X_API_SECRET": "POSTIZ_GO_X_API_SECRET",
+    "FACEBOOK_APP_ID": "POSTIZ_GO_FACEBOOK_APP_ID",
+    "FACEBOOK_APP_SECRET": "POSTIZ_GO_FACEBOOK_APP_SECRET",
+    "INSTAGRAM_APP_ID": "POSTIZ_GO_INSTAGRAM_APP_ID",
+    "INSTAGRAM_APP_SECRET": "POSTIZ_GO_INSTAGRAM_APP_SECRET",
 }
 OPTIONAL_SOCIAL_SECRETS = (
     "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "X_API_KEY", "X_API_SECRET",
@@ -53,7 +59,7 @@ def add_optional_social_secrets(envs, secrets):
         return
     existing = {item["key"]: item for item in envs}
     for key in OPTIONAL_SOCIAL_SECRETS:
-        if value := secrets.get(key):
+        if value := secrets.get(SOCIAL_SECRET_SOURCES.get(key, key)):
             item = existing.get(key)
             if item is None:
                 envs.append({"key": key, "value": value, "type": "SECRET", "scope": "RUN_TIME"})

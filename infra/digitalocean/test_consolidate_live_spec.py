@@ -21,10 +21,10 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
                 {"name": "web", "image": {"digest": "web-digest"}, "envs": [env("POSTIZ_API_URL", "http://postiz-backend:3000", "GENERAL")]},
                 {"name": "storage", "image": {"tag": "fixed"}},
                 {"name": "design-renderer", "git": {"branch": "main"}},
-                {"name": "postiz-backend", "git": {"branch": "main"}, "source_dir": "services", "dockerfile_path": "Dockerfile", "envs": [env("DATABASE_URL"), env("TEMPORAL_NAMESPACE"), env("BACKEND_INTERNAL_URL", "http://postiz-backend:3000", "GENERAL")]},
+                {"name": "postiz-backend", "git": {"branch": "main"}, "source_dir": "services", "dockerfile_path": "Dockerfile", "envs": [env("DATABASE_URL"), env("TEMPORAL_NAMESPACE", "tenant-namespace", "GENERAL"), env("BACKEND_INTERNAL_URL", "http://postiz-backend:3000", "GENERAL")]},
                 {"name": "postiz-orchestrator", "envs": []},
                 {"name": "publishing-backend", "envs": []},
-                {"name": "publishing-orchestrator", "envs": [env(key, "true" if key in ("RUN_MAINTENANCE", "RUN_CRON") else "EV[encrypted]", "GENERAL" if key in ("RUN_MAINTENANCE", "RUN_CRON", "POSTIZ_API_URL") else "SECRET") for key in tenant_keys]},
+                {"name": "publishing-orchestrator", "envs": [env(key, "true" if key in ("RUN_MAINTENANCE", "RUN_CRON") else "EV[encrypted]", "GENERAL" if key in ("RUN_MAINTENANCE", "RUN_CRON", "POSTIZ_API_URL", "TEMPORAL_ADDRESS", "TEMPORAL_NAMESPACE", "STORAGE_BUCKET", "STORAGE_API_URL", "BETTER_AUTH_URL", "AUTH_EMAIL_FROM") else "SECRET") for key in tenant_keys]},
             ],
             "jobs": [{"name": "web-migrate"}, {"name": "postiz-migrate", "git": {"branch": "main"}, "source_dir": "services", "dockerfile_path": "Dockerfile", "envs": [env("DATABASE_URL")]}],
             "ingress": {"rules": [{"component": {"name": "postiz-backend"}}, {"component": {"name": "web"}}]},
@@ -54,6 +54,18 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         self.base["spec"]["services"].append({"name": "unexpected"})
         with self.assertRaisesRegex(ValueError, "topology changed"):
             cutover.consolidate(self.base, self.digest)
+
+    def test_uses_infisical_for_new_backend_credentials(self):
+        secrets = {key: "infisical-" + key for key in
+                   "POSTIZ_DATABASE_URL POSTIZ_TEMPORAL_API_KEY DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET".split()}
+        spec = cutover.consolidate(self.base, self.digest, secrets)
+        backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
+        values = {item["key"]: item["value"] for item in backend["envs"]}
+        self.assertEqual(values["DATABASE_URL"], "infisical-POSTIZ_DATABASE_URL")
+        self.assertEqual(values["TENANT_DATABASE_URL"], "infisical-DATABASE_URL")
+        self.assertEqual(values["TENANT_AUDIT_RETENTION_DATABASE_URL"], "infisical-AUDIT_RETENTION_DATABASE_URL")
+        with self.assertRaisesRegex(ValueError, "POSTIZ_DATABASE_URL"):
+            cutover.consolidate(self.base, self.digest, {})
 
 
 if __name__ == "__main__":

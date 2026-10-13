@@ -208,9 +208,10 @@ tests. Crypto fixtures are checked against independently generated Node values.
 
 The combined backend image includes the maintenance code merged in PR #80.
 The backend is released with the `Social backend image` GitHub workflow. Its
-manual `deploy` input copies the live encrypted component secrets into the
-new service, proposes the topology, and updates the app only after validation.
-The workflow preserves the web, storage, renderer, and both migration jobs.
+manual `deploy` input authenticates to Infisical with the repository's scoped
+OIDC identity, loads the new backend credentials, proposes the topology, and
+updates the app only after validation. It preserves the live web, storage,
+renderer, and both migration jobs.
 
 ### Production maintenance verification: 2026-10-13
 

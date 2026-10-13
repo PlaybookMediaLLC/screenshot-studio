@@ -73,6 +73,7 @@ jobs:
     environment: production
     permissions:
       contents: read
+      id-token: write
     concurrency:
       group: do-app-${{ github.repository }}-${{ vars.SCREENSHOT_STUDIO_APP_ID }}
       cancel-in-progress: false
@@ -84,6 +85,16 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+      - name: Load scoped production credentials
+        uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d # v1.0.18
+        with:
+          method: oidc
+          identity-id: ${{ vars.SCREENSHOT_STUDIO_INFISICAL_IDENTITY_ID }}
+          project-id: ${{ vars.SCREENSHOT_STUDIO_INFISICAL_PROJECT_ID }}
+          env-slug: prod
+          secret-path: /screenshot-studio
+          include-imports: 'false'
+          recursive: 'false'
       - uses: digitalocean/action-doctl@3cb3953159719656269e044e0e24ca16dd2a690f # v2.5.2
         with:
           token: ${{ secrets.DIGITALOCEAN_PRODUCTION_TOKEN }}
@@ -101,7 +112,8 @@ jobs:
           doctl apps get "$APP_ID" -o json > "$work/before.json"
           previous_id="$(jq -r '.[0].active_deployment.id // empty' "$work/before.json")"
           python3 infra/digitalocean/consolidate-live-spec.py \
-            --base "$work/before.json" --digest "$IMAGE_DIGEST" --output "$work/spec.json"
+            --base "$work/before.json" --digest "$IMAGE_DIGEST" \
+            --from-infisical-env --output "$work/spec.json"
           doctl apps propose --app "$APP_ID" --spec "$work/spec.json" -o json > "$work/proposal.json"
           doctl apps update "$APP_ID" --spec "$work/spec.json" --wait > "$work/update.log"
           doctl apps get "$APP_ID" -o json > "$work/after.json"

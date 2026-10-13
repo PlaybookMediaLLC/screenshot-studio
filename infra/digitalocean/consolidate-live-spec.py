@@ -14,6 +14,12 @@ from pathlib import Path
 OLD_BACKENDS = {"postiz-backend", "postiz-orchestrator", "publishing-backend", "publishing-orchestrator"}
 BACKEND = "screenshot-studio-backend"
 IMAGE = {"registry_type": "GHCR", "registry": "playbookmediallc", "repository": "screenshot-studio"}
+SOCIAL_SECRET_SOURCES = {
+    "DATABASE_URL": "POSTIZ_DATABASE_URL",
+    "REDIS_URL": "POSTIZ_REDIS_URL",
+    "JWT_SECRET": "POSTIZ_JWT_SECRET",
+    "TEMPORAL_API_KEY": "POSTIZ_TEMPORAL_API_KEY",
+}
 
 
 def set_env(envs, key, value):
@@ -24,7 +30,7 @@ def set_env(envs, key, value):
     envs.append({"key": key, "value": value, "type": "GENERAL", "scope": "RUN_TIME"})
 
 
-def consolidate(base, digest):
+def consolidate(base, digest, secrets=None):
     if not digest.startswith("sha256:") or len(digest) != 71:
         raise ValueError("Expected an immutable SHA-256 image digest")
     if isinstance(base, list):
@@ -48,9 +54,20 @@ def consolidate(base, digest):
                 "BETTER_AUTH_URL", "AUTH_EMAIL_FROM", "RUN_MAINTENANCE", "RUN_CRON"}
     if not required <= {item["key"] for item in tenant_env}:
         raise ValueError("Tenant orchestrator is missing required runtime settings")
+    if secrets is not None:
+        for item in social_env:
+            if item.get("type") == "SECRET":
+                source = SOCIAL_SECRET_SOURCES.get(item["key"], item["key"])
+                if not secrets.get(source):
+                    raise ValueError(f"Missing Infisical secret: {source}")
+                item["value"] = secrets[source]
     for item in tenant_env:
         entry = copy.deepcopy(item)
         entry["key"] = "TENANT_" + entry["key"]
+        if secrets is not None and entry.get("type") == "SECRET":
+            if not secrets.get(item["key"]):
+                raise ValueError(f"Missing Infisical secret: {item['key']}")
+            entry["value"] = secrets[item["key"]]
         social_env.append(entry)
     set_env(social_env, "RUN_WORKER", "true")
     set_env(social_env, "ORCHESTRATOR_PORT", "3002")
@@ -93,8 +110,11 @@ def main():
     parser.add_argument("--base", type=Path, required=True)
     parser.add_argument("--digest", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--from-infisical-env", action="store_true",
+                        help="Use OIDC-loaded Infisical values for the new backend secrets")
     args = parser.parse_args()
-    spec = consolidate(json.loads(args.base.read_text()), args.digest)
+    spec = consolidate(json.loads(args.base.read_text()), args.digest,
+                       dict(os.environ) if args.from_infisical_env else None)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with os.fdopen(os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as output:
         os.fchmod(output.fileno(), 0o600)

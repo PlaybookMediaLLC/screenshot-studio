@@ -5,10 +5,17 @@ on:
     branches: [main]
     paths:
       - services/screenshot-studio-backend/**
+      - services/orchestrator/**
+      - services/internal/**
       - services/go.mod
       - services/go.sum
       - .github/workflows/social-backend-image.yml
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: Replace the four legacy backend services in production
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -21,6 +28,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -55,3 +64,50 @@ jobs:
         run: |
           docker logout ghcr.io
           docker buildx imagetools inspect "ghcr.io/playbookmediallc/screenshot-studio@$IMAGE_DIGEST"
+
+  deploy:
+    needs: publish
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    permissions:
+      contents: read
+    concurrency:
+      group: do-app-${{ github.repository }}-${{ vars.SCREENSHOT_STUDIO_APP_ID }}
+      cancel-in-progress: false
+    env:
+      APP_ID: ${{ vars.SCREENSHOT_STUDIO_APP_ID }}
+      IMAGE_DIGEST: ${{ needs.publish.outputs.digest }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: digitalocean/action-doctl@3cb3953159719656269e044e0e24ca16dd2a690f # v2.5.2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_PRODUCTION_TOKEN }}
+          version: 1.180.0
+      - name: Cut over to the combined backend
+        run: |
+          set -euo pipefail
+          umask 077
+          test -n "$APP_ID"
+          test -n "$IMAGE_DIGEST"
+          head_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
+          test "$head_sha" = "$GITHUB_SHA"
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          doctl apps get "$APP_ID" -o json > "$work/before.json"
+          previous_id="$(jq -r '.[0].active_deployment.id // empty' "$work/before.json")"
+          python3 infra/digitalocean/consolidate-live-spec.py \
+            --base "$work/before.json" --digest "$IMAGE_DIGEST" --output "$work/spec.json"
+          doctl apps propose --app "$APP_ID" --spec "$work/spec.json" -o json > "$work/proposal.json"
+          doctl apps update "$APP_ID" --spec "$work/spec.json" --wait > "$work/update.log"
+          doctl apps get "$APP_ID" -o json > "$work/after.json"
+          test "$(jq -r '.[0].spec.services | length' "$work/after.json")" = 4
+          test "$(jq -r --arg digest "$IMAGE_DIGEST" '.[0].spec.services[] | select(.name == "screenshot-studio-backend") | .image.digest' "$work/after.json")" = "$IMAGE_DIGEST"
+          test "$(jq -r '.[0].active_deployment.id // empty' "$work/after.json")" != "$previous_id"
+          test "$(jq -r '.[0].active_deployment.phase // empty' "$work/after.json")" = ACTIVE
+          curl --fail --silent --show-error --retry 6 --retry-delay 5 https://shots.oppulence.io/api/health > /dev/null
+          echo "Combined backend active: https://cloud.digitalocean.com/apps/$APP_ID" >> "$GITHUB_STEP_SUMMARY"

@@ -9,17 +9,15 @@ app ID `c525b0ba-b92a-4174-ae91-4ab4d7c92fd2`, at
 | `web` | Existing pinned GHCR image | `/api/health`, port 3000 | `/` |
 | `storage` | `supabase/storage-api:v1.37.8` | `/status`, port 5000 | Internal |
 | `design-renderer` | `services/design-renderer/Dockerfile` | `/ready`, port 8080 | Internal |
-| `publishing-backend` | `services/backend/Dockerfile` | `/readyz`, port 8080 | Internal; service token required |
-| `publishing-orchestrator` | `services/orchestrator/Dockerfile` | `/readyz`, port 8081 | Internal |
-| `postiz-backend` | `services/screenshot-studio-backend/backend/Dockerfile` | `/`, port 3000 | `/postiz`; prefix stripped |
-| `postiz-orchestrator` | `services/screenshot-studio-backend/orchestrator/Dockerfile` | `/health/status`, port 3002 | Internal |
+| `screenshot-studio-backend` | Public GHCR image built on GitHub | `/readyz`, port 3003 | `/postiz` on port 3000; prefix stripped |
 
-The web component retains its two replicas and image digest. New services
-build from `main`; `source_dir` is the Docker build context and
-`dockerfile_path` is relative to the repository root. Rendering a spec does
-not publish local changes or change the deployed web image.
+The web component retains its two replicas and image digest. The single Go
+backend container starts the Postiz API and worker plus the tenant publishing
+and maintenance orchestrator. Its readiness endpoint checks all three local
+HTTP endpoints, including the tenant database and Temporal namespace. The
+backend image is built on GitHub and pinned by digest in App Platform.
 
-Internal services use `internal_ports` and have no public ingress rules.
+Storage and renderer use `internal_ports` and have no public ingress rules.
 See DigitalOcean's [internal routing documentation](https://docs.digitalocean.com/products/app-platform/how-to/manage-internal-routing/)
 and [app spec reference](https://docs.digitalocean.com/products/app-platform/reference/app-spec/).
 
@@ -152,7 +150,7 @@ is described below.
 
 ## Temporal maintenance
 
-The Go publishing orchestrator owns six durable schedules in
+The tenant orchestrator inside `screenshot-studio-backend` owns six durable schedules in
 `screenshot-studio-publishing.kpisa`, on task queue `platform-maintenance`:
 
 | Schedule ID | Cadence (UTC) | Go handler |
@@ -189,7 +187,9 @@ and a consent check before each send. Ambiguous provider outcomes are marked
 remain compatible with the web endpoint. Empty eligible audiences complete without
 sending. Workspace cleanup preserves the organization tombstone and audit evidence.
 
-Only the Go orchestrator receives `AUDIT_RETENTION_DATABASE_URL`. Its dedicated
+The combined service receives `TENANT_AUDIT_RETENTION_DATABASE_URL`; its
+supervisor passes that value to the tenant orchestrator as
+`AUDIT_RETENTION_DATABASE_URL`. Its dedicated
 `screenshot_studio_retention` role has schema usage; SELECT on `organization`,
 `audit_retention_policy`, and `audit_drain`; SELECT/INSERT/DELETE on `audit_log`;
 and SELECT/INSERT on `audit_outbox` and `audit_drain_delivery`. It cannot read
@@ -206,10 +206,11 @@ Tests in `services/internal/maintenance` use a disposable, fully migrated
 with the race detector, plus Temporal workflow retry/schedule reconciliation
 tests. Crypto fixtures are checked against independently generated Node values.
 
-The maintenance rollout builds the orchestrator from the PR branch
-`yoanyombapro1234/digital-ocean-backend-deploy-v1`. After merging, render/apply
-the spec with the default `--branch main` before deleting that branch. The
-running deployment is immutable; this change prepares subsequent deployments.
+The combined backend image includes the maintenance code merged in PR #80.
+The backend is released with the `Social backend image` GitHub workflow. Its
+manual `deploy` input copies the live encrypted component secrets into the
+new service, proposes the topology, and updates the app only after validation.
+The workflow preserves the web, storage, renderer, and both migration jobs.
 
 ### Production maintenance verification: 2026-10-13
 

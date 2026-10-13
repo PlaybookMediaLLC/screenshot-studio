@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.12.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.11.3...v1.12.0) (2026-10-13)
+
+
+### Features
+
+* **social:** bind Go tenants and verify OAuth publishing flows ([4651bae](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/4651bae76b039eec60b2baf69af468730a43c3fd))
+
+
+### Bug Fixes
+
+* **ci:** keep tenant binding script addable after clone ([e457df9](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/e457df9507959fb31d82b6e89b66d7b60a0ee1de))
+* **dev:** ignore Conductor artifacts during lint ([5578edf](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/5578edfbd4486619c8d854682ede0b9ef0f29860))
+
 ## [1.11.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.11.2...v1.11.3) (2026-10-13)
 
 

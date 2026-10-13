@@ -73,7 +73,7 @@ services:
       args:
         GO_BUILD_TAGS: e2e
     image: screenshot-studio-postiz-backend:e2e
-    environment: &postiz-environment
+    environment:
       DATABASE_URL: postgresql://postiz_go:local-social-gate-only@postiz-go-db:5432/postiz_go?sslmode=disable
       REDIS_URL: redis://postiz-go-redis:6379
       TEMPORAL_ADDRESS: postiz-go-temporal:7233
@@ -93,36 +93,15 @@ services:
       CLOUDFLARE_BUCKETNAME: ${R2_BUCKET_NAME:?Set R2_BUCKET_NAME in the local test env}
       CLOUDFLARE_BUCKET_URL: http://rustfs:9000/${R2_BUCKET_NAME:?Set R2_BUCKET_NAME in the local test env}
       RUN_CRON: 'true'
+      RUN_WORKER: 'true'
       PORT: '3000'
+      ORCHESTRATOR_PORT: '3002'
     networks:
       default: {}
       web:
         aliases: [social-gate-go]
     ports:
       - '127.0.0.1:3110:3000'
-    depends_on:
-      postiz-go-migrate:
-        condition: service_completed_successfully
-      postiz-go-redis:
-        condition: service_healthy
-      postiz-go-temporal:
-        condition: service_healthy
-      fake-social:
-        condition: service_healthy
-
-  screenshot-studio-orchestrator:
-    build:
-      context: ./services
-      dockerfile: screenshot-studio-backend/orchestrator/Dockerfile
-      args:
-        GO_BUILD_TAGS: e2e
-    image: screenshot-studio-postiz-orchestrator:e2e
-    entrypoint: ['/screenshot-studio-orchestrator']
-    environment:
-      <<: *postiz-environment
-      ORCHESTRATOR_PORT: '3002'
-    networks: [default, web]
-    ports:
       - '127.0.0.1:3112:3002'
     depends_on:
       postiz-go-migrate:

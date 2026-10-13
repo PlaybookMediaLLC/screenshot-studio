@@ -10,7 +10,6 @@ if [[ ! -f .local/dev.env ]]; then
   exit 1
 fi
 
-mkdir -p .context
 APP_CONTAINER_ID="$(docker compose --env-file .local/dev.env --file compose.yaml ps -q app)"
 if [[ -z "$APP_CONTAINER_ID" ]]; then
   echo 'The local web app is not running.' >&2
@@ -22,7 +21,7 @@ if [[ -z "$SOCIAL_GATE_WEB_NETWORK" ]]; then
   echo 'The local web app has no Docker network.' >&2
   exit 1
 fi
-BOOTSTRAP_FILE="$(mktemp "$ROOT_DIR/.context/social-gate-XXXXXX.json")"
+BOOTSTRAP_FILE="$(mktemp "$ROOT_DIR/.local/social-gate-XXXXXX.json")"
 chmod 600 "$BOOTSTRAP_FILE"
 WEB_RECONFIGURED=false
 
@@ -48,6 +47,17 @@ if [[ "${SOCIAL_GATE_NO_BUILD:-}" == true ]]; then
 else
   gate_compose up --detach --build --wait
 fi
+for attempt in $(seq 1 60); do
+  if curl --fail --silent --output /dev/null http://127.0.0.1:3110/ &&
+    curl --fail --silent --output /dev/null http://127.0.0.1:3112/health/status; then
+    break
+  fi
+  if [[ "$attempt" == 60 ]]; then
+    echo 'The Go API and worker did not become healthy.' >&2
+    exit 1
+  fi
+  sleep 1
+done
 node e2e/fixtures/bootstrap-go.mjs "$BOOTSTRAP_FILE"
 WEB_RECONFIGURED=true
 node e2e/fixtures/configure-web.mjs gate "$BOOTSTRAP_FILE"

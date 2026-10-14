@@ -21,6 +21,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/storage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalmaintenance"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/tenantpublishing"
 	workflowservice "go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/worker"
@@ -58,7 +59,19 @@ func main() {
 	repository := publishing.NewRepository(db.Client)
 	httpClient := &http.Client{Timeout: cfg.ProviderTimeout}
 	assetReader := storage.New(cfg.StorageAPIURL, cfg.StorageBucket, cfg.StorageKey, httpClient)
-	provider := postiz.New(cfg.PostizAPIURL, httpClient, assetReader)
+	mediaClient := postiz.New(cfg.PostizAPIURL, httpClient, assetReader)
+	var provider temporalpublishing.Provider = mediaClient
+	if os.Getenv("PUBLISHING_DIRECT_PROVIDER") == "true" {
+		// Open the social Ent projection against the SAME product database.
+		// No customer publication is written to the legacy social Post table.
+		directPublisher, closeShared, openErr := tenantpublishing.OpenShared(ctx, cfg.DatabaseURL, repository, mediaClient)
+		if openErr != nil {
+			slog.Error("direct social publisher unavailable", "error", openErr)
+			os.Exit(1)
+		}
+		defer closeShared()
+		provider = directPublisher
+	}
 	activities := temporalpublishing.NewActivities(repository, provider)
 	scheduler := temporalpublishing.NewScheduler(temporalClient, temporalpublishing.SchedulerConfig{
 		ActivityTaskQueue: cfg.ActivityTaskQueue, ActivityTimeout: cfg.ActivityTimeout,

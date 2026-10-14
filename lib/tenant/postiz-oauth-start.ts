@@ -8,6 +8,14 @@ import {
   type OrganizationAccess,
 } from '@/lib/auth/access'
 import { prisma } from '@/lib/db'
+import {
+  beginBackendSocialOAuth,
+  completeBackendSocialOAuth,
+  PublishingBackendError,
+  publishingBackendEnabled,
+  rememberBackendInstagramIntegration,
+  verifyBackendSocialOAuth,
+} from './publishing-backend'
 import { createPostizConnection, ScheduledPostError } from './scheduled-posts'
 import { beginPostizOAuth, PostizProviderError } from './postiz'
 import type { SocialOAuthProvider } from './postiz-oauth-callback'
@@ -58,6 +66,7 @@ export async function startSocialOAuth(
     active.organizationId,
     'publish:manage'
   )
+  if (publishingBackendEnabled()) return beginBackendSocialOAuth(access, provider)
   const binding = await prisma.postizTenantBinding.findUnique({
     where: { organizationId: access.organizationId },
   })
@@ -89,6 +98,10 @@ async function getMatchingStart(
   integrationId?: string
 ): Promise<{ access: OrganizationAccess; secretReference: string }> {
   const access = await requireActiveOrganizationPermission(headers, 'publish:manage')
+  if (publishingBackendEnabled()) {
+    await verifyBackendSocialOAuth(access, provider, state, integrationId)
+    return { access, secretReference: '' }
+  }
   const start = await prisma.socialOAuthStart.findUnique({ where: { state } })
   if (
     !start ||
@@ -118,7 +131,11 @@ export async function rememberInstagramIntegration(
   state: string,
   integrationId: string
 ): Promise<void> {
-  await getMatchingStart(headers, 'instagram', state)
+  const { access } = await getMatchingStart(headers, 'instagram', state)
+  if (publishingBackendEnabled()) {
+    await rememberBackendInstagramIntegration(access, state, integrationId)
+    return
+  }
   const updated = await prisma.socialOAuthStart.updateMany({
     data: { integrationId },
     where: { expiresAt: { gt: new Date() }, integrationId: null, provider: 'instagram', state },
@@ -138,6 +155,10 @@ export async function registerSocialOAuthDestination(
     state,
     provider === 'instagram' ? integrationId : undefined
   )
+  if (publishingBackendEnabled()) {
+    await completeBackendSocialOAuth(access, provider, state, integrationId)
+    return
+  }
   try {
     await createPostizConnection(access, {
       externalAccountId: integrationId,
@@ -175,6 +196,9 @@ export function socialOAuthErrorResponse(error: unknown): Response {
     return new Response(error.message, { status: error.status })
   if (error instanceof PostizProviderError || error instanceof ScheduledPostError) {
     return new Response('Social publishing is unavailable for this workspace.', { status: 409 })
+  }
+  if (error instanceof PublishingBackendError) {
+    return new Response(error.message, { status: error.status })
   }
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
     return new Response('This social connection is already in progress.', { status: 409 })

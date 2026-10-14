@@ -30,11 +30,29 @@ type ChannelConnection func(*sql.Selector)
 // CreativeVariant is the predicate function for creativevariant builders.
 type CreativeVariant func(*sql.Selector)
 
+// Member is the predicate function for member builders.
+type Member func(*sql.Selector)
+
+// Organization is the predicate function for organization builders.
+type Organization func(*sql.Selector)
+
+// PostizTenantBinding is the predicate function for postiztenantbinding builders.
+type PostizTenantBinding func(*sql.Selector)
+
 // PublicationAttempt is the predicate function for publicationattempt builders.
 type PublicationAttempt func(*sql.Selector)
 
 // ScheduledPost is the predicate function for scheduledpost builders.
 type ScheduledPost func(*sql.Selector)
+
+// Session is the predicate function for session builders.
+type Session func(*sql.Selector)
+
+// SocialOAuthStart is the predicate function for socialoauthstart builders.
+type SocialOAuthStart func(*sql.Selector)
+
+// User is the predicate function for user builders.
+type User func(*sql.Selector)
 
 // WorkspaceDeletion is the predicate function for workspacedeletion builders.
 type WorkspaceDeletion func(*sql.Selector)

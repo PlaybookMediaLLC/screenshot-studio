@@ -86,7 +86,8 @@ export async function beginPostizOAuth(input: {
 export class PostizProviderError extends Error {
   constructor(
     message: string,
-    readonly status: number | null
+    readonly status: number | null,
+    readonly unknownDelivery = false
   ) {
     super(message)
   }
@@ -126,12 +127,20 @@ async function requestPostiz(
       signal: AbortSignal.timeout(15_000),
     })
   } catch {
-    throw new PostizProviderError('Postiz is unavailable.', null)
+    throw new PostizProviderError(
+      'Postiz is unavailable.',
+      null,
+      path === 'posts' && init.method === 'POST'
+    )
   }
 
   const body = await response.json().catch(() => null)
   if (!response.ok) {
-    throw new PostizProviderError(`Postiz request failed with ${response.status}.`, response.status)
+    throw new PostizProviderError(
+      `Postiz request failed with ${response.status}.`,
+      response.status,
+      path === 'posts' && init.method === 'POST' && response.status >= 500
+    )
   }
   return body
 }
@@ -187,15 +196,18 @@ export async function publishPostizPost(input: PostizPublishInput): Promise<stri
     tags: [],
     type: 'now',
   }
-  const [post] = postizPostSchema.parse(
-    await requestPostiz(configuration, 'posts', {
-      body: JSON.stringify(payload),
-      headers: { 'content-type': 'application/json' },
-      method: 'POST',
-    })
-  )
+  const receipt = await requestPostiz(configuration, 'posts', {
+    body: JSON.stringify(payload),
+    headers: { 'content-type': 'application/json' },
+    method: 'POST',
+  })
+  const parsed = postizPostSchema.safeParse(receipt)
+  if (!parsed.success) {
+    throw new PostizProviderError('Postiz returned an invalid post receipt.', null, true)
+  }
+  const [post] = parsed.data
   if (post.integration !== input.destinationId) {
-    throw new PostizProviderError('Postiz returned an unexpected destination.', null)
+    throw new PostizProviderError('Postiz returned an unexpected destination.', null, true)
   }
   return post.postId
 }

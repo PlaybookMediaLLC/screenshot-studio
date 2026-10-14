@@ -1355,6 +1355,7 @@ enum ScheduledPostStatus {
   PUBLISHED
   FAILED
   CANCELLED
+  UNKNOWN_DELIVERY
 }
 
 enum AttemptOutcome {

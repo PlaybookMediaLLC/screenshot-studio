@@ -16,7 +16,6 @@ OLD_BACKENDS = {"postiz-backend", "postiz-orchestrator", "publishing-backend", "
 BACKEND = "screenshot-studio-backend"
 IMAGE = {"registry_type": "GHCR", "registry": "playbookmediallc", "repository": "screenshot-studio"}
 SOCIAL_SECRET_SOURCES = {
-    "DATABASE_URL": "POSTIZ_DATABASE_URL",
     "REDIS_URL": "POSTIZ_REDIS_URL",
     "JWT_SECRET": "POSTIZ_JWT_SECRET",
     "TEMPORAL_API_KEY": "POSTIZ_TEMPORAL_API_KEY",
@@ -41,6 +40,45 @@ def set_env(envs, key, value):
     envs.append({"key": key, "value": value, "type": "GENERAL", "scope": "RUN_TIME"})
 
 
+def set_secret_env(envs, key, value):
+    for item in envs:
+        if item["key"] == key:
+            item.update(value=value, type="SECRET", scope="RUN_TIME")
+            return
+    envs.append({"key": key, "value": value, "type": "SECRET", "scope": "RUN_TIME"})
+
+
+def publishing_token(services, secrets):
+    if secrets is not None and secrets.get("PUBLISHING_SERVICE_TOKEN"):
+        return secrets["PUBLISHING_SERVICE_TOKEN"]
+    for name in (BACKEND, "publishing-backend"):
+        for item in services.get(name, {}).get("envs", []):
+            if item["key"] in ("TENANT_PUBLISHING_SERVICE_TOKEN", "PUBLISHING_SERVICE_TOKEN"):
+                return item["value"]
+    raise ValueError("PUBLISHING_SERVICE_TOKEN is required for the Ent publishing API")
+
+
+def configure_publishing_api(backend, web, token, enabled, direct_enabled=False):
+    set_secret_env(backend["envs"], "TENANT_PUBLISHING_SERVICE_TOKEN", token)
+    set_env(backend["envs"], "TENANT_PUBLISHING_DIRECT_PROVIDER", "true" if direct_enabled else "false")
+    if direct_enabled:
+        social = {item["key"]: item for item in backend["envs"]}
+        for key in ("POSTIZ_PRIVATE_MEDIA", "STORAGE_PROVIDER", "CLOUDFLARE_ACCOUNT_ID",
+                    "CLOUDFLARE_BUCKETNAME", "CLOUDFLARE_BUCKET_URL", "CLOUDFLARE_ACCESS_KEY",
+                    "CLOUDFLARE_SECRET_ACCESS_KEY"):
+            if key not in social:
+                raise ValueError(f"Direct publishing requires {key}")
+            value = social[key]["value"]
+            if social[key].get("type") == "SECRET":
+                set_secret_env(backend["envs"], "TENANT_" + key, value)
+            else:
+                set_env(backend["envs"], "TENANT_" + key, value)
+    backend["internal_ports"] = [3003, 8082]
+    if enabled:
+        set_env(web["envs"], "PUBLISHING_API_URL", f"http://{BACKEND}:8082")
+        set_secret_env(web["envs"], "PUBLISHING_SERVICE_TOKEN", token)
+
+
 def refresh_secrets(envs, secrets):
     if secrets is None:
         return
@@ -54,6 +92,15 @@ def refresh_secrets(envs, secrets):
         if not secrets.get(source):
             raise ValueError(f"Missing Infisical secret: {source}")
         item["value"] = secrets[source]
+
+
+def shared_database(backend, migration, secrets=None):
+    envs = {item["key"]: item for item in backend["envs"]}
+    value = secrets.get("DATABASE_URL") if secrets is not None else envs["TENANT_DATABASE_URL"]["value"]
+    if not value:
+        raise ValueError("DATABASE_URL is required for the shared backend database")
+    set_secret_env(backend["envs"], "DATABASE_URL", value)
+    set_secret_env(migration["envs"], "DATABASE_URL", value)
 
 
 def add_optional_social_secrets(envs, secrets):
@@ -89,11 +136,15 @@ def consolidate(base, digest, secrets=None, tag=None):
             raise ValueError("Combined backend image source changed")
         refresh_secrets(backend["envs"], secrets)
         add_optional_social_secrets(backend["envs"], secrets)
+        configure_publishing_api(backend, services["web"], publishing_token(services, secrets),
+                                 secrets is not None and secrets.get("ENABLE_ENT_PUBLISHING") == "true",
+                                 secrets is not None and secrets.get("ENABLE_DIRECT_PROVIDER") == "true")
         backend["image"] = image
         migration = next((item for item in spec.get("jobs", []) if item["name"] == "postiz-migrate"), None)
         if migration is None:
             raise ValueError("Postiz migration job is missing")
         migration["image"] = copy.deepcopy(image)
+        shared_database(backend, migration, secrets)
         return spec
     if set(services) != {"web", "storage", "design-renderer"} | OLD_BACKENDS:
         raise ValueError("Production topology changed; inspect the app before cutting over")
@@ -124,6 +175,9 @@ def consolidate(base, digest, secrets=None, tag=None):
     set_env(social_env, "TENANT_PORT", "8081")
     set_env(social_env, "TENANT_RUN_MAINTENANCE", "true")
     set_env(social_env, "TENANT_RUN_CRON", "true")
+    configure_publishing_api(social, services["web"], publishing_token(services, secrets),
+                             secrets is not None and secrets.get("ENABLE_ENT_PUBLISHING") == "true",
+                             secrets is not None and secrets.get("ENABLE_DIRECT_PROVIDER") == "true")
     if len({item["key"] for item in social_env}) != len(social_env):
         raise ValueError("Backend environment contains duplicate keys")
     social["name"] = BACKEND
@@ -132,7 +186,7 @@ def consolidate(base, digest, secrets=None, tag=None):
     social["image"] = copy.deepcopy(image)
     social["instance_size_slug"] = "apps-s-1vcpu-2gb"
     social["http_port"] = 3000
-    social["internal_ports"] = [3003]
+    social["internal_ports"] = [3003, 8082]
     social["health_check"] = {
         "http_path": "/readyz", "port": 3003,
         "initial_delay_seconds": 45, "period_seconds": 15,
@@ -150,6 +204,7 @@ def consolidate(base, digest, secrets=None, tag=None):
     for key in ("git", "source_dir", "dockerfile_path"):
         migration.pop(key, None)
     migration["image"] = copy.deepcopy(image)
+    shared_database(social, migration, secrets)
     return spec
 
 

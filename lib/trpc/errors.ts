@@ -15,10 +15,12 @@ const statusCodes: Record<number, TRPC_ERROR_CODE_KEY> = {
 const domainErrorNames = new Set([
   'AnnouncementError',
   'AuthorizationError',
+  'BackendSDKError',
   'CampaignError',
   'CreativeWorkflowError',
   'DesignError',
   'LaunchError',
+  'PublishingBackendError',
   'ReleaseError',
   'ScheduledPostError',
   'WorkspaceEntitlementError',

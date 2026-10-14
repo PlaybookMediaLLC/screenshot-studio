@@ -53,6 +53,10 @@ INSERT INTO "user" (id, name, email, "emailVerified", "createdAt", "updatedAt")
 VALUES ('user_acceptance', 'Acceptance Publisher', 'publishing-acceptance@example.test', true, now(), now());
 INSERT INTO organization (id, name, slug, "createdAt")
 VALUES ('org_acceptance', 'Publishing Acceptance', 'publishing-acceptance', now());
+INSERT INTO session (id, "expiresAt", token, "createdAt", "updatedAt", "userId", "activeOrganizationId")
+VALUES ('session_acceptance', now() + interval '1 hour', 'acceptance-session-token', now(), now(), 'user_acceptance', 'org_acceptance');
+INSERT INTO member (id, "organizationId", "userId", role, "createdAt")
+VALUES ('member_acceptance', 'org_acceptance', 'user_acceptance', 'publisher', now());
 INSERT INTO brand_kit (id, "organizationId", name, version, definition, status, "createdAt", "updatedAt")
 VALUES ('brand_acceptance', 'org_acceptance', 'Acceptance Brand', 1, '{}'::jsonb, 'ACTIVE', now(), now());
 INSERT INTO creative_template (id, "organizationId", name, version, definition, status, "createdAt", "updatedAt")
@@ -128,7 +132,7 @@ for _ in $(seq 1 100); do curl -fsS "http://127.0.0.1:$ORCHESTRATOR_PORT/readyz"
 curl -fsS "http://127.0.0.1:$ORCHESTRATOR_PORT/readyz" >/dev/null
 
 [[ "$(curl -sS -o /dev/null -w '%{http_code}' -H 'X-Organization-ID: org_acceptance' "http://127.0.0.1:$BACKEND_PORT/v1/channel-connections")" == 401 ]]
-headers=(-H 'Authorization: Bearer acceptance-service' -H 'X-Organization-ID: org_acceptance' -H 'X-User-ID: user_acceptance' -H 'X-Request-ID: acceptance-request' -H 'Content-Type: application/json')
+headers=(-H 'Authorization: Bearer acceptance-service' -H 'X-Organization-ID: org_acceptance' -H 'X-User-ID: user_acceptance' -H 'X-Session-ID: session_acceptance' -H 'X-Request-ID: acceptance-request' -H 'Content-Type: application/json')
 json_field() { python3 -c 'import json,sys; value=json.load(open(sys.argv[1])); print(value[sys.argv[2]] if sys.argv[2] in value else value["scheduledPost"][sys.argv[2]])' "$1" "$2"; }
 future=$(python3 -c 'from datetime import datetime,timedelta,timezone; print((datetime.now(timezone.utc)+timedelta(seconds=5)).isoformat())')
 cancel_future=$(python3 -c 'from datetime import datetime,timedelta,timezone; print((datetime.now(timezone.utc)+timedelta(minutes=5)).isoformat())')

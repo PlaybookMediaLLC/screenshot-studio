@@ -75,6 +75,23 @@ export async function createPostizConnection(
   context: TenantContext,
   input: ChannelConnectionCreateInput
 ) {
+  await verifyPostizConnection(context, input)
+  try {
+    return await prisma.$transaction((transaction) =>
+      createChannelConnectionInTransaction(transaction, context, input)
+    )
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      throw new ScheduledPostError('This Postiz destination is already connected.', 409)
+    }
+    throw error
+  }
+}
+
+async function verifyPostizConnection(
+  context: TenantContext,
+  input: ChannelConnectionCreateInput
+): Promise<void> {
   const binding = await prisma.postizTenantBinding.findUnique({
     where: { organizationId: context.organizationId },
   })
@@ -93,16 +110,6 @@ export async function createPostizConnection(
       throw new ScheduledPostError('Postiz destination was not found.', 404)
     }
     throw new ScheduledPostError('Postiz destination could not be verified.', 409)
-  }
-  try {
-    return await prisma.$transaction((transaction) =>
-      createChannelConnectionInTransaction(transaction, context, input)
-    )
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      throw new ScheduledPostError('This Postiz destination is already connected.', 409)
-    }
-    throw error
   }
 }
 

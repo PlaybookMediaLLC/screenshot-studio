@@ -53,6 +53,39 @@ func TestPostWorkflowV2ConfirmsAcceptedPostWithoutRepeatingMutation(t *testing.T
 	}
 }
 
+func TestPostWorkflowV2CompletesDirectReceiptWithoutSecondPostPoll(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	submissions := 0
+	completedID := ""
+	env.RegisterActivityWithOptions(func(context.Context, PrepareInput) (PreparedPublication, error) {
+		return PreparedPublication{PostID: "post-1", OrganizationID: "org-1", Ready: true}, nil
+	}, activity.RegisterOptions{Name: PrepareActivityName})
+	env.RegisterActivityWithOptions(func(context.Context, BeginInput) (BeginResult, error) {
+		return BeginResult{AttemptID: "attempt-1", AttemptNumber: 1}, nil
+	}, activity.RegisterOptions{Name: BeginActivityName})
+	env.RegisterActivityWithOptions(func(context.Context, SubmitInput) (PublishResult, error) {
+		submissions++
+		return PublishResult{Outcome: OutcomePublished, ProviderID: "remote-post-1"}, nil
+	}, activity.RegisterOptions{Name: SubmitActivityName})
+	env.RegisterActivityWithOptions(func(_ context.Context, input CompleteInput) error {
+		completedID = input.ProviderID
+		return nil
+	}, activity.RegisterOptions{Name: CompleteActivityName})
+	env.ExecuteWorkflow(PostWorkflowV2, WorkflowInput{
+		ActivityTaskQueue: DefaultActivityQueue, ActivityTimeout: time.Minute,
+		MainTaskQueue: DefaultWorkflowQueue, MaxAttempts: 3, PostID: "post-1",
+		RetryDelay: time.Hour, ScheduledFor: time.Now(),
+	})
+	if err := env.GetWorkflowError(); err != nil {
+		t.Fatal(err)
+	}
+	var result WorkflowResult
+	if err := env.GetWorkflowResult(&result); err != nil || result.Outcome != OutcomePublished || result.ProviderID != "remote-post-1" || submissions != 1 || completedID != "remote-post-1" {
+		t.Fatalf("result=%#v submit=%d completed=%q err=%v", result, submissions, completedID, err)
+	}
+}
+
 func TestPostWorkflowV2MarksTimedOutMutationUnknown(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	env := suite.NewTestWorkflowEnvironment()

@@ -10,7 +10,6 @@ import copy
 import json
 import os
 from pathlib import Path
-from urllib.parse import urlparse
 
 
 def render(base, secrets, *, stack="full", branch="main"):
@@ -115,11 +114,7 @@ def render(base, secrets, *, stack="full", branch="main"):
     if stack == "full":
         if required("TEMPORAL_NAMESPACE") == required("POSTIZ_TEMPORAL_NAMESPACE"):
             raise ValueError("Publishing and Postiz require different Temporal namespaces")
-        tenant_db = urlparse(required("DATABASE_URL"))
-        postiz_db = urlparse(required("POSTIZ_DATABASE_URL"))
-        if (tenant_db.hostname, tenant_db.port or 5432, tenant_db.path) == (postiz_db.hostname, postiz_db.port or 5432, postiz_db.path):
-            raise ValueError("Postiz requires a separate database")
-        postiz_env = [secret("DATABASE_URL", "POSTIZ_DATABASE_URL"),
+        postiz_env = [secret("DATABASE_URL"),
                       secret("REDIS_URL", "POSTIZ_REDIS_URL"), secret("JWT_SECRET", "POSTIZ_JWT_SECRET"),
                       secret("TEMPORAL_API_KEY", "POSTIZ_TEMPORAL_API_KEY")]
         postiz_env += [env(key, value) for key, value in {
@@ -160,22 +155,33 @@ def render(base, secrets, *, stack="full", branch="main"):
         services[backend["name"]] = backend
         job = {k: copy.deepcopy(v) for k, v in backend.items() if k not in ["envs", "http_port", "health_check"]}
         job.pop("internal_ports", None)
-        job.update(name="postiz-migrate", kind="PRE_DEPLOY", run_command="/postiz-migrate", envs=[secret("DATABASE_URL", "POSTIZ_DATABASE_URL")])
+        job.update(name="postiz-migrate", kind="PRE_DEPLOY", run_command="/postiz-migrate", envs=[secret("DATABASE_URL")])
         jobs[job["name"]] = job
 
         temporal_env = [secret("TEMPORAL_API_KEY"), env("TEMPORAL_ADDRESS", required("TEMPORAL_ADDRESS")),
                         env("TEMPORAL_NAMESPACE", required("TEMPORAL_NAMESPACE")), env("TEMPORAL_TLS", "true")]
         tenant_env = temporal_env + [secret("DATABASE_URL"), secret("STORAGE_SERVICE_KEY"), secret("POSTIZ_API_KEY"),
+                  secret("PUBLISHING_SERVICE_TOKEN"),
                   env("PORT", "8081"), env("RUN_CRON", "true"), env("STORAGE_API_URL", "http://storage:5000"),
                   env("STORAGE_BUCKET", required("STORAGE_BUCKET")), env("POSTIZ_API_URL", "http://127.0.0.1:3000/public/v1"),
+                  env("PUBLISHING_DIRECT_PROVIDER", "true" if secrets.get("ENABLE_DIRECT_PROVIDER") == "true" else "false"),
+                  env("POSTIZ_PRIVATE_MEDIA", "true"), env("STORAGE_PROVIDER", "cloudflare"),
+                  env("CLOUDFLARE_ACCOUNT_ID", required("CLOUDFLARE_ACCOUNT_ID")),
+                  env("CLOUDFLARE_BUCKETNAME", required("CLOUDFLARE_BUCKETNAME")),
+                  env("CLOUDFLARE_BUCKET_URL", required("CLOUDFLARE_BUCKET_URL")),
+                  secret("CLOUDFLARE_ACCESS_KEY"), secret("CLOUDFLARE_SECRET_ACCESS_KEY"),
                   env("RUN_MAINTENANCE", "true"), secret("AUDIT_RETENTION_DATABASE_URL"),
                   secret("AUDIT_DRAIN_ENCRYPTION_KEY"), secret("RESEND_API_KEY"), secret("BETTER_AUTH_SECRET"),
                   env("BETTER_AUTH_URL", origin), env("AUTH_EMAIL_FROM", required("AUTH_EMAIL_FROM")),
                   env("COMPANY_POSTAL_ADDRESS", secrets.get("COMPANY_POSTAL_ADDRESS", ""))]
         merge_env(backend, [dict(item, key="TENANT_" + item["key"]) for item in tenant_env])
+        backend["internal_ports"] = [3003, 8082]
         for old_name in ("postiz-backend", "postiz-orchestrator", "publishing-backend", "publishing-orchestrator"):
             services.pop(old_name, None)
         merge_env(web, [env("POSTIZ_API_URL", "http://screenshot-studio-backend:3000/public/v1"), secret("POSTIZ_API_KEY")])
+        if secrets.get("ENABLE_ENT_PUBLISHING") == "true":
+            merge_env(web, [env("PUBLISHING_API_URL", "http://screenshot-studio-backend:8082"),
+                            secret("PUBLISHING_SERVICE_TOKEN")])
         rules = spec.setdefault("ingress", {}).setdefault("rules", [])
         rules[:] = [rule for rule in rules if rule.get("component", {}).get("name") not in ("postiz-backend", "screenshot-studio-backend")]
         rules.insert(0, {"match": {"path": {"prefix": "/postiz"}}, "component": {"name": "screenshot-studio-backend"}})

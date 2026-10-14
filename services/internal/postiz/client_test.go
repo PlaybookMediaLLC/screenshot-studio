@@ -14,6 +14,27 @@ type staticAssetReader struct{ body []byte }
 
 func (s staticAssetReader) Read(context.Context, string, string) ([]byte, error) { return s.body, nil }
 
+func TestUploadAssetStagesMediaWithoutCreatingSecondPost(t *testing.T) {
+	t.Setenv("POSTIZ_API_KEY_TEST", "token")
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if r.URL.Path != "/upload" || r.Method != http.MethodPost || r.Header.Get("Authorization") != "token" {
+			t.Fatalf("unexpected social request: %s %s", r.Method, r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]string{"id": "media-1", "path": "https://r2.example/media-1.png"})
+	}))
+	defer server.Close()
+	client := New(server.URL, server.Client(), staticAssetReader{body: []byte("png")})
+	path, err := client.UploadAsset(context.Background(), PublishInput{
+		AssetMediaType: "image/png", AssetObjectKey: "org/org-1/image.png",
+		OrganizationID: "org-1", SecretReference: "POSTIZ_API_KEY_TEST",
+	})
+	if err != nil || path != "https://r2.example/media-1.png" || requests != 1 {
+		t.Fatalf("path=%q requests=%d err=%v", path, requests, err)
+	}
+}
+
 func TestPublishUploadsAssetAndCreatesPost(t *testing.T) {
 	t.Setenv("POSTIZ_API_KEY_TEST", "token")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -76,6 +97,70 @@ func TestPublishUploadsAssetAndCreatesPost(t *testing.T) {
 	}
 }
 
+func TestVerifyDestinationRequiresBoundOrganizationAndActiveIntegration(t *testing.T) {
+	t.Setenv("POSTIZ_API_KEY_TEST", "token")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "token" {
+			t.Fatalf("missing service credential")
+		}
+		switch r.URL.Path {
+		case "/me":
+			_ = json.NewEncoder(w).Encode(map[string]any{"organization": map[string]string{"id": "go-org-1"}})
+		case "/integrations":
+			_ = json.NewEncoder(w).Encode([]map[string]any{
+				{"id": "destination-1", "identifier": "instagram-standalone", "disabled": false},
+				{"id": "destination-2", "identifier": "x", "disabled": true},
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	client := New(server.URL, server.Client(), nil)
+	input := VerifyDestinationInput{DestinationID: "destination-1", ExpectedGoOrganizationID: "go-org-1", Platform: "instagram-standalone", SecretReference: "POSTIZ_API_KEY_TEST"}
+	if err := client.VerifyDestination(context.Background(), input); err != nil {
+		t.Fatal(err)
+	}
+	input.ExpectedGoOrganizationID = "another-org"
+	if err := client.VerifyDestination(context.Background(), input); err == nil {
+		t.Fatal("destination from another Go organization was accepted")
+	}
+	input.ExpectedGoOrganizationID = "go-org-1"
+	input.DestinationID = "destination-2"
+	input.Platform = "x"
+	if err := client.VerifyDestination(context.Background(), input); err == nil {
+		t.Fatal("disabled destination was accepted")
+	}
+}
+
+func TestBeginOAuthRequiresBoundOrganization(t *testing.T) {
+	t.Setenv("POSTIZ_API_KEY_TEST", "token")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "token" {
+			t.Fatal("missing service credential")
+		}
+		switch r.URL.Path {
+		case "/me":
+			_ = json.NewEncoder(w).Encode(map[string]any{"organization": map[string]string{"id": "go-org-1"}})
+		case "/social/x":
+			_ = json.NewEncoder(w).Encode(map[string]string{"url": "https://api.x.com/oauth/authorize?oauth_token=test"})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	client := New(server.URL, server.Client(), nil)
+	input := BeginOAuthInput{ExpectedGoOrganizationID: "go-org-1", Provider: "x", SecretReference: "POSTIZ_API_KEY_TEST"}
+	url, err := client.BeginOAuth(context.Background(), input)
+	if err != nil || url != "https://api.x.com/oauth/authorize?oauth_token=test" {
+		t.Fatalf("url=%q err=%v", url, err)
+	}
+	input.ExpectedGoOrganizationID = "another-org"
+	if _, err := client.BeginOAuth(context.Background(), input); err == nil {
+		t.Fatal("another Go organization started OAuth")
+	}
+}
+
 func TestPublishAcceptsLegacyReceipt(t *testing.T) {
 	t.Setenv("POSTIZ_API_KEY_TEST", "token")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -114,6 +199,28 @@ func TestPublishClassifiesRateLimit(t *testing.T) {
 	})
 	providerErr, ok := err.(*Error)
 	if !ok || providerErr.Status != http.StatusTooManyRequests || providerErr.UnknownDelivery {
+		t.Fatalf("unexpected error: %#v", err)
+	}
+}
+
+func TestPublishTreatsServerErrorAsUncertainDelivery(t *testing.T) {
+	t.Setenv("POSTIZ_API_KEY_TEST", "token")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/upload" {
+			_ = json.NewEncoder(w).Encode(map[string]string{"id": "media-1", "path": "/media/1"})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+	client := New(server.URL, server.Client(), staticAssetReader{body: []byte("png")})
+	_, err := client.Publish(context.Background(), PublishInput{
+		AssetMediaType: "image/png", AssetObjectKey: "org/org-1/file.png",
+		Caption: "hello", DestinationID: "destination-1", OrganizationID: "org-1",
+		Platform: "x", SecretReference: "POSTIZ_API_KEY_TEST",
+	})
+	providerErr, ok := err.(*Error)
+	if !ok || providerErr.Status != http.StatusInternalServerError || !providerErr.UnknownDelivery {
 		t.Fatalf("unexpected error: %#v", err)
 	}
 }

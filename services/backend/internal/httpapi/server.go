@@ -15,17 +15,29 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
 
 type Store interface {
 	Ping(context.Context) error
+	AuthorizePublishing(context.Context, string, string, string) error
+	Binding(context.Context, string) (*ent.PostizTenantBinding, error)
+	StartOAuth(context.Context, publishing.Actor, string, string, string, string) error
+	OAuthStart(context.Context, publishing.Actor, string, string, string, *string) (*ent.SocialOAuthStart, error)
+	RememberInstagramIntegration(context.Context, publishing.Actor, string, string, string) error
+	FinishOAuth(context.Context, publishing.Actor, string, string, string, string) (*ent.ChannelConnection, error)
 	CreateConnection(context.Context, publishing.Actor, publishing.CreateConnectionInput) (*ent.ChannelConnection, error)
 	ListConnections(context.Context, string) ([]*ent.ChannelConnection, error)
 	CreateScheduledPost(context.Context, publishing.Actor, publishing.CreateScheduledPostInput) (publishing.CreateScheduledPostResult, error)
 	ListScheduledPosts(context.Context, string, int) ([]*ent.ScheduledPost, error)
 	CancelScheduledPost(context.Context, publishing.Actor, string) (*ent.ScheduledPost, error)
+}
+
+type DestinationVerifier interface {
+	VerifyDestination(context.Context, postiz.VerifyDestinationInput) error
+	BeginOAuth(context.Context, postiz.BeginOAuthInput) (string, error)
 }
 
 type WorkflowScheduler interface {
@@ -38,15 +50,20 @@ type Server struct {
 	scheduler    WorkflowScheduler
 	serviceToken string
 	store        Store
+	verifier     DestinationVerifier
 }
 
-func New(store Store, scheduler WorkflowScheduler, serviceToken string) http.Handler {
-	s := &Server{store: store, scheduler: scheduler, serviceToken: serviceToken}
+func New(store Store, scheduler WorkflowScheduler, verifier DestinationVerifier, serviceToken string) http.Handler {
+	s := &Server{store: store, scheduler: scheduler, verifier: verifier, serviceToken: serviceToken}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.health)
 	mux.HandleFunc("GET /readyz", s.ready)
 	mux.Handle("GET /v1/channel-connections", s.authenticate(http.HandlerFunc(s.listConnections)))
 	mux.Handle("POST /v1/channel-connections", s.authenticate(http.HandlerFunc(s.createConnection)))
+	mux.Handle("POST /v1/social-oauth/begin", s.authenticate(http.HandlerFunc(s.beginSocialOAuth)))
+	mux.Handle("POST /v1/social-oauth/verify", s.authenticate(http.HandlerFunc(s.verifySocialOAuth)))
+	mux.Handle("POST /v1/social-oauth/remember", s.authenticate(http.HandlerFunc(s.rememberSocialOAuth)))
+	mux.Handle("POST /v1/social-oauth/complete", s.authenticate(http.HandlerFunc(s.completeSocialOAuth)))
 	mux.Handle("GET /v1/scheduled-posts", s.authenticate(http.HandlerFunc(s.listScheduledPosts)))
 	mux.Handle("POST /v1/scheduled-posts", s.authenticate(http.HandlerFunc(s.createScheduledPost)))
 	mux.Handle("POST /v1/scheduled-posts/{id}/cancel", s.authenticate(http.HandlerFunc(s.cancelScheduledPost)))
@@ -86,6 +103,14 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 			writeError(w, http.StatusBadRequest, "X-Organization-ID is required")
 			return
 		}
+		if r.Header.Get("X-User-ID") == "" || r.Header.Get("X-Session-ID") == "" {
+			writeError(w, http.StatusUnauthorized, "a publishing session is required")
+			return
+		}
+		if err := s.store.AuthorizePublishing(r.Context(), r.Header.Get("X-Organization-ID"), r.Header.Get("X-User-ID"), r.Header.Get("X-Session-ID")); err != nil {
+			writeStoreError(w, err)
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }
@@ -123,6 +148,35 @@ func (s *Server) createConnection(w http.ResponseWriter, r *http.Request) {
 		len(input.Platform) > 64 || !platformPattern.MatchString(input.Platform) ||
 		!publishing.IsSecretReference(input.SecretReference) {
 		writeError(w, http.StatusBadRequest, "externalAccountId and a valid Postiz secretReference are required")
+		return
+	}
+	binding, err := s.store.Binding(r.Context(), actor.Organization)
+	if err != nil {
+		if errors.Is(err, publishing.ErrNotFound) {
+			writeError(w, http.StatusConflict, "Postiz is not configured for this workspace")
+		} else {
+			writeStoreError(w, err)
+		}
+		return
+	}
+	if binding.SecretReference != input.SecretReference {
+		writeError(w, http.StatusConflict, "Postiz is not configured for this workspace")
+		return
+	}
+	if s.verifier == nil {
+		writeError(w, http.StatusServiceUnavailable, "destination verification is unavailable")
+		return
+	}
+	if err := s.verifier.VerifyDestination(r.Context(), postiz.VerifyDestinationInput{
+		DestinationID: input.ExternalAccountID, ExpectedGoOrganizationID: binding.GoOrganizationID,
+		Platform: input.Platform, SecretReference: input.SecretReference,
+	}); err != nil {
+		providerErr := &postiz.Error{}
+		if errors.As(err, &providerErr) && providerErr.Status == http.StatusNotFound {
+			writeError(w, http.StatusNotFound, "Postiz destination was not found")
+		} else {
+			writeError(w, http.StatusConflict, "Postiz destination could not be verified")
+		}
 		return
 	}
 	connection, err := s.store.CreateConnection(r.Context(), actor, publishing.CreateConnectionInput{
@@ -306,6 +360,10 @@ func decodeJSON(r *http.Request, target any) error {
 
 func writeStoreError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, publishing.ErrUnauthorized):
+		writeError(w, http.StatusUnauthorized, err.Error())
+	case errors.Is(err, publishing.ErrForbidden):
+		writeError(w, http.StatusForbidden, err.Error())
 	case errors.Is(err, publishing.ErrNotFound):
 		writeError(w, http.StatusNotFound, err.Error())
 	case errors.Is(err, publishing.ErrConflict), errors.Is(err, publishing.ErrInvalidState):

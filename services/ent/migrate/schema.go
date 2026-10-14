@@ -197,6 +197,82 @@ var (
 			},
 		},
 	}
+	// MemberColumns holds the columns for the "member" table.
+	MemberColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "userId", Type: field.TypeString},
+		{Name: "role", Type: field.TypeString, Default: "member"},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// MemberTable holds the schema information for the "member" table.
+	MemberTable = &schema.Table{
+		Name:       "member",
+		Columns:    MemberColumns,
+		PrimaryKey: []*schema.Column{MemberColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "member_organizationId_userId",
+				Unique:  true,
+				Columns: []*schema.Column{MemberColumns[1], MemberColumns[2]},
+			},
+			{
+				Name:    "member_organizationId",
+				Unique:  false,
+				Columns: []*schema.Column{MemberColumns[1]},
+			},
+			{
+				Name:    "member_userId",
+				Unique:  false,
+				Columns: []*schema.Column{MemberColumns[2]},
+			},
+		},
+	}
+	// OrganizationColumns holds the columns for the "organization" table.
+	OrganizationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "slug", Type: field.TypeString},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// OrganizationTable holds the schema information for the "organization" table.
+	OrganizationTable = &schema.Table{
+		Name:       "organization",
+		Columns:    OrganizationColumns,
+		PrimaryKey: []*schema.Column{OrganizationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "organization_slug",
+				Unique:  true,
+				Columns: []*schema.Column{OrganizationColumns[2]},
+			},
+		},
+	}
+	// PostizTenantBindingColumns holds the columns for the "postiz_tenant_binding" table.
+	PostizTenantBindingColumns = []*schema.Column{
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "goOrganizationId", Type: field.TypeString},
+		{Name: "secretReference", Type: field.TypeString},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// PostizTenantBindingTable holds the schema information for the "postiz_tenant_binding" table.
+	PostizTenantBindingTable = &schema.Table{
+		Name:       "postiz_tenant_binding",
+		Columns:    PostizTenantBindingColumns,
+		PrimaryKey: []*schema.Column{PostizTenantBindingColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "postiztenantbinding_goOrganizationId",
+				Unique:  true,
+				Columns: []*schema.Column{PostizTenantBindingColumns[1]},
+			},
+			{
+				Name:    "postiztenantbinding_secretReference",
+				Unique:  true,
+				Columns: []*schema.Column{PostizTenantBindingColumns[2]},
+			},
+		},
+	}
 	// PublicationAttemptColumns holds the columns for the "publication_attempt" table.
 	PublicationAttemptColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -241,7 +317,7 @@ var (
 		{Name: "organizationId", Type: field.TypeString},
 		{Name: "variantId", Type: field.TypeString},
 		{Name: "scheduledFor", Type: field.TypeTime},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "SCHEDULED", "PROCESSING", "PUBLISHED", "FAILED", "CANCELLED"}, Default: "DRAFT"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "SCHEDULED", "PROCESSING", "PUBLISHED", "FAILED", "CANCELLED", "UNKNOWN_DELIVERY"}, Default: "DRAFT"},
 		{Name: "caption", Type: field.TypeString},
 		{Name: "idempotencyKey", Type: field.TypeString},
 		{Name: "triggerRunId", Type: field.TypeString, Nullable: true},
@@ -280,6 +356,79 @@ var (
 			},
 		},
 	}
+	// SessionColumns holds the columns for the "session" table.
+	SessionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "userId", Type: field.TypeString},
+		{Name: "token", Type: field.TypeString},
+		{Name: "expiresAt", Type: field.TypeTime},
+		{Name: "activeOrganizationId", Type: field.TypeString, Nullable: true},
+	}
+	// SessionTable holds the schema information for the "session" table.
+	SessionTable = &schema.Table{
+		Name:       "session",
+		Columns:    SessionColumns,
+		PrimaryKey: []*schema.Column{SessionColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "session_userId",
+				Unique:  false,
+				Columns: []*schema.Column{SessionColumns[1]},
+			},
+			{
+				Name:    "session_token",
+				Unique:  true,
+				Columns: []*schema.Column{SessionColumns[2]},
+			},
+		},
+	}
+	// SocialOauthStartColumns holds the columns for the "social_oauth_start" table.
+	SocialOauthStartColumns = []*schema.Column{
+		{Name: "state", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "userId", Type: field.TypeString},
+		{Name: "sessionId", Type: field.TypeString},
+		{Name: "provider", Type: field.TypeString},
+		{Name: "secretReference", Type: field.TypeString},
+		{Name: "integrationId", Type: field.TypeString, Nullable: true},
+		{Name: "expiresAt", Type: field.TypeTime},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// SocialOauthStartTable holds the schema information for the "social_oauth_start" table.
+	SocialOauthStartTable = &schema.Table{
+		Name:       "social_oauth_start",
+		Columns:    SocialOauthStartColumns,
+		PrimaryKey: []*schema.Column{SocialOauthStartColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "socialoauthstart_expiresAt",
+				Unique:  false,
+				Columns: []*schema.Column{SocialOauthStartColumns[7]},
+			},
+		},
+	}
+	// UserColumns holds the columns for the "user" table.
+	UserColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "email", Type: field.TypeString},
+		{Name: "emailVerified", Type: field.TypeBool, Default: false},
+		{Name: "banned", Type: field.TypeBool, Nullable: true},
+		{Name: "banExpires", Type: field.TypeTime, Nullable: true},
+	}
+	// UserTable holds the schema information for the "user" table.
+	UserTable = &schema.Table{
+		Name:       "user",
+		Columns:    UserColumns,
+		PrimaryKey: []*schema.Column{UserColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "user_email",
+				Unique:  true,
+				Columns: []*schema.Column{UserColumns[2]},
+			},
+		},
+	}
 	// WorkspaceDeletionColumns holds the columns for the "workspace_deletion" table.
 	WorkspaceDeletionColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -309,8 +458,14 @@ var (
 		AuditOutboxTable,
 		ChannelConnectionTable,
 		CreativeVariantTable,
+		MemberTable,
+		OrganizationTable,
+		PostizTenantBindingTable,
 		PublicationAttemptTable,
 		ScheduledPostTable,
+		SessionTable,
+		SocialOauthStartTable,
+		UserTable,
 		WorkspaceDeletionTable,
 	}
 )
@@ -342,6 +497,15 @@ func init() {
 	CreativeVariantTable.Annotation = &entsql.Annotation{
 		Table: "creative_variant",
 	}
+	MemberTable.Annotation = &entsql.Annotation{
+		Table: "member",
+	}
+	OrganizationTable.Annotation = &entsql.Annotation{
+		Table: "organization",
+	}
+	PostizTenantBindingTable.Annotation = &entsql.Annotation{
+		Table: "postiz_tenant_binding",
+	}
 	PublicationAttemptTable.ForeignKeys[0].RefTable = ScheduledPostTable
 	PublicationAttemptTable.Annotation = &entsql.Annotation{
 		Table: "publication_attempt",
@@ -349,6 +513,15 @@ func init() {
 	ScheduledPostTable.ForeignKeys[0].RefTable = ChannelConnectionTable
 	ScheduledPostTable.Annotation = &entsql.Annotation{
 		Table: "scheduled_post",
+	}
+	SessionTable.Annotation = &entsql.Annotation{
+		Table: "session",
+	}
+	SocialOauthStartTable.Annotation = &entsql.Annotation{
+		Table: "social_oauth_start",
+	}
+	UserTable.Annotation = &entsql.Annotation{
+		Table: "user",
 	}
 	WorkspaceDeletionTable.Annotation = &entsql.Annotation{
 		Table: "workspace_deletion",

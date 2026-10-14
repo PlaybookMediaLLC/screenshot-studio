@@ -48,7 +48,7 @@ async function failUncertainStalePosts(staleBefore: Date): Promise<void> {
   for (const post of posts) {
     await prisma.$transaction(async (transaction) => {
       const failed = await transaction.scheduledPost.updateMany({
-        data: { status: 'FAILED' },
+        data: { status: 'UNKNOWN_DELIVERY' },
         where: { id: post.id, status: 'PROCESSING', updatedAt: { lt: staleBefore } },
       })
       if (failed.count === 0) return
@@ -245,6 +245,7 @@ async function reconcileAcceptedPosts(): Promise<void> {
 function canRetry(error: unknown, attemptNumber: number): boolean {
   return (
     error instanceof PostizProviderError &&
+    !error.unknownDelivery &&
     error.status === 429 &&
     attemptNumber < maxPublicationAttempts
   )
@@ -256,7 +257,11 @@ async function failPublication(
   error: unknown
 ): Promise<void> {
   const failureCode =
-    error instanceof PostizProviderError ? String(error.status ?? 'NETWORK') : 'UNKNOWN'
+    error instanceof PostizProviderError
+      ? error.unknownDelivery
+        ? 'UNKNOWN_DELIVERY'
+        : String(error.status ?? 'NETWORK')
+      : 'UNKNOWN'
   const retry = canRetry(error, attempt.attemptNumber)
   await prisma.$transaction(async (transaction) => {
     await transaction.publicationAttempt.update({
@@ -264,7 +269,10 @@ async function failPublication(
       where: { id: attempt.id },
     })
     await transaction.scheduledPost.update({
-      data: { status: retry ? 'SCHEDULED' : 'FAILED' },
+      data: {
+        status:
+          failureCode === 'UNKNOWN_DELIVERY' ? 'UNKNOWN_DELIVERY' : retry ? 'SCHEDULED' : 'FAILED',
+      },
       where: { id: post.id },
     })
     await appendAuditLog(transaction, {

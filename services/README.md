@@ -12,11 +12,13 @@ The split follows the useful boundary in Postiz's `apps/backend` and
   channel connections and scheduled posts, validates approved creative variants,
   preserves idempotency, and writes audit records.
 - **orchestrator** is the Temporal execution plane. It runs the versioned post
-  workflow and Postiz activities, re-checks workspace and approval eligibility,
-  reads the tenant asset, calls Postiz, and records publication attempts.
+  workflow, re-checks workspace and approval eligibility, and records
+  publication attempts. The direct provider path calls the Go social adapters
+  and stores their remote receipt without creating a second social `Post` row.
 - **Ent** is the shared Go data model. The schemas map to the existing Prisma
   table and column names so the Next.js application and both Go services operate
-  on the same durable state machine.
+  on the same durable state machine. The transition target is one PostgreSQL
+  database and its `public` schema for product and social integration tables.
 
 Each scheduled post maps to one Temporal workflow: workflow ID `post_<post-id>`,
 workflow type `PostWorkflowV2`, workflow task queue `main`, and Postiz activity
@@ -45,18 +47,21 @@ every Temporal guarantee at Screenshot Studio's provider boundary:
 | Namespace readiness | `DescribeNamespace` with a 10-second bound |
 | TLS and API-key authentication | both settings apply independently |
 
-Postiz's per-social-network workers, token refresh, comments, plugs, and repeat
-posts remain inside the Postiz provider service. Screenshot Studio calls that
-service through the single adapter required by RFC 020; copying those workers
-here would create a second provider implementation. Postiz's autopost, streak,
+Postiz's per-social-network adapters, token refresh, comments, plugs, and repeat
+posts remain inside the social Go packages. With `PUBLISHING_DIRECT_PROVIDER=true`,
+Screenshot Studio's tenant Temporal activity invokes the LinkedIn, X, or
+Instagram Login adapter directly. The social HTTP API still handles OAuth and
+stages media during this transition, but customer publishing does not call
+`/public/v1/posts`. Postiz's autopost, streak,
 and email workflows are product domains, not publishing transport, and remain
 owned by Screenshot Studio's campaign and email systems.
 
 ## Database ownership
 
-`ent/schema` is the Go schema and generated client source. Prisma migrations in
-the repository root remain the physical migration authority because these tables
-already exist and are also used by the Next.js application. Do not call
+`ent/schema` is the Go schema and generated client source. During this staged
+cutover, Prisma migrations in the repository root remain the physical migration
+authority because Next.js still uses those tables. Ent must become the sole
+model and migration authority before the final database cutover. Do not call
 `client.Schema.Create` from either service. When a publishing table changes:
 
 1. update the Prisma schema and add a reviewed Prisma migration;
@@ -79,9 +84,11 @@ The backend listens on `:8080` by default:
 | `GET` / `POST` | `/v1/scheduled-posts` | List or create scheduled posts |
 | `POST` | `/v1/scheduled-posts/{id}/cancel` | Cancel an unpublished post |
 
-Service requests use `Authorization: Bearer $PUBLISHING_SERVICE_TOKEN` and the
-server-trusted headers `X-Organization-ID`, `X-User-ID`, `X-Request-ID`, and
-optionally `X-Actor-Display`. Browser clients must not call this service directly.
+Service requests use `Authorization: Bearer $PUBLISHING_SERVICE_TOKEN` and
+`X-Session-ID` with scoped organization, user, and request headers. The backend
+validates the session and membership through Ent. The web server calls this
+service through `packages/screenshot-studio-backend-sdk`; browser code uses
+the existing same-origin tRPC facade and never receives the service token.
 
 The orchestrator listens on `:8081` only for `/healthz` and `/readyz`.
 
@@ -97,6 +104,9 @@ orchestrator also requires:
 - `POSTIZ_API_URL` (defaults to `https://api.postiz.com/public/v1`)
 - each allow-listed credential reference stored by a connection, for example
   `POSTIZ_API_KEY` or `POSTIZ_OAUTH_TOKEN_CUSTOMER_A`
+- `PUBLISHING_DIRECT_PROVIDER=true` for direct Go provider publication; it
+  requires the social integration tables in the same database and
+  `POSTIZ_PRIVATE_MEDIA=true` with Cloudflare R2 signing configuration.
 
 Optional workflow controls are `TEMPORAL_TASK_QUEUE`,
 `TEMPORAL_POSTIZ_TASK_QUEUE`,

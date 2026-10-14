@@ -20,8 +20,14 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditoutbox"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organization"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 )
 
@@ -83,17 +89,23 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			approval.Table:           approval.ValidColumn,
-			asset.Table:              asset.ValidColumn,
-			auditdrain.Table:         auditdrain.ValidColumn,
-			auditdraindelivery.Table: auditdraindelivery.ValidColumn,
-			auditlog.Table:           auditlog.ValidColumn,
-			auditoutbox.Table:        auditoutbox.ValidColumn,
-			channelconnection.Table:  channelconnection.ValidColumn,
-			creativevariant.Table:    creativevariant.ValidColumn,
-			publicationattempt.Table: publicationattempt.ValidColumn,
-			scheduledpost.Table:      scheduledpost.ValidColumn,
-			workspacedeletion.Table:  workspacedeletion.ValidColumn,
+			approval.Table:            approval.ValidColumn,
+			asset.Table:               asset.ValidColumn,
+			auditdrain.Table:          auditdrain.ValidColumn,
+			auditdraindelivery.Table:  auditdraindelivery.ValidColumn,
+			auditlog.Table:            auditlog.ValidColumn,
+			auditoutbox.Table:         auditoutbox.ValidColumn,
+			channelconnection.Table:   channelconnection.ValidColumn,
+			creativevariant.Table:     creativevariant.ValidColumn,
+			member.Table:              member.ValidColumn,
+			organization.Table:        organization.ValidColumn,
+			postiztenantbinding.Table: postiztenantbinding.ValidColumn,
+			publicationattempt.Table:  publicationattempt.ValidColumn,
+			scheduledpost.Table:       scheduledpost.ValidColumn,
+			session.Table:             session.ValidColumn,
+			socialoauthstart.Table:    socialoauthstart.ValidColumn,
+			user.Table:                user.ValidColumn,
+			workspacedeletion.Table:   workspacedeletion.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

@@ -1,9 +1,11 @@
 # Screenshot Studio social backend
 
-The Go Postiz port runs its API and Temporal workers in one
-`screenshot-studio-backend` process when `RUN_WORKER=true`. It uses Postiz's database schema and API; it
-does not share Screenshot Studio's tenant database. The existing web app remains
-the tenant authority and calls the backend through the Postiz public API.
+The Go social API and Temporal workers run in `screenshot-studio-backend`
+when `RUN_WORKER=true`. The tenant publishing API and worker are also in the
+combined image. Their Ent models use one PostgreSQL database and its `public`
+schema. The Next.js server uses the typed backend SDK for publishing when the
+Ent publishing flag is enabled. The legacy web and social publish paths remain
+available during the cutover; do not enable both schedulers for one destination.
 
 The worker is disabled by default. During the App Platform cutover, deploy the
 combined backend image with `RUN_WORKER=true`, verify both `/` and
@@ -15,7 +17,7 @@ embedded worker fails, so App Platform restarts the unit as a whole.
 
 ## Optional local stack
 
-Start the API, workers, a dedicated `postiz_go` PostgreSQL container, Redis, and
+Start the API, workers, the shared product PostgreSQL container, Redis, and
 Temporal with:
 
 ```sh
@@ -25,9 +27,9 @@ curl --fail http://localhost:3102/health/status
 make postiz-go-down
 ```
 
-The one-shot `postiz-go-migrate` service applies the Postiz schema before the
-API or workers start. Its migration is repeatable. The database volume and
-credentials are separate from Screenshot Studio's PostgreSQL instance. The
+The one-shot `postiz-go-migrate` service applies the social tables to the
+same `screenshot_studio` database and `public` schema before the social API or
+workers start. Its migration is repeatable. The
 Postiz Temporal server uses ports 7243 and 8243
 to avoid competing with the publishing service's `main` task queue.
 
@@ -43,7 +45,7 @@ POSTIZ_API_KEY=<Postiz organization's publicApi key>
 
 The default local values still point at the deterministic E2E Postiz mock.
 Each web organization must be bound to its own Go organization and credential
-reference before a destination can be registered. Once both databases are
+reference before a destination can be registered. Once the shared database is
 available, run the operator command from the repository root with the web
 organization ID and the name of the environment variable containing that Go
 organization's public API key:
@@ -74,6 +76,14 @@ scheduled worker actually publishes, it signs its media and thumbnail URLs
 for 24 hours, then gives those temporary URLs to the provider. An activity
 retry signs again. The web UI does not yet proxy private Postiz media for
 pre-publication previews.
+
+The tenant orchestrator's direct adapter path is opt-in through
+`PUBLISHING_DIRECT_PROVIDER=true`. It reads social integrations from the same
+PostgreSQL database as `scheduled_post`, stages media through the social upload
+API, signs that private R2 media immediately before calling a LinkedIn, X, or
+Instagram Login adapter, and records the remote receipt only in the canonical
+publication attempt. Keep this flag off until the shared schema, OAuth
+reconnection, and provider canaries have passed in the target environment.
 
 ## Social provider readiness
 

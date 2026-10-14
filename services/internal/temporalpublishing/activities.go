@@ -74,6 +74,7 @@ func (a *Activities) Publish(ctx context.Context, input PublishInput) (PublishRe
 		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey,
 		Caption: input.Job.Caption, DestinationID: input.Job.DestinationID,
 		OrganizationID: input.Job.OrganizationID, Platform: input.Job.Platform,
+		PostID:           input.Job.PostID,
 		ProviderSettings: input.Job.ProviderSettings, SecretReference: input.Job.SecretReference,
 	})
 	if publishErr == nil {
@@ -87,6 +88,12 @@ func (a *Activities) Publish(ctx context.Context, input PublishInput) (PublishRe
 	failureCode := "UNKNOWN"
 	if errors.As(publishErr, &providerErr) {
 		failureCode = publishing.ProviderFailureCode(providerErr.Status, providerErr.UnknownDelivery)
+	}
+	if providerErr.UnknownDelivery {
+		if err := a.store.FailUnknown(ctx, post.ID, input.RunID, input.AttemptNumber); err != nil {
+			return PublishResult{}, err
+		}
+		return PublishResult{FailureCode: failureCode, Outcome: OutcomeFailed}, nil
 	}
 	if providerErr.Status == 429 && !providerErr.UnknownDelivery && input.AttemptNumber < input.MaxAttempts {
 		retryAt := a.now().UTC().Add(input.RetryDelay)
@@ -126,9 +133,13 @@ func (a *Activities) Submit(ctx context.Context, input SubmitInput) (PublishResu
 		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey,
 		Caption: input.Job.Caption, DestinationID: input.Job.DestinationID,
 		OrganizationID: input.Job.OrganizationID, Platform: input.Job.Platform,
+		PostID:           input.Job.PostID,
 		ProviderSettings: input.Job.ProviderSettings, SecretReference: input.Job.SecretReference,
 	})
 	if err == nil {
+		if direct, ok := a.provider.(interface{ PublishesSynchronously() bool }); ok && direct.PublishesSynchronously() {
+			return PublishResult{Outcome: OutcomePublished, ProviderID: providerID}, nil
+		}
 		return PublishResult{Outcome: OutcomePending, ProviderID: providerID}, nil
 	}
 	providerErr := &postiz.Error{}

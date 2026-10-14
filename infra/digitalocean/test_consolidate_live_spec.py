@@ -23,7 +23,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
                 {"name": "design-renderer", "git": {"branch": "main"}},
                 {"name": "postiz-backend", "git": {"branch": "main"}, "source_dir": "services", "dockerfile_path": "Dockerfile", "envs": [env("DATABASE_URL"), env("TEMPORAL_NAMESPACE", "tenant-namespace", "GENERAL"), env("BACKEND_INTERNAL_URL", "http://postiz-backend:3000", "GENERAL")]},
                 {"name": "postiz-orchestrator", "envs": []},
-                {"name": "publishing-backend", "envs": []},
+                {"name": "publishing-backend", "envs": [env("PUBLISHING_SERVICE_TOKEN")]},
                 {"name": "publishing-orchestrator", "envs": [env(key, "true" if key in ("RUN_MAINTENANCE", "RUN_CRON") else "EV[encrypted]", "GENERAL" if key in ("RUN_MAINTENANCE", "RUN_CRON", "POSTIZ_API_URL", "TEMPORAL_ADDRESS", "TEMPORAL_NAMESPACE", "STORAGE_BUCKET", "STORAGE_API_URL", "BETTER_AUTH_URL", "AUTH_EMAIL_FROM") else "SECRET") for key in tenant_keys]},
             ],
             "jobs": [{"name": "web-migrate"}, {"name": "postiz-migrate", "git": {"branch": "main"}, "source_dir": "services", "dockerfile_path": "Dockerfile", "envs": [env("DATABASE_URL")]}],
@@ -41,11 +41,17 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         backend = services["screenshot-studio-backend"]
         self.assertEqual(backend["image"]["digest"], self.digest)
         self.assertEqual(backend["health_check"]["port"], 3003)
+        self.assertEqual(backend["internal_ports"], [3003, 8082])
         values = {item["key"]: item for item in backend["envs"]}
         self.assertEqual(values["TENANT_AUDIT_RETENTION_DATABASE_URL"]["value"], "EV[encrypted]")
         self.assertEqual(values["TENANT_AUDIT_RETENTION_DATABASE_URL"]["type"], "SECRET")
         self.assertEqual(values["TENANT_RUN_MAINTENANCE"]["value"], "true")
         self.assertEqual(values["RUN_WORKER"]["value"], "true")
+        self.assertEqual(values["TENANT_PUBLISHING_SERVICE_TOKEN"]["type"], "SECRET")
+        self.assertEqual(values["DATABASE_URL"]["value"], values["TENANT_DATABASE_URL"]["value"])
+        self.assertEqual(spec["jobs"][1]["envs"][0]["value"], values["TENANT_DATABASE_URL"]["value"])
+        web_env = {item["key"]: item for item in services["web"]["envs"]}
+        self.assertNotIn("PUBLISHING_API_URL", web_env)
         self.assertEqual(spec["ingress"]["rules"][0]["component"]["name"], "screenshot-studio-backend")
         self.assertEqual(spec["jobs"][1]["image"]["digest"], self.digest)
         self.assertEqual(len(self.base["spec"]["services"]), 7)
@@ -72,7 +78,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
 
     def test_uses_infisical_for_new_backend_credentials(self):
         secrets = {key: "infisical-" + key for key in
-                   "POSTIZ_DATABASE_URL POSTIZ_TEMPORAL_API_KEY DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET".split()}
+                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN".split()}
         secrets.update({cutover.SOCIAL_SECRET_SOURCES.get(key, key): "infisical-" + key
                         for key in cutover.OPTIONAL_SOCIAL_SECRETS})
         secrets.update({key: "other-service-" + key for key in cutover.OPTIONAL_SOCIAL_SECRETS
@@ -82,8 +88,9 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         spec = cutover.consolidate(self.base, self.digest, secrets)
         backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
         values = {item["key"]: item["value"] for item in backend["envs"]}
-        self.assertEqual(values["DATABASE_URL"], "infisical-POSTIZ_DATABASE_URL")
+        self.assertEqual(values["DATABASE_URL"], "infisical-DATABASE_URL")
         self.assertEqual(values["TENANT_DATABASE_URL"], "infisical-DATABASE_URL")
+        self.assertEqual(next(item for item in spec["jobs"] if item["name"] == "postiz-migrate")["envs"][0]["value"], "infisical-DATABASE_URL")
         self.assertEqual(values["TENANT_AUDIT_RETENTION_DATABASE_URL"], "infisical-AUDIT_RETENTION_DATABASE_URL")
         for key in cutover.OPTIONAL_SOCIAL_SECRETS:
             entry = next(item for item in backend["envs"] if item["key"] == key)
@@ -103,8 +110,18 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         retired_initial = cutover.consolidate(self.base, self.digest, withdrawn)
         retired_initial_backend = next(item for item in retired_initial["services"] if item["name"] == "screenshot-studio-backend")
         self.assertNotIn("FACEBOOK_APP_SECRET", {item["key"] for item in retired_initial_backend["envs"]})
-        with self.assertRaisesRegex(ValueError, "POSTIZ_DATABASE_URL"):
+        with self.assertRaisesRegex(ValueError, "DATABASE_URL"):
             cutover.consolidate(self.base, self.digest, {})
+
+    def test_ent_publishing_requires_explicit_cutover_flag(self):
+        secrets = {key: "infisical-" + key for key in
+                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN".split()}
+        secrets["ENABLE_ENT_PUBLISHING"] = "true"
+        spec = cutover.consolidate(self.base, self.digest, secrets)
+        web = next(item for item in spec["services"] if item["name"] == "web")
+        envs = {item["key"]: item for item in web["envs"]}
+        self.assertEqual(envs["PUBLISHING_API_URL"]["value"], "http://screenshot-studio-backend:8082")
+        self.assertEqual(envs["PUBLISHING_SERVICE_TOKEN"]["type"], "SECRET")
 
 
 if __name__ == "__main__":

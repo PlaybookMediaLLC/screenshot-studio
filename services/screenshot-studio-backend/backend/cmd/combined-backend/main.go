@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -39,9 +40,11 @@ func run(ctx context.Context) error {
 	children := []*exec.Cmd{
 		exec.Command("/screenshot-studio-backend"),
 		exec.Command("/publishing-orchestrator"),
+		exec.Command("/publishing-backend"),
 	}
 	children[0].Env = os.Environ()
 	children[1].Env = tenantEnv
+	children[2].Env = withPort(tenantEnv, "8082")
 	started := make([]*exec.Cmd, 0, len(children))
 	for _, child := range children {
 		child.Stdout, child.Stderr = os.Stdout, os.Stderr
@@ -116,7 +119,7 @@ func publishingEnv(environ []string) ([]string, error) {
 		}
 	}
 	result = append(result, "PORT=8081")
-	for _, key := range []string{"DATABASE_URL", "TEMPORAL_ADDRESS", "TEMPORAL_NAMESPACE", "AUDIT_RETENTION_DATABASE_URL"} {
+	for _, key := range []string{"DATABASE_URL", "TEMPORAL_ADDRESS", "TEMPORAL_NAMESPACE", "AUDIT_RETENTION_DATABASE_URL", "PUBLISHING_SERVICE_TOKEN"} {
 		if !hasEnv(result, key) {
 			return nil, fmt.Errorf("TENANT_%s is required", key)
 		}
@@ -126,7 +129,51 @@ func publishingEnv(environ []string) ([]string, error) {
 			return nil, fmt.Errorf("TENANT_%s=true is required", key)
 		}
 	}
+	if hasValue(result, "PUBLISHING_DIRECT_PROVIDER", "true") {
+		socialURL := envValue(environ, "DATABASE_URL")
+		tenantURL := envValue(result, "DATABASE_URL")
+		if !sameLogicalDatabase(socialURL, tenantURL) {
+			return nil, errors.New("direct publishing requires social and tenant Ent clients to use one PostgreSQL database")
+		}
+	}
 	return result, nil
+}
+
+func envValue(environ []string, key string) string {
+	for _, item := range environ {
+		if value, ok := strings.CutPrefix(item, key+"="); ok {
+			return value
+		}
+	}
+	return ""
+}
+
+func sameLogicalDatabase(first, second string) bool {
+	a, errA := url.Parse(first)
+	b, errB := url.Parse(second)
+	if errA != nil || errB != nil || a.Scheme == "" || b.Scheme == "" || a.Hostname() == "" || b.Hostname() == "" || a.Path == "" || b.Path == "" {
+		return false
+	}
+	port := func(u *url.URL) string {
+		if u.Port() != "" {
+			return u.Port()
+		}
+		return "5432"
+	}
+	return strings.EqualFold(a.Hostname(), b.Hostname()) && port(a) == port(b) && a.Path == b.Path &&
+		a.Query().Get("search_path") == b.Query().Get("search_path")
+}
+
+func withPort(environ []string, port string) []string {
+	result := make([]string, 0, len(environ))
+	for _, item := range environ {
+		if strings.HasPrefix(item, "PORT=") {
+			result = append(result, "PORT="+port)
+		} else {
+			result = append(result, item)
+		}
+	}
+	return result
 }
 
 func hasEnv(environ []string, key string) bool {
@@ -164,7 +211,7 @@ func readinessHandler() http.Handler {
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
 		defer cancel()
-		endpoints := []string{"http://127.0.0.1:3000/", "http://127.0.0.1:3002/health/status", "http://127.0.0.1:8081/readyz"}
+		endpoints := []string{"http://127.0.0.1:3000/", "http://127.0.0.1:3002/health/status", "http://127.0.0.1:8081/readyz", "http://127.0.0.1:8082/readyz"}
 		results := make(chan bool, len(endpoints))
 		var checks sync.WaitGroup
 		for _, endpoint := range endpoints {

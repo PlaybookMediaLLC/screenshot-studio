@@ -10,9 +10,14 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditlog"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditoutbox"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organization"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -93,6 +98,28 @@ func init() {
 	channelconnection.DefaultUpdatedAt = channelconnectionDescUpdatedAt.Default.(func() time.Time)
 	// channelconnection.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	channelconnection.UpdateDefaultUpdatedAt = channelconnectionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	memberFields := schema.Member{}.Fields()
+	_ = memberFields
+	// memberDescRole is the schema descriptor for role field.
+	memberDescRole := memberFields[3].Descriptor()
+	// member.DefaultRole holds the default value on creation for the role field.
+	member.DefaultRole = memberDescRole.Default.(string)
+	// memberDescCreatedAt is the schema descriptor for created_at field.
+	memberDescCreatedAt := memberFields[4].Descriptor()
+	// member.DefaultCreatedAt holds the default value on creation for the created_at field.
+	member.DefaultCreatedAt = memberDescCreatedAt.Default.(func() time.Time)
+	organizationFields := schema.Organization{}.Fields()
+	_ = organizationFields
+	// organizationDescCreatedAt is the schema descriptor for created_at field.
+	organizationDescCreatedAt := organizationFields[3].Descriptor()
+	// organization.DefaultCreatedAt holds the default value on creation for the created_at field.
+	organization.DefaultCreatedAt = organizationDescCreatedAt.Default.(func() time.Time)
+	postiztenantbindingFields := schema.PostizTenantBinding{}.Fields()
+	_ = postiztenantbindingFields
+	// postiztenantbindingDescCreatedAt is the schema descriptor for created_at field.
+	postiztenantbindingDescCreatedAt := postiztenantbindingFields[3].Descriptor()
+	// postiztenantbinding.DefaultCreatedAt holds the default value on creation for the created_at field.
+	postiztenantbinding.DefaultCreatedAt = postiztenantbindingDescCreatedAt.Default.(func() time.Time)
 	publicationattemptFields := schema.PublicationAttempt{}.Fields()
 	_ = publicationattemptFields
 	// publicationattemptDescAttemptNumber is the schema descriptor for attempt_number field.
@@ -119,4 +146,16 @@ func init() {
 	scheduledpost.DefaultUpdatedAt = scheduledpostDescUpdatedAt.Default.(func() time.Time)
 	// scheduledpost.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	scheduledpost.UpdateDefaultUpdatedAt = scheduledpostDescUpdatedAt.UpdateDefault.(func() time.Time)
+	socialoauthstartFields := schema.SocialOAuthStart{}.Fields()
+	_ = socialoauthstartFields
+	// socialoauthstartDescCreatedAt is the schema descriptor for created_at field.
+	socialoauthstartDescCreatedAt := socialoauthstartFields[8].Descriptor()
+	// socialoauthstart.DefaultCreatedAt holds the default value on creation for the created_at field.
+	socialoauthstart.DefaultCreatedAt = socialoauthstartDescCreatedAt.Default.(func() time.Time)
+	userFields := schema.User{}.Fields()
+	_ = userFields
+	// userDescEmailVerified is the schema descriptor for email_verified field.
+	userDescEmailVerified := userFields[3].Descriptor()
+	// user.DefaultEmailVerified holds the default value on creation for the email_verified field.
+	user.DefaultEmailVerified = userDescEmailVerified.Default.(bool)
 }

@@ -4,6 +4,7 @@ import { getRouteErrorResponse } from '@/lib/api/route-errors'
 import { isInvalidRequest, parseJson } from '@/lib/api/request'
 import { emptyRequestSchema } from '@/lib/api/schemas'
 import { dispatchDueScheduledPosts } from '@/lib/tenant/publishing'
+import { publishingBackendEnabled } from '@/lib/tenant/publishing-backend'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -11,6 +12,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     await parseJson(request, emptyRequestSchema)
+    if (publishingBackendEnabled()) {
+      return NextResponse.json({ dispatched: 0 })
+    }
     return NextResponse.json({ dispatched: await dispatchDueScheduledPosts() })
   } catch (error) {
     if (isInvalidRequest(error)) {

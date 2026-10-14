@@ -18,9 +18,9 @@ class DeploymentSpecTest(unittest.TestCase):
                           "instance_count": 2, "envs": [{"key": "EXISTING_SETTING", "value": "preserve"}]}],
             "ingress": {"rules": [{"match": {"path": {"prefix": "/"}}, "component": {"name": "web"}}]},
         }
-        keys = "DATABASE_URL BETTER_AUTH_SECRET AUDIT_IP_HASH_SECRET AUDIT_DRAIN_ENCRYPTION_KEY REDIS_URL STORAGE_SERVICE_KEY R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY PLATFORM_RENDER_SERVICE_SECRET BETTER_AUTH_URL BETTER_AUTH_TRUSTED_ORIGINS STORAGE_BUCKET STORAGE_DATABASE_URL STORAGE_JWT_SECRET R2_BUCKET_NAME R2_ENDPOINT MIGRATION_DATABASE_URL TEMPORAL_NAMESPACE POSTIZ_TEMPORAL_NAMESPACE POSTIZ_DATABASE_URL POSTIZ_REDIS_URL POSTIZ_JWT_SECRET POSTIZ_TEMPORAL_API_KEY POSTIZ_TEMPORAL_ADDRESS CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_BUCKETNAME CLOUDFLARE_BUCKET_URL CLOUDFLARE_ACCESS_KEY CLOUDFLARE_SECRET_ACCESS_KEY TEMPORAL_API_KEY TEMPORAL_ADDRESS PUBLISHING_SERVICE_TOKEN POSTIZ_API_KEY AUDIT_RETENTION_DATABASE_URL RESEND_API_KEY AUTH_EMAIL_FROM"
+        keys = "DATABASE_URL BETTER_AUTH_SECRET AUDIT_IP_HASH_SECRET AUDIT_DRAIN_ENCRYPTION_KEY REDIS_URL STORAGE_SERVICE_KEY R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY PLATFORM_RENDER_SERVICE_SECRET BETTER_AUTH_URL BETTER_AUTH_TRUSTED_ORIGINS STORAGE_BUCKET STORAGE_DATABASE_URL STORAGE_JWT_SECRET R2_BUCKET_NAME R2_ENDPOINT MIGRATION_DATABASE_URL TEMPORAL_NAMESPACE POSTIZ_TEMPORAL_NAMESPACE POSTIZ_REDIS_URL POSTIZ_JWT_SECRET POSTIZ_TEMPORAL_API_KEY POSTIZ_TEMPORAL_ADDRESS CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_BUCKETNAME CLOUDFLARE_BUCKET_URL CLOUDFLARE_ACCESS_KEY CLOUDFLARE_SECRET_ACCESS_KEY TEMPORAL_API_KEY TEMPORAL_ADDRESS PUBLISHING_SERVICE_TOKEN POSTIZ_API_KEY AUDIT_RETENTION_DATABASE_URL RESEND_API_KEY AUTH_EMAIL_FROM"
         self.secrets = {key: "fixture-" + key for key in keys.split()}
-        self.secrets.update(DATABASE_URL="postgresql://web:secret@db:5432/tenant", POSTIZ_DATABASE_URL="postgresql://postiz:secret@db:5432/postiz", BETTER_AUTH_URL="https://app.example.com")
+        self.secrets.update(DATABASE_URL="postgresql://web:secret@db:5432/tenant", BETTER_AUTH_URL="https://app.example.com")
 
     def test_preserves_web_and_restricts_internal_services(self):
         spec = render_spec.render(self.base, self.secrets)
@@ -42,17 +42,31 @@ class DeploymentSpecTest(unittest.TestCase):
         self.assertNotIn("AUDIT_RETENTION_DATABASE_URL", {e["key"] for e in services["web"]["envs"]})
         backend = services["screenshot-studio-backend"]
         self.assertEqual(backend["health_check"]["port"], 3003)
+        self.assertEqual(backend["internal_ports"], [3003, 8082])
         self.assertEqual(backend["instance_size_slug"], "apps-s-1vcpu-2gb")
         worker_env = {e["key"]: e for e in backend["envs"]}
         self.assertEqual(worker_env["RUN_WORKER"]["value"], "true")
         self.assertEqual(worker_env["TENANT_RUN_MAINTENANCE"]["value"], "true")
+        self.assertEqual(worker_env["TENANT_PUBLISHING_SERVICE_TOKEN"]["type"], "SECRET")
+        web_env = {e["key"]: e for e in services["web"]["envs"]}
+        self.assertNotIn("PUBLISHING_API_URL", web_env)
         self.assertEqual(worker_env["TENANT_AUDIT_RETENTION_DATABASE_URL"]["type"], "SECRET")
         self.assertEqual({j["kind"] for j in spec["jobs"]}, {"PRE_DEPLOY"})
 
-    def test_requires_separate_database_even_with_different_credentials(self):
-        self.secrets["POSTIZ_DATABASE_URL"] = "postgresql://other:password@db:5432/tenant"
-        with self.assertRaisesRegex(ValueError, "separate database"):
-            render_spec.render(self.base, self.secrets)
+    def test_social_and_tenant_services_share_one_database(self):
+        spec = render_spec.render(self.base, self.secrets)
+        backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
+        backend_env = {item["key"]: item["value"] for item in backend["envs"]}
+        migration = next(item for item in spec["jobs"] if item["name"] == "postiz-migrate")
+        migration_env = {item["key"]: item["value"] for item in migration["envs"]}
+        self.assertEqual(backend_env["DATABASE_URL"], self.secrets["DATABASE_URL"])
+        self.assertEqual(backend_env["TENANT_DATABASE_URL"], self.secrets["DATABASE_URL"])
+        self.assertEqual(migration_env["DATABASE_URL"], self.secrets["DATABASE_URL"])
+        self.assertEqual(backend_env["TENANT_PUBLISHING_DIRECT_PROVIDER"], "false")
+        self.secrets["ENABLE_DIRECT_PROVIDER"] = "true"
+        enabled = render_spec.render(self.base, self.secrets)
+        enabled_env = {item["key"]: item["value"] for item in next(item for item in enabled["services"] if item["name"] == "screenshot-studio-backend")["envs"]}
+        self.assertEqual(enabled_env["TENANT_PUBLISHING_DIRECT_PROVIDER"], "true")
 
     def test_optional_social_credentials_only_reach_backend(self):
         keys = ("X_API_KEY", "X_API_SECRET", "FACEBOOK_APP_ID", "FACEBOOK_APP_SECRET",
@@ -81,6 +95,14 @@ class DeploymentSpecTest(unittest.TestCase):
         rerendered = render_spec.render(spec, self.secrets)
         backend = next(item for item in rerendered["services"] if item["name"] == "screenshot-studio-backend")
         self.assertTrue({"X_API_KEY", "X_API_SECRET"}.isdisjoint({item["key"] for item in backend["envs"]}))
+
+    def test_ent_publishing_requires_explicit_cutover_flag(self):
+        self.secrets["ENABLE_ENT_PUBLISHING"] = "true"
+        spec = render_spec.render(self.base, self.secrets)
+        web = next(item for item in spec["services"] if item["name"] == "web")
+        envs = {item["key"]: item for item in web["envs"]}
+        self.assertEqual(envs["PUBLISHING_API_URL"]["value"], "http://screenshot-studio-backend:8082")
+        self.assertEqual(envs["PUBLISHING_SERVICE_TOKEN"]["type"], "SECRET")
 
     def test_fails_closed_for_missing_secrets_or_colliding_queues(self):
         del self.secrets["STORAGE_SERVICE_KEY"]

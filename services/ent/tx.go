@@ -28,10 +28,22 @@ type Tx struct {
 	ChannelConnection *ChannelConnectionClient
 	// CreativeVariant is the client for interacting with the CreativeVariant builders.
 	CreativeVariant *CreativeVariantClient
+	// Member is the client for interacting with the Member builders.
+	Member *MemberClient
+	// Organization is the client for interacting with the Organization builders.
+	Organization *OrganizationClient
+	// PostizTenantBinding is the client for interacting with the PostizTenantBinding builders.
+	PostizTenantBinding *PostizTenantBindingClient
 	// PublicationAttempt is the client for interacting with the PublicationAttempt builders.
 	PublicationAttempt *PublicationAttemptClient
 	// ScheduledPost is the client for interacting with the ScheduledPost builders.
 	ScheduledPost *ScheduledPostClient
+	// Session is the client for interacting with the Session builders.
+	Session *SessionClient
+	// SocialOAuthStart is the client for interacting with the SocialOAuthStart builders.
+	SocialOAuthStart *SocialOAuthStartClient
+	// User is the client for interacting with the User builders.
+	User *UserClient
 	// WorkspaceDeletion is the client for interacting with the WorkspaceDeletion builders.
 	WorkspaceDeletion *WorkspaceDeletionClient
 
@@ -173,8 +185,14 @@ func (tx *Tx) init() {
 	tx.AuditOutbox = NewAuditOutboxClient(tx.config)
 	tx.ChannelConnection = NewChannelConnectionClient(tx.config)
 	tx.CreativeVariant = NewCreativeVariantClient(tx.config)
+	tx.Member = NewMemberClient(tx.config)
+	tx.Organization = NewOrganizationClient(tx.config)
+	tx.PostizTenantBinding = NewPostizTenantBindingClient(tx.config)
 	tx.PublicationAttempt = NewPublicationAttemptClient(tx.config)
 	tx.ScheduledPost = NewScheduledPostClient(tx.config)
+	tx.Session = NewSessionClient(tx.config)
+	tx.SocialOAuthStart = NewSocialOAuthStartClient(tx.config)
+	tx.User = NewUserClient(tx.config)
 	tx.WorkspaceDeletion = NewWorkspaceDeletionClient(tx.config)
 }
 

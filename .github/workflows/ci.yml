@@ -216,3 +216,39 @@ jobs:
       - if: always()
         name: Remove local stack data
         run: ./bin/studio down --purge --yes
+
+  social-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      E2E_DOCKER_HOST_GATEWAY: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install browser test dependencies
+        timeout-minutes: 8
+        run: |
+          npm ci
+          DATABASE_URL=postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio npx prisma generate
+          npx playwright install --with-deps chromium
+      - name: Start local web and private storage
+        run: ./bin/studio up
+      - name: Verify local stack health
+        run: ./bin/studio smoke
+      - name: Run real Go social publishing gate
+        run: ./bin/social-gate
+      - if: failure()
+        name: Upload browser test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: social-gate-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+      - if: always()
+        name: Remove local stack data
+        run: ./bin/studio down --purge --yes

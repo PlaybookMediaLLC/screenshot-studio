@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.16.2...v1.16.3) (2026-10-13)
+
+
+### Bug Fixes
+
+* pass social app credentials to local Go services ([#79](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/79)) ([3f5d521](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/3f5d521fe58001a17918b4090d2e1b7a9022f19c))
+
 ## [1.16.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.16.1...v1.16.2) (2026-10-13)
 
 

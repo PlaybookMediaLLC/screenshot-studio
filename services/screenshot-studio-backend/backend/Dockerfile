@@ -4,7 +4,8 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/screenshot-studio-backend ./screenshot-studio-backend/backend/cmd/screenshot-studio-backend
+ARG GO_BUILD_TAGS=""
+RUN CGO_ENABLED=0 go build -tags "$GO_BUILD_TAGS" -trimpath -ldflags="-s -w" -o /out/screenshot-studio-backend ./screenshot-studio-backend/backend/cmd/screenshot-studio-backend
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/postiz-migrate ./screenshot-studio-backend/cmd/postiz-migrate
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/publishing-orchestrator ./orchestrator/cmd/orchestrator
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/combined-backend ./screenshot-studio-backend/backend/cmd/combined-backend

@@ -6,17 +6,17 @@ isolated live canaries, and production smoke test have evidence. Registration
 in the Go provider list or a successful schedule request is not proof of a
 published post.
 
-## Current evidence (2026-10-13)
+## Current evidence (2026-10-14)
 
 | Destination                    | Automated tests                        | Live local post                                                                                                           | Production               | Status              |
 | ------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ------------------- |
 | Personal LinkedIn              | Go and web scheduling tests pass       | Scheduled image published from private R2; [post](https://www.linkedin.com/feed/update/urn:li:share:7515573217172869120/) | Go services not deployed | Local canary passed |
-| X                              | Go adapter and signed media tests pass | No dedicated test account or developer app                                                                                | Not deployed             | Unverified          |
-| Instagram with Facebook Login  | Go adapter and signed media tests pass | No professional test account or Meta app                                                                                  | Not deployed             | Unverified          |
-| Instagram with Instagram Login | Go adapter and signed media tests pass | No professional test account or Meta app                                                                                  | Not deployed             | Unverified          |
+| X                              | Go adapter and signed media tests pass | `@yoanyombax` and a developer app exist; live posting awaits API credit                                                   | Not deployed             | Unverified          |
+| Instagram with Facebook Login  | Go adapter and signed media tests pass | Professional account and Meta app exist; linked Page and Facebook Login canary pending                                     | Not deployed             | Unverified          |
+| Instagram with Instagram Login | Go adapter, signed media, and real-service gate pass | [Scheduled image](https://www.instagram.com/p/DedbtZADg8t/) and [Reel](https://www.instagram.com/reel/DedcM38jZQu/) published to `@get.eigenn` | Not deployed | Local canaries passed; 25-hour canary pending |
 | Other registered providers     | Provider-specific mock tests vary      | No live canary                                                                                                            | Not deployed             | Unverified          |
 
-On 2026-10-13, `go test -p 1 ./...` passed for the updated Go tree. TypeScript
+On 2026-10-14, `go test -p 1 -count=1 ./...` passed for the updated Go tree. TypeScript
 checking, formatting, five OAuth callback unit tests, and all nine Playwright
 tests in `e2e/postiz-scheduling.spec.ts` pass locally in one run. The Playwright tests
 exercise the real web HTTP routes and tenant database with a mock Go API. They
@@ -30,7 +30,7 @@ real-service gate below covers the Go API and worker with a fake provider.
 The isolated real-service gate now runs from `./bin/social-gate` and in the
 `social-gate` CI job. It starts a separate Go PostgreSQL, Redis, Temporal, Go
 API, Go worker, and build-tag-only fake social provider alongside the local web
-app and private RustFS bucket. The local run passed with the real worker:
+app and private RustFS bucket. The local run passed again on 2026-10-14 with the real worker:
 duplicate schedule and dispatch produced one remote receipt; a post originally
 scheduled 25 hours ahead stayed queued until the test moved it due; signed
 media had the expected bytes and content and was signed at dispatch; the Go row retained
@@ -38,6 +38,24 @@ an unsigned stable path; cancellation produced no request; HTTP 429 and 500
 each retried into one remote post; an expired credential failed without a
 remote post. The test also checks the web and Go final receipts. This gate
 does not establish that X or Instagram can publish through their live APIs.
+
+Instagram Login now has live local evidence. The approved OAuth grant connected
+`@get.eigenn` to the Go organization and an active Screenshot Studio channel.
+The scheduled feed image (Go post `cmv7k236y000101o8639gj9ls`) published with
+remote ID `17950460037274963`; the scheduled Reel (Go post
+`cmv7k2hsx000201o8bj6sgjgy`) published with remote ID
+`18143286247533551`. Both provider pages displayed the intended synthetic
+caption and media. The profile showed exactly two posts, one for each canary.
+The Go rows retained unsigned, stable R2 object paths; unsigned bucket requests
+failed, while Instagram fetched both files during publication. A third image
+(Go post `cmv7k7kom000301o8f0hm06dt`) is queued for
+2026-10-15 04:37:51 UTC, 25 hours after creation. Its actual worker signature,
+remote receipt, and visible media remain to be checked after that time.
+
+The test account has two-factor authentication off by the owner's choice.
+Screenshot Studio's normal Connect start route requires 2FA and was therefore
+not exercised live. A session-bound test state allowed the callback and
+persistent connection to be verified without changing that product rule.
 
 Run it after `./bin/studio up` and `./bin/studio smoke`:
 
@@ -109,9 +127,10 @@ variants. It stores the Go one-use state against the active web organization,
 user, and session, forwards callbacks to Go, and registers the returned Go
 destination only after checking the operator binding. Instagram with Facebook
 Login includes a Page selection step. The callback contract has mock tests and
-web-route end-to-end tests; the live provider flows still need evidence before
-live canaries. A successful Go adapter unit test or callback mock does not
-replace this gate.
+web-route end-to-end tests. Instagram Login's live callback and destination
+registration are verified; its normal 2FA-protected start route, X, and
+Facebook Login still need live evidence. A successful Go adapter unit test or
+callback mock does not replace this gate.
 
 ## Gate 3: isolated live canaries
 

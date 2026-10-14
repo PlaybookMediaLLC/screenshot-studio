@@ -12,7 +12,16 @@ TEMPORAL_ADDRESS="127.0.0.1:$TEMPORAL_PORT"
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/publishing-acceptance.XXXXXX")
 
 cleanup() {
+  local exit_status=$?
   set +e
+  if [[ "$exit_status" -ne 0 ]]; then
+    for file in backend.log orchestrator.log boundary.out connection.json post.json; do
+      if [[ -f "$WORK/$file" ]]; then
+        echo "Acceptance diagnostic: $file" >&2
+        tail -n 40 "$WORK/$file" >&2
+      fi
+    done
+  fi
   for file in backend.pid orchestrator.pid boundary.pid temporal.pid; do
     if [[ -f "$WORK/$file" ]]; then
       pid=$(cat "$WORK/$file")
@@ -57,6 +66,8 @@ INSERT INTO session (id, "expiresAt", token, "createdAt", "updatedAt", "userId",
 VALUES ('session_acceptance', now() + interval '1 hour', 'acceptance-session-token', now(), now(), 'user_acceptance', 'org_acceptance');
 INSERT INTO member (id, "organizationId", "userId", role, "createdAt")
 VALUES ('member_acceptance', 'org_acceptance', 'user_acceptance', 'publisher', now());
+INSERT INTO postiz_tenant_binding ("organizationId", "goOrganizationId", "secretReference", "createdAt")
+VALUES ('org_acceptance', 'go-org-acceptance', 'POSTIZ_API_KEY', now());
 INSERT INTO brand_kit (id, "organizationId", name, version, definition, status, "createdAt", "updatedAt")
 VALUES ('brand_acceptance', 'org_acceptance', 'Acceptance Brand', 1, '{}'::jsonb, 'ACTIVE', now(), now());
 INSERT INTO creative_template (id, "organizationId", name, version, definition, status, "createdAt", "updatedAt")
@@ -101,6 +112,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/health': return self._json(200, {'status': 'ok'})
         self.record(b'')
+        if self.path == '/api/public/v1/me':
+            return self._json(200, {'organization': {'id': 'go-org-acceptance'}})
+        if self.path == '/api/public/v1/integrations':
+            return self._json(200, [{'id': 'postiz-acceptance', 'identifier': 'x', 'disabled': False}])
         if self.path.startswith('/api/public/v1/posts?'):
             return self._json(200, {'posts': [{'id': 'postiz-acceptance', 'releaseId': 'post-acceptance', 'state': 'PUBLISHED'}]})
         if self.path == '/object/test-bucket/org/org_acceptance/asset.png' and self.headers.get('authorization') == 'Bearer storage-key' and self.headers.get('apikey') == 'storage-key':
@@ -174,7 +189,7 @@ attempt=$(psql "$DATABASE_URL" -AtF '|' -c "SELECT \"attemptNumber\", outcome::t
 [[ "$attempt" == '1|SUCCEEDED|post-acceptance|' ]]
 actions=$(psql "$DATABASE_URL" -Atc "SELECT action FROM audit_log WHERE \"organizationId\"='org_acceptance' ORDER BY \"createdAt\", id")
 for expected in post.connection_created post.scheduled post.cancelled post.published; do grep -qx "$expected" <<<"$actions"; done
-[[ "$(wc -l <"$WORK/boundary.log" | tr -d ' ')" == 8 ]]
+[[ "$(wc -l <"$WORK/boundary.log" | tr -d ' ')" == 10 ]]
 if grep -q 'unhandled signals' "$WORK/orchestrator.log"; then
   echo "Temporal workflow left a signal unhandled" >&2
   exit 1

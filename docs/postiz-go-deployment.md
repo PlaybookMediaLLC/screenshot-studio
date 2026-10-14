@@ -165,11 +165,14 @@ local canary, point a temporary HTTPS tunnel at the web app. Set
 `POSTIZ_GO_FRONTEND_URL` to the tunnel origin in `.local/postiz-go.env`. In
 `.local/dev.env`, set `NEXT_PUBLIC_APP_URL` to the tunnel origin, include it in
 `BETTER_AUTH_TRUSTED_ORIGINS`, and set
-`BETTER_AUTH_URL` to it if that variable is in use. Recreate the web app and Go
+`BETTER_AUTH_URL` to it if that variable is in use. Set
+`PLATFORM_ALLOWED_DEV_ORIGINS` to the tunnel hostname without a scheme or port,
+so Next.js serves the local app through the tunnel. Recreate the web app and Go
 backend, then register the exact tunnel
 `/integrations/social/instagram-standalone` callback in Meta. Visit the tunnel
-origin, sign in there, and start OAuth there: a `localhost` session cookie does
-not authenticate a callback on the tunnel hostname. After the canary, restore
+origin, sign in there, and start OAuth there with two-factor authentication
+enabled: a `localhost` session cookie does not authenticate a callback on the
+tunnel hostname. After the canary, restore
 the local web origins, recreate the services, and stop the tunnel.
 
 Set `DATABASE_URL`, `REDIS_URL`, `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`,

@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   reactCompiler: true,
   poweredByHeader: false,
+  allowedDevOrigins: process.env.PLATFORM_ALLOWED_DEV_ORIGINS?.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 
   experimental: {
     // These packages expose many icons from barrel entry points. Rewriting

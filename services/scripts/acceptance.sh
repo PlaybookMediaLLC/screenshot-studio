@@ -15,7 +15,7 @@ cleanup() {
   local exit_status=$?
   set +e
   if [[ "$exit_status" -ne 0 ]]; then
-    for file in backend.log orchestrator.log boundary.out connection.json post.json; do
+    for file in backend.log orchestrator.log boundary.log boundary.out connection.json post.json; do
       if [[ -f "$WORK/$file" ]]; then
         echo "Acceptance diagnostic: $file" >&2
         tail -n 40 "$WORK/$file" >&2
@@ -140,7 +140,7 @@ temporal operator cluster health --address "$TEMPORAL_ADDRESS" >/dev/null
 
 (cd "$SERVICES" && go build -o "$WORK/backend" ./backend/cmd/backend && go build -o "$WORK/orchestrator" ./orchestrator/cmd/orchestrator)
 DATABASE_URL="$DATABASE_URL" PORT="$ORCHESTRATOR_PORT" TEMPORAL_ADDRESS="$TEMPORAL_ADDRESS" RUN_CRON=true STORAGE_API_URL="http://127.0.0.1:$BOUNDARY_PORT" STORAGE_BUCKET=test-bucket STORAGE_SERVICE_KEY=storage-key POSTIZ_API_URL="http://127.0.0.1:$BOUNDARY_PORT/api/public/v1" POSTIZ_API_KEY=postiz-key POSTIZ_REQUEST_TIMEOUT=5s "$WORK/orchestrator" >"$WORK/orchestrator.log" 2>&1 & echo $! >"$WORK/orchestrator.pid"
-DATABASE_URL="$DATABASE_URL" PORT="$BACKEND_PORT" TEMPORAL_ADDRESS="$TEMPORAL_ADDRESS" PUBLISHING_SERVICE_TOKEN=acceptance-service PUBLISHING_ACTIVITY_TIMEOUT=5s PUBLISHING_RETRY_DELAY=100ms "$WORK/backend" >"$WORK/backend.log" 2>&1 & echo $! >"$WORK/backend.pid"
+DATABASE_URL="$DATABASE_URL" PORT="$BACKEND_PORT" TEMPORAL_ADDRESS="$TEMPORAL_ADDRESS" POSTIZ_API_URL="http://127.0.0.1:$BOUNDARY_PORT/api/public/v1" POSTIZ_API_KEY=postiz-key PUBLISHING_SERVICE_TOKEN=acceptance-service PUBLISHING_ACTIVITY_TIMEOUT=5s PUBLISHING_RETRY_DELAY=100ms "$WORK/backend" >"$WORK/backend.log" 2>&1 & echo $! >"$WORK/backend.pid"
 for _ in $(seq 1 100); do curl -fsS "http://127.0.0.1:$BACKEND_PORT/readyz" >/dev/null 2>&1 && break; sleep 0.1; done
 curl -fsS "http://127.0.0.1:$BACKEND_PORT/readyz" >/dev/null
 for _ in $(seq 1 100); do curl -fsS "http://127.0.0.1:$ORCHESTRATOR_PORT/readyz" >/dev/null 2>&1 && break; sleep 0.1; done

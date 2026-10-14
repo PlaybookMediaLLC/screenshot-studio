@@ -8,7 +8,9 @@ services:
     command: npm run dev
     env_file: .local/dev.env
     environment:
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
       BETTER_AUTH_TRUSTED_ORIGINS: ${BETTER_AUTH_TRUSTED_ORIGINS:-http://localhost:3000}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
       NODE_ENV: development
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}

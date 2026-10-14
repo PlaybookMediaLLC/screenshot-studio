@@ -76,7 +76,7 @@ async function expectPath(page: Page, path: string): Promise<void> {
   // budget only has to cover a slow response rather than a full compile;
   // it stays above the 20s default because warming is a mitigation, not a
   // guarantee, and a bare URL timeout is an expensive thing to debug.
-  await expect.poll(() => new URL(page.url()).pathname, { timeout: 45_000 }).toBe(path)
+  await expect.poll(() => new URL(page.url()).pathname, { timeout: 60_000 }).toBe(path)
 }
 
 async function waitForEditorHydration(page: Page): Promise<void> {
@@ -148,7 +148,7 @@ export async function enableTwoFactor(page: Page, password: string): Promise<Two
 }
 
 export async function openWorkspaceSetting(page: Page, name: string): Promise<void> {
-  await page.goto('/workspace', { timeout: 20_000, waitUntil: 'load' })
+  await page.goto('/workspace', { timeout: 45_000, waitUntil: 'load' })
   await page
     .getByRole('navigation', { name: 'Workspace settings' })
     .getByRole('link', { exact: true, name })

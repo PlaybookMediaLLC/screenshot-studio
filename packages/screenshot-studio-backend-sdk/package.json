@@ -1,9 +1,28 @@
 {
-  "name": "@screenshot-studio/backend-sdk",
+  "name": "screenshot-studio-backend-sdk",
   "version": "0.1.0",
-  "private": true,
+  "description": "Typed server SDK for the Screenshot Studio Go backend",
   "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PlaybookMediaLLC/screenshot-studio.git",
+    "directory": "packages/screenshot-studio-backend-sdk"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build"
   }
 }

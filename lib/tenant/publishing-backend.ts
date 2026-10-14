@@ -6,7 +6,7 @@ import {
   ScreenshotStudioBackendSDK,
   type OAuthProvider,
   type ScheduledPost,
-} from '@/packages/screenshot-studio-backend-sdk/src'
+} from 'screenshot-studio-backend-sdk'
 
 export { BackendSDKError as PublishingBackendError }
 

@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "npx prisma generate && next dev --webpack",
     "build": "npx prisma generate && next build --webpack",
+    "build:sdk": "npm run build --prefix packages/screenshot-studio-backend-sdk",
     "start": "next start",
     "db:push": "npx prisma db push",
     "db:migrate:dev": "npx prisma migrate dev",
@@ -105,6 +106,7 @@
     "react-tweet": "^3.3.0",
     "redis": "6.2.1",
     "resend": "^6.20.0",
+    "screenshot-studio-backend-sdk": "0.1.0",
     "server-only": "0.0.1",
     "sharp": "^0.34.5",
     "sonner": "^2.0.7",

@@ -43,7 +43,7 @@ web `scheduled_post` plus a Go `Post`. This is also a domain and API migration.
 ```text
 Browser / Next.js UI
        |
-       | same-origin tRPC facade using @screenshot-studio/backend-sdk
+       | same-origin tRPC facade using screenshot-studio-backend-sdk
        v
 screenshot-studio-backend
   auth module -> session, 2FA, organization and membership
@@ -117,7 +117,8 @@ the customer path after adapter parity is proven.
 
 ### Current implementation checkpoint
 
-- The web publishing facade now calls a typed TypeScript SDK for scheduling,
+- The web publishing facade now calls the npm-published, typed TypeScript SDK
+  `screenshot-studio-backend-sdk@0.1.0` for scheduling,
   cancellation, connection listing/creation, and social OAuth when the backend
   flag is enabled. The service token stays on the Next.js server.
 - The Go publishing API uses Ent for canonical post and attempt state and

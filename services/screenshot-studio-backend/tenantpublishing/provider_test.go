@@ -41,9 +41,10 @@ func (f *fakeSigner) SignManagedURL(_ context.Context, path string) (string, err
 }
 
 type fakePoster struct {
-	calls int
-	path  string
-	err   error
+	calls  int
+	path   string
+	err    error
+	status string
 }
 
 func (f *fakePoster) Post(_ context.Context, id, token string, posts []integrations.PostDetails, _ *socialent.Integration) ([]integrations.PostResponse, error) {
@@ -55,7 +56,11 @@ func (f *fakePoster) Post(_ context.Context, id, token string, posts []integrati
 	if f.err != nil {
 		return nil, f.err
 	}
-	return []integrations.PostResponse{{PostID: "remote-post-1", Status: "posted"}}, nil
+	status := f.status
+	if status == "" {
+		status = "posted"
+	}
+	return []integrations.PostResponse{{PostID: "remote-post-1", Status: status}}, nil
 }
 
 func directFixture() (*Publisher, *fakeMedia, *fakeSigner, *fakePoster, postiz.PublishInput) {
@@ -78,6 +83,17 @@ func TestDirectPublisherUsesFreshSignedMediaAndRemoteReceipt(t *testing.T) {
 	id, err := p.Publish(context.Background(), input)
 	if err != nil || id != "remote-post-1" || media.calls != 1 || signer.calls != 1 || poster.calls != 1 || poster.path != "https://r2.example/private/image.png?fresh-signature" {
 		t.Fatalf("id=%q err=%v media=%d signer=%d provider=%d path=%q", id, err, media.calls, signer.calls, poster.calls, poster.path)
+	}
+}
+
+func TestDirectPublisherAcceptsConfirmedInstagramReceipt(t *testing.T) {
+	p, _, _, poster, input := directFixture()
+	input.Platform = "instagram-standalone"
+	p.integrations = fakeIntegrations{&socialent.Integration{ID: "destination", OrganizationID: "social-org", ProviderIdentifier: input.Platform, InternalID: "remote-user", Token: "private-token"}}
+	poster.status = "success"
+	id, err := p.Publish(context.Background(), input)
+	if err != nil || id != "remote-post-1" || poster.calls != 1 {
+		t.Fatalf("id=%q err=%v providerCalls=%d", id, err, poster.calls)
 	}
 }
 

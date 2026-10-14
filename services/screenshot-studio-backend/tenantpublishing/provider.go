@@ -148,7 +148,8 @@ func (p *Publisher) Publish(ctx context.Context, input postiz.PublishInput) (str
 		// reconciliation step must inspect the remote account before retrying.
 		return "", postiz.NewError(http.StatusBadGateway, true, fmt.Sprintf("%s publication outcome is unknown: %v", input.Platform, err))
 	}
-	if len(response) != 1 || response[0].PostID == "" || response[0].Status != "posted" {
+	if len(response) != 1 || response[0].PostID == "" ||
+		response[0].Status != "posted" && !(input.Platform == "instagram-standalone" && response[0].Status == "success") {
 		return "", postiz.NewError(http.StatusBadGateway, true, "provider returned no confirmed post receipt")
 	}
 	return response[0].PostID, nil

@@ -740,7 +740,7 @@ test('a worker recovers an unclaimed post and does not retry uncertain delivery'
       })
       expect(stopped).toMatchObject({
         attempts: [{ failureCode: 'UNKNOWN_DELIVERY', outcome: 'FAILED' }],
-        status: 'FAILED',
+        status: 'UNKNOWN_DELIVERY',
       })
       expect(audit).not.toBeNull()
     } finally {

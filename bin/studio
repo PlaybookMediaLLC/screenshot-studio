@@ -352,12 +352,16 @@ run_e2e() {
   local test_result=0
 
   load_env
+  if [[ "$manage_screenshot_mock" == "true" ]]; then
+    sync_dependencies
+  fi
   e2e_trusted_origins="$BETTER_AUTH_TRUSTED_ORIGINS,http://localhost:5680,http://host.docker.internal:5680"
   if [[ "$manage_screenshot_mock" == "true" ]]; then
     # Recreating app would strand the renderer, which shares app's network;
     # end-to-end flows do not render designs, so it is simply stopped.
     compose --profile renderer stop design-renderer >/dev/null 2>&1 || true
-    BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" SCREENSHOT_API_URL="http://screenshot-mock:5678" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" PLATFORM_AI_SCRIPTED=1 compose --profile e2e up --detach --force-recreate screenshot-mock app
+    BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" POSTIZ_API_URL="${E2E_POSTIZ_API_URL:-http://host.docker.internal:5679/api/public/v1}" SCREENSHOT_API_URL="http://screenshot-mock:5678" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" PLATFORM_AI_SCRIPTED=1 compose --profile e2e up --detach --force-recreate screenshot-mock app
+    compose exec -T app npx prisma db push --skip-generate
     wait_for_screenshot_mock
   fi
   wait_for_http "${app_url%/}/api/health" "Screenshot Studio"

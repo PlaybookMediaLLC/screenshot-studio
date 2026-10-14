@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.4](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.16.3...v1.16.4) (2026-10-14)
+
+
+### Bug Fixes
+
+* allow configured development tunnel origins ([#90](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/90)) ([24a339a](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/24a339af3e0e7467362248c5b52befedbe874ea9))
+
 ## [1.16.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.16.2...v1.16.3) (2026-10-13)
 
 

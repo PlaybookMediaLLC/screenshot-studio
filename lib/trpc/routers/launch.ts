@@ -11,7 +11,7 @@ import { proposeCampaignRevision } from '@/lib/ai/launch/revise'
 import { draftReleaseSpec } from '@/lib/ai/launch/spec'
 import { LAUNCH_AI_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
 import type { OrganizationAccess } from '@/lib/auth/access'
-import { prisma } from '@/lib/db'
+import { backendSDK } from '@/lib/backend/sdk'
 import { renderDesignForTenant } from '@/lib/design/render-design'
 import {
   createDesignRenderer,
@@ -71,11 +71,11 @@ async function allowAiAction(access: OrganizationAccess): Promise<void> {
       message: 'Too many AI requests. Wait a minute and try again.',
     })
   }
-  await consumeWorkspaceQuota(access.organizationId, 'generation:monthly')
+  await consumeWorkspaceQuota(access, 'generation:monthly')
 }
 
-async function releaseIdFor(organizationId: string, campaignId: string): Promise<string> {
-  const campaign = await loadLaunchCampaign(organizationId, campaignId)
+async function releaseIdFor(access: OrganizationAccess, campaignId: string): Promise<string> {
+  const campaign = await loadLaunchCampaign(access, campaignId)
   if (!campaign.release) throw new LaunchError('Link a release brief first.', 409)
   return campaign.release.id
 }
@@ -96,12 +96,12 @@ export const launchRouter = router({
   overview: organizationProcedure('artifact:read')
     .input(campaignInput)
     .query(async ({ ctx, input }) => {
-      const campaign = await loadLaunchCampaign(ctx.access.organizationId, input.campaignId)
+      const campaign = await loadLaunchCampaign(ctx.access, input.campaignId)
       const [specs, plans, revisions, runs] = await Promise.all([
-        campaign.release ? getReleaseSpecs(ctx.access.organizationId, campaign.release.id) : null,
-        getCampaignPlans(ctx.access.organizationId, campaign.id),
-        listRevisions(ctx.access.organizationId, campaign.id),
-        latestLaunchRuns(ctx.access.organizationId, campaign.id),
+        campaign.release ? getReleaseSpecs(ctx.access, campaign.release.id) : null,
+        getCampaignPlans(ctx.access, campaign.id),
+        listRevisions(ctx.access, campaign.id),
+        latestLaunchRuns(ctx.access, campaign.id),
       ])
       return {
         aiConfigured: isCampaignStudioConfigured(),
@@ -116,7 +116,7 @@ export const launchRouter = router({
   run: organizationProcedure('artifact:read')
     .input(z.object({ runId: z.string().cuid() }))
     .query(async ({ ctx, input }) => ({
-      run: await getLaunchRun(ctx.access.organizationId, input.runId),
+      run: await getLaunchRun(ctx.access, input.runId),
     })),
 
   spec: router({
@@ -145,9 +145,9 @@ export const launchRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        const releaseId = await releaseIdFor(ctx.access.organizationId, input.campaignId)
-        const base = await getSpecById(ctx.access.organizationId, input.baseSpecId)
-        const { latest } = await getReleaseSpecs(ctx.access.organizationId, releaseId)
+        const releaseId = await releaseIdFor(ctx.access, input.campaignId)
+        const base = await getSpecById(ctx.access, input.baseSpecId)
+        const { latest } = await getReleaseSpecs(ctx.access, releaseId)
         if (base.releaseId !== releaseId) throw new LaunchError('Spec not found.', 404)
         if (latest && latest.id !== base.id) {
           throw new LaunchError(
@@ -200,8 +200,8 @@ export const launchRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        const campaign = await loadLaunchCampaign(ctx.access.organizationId, input.campaignId)
-        const { latest } = await getCampaignPlans(ctx.access.organizationId, campaign.id)
+        const campaign = await loadLaunchCampaign(ctx.access, input.campaignId)
+        const { latest } = await getCampaignPlans(ctx.access, campaign.id)
         if (!latest || latest.id !== input.basePlanId) {
           throw new LaunchError(
             'Someone saved a newer plan. Reload to edit the latest version.',
@@ -209,9 +209,9 @@ export const launchRouter = router({
           )
         }
         const spec = latest.specId
-          ? await getSpecById(ctx.access.organizationId, latest.specId)
+          ? await getSpecById(ctx.access, latest.specId)
           : campaign.release
-            ? await getWorkingSpec(ctx.access.organizationId, campaign.release.id)
+            ? await getWorkingSpec(ctx.access, campaign.release.id)
             : null
         if (!spec) throw new LaunchError('Draft the spec first.', 409)
         const captureUrls = captureUrlsFor([
@@ -278,7 +278,7 @@ export const launchRouter = router({
     get: organizationProcedure('artifact:read')
       .input(z.object({ revisionId: z.string().cuid() }))
       .query(async ({ ctx, input }) => {
-        return { revision: await getRevision(ctx.access.organizationId, input.revisionId) }
+        return { revision: await getRevision(ctx.access, input.revisionId) }
       }),
     /** Apply the primary change and the chosen related updates; re-render changed designs. */
     accept: organizationProcedure('release:create')
@@ -296,7 +296,7 @@ export const launchRouter = router({
           const getRenderer = () => (lazy.renderer ??= createDesignRenderer())
           try {
             for (const designId of result.designIds) {
-              const design = await getDesign(ctx.access.organizationId, designId)
+              const design = await getDesign(ctx.access, designId)
               if (!design) continue
               const render = await renderDesignForTenant(ctx.access, getRenderer, design)
               rendered += 1
@@ -304,14 +304,11 @@ export const launchRouter = router({
               const critique = await reviewRevisedRender({
                 campaignId: result.revision.campaignId,
                 imageBytes: await render.readBytes(),
-                organizationId: ctx.access.organizationId,
+                tenant: ctx.access,
                 texts: design.document.texts.map((text) => text.text),
               }).catch(() => null)
               if (critique) {
-                await prisma.design.updateMany({
-                  data: { critique },
-                  where: { id: design.id, organizationId: ctx.access.organizationId },
-                })
+                await backendSDK(ctx.access).setLaunchDesignCritique(design.id, critique)
               }
             }
           } catch (error) {

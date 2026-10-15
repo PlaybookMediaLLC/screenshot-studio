@@ -21,7 +21,7 @@ export default async function CampaignLayout({ children, params }: CampaignLayou
   const { campaignId, locale } = await params
   const access = await requireCampaignPageAccess(locale)
   // Scoped to the active workspace: another workspace's id is a 404.
-  const campaign = await getCampaign(access.organization.id, campaignId)
+  const campaign = await getCampaign(access.tenant, campaignId)
   if (!campaign) notFound()
 
   return (

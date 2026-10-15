@@ -255,7 +255,8 @@ func TestAuditDrainsWireFormatAndRetryCeiling(t *testing.T) {
 		return &http.Response{StatusCode: 503, Body: io.NopCloser(strings.NewReader("")), Header: make(http.Header)}, nil
 	})}}
 	for range 9 {
-		exec(t, s.DB, `UPDATE audit_drain_delivery SET "nextAttemptAt"=now()`)
+		// timestamp(3) rounds now() up to half a millisecond into the future.
+		exec(t, s.DB, `UPDATE audit_drain_delivery SET "nextAttemptAt"=now()-interval '1 second'`)
 		run(t, s, "audit-drains")
 	}
 	if calls != 8 {

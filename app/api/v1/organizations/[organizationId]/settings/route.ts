@@ -1,15 +1,16 @@
 import { createShellJsonRoute } from '@/lib/api/v1/route'
 import { requireOrganizationPermission } from '@/lib/auth/access'
-import { prisma } from '@/lib/db'
+import { getWorkspace } from '@/lib/workspace/service'
 
 export const GET = createShellJsonRoute<unknown, { organizationId: string }>({
   name: 'organizations.settings',
   execute: async (request, { organizationId }) => {
-    await requireOrganizationPermission(request.headers, organizationId, 'workspace:read')
-    const settings = await prisma.workspaceSettings.findUnique({
-      select: { defaultPublishTime: true, description: true, locale: true, timeZone: true },
-      where: { organizationId },
-    })
+    const access = await requireOrganizationPermission(
+      request.headers,
+      organizationId,
+      'workspace:read'
+    )
+    const settings = (await getWorkspace(access))?.workspaceSettings
     return {
       settings: settings ?? {
         defaultPublishTime: '09:00',

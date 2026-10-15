@@ -1,8 +1,8 @@
 # RFC 020: Postiz Publishing Abstraction
 
-**Status:** Implemented (see `lib/tenant/postiz.ts`, `lib/tenant/publishing.ts`, `lib/tenant/scheduled-posts.ts`)
+**Status:** Implemented (see `lib/tenant/publishing-backend.ts` and `services/internal/publishing`)
 **Date:** 2026-08-17
-**Revised:** 2026-10-13
+**Revised:** 2026-10-14
 **Depends on:** RFC 005 and RFC 019
 **Owners:** Engineering
 
@@ -64,9 +64,10 @@ Postiz HTTP API                 upload media, create post
 X / LinkedIn / Instagram
 ```
 
-The adapter in `lib/tenant/postiz.ts` owns Go public API calls. The scheduling
-layer also checks the operator-provisioned web-to-Go organization binding,
-and the OAuth routes register returned Go destinations against that binding.
+The Go backend owns provider calls and scheduling state; the web reaches it
+only through `lib/tenant/publishing-backend.ts`. The backend also checks the
+operator-provisioned web-to-Go organization binding on the Postiz path, and
+the OAuth routes register returned Go destinations against that binding.
 
 ## Provider contract
 
@@ -171,10 +172,10 @@ point: observing the schedule is routine, changing it is not.
 
 Tenancy follows the platform invariant. `organizationId` is resolved from the
 session principal by `requireActiveOrganizationPermission` and is never read
-from client input. `lib/tenant/scheduled-posts.ts` resolves both the connection
-and the variant with `findFirst` scoped by `organizationId`, so a
-`channelConnectionId` naming another tenant's connection selects nothing and
-raises `ScheduledPostError` with status `404` rather than a permission error.
+from client input. The backend resolves both the connection and the variant
+scoped by `organizationId`, so a `channelConnectionId` naming another
+tenant's connection selects nothing and returns `404` rather than a
+permission error.
 The surface does not confirm the existence of records the caller cannot see.
 
 The same lookup carries two further predicates that make scheduling fail closed:

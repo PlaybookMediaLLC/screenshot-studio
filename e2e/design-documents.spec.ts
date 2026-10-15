@@ -1,29 +1,31 @@
+import { randomUUID } from 'node:crypto'
 import { getActiveOrganizationId, getE2EUrl, signUpAndCreateWorkspace } from './framework/auth'
 import { trpcQuery } from './framework/trpc'
 import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabaseClient } from './framework/services'
+import { createE2EDatabase } from './framework/services'
 
 configureE2EFlow()
 
 async function createDesign(organizationId: string) {
-  const database = createE2EDatabaseClient()
+  // cuid-shaped: design routes accept lowercase alphanumeric ids only.
+  const id = `c${randomUUID().replace(/-/g, '').slice(0, 24)}`
+  const document = {
+    annotations: [{ end: { x: 0.4, y: 0.5 }, start: { x: 0.2, y: 0.3 }, type: 'arrow' }],
+    image: { src: '/demo/notion-showcase.webp' },
+    template: 'template-midnight-focus',
+    texts: [{ fontSize: 0.04, position: { x: 50, y: 8 }, text: 'Opened from a design' }],
+    version: 1,
+  }
+  const database = createE2EDatabase()
   try {
-    return await database.design.create({
-      data: {
-        document: {
-          annotations: [{ end: { x: 0.4, y: 0.5 }, start: { x: 0.2, y: 0.3 }, type: 'arrow' }],
-          image: { src: '/demo/notion-showcase.webp' },
-          template: 'template-midnight-focus',
-          texts: [{ fontSize: 0.04, position: { x: 50, y: 8 }, text: 'Opened from a design' }],
-          version: 1,
-        },
-        name: 'E2E design',
-        organizationId,
-      },
-      select: { id: true },
-    })
+    await database.query(
+      `INSERT INTO design (id, "organizationId", name, document, "updatedAt")
+       VALUES ($1, $2, 'E2E design', $3::jsonb, now())`,
+      [id, organizationId, JSON.stringify(document)]
+    )
+    return { id }
   } finally {
-    await database.$disconnect()
+    await database.end()
   }
 }
 

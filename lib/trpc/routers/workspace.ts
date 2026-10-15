@@ -46,7 +46,7 @@ export const workspaceRouter = router({
     .input(workspaceCreateSchema)
     .mutation(async ({ ctx, input }) => createWorkspace(ctx.sessionAccess, input)),
   get: organizationProcedure('workspace:read').query(async ({ ctx }) => ({
-    workspace: await getWorkspace(ctx.access.organizationId),
+    workspace: await getWorkspace(ctx.access),
   })),
   invite: organizationProcedure('member:invite')
     .input(workspaceInviteSchema)
@@ -55,10 +55,10 @@ export const workspaceRouter = router({
     leaveWorkspace(ctx.access)
   ),
   listInvitations: organizationProcedure('invitation:read').query(async ({ ctx }) => ({
-    invitations: await listWorkspaceInvitations(ctx.access.organizationId),
+    invitations: await listWorkspaceInvitations(ctx.access),
   })),
   listMembers: organizationProcedure('member:read').query(async ({ ctx }) => ({
-    members: await listWorkspaceMembers(ctx.access.organizationId),
+    members: await listWorkspaceMembers(ctx.access),
   })),
   listMine: sessionProcedure.query(async ({ ctx }) => ({
     workspaces: await listWorkspaces(ctx.sessionAccess),

@@ -1,8 +1,8 @@
 import 'server-only'
 
 import { randomUUID } from 'node:crypto'
-import { prisma } from '@/lib/db'
-import { isWorkspaceOperational } from '@/lib/workspace/access'
+import { backendSDK } from '@/lib/backend/sdk'
+import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import { assertAuthEnvironment } from './environment'
 import {
   hasPermission,
@@ -10,7 +10,7 @@ import {
   type OrganizationRole,
   type Permission,
 } from './permissions'
-import { type Principal, type SessionPrincipal, type SupportPrincipal } from './principal'
+import { type Principal, type SessionPrincipal } from './principal'
 import { auth } from './server'
 
 const freshSessionAgeMilliseconds = 15 * 60 * 1000
@@ -56,20 +56,20 @@ export async function resolveActiveOrganizationId(
   session: AuthSession,
   userId: string
 ): Promise<string | null> {
-  if (session.activeOrganizationId) return session.activeOrganizationId
-
-  const membership = await prisma.member.findFirst({
-    orderBy: { createdAt: 'asc' },
-    select: { organizationId: true },
-    where: { userId },
+  // The backend falls back to the user's first membership and records it as
+  // the session's active workspace.
+  const access = await backendSDK({
+    organizationId: session.activeOrganizationId ?? '',
+    principal: { display: '', kind: 'session', sessionId: session.id, userId },
+    requestId: randomUUID(),
   })
-  if (!membership) return null
-
-  await prisma.session.update({
-    data: { activeOrganizationId: membership.organizationId },
-    where: { id: session.id },
-  })
-  return membership.organizationId
+    .getActiveAccess()
+    .catch((error: unknown) => {
+      // A user without any membership has no active workspace yet.
+      if (error instanceof BackendSDKError && error.status === 403) return null
+      throw error
+    })
+  return access?.organizationId ?? null
 }
 
 async function getSessionPrincipal(headers: Headers): Promise<SessionPrincipal | null> {
@@ -105,6 +105,51 @@ async function getApiKeyPrincipal(headers: Headers): Promise<Principal | null> {
   }
 }
 
+async function getBackendActiveOrganization(
+  session: { session: AuthSession; user: { email: string; id: string } },
+  requestId: string
+): Promise<OrganizationAccess> {
+  const principal: SessionPrincipal = {
+    display: session.user.email,
+    kind: 'session',
+    sessionId: session.session.id,
+    userId: session.user.id,
+  }
+  const access = await backendSDK({
+    organizationId: session.session.activeOrganizationId ?? '',
+    principal,
+    requestId,
+  }).getActiveAccess()
+  return {
+    organizationId: access.organizationId,
+    principal,
+    requestId,
+    role: normalizeOrganizationRole(access.role),
+  }
+}
+
+async function getBackendSupportContext(
+  principal: SessionPrincipal,
+  organizationId: string,
+  scope: string,
+  requestId: string
+): Promise<TenantContext> {
+  const grant = await backendSDK({ organizationId, principal, requestId }).verifySupportGrant(
+    organizationId,
+    scope
+  )
+  return {
+    organizationId,
+    principal: {
+      grantId: grant.grantId,
+      kind: 'support',
+      organizationId,
+      userId: principal.userId,
+    },
+    requestId,
+  }
+}
+
 export async function getRequestPrincipal(headers: Headers): Promise<Principal | null> {
   assertAuthEnvironment()
   return (await getApiKeyPrincipal(headers)) ?? getSessionPrincipal(headers)
@@ -123,38 +168,8 @@ async function requireActiveSessionOrganization(headers: Headers): Promise<Organ
   if (!session) {
     throw new AuthorizationError('Authentication is required.', 401)
   }
-  const activeOrganizationId = await resolveActiveOrganizationId(session.session, session.user.id)
-  if (!activeOrganizationId) {
-    throw new AuthorizationError('An active organization is required.', 403)
-  }
-
-  const member = await prisma.member.findUnique({
-    where: {
-      organizationId_userId: {
-        organizationId: activeOrganizationId,
-        userId: session.user.id,
-      },
-    },
-  })
-  if (!member) {
-    throw new AuthorizationError('You do not belong to the active organization.', 403)
-  }
-
-  if (!(await isWorkspaceOperational(member.organizationId))) {
-    throw new AuthorizationError('This workspace is unavailable.', 403)
-  }
-
-  return {
-    organizationId: member.organizationId,
-    principal: {
-      display: session.user.email,
-      kind: 'session',
-      sessionId: session.session.id,
-      userId: session.user.id,
-    },
-    requestId: getRequestId(headers),
-    role: normalizeOrganizationRole(member.role),
-  }
+  // The backend rechecks membership, role, and workspace deletion state.
+  return getBackendActiveOrganization(session, getRequestId(headers))
 }
 
 export async function requireActiveOrganizationPermission(
@@ -192,26 +207,7 @@ export async function requireSupportTenantContext(
     throw new AuthorizationError('Authentication is required.', 401)
   }
 
-  const grant = await prisma.supportAccessGrant.findFirst({
-    where: {
-      expiresAt: { gt: new Date() },
-      organizationId,
-      revokedAt: null,
-      scope,
-      userId: principal.userId,
-    },
-  })
-  if (!grant) {
-    throw new AuthorizationError('An active support grant is required.', 403)
-  }
-
-  const supportPrincipal: SupportPrincipal = {
-    grantId: grant.id,
-    kind: 'support',
-    organizationId,
-    userId: principal.userId,
-  }
-  return { organizationId, principal: supportPrincipal, requestId: getRequestId(headers) }
+  return getBackendSupportContext(principal, organizationId, scope, getRequestId(headers))
 }
 
 export async function requireSensitiveOrganizationPermission(
@@ -232,13 +228,17 @@ export async function requireSensitiveOrganizationPermission(
 }
 
 export async function requireEnterpriseFeature(
-  organizationId: string,
+  access: OrganizationAccess,
   feature: 'scimEnabled' | 'ssoEnabled'
 ): Promise<void> {
-  const settings = await prisma.organizationEnterpriseSettings.findUnique({
-    where: { organizationId },
-  })
-  if (!settings?.[feature]) {
-    throw new AuthorizationError('This organization does not have this enterprise feature.', 403)
+  try {
+    await backendSDK(access).requireEnterpriseFeature(feature)
+  } catch (error) {
+    // Callers have already passed the sensitive-permission check, so a denial
+    // here is the workspace's enterprise settings.
+    if (error instanceof BackendSDKError && error.status === 403) {
+      throw new AuthorizationError('This organization does not have this enterprise feature.', 403)
+    }
+    throw error
   }
 }

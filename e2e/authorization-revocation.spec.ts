@@ -8,27 +8,32 @@ import {
 import { browserRequest, requestJson } from './framework/browser'
 import { trpcMutation } from './framework/trpc'
 import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabaseClient } from './framework/services'
+import { createE2EDatabase, queryRow } from './framework/services'
 
 const invitationSchema = z.object({ id: z.string() })
 
 async function getMemberId(email: string, organizationId: string): Promise<string> {
-  const database = createE2EDatabaseClient()
+  const database = createE2EDatabase()
   try {
-    const user = await database.user.findUnique({ select: { id: true }, where: { email } })
+    const user = await queryRow<{ id: string }>(
+      database,
+      'SELECT id FROM "user" WHERE email = $1',
+      [email]
+    )
     if (!user) {
       throw new Error('The invited user was not created.')
     }
-    const member = await database.member.findUnique({
-      select: { id: true },
-      where: { organizationId_userId: { organizationId, userId: user.id } },
-    })
+    const member = await queryRow<{ id: string }>(
+      database,
+      'SELECT id FROM member WHERE "organizationId" = $1 AND "userId" = $2',
+      [organizationId, user.id]
+    )
     if (!member) {
       throw new Error('The invitation did not create a workspace member.')
     }
     return member.id
   } finally {
-    await database.$disconnect()
+    await database.end()
   }
 }
 

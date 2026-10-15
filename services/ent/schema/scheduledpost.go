@@ -25,7 +25,7 @@ func (ScheduledPost) Fields() []ent.Field {
 		field.String("variant_id").StorageKey("variantId").Immutable(),
 		field.String("channel_connection_id").StorageKey("channelConnectionId").Immutable(),
 		field.Time("scheduled_for").StorageKey("scheduledFor"),
-		field.Enum("status").StorageKey("status").Values("DRAFT", "SCHEDULED", "PROCESSING", "PUBLISHED", "FAILED", "CANCELLED").Default("DRAFT"),
+		field.Enum("status").StorageKey("status").Values("DRAFT", "SCHEDULED", "PROCESSING", "PUBLISHED", "FAILED", "CANCELLED", "UNKNOWN_DELIVERY").Default("DRAFT"),
 		field.String("caption").StorageKey("caption"),
 		field.String("idempotency_key").StorageKey("idempotencyKey").NotEmpty().Immutable(),
 		field.String("trigger_run_id").StorageKey("triggerRunId").Optional().Nillable(),

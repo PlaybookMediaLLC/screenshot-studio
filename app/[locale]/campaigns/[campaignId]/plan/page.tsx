@@ -21,13 +21,12 @@ type PlanPageProps = {
 export default async function PlanPage({ params, searchParams }: PlanPageProps) {
   const [{ campaignId, locale }, { version }] = await Promise.all([params, searchParams])
   const access = await requireCampaignPageAccess(locale)
-  const organizationId = access.organization.id
-  const campaign = await getCampaign(organizationId, campaignId)
+  const campaign = await getCampaign(access.tenant, campaignId)
   if (!campaign) notFound()
   const [plans, specs, runs] = await Promise.all([
-    getCampaignPlans(organizationId, campaign.id),
-    campaign.release ? getReleaseSpecs(organizationId, campaign.release.id) : null,
-    latestLaunchRuns(organizationId, campaign.id),
+    getCampaignPlans(access.tenant, campaign.id),
+    campaign.release ? getReleaseSpecs(access.tenant, campaign.release.id) : null,
+    latestLaunchRuns(access.tenant, campaign.id),
   ])
   const workingSpec = specs ? (specs.approved ?? specs.latest) : null
   if (!workingSpec) {
@@ -46,13 +45,13 @@ export default async function PlanPage({ params, searchParams }: PlanPageProps) 
     typeof version === 'string' &&
     version !== plans.latest?.id &&
     plans.versions.some((option) => option.id === version)
-      ? await getPlanById(organizationId, campaign.id, version)
+      ? await getPlanById(access.tenant, campaign.id, version)
       : plans.latest
   // Claim references resolve against the spec version the plan was built from.
   const planSpec =
     !viewed?.specId || viewed.specId === workingSpec.id
       ? workingSpec
-      : await getSpecById(organizationId, viewed.specId).catch(() => null)
+      : await getSpecById(access.tenant, viewed.specId).catch(() => null)
   const run = runs.plan
   const runFailed =
     run?.status === 'FAILED' && (!plans.latest || plans.latest.createdAt < run.startedAt)

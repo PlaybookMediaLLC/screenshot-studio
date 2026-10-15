@@ -160,9 +160,8 @@ export async function exploreDesignDirections(
           designId: design.id,
           name: proposal.title,
           previewUrl: await createTenantDownloadUrl({
-            expiresIn: 900,
-            objectKey: preview.asset.objectKey,
-            organizationId: tenant.organizationId,
+            assetId: preview.asset.id,
+            tenant,
           }).catch(() => null),
           rationale: proposal.reason,
         }

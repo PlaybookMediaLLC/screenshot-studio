@@ -1,6 +1,6 @@
 'use client'
 
-import type { CampaignStatus } from '@prisma/client'
+import type { CampaignStatus } from '@/lib/tenant/campaign-status'
 import { ArrowRight01Icon, Search01Icon } from 'hugeicons-react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'

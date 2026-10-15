@@ -82,7 +82,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'A user message is required.' }, { status: 400 })
     // One unit of the generation quota per user request, not per tool round trip.
     if (lastUser === messages.length - 1) {
-      await consumeWorkspaceQuota(access.organizationId, 'generation:monthly')
+      await consumeWorkspaceQuota(access, 'generation:monthly')
     }
     const stepsThisTurn = messages
       .slice(lastUser)

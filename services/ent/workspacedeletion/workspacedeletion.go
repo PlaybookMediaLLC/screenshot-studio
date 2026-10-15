@@ -4,6 +4,7 @@ package workspacedeletion
 
 import (
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 )
@@ -17,6 +18,22 @@ const (
 	FieldOrganizationID = "organizationId"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldRequestedByUserID holds the string denoting the requested_by_user_id field in the database.
+	FieldRequestedByUserID = "requestedByUserId"
+	// FieldScheduledFor holds the string denoting the scheduled_for field in the database.
+	FieldScheduledFor = "scheduledFor"
+	// FieldProcessingAt holds the string denoting the processing_at field in the database.
+	FieldProcessingAt = "processingAt"
+	// FieldCancelledAt holds the string denoting the cancelled_at field in the database.
+	FieldCancelledAt = "cancelledAt"
+	// FieldPurgedAt holds the string denoting the purged_at field in the database.
+	FieldPurgedAt = "purgedAt"
+	// FieldLastError holds the string denoting the last_error field in the database.
+	FieldLastError = "lastError"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "createdAt"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updatedAt"
 	// Table holds the table name of the workspacedeletion in the database.
 	Table = "workspace_deletion"
 )
@@ -26,6 +43,14 @@ var Columns = []string{
 	FieldID,
 	FieldOrganizationID,
 	FieldStatus,
+	FieldRequestedByUserID,
+	FieldScheduledFor,
+	FieldProcessingAt,
+	FieldCancelledAt,
+	FieldPurgedAt,
+	FieldLastError,
+	FieldCreatedAt,
+	FieldUpdatedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -37,6 +62,15 @@ func ValidColumn(column string) bool {
 	}
 	return false
 }
+
+var (
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
+)
 
 // Status defines the type for the "status" enum field.
 type Status string
@@ -79,4 +113,44 @@ func ByOrganizationID(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByRequestedByUserID orders the results by the requested_by_user_id field.
+func ByRequestedByUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRequestedByUserID, opts...).ToFunc()
+}
+
+// ByScheduledFor orders the results by the scheduled_for field.
+func ByScheduledFor(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldScheduledFor, opts...).ToFunc()
+}
+
+// ByProcessingAt orders the results by the processing_at field.
+func ByProcessingAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProcessingAt, opts...).ToFunc()
+}
+
+// ByCancelledAt orders the results by the cancelled_at field.
+func ByCancelledAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCancelledAt, opts...).ToFunc()
+}
+
+// ByPurgedAt orders the results by the purged_at field.
+func ByPurgedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPurgedAt, opts...).ToFunc()
+}
+
+// ByLastError orders the results by the last_error field.
+func ByLastError(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastError, opts...).ToFunc()
+}
+
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }

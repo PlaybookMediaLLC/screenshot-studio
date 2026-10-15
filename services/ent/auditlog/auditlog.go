@@ -34,6 +34,10 @@ const (
 	FieldEntityType = "entityType"
 	// FieldEntityID holds the string denoting the entity_id field in the database.
 	FieldEntityID = "entityId"
+	// FieldIPHash holds the string denoting the ip_hash field in the database.
+	FieldIPHash = "ipHash"
+	// FieldUserAgentSummary holds the string denoting the user_agent_summary field in the database.
+	FieldUserAgentSummary = "userAgentSummary"
 	// FieldMetadata holds the string denoting the metadata field in the database.
 	FieldMetadata = "metadata"
 	// FieldSearchText holds the string denoting the search_text field in the database.
@@ -55,6 +59,8 @@ var Columns = []string{
 	FieldOutcome,
 	FieldEntityType,
 	FieldEntityID,
+	FieldIPHash,
+	FieldUserAgentSummary,
 	FieldMetadata,
 	FieldSearchText,
 }
@@ -184,6 +190,16 @@ func ByEntityType(opts ...sql.OrderTermOption) OrderOption {
 // ByEntityID orders the results by the entity_id field.
 func ByEntityID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEntityID, opts...).ToFunc()
+}
+
+// ByIPHash orders the results by the ip_hash field.
+func ByIPHash(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIPHash, opts...).ToFunc()
+}
+
+// ByUserAgentSummary orders the results by the user_agent_summary field.
+func ByUserAgentSummary(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUserAgentSummary, opts...).ToFunc()
 }
 
 // BySearchText orders the results by the search_text field.

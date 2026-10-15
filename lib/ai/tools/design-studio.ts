@@ -3,7 +3,7 @@ import 'server-only'
 import { tool } from 'ai'
 import sharp from 'sharp'
 import { z } from 'zod'
-import { prisma } from '@/lib/db'
+import { backendSDK, orNull } from '@/lib/backend/sdk'
 import { designCatalogSections } from '@/lib/design/catalog'
 import { describeDesignCatalog } from '@/lib/design/catalog-sections'
 import {
@@ -75,20 +75,12 @@ export function createDesignStudioTools(
   /** Captures this campaign owns; designs may only show these. */
   async function requireCapture(assetId: string | undefined) {
     if (!assetId) return true
-    const link = await prisma.campaignAsset.findFirst({
-      select: { id: true },
-      where: {
-        assetId,
-        campaignId: scope.campaignId,
-        kind: { startsWith: 'capture-' },
-        organizationId: scope.tenant.organizationId,
-      },
-    })
-    return Boolean(link)
+    const link = await orNull(backendSDK(scope.tenant).getCampaignAsset(scope.campaignId, assetId))
+    return Boolean(link?.kind.startsWith('capture-'))
   }
 
   async function requireCampaignDesign(designId: string) {
-    const design = await getDesign(scope.tenant.organizationId, designId)
+    const design = await getDesign(scope.tenant, designId)
     return design && design.campaignId === scope.campaignId ? design : null
   }
 
@@ -203,10 +195,7 @@ export function createDesignStudioTools(
         )
       }
       if (replace) {
-        await prisma.design.updateMany({
-          data: { document, ...(name ? { name } : {}), ...(variantLabel ? { variantLabel } : {}) },
-          where: { id: design.id, organizationId: scope.tenant.organizationId },
-        })
+        await backendSDK(scope.tenant).replaceDesign(design.id, { document, name, variantLabel })
         return { designId: design.id, ok: true as const }
       }
       if (designs >= maxDesigns) return failure(`At most ${maxDesigns} designs per run.`)
@@ -255,17 +244,10 @@ export function createDesignStudioTools(
         planVersion: design.planVersion,
         variantLabel: design.variantLabel,
       }
-      await prisma.campaignAsset.upsert({
-        create: {
-          assetId: rendered.asset.id,
-          campaignId: scope.campaignId,
-          caption,
-          kind: 'design-render',
-          organizationId: scope.tenant.organizationId,
-          ...provenance,
-        },
-        update: { caption, ...provenance },
-        where: { campaignId_assetId: { assetId: rendered.asset.id, campaignId: scope.campaignId } },
+      await backendSDK(scope.tenant).linkCampaignAsset(scope.campaignId, rendered.asset.id, {
+        caption,
+        kind: 'design-render',
+        ...provenance,
       })
       if (!record.assets.some((asset) => asset.assetId === rendered.asset.id)) {
         record.assets.push({ assetId: rendered.asset.id, kind: 'design-render' })
@@ -283,10 +265,7 @@ export function createDesignStudioTools(
           texts: design.document.texts.map((text) => text.text),
         })
         if (critique) {
-          await prisma.design.updateMany({
-            data: { critique },
-            where: { id: design.id, organizationId: scope.tenant.organizationId },
-          })
+          await backendSDK(scope.tenant).setLaunchDesignCritique(design.id, critique)
           review = {
             issues: critique.issues,
             scores: `spec ${critique.specFidelity}/5, brand ${critique.brand}/5, legibility ${critique.legibility}/5`,

@@ -8,6 +8,8 @@ import (
 )
 
 var (
+	ErrUnauthorized = errors.New("publishing session is invalid or expired")
+	ErrForbidden    = errors.New("publishing permission is denied")
 	ErrConflict     = errors.New("publishing resource already exists")
 	ErrInvalidState = errors.New("publishing resource is in an invalid state")
 	ErrNotFound     = errors.New("publishing resource was not found")

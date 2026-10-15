@@ -38,6 +38,10 @@ type AuditLog struct {
 	EntityType string `json:"entity_type,omitempty"`
 	// EntityID holds the value of the "entity_id" field.
 	EntityID *string `json:"entity_id,omitempty"`
+	// IPHash holds the value of the "ip_hash" field.
+	IPHash *string `json:"ip_hash,omitempty"`
+	// UserAgentSummary holds the value of the "user_agent_summary" field.
+	UserAgentSummary *string `json:"user_agent_summary,omitempty"`
 	// Metadata holds the value of the "metadata" field.
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 	// SearchText holds the value of the "search_text" field.
@@ -52,7 +56,7 @@ func (*AuditLog) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case auditlog.FieldMetadata:
 			values[i] = new([]byte)
-		case auditlog.FieldID, auditlog.FieldOrganizationID, auditlog.FieldRequestID, auditlog.FieldActorType, auditlog.FieldActorUserID, auditlog.FieldActorDisplay, auditlog.FieldAction, auditlog.FieldOutcome, auditlog.FieldEntityType, auditlog.FieldEntityID, auditlog.FieldSearchText:
+		case auditlog.FieldID, auditlog.FieldOrganizationID, auditlog.FieldRequestID, auditlog.FieldActorType, auditlog.FieldActorUserID, auditlog.FieldActorDisplay, auditlog.FieldAction, auditlog.FieldOutcome, auditlog.FieldEntityType, auditlog.FieldEntityID, auditlog.FieldIPHash, auditlog.FieldUserAgentSummary, auditlog.FieldSearchText:
 			values[i] = new(sql.NullString)
 		case auditlog.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -140,6 +144,20 @@ func (_m *AuditLog) assignValues(columns []string, values []any) error {
 				_m.EntityID = new(string)
 				*_m.EntityID = value.String
 			}
+		case auditlog.FieldIPHash:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ip_hash", values[i])
+			} else if value.Valid {
+				_m.IPHash = new(string)
+				*_m.IPHash = value.String
+			}
+		case auditlog.FieldUserAgentSummary:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field user_agent_summary", values[i])
+			} else if value.Valid {
+				_m.UserAgentSummary = new(string)
+				*_m.UserAgentSummary = value.String
+			}
 		case auditlog.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
@@ -223,6 +241,16 @@ func (_m *AuditLog) String() string {
 	builder.WriteString(", ")
 	if v := _m.EntityID; v != nil {
 		builder.WriteString("entity_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.IPHash; v != nil {
+		builder.WriteString("ip_hash=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.UserAgentSummary; v != nil {
+		builder.WriteString("user_agent_summary=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

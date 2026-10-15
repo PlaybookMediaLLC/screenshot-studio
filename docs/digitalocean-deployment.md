@@ -1,5 +1,12 @@
 # DigitalOcean production deployment
 
+**Cutover status (2026-10-15):** The single-database Go product/SDK cutover is
+implemented and tested locally, but has not been applied to this production
+app. The deployment records below describe the earlier architecture. Deploy
+the new backend migration and image before updating the web image, then run
+test-destination canaries as described in
+[social publishing verification](social-publishing-verification.md).
+
 Production is `screenshot-studio-production` in DigitalOcean's `nyc` region,
 app ID `c525b0ba-b92a-4174-ae91-4ab4d7c92fd2`, at
 <https://shots.oppulence.io>. The local `doctl` context is `solomonai-cluster`.
@@ -7,7 +14,6 @@ app ID `c525b0ba-b92a-4174-ae91-4ab4d7c92fd2`, at
 | Component | Source | Readiness | Exposure |
 | --- | --- | --- | --- |
 | `web` | Existing pinned GHCR image | `/api/health`, port 3000 | `/` |
-| `storage` | `supabase/storage-api:v1.37.8` | `/status`, port 5000 | Internal |
 | `design-renderer` | `services/design-renderer/Dockerfile` | `/ready`, port 8080 | Internal |
 | `screenshot-studio-backend` | Public GHCR image built on GitHub | `/readyz`, port 3003 | `/postiz` on port 3000; prefix stripped |
 
@@ -24,13 +30,15 @@ and [app spec reference](https://docs.digitalocean.com/products/app-platform/ref
 
 ## Existing managed dependencies
 
-- PlanetScale: the existing application `postgres` and Storage API `storage`
-  logical databases. Postiz has its own `screenshot_studio_postiz` logical
-  database and login role on the same cluster.
+- PlanetScale: the cutover uses one Screenshot Studio PostgreSQL logical
+  database and its `public` schema for auth, product, and social tables.
+  Previous application, storage, and Postiz databases remain read-only for
+  rollback until the cutover is accepted; they are not runtime dependencies.
 - Upstash: the existing Screenshot Studio Redis instance. Postiz uses that
   instance too; its URL is independently configurable with `POSTIZ_REDIS_URL`.
-- R2: the existing tenant bucket and the dedicated private Postiz media bucket.
-  No local filesystem is used for durable media.
+- R2: the private product media bucket contains canonical assets. The legacy
+  Postiz media bucket may remain for rollback, but customer publishing signs
+  the product asset directly at dispatch. No local filesystem is durable media.
 - Temporal Cloud: `screenshot-studio-publishing.kpisa` and
   `screenshot-studio-postiz.kpisa`, both in AWS US East, with seven-day history
   retention. Each registers `organizationId` and `postId` as Keyword search
@@ -82,32 +90,37 @@ doctl --context solomonai-cluster apps update \
 
 The renderer accepts an app object, a one-element `doctl` JSON array, or a
 bare spec. It preserves unrelated components, web settings, domains, and
-ingress. It refuses missing credentials and colliding Postiz/application
-databases or Temporal namespaces. `--stack core` can bootstrap web, storage,
-and renderer without backend credentials; it does not remove already deployed
-components. Generated specs contain plaintext secrets and must never enter git
-or logs. Delete local exported secrets when finished.
+ingress. It refuses missing credentials, mismatched product database URLs, or
+colliding Temporal namespaces. It always renders the backend: the web has no
+database and calls the backend at `PUBLISHING_API_URL` with
+`PUBLISHING_SERVICE_TOKEN`. Rendering strips any database URL from the web and
+replaces `web-migrate` with `platform-migrate`. Generated specs contain
+plaintext secrets and must never enter git or logs. Delete local exported
+secrets when finished.
 
-For a web release, review pending Prisma migrations, then dispatch the `Web
-image` GitHub workflow on `main` with `deploy=true`. It builds the web image on
-GitHub, refreshes encrypted web and migration credentials from Infisical, and
-updates both web and `web-migrate` to the same commit SHA tag. App Platform does
-not deploy uncommitted files.
+For a web release, dispatch the `Web image` GitHub workflow on `main` with
+`deploy=true`. It builds the web image on GitHub, refreshes encrypted web
+credentials from Infisical, removes any web database URL, and updates web to
+the commit SHA tag. It refuses an app that still has `web-migrate`: deploy the
+backend first. App Platform does not deploy uncommitted files.
 
 ## Migrations and database permissions
 
-`web-migrate` runs the image's Prisma CLI with `MIGRATION_DATABASE_URL` before
-deployment. `postiz-migrate` runs `/postiz-migrate` against only the Postiz
-database. A migration failure stops the deployment. Never use `db push` or Ent
-automatic schema creation in production.
+`platform-migrate` runs the backend image's `/platform-migrate` with
+`MIGRATION_DATABASE_URL` before deployment. It applies the product SQL in
+`services/platformmigrations/sql` and the social SQL in
+`services/screenshot-studio-backend/migrations` to the same database and
+`public` schema. It records migration history and adopts product migrations
+Prisma already applied. The `Social backend image` deploy replaces
+`web-migrate` with this single job. A migration failure stops the deployment.
+Never use `db push` or Ent automatic schema creation in production.
 
-The web and publishing runtime role has CRUD access to application tables,
-but only SELECT and INSERT on `audit_log`. The migration owner is separate.
-The storage connection role must have access to the storage schema and be able
-to assume `anon`, `authenticated`, `service_role`, and
-`supabase_storage_admin`. The [storage guide](tenant-storage.md) explains
-these grants. Storage's Node Postgres URL uses `sslmode=require`, without
-the Prisma/pgx-specific `sslrootcert=system` setting.
+The backend runtime role has CRUD access to application tables, but only
+SELECT and INSERT on `audit_log`. The web has no database role. The migration
+owner is separate.
+Asset bytes stay in private R2, signed by the backend; there is no separate
+storage service or database. The [storage guide](tenant-storage.md) covers the
+bucket settings and CORS.
 
 Before applying pending migrations, take a database backup and review their
 compatibility with the previous app. The 2026-10-13 deployment applied the
@@ -119,11 +132,13 @@ a separate operation; rolling back an app deployment does not undo migrations.
 ## Verification and rollback
 
 Wait for `ACTIVE`, then check public web health, session handling, unauthenticated
-API rejection, and an authenticated Postiz integrations read. From the web
-console, check every internal readiness endpoint in the table. Verify a signed
-storage upload/download/delete with an isolated deployment probe, and inspect
-Temporal worker logs for a completed recovery activity followed by its timer.
-Do not publish a social post as a smoke test.
+API rejection, and an authenticated social connection read through the web SDK.
+From the web console, check every internal readiness endpoint in the table.
+Verify a signed storage upload/download/delete with an isolated deployment
+probe, and inspect Temporal worker logs for a completed recovery activity
+followed by its timer. Publish only an approved, harmless canary to a dedicated
+test destination; record its canonical attempt and remote receipt before
+enabling customer traffic.
 
 Use App Platform's previous successful deployment for a code/configuration
 recovery. Keep its database compatibility in mind. The Fly deployment is
@@ -175,8 +190,8 @@ second provider delivery path.
 These jobs execute entirely in Go. They do not invoke TypeScript, a web endpoint,
 or Trigger.dev. The old Trigger task directory, SDK, project configuration,
 GitHub deployment workflow, and local development commands have been removed.
-The web's explicitly invoked outbox/audit-drain administrative endpoints remain
-for compatibility; they are not scheduled.
+The web no longer dispatches the outbox or audit drains; only the operator
+endpoint that replays a dead-lettered outbox event remains.
 
 Outbox and drain jobs enforce retry ceilings and recover stale claims. Database
 advisory locks serialize each maintenance job across worker replicas. Drain

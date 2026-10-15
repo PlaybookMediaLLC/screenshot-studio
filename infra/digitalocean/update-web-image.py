@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Update the live web image and its predeploy job without replacing the app spec."""
+"""Update the live web image without replacing the app spec.
+
+The web has no database; the backend image's platform-migrate job owns the schema.
+"""
 
 import argparse
 import copy
@@ -10,7 +13,12 @@ from pathlib import Path
 
 IMAGE = {"registry_type": "GHCR", "registry": "playbookmediallc", "repository": "screenshot-studio"}
 SERVICES = {"web", "storage", "design-renderer", "screenshot-studio-backend"}
-JOBS = {"web-migrate", "postiz-migrate"}
+JOBS = {"platform-migrate", "postiz-migrate"}
+# The web reaches data and storage only through the backend (same list as render-spec.py).
+WEB_DATABASE_KEYS = {"DATABASE_URL", "DIRECT_URL", "MIGRATION_DATABASE_URL", "AUDIT_RETENTION_DATABASE_URL",
+                     "STORAGE_SERVICE_KEY", "STORAGE_API_URL", "STORAGE_PROXY_URL", "STORAGE_BUCKET",
+                     "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_ACCOUNT_ID", "R2_BUCKET_NAME", "R2_ENDPOINT", "R2_REGION",
+                     "POSTIZ_API_URL", "POSTIZ_API_KEY"}
 
 
 def update_web_image(base, tag, secrets=None):
@@ -23,17 +31,18 @@ def update_web_image(base, tag, secrets=None):
     spec = copy.deepcopy(base.get("spec", base))
     services = {item["name"]: item for item in spec["services"]}
     jobs = {item["name"]: item for item in spec.get("jobs", [])}
+    if "web-migrate" in jobs:
+        raise ValueError("Deploy the backend first; its platform-migrate job replaces web-migrate")
     if set(services) != SERVICES or set(jobs) != JOBS:
         raise ValueError("Production topology changed; inspect the app before updating web")
 
-    image = dict(IMAGE, tag=tag)
-    for component in (services["web"], jobs["web-migrate"]):
-        current = component.get("image", {})
-        if any(current.get(key) != value for key, value in IMAGE.items()):
-            raise ValueError(f"{component['name']} image source changed")
-        component["image"] = copy.deepcopy(image)
+    web = services["web"]
+    current = web.get("image", {})
+    if any(current.get(key) != value for key, value in IMAGE.items()):
+        raise ValueError("web image source changed")
+    web["image"] = dict(IMAGE, tag=tag)
 
-    web_envs = services["web"].setdefault("envs", [])
+    web_envs = web["envs"] = [item for item in web.get("envs", []) if item["key"] not in WEB_DATABASE_KEYS]
     source = next((item for item in web_envs if item["key"] == "CLIENT_IP_SOURCE"), None)
     if source is None:
         web_envs.append({"key": "CLIENT_IP_SOURCE", "value": "digitalocean",
@@ -42,15 +51,12 @@ def update_web_image(base, tag, secrets=None):
         source["value"] = "digitalocean"
 
     if secrets is not None:
-        for component in (services["web"], jobs["web-migrate"]):
-            for item in component.get("envs", []):
-                if item.get("type") != "SECRET":
-                    continue
-                source = ("MIGRATION_DATABASE_URL" if component["name"] == "web-migrate"
-                          and item["key"] == "DATABASE_URL" else item["key"])
-                if not secrets.get(source):
-                    raise ValueError(f"Missing Infisical secret: {source}")
-                item["value"] = secrets[source]
+        for item in web_envs:
+            if item.get("type") != "SECRET":
+                continue
+            if not secrets.get(item["key"]):
+                raise ValueError(f"Missing Infisical secret: {item['key']}")
+            item["value"] = secrets[item["key"]]
     return spec
 
 
@@ -67,7 +73,7 @@ def main():
     with os.fdopen(os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as output:
         os.fchmod(output.fileno(), 0o600)
         json.dump(spec, output)
-    print("Prepared web and web-migrate image update")
+    print("Prepared web image update")
 
 
 if __name__ == "__main__":

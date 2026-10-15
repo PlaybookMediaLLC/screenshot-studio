@@ -3,6 +3,8 @@
 package auditdrain
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 )
@@ -70,6 +72,31 @@ func OrganizationID(v string) predicate.AuditDrain {
 // Enabled applies equality check predicate on the "enabled" field. It's identical to EnabledEQ.
 func Enabled(v bool) predicate.AuditDrain {
 	return predicate.AuditDrain(sql.FieldEQ(FieldEnabled, v))
+}
+
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldEQ(FieldName, v))
+}
+
+// Endpoint applies equality check predicate on the "endpoint" field. It's identical to EndpointEQ.
+func Endpoint(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldEQ(FieldEndpoint, v))
+}
+
+// EncryptedSigningSecret applies equality check predicate on the "encrypted_signing_secret" field. It's identical to EncryptedSigningSecretEQ.
+func EncryptedSigningSecret(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldEQ(FieldEncryptedSigningSecret, v))
+}
+
+// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
+func CreatedAt(v time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
 // OrganizationIDEQ applies the EQ predicate on the "organization_id" field.
@@ -145,6 +172,301 @@ func EnabledEQ(v bool) predicate.AuditDrain {
 // EnabledNEQ applies the NEQ predicate on the "enabled" field.
 func EnabledNEQ(v bool) predicate.AuditDrain {
 	return predicate.AuditDrain(sql.FieldNEQ(FieldEnabled, v))
+}
+
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldEQ(FieldName, v))
+}
+
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldNEQ(FieldName, v))
+}
+
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldIn(FieldName, vs...))
+}
+
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldNotIn(FieldName, vs...))
+}
+
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldGT(FieldName, v))
+}
+
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldGTE(FieldName, v))
+}
+
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldLT(FieldName, v))
+}
+
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldLTE(FieldName, v))
+}
+
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldContains(FieldName, v))
+}
+
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldHasPrefix(FieldName, v))
+}
+
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldHasSuffix(FieldName, v))
+}
+
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldEqualFold(FieldName, v))
+}
+
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldContainsFold(FieldName, v))
+}
+
+// ProviderEQ applies the EQ predicate on the "provider" field.
+func ProviderEQ(v Provider) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldEQ(FieldProvider, v))
+}
+
+// ProviderNEQ applies the NEQ predicate on the "provider" field.
+func ProviderNEQ(v Provider) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldNEQ(FieldProvider, v))
+}
+
+// ProviderIn applies the In predicate on the "provider" field.
+func ProviderIn(vs ...Provider) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldIn(FieldProvider, vs...))
+}
+
+// ProviderNotIn applies the NotIn predicate on the "provider" field.
+func ProviderNotIn(vs ...Provider) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldNotIn(FieldProvider, vs...))
+}
+
+// EndpointEQ applies the EQ predicate on the "endpoint" field.
+func EndpointEQ(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldEQ(FieldEndpoint, v))
+}
+
+// EndpointNEQ applies the NEQ predicate on the "endpoint" field.
+func EndpointNEQ(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldNEQ(FieldEndpoint, v))
+}
+
+// EndpointIn applies the In predicate on the "endpoint" field.
+func EndpointIn(vs ...string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldIn(FieldEndpoint, vs...))
+}
+
+// EndpointNotIn applies the NotIn predicate on the "endpoint" field.
+func EndpointNotIn(vs ...string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldNotIn(FieldEndpoint, vs...))
+}
+
+// EndpointGT applies the GT predicate on the "endpoint" field.
+func EndpointGT(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldGT(FieldEndpoint, v))
+}
+
+// EndpointGTE applies the GTE predicate on the "endpoint" field.
+func EndpointGTE(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldGTE(FieldEndpoint, v))
+}
+
+// EndpointLT applies the LT predicate on the "endpoint" field.
+func EndpointLT(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldLT(FieldEndpoint, v))
+}
+
+// EndpointLTE applies the LTE predicate on the "endpoint" field.
+func EndpointLTE(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldLTE(FieldEndpoint, v))
+}
+
+// EndpointContains applies the Contains predicate on the "endpoint" field.
+func EndpointContains(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldContains(FieldEndpoint, v))
+}
+
+// EndpointHasPrefix applies the HasPrefix predicate on the "endpoint" field.
+func EndpointHasPrefix(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldHasPrefix(FieldEndpoint, v))
+}
+
+// EndpointHasSuffix applies the HasSuffix predicate on the "endpoint" field.
+func EndpointHasSuffix(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldHasSuffix(FieldEndpoint, v))
+}
+
+// EndpointEqualFold applies the EqualFold predicate on the "endpoint" field.
+func EndpointEqualFold(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldEqualFold(FieldEndpoint, v))
+}
+
+// EndpointContainsFold applies the ContainsFold predicate on the "endpoint" field.
+func EndpointContainsFold(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldContainsFold(FieldEndpoint, v))
+}
+
+// EncryptedSigningSecretEQ applies the EQ predicate on the "encrypted_signing_secret" field.
+func EncryptedSigningSecretEQ(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldEQ(FieldEncryptedSigningSecret, v))
+}
+
+// EncryptedSigningSecretNEQ applies the NEQ predicate on the "encrypted_signing_secret" field.
+func EncryptedSigningSecretNEQ(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldNEQ(FieldEncryptedSigningSecret, v))
+}
+
+// EncryptedSigningSecretIn applies the In predicate on the "encrypted_signing_secret" field.
+func EncryptedSigningSecretIn(vs ...string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldIn(FieldEncryptedSigningSecret, vs...))
+}
+
+// EncryptedSigningSecretNotIn applies the NotIn predicate on the "encrypted_signing_secret" field.
+func EncryptedSigningSecretNotIn(vs ...string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldNotIn(FieldEncryptedSigningSecret, vs...))
+}
+
+// EncryptedSigningSecretGT applies the GT predicate on the "encrypted_signing_secret" field.
+func EncryptedSigningSecretGT(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldGT(FieldEncryptedSigningSecret, v))
+}
+
+// EncryptedSigningSecretGTE applies the GTE predicate on the "encrypted_signing_secret" field.
+func EncryptedSigningSecretGTE(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldGTE(FieldEncryptedSigningSecret, v))
+}
+
+// EncryptedSigningSecretLT applies the LT predicate on the "encrypted_signing_secret" field.
+func EncryptedSigningSecretLT(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldLT(FieldEncryptedSigningSecret, v))
+}
+
+// EncryptedSigningSecretLTE applies the LTE predicate on the "encrypted_signing_secret" field.
+func EncryptedSigningSecretLTE(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldLTE(FieldEncryptedSigningSecret, v))
+}
+
+// EncryptedSigningSecretContains applies the Contains predicate on the "encrypted_signing_secret" field.
+func EncryptedSigningSecretContains(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldContains(FieldEncryptedSigningSecret, v))
+}
+
+// EncryptedSigningSecretHasPrefix applies the HasPrefix predicate on the "encrypted_signing_secret" field.
+func EncryptedSigningSecretHasPrefix(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldHasPrefix(FieldEncryptedSigningSecret, v))
+}
+
+// EncryptedSigningSecretHasSuffix applies the HasSuffix predicate on the "encrypted_signing_secret" field.
+func EncryptedSigningSecretHasSuffix(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldHasSuffix(FieldEncryptedSigningSecret, v))
+}
+
+// EncryptedSigningSecretEqualFold applies the EqualFold predicate on the "encrypted_signing_secret" field.
+func EncryptedSigningSecretEqualFold(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldEqualFold(FieldEncryptedSigningSecret, v))
+}
+
+// EncryptedSigningSecretContainsFold applies the ContainsFold predicate on the "encrypted_signing_secret" field.
+func EncryptedSigningSecretContainsFold(v string) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldContainsFold(FieldEncryptedSigningSecret, v))
+}
+
+// CreatedAtEQ applies the EQ predicate on the "created_at" field.
+func CreatedAtEQ(v time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
+func CreatedAtNEQ(v time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldNEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtIn applies the In predicate on the "created_at" field.
+func CreatedAtIn(vs ...time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
+func CreatedAtNotIn(vs ...time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldNotIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtGT applies the GT predicate on the "created_at" field.
+func CreatedAtGT(v time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldGT(FieldCreatedAt, v))
+}
+
+// CreatedAtGTE applies the GTE predicate on the "created_at" field.
+func CreatedAtGTE(v time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldGTE(FieldCreatedAt, v))
+}
+
+// CreatedAtLT applies the LT predicate on the "created_at" field.
+func CreatedAtLT(v time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldLT(FieldCreatedAt, v))
+}
+
+// CreatedAtLTE applies the LTE predicate on the "created_at" field.
+func CreatedAtLTE(v time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldNEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldNotIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldGT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldGTE(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldLT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v time.Time) predicate.AuditDrain {
+	return predicate.AuditDrain(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
 // And groups predicates with the AND operator between them.

@@ -16,11 +16,11 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/config"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/maintenance"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/media"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/storage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalmaintenance"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/tenantpublishing"
 	workflowservice "go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/worker"
@@ -56,9 +56,19 @@ func main() {
 		}
 	}
 	repository := publishing.NewRepository(db.Client)
-	httpClient := &http.Client{Timeout: cfg.ProviderTimeout}
-	assetReader := storage.New(cfg.StorageAPIURL, cfg.StorageBucket, cfg.StorageKey, httpClient)
-	provider := postiz.New(cfg.PostizAPIURL, httpClient, assetReader)
+	objectStore, err := media.NewS3StoreFromEnvironment()
+	if err != nil || objectStore == nil {
+		slog.Error("media storage unavailable", "error", err)
+		os.Exit(1)
+	}
+	tenantObjects := media.NewTenantObjects(objectStore)
+	// The social Ent projection and canonical scheduled_post use the same DB.
+	provider, closeShared, err := tenantpublishing.OpenShared(ctx, cfg.DatabaseURL, repository, tenantObjects)
+	if err != nil {
+		slog.Error("direct social publisher unavailable", "error", err)
+		os.Exit(1)
+	}
+	defer closeShared()
 	activities := temporalpublishing.NewActivities(repository, provider)
 	scheduler := temporalpublishing.NewScheduler(temporalClient, temporalpublishing.SchedulerConfig{
 		ActivityTaskQueue: cfg.ActivityTaskQueue, ActivityTimeout: cfg.ActivityTimeout,
@@ -103,7 +113,7 @@ func main() {
 			os.Exit(1)
 		}
 		defer retention.Close()
-		jobs := &maintenance.Store{DB: db.SQL, RetentionDB: retention.SQL, Objects: assetReader,
+		jobs := &maintenance.Store{DB: db.SQL, RetentionDB: retention.SQL, Objects: tenantObjects,
 			Drains: maintenance.NewDrainSender(cfg.AuditDrainEncryptionKey),
 			Mail:   &maintenance.Mailer{APIKey: cfg.ResendAPIKey, From: cfg.EmailFrom, BaseURL: cfg.AuthBaseURL, SigningSecret: cfg.AuthSecret, PostalAddress: cfg.CompanyPostalAddress},
 		}

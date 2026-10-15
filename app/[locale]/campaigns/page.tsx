@@ -16,7 +16,7 @@ type CampaignsPageProps = {
 export default async function CampaignsPage({ params }: CampaignsPageProps) {
   const { locale } = await params
   const access = await requireCampaignPageAccess(locale)
-  const campaigns = await listCampaigns(access.organization.id)
+  const campaigns = await listCampaigns(access.tenant)
 
   return (
     <PlatformShell campaignsEnabled organizationName={access.organization.name}>

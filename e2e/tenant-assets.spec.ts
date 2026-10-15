@@ -9,8 +9,7 @@ import {
   uploadSignedAsset,
 } from './framework/browser'
 import { configureE2EFlow, test, type E2EIdentity } from './framework/flow'
-import { getMaintenanceHeaders } from './framework/maintenance'
-import { createE2EDatabaseClient, grantWorkspacePlan } from './framework/services'
+import { createE2EDatabase, grantWorkspacePlan, queryRow } from './framework/services'
 
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFgAI/ScL6fQAAAABJRU5ErkJggg==',
@@ -39,17 +38,13 @@ type CrossTenantInput = {
   signed: z.infer<typeof signedAssetSchema>
 }
 
+/** The backend presigns private bucket URLs; S3 carries the lifetime in seconds. */
 function getSignedUrlLifetime(url: string): number {
-  const token = new URL(url).searchParams.get('token')
-  if (!token) {
-    throw new Error('The signed URL did not contain a token.')
+  const expires = new URL(url).searchParams.get('X-Amz-Expires')
+  if (!expires) {
+    throw new Error('The signed URL did not carry an expiry.')
   }
-
-  const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')) as {
-    exp: number
-    iat: number
-  }
-  return payload.exp - payload.iat
+  return Number(expires)
 }
 
 async function signAsset(page: Page, request: AssetRequest) {
@@ -76,64 +71,38 @@ async function assertCrossTenantIsolation({
       },
       page
     )
-    const [download, completion, deletion, upload, read, invalid, oversized, unsafe] =
-      await Promise.all([
-        browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`),
-        requestJson(page, `/api/tenant/assets/${signed.asset.id}/complete`, {}),
-        requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE'),
-        uploadSignedAsset(page, signed.uploadUrl, [...png], request.contentType),
-        downloadSignedAsset(page, downloadUrl),
-        requestJson(page, '/api/tenant/assets/upload-url', {
-          ...request,
-          contentType: 'text/plain',
-        }),
-        requestJson(page, '/api/tenant/assets/upload-url', {
-          ...request,
-          bytes: 50 * 1024 * 1024 + 1,
-        }),
-        requestJson(page, '/api/tenant/assets/upload-url', {
-          ...request,
-          fileName: '../unsafe.png',
-        }),
-      ])
+    const [download, completion, deletion, upload, invalid, oversized, unsafe] = await Promise.all([
+      browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`),
+      requestJson(page, `/api/tenant/assets/${signed.asset.id}/complete`, {}),
+      requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE'),
+      uploadSignedAsset(page, signed.uploadUrl, [...png], request.contentType),
+      requestJson(page, '/api/tenant/assets/upload-url', {
+        ...request,
+        contentType: 'text/plain',
+      }),
+      requestJson(page, '/api/tenant/assets/upload-url', {
+        ...request,
+        bytes: 50 * 1024 * 1024 + 1,
+      }),
+      requestJson(page, '/api/tenant/assets/upload-url', {
+        ...request,
+        fileName: '../unsafe.png',
+      }),
+    ])
     expect(download.status).toBe(404)
     expect(completion.status).toBe(404)
     expect(deletion.status).toBe(404)
-    expect(upload).toBe(403)
-    expect(read.status).toBe(403)
+    // Signed uploads are write-once, so a leaked URL cannot replace the bytes.
+    expect(upload).toBe(412)
+    // A signed download is a bearer token for one object (RFC 006), so its
+    // protection is the short lifetime; the expiry test below covers rejection.
+    expect(getSignedUrlLifetime(downloadUrl)).toBeLessThanOrEqual(120)
     expect(invalid.status).toBe(400)
     expect(oversized.status).toBe(400)
     expect(unsafe.status).toBe(400)
   } finally {
     await context.close()
   }
-}
-
-async function dispatchAssetDeletion(page: Page, assetId: string): Promise<void> {
-  const database = createE2EDatabaseClient()
-  try {
-    for (let attempt = 0; attempt < 5; attempt++) {
-      expect(
-        (
-          await requestJson(
-            page,
-            '/api/internal/tenant-outbox/dispatch',
-            {},
-            'POST',
-            getMaintenanceHeaders()
-          )
-        ).status
-      ).toBe(200)
-      const event = await database.outboxEvent.findFirst({
-        select: { deliveredAt: true },
-        where: { aggregateId: assetId, type: 'asset.deleted' },
-      })
-      if (event?.deliveredAt) return
-    }
-  } finally {
-    await database.$disconnect()
-  }
-  throw new Error('The asset deletion event was not dispatched.')
 }
 
 configureE2EFlow()
@@ -202,36 +171,30 @@ test('an uploaded asset stays private to its workspace through completion and do
   })
   await grantWorkspacePlan(organizationId, 'pro')
 
-  // The entitlement is read through a 5s in-process cache that no external
-  // process can clear, so the grant is not visible the instant it lands.
-  // Retry the delete until the plan gate stops rejecting it, then assert the
-  // real result. A 202 is terminal; so is any status that is not the gate.
-  let deletion = await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
-  await expect(async () => {
-    if (deletion.status === 403) {
-      deletion = await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
-      throw new Error(`plan gate still rejecting: ${JSON.stringify(deletion.body)}`)
-    }
-  }).toPass({ timeout: 30_000 })
-  expect(deletion).toMatchObject({ body: { accepted: true }, status: 202 })
+  // The backend reads the entitlement on every check, so the grant applies at once.
+  expect(
+    await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
+  ).toMatchObject({ body: { accepted: true }, status: 202 })
   expect(
     (await browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`)).status
   ).toBe(404)
-  await dispatchAssetDeletion(page, signed.asset.id)
-  expect([400, 403, 404]).toContain((await downloadSignedAsset(page, download.downloadUrl)).status)
 
-  const database = createE2EDatabaseClient()
+  // The Go maintenance worker removes the stored object when it dispatches
+  // asset.deleted; the web path only has to queue it.
+  const database = createE2EDatabase()
   try {
     expect(
-      await database.asset.findUniqueOrThrow({ where: { id: signed.asset.id } })
-    ).toMatchObject({ status: 'DELETED' })
+      await queryRow(database, 'SELECT status FROM asset WHERE id = $1', [signed.asset.id])
+    ).toEqual({ status: 'DELETED' })
     expect(
-      await database.outboxEvent.findFirst({
-        where: { aggregateId: signed.asset.id, type: 'asset.deleted' },
-      })
-    ).toMatchObject({ deliveredAt: expect.any(Date) })
+      await queryRow(
+        database,
+        `SELECT "deliveredAt" FROM outbox_event WHERE "aggregateId" = $1 AND type = 'asset.deleted' LIMIT 1`,
+        [signed.asset.id]
+      )
+    ).toEqual({ deliveredAt: null })
   } finally {
-    await database.$disconnect()
+    await database.end()
   }
 })
 

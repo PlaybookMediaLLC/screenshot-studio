@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
 import { getRouteErrorResponse } from '@/lib/api/route-errors'
 import {
   requireActiveOrganizationPermission,
   requireSensitiveOrganizationPermission,
 } from '@/lib/auth/access'
+import { backendSDK } from '@/lib/backend/sdk'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -14,21 +14,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       active.organizationId,
       'workspace:delete'
     )
-    const entitlement = await prisma.workspaceEntitlement.findUnique({
-      select: {
-        featureOverrides: true,
-        graceUntil: true,
-        lastSyncedAt: true,
-        plan: true,
-        status: true,
-        validUntil: true,
-        version: true,
-      },
-      where: { organizationId: access.organizationId },
-    })
-    return NextResponse.json({
-      entitlement: entitlement ?? { plan: 'free', status: 'active', version: 0 },
-    })
+    return NextResponse.json(await backendSDK(access).getWorkspaceEntitlement())
   } catch (error) {
     return getRouteErrorResponse(error)
   }

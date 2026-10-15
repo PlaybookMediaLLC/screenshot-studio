@@ -12,6 +12,7 @@ import (
 
 type activityStore struct {
 	retryAt *time.Time
+	unknown bool
 }
 
 func (s *activityStore) CancelIneligible(context.Context, *ent.ScheduledPost, string, string) error {
@@ -27,7 +28,10 @@ func (s *activityStore) Fail(_ context.Context, _ *ent.ScheduledPost, _ publishi
 	s.retryAt = retryAt
 	return nil
 }
-func (s *activityStore) FailUnknown(context.Context, string, string, int) error { return nil }
+func (s *activityStore) FailUnknown(context.Context, string, string, int) error {
+	s.unknown = true
+	return nil
+}
 func (s *activityStore) LoadPublishJob(context.Context, string, string) (publishing.PublishJob, error) {
 	return publishing.PublishJob{}, nil
 }
@@ -39,6 +43,45 @@ type rateLimitedProvider struct{}
 
 func (rateLimitedProvider) Publish(context.Context, postiz.PublishInput) (string, error) {
 	return "", &postiz.Error{Status: 429}
+}
+
+type uncertainProvider struct{}
+
+type directProvider struct{}
+
+func (directProvider) PublishesSynchronously() bool { return true }
+func (directProvider) Publish(context.Context, postiz.PublishInput) (string, error) {
+	return "remote-post-1", nil
+}
+func (directProvider) Status(context.Context, postiz.StatusInput) (postiz.StatusResult, error) {
+	panic("direct provider receipt must not be polled")
+}
+
+func TestSubmitActivityUsesDirectRemoteReceipt(t *testing.T) {
+	activities := NewActivities(&activityStore{}, directProvider{})
+	result, err := activities.Submit(context.Background(), SubmitInput{Job: PreparedPublication{}})
+	if err != nil || result.Outcome != OutcomePublished || result.ProviderID != "remote-post-1" {
+		t.Fatalf("result=%#v err=%v", result, err)
+	}
+}
+
+func (uncertainProvider) Publish(context.Context, postiz.PublishInput) (string, error) {
+	return "", &postiz.Error{Status: 500, UnknownDelivery: true}
+}
+func (uncertainProvider) Status(context.Context, postiz.StatusInput) (postiz.StatusResult, error) {
+	return postiz.StatusResult{}, nil
+}
+
+func TestPublishActivityMarksUncertainDeliveryWithoutRetry(t *testing.T) {
+	store := &activityStore{}
+	activities := NewActivities(store, uncertainProvider{})
+	result, err := activities.Publish(context.Background(), PublishInput{
+		AttemptNumber: 1, Job: PreparedPublication{PostID: "post-1", OrganizationID: "org-1"},
+		MaxAttempts: 3, RunID: "run-1",
+	})
+	if err != nil || !store.unknown || result.Outcome != OutcomeFailed || result.FailureCode != "UNKNOWN_DELIVERY" || store.retryAt != nil {
+		t.Fatalf("result=%#v unknown=%v retryAt=%v err=%v", result, store.unknown, store.retryAt, err)
+	}
 }
 func (rateLimitedProvider) Status(context.Context, postiz.StatusInput) (postiz.StatusResult, error) {
 	return postiz.StatusResult{}, nil

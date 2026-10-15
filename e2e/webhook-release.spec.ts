@@ -3,8 +3,7 @@ import { z } from 'zod'
 import { signUpAndCreateWorkspace } from './framework/auth'
 import { browserRequest, requestJson } from './framework/browser'
 import { configureE2EFlow, expect, test } from './framework/flow'
-import { getMaintenanceHeaders } from './framework/maintenance'
-import { createE2EDatabaseClient } from './framework/services'
+import { createE2EDatabase, queryRows } from './framework/services'
 
 const sourceSchema = z.object({ sourceApp: z.object({ id: z.string().min(1) }) })
 const webhookResultSchema = z.object({ created: z.boolean(), releaseId: z.string().uuid() })
@@ -25,36 +24,29 @@ function getWebhookSecret(): string {
   return secret
 }
 
-async function dispatchWebhookOutbox(page: Parameters<typeof requestJson>[0], releaseId: string) {
-  const database = createE2EDatabaseClient()
+// Dispatch is the Go maintenance worker's job; ingestion only queues the event.
+async function getIngestOutboxEvent(releaseId: string) {
+  const database = createE2EDatabase()
   try {
-    const pending = await database.outboxEvent.findFirst({
-      where: { aggregateId: releaseId, deliveredAt: null, type: 'release.ingested' },
-    })
-    expect(pending).not.toBeNull()
-    expect(
-      (
-        await requestJson(
-          page,
-          '/api/internal/tenant-outbox/dispatch',
-          {},
-          'POST',
-          getMaintenanceHeaders()
-        )
-      ).status
-    ).toBe(200)
-    return database.outboxEvent.findFirst({ where: { aggregateId: releaseId } })
+    return await queryRows(
+      database,
+      `SELECT * FROM outbox_event WHERE "aggregateId" = $1 AND type = 'release.ingested'`,
+      [releaseId]
+    )
   } finally {
-    await database.$disconnect()
+    await database.end()
   }
 }
 
 async function setSourceStatus(sourceAppId: string, status: 'DRAFT'): Promise<void> {
-  const database = createE2EDatabaseClient()
+  const database = createE2EDatabase()
   try {
-    await database.sourceApp.update({ data: { status }, where: { id: sourceAppId } })
+    await database.query('UPDATE source_app SET status = $1, "updatedAt" = now() WHERE id = $2', [
+      status,
+      sourceAppId,
+    ])
   } finally {
-    await database.$disconnect()
+    await database.end()
   }
 }
 
@@ -116,10 +108,12 @@ test('a signed webhook creates one release and rejects invalid replays', async (
   expect(releases.releases).toContainEqual(
     expect.objectContaining({ id: firstResult.releaseId, title: 'Webhook release' })
   )
-  await expect(dispatchWebhookOutbox(page, firstResult.releaseId)).resolves.toMatchObject({
-    deliveredAt: expect.any(Date),
-    lastError: null,
-  })
+  await expect(getIngestOutboxEvent(firstResult.releaseId)).resolves.toMatchObject([
+    {
+      deliveredAt: null,
+      payload: { releaseId: firstResult.releaseId, sourceAppId: source.id },
+    },
+  ])
 })
 
 test('a generic source rejects stale events and stops ingesting when disabled', async ({

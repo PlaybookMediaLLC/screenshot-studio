@@ -20,8 +20,11 @@ browser screenshot editor.
 1. Put new platform code in new directories and new files. Edit upstream
    editor files only when the change belongs upstream too.
 2. Do not reformat or restyle upstream files.
-3. Keep platform namespaces separate: new Prisma models, new routes, and new
+3. Keep platform namespaces separate: new Ent models, new routes, and new
    env vars get platform names, not editor names.
+4. The web never touches the database. Product data goes through the Go
+   backend and `lib/backend/sdk.ts`; `test/web-database-boundary.test.ts`
+   enforces it.
 
 ## Upstream sync
 

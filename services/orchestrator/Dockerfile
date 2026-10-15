@@ -4,7 +4,8 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/orchestrator ./orchestrator/cmd/orchestrator
+ARG GO_BUILD_TAGS
+RUN CGO_ENABLED=0 go build -tags="${GO_BUILD_TAGS}" -trimpath -ldflags="-s -w" -o /out/orchestrator ./orchestrator/cmd/orchestrator
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/orchestrator /orchestrator

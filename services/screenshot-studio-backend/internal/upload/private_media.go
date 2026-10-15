@@ -81,6 +81,20 @@ func (s *PrivateMediaSigner) SignURL(ctx context.Context, raw string) (string, e
 	return request.URL, nil
 }
 
+// SignManagedURL fails closed for a direct tenant publish. The media returned
+// by our staging API must belong to the configured private bucket.
+func (s *PrivateMediaSigner) SignManagedURL(ctx context.Context, raw string) (string, error) {
+	if s == nil {
+		return "", errors.New("private media signer is unavailable")
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != s.base.Scheme || !strings.EqualFold(u.Host, s.base.Host) ||
+		!strings.HasPrefix(u.Path, strings.TrimRight(s.base.Path, "/")+"/") {
+		return "", errors.New("media is outside the private bucket")
+	}
+	return s.SignURL(ctx, raw)
+}
+
 func privateMediaACL() types.ObjectCannedACL {
 	if os.Getenv("POSTIZ_PRIVATE_MEDIA") == "true" {
 		return ""

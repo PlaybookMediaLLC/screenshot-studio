@@ -29,14 +29,14 @@ export async function draftCampaignPlan(
   tenant: TenantContext,
   campaignId: string
 ): Promise<StoredPlan> {
-  const campaign = await loadLaunchCampaign(tenant.organizationId, campaignId)
+  const campaign = await loadLaunchCampaign(tenant, campaignId)
   if (!campaign.release) throw new LaunchError('Link a release brief before planning.', 409)
-  const spec = await getWorkingSpec(tenant.organizationId, campaign.release.id)
+  const spec = await getWorkingSpec(tenant, campaign.release.id)
   if (!spec) throw new LaunchError('Draft the spec before planning the campaign.', 409)
 
   const [brand, examples] = await Promise.all([
-    getActiveBrand(tenant.organizationId),
-    loadPreferenceExamples(tenant.organizationId),
+    getActiveBrand(tenant),
+    loadPreferenceExamples(tenant),
   ])
   const captureUrls = captureUrlsFor([campaign.productSurface?.url, ...releaseSourceUrls(campaign)])
   const prompt = [

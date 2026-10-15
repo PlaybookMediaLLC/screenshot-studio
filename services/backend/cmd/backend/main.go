@@ -12,9 +12,14 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/backend/internal/httpapi"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/config"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/media"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/quota"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
 
@@ -51,12 +56,27 @@ func main() {
 		MaxAttempts: cfg.MaxAttempts, Namespace: cfg.Namespace,
 		RetryDelay: cfg.RetryDelay, WorkflowTaskQueue: cfg.WorkflowTaskQueue,
 	})
+	objects, err := media.NewS3StoreFromEnvironment()
+	if err != nil {
+		slog.Error("media storage unavailable", "error", err)
+		os.Exit(1)
+	}
+	configuration := product.NewConfiguration(db.Client).WithObjectStore(objects).WithAuthStore(authstore.New(db.SQL))
+	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
+		counter, err := quota.NewRedisCounter(redisURL)
+		if err != nil {
+			slog.Error("invalid quota counter configuration", "error", err)
+			os.Exit(1)
+		}
+		defer counter.Close()
+		configuration.WithQuotaCounter(counter)
+	}
 
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
-		Handler:           httpapi.New(publishing.NewRepository(db.Client), scheduler, cfg.ServiceToken),
+		Handler:           httpapi.NewWithConfiguration(publishing.NewRepository(db.Client), scheduler, postiz.New(os.Getenv("POSTIZ_API_URL"), &http.Client{Timeout: 20 * time.Second}, nil), cfg.ServiceToken, configuration),
 		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       15 * time.Second,
+		ReadTimeout:       60 * time.Second,
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}

@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -35,6 +36,66 @@ func (_c *AuditDrainCreate) SetEnabled(v bool) *AuditDrainCreate {
 func (_c *AuditDrainCreate) SetNillableEnabled(v *bool) *AuditDrainCreate {
 	if v != nil {
 		_c.SetEnabled(*v)
+	}
+	return _c
+}
+
+// SetName sets the "name" field.
+func (_c *AuditDrainCreate) SetName(v string) *AuditDrainCreate {
+	_c.mutation.SetName(v)
+	return _c
+}
+
+// SetProvider sets the "provider" field.
+func (_c *AuditDrainCreate) SetProvider(v auditdrain.Provider) *AuditDrainCreate {
+	_c.mutation.SetProvider(v)
+	return _c
+}
+
+// SetNillableProvider sets the "provider" field if the given value is not nil.
+func (_c *AuditDrainCreate) SetNillableProvider(v *auditdrain.Provider) *AuditDrainCreate {
+	if v != nil {
+		_c.SetProvider(*v)
+	}
+	return _c
+}
+
+// SetEndpoint sets the "endpoint" field.
+func (_c *AuditDrainCreate) SetEndpoint(v string) *AuditDrainCreate {
+	_c.mutation.SetEndpoint(v)
+	return _c
+}
+
+// SetEncryptedSigningSecret sets the "encrypted_signing_secret" field.
+func (_c *AuditDrainCreate) SetEncryptedSigningSecret(v string) *AuditDrainCreate {
+	_c.mutation.SetEncryptedSigningSecret(v)
+	return _c
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (_c *AuditDrainCreate) SetCreatedAt(v time.Time) *AuditDrainCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *AuditDrainCreate) SetNillableCreatedAt(v *time.Time) *AuditDrainCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *AuditDrainCreate) SetUpdatedAt(v time.Time) *AuditDrainCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *AuditDrainCreate) SetNillableUpdatedAt(v *time.Time) *AuditDrainCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
 	return _c
 }
@@ -84,6 +145,18 @@ func (_c *AuditDrainCreate) defaults() {
 		v := auditdrain.DefaultEnabled
 		_c.mutation.SetEnabled(v)
 	}
+	if _, ok := _c.mutation.Provider(); !ok {
+		v := auditdrain.DefaultProvider
+		_c.mutation.SetProvider(v)
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := auditdrain.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := auditdrain.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -93,6 +166,29 @@ func (_c *AuditDrainCreate) check() error {
 	}
 	if _, ok := _c.mutation.Enabled(); !ok {
 		return &ValidationError{Name: "enabled", err: errors.New(`ent: missing required field "AuditDrain.enabled"`)}
+	}
+	if _, ok := _c.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "AuditDrain.name"`)}
+	}
+	if _, ok := _c.mutation.Provider(); !ok {
+		return &ValidationError{Name: "provider", err: errors.New(`ent: missing required field "AuditDrain.provider"`)}
+	}
+	if v, ok := _c.mutation.Provider(); ok {
+		if err := auditdrain.ProviderValidator(v); err != nil {
+			return &ValidationError{Name: "provider", err: fmt.Errorf(`ent: validator failed for field "AuditDrain.provider": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Endpoint(); !ok {
+		return &ValidationError{Name: "endpoint", err: errors.New(`ent: missing required field "AuditDrain.endpoint"`)}
+	}
+	if _, ok := _c.mutation.EncryptedSigningSecret(); !ok {
+		return &ValidationError{Name: "encrypted_signing_secret", err: errors.New(`ent: missing required field "AuditDrain.encrypted_signing_secret"`)}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "AuditDrain.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "AuditDrain.updated_at"`)}
 	}
 	return nil
 }
@@ -136,6 +232,30 @@ func (_c *AuditDrainCreate) createSpec() (*AuditDrain, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Enabled(); ok {
 		_spec.SetField(auditdrain.FieldEnabled, field.TypeBool, value)
 		_node.Enabled = value
+	}
+	if value, ok := _c.mutation.Name(); ok {
+		_spec.SetField(auditdrain.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := _c.mutation.Provider(); ok {
+		_spec.SetField(auditdrain.FieldProvider, field.TypeEnum, value)
+		_node.Provider = value
+	}
+	if value, ok := _c.mutation.Endpoint(); ok {
+		_spec.SetField(auditdrain.FieldEndpoint, field.TypeString, value)
+		_node.Endpoint = value
+	}
+	if value, ok := _c.mutation.EncryptedSigningSecret(); ok {
+		_spec.SetField(auditdrain.FieldEncryptedSigningSecret, field.TypeString, value)
+		_node.EncryptedSigningSecret = value
+	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(auditdrain.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(auditdrain.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
 	}
 	return _node, _spec
 }

@@ -66,6 +66,9 @@ func TestPrivateMediaLeavesOtherURLsAlone(t *testing.T) {
 		if err != nil || got != original {
 			t.Fatalf("unexpected change to %q: %q, %v", original, got, err)
 		}
+		if _, err := signer.SignManagedURL(context.Background(), original); err == nil {
+			t.Fatalf("direct publication accepted unmanaged media %q", original)
+		}
 	}
 }
 

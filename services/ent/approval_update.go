@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -41,6 +42,72 @@ func (_u *ApprovalUpdate) SetNillableStatus(v *approval.Status) *ApprovalUpdate 
 	return _u
 }
 
+// SetDecidedByUserID sets the "decided_by_user_id" field.
+func (_u *ApprovalUpdate) SetDecidedByUserID(v string) *ApprovalUpdate {
+	_u.mutation.SetDecidedByUserID(v)
+	return _u
+}
+
+// SetNillableDecidedByUserID sets the "decided_by_user_id" field if the given value is not nil.
+func (_u *ApprovalUpdate) SetNillableDecidedByUserID(v *string) *ApprovalUpdate {
+	if v != nil {
+		_u.SetDecidedByUserID(*v)
+	}
+	return _u
+}
+
+// ClearDecidedByUserID clears the value of the "decided_by_user_id" field.
+func (_u *ApprovalUpdate) ClearDecidedByUserID() *ApprovalUpdate {
+	_u.mutation.ClearDecidedByUserID()
+	return _u
+}
+
+// SetDecidedAt sets the "decided_at" field.
+func (_u *ApprovalUpdate) SetDecidedAt(v time.Time) *ApprovalUpdate {
+	_u.mutation.SetDecidedAt(v)
+	return _u
+}
+
+// SetNillableDecidedAt sets the "decided_at" field if the given value is not nil.
+func (_u *ApprovalUpdate) SetNillableDecidedAt(v *time.Time) *ApprovalUpdate {
+	if v != nil {
+		_u.SetDecidedAt(*v)
+	}
+	return _u
+}
+
+// ClearDecidedAt clears the value of the "decided_at" field.
+func (_u *ApprovalUpdate) ClearDecidedAt() *ApprovalUpdate {
+	_u.mutation.ClearDecidedAt()
+	return _u
+}
+
+// SetReason sets the "reason" field.
+func (_u *ApprovalUpdate) SetReason(v string) *ApprovalUpdate {
+	_u.mutation.SetReason(v)
+	return _u
+}
+
+// SetNillableReason sets the "reason" field if the given value is not nil.
+func (_u *ApprovalUpdate) SetNillableReason(v *string) *ApprovalUpdate {
+	if v != nil {
+		_u.SetReason(*v)
+	}
+	return _u
+}
+
+// ClearReason clears the value of the "reason" field.
+func (_u *ApprovalUpdate) ClearReason() *ApprovalUpdate {
+	_u.mutation.ClearReason()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *ApprovalUpdate) SetUpdatedAt(v time.Time) *ApprovalUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // Mutation returns the ApprovalMutation object of the builder.
 func (_u *ApprovalUpdate) Mutation() *ApprovalMutation {
 	return _u.mutation
@@ -48,6 +115,7 @@ func (_u *ApprovalUpdate) Mutation() *ApprovalMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *ApprovalUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -70,6 +138,14 @@ func (_u *ApprovalUpdate) Exec(ctx context.Context) error {
 func (_u *ApprovalUpdate) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *ApprovalUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := approval.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -100,6 +176,27 @@ func (_u *ApprovalUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(approval.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.DecidedByUserID(); ok {
+		_spec.SetField(approval.FieldDecidedByUserID, field.TypeString, value)
+	}
+	if _u.mutation.DecidedByUserIDCleared() {
+		_spec.ClearField(approval.FieldDecidedByUserID, field.TypeString)
+	}
+	if value, ok := _u.mutation.DecidedAt(); ok {
+		_spec.SetField(approval.FieldDecidedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DecidedAtCleared() {
+		_spec.ClearField(approval.FieldDecidedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Reason(); ok {
+		_spec.SetField(approval.FieldReason, field.TypeString, value)
+	}
+	if _u.mutation.ReasonCleared() {
+		_spec.ClearField(approval.FieldReason, field.TypeString)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(approval.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -135,6 +232,72 @@ func (_u *ApprovalUpdateOne) SetNillableStatus(v *approval.Status) *ApprovalUpda
 	return _u
 }
 
+// SetDecidedByUserID sets the "decided_by_user_id" field.
+func (_u *ApprovalUpdateOne) SetDecidedByUserID(v string) *ApprovalUpdateOne {
+	_u.mutation.SetDecidedByUserID(v)
+	return _u
+}
+
+// SetNillableDecidedByUserID sets the "decided_by_user_id" field if the given value is not nil.
+func (_u *ApprovalUpdateOne) SetNillableDecidedByUserID(v *string) *ApprovalUpdateOne {
+	if v != nil {
+		_u.SetDecidedByUserID(*v)
+	}
+	return _u
+}
+
+// ClearDecidedByUserID clears the value of the "decided_by_user_id" field.
+func (_u *ApprovalUpdateOne) ClearDecidedByUserID() *ApprovalUpdateOne {
+	_u.mutation.ClearDecidedByUserID()
+	return _u
+}
+
+// SetDecidedAt sets the "decided_at" field.
+func (_u *ApprovalUpdateOne) SetDecidedAt(v time.Time) *ApprovalUpdateOne {
+	_u.mutation.SetDecidedAt(v)
+	return _u
+}
+
+// SetNillableDecidedAt sets the "decided_at" field if the given value is not nil.
+func (_u *ApprovalUpdateOne) SetNillableDecidedAt(v *time.Time) *ApprovalUpdateOne {
+	if v != nil {
+		_u.SetDecidedAt(*v)
+	}
+	return _u
+}
+
+// ClearDecidedAt clears the value of the "decided_at" field.
+func (_u *ApprovalUpdateOne) ClearDecidedAt() *ApprovalUpdateOne {
+	_u.mutation.ClearDecidedAt()
+	return _u
+}
+
+// SetReason sets the "reason" field.
+func (_u *ApprovalUpdateOne) SetReason(v string) *ApprovalUpdateOne {
+	_u.mutation.SetReason(v)
+	return _u
+}
+
+// SetNillableReason sets the "reason" field if the given value is not nil.
+func (_u *ApprovalUpdateOne) SetNillableReason(v *string) *ApprovalUpdateOne {
+	if v != nil {
+		_u.SetReason(*v)
+	}
+	return _u
+}
+
+// ClearReason clears the value of the "reason" field.
+func (_u *ApprovalUpdateOne) ClearReason() *ApprovalUpdateOne {
+	_u.mutation.ClearReason()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *ApprovalUpdateOne) SetUpdatedAt(v time.Time) *ApprovalUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // Mutation returns the ApprovalMutation object of the builder.
 func (_u *ApprovalUpdateOne) Mutation() *ApprovalMutation {
 	return _u.mutation
@@ -155,6 +318,7 @@ func (_u *ApprovalUpdateOne) Select(field string, fields ...string) *ApprovalUpd
 
 // Save executes the query and returns the updated Approval entity.
 func (_u *ApprovalUpdateOne) Save(ctx context.Context) (*Approval, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -177,6 +341,14 @@ func (_u *ApprovalUpdateOne) Exec(ctx context.Context) error {
 func (_u *ApprovalUpdateOne) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *ApprovalUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := approval.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -224,6 +396,27 @@ func (_u *ApprovalUpdateOne) sqlSave(ctx context.Context) (_node *Approval, err 
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(approval.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.DecidedByUserID(); ok {
+		_spec.SetField(approval.FieldDecidedByUserID, field.TypeString, value)
+	}
+	if _u.mutation.DecidedByUserIDCleared() {
+		_spec.ClearField(approval.FieldDecidedByUserID, field.TypeString)
+	}
+	if value, ok := _u.mutation.DecidedAt(); ok {
+		_spec.SetField(approval.FieldDecidedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DecidedAtCleared() {
+		_spec.ClearField(approval.FieldDecidedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Reason(); ok {
+		_spec.SetField(approval.FieldReason, field.TypeString, value)
+	}
+	if _u.mutation.ReasonCleared() {
+		_spec.ClearField(approval.FieldReason, field.TypeString)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(approval.FieldUpdatedAt, field.TypeTime, value)
 	}
 	_node = &Approval{config: _u.config}
 	_spec.Assign = _node.assignValues

@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -41,6 +42,120 @@ func (_u *WorkspaceDeletionUpdate) SetNillableStatus(v *workspacedeletion.Status
 	return _u
 }
 
+// SetRequestedByUserID sets the "requested_by_user_id" field.
+func (_u *WorkspaceDeletionUpdate) SetRequestedByUserID(v string) *WorkspaceDeletionUpdate {
+	_u.mutation.SetRequestedByUserID(v)
+	return _u
+}
+
+// SetNillableRequestedByUserID sets the "requested_by_user_id" field if the given value is not nil.
+func (_u *WorkspaceDeletionUpdate) SetNillableRequestedByUserID(v *string) *WorkspaceDeletionUpdate {
+	if v != nil {
+		_u.SetRequestedByUserID(*v)
+	}
+	return _u
+}
+
+// SetScheduledFor sets the "scheduled_for" field.
+func (_u *WorkspaceDeletionUpdate) SetScheduledFor(v time.Time) *WorkspaceDeletionUpdate {
+	_u.mutation.SetScheduledFor(v)
+	return _u
+}
+
+// SetNillableScheduledFor sets the "scheduled_for" field if the given value is not nil.
+func (_u *WorkspaceDeletionUpdate) SetNillableScheduledFor(v *time.Time) *WorkspaceDeletionUpdate {
+	if v != nil {
+		_u.SetScheduledFor(*v)
+	}
+	return _u
+}
+
+// SetProcessingAt sets the "processing_at" field.
+func (_u *WorkspaceDeletionUpdate) SetProcessingAt(v time.Time) *WorkspaceDeletionUpdate {
+	_u.mutation.SetProcessingAt(v)
+	return _u
+}
+
+// SetNillableProcessingAt sets the "processing_at" field if the given value is not nil.
+func (_u *WorkspaceDeletionUpdate) SetNillableProcessingAt(v *time.Time) *WorkspaceDeletionUpdate {
+	if v != nil {
+		_u.SetProcessingAt(*v)
+	}
+	return _u
+}
+
+// ClearProcessingAt clears the value of the "processing_at" field.
+func (_u *WorkspaceDeletionUpdate) ClearProcessingAt() *WorkspaceDeletionUpdate {
+	_u.mutation.ClearProcessingAt()
+	return _u
+}
+
+// SetCancelledAt sets the "cancelled_at" field.
+func (_u *WorkspaceDeletionUpdate) SetCancelledAt(v time.Time) *WorkspaceDeletionUpdate {
+	_u.mutation.SetCancelledAt(v)
+	return _u
+}
+
+// SetNillableCancelledAt sets the "cancelled_at" field if the given value is not nil.
+func (_u *WorkspaceDeletionUpdate) SetNillableCancelledAt(v *time.Time) *WorkspaceDeletionUpdate {
+	if v != nil {
+		_u.SetCancelledAt(*v)
+	}
+	return _u
+}
+
+// ClearCancelledAt clears the value of the "cancelled_at" field.
+func (_u *WorkspaceDeletionUpdate) ClearCancelledAt() *WorkspaceDeletionUpdate {
+	_u.mutation.ClearCancelledAt()
+	return _u
+}
+
+// SetPurgedAt sets the "purged_at" field.
+func (_u *WorkspaceDeletionUpdate) SetPurgedAt(v time.Time) *WorkspaceDeletionUpdate {
+	_u.mutation.SetPurgedAt(v)
+	return _u
+}
+
+// SetNillablePurgedAt sets the "purged_at" field if the given value is not nil.
+func (_u *WorkspaceDeletionUpdate) SetNillablePurgedAt(v *time.Time) *WorkspaceDeletionUpdate {
+	if v != nil {
+		_u.SetPurgedAt(*v)
+	}
+	return _u
+}
+
+// ClearPurgedAt clears the value of the "purged_at" field.
+func (_u *WorkspaceDeletionUpdate) ClearPurgedAt() *WorkspaceDeletionUpdate {
+	_u.mutation.ClearPurgedAt()
+	return _u
+}
+
+// SetLastError sets the "last_error" field.
+func (_u *WorkspaceDeletionUpdate) SetLastError(v string) *WorkspaceDeletionUpdate {
+	_u.mutation.SetLastError(v)
+	return _u
+}
+
+// SetNillableLastError sets the "last_error" field if the given value is not nil.
+func (_u *WorkspaceDeletionUpdate) SetNillableLastError(v *string) *WorkspaceDeletionUpdate {
+	if v != nil {
+		_u.SetLastError(*v)
+	}
+	return _u
+}
+
+// ClearLastError clears the value of the "last_error" field.
+func (_u *WorkspaceDeletionUpdate) ClearLastError() *WorkspaceDeletionUpdate {
+	_u.mutation.ClearLastError()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *WorkspaceDeletionUpdate) SetUpdatedAt(v time.Time) *WorkspaceDeletionUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // Mutation returns the WorkspaceDeletionMutation object of the builder.
 func (_u *WorkspaceDeletionUpdate) Mutation() *WorkspaceDeletionMutation {
 	return _u.mutation
@@ -48,6 +163,7 @@ func (_u *WorkspaceDeletionUpdate) Mutation() *WorkspaceDeletionMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *WorkspaceDeletionUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -70,6 +186,14 @@ func (_u *WorkspaceDeletionUpdate) Exec(ctx context.Context) error {
 func (_u *WorkspaceDeletionUpdate) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *WorkspaceDeletionUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := workspacedeletion.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -97,6 +221,39 @@ func (_u *WorkspaceDeletionUpdate) sqlSave(ctx context.Context) (_node int, err 
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(workspacedeletion.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.RequestedByUserID(); ok {
+		_spec.SetField(workspacedeletion.FieldRequestedByUserID, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ScheduledFor(); ok {
+		_spec.SetField(workspacedeletion.FieldScheduledFor, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.ProcessingAt(); ok {
+		_spec.SetField(workspacedeletion.FieldProcessingAt, field.TypeTime, value)
+	}
+	if _u.mutation.ProcessingAtCleared() {
+		_spec.ClearField(workspacedeletion.FieldProcessingAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.CancelledAt(); ok {
+		_spec.SetField(workspacedeletion.FieldCancelledAt, field.TypeTime, value)
+	}
+	if _u.mutation.CancelledAtCleared() {
+		_spec.ClearField(workspacedeletion.FieldCancelledAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.PurgedAt(); ok {
+		_spec.SetField(workspacedeletion.FieldPurgedAt, field.TypeTime, value)
+	}
+	if _u.mutation.PurgedAtCleared() {
+		_spec.ClearField(workspacedeletion.FieldPurgedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.LastError(); ok {
+		_spec.SetField(workspacedeletion.FieldLastError, field.TypeString, value)
+	}
+	if _u.mutation.LastErrorCleared() {
+		_spec.ClearField(workspacedeletion.FieldLastError, field.TypeString)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(workspacedeletion.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -132,6 +289,120 @@ func (_u *WorkspaceDeletionUpdateOne) SetNillableStatus(v *workspacedeletion.Sta
 	return _u
 }
 
+// SetRequestedByUserID sets the "requested_by_user_id" field.
+func (_u *WorkspaceDeletionUpdateOne) SetRequestedByUserID(v string) *WorkspaceDeletionUpdateOne {
+	_u.mutation.SetRequestedByUserID(v)
+	return _u
+}
+
+// SetNillableRequestedByUserID sets the "requested_by_user_id" field if the given value is not nil.
+func (_u *WorkspaceDeletionUpdateOne) SetNillableRequestedByUserID(v *string) *WorkspaceDeletionUpdateOne {
+	if v != nil {
+		_u.SetRequestedByUserID(*v)
+	}
+	return _u
+}
+
+// SetScheduledFor sets the "scheduled_for" field.
+func (_u *WorkspaceDeletionUpdateOne) SetScheduledFor(v time.Time) *WorkspaceDeletionUpdateOne {
+	_u.mutation.SetScheduledFor(v)
+	return _u
+}
+
+// SetNillableScheduledFor sets the "scheduled_for" field if the given value is not nil.
+func (_u *WorkspaceDeletionUpdateOne) SetNillableScheduledFor(v *time.Time) *WorkspaceDeletionUpdateOne {
+	if v != nil {
+		_u.SetScheduledFor(*v)
+	}
+	return _u
+}
+
+// SetProcessingAt sets the "processing_at" field.
+func (_u *WorkspaceDeletionUpdateOne) SetProcessingAt(v time.Time) *WorkspaceDeletionUpdateOne {
+	_u.mutation.SetProcessingAt(v)
+	return _u
+}
+
+// SetNillableProcessingAt sets the "processing_at" field if the given value is not nil.
+func (_u *WorkspaceDeletionUpdateOne) SetNillableProcessingAt(v *time.Time) *WorkspaceDeletionUpdateOne {
+	if v != nil {
+		_u.SetProcessingAt(*v)
+	}
+	return _u
+}
+
+// ClearProcessingAt clears the value of the "processing_at" field.
+func (_u *WorkspaceDeletionUpdateOne) ClearProcessingAt() *WorkspaceDeletionUpdateOne {
+	_u.mutation.ClearProcessingAt()
+	return _u
+}
+
+// SetCancelledAt sets the "cancelled_at" field.
+func (_u *WorkspaceDeletionUpdateOne) SetCancelledAt(v time.Time) *WorkspaceDeletionUpdateOne {
+	_u.mutation.SetCancelledAt(v)
+	return _u
+}
+
+// SetNillableCancelledAt sets the "cancelled_at" field if the given value is not nil.
+func (_u *WorkspaceDeletionUpdateOne) SetNillableCancelledAt(v *time.Time) *WorkspaceDeletionUpdateOne {
+	if v != nil {
+		_u.SetCancelledAt(*v)
+	}
+	return _u
+}
+
+// ClearCancelledAt clears the value of the "cancelled_at" field.
+func (_u *WorkspaceDeletionUpdateOne) ClearCancelledAt() *WorkspaceDeletionUpdateOne {
+	_u.mutation.ClearCancelledAt()
+	return _u
+}
+
+// SetPurgedAt sets the "purged_at" field.
+func (_u *WorkspaceDeletionUpdateOne) SetPurgedAt(v time.Time) *WorkspaceDeletionUpdateOne {
+	_u.mutation.SetPurgedAt(v)
+	return _u
+}
+
+// SetNillablePurgedAt sets the "purged_at" field if the given value is not nil.
+func (_u *WorkspaceDeletionUpdateOne) SetNillablePurgedAt(v *time.Time) *WorkspaceDeletionUpdateOne {
+	if v != nil {
+		_u.SetPurgedAt(*v)
+	}
+	return _u
+}
+
+// ClearPurgedAt clears the value of the "purged_at" field.
+func (_u *WorkspaceDeletionUpdateOne) ClearPurgedAt() *WorkspaceDeletionUpdateOne {
+	_u.mutation.ClearPurgedAt()
+	return _u
+}
+
+// SetLastError sets the "last_error" field.
+func (_u *WorkspaceDeletionUpdateOne) SetLastError(v string) *WorkspaceDeletionUpdateOne {
+	_u.mutation.SetLastError(v)
+	return _u
+}
+
+// SetNillableLastError sets the "last_error" field if the given value is not nil.
+func (_u *WorkspaceDeletionUpdateOne) SetNillableLastError(v *string) *WorkspaceDeletionUpdateOne {
+	if v != nil {
+		_u.SetLastError(*v)
+	}
+	return _u
+}
+
+// ClearLastError clears the value of the "last_error" field.
+func (_u *WorkspaceDeletionUpdateOne) ClearLastError() *WorkspaceDeletionUpdateOne {
+	_u.mutation.ClearLastError()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *WorkspaceDeletionUpdateOne) SetUpdatedAt(v time.Time) *WorkspaceDeletionUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // Mutation returns the WorkspaceDeletionMutation object of the builder.
 func (_u *WorkspaceDeletionUpdateOne) Mutation() *WorkspaceDeletionMutation {
 	return _u.mutation
@@ -152,6 +423,7 @@ func (_u *WorkspaceDeletionUpdateOne) Select(field string, fields ...string) *Wo
 
 // Save executes the query and returns the updated WorkspaceDeletion entity.
 func (_u *WorkspaceDeletionUpdateOne) Save(ctx context.Context) (*WorkspaceDeletion, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -174,6 +446,14 @@ func (_u *WorkspaceDeletionUpdateOne) Exec(ctx context.Context) error {
 func (_u *WorkspaceDeletionUpdateOne) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *WorkspaceDeletionUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := workspacedeletion.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -218,6 +498,39 @@ func (_u *WorkspaceDeletionUpdateOne) sqlSave(ctx context.Context) (_node *Works
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(workspacedeletion.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.RequestedByUserID(); ok {
+		_spec.SetField(workspacedeletion.FieldRequestedByUserID, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ScheduledFor(); ok {
+		_spec.SetField(workspacedeletion.FieldScheduledFor, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.ProcessingAt(); ok {
+		_spec.SetField(workspacedeletion.FieldProcessingAt, field.TypeTime, value)
+	}
+	if _u.mutation.ProcessingAtCleared() {
+		_spec.ClearField(workspacedeletion.FieldProcessingAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.CancelledAt(); ok {
+		_spec.SetField(workspacedeletion.FieldCancelledAt, field.TypeTime, value)
+	}
+	if _u.mutation.CancelledAtCleared() {
+		_spec.ClearField(workspacedeletion.FieldCancelledAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.PurgedAt(); ok {
+		_spec.SetField(workspacedeletion.FieldPurgedAt, field.TypeTime, value)
+	}
+	if _u.mutation.PurgedAtCleared() {
+		_spec.ClearField(workspacedeletion.FieldPurgedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.LastError(); ok {
+		_spec.SetField(workspacedeletion.FieldLastError, field.TypeString, value)
+	}
+	if _u.mutation.LastErrorCleared() {
+		_spec.ClearField(workspacedeletion.FieldLastError, field.TypeString)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(workspacedeletion.FieldUpdatedAt, field.TypeTime, value)
 	}
 	_node = &WorkspaceDeletion{config: _u.config}
 	_spec.Assign = _node.assignValues

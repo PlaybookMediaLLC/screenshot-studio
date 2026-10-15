@@ -25,10 +25,8 @@ COPY . .
 ARG NEXT_PUBLIC_POSTHOG_HOST
 ARG NEXT_PUBLIC_POSTHOG_KEY
 ARG NEXT_PUBLIC_R2_PUBLIC_URL
-ARG DATABASE_URL=postgresql://screenshot_studio:screenshot_studio@localhost:5432/screenshot_studio
 
-ENV DATABASE_URL=$DATABASE_URL \
-    NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
+ENV NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
     NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
     NEXT_PUBLIC_R2_PUBLIC_URL=$NEXT_PUBLIC_R2_PUBLIC_URL
 
@@ -39,29 +37,6 @@ RUN npm run build
 RUN if [ -n "$NEXT_PUBLIC_R2_PUBLIC_URL" ]; then \
       rm -rf public/assets public/mac public/mesh public/paper public/pattern public/radiant public/raycast; \
     fi
-
-FROM dependencies AS migrate
-
-WORKDIR /app
-
-COPY prisma ./prisma
-COPY prisma.config.ts ./
-
-CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
-
-# Just the Prisma CLI, at the locked version, for App Platform's web-migrate
-# predeploy job: the standalone server has no CLI, and the migrate stage's full
-# dependency tree would multiply the image size.
-FROM base AS migrator
-
-WORKDIR /migrator
-
-COPY package-lock.json /tmp/package-lock.json
-RUN versions="$(node -p "const p = require('/tmp/package-lock.json').packages; ['prisma', 'dotenv'].map((name) => name + '@' + p['node_modules/' + name].version).join(' ')")" \
-    && npm install --no-audit --no-fund --no-package-lock $versions
-
-COPY prisma ./prisma
-COPY prisma.config.ts ./
 
 FROM base AS runner
 
@@ -78,7 +53,6 @@ RUN groupadd --system --gid 1001 nodejs \
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=migrator --chown=nextjs:nodejs /migrator ./migrator
 
 USER nextjs
 

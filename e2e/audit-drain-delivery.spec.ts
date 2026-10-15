@@ -1,44 +1,27 @@
-import { createHmac } from 'node:crypto'
 import { z } from 'zod'
 import {
   enableTwoFactor,
   getActiveOrganizationId,
   signUpAndCreateWorkspace,
 } from './framework/auth'
-import { requestJson } from './framework/browser'
-import { startHttpMockServer, type HttpMockRequest } from './framework/http-server'
+import { browserRequest, requestJson } from './framework/browser'
 import { configureE2EFlow, expect, test } from './framework/flow'
-import { getMaintenanceHeaders } from './framework/maintenance'
-import { createE2EDatabaseClient } from './framework/services'
+import { createE2EDatabase, queryRow } from './framework/services'
 
 const drainSchema = z.object({ drain: z.object({ id: z.string() }) })
-const auditEventSchema = z.object({ data: z.object({ action: z.string() }) })
 const retentionAction = 'audit.retention_changed'
-
-function getSigningSecret(): string {
-  return 'e2e-audit-drain-signing-secret'
-}
-
-function isRetentionEvent(request: HttpMockRequest): boolean {
-  return auditEventSchema.safeParse(JSON.parse(request.body)).data?.data.action === retentionAction
-}
+const signingSecret = 'e2e-audit-drain-signing-secret'
 
 configureE2EFlow()
 
-test('an audit drain signs its event, retries a failure, and records delivery', async ({
+// Signed delivery, retries, and the retry ceiling run in the Go maintenance
+// worker (services/internal/maintenance). This flow covers what the product
+// path owns: a sealed secret, one queued delivery per audited change, removal.
+test('an audit drain seals its secret, queues audited changes, and can be removed', async ({
   identity,
   page,
 }) => {
-  let retentionAttempts = 0
-  const downstream = await startHttpMockServer(async (request) => {
-    if (!isRetentionEvent(request)) {
-      return { status: 202 }
-    }
-
-    retentionAttempts += 1
-    return { status: retentionAttempts === 1 ? 503 : 202 }
-  })
-  const database = createE2EDatabaseClient()
+  const database = createE2EDatabase()
 
   try {
     await signUpAndCreateWorkspace(identity, page)
@@ -51,14 +34,19 @@ test('an audit drain signs its event, retries a failure, and records delivery', 
           name: 'E2E delivery drain',
           organizationId,
           provider: 'GENERIC',
-          signingSecret: getSigningSecret(),
+          signingSecret,
         })
       ).body
     ).drain
-    await database.auditDrain.update({
-      data: { endpoint: downstream.containerUrl },
-      where: { id: drain.id },
-    })
+    const stored = await queryRow<{ encryptedSigningSecret: string }>(
+      database,
+      'SELECT "encryptedSigningSecret" FROM audit_drain WHERE id = $1',
+      [drain.id]
+    )
+    if (!stored) throw new Error('The audit drain was not stored.')
+    expect(stored.encryptedSigningSecret).not.toContain(signingSecret)
+    expect(stored.encryptedSigningSecret.split('.')).toHaveLength(3)
+
     expect(
       (
         await requestJson(
@@ -67,57 +55,43 @@ test('an audit drain signs its event, retries a failure, and records delivery', 
           { legalHold: false, organizationId, retentionDays: 91 },
           'PUT'
         )
-      ).status
-    ).toBe(200)
+      ).body
+    ).toEqual({ legalHold: false, retentionDays: 91 })
+    expect(
+      await queryRow(
+        database,
+        `SELECT delivery.* FROM audit_drain_delivery delivery
+         JOIN audit_outbox outbox ON outbox.id = delivery."outboxId"
+         JOIN audit_log log ON log.id = outbox."auditLogId"
+         WHERE delivery."drainId" = $1 AND log.action = $2 LIMIT 1`,
+        [drain.id, retentionAction]
+      )
+    ).toMatchObject({ attemptCount: 0, deliveredAt: null, status: 'PENDING' })
 
+    const query = new URLSearchParams({ organizationId })
     expect(
       (
-        await requestJson(
-          page,
-          '/api/internal/audit-drains/dispatch',
-          {},
-          'POST',
-          getMaintenanceHeaders()
-        )
+        await browserRequest(page, `/api/enterprise/audit-drains/${drain.id}?${query}`, {
+          method: 'DELETE',
+        })
       ).status
-    ).toBe(200)
-    const firstDelivery = await database.auditDrainDelivery.findFirstOrThrow({
-      where: { drainId: drain.id, outbox: { auditLog: { action: retentionAction } } },
-    })
-    expect(firstDelivery).toMatchObject({ attemptCount: 1, deliveredAt: null, status: 'PENDING' })
-    expect(firstDelivery.lastError).toContain('503')
-    const retentionCalls = downstream.calls.filter(isRetentionEvent)
-    expect(retentionCalls).toHaveLength(1)
-    expect(retentionCalls[0]).toMatchObject({ method: 'POST' })
-    expect(retentionCalls[0]?.headers['x-screenshot-studio-signature']).toBe(
-      createHmac('sha256', getSigningSecret())
-        .update(retentionCalls[0]?.body ?? '')
-        .digest('hex')
-    )
-
-    await database.auditDrainDelivery.update({
-      data: { nextAttemptAt: new Date(0) },
-      where: { id: firstDelivery.id },
-    })
+    ).toBe(204)
     expect(
-      (
-        await requestJson(
-          page,
-          '/api/internal/audit-drains/dispatch',
-          {},
-          'POST',
-          getMaintenanceHeaders()
-        )
-      ).status
-    ).toBe(200)
-    const delivered = await database.auditDrainDelivery.findUniqueOrThrow({
-      where: { id: firstDelivery.id },
-    })
-    expect(delivered).toMatchObject({ attemptCount: 2, responseCode: 202, status: 'DELIVERED' })
-    expect(delivered.deliveredAt).toBeInstanceOf(Date)
-    expect(downstream.calls.filter(isRetentionEvent)).toHaveLength(2)
+      await queryRow(
+        database,
+        'SELECT count(*)::int AS count FROM audit_drain_delivery WHERE "drainId" = $1',
+        [drain.id]
+      )
+    ).toEqual({ count: 0 })
+    expect(
+      await queryRow(
+        database,
+        `SELECT count(*)::int AS count FROM audit_log
+         WHERE action IN ('audit.drain_created', 'audit.drain_deleted') AND "entityId" = $1`,
+        [drain.id]
+      )
+    ).toEqual({ count: 2 })
   } finally {
-    await database.$disconnect()
-    await downstream.close()
+    await database.end()
   }
 })

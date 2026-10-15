@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"time"
 )
 
 // CreativeVariant is a read-only projection of the application-owned table.
@@ -20,7 +21,17 @@ func (CreativeVariant) Fields() []ent.Field {
 		field.String("id").StorageKey("id").Immutable(),
 		field.String("organization_id").StorageKey("organizationId").Immutable(),
 		field.String("source_asset_id").StorageKey("sourceAssetId").Immutable(),
+		field.String("release_id").StorageKey("releaseId").Immutable(),
+		field.String("brand_kit_id").StorageKey("brandKitId").Immutable(),
+		field.Int("brand_kit_version").StorageKey("brandKitVersion").Immutable(),
+		field.String("template_id").StorageKey("templateId").Immutable(),
+		field.Int("template_version").StorageKey("templateVersion").Immutable(),
+		field.Int("revision").StorageKey("revision").Immutable(),
+		field.String("aspect_ratio").StorageKey("aspectRatio").Immutable(),
 		field.Enum("status").StorageKey("status").Values("DRAFT", "APPROVED", "ARCHIVED"),
+		field.String("created_by_user_id").StorageKey("createdByUserId").Immutable(),
+		field.Time("created_at").StorageKey("createdAt").Default(time.Now).Immutable(),
+		field.Time("updated_at").StorageKey("updatedAt").Default(time.Now).UpdateDefault(time.Now),
 	}
 }
 func (CreativeVariant) Edges() []ent.Edge {
@@ -28,6 +39,10 @@ func (CreativeVariant) Edges() []ent.Edge {
 		edge.To("source_asset", Asset.Type).Field("source_asset_id").Unique().Required().Immutable(),
 		edge.To("approval", Approval.Type).Unique(),
 	}
+}
+func (CreativeVariant) Indexes() []ent.Index {
+	return []ent.Index{index.Fields("release_id", "aspect_ratio", "revision").Unique(),
+		index.Fields("organization_id", "created_at")}
 }
 
 // Approval is a read-only projection used to enforce approval at scheduling and dispatch.
@@ -42,6 +57,11 @@ func (Approval) Fields() []ent.Field {
 		field.String("organization_id").StorageKey("organizationId").Immutable(),
 		field.String("variant_id").StorageKey("variantId").Immutable(),
 		field.Enum("status").StorageKey("status").Values("PENDING", "APPROVED", "REJECTED"),
+		field.String("decided_by_user_id").StorageKey("decidedByUserId").Optional().Nillable(),
+		field.Time("decided_at").StorageKey("decidedAt").Optional().Nillable(),
+		field.String("reason").StorageKey("reason").Optional().Nillable(),
+		field.Time("created_at").StorageKey("createdAt").Default(time.Now).Immutable(),
+		field.Time("updated_at").StorageKey("updatedAt").Default(time.Now).UpdateDefault(time.Now),
 	}
 }
 func (Approval) Edges() []ent.Edge {
@@ -49,9 +69,11 @@ func (Approval) Edges() []ent.Edge {
 		edge.From("variant", CreativeVariant.Type).Ref("approval").Field("variant_id").Unique().Required().Immutable(),
 	}
 }
-func (Approval) Indexes() []ent.Index { return []ent.Index{index.Fields("variant_id").Unique()} }
+func (Approval) Indexes() []ent.Index {
+	return []ent.Index{index.Fields("variant_id").Unique(), index.Fields("organization_id", "created_at")}
+}
 
-// Asset is a read-only projection containing the fields required for publication.
+// Asset is the canonical media row shared by product and publishing.
 type Asset struct{ ent.Schema }
 
 func (Asset) Annotations() []schema.Annotation {
@@ -61,12 +83,24 @@ func (Asset) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("id").StorageKey("id").Immutable(),
 		field.String("organization_id").StorageKey("organizationId").Immutable(),
+		field.String("capture_id").StorageKey("captureId").Optional().Nillable(),
+		field.String("parent_asset_id").StorageKey("parentAssetId").Optional().Nillable(),
 		field.String("object_key").StorageKey("objectKey").Immutable(),
+		field.String("sha256").StorageKey("sha256").Optional().Nillable(),
 		field.String("media_type").StorageKey("mediaType").Immutable(),
+		field.Int("bytes").StorageKey("bytes"),
+		field.Int("width").StorageKey("width").Optional().Nillable(),
+		field.Int("height").StorageKey("height").Optional().Nillable(),
+		field.Enum("status").StorageKey("status").Values("PENDING", "UPLOADED", "FAILED", "DELETED").Default("PENDING"),
+		field.Time("created_at").StorageKey("createdAt").Default(time.Now).Immutable(),
+		field.Time("updated_at").StorageKey("updatedAt").Default(time.Now).UpdateDefault(time.Now),
 	}
 }
 func (Asset) Edges() []ent.Edge {
 	return []ent.Edge{edge.From("variants", CreativeVariant.Type).Ref("source_asset")}
+}
+func (Asset) Indexes() []ent.Index {
+	return []ent.Index{index.Fields("object_key").Unique(), index.Fields("organization_id", "created_at")}
 }
 
 // WorkspaceDeletion is a read-only projection used to block publications during deletion.
@@ -80,6 +114,14 @@ func (WorkspaceDeletion) Fields() []ent.Field {
 		field.String("id").StorageKey("id").Immutable(),
 		field.String("organization_id").StorageKey("organizationId").Immutable(),
 		field.Enum("status").StorageKey("status").Values("PENDING", "PROCESSING", "CANCELLED", "PURGED"),
+		field.String("requested_by_user_id").StorageKey("requestedByUserId"),
+		field.Time("scheduled_for").StorageKey("scheduledFor"),
+		field.Time("processing_at").StorageKey("processingAt").Optional().Nillable(),
+		field.Time("cancelled_at").StorageKey("cancelledAt").Optional().Nillable(),
+		field.Time("purged_at").StorageKey("purgedAt").Optional().Nillable(),
+		field.String("last_error").StorageKey("lastError").Optional().Nillable(),
+		field.Time("created_at").StorageKey("createdAt").Default(time.Now).Immutable(),
+		field.Time("updated_at").StorageKey("updatedAt").Default(time.Now).UpdateDefault(time.Now),
 	}
 }
 func (WorkspaceDeletion) Indexes() []ent.Index {

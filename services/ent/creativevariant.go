@@ -5,6 +5,7 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -22,8 +23,28 @@ type CreativeVariant struct {
 	OrganizationID string `json:"organization_id,omitempty"`
 	// SourceAssetID holds the value of the "source_asset_id" field.
 	SourceAssetID string `json:"source_asset_id,omitempty"`
+	// ReleaseID holds the value of the "release_id" field.
+	ReleaseID string `json:"release_id,omitempty"`
+	// BrandKitID holds the value of the "brand_kit_id" field.
+	BrandKitID string `json:"brand_kit_id,omitempty"`
+	// BrandKitVersion holds the value of the "brand_kit_version" field.
+	BrandKitVersion int `json:"brand_kit_version,omitempty"`
+	// TemplateID holds the value of the "template_id" field.
+	TemplateID string `json:"template_id,omitempty"`
+	// TemplateVersion holds the value of the "template_version" field.
+	TemplateVersion int `json:"template_version,omitempty"`
+	// Revision holds the value of the "revision" field.
+	Revision int `json:"revision,omitempty"`
+	// AspectRatio holds the value of the "aspect_ratio" field.
+	AspectRatio string `json:"aspect_ratio,omitempty"`
 	// Status holds the value of the "status" field.
 	Status creativevariant.Status `json:"status,omitempty"`
+	// CreatedByUserID holds the value of the "created_by_user_id" field.
+	CreatedByUserID string `json:"created_by_user_id,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CreativeVariantQuery when eager-loading is set.
 	Edges        CreativeVariantEdges `json:"edges"`
@@ -68,8 +89,12 @@ func (*CreativeVariant) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case creativevariant.FieldID, creativevariant.FieldOrganizationID, creativevariant.FieldSourceAssetID, creativevariant.FieldStatus:
+		case creativevariant.FieldBrandKitVersion, creativevariant.FieldTemplateVersion, creativevariant.FieldRevision:
+			values[i] = new(sql.NullInt64)
+		case creativevariant.FieldID, creativevariant.FieldOrganizationID, creativevariant.FieldSourceAssetID, creativevariant.FieldReleaseID, creativevariant.FieldBrandKitID, creativevariant.FieldTemplateID, creativevariant.FieldAspectRatio, creativevariant.FieldStatus, creativevariant.FieldCreatedByUserID:
 			values[i] = new(sql.NullString)
+		case creativevariant.FieldCreatedAt, creativevariant.FieldUpdatedAt:
+			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -103,11 +128,71 @@ func (_m *CreativeVariant) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.SourceAssetID = value.String
 			}
+		case creativevariant.FieldReleaseID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field release_id", values[i])
+			} else if value.Valid {
+				_m.ReleaseID = value.String
+			}
+		case creativevariant.FieldBrandKitID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field brand_kit_id", values[i])
+			} else if value.Valid {
+				_m.BrandKitID = value.String
+			}
+		case creativevariant.FieldBrandKitVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field brand_kit_version", values[i])
+			} else if value.Valid {
+				_m.BrandKitVersion = int(value.Int64)
+			}
+		case creativevariant.FieldTemplateID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field template_id", values[i])
+			} else if value.Valid {
+				_m.TemplateID = value.String
+			}
+		case creativevariant.FieldTemplateVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field template_version", values[i])
+			} else if value.Valid {
+				_m.TemplateVersion = int(value.Int64)
+			}
+		case creativevariant.FieldRevision:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field revision", values[i])
+			} else if value.Valid {
+				_m.Revision = int(value.Int64)
+			}
+		case creativevariant.FieldAspectRatio:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field aspect_ratio", values[i])
+			} else if value.Valid {
+				_m.AspectRatio = value.String
+			}
 		case creativevariant.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = creativevariant.Status(value.String)
+			}
+		case creativevariant.FieldCreatedByUserID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field created_by_user_id", values[i])
+			} else if value.Valid {
+				_m.CreatedByUserID = value.String
+			}
+		case creativevariant.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				_m.CreatedAt = value.Time
+			}
+		case creativevariant.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				_m.UpdatedAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -161,8 +246,38 @@ func (_m *CreativeVariant) String() string {
 	builder.WriteString("source_asset_id=")
 	builder.WriteString(_m.SourceAssetID)
 	builder.WriteString(", ")
+	builder.WriteString("release_id=")
+	builder.WriteString(_m.ReleaseID)
+	builder.WriteString(", ")
+	builder.WriteString("brand_kit_id=")
+	builder.WriteString(_m.BrandKitID)
+	builder.WriteString(", ")
+	builder.WriteString("brand_kit_version=")
+	builder.WriteString(fmt.Sprintf("%v", _m.BrandKitVersion))
+	builder.WriteString(", ")
+	builder.WriteString("template_id=")
+	builder.WriteString(_m.TemplateID)
+	builder.WriteString(", ")
+	builder.WriteString("template_version=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TemplateVersion))
+	builder.WriteString(", ")
+	builder.WriteString("revision=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Revision))
+	builder.WriteString(", ")
+	builder.WriteString("aspect_ratio=")
+	builder.WriteString(_m.AspectRatio)
+	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	builder.WriteString("created_by_user_id=")
+	builder.WriteString(_m.CreatedByUserID)
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -1,0 +1,374 @@
+package httpapi
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+)
+
+type fakeConfiguration struct {
+	// Embedded so a test only implements the operations it exercises.
+	ConfigurationStore
+	authorizationError error
+	actor              product.Actor
+	brandKit           product.CreateBrandKitInput
+	auditQuery         product.AuditLogQuery
+	releaseUpdate      product.UpdateReleaseInput
+}
+
+func (f *fakeConfiguration) Authorize(_ context.Context, actor product.Actor) error {
+	f.actor = actor
+	return f.authorizationError
+}
+func (f *fakeConfiguration) AuthorizeRead(context.Context, product.Actor) error    { return nil }
+func (f *fakeConfiguration) AuthorizeSession(context.Context, product.Actor) error { return nil }
+func (f *fakeConfiguration) AuthorizeSensitive(_ context.Context, actor product.Actor) error {
+	f.actor = actor
+	return f.authorizationError
+}
+func (f *fakeConfiguration) CreateWorkspace(_ context.Context, _ product.Actor, input product.CreateWorkspaceInput) (*product.Workspace, error) {
+	return &product.Workspace{ID: "workspace-1", Name: input.Name, Slug: input.Slug}, nil
+}
+func (f *fakeConfiguration) ListWorkspaces(context.Context, product.Actor) ([]product.ListedWorkspace, error) {
+	return []product.ListedWorkspace{{ID: "workspace-1", Name: "Workspace", Slug: "workspace", Role: "owner"}}, nil
+}
+func (f *fakeConfiguration) SetActiveWorkspace(context.Context, product.Actor, string) error {
+	return nil
+}
+func (f *fakeConfiguration) GetWorkspace(context.Context, string) (*product.Workspace, error) {
+	return &product.Workspace{ID: "workspace-1", Name: "Workspace", Slug: "workspace"}, nil
+}
+func (f *fakeConfiguration) UpdateWorkspace(_ context.Context, _ product.Actor, input product.UpdateWorkspaceInput) (*product.Workspace, error) {
+	return &product.Workspace{ID: "workspace-1", Name: input.Name, Slug: input.Slug}, nil
+}
+func (f *fakeConfiguration) ListMembers(context.Context, string) ([]product.WorkspaceMember, error) {
+	return []product.WorkspaceMember{}, nil
+}
+func (f *fakeConfiguration) ListInvitations(context.Context, string) ([]product.WorkspaceInvitation, error) {
+	return []product.WorkspaceInvitation{}, nil
+}
+func (f *fakeConfiguration) UpdateMemberRole(_ context.Context, _ product.Actor, memberID, role string) (*product.WorkspaceMember, error) {
+	return &product.WorkspaceMember{ID: memberID, Role: role}, nil
+}
+func (f *fakeConfiguration) RemoveMember(context.Context, product.Actor, string) error { return nil }
+func (f *fakeConfiguration) LeaveWorkspace(context.Context, product.Actor) error       { return nil }
+func (f *fakeConfiguration) TransferOwnership(context.Context, product.Actor, string) error {
+	return nil
+}
+func (f *fakeConfiguration) RequestDeletion(_ context.Context, actor product.Actor, _ string) (*ent.WorkspaceDeletion, error) {
+	return &ent.WorkspaceDeletion{ID: "deletion-1", OrganizationID: actor.OrganizationID}, nil
+}
+func (f *fakeConfiguration) CancelDeletion(context.Context, product.Actor) (*ent.WorkspaceDeletion, error) {
+	return &ent.WorkspaceDeletion{ID: "deletion-1", OrganizationID: "org-1"}, nil
+}
+func (f *fakeConfiguration) InviteMember(_ context.Context, _ product.Actor, email, role string) (*product.InvitationDetail, error) {
+	return &product.InvitationDetail{WorkspaceInvitation: product.WorkspaceInvitation{ID: "invitation-1", Email: email, Role: &role}}, nil
+}
+func (f *fakeConfiguration) ResendInvitation(context.Context, product.Actor, string) (*product.InvitationDetail, error) {
+	return &product.InvitationDetail{}, nil
+}
+func (f *fakeConfiguration) RevokeInvitation(context.Context, product.Actor, string) error {
+	return nil
+}
+func (f *fakeConfiguration) Bootstrap(context.Context, product.Actor) (*product.BootstrapSnapshot, error) {
+	return &product.BootstrapSnapshot{}, nil
+}
+func (f *fakeConfiguration) GetCurrentUser(context.Context, product.Actor) (*product.CurrentUser, error) {
+	return &product.CurrentUser{ID: "user-1", Email: "user@example.test", Name: "Test User"}, nil
+}
+func (f *fakeConfiguration) GetActiveAccess(context.Context, product.Actor) (*product.ActiveAccess, error) {
+	return &product.ActiveAccess{OrganizationID: "org-1", Role: "owner"}, nil
+}
+func (f *fakeConfiguration) VerifySupportGrant(_ context.Context, _ product.Actor, organizationID, _ string) (*product.SupportGrantAccess, error) {
+	return &product.SupportGrantAccess{GrantID: "grant-1", OrganizationID: organizationID}, nil
+}
+func (f *fakeConfiguration) RequireEnterpriseFeature(context.Context, product.Actor, string) error {
+	return nil
+}
+func (f *fakeConfiguration) ListAssets(context.Context, product.Actor, int, string) (*product.AssetPage, error) {
+	return &product.AssetPage{Assets: []product.AssetListItem{}}, nil
+}
+func (f *fakeConfiguration) DeleteAsset(context.Context, product.Actor, string) (product.AssetDeletionResult, error) {
+	return product.AssetDeleted, nil
+}
+func (f *fakeConfiguration) SignAssetUpload(context.Context, product.Actor, product.AssetUploadInput) (*product.AssetUploadResult, error) {
+	return &product.AssetUploadResult{Asset: product.AssetRecord{ID: "asset-1", Status: "PENDING"}, UploadURL: "https://media.example.test/upload"}, nil
+}
+func (f *fakeConfiguration) CompleteAssetUpload(context.Context, product.Actor, string, *string) (*product.AssetRecord, error) {
+	return &product.AssetRecord{ID: "asset-1", Status: "UPLOADED"}, nil
+}
+func (f *fakeConfiguration) SignAssetDownload(context.Context, product.Actor, string) (string, error) {
+	return "https://media.example.test/download", nil
+}
+func (f *fakeConfiguration) StoreGeneratedAsset(context.Context, product.Actor, product.GeneratedAssetInput) (*product.GeneratedAssetRecord, error) {
+	return &product.GeneratedAssetRecord{ID: "asset-2", MediaType: "image/png", ObjectKey: "org/org-1/derived/asset-2/1/render.png"}, nil
+}
+func (f *fakeConfiguration) ConsumeWorkspaceQuota(context.Context, product.Actor, string, int) (int, error) {
+	return 29, nil
+}
+func (f *fakeConfiguration) ListReleases(context.Context, product.Actor, int) ([]product.ReleaseListItem, error) {
+	return []product.ReleaseListItem{}, nil
+}
+func (f *fakeConfiguration) GetRelease(context.Context, product.Actor, string) (*product.ReleaseDetail, error) {
+	return &product.ReleaseDetail{ID: "release-1", Title: "Launch", SourceURLs: []string{}}, nil
+}
+func (f *fakeConfiguration) CreateRelease(context.Context, product.Actor, product.CreateReleaseInput) (*product.ReleaseCreation, error) {
+	return &product.ReleaseCreation{Created: true, Release: product.ReleaseSummary{ID: "release-1", Title: "Launch"}}, nil
+}
+func (f *fakeConfiguration) UpdateRelease(_ context.Context, _ product.Actor, _ string, input product.UpdateReleaseInput) (*product.ReleaseDetail, error) {
+	f.releaseUpdate = input
+	return &product.ReleaseDetail{ID: "release-1", Title: "Updated", SourceURLs: []string{}}, nil
+}
+func (f *fakeConfiguration) ListCampaigns(context.Context, product.Actor) ([]product.CampaignItem, error) {
+	return []product.CampaignItem{}, nil
+}
+func (f *fakeConfiguration) GetCampaign(context.Context, product.Actor, string) (*product.CampaignDetail, error) {
+	return &product.CampaignDetail{CampaignItem: product.CampaignItem{ID: "campaign-1", Name: "Launch"}}, nil
+}
+func (f *fakeConfiguration) CreateCampaign(context.Context, product.Actor, product.CreateCampaignInput) (*product.CampaignDetail, error) {
+	return &product.CampaignDetail{CampaignItem: product.CampaignItem{ID: "campaign-1", Name: "Launch"}}, nil
+}
+func (f *fakeConfiguration) TransitionCampaign(context.Context, product.Actor, string, string) (*product.CampaignTransition, error) {
+	return &product.CampaignTransition{ID: "campaign-1", Status: "READY_FOR_REVIEW"}, nil
+}
+func (f *fakeConfiguration) TransitionCampaignPosts(context.Context, product.Actor, string, product.CampaignPostDecision) (*product.CampaignPostTransition, error) {
+	return &product.CampaignPostTransition{PostIDs: []string{"post-1"}, Status: "APPROVED"}, nil
+}
+func (f *fakeConfiguration) ScheduleCampaignPost(context.Context, product.Actor, string, string, product.ScheduleCampaignPostInput) (*product.ScheduleCampaignPostResult, error) {
+	return &product.ScheduleCampaignPostResult{Post: product.CampaignPostItem{ID: "post-1", Status: "SCHEDULED"},
+		ScheduledPost: &ent.ScheduledPost{ID: "scheduled-1", OrganizationID: "org-1", Status: "SCHEDULED"}}, nil
+}
+func (f *fakeConfiguration) CreateDesign(context.Context, product.Actor, product.CreateDesignInput) (*product.DesignRecord, error) {
+	return &product.DesignRecord{ID: "design-1", Name: "Canary"}, nil
+}
+func (f *fakeConfiguration) GetDesign(context.Context, product.Actor, string) (*product.DesignRecord, error) {
+	return &product.DesignRecord{ID: "design-1", Name: "Canary"}, nil
+}
+func (f *fakeConfiguration) UpdateDesignDocument(context.Context, product.Actor, string, map[string]any) error {
+	return nil
+}
+func (f *fakeConfiguration) SetDesignRender(context.Context, product.Actor, string, string, *string) error {
+	return nil
+}
+func (f *fakeConfiguration) ListCampaignDesigns(context.Context, product.Actor, string) ([]product.DesignRecord, error) {
+	return []product.DesignRecord{}, nil
+}
+func (f *fakeConfiguration) GetEntitlementSummary(context.Context, product.Actor) (*product.EntitlementSummary, error) {
+	return &product.EntitlementSummary{Plan: "free", Status: "active", Features: map[string]bool{"asset:read": true}}, nil
+}
+func (f *fakeConfiguration) GetFeatureDecision(context.Context, product.Actor, string) (*product.FeatureDecision, error) {
+	return &product.FeatureDecision{Allowed: true, CurrentPlan: "free", RequiredPlan: "free"}, nil
+}
+func (f *fakeConfiguration) ListCreativeTemplates(context.Context, product.Actor) ([]product.CreativeTemplateRecord, error) {
+	return []product.CreativeTemplateRecord{}, nil
+}
+func (f *fakeConfiguration) CreateCreativeTemplate(context.Context, product.Actor, product.CreateCreativeTemplateInput) (*product.CreativeTemplateRecord, error) {
+	return &product.CreativeTemplateRecord{ID: "template-1", Name: "Canary", Version: 1}, nil
+}
+func (f *fakeConfiguration) CreateCreativeVariant(context.Context, product.Actor, product.CreateCreativeVariantInput) (*product.CreativeVariantRecord, error) {
+	return &product.CreativeVariantRecord{ID: "variant-1", Status: "DRAFT"}, nil
+}
+func (f *fakeConfiguration) DecideCreativeVariant(context.Context, product.Actor, string, product.CreativeApprovalInput) (*product.CreativeApprovalDecision, error) {
+	return &product.CreativeApprovalDecision{Variant: product.CreativeVariantRecord{ID: "variant-1", Status: "APPROVED"}}, nil
+}
+func (f *fakeConfiguration) ListAuditLogs(_ context.Context, actor product.Actor, query product.AuditLogQuery) (*product.AuditLogPage, error) {
+	f.actor, f.auditQuery = actor, query
+	return &product.AuditLogPage{Items: []product.AuditLogItem{}}, nil
+}
+func (f *fakeConfiguration) ListBrandKits(context.Context, string) ([]*ent.BrandKit, error) {
+	return []*ent.BrandKit{{ID: "kit-1", OrganizationID: "org-1", Name: "Main", Version: 2, Definition: map[string]any{}}}, nil
+}
+func (f *fakeConfiguration) CreateBrandKit(_ context.Context, actor product.Actor, input product.CreateBrandKitInput) (*ent.BrandKit, error) {
+	f.brandKit = input
+	return &ent.BrandKit{ID: "kit-2", OrganizationID: actor.OrganizationID, Name: input.Name, Version: 1, Definition: input.Definition}, nil
+}
+func (f *fakeConfiguration) GetBrandProfile(context.Context, string) (*ent.BrandProfile, error) {
+	return nil, nil
+}
+func (f *fakeConfiguration) UpsertBrandProfile(_ context.Context, actor product.Actor, input product.UpsertBrandProfileInput) (*ent.BrandProfile, error) {
+	return &ent.BrandProfile{ID: "profile-1", OrganizationID: actor.OrganizationID, Audience: input.Audience, ProductDescription: input.ProductDescription, Tone: input.Tone}, nil
+}
+func (f *fakeConfiguration) CreateSourceApp(_ context.Context, actor product.Actor, input product.CreateSourceAppInput) (*ent.SourceApp, error) {
+	return &ent.SourceApp{ID: "source-1", OrganizationID: actor.OrganizationID, Name: input.Name, Provider: input.Provider, AllowedHosts: input.AllowedHosts}, nil
+}
+func (f *fakeConfiguration) ListProductSurfaces(context.Context, string) ([]*ent.ProductSurface, error) {
+	return []*ent.ProductSurface{{ID: "surface-1", OrganizationID: "org-1", Name: "Main", URL: "https://example.test", FeatureTags: []string{}, ScreenshotAssetIds: []string{}}}, nil
+}
+func (f *fakeConfiguration) CreateProductSurface(_ context.Context, actor product.Actor, input product.CreateProductSurfaceInput) (*ent.ProductSurface, error) {
+	return &ent.ProductSurface{ID: "surface-1", OrganizationID: actor.OrganizationID, Name: input.Name, URL: input.URL, Environment: input.Environment, FeatureTags: input.FeatureTags, ScreenshotAssetIds: input.ScreenshotAssetIDs}, nil
+}
+func (f *fakeConfiguration) UpdateProductSurface(_ context.Context, actor product.Actor, id string, input product.UpdateProductSurfaceInput) (*ent.ProductSurface, error) {
+	return &ent.ProductSurface{ID: id, OrganizationID: actor.OrganizationID, Name: *input.Name, URL: "https://example.test", FeatureTags: []string{}, ScreenshotAssetIds: []string{}}, nil
+}
+func (f *fakeConfiguration) DeleteProductSurface(context.Context, product.Actor, string) error {
+	return nil
+}
+
+func configurationRequest(handler http.Handler, method, path, body string) *httptest.ResponseRecorder {
+	request := httptest.NewRequest(method, path, strings.NewReader(body))
+	request.Header.Set("Authorization", "Bearer secret")
+	request.Header.Set("X-Organization-ID", "org-1")
+	request.Header.Set("X-User-ID", "user-1")
+	request.Header.Set("X-Session-ID", "session-1")
+	request.Header.Set("X-Request-ID", "request-1")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	return response
+}
+
+func TestAuditRouteValidatesAndScopesQuery(t *testing.T) {
+	config := &fakeConfiguration{}
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", config)
+	invalid := configurationRequest(handler, http.MethodGet, "/v1/audit-logs?limit=101", "")
+	if invalid.Code != http.StatusBadRequest {
+		t.Fatalf("invalid query status=%d", invalid.Code)
+	}
+	valid := configurationRequest(handler, http.MethodGet, "/v1/audit-logs?limit=2&outcome=FAILED&search=launch", "")
+	if valid.Code != http.StatusOK || config.actor.OrganizationID != "org-1" || config.auditQuery.Limit != 2 ||
+		config.auditQuery.Outcome != "FAILED" || config.auditQuery.Search != "launch" {
+		t.Fatalf("audit query status=%d actor=%+v query=%+v", valid.Code, config.actor, config.auditQuery)
+	}
+}
+
+func TestReleaseRoutesValidateAndPreserveNullableUpdate(t *testing.T) {
+	config := &fakeConfiguration{}
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", config)
+	if response := configurationRequest(handler, http.MethodGet, "/v1/releases?limit=101", ""); response.Code != http.StatusBadRequest {
+		t.Fatalf("invalid release limit status=%d", response.Code)
+	}
+	created := configurationRequest(handler, http.MethodPost, "/v1/releases", `{"title":"Launch","benefitStatement":"News","idempotencyKey":"key-1"}`)
+	if created.Code != http.StatusCreated {
+		t.Fatalf("create release status=%d body=%s", created.Code, created.Body.String())
+	}
+	updated := configurationRequest(handler, http.MethodPatch, "/v1/releases/c123456789012345678901234", `{"audience":null,"productSurfaceId":null}`)
+	if updated.Code != http.StatusOK {
+		t.Fatalf("update release status=%d body=%s", updated.Code, updated.Body.String())
+	}
+	if !config.releaseUpdate.Audience.Set || config.releaseUpdate.Audience.Value != nil ||
+		!config.releaseUpdate.ProductSurfaceID.Set || config.releaseUpdate.ProductSurfaceID.Value != nil {
+		t.Fatalf("nullable fields lost: %+v", config.releaseUpdate)
+	}
+	invalid := configurationRequest(handler, http.MethodGet, "/v1/releases/invalid-id", "")
+	if invalid.Code != http.StatusBadRequest {
+		t.Fatalf("invalid release ID status=%d", invalid.Code)
+	}
+}
+
+func TestCampaignRoutesRejectInvalidIDsAndRequireSession(t *testing.T) {
+	scheduler := &fakeScheduler{}
+	handler := NewWithConfiguration(&fakeStore{}, scheduler, &fakeVerifier{}, "secret", &fakeConfiguration{})
+	if response := configurationRequest(handler, http.MethodGet, "/v1/campaigns/invalid-id", ""); response.Code != http.StatusBadRequest {
+		t.Fatalf("invalid campaign ID status=%d", response.Code)
+	}
+	created := configurationRequest(handler, http.MethodPost, "/v1/campaigns", `{"name":"Launch","objective":"Announce"}`)
+	if created.Code != http.StatusCreated {
+		t.Fatalf("create campaign status=%d body=%s", created.Code, created.Body.String())
+	}
+	request := httptest.NewRequest(http.MethodGet, "/v1/campaigns", nil)
+	request.Header.Set("Authorization", "Bearer secret")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest && response.Code != http.StatusUnauthorized {
+		t.Fatalf("campaign read without scope status=%d", response.Code)
+	}
+	scheduled := configurationRequest(handler, http.MethodPost,
+		"/v1/campaigns/c123456789012345678901234/posts/c123456789012345678901234/schedule",
+		`{"channelConnectionId":"connection-1"}`)
+	if scheduled.Code != http.StatusOK || scheduler.started.PostID != "scheduled-1" {
+		t.Fatalf("campaign schedule status=%d workflow=%+v body=%s", scheduled.Code, scheduler.started, scheduled.Body.String())
+	}
+}
+
+func TestActiveAccessRequiresSession(t *testing.T) {
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", &fakeConfiguration{})
+	valid := configurationRequest(handler, http.MethodGet, "/v1/access", "")
+	if valid.Code != http.StatusOK || !strings.Contains(valid.Body.String(), `"organizationId":"org-1"`) {
+		t.Fatalf("active access status=%d body=%s", valid.Code, valid.Body.String())
+	}
+	request := httptest.NewRequest(http.MethodGet, "/v1/access", nil)
+	request.Header.Set("Authorization", "Bearer secret")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("anonymous active access status=%d", response.Code)
+	}
+}
+
+func TestConfigurationRechecksBrandPermission(t *testing.T) {
+	config := &fakeConfiguration{authorizationError: publishing.ErrForbidden}
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", config)
+	response := configurationRequest(handler, http.MethodPost, "/v1/brand-kits", `{"name":"Main","definition":{}}`)
+	if response.Code != http.StatusForbidden || config.brandKit.Name != "" {
+		t.Fatalf("unprivileged write: status=%d input=%#v", response.Code, config.brandKit)
+	}
+	if config.actor.SessionID != "session-1" || config.actor.OrganizationID != "org-1" {
+		t.Fatalf("backend did not receive scoped actor: %#v", config.actor)
+	}
+}
+
+func TestConfigurationRoutesPreserveProductShape(t *testing.T) {
+	config := &fakeConfiguration{}
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", config)
+	created := configurationRequest(handler, http.MethodPost, "/v1/brand-kits", `{"name":" Main ","definition":{"palette":["blue"]},"publish":true}`)
+	if created.Code != http.StatusCreated || config.brandKit.Name != "Main" || !config.brandKit.Publish {
+		t.Fatalf("create status=%d body=%s input=%#v", created.Code, created.Body, config.brandKit)
+	}
+	listed := configurationRequest(handler, http.MethodGet, "/v1/brand-kits", "")
+	var value struct {
+		BrandKits []struct {
+			OrganizationID string `json:"organizationId"`
+			Version        int    `json:"version"`
+		} `json:"brandKits"`
+	}
+	if listed.Code != http.StatusOK || json.Unmarshal(listed.Body.Bytes(), &value) != nil || len(value.BrandKits) != 1 || value.BrandKits[0].OrganizationID != "org-1" || value.BrandKits[0].Version != 2 {
+		t.Fatalf("list status=%d body=%s", listed.Code, listed.Body)
+	}
+	profile := configurationRequest(handler, http.MethodGet, "/v1/brand-profile", "")
+	if profile.Code != http.StatusOK || !strings.Contains(profile.Body.String(), `"brandProfile":null`) {
+		t.Fatalf("missing profile status=%d body=%s", profile.Code, profile.Body)
+	}
+	badSource := configurationRequest(handler, http.MethodPost, "/v1/source-apps", `{"name":"Source","provider":"generic","allowedHosts":["file:///etc/passwd"]}`)
+	if badSource.Code != http.StatusBadRequest {
+		t.Fatalf("unsafe source URL status=%d body=%s", badSource.Code, badSource.Body)
+	}
+}
+
+func TestWorkspaceRoutesRequireSessionAndRecheckUpdates(t *testing.T) {
+	config := &fakeConfiguration{authorizationError: publishing.ErrForbidden}
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", config)
+	created := configurationRequest(handler, http.MethodPost, "/v1/workspaces", `{"name":" New Workspace ","slug":"new-workspace"}`)
+	if created.Code != http.StatusCreated || !strings.Contains(created.Body.String(), `"name":"New Workspace"`) {
+		t.Fatalf("create status=%d body=%s", created.Code, created.Body)
+	}
+	listed := configurationRequest(handler, http.MethodGet, "/v1/workspaces", "")
+	if listed.Code != http.StatusOK || !strings.Contains(listed.Body.String(), `"workspaces"`) {
+		t.Fatalf("list status=%d body=%s", listed.Code, listed.Body)
+	}
+	invalid := configurationRequest(handler, http.MethodPost, "/v1/workspaces", `{"name":"New Workspace","slug":"UPPER"}`)
+	if invalid.Code != http.StatusBadRequest {
+		t.Fatalf("invalid slug status=%d", invalid.Code)
+	}
+	denied := configurationRequest(handler, http.MethodPatch, "/v1/workspace", `{"name":"Workspace","slug":"workspace"}`)
+	if denied.Code != http.StatusForbidden {
+		t.Fatalf("update status=%d body=%s", denied.Code, denied.Body)
+	}
+	transfer := configurationRequest(handler, http.MethodPost, "/v1/workspace/transfer-ownership", `{"memberId":"member-2"}`)
+	if transfer.Code != http.StatusForbidden || config.actor.UserID != "user-1" || config.actor.SessionID != "session-1" {
+		t.Fatalf("sensitive transfer status=%d actor=%#v", transfer.Code, config.actor)
+	}
+	request := httptest.NewRequest(http.MethodGet, "/v1/workspaces", nil)
+	request.Header.Set("X-User-ID", "user-1")
+	request.Header.Set("X-Session-ID", "session-1")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("missing service token status=%d", response.Code)
+	}
+}

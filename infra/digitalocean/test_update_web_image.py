@@ -12,13 +12,15 @@ class UpdateWebImageTest(unittest.TestCase):
         image = dict(module.IMAGE, digest="sha256:" + "a" * 64)
         self.base = {"spec": {
             "services": [
-                {"name": "web", "image": image, "envs": [{"key": "DATABASE_URL", "value": "old", "type": "SECRET"}]},
+                {"name": "web", "image": image, "envs": [{"key": "REDIS_URL", "value": "old", "type": "SECRET"},
+                                                         {"key": "DATABASE_URL", "value": "old", "type": "SECRET"},
+                                                         {"key": "R2_SECRET_ACCESS_KEY", "value": "old", "type": "SECRET"},
+                                                         {"key": "R2_ENDPOINT", "value": "old", "type": "GENERAL"}]},
                 {"name": "storage"}, {"name": "design-renderer"},
                 {"name": "screenshot-studio-backend"},
             ],
             "jobs": [
-                {"name": "web-migrate", "image": image,
-                 "envs": [{"key": "DATABASE_URL", "value": "old", "type": "SECRET"}]},
+                {"name": "platform-migrate", "image": {"tag": "social-backend-sha"}},
                 {"name": "postiz-migrate"},
             ],
             "domains": [{"domain": "shots.oppulence.io"}],
@@ -26,14 +28,14 @@ class UpdateWebImageTest(unittest.TestCase):
 
     def test_updates_only_web_image_and_refreshes_scoped_credentials(self):
         tag = "web-" + "b" * 40
-        result = module.update_web_image(self.base, tag, {
-            "DATABASE_URL": "runtime-role", "MIGRATION_DATABASE_URL": "migration-role"})
+        result = module.update_web_image(self.base, tag, {"REDIS_URL": "runtime-redis"})
         self.assertEqual(result["services"][0]["image"], dict(module.IMAGE, tag=tag))
-        self.assertEqual(result["jobs"][0]["image"], dict(module.IMAGE, tag=tag))
-        self.assertEqual(result["services"][0]["envs"][0]["value"], "runtime-role")
+        self.assertEqual(result["jobs"], self.base["spec"]["jobs"])
+        self.assertEqual(result["services"][0]["envs"][0]["value"], "runtime-redis")
+        web_keys = {item["key"] for item in result["services"][0]["envs"]}
+        self.assertFalse(web_keys & {"DATABASE_URL", "R2_SECRET_ACCESS_KEY", "R2_ENDPOINT"})
         self.assertIn({"key": "CLIENT_IP_SOURCE", "value": "digitalocean",
                        "type": "GENERAL", "scope": "RUN_TIME"}, result["services"][0]["envs"])
-        self.assertEqual(result["jobs"][0]["envs"][0]["value"], "migration-role")
         self.assertEqual(result["domains"], self.base["spec"]["domains"])
         self.assertEqual(self.base["spec"]["services"][0]["image"]["digest"], "sha256:" + "a" * 64)
 
@@ -46,3 +48,6 @@ class UpdateWebImageTest(unittest.TestCase):
             module.update_web_image(bad, tag)
         with self.assertRaisesRegex(ValueError, "commit SHA"):
             module.update_web_image(self.base, "latest")
+        legacy = {"spec": {**self.base["spec"], "jobs": [{"name": "web-migrate"}, {"name": "postiz-migrate"}]}}
+        with self.assertRaisesRegex(ValueError, "Deploy the backend first"):
+            module.update_web_image(legacy, tag)

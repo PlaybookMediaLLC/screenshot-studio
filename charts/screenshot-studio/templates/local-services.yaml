@@ -11,21 +11,7 @@ data:
     set -eu
     psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<SQL
     CREATE ROLE screenshot_studio LOGIN PASSWORD '$POSTGRES_APP_PASSWORD';
-    CREATE ROLE storage_service LOGIN PASSWORD '$POSTGRES_STORAGE_PASSWORD';
     CREATE DATABASE screenshot_studio OWNER screenshot_studio;
-    CREATE DATABASE storage OWNER postgres;
-    GRANT ALL PRIVILEGES ON DATABASE storage TO storage_service;
-    \connect screenshot_studio
-    CREATE TABLE screenshot_cache (
-      id TEXT PRIMARY KEY,
-      "urlHash" TEXT UNIQUE NOT NULL,
-      url TEXT NOT NULL,
-      "cloudinaryPublicId" TEXT UNIQUE NOT NULL,
-      "cloudinaryUrl" TEXT NOT NULL,
-      "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-    ALTER TABLE screenshot_cache OWNER TO screenshot_studio;
     SQL
 ---
 apiVersion: v1
@@ -118,11 +104,6 @@ spec:
                 secretKeyRef:
                   name: {{ $secretName }}
                   key: POSTGRES_APP_PASSWORD
-            - name: POSTGRES_STORAGE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $secretName }}
-                  key: POSTGRES_STORAGE_PASSWORD
           readinessProbe:
             exec:
               command: ["pg_isready", "--username=postgres", "--dbname=postgres"]
@@ -135,60 +116,6 @@ spec:
           configMap:
             name: {{ $fullName }}-postgres-init
             defaultMode: 493
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ $fullName }}-pgbouncer
-spec:
-  ports:
-    - name: postgres
-      port: 6432
-      targetPort: postgres
-  selector:
-    app.kubernetes.io/component: pgbouncer
-    {{- include "screenshot-studio.selectorLabels" . | nindent 4 }}
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ $fullName }}-pgbouncer
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/component: pgbouncer
-      {{- include "screenshot-studio.selectorLabels" . | nindent 6 }}
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/component: pgbouncer
-        {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
-    spec:
-      containers:
-        - name: pgbouncer
-          image: {{ .Values.local.pgbouncer.image | quote }}
-          ports:
-            - name: postgres
-              containerPort: 6432
-          env:
-            - name: POSTGRESQL_HOST
-              value: {{ printf "%s-postgres" $fullName | quote }}
-            - name: POSTGRESQL_PORT
-              value: "5432"
-            - name: POSTGRESQL_DATABASE
-              value: storage
-            - name: POSTGRESQL_USERNAME
-              value: postgres
-            - name: POSTGRESQL_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $secretName }}
-                  key: POSTGRES_SUPER_PASSWORD
-            - name: PGBOUNCER_POOL_MODE
-              value: transaction
-            - name: PGBOUNCER_IGNORE_STARTUP_PARAMETERS
-              value: extra_float_digits,options
 ---
 apiVersion: v1
 kind: Service
@@ -304,7 +231,7 @@ spec:
           command: ["/bin/sh", "-ec"]
           args:
             - >-
-              bucket_url=http://{{ $fullName }}-rustfs:9000/$STORAGE_BUCKET;
+              bucket_url=http://{{ $fullName }}-rustfs:9000/$R2_BUCKET_NAME;
               if curl --fail --silent --head
               --aws-sigv4 "aws:amz:us-east-1:s3"
               --user "$RUSTFS_ACCESS_KEY:$RUSTFS_SECRET_KEY"
@@ -320,162 +247,90 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $fullName }}-imgproxy
+  name: {{ $fullName }}-temporal
+spec:
+  ports:
+    - name: grpc
+      port: 7233
+      targetPort: grpc
+  selector:
+    app.kubernetes.io/component: temporal
+    {{- include "screenshot-studio.selectorLabels" . | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}-temporal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: temporal
+      {{- include "screenshot-studio.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: temporal
+        {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: temporal
+          image: {{ .Values.local.temporal.image | quote }}
+          args: ["server", "start-dev", "--ip", "0.0.0.0"]
+          ports:
+            - name: grpc
+              containerPort: 7233
+          readinessProbe:
+            tcpSocket:
+              port: grpc
+---
+# The Go backend owns every database read and write; the web calls it with
+# PUBLISHING_SERVICE_TOKEN. The migrate hook applies its schema.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-backend
 spec:
   ports:
     - name: http
       port: 8080
       targetPort: http
   selector:
-    app.kubernetes.io/component: imgproxy
+    app.kubernetes.io/component: backend
     {{- include "screenshot-studio.selectorLabels" . | nindent 4 }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ $fullName }}-imgproxy
+  name: {{ $fullName }}-backend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/component: imgproxy
+      app.kubernetes.io/component: backend
       {{- include "screenshot-studio.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/component: imgproxy
+        app.kubernetes.io/component: backend
         {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
     spec:
       containers:
-        - name: imgproxy
-          image: {{ .Values.local.imgproxy.image | quote }}
+        - name: backend
+          image: {{ required "local.backend.image is required when local.enabled" .Values.local.backend.image | quote }}
           ports:
             - name: http
               containerPort: 8080
-          env:
-            - name: IMGPROXY_USE_ETAG
-              value: "true"
-            - name: IMGPROXY_DEVELOPMENT_ERRORS_MODE
-              value: "true"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ $fullName }}-storage
-spec:
-  ports:
-    - name: http
-      port: 5000
-      targetPort: http
-  selector:
-    app.kubernetes.io/component: storage
-    {{- include "screenshot-studio.selectorLabels" . | nindent 4 }}
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ $fullName }}-storage
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/component: storage
-      {{- include "screenshot-studio.selectorLabels" . | nindent 6 }}
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/component: storage
-        {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
-    spec:
-      containers:
-        - name: storage
-          image: {{ .Values.local.storage.image | quote }}
-          ports:
-            - name: http
-              containerPort: 5000
-          env:
-            - name: SERVER_PORT
-              value: "5000"
-            - name: AUTH_JWT_ALGORITHM
-              value: HS256
-            - name: AUTH_JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $secretName }}
-                  key: STORAGE_JWT_SECRET
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $secretName }}
-                  key: STORAGE_DATABASE_URL
-            - name: DATABASE_POOL_URL
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $secretName }}
-                  key: STORAGE_DATABASE_POOL_URL
-            - name: DB_INSTALL_ROLES
-              value: "true"
-            - name: STORAGE_BACKEND
-              value: s3
-            - name: STORAGE_S3_BUCKET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $secretName }}
-                  key: STORAGE_BUCKET
-            - name: STORAGE_S3_ENDPOINT
-              value: http://{{ $fullName }}-rustfs:9000
-            - name: STORAGE_S3_FORCE_PATH_STYLE
-              value: "true"
-            - name: STORAGE_S3_REGION
-              value: us-east-1
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $secretName }}
-                  key: RUSTFS_ACCESS_KEY
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $secretName }}
-                  key: RUSTFS_SECRET_KEY
-            - name: IMGPROXY_URL
-              value: http://{{ $fullName }}-imgproxy:8080
-            - name: ENABLE_IMAGE_TRANSFORMATION
-              value: "true"
-          readinessProbe:
-            tcpSocket:
-              port: http
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: {{ $fullName }}-storage-init
-  annotations:
-    "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
-spec:
-  backoffLimit: 8
-  template:
-    spec:
-      restartPolicy: OnFailure
-      containers:
-        - name: storage-init
-          image: {{ .Values.local.curlImage | quote }}
-          command: ["/bin/sh", "-ec"]
-          args:
-            - >-
-              until curl --fail --silent http://{{ $fullName }}-storage:5000/status >/dev/null; do sleep 1; done;
-              if curl --fail --silent
-              --header "authorization: Bearer $STORAGE_SERVICE_KEY"
-              --header "apikey: $STORAGE_SERVICE_KEY"
-              http://{{ $fullName }}-storage:5000/bucket/$STORAGE_BUCKET >/dev/null; then exit 0; fi;
-              curl --fail --silent --show-error
-              --request POST http://{{ $fullName }}-storage:5000/bucket
-              --header "authorization: Bearer $STORAGE_SERVICE_KEY"
-              --header "apikey: $STORAGE_SERVICE_KEY"
-              --header "content-type: application/json"
-              --data "{\"id\":\"$STORAGE_BUCKET\",\"name\":\"$STORAGE_BUCKET\",\"public\":false}" >/dev/null
           envFrom:
             - secretRef:
                 name: {{ $secretName }}
+          env:
+            - name: PORT
+              value: "8080"
+            - name: TEMPORAL_ADDRESS
+              value: {{ printf "%s-temporal:7233" $fullName | quote }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
 {{- end }}

@@ -120,6 +120,34 @@ func (_c *AuditLogCreate) SetNillableEntityID(v *string) *AuditLogCreate {
 	return _c
 }
 
+// SetIPHash sets the "ip_hash" field.
+func (_c *AuditLogCreate) SetIPHash(v string) *AuditLogCreate {
+	_c.mutation.SetIPHash(v)
+	return _c
+}
+
+// SetNillableIPHash sets the "ip_hash" field if the given value is not nil.
+func (_c *AuditLogCreate) SetNillableIPHash(v *string) *AuditLogCreate {
+	if v != nil {
+		_c.SetIPHash(*v)
+	}
+	return _c
+}
+
+// SetUserAgentSummary sets the "user_agent_summary" field.
+func (_c *AuditLogCreate) SetUserAgentSummary(v string) *AuditLogCreate {
+	_c.mutation.SetUserAgentSummary(v)
+	return _c
+}
+
+// SetNillableUserAgentSummary sets the "user_agent_summary" field if the given value is not nil.
+func (_c *AuditLogCreate) SetNillableUserAgentSummary(v *string) *AuditLogCreate {
+	if v != nil {
+		_c.SetUserAgentSummary(*v)
+	}
+	return _c
+}
+
 // SetMetadata sets the "metadata" field.
 func (_c *AuditLogCreate) SetMetadata(v map[string]interface{}) *AuditLogCreate {
 	_c.mutation.SetMetadata(v)
@@ -305,6 +333,14 @@ func (_c *AuditLogCreate) createSpec() (*AuditLog, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.EntityID(); ok {
 		_spec.SetField(auditlog.FieldEntityID, field.TypeString, value)
 		_node.EntityID = &value
+	}
+	if value, ok := _c.mutation.IPHash(); ok {
+		_spec.SetField(auditlog.FieldIPHash, field.TypeString, value)
+		_node.IPHash = &value
+	}
+	if value, ok := _c.mutation.UserAgentSummary(); ok {
+		_spec.SetField(auditlog.FieldUserAgentSummary, field.TypeString, value)
+		_node.UserAgentSummary = &value
 	}
 	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(auditlog.FieldMetadata, field.TypeJSON, value)

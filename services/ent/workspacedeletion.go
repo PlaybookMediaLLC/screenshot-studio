@@ -5,6 +5,7 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -19,7 +20,23 @@ type WorkspaceDeletion struct {
 	// OrganizationID holds the value of the "organization_id" field.
 	OrganizationID string `json:"organization_id,omitempty"`
 	// Status holds the value of the "status" field.
-	Status       workspacedeletion.Status `json:"status,omitempty"`
+	Status workspacedeletion.Status `json:"status,omitempty"`
+	// RequestedByUserID holds the value of the "requested_by_user_id" field.
+	RequestedByUserID string `json:"requested_by_user_id,omitempty"`
+	// ScheduledFor holds the value of the "scheduled_for" field.
+	ScheduledFor time.Time `json:"scheduled_for,omitempty"`
+	// ProcessingAt holds the value of the "processing_at" field.
+	ProcessingAt *time.Time `json:"processing_at,omitempty"`
+	// CancelledAt holds the value of the "cancelled_at" field.
+	CancelledAt *time.Time `json:"cancelled_at,omitempty"`
+	// PurgedAt holds the value of the "purged_at" field.
+	PurgedAt *time.Time `json:"purged_at,omitempty"`
+	// LastError holds the value of the "last_error" field.
+	LastError *string `json:"last_error,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt    time.Time `json:"updated_at,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -28,8 +45,10 @@ func (*WorkspaceDeletion) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case workspacedeletion.FieldID, workspacedeletion.FieldOrganizationID, workspacedeletion.FieldStatus:
+		case workspacedeletion.FieldID, workspacedeletion.FieldOrganizationID, workspacedeletion.FieldStatus, workspacedeletion.FieldRequestedByUserID, workspacedeletion.FieldLastError:
 			values[i] = new(sql.NullString)
+		case workspacedeletion.FieldScheduledFor, workspacedeletion.FieldProcessingAt, workspacedeletion.FieldCancelledAt, workspacedeletion.FieldPurgedAt, workspacedeletion.FieldCreatedAt, workspacedeletion.FieldUpdatedAt:
+			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -62,6 +81,58 @@ func (_m *WorkspaceDeletion) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = workspacedeletion.Status(value.String)
+			}
+		case workspacedeletion.FieldRequestedByUserID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field requested_by_user_id", values[i])
+			} else if value.Valid {
+				_m.RequestedByUserID = value.String
+			}
+		case workspacedeletion.FieldScheduledFor:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field scheduled_for", values[i])
+			} else if value.Valid {
+				_m.ScheduledFor = value.Time
+			}
+		case workspacedeletion.FieldProcessingAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field processing_at", values[i])
+			} else if value.Valid {
+				_m.ProcessingAt = new(time.Time)
+				*_m.ProcessingAt = value.Time
+			}
+		case workspacedeletion.FieldCancelledAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field cancelled_at", values[i])
+			} else if value.Valid {
+				_m.CancelledAt = new(time.Time)
+				*_m.CancelledAt = value.Time
+			}
+		case workspacedeletion.FieldPurgedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field purged_at", values[i])
+			} else if value.Valid {
+				_m.PurgedAt = new(time.Time)
+				*_m.PurgedAt = value.Time
+			}
+		case workspacedeletion.FieldLastError:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field last_error", values[i])
+			} else if value.Valid {
+				_m.LastError = new(string)
+				*_m.LastError = value.String
+			}
+		case workspacedeletion.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				_m.CreatedAt = value.Time
+			}
+		case workspacedeletion.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				_m.UpdatedAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -104,6 +175,38 @@ func (_m *WorkspaceDeletion) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	builder.WriteString("requested_by_user_id=")
+	builder.WriteString(_m.RequestedByUserID)
+	builder.WriteString(", ")
+	builder.WriteString("scheduled_for=")
+	builder.WriteString(_m.ScheduledFor.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.ProcessingAt; v != nil {
+		builder.WriteString("processing_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.CancelledAt; v != nil {
+		builder.WriteString("cancelled_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.PurgedAt; v != nil {
+		builder.WriteString("purged_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.LastError; v != nil {
+		builder.WriteString("last_error=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

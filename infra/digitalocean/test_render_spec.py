@@ -15,12 +15,17 @@ class DeploymentSpecTest(unittest.TestCase):
             "name": "existing-production", "region": "nyc",
             "domains": [{"domain": "app.example.com", "type": "PRIMARY"}],
             "services": [{"name": "web", "image": {"registry_type": "GHCR", "registry": "example", "repository": "web", "digest": "sha256:existing"},
-                          "instance_count": 2, "envs": [{"key": "EXISTING_SETTING", "value": "preserve"}]}],
+                          "instance_count": 2, "envs": [{"key": "EXISTING_SETTING", "value": "preserve"},
+                                                        {"key": "DATABASE_URL", "value": "legacy-web-role", "type": "SECRET"}]}],
+            "jobs": [{"name": "web-migrate", "kind": "PRE_DEPLOY"}],
             "ingress": {"rules": [{"match": {"path": {"prefix": "/"}}, "component": {"name": "web"}}]},
         }
-        keys = "DATABASE_URL BETTER_AUTH_SECRET AUDIT_IP_HASH_SECRET AUDIT_DRAIN_ENCRYPTION_KEY REDIS_URL STORAGE_SERVICE_KEY R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY PLATFORM_RENDER_SERVICE_SECRET BETTER_AUTH_URL BETTER_AUTH_TRUSTED_ORIGINS STORAGE_BUCKET STORAGE_DATABASE_URL STORAGE_JWT_SECRET R2_BUCKET_NAME R2_ENDPOINT MIGRATION_DATABASE_URL TEMPORAL_NAMESPACE POSTIZ_TEMPORAL_NAMESPACE POSTIZ_DATABASE_URL POSTIZ_REDIS_URL POSTIZ_JWT_SECRET POSTIZ_TEMPORAL_API_KEY POSTIZ_TEMPORAL_ADDRESS CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_BUCKETNAME CLOUDFLARE_BUCKET_URL CLOUDFLARE_ACCESS_KEY CLOUDFLARE_SECRET_ACCESS_KEY TEMPORAL_API_KEY TEMPORAL_ADDRESS PUBLISHING_SERVICE_TOKEN POSTIZ_API_KEY AUDIT_RETENTION_DATABASE_URL RESEND_API_KEY AUTH_EMAIL_FROM"
+        keys = "DATABASE_URL BETTER_AUTH_SECRET AUDIT_IP_HASH_SECRET AUDIT_DRAIN_ENCRYPTION_KEY REDIS_URL STORAGE_SERVICE_KEY R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY PLATFORM_RENDER_SERVICE_SECRET BETTER_AUTH_URL BETTER_AUTH_TRUSTED_ORIGINS STORAGE_BUCKET STORAGE_DATABASE_URL STORAGE_JWT_SECRET R2_BUCKET_NAME R2_ENDPOINT MIGRATION_DATABASE_URL TEMPORAL_NAMESPACE POSTIZ_TEMPORAL_NAMESPACE POSTIZ_REDIS_URL POSTIZ_JWT_SECRET POSTIZ_TEMPORAL_API_KEY POSTIZ_TEMPORAL_ADDRESS CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_BUCKETNAME CLOUDFLARE_BUCKET_URL CLOUDFLARE_ACCESS_KEY CLOUDFLARE_SECRET_ACCESS_KEY TEMPORAL_API_KEY TEMPORAL_ADDRESS PUBLISHING_SERVICE_TOKEN POSTIZ_API_KEY AUDIT_RETENTION_DATABASE_URL RESEND_API_KEY AUTH_EMAIL_FROM"
         self.secrets = {key: "fixture-" + key for key in keys.split()}
-        self.secrets.update(DATABASE_URL="postgresql://web:secret@db:5432/tenant", POSTIZ_DATABASE_URL="postgresql://postiz:secret@db:5432/postiz", BETTER_AUTH_URL="https://app.example.com")
+        self.secrets.update(DATABASE_URL="postgresql://web:secret@db:5432/tenant",
+                            MIGRATION_DATABASE_URL="postgresql://migrate:secret@db:5432/tenant",
+                            AUDIT_RETENTION_DATABASE_URL="postgresql://retention:secret@db:5432/tenant",
+                            BETTER_AUTH_URL="https://app.example.com")
 
     def test_preserves_web_and_restricts_internal_services(self):
         spec = render_spec.render(self.base, self.secrets)
@@ -28,31 +33,39 @@ class DeploymentSpecTest(unittest.TestCase):
         self.assertEqual(services["web"]["image"], self.base["services"][0]["image"])
         self.assertEqual(services["web"]["instance_count"], 2)
         self.assertEqual(spec["domains"], self.base["domains"])
-        for name in ["storage", "design-renderer"]:
+        for name in ["design-renderer"]:
             self.assertNotIn("http_port", services[name])
             self.assertTrue(services[name]["internal_ports"])
-        self.assertEqual(set(services), {"web", "storage", "design-renderer", "screenshot-studio-backend"})
+        self.assertEqual(set(services), {"web", "design-renderer", "screenshot-studio-backend"})
         self.assertEqual({r["component"]["name"] for r in spec["ingress"]["rules"]}, {"web", "screenshot-studio-backend"})
         for component in spec["services"] + spec["jobs"]:
             for item in component.get("envs", []):
                 if item["key"] != "EXISTING_SETTING":
                     self.assertEqual(item.get("scope"), "RUN_TIME")
-                if item["key"] in ["DATABASE_URL", "JWT_SECRET", "TEMPORAL_API_KEY", "TENANT_DATABASE_URL", "TENANT_TEMPORAL_API_KEY", "TENANT_STORAGE_SERVICE_KEY", "RENDER_SERVICE_SECRET"]:
+                if item["key"] in ["DATABASE_URL", "JWT_SECRET", "TEMPORAL_API_KEY", "TENANT_DATABASE_URL", "TENANT_TEMPORAL_API_KEY", "RENDER_SERVICE_SECRET"]:
                     self.assertEqual(item["type"], "SECRET")
         self.assertNotIn("AUDIT_RETENTION_DATABASE_URL", {e["key"] for e in services["web"]["envs"]})
         backend = services["screenshot-studio-backend"]
         self.assertEqual(backend["health_check"]["port"], 3003)
+        self.assertEqual(backend["internal_ports"], [3003, 8082])
         self.assertEqual(backend["instance_size_slug"], "apps-s-1vcpu-2gb")
         worker_env = {e["key"]: e for e in backend["envs"]}
         self.assertEqual(worker_env["RUN_WORKER"]["value"], "true")
         self.assertEqual(worker_env["TENANT_RUN_MAINTENANCE"]["value"], "true")
+        self.assertEqual(worker_env["TENANT_PUBLISHING_SERVICE_TOKEN"]["type"], "SECRET")
         self.assertEqual(worker_env["TENANT_AUDIT_RETENTION_DATABASE_URL"]["type"], "SECRET")
         self.assertEqual({j["kind"] for j in spec["jobs"]}, {"PRE_DEPLOY"})
 
-    def test_requires_separate_database_even_with_different_credentials(self):
-        self.secrets["POSTIZ_DATABASE_URL"] = "postgresql://other:password@db:5432/tenant"
-        with self.assertRaisesRegex(ValueError, "separate database"):
-            render_spec.render(self.base, self.secrets)
+    def test_social_and_tenant_services_share_one_database(self):
+        spec = render_spec.render(self.base, self.secrets)
+        backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
+        backend_env = {item["key"]: item["value"] for item in backend["envs"]}
+        migration = next(item for item in spec["jobs"] if item["name"] == "platform-migrate")
+        migration_env = {item["key"]: item["value"] for item in migration["envs"]}
+        self.assertEqual(backend_env["DATABASE_URL"], self.secrets["DATABASE_URL"])
+        self.assertEqual(backend_env["TENANT_DATABASE_URL"], self.secrets["DATABASE_URL"])
+        self.assertEqual(migration_env["DATABASE_URL"], self.secrets["MIGRATION_DATABASE_URL"])
+        self.assertNotIn("TENANT_PUBLISHING_DIRECT_PROVIDER", backend_env)
 
     def test_optional_social_credentials_only_reach_backend(self):
         keys = ("X_API_KEY", "X_API_SECRET", "FACEBOOK_APP_ID", "FACEBOOK_APP_SECRET",
@@ -82,13 +95,35 @@ class DeploymentSpecTest(unittest.TestCase):
         backend = next(item for item in rerendered["services"] if item["name"] == "screenshot-studio-backend")
         self.assertTrue({"X_API_KEY", "X_API_SECRET"}.isdisjoint({item["key"] for item in backend["envs"]}))
 
+    def test_web_uses_backend_without_database_and_go_migrates_schema(self):
+        self.base["services"][0]["envs"].append({"key": "POSTIZ_API_KEY_TENANT", "value": "legacy-social-key", "type": "SECRET"})
+        spec = render_spec.render(self.base, self.secrets)
+        web = next(item for item in spec["services"] if item["name"] == "web")
+        envs = {item["key"]: item for item in web["envs"]}
+        self.assertEqual(envs["PUBLISHING_API_URL"]["value"], "http://screenshot-studio-backend:8082")
+        self.assertEqual(envs["PUBLISHING_SERVICE_TOKEN"]["type"], "SECRET")
+        self.assertTrue(render_spec.WEB_DATABASE_KEYS.isdisjoint(envs))
+        self.assertFalse(any(key.startswith("POSTIZ_API_KEY_") for key in envs))
+        jobs = {item["name"]: item for item in spec["jobs"]}
+        self.assertEqual(set(jobs), {"platform-migrate"})
+        migrate = jobs["platform-migrate"]
+        self.assertEqual(migrate["run_command"], "/platform-migrate")
+        self.assertEqual(migrate["dockerfile_path"], next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")["dockerfile_path"])
+        self.assertEqual(migrate["envs"], [{"key": "DATABASE_URL", "value": self.secrets["MIGRATION_DATABASE_URL"],
+                                            "scope": "RUN_TIME", "type": "SECRET"}])
+
     def test_fails_closed_for_missing_secrets_or_colliding_queues(self):
-        del self.secrets["STORAGE_SERVICE_KEY"]
-        with self.assertRaisesRegex(ValueError, "STORAGE_SERVICE_KEY"):
+        del self.secrets["R2_ACCESS_KEY_ID"]
+        with self.assertRaisesRegex(ValueError, "R2_ACCESS_KEY_ID"):
             render_spec.render(self.base, self.secrets)
-        self.secrets["STORAGE_SERVICE_KEY"] = "fixture"
+        self.secrets["R2_ACCESS_KEY_ID"] = "fixture"
         self.secrets["POSTIZ_TEMPORAL_NAMESPACE"] = self.secrets["TEMPORAL_NAMESPACE"]
         with self.assertRaisesRegex(ValueError, "different Temporal namespaces"):
+            render_spec.render(self.base, self.secrets)
+
+    def test_rejects_a_second_product_database(self):
+        self.secrets["MIGRATION_DATABASE_URL"] = "postgresql://migrate:secret@db:5432/other"
+        with self.assertRaisesRegex(ValueError, "same product database"):
             render_spec.render(self.base, self.secrets)
 
     def test_repeat_render_does_not_duplicate_components_jobs_or_routes(self):

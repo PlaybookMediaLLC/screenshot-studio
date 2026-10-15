@@ -2,10 +2,9 @@ import { apiKey } from '@better-auth/api-key'
 import { dash } from '@better-auth/infra'
 import { scim } from '@better-auth/scim'
 import { sso } from '@better-auth/sso'
-import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { betterAuth } from 'better-auth'
 import { admin, organization, twoFactor } from 'better-auth/plugins'
-import { prisma } from '@/lib/db'
+import { backendAuthAdapter } from './backend-adapter'
 import {
   getAuthBaseUrl,
   getAuthSecret,
@@ -40,7 +39,7 @@ const socialProviders = {
 
 export const auth = betterAuth({
   baseURL: getAuthBaseUrl(),
-  database: prismaAdapter(prisma, { provider: 'postgresql', transaction: true }),
+  database: backendAuthAdapter,
   emailAndPassword: {
     autoSignIn: process.env.NODE_ENV !== 'production',
     enabled: passwordAuthEnabled,

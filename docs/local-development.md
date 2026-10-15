@@ -18,7 +18,18 @@ make down
 ```
 
 The app reloads at `http://localhost:3000`. Postgres is available on port
-`54329`, Supabase Storage on `5000`, and the RustFS console on `9004` (`/rustfs/console/`).
+`54329`, the Go backend on `8080`, RustFS on `9003`, and the RustFS console on
+`9004` (`/rustfs/console/`).
+
+The dev server uses Turbopack. Its compile cache lives in the `app_next_cache`
+volume, so a restarted container serves routes in about a second instead of
+recompiling them; `make reset` clears it. Production builds still use webpack.
+
+The app container has no database connection: every read and write goes
+through the Go backend. Before the backend starts, the one-shot
+`platform-go-migrate` service applies the product schema with the Go platform
+migrator. A database created by the old `prisma db push` flow has no migration
+records, so the migrator refuses it; run `make reset` once.
 
 `make up` also makes sure a local account exists, so a fresh database still has
 a login: sign in as `dev@localhost.test` with the `STUDIO_DEV_PASSWORD` value
@@ -127,15 +138,14 @@ docker exec screenshot-studio-redis-1 redis-cli FLUSHALL
 The stack contains:
 
 - Screenshot Studio in Next.js development mode with hot reload.
+- The Go backend, its platform migrator, Temporal, and the orchestrator worker.
 - Postgres and Redis.
 - RustFS as the local R2-compatible object store.
-- Supabase Storage, PgBouncer, and Imgproxy in front of RustFS.
 
 ### Go publishing services
 
-The Postiz publishing backend and orchestrator are an optional Compose profile.
-They share the application's Postgres publishing tables through Ent. Start and
-verify them with:
+The Go backend and orchestrator are part of the default stack. They own the
+application's Postgres tables through Ent. Rebuild and verify them with:
 
 ```sh
 make publishing-up
@@ -144,26 +154,16 @@ curl --fail http://localhost:8081/healthz
 make publishing-test
 ```
 
-For a service-level acceptance run, point the guarded test command at a fresh,
-empty PostgreSQL database. Its name must contain `acceptance` or `test`:
-
-```sh
-createdb publishing_acceptance
-PUBLISHING_ACCEPTANCE_DATABASE_URL='postgresql://localhost/publishing_acceptance?sslmode=disable' \
-  make publishing-acceptance
-```
-
-The acceptance run applies the real Prisma migration SQL, starts a local
-Temporal development server and both compiled Go services, and verifies their
-workflow, HTTP, Ent, storage, Postiz, and audit boundaries. Install the Temporal
-CLI before running it. The local Postiz protocol endpoint never publishes to a
-real social account.
+For the end-to-end publishing check, run `./bin/social-gate`. It starts an
+isolated stack with the web, backend, Temporal worker, private RustFS, and a fake
+social provider, then publishes through the direct Go path. It never publishes
+to a real social account.
 
 The backend is a server-to-server API and requires the local
 `PUBLISHING_SERVICE_TOKEN` for tenant operations. Each scheduled post starts one
 Temporal workflow named `post_<post-id>`; the workflow owns the durable timer,
 cancel signal, and rate-limit retry. Configure a Postiz key only when testing an
-actual publication. The Compose profile exposes Temporal gRPC on port 7233 and
+actual publication. Compose exposes Temporal gRPC on port 7233 and
 its local UI on http://localhost:8233.
 
 The Go Postiz replacement is a separate optional profile with its own database,
@@ -171,8 +171,9 @@ Redis, and Temporal server. Run `make postiz-go-up` and see
 [Screenshot Studio backend and orchestrator](postiz-go-deployment.md) for the
 local API key and production configuration.
 
-Supabase Storage is private. The server-only storage client creates object keys
-under `org/<organization-id>/<classification>/<asset-id>/<revision>/`. Local setup also generates
+The RustFS bucket is private. The Go backend creates object keys under
+`org/<organization-id>/<classification>/<asset-id>/<revision>/` and signs every
+transfer; see [tenant asset storage](tenant-storage.md). Local setup also generates
 Better Auth and audit secrets. Do not copy `.local/dev.env` to another
 environment.
 
@@ -190,14 +191,16 @@ pre-commit hook.
 ## Temporal maintenance development
 
 Maintenance jobs run directly in the Go publishing orchestrator. There is no
-Trigger.dev worker or project to configure. The `publishing` Compose profile
+Trigger.dev worker or project to configure. The default Compose stack
 provides Temporal and the Go workers; `RUN_MAINTENANCE` defaults to false locally
 so a normal editor development session cannot send customer announcements.
 
 For isolated maintenance integration tests, create a `maintenance_test` PostgreSQL
-database, apply the Prisma migrations, and run from `services/`:
+database, apply the schema, and run from `services/`:
 
 ```sh
+DATABASE_URL='postgresql://postgres:password@localhost:5432/maintenance_test?sslmode=disable' \
+  go run ./cmd/platform-migrate
 MAINTENANCE_TEST_DATABASE_URL='postgresql://postgres:password@localhost:5432/maintenance_test' \
   go test -race ./internal/maintenance ./internal/temporalmaintenance
 ```
@@ -226,17 +229,13 @@ make kind-down
 `kind-up` builds the production image, loads it into the `screenshot-studio-dev`
 Kind cluster, generates a Kubernetes Secret from the local values, and installs
 the Helm chart with local Postgres, Redis, RustFS, Storage, PgBouncer, and
-Imgproxy enabled. Kind is a production-like image test, not a hot-reload loop.
-Its migration job uses `prisma db push` because the local database retains the
-legacy screenshot-cache table. Production uses the reviewed Prisma migration
-path in RFC 002.
+Imgproxy enabled. It also builds the Go backend image and runs it with a local
+Temporal server; the chart's migration hook runs that image's `/platform-migrate`.
+Kind is a production-like image test, not a hot-reload loop.
 
 ## Production storage
 
-The Storage service uses an S3-compatible backend. Local development sets it to
-RustFS. Production should set the same S3 settings to private Cloudflare R2
-credentials and endpoint. The application remains responsible for tenant checks
-and issuing short-lived upload URLs. Local Storage has no browser CORS gateway,
-so `STORAGE_PROXY_URL` sends signed transfers through the authenticated Next.js
-route. In production, keep that route or configure the public Storage gateway
-with equivalent CORS rules.
+The Go backend signs uploads and downloads against an S3-compatible bucket:
+RustFS locally, private Cloudflare R2 in production. The browser transfers
+directly to the bucket through `R2_BROWSER_ENDPOINT`, so the bucket's CORS policy
+must allow the web origin. The Compose RustFS initializer applies it locally.

@@ -23,10 +23,10 @@ export async function requireTenantAccess(
     : await requireActiveOrganizationPermission(headers, requirement.permission)
 
   if (requirement.feature) {
-    await requireWorkspaceFeature(context.organizationId, requirement.feature)
+    await requireWorkspaceFeature(context, requirement.feature)
   }
   if (requirement.quota) {
-    await consumeWorkspaceQuota(context.organizationId, requirement.quota)
+    await consumeWorkspaceQuota(context, requirement.quota)
   }
 
   return context

@@ -2,6 +2,7 @@ import 'server-only'
 
 import { generateText, stepCountIs } from 'ai'
 import type { TenantContext } from '@/lib/auth/access'
+import { backendSDK } from '@/lib/backend/sdk'
 import {
   createDesignRenderer,
   type DesignRenderer,
@@ -19,9 +20,6 @@ import {
   loadPreferenceExamples,
   releaseSourceUrls,
 } from '@/lib/launch/store'
-import { appendAuditLog } from '@/lib/audit/log'
-import { getAuditActor } from '@/lib/auth/principal'
-import { prisma } from '@/lib/db'
 import { models, normalizeTokenUsage } from '../models'
 import { type CampaignStudioRecord, createCampaignStudioTools } from '../tools/campaign-studio'
 import { createDesignStudioTools } from '../tools/design-studio'
@@ -38,11 +36,11 @@ import { VISUALS_FALLBACK_INSTRUCTIONS, VISUALS_INSTRUCTIONS } from './prompts'
  * fails.
  */
 export async function produceCampaign(tenant: TenantContext, campaignId: string) {
-  const campaign = await loadLaunchCampaign(tenant.organizationId, campaignId)
+  const campaign = await loadLaunchCampaign(tenant, campaignId)
   if (!campaign.release) throw new LaunchError('Link a release brief first.', 409)
   const [spec, plan] = await Promise.all([
-    getWorkingSpec(tenant.organizationId, campaign.release.id),
-    getWorkingPlan(tenant.organizationId, campaignId),
+    getWorkingSpec(tenant, campaign.release.id),
+    getWorkingPlan(tenant, campaignId),
   ])
   if (!spec) throw new LaunchError('Draft the spec first.', 409)
   if (!plan) throw new LaunchError('Plan the campaign first.', 409)
@@ -51,8 +49,8 @@ export async function produceCampaign(tenant: TenantContext, campaignId: string)
     throw new LaunchError('Connect a public product URL before producing visuals.', 409)
   }
   const [brand, examples] = await Promise.all([
-    getActiveBrand(tenant.organizationId),
-    loadPreferenceExamples(tenant.organizationId),
+    getActiveBrand(tenant),
+    loadPreferenceExamples(tenant),
   ])
 
   const record: CampaignStudioRecord = { assets: [], savedPosts: 0 }
@@ -116,27 +114,22 @@ export async function produceCampaign(tenant: TenantContext, campaignId: string)
   const visuals = visualsRun.value
   const copy = copyRun.value
   const usage = normalizeTokenUsage(visuals.totalUsage)
-  await prisma.$transaction((transaction) =>
-    appendAuditLog(transaction, {
-      action: 'product.campaign_produced',
-      actor: getAuditActor(tenant.principal),
-      entityId: campaignId,
-      entityType: 'campaign',
-      metadata: {
-        assetCount: record.assets.length,
-        designMode,
-        inputUsage: usage.inputTokens,
-        modelId: models.modelId('deep'),
-        outputUsage: usage.outputTokens,
-        planVersion: plan.version,
-        postCount: copy.postCount,
-        specVersion: spec.version,
-        steps: visuals.steps.length,
-      },
-      organizationId: tenant.organizationId,
-      requestId: tenant.requestId,
-    })
-  )
+  await backendSDK(tenant).appendAuditEvent({
+    action: 'product.campaign_produced',
+    entityId: campaignId,
+    entityType: 'campaign',
+    metadata: {
+      assetCount: record.assets.length,
+      designMode,
+      inputUsage: usage.inputTokens,
+      modelId: models.modelId('deep'),
+      outputUsage: usage.outputTokens,
+      planVersion: plan.version,
+      postCount: copy.postCount,
+      specVersion: spec.version,
+      steps: visuals.steps.length,
+    },
+  })
   return {
     assetCount: record.assets.length,
     designMode,

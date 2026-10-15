@@ -1,10 +1,10 @@
 import 'server-only'
 
-import { prisma } from '@/lib/db'
 import {
   createBrandKit,
   createSourceApp,
   getBrandProfile,
+  listBrandKits,
   upsertBrandProfile,
 } from '@/lib/tenant/configuration'
 import {
@@ -17,18 +17,7 @@ import { organizationProcedure, tenantProcedure } from '../procedures'
 
 export const brandKitRouter = router({
   list: organizationProcedure('brand:manage').query(async ({ ctx }) => {
-    const brandKits = await prisma.brandKit.findMany({
-      orderBy: [{ name: 'asc' }, { version: 'desc' }],
-      select: {
-        createdAt: true,
-        definition: true,
-        id: true,
-        name: true,
-        status: true,
-        version: true,
-      },
-      where: { organizationId: ctx.access.organizationId },
-    })
+    const brandKits = await listBrandKits(ctx.access)
     return { brandKits }
   }),
   create: organizationProcedure('brand:manage')
@@ -41,7 +30,7 @@ export const brandKitRouter = router({
 
 export const brandProfileRouter = router({
   get: organizationProcedure('brand:manage').query(async ({ ctx }) => {
-    const brandProfile = await getBrandProfile(ctx.access.organizationId)
+    const brandProfile = await getBrandProfile(ctx.access)
     return { brandProfile }
   }),
   upsert: organizationProcedure('brand:manage')

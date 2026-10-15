@@ -21,7 +21,7 @@ export const assetRouter = router({
   list: tenantProcedure({ apiKeyScope: 'artifact:read', permission: 'artifact:read' })
     .input(assetListQuerySchema.optional())
     .query(async ({ ctx, input }) =>
-      listAssets(ctx.tenant.organizationId, {
+      listAssets(ctx.tenant, {
         cursor: input?.cursor,
         take: input?.limit ?? 50,
       })
@@ -49,7 +49,6 @@ export const assetRouter = router({
     }),
   delete: tenantProcedure({
     apiKeyScope: 'asset:write',
-    feature: 'asset:delete',
     permission: 'artifact:edit',
     quota: 'api:write:minute',
   })

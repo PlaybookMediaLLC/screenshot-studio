@@ -11,6 +11,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditlog"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
@@ -24,6 +25,14 @@ func NewRepository(client *ent.Client) *Repository { return &Repository{client: 
 func (r *Repository) Ping(ctx context.Context) error {
 	_, err := r.client.ChannelConnection.Query().Limit(1).IDs(ctx)
 	return err
+}
+
+func (r *Repository) Binding(ctx context.Context, organizationID string) (*ent.PostizTenantBinding, error) {
+	binding, err := r.client.PostizTenantBinding.Query().Where(postiztenantbinding.ID(organizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, ErrNotFound
+	}
+	return binding, err
 }
 
 func (r *Repository) CreateConnection(ctx context.Context, actor Actor, input CreateConnectionInput) (*ent.ChannelConnection, error) {
@@ -79,6 +88,24 @@ func (r *Repository) CreateScheduledPost(ctx context.Context, actor Actor, input
 	}
 	if !ent.IsNotFound(err) {
 		return CreateScheduledPostResult{}, err
+	}
+
+	connectionExists, err := r.client.ChannelConnection.Query().Where(
+		channelconnection.ID(input.ChannelConnectionID),
+		channelconnection.OrganizationID(actor.Organization),
+	).Exist(ctx)
+	if err != nil {
+		return CreateScheduledPostResult{}, err
+	}
+	variantExists, err := r.client.CreativeVariant.Query().Where(
+		creativevariant.ID(input.VariantID),
+		creativevariant.OrganizationID(actor.Organization),
+	).Exist(ctx)
+	if err != nil {
+		return CreateScheduledPostResult{}, err
+	}
+	if !connectionExists || !variantExists {
+		return CreateScheduledPostResult{}, ErrNotFound
 	}
 
 	eligible, err := r.isEligible(ctx, actor.Organization, input.VariantID, input.ChannelConnectionID)
@@ -145,6 +172,12 @@ func (r *Repository) isEligible(ctx context.Context, organizationID, variantID, 
 		creativevariant.StatusEQ(creativevariant.StatusAPPROVED),
 		creativevariant.HasApprovalWith(approval.StatusEQ(approval.StatusAPPROVED)),
 	).Exist(ctx)
+}
+
+// IsEligible rechecks the approved variant and active destination before a
+// product campaign atomically links its post to a canonical scheduled post.
+func (r *Repository) IsEligible(ctx context.Context, organizationID, variantID, connectionID string) (bool, error) {
+	return r.isEligible(ctx, organizationID, variantID, connectionID)
 }
 
 func (r *Repository) ListScheduledPosts(ctx context.Context, organizationID string, limit int) ([]*ent.ScheduledPost, error) {
@@ -342,14 +375,14 @@ func (r *Repository) FailUnknown(ctx context.Context, postID, runID string, atte
 	if err != nil {
 		return err
 	}
-	if post.Status == scheduledpost.StatusPUBLISHED || post.Status == scheduledpost.StatusFAILED || post.Status == scheduledpost.StatusCANCELLED {
+	if post.Status == scheduledpost.StatusPUBLISHED || post.Status == scheduledpost.StatusFAILED || post.Status == scheduledpost.StatusCANCELLED || post.Status == scheduledpost.StatusUNKNOWN_DELIVERY {
 		return nil
 	}
 	updated, err := tx.ScheduledPost.Update().Where(
 		scheduledpost.ID(postID),
 		scheduledpost.StatusEQ(scheduledpost.StatusPROCESSING),
 		scheduledpost.TriggerRunIDEQ(runID),
-	).SetStatus(scheduledpost.StatusFAILED).Save(ctx)
+	).SetStatus(scheduledpost.StatusUNKNOWN_DELIVERY).Save(ctx)
 	if err != nil || updated != 1 {
 		if err == nil {
 			err = ErrInvalidState

@@ -23,16 +23,15 @@ const APPROVED_POST = new Set(['APPROVED', 'PUBLISHED', 'SCHEDULED'])
 export default async function CampaignPage({ params }: CampaignPageProps) {
   const { campaignId, locale } = await params
   const access = await requireCampaignPageAccess(locale)
-  const organizationId = access.organization.id
   // Scoped to the active workspace: another workspace's id is a 404.
-  const campaign = await getCampaign(organizationId, campaignId)
+  const campaign = await getCampaign(access.tenant, campaignId)
   if (!campaign) notFound()
   const [specs, plans, runs, revisions, designs] = await Promise.all([
-    campaign.release ? getReleaseSpecs(organizationId, campaign.release.id) : null,
-    getCampaignPlans(organizationId, campaign.id),
-    latestLaunchRuns(organizationId, campaign.id),
-    listRevisions(organizationId, campaign.id),
-    listCampaignDesigns(organizationId, campaign.id),
+    campaign.release ? getReleaseSpecs(access.tenant, campaign.release.id) : null,
+    getCampaignPlans(access.tenant, campaign.id),
+    latestLaunchRuns(access.tenant, campaign.id),
+    listRevisions(access.tenant, campaign.id),
+    listCampaignDesigns(access.tenant, campaign.id),
   ])
 
   return (
@@ -65,7 +64,9 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
               campaign.release && {
                 ...campaign.release,
                 sourceUrls: Array.isArray(campaign.release.sourceUrls)
-                  ? campaign.release.sourceUrls.filter((url) => typeof url === 'string')
+                  ? (campaign.release.sourceUrls as unknown[]).filter(
+                      (url): url is string => typeof url === 'string'
+                    )
                   : [],
               }
             }

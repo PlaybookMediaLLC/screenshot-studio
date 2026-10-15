@@ -4,6 +4,7 @@ package creativevariant
 
 import (
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -18,8 +19,28 @@ const (
 	FieldOrganizationID = "organizationId"
 	// FieldSourceAssetID holds the string denoting the source_asset_id field in the database.
 	FieldSourceAssetID = "sourceAssetId"
+	// FieldReleaseID holds the string denoting the release_id field in the database.
+	FieldReleaseID = "releaseId"
+	// FieldBrandKitID holds the string denoting the brand_kit_id field in the database.
+	FieldBrandKitID = "brandKitId"
+	// FieldBrandKitVersion holds the string denoting the brand_kit_version field in the database.
+	FieldBrandKitVersion = "brandKitVersion"
+	// FieldTemplateID holds the string denoting the template_id field in the database.
+	FieldTemplateID = "templateId"
+	// FieldTemplateVersion holds the string denoting the template_version field in the database.
+	FieldTemplateVersion = "templateVersion"
+	// FieldRevision holds the string denoting the revision field in the database.
+	FieldRevision = "revision"
+	// FieldAspectRatio holds the string denoting the aspect_ratio field in the database.
+	FieldAspectRatio = "aspectRatio"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldCreatedByUserID holds the string denoting the created_by_user_id field in the database.
+	FieldCreatedByUserID = "createdByUserId"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "createdAt"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updatedAt"
 	// EdgeSourceAsset holds the string denoting the source_asset edge name in mutations.
 	EdgeSourceAsset = "source_asset"
 	// EdgeApproval holds the string denoting the approval edge name in mutations.
@@ -47,7 +68,17 @@ var Columns = []string{
 	FieldID,
 	FieldOrganizationID,
 	FieldSourceAssetID,
+	FieldReleaseID,
+	FieldBrandKitID,
+	FieldBrandKitVersion,
+	FieldTemplateID,
+	FieldTemplateVersion,
+	FieldRevision,
+	FieldAspectRatio,
 	FieldStatus,
+	FieldCreatedByUserID,
+	FieldCreatedAt,
+	FieldUpdatedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -59,6 +90,15 @@ func ValidColumn(column string) bool {
 	}
 	return false
 }
+
+var (
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
+)
 
 // Status defines the type for the "status" enum field.
 type Status string
@@ -102,9 +142,59 @@ func BySourceAssetID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSourceAssetID, opts...).ToFunc()
 }
 
+// ByReleaseID orders the results by the release_id field.
+func ByReleaseID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReleaseID, opts...).ToFunc()
+}
+
+// ByBrandKitID orders the results by the brand_kit_id field.
+func ByBrandKitID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBrandKitID, opts...).ToFunc()
+}
+
+// ByBrandKitVersion orders the results by the brand_kit_version field.
+func ByBrandKitVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBrandKitVersion, opts...).ToFunc()
+}
+
+// ByTemplateID orders the results by the template_id field.
+func ByTemplateID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTemplateID, opts...).ToFunc()
+}
+
+// ByTemplateVersion orders the results by the template_version field.
+func ByTemplateVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTemplateVersion, opts...).ToFunc()
+}
+
+// ByRevision orders the results by the revision field.
+func ByRevision(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRevision, opts...).ToFunc()
+}
+
+// ByAspectRatio orders the results by the aspect_ratio field.
+func ByAspectRatio(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAspectRatio, opts...).ToFunc()
+}
+
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByCreatedByUserID orders the results by the created_by_user_id field.
+func ByCreatedByUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedByUserID, opts...).ToFunc()
+}
+
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
 // BySourceAssetField orders the results by source_asset field.

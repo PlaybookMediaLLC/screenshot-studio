@@ -9,7 +9,7 @@ E2E_BASE_URL ?= http://localhost:3000
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down reset status smoke rate-limit-smoke tenant-isolation e2e e2e-file e2e-onboarding e2e-recovery check publishing-up publishing-down publishing-test publishing-acceptance postiz-go-up postiz-go-down logs logs-app logs-postgres logs-redis logs-rustfs logs-storage kind-up kind-down kind-status kind-logs
+.PHONY: help up down reset status smoke rate-limit-smoke tenant-isolation e2e e2e-file e2e-onboarding e2e-recovery check publishing-up publishing-down publishing-test postiz-go-up postiz-go-down logs logs-app logs-postgres logs-redis logs-rustfs kind-up kind-down kind-status kind-logs
 
 help: ## Show local development commands.
 	@echo "Screenshot Studio local development"
@@ -26,10 +26,9 @@ help: ## Show local development commands.
 	@echo "  make e2e-onboarding             Verify sign-up and workspace onboarding in Chromium"
 	@echo "  make e2e-recovery               Verify dependency failure and recovery behavior"
 	@echo "  make check                      Run lint and TypeScript checks"
-	@echo "  make publishing-up              Start the Go backend and orchestrator profile"
+	@echo "  make publishing-up              Rebuild and restart the Go backend and orchestrator"
 	@echo "  make publishing-down            Stop the Go publishing services"
 	@echo "  make publishing-test            Run Go generation, tests, race checks, and vet"
-	@echo "  make publishing-acceptance      Exercise both Go services against an empty test database"
 	@echo "  make postiz-go-up               Start the optional Postiz Go API and workers"
 	@echo "  make postiz-go-down             Stop the optional Postiz Go API and workers"
 	@echo ""
@@ -38,7 +37,6 @@ help: ## Show local development commands.
 	@echo "  make logs-postgres              Follow Postgres logs"
 	@echo "  make logs-redis                 Follow Redis logs"
 	@echo "  make logs-rustfs                Follow RustFS logs"
-	@echo "  make logs-storage               Follow Supabase Storage logs"
 	@echo ""
 	@echo "  make kind-up                    Build and install the Kind stack"
 	@echo "  make kind-down                  Delete the Kind cluster after confirmation"
@@ -83,16 +81,13 @@ check:
 	@$(STUDIO) check
 
 publishing-up:
-	@docker compose --env-file .local/dev.env --file compose.yaml --profile publishing up --detach --build publishing-backend publishing-orchestrator
+	@docker compose --env-file .local/dev.env --file compose.yaml up --detach --build publishing-backend publishing-orchestrator
 
 publishing-down:
 	@docker compose --env-file .local/dev.env --file compose.yaml stop publishing-backend publishing-orchestrator temporal
 
 publishing-test:
 	@$(MAKE) --directory services check
-
-publishing-acceptance:
-	@$(MAKE) --directory services acceptance
 
 postiz-go-up:
 	@$(STUDIO) postiz-go-up
@@ -114,9 +109,6 @@ logs-redis:
 
 logs-rustfs:
 	@$(STUDIO) logs rustfs
-
-logs-storage:
-	@$(STUDIO) logs storage
 
 kind-up:
 	@$(STUDIO) kind-up

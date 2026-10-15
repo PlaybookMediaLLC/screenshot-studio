@@ -2,3 +2,10 @@ services:
   app:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
+  # The backend and worker call the same host-side e2e mocks as the app.
+  publishing-backend:
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+  publishing-orchestrator:
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'

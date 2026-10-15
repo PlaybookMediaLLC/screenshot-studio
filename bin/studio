@@ -37,23 +37,6 @@ ensure_env_value() {
   fi
 }
 
-create_storage_key() {
-  node - "$1" <<'NODE'
-const crypto = require("node:crypto");
-const [secret] = process.argv.slice(2);
-const encode = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
-const header = encode({ alg: "HS256", typ: "JWT" });
-const payload = encode({
-  role: "service_role",
-  iss: "screenshot-studio-local",
-  iat: Math.floor(Date.now() / 1000),
-  exp: Math.floor(Date.now() / 1000) + 315_360_000,
-});
-const signature = crypto.createHmac("sha256", secret).update(`${header}.${payload}`).digest("base64url");
-process.stdout.write(`${header}.${payload}.${signature}`);
-NODE
-}
-
 ensure_env() {
   if [[ -f "$LOCAL_ENV" ]]; then
     local database_url
@@ -62,7 +45,6 @@ const fs = require("node:fs");
 const [file] = process.argv.slice(2);
 const current = fs.readFileSync(file, "utf8");
 const next = current
-  .replace(/^(STORAGE_DATABASE_POOL_URL=.*@pgbouncer:6432)\/storage$/m, "$1/postgres")
   .replace(/^MINIO_ROOT_USER=/m, "RUSTFS_ACCESS_KEY=")
   .replace(/^MINIO_ROOT_PASSWORD=/m, "RUSTFS_SECRET_KEY=")
   .replace(/^R2_ENDPOINT=http:\/\/minio:9000$/m, "R2_ENDPOINT=http://rustfs:9000");
@@ -75,12 +57,12 @@ NODE
     ensure_env_value BETTER_AUTH_URL "http://localhost:3000"
     ensure_env_value NEXT_PUBLIC_APP_URL "http://localhost:3000"
     ensure_env_value BETTER_AUTH_TRUSTED_ORIGINS "http://localhost:3000"
-    ensure_env_value STORAGE_PROXY_URL "http://localhost:3000/api/tenant/storage"
     ensure_env_value POSTIZ_API_URL "http://host.docker.internal:5679/api/public/v1"
     ensure_env_value POSTIZ_API_KEY "e2e-postiz-token"
     ensure_env_value POSTIZ_API_KEY_E2E "e2e-postiz-token"
     ensure_env_value POSTIZ_GO_JWT_SECRET "$(random_hex 32)"
     ensure_env_value PLATFORM_RENDER_SERVICE_SECRET "$(random_hex 32)"
+    ensure_env_value PUBLISHING_SERVICE_TOKEN "$(random_hex 32)"
     database_url="$(grep '^DATABASE_URL=' "$LOCAL_ENV" | cut -d= -f2-)"
     ensure_env_value AUDIT_RETENTION_DATABASE_URL "$database_url"
     chmod 600 "$LOCAL_ENV"
@@ -90,10 +72,7 @@ NODE
   mkdir -p "$LOCAL_DIR"
   local postgres_super_password
   local postgres_app_password
-  local postgres_storage_password
   local rustfs_secret_key
-  local storage_jwt_secret
-  local storage_service_key
   local cleanup_secret
   local better_auth_secret
   local audit_ip_hash_secret
@@ -101,10 +80,7 @@ NODE
 
   postgres_super_password="$(random_hex 24)"
   postgres_app_password="$(random_hex 24)"
-  postgres_storage_password="$(random_hex 24)"
   rustfs_secret_key="$(random_hex 24)"
-  storage_jwt_secret="$(random_hex 32)"
-  storage_service_key="$(create_storage_key "$storage_jwt_secret")"
   cleanup_secret="$(random_hex 32)"
   better_auth_secret="$(random_hex 32)"
   audit_ip_hash_secret="$(random_hex 32)"
@@ -114,12 +90,8 @@ NODE
   cat >"$LOCAL_ENV" <<EOF
 POSTGRES_SUPER_PASSWORD=$postgres_super_password
 POSTGRES_APP_PASSWORD=$postgres_app_password
-POSTGRES_STORAGE_PASSWORD=$postgres_storage_password
 RUSTFS_ACCESS_KEY=screenshot-studio
 RUSTFS_SECRET_KEY=$rustfs_secret_key
-STORAGE_JWT_SECRET=$storage_jwt_secret
-STORAGE_SERVICE_KEY=$storage_service_key
-STORAGE_BUCKET=tenant-assets
 CLEANUP_SECRET=$cleanup_secret
 BETTER_AUTH_SECRET=$better_auth_secret
 BETTER_AUTH_URL=http://localhost:3000
@@ -130,16 +102,12 @@ AUDIT_DRAIN_ENCRYPTION_KEY=$audit_drain_encryption_key
 DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@postgres:5432/screenshot_studio?schema=public
 AUDIT_RETENTION_DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@postgres:5432/screenshot_studio?schema=public
 HOST_DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@127.0.0.1:54329/screenshot_studio?schema=public
-STORAGE_DATABASE_URL=postgresql://postgres:$postgres_super_password@postgres:5432/storage
-STORAGE_DATABASE_POOL_URL=postgresql://postgres:$postgres_super_password@pgbouncer:6432/postgres
-STORAGE_API_URL=http://storage:5000
-STORAGE_HOST_URL=http://127.0.0.1:5000
-STORAGE_PROXY_URL=http://localhost:3000/api/tenant/storage
 POSTIZ_API_URL=http://host.docker.internal:5679/api/public/v1
 POSTIZ_API_KEY=e2e-postiz-token
 POSTIZ_API_KEY_E2E=e2e-postiz-token
 POSTIZ_GO_JWT_SECRET=$(random_hex 32)
 PLATFORM_RENDER_SERVICE_SECRET=$(random_hex 32)
+PUBLISHING_SERVICE_TOKEN=$(random_hex 32)
 R2_ENDPOINT=http://rustfs:9000
 R2_REGION=us-east-1
 R2_FORCE_PATH_STYLE=true
@@ -178,12 +146,8 @@ write_kind_env() {
   cat >"$KIND_ENV" <<EOF
 POSTGRES_SUPER_PASSWORD=$POSTGRES_SUPER_PASSWORD
 POSTGRES_APP_PASSWORD=$POSTGRES_APP_PASSWORD
-POSTGRES_STORAGE_PASSWORD=$POSTGRES_STORAGE_PASSWORD
 RUSTFS_ACCESS_KEY=$RUSTFS_ACCESS_KEY
 RUSTFS_SECRET_KEY=$RUSTFS_SECRET_KEY
-STORAGE_JWT_SECRET=$STORAGE_JWT_SECRET
-STORAGE_SERVICE_KEY=$STORAGE_SERVICE_KEY
-STORAGE_BUCKET=$STORAGE_BUCKET
 CLEANUP_SECRET=$CLEANUP_SECRET
 BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
 BETTER_AUTH_URL=http://localhost:3000
@@ -192,19 +156,16 @@ AUTH_REQUIRE_EMAIL_VERIFICATION=false
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 AUDIT_IP_HASH_SECRET=$AUDIT_IP_HASH_SECRET
 AUDIT_DRAIN_ENCRYPTION_KEY=$AUDIT_DRAIN_ENCRYPTION_KEY
-DATABASE_URL=postgresql://screenshot_studio:$POSTGRES_APP_PASSWORD@screenshot-studio-postgres:5432/screenshot_studio?schema=public
+DATABASE_URL=postgresql://screenshot_studio:$POSTGRES_APP_PASSWORD@screenshot-studio-postgres:5432/screenshot_studio?sslmode=disable
 AUDIT_RETENTION_DATABASE_URL=postgresql://screenshot_studio:$POSTGRES_APP_PASSWORD@screenshot-studio-postgres:5432/screenshot_studio?schema=public
-STORAGE_DATABASE_URL=postgresql://postgres:$POSTGRES_SUPER_PASSWORD@screenshot-studio-postgres:5432/storage
-STORAGE_DATABASE_POOL_URL=postgresql://postgres:$POSTGRES_SUPER_PASSWORD@screenshot-studio-pgbouncer:6432/postgres
-STORAGE_API_URL=http://screenshot-studio-storage:5000
-STORAGE_HOST_URL=http://127.0.0.1:5000
-STORAGE_PROXY_URL=http://127.0.0.1:3000/api/tenant/storage
+PUBLISHING_SERVICE_TOKEN=$PUBLISHING_SERVICE_TOKEN
 R2_ENDPOINT=http://screenshot-studio-rustfs:9000
+R2_BROWSER_ENDPOINT=http://127.0.0.1:9003
 R2_REGION=us-east-1
 R2_FORCE_PATH_STYLE=true
 R2_ACCESS_KEY_ID=$RUSTFS_ACCESS_KEY
 R2_SECRET_ACCESS_KEY=$RUSTFS_SECRET_KEY
-R2_BUCKET_NAME=$STORAGE_BUCKET
+R2_BUCKET_NAME=$R2_BUCKET_NAME
 REDIS_URL=redis://screenshot-studio-redis:6379
 EOF
   chmod 600 "$KIND_ENV"
@@ -243,38 +204,21 @@ wait_for_screenshot_mock() {
 }
 
 smoke() {
-  local storage_path
-  local storage_response
-  local storage_test_key="tenants/smoke/assets/health/smoke.txt"
+  local storage_test_url
 
   load_env
+  storage_test_url="http://127.0.0.1:9003/$R2_BUCKET_NAME/smoke/health/smoke.txt"
   compose exec -T postgres pg_isready --username=postgres --dbname=postgres >/dev/null
   compose exec -T redis redis-cli ping | grep -qx PONG
   wait_for_http "http://127.0.0.1:9003/health/live" "RustFS"
-  wait_for_http "http://127.0.0.1:5000/status" "Supabase Storage"
-  # An interrupted earlier run can leave the object behind, and signing an
-  # upload for an existing key fails with a duplicate error.
-  curl --silent --request DELETE "http://127.0.0.1:5000/object/$STORAGE_BUCKET/$storage_test_key" \
-    --header "authorization: Bearer $STORAGE_SERVICE_KEY" \
-    --header "apikey: $STORAGE_SERVICE_KEY" >/dev/null || true
-  storage_response="$(curl --fail --silent --show-error --request POST \
-    "http://127.0.0.1:5000/object/upload/sign/$STORAGE_BUCKET/$storage_test_key" \
-    --header "authorization: Bearer $STORAGE_SERVICE_KEY" \
-    --header "apikey: $STORAGE_SERVICE_KEY" \
-    --header "content-type: application/json" \
-    --data '{"contentType":"text/plain"}')"
-  storage_path="$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).url)' "$storage_response")"
-  curl --fail --silent --show-error --request PUT "http://127.0.0.1:5000$storage_path" \
-    --header "content-type: text/plain" \
+  wait_for_http "http://127.0.0.1:8080/readyz" "Go backend"
+  curl --fail --silent --show-error --request PUT "$storage_test_url" \
+    --aws-sigv4 "aws:amz:us-east-1:s3" --user "$RUSTFS_ACCESS_KEY:$RUSTFS_SECRET_KEY" \
     --data "smoke" >/dev/null
-  curl --fail --silent --show-error \
-    --header "authorization: Bearer $STORAGE_SERVICE_KEY" \
-    --header "apikey: $STORAGE_SERVICE_KEY" \
-    "http://127.0.0.1:5000/object/$STORAGE_BUCKET/$storage_test_key" | grep -qx smoke
-  curl --fail --silent --show-error --request DELETE \
-    "http://127.0.0.1:5000/object/$STORAGE_BUCKET/$storage_test_key" \
-    --header "authorization: Bearer $STORAGE_SERVICE_KEY" \
-    --header "apikey: $STORAGE_SERVICE_KEY" >/dev/null
+  curl --fail --silent --show-error "$storage_test_url" \
+    --aws-sigv4 "aws:amz:us-east-1:s3" --user "$RUSTFS_ACCESS_KEY:$RUSTFS_SECRET_KEY" | grep -qx smoke
+  curl --fail --silent --show-error --request DELETE "$storage_test_url" \
+    --aws-sigv4 "aws:amz:us-east-1:s3" --user "$RUSTFS_ACCESS_KEY:$RUSTFS_SECRET_KEY" >/dev/null
   wait_for_http "http://127.0.0.1:3000/api/health" "Screenshot Studio"
   wait_for_http "http://127.0.0.1:3000/api/auth/ok" "Better Auth"
   [[ "$(curl --silent --output /dev/null --write-out '%{http_code}' --request POST \
@@ -352,13 +296,25 @@ run_e2e() {
   local test_result=0
 
   load_env
-  e2e_trusted_origins="$BETTER_AUTH_TRUSTED_ORIGINS,http://localhost:5680,http://host.docker.internal:5680"
+  if [[ "$manage_screenshot_mock" == "true" ]]; then
+    sync_dependencies
+  fi
+  e2e_trusted_origins="$BETTER_AUTH_TRUSTED_ORIGINS,${app_url%/},http://localhost:5680,http://host.docker.internal:5680"
   if [[ "$manage_screenshot_mock" == "true" ]]; then
     # Recreating app would strand the renderer, which shares app's network;
     # end-to-end flows do not render designs, so it is simply stopped.
     compose --profile renderer stop design-renderer >/dev/null 2>&1 || true
-    BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" SCREENSHOT_API_URL="http://screenshot-mock:5678" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" PLATFORM_AI_SCRIPTED=1 compose --profile e2e up --detach --force-recreate screenshot-mock app
+    BETTER_AUTH_URL="${app_url%/}" \
+      BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" \
+      NEXT_PUBLIC_APP_URL="${app_url%/}" \
+      POSTIZ_API_URL="${E2E_POSTIZ_API_URL:-http://host.docker.internal:5679/api/public/v1}" \
+      SCREENSHOT_API_URL="http://screenshot-mock:5678" \
+      SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" \
+      PLATFORM_AI_SCRIPTED=1 compose --profile e2e up --detach --force-recreate screenshot-mock publishing-backend app
     wait_for_screenshot_mock
+    # Publishing runs in the backend, so it is the service that must reach the
+    # suite's Postiz mock.
+    wait_for_http "http://127.0.0.1:8080/readyz" "Publishing backend"
   fi
   wait_for_http "${app_url%/}/api/health" "Screenshot Studio"
   # Every spec signs up first; a cold Better Auth route compiles during that
@@ -414,7 +370,7 @@ run_e2e() {
     # them beside the Playwright results, which CI uploads on failure.
     mkdir -p "$ROOT_DIR/test-results"
     compose logs --no-color app >"$ROOT_DIR/test-results/app.log" 2>&1 || true
-    SCREENSHOT_API_URL="" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="" compose up --detach --force-recreate app
+    SCREENSHOT_API_URL="" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="" compose up --detach --force-recreate publishing-backend app
   fi
   return "$test_result"
 }
@@ -482,8 +438,7 @@ dev_login() {
 up() {
   ensure_env
   compose rm --force --stop rustfs-init >/dev/null 2>&1 || true
-  compose rm --force --stop storage-init >/dev/null 2>&1 || true
-  compose up --detach --build postgres pgbouncer redis rustfs rustfs-init imgproxy storage storage-init
+  compose up --detach --build postgres redis rustfs rustfs-init publishing-backend publishing-orchestrator
   sync_dependencies
   # The design renderer runs locally by default for parity with production.
   # CI skips it (its flows do not render designs, and the Playwright image is
@@ -500,16 +455,13 @@ up() {
   else
     compose up --detach app
   fi
-  compose exec -T postgres psql --username=postgres --dbname=screenshot_studio --command \
-    "ALTER TABLE IF EXISTS screenshot_cache OWNER TO screenshot_studio;" >/dev/null
-  compose exec -T app npx prisma db push --skip-generate
   smoke
   dev_login
   echo "App:     http://localhost:3000"
   if [[ "$renderer" == "on" ]]; then
     echo "Design renderer: running (STUDIO_RENDERER=off to skip)"
   fi
-  echo "Storage: http://localhost:5000"
+  echo "Backend: http://localhost:8080 (Temporal UI: http://localhost:8233)"
   echo "RustFS:  http://localhost:9004/rustfs/console/"
 }
 
@@ -568,9 +520,10 @@ kind_up() {
   fi
 
   docker build --tag screenshot-studio:kind-dev "$ROOT_DIR"
-  docker build --target migrate --tag screenshot-studio:migrate-kind-dev "$ROOT_DIR"
+  docker build --file "$ROOT_DIR/services/backend/Dockerfile" \
+    --tag screenshot-studio-publishing-backend:kind-dev "$ROOT_DIR/services"
   kind load docker-image screenshot-studio:kind-dev --name "$KIND_CLUSTER"
-  kind load docker-image screenshot-studio:migrate-kind-dev --name "$KIND_CLUSTER"
+  kind load docker-image screenshot-studio-publishing-backend:kind-dev --name "$KIND_CLUSTER"
   kubectl create namespace "$KIND_NAMESPACE" --dry-run=client --output=yaml | kubectl apply --filename -
   kubectl create secret generic screenshot-studio-local \
     --namespace "$KIND_NAMESPACE" \
@@ -583,15 +536,13 @@ kind_up() {
     --set image.repository=screenshot-studio \
     --set image.tag=kind-dev \
     --set image.pullPolicy=Never \
-    --set migration.image.repository=screenshot-studio \
-    --set migration.image.tag=migrate-kind-dev \
-    --set migration.image.pullPolicy=Never \
     --set existingSecret=screenshot-studio-local \
     --wait \
     --wait-for-jobs \
     --timeout 8m
-  kubectl rollout restart deployment/screenshot-studio --namespace "$KIND_NAMESPACE"
+  kubectl rollout restart deployment/screenshot-studio deployment/screenshot-studio-backend --namespace "$KIND_NAMESPACE"
   kubectl rollout status deployment/screenshot-studio --namespace "$KIND_NAMESPACE" --timeout=3m
+  kubectl rollout status deployment/screenshot-studio-backend --namespace "$KIND_NAMESPACE" --timeout=3m
 }
 
 kind_down() {
@@ -621,6 +572,7 @@ usage() {
 Usage: bin/studio <command>
 
 Commands:
+  env                        Create or refresh the ignored local environment.
   up                         Start the hot-reload Compose stack.
   postiz-go-up               Start the optional Postiz Go API and workers.
   postiz-go-down             Stop the optional Postiz Go API and workers.
@@ -642,6 +594,7 @@ EOF
 }
 
 case "${1:-}" in
+  env) ensure_env ;;
   up) up ;;
   postiz-go-up) postiz_go_up ;;
   postiz-go-down) postiz_go_down ;;

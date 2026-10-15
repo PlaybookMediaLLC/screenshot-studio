@@ -8,8 +8,8 @@ uses the Better Auth organization ID as the tenant ID.
 Set these server-only values in the deployment secret store:
 
 ```text
-DATABASE_URL
-AUDIT_RETENTION_DATABASE_URL
+PUBLISHING_API_URL
+PUBLISHING_SERVICE_TOKEN
 BETTER_AUTH_SECRET
 BETTER_AUTH_URL
 BETTER_AUTH_TRUSTED_ORIGINS
@@ -18,9 +18,11 @@ AUDIT_DRAIN_ENCRYPTION_KEY
 AUTH_EMAIL_WEBHOOK_URL
 ```
 
-`AUDIT_RETENTION_DATABASE_URL` must use a separate database role. The web app
-role can read and insert audit rows but must not update or delete them. The
-retention worker role can delete only expired audit rows.
+The web app has no database connection. Better Auth stores its records through
+the Go backend at `PUBLISHING_API_URL`, authenticated with
+`PUBLISHING_SERVICE_TOKEN`. The backend's `DATABASE_URL` role can read and
+insert audit rows but must not update or delete them. The maintenance worker's
+separate `AUDIT_RETENTION_DATABASE_URL` role can delete only expired audit rows.
 
 Set `NEXT_PUBLIC_APP_URL` to the public application URL. It is safe for the
 browser. Do not expose any other value in this list.

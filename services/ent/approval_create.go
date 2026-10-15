@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -38,6 +39,76 @@ func (_c *ApprovalCreate) SetStatus(v approval.Status) *ApprovalCreate {
 	return _c
 }
 
+// SetDecidedByUserID sets the "decided_by_user_id" field.
+func (_c *ApprovalCreate) SetDecidedByUserID(v string) *ApprovalCreate {
+	_c.mutation.SetDecidedByUserID(v)
+	return _c
+}
+
+// SetNillableDecidedByUserID sets the "decided_by_user_id" field if the given value is not nil.
+func (_c *ApprovalCreate) SetNillableDecidedByUserID(v *string) *ApprovalCreate {
+	if v != nil {
+		_c.SetDecidedByUserID(*v)
+	}
+	return _c
+}
+
+// SetDecidedAt sets the "decided_at" field.
+func (_c *ApprovalCreate) SetDecidedAt(v time.Time) *ApprovalCreate {
+	_c.mutation.SetDecidedAt(v)
+	return _c
+}
+
+// SetNillableDecidedAt sets the "decided_at" field if the given value is not nil.
+func (_c *ApprovalCreate) SetNillableDecidedAt(v *time.Time) *ApprovalCreate {
+	if v != nil {
+		_c.SetDecidedAt(*v)
+	}
+	return _c
+}
+
+// SetReason sets the "reason" field.
+func (_c *ApprovalCreate) SetReason(v string) *ApprovalCreate {
+	_c.mutation.SetReason(v)
+	return _c
+}
+
+// SetNillableReason sets the "reason" field if the given value is not nil.
+func (_c *ApprovalCreate) SetNillableReason(v *string) *ApprovalCreate {
+	if v != nil {
+		_c.SetReason(*v)
+	}
+	return _c
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (_c *ApprovalCreate) SetCreatedAt(v time.Time) *ApprovalCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *ApprovalCreate) SetNillableCreatedAt(v *time.Time) *ApprovalCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *ApprovalCreate) SetUpdatedAt(v time.Time) *ApprovalCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *ApprovalCreate) SetNillableUpdatedAt(v *time.Time) *ApprovalCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ApprovalCreate) SetID(v string) *ApprovalCreate {
 	_c.mutation.SetID(v)
@@ -56,6 +127,7 @@ func (_c *ApprovalCreate) Mutation() *ApprovalMutation {
 
 // Save creates the Approval in the database.
 func (_c *ApprovalCreate) Save(ctx context.Context) (*Approval, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -81,6 +153,18 @@ func (_c *ApprovalCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_c *ApprovalCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := approval.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := approval.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_c *ApprovalCreate) check() error {
 	if _, ok := _c.mutation.OrganizationID(); !ok {
@@ -96,6 +180,12 @@ func (_c *ApprovalCreate) check() error {
 		if err := approval.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Approval.status": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Approval.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Approval.updated_at"`)}
 	}
 	if len(_c.mutation.VariantIDs()) == 0 {
 		return &ValidationError{Name: "variant", err: errors.New(`ent: missing required edge "Approval.variant"`)}
@@ -143,6 +233,26 @@ func (_c *ApprovalCreate) createSpec() (*Approval, *sqlgraph.CreateSpec) {
 		_spec.SetField(approval.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
 	}
+	if value, ok := _c.mutation.DecidedByUserID(); ok {
+		_spec.SetField(approval.FieldDecidedByUserID, field.TypeString, value)
+		_node.DecidedByUserID = &value
+	}
+	if value, ok := _c.mutation.DecidedAt(); ok {
+		_spec.SetField(approval.FieldDecidedAt, field.TypeTime, value)
+		_node.DecidedAt = &value
+	}
+	if value, ok := _c.mutation.Reason(); ok {
+		_spec.SetField(approval.FieldReason, field.TypeString, value)
+		_node.Reason = &value
+	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(approval.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(approval.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
 	if nodes := _c.mutation.VariantIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -181,6 +291,7 @@ func (_c *ApprovalCreateBulk) Save(ctx context.Context) ([]*Approval, error) {
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*ApprovalMutation)
 				if !ok {

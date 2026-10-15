@@ -1,6 +1,6 @@
 import { getActiveOrganizationId, signUpAndCreateWorkspace } from './framework/auth'
 import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabaseClient } from './framework/services'
+import { createE2EDatabase, queryRow, queryRows } from './framework/services'
 import { trpcMutation } from './framework/trpc'
 
 /**
@@ -61,9 +61,27 @@ test('a release becomes a cited spec, a plan, a produced campaign, and a revised
   await page.getByRole('button', { name: 'Approve spec' }).click()
   await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible()
 
-  const prisma = createE2EDatabaseClient()
+  const database = createE2EDatabase()
+  const getPosts = () =>
+    queryRows<{
+      channel: string
+      claims: unknown
+      copy: string
+      id: string
+      specVersion: number | null
+    }>(
+      database,
+      `SELECT id, channel, copy, claims, "specVersion" FROM campaign_post
+       WHERE "campaignId" = $1 ORDER BY "createdAt"`,
+      [campaignId]
+    )
   try {
-    const spec = await prisma.releaseSpec.findFirstOrThrow({ where: { releaseId } })
+    const spec = await queryRow<{ content: unknown; id: string; sources: unknown; status: string }>(
+      database,
+      'SELECT id, status, content, sources FROM release_spec WHERE "releaseId" = $1 LIMIT 1',
+      [releaseId]
+    )
+    if (!spec) throw new Error('The release spec was not created.')
     expect(spec.status).toBe('APPROVED')
     const sources = spec.sources as Array<{
       flagged: boolean
@@ -102,17 +120,22 @@ test('a release becomes a cited spec, a plan, a produced campaign, and a revised
     await page.getByRole('button', { name: 'Produce campaign' }).click()
     await expect(page.getByText('Variant B').first()).toBeVisible({ timeout: RUN_TIMEOUT })
 
-    const assets = await prisma.campaignAsset.findMany({ where: { campaignId } })
+    const assets = await queryRows<{
+      kind: string
+      planAssetKey: string | null
+      variantLabel: string | null
+    }>(
+      database,
+      'SELECT kind, "planAssetKey", "variantLabel" FROM campaign_asset WHERE "campaignId" = $1',
+      [campaignId]
+    )
     const shots = assets.filter((asset) => asset.kind === 'product-shot')
     expect(shots.map((shot) => `${shot.planAssetKey}${shot.variantLabel ?? ''}`).sort()).toEqual([
       'A1A',
       'A1B',
       'A2',
     ])
-    const posts = await prisma.campaignPost.findMany({
-      orderBy: { createdAt: 'asc' },
-      where: { campaignId },
-    })
+    const posts = await getPosts()
     expect(new Set(posts.map((post) => post.channel))).toEqual(
       new Set(['x', 'linkedin', 'product_hunt', 'changelog', 'email'])
     )
@@ -139,22 +162,27 @@ test('a release becomes a cited spec, a plan, a produced campaign, and a revised
     await expect(page.getByText('Revision applied')).toBeVisible({ timeout: RUN_TIMEOUT })
     await expect(card.getByText(/^Get hours back each month\./)).toBeVisible()
 
-    const after = await prisma.campaignPost.findMany({
-      orderBy: { createdAt: 'asc' },
-      where: { campaignId },
-    })
+    const after = await getPosts()
     const revised = after.find((post) => post.id === target.id)!
     expect(revised.copy.startsWith('Get hours back each month.')).toBe(true)
     // One piece changed; every other post is exactly as it was.
     for (const post of after.filter((entry) => entry.id !== target.id)) {
       expect(post.copy).toBe(posts.find((entry) => entry.id === post.id)!.copy)
     }
-    const revision = await prisma.campaignRevision.findFirstOrThrow({ where: { campaignId } })
-    expect(revision.status).toBe('APPLIED')
-    expect(revision.comment).toBe('Lead with the time saved')
+    expect(
+      await queryRow(
+        database,
+        'SELECT status, comment FROM campaign_revision WHERE "campaignId" = $1 LIMIT 1',
+        [campaignId]
+      )
+    ).toEqual({ comment: 'Lead with the time saved', status: 'APPLIED' })
 
     const actions = (
-      await prisma.auditLog.findMany({ select: { action: true }, where: { organizationId } })
+      await queryRows<{ action: string }>(
+        database,
+        'SELECT action FROM audit_log WHERE "organizationId" = $1',
+        [organizationId]
+      )
     ).map((entry) => entry.action)
     for (const action of [
       'product.release_spec_generated',
@@ -169,6 +197,6 @@ test('a release becomes a cited spec, a plan, a produced campaign, and a revised
       expect(actions).toContain(action)
     }
   } finally {
-    await prisma.$disconnect()
+    await database.end()
   }
 })

@@ -1,0 +1,1764 @@
+/** Typed client for the Screenshot Studio Go backend. Instantiate on a trusted server. */
+
+/**
+ * Who the web facade acts for. The backend rechecks the principal on every
+ * request: a session's membership and role, an API key's validity, a support
+ * grant's expiry, or a service caller's workspace.
+ */
+export type BackendScope = { organizationId: string; requestId: string } & (
+  | { display?: string; kind?: 'session'; sessionId: string; userId: string }
+  | { display: string; keyId: string; kind: 'api_key' }
+  | { grantId: string; kind: 'support'; userId: string }
+  | { display: string; kind: 'service' | 'webhook' }
+)
+
+export type AuthStoreWhere = {
+  connector?: 'AND' | 'OR'
+  field: string
+  mode?: 'sensitive' | 'insensitive'
+  operator?: string
+  value: unknown
+}
+
+export type AuthStoreRequest = {
+  data?: Record<string, unknown>
+  increment?: Record<string, number>
+  limit?: number
+  model: string
+  offset?: number
+  op:
+    | 'count'
+    | 'consumeOne'
+    | 'create'
+    | 'delete'
+    | 'deleteMany'
+    | 'findMany'
+    | 'findOne'
+    | 'incrementOne'
+    | 'update'
+    | 'updateMany'
+  select?: string[]
+  sortBy?: { direction: 'asc' | 'desc'; field: string }
+  where?: AuthStoreWhere[]
+}
+
+export type AuthStoreResult = {
+  count?: number
+  row: Record<string, unknown> | null
+  rows?: Record<string, unknown>[]
+}
+
+export type BackendAuthEvent = {
+  action: string
+  actorDisplay?: string
+  actorUserId?: string
+  entityId: string
+  entityType: string
+  metadata?: Record<string, unknown>
+  organizationId: string
+  removedUserId?: string
+  requestId?: string
+}
+
+export type BackendAuditEvent = {
+  action: string
+  entityId?: string
+  entityType: string
+  ipHash?: string
+  metadata?: Record<string, unknown>
+  outcome?: 'SUCCEEDED' | 'FAILED' | 'DENIED'
+  userAgentSummary?: string
+}
+
+function principalHeaders(scope: BackendScope): Record<string, string> {
+  switch (scope.kind) {
+    case 'api_key':
+      return {
+        'x-api-key-id': scope.keyId,
+        'x-principal-display': scope.display,
+        'x-principal-kind': 'api_key',
+      }
+    case 'support':
+      return {
+        'x-principal-kind': 'support',
+        'x-support-grant-id': scope.grantId,
+        'x-user-id': scope.userId,
+      }
+    case 'service':
+    case 'webhook':
+      return { 'x-principal-display': scope.display, 'x-principal-kind': scope.kind }
+    default:
+      return {
+        ...(scope.display ? { 'x-principal-display': scope.display } : {}),
+        'x-principal-kind': 'session',
+        'x-session-id': scope.sessionId,
+        'x-user-id': scope.userId,
+      }
+  }
+}
+
+export type ScheduledPost = {
+  caption: string
+  channelConnection?: {
+    externalAccountId: string
+    platform: string
+    provider: string
+  }
+  channelConnectionId: string
+  createdAt: string
+  id: string
+  scheduledFor: string
+  status:
+    'DRAFT' | 'SCHEDULED' | 'PROCESSING' | 'PUBLISHED' | 'FAILED' | 'CANCELLED' | 'UNKNOWN_DELIVERY'
+  variantId: string
+}
+
+export type ChannelConnection = {
+  createdAt: string
+  externalAccountId: string
+  id: string
+  platform: string
+  provider: string
+  providerSettings: Record<string, unknown>
+  status: 'ACTIVE' | 'DISABLED' | 'REVOKED'
+}
+
+export type OAuthProvider = 'x' | 'instagram' | 'instagram-standalone' | 'linkedin'
+export type OAuthExchange = {
+  id: string
+  pages?: { id: string; pageId: string; name?: string | null }[]
+}
+
+export type BrandKit = {
+  id: string
+  organizationId: string
+  name: string
+  version: number
+  definition: Record<string, unknown>
+  status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'
+  createdAt: string
+  updatedAt: string
+}
+
+export type BrandProfile = {
+  id: string
+  organizationId: string
+  productDescription: string
+  audience: string
+  tone: string
+  tagline: string | null
+  ctaConventions: string | null
+  prohibitedTerms: string[]
+  preferredStyles: string[]
+  socialHandles: Record<string, string>
+  createdAt: string
+  updatedAt: string
+}
+
+export type SourceApp = {
+  id: string
+  organizationId: string
+  name: string
+  provider: string
+  externalId: string | null
+  secretReference: string | null
+  allowedHosts: string[]
+  status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'
+  createdAt: string
+  updatedAt: string
+}
+
+export type ProductSurface = {
+  id: string
+  organizationId: string
+  name: string
+  url: string
+  environment: 'production' | 'staging' | 'demo' | 'development'
+  description: string | null
+  featureTags: string[]
+  screenshotAssetIds: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+export type CreateProductSurfaceInput = {
+  description?: string
+  environment: ProductSurface['environment']
+  featureTags: string[]
+  name: string
+  screenshotAssetIds: string[]
+  url: string
+}
+
+export type UpdateProductSurfaceInput = Partial<CreateProductSurfaceInput>
+
+export type WorkspaceSettings = {
+  organizationId: string
+  description: string | null
+  locale: string
+  timeZone: string
+  defaultPublishTime: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type Workspace = {
+  id: string
+  createdAt: string
+  logo: string | null
+  name: string
+  slug: string
+  workspaceSettings: WorkspaceSettings | null
+}
+
+export type BackendBootstrapSnapshot = {
+  user: { id: string; name: string | null; email: string }
+  organization: { id: string; logo: string | null; name: string; slug: string }
+  organizations: ListedWorkspace[]
+  role: string
+  settings: Pick<WorkspaceSettings, 'locale' | 'timeZone' | 'defaultPublishTime'> | null
+  entitlements: { features: Record<string, boolean>; plan: string; status: string }
+  capabilities: {
+    browserAutomation: boolean
+    engineeringAgent: boolean
+    publishing: boolean
+    voiceCapture: boolean
+    workflows: boolean
+  }
+  counters: { approvals: number; attention: number }
+}
+
+export type BackendCurrentUser = {
+  id: string
+  email: string
+  image: string | null
+  name: string | null
+}
+
+export type BackendActiveAccess = { organizationId: string; role: string }
+
+export type BackendSupportGrant = { grantId: string; organizationId: string }
+
+export type BackendAsset = {
+  id: string
+  objectKey: string
+  status: 'PENDING' | 'UPLOADED' | 'FAILED' | 'DELETED'
+}
+
+export type BackendAssetListItem = {
+  bytes: number
+  createdAt: string
+  height: number | null
+  id: string
+  mediaType: string
+  width: number | null
+}
+
+export type BackendAssetPage = { assets: BackendAssetListItem[]; nextCursor: string | null }
+
+export type BackendAssetUploadInput = {
+  bytes: number
+  classification?: 'capture' | 'derived' | 'export' | 'input'
+  contentType: string
+  fileName: string
+  sha256?: string
+}
+
+export type BackendReleaseSummary = {
+  id: string
+  productSurfaceId: string | null
+  status: 'DRAFT' | 'READY' | 'ARCHIVED' | 'CANCELLED'
+  title: string
+}
+
+export type BackendReleaseListItem = BackendReleaseSummary & {
+  benefitStatement: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type BackendReleaseDetail = BackendReleaseListItem & {
+  audience: string | null
+  description: string | null
+  productSurface: {
+    environment: string
+    id: string
+    name: string
+    url: string
+  } | null
+  sourceUrls: string[]
+}
+
+export type BackendCreateReleaseInput = {
+  audience?: string
+  benefitStatement: string
+  description?: string
+  idempotencyKey: string
+  productSurfaceId?: string
+  sourceUrls?: string[]
+  title: string
+}
+
+export type BackendUpdateReleaseInput = Partial<{
+  audience: string | null
+  benefitStatement: string
+  description: string | null
+  productSurfaceId: string | null
+  sourceUrls: string[]
+  title: string
+}>
+
+export type BackendCampaignStatus = 'DRAFT' | 'READY_FOR_REVIEW' | 'APPROVED' | 'ARCHIVED'
+
+export type BackendCampaignListItem = {
+  audience: string | null
+  createdAt: string
+  createdByUserId: string | null
+  feature: string | null
+  id: string
+  messaging: string | null
+  name: string
+  objective: string
+  organizationId: string
+  productSurfaceId: string | null
+  release: { id: string; title: string } | null
+  releaseId: string | null
+  status: BackendCampaignStatus
+  updatedAt: string
+}
+
+export type BackendCampaignPost = {
+  angleId: string | null
+  callToAction: string | null
+  campaignId: string
+  channel: string
+  claims: Record<string, unknown>[] | null
+  copy: string
+  createdAt: string
+  creativeVariantId: string | null
+  id: string
+  organizationId: string
+  phase: string | null
+  planItemKey: string | null
+  planVersion: number | null
+  reviewNote: string | null
+  scheduledAt: string | null
+  scheduledPostId: string | null
+  specVersion: number | null
+  status:
+    | 'DRAFT'
+    | 'READY_FOR_REVIEW'
+    | 'APPROVED'
+    | 'REJECTED'
+    | 'NEEDS_CHANGES'
+    | 'SCHEDULED'
+    | 'PUBLISHED'
+  title: string | null
+  updatedAt: string
+}
+
+export type BackendCampaignDetail = Omit<BackendCampaignListItem, 'release'> & {
+  angles: {
+    campaignId: string
+    createdAt: string
+    hook: string
+    id: string
+    organizationId: string
+    position: number
+    title: string
+    updatedAt: string
+  }[]
+  assets: {
+    asset: {
+      height: number | null
+      id: string
+      mediaType: string
+      objectKey: string
+      width: number | null
+    }
+    assetId: string
+    campaignId: string
+    caption: string | null
+    createdAt: string
+    id: string
+    kind: string
+    organizationId: string
+    planAssetKey: string | null
+    planVersion: number | null
+    variantLabel: string | null
+  }[]
+  posts: BackendCampaignPost[]
+  productSurface: { environment: string; id: string; name: string; url: string } | null
+  release: {
+    audience: string | null
+    benefitStatement: string
+    description: string | null
+    id: string
+    sourceUrls: string[]
+    status: string
+    title: string
+    updatedAt: string
+  } | null
+}
+
+export type BackendCreateCampaignInput = {
+  angles: { hook: string; title: string }[]
+  audience?: string
+  feature?: string
+  messaging?: string
+  name: string
+  objective: string
+  posts: { angleIndex?: number; callToAction?: string; channel: string; copy: string }[]
+  productSurfaceId?: string
+  releaseId?: string
+}
+
+export type BackendDesign = {
+  campaignId: string | null
+  createdAt: string
+  createdByUserId: string | null
+  critique: Record<string, unknown> | null
+  document: Record<string, unknown>
+  id: string
+  name: string
+  organizationId: string
+  parentDesignId: string | null
+  planAssetKey: string | null
+  planVersion: number | null
+  renderedAsset: {
+    height: number | null
+    id: string
+    objectKey: string
+    width: number | null
+  } | null
+  renderedAssetId: string | null
+  renderKey: string | null
+  templateId: string | null
+  updatedAt: string
+  variantLabel: string | null
+}
+
+export type BackendCreateDesignInput = {
+  campaignId?: string
+  document: unknown
+  name: string
+  parentDesignId?: string
+  planAssetKey?: string
+  planVersion?: number
+  templateId?: string
+  variantLabel?: string
+}
+
+export type BackendCreativeTemplate = {
+  createdAt: string
+  definition: Record<string, unknown>
+  id: string
+  name: string
+  status: string
+  version: number
+}
+
+export type BackendCreativeVariant = {
+  aspectRatio: string
+  brandKitId: string
+  brandKitVersion: number
+  id: string
+  releaseId: string
+  revision: number
+  sourceAssetId: string
+  status: string
+  templateId: string
+  templateVersion: number
+}
+
+export type BackendCreativeApproval = {
+  createdAt: string
+  decidedAt: string | null
+  decidedByUserId: string | null
+  id: string
+  organizationId: string
+  reason: string | null
+  status: string
+  updatedAt: string
+  variantId: string
+}
+
+export type BackendEntitlementSummary = {
+  features: Record<string, boolean>
+  plan: string
+  status: string
+}
+
+export type BackendFeatureDecision = { allowed: boolean; currentPlan: string; requiredPlan: string }
+
+export type BackendScreenshotCacheEntry = {
+  cloudinaryPublicId: string
+  cloudinaryUrl: string
+  createdAt: string
+  url: string
+  urlHash: string
+}
+
+/** Exactly one selector: exact normalized URLs, or entries created before an ISO time. */
+export type BackendScreenshotCacheFilter = { createdBefore: string } | { urls: string[] }
+
+export type BackendRenderAsset = {
+  height: number | null
+  id: string
+  mediaType: string
+  objectKey: string
+  sha256: string | null
+  status: BackendAsset['status']
+  updatedAt: string
+  width: number | null
+}
+
+export type BackendAnnouncement = {
+  channel: string
+  createdAt: string
+  ctaUrl: string | null
+  id: string
+  scheduledFor: string | null
+  status: string
+}
+
+export type BackendAnnouncementListItem = BackendAnnouncement & {
+  _count: { recipients: number }
+  releaseDocument: { release: { id: string; title: string }; revision: number } | null
+}
+
+export type BackendScheduleAnnouncementInput = {
+  ctaUrl?: string
+  idempotencyKey: string
+  releaseDocumentId: string
+  scheduledFor?: Date
+}
+
+export type BackendAudienceSubscriber = {
+  createdAt: string
+  email: string
+  id: string
+  name: string | null
+  suppressedAt: string | null
+  unsubscribedAt: string | null
+}
+
+export type BackendAuditDrain = {
+  createdAt: string
+  enabled: boolean
+  endpoint: string
+  id: string
+  name: string
+  provider: 'DATADOG' | 'GENERIC' | 'SPLUNK'
+  updatedAt: string
+}
+
+/** The signing secret is sealed by the web facade (AES-256-GCM) before it is sent. */
+export type BackendAuditDrainInput = {
+  encryptedSigningSecret: string
+  endpoint: string
+  name: string
+  provider: BackendAuditDrain['provider']
+}
+
+export type BackendAuditRetention = { legalHold: boolean; retentionDays: number }
+
+/** Caller fingerprint recorded with an audit-control change. */
+export type BackendAuditRequest = { ipHash?: string | null; userAgentSummary?: string | null }
+
+function auditRequestHeaders(audit?: BackendAuditRequest): Record<string, string> {
+  return {
+    ...(audit?.ipHash ? { 'x-audit-ip-hash': audit.ipHash } : {}),
+    ...(audit?.userAgentSummary ? { 'x-audit-user-agent-summary': audit.userAgentSummary } : {}),
+  }
+}
+
+export type BackendWebhookSource = {
+  id: string
+  organizationId: string
+  provider: string
+  secretReference: string | null
+}
+
+export type BackendSourceReleaseInput = {
+  audience?: string
+  benefitStatement: string
+  description?: string
+  eventId: string
+  sourceAppId: string
+  sourceUrls?: string[]
+  title: string
+}
+
+/** A billing provider event whose HMAC the web facade already verified. */
+export type BackendEntitlementSync = {
+  eventId: string
+  eventType: string
+  expectedVersion: number
+  externalCustomerId?: string | null
+  externalSubscriptionId?: string | null
+  featureOverrides: Partial<Record<string, boolean>>
+  graceUntil?: Date | null
+  organizationId: string
+  plan: 'business' | 'enterprise' | 'free' | 'pro'
+  provider: string
+  status: 'active' | 'cancelled' | 'past_due' | 'suspended' | 'trialing'
+  validUntil?: Date | null
+}
+
+export type BackendWorkspaceEntitlement = {
+  featureOverrides: Record<string, boolean> | null
+  graceUntil: string | null
+  lastSyncedAt: string | null
+  plan: string
+  status: string
+  validUntil: string | null
+  version: number
+}
+
+export type BackendLaunchCampaign = {
+  id: string
+  name: string
+  objective: string
+  productSurface: { environment: string; id: string; name: string; url: string } | null
+  release: {
+    audience: string | null
+    benefitStatement: string
+    createdByUserId: string | null
+    description: string | null
+    id: string
+    sourceUrls: string[]
+    title: string
+  } | null
+}
+
+export type BackendLaunchSpec = {
+  approvedAt: string | null
+  changeSummary: string | null
+  content: unknown
+  createdAt: string
+  id: string
+  modelId: string | null
+  origin: string
+  releaseId: string
+  sources: unknown
+  status: 'DRAFT' | 'APPROVED' | 'SUPERSEDED'
+  version: number
+}
+
+export type BackendLaunchPlan = Omit<BackendLaunchSpec, 'releaseId' | 'sources'> & {
+  campaignId: string
+  specId: string | null
+}
+
+export type BackendLaunchRevision = {
+  campaignId: string
+  comment: string
+  createdAt: string
+  decidedAt: string | null
+  id: string
+  modelId: string | null
+  proposal: unknown
+  status: 'PROPOSED' | 'APPLIED' | 'DISCARDED'
+  targetId: string
+  targetKey: string | null
+  targetType: string
+}
+
+export type BackendLaunchRun = {
+  campaignId: string
+  error: string | null
+  finishedAt: string | null
+  id: string
+  kind: string
+  resultId: string | null
+  startedAt: string
+  status: 'FAILED' | 'RUNNING' | 'SUCCEEDED'
+  summary: string | null
+}
+
+/** A new spec or plan version. Metadata is flat and lands in the audit entry. */
+export type BackendLaunchVersionInput = {
+  changeSummary: string
+  content: unknown
+  metadata?: Record<string, boolean | null | number | string>
+  modelId?: string | null
+  origin: 'ai' | 'human' | 'revision'
+}
+
+export type BackendLaunchPostsInput = {
+  angles: { hook: string; key: string; title: string }[]
+  metadata?: Record<string, boolean | null | number | string>
+  planVersion: number
+  posts: {
+    angleKey: string
+    callToAction: string
+    channel: string
+    claims: Record<string, unknown>[]
+    copy: string
+    phase: string
+    title: string
+  }[]
+  specVersion: number
+}
+
+export type BackendLaunchPreferences = {
+  approved: { channel: string; copy: string; title: string | null }[]
+  rejected: { channel: string; copy: string; reviewNote: string | null; status: string }[]
+  revisions: { comment: string; proposal: unknown; targetType: string }[]
+}
+
+/** A campaign asset link with the upload status of its asset. */
+export type BackendCampaignAssetLink = BackendCampaignDetail['assets'][number] & {
+  assetStatus: 'PENDING' | 'UPLOADED' | 'FAILED' | 'DELETED'
+}
+
+/** Linking an asset again replaces its caption and provenance; null clears them. */
+export type BackendLinkCampaignAssetInput = {
+  caption?: string | null
+  kind: string
+  planAssetKey?: string | null
+  planVersion?: number | null
+  variantLabel?: string | null
+}
+
+export type BackendGeneratedAssetInput = {
+  body: Uint8Array
+  classification: 'capture' | 'derived' | 'export' | 'input'
+  contentType: 'image/jpeg' | 'image/png' | 'image/webp'
+  fileName: string
+  height: number
+  parentAssetId?: string
+  width: number
+}
+
+export type BackendGeneratedAsset = { id: string; mediaType: string; objectKey: string }
+
+export type AuditLogQuery = {
+  action?: string
+  actorUserId?: string
+  cursor?: string
+  endDate?: Date
+  entityType?: string
+  limit?: number
+  outcome?: 'SUCCEEDED' | 'FAILED' | 'DENIED'
+  search?: string
+  startDate?: Date
+}
+
+export type AuditLogItem = {
+  id: string
+  organizationId: string
+  createdAt: string
+  requestId: string
+  actorType: 'USER' | 'SERVICE' | 'SUPPORT' | 'WEBHOOK'
+  actorUserId: string | null
+  actorDisplay: string | null
+  action: string
+  outcome: 'SUCCEEDED' | 'FAILED' | 'DENIED'
+  entityType: string
+  entityId: string | null
+  ipHash: string | null
+  userAgentSummary: string | null
+  metadata: Record<string, unknown> | null
+  searchText: string
+}
+
+export type AuditLogPage = { items: AuditLogItem[]; nextCursor?: string }
+
+export type WorkspaceMutation = {
+  organization: Omit<Workspace, 'workspaceSettings'>
+  settings: WorkspaceSettings
+}
+
+export type ListedWorkspace = {
+  id: string
+  isScheduledForDeletion: boolean
+  name: string
+  role: string
+  slug: string
+  workspaceDeletion?: { requestedByUserId: string; scheduledFor: string; status: string }
+}
+
+export type UpdateWorkspaceInput = {
+  defaultPublishTime?: string
+  description?: string | null
+  locale?: string
+  logo?: string | null
+  name: string
+  slug: string
+  timeZone?: string
+}
+
+export type WorkspaceMember = {
+  createdAt: string
+  id: string
+  role: string
+  user: { email: string; id: string; image: string | null; name: string }
+}
+
+export type WorkspaceInvitation = {
+  createdAt: string
+  email: string
+  expiresAt: string
+  id: string
+  role: string | null
+  status: string
+}
+
+export type WorkspaceInvitationDetail = WorkspaceInvitation & {
+  organization: { name: string }
+  user: { email: string; name: string }
+}
+
+export type WorkspaceDeletion = {
+  id: string
+  organizationId: string
+  requestedByUserId: string
+  status: 'PENDING' | 'PROCESSING' | 'CANCELLED' | 'PURGED'
+  scheduledFor: string
+  cancelledAt: string | null
+  processingAt: string | null
+  purgedAt: string | null
+  lastError: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export class BackendSDKError extends Error {
+  constructor(
+    message: string,
+    readonly status: 400 | 401 | 403 | 404 | 409 | 429 | 503,
+    /** The backend's error body, e.g. a quota's limit and reset time. */
+    readonly details: Record<string, unknown> = {}
+  ) {
+    super(message)
+    this.name = 'BackendSDKError'
+  }
+}
+
+export class ScreenshotStudioBackendSDK {
+  private readonly baseURL: string
+
+  constructor(
+    baseURL: string,
+    private readonly serviceToken: string,
+    private readonly scope: BackendScope,
+    private readonly fetcher: typeof fetch = fetch
+  ) {
+    if (!baseURL || !serviceToken) {
+      throw new BackendSDKError('Publishing backend is not configured.', 503)
+    }
+    this.baseURL = `${baseURL.replace(/\/$/, '')}/`
+  }
+
+  private async request<T>(
+    path: string,
+    init: {
+      body?: unknown
+      headers?: Record<string, string>
+      method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+      rawBody?: BodyInit
+      responseType?: 'bytes'
+    } = {}
+  ) {
+    let response: Response
+    try {
+      response = await this.fetcher(new URL(path, this.baseURL), {
+        body: init.rawBody ?? (init.body === undefined ? undefined : JSON.stringify(init.body)),
+        cache: 'no-store',
+        headers: {
+          authorization: `Bearer ${this.serviceToken}`,
+          'content-type': 'application/json',
+          'x-organization-id': this.scope.organizationId,
+          'x-request-id': this.scope.requestId,
+          ...principalHeaders(this.scope),
+          ...init.headers,
+        },
+        method: init.method ?? 'GET',
+      })
+    } catch {
+      throw new BackendSDKError('Publishing backend is unavailable.', 503)
+    }
+    if (!response.ok) {
+      const error = (await response.json().catch(() => null)) as
+        ({ error?: string } & Record<string, unknown>) | null
+      const status =
+        ([400, 401, 403, 404, 409, 429] as const).find((value) => value === response.status) ?? 503
+      throw new BackendSDKError(error?.error ?? 'Publishing request failed.', status, error ?? {})
+    }
+    return (
+      init.responseType === 'bytes'
+        ? new Uint8Array(await response.arrayBuffer())
+        : await response.json()
+    ) as T
+  }
+
+  async listScheduledPosts(limit: number) {
+    return this.request<{ items: ScheduledPost[] }>(`v1/scheduled-posts?limit=${limit}`)
+  }
+
+  async createScheduledPost(input: {
+    caption: string
+    channelConnectionId: string
+    idempotencyKey: string
+    scheduledFor: Date
+    variantId: string
+  }) {
+    return this.request<{ created: boolean; scheduledPost: ScheduledPost }>('v1/scheduled-posts', {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async cancelScheduledPost(id: string) {
+    return this.request<ScheduledPost>(`v1/scheduled-posts/${encodeURIComponent(id)}/cancel`, {
+      method: 'POST',
+    })
+  }
+
+  async listConnections() {
+    return this.request<{ items: ChannelConnection[] }>('v1/channel-connections')
+  }
+
+  async createConnection(input: {
+    externalAccountId: string
+    platform: string
+    providerSettings: Record<string, unknown>
+    secretReference: string
+  }) {
+    return this.request<ChannelConnection>('v1/channel-connections', {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async beginSocialOAuth(provider: OAuthProvider) {
+    return this.request<{ url: string }>('v1/social-oauth/begin', {
+      body: { provider },
+      method: 'POST',
+    })
+  }
+
+  async verifySocialOAuth(provider: OAuthProvider, state: string, integrationId?: string) {
+    return this.request('v1/social-oauth/verify', {
+      body: { provider, state, integrationId },
+      method: 'POST',
+    })
+  }
+
+  async exchangeSocialOAuth(provider: OAuthProvider, state: string, code: string) {
+    return this.request<OAuthExchange>('v1/social-oauth/exchange', {
+      body: { provider, state, code },
+      method: 'POST',
+    })
+  }
+
+  async selectInstagramOAuthPage(input: {
+    state: string
+    integrationId: string
+    accountId: string
+    pageId: string
+  }) {
+    return this.request<{ selected: boolean }>('v1/social-oauth/page', {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async rememberInstagramIntegration(state: string, integrationId: string) {
+    return this.request('v1/social-oauth/remember', {
+      body: { provider: 'instagram', state, integrationId },
+      method: 'POST',
+    })
+  }
+
+  async completeSocialOAuth(provider: OAuthProvider, state: string, integrationId: string) {
+    return this.request('v1/social-oauth/complete', {
+      body: { provider, state, integrationId },
+      method: 'POST',
+    })
+  }
+
+  async listBrandKits() {
+    return this.request<{ brandKits: BrandKit[] }>('v1/brand-kits')
+  }
+
+  async createBrandKit(input: {
+    definition: Record<string, unknown>
+    name: string
+    publish: boolean
+  }) {
+    return this.request<BrandKit>('v1/brand-kits', { body: input, method: 'POST' })
+  }
+
+  async getBrandProfile() {
+    return this.request<{ brandProfile: BrandProfile | null }>('v1/brand-profile')
+  }
+
+  async upsertBrandProfile(input: {
+    audience: string
+    ctaConventions?: string
+    preferredStyles: string[]
+    productDescription: string
+    prohibitedTerms: string[]
+    socialHandles: Record<string, string>
+    tagline?: string
+    tone: string
+  }) {
+    return this.request<BrandProfile>('v1/brand-profile', { body: input, method: 'POST' })
+  }
+
+  async createSourceApp(input: {
+    allowedHosts: string[]
+    externalId?: string
+    name: string
+    provider: string
+    secretReference?: string
+  }) {
+    return this.request<SourceApp>('v1/source-apps', { body: input, method: 'POST' })
+  }
+
+  async listProductSurfaces() {
+    return this.request<{ productSurfaces: ProductSurface[] }>('v1/product-surfaces')
+  }
+
+  async createProductSurface(input: CreateProductSurfaceInput) {
+    return this.request<ProductSurface>('v1/product-surfaces', { body: input, method: 'POST' })
+  }
+
+  async updateProductSurface(id: string, input: UpdateProductSurfaceInput) {
+    return this.request<ProductSurface>(`v1/product-surfaces/${encodeURIComponent(id)}`, {
+      body: input,
+      method: 'PATCH',
+    })
+  }
+
+  async deleteProductSurface(id: string) {
+    return this.request<{ deleted: true }>(`v1/product-surfaces/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async createWorkspace(input: { name: string; slug: string }) {
+    return this.request<WorkspaceMutation>('v1/workspaces', { body: input, method: 'POST' })
+  }
+
+  async listWorkspaces() {
+    return this.request<{ workspaces: ListedWorkspace[] }>('v1/workspaces')
+  }
+
+  async getCurrentUser() {
+    return this.request<{ user: BackendCurrentUser }>('v1/me')
+  }
+
+  async getActiveAccess() {
+    return this.request<BackendActiveAccess>('v1/access')
+  }
+
+  async verifySupportGrant(organizationId: string, scope: string) {
+    const parameters = new URLSearchParams({ organizationId, scope })
+    return this.request<BackendSupportGrant>(`v1/support-grants/verify?${parameters}`)
+  }
+
+  async requireEnterpriseFeature(feature: 'ssoEnabled' | 'scimEnabled') {
+    return this.request<{ enabled: true }>(`v1/enterprise-features/${feature}`)
+  }
+
+  async listAssets(options: { cursor?: string; limit: number }) {
+    const parameters = new URLSearchParams({ limit: String(options.limit) })
+    if (options.cursor) parameters.set('cursor', options.cursor)
+    return this.request<BackendAssetPage>(`v1/assets?${parameters}`)
+  }
+
+  async signAssetUpload(input: BackendAssetUploadInput) {
+    return this.request<{ asset: BackendAsset; uploadUrl: string }>('v1/assets/upload-url', {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async completeAssetUpload(id: string, sha256?: string) {
+    return this.request<{ asset: BackendAsset }>(`v1/assets/${encodeURIComponent(id)}/complete`, {
+      body: sha256 ? { sha256 } : {},
+      method: 'POST',
+    })
+  }
+
+  async signAssetDownload(id: string) {
+    return this.request<{ downloadUrl: string }>(`v1/assets/${encodeURIComponent(id)}/download-url`)
+  }
+
+  /** Server-side asset read through the backend, where a browser URL is unreachable. */
+  async readAsset(id: string) {
+    return this.request<Uint8Array>(`v1/assets/${encodeURIComponent(id)}/bytes`, {
+      responseType: 'bytes',
+    })
+  }
+
+  async deleteAsset(id: string) {
+    return this.request<{ status: 'deleted' }>(`v1/assets/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async storeGeneratedAsset(input: BackendGeneratedAssetInput) {
+    return this.request<BackendGeneratedAsset>('v1/assets/generated', {
+      headers: {
+        'content-type': input.contentType,
+        'x-asset-classification': input.classification,
+        'x-asset-file-name': input.fileName,
+        'x-asset-height': String(input.height),
+        'x-asset-width': String(input.width),
+        ...(input.parentAssetId ? { 'x-parent-asset-id': input.parentAssetId } : {}),
+      },
+      method: 'POST',
+      rawBody: new Uint8Array(input.body).buffer,
+    })
+  }
+
+  async consumeWorkspaceQuota(quota: string, amount = 1) {
+    return this.request<{ remaining: number }>('v1/quotas/consume', {
+      body: { amount, quota },
+      method: 'POST',
+    })
+  }
+
+  async listReleases(limit: number) {
+    return this.request<{ releases: BackendReleaseListItem[] }>(`v1/releases?limit=${limit}`)
+  }
+
+  async getRelease(id: string) {
+    return this.request<BackendReleaseDetail>(`v1/releases/${encodeURIComponent(id)}`)
+  }
+
+  async createRelease(input: BackendCreateReleaseInput) {
+    return this.request<{ created: boolean; release: BackendReleaseSummary }>('v1/releases', {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async updateRelease(id: string, input: BackendUpdateReleaseInput) {
+    return this.request<BackendReleaseDetail>(`v1/releases/${encodeURIComponent(id)}`, {
+      body: input,
+      method: 'PATCH',
+    })
+  }
+
+  async listCampaigns() {
+    return this.request<{ campaigns: BackendCampaignListItem[] }>('v1/campaigns')
+  }
+
+  async getCampaign(id: string) {
+    return this.request<BackendCampaignDetail>(`v1/campaigns/${encodeURIComponent(id)}`)
+  }
+
+  async createCampaign(input: BackendCreateCampaignInput) {
+    return this.request<BackendCampaignDetail>('v1/campaigns', { body: input, method: 'POST' })
+  }
+
+  async transitionCampaign(id: string, status: BackendCampaignStatus) {
+    return this.request<{ id: string; status: BackendCampaignStatus }>(
+      `v1/campaigns/${encodeURIComponent(id)}/transition`,
+      { body: { status }, method: 'POST' }
+    )
+  }
+
+  async decideCampaignPosts(
+    id: string,
+    input: { decision: string; note?: string; postIds?: readonly string[] }
+  ) {
+    return this.request<{ postIds: string[]; status: string }>(
+      `v1/campaigns/${encodeURIComponent(id)}/posts/decide`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  async scheduleCampaignPost(
+    campaignId: string,
+    postId: string,
+    input: { channelConnectionId: string; scheduledAt?: string }
+  ) {
+    return this.request<BackendCampaignPost>(
+      `v1/campaigns/${encodeURIComponent(campaignId)}/posts/${encodeURIComponent(postId)}/schedule`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  async listCampaignDesigns(campaignId: string) {
+    return this.request<{ designs: BackendDesign[] }>(
+      `v1/campaigns/${encodeURIComponent(campaignId)}/designs`
+    )
+  }
+
+  async createDesign(input: BackendCreateDesignInput) {
+    return this.request<BackendDesign>('v1/designs', { body: input, method: 'POST' })
+  }
+
+  async getDesign(id: string) {
+    return this.request<BackendDesign>(`v1/designs/${encodeURIComponent(id)}`)
+  }
+
+  async updateDesignDocument(id: string, document: unknown) {
+    return this.request<{ updated: true }>(`v1/designs/${encodeURIComponent(id)}/document`, {
+      body: { document },
+      method: 'PUT',
+    })
+  }
+
+  async setDesignRender(id: string, assetId: string, renderKey: string | null) {
+    return this.request<{ updated: true }>(`v1/designs/${encodeURIComponent(id)}/render`, {
+      body: { assetId, renderKey },
+      method: 'PUT',
+    })
+  }
+
+  async listCreativeTemplates() {
+    return this.request<{ templates: BackendCreativeTemplate[] }>('v1/creative-templates')
+  }
+
+  async createCreativeTemplate(input: { definition: unknown; name: string }) {
+    return this.request<BackendCreativeTemplate>('v1/creative-templates', {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async createCreativeVariant(input: {
+    aspectRatio: string
+    brandKitId: string
+    releaseId: string
+    sourceAssetId: string
+    templateId: string
+  }) {
+    return this.request<BackendCreativeVariant>('v1/creative-variants', {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async decideCreativeVariant(id: string, input: { reason?: string; status: string }) {
+    return this.request<{ approval: BackendCreativeApproval; variant: BackendCreativeVariant }>(
+      `v1/creative-variants/${encodeURIComponent(id)}/decision`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  async getEntitlements() {
+    return this.request<BackendEntitlementSummary>('v1/entitlements')
+  }
+
+  async getFeatureDecision(feature: string) {
+    return this.request<BackendFeatureDecision>(
+      `v1/entitlements/features/${encodeURIComponent(feature)}`
+    )
+  }
+
+  /** Better Auth adapter operations. Service-authenticated; no principal applies. */
+  async authStore(request: AuthStoreRequest) {
+    return this.request<AuthStoreResult>('v1/internal/auth-store', {
+      body: request,
+      method: 'POST',
+    })
+  }
+
+  async recordAuthEvent(event: BackendAuthEvent) {
+    return this.request<{ recorded: true }>('v1/internal/auth-events', {
+      body: event,
+      method: 'POST',
+    })
+  }
+
+  async isWorkspaceOperational(organizationId: string) {
+    const result = await this.request<{ operational: boolean }>(
+      `v1/internal/workspaces/${encodeURIComponent(organizationId)}/operational`
+    )
+    return result.operational
+  }
+
+  async appendAuditEvent(event: BackendAuditEvent) {
+    return this.request<{ recorded: true }>('v1/audit-events', { body: event, method: 'POST' })
+  }
+
+  /** Global screenshot cache. Service-authenticated; no principal applies. */
+  async getScreenshotCache(urlHash: string) {
+    return this.request<BackendScreenshotCacheEntry>(
+      `v1/internal/screenshot-cache/${encodeURIComponent(urlHash)}`
+    )
+  }
+
+  async getScreenshotCacheObject(urlHash: string) {
+    return this.request<{ base64: string }>(
+      `v1/internal/screenshot-cache/${encodeURIComponent(urlHash)}/object`
+    )
+  }
+
+  async putScreenshotCacheObject(urlHash: string, body: Uint8Array) {
+    return this.request<{ stored: true }>(
+      `v1/internal/screenshot-cache/${encodeURIComponent(urlHash)}/object`,
+      {
+        headers: { 'content-type': 'image/png' },
+        method: 'PUT',
+        rawBody: new Uint8Array(body).buffer,
+      }
+    )
+  }
+
+  async putScreenshotCache(
+    urlHash: string,
+    input: { cloudinaryPublicId: string; cloudinaryUrl: string; url: string }
+  ) {
+    return this.request<BackendScreenshotCacheEntry>(
+      `v1/internal/screenshot-cache/${encodeURIComponent(urlHash)}`,
+      { body: input, method: 'PUT' }
+    )
+  }
+
+  async deleteScreenshotCache(urlHash: string) {
+    return this.request<{ deleted: true }>(
+      `v1/internal/screenshot-cache/${encodeURIComponent(urlHash)}`,
+      { method: 'DELETE' }
+    )
+  }
+
+  async listScreenshotCache(filter: BackendScreenshotCacheFilter) {
+    return this.request<{ entries: BackendScreenshotCacheEntry[] }>(
+      'v1/internal/screenshot-cache/query',
+      { body: filter, method: 'POST' }
+    )
+  }
+
+  async purgeScreenshotCache(filter: BackendScreenshotCacheFilter) {
+    return this.request<{ deleted: number }>('v1/internal/screenshot-cache/purge', {
+      body: filter,
+      method: 'POST',
+    })
+  }
+
+  /** The workspace's assets in any status, by id or by object key. */
+  async findAssets(query: { ids: string[] } | { objectKey: string }) {
+    const parameters = new URLSearchParams(
+      'ids' in query ? query.ids.map((id) => ['id', id]) : [['objectKey', query.objectKey]]
+    )
+    return this.request<{ assets: BackendRenderAsset[] }>(`v1/assets/lookup?${parameters}`)
+  }
+
+  /** The image of the newest workspace design rendered under this key. */
+  async findDesignRender(renderKey: string) {
+    return this.request<BackendRenderAsset>(`v1/design-renders/${encodeURIComponent(renderKey)}`)
+  }
+
+  async listAnnouncements(limit: number) {
+    return this.request<{ announcements: BackendAnnouncementListItem[] }>(
+      `v1/announcements?limit=${limit}`
+    )
+  }
+
+  async scheduleAnnouncement(input: BackendScheduleAnnouncementInput) {
+    return this.request<{ announcement: BackendAnnouncement; created: boolean }>(
+      'v1/announcements',
+      { body: input, method: 'POST' }
+    )
+  }
+
+  async cancelAnnouncement(id: string) {
+    return this.request<{ cancelled: boolean }>(
+      `v1/announcements/${encodeURIComponent(id)}/cancel`,
+      { method: 'POST' }
+    )
+  }
+
+  async getAudienceReach() {
+    return this.request<{ reach: number }>('v1/audience/reach')
+  }
+
+  async listAudienceSubscribers(options: { includeUnsubscribed: boolean; limit: number }) {
+    return this.request<{ subscribers: BackendAudienceSubscriber[] }>(
+      `v1/audience/subscribers?limit=${options.limit}&includeUnsubscribed=${options.includeUnsubscribed}`
+    )
+  }
+
+  async addAudienceSubscribers(subscribers: { email: string; name?: string }[]) {
+    return this.request<{ added: number; skipped: number }>('v1/audience/subscribers', {
+      body: { subscribers },
+      method: 'POST',
+    })
+  }
+
+  /** Records a verified one-click opt-out; requires a service scope. */
+  async unsubscribeAudienceMember(email: string) {
+    return this.request<{ unsubscribed: boolean }>('v1/audience/unsubscribe', {
+      body: { email },
+      method: 'POST',
+    })
+  }
+
+  async listAuditDrains() {
+    return this.request<{ drains: BackendAuditDrain[] }>('v1/audit-drains')
+  }
+
+  async createAuditDrain(input: BackendAuditDrainInput, audit?: BackendAuditRequest) {
+    return this.request<{ drain: BackendAuditDrain }>('v1/audit-drains', {
+      body: input,
+      headers: auditRequestHeaders(audit),
+      method: 'POST',
+    })
+  }
+
+  async deleteAuditDrain(id: string, audit?: BackendAuditRequest) {
+    return this.request<{ deleted: true }>(`v1/audit-drains/${encodeURIComponent(id)}`, {
+      headers: auditRequestHeaders(audit),
+      method: 'DELETE',
+    })
+  }
+
+  async getAuditRetention() {
+    return this.request<BackendAuditRetention>('v1/audit-retention')
+  }
+
+  async updateAuditRetention(input: BackendAuditRetention, audit?: BackendAuditRequest) {
+    return this.request<BackendAuditRetention>('v1/audit-retention', {
+      body: input,
+      headers: auditRequestHeaders(audit),
+      method: 'PUT',
+    })
+  }
+
+  /** Facade-only: resolves a source app before its webhook signature is verified. */
+  async getWebhookSource(sourceAppId: string) {
+    return this.request<BackendWebhookSource>(
+      `v1/internal/source-apps/${encodeURIComponent(sourceAppId)}/webhook`
+    )
+  }
+
+  async ingestSourceRelease(input: BackendSourceReleaseInput) {
+    return this.request<{ created: boolean; releaseId: string }>('v1/source-releases', {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  /** Facade-only: returns a dead-lettered outbox event to the queue. */
+  async replayOutboxEvent(eventId: string) {
+    return this.request<{ replayed: true }>(
+      `v1/internal/outbox-events/${encodeURIComponent(eventId)}/replay`,
+      { method: 'POST' }
+    )
+  }
+
+  /** Facade-only: applies a billing event once, at the version it expects. */
+  async syncWorkspaceEntitlement(input: BackendEntitlementSync) {
+    return this.request<{ replayed: boolean; version: number }>(
+      'v1/internal/billing/entitlements',
+      { body: input, method: 'POST' }
+    )
+  }
+
+  /** The owner's contract view; requires a fresh two-factor session. */
+  async getWorkspaceEntitlement() {
+    return this.request<{ entitlement: BackendWorkspaceEntitlement }>('v1/entitlements/contract')
+  }
+
+  async getLaunchCampaign(campaignId: string) {
+    return this.request<BackendLaunchCampaign>(
+      `v1/launch/campaigns/${encodeURIComponent(campaignId)}`
+    )
+  }
+
+  async getLaunchBrand() {
+    return this.request<{ kit: BrandKit | null; profile: BrandProfile | null }>('v1/launch/brand')
+  }
+
+  async getLaunchPreferences() {
+    return this.request<BackendLaunchPreferences>('v1/launch/preferences')
+  }
+
+  async listLaunchSpecs(releaseId: string) {
+    return this.request<{ specs: BackendLaunchSpec[] }>(
+      `v1/launch/releases/${encodeURIComponent(releaseId)}/specs`
+    )
+  }
+
+  async getLaunchSpec(specId: string) {
+    return this.request<BackendLaunchSpec>(`v1/launch/specs/${encodeURIComponent(specId)}`)
+  }
+
+  async saveLaunchSpec(
+    releaseId: string,
+    input: BackendLaunchVersionInput & { sources: unknown[] }
+  ) {
+    return this.request<BackendLaunchSpec>(
+      `v1/launch/releases/${encodeURIComponent(releaseId)}/specs`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  async approveLaunchSpec(specId: string) {
+    return this.request<BackendLaunchSpec>(
+      `v1/launch/specs/${encodeURIComponent(specId)}/approve`,
+      { method: 'POST' }
+    )
+  }
+
+  async listLaunchPlans(campaignId: string) {
+    return this.request<{ plans: BackendLaunchPlan[] }>(
+      `v1/launch/campaigns/${encodeURIComponent(campaignId)}/plans`
+    )
+  }
+
+  async getLaunchPlan(campaignId: string, planId: string) {
+    return this.request<BackendLaunchPlan>(
+      `v1/launch/campaigns/${encodeURIComponent(campaignId)}/plans/${encodeURIComponent(planId)}`
+    )
+  }
+
+  async saveLaunchPlan(
+    campaignId: string,
+    input: BackendLaunchVersionInput & { specId: string | null }
+  ) {
+    return this.request<BackendLaunchPlan>(
+      `v1/launch/campaigns/${encodeURIComponent(campaignId)}/plans`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  async approveLaunchPlan(planId: string) {
+    return this.request<BackendLaunchPlan>(
+      `v1/launch/plans/${encodeURIComponent(planId)}/approve`,
+      { method: 'POST' }
+    )
+  }
+
+  async saveLaunchPosts(campaignId: string, input: BackendLaunchPostsInput) {
+    return this.request<{ angleCount: number; postCount: number }>(
+      `v1/launch/campaigns/${encodeURIComponent(campaignId)}/posts`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  async listLaunchRevisions(campaignId: string) {
+    return this.request<{ revisions: BackendLaunchRevision[] }>(
+      `v1/launch/campaigns/${encodeURIComponent(campaignId)}/revisions`
+    )
+  }
+
+  async createLaunchRevision(
+    campaignId: string,
+    input: { comment: string; modelId: string | null; proposal: unknown }
+  ) {
+    return this.request<BackendLaunchRevision>(
+      `v1/launch/campaigns/${encodeURIComponent(campaignId)}/revisions`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  async getLaunchRevision(revisionId: string) {
+    return this.request<BackendLaunchRevision>(
+      `v1/launch/revisions/${encodeURIComponent(revisionId)}`
+    )
+  }
+
+  /** Apply a proposal; design changes carry the patched document by design id. */
+  async applyLaunchRevision(
+    revisionId: string,
+    input: { designDocuments: Record<string, unknown>; related: number[] }
+  ) {
+    return this.request<{ designIds: string[]; revision: BackendLaunchRevision }>(
+      `v1/launch/revisions/${encodeURIComponent(revisionId)}/apply`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  async discardLaunchRevision(revisionId: string) {
+    return this.request<BackendLaunchRevision>(
+      `v1/launch/revisions/${encodeURIComponent(revisionId)}/discard`,
+      { method: 'POST' }
+    )
+  }
+
+  async setLaunchDesignCritique(designId: string, critique: Record<string, unknown>) {
+    return this.request<{ updated: true }>(
+      `v1/launch/designs/${encodeURIComponent(designId)}/critique`,
+      { body: { critique }, method: 'PUT' }
+    )
+  }
+
+  async listLaunchRuns(campaignId: string) {
+    return this.request<{ runs: BackendLaunchRun[] }>(
+      `v1/launch/campaigns/${encodeURIComponent(campaignId)}/runs`
+    )
+  }
+
+  async startLaunchRun(campaignId: string, kind: string) {
+    return this.request<BackendLaunchRun>(
+      `v1/launch/campaigns/${encodeURIComponent(campaignId)}/runs`,
+      { body: { kind }, method: 'POST' }
+    )
+  }
+
+  async getLaunchRun(runId: string) {
+    return this.request<BackendLaunchRun>(`v1/launch/runs/${encodeURIComponent(runId)}`)
+  }
+
+  async finishLaunchRun(
+    runId: string,
+    input: {
+      error?: string
+      resultId?: string | null
+      status: 'FAILED' | 'SUCCEEDED'
+      summary?: string | null
+    }
+  ) {
+    return this.request<{ updated: true }>(`v1/launch/runs/${encodeURIComponent(runId)}/finish`, {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async getCampaignAsset(campaignId: string, assetId: string) {
+    return this.request<BackendCampaignAssetLink>(
+      `v1/campaigns/${encodeURIComponent(campaignId)}/assets/${encodeURIComponent(assetId)}`
+    )
+  }
+
+  async linkCampaignAsset(
+    campaignId: string,
+    assetId: string,
+    input: BackendLinkCampaignAssetInput
+  ) {
+    return this.request<BackendCampaignAssetLink>(
+      `v1/campaigns/${encodeURIComponent(campaignId)}/assets/${encodeURIComponent(assetId)}`,
+      { body: input, method: 'PUT' }
+    )
+  }
+
+  /** Append generated angles and draft posts to a campaign. */
+  async saveCampaignCopy(
+    campaignId: string,
+    input: Pick<BackendCreateCampaignInput, 'angles' | 'posts'>
+  ) {
+    return this.request<{ angleCount: number; postCount: number }>(
+      `v1/campaigns/${encodeURIComponent(campaignId)}/copy`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  /** Edit a design in place; name and variant label change only when given. */
+  async replaceDesign(
+    id: string,
+    input: { document: unknown; name?: string; variantLabel?: string }
+  ) {
+    return this.request<{ updated: true }>(`v1/designs/${encodeURIComponent(id)}`, {
+      body: input,
+      method: 'PUT',
+    })
+  }
+
+  async getBootstrap() {
+    return this.request<BackendBootstrapSnapshot>('v1/bootstrap')
+  }
+
+  async listAuditLogs(
+    query: AuditLogQuery,
+    audit?: { ipHash?: string; userAgentSummary?: string }
+  ) {
+    const parameters = new URLSearchParams()
+    if (query.action) parameters.set('action', query.action)
+    if (query.actorUserId) parameters.set('actorUserId', query.actorUserId)
+    if (query.cursor) parameters.set('cursor', query.cursor)
+    if (query.endDate) parameters.set('endDate', query.endDate.toISOString())
+    if (query.entityType) parameters.set('entityType', query.entityType)
+    if (query.limit !== undefined) parameters.set('limit', String(query.limit))
+    if (query.outcome) parameters.set('outcome', query.outcome)
+    if (query.search) parameters.set('search', query.search)
+    if (query.startDate) parameters.set('startDate', query.startDate.toISOString())
+    return this.request<AuditLogPage>(`v1/audit-logs?${parameters}`, {
+      headers: {
+        ...(audit?.ipHash ? { 'x-audit-ip-hash': audit.ipHash } : {}),
+        ...(audit?.userAgentSummary
+          ? { 'x-audit-user-agent-summary': audit.userAgentSummary }
+          : {}),
+      },
+    })
+  }
+
+  async setActiveWorkspace(organizationId: string) {
+    return this.request<{ updated: true }>('v1/workspaces/active', {
+      body: { organizationId },
+      method: 'POST',
+    })
+  }
+
+  async getWorkspace() {
+    return this.request<{ workspace: Workspace | null }>('v1/workspace')
+  }
+
+  async updateWorkspace(input: UpdateWorkspaceInput) {
+    return this.request<WorkspaceMutation>('v1/workspace', { body: input, method: 'PATCH' })
+  }
+
+  async listWorkspaceMembers() {
+    return this.request<{ members: WorkspaceMember[] }>('v1/workspace/members')
+  }
+
+  async listWorkspaceInvitations() {
+    return this.request<{ invitations: WorkspaceInvitation[] }>('v1/workspace/invitations')
+  }
+
+  async inviteWorkspaceMember(input: { email: string; role: string }) {
+    return this.request<WorkspaceInvitationDetail>('v1/workspace/invitations', {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async resendWorkspaceInvitation(invitationId: string) {
+    return this.request<WorkspaceInvitationDetail>(
+      `v1/workspace/invitations/${encodeURIComponent(invitationId)}/resend`,
+      { method: 'POST' }
+    )
+  }
+
+  async revokeWorkspaceInvitation(invitationId: string) {
+    return this.request<{ id: string; status: 'canceled' }>(
+      `v1/workspace/invitations/${encodeURIComponent(invitationId)}`,
+      { method: 'DELETE' }
+    )
+  }
+
+  async updateWorkspaceMemberRole(memberId: string, role: string) {
+    return this.request<WorkspaceMember>(`v1/workspace/members/${encodeURIComponent(memberId)}`, {
+      body: { role },
+      method: 'PATCH',
+    })
+  }
+
+  async removeWorkspaceMember(memberId: string) {
+    return this.request<{ removed: true }>(`v1/workspace/members/${encodeURIComponent(memberId)}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async leaveWorkspace() {
+    return this.request<{ left: true }>('v1/workspace/leave', { method: 'POST' })
+  }
+
+  async transferWorkspaceOwnership(memberId: string) {
+    return this.request<{ transferred: true }>('v1/workspace/transfer-ownership', {
+      body: { memberId },
+      method: 'POST',
+    })
+  }
+
+  async requestWorkspaceDeletion(confirmation: string) {
+    return this.request<WorkspaceDeletion>('v1/workspace/deletion', {
+      body: { confirmation },
+      method: 'POST',
+    })
+  }
+
+  async cancelWorkspaceDeletion() {
+    return this.request<WorkspaceDeletion>('v1/workspaces/deletion/cancel', { method: 'POST' })
+  }
+}

@@ -35,6 +35,7 @@ type PublishInput struct {
 	DestinationID    string
 	OrganizationID   string
 	Platform         string
+	PostID           string
 	ProviderSettings map[string]any
 	SecretReference  string
 }
@@ -49,6 +50,30 @@ type StatusResult struct {
 	State          string
 }
 
+type VerifyDestinationInput struct {
+	DestinationID            string
+	ExpectedGoOrganizationID string
+	Platform                 string
+	SecretReference          string
+}
+
+type BeginOAuthInput struct {
+	ExpectedGoOrganizationID string
+	Provider                 string
+	SecretReference          string
+}
+
+type OAuthPage struct {
+	ID     string  `json:"id"`
+	PageID string  `json:"pageId"`
+	Name   *string `json:"name,omitempty"`
+}
+
+type OAuthExchange struct {
+	ID    string      `json:"id"`
+	Pages []OAuthPage `json:"pages,omitempty"`
+}
+
 type Error struct {
 	Status          int
 	UnknownDelivery bool
@@ -57,8 +82,157 @@ type Error struct {
 
 func (e *Error) Error() string { return e.message }
 
+func NewError(status int, unknownDelivery bool, message string) *Error {
+	return &Error{Status: status, UnknownDelivery: unknownDelivery, message: message}
+}
+
 func New(baseURL string, httpClient *http.Client, assetReader AssetReader) *Client {
 	return &Client{baseURL: strings.TrimRight(baseURL, "/"), httpClient: httpClient, assetReader: assetReader}
+}
+
+func (c *Client) BeginOAuth(ctx context.Context, input BeginOAuthInput) (string, error) {
+	if input.Provider != "x" && input.Provider != "instagram" && input.Provider != "instagram-standalone" && input.Provider != "linkedin" {
+		return "", &Error{Status: http.StatusBadRequest, message: "unsupported social provider"}
+	}
+	if !publishing.IsSecretReference(input.SecretReference) {
+		return "", &Error{Status: http.StatusConflict, message: "invalid Postiz credential reference"}
+	}
+	token := os.Getenv(input.SecretReference)
+	if token == "" {
+		return "", &Error{Status: http.StatusServiceUnavailable, message: "Postiz credentials are unavailable"}
+	}
+	var me struct {
+		Organization struct {
+			ID string `json:"id"`
+		} `json:"organization"`
+	}
+	if err := c.getJSON(ctx, token, "me", &me); err != nil {
+		return "", err
+	}
+	if me.Organization.ID == "" || me.Organization.ID != input.ExpectedGoOrganizationID {
+		return "", &Error{Status: http.StatusConflict, message: "Postiz organization does not match this workspace"}
+	}
+	var result struct {
+		URL string `json:"url"`
+	}
+	if err := c.getJSON(ctx, token, "social/"+input.Provider, &result); err != nil {
+		return "", err
+	}
+	if result.URL == "" {
+		return "", &Error{Status: http.StatusBadGateway, message: "Postiz returned an invalid authorization URL"}
+	}
+	return result.URL, nil
+}
+
+// ExchangeOAuth forwards a provider callback to the social adapter. The
+// product backend checks the session-bound OAuth state before calling it.
+func (c *Client) ExchangeOAuth(ctx context.Context, provider, code, state string) (OAuthExchange, error) {
+	var result OAuthExchange
+	err := c.postOAuthJSON(ctx, "/integrations/social-connect/"+url.PathEscape(provider),
+		map[string]string{"code": code, "state": state, "timezone": "0"}, &result)
+	if err != nil {
+		return OAuthExchange{}, err
+	}
+	if result.ID == "" {
+		return OAuthExchange{}, NewError(http.StatusBadGateway, false, "social adapter returned no connection")
+	}
+	return result, nil
+}
+
+func (c *Client) SelectInstagramPage(ctx context.Context, integrationID, accountID, pageID, state string) error {
+	var result struct {
+		Success bool `json:"success"`
+	}
+	err := c.postOAuthJSON(ctx, "/integrations/public/provider/"+url.PathEscape(integrationID)+"/connect",
+		map[string]string{"id": accountID, "pageId": pageID, "state": state}, &result)
+	if err != nil {
+		return err
+	}
+	if !result.Success {
+		return NewError(http.StatusBadGateway, false, "social adapter did not connect the page")
+	}
+	return nil
+}
+
+func (c *Client) postOAuthJSON(ctx context.Context, endpoint string, input, output any) error {
+	data, err := json.Marshal(input)
+	if err != nil {
+		return err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint(endpoint), bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return NewError(http.StatusServiceUnavailable, false, "social adapter is unavailable")
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
+		return NewError(response.StatusCode, false, "social adapter rejected the callback")
+	}
+	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(output); err != nil {
+		return NewError(http.StatusBadGateway, false, "social adapter returned invalid JSON")
+	}
+	return nil
+}
+
+func (c *Client) VerifyDestination(ctx context.Context, input VerifyDestinationInput) error {
+	if !publishing.IsSecretReference(input.SecretReference) {
+		return &Error{Status: http.StatusConflict, message: "invalid Postiz credential reference"}
+	}
+	token := os.Getenv(input.SecretReference)
+	if token == "" {
+		return &Error{Status: http.StatusConflict, message: "Postiz credentials are unavailable"}
+	}
+	var me struct {
+		Organization struct {
+			ID string `json:"id"`
+		} `json:"organization"`
+	}
+	if err := c.getJSON(ctx, token, "me", &me); err != nil {
+		return err
+	}
+	if me.Organization.ID == "" || me.Organization.ID != input.ExpectedGoOrganizationID {
+		return &Error{Status: http.StatusConflict, message: "Postiz organization does not match this workspace"}
+	}
+	var integrations []struct {
+		ID         string `json:"id"`
+		Identifier string `json:"identifier"`
+		Disabled   bool   `json:"disabled"`
+	}
+	if err := c.getJSON(ctx, token, "integrations", &integrations); err != nil {
+		return err
+	}
+	for _, integration := range integrations {
+		if integration.ID == input.DestinationID && integration.Identifier == input.Platform && !integration.Disabled {
+			return nil
+		}
+	}
+	return &Error{Status: http.StatusNotFound, message: "Postiz destination was not found"}
+}
+
+func (c *Client) getJSON(ctx context.Context, token, relative string, target any) error {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, c.endpoint(relative), nil)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Authorization", token)
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return &Error{Status: http.StatusServiceUnavailable, message: "Postiz destination is unavailable"}
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
+		return &Error{Status: response.StatusCode, message: "Postiz destination is unavailable"}
+	}
+	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(target); err != nil {
+		return &Error{Status: http.StatusBadGateway, message: "Postiz returned an invalid destination response"}
+	}
+	return nil
 }
 
 func (c *Client) Publish(ctx context.Context, input PublishInput) (string, error) {
@@ -107,7 +281,7 @@ func (c *Client) Publish(ctx context.Context, input PublishInput) (string, error
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
-		return "", &Error{Status: response.StatusCode, message: fmt.Sprintf("Postiz post failed with status %d", response.StatusCode)}
+		return "", &Error{Status: response.StatusCode, UnknownDelivery: response.StatusCode >= 500, message: fmt.Sprintf("Postiz post failed with status %d", response.StatusCode)}
 	}
 	var result json.RawMessage
 	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&result); err != nil {
@@ -132,6 +306,34 @@ func (c *Client) Publish(ctx context.Context, input PublishInput) (string, error
 		}
 	}
 	return "", &Error{UnknownDelivery: true, message: "Postiz returned an invalid post receipt"}
+}
+
+// UploadAsset stages media for the provider adapters without creating a
+// second post. The returned path is signed immediately before publication.
+func (c *Client) UploadAsset(ctx context.Context, input PublishInput) (string, error) {
+	if !publishing.IsSecretReference(input.SecretReference) {
+		return "", NewError(http.StatusConflict, false, "invalid social credential reference")
+	}
+	token := os.Getenv(input.SecretReference)
+	if token == "" {
+		return "", NewError(http.StatusConflict, false, "social credentials are unavailable")
+	}
+	if c.assetReader == nil {
+		return "", NewError(http.StatusServiceUnavailable, false, "asset reader is unavailable")
+	}
+	asset, err := c.assetReader.Read(ctx, input.OrganizationID, input.AssetObjectKey)
+	if err != nil {
+		return "", NewError(http.StatusNotFound, false, "tenant asset is unavailable: "+err.Error())
+	}
+	uploaded, err := c.upload(ctx, token, input.AssetObjectKey, input.AssetMediaType, asset)
+	if err != nil {
+		return "", err
+	}
+	path, _ := uploaded["path"].(string)
+	if path == "" {
+		return "", NewError(http.StatusBadGateway, false, "media upload returned no path")
+	}
+	return path, nil
 }
 
 func (c *Client) Status(ctx context.Context, input StatusInput) (StatusResult, error) {

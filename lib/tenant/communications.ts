@@ -1,43 +1,32 @@
 import 'server-only'
 
-import { appendAuditLog } from '@/lib/audit/log'
-import { getAuditActor, type TriggerServicePrincipal } from '@/lib/auth/principal'
-import { prisma } from '@/lib/db'
+import { randomUUID } from 'node:crypto'
+import { backendSDK } from '@/lib/backend/sdk'
 
 // Announcement delivery runs in services/internal/maintenance. This module
 // retains the public unsubscribe operation used by the web application.
-function getTriggerPrincipal(
-  organizationId: string,
-  communicationId: string
-): TriggerServicePrincipal {
-  return { kind: 'trigger_service', organizationId, taskRunId: communicationId }
-}
 
 /**
- * Record an explicit opt-out.
+ * Record an explicit opt-out for a verified unsubscribe claim.
  *
  * Idempotent: unsubscribing twice keeps the original timestamp, so the
- * one-click endpoint can be retried by mail clients without churn.
+ * one-click endpoint can be retried by mail clients without churn. The
+ * caller has no session, so the backend acts as a service for the
+ * claim's workspace, named by the address in the audit log.
  */
 export async function unsubscribeAudienceMember(input: {
   email: string
   organizationId: string
 }): Promise<boolean> {
-  const updated = await prisma.audienceSubscriber.updateMany({
-    data: { unsubscribedAt: new Date() },
-    where: { email: input.email, organizationId: input.organizationId, unsubscribedAt: null },
-  })
-
-  if (updated.count > 0) {
-    await appendAuditLog(prisma, {
-      action: 'audience.unsubscribed',
-      actor: getAuditActor(getTriggerPrincipal(input.organizationId, input.email)),
-      entityId: input.email,
-      entityType: 'audience_subscriber',
+  await backendSDK({
+    organizationId: input.organizationId,
+    principal: {
+      kind: 'trigger_service',
       organizationId: input.organizationId,
-      requestId: input.email,
-    })
-  }
+      taskRunId: input.email,
+    },
+    requestId: randomUUID(),
+  }).unsubscribeAudienceMember(input.email)
 
   // Report success even when nothing changed: the caller asked to be
   // unsubscribed and they are, which is what the endpoint must confirm.

@@ -4,11 +4,9 @@ import { tool } from 'ai'
 import sharp from 'sharp'
 import { z } from 'zod'
 import { SCREENSHOT_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
-import { appendAuditLog } from '@/lib/audit/log'
 import type { TenantContext } from '@/lib/auth/access'
-import { getAuditActor } from '@/lib/auth/principal'
 import { getMockupDefinition } from '@/lib/constants/mockups'
-import { prisma } from '@/lib/db'
+import { backendSDK, orNull } from '@/lib/backend/sdk'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { captureScreenshot } from '@/lib/screenshot-service'
 import { readTenantObject } from '@/lib/storage/client'
@@ -62,17 +60,11 @@ async function linkAsset(
   caption?: string,
   provenance: { planAssetKey?: string; variantLabel?: string } = {}
 ) {
-  await prisma.campaignAsset.create({
-    data: {
-      assetId,
-      campaignId: scope.campaignId,
-      caption: caption ?? null,
-      kind,
-      organizationId: scope.tenant.organizationId,
-      planAssetKey: provenance.planAssetKey ?? null,
-      planVersion: scope.planVersion ?? null,
-      variantLabel: provenance.variantLabel ?? null,
-    },
+  await backendSDK(scope.tenant).linkCampaignAsset(scope.campaignId, assetId, {
+    caption,
+    kind,
+    planVersion: scope.planVersion,
+    ...provenance,
   })
 }
 
@@ -177,16 +169,10 @@ export function createCampaignStudioTools(
       if (productShots >= maxProductShots) {
         return failure(`At most ${maxProductShots} product shots per run.`)
       }
-      const link = await prisma.campaignAsset.findFirst({
-        include: { asset: { select: { objectKey: true, status: true } } },
-        where: {
-          assetId: input.captureAssetId,
-          campaignId: scope.campaignId,
-          kind: { startsWith: 'capture-' },
-          organizationId: scope.tenant.organizationId,
-        },
-      })
-      if (!link || link.asset.status !== 'UPLOADED') {
+      const link = await orNull(
+        backendSDK(scope.tenant).getCampaignAsset(scope.campaignId, input.captureAssetId)
+      )
+      if (!link?.kind.startsWith('capture-') || link.assetStatus !== 'UPLOADED') {
         return failure('Unknown captureAssetId. Use an id returned by captureProductPage.')
       }
       const family = getMockupDefinition(input.mockupId)?.family
@@ -198,8 +184,8 @@ export function createCampaignStudioTools(
       }
       productShots += 1
       const screenshot = await readTenantObject({
-        objectKey: link.asset.objectKey,
-        organizationId: scope.tenant.organizationId,
+        assetId: link.asset.id,
+        tenant: scope.tenant,
       })
       const shot = await composeProductShot({ ...input, screenshot })
       const asset = await storeGeneratedAsset(scope.tenant, {
@@ -252,47 +238,8 @@ export function createCampaignStudioTools(
       if (posts.some((post) => post.angleIndex >= angles.length)) {
         return failure('Every post angleIndex must point at one of the angles.')
       }
-      await prisma.$transaction(async (transaction) => {
-        // Append after existing angles so a second run never overwrites the first.
-        const last = await transaction.contentAngle.findFirst({
-          orderBy: { position: 'desc' },
-          select: { position: true },
-          where: { campaignId: scope.campaignId },
-        })
-        const offset = (last?.position ?? -1) + 1
-        const angleIds: string[] = []
-        for (const [index, angle] of angles.entries()) {
-          const created = await transaction.contentAngle.create({
-            data: {
-              campaignId: scope.campaignId,
-              hook: angle.hook,
-              organizationId: scope.tenant.organizationId,
-              position: offset + index,
-              title: angle.title,
-            },
-          })
-          angleIds.push(created.id)
-        }
-        await transaction.campaignPost.createMany({
-          data: posts.map((post) => ({
-            angleId: angleIds[post.angleIndex],
-            callToAction: post.callToAction ?? null,
-            campaignId: scope.campaignId,
-            channel: post.channel,
-            copy: post.copy,
-            organizationId: scope.tenant.organizationId,
-          })),
-        })
-        await appendAuditLog(transaction, {
-          action: 'product.campaign_copy_generated',
-          actor: getAuditActor(scope.tenant.principal),
-          entityId: scope.campaignId,
-          entityType: 'campaign',
-          metadata: { angleCount: angles.length, postCount: posts.length },
-          organizationId: scope.tenant.organizationId,
-          requestId: scope.tenant.requestId,
-        })
-      })
+      // The backend appends after existing angles so a second run never overwrites the first.
+      await backendSDK(scope.tenant).saveCampaignCopy(scope.campaignId, { angles, posts })
       record.savedPosts = posts.length
       return { ok: true as const, savedAngles: angles.length, savedPosts: posts.length }
     },

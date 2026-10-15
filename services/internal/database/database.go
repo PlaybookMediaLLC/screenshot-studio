@@ -12,6 +12,11 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// Product timestamps are timezone-less columns holding UTC (Prisma's
+// timestamp(3)). Ent's time.Now defaults and pgx encode wall-clock time, so
+// every process that opens the database must run on UTC.
+func init() { time.Local = time.UTC }
+
 type Database struct {
 	Client *ent.Client
 	SQL    *stdsql.DB

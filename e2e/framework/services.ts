@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client'
 import { S3Client } from '@aws-sdk/client-s3'
+import { Pool, type QueryResultRow } from 'pg'
 import { createClient, type RedisClientType } from 'redis'
 
 function getRequiredEnvironment(name: string): string {
@@ -11,10 +11,33 @@ function getRequiredEnvironment(name: string): string {
   return value
 }
 
-export function createE2EDatabaseClient(): PrismaClient {
-  return new PrismaClient({
-    datasources: { db: { url: getRequiredEnvironment('E2E_DATABASE_URL') } },
-  })
+/**
+ * A direct Postgres pool for seeding and durable assertions. Tables use the
+ * Prisma `@@map` names and camelCase columns, so quote every column. Call
+ * `end()` when done.
+ */
+export function createE2EDatabase(): Pool {
+  // `?schema=public` is a Prisma URL option that pg does not understand.
+  const url = new URL(getRequiredEnvironment('E2E_DATABASE_URL'))
+  url.searchParams.delete('schema')
+  return new Pool({ connectionString: url.toString() })
+}
+
+export async function queryRows<T extends QueryResultRow>(
+  database: Pool,
+  text: string,
+  values: unknown[] = []
+): Promise<T[]> {
+  return (await database.query<T>(text, values)).rows
+}
+
+/** The first row, or null when the query matches nothing. */
+export async function queryRow<T extends QueryResultRow>(
+  database: Pool,
+  text: string,
+  values: unknown[] = []
+): Promise<T | null> {
+  return (await queryRows<T>(database, text, values))[0] ?? null
 }
 
 export function createE2EObjectStoreClient(): S3Client {
@@ -41,34 +64,22 @@ export function getE2EObjectStoreBucket(): string {
  * that needs to exercise a gated capability therefore has to grant it out of
  * band, the same way billing would. Writing the row directly keeps the
  * entitlement server-owned rather than adding a test-only API that would
- * itself become a bypass.
- *
- * The row alone is not enough. `getEntitlementSnapshot` reads through a Redis
- * key with a 30s TTL and a 5s in-process cache, so a fresh grant stays
- * invisible until both expire and the request still sees `currentPlan: free`.
- * Deleting the Redis key removes the shared layer; the per-process cache
- * cannot be reached from here, so callers must tolerate up to its 5s window.
+ * itself become a bypass. The Go backend reads `workspace_entitlement` on
+ * every check, so the grant applies to the next request.
  */
 export async function grantWorkspacePlan(organizationId: string, plan: string): Promise<void> {
-  const database = createE2EDatabaseClient()
+  const database = createE2EDatabase()
   try {
-    await database.workspaceEntitlement.upsert({
-      create: { organizationId, plan, status: 'active' },
-      update: { plan, status: 'active' },
-      where: { organizationId },
-    })
+    await database.query(
+      `INSERT INTO workspace_entitlement ("organizationId", plan, status, "updatedAt")
+       VALUES ($1, $2, 'active', now())
+       ON CONFLICT ("organizationId")
+       DO UPDATE SET plan = EXCLUDED.plan, status = 'active', "updatedAt" = now()`,
+      [organizationId, plan]
+    )
   } finally {
-    await database.$disconnect()
+    await database.end()
   }
-
-  await clearEntitlementCache(organizationId)
-}
-
-/** Mirrors `cacheKey` in lib/tenant/entitlements.ts. */
-async function clearEntitlementCache(organizationId: string): Promise<void> {
-  await withRedis(async (client) => {
-    await client.del(`screenshot-studio:entitlement:${organizationId}`)
-  })
 }
 
 /**

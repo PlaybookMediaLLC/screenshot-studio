@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { requestJson } from './framework/browser'
 import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabaseClient } from './framework/services'
+import { createE2EDatabase, queryRow } from './framework/services'
 
 type FailureCase = {
   path: 'timeout' | 'unavailable' | 'invalid-image'
@@ -15,11 +15,15 @@ const failures: readonly FailureCase[] = [
 ]
 
 async function getCacheRecord(url: string) {
-  const database = createE2EDatabaseClient()
+  const database = createE2EDatabase()
   try {
-    return await database.screenshotCache.findFirst({ where: { url } })
+    return await queryRow<{ id: string }>(
+      database,
+      'SELECT id FROM screenshot_cache WHERE url = $1 LIMIT 1',
+      [url]
+    )
   } finally {
-    await database.$disconnect()
+    await database.end()
   }
 }
 

@@ -3,6 +3,9 @@
 package auditdrain
 
 import (
+	"fmt"
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 )
 
@@ -15,6 +18,18 @@ const (
 	FieldOrganizationID = "organizationId"
 	// FieldEnabled holds the string denoting the enabled field in the database.
 	FieldEnabled = "enabled"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
+	// FieldProvider holds the string denoting the provider field in the database.
+	FieldProvider = "provider"
+	// FieldEndpoint holds the string denoting the endpoint field in the database.
+	FieldEndpoint = "endpoint"
+	// FieldEncryptedSigningSecret holds the string denoting the encrypted_signing_secret field in the database.
+	FieldEncryptedSigningSecret = "encryptedSigningSecret"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "createdAt"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updatedAt"
 	// Table holds the table name of the auditdrain in the database.
 	Table = "audit_drain"
 )
@@ -24,6 +39,12 @@ var Columns = []string{
 	FieldID,
 	FieldOrganizationID,
 	FieldEnabled,
+	FieldName,
+	FieldProvider,
+	FieldEndpoint,
+	FieldEncryptedSigningSecret,
+	FieldCreatedAt,
+	FieldUpdatedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -39,7 +60,40 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultEnabled holds the default value on creation for the "enabled" field.
 	DefaultEnabled bool
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
 )
+
+// Provider defines the type for the "provider" enum field.
+type Provider string
+
+// ProviderGENERIC is the default value of the Provider enum.
+const DefaultProvider = ProviderGENERIC
+
+// Provider values.
+const (
+	ProviderGENERIC Provider = "GENERIC"
+	ProviderDATADOG Provider = "DATADOG"
+	ProviderSPLUNK  Provider = "SPLUNK"
+)
+
+func (pr Provider) String() string {
+	return string(pr)
+}
+
+// ProviderValidator is a validator for the "provider" field enum values. It is called by the builders before save.
+func ProviderValidator(pr Provider) error {
+	switch pr {
+	case ProviderGENERIC, ProviderDATADOG, ProviderSPLUNK:
+		return nil
+	default:
+		return fmt.Errorf("auditdrain: invalid enum value for provider field: %q", pr)
+	}
+}
 
 // OrderOption defines the ordering options for the AuditDrain queries.
 type OrderOption func(*sql.Selector)
@@ -57,4 +111,34 @@ func ByOrganizationID(opts ...sql.OrderTermOption) OrderOption {
 // ByEnabled orders the results by the enabled field.
 func ByEnabled(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEnabled, opts...).ToFunc()
+}
+
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByProvider orders the results by the provider field.
+func ByProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProvider, opts...).ToFunc()
+}
+
+// ByEndpoint orders the results by the endpoint field.
+func ByEndpoint(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEndpoint, opts...).ToFunc()
+}
+
+// ByEncryptedSigningSecret orders the results by the encrypted_signing_secret field.
+func ByEncryptedSigningSecret(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEncryptedSigningSecret, opts...).ToFunc()
+}
+
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }

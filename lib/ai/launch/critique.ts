@@ -2,6 +2,7 @@ import 'server-only'
 
 import sharp from 'sharp'
 import { z } from 'zod'
+import type { TenantContext } from '@/lib/auth/access'
 import { type BrandKitValues } from '@/lib/launch/brand'
 import { defuseMarkup } from '@/lib/launch/sanitize'
 import { listSpecClaims } from '@/lib/launch/spec-schema'
@@ -89,13 +90,13 @@ export async function critiqueRender(input: {
 export async function reviewRevisedRender(input: {
   campaignId: string
   imageBytes: Uint8Array
-  organizationId: string
+  tenant: TenantContext
   texts: string[]
 }): Promise<RenderCritique | null> {
-  const campaign = await loadLaunchCampaign(input.organizationId, input.campaignId)
+  const campaign = await loadLaunchCampaign(input.tenant, input.campaignId)
   const [brand, spec] = await Promise.all([
-    getActiveBrand(input.organizationId),
-    campaign.release ? getWorkingSpec(input.organizationId, campaign.release.id) : null,
+    getActiveBrand(input.tenant),
+    campaign.release ? getWorkingSpec(input.tenant, campaign.release.id) : null,
   ])
   const preview = await sharp(input.imageBytes)
     .resize({ width: 960, withoutEnlargement: true })

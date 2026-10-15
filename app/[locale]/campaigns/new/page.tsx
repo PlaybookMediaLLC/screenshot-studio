@@ -3,7 +3,9 @@ import { CampaignSetupForm } from '@/components/campaigns/CampaignSetupForm'
 import { Page } from '@/components/platform-ui'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { hasPermission } from '@/lib/auth/permissions'
+import { getRequestId } from '@/lib/auth/access'
 import { listProductSurfaces } from '@/lib/tenant/product-surfaces'
+import { headers } from 'next/headers'
 import { requireCampaignPageAccess } from '../page-access'
 
 export const metadata: Metadata = { title: 'New campaign | Screenshot Studio' }
@@ -15,7 +17,16 @@ type NewCampaignPageProps = {
 export default async function NewCampaignPage({ params }: NewCampaignPageProps) {
   const { locale } = await params
   const access = await requireCampaignPageAccess(locale)
-  const surfaces = await listProductSurfaces(access.organization.id)
+  const surfaces = await listProductSurfaces({
+    organizationId: access.organization.id,
+    principal: {
+      display: access.session.user.email,
+      kind: 'session',
+      sessionId: access.session.session.id,
+      userId: access.session.user.id,
+    },
+    requestId: getRequestId(await headers()),
+  })
 
   return (
     <PlatformShell campaignsEnabled organizationName={access.organization.name}>

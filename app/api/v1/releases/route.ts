@@ -15,7 +15,7 @@ export const GET = createTenantJsonRoute({
   schema: releaseListQuerySchema,
   input: (request) => Object.fromEntries(request.nextUrl.searchParams),
   execute: async (tenant, input) => ({
-    releases: await listReleases(tenant.organizationId, input.limit),
+    releases: await listReleases(tenant, input.limit),
   }),
 })
 

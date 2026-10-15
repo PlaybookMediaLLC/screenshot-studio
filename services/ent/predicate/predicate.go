@@ -6,11 +6,17 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Apikey is the predicate function for apikey builders.
+type Apikey func(*sql.Selector)
+
 // Approval is the predicate function for approval builders.
 type Approval func(*sql.Selector)
 
 // Asset is the predicate function for asset builders.
 type Asset func(*sql.Selector)
+
+// AudienceSubscriber is the predicate function for audiencesubscriber builders.
+type AudienceSubscriber func(*sql.Selector)
 
 // AuditDrain is the predicate function for auditdrain builders.
 type AuditDrain func(*sql.Selector)
@@ -24,17 +30,119 @@ type AuditLog func(*sql.Selector)
 // AuditOutbox is the predicate function for auditoutbox builders.
 type AuditOutbox func(*sql.Selector)
 
+// AuditRetentionPolicy is the predicate function for auditretentionpolicy builders.
+type AuditRetentionPolicy func(*sql.Selector)
+
+// BillingEntitlementEvent is the predicate function for billingentitlementevent builders.
+type BillingEntitlementEvent func(*sql.Selector)
+
+// BrandKit is the predicate function for brandkit builders.
+type BrandKit func(*sql.Selector)
+
+// BrandProfile is the predicate function for brandprofile builders.
+type BrandProfile func(*sql.Selector)
+
+// Campaign is the predicate function for campaign builders.
+type Campaign func(*sql.Selector)
+
+// CampaignAsset is the predicate function for campaignasset builders.
+type CampaignAsset func(*sql.Selector)
+
+// CampaignPlan is the predicate function for campaignplan builders.
+type CampaignPlan func(*sql.Selector)
+
+// CampaignPost is the predicate function for campaignpost builders.
+type CampaignPost func(*sql.Selector)
+
+// CampaignRevision is the predicate function for campaignrevision builders.
+type CampaignRevision func(*sql.Selector)
+
 // ChannelConnection is the predicate function for channelconnection builders.
 type ChannelConnection func(*sql.Selector)
+
+// CommunicationAttempt is the predicate function for communicationattempt builders.
+type CommunicationAttempt func(*sql.Selector)
+
+// CommunicationRecipient is the predicate function for communicationrecipient builders.
+type CommunicationRecipient func(*sql.Selector)
+
+// ContentAngle is the predicate function for contentangle builders.
+type ContentAngle func(*sql.Selector)
+
+// CreativeTemplate is the predicate function for creativetemplate builders.
+type CreativeTemplate func(*sql.Selector)
 
 // CreativeVariant is the predicate function for creativevariant builders.
 type CreativeVariant func(*sql.Selector)
 
+// CustomerCommunication is the predicate function for customercommunication builders.
+type CustomerCommunication func(*sql.Selector)
+
+// Design is the predicate function for design builders.
+type Design func(*sql.Selector)
+
+// Invitation is the predicate function for invitation builders.
+type Invitation func(*sql.Selector)
+
+// LaunchRun is the predicate function for launchrun builders.
+type LaunchRun func(*sql.Selector)
+
+// Member is the predicate function for member builders.
+type Member func(*sql.Selector)
+
+// Organization is the predicate function for organization builders.
+type Organization func(*sql.Selector)
+
+// OrganizationEnterpriseSettings is the predicate function for organizationenterprisesettings builders.
+type OrganizationEnterpriseSettings func(*sql.Selector)
+
+// OutboxEvent is the predicate function for outboxevent builders.
+type OutboxEvent func(*sql.Selector)
+
+// PostizTenantBinding is the predicate function for postiztenantbinding builders.
+type PostizTenantBinding func(*sql.Selector)
+
+// ProductSurface is the predicate function for productsurface builders.
+type ProductSurface func(*sql.Selector)
+
 // PublicationAttempt is the predicate function for publicationattempt builders.
 type PublicationAttempt func(*sql.Selector)
+
+// Release is the predicate function for release builders.
+type Release func(*sql.Selector)
+
+// ReleaseDocument is the predicate function for releasedocument builders.
+type ReleaseDocument func(*sql.Selector)
+
+// ReleaseSpec is the predicate function for releasespec builders.
+type ReleaseSpec func(*sql.Selector)
 
 // ScheduledPost is the predicate function for scheduledpost builders.
 type ScheduledPost func(*sql.Selector)
 
+// ScreenshotCache is the predicate function for screenshotcache builders.
+type ScreenshotCache func(*sql.Selector)
+
+// Session is the predicate function for session builders.
+type Session func(*sql.Selector)
+
+// SocialOAuthStart is the predicate function for socialoauthstart builders.
+type SocialOAuthStart func(*sql.Selector)
+
+// SourceApp is the predicate function for sourceapp builders.
+type SourceApp func(*sql.Selector)
+
+// SupportAccessGrant is the predicate function for supportaccessgrant builders.
+type SupportAccessGrant func(*sql.Selector)
+
+// User is the predicate function for user builders.
+type User func(*sql.Selector)
+
 // WorkspaceDeletion is the predicate function for workspacedeletion builders.
 type WorkspaceDeletion func(*sql.Selector)
+
+// WorkspaceEntitlement is the predicate function for workspaceentitlement builders.
+type WorkspaceEntitlement func(*sql.Selector)
+
+// WorkspaceSettings is the predicate function for workspacesettings builders.
+type WorkspaceSettings func(*sql.Selector)

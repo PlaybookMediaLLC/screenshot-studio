@@ -8,19 +8,17 @@ existingSecret: screenshot-studio-local
 replicaCount: 2
 
 config:
+  publishingApiUrl: http://screenshot-studio-backend:8080
   screenshotApiUrl: http://screenshot-studio-screenshot-mock:5678
 
 migration:
-  command:
-    - ./node_modules/.bin/prisma
-    - db
-    - push
-    - --skip-generate
   enabled: true
   image:
-    repository: screenshot-studio
+    repository: screenshot-studio-publishing-backend
     pullPolicy: Never
-    tag: migrate-kind-dev
+    tag: kind-dev
 
 local:
   enabled: true
+  backend:
+    image: screenshot-studio-publishing-backend:kind-dev

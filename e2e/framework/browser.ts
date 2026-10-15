@@ -111,7 +111,7 @@ export async function uploadSignedAsset(
     async ({ contentType: type, data, url }) => {
       const response = await fetch(url, {
         body: new Uint8Array(data),
-        headers: { 'content-type': type },
+        headers: { 'content-type': type, 'if-none-match': '*' },
         method: 'PUT',
       })
       return response.status

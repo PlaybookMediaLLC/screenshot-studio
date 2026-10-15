@@ -10,20 +10,27 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-type auditInput struct {
-	Action       string
-	Actor        Actor
-	EntityID     string
-	EntityType   string
-	Metadata     map[string]any
-	Outcome      auditlog.Outcome
-	Organization string
+type AuditInput struct {
+	Action           string
+	Actor            Actor
+	EntityID         string
+	EntityType       string
+	IPHash           string
+	Metadata         map[string]any
+	Outcome          auditlog.Outcome
+	Organization     string
+	UserAgentSummary string
 }
 
-func appendAudit(ctx context.Context, tx *ent.Tx, input auditInput) error {
+func AppendAudit(ctx context.Context, tx *ent.Tx, input AuditInput) error {
 	actorType := auditlog.ActorTypeSERVICE
-	if input.Actor.Type == "USER" {
+	switch input.Actor.Type {
+	case "USER":
 		actorType = auditlog.ActorTypeUSER
+	case "SUPPORT":
+		actorType = auditlog.ActorTypeSUPPORT
+	case "WEBHOOK":
+		actorType = auditlog.ActorTypeWEBHOOK
 	}
 	requestID := input.Actor.RequestID
 	if requestID == "" {
@@ -49,6 +56,12 @@ func appendAudit(ctx context.Context, tx *ent.Tx, input auditInput) error {
 	if input.Metadata != nil {
 		builder.SetMetadata(input.Metadata)
 	}
+	if input.IPHash != "" {
+		builder.SetIPHash(input.IPHash)
+	}
+	if input.UserAgentSummary != "" {
+		builder.SetUserAgentSummary(input.UserAgentSummary)
+	}
 	log, err := builder.Save(ctx)
 	if err != nil {
 		return err
@@ -73,4 +86,12 @@ func appendAudit(ctx context.Context, tx *ent.Tx, input auditInput) error {
 	}
 	_, err = tx.AuditDrainDelivery.CreateBulk(builders...).Save(ctx)
 	return err
+}
+
+// Keep the existing publishing call sites while product domains adopt the
+// same transaction-bound audit and outbox writer.
+type auditInput = AuditInput
+
+func appendAudit(ctx context.Context, tx *ent.Tx, input auditInput) error {
+	return AppendAudit(ctx, tx, input)
 }

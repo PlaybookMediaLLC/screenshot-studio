@@ -1,6 +1,7 @@
 import { createShellJsonRoute } from '@/lib/api/v1/route'
 import { requireOrganizationPermission } from '@/lib/auth/access'
-import { prisma } from '@/lib/db'
+import { WorkspaceError } from '@/lib/workspace/errors'
+import { getWorkspace } from '@/lib/workspace/service'
 
 /**
  * Organization routes act on the session's active organization only. A shell
@@ -15,10 +16,19 @@ export const GET = createShellJsonRoute<unknown, { organizationId: string }>({
       organizationId,
       'workspace:read'
     )
-    const organization = await prisma.organization.findUniqueOrThrow({
-      select: { createdAt: true, id: true, logo: true, name: true, slug: true },
-      where: { id: organizationId },
-    })
-    return { organization: { ...organization, role: access.role } }
+    const organization = await getWorkspace(access)
+    if (!organization) {
+      throw new WorkspaceError('Workspace not found.', 404)
+    }
+    return {
+      organization: {
+        createdAt: organization.createdAt,
+        id: organization.id,
+        logo: organization.logo,
+        name: organization.name,
+        role: access.role,
+        slug: organization.slug,
+      },
+    }
   },
 })

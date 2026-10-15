@@ -9,6 +9,7 @@ import { ProduceControl } from '@/components/launch/assets/ProduceControl'
 import { isCampaignStudioConfigured } from '@/lib/ai/agents/campaign-studio'
 import { critiqueSchema } from '@/lib/ai/launch/critique'
 import { hasPermission } from '@/lib/auth/permissions'
+import type { TenantContext } from '@/lib/auth/access'
 import { latestLaunchRuns } from '@/lib/launch/runs'
 import { getCampaignPlans } from '@/lib/launch/store'
 import { createTenantDownloadUrl } from '@/lib/storage/client'
@@ -22,10 +23,10 @@ type CampaignAssetsPageProps = {
   params: Promise<{ campaignId: string; locale: string }>
 }
 
-/** Signed for long enough to review the page; a refresh re-signs. */
-async function signAssetUrl(organizationId: string, objectKey: string): Promise<string | null> {
+/** A refresh re-signs the private asset URL. */
+async function signAssetUrl(tenant: TenantContext, assetId: string): Promise<string | null> {
   try {
-    return await createTenantDownloadUrl({ expiresIn: 900, objectKey, organizationId })
+    return await createTenantDownloadUrl({ assetId, tenant })
   } catch {
     return null
   }
@@ -35,17 +36,16 @@ async function signAssetUrl(organizationId: string, objectKey: string): Promise<
 export default async function CampaignAssetsPage({ params }: CampaignAssetsPageProps) {
   const { campaignId, locale } = await params
   const access = await requireCampaignPageAccess(locale)
-  const organizationId = access.organization.id
   // Scoped to the active workspace: another workspace's id is a 404.
-  const campaign = await getCampaign(organizationId, campaignId)
+  const campaign = await getCampaign(access.tenant, campaignId)
   if (!campaign) notFound()
   const [designs, plans, runs] = await Promise.all([
-    listCampaignDesigns(organizationId, campaign.id),
-    getCampaignPlans(organizationId, campaign.id),
-    latestLaunchRuns(organizationId, campaign.id),
+    listCampaignDesigns(access.tenant, campaign.id),
+    getCampaignPlans(access.tenant, campaign.id),
+    latestLaunchRuns(access.tenant, campaign.id),
   ])
   const plan = plans.approved ?? plans.latest
-  const sign = (objectKey: string) => signAssetUrl(organizationId, objectKey)
+  const sign = (assetId: string) => signAssetUrl(access.tenant, assetId)
   const captionByAsset = new Map(campaign.assets.map((link) => [link.assetId, link.caption]))
 
   const [visuals, captures] = await Promise.all([
@@ -63,7 +63,7 @@ export default async function CampaignAssetsPage({ params }: CampaignAssetsPageP
         id: design.id,
         image: design.renderedAsset && {
           height: design.renderedAsset.height,
-          url: await sign(design.renderedAsset.objectKey),
+          url: await sign(design.renderedAsset.id),
           width: design.renderedAsset.width,
         },
         name: design.name,
@@ -83,7 +83,7 @@ export default async function CampaignAssetsPage({ params }: CampaignAssetsPageP
           id: link.id,
           image: {
             height: link.asset.height,
-            url: await sign(link.asset.objectKey),
+            url: await sign(link.asset.id),
             width: link.asset.width,
           },
           name: 'Product shot',
@@ -99,7 +99,7 @@ export default async function CampaignAssetsPage({ params }: CampaignAssetsPageP
           device: link.kind === 'capture-mobile' ? 'Mobile' : 'Desktop',
           height: link.asset.height,
           id: link.id,
-          url: await sign(link.asset.objectKey),
+          url: await sign(link.asset.id),
           width: link.asset.width,
         }))
     ),

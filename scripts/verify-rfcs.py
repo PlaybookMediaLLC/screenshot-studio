@@ -45,13 +45,15 @@ def rfc_paths() -> list[str]:
 
 
 def lib_sources() -> str:
-    """Concatenated tracked TypeScript under lib/, used for symbol existence."""
+    """Concatenated tracked sources (web TypeScript, Go product code, schema SQL),
+    used for symbol existence. Product data models live in the Go backend."""
     result = subprocess.run(
         [
             "bash",
             "-c",
             "cat $(git ls-files 'lib/**/*.ts' 'app/**/*.ts' 'app/**/*.tsx' "
-            "'prisma/schema.prisma') 2>/dev/null",
+            "'services/internal/**/*.go' 'services/ent/schema/*.go' "
+            "'services/platformmigrations/sql/*.sql') 2>/dev/null",
         ],
         capture_output=True,
         text=True,
@@ -518,7 +520,8 @@ def check_tracked_scripts_survive_reclone() -> list[str]:
     this detectable: plain `check-ignore` reports tracked files as fine.
     """
     listing = subprocess.run(["git", "ls-files", "scripts/"], capture_output=True, text=True)
-    scripts = [f for f in listing.stdout.split("\n") if f.strip()]
+    # A tracked file already deleted from the tree is a pending removal, not a re-clone hazard.
+    scripts = [f for f in listing.stdout.split("\n") if f.strip() and os.path.exists(f)]
     ignored = [
         script
         for script in scripts

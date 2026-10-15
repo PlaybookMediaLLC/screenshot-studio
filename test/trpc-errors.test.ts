@@ -4,6 +4,7 @@ import { TRPCError } from '@trpc/server'
 import { ZodError } from 'zod'
 import { getDomainTRPCError } from '@/lib/trpc/errors'
 import { WorkspaceError } from '@/lib/workspace/errors'
+import { BackendSDKError } from '@/packages/screenshot-studio-backend-sdk/src'
 
 function makeNamedError(name: string, message: string, status?: number): Error {
   const error = new Error(message) as Error & { status?: number }
@@ -21,6 +22,17 @@ test('authorization errors map to the equivalent tRPC codes', () => {
 
   const forbidden = getDomainTRPCError(makeNamedError('AuthorizationError', 'Denied.', 403))
   assert.equal(forbidden?.code, 'FORBIDDEN')
+})
+
+test('Go backend authentication and rate limits reach the frontend as their real status', () => {
+  assert.equal(
+    getDomainTRPCError(new BackendSDKError('Session expired.', 401))?.code,
+    'UNAUTHORIZED'
+  )
+  assert.equal(
+    getDomainTRPCError(new BackendSDKError('Try later.', 429))?.code,
+    'TOO_MANY_REQUESTS'
+  )
 })
 
 test('workflow errors carry their HTTP status through to tRPC codes', () => {

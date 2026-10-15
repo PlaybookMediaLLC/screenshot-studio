@@ -1,0 +1,89 @@
+import 'server-only'
+
+import type { OrganizationAccess } from '@/lib/auth/access'
+import { backendSDK } from '@/lib/backend/sdk'
+import {
+  BackendSDKError,
+  type OAuthProvider,
+  type ScheduledPost,
+} from 'screenshot-studio-backend-sdk'
+
+export { BackendSDKError as PublishingBackendError }
+
+type ListedScheduledPost = ScheduledPost & {
+  channelConnection: NonNullable<ScheduledPost['channelConnection']>
+}
+
+export async function listBackendScheduledPosts(access: OrganizationAccess, limit: number) {
+  const result = await backendSDK(access).listScheduledPosts(limit)
+  if (result.items.some((post) => !post.channelConnection)) {
+    throw new BackendSDKError('Publishing backend returned an incomplete post.', 503)
+  }
+  return result.items as ListedScheduledPost[]
+}
+
+export async function listBackendConnections(access: OrganizationAccess) {
+  const result = await backendSDK(access).listConnections()
+  return result.items
+}
+
+export async function createBackendConnection(
+  access: OrganizationAccess,
+  input: {
+    externalAccountId: string
+    platform: string
+    providerSettings: Record<string, unknown>
+    secretReference: string
+  }
+) {
+  return backendSDK(access).createConnection(input)
+}
+
+export async function createBackendScheduledPost(
+  access: OrganizationAccess,
+  input: {
+    caption: string
+    channelConnectionId: string
+    idempotencyKey: string
+    scheduledFor: Date
+    variantId: string
+  }
+) {
+  return backendSDK(access).createScheduledPost(input)
+}
+
+export async function cancelBackendScheduledPost(access: OrganizationAccess, id: string) {
+  const scheduledPost = await backendSDK(access).cancelScheduledPost(id)
+  return { scheduledPost }
+}
+
+export async function beginBackendSocialOAuth(access: OrganizationAccess, provider: OAuthProvider) {
+  const result = await backendSDK(access).beginSocialOAuth(provider)
+  return result.url
+}
+
+export async function verifyBackendSocialOAuth(
+  access: OrganizationAccess,
+  provider: OAuthProvider,
+  state: string,
+  integrationId?: string
+) {
+  await backendSDK(access).verifySocialOAuth(provider, state, integrationId)
+}
+
+export async function rememberBackendInstagramIntegration(
+  access: OrganizationAccess,
+  state: string,
+  integrationId: string
+) {
+  await backendSDK(access).rememberInstagramIntegration(state, integrationId)
+}
+
+export async function completeBackendSocialOAuth(
+  access: OrganizationAccess,
+  provider: OAuthProvider,
+  state: string,
+  integrationId: string
+) {
+  await backendSDK(access).completeSocialOAuth(provider, state, integrationId)
+}

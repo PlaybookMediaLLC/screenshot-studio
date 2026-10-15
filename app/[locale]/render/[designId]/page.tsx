@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { DesignRenderStage } from '@/components/design/DesignRenderStage'
-import { prisma } from '@/lib/db'
+import type { TenantContext } from '@/lib/auth/access'
+import { backendSDK } from '@/lib/backend/sdk'
 import { getDesignAssetIds } from '@/lib/design/document'
 import { verifyRenderToken } from '@/lib/design/render-token'
 import { readTenantObject } from '@/lib/storage/client'
@@ -24,19 +25,28 @@ export default async function RenderPage({ params, searchParams }: RenderPagePro
   const [{ designId }, { format, scale, token }] = await Promise.all([params, searchParams])
   const claims = verifyRenderToken(token, designId)
   if (!claims) notFound()
-  const design = await getDesign(claims.organizationId, designId)
+  // The renderer is a service caller: it reads through the service path.
+  const tenant: TenantContext = {
+    organizationId: claims.organizationId,
+    principal: {
+      kind: 'trigger_service',
+      organizationId: claims.organizationId,
+      taskRunId: designId,
+    },
+    requestId: designId,
+  }
+  const design = await getDesign(tenant, designId)
   if (!design) notFound()
 
   const assetIds = getDesignAssetIds(design.document)
-  const assets = await prisma.asset.findMany({
-    select: { id: true, mediaType: true, objectKey: true },
-    where: { id: { in: assetIds }, organizationId: claims.organizationId, status: 'UPLOADED' },
-  })
+  const { assets } = assetIds.length
+    ? await backendSDK(tenant).findAssets({ ids: assetIds })
+    : { assets: [] }
   const sources: Record<string, string> = {}
-  for (const asset of assets) {
+  for (const asset of assets.filter((item) => item.status === 'UPLOADED')) {
     const bytes = await readTenantObject({
-      objectKey: asset.objectKey,
-      organizationId: claims.organizationId,
+      assetId: asset.id,
+      tenant,
     })
     sources[`asset:${asset.id}`] =
       `data:${asset.mediaType};base64,${Buffer.from(bytes).toString('base64')}`

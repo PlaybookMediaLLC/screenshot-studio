@@ -1,89 +1,23 @@
 import { createHash } from 'crypto'
-import {
-  DeleteObjectsCommand,
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from '@aws-sdk/client-s3'
-import { prisma } from './db'
-import { getR2PublicUrl } from './r2'
+import type { BackendScreenshotCacheFilter } from 'screenshot-studio-backend-sdk'
+import { orNull, serviceBackend } from './backend/sdk'
 
 const CACHE_MAX_AGE_MS = 2 * 24 * 60 * 60 * 1000
 const CACHE_VARIANTS = ['desktop:light', 'desktop:dark', 'mobile:light', 'mobile:dark']
-const R2_BUCKET = process.env.R2_BUCKET_NAME || 'stage-assets'
-const SCREENSHOT_CACHE_CONTROL = 'public, max-age=172800, s-maxage=172800'
-const r2Endpoint =
-  process.env.R2_ENDPOINT || `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
-
-const r2Client = new S3Client({
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
-  },
-  endpoint: r2Endpoint,
-  forcePathStyle: process.env.R2_FORCE_PATH_STYLE === 'true',
-  region: process.env.R2_REGION || 'auto',
-})
-
-type CacheObject = {
-  key: string
-  url: string
-}
 
 function getCacheVariants(url: string): string[] {
   const normalizedUrl = normalizeUrl(url)
   return CACHE_VARIANTS.map((variant) => normalizeUrl(`${normalizedUrl}:${variant}`))
 }
 
-async function readPrivateObject(key: string): Promise<string | null> {
-  const response = await r2Client.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }))
-  const bytes = await response.Body?.transformToByteArray()
-  return bytes ? Buffer.from(bytes).toString('base64') : null
-}
-
-async function uploadToR2(screenshotBase64: string, hash: string): Promise<CacheObject> {
-  const key = `screenshots/${hash}.png`
-  await r2Client.send(
-    new PutObjectCommand({
-      Body: Buffer.from(screenshotBase64, 'base64'),
-      Bucket: R2_BUCKET,
-      CacheControl: SCREENSHOT_CACHE_CONTROL,
-      ContentType: 'image/png',
-      Key: key,
-    })
-  )
-
-  return { key, url: getR2PublicUrl(key) }
-}
-
-async function deleteFromR2(keys: string[]): Promise<void> {
-  if (!keys.length) {
-    return
-  }
-
-  await r2Client.send(
-    new DeleteObjectsCommand({
-      Bucket: R2_BUCKET,
-      Delete: { Objects: keys.map((key) => ({ Key: key })) },
-    })
-  )
-}
-
-async function getRemoteScreenshot(key: string, url: string): Promise<string | null> {
-  if (process.env.R2_ENDPOINT) {
-    return readPrivateObject(key)
-  }
-
-  const response = await fetch(url)
-  if (!response.ok) {
-    return null
-  }
-
-  return Buffer.from(await response.arrayBuffer()).toString('base64')
-}
-
 async function deleteCacheRecord(hash: string): Promise<void> {
-  await prisma.screenshotCache.delete({ where: { urlHash: hash } }).catch(() => undefined)
+  await serviceBackend()
+    .deleteScreenshotCache(hash)
+    .catch(() => undefined)
+}
+
+async function purgeCache(filter: BackendScreenshotCacheFilter): Promise<void> {
+  await serviceBackend().purgeScreenshotCache(filter)
 }
 
 export function normalizeUrl(urlString: string): string {
@@ -123,21 +57,17 @@ export async function getCachedScreenshot(
 ): Promise<string | null> {
   try {
     const hash = hashUrl(url)
-    const cached = await prisma.screenshotCache.findUnique({ where: { urlHash: hash } })
+    const cached = await orNull(serviceBackend().getScreenshotCache(hash))
     if (!cached) {
       return null
     }
-    if (Date.now() - cached.createdAt.getTime() > maxAgeMs) {
-      await invalidateCache(url)
+    if (Date.now() - new Date(cached.createdAt).getTime() > maxAgeMs) {
+      // `url` is already a variant cache key, so drop this entry directly.
+      await deleteCacheRecord(hash)
       return null
     }
 
-    const screenshot = await getRemoteScreenshot(cached.cloudinaryPublicId, cached.cloudinaryUrl)
-    if (screenshot) {
-      return screenshot
-    }
-    await deleteCacheRecord(hash)
-    return null
+    return (await orNull(serviceBackend().getScreenshotCacheObject(hash)))?.base64 ?? null
   } catch (error) {
     console.error('Error reading cached screenshot:', error)
     return null
@@ -146,39 +76,19 @@ export async function getCachedScreenshot(
 
 export async function cacheScreenshot(url: string, screenshotBase64: string): Promise<void> {
   const hash = hashUrl(url)
-  const object = await uploadToR2(screenshotBase64, hash)
+  await serviceBackend().putScreenshotCacheObject(hash, Buffer.from(screenshotBase64, 'base64'))
   const normalizedUrl = normalizeUrl(url)
+  const objectKey = `screenshots/${hash}.png`
 
-  await prisma.screenshotCache.upsert({
-    create: {
-      cloudinaryPublicId: object.key,
-      cloudinaryUrl: object.url,
-      url: normalizedUrl,
-      urlHash: hash,
-    },
-    update: {
-      cloudinaryPublicId: object.key,
-      cloudinaryUrl: object.url,
-      url: normalizedUrl,
-    },
-    where: { urlHash: hash },
+  await serviceBackend().putScreenshotCache(hash, {
+    cloudinaryPublicId: objectKey,
+    cloudinaryUrl: objectKey,
+    url: normalizedUrl,
   })
 }
 
 export async function invalidateCache(url: string): Promise<void> {
-  const cacheUrls = getCacheVariants(url)
-  const entries = await prisma.screenshotCache.findMany({
-    select: { cloudinaryPublicId: true },
-    where: { url: { in: cacheUrls } },
-  })
-  if (!entries.length) {
-    return
-  }
-
-  await deleteFromR2(
-    entries.map((entry: { cloudinaryPublicId: string }) => entry.cloudinaryPublicId)
-  )
-  await prisma.screenshotCache.deleteMany({ where: { url: { in: cacheUrls } } })
+  await purgeCache({ urls: getCacheVariants(url) })
 }
 
 export async function invalidateCacheBatch(urls: string[]): Promise<void> {
@@ -186,17 +96,5 @@ export async function invalidateCacheBatch(urls: string[]): Promise<void> {
 }
 
 export async function clearOldCache(maxAgeMs: number = CACHE_MAX_AGE_MS): Promise<void> {
-  const cutoff = new Date(Date.now() - maxAgeMs)
-  const entries = await prisma.screenshotCache.findMany({
-    select: { cloudinaryPublicId: true },
-    where: { createdAt: { lt: cutoff } },
-  })
-  if (!entries.length) {
-    return
-  }
-
-  await deleteFromR2(
-    entries.map((entry: { cloudinaryPublicId: string }) => entry.cloudinaryPublicId)
-  )
-  await prisma.screenshotCache.deleteMany({ where: { createdAt: { lt: cutoff } } })
+  await purgeCache({ createdBefore: new Date(Date.now() - maxAgeMs).toISOString() })
 }

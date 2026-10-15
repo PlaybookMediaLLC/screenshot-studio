@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -41,6 +42,68 @@ func (_u *AuditDrainUpdate) SetNillableEnabled(v *bool) *AuditDrainUpdate {
 	return _u
 }
 
+// SetName sets the "name" field.
+func (_u *AuditDrainUpdate) SetName(v string) *AuditDrainUpdate {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *AuditDrainUpdate) SetNillableName(v *string) *AuditDrainUpdate {
+	if v != nil {
+		_u.SetName(*v)
+	}
+	return _u
+}
+
+// SetProvider sets the "provider" field.
+func (_u *AuditDrainUpdate) SetProvider(v auditdrain.Provider) *AuditDrainUpdate {
+	_u.mutation.SetProvider(v)
+	return _u
+}
+
+// SetNillableProvider sets the "provider" field if the given value is not nil.
+func (_u *AuditDrainUpdate) SetNillableProvider(v *auditdrain.Provider) *AuditDrainUpdate {
+	if v != nil {
+		_u.SetProvider(*v)
+	}
+	return _u
+}
+
+// SetEndpoint sets the "endpoint" field.
+func (_u *AuditDrainUpdate) SetEndpoint(v string) *AuditDrainUpdate {
+	_u.mutation.SetEndpoint(v)
+	return _u
+}
+
+// SetNillableEndpoint sets the "endpoint" field if the given value is not nil.
+func (_u *AuditDrainUpdate) SetNillableEndpoint(v *string) *AuditDrainUpdate {
+	if v != nil {
+		_u.SetEndpoint(*v)
+	}
+	return _u
+}
+
+// SetEncryptedSigningSecret sets the "encrypted_signing_secret" field.
+func (_u *AuditDrainUpdate) SetEncryptedSigningSecret(v string) *AuditDrainUpdate {
+	_u.mutation.SetEncryptedSigningSecret(v)
+	return _u
+}
+
+// SetNillableEncryptedSigningSecret sets the "encrypted_signing_secret" field if the given value is not nil.
+func (_u *AuditDrainUpdate) SetNillableEncryptedSigningSecret(v *string) *AuditDrainUpdate {
+	if v != nil {
+		_u.SetEncryptedSigningSecret(*v)
+	}
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *AuditDrainUpdate) SetUpdatedAt(v time.Time) *AuditDrainUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // Mutation returns the AuditDrainMutation object of the builder.
 func (_u *AuditDrainUpdate) Mutation() *AuditDrainMutation {
 	return _u.mutation
@@ -48,6 +111,7 @@ func (_u *AuditDrainUpdate) Mutation() *AuditDrainMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *AuditDrainUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -73,7 +137,28 @@ func (_u *AuditDrainUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_u *AuditDrainUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := auditdrain.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
+	}
+}
+
+// check runs all checks and user-defined validators on the builder.
+func (_u *AuditDrainUpdate) check() error {
+	if v, ok := _u.mutation.Provider(); ok {
+		if err := auditdrain.ProviderValidator(v); err != nil {
+			return &ValidationError{Name: "provider", err: fmt.Errorf(`ent: validator failed for field "AuditDrain.provider": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (_u *AuditDrainUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(auditdrain.Table, auditdrain.Columns, sqlgraph.NewFieldSpec(auditdrain.FieldID, field.TypeString))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -84,6 +169,21 @@ func (_u *AuditDrainUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 	}
 	if value, ok := _u.mutation.Enabled(); ok {
 		_spec.SetField(auditdrain.FieldEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(auditdrain.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Provider(); ok {
+		_spec.SetField(auditdrain.FieldProvider, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.Endpoint(); ok {
+		_spec.SetField(auditdrain.FieldEndpoint, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.EncryptedSigningSecret(); ok {
+		_spec.SetField(auditdrain.FieldEncryptedSigningSecret, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(auditdrain.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -119,6 +219,68 @@ func (_u *AuditDrainUpdateOne) SetNillableEnabled(v *bool) *AuditDrainUpdateOne 
 	return _u
 }
 
+// SetName sets the "name" field.
+func (_u *AuditDrainUpdateOne) SetName(v string) *AuditDrainUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *AuditDrainUpdateOne) SetNillableName(v *string) *AuditDrainUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
+	}
+	return _u
+}
+
+// SetProvider sets the "provider" field.
+func (_u *AuditDrainUpdateOne) SetProvider(v auditdrain.Provider) *AuditDrainUpdateOne {
+	_u.mutation.SetProvider(v)
+	return _u
+}
+
+// SetNillableProvider sets the "provider" field if the given value is not nil.
+func (_u *AuditDrainUpdateOne) SetNillableProvider(v *auditdrain.Provider) *AuditDrainUpdateOne {
+	if v != nil {
+		_u.SetProvider(*v)
+	}
+	return _u
+}
+
+// SetEndpoint sets the "endpoint" field.
+func (_u *AuditDrainUpdateOne) SetEndpoint(v string) *AuditDrainUpdateOne {
+	_u.mutation.SetEndpoint(v)
+	return _u
+}
+
+// SetNillableEndpoint sets the "endpoint" field if the given value is not nil.
+func (_u *AuditDrainUpdateOne) SetNillableEndpoint(v *string) *AuditDrainUpdateOne {
+	if v != nil {
+		_u.SetEndpoint(*v)
+	}
+	return _u
+}
+
+// SetEncryptedSigningSecret sets the "encrypted_signing_secret" field.
+func (_u *AuditDrainUpdateOne) SetEncryptedSigningSecret(v string) *AuditDrainUpdateOne {
+	_u.mutation.SetEncryptedSigningSecret(v)
+	return _u
+}
+
+// SetNillableEncryptedSigningSecret sets the "encrypted_signing_secret" field if the given value is not nil.
+func (_u *AuditDrainUpdateOne) SetNillableEncryptedSigningSecret(v *string) *AuditDrainUpdateOne {
+	if v != nil {
+		_u.SetEncryptedSigningSecret(*v)
+	}
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *AuditDrainUpdateOne) SetUpdatedAt(v time.Time) *AuditDrainUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // Mutation returns the AuditDrainMutation object of the builder.
 func (_u *AuditDrainUpdateOne) Mutation() *AuditDrainMutation {
 	return _u.mutation
@@ -139,6 +301,7 @@ func (_u *AuditDrainUpdateOne) Select(field string, fields ...string) *AuditDrai
 
 // Save executes the query and returns the updated AuditDrain entity.
 func (_u *AuditDrainUpdateOne) Save(ctx context.Context) (*AuditDrain, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -164,7 +327,28 @@ func (_u *AuditDrainUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_u *AuditDrainUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := auditdrain.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
+	}
+}
+
+// check runs all checks and user-defined validators on the builder.
+func (_u *AuditDrainUpdateOne) check() error {
+	if v, ok := _u.mutation.Provider(); ok {
+		if err := auditdrain.ProviderValidator(v); err != nil {
+			return &ValidationError{Name: "provider", err: fmt.Errorf(`ent: validator failed for field "AuditDrain.provider": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (_u *AuditDrainUpdateOne) sqlSave(ctx context.Context) (_node *AuditDrain, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(auditdrain.Table, auditdrain.Columns, sqlgraph.NewFieldSpec(auditdrain.FieldID, field.TypeString))
 	id, ok := _u.mutation.ID()
 	if !ok {
@@ -192,6 +376,21 @@ func (_u *AuditDrainUpdateOne) sqlSave(ctx context.Context) (_node *AuditDrain, 
 	}
 	if value, ok := _u.mutation.Enabled(); ok {
 		_spec.SetField(auditdrain.FieldEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(auditdrain.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Provider(); ok {
+		_spec.SetField(auditdrain.FieldProvider, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.Endpoint(); ok {
+		_spec.SetField(auditdrain.FieldEndpoint, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.EncryptedSigningSecret(); ok {
+		_spec.SetField(auditdrain.FieldEncryptedSigningSecret, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(auditdrain.FieldUpdatedAt, field.TypeTime, value)
 	}
 	_node = &AuditDrain{config: _u.config}
 	_spec.Assign = _node.assignValues

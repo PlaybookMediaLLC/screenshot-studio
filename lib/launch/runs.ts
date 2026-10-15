@@ -1,8 +1,9 @@
 import 'server-only'
 
 import { after } from 'next/server'
+import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import type { TenantContext } from '@/lib/auth/access'
-import { prisma } from '@/lib/db'
+import { backendSDK, withDates } from '@/lib/backend/sdk'
 import { LaunchError } from './store'
 
 /**
@@ -12,25 +13,14 @@ import { LaunchError } from './store'
  * than a request should stay open behind proxies. A run is recorded, the work
  * continues after the response (`after`), and the UI polls the run. One run of
  * each kind per campaign at a time; a run that never finished (the server
- * restarted mid-run) counts as failed once it is older than STALE_AFTER_MS.
+ * restarted mid-run) counts as failed once it is older than STALE_AFTER_MS;
+ * the backend applies the same window when it checks for an active run.
  */
 
 export const LAUNCH_RUN_KINDS = ['spec', 'plan', 'produce', 'revision'] as const
 export type LaunchRunKind = (typeof LAUNCH_RUN_KINDS)[number]
 
 const STALE_AFTER_MS = 20 * 60_000
-
-const runSelect = {
-  campaignId: true,
-  error: true,
-  finishedAt: true,
-  id: true,
-  kind: true,
-  resultId: true,
-  startedAt: true,
-  status: true,
-  summary: true,
-} as const
 
 export type LaunchRunView = {
   campaignId: string
@@ -61,6 +51,10 @@ const PROVIDER_FAILURES: Record<number, string> = {
 
 function failureMessage(error: unknown): string {
   if (error instanceof LaunchError) return error.message
+  // The backend's not-found and conflict messages are written for reviewers.
+  if (error instanceof BackendSDKError && (error.status === 404 || error.status === 409)) {
+    return error.message
+  }
   const status = (error as { statusCode?: unknown } | null)?.statusCode
   if (typeof status === 'number' && PROVIDER_FAILURES[status]) return PROVIDER_FAILURES[status]
   if (error instanceof Error && /quota|rate|limit/i.test(error.message)) return error.message
@@ -75,39 +69,16 @@ export async function startLaunchRun(
     work: () => Promise<{ resultId?: string | null; summary?: string | null }>
   }
 ): Promise<LaunchRunView> {
-  if (input.kind !== 'revision') {
-    const active = await prisma.launchRun.findFirst({
-      select: { id: true },
-      where: {
-        campaignId: input.campaignId,
-        kind: input.kind,
-        organizationId: tenant.organizationId,
-        startedAt: { gt: new Date(Date.now() - STALE_AFTER_MS) },
-        status: 'RUNNING',
-      },
-    })
-    if (active) throw new LaunchError('This step is already running for the campaign.', 409)
-  }
-  const run = await prisma.launchRun.create({
-    data: {
-      campaignId: input.campaignId,
-      createdByUserId: tenant.principal.kind === 'session' ? tenant.principal.userId : null,
-      kind: input.kind,
-      organizationId: tenant.organizationId,
-    },
-    select: runSelect,
-  })
+  const backend = backendSDK(tenant)
+  // The backend refuses a second active run of the same kind (revisions excepted).
+  const run = withDates(await backend.startLaunchRun(input.campaignId, input.kind))
   after(async () => {
     try {
       const result = await input.work()
-      await prisma.launchRun.update({
-        data: {
-          finishedAt: new Date(),
-          resultId: result.resultId ?? null,
-          status: 'SUCCEEDED',
-          summary: result.summary?.slice(0, 2_000) ?? null,
-        },
-        where: { id: run.id },
+      await backend.finishLaunchRun(run.id, {
+        resultId: result.resultId ?? null,
+        status: 'SUCCEEDED',
+        summary: result.summary?.slice(0, 2_000) ?? null,
       })
     } catch (error) {
       console.error('Launch run failed.', {
@@ -115,39 +86,26 @@ export async function startLaunchRun(
         reason: error instanceof Error ? error.message : 'unknown',
         runId: run.id,
       })
-      await prisma.launchRun
-        .update({
-          data: { error: failureMessage(error), finishedAt: new Date(), status: 'FAILED' },
-          where: { id: run.id },
-        })
+      await backend
+        .finishLaunchRun(run.id, { error: failureMessage(error), status: 'FAILED' })
         .catch(() => undefined)
     }
   })
   return view(run)
 }
 
-export async function getLaunchRun(organizationId: string, runId: string): Promise<LaunchRunView> {
-  const run = await prisma.launchRun.findFirst({
-    select: runSelect,
-    where: { id: runId, organizationId },
-  })
-  if (!run) throw new LaunchError('Run not found.', 404)
-  return view(run)
+export async function getLaunchRun(tenant: TenantContext, runId: string): Promise<LaunchRunView> {
+  return view(withDates(await backendSDK(tenant).getLaunchRun(runId)))
 }
 
 /** The newest run of each kind for a campaign. */
 export async function latestLaunchRuns(
-  organizationId: string,
+  tenant: TenantContext,
   campaignId: string
 ): Promise<Partial<Record<LaunchRunKind, LaunchRunView>>> {
-  const runs = await prisma.launchRun.findMany({
-    orderBy: { startedAt: 'desc' },
-    select: runSelect,
-    take: 40,
-    where: { campaignId, organizationId },
-  })
+  const { runs } = await backendSDK(tenant).listLaunchRuns(campaignId)
   const latest: Partial<Record<LaunchRunKind, LaunchRunView>> = {}
-  for (const run of runs) {
+  for (const run of withDates(runs)) {
     const kind = run.kind as LaunchRunKind
     if (!latest[kind]) latest[kind] = view(run)
   }

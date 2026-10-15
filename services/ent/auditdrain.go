@@ -5,6 +5,7 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -19,7 +20,19 @@ type AuditDrain struct {
 	// OrganizationID holds the value of the "organization_id" field.
 	OrganizationID string `json:"organization_id,omitempty"`
 	// Enabled holds the value of the "enabled" field.
-	Enabled      bool `json:"enabled,omitempty"`
+	Enabled bool `json:"enabled,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
+	// Provider holds the value of the "provider" field.
+	Provider auditdrain.Provider `json:"provider,omitempty"`
+	// Endpoint holds the value of the "endpoint" field.
+	Endpoint string `json:"endpoint,omitempty"`
+	// EncryptedSigningSecret holds the value of the "encrypted_signing_secret" field.
+	EncryptedSigningSecret string `json:"-"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt    time.Time `json:"updated_at,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -30,8 +43,10 @@ func (*AuditDrain) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case auditdrain.FieldEnabled:
 			values[i] = new(sql.NullBool)
-		case auditdrain.FieldID, auditdrain.FieldOrganizationID:
+		case auditdrain.FieldID, auditdrain.FieldOrganizationID, auditdrain.FieldName, auditdrain.FieldProvider, auditdrain.FieldEndpoint, auditdrain.FieldEncryptedSigningSecret:
 			values[i] = new(sql.NullString)
+		case auditdrain.FieldCreatedAt, auditdrain.FieldUpdatedAt:
+			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -64,6 +79,42 @@ func (_m *AuditDrain) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field enabled", values[i])
 			} else if value.Valid {
 				_m.Enabled = value.Bool
+			}
+		case auditdrain.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				_m.Name = value.String
+			}
+		case auditdrain.FieldProvider:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field provider", values[i])
+			} else if value.Valid {
+				_m.Provider = auditdrain.Provider(value.String)
+			}
+		case auditdrain.FieldEndpoint:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field endpoint", values[i])
+			} else if value.Valid {
+				_m.Endpoint = value.String
+			}
+		case auditdrain.FieldEncryptedSigningSecret:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field encrypted_signing_secret", values[i])
+			} else if value.Valid {
+				_m.EncryptedSigningSecret = value.String
+			}
+		case auditdrain.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				_m.CreatedAt = value.Time
+			}
+		case auditdrain.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				_m.UpdatedAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -106,6 +157,23 @@ func (_m *AuditDrain) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("enabled=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Enabled))
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	builder.WriteString("provider=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Provider))
+	builder.WriteString(", ")
+	builder.WriteString("endpoint=")
+	builder.WriteString(_m.Endpoint)
+	builder.WriteString(", ")
+	builder.WriteString("encrypted_signing_secret=<sensitive>")
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

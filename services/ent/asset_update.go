@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -25,6 +26,161 @@ type AssetUpdate struct {
 // Where appends a list predicates to the AssetUpdate builder.
 func (_u *AssetUpdate) Where(ps ...predicate.Asset) *AssetUpdate {
 	_u.mutation.Where(ps...)
+	return _u
+}
+
+// SetCaptureID sets the "capture_id" field.
+func (_u *AssetUpdate) SetCaptureID(v string) *AssetUpdate {
+	_u.mutation.SetCaptureID(v)
+	return _u
+}
+
+// SetNillableCaptureID sets the "capture_id" field if the given value is not nil.
+func (_u *AssetUpdate) SetNillableCaptureID(v *string) *AssetUpdate {
+	if v != nil {
+		_u.SetCaptureID(*v)
+	}
+	return _u
+}
+
+// ClearCaptureID clears the value of the "capture_id" field.
+func (_u *AssetUpdate) ClearCaptureID() *AssetUpdate {
+	_u.mutation.ClearCaptureID()
+	return _u
+}
+
+// SetParentAssetID sets the "parent_asset_id" field.
+func (_u *AssetUpdate) SetParentAssetID(v string) *AssetUpdate {
+	_u.mutation.SetParentAssetID(v)
+	return _u
+}
+
+// SetNillableParentAssetID sets the "parent_asset_id" field if the given value is not nil.
+func (_u *AssetUpdate) SetNillableParentAssetID(v *string) *AssetUpdate {
+	if v != nil {
+		_u.SetParentAssetID(*v)
+	}
+	return _u
+}
+
+// ClearParentAssetID clears the value of the "parent_asset_id" field.
+func (_u *AssetUpdate) ClearParentAssetID() *AssetUpdate {
+	_u.mutation.ClearParentAssetID()
+	return _u
+}
+
+// SetSha256 sets the "sha256" field.
+func (_u *AssetUpdate) SetSha256(v string) *AssetUpdate {
+	_u.mutation.SetSha256(v)
+	return _u
+}
+
+// SetNillableSha256 sets the "sha256" field if the given value is not nil.
+func (_u *AssetUpdate) SetNillableSha256(v *string) *AssetUpdate {
+	if v != nil {
+		_u.SetSha256(*v)
+	}
+	return _u
+}
+
+// ClearSha256 clears the value of the "sha256" field.
+func (_u *AssetUpdate) ClearSha256() *AssetUpdate {
+	_u.mutation.ClearSha256()
+	return _u
+}
+
+// SetBytes sets the "bytes" field.
+func (_u *AssetUpdate) SetBytes(v int) *AssetUpdate {
+	_u.mutation.ResetBytes()
+	_u.mutation.SetBytes(v)
+	return _u
+}
+
+// SetNillableBytes sets the "bytes" field if the given value is not nil.
+func (_u *AssetUpdate) SetNillableBytes(v *int) *AssetUpdate {
+	if v != nil {
+		_u.SetBytes(*v)
+	}
+	return _u
+}
+
+// AddBytes adds value to the "bytes" field.
+func (_u *AssetUpdate) AddBytes(v int) *AssetUpdate {
+	_u.mutation.AddBytes(v)
+	return _u
+}
+
+// SetWidth sets the "width" field.
+func (_u *AssetUpdate) SetWidth(v int) *AssetUpdate {
+	_u.mutation.ResetWidth()
+	_u.mutation.SetWidth(v)
+	return _u
+}
+
+// SetNillableWidth sets the "width" field if the given value is not nil.
+func (_u *AssetUpdate) SetNillableWidth(v *int) *AssetUpdate {
+	if v != nil {
+		_u.SetWidth(*v)
+	}
+	return _u
+}
+
+// AddWidth adds value to the "width" field.
+func (_u *AssetUpdate) AddWidth(v int) *AssetUpdate {
+	_u.mutation.AddWidth(v)
+	return _u
+}
+
+// ClearWidth clears the value of the "width" field.
+func (_u *AssetUpdate) ClearWidth() *AssetUpdate {
+	_u.mutation.ClearWidth()
+	return _u
+}
+
+// SetHeight sets the "height" field.
+func (_u *AssetUpdate) SetHeight(v int) *AssetUpdate {
+	_u.mutation.ResetHeight()
+	_u.mutation.SetHeight(v)
+	return _u
+}
+
+// SetNillableHeight sets the "height" field if the given value is not nil.
+func (_u *AssetUpdate) SetNillableHeight(v *int) *AssetUpdate {
+	if v != nil {
+		_u.SetHeight(*v)
+	}
+	return _u
+}
+
+// AddHeight adds value to the "height" field.
+func (_u *AssetUpdate) AddHeight(v int) *AssetUpdate {
+	_u.mutation.AddHeight(v)
+	return _u
+}
+
+// ClearHeight clears the value of the "height" field.
+func (_u *AssetUpdate) ClearHeight() *AssetUpdate {
+	_u.mutation.ClearHeight()
+	return _u
+}
+
+// SetStatus sets the "status" field.
+func (_u *AssetUpdate) SetStatus(v asset.Status) *AssetUpdate {
+	_u.mutation.SetStatus(v)
+	return _u
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_u *AssetUpdate) SetNillableStatus(v *asset.Status) *AssetUpdate {
+	if v != nil {
+		_u.SetStatus(*v)
+	}
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *AssetUpdate) SetUpdatedAt(v time.Time) *AssetUpdate {
+	_u.mutation.SetUpdatedAt(v)
 	return _u
 }
 
@@ -71,6 +227,7 @@ func (_u *AssetUpdate) RemoveVariants(v ...*CreativeVariant) *AssetUpdate {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *AssetUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -96,7 +253,28 @@ func (_u *AssetUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_u *AssetUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := asset.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
+	}
+}
+
+// check runs all checks and user-defined validators on the builder.
+func (_u *AssetUpdate) check() error {
+	if v, ok := _u.mutation.Status(); ok {
+		if err := asset.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Asset.status": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (_u *AssetUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(asset.Table, asset.Columns, sqlgraph.NewFieldSpec(asset.FieldID, field.TypeString))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -104,6 +282,54 @@ func (_u *AssetUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.CaptureID(); ok {
+		_spec.SetField(asset.FieldCaptureID, field.TypeString, value)
+	}
+	if _u.mutation.CaptureIDCleared() {
+		_spec.ClearField(asset.FieldCaptureID, field.TypeString)
+	}
+	if value, ok := _u.mutation.ParentAssetID(); ok {
+		_spec.SetField(asset.FieldParentAssetID, field.TypeString, value)
+	}
+	if _u.mutation.ParentAssetIDCleared() {
+		_spec.ClearField(asset.FieldParentAssetID, field.TypeString)
+	}
+	if value, ok := _u.mutation.Sha256(); ok {
+		_spec.SetField(asset.FieldSha256, field.TypeString, value)
+	}
+	if _u.mutation.Sha256Cleared() {
+		_spec.ClearField(asset.FieldSha256, field.TypeString)
+	}
+	if value, ok := _u.mutation.Bytes(); ok {
+		_spec.SetField(asset.FieldBytes, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedBytes(); ok {
+		_spec.AddField(asset.FieldBytes, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.Width(); ok {
+		_spec.SetField(asset.FieldWidth, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedWidth(); ok {
+		_spec.AddField(asset.FieldWidth, field.TypeInt, value)
+	}
+	if _u.mutation.WidthCleared() {
+		_spec.ClearField(asset.FieldWidth, field.TypeInt)
+	}
+	if value, ok := _u.mutation.Height(); ok {
+		_spec.SetField(asset.FieldHeight, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedHeight(); ok {
+		_spec.AddField(asset.FieldHeight, field.TypeInt, value)
+	}
+	if _u.mutation.HeightCleared() {
+		_spec.ClearField(asset.FieldHeight, field.TypeInt)
+	}
+	if value, ok := _u.mutation.Status(); ok {
+		_spec.SetField(asset.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(asset.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if _u.mutation.VariantsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -170,6 +396,161 @@ type AssetUpdateOne struct {
 	mutation *AssetMutation
 }
 
+// SetCaptureID sets the "capture_id" field.
+func (_u *AssetUpdateOne) SetCaptureID(v string) *AssetUpdateOne {
+	_u.mutation.SetCaptureID(v)
+	return _u
+}
+
+// SetNillableCaptureID sets the "capture_id" field if the given value is not nil.
+func (_u *AssetUpdateOne) SetNillableCaptureID(v *string) *AssetUpdateOne {
+	if v != nil {
+		_u.SetCaptureID(*v)
+	}
+	return _u
+}
+
+// ClearCaptureID clears the value of the "capture_id" field.
+func (_u *AssetUpdateOne) ClearCaptureID() *AssetUpdateOne {
+	_u.mutation.ClearCaptureID()
+	return _u
+}
+
+// SetParentAssetID sets the "parent_asset_id" field.
+func (_u *AssetUpdateOne) SetParentAssetID(v string) *AssetUpdateOne {
+	_u.mutation.SetParentAssetID(v)
+	return _u
+}
+
+// SetNillableParentAssetID sets the "parent_asset_id" field if the given value is not nil.
+func (_u *AssetUpdateOne) SetNillableParentAssetID(v *string) *AssetUpdateOne {
+	if v != nil {
+		_u.SetParentAssetID(*v)
+	}
+	return _u
+}
+
+// ClearParentAssetID clears the value of the "parent_asset_id" field.
+func (_u *AssetUpdateOne) ClearParentAssetID() *AssetUpdateOne {
+	_u.mutation.ClearParentAssetID()
+	return _u
+}
+
+// SetSha256 sets the "sha256" field.
+func (_u *AssetUpdateOne) SetSha256(v string) *AssetUpdateOne {
+	_u.mutation.SetSha256(v)
+	return _u
+}
+
+// SetNillableSha256 sets the "sha256" field if the given value is not nil.
+func (_u *AssetUpdateOne) SetNillableSha256(v *string) *AssetUpdateOne {
+	if v != nil {
+		_u.SetSha256(*v)
+	}
+	return _u
+}
+
+// ClearSha256 clears the value of the "sha256" field.
+func (_u *AssetUpdateOne) ClearSha256() *AssetUpdateOne {
+	_u.mutation.ClearSha256()
+	return _u
+}
+
+// SetBytes sets the "bytes" field.
+func (_u *AssetUpdateOne) SetBytes(v int) *AssetUpdateOne {
+	_u.mutation.ResetBytes()
+	_u.mutation.SetBytes(v)
+	return _u
+}
+
+// SetNillableBytes sets the "bytes" field if the given value is not nil.
+func (_u *AssetUpdateOne) SetNillableBytes(v *int) *AssetUpdateOne {
+	if v != nil {
+		_u.SetBytes(*v)
+	}
+	return _u
+}
+
+// AddBytes adds value to the "bytes" field.
+func (_u *AssetUpdateOne) AddBytes(v int) *AssetUpdateOne {
+	_u.mutation.AddBytes(v)
+	return _u
+}
+
+// SetWidth sets the "width" field.
+func (_u *AssetUpdateOne) SetWidth(v int) *AssetUpdateOne {
+	_u.mutation.ResetWidth()
+	_u.mutation.SetWidth(v)
+	return _u
+}
+
+// SetNillableWidth sets the "width" field if the given value is not nil.
+func (_u *AssetUpdateOne) SetNillableWidth(v *int) *AssetUpdateOne {
+	if v != nil {
+		_u.SetWidth(*v)
+	}
+	return _u
+}
+
+// AddWidth adds value to the "width" field.
+func (_u *AssetUpdateOne) AddWidth(v int) *AssetUpdateOne {
+	_u.mutation.AddWidth(v)
+	return _u
+}
+
+// ClearWidth clears the value of the "width" field.
+func (_u *AssetUpdateOne) ClearWidth() *AssetUpdateOne {
+	_u.mutation.ClearWidth()
+	return _u
+}
+
+// SetHeight sets the "height" field.
+func (_u *AssetUpdateOne) SetHeight(v int) *AssetUpdateOne {
+	_u.mutation.ResetHeight()
+	_u.mutation.SetHeight(v)
+	return _u
+}
+
+// SetNillableHeight sets the "height" field if the given value is not nil.
+func (_u *AssetUpdateOne) SetNillableHeight(v *int) *AssetUpdateOne {
+	if v != nil {
+		_u.SetHeight(*v)
+	}
+	return _u
+}
+
+// AddHeight adds value to the "height" field.
+func (_u *AssetUpdateOne) AddHeight(v int) *AssetUpdateOne {
+	_u.mutation.AddHeight(v)
+	return _u
+}
+
+// ClearHeight clears the value of the "height" field.
+func (_u *AssetUpdateOne) ClearHeight() *AssetUpdateOne {
+	_u.mutation.ClearHeight()
+	return _u
+}
+
+// SetStatus sets the "status" field.
+func (_u *AssetUpdateOne) SetStatus(v asset.Status) *AssetUpdateOne {
+	_u.mutation.SetStatus(v)
+	return _u
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_u *AssetUpdateOne) SetNillableStatus(v *asset.Status) *AssetUpdateOne {
+	if v != nil {
+		_u.SetStatus(*v)
+	}
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *AssetUpdateOne) SetUpdatedAt(v time.Time) *AssetUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // AddVariantIDs adds the "variants" edge to the CreativeVariant entity by IDs.
 func (_u *AssetUpdateOne) AddVariantIDs(ids ...string) *AssetUpdateOne {
 	_u.mutation.AddVariantIDs(ids...)
@@ -226,6 +607,7 @@ func (_u *AssetUpdateOne) Select(field string, fields ...string) *AssetUpdateOne
 
 // Save executes the query and returns the updated Asset entity.
 func (_u *AssetUpdateOne) Save(ctx context.Context) (*Asset, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -251,7 +633,28 @@ func (_u *AssetUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_u *AssetUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := asset.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
+	}
+}
+
+// check runs all checks and user-defined validators on the builder.
+func (_u *AssetUpdateOne) check() error {
+	if v, ok := _u.mutation.Status(); ok {
+		if err := asset.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Asset.status": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (_u *AssetUpdateOne) sqlSave(ctx context.Context) (_node *Asset, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(asset.Table, asset.Columns, sqlgraph.NewFieldSpec(asset.FieldID, field.TypeString))
 	id, ok := _u.mutation.ID()
 	if !ok {
@@ -276,6 +679,54 @@ func (_u *AssetUpdateOne) sqlSave(ctx context.Context) (_node *Asset, err error)
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.CaptureID(); ok {
+		_spec.SetField(asset.FieldCaptureID, field.TypeString, value)
+	}
+	if _u.mutation.CaptureIDCleared() {
+		_spec.ClearField(asset.FieldCaptureID, field.TypeString)
+	}
+	if value, ok := _u.mutation.ParentAssetID(); ok {
+		_spec.SetField(asset.FieldParentAssetID, field.TypeString, value)
+	}
+	if _u.mutation.ParentAssetIDCleared() {
+		_spec.ClearField(asset.FieldParentAssetID, field.TypeString)
+	}
+	if value, ok := _u.mutation.Sha256(); ok {
+		_spec.SetField(asset.FieldSha256, field.TypeString, value)
+	}
+	if _u.mutation.Sha256Cleared() {
+		_spec.ClearField(asset.FieldSha256, field.TypeString)
+	}
+	if value, ok := _u.mutation.Bytes(); ok {
+		_spec.SetField(asset.FieldBytes, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedBytes(); ok {
+		_spec.AddField(asset.FieldBytes, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.Width(); ok {
+		_spec.SetField(asset.FieldWidth, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedWidth(); ok {
+		_spec.AddField(asset.FieldWidth, field.TypeInt, value)
+	}
+	if _u.mutation.WidthCleared() {
+		_spec.ClearField(asset.FieldWidth, field.TypeInt)
+	}
+	if value, ok := _u.mutation.Height(); ok {
+		_spec.SetField(asset.FieldHeight, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedHeight(); ok {
+		_spec.AddField(asset.FieldHeight, field.TypeInt, value)
+	}
+	if _u.mutation.HeightCleared() {
+		_spec.ClearField(asset.FieldHeight, field.TypeInt)
+	}
+	if value, ok := _u.mutation.Status(); ok {
+		_spec.SetField(asset.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(asset.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if _u.mutation.VariantsCleared() {
 		edge := &sqlgraph.EdgeSpec{

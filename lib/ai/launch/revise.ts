@@ -1,11 +1,17 @@
 import 'server-only'
 
 import type { ModelMessage } from 'ai'
+import type { BackendCampaignPost } from 'screenshot-studio-backend-sdk'
 import sharp from 'sharp'
 import { z } from 'zod'
 import type { TenantContext } from '@/lib/auth/access'
-import { prisma } from '@/lib/db'
-import { definedChanges, designChangesSchema, patchDesignDocument } from '@/lib/design/document'
+import { backendSDK } from '@/lib/backend/sdk'
+import {
+  definedChanges,
+  designChangesSchema,
+  designDocumentSchema,
+  patchDesignDocument,
+} from '@/lib/design/document'
 import { findCitationIssues } from '@/lib/launch/citations'
 import { checkLaunchPost } from '@/lib/launch/guards'
 import { formatTeamPreferences } from '@/lib/launch/preferences-format'
@@ -43,7 +49,6 @@ import {
   type StoredSpec,
 } from '@/lib/launch/store'
 import { readTenantObject } from '@/lib/storage/client'
-import { getDesign } from '@/lib/tenant/designs'
 import {
   captureUrlsFor,
   formatBrandKit,
@@ -63,7 +68,7 @@ export type RevisionTargetInput =
 
 const summarySchema = z.string().trim().min(1).max(300)
 
-type PostRow = Awaited<ReturnType<typeof prisma.campaignPost.findMany>>[number]
+type PostRow = BackendCampaignPost
 
 function postBefore(post: PostRow): PostRevision {
   const claims = Array.isArray(post.claims) ? (post.claims as PostRevision['claims']) : []
@@ -92,10 +97,10 @@ function reviewerBlock(comment: string): string {
 }
 
 /** Spec for a post's claims: the version it was written from, else the working spec. */
-async function specForPost(organizationId: string, releaseId: string, version: number | null) {
-  const { versions } = await getReleaseSpecs(organizationId, releaseId)
+async function specForPost(tenant: TenantContext, releaseId: string, version: number | null) {
+  const { versions } = await getReleaseSpecs(tenant, releaseId)
   const match = version ? versions.find((entry) => entry.version === version) : null
-  return match ? getSpecById(organizationId, match.id) : getWorkingSpec(organizationId, releaseId)
+  return match ? getSpecById(tenant, match.id) : getWorkingSpec(tenant, releaseId)
 }
 
 function sourcesFor(spec: StoredSpec): string {
@@ -118,14 +123,14 @@ export async function proposeCampaignRevision(
   tenant: TenantContext,
   input: { campaignId: string; comment: string; target: RevisionTargetInput }
 ): Promise<StoredRevision> {
-  const organizationId = tenant.organizationId
-  const campaign = await loadLaunchCampaign(organizationId, input.campaignId)
+  const campaign = await loadLaunchCampaign(tenant, input.campaignId)
   const release = campaign.release
   if (!release) throw new LaunchError('Link a release brief first.', 409)
   const [brand, examples] = await Promise.all([
-    getActiveBrand(organizationId),
-    loadPreferenceExamples(organizationId),
+    getActiveBrand(tenant),
+    loadPreferenceExamples(tenant),
   ])
+  const campaignPosts = async () => (await backendSDK(tenant).getCampaign(campaign.id)).posts
   const preferences = formatTeamPreferences(examples)
   const voice = formatBrandVoice(brand)
   const comment = input.comment.trim()
@@ -137,11 +142,9 @@ export async function proposeCampaignRevision(
   let modelId: string
 
   if (target.type === 'post') {
-    const post = await prisma.campaignPost.findFirst({
-      where: { campaignId: campaign.id, id: target.postId, organizationId },
-    })
+    const post = (await campaignPosts()).find((entry) => entry.id === target.postId)
     if (!post) throw new LaunchError('Post not found.', 404)
-    const spec = await specForPost(organizationId, release.id, post.specVersion)
+    const spec = await specForPost(tenant, release.id, post.specVersion)
     if (!spec) throw new LaunchError('Draft the spec first.', 409)
     const guard = copyGuardContext(campaign, spec, brand)
     const before = postBefore(post)
@@ -176,18 +179,16 @@ export async function proposeCampaignRevision(
       targetType: 'post',
     }
   } else if (target.type === 'spec_section') {
-    const spec = await getSpecById(organizationId, target.specId)
+    const spec = await getSpecById(tenant, target.specId)
     if (spec.releaseId !== release.id) throw new LaunchError('Spec not found.', 404)
-    const { latest, versions } = await getReleaseSpecs(organizationId, release.id)
+    const { latest, versions } = await getReleaseSpecs(tenant, release.id)
     if (latest && latest.id !== spec.id)
       throw new LaunchError('Revise the latest spec version.', 409)
     const section = target.section
     const known = new Set(
       spec.sources.filter((source) => source.status === 'ok').map((source) => source.id)
     )
-    const posts = await prisma.campaignPost.findMany({
-      where: { campaignId: campaign.id, organizationId },
-    })
+    const posts = await campaignPosts()
     const refsOf = (post: (typeof posts)[number]) =>
       (Array.isArray(post.claims) ? (post.claims as Array<{ ref?: unknown }>) : [])
         .map((claim) => claim.ref)
@@ -199,7 +200,7 @@ export async function proposeCampaignRevision(
     for (const version of new Set(posts.map((post) => post.specVersion))) {
       const match = versions.find((entry) => entry.version === version)
       if (version === null || version === spec.version || !match) continue
-      earlier.set(version, (await getSpecById(organizationId, match.id)).content)
+      earlier.set(version, (await getSpecById(tenant, match.id)).content)
     }
     const agrees = (post: (typeof posts)[number]) => {
       if (post.specVersion === spec.version) return true
@@ -294,21 +295,21 @@ export async function proposeCampaignRevision(
       }
     })
   } else if (target.type === 'design') {
-    const design = await getDesign(organizationId, target.designId)
-    if (!design || design.campaignId !== campaign.id)
-      throw new LaunchError('Design not found.', 404)
-    const spec = await getWorkingSpec(organizationId, release.id)
-    const full = await prisma.design.findFirst({
-      select: { critique: true, renderedAsset: { select: { objectKey: true } } },
-      where: { id: design.id, organizationId },
-    })
+    const design = (await backendSDK(tenant).listCampaignDesigns(campaign.id)).designs.find(
+      (entry) => entry.id === target.designId
+    )
+    if (!design) throw new LaunchError('Design not found.', 404)
+    const document = designDocumentSchema.parse(design.document)
+    const spec = await getWorkingSpec(tenant, release.id)
     const content: ModelMessage['content'] = [
       {
         text: [
           spec ? formatSpecForStages(spec.content, spec.version) : null,
           formatBrandKit(brand.kit),
-          `<design name="${defuseMarkup(design.name).replace(/"/g, '')}">\n${JSON.stringify(design.document)}\n</design>`,
-          full?.critique ? `<last_review>\n${JSON.stringify(full.critique)}\n</last_review>` : null,
+          `<design name="${defuseMarkup(design.name).replace(/"/g, '')}">\n${JSON.stringify(document)}\n</design>`,
+          design.critique
+            ? `<last_review>\n${JSON.stringify(design.critique)}\n</last_review>`
+            : null,
           reviewerBlock(comment),
           'Propose the design changes the reviewer asks for. Keep everything else.',
         ]
@@ -317,11 +318,11 @@ export async function proposeCampaignRevision(
         type: 'text',
       },
     ]
-    if (full?.renderedAsset) {
+    if (design.renderedAsset) {
       try {
         const bytes = await readTenantObject({
-          objectKey: full.renderedAsset.objectKey,
-          organizationId,
+          assetId: design.renderedAsset.id,
+          tenant,
         })
         const preview = await sharp(bytes)
           .resize({ width: 960, withoutEnlargement: true })
@@ -341,7 +342,7 @@ export async function proposeCampaignRevision(
       toolName: 'proposeRevision',
       validate: ({ changes }) => {
         try {
-          patchDesignDocument(design.document, definedChanges(changes))
+          patchDesignDocument(document, definedChanges(changes))
           return []
         } catch (error) {
           return [
@@ -352,7 +353,7 @@ export async function proposeCampaignRevision(
     })
     if (!run.value)
       throw new LaunchError('The revision could not be drafted. Try rephrasing it.', 503)
-    const patched = patchDesignDocument(design.document, definedChanges(run.value.changes))
+    const patched = patchDesignDocument(document, definedChanges(run.value.changes))
     modelId = run.modelId
     summary = run.value.summary
     primary = {
@@ -362,9 +363,9 @@ export async function proposeCampaignRevision(
         texts: patched.texts.map((text) => text.text),
       },
       before: {
-        background: design.document.background ?? null,
-        texts: design.document.texts.map((text) => text.text),
-        updatedAt: design.updatedAt.toISOString(),
+        background: document.background ?? null,
+        texts: document.texts.map((text) => text.text),
+        updatedAt: new Date(design.updatedAt).toISOString(),
       },
       label: design.name,
       reason: comment,
@@ -372,13 +373,13 @@ export async function proposeCampaignRevision(
       targetType: 'design',
     }
   } else {
-    const { latest, versions } = await getCampaignPlans(organizationId, campaign.id)
+    const { latest, versions } = await getCampaignPlans(tenant, campaign.id)
     const plan = latest && versions.some((entry) => entry.id === target.planId) ? latest : null
     if (!plan) throw new LaunchError('Plan not found.', 404)
     if (plan.id !== target.planId) throw new LaunchError('Revise the latest plan version.', 409)
     const spec = plan.specId
-      ? await getSpecById(organizationId, plan.specId)
-      : await getWorkingSpec(organizationId, release.id)
+      ? await getSpecById(tenant, plan.specId)
+      : await getWorkingSpec(tenant, release.id)
     if (!spec) throw new LaunchError('Draft the spec first.', 409)
     const captureUrls = captureUrlsFor([
       campaign.productSurface?.url,

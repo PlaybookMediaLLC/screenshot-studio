@@ -172,17 +172,25 @@ async function requireAuthSession(headers: Headers): Promise<AuthSessionResult> 
   return session
 }
 
-async function authorizeActiveOrganization(
+/**
+ * The session's active organization. Session-only: there is no API-key path.
+ * Pass `session` when the caller already read it, so it is read once.
+ */
+async function requireActiveSessionOrganization(
   headers: Headers,
-  session: AuthSessionResult,
-  permission: Permission
+  session?: AuthSessionResult
 ): Promise<OrganizationAccess> {
   // The backend rechecks membership, role, and workspace deletion state.
-  const access = await getBackendActiveOrganization(session, getRequestId(headers))
+  return getBackendActiveOrganization(
+    session ?? (await requireAuthSession(headers)),
+    getRequestId(headers)
+  )
+}
+
+function assertPermission(access: OrganizationAccess, permission: Permission): void {
   if (!hasPermission(access.role, permission)) {
     throw new AuthorizationError('You do not have permission for this organization.', 403)
   }
-  return access
 }
 
 function assertActiveOrganization(access: OrganizationAccess, organizationId: string): void {
@@ -195,7 +203,9 @@ export async function requireActiveOrganizationPermission(
   headers: Headers,
   permission: Permission
 ): Promise<OrganizationAccess> {
-  return authorizeActiveOrganization(headers, await requireAuthSession(headers), permission)
+  const access = await requireActiveSessionOrganization(headers)
+  assertPermission(access, permission)
+  return access
 }
 
 export async function requireOrganizationPermission(
@@ -240,7 +250,8 @@ export async function requireSensitiveActiveOrganizationPermission(
   permission: Permission
 ): Promise<OrganizationAccess> {
   const session = await requireAuthSession(headers)
-  const access = await authorizeActiveOrganization(headers, session, permission)
+  const access = await requireActiveSessionOrganization(headers, session)
+  assertPermission(access, permission)
   assertFreshTwoFactorSession(session)
   return access
 }
@@ -251,7 +262,8 @@ export async function requireSensitiveOrganizationPermission(
   permission: Permission
 ): Promise<OrganizationAccess> {
   const session = await requireAuthSession(headers)
-  const access = await authorizeActiveOrganization(headers, session, permission)
+  const access = await requireActiveSessionOrganization(headers, session)
+  assertPermission(access, permission)
   assertActiveOrganization(access, organizationId)
   assertFreshTwoFactorSession(session)
   return access

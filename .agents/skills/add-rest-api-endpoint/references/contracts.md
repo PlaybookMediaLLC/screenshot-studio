@@ -8,9 +8,9 @@ Do not expose `app/api/internal`, webhook receivers, Better Auth handlers, or tR
 
 ## Authentication
 
-Use `createTenantJsonRoute` for workspace JSON operations. Declare both the API-key scope and browser-session permission. The helper resolves `TenantContext` and converts thrown authorization, validation, workflow, storage, and dependency failures through the shared route-error boundary.
+Bind workspace operations with `route(contract, { auth: tenantAccess(...), handler })`. Declare both the API-key scope and browser-session permission. `tenantAccess` resolves `TenantContext`, and `route` converts thrown authorization, validation, workflow, storage, and dependency failures through `toApiFailure` in `lib/api/platform-errors.ts`, the same mapping tRPC uses.
 
-Every route supplies a Zod `schema` and an `input` extractor. The extractor returns untrusted values without parsing. The framework owns the single `schema.parseAsync` call before the domain service can execute, so async refinements, coercion, defaults, and validation errors behave consistently across endpoints.
+Every contract supplies Zod schemas for the request locations it reads. `route` authenticates first, then owns the single parse of each location before the domain service can execute, so async refinements, coercion, defaults, and validation errors behave consistently across endpoints.
 
 Never authorize from an input workspace ID. Pass the resolved tenant context to domain services and scope every read or write with `tenant.organizationId`.
 
@@ -30,33 +30,31 @@ OpenAPI operations expose `x-screenshot-studio-entitlement` so Scalar, generated
 
 Validate all untrusted data before executing the domain service:
 
-- body through an owning Zod object schema;
-- query through `Object.fromEntries(request.nextUrl.searchParams)` and a bounded schema;
-- path parameters after awaiting the Next.js 16 `params` promise;
-- idempotency keys with a 128-character maximum;
+- body through the contract's `body` schema;
+- query through the contract's `query` schema;
+- path parameters through the contract's `params` schema;
+- headers through the contract's `headers` schema, keyed by lowercase name; idempotency keys have a 128-character maximum and longer keys are rejected;
 - content type and byte limits before signing uploads.
 
-For inputs spanning multiple request locations, define one composed Zod object such as `{ params, query, headers, body }`. This keeps the full operation input contract inspectable and reusable instead of scattering validation across callbacks.
+Each request location has its own schema on the contract, so the full operation input remains inspectable in one place and a body field can never override a path parameter.
 
 ## Responses
 
-Use the default framework response for `200` JSON. Supply `respond` for `201`, `202`, `204`, idempotent replay, binary responses, or custom headers.
+Set the contract's `status` for `201`, `202`, or `204`. Supply a binding `status` picker for idempotent replay. Every response is parsed through the contract's `output` schema, which drops fields outside the contract; wrap it in `mirrors<SourceType>()` so a dropped field fails the build instead. A handler may return `errorResponse(status, message)` for a rejection it detects after authorization.
 
 Return opaque product IDs and public metadata. Prefer signed short-lived URLs over storage locations. Ensure error responses do not include stack traces, provider payloads, SQL errors, or authorization internals.
 
 ## OpenAPI and Scalar
 
-Add every public method to `lib/api/openapi.ts` with:
+Give every public contract `docs` and list it in `documentedContracts`. `lib/api/openapi-platform.ts` generates the operation from the contract:
 
-- a unique camelCase `operationId`;
-- summary and selection-quality description;
-- `Workspace` or owning resource tag;
-- `security: [{ bearerAuth: [] }]` for authenticated operations;
-- path, query, and header parameters;
-- request body and response schemas;
-- all expected failure statuses.
+- the unique camelCase `operationId`, summary, and selection-quality description;
+- the `Workspace` or owning resource tag and the security scheme;
+- path, query, and header parameters from the contract schemas;
+- request body and response schemas, named through `bodyName` and `outputName` when reused;
+- a description for every expected success and failure status.
 
-Reuse component schemas and parameters. Keep the raw document at `/openapi.json`; Scalar at `/api-reference` consumes it without separate configuration.
+Keep the raw document at `/openapi.json`; Scalar at `/api-reference` consumes it without separate configuration.
 
 ## Compatibility
 

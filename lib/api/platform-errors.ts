@@ -49,7 +49,9 @@ export const platformErrorBodySchema = z
   .object({
     code: platformErrorCodeSchema.describe('Stable machine-readable error code.'),
     documentation: z.url().describe('Link to the error reference.'),
-    error: z.string().describe('Human-readable error message.'),
+    error: z
+      .string()
+      .meta({ description: 'Human-readable error message.', examples: ['URL is required'] }),
     hint: z.string().describe('How to resolve the error.'),
     message: z.string().describe('Human-readable error message, same value as `error`.'),
     status: z.int().describe('HTTP status code, repeated in the body.'),

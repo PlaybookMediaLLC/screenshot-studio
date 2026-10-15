@@ -7,7 +7,7 @@ sign() {
     --user "${RUSTFS_ACCESS_KEY}:${RUSTFS_SECRET_KEY}" "$@"
 }
 
-bucket_url="http://rustfs:9000/${STORAGE_BUCKET}"
+bucket_url="http://rustfs:9000/${R2_BUCKET_NAME}"
 if ! sign --head "$bucket_url" >/dev/null 2>&1; then
   sign --request PUT "$bucket_url" >/dev/null
 fi

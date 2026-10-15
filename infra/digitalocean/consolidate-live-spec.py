@@ -114,7 +114,11 @@ def shared_database(backend, migration, secrets=None):
     if not value:
         raise ValueError("DATABASE_URL is required for the shared backend database")
     set_secret_env(backend["envs"], "DATABASE_URL", value)
-    set_secret_env(migration["envs"], "DATABASE_URL", value)
+    # Migrations need DDL; the runtime role can only read and write rows.
+    owner = secrets.get("MIGRATION_DATABASE_URL") if secrets is not None else value
+    if not owner:
+        raise ValueError("MIGRATION_DATABASE_URL is required for the Postiz migration")
+    set_secret_env(migration["envs"], "DATABASE_URL", owner)
 
 
 def platform_migration(spec, postiz_migration, secrets=None):

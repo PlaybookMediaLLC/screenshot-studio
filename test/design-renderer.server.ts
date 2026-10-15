@@ -28,16 +28,17 @@ function listen(server: Server): Promise<string> {
 }
 
 async function startBrowser(): Promise<void> {
-  browser = spawn(
-    chromium.executablePath(),
-    [
-      '--headless=new',
-      `--remote-debugging-port=${cdpPort}`,
-      `--user-data-dir=${profile}`,
-      '--no-first-run',
-    ],
-    { stdio: 'ignore' }
-  )
+  const args = [
+    '--headless=new',
+    `--remote-debugging-port=${cdpPort}`,
+    `--user-data-dir=${profile}`,
+    '--no-first-run',
+  ]
+  // Ubuntu runners block Chromium's sandbox; Playwright's own launch also disables it.
+  if (process.platform === 'linux') args.push('--no-sandbox')
+  browser = spawn(chromium.executablePath(), args, { stdio: ['ignore', 'ignore', 'pipe'] })
+  let output = ''
+  browser.stderr?.on('data', (chunk) => (output = (output + chunk).slice(-2_000)))
   for (let attempt = 0; attempt < 100; attempt++) {
     const ready = await fetch(`http://127.0.0.1:${cdpPort}/json/version`)
       .then((response) => response.ok)
@@ -45,10 +46,11 @@ async function startBrowser(): Promise<void> {
     if (ready) return
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
-  throw new Error('Chromium did not expose CDP.')
+  throw new Error(`Chromium did not expose CDP: ${output}`)
 }
 
 async function stopBrowser(): Promise<void> {
+  if (!browser || browser.exitCode !== null || browser.signalCode !== null) return
   const exited = new Promise((resolve) => browser?.once('exit', resolve))
   browser?.kill('SIGKILL')
   await exited

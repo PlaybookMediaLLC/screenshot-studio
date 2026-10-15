@@ -36,7 +36,7 @@ export function SafariToolbar({ windowHeader, isDark, title, screenshotRadius }:
         display: 'flex', alignItems: 'center',
         padding: `0 ${pad}px`,
         zIndex: 2, gap: `${gap}px`,
-        fontFamily: sf,
+        fontFamily: sf, lineHeight: 'normal',
         borderBottom: `1px solid ${borderColor}`,
         boxSizing: 'border-box',
         overflow: 'hidden',
@@ -148,7 +148,7 @@ export function ChromeToolbar({ windowHeader, isDark, title, screenshotRadius }:
       style={{
         position: 'absolute', top: 0, left: 0, right: 0,
         height: `${windowHeader}px`,
-        overflow: 'hidden', zIndex: 2, fontFamily: sf,
+        overflow: 'hidden', zIndex: 2, fontFamily: sf, lineHeight: 'normal',
       }}
     >
       {/* Tab bar row */}

@@ -11,6 +11,27 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "October 10, 2026",
+    version: "2.8.0",
+    title: "Video Compressor",
+    description:
+      "Make videos smaller in your browser at /compress-video, by quality level or to an exact size in MB, and download an MP4.",
+    changes: [
+      {
+        type: "added",
+        text: "Standalone Video Compressor at /compress-video, powered by FFmpeg running in the browser",
+      },
+      {
+        type: "added",
+        text: "Target size mode that fits a video under a limit such as 10 or 25 MB",
+      },
+      {
+        type: "added",
+        text: "Resolution caps, smaller or removed audio, and before and after file sizes",
+      },
+    ],
+  },
+  {
     date: "September 17, 2026",
     version: "2.7.0",
     title: "Background Remover",

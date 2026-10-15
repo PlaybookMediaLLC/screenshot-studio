@@ -1,6 +1,6 @@
 {
   "name": "screenshot-studio",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -17,6 +17,7 @@
     "test": "tsx --test test/*.test.ts tests/*.test.ts",
     "test:publishing-backend-client": "NODE_OPTIONS='--conditions=react-server' tsx --test test/publishing-backend-client.server.ts",
     "test:design-renderer": "NODE_OPTIONS='--conditions=react-server' tsx --test test/design-renderer.server.ts",
+    "test:screenshot-capture": "NODE_OPTIONS='--conditions=react-server' tsx --test test/screenshot-capture.server.ts",
     "test:agents": "tsx --test tests/agent-readiness.test.ts",
     "verify:agents": "tsx tests/verify-agent-endpoints.ts",
     "test:e2e": "playwright test",

@@ -260,10 +260,10 @@ itself instead of the fixed sharp compositor.
 | Variable | Purpose |
 | --- | --- |
 | `PLATFORM_DESIGN_RENDERER=enabled` | Use editor designs instead of sharp product shots, and enable Directions |
-| `PLATFORM_RENDER_SERVICE_URL` | The design render service; recommended in production |
-| `PLATFORM_RENDER_SERVICE_SECRET` | Shared secret sent to the render service |
+| `PLATFORM_RENDER_CDP_URL` | Remote browser over CDP: Cloudflare Browser Rendering in production, `render-browser` locally |
+| `PLATFORM_RENDER_CDP_TOKEN` | Bearer token for the CDP endpoint (a Cloudflare API token with Browser Rendering Edit) |
 | `PLATFORM_RENDER_BASE_URL` | Where the browser reaches the app (default: `NEXT_PUBLIC_APP_URL`) |
-| `PLATFORM_RENDER_CHROMIUM_PATH` | Local Chromium binary when no service is set |
+| `PLATFORM_RENDER_CHROMIUM_PATH` | Local Chromium binary when no CDP URL is set |
 
 Every render goes through `renderDesignForTenant` (`lib/design/render-design.ts`):
 
@@ -275,29 +275,33 @@ Every render goes through `renderDesignForTenant` (`lib/design/render-design.ts`
   `renderedAssetId`. Images live in object storage, not Redis.
 - **Per-workspace fairness.** Real renders are limited to 60 a minute per
   workspace with the existing Redis rate limiter, so one burst cannot crowd
-  out everyone else on the shared service. Cache hits don't count. If Redis
-  is down the limit fails open, because the service bounds its own load.
-- **Fallback.** `isDesignRendererReady` probes the service's `/ready`. It
-  caches the answer briefly and waits long enough for a scaled-to-zero
-  machine to wake. When the service is down, campaign runs use sharp product
-  shots instead of failing, the agent keeps `createProductShot` for renders
-  that fail mid-run, and Directions reports itself unavailable.
+  out everyone else on the shared browser pool. Cache hits don't count. If
+  Redis is down the limit fails open, because Cloudflare bounds concurrent
+  browsers per account.
+- **Fallback.** `isDesignRendererReady` probes a local CDP browser's
+  `/json/version` and caches the answer briefly; Cloudflare is trusted until a
+  render fails, because opening a session to probe it is billed. When renders
+  are unavailable, campaign runs use sharp product shots instead of failing,
+  the agent keeps `createProductShot` for renders that fail mid-run, and
+  Directions reports itself unavailable.
 
 Renders stay synchronous HTTP on purpose: callers wait for the bytes (the
 agent reviews each render), renders take 1.5-3s, and a lost request is cheap
 to retry. Long or batch work (video, bulk exports, scheduled kits) should run
-as Trigger.dev tasks that call the service, not through a separate queue.
+as Temporal workflows that render through the same browser, not through a
+separate queue.
 
-Production rendering runs in the **design render service**
-(`services/design-renderer`). It is a small Playwright container, so the web
-image never ships Chromium. It renders only `/render/<id>` pages on the
-configured app origin, requires the shared secret, and holds no tenant
-credentials: every page carries its own five-minute, single-design token.
-Deploy it as its own Fly app (or any container host) from its Dockerfile and
-give it about 1 GB per two concurrent renders. Without a service URL, the app
-renders in-process with a local Chromium, which is fine for development. With
-the flag off, the campaign agent falls back to sharp product shots and
-Directions is hidden.
+Production renders in **Cloudflare Browser Rendering**, so there is no render
+service to deploy and the web image never ships Chromium.
+`lib/design/renderer.ts` connects with Playwright's `connectOverCDP` to
+`wss://api.cloudflare.com/client/v4/accounts/<account>/browser-run/devtools/browser?keep_alive=600000`
+using `PLATFORM_RENDER_CDP_TOKEN`, opens one browser per agent run, and
+reconnects if Cloudflare ends an idle session. The remote browser loads
+`/render/<id>` from the public app origin and may contact nothing else; it
+holds no tenant credentials, because every page carries its own five-minute,
+single-design token. Without a CDP URL, the app renders in-process with a
+local Chromium. With the flag off, the campaign agent falls back to sharp
+product shots and Directions is hidden.
 
 
 ### In-editor AI

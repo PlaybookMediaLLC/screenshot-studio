@@ -14,7 +14,6 @@ app ID `c525b0ba-b92a-4174-ae91-4ab4d7c92fd2`, at
 | Component | Source | Readiness | Exposure |
 | --- | --- | --- | --- |
 | `web` | Existing pinned GHCR image | `/api/health`, port 3000 | `/` |
-| `design-renderer` | `services/design-renderer/Dockerfile` | `/ready`, port 8080 | Internal |
 | `screenshot-studio-backend` | Public GHCR image built on GitHub | `/readyz`, port 3003 | `/postiz` on port 3000; prefix stripped |
 
 The web component retains its two replicas. The single Go
@@ -24,7 +23,12 @@ HTTP endpoints, including the tenant database and Temporal namespace. The
 backend image is built on GitHub and selected by a unique commit SHA tag in
 App Platform. The image workflow verifies the public digest before deployment.
 
-Storage and renderer use `internal_ports` and have no public ingress rules.
+Storage uses `internal_ports` and has no public ingress rule. Designs render
+in Cloudflare Browser Rendering, not on App Platform: the web deploy removes
+the old `design-renderer` component and requires `PLATFORM_RENDER_CDP_URL`
+(`wss://api.cloudflare.com/client/v4/accounts/<account>/browser-run/devtools/browser?keep_alive=600000`)
+and `PLATFORM_RENDER_CDP_TOKEN` (a Cloudflare API token with Browser Rendering
+Edit) in Infisical.
 See DigitalOcean's [internal routing documentation](https://docs.digitalocean.com/products/app-platform/how-to/manage-internal-routing/)
 and [app spec reference](https://docs.digitalocean.com/products/app-platform/reference/app-spec/).
 

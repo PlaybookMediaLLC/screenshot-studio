@@ -61,7 +61,6 @@ NODE
     ensure_env_value POSTIZ_API_KEY "e2e-postiz-token"
     ensure_env_value POSTIZ_API_KEY_E2E "e2e-postiz-token"
     ensure_env_value POSTIZ_GO_JWT_SECRET "$(random_hex 32)"
-    ensure_env_value PLATFORM_RENDER_SERVICE_SECRET "$(random_hex 32)"
     ensure_env_value PUBLISHING_SERVICE_TOKEN "$(random_hex 32)"
     database_url="$(grep '^DATABASE_URL=' "$LOCAL_ENV" | cut -d= -f2-)"
     ensure_env_value AUDIT_RETENTION_DATABASE_URL "$database_url"
@@ -106,7 +105,6 @@ POSTIZ_API_URL=http://host.docker.internal:5679/api/public/v1
 POSTIZ_API_KEY=e2e-postiz-token
 POSTIZ_API_KEY_E2E=e2e-postiz-token
 POSTIZ_GO_JWT_SECRET=$(random_hex 32)
-PLATFORM_RENDER_SERVICE_SECRET=$(random_hex 32)
 PUBLISHING_SERVICE_TOKEN=$(random_hex 32)
 R2_ENDPOINT=http://rustfs:9000
 R2_REGION=us-east-1
@@ -303,7 +301,7 @@ run_e2e() {
   if [[ "$manage_screenshot_mock" == "true" ]]; then
     # Recreating app would strand the renderer, which shares app's network;
     # end-to-end flows do not render designs, so it is simply stopped.
-    compose --profile renderer stop design-renderer >/dev/null 2>&1 || true
+    compose --profile renderer stop render-browser >/dev/null 2>&1 || true
     BETTER_AUTH_URL="${app_url%/}" \
       BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" \
       NEXT_PUBLIC_APP_URL="${app_url%/}" \
@@ -440,18 +438,18 @@ up() {
   compose rm --force --stop rustfs-init >/dev/null 2>&1 || true
   compose up --detach --build postgres redis rustfs rustfs-init publishing-backend publishing-orchestrator
   sync_dependencies
-  # The design renderer runs locally by default for parity with production.
-  # CI skips it (its flows do not render designs, and the Playwright image is
-  # large); STUDIO_RENDERER=off skips it locally. Without it, the app falls
-  # back to sharp product shots.
+  # The render browser runs locally by default for parity with production,
+  # where designs render in Cloudflare Browser Rendering over the same CDP
+  # path. CI skips it (its flows do not render designs); STUDIO_RENDERER=off
+  # skips it locally. Without it, the app falls back to sharp product shots.
   local renderer="on"
   if [[ "${CI:-}" == "true" || "${STUDIO_RENDERER:-on}" == "off" ]]; then
     renderer="off"
   fi
   if [[ "$renderer" == "on" ]]; then
-    # One call: the renderer depends on app, so a separate `up design-renderer`
+    # One call: the browser depends on app, so a separate `up render-browser`
     # without the variable would recreate app with the renderer disabled.
-    PLATFORM_DESIGN_RENDERER=enabled compose --profile renderer up --detach --build app design-renderer
+    PLATFORM_DESIGN_RENDERER=enabled compose --profile renderer up --detach app render-browser
   else
     compose up --detach app
   fi
@@ -459,7 +457,7 @@ up() {
   dev_login
   echo "App:     http://localhost:3000"
   if [[ "$renderer" == "on" ]]; then
-    echo "Design renderer: running (STUDIO_RENDERER=off to skip)"
+    echo "Render browser: running (STUDIO_RENDERER=off to skip)"
   fi
   echo "Backend: http://localhost:8080 (Temporal UI: http://localhost:8233)"
   echo "RustFS:  http://localhost:9004/rustfs/console/"

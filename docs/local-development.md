@@ -51,23 +51,22 @@ reset` when you want to remove its local fixtures.
 
 ## Design renderer
 
-`make up` also starts the design render service (`services/design-renderer`),
-as in production, so AI campaign designs and editor Directions render locally.
-It runs in the `renderer` Compose profile and shares the app container's
-network: Chromium loads the app at `localhost:3000`, and the app reaches the
-service at `localhost:8080`. Nothing new is published on the host.
-`bin/studio` generates the shared `PLATFORM_RENDER_SERVICE_SECRET` in
-`.local/dev.env`.
+`make up` also starts `render-browser`, a headless Chrome that the app drives
+over the Chrome DevTools Protocol (CDP), so AI campaign designs and editor
+Directions render locally. Production takes the same path to Cloudflare
+Browser Rendering. It runs in the `renderer` Compose profile and shares the
+app container's network: Chrome loads the app at `localhost:3000`, and the app
+reaches CDP at `localhost:9222`. Nothing new is published on the host.
 
-The first build pulls the Playwright image, which is large. Set
-`STUDIO_RENDERER=off make up` to skip it; the app then falls back to sharp
-product shots and Directions is hidden. CI skips the renderer for the same
-reason, and `make e2e` stops it because those flows recreate the app
+Set `STUDIO_RENDERER=off make up` to skip it; the app then falls back to sharp
+product shots and Directions is hidden. CI skips it because its flows do not
+render designs (`npm run test:design-renderer` covers the CDP path), and
+`make e2e` stops it because those flows recreate the app
 container. Run `make up` again afterwards to bring it back. AI features also
 need `OPENROUTER_API_KEY` in your shell when you run `make up`.
 
-The renderer shares the app container's network, so restarting the app on its
-own (`docker restart`) leaves the renderer unreachable until it is restarted
+The browser shares the app container's network, so restarting the app on its
+own (`docker restart`) leaves the browser unreachable until it is restarted
 too; `make up` does both. AI generation then quietly falls back to product
 shots.
 

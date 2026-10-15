@@ -80,9 +80,10 @@ def render(base, secrets, *, branch="main"):
     origin = required("BETTER_AUTH_URL").rstrip("/")
     # The web has no database: the Go backend owns every read and write.
     web["envs"] = [item for item in web.get("envs", [])
-                   if item["key"] not in WEB_DATABASE_KEYS and not item["key"].startswith("POSTIZ_API_KEY_")]
+                   if item["key"] not in WEB_DATABASE_KEYS and not item["key"].startswith("POSTIZ_API_KEY_")
+                   and item["key"] not in ("PLATFORM_RENDER_SERVICE_URL", "PLATFORM_RENDER_SERVICE_SECRET")]
     web_keys = ["BETTER_AUTH_SECRET", "AUDIT_IP_HASH_SECRET",
-                "AUDIT_DRAIN_ENCRYPTION_KEY", "REDIS_URL", "PLATFORM_RENDER_SERVICE_SECRET"]
+                "AUDIT_DRAIN_ENCRYPTION_KEY", "REDIS_URL", "PLATFORM_RENDER_CDP_TOKEN"]
     optional_web_keys = ["RESEND_API_KEY", "AUTH_EMAIL_WEBHOOK_URL", "CLEANUP_SECRET",
                          "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID",
                          "GITHUB_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET",
@@ -94,15 +95,13 @@ def render(base, secrets, *, branch="main"):
         env("NEXT_PUBLIC_APP_URL", origin),
         env("AUTH_ENABLE_PASSWORD", secrets.get("AUTH_ENABLE_PASSWORD", "true")),
         env("PLATFORM_DESIGN_RENDERER", "enabled"),
-        env("PLATFORM_RENDER_SERVICE_URL", "http://design-renderer:8080"),
+        env("PLATFORM_RENDER_CDP_URL", required("PLATFORM_RENDER_CDP_URL")),
         env("PLATFORM_RENDER_BASE_URL", origin),
     ] + [env(key, secrets[key]) for key in ["AUTH_EMAIL_FROM"] if secrets.get(key)])
     services.pop("storage", None)
 
-    renderer = service("design-renderer", "services/design-renderer", "services/design-renderer/Dockerfile", 8080, "/ready", "apps-s-1vcpu-2gb")
-    merge_env(renderer, [secret("RENDER_SERVICE_SECRET", "PLATFORM_RENDER_SERVICE_SECRET"),
-                         env("RENDER_ALLOWED_ORIGIN", origin), env("RENDER_CONCURRENCY", "2")])
-    services["design-renderer"] = renderer
+    # Designs render in Cloudflare Browser Rendering over CDP.
+    services.pop("design-renderer", None)
 
     jobs = {item["name"]: item for item in spec.get("jobs", [])}
     jobs.pop("web-migrate", None)

@@ -151,6 +151,9 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
             for key in ("R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "REDIS_URL"):
                 self.assertEqual(envs["TENANT_" + key], {"key": "TENANT_" + key, "value": "infisical-" + key,
                                                          "type": "SECRET", "scope": "RUN_TIME"})
+        # After the web deploy retires design-renderer, backend deploys still apply.
+        without_renderer = dict(first, services=[item for item in first["services"] if item["name"] != "design-renderer"])
+        self.assertNotIn("design-renderer", {item["name"] for item in cutover.consolidate(without_renderer, self.digest, secrets)["services"]})
         del secrets["R2_SECRET_ACCESS_KEY"]
         with self.assertRaisesRegex(ValueError, "R2_SECRET_ACCESS_KEY"):
             cutover.consolidate(first, self.digest, secrets)

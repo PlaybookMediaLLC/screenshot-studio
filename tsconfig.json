@@ -31,5 +31,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "services/design-renderer"]
+  "exclude": ["node_modules"]
 }

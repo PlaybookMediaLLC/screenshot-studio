@@ -167,17 +167,12 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps chromium
-      - name: Test the design render service
-        # Real Chromium against a fake app: auth, origin and path guards,
-        # load shedding, and metrics. Once is enough, so only on shard 1.
+      - name: Test the design renderer over CDP
+        # Real Chromium over CDP, the path Cloudflare Browser Rendering uses in
+        # production. Once is enough, so only on shard 1.
         if: matrix.shard_index == 1
         timeout-minutes: 5
-        run: |
-          npm --prefix services/design-renderer ci
-          npm --prefix services/design-renderer run typecheck
-          npm --prefix services/design-renderer run lint
-          npm --prefix services/design-renderer exec -- playwright-core install --with-deps chromium
-          npm --prefix services/design-renderer test
+        run: npm run test:design-renderer
       - name: Start and smoke-test the local stack
         run: ./bin/studio up
       - name: Run local stack smoke test

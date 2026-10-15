@@ -1,12 +1,10 @@
-import { NextResponse } from 'next/server'
-import { createTenantJsonRoute } from '@/lib/api/v1/route'
+import { createSourceAppContract } from '@/lib/api/contracts/source-apps'
+import { route } from '@/lib/api/route'
+import { tenantAccess } from '@/lib/api/route-auth'
 import { createSourceApp } from '@/lib/tenant/configuration'
-import { sourceAppCreateSchema } from '@/lib/tenant/schemas'
 
-export const POST = createTenantJsonRoute({
-  access: { apiKeyScope: 'source:write', permission: 'brand:manage' },
-  schema: sourceAppCreateSchema,
-  input: (request) => request.json(),
-  execute: (tenant, input) => createSourceApp(tenant, input),
-  respond: (sourceApp) => NextResponse.json({ sourceApp }, { status: 201 }),
+/** Register a source app whose webhooks may create releases. */
+export const POST = route(createSourceAppContract, {
+  auth: tenantAccess({ apiKeyScope: 'source:write', permission: 'brand:manage' }),
+  handler: async ({ access, body }) => ({ sourceApp: await createSourceApp(access, body) }),
 })

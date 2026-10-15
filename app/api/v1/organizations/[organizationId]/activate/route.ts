@@ -1,5 +1,7 @@
-import { createShellJsonRoute } from '@/lib/api/v1/route'
-import { requireActiveOrganizationPermission, requireSessionAccess } from '@/lib/auth/access'
+import { activateOrganizationContract } from '@/lib/api/contracts/shell'
+import { route } from '@/lib/api/route'
+import { sessionAccess } from '@/lib/api/route-auth'
+import { requireActiveOrganizationPermission } from '@/lib/auth/access'
 import { getPlaybookBootstrap } from '@/lib/core/bootstrap'
 import { setActiveWorkspace } from '@/lib/workspace/service'
 
@@ -8,10 +10,10 @@ import { setActiveWorkspace } from '@/lib/workspace/service'
  * bootstrap. Membership and deletion state are checked by setActiveWorkspace,
  * the same path the web app's switcher uses.
  */
-export const POST = createShellJsonRoute<unknown, { organizationId: string }>({
-  name: 'organizations.activate',
-  execute: async (request, { organizationId }) => {
-    await setActiveWorkspace(await requireSessionAccess(request.headers), organizationId)
+export const POST = route(activateOrganizationContract, {
+  auth: sessionAccess,
+  handler: async ({ access, params, request }) => {
+    await setActiveWorkspace(access, params.organizationId)
     return getPlaybookBootstrap(
       await requireActiveOrganizationPermission(request.headers, 'workspace:read')
     )

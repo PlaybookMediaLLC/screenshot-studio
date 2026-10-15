@@ -1,6 +1,6 @@
-import { createShellJsonRoute } from '@/lib/api/v1/route'
-import { requireOrganizationPermission } from '@/lib/auth/access'
-import { WorkspaceError } from '@/lib/workspace/errors'
+import { getOrganizationContract } from '@/lib/api/contracts/shell'
+import { errorResponse, route } from '@/lib/api/route'
+import { organizationAccess } from '@/lib/api/route-auth'
 import { getWorkspace } from '@/lib/workspace/service'
 
 /**
@@ -8,17 +8,12 @@ import { getWorkspace } from '@/lib/workspace/service'
  * that wants another organization activates it first, so every tenant read
  * resolves through the same membership check as the web app.
  */
-export const GET = createShellJsonRoute<unknown, { organizationId: string }>({
-  name: 'organizations.get',
-  execute: async (request, { organizationId }) => {
-    const access = await requireOrganizationPermission(
-      request.headers,
-      organizationId,
-      'workspace:read'
-    )
+export const GET = route(getOrganizationContract, {
+  auth: organizationAccess('workspace:read', { scope: 'requested' }),
+  handler: async ({ access }) => {
     const organization = await getWorkspace(access)
     if (!organization) {
-      throw new WorkspaceError('Workspace not found.', 404)
+      return errorResponse(404, 'Workspace not found.')
     }
     return {
       organization: {

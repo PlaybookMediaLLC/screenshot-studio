@@ -1,10 +1,10 @@
-import { createShellJsonRoute } from '@/lib/api/v1/route'
-import { requireSessionAccess } from '@/lib/auth/access'
+import { listOrganizationsContract } from '@/lib/api/contracts/shell'
+import { route } from '@/lib/api/route'
+import { sessionAccess } from '@/lib/api/route-auth'
 import { listWorkspaces } from '@/lib/workspace/service'
 
-export const GET = createShellJsonRoute({
-  name: 'organizations.list',
-  execute: async (request) => ({
-    organizations: await listWorkspaces(await requireSessionAccess(request.headers)),
-  }),
+/** The organizations the signed-in user belongs to. */
+export const GET = route(listOrganizationsContract, {
+  auth: sessionAccess,
+  handler: async ({ access }) => ({ organizations: await listWorkspaces(access) }),
 })

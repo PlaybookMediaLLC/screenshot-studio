@@ -1,15 +1,10 @@
-import { createShellJsonRoute } from '@/lib/api/v1/route'
-import { requireOrganizationPermission } from '@/lib/auth/access'
+import { listOrganizationMembersContract } from '@/lib/api/contracts/shell'
+import { route } from '@/lib/api/route'
+import { organizationAccess } from '@/lib/api/route-auth'
 import { listWorkspaceMembers } from '@/lib/workspace/service'
 
-export const GET = createShellJsonRoute<unknown, { organizationId: string }>({
-  name: 'organizations.members',
-  execute: async (request, { organizationId }) => {
-    const access = await requireOrganizationPermission(
-      request.headers,
-      organizationId,
-      'member:read'
-    )
-    return { members: await listWorkspaceMembers(access) }
-  },
+/** Members of the organization. */
+export const GET = route(listOrganizationMembersContract, {
+  auth: organizationAccess('member:read', { scope: 'requested' }),
+  handler: async ({ access }) => ({ members: await listWorkspaceMembers(access) }),
 })

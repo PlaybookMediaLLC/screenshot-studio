@@ -1,10 +1,13 @@
 import { z } from 'zod'
 import { apiKeyScopes } from '@/lib/auth/api-key-scopes'
-import { permissions } from '@/lib/auth/permissions'
+import { organizationRoles, permissions } from '@/lib/auth/permissions'
 import { workspaceFeatureSchema, workspaceQuotaSchema } from '@/lib/billing/plans'
 
 /** A role permission such as `audit:read`, validated against `lib/auth/permissions`. */
 export const permissionSchema = z.enum(permissions)
+
+/** A normalized organization role, validated against `lib/auth/permissions`. */
+export const organizationRoleSchema = z.enum(organizationRoles)
 
 /** An organization API-key product scope, validated against `lib/auth/api-key-scopes`. */
 export const apiKeyScopeSchema = z.enum(apiKeyScopes)

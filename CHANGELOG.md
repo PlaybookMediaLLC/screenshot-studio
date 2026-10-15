@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.16.4...v1.17.0) (2026-10-15)
+
+
+### Features
+
+* move all web data access behind the backend SDK ([#92](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/92)) ([38866b7](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/38866b771aceca956a142e4c97757808caff628e))
+
 ## [1.16.4](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.16.3...v1.16.4) (2026-10-14)
 
 

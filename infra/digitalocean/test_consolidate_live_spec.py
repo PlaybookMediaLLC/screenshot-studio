@@ -97,7 +97,8 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         values = {item["key"]: item["value"] for item in backend["envs"]}
         self.assertEqual(values["DATABASE_URL"], "infisical-DATABASE_URL")
         self.assertEqual(values["TENANT_DATABASE_URL"], "infisical-DATABASE_URL")
-        self.assertEqual(next(item for item in spec["jobs"] if item["name"] == "postiz-migrate")["envs"][0]["value"], "infisical-DATABASE_URL")
+        # Migration jobs run as the migration owner, never the runtime role.
+        self.assertEqual(next(item for item in spec["jobs"] if item["name"] == "postiz-migrate")["envs"][0]["value"], "infisical-MIGRATION_DATABASE_URL")
         self.assertEqual(values["TENANT_AUDIT_RETENTION_DATABASE_URL"], "infisical-AUDIT_RETENTION_DATABASE_URL")
         for key in cutover.OPTIONAL_SOCIAL_SECRETS:
             entry = next(item for item in backend["envs"] if item["key"] == key)

@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.19.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.18.0...v1.19.0) (2026-10-15)
+
+
+### Features
+
+* sync upstream video compressor, browser URL, and blank captures ([2cd4190](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/2cd4190ac0030a99f3f3929f6023a29b47fc1d1f))
+* sync upstream video compressor, browser URL, and blank captures ([38ed2fe](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/38ed2fea17071b0b6a5ad2450dc8bb02b1618dd3))
+* sync upstream video compressor, browser URL, and blank captures ([#99](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/99)) ([2cd4190](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/2cd4190ac0030a99f3f3929f6023a29b47fc1d1f))
+
 ## [1.18.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.17.1...v1.18.0) (2026-10-15)
 
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { type FormEvent, useCallback, useEffect, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 import { Group, Pill, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -37,6 +37,29 @@ const auditDrainSchema = z.object({
 const auditDrainsSchema = z.object({ drains: z.array(auditDrainSchema) })
 
 type WorkspaceAuditSettingsProps = { canManage: boolean; canRead: boolean; organizationId: string }
+
+/** Which part of the page a failure belongs to, so it renders beside that part. */
+type AuditErrorScope = 'drains' | 'load' | 'retention'
+
+type AuditError = { message: string; scope: AuditErrorScope }
+
+/** Every audit read is itself audited, so wait for the user to stop typing. */
+const SEARCH_DEBOUNCE_MS = 300
+
+function ScopedError({ error, scope }: { error: AuditError | null; scope: AuditErrorScope }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const message = error?.scope === scope ? error.message : null
+  // The action that failed may sit near the bottom of the viewport.
+  useEffect(() => {
+    if (message) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [message])
+  if (!message) return null
+  return (
+    <Alert ref={ref} variant="destructive">
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
+  )
+}
 type AuditDrain = z.infer<typeof auditDrainSchema>
 export type AuditLog = z.infer<typeof auditLogSchema>
 
@@ -46,10 +69,11 @@ export function WorkspaceAuditSettings({
   organizationId,
 }: WorkspaceAuditSettingsProps) {
   const [drains, setDrains] = useState<AuditDrain[]>([])
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<AuditError | null>(null)
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [pending, setPending] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [retention, setRetention] = useState<z.infer<typeof retentionSchema>>({
     legalHold: false,
     retentionDays: 90,
@@ -59,8 +83,8 @@ export function WorkspaceAuditSettings({
     if (!canRead) return
     try {
       const query = new URLSearchParams({ organizationId })
-      if (search.trim()) {
-        query.set('search', search.trim())
+      if (debouncedSearch) {
+        query.set('search', debouncedSearch)
       }
       const [auditLogs, auditRetention, auditDrains] = await Promise.all([
         requestJson(`/api/audit-logs?${query}`, auditLogsSchema),
@@ -71,9 +95,14 @@ export function WorkspaceAuditSettings({
       setLogs(auditLogs.items)
       setRetention(auditRetention)
     } catch (requestError) {
-      setError(getErrorMessage(requestError))
+      setError({ message: getErrorMessage(requestError), scope: 'load' })
     }
-  }, [canRead, organizationId, search])
+  }, [canRead, organizationId, debouncedSearch])
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+  }, [search])
 
   useEffect(() => {
     void loadData()
@@ -95,7 +124,7 @@ export function WorkspaceAuditSettings({
       })
       setRetention(result)
     } catch (requestError) {
-      setError(getErrorMessage(requestError))
+      setError({ message: getErrorMessage(requestError), scope: 'retention' })
     } finally {
       setPending(null)
     }
@@ -115,7 +144,7 @@ export function WorkspaceAuditSettings({
       form.reset()
       await loadData()
     } catch (requestError) {
-      setError(getErrorMessage(requestError))
+      setError({ message: getErrorMessage(requestError), scope: 'drains' })
     } finally {
       setPending(null)
     }
@@ -131,7 +160,7 @@ export function WorkspaceAuditSettings({
       })
       await loadData()
     } catch (requestError) {
-      setError(getErrorMessage(requestError))
+      setError({ message: getErrorMessage(requestError), scope: 'drains' })
     } finally {
       setPending(null)
     }
@@ -141,6 +170,7 @@ export function WorkspaceAuditSettings({
     return <p className="text-sm text-neutral-500">Audit logs are available to workspace admins.</p>
   return (
     <div className="flex flex-col gap-10">
+      <ScopedError error={error} scope="load" />
       <Section title="Recent events">
         <div className="flex flex-col gap-3">
           <label className="sr-only" htmlFor="audit-search">
@@ -158,11 +188,16 @@ export function WorkspaceAuditSettings({
         </div>
       </Section>
       {canManage ? (
-        <RetentionForm
-          isSubmitting={pending === 'retention'}
-          onSubmit={updateRetention}
-          retention={retention}
-        />
+        <div className="flex flex-col gap-4">
+          <RetentionForm
+            isSubmitting={pending === 'retention'}
+            // The inputs are uncontrolled; remount them when the saved policy loads.
+            key={`${retention.retentionDays}:${retention.legalHold}`}
+            onSubmit={updateRetention}
+            retention={retention}
+          />
+          <ScopedError error={error} scope="retention" />
+        </div>
       ) : null}
       <Section
         description="Send signed audit events to your security platform."
@@ -176,12 +211,8 @@ export function WorkspaceAuditSettings({
             </Row>
           ) : null}
         </Group>
+        <ScopedError error={error} scope="drains" />
       </Section>
-      {error ? (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
     </div>
   )
 }

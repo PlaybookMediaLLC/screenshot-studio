@@ -81,7 +81,13 @@ export const apiFailureSchema = z.object({
 /** One of {@link apiFailureSchema}. */
 export type ApiFailure = z.infer<typeof apiFailureSchema>
 
-const statusDetails: Record<HttpErrorStatus, Pick<ApiFailure, 'code' | 'hint'>> = {
+/** The code and hint a status contributes to a failure. */
+export const failureDetailsSchema = apiFailureSchema.pick({ code: true, hint: true })
+
+/** One of {@link failureDetailsSchema}. */
+export type FailureDetails = z.infer<typeof failureDetailsSchema>
+
+const statusDetails: Record<HttpErrorStatus, FailureDetails> = {
   400: {
     code: 'invalid_request',
     hint: 'Check the request body, query parameters, and path values against the OpenAPI schema.',

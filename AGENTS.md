@@ -25,6 +25,10 @@ browser screenshot editor.
 4. The web never touches the database. Product data goes through the Go
    backend and `lib/backend/sdk.ts`; `test/web-database-boundary.test.ts`
    enforces it.
+5. A platform API route declares a zod contract in `lib/api/contracts/` and
+   exports `route(contract, { auth, handler })`. API code under `lib/api/**`
+   and `app/api/**` uses only zod-derived types and puts TSDoc on every
+   export; `test/api-platform-boundary.test.ts` enforces both.
 
 ## Upstream sync
 

@@ -1,37 +1,91 @@
 import 'server-only'
 
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/db'
-import { isCampaignWorkflowEnabled } from '@/lib/tenant/entitlements'
-import { resolveActiveOrganizationId } from './access'
+import type { ListedWorkspace, Workspace } from 'screenshot-studio-backend-sdk'
+import { backendSDK } from '@/lib/backend/sdk'
+import { getRequestId } from './access'
 import { auth } from './server'
 
-async function getPageMembership(organizationId: string | null, userId: string) {
-  if (!organizationId) return null
-  return prisma.member.findUnique({
-    select: {
-      id: true,
-      organization: {
-        select: {
-          id: true,
-          logo: true,
-          name: true,
-          slug: true,
-          workspaceDeletion: {
-            select: { requestedByUserId: true, scheduledFor: true, status: true },
-          },
-          workspaceSettings: true,
-        },
-      },
-      role: true,
+type SignedInSession = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>
+
+async function resolveBackendPageWorkspace(requestHeaders: Headers, session: SignedInSession) {
+  const sessionAccess = {
+    organizationId: '',
+    principal: {
+      display: session.user.email,
+      kind: 'session' as const,
+      sessionId: session.session.id,
+      userId: session.user.id,
     },
-    where: { organizationId_userId: { organizationId, userId } },
-  })
+    requestId: getRequestId(requestHeaders),
+  }
+  const { workspaces } = await backendSDK(sessionAccess).listWorkspaces()
+  const active =
+    workspaces.find((workspace) => workspace.id === session.session.activeOrganizationId) ??
+    workspaces[0]
+  if (active && active.id !== session.session.activeOrganizationId) {
+    await backendSDK(sessionAccess).setActiveWorkspace(active.id)
+  }
+  return { active, count: workspaces.length, sessionAccess }
 }
 
-function isPageWorkspaceOperational(membership: Awaited<ReturnType<typeof getPageMembership>>) {
-  const status = membership?.organization.workspaceDeletion?.status
-  return status !== 'PENDING' && status !== 'PROCESSING' && status !== 'PURGED'
+function backendPageOrganization(active: ListedWorkspace | undefined, workspace: Workspace | null) {
+  if (!active) return null
+  return {
+    id: active.id,
+    logo: workspace?.logo ?? null,
+    name: workspace?.name ?? active.name,
+    slug: workspace?.slug ?? active.slug,
+    workspaceDeletion: backendPageDeletion(active),
+    workspaceSettings: workspace?.workspaceSettings ?? null,
+  }
+}
+
+function backendPageDeletion(active: ListedWorkspace) {
+  if (!active.workspaceDeletion) return null
+  return {
+    ...active.workspaceDeletion,
+    scheduledFor: new Date(active.workspaceDeletion.scheduledFor),
+  }
+}
+
+type BackendSessionAccess = Awaited<ReturnType<typeof resolveBackendPageWorkspace>>['sessionAccess']
+
+async function loadBackendPageWorkspace(
+  active: ListedWorkspace | undefined,
+  access: BackendSessionAccess
+) {
+  if (!active || active.isScheduledForDeletion) return null
+  return (await backendSDK({ ...access, organizationId: active.id }).getWorkspace()).workspace
+}
+
+async function loadBackendCampaignFlag(
+  active: ListedWorkspace | undefined,
+  access: BackendSessionAccess,
+  workspace: Workspace | null
+) {
+  if (!active || !workspace) return false
+  // PLATFORM_CAMPAIGN_WORKFLOW=enabled turns the rollout on for a whole
+  // environment (local development, staging, e2e).
+  if (process.env.PLATFORM_CAMPAIGN_WORKFLOW === 'enabled') return true
+  const bootstrap = await backendSDK({ ...access, organizationId: active.id }).getBootstrap()
+  return bootstrap.entitlements.features['campaign:workflow'] === true
+}
+
+async function getBackendPageAccess(requestHeaders: Headers, session: SignedInSession) {
+  const { active, count, sessionAccess } = await resolveBackendPageWorkspace(
+    requestHeaders,
+    session
+  )
+  const workspace = await loadBackendPageWorkspace(active, sessionAccess)
+  return {
+    campaignWorkflowEnabled: await loadBackendCampaignFlag(active, sessionAccess, workspace),
+    hasOrganization: count > 0,
+    isWorkspaceOperational: Boolean(workspace),
+    organization: backendPageOrganization(active, workspace),
+    role: active?.role ?? 'viewer',
+    session,
+  }
 }
 
 export async function getPageAccess(requestHeaders: Headers) {
@@ -41,21 +95,7 @@ export async function getPageAccess(requestHeaders: Headers) {
   })
   if (!session) return null
 
-  const activeOrganizationId = await resolveActiveOrganizationId(session.session, session.user.id)
-  const [membership, membershipCount] = await Promise.all([
-    getPageMembership(activeOrganizationId, session.user.id),
-    prisma.member.count({ where: { userId: session.user.id } }),
-  ])
-  return {
-    campaignWorkflowEnabled: membership
-      ? await isCampaignWorkflowEnabled(membership.organization.id)
-      : false,
-    hasOrganization: membershipCount > 0,
-    isWorkspaceOperational: isPageWorkspaceOperational(membership),
-    organization: membership?.organization ?? null,
-    role: membership?.role ?? 'viewer',
-    session,
-  }
+  return getBackendPageAccess(requestHeaders, session)
 }
 
 export function getLocalizedPath(locale: string, path: string): string {

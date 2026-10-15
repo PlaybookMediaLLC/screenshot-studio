@@ -3,6 +3,9 @@
 package asset
 
 import (
+	"fmt"
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 )
@@ -14,10 +17,28 @@ const (
 	FieldID = "id"
 	// FieldOrganizationID holds the string denoting the organization_id field in the database.
 	FieldOrganizationID = "organizationId"
+	// FieldCaptureID holds the string denoting the capture_id field in the database.
+	FieldCaptureID = "captureId"
+	// FieldParentAssetID holds the string denoting the parent_asset_id field in the database.
+	FieldParentAssetID = "parentAssetId"
 	// FieldObjectKey holds the string denoting the object_key field in the database.
 	FieldObjectKey = "objectKey"
+	// FieldSha256 holds the string denoting the sha256 field in the database.
+	FieldSha256 = "sha256"
 	// FieldMediaType holds the string denoting the media_type field in the database.
 	FieldMediaType = "mediaType"
+	// FieldBytes holds the string denoting the bytes field in the database.
+	FieldBytes = "bytes"
+	// FieldWidth holds the string denoting the width field in the database.
+	FieldWidth = "width"
+	// FieldHeight holds the string denoting the height field in the database.
+	FieldHeight = "height"
+	// FieldStatus holds the string denoting the status field in the database.
+	FieldStatus = "status"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "createdAt"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updatedAt"
 	// EdgeVariants holds the string denoting the variants edge name in mutations.
 	EdgeVariants = "variants"
 	// Table holds the table name of the asset in the database.
@@ -35,8 +56,17 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldOrganizationID,
+	FieldCaptureID,
+	FieldParentAssetID,
 	FieldObjectKey,
+	FieldSha256,
 	FieldMediaType,
+	FieldBytes,
+	FieldWidth,
+	FieldHeight,
+	FieldStatus,
+	FieldCreatedAt,
+	FieldUpdatedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -47,6 +77,43 @@ func ValidColumn(column string) bool {
 		}
 	}
 	return false
+}
+
+var (
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
+)
+
+// Status defines the type for the "status" enum field.
+type Status string
+
+// StatusPENDING is the default value of the Status enum.
+const DefaultStatus = StatusPENDING
+
+// Status values.
+const (
+	StatusPENDING  Status = "PENDING"
+	StatusUPLOADED Status = "UPLOADED"
+	StatusFAILED   Status = "FAILED"
+	StatusDELETED  Status = "DELETED"
+)
+
+func (s Status) String() string {
+	return string(s)
+}
+
+// StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
+func StatusValidator(s Status) error {
+	switch s {
+	case StatusPENDING, StatusUPLOADED, StatusFAILED, StatusDELETED:
+		return nil
+	default:
+		return fmt.Errorf("asset: invalid enum value for status field: %q", s)
+	}
 }
 
 // OrderOption defines the ordering options for the Asset queries.
@@ -62,14 +129,59 @@ func ByOrganizationID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOrganizationID, opts...).ToFunc()
 }
 
+// ByCaptureID orders the results by the capture_id field.
+func ByCaptureID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCaptureID, opts...).ToFunc()
+}
+
+// ByParentAssetID orders the results by the parent_asset_id field.
+func ByParentAssetID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldParentAssetID, opts...).ToFunc()
+}
+
 // ByObjectKey orders the results by the object_key field.
 func ByObjectKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldObjectKey, opts...).ToFunc()
 }
 
+// BySha256 orders the results by the sha256 field.
+func BySha256(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSha256, opts...).ToFunc()
+}
+
 // ByMediaType orders the results by the media_type field.
 func ByMediaType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMediaType, opts...).ToFunc()
+}
+
+// ByBytes orders the results by the bytes field.
+func ByBytes(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBytes, opts...).ToFunc()
+}
+
+// ByWidth orders the results by the width field.
+func ByWidth(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWidth, opts...).ToFunc()
+}
+
+// ByHeight orders the results by the height field.
+func ByHeight(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHeight, opts...).ToFunc()
+}
+
+// ByStatus orders the results by the status field.
+func ByStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
 // ByVariantsCount orders the results by variants count.

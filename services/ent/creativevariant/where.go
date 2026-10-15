@@ -3,6 +3,8 @@
 package creativevariant
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
@@ -71,6 +73,56 @@ func OrganizationID(v string) predicate.CreativeVariant {
 // SourceAssetID applies equality check predicate on the "source_asset_id" field. It's identical to SourceAssetIDEQ.
 func SourceAssetID(v string) predicate.CreativeVariant {
 	return predicate.CreativeVariant(sql.FieldEQ(FieldSourceAssetID, v))
+}
+
+// ReleaseID applies equality check predicate on the "release_id" field. It's identical to ReleaseIDEQ.
+func ReleaseID(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldReleaseID, v))
+}
+
+// BrandKitID applies equality check predicate on the "brand_kit_id" field. It's identical to BrandKitIDEQ.
+func BrandKitID(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldBrandKitID, v))
+}
+
+// BrandKitVersion applies equality check predicate on the "brand_kit_version" field. It's identical to BrandKitVersionEQ.
+func BrandKitVersion(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldBrandKitVersion, v))
+}
+
+// TemplateID applies equality check predicate on the "template_id" field. It's identical to TemplateIDEQ.
+func TemplateID(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldTemplateID, v))
+}
+
+// TemplateVersion applies equality check predicate on the "template_version" field. It's identical to TemplateVersionEQ.
+func TemplateVersion(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldTemplateVersion, v))
+}
+
+// Revision applies equality check predicate on the "revision" field. It's identical to RevisionEQ.
+func Revision(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldRevision, v))
+}
+
+// AspectRatio applies equality check predicate on the "aspect_ratio" field. It's identical to AspectRatioEQ.
+func AspectRatio(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldAspectRatio, v))
+}
+
+// CreatedByUserID applies equality check predicate on the "created_by_user_id" field. It's identical to CreatedByUserIDEQ.
+func CreatedByUserID(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldCreatedByUserID, v))
+}
+
+// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
+func CreatedAt(v time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
 // OrganizationIDEQ applies the EQ predicate on the "organization_id" field.
@@ -203,6 +255,386 @@ func SourceAssetIDContainsFold(v string) predicate.CreativeVariant {
 	return predicate.CreativeVariant(sql.FieldContainsFold(FieldSourceAssetID, v))
 }
 
+// ReleaseIDEQ applies the EQ predicate on the "release_id" field.
+func ReleaseIDEQ(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldReleaseID, v))
+}
+
+// ReleaseIDNEQ applies the NEQ predicate on the "release_id" field.
+func ReleaseIDNEQ(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNEQ(FieldReleaseID, v))
+}
+
+// ReleaseIDIn applies the In predicate on the "release_id" field.
+func ReleaseIDIn(vs ...string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIn(FieldReleaseID, vs...))
+}
+
+// ReleaseIDNotIn applies the NotIn predicate on the "release_id" field.
+func ReleaseIDNotIn(vs ...string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotIn(FieldReleaseID, vs...))
+}
+
+// ReleaseIDGT applies the GT predicate on the "release_id" field.
+func ReleaseIDGT(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGT(FieldReleaseID, v))
+}
+
+// ReleaseIDGTE applies the GTE predicate on the "release_id" field.
+func ReleaseIDGTE(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGTE(FieldReleaseID, v))
+}
+
+// ReleaseIDLT applies the LT predicate on the "release_id" field.
+func ReleaseIDLT(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLT(FieldReleaseID, v))
+}
+
+// ReleaseIDLTE applies the LTE predicate on the "release_id" field.
+func ReleaseIDLTE(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLTE(FieldReleaseID, v))
+}
+
+// ReleaseIDContains applies the Contains predicate on the "release_id" field.
+func ReleaseIDContains(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldContains(FieldReleaseID, v))
+}
+
+// ReleaseIDHasPrefix applies the HasPrefix predicate on the "release_id" field.
+func ReleaseIDHasPrefix(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldHasPrefix(FieldReleaseID, v))
+}
+
+// ReleaseIDHasSuffix applies the HasSuffix predicate on the "release_id" field.
+func ReleaseIDHasSuffix(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldHasSuffix(FieldReleaseID, v))
+}
+
+// ReleaseIDEqualFold applies the EqualFold predicate on the "release_id" field.
+func ReleaseIDEqualFold(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEqualFold(FieldReleaseID, v))
+}
+
+// ReleaseIDContainsFold applies the ContainsFold predicate on the "release_id" field.
+func ReleaseIDContainsFold(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldContainsFold(FieldReleaseID, v))
+}
+
+// BrandKitIDEQ applies the EQ predicate on the "brand_kit_id" field.
+func BrandKitIDEQ(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldBrandKitID, v))
+}
+
+// BrandKitIDNEQ applies the NEQ predicate on the "brand_kit_id" field.
+func BrandKitIDNEQ(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNEQ(FieldBrandKitID, v))
+}
+
+// BrandKitIDIn applies the In predicate on the "brand_kit_id" field.
+func BrandKitIDIn(vs ...string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIn(FieldBrandKitID, vs...))
+}
+
+// BrandKitIDNotIn applies the NotIn predicate on the "brand_kit_id" field.
+func BrandKitIDNotIn(vs ...string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotIn(FieldBrandKitID, vs...))
+}
+
+// BrandKitIDGT applies the GT predicate on the "brand_kit_id" field.
+func BrandKitIDGT(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGT(FieldBrandKitID, v))
+}
+
+// BrandKitIDGTE applies the GTE predicate on the "brand_kit_id" field.
+func BrandKitIDGTE(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGTE(FieldBrandKitID, v))
+}
+
+// BrandKitIDLT applies the LT predicate on the "brand_kit_id" field.
+func BrandKitIDLT(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLT(FieldBrandKitID, v))
+}
+
+// BrandKitIDLTE applies the LTE predicate on the "brand_kit_id" field.
+func BrandKitIDLTE(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLTE(FieldBrandKitID, v))
+}
+
+// BrandKitIDContains applies the Contains predicate on the "brand_kit_id" field.
+func BrandKitIDContains(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldContains(FieldBrandKitID, v))
+}
+
+// BrandKitIDHasPrefix applies the HasPrefix predicate on the "brand_kit_id" field.
+func BrandKitIDHasPrefix(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldHasPrefix(FieldBrandKitID, v))
+}
+
+// BrandKitIDHasSuffix applies the HasSuffix predicate on the "brand_kit_id" field.
+func BrandKitIDHasSuffix(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldHasSuffix(FieldBrandKitID, v))
+}
+
+// BrandKitIDEqualFold applies the EqualFold predicate on the "brand_kit_id" field.
+func BrandKitIDEqualFold(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEqualFold(FieldBrandKitID, v))
+}
+
+// BrandKitIDContainsFold applies the ContainsFold predicate on the "brand_kit_id" field.
+func BrandKitIDContainsFold(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldContainsFold(FieldBrandKitID, v))
+}
+
+// BrandKitVersionEQ applies the EQ predicate on the "brand_kit_version" field.
+func BrandKitVersionEQ(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldBrandKitVersion, v))
+}
+
+// BrandKitVersionNEQ applies the NEQ predicate on the "brand_kit_version" field.
+func BrandKitVersionNEQ(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNEQ(FieldBrandKitVersion, v))
+}
+
+// BrandKitVersionIn applies the In predicate on the "brand_kit_version" field.
+func BrandKitVersionIn(vs ...int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIn(FieldBrandKitVersion, vs...))
+}
+
+// BrandKitVersionNotIn applies the NotIn predicate on the "brand_kit_version" field.
+func BrandKitVersionNotIn(vs ...int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotIn(FieldBrandKitVersion, vs...))
+}
+
+// BrandKitVersionGT applies the GT predicate on the "brand_kit_version" field.
+func BrandKitVersionGT(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGT(FieldBrandKitVersion, v))
+}
+
+// BrandKitVersionGTE applies the GTE predicate on the "brand_kit_version" field.
+func BrandKitVersionGTE(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGTE(FieldBrandKitVersion, v))
+}
+
+// BrandKitVersionLT applies the LT predicate on the "brand_kit_version" field.
+func BrandKitVersionLT(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLT(FieldBrandKitVersion, v))
+}
+
+// BrandKitVersionLTE applies the LTE predicate on the "brand_kit_version" field.
+func BrandKitVersionLTE(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLTE(FieldBrandKitVersion, v))
+}
+
+// TemplateIDEQ applies the EQ predicate on the "template_id" field.
+func TemplateIDEQ(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldTemplateID, v))
+}
+
+// TemplateIDNEQ applies the NEQ predicate on the "template_id" field.
+func TemplateIDNEQ(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNEQ(FieldTemplateID, v))
+}
+
+// TemplateIDIn applies the In predicate on the "template_id" field.
+func TemplateIDIn(vs ...string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIn(FieldTemplateID, vs...))
+}
+
+// TemplateIDNotIn applies the NotIn predicate on the "template_id" field.
+func TemplateIDNotIn(vs ...string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotIn(FieldTemplateID, vs...))
+}
+
+// TemplateIDGT applies the GT predicate on the "template_id" field.
+func TemplateIDGT(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGT(FieldTemplateID, v))
+}
+
+// TemplateIDGTE applies the GTE predicate on the "template_id" field.
+func TemplateIDGTE(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGTE(FieldTemplateID, v))
+}
+
+// TemplateIDLT applies the LT predicate on the "template_id" field.
+func TemplateIDLT(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLT(FieldTemplateID, v))
+}
+
+// TemplateIDLTE applies the LTE predicate on the "template_id" field.
+func TemplateIDLTE(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLTE(FieldTemplateID, v))
+}
+
+// TemplateIDContains applies the Contains predicate on the "template_id" field.
+func TemplateIDContains(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldContains(FieldTemplateID, v))
+}
+
+// TemplateIDHasPrefix applies the HasPrefix predicate on the "template_id" field.
+func TemplateIDHasPrefix(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldHasPrefix(FieldTemplateID, v))
+}
+
+// TemplateIDHasSuffix applies the HasSuffix predicate on the "template_id" field.
+func TemplateIDHasSuffix(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldHasSuffix(FieldTemplateID, v))
+}
+
+// TemplateIDEqualFold applies the EqualFold predicate on the "template_id" field.
+func TemplateIDEqualFold(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEqualFold(FieldTemplateID, v))
+}
+
+// TemplateIDContainsFold applies the ContainsFold predicate on the "template_id" field.
+func TemplateIDContainsFold(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldContainsFold(FieldTemplateID, v))
+}
+
+// TemplateVersionEQ applies the EQ predicate on the "template_version" field.
+func TemplateVersionEQ(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldTemplateVersion, v))
+}
+
+// TemplateVersionNEQ applies the NEQ predicate on the "template_version" field.
+func TemplateVersionNEQ(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNEQ(FieldTemplateVersion, v))
+}
+
+// TemplateVersionIn applies the In predicate on the "template_version" field.
+func TemplateVersionIn(vs ...int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIn(FieldTemplateVersion, vs...))
+}
+
+// TemplateVersionNotIn applies the NotIn predicate on the "template_version" field.
+func TemplateVersionNotIn(vs ...int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotIn(FieldTemplateVersion, vs...))
+}
+
+// TemplateVersionGT applies the GT predicate on the "template_version" field.
+func TemplateVersionGT(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGT(FieldTemplateVersion, v))
+}
+
+// TemplateVersionGTE applies the GTE predicate on the "template_version" field.
+func TemplateVersionGTE(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGTE(FieldTemplateVersion, v))
+}
+
+// TemplateVersionLT applies the LT predicate on the "template_version" field.
+func TemplateVersionLT(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLT(FieldTemplateVersion, v))
+}
+
+// TemplateVersionLTE applies the LTE predicate on the "template_version" field.
+func TemplateVersionLTE(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLTE(FieldTemplateVersion, v))
+}
+
+// RevisionEQ applies the EQ predicate on the "revision" field.
+func RevisionEQ(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldRevision, v))
+}
+
+// RevisionNEQ applies the NEQ predicate on the "revision" field.
+func RevisionNEQ(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNEQ(FieldRevision, v))
+}
+
+// RevisionIn applies the In predicate on the "revision" field.
+func RevisionIn(vs ...int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIn(FieldRevision, vs...))
+}
+
+// RevisionNotIn applies the NotIn predicate on the "revision" field.
+func RevisionNotIn(vs ...int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotIn(FieldRevision, vs...))
+}
+
+// RevisionGT applies the GT predicate on the "revision" field.
+func RevisionGT(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGT(FieldRevision, v))
+}
+
+// RevisionGTE applies the GTE predicate on the "revision" field.
+func RevisionGTE(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGTE(FieldRevision, v))
+}
+
+// RevisionLT applies the LT predicate on the "revision" field.
+func RevisionLT(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLT(FieldRevision, v))
+}
+
+// RevisionLTE applies the LTE predicate on the "revision" field.
+func RevisionLTE(v int) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLTE(FieldRevision, v))
+}
+
+// AspectRatioEQ applies the EQ predicate on the "aspect_ratio" field.
+func AspectRatioEQ(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldAspectRatio, v))
+}
+
+// AspectRatioNEQ applies the NEQ predicate on the "aspect_ratio" field.
+func AspectRatioNEQ(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNEQ(FieldAspectRatio, v))
+}
+
+// AspectRatioIn applies the In predicate on the "aspect_ratio" field.
+func AspectRatioIn(vs ...string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIn(FieldAspectRatio, vs...))
+}
+
+// AspectRatioNotIn applies the NotIn predicate on the "aspect_ratio" field.
+func AspectRatioNotIn(vs ...string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotIn(FieldAspectRatio, vs...))
+}
+
+// AspectRatioGT applies the GT predicate on the "aspect_ratio" field.
+func AspectRatioGT(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGT(FieldAspectRatio, v))
+}
+
+// AspectRatioGTE applies the GTE predicate on the "aspect_ratio" field.
+func AspectRatioGTE(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGTE(FieldAspectRatio, v))
+}
+
+// AspectRatioLT applies the LT predicate on the "aspect_ratio" field.
+func AspectRatioLT(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLT(FieldAspectRatio, v))
+}
+
+// AspectRatioLTE applies the LTE predicate on the "aspect_ratio" field.
+func AspectRatioLTE(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLTE(FieldAspectRatio, v))
+}
+
+// AspectRatioContains applies the Contains predicate on the "aspect_ratio" field.
+func AspectRatioContains(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldContains(FieldAspectRatio, v))
+}
+
+// AspectRatioHasPrefix applies the HasPrefix predicate on the "aspect_ratio" field.
+func AspectRatioHasPrefix(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldHasPrefix(FieldAspectRatio, v))
+}
+
+// AspectRatioHasSuffix applies the HasSuffix predicate on the "aspect_ratio" field.
+func AspectRatioHasSuffix(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldHasSuffix(FieldAspectRatio, v))
+}
+
+// AspectRatioEqualFold applies the EqualFold predicate on the "aspect_ratio" field.
+func AspectRatioEqualFold(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEqualFold(FieldAspectRatio, v))
+}
+
+// AspectRatioContainsFold applies the ContainsFold predicate on the "aspect_ratio" field.
+func AspectRatioContainsFold(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldContainsFold(FieldAspectRatio, v))
+}
+
 // StatusEQ applies the EQ predicate on the "status" field.
 func StatusEQ(v Status) predicate.CreativeVariant {
 	return predicate.CreativeVariant(sql.FieldEQ(FieldStatus, v))
@@ -221,6 +653,151 @@ func StatusIn(vs ...Status) predicate.CreativeVariant {
 // StatusNotIn applies the NotIn predicate on the "status" field.
 func StatusNotIn(vs ...Status) predicate.CreativeVariant {
 	return predicate.CreativeVariant(sql.FieldNotIn(FieldStatus, vs...))
+}
+
+// CreatedByUserIDEQ applies the EQ predicate on the "created_by_user_id" field.
+func CreatedByUserIDEQ(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldCreatedByUserID, v))
+}
+
+// CreatedByUserIDNEQ applies the NEQ predicate on the "created_by_user_id" field.
+func CreatedByUserIDNEQ(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNEQ(FieldCreatedByUserID, v))
+}
+
+// CreatedByUserIDIn applies the In predicate on the "created_by_user_id" field.
+func CreatedByUserIDIn(vs ...string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIn(FieldCreatedByUserID, vs...))
+}
+
+// CreatedByUserIDNotIn applies the NotIn predicate on the "created_by_user_id" field.
+func CreatedByUserIDNotIn(vs ...string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotIn(FieldCreatedByUserID, vs...))
+}
+
+// CreatedByUserIDGT applies the GT predicate on the "created_by_user_id" field.
+func CreatedByUserIDGT(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGT(FieldCreatedByUserID, v))
+}
+
+// CreatedByUserIDGTE applies the GTE predicate on the "created_by_user_id" field.
+func CreatedByUserIDGTE(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGTE(FieldCreatedByUserID, v))
+}
+
+// CreatedByUserIDLT applies the LT predicate on the "created_by_user_id" field.
+func CreatedByUserIDLT(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLT(FieldCreatedByUserID, v))
+}
+
+// CreatedByUserIDLTE applies the LTE predicate on the "created_by_user_id" field.
+func CreatedByUserIDLTE(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLTE(FieldCreatedByUserID, v))
+}
+
+// CreatedByUserIDContains applies the Contains predicate on the "created_by_user_id" field.
+func CreatedByUserIDContains(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldContains(FieldCreatedByUserID, v))
+}
+
+// CreatedByUserIDHasPrefix applies the HasPrefix predicate on the "created_by_user_id" field.
+func CreatedByUserIDHasPrefix(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldHasPrefix(FieldCreatedByUserID, v))
+}
+
+// CreatedByUserIDHasSuffix applies the HasSuffix predicate on the "created_by_user_id" field.
+func CreatedByUserIDHasSuffix(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldHasSuffix(FieldCreatedByUserID, v))
+}
+
+// CreatedByUserIDEqualFold applies the EqualFold predicate on the "created_by_user_id" field.
+func CreatedByUserIDEqualFold(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEqualFold(FieldCreatedByUserID, v))
+}
+
+// CreatedByUserIDContainsFold applies the ContainsFold predicate on the "created_by_user_id" field.
+func CreatedByUserIDContainsFold(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldContainsFold(FieldCreatedByUserID, v))
+}
+
+// CreatedAtEQ applies the EQ predicate on the "created_at" field.
+func CreatedAtEQ(v time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
+func CreatedAtNEQ(v time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtIn applies the In predicate on the "created_at" field.
+func CreatedAtIn(vs ...time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
+func CreatedAtNotIn(vs ...time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtGT applies the GT predicate on the "created_at" field.
+func CreatedAtGT(v time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGT(FieldCreatedAt, v))
+}
+
+// CreatedAtGTE applies the GTE predicate on the "created_at" field.
+func CreatedAtGTE(v time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGTE(FieldCreatedAt, v))
+}
+
+// CreatedAtLT applies the LT predicate on the "created_at" field.
+func CreatedAtLT(v time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLT(FieldCreatedAt, v))
+}
+
+// CreatedAtLTE applies the LTE predicate on the "created_at" field.
+func CreatedAtLTE(v time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGTE(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v time.Time) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
 // HasSourceAsset applies the HasEdge predicate on the "source_asset" edge.

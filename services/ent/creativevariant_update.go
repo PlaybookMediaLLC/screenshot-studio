@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -42,6 +43,12 @@ func (_u *CreativeVariantUpdate) SetNillableStatus(v *creativevariant.Status) *C
 	return _u
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *CreativeVariantUpdate) SetUpdatedAt(v time.Time) *CreativeVariantUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // SetApprovalID sets the "approval" edge to the Approval entity by ID.
 func (_u *CreativeVariantUpdate) SetApprovalID(id string) *CreativeVariantUpdate {
 	_u.mutation.SetApprovalID(id)
@@ -74,6 +81,7 @@ func (_u *CreativeVariantUpdate) ClearApproval() *CreativeVariantUpdate {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *CreativeVariantUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -96,6 +104,14 @@ func (_u *CreativeVariantUpdate) Exec(ctx context.Context) error {
 func (_u *CreativeVariantUpdate) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *CreativeVariantUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := creativevariant.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -126,6 +142,9 @@ func (_u *CreativeVariantUpdate) sqlSave(ctx context.Context) (_node int, err er
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(creativevariant.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(creativevariant.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if _u.mutation.ApprovalCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -190,6 +209,12 @@ func (_u *CreativeVariantUpdateOne) SetNillableStatus(v *creativevariant.Status)
 	return _u
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *CreativeVariantUpdateOne) SetUpdatedAt(v time.Time) *CreativeVariantUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // SetApprovalID sets the "approval" edge to the Approval entity by ID.
 func (_u *CreativeVariantUpdateOne) SetApprovalID(id string) *CreativeVariantUpdateOne {
 	_u.mutation.SetApprovalID(id)
@@ -235,6 +260,7 @@ func (_u *CreativeVariantUpdateOne) Select(field string, fields ...string) *Crea
 
 // Save executes the query and returns the updated CreativeVariant entity.
 func (_u *CreativeVariantUpdateOne) Save(ctx context.Context) (*CreativeVariant, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -257,6 +283,14 @@ func (_u *CreativeVariantUpdateOne) Exec(ctx context.Context) error {
 func (_u *CreativeVariantUpdateOne) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *CreativeVariantUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := creativevariant.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -304,6 +338,9 @@ func (_u *CreativeVariantUpdateOne) sqlSave(ctx context.Context) (_node *Creativ
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(creativevariant.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(creativevariant.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if _u.mutation.ApprovalCleared() {
 		edge := &sqlgraph.EdgeSpec{

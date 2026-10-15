@@ -1,16 +1,14 @@
 import 'server-only'
 
 import { z } from 'zod'
-import { appendAuditLog } from '@/lib/audit/log'
 import { getAuditIpHash, getUserAgentSummary } from '@/lib/audit/request'
-import { prisma } from '@/lib/db'
+import { backendSDK, serviceBackend } from '@/lib/backend/sdk'
 import {
   AuthorizationError,
   requireEnterpriseFeature,
   requireSensitiveOrganizationPermission,
   type OrganizationAccess,
 } from './access'
-import { getAuditActor } from './principal'
 import { auth } from './server'
 
 type EnterpriseFeature = 'scimEnabled' | 'ssoEnabled'
@@ -78,15 +76,13 @@ async function getProviderOrganizationId(
   providerId: string,
   feature: EnterpriseFeature
 ): Promise<string | undefined> {
-  if (feature === 'ssoEnabled') {
-    return (
-      (await prisma.ssoProvider.findUnique({ where: { providerId } }))?.organizationId ?? undefined
-    )
-  }
-
-  return (
-    (await prisma.scimProvider.findUnique({ where: { providerId } }))?.organizationId ?? undefined
-  )
+  const { row } = await serviceBackend().authStore({
+    model: feature === 'ssoEnabled' ? 'ssoProvider' : 'scimProvider',
+    op: 'findOne',
+    select: ['organizationId'],
+    where: [{ field: 'providerId', value: providerId }],
+  })
+  return typeof row?.organizationId === 'string' ? row.organizationId : undefined
 }
 
 async function getActiveOrganizationId(headers: Headers): Promise<string | undefined> {
@@ -133,7 +129,7 @@ export async function authorizeEnterpriseAuthRequest(
     organizationId,
     'identity:manage'
   )
-  await requireEnterpriseFeature(organizationId, route.feature)
+  await requireEnterpriseFeature(access, route.feature)
   return { access, action: route.action, entityType: route.entityType }
 }
 
@@ -141,15 +137,10 @@ export async function logEnterpriseAuthRequest(
   request: Request,
   enterpriseRequest: EnterpriseAuthRequest
 ): Promise<void> {
-  await prisma.$transaction((transaction) =>
-    appendAuditLog(transaction, {
-      action: enterpriseRequest.action,
-      actor: getAuditActor(enterpriseRequest.access.principal),
-      entityType: enterpriseRequest.entityType,
-      ipHash: getAuditIpHash(request.headers),
-      organizationId: enterpriseRequest.access.organizationId,
-      requestId: enterpriseRequest.access.requestId,
-      userAgentSummary: getUserAgentSummary(request.headers),
-    })
-  )
+  await backendSDK(enterpriseRequest.access).appendAuditEvent({
+    action: enterpriseRequest.action,
+    entityType: enterpriseRequest.entityType,
+    ipHash: getAuditIpHash(request.headers),
+    userAgentSummary: getUserAgentSummary(request.headers),
+  })
 }

@@ -13,18 +13,22 @@ tenant publishing worker, and six maintenance schedules as one service.
 The `Web image` and `Social backend image` GitHub workflows publish their
 respective images when relevant code lands on `main`. Their manual `deploy`
 inputs load production secrets from Infisical using GitHub OIDC, validate the
-live app topology, and update the corresponding App Platform components. Review
-web schema migrations before using the web deploy input. The Fly deployment
-workflow and configuration have been removed.
+live app topology, and update the corresponding App Platform components.
+Deploy the backend before the web: its image carries the schema migrations, and
+the web deploy refuses a topology that still has `web-migrate`. The Fly
+deployment workflow and configuration have been removed.
 
 Release Please reads Conventional Commit messages merged into `main`. It opens
 version and changelog pull requests, then creates Git tags and GitHub Releases.
 The `RELEASE_PLEASE_TOKEN` repository secret is required for release-created
 commits and tags to start deployment workflows.
 
-App Platform runs the `web-migrate` and `postiz-migrate` predeploy jobs before
-releasing a new app deployment. Review schema migrations and database backups
-before changing the web image. Never use `npm run db:push` against production.
+App Platform runs one `platform-migrate` predeploy job from the backend image.
+It applies product and social migrations to the same PostgreSQL database and
+`public` schema. The web has no database connection. Review the migration
+sources in `services/platformmigrations/sql` and
+`services/screenshot-studio-backend/migrations` and the
+database backup before changing the backend image.
 
 For a local web image smoke test:
 

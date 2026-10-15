@@ -129,12 +129,10 @@ func publishingEnv(environ []string) ([]string, error) {
 			return nil, fmt.Errorf("TENANT_%s=true is required", key)
 		}
 	}
-	if hasValue(result, "PUBLISHING_DIRECT_PROVIDER", "true") {
-		socialURL := envValue(environ, "DATABASE_URL")
-		tenantURL := envValue(result, "DATABASE_URL")
-		if !sameLogicalDatabase(socialURL, tenantURL) {
-			return nil, errors.New("direct publishing requires social and tenant Ent clients to use one PostgreSQL database")
-		}
+	socialURL := envValue(environ, "DATABASE_URL")
+	tenantURL := envValue(result, "DATABASE_URL")
+	if !sameLogicalDatabase(socialURL, tenantURL) {
+		return nil, errors.New("direct publishing requires social and tenant Ent clients to use one PostgreSQL database")
 	}
 	return result, nil
 }

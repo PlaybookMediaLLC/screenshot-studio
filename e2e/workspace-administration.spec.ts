@@ -9,54 +9,42 @@ import {
 } from './framework/auth'
 import { browserRequest, requestJson } from './framework/browser'
 import { configureE2EFlow, expect, test } from './framework/flow'
-import { getMaintenanceHeaders } from './framework/maintenance'
-import { createE2EDatabaseClient } from './framework/services'
+import { createE2EDatabase, queryRow } from './framework/services'
 import { trpcMutation } from './framework/trpc'
 
 const apiKeySchema = z.object({ apiKey: z.object({ key: z.string().min(1) }) })
 const workspaceCreateResponseSchema = z.object({ organization: z.object({ id: z.string() }) })
 
 async function getInvitationId(email: string): Promise<string> {
-  const database = createE2EDatabaseClient()
+  const database = createE2EDatabase()
   try {
-    const invitation = await database.invitation.findFirst({
-      orderBy: { createdAt: 'desc' },
-      select: { id: true },
-      where: { email, status: 'pending' },
-    })
+    const invitation = await queryRow<{ id: string }>(
+      database,
+      `SELECT id FROM invitation WHERE email = $1 AND status = 'pending'
+       ORDER BY "createdAt" DESC LIMIT 1`,
+      [email]
+    )
     if (!invitation) throw new Error('Invitation was not created.')
     return invitation.id
   } finally {
-    await database.$disconnect()
+    await database.end()
   }
 }
 
 async function getMember(email: string): Promise<{ id: string; role: string }> {
-  const database = createE2EDatabaseClient()
+  const database = createE2EDatabase()
   try {
-    const member = await database.member.findFirst({
-      select: { id: true, role: true },
-      where: { user: { is: { email } } },
-    })
+    const member = await queryRow<{ id: string; role: string }>(
+      database,
+      `SELECT member.id, member.role FROM member
+       JOIN "user" ON "user".id = member."userId"
+       WHERE "user".email = $1 LIMIT 1`,
+      [email]
+    )
     if (!member) throw new Error('Workspace member was not found.')
     return member
   } finally {
-    await database.$disconnect()
-  }
-}
-
-async function getReleaseOutboxEvent(organizationId: string) {
-  const database = createE2EDatabaseClient()
-  try {
-    const event = await database.outboxEvent.findFirst({
-      orderBy: { createdAt: 'desc' },
-      select: { attempts: true, deliveredAt: true },
-      where: { aggregateType: 'release', organizationId, type: 'release.created' },
-    })
-    if (!event) throw new Error('Release outbox event was not created.')
-    return event
-  } finally {
-    await database.$disconnect()
+    await database.end()
   }
 }
 
@@ -170,21 +158,8 @@ test('an MFA-protected owner can schedule and restore workspace deletion', async
     (await browserRequest(page, '/api/tenant/releases', { headers: { 'x-api-key': apiKey } }))
       .status
   ).toBe(403)
-  expect(
-    (
-      await requestJson(
-        page,
-        '/api/internal/tenant-outbox/dispatch',
-        {},
-        'POST',
-        getMaintenanceHeaders()
-      )
-    ).status
-  ).toBe(200)
-  expect(await getReleaseOutboxEvent(organizationId)).toMatchObject({
-    attempts: 0,
-    deliveredAt: null,
-  })
+  // Outbox pausing while deletion is scheduled is the Go maintenance worker's
+  // job (services/internal/maintenance, TestOutboxTenantClaimsDeadLettersAndPausedWorkspaces).
 
   // Clicking as soon as the button paints races hydration: the trace for the
   // CI failure shows the click landing (the button is [active]) while no
@@ -226,21 +201,6 @@ test('an MFA-protected owner can schedule and restore workspace deletion', async
   // happened. Wait for the restored content instead.
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible({ timeout: 45_000 })
   expect((await browserRequest(page, '/api/tenant/releases')).status).toBe(200)
-  expect(
-    (
-      await requestJson(
-        page,
-        '/api/internal/tenant-outbox/dispatch',
-        {},
-        'POST',
-        getMaintenanceHeaders()
-      )
-    ).status
-  ).toBe(200)
-  expect(await getReleaseOutboxEvent(organizationId)).toMatchObject({
-    attempts: 1,
-    deliveredAt: expect.any(Date),
-  })
 })
 
 test('member mutations cannot target another workspace membership', async ({

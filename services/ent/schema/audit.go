@@ -29,6 +29,8 @@ func (AuditLog) Fields() []ent.Field {
 		field.Enum("outcome").StorageKey("outcome").Values("SUCCEEDED", "FAILED", "DENIED").Default("SUCCEEDED"),
 		field.String("entity_type").StorageKey("entityType"),
 		field.String("entity_id").StorageKey("entityId").Optional().Nillable(),
+		field.String("ip_hash").StorageKey("ipHash").Optional().Nillable(),
+		field.String("user_agent_summary").StorageKey("userAgentSummary").Optional().Nillable(),
 		field.JSON("metadata", map[string]any{}).StorageKey("metadata").Optional(),
 		field.String("search_text").StorageKey("searchText").Default(""),
 	}
@@ -51,6 +53,12 @@ func (AuditDrain) Fields() []ent.Field {
 		field.String("id").StorageKey("id").Immutable(),
 		field.String("organization_id").StorageKey("organizationId").Immutable(),
 		field.Bool("enabled").StorageKey("enabled").Default(true),
+		field.String("name").StorageKey("name"),
+		field.Enum("provider").StorageKey("provider").Values("GENERIC", "DATADOG", "SPLUNK").Default("GENERIC"),
+		field.String("endpoint").StorageKey("endpoint"),
+		field.String("encrypted_signing_secret").StorageKey("encryptedSigningSecret").Sensitive(),
+		field.Time("created_at").StorageKey("createdAt").Default(time.Now).Immutable(),
+		field.Time("updated_at").StorageKey("updatedAt").Default(time.Now).UpdateDefault(time.Now),
 	}
 }
 

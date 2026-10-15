@@ -41,7 +41,7 @@ function getComposeLogs(): string {
       '--tail',
       '300',
       'app',
-      'storage',
+      'publishing-backend',
     ],
     { cwd: process.cwd(), encoding: 'utf8' }
   )

@@ -54,7 +54,7 @@ func TestDirectPublisherUsesSharedPublicSchemaWithoutLegacyPost(t *testing.T) {
 		_, _ = productDB.SQL.ExecContext(ctx, `DELETE FROM "Organization" WHERE id=$1`, socialOrg)
 		_, _ = productDB.SQL.ExecContext(ctx, `DELETE FROM organization WHERE id=$1`, productOrg)
 	})
-	p, _, signer, fakeProvider, input := directFixture()
+	p, signer, fakeProvider, input := directFixture()
 	p.bindings = publishing.NewRepository(productDB.Client)
 	p.integrations = EntIntegrationLookup{Client: socialDB.Client}
 	input.OrganizationID, input.DestinationID = productOrg, destination

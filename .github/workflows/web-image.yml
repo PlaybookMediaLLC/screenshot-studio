@@ -7,7 +7,6 @@ on:
       - app/**
       - components/**
       - lib/**
-      - prisma/**
       - public/**
       - Dockerfile
       - package.json
@@ -17,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       deploy:
-        description: Deploy the web image and run the reviewed predeploy migration
+        description: Deploy the web image (deploy the backend first; it owns migrations)
         type: boolean
         default: false
 
@@ -101,7 +100,7 @@ jobs:
         with:
           token: ${{ secrets.DIGITALOCEAN_PRODUCTION_TOKEN }}
           version: 1.180.0
-      - name: Deploy web and its migration job
+      - name: Deploy web
         run: |
           set -euo pipefail
           umask 077
@@ -117,7 +116,6 @@ jobs:
           doctl apps update "$APP_ID" --spec "$work/spec.json" --wait > "$work/update.log"
           doctl apps get "$APP_ID" -o json > "$work/after.json"
           test "$(jq -r '.[0].spec.services[] | select(.name == "web") | .image.tag' "$work/after.json")" = "web-$GITHUB_SHA"
-          test "$(jq -r '.[0].spec.jobs[] | select(.name == "web-migrate") | .image.tag' "$work/after.json")" = "web-$GITHUB_SHA"
           test "$(jq -r '.[0].active_deployment.phase // empty' "$work/after.json")" = ACTIVE
           curl --fail --silent --show-error --retry 6 --retry-delay 5 https://shots.oppulence.io/api/health > /dev/null
           echo "Web active: https://cloud.digitalocean.com/apps/$APP_ID" >> "$GITHUB_STEP_SUMMARY"

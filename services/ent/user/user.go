@@ -3,6 +3,8 @@
 package user
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 )
 
@@ -15,12 +17,20 @@ const (
 	FieldName = "name"
 	// FieldEmail holds the string denoting the email field in the database.
 	FieldEmail = "email"
+	// FieldImage holds the string denoting the image field in the database.
+	FieldImage = "image"
 	// FieldEmailVerified holds the string denoting the email_verified field in the database.
 	FieldEmailVerified = "emailVerified"
+	// FieldTwoFactorEnabled holds the string denoting the two_factor_enabled field in the database.
+	FieldTwoFactorEnabled = "twoFactorEnabled"
 	// FieldBanned holds the string denoting the banned field in the database.
 	FieldBanned = "banned"
 	// FieldBanExpires holds the string denoting the ban_expires field in the database.
 	FieldBanExpires = "banExpires"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "createdAt"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updatedAt"
 	// Table holds the table name of the user in the database.
 	Table = "user"
 )
@@ -30,9 +40,13 @@ var Columns = []string{
 	FieldID,
 	FieldName,
 	FieldEmail,
+	FieldImage,
 	FieldEmailVerified,
+	FieldTwoFactorEnabled,
 	FieldBanned,
 	FieldBanExpires,
+	FieldCreatedAt,
+	FieldUpdatedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -48,6 +62,12 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultEmailVerified holds the default value on creation for the "email_verified" field.
 	DefaultEmailVerified bool
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
 )
 
 // OrderOption defines the ordering options for the User queries.
@@ -68,9 +88,19 @@ func ByEmail(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEmail, opts...).ToFunc()
 }
 
+// ByImage orders the results by the image field.
+func ByImage(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldImage, opts...).ToFunc()
+}
+
 // ByEmailVerified orders the results by the email_verified field.
 func ByEmailVerified(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEmailVerified, opts...).ToFunc()
+}
+
+// ByTwoFactorEnabled orders the results by the two_factor_enabled field.
+func ByTwoFactorEnabled(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTwoFactorEnabled, opts...).ToFunc()
 }
 
 // ByBanned orders the results by the banned field.
@@ -81,4 +111,14 @@ func ByBanned(opts ...sql.OrderTermOption) OrderOption {
 // ByBanExpires orders the results by the ban_expires field.
 func ByBanExpires(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBanExpires, opts...).ToFunc()
+}
+
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }

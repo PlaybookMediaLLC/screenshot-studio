@@ -1,0 +1,199 @@
+package media
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"net/url"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go"
+)
+
+// S3Store keeps media bytes outside PostgreSQL while asset authorization and
+// object keys stay in the canonical product database. It works with R2 and
+// the S3-compatible object store in local Compose.
+type S3Store struct {
+	bucket         string
+	client         *s3.Client
+	signer         *s3.PresignClient
+	deliverySigner *s3.PresignClient
+}
+
+func NewS3Store(endpoint, browserEndpoint, region, bucket, accessKey, secretKey string) (*S3Store, error) {
+	if endpoint == "" || bucket == "" || accessKey == "" || secretKey == "" {
+		return nil, errors.New("R2 endpoint, bucket, access key, and secret key are required")
+	}
+	if region == "" {
+		region = "auto"
+	}
+	if browserEndpoint == "" {
+		browserEndpoint = endpoint
+	}
+	for _, raw := range []string{endpoint, browserEndpoint} {
+		u, err := url.Parse(raw)
+		if err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") || u.RawQuery != "" || u.Fragment != "" {
+			return nil, errors.New("R2 endpoint must be an http(s) URL")
+		}
+	}
+	client := func(base string) *s3.Client {
+		return s3.New(s3.Options{
+			BaseEndpoint: aws.String(strings.TrimRight(base, "/")),
+			Region:       region, UsePathStyle: true,
+			Credentials:                credentials.NewStaticCredentialsProvider(accessKey, secretKey, ""),
+			RequestChecksumCalculation: aws.RequestChecksumCalculationWhenRequired,
+			ResponseChecksumValidation: aws.ResponseChecksumValidationWhenRequired,
+		})
+	}
+	internal := client(endpoint)
+	return &S3Store{bucket: bucket, client: internal, signer: s3.NewPresignClient(client(browserEndpoint)),
+		deliverySigner: s3.NewPresignClient(internal)}, nil
+}
+
+func NewS3StoreFromEnvironment() (*S3Store, error) {
+	if os.Getenv("R2_ENDPOINT") == "" && os.Getenv("R2_BUCKET_NAME") == "" {
+		return nil, nil
+	}
+	return NewS3Store(os.Getenv("R2_ENDPOINT"), os.Getenv("R2_BROWSER_ENDPOINT"),
+		os.Getenv("R2_REGION"), os.Getenv("R2_BUCKET_NAME"),
+		os.Getenv("R2_ACCESS_KEY_ID"), os.Getenv("R2_SECRET_ACCESS_KEY"))
+}
+
+// SignUpload signs a write-once PUT: the caller must send If-None-Match: *,
+// so a replayed URL cannot overwrite bytes that were already uploaded.
+func (s *S3Store) SignUpload(ctx context.Context, key, mediaType string) (string, error) {
+	request, err := s.signer.PresignPutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(s.bucket), Key: aws.String(key), ContentType: aws.String(mediaType),
+		IfNoneMatch: aws.String("*"),
+	}, s3.WithPresignExpires(2*time.Minute))
+	if err != nil {
+		return "", fmt.Errorf("sign media upload: %w", err)
+	}
+	return request.URL, nil
+}
+
+func (s *S3Store) SignDownload(ctx context.Context, key string) (string, error) {
+	request, err := s.signer.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket), Key: aws.String(key),
+	}, s3.WithPresignExpires(2*time.Minute))
+	if err != nil {
+		return "", fmt.Errorf("sign media download: %w", err)
+	}
+	return request.URL, nil
+}
+
+// SignDelivery is called only when a scheduled post is due. Providers can
+// fetch this private object for the next 24 hours without a stored public URL.
+func (s *S3Store) SignDelivery(ctx context.Context, key string) (string, error) {
+	request, err := s.deliverySigner.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket), Key: aws.String(key),
+	}, s3.WithPresignExpires(24*time.Hour))
+	if err != nil {
+		return "", fmt.Errorf("sign media delivery: %w", err)
+	}
+	return request.URL, nil
+}
+
+func (s *S3Store) Exists(ctx context.Context, key string) (bool, error) {
+	_, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{Bucket: aws.String(s.bucket), Key: aws.String(key)})
+	if err == nil {
+		return true, nil
+	}
+	var apiError smithy.APIError
+	if errors.As(err, &apiError) && (apiError.ErrorCode() == "NotFound" || apiError.ErrorCode() == "NoSuchKey") {
+		return false, nil
+	}
+	return false, fmt.Errorf("check media object: %w", err)
+}
+
+func (s *S3Store) Delete(ctx context.Context, key string) error {
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{Bucket: aws.String(s.bucket), Key: aws.String(key)})
+	return err
+}
+
+func (s *S3Store) Read(ctx context.Context, key string) ([]byte, error) {
+	response, err := s.client.GetObject(ctx, &s3.GetObjectInput{Bucket: aws.String(s.bucket), Key: aws.String(key)})
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	const maxMediaBytes = 50 << 20
+	content, err := io.ReadAll(io.LimitReader(response.Body, maxMediaBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(content) > maxMediaBytes {
+		return nil, fmt.Errorf("media object exceeds %d bytes", maxMediaBytes)
+	}
+	return content, nil
+}
+
+func (s *S3Store) Put(ctx context.Context, key, mediaType string, body io.Reader) error {
+	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(s.bucket), Key: aws.String(key), ContentType: aws.String(mediaType), Body: body,
+	})
+	return err
+}
+
+var _ interface {
+	SignUpload(context.Context, string, string) (string, error)
+	SignDownload(context.Context, string) (string, error)
+	Exists(context.Context, string) (bool, error)
+} = (*S3Store)(nil)
+
+// TenantObjects is used by the publisher and maintenance worker. It checks
+// ownership before touching object storage, including deletion retries.
+type TenantObjects struct{ store *S3Store }
+
+func NewTenantObjects(store *S3Store) *TenantObjects { return &TenantObjects{store: store} }
+
+func validTenantObjectKey(organizationID, key string) bool {
+	if !safeSegment(organizationID) || !strings.HasPrefix(key, "org/"+organizationID+"/") {
+		return false
+	}
+	for _, part := range strings.Split(key, "/") {
+		if !safeSegment(part) {
+			return false
+		}
+	}
+	return true
+}
+
+func safeSegment(value string) bool {
+	if value == "" || value == "." || value == ".." {
+		return false
+	}
+	for _, r := range value {
+		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '.' && r != '_' && r != '-' {
+			return false
+		}
+	}
+	return true
+}
+
+func (o *TenantObjects) Read(ctx context.Context, organizationID, key string) ([]byte, error) {
+	if !validTenantObjectKey(organizationID, key) {
+		return nil, errors.New("media object is outside the active organization")
+	}
+	return o.store.Read(ctx, key)
+}
+
+func (o *TenantObjects) Delete(ctx context.Context, organizationID, key string) error {
+	if !validTenantObjectKey(organizationID, key) {
+		return errors.New("media object is outside the active organization")
+	}
+	return o.store.Delete(ctx, key)
+}
+
+func (o *TenantObjects) SignDelivery(ctx context.Context, organizationID, key string) (string, error) {
+	if !validTenantObjectKey(organizationID, key) {
+		return "", errors.New("media object is outside the active organization")
+	}
+	return o.store.SignDelivery(ctx, key)
+}

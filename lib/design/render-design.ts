@@ -2,7 +2,7 @@ import 'server-only'
 
 import type { TenantContext } from '@/lib/auth/access'
 import { DESIGN_RENDER_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
-import { prisma } from '@/lib/db'
+import { backendSDK, orNull } from '@/lib/backend/sdk'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { readTenantObject } from '@/lib/storage/client'
 import { storeGeneratedAsset } from '@/lib/tenant/assets'
@@ -40,15 +40,16 @@ export type TenantRender = {
   width: number
 }
 
-async function assetFingerprints(organizationId: string, document: DesignDocument) {
+async function assetFingerprints(tenant: TenantContext, document: DesignDocument) {
   const ids = getDesignAssetIds(document)
   if (ids.length === 0) return {}
-  const assets = await prisma.asset.findMany({
-    select: { id: true, sha256: true, updatedAt: true },
-    where: { id: { in: ids }, organizationId },
-  })
+  const { assets } = await backendSDK(tenant).findAssets({ ids })
+  // Normalize the backend's timestamp to Date#toISOString so render keys stay stable.
   return Object.fromEntries(
-    assets.map((asset) => [asset.id, asset.sha256 ?? `updated:${asset.updatedAt.toISOString()}`])
+    assets.map((asset) => [
+      asset.id,
+      asset.sha256 ?? `updated:${new Date(asset.updatedAt).toISOString()}`,
+    ])
   )
 }
 
@@ -73,35 +74,19 @@ export async function renderDesignForTenant(
   const { organizationId } = tenant
   const output = { format: options.format ?? 'png', scale: options.scale ?? 2 } as const
   const renderKey = designRenderKey({
-    assets: await assetFingerprints(organizationId, design.document),
+    assets: await assetFingerprints(tenant, design.document),
     document: design.document,
     options: output,
   })
 
-  const hit = await prisma.design.findFirst({
-    orderBy: { updatedAt: 'desc' },
-    select: {
-      renderedAsset: {
-        select: {
-          height: true,
-          id: true,
-          mediaType: true,
-          objectKey: true,
-          status: true,
-          width: true,
-        },
-      },
-    },
-    where: { organizationId, renderKey, renderedAssetId: { not: null } },
-  })
-  const cached = hit?.renderedAsset
+  const cached = await orNull(backendSDK(tenant).findDesignRender(renderKey))
   if (cached?.status === 'UPLOADED' && cached.width && cached.height) {
     await setDesignRender(tenant, design.id, cached.id, renderKey)
     return {
-      asset: cached,
+      asset: { id: cached.id, mediaType: cached.mediaType, objectKey: cached.objectKey },
       cached: true,
       height: cached.height,
-      readBytes: () => readTenantObject({ objectKey: cached.objectKey, organizationId }),
+      readBytes: () => readTenantObject({ assetId: cached.id, tenant }),
       width: cached.width,
     }
   }

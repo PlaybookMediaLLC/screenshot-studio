@@ -16,7 +16,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       apiKeyScope: 'artifact:read',
       permission: 'artifact:read',
     })
-    const releases = await listReleases(context.organizationId, input.limit)
+    const releases = await listReleases(context, input.limit)
     return NextResponse.json({ releases })
   } catch (error) {
     return getRouteErrorResponse(error)

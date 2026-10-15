@@ -15,7 +15,9 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
@@ -46,27 +48,168 @@ type WorkflowScheduler interface {
 	Start(context.Context, temporalpublishing.ScheduleInput) error
 }
 
+type ConfigurationStore interface {
+	GetCampaignAsset(context.Context, product.Actor, string, string) (*product.CampaignAssetLink, error)
+	LinkCampaignAsset(context.Context, product.Actor, string, string, product.LinkCampaignAssetInput) (*product.CampaignAssetLink, error)
+	SaveCampaignCopy(context.Context, product.Actor, string, product.SaveCampaignCopyInput) error
+	ReplaceDesign(context.Context, product.Actor, string, product.ReplaceDesignInput) error
+	GetLaunchCampaign(context.Context, product.Actor, string) (*product.LaunchCampaign, error)
+	GetLaunchBrand(context.Context, product.Actor) (*ent.BrandKit, *ent.BrandProfile, error)
+	ListLaunchSpecs(context.Context, product.Actor, string) ([]product.LaunchSpec, error)
+	GetLaunchSpec(context.Context, product.Actor, string) (*product.LaunchSpec, error)
+	SaveLaunchSpec(context.Context, product.Actor, string, product.SaveLaunchSpecInput) (*product.LaunchSpec, error)
+	ApproveLaunchSpec(context.Context, product.Actor, string) (*product.LaunchSpec, error)
+	ListLaunchPlans(context.Context, product.Actor, string) ([]product.LaunchPlan, error)
+	GetLaunchPlan(context.Context, product.Actor, string, string) (*product.LaunchPlan, error)
+	SaveLaunchPlan(context.Context, product.Actor, string, product.SaveLaunchPlanInput) (*product.LaunchPlan, error)
+	ApproveLaunchPlan(context.Context, product.Actor, string) (*product.LaunchPlan, error)
+	SaveLaunchPosts(context.Context, product.Actor, string, product.SaveLaunchPostsInput) (*product.LaunchPostsResult, error)
+	CreateLaunchRevision(context.Context, product.Actor, string, product.CreateLaunchRevisionInput) (*product.LaunchRevision, error)
+	ListLaunchRevisions(context.Context, product.Actor, string) ([]product.LaunchRevision, error)
+	GetLaunchRevision(context.Context, product.Actor, string) (*product.LaunchRevision, error)
+	ApplyLaunchRevision(context.Context, product.Actor, string, product.ApplyLaunchRevisionInput) (*product.LaunchRevisionApplied, error)
+	DiscardLaunchRevision(context.Context, product.Actor, string) (*product.LaunchRevision, error)
+	SetLaunchDesignCritique(context.Context, product.Actor, string, map[string]any) error
+	GetLaunchPreferences(context.Context, product.Actor) (*product.LaunchPreferenceExamples, error)
+	StartLaunchRun(context.Context, product.Actor, string, string) (*product.LaunchRunRecord, error)
+	FinishLaunchRun(context.Context, product.Actor, string, product.FinishLaunchRunInput) error
+	GetLaunchRun(context.Context, product.Actor, string) (*product.LaunchRunRecord, error)
+	ListLaunchRuns(context.Context, product.Actor, string) ([]product.LaunchRunRecord, error)
+	ListAuditDrains(context.Context, product.Actor) ([]product.AuditDrainRecord, error)
+	CreateAuditDrain(context.Context, product.Actor, product.CreateAuditDrainInput, product.AuditRequest) (*product.AuditDrainRecord, error)
+	DeleteAuditDrain(context.Context, product.Actor, string, product.AuditRequest) error
+	GetAuditRetention(context.Context, product.Actor) (*product.AuditRetention, error)
+	UpdateAuditRetention(context.Context, product.Actor, product.AuditRetention, product.AuditRequest) (*product.AuditRetention, error)
+	GetWebhookSource(context.Context, string) (*product.WebhookSource, error)
+	IngestSourceRelease(context.Context, product.Actor, product.IngestSourceReleaseInput) (*product.SourceReleaseIngest, error)
+	ReplayOutboxEvent(context.Context, string) error
+	SyncWorkspaceEntitlement(context.Context, product.EntitlementSyncInput) (*product.EntitlementSyncResult, error)
+	GetWorkspaceEntitlement(context.Context, product.Actor) (*product.WorkspaceEntitlementRecord, error)
+	ListAnnouncements(context.Context, product.Actor, int) ([]product.AnnouncementListItem, error)
+	GetAudienceReach(context.Context, product.Actor) (int, error)
+	ScheduleAnnouncement(context.Context, product.Actor, product.ScheduleAnnouncementInput) (*product.AnnouncementSchedule, error)
+	CancelAnnouncement(context.Context, product.Actor, string) (bool, error)
+	ListAudienceSubscribers(context.Context, product.Actor, bool, int) ([]product.AudienceSubscriberRecord, error)
+	AddAudienceSubscribers(context.Context, product.Actor, []product.AudienceSubscriberInput) (*product.AudienceAddition, error)
+	UnsubscribeAudienceMember(context.Context, product.Actor, string) error
+	GetScreenshotCache(context.Context, string) (*product.ScreenshotCacheEntry, error)
+	GetScreenshotCacheObject(context.Context, string) ([]byte, error)
+	PutScreenshotCacheObject(context.Context, string, []byte) error
+	PutScreenshotCache(context.Context, string, product.ScreenshotCacheInput) (*product.ScreenshotCacheEntry, error)
+	DeleteScreenshotCache(context.Context, string) error
+	ListScreenshotCache(context.Context, product.ScreenshotCacheFilter) ([]product.ScreenshotCacheEntry, error)
+	PurgeScreenshotCache(context.Context, product.ScreenshotCacheFilter) (int, error)
+	FindAssets(context.Context, product.Actor, []string, string) ([]product.RenderAsset, error)
+	FindDesignRender(context.Context, product.Actor, string) (*product.RenderAsset, error)
+	ExecuteAuthStore(context.Context, authstore.Request) (*authstore.Result, error)
+	RecordAuthEvent(context.Context, product.AuthEvent) error
+	AppendAuditEvent(context.Context, product.Actor, product.AuditEventInput) error
+	WorkspaceOperational(context.Context, string) (bool, error)
+	Authorize(context.Context, product.Actor) error
+	AuthorizeRead(context.Context, product.Actor) error
+	AuthorizeSession(context.Context, product.Actor) error
+	AuthorizeSensitive(context.Context, product.Actor) error
+	ListBrandKits(context.Context, string) ([]*ent.BrandKit, error)
+	CreateBrandKit(context.Context, product.Actor, product.CreateBrandKitInput) (*ent.BrandKit, error)
+	GetBrandProfile(context.Context, string) (*ent.BrandProfile, error)
+	UpsertBrandProfile(context.Context, product.Actor, product.UpsertBrandProfileInput) (*ent.BrandProfile, error)
+	CreateSourceApp(context.Context, product.Actor, product.CreateSourceAppInput) (*ent.SourceApp, error)
+	ListProductSurfaces(context.Context, string) ([]*ent.ProductSurface, error)
+	CreateProductSurface(context.Context, product.Actor, product.CreateProductSurfaceInput) (*ent.ProductSurface, error)
+	UpdateProductSurface(context.Context, product.Actor, string, product.UpdateProductSurfaceInput) (*ent.ProductSurface, error)
+	DeleteProductSurface(context.Context, product.Actor, string) error
+	CreateWorkspace(context.Context, product.Actor, product.CreateWorkspaceInput) (*product.Workspace, error)
+	ListWorkspaces(context.Context, product.Actor) ([]product.ListedWorkspace, error)
+	SetActiveWorkspace(context.Context, product.Actor, string) error
+	GetWorkspace(context.Context, string) (*product.Workspace, error)
+	UpdateWorkspace(context.Context, product.Actor, product.UpdateWorkspaceInput) (*product.Workspace, error)
+	ListMembers(context.Context, string) ([]product.WorkspaceMember, error)
+	ListInvitations(context.Context, string) ([]product.WorkspaceInvitation, error)
+	UpdateMemberRole(context.Context, product.Actor, string, string) (*product.WorkspaceMember, error)
+	RemoveMember(context.Context, product.Actor, string) error
+	LeaveWorkspace(context.Context, product.Actor) error
+	TransferOwnership(context.Context, product.Actor, string) error
+	RequestDeletion(context.Context, product.Actor, string) (*ent.WorkspaceDeletion, error)
+	CancelDeletion(context.Context, product.Actor) (*ent.WorkspaceDeletion, error)
+	InviteMember(context.Context, product.Actor, string, string) (*product.InvitationDetail, error)
+	ResendInvitation(context.Context, product.Actor, string) (*product.InvitationDetail, error)
+	RevokeInvitation(context.Context, product.Actor, string) error
+	Bootstrap(context.Context, product.Actor) (*product.BootstrapSnapshot, error)
+	GetCurrentUser(context.Context, product.Actor) (*product.CurrentUser, error)
+	GetActiveAccess(context.Context, product.Actor) (*product.ActiveAccess, error)
+	VerifySupportGrant(context.Context, product.Actor, string, string) (*product.SupportGrantAccess, error)
+	RequireEnterpriseFeature(context.Context, product.Actor, string) error
+	ListAssets(context.Context, product.Actor, int, string) (*product.AssetPage, error)
+	DeleteAsset(context.Context, product.Actor, string) (product.AssetDeletionResult, error)
+	SignAssetUpload(context.Context, product.Actor, product.AssetUploadInput) (*product.AssetUploadResult, error)
+	CompleteAssetUpload(context.Context, product.Actor, string, *string) (*product.AssetRecord, error)
+	SignAssetDownload(context.Context, product.Actor, string) (string, error)
+	ReadAsset(context.Context, product.Actor, string) ([]byte, string, error)
+	StoreGeneratedAsset(context.Context, product.Actor, product.GeneratedAssetInput) (*product.GeneratedAssetRecord, error)
+	ConsumeWorkspaceQuota(context.Context, product.Actor, string, int) (int, error)
+	ListReleases(context.Context, product.Actor, int) ([]product.ReleaseListItem, error)
+	GetRelease(context.Context, product.Actor, string) (*product.ReleaseDetail, error)
+	CreateRelease(context.Context, product.Actor, product.CreateReleaseInput) (*product.ReleaseCreation, error)
+	UpdateRelease(context.Context, product.Actor, string, product.UpdateReleaseInput) (*product.ReleaseDetail, error)
+	ListCampaigns(context.Context, product.Actor) ([]product.CampaignItem, error)
+	GetCampaign(context.Context, product.Actor, string) (*product.CampaignDetail, error)
+	CreateCampaign(context.Context, product.Actor, product.CreateCampaignInput) (*product.CampaignDetail, error)
+	TransitionCampaign(context.Context, product.Actor, string, string) (*product.CampaignTransition, error)
+	TransitionCampaignPosts(context.Context, product.Actor, string, product.CampaignPostDecision) (*product.CampaignPostTransition, error)
+	ScheduleCampaignPost(context.Context, product.Actor, string, string, product.ScheduleCampaignPostInput) (*product.ScheduleCampaignPostResult, error)
+	CreateDesign(context.Context, product.Actor, product.CreateDesignInput) (*product.DesignRecord, error)
+	GetDesign(context.Context, product.Actor, string) (*product.DesignRecord, error)
+	UpdateDesignDocument(context.Context, product.Actor, string, map[string]any) error
+	SetDesignRender(context.Context, product.Actor, string, string, *string) error
+	ListCampaignDesigns(context.Context, product.Actor, string) ([]product.DesignRecord, error)
+	GetEntitlementSummary(context.Context, product.Actor) (*product.EntitlementSummary, error)
+	GetFeatureDecision(context.Context, product.Actor, string) (*product.FeatureDecision, error)
+	ListCreativeTemplates(context.Context, product.Actor) ([]product.CreativeTemplateRecord, error)
+	CreateCreativeTemplate(context.Context, product.Actor, product.CreateCreativeTemplateInput) (*product.CreativeTemplateRecord, error)
+	CreateCreativeVariant(context.Context, product.Actor, product.CreateCreativeVariantInput) (*product.CreativeVariantRecord, error)
+	DecideCreativeVariant(context.Context, product.Actor, string, product.CreativeApprovalInput) (*product.CreativeApprovalDecision, error)
+	ListAuditLogs(context.Context, product.Actor, product.AuditLogQuery) (*product.AuditLogPage, error)
+}
+
 type Server struct {
-	scheduler    WorkflowScheduler
-	serviceToken string
-	store        Store
-	verifier     DestinationVerifier
+	configuration ConfigurationStore
+	scheduler     WorkflowScheduler
+	serviceToken  string
+	store         Store
+	verifier      DestinationVerifier
 }
 
 func New(store Store, scheduler WorkflowScheduler, verifier DestinationVerifier, serviceToken string) http.Handler {
-	s := &Server{store: store, scheduler: scheduler, verifier: verifier, serviceToken: serviceToken}
+	return NewWithConfiguration(store, scheduler, verifier, serviceToken, nil)
+}
+
+func NewWithConfiguration(store Store, scheduler WorkflowScheduler, verifier DestinationVerifier, serviceToken string, configuration ConfigurationStore) http.Handler {
+	s := &Server{store: store, scheduler: scheduler, verifier: verifier, serviceToken: serviceToken, configuration: configuration}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.health)
 	mux.HandleFunc("GET /readyz", s.ready)
 	mux.Handle("GET /v1/channel-connections", s.authenticate(http.HandlerFunc(s.listConnections)))
 	mux.Handle("POST /v1/channel-connections", s.authenticate(http.HandlerFunc(s.createConnection)))
 	mux.Handle("POST /v1/social-oauth/begin", s.authenticate(http.HandlerFunc(s.beginSocialOAuth)))
+	mux.Handle("POST /v1/social-oauth/exchange", s.authenticate(http.HandlerFunc(s.exchangeSocialOAuth)))
+	mux.Handle("POST /v1/social-oauth/page", s.authenticate(http.HandlerFunc(s.selectSocialOAuthPage)))
 	mux.Handle("POST /v1/social-oauth/verify", s.authenticate(http.HandlerFunc(s.verifySocialOAuth)))
 	mux.Handle("POST /v1/social-oauth/remember", s.authenticate(http.HandlerFunc(s.rememberSocialOAuth)))
 	mux.Handle("POST /v1/social-oauth/complete", s.authenticate(http.HandlerFunc(s.completeSocialOAuth)))
 	mux.Handle("GET /v1/scheduled-posts", s.authenticate(http.HandlerFunc(s.listScheduledPosts)))
 	mux.Handle("POST /v1/scheduled-posts", s.authenticate(http.HandlerFunc(s.createScheduledPost)))
 	mux.Handle("POST /v1/scheduled-posts/{id}/cancel", s.authenticate(http.HandlerFunc(s.cancelScheduledPost)))
+	if configuration != nil {
+		s.registerConfiguration(mux)
+		s.registerWorkspace(mux)
+		s.registerInternal(mux)
+		s.registerCampaignAssets(mux)
+		s.registerLaunch(mux)
+		s.registerPlatformControls(mux)
+		s.registerAnnouncements(mux)
+		s.registerScreenshots(mux)
+		s.registerRender(mux)
+	}
 	return requestLogging(mux)
 }
 
@@ -89,25 +232,79 @@ func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) authenticate(next http.Handler) http.Handler {
+	return s.authenticateWithOptions(next, true, true, func(ctx context.Context, actor product.Actor) error {
+		return s.store.AuthorizePublishing(ctx, actor.OrganizationID, actor.UserID, actor.SessionID)
+	})
+}
+
+// authenticateProduct admits a session, API key, support grant, or service
+// caller for the named workspace. Each request is reauthorized in the backend.
+func (s *Server) authenticateProduct(next http.Handler) http.Handler {
+	return s.authenticateWithOptions(next, true, false, s.configuration.AuthorizeRead)
+}
+
+func (s *Server) authenticateSession(next http.Handler) http.Handler {
+	return s.authenticateWithOptions(next, false, true, s.configuration.AuthorizeSession)
+}
+
+// authenticateService admits only the web facade itself, for operations that
+// run before a session exists (the auth adapter) or on its behalf.
+func (s *Server) authenticateService(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if s.serviceToken == "" {
-			writeError(w, http.StatusServiceUnavailable, "service authentication is not configured")
+		if s.serviceAuthenticated(w, r) {
+			next.ServeHTTP(w, r)
+		}
+	})
+}
+
+func (s *Server) serviceAuthenticated(w http.ResponseWriter, r *http.Request) bool {
+	if s.serviceToken == "" {
+		writeError(w, http.StatusServiceUnavailable, "service authentication is not configured")
+		return false
+	}
+	provided := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if subtle.ConstantTimeCompare([]byte(provided), []byte(s.serviceToken)) != 1 {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return false
+	}
+	return true
+}
+
+// requestActor reads the principal the web facade forwards. The service token
+// authenticates the facade; these headers only name who it acts for, and the
+// backend rechecks that principal before any tenant operation.
+func requestActor(r *http.Request) product.Actor {
+	return product.Actor{
+		OrganizationID: r.Header.Get("X-Organization-ID"),
+		UserID:         r.Header.Get("X-User-ID"),
+		SessionID:      r.Header.Get("X-Session-ID"),
+		RequestID:      r.Header.Get("X-Request-ID"),
+		Kind:           r.Header.Get("X-Principal-Kind"),
+		KeyID:          r.Header.Get("X-API-Key-ID"),
+		GrantID:        r.Header.Get("X-Support-Grant-ID"),
+		Display:        r.Header.Get("X-Principal-Display"),
+	}
+}
+
+func (s *Server) authenticateWithOptions(next http.Handler, organizationRequired, sessionOnly bool, authorize func(context.Context, product.Actor) error) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !s.serviceAuthenticated(w, r) {
 			return
 		}
-		provided := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-		if subtle.ConstantTimeCompare([]byte(provided), []byte(s.serviceToken)) != 1 {
-			writeError(w, http.StatusUnauthorized, "unauthorized")
-			return
-		}
-		if r.Header.Get("X-Organization-ID") == "" {
+		actor := requestActor(r)
+		if organizationRequired && actor.OrganizationID == "" {
 			writeError(w, http.StatusBadRequest, "X-Organization-ID is required")
 			return
 		}
-		if r.Header.Get("X-User-ID") == "" || r.Header.Get("X-Session-ID") == "" {
+		if actor.IsSession() && (actor.UserID == "" || actor.SessionID == "") {
 			writeError(w, http.StatusUnauthorized, "a publishing session is required")
 			return
 		}
-		if err := s.store.AuthorizePublishing(r.Context(), r.Header.Get("X-Organization-ID"), r.Header.Get("X-User-ID"), r.Header.Get("X-Session-ID")); err != nil {
+		if sessionOnly && !actor.IsSession() {
+			writeError(w, http.StatusUnauthorized, "a signed-in session is required")
+			return
+		}
+		if err := authorize(r.Context(), actor); err != nil {
 			writeStoreError(w, err)
 			return
 		}
@@ -359,7 +556,13 @@ func decodeJSON(r *http.Request, target any) error {
 }
 
 func writeStoreError(w http.ResponseWriter, err error) {
+	var notEntitled *product.FeatureNotEntitledError
 	switch {
+	case errors.As(err, &notEntitled):
+		writeJSON(w, http.StatusForbidden, map[string]string{
+			"code": "workspace_feature_not_entitled", "currentPlan": notEntitled.CurrentPlan,
+			"error": err.Error(), "feature": notEntitled.Feature, "requiredPlan": notEntitled.RequiredPlan,
+		})
 	case errors.Is(err, publishing.ErrUnauthorized):
 		writeError(w, http.StatusUnauthorized, err.Error())
 	case errors.Is(err, publishing.ErrForbidden):
@@ -368,8 +571,18 @@ func writeStoreError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, err.Error())
 	case errors.Is(err, publishing.ErrConflict), errors.Is(err, publishing.ErrInvalidState):
 		writeError(w, http.StatusConflict, err.Error())
-	case errors.Is(err, publishing.ErrNotEligible):
+	case errors.Is(err, publishing.ErrNotEligible), errors.Is(err, product.ErrInvalidInput):
 		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, product.ErrRateLimited):
+		writeError(w, http.StatusTooManyRequests, err.Error())
+	case errors.Is(err, product.ErrStorageQuota):
+		writeError(w, http.StatusTooManyRequests, err.Error())
+	case errors.Is(err, product.ErrQuotaExceeded):
+		writeError(w, http.StatusTooManyRequests, err.Error())
+	case errors.Is(err, product.ErrObjectMissing):
+		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, product.ErrStorageUnavailable):
+		writeError(w, http.StatusServiceUnavailable, "media storage is unavailable")
 	default:
 		writeError(w, http.StatusInternalServerError, "internal server error")
 	}

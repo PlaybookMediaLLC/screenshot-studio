@@ -10,9 +10,27 @@ import copy
 import json
 import os
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
+
+WEB_DATABASE_KEYS = {"DATABASE_URL", "DIRECT_URL", "MIGRATION_DATABASE_URL", "AUDIT_RETENTION_DATABASE_URL",
+                     "STORAGE_SERVICE_KEY", "STORAGE_API_URL", "STORAGE_PROXY_URL", "STORAGE_BUCKET",
+                     "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_ACCOUNT_ID", "R2_BUCKET_NAME", "R2_ENDPOINT", "R2_REGION",
+                     "POSTIZ_API_URL", "POSTIZ_API_KEY"}
 
 
-def render(base, secrets, *, stack="full", branch="main"):
+def same_logical_database(first, second):
+    try:
+        a, b = urlsplit(first), urlsplit(second)
+        return (a.scheme in ("postgres", "postgresql") and b.scheme in ("postgres", "postgresql")
+                and a.hostname and a.hostname == b.hostname
+                and (a.port or 5432) == (b.port or 5432)
+                and a.path and a.path == b.path
+                and parse_qs(a.query).get("search_path") == parse_qs(b.query).get("search_path"))
+    except ValueError:
+        return False
+
+
+def render(base, secrets, *, branch="main"):
     if isinstance(base, list):
         if len(base) != 1:
             raise ValueError("Export exactly one DigitalOcean app as the base")
@@ -26,6 +44,10 @@ def render(base, secrets, *, stack="full", branch="main"):
         if not value:
             raise ValueError(f"Missing required Infisical secret: {key}")
         return value
+
+    for role_url in ("MIGRATION_DATABASE_URL", "AUDIT_RETENTION_DATABASE_URL"):
+        if not same_logical_database(required("DATABASE_URL"), required(role_url)):
+            raise ValueError(f"{role_url} must target the same product database as DATABASE_URL")
 
     def env(key, value, secret=False):
         return {"key": key, "value": value, "scope": "RUN_TIME",
@@ -56,47 +78,26 @@ def render(base, secrets, *, stack="full", branch="main"):
     services = {item["name"]: item for item in spec.get("services", [])}
     web = services["web"]
     origin = required("BETTER_AUTH_URL").rstrip("/")
-    web_keys = ["DATABASE_URL", "BETTER_AUTH_SECRET", "AUDIT_IP_HASH_SECRET",
-                "AUDIT_DRAIN_ENCRYPTION_KEY", "REDIS_URL", "STORAGE_SERVICE_KEY",
-                "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "PLATFORM_RENDER_SERVICE_SECRET"]
+    # The web has no database: the Go backend owns every read and write.
+    web["envs"] = [item for item in web.get("envs", [])
+                   if item["key"] not in WEB_DATABASE_KEYS and not item["key"].startswith("POSTIZ_API_KEY_")]
+    web_keys = ["BETTER_AUTH_SECRET", "AUDIT_IP_HASH_SECRET",
+                "AUDIT_DRAIN_ENCRYPTION_KEY", "REDIS_URL", "PLATFORM_RENDER_SERVICE_SECRET"]
     optional_web_keys = ["RESEND_API_KEY", "AUTH_EMAIL_WEBHOOK_URL", "CLEANUP_SECRET",
                          "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID",
                          "GITHUB_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET",
-                         "OPENROUTER_API_KEY", "POSTIZ_API_KEY"]
+                         "OPENROUTER_API_KEY"]
     merge_env(web, [secret(key) for key in web_keys] +
               [secret(key) for key in optional_web_keys if secrets.get(key)] + [
         env("BETTER_AUTH_URL", origin),
         env("BETTER_AUTH_TRUSTED_ORIGINS", required("BETTER_AUTH_TRUSTED_ORIGINS")),
         env("NEXT_PUBLIC_APP_URL", origin),
         env("AUTH_ENABLE_PASSWORD", secrets.get("AUTH_ENABLE_PASSWORD", "true")),
-        env("STORAGE_API_URL", "http://storage:5000"),
-        env("STORAGE_PROXY_URL", origin + "/api/tenant/storage"),
-        env("STORAGE_BUCKET", required("STORAGE_BUCKET")),
         env("PLATFORM_DESIGN_RENDERER", "enabled"),
         env("PLATFORM_RENDER_SERVICE_URL", "http://design-renderer:8080"),
         env("PLATFORM_RENDER_BASE_URL", origin),
-    ] + [env(key, secrets[key]) for key in ["AUTH_EMAIL_FROM", "R2_ACCOUNT_ID", "R2_BUCKET_NAME", "R2_ENDPOINT", "R2_REGION"] if secrets.get(key)])
-
-    storage = service("storage", "", "", 5000, "/status", "apps-s-1vcpu-0.5gb")
-    for key in ["git", "source_dir", "dockerfile_path"]:
-        del storage[key]
-    storage["image"] = {"registry_type": "DOCKER_HUB", "registry": "supabase", "repository": "storage-api", "tag": "v1.37.8"}
-    merge_env(storage, [
-        secret("DATABASE_URL", "STORAGE_DATABASE_URL"),
-        secret("DATABASE_POOL_URL", "STORAGE_DATABASE_URL"),
-        secret("AUTH_JWT_SECRET", "STORAGE_JWT_SECRET"),
-        secret("AWS_ACCESS_KEY_ID", "R2_ACCESS_KEY_ID"),
-        secret("AWS_SECRET_ACCESS_KEY", "R2_SECRET_ACCESS_KEY"),
-    ] + [env(key, value) for key, value in {
-        "SERVER_PORT": "5000", "AUTH_JWT_ALGORITHM": "HS256", "DB_INSTALL_ROLES": "false",
-        "STORAGE_BACKEND": "s3", "STORAGE_S3_BUCKET": required("R2_BUCKET_NAME"),
-        "STORAGE_S3_ENDPOINT": required("R2_ENDPOINT"), "STORAGE_S3_REGION": "auto",
-        "STORAGE_S3_FORCE_PATH_STYLE": "true", "ENABLE_IMAGE_TRANSFORMATION": "false",
-        "UPLOAD_FILE_SIZE_LIMIT": "52428800", "UPLOAD_FILE_SIZE_LIMIT_STANDARD": "52428800",
-        "UPLOAD_SIGNED_URL_EXPIRATION_TIME": "120", "TUS_URL_PATH": "/upload/resumable",
-        "TUS_URL_EXPIRY_MS": "3600000",
-    }.items()])
-    services["storage"] = storage
+    ] + [env(key, secrets[key]) for key in ["AUTH_EMAIL_FROM"] if secrets.get(key)])
+    services.pop("storage", None)
 
     renderer = service("design-renderer", "services/design-renderer", "services/design-renderer/Dockerfile", 8080, "/ready", "apps-s-1vcpu-2gb")
     merge_env(renderer, [secret("RENDER_SERVICE_SECRET", "PLATFORM_RENDER_SERVICE_SECRET"),
@@ -104,87 +105,81 @@ def render(base, secrets, *, stack="full", branch="main"):
     services["design-renderer"] = renderer
 
     jobs = {item["name"]: item for item in spec.get("jobs", [])}
-    jobs["web-migrate"] = {
-        "name": "web-migrate", "kind": "PRE_DEPLOY", "image": copy.deepcopy(web["image"]),
-        "instance_count": 1, "instance_size_slug": "apps-s-1vcpu-1gb",
-        "run_command": "sh -c 'cd /app/migrator && node node_modules/prisma/build/index.js migrate deploy'",
-        "envs": [secret("DATABASE_URL", "MIGRATION_DATABASE_URL")],
+    jobs.pop("web-migrate", None)
+
+    if required("TEMPORAL_NAMESPACE") == required("POSTIZ_TEMPORAL_NAMESPACE"):
+        raise ValueError("Publishing and Postiz require different Temporal namespaces")
+    postiz_env = [secret("DATABASE_URL"),
+                  secret("REDIS_URL", "POSTIZ_REDIS_URL"), secret("JWT_SECRET", "POSTIZ_JWT_SECRET"),
+                  secret("TEMPORAL_API_KEY", "POSTIZ_TEMPORAL_API_KEY")]
+    postiz_env += [env(key, value) for key, value in {
+        "TEMPORAL_ADDRESS": required("POSTIZ_TEMPORAL_ADDRESS"),
+        "TEMPORAL_NAMESPACE": required("POSTIZ_TEMPORAL_NAMESPACE"), "TEMPORAL_TLS": "true",
+        "FRONTEND_URL": origin, "MAIN_URL": origin,
+        "NEXT_PUBLIC_BACKEND_URL": origin + "/postiz", "BACKEND_INTERNAL_URL": "http://127.0.0.1:3000",
+        "STORAGE_PROVIDER": "cloudflare", "POSTIZ_PRIVATE_MEDIA": "true",
+        "CLOUDFLARE_ACCOUNT_ID": required("CLOUDFLARE_ACCOUNT_ID"),
+        "CLOUDFLARE_BUCKETNAME": required("CLOUDFLARE_BUCKETNAME"),
+        "CLOUDFLARE_BUCKET_URL": required("CLOUDFLARE_BUCKET_URL"), "CLOUDFLARE_REGION": "auto",
+    }.items()]
+    postiz_env += [secret(key) for key in ["CLOUDFLARE_ACCESS_KEY", "CLOUDFLARE_SECRET_ACCESS_KEY"]]
+    provider_secret_sources = {
+        "LINKEDIN_CLIENT_ID": "LINKEDIN_CLIENT_ID",
+        "LINKEDIN_CLIENT_SECRET": "LINKEDIN_CLIENT_SECRET",
+        "X_API_KEY": "POSTIZ_GO_X_API_KEY",
+        "X_API_SECRET": "POSTIZ_GO_X_API_SECRET",
+        "FACEBOOK_APP_ID": "POSTIZ_GO_FACEBOOK_APP_ID",
+        "FACEBOOK_APP_SECRET": "POSTIZ_GO_FACEBOOK_APP_SECRET",
+        "INSTAGRAM_APP_ID": "POSTIZ_GO_INSTAGRAM_APP_ID",
+        "INSTAGRAM_APP_SECRET": "POSTIZ_GO_INSTAGRAM_APP_SECRET",
     }
+    postiz_env += [secret(key, source) for key, source in provider_secret_sources.items() if secrets.get(source)]
+    backend = service("screenshot-studio-backend", "services", "services/screenshot-studio-backend/backend/Dockerfile", 3000, "/readyz", "apps-s-1vcpu-2gb")
+    merge_env(backend, postiz_env + [env("PORT", "3000"), env("RUN_CRON", "true"), env("RUN_WORKER", "true")])
+    # Public Postiz callbacks/API use their own prefix; tenant publishing stays private.
+    backend["http_port"] = 3000
+    backend["internal_ports"] = [3003]
+    backend["health_check"]["port"] = 3003
+    # Once GitHub has cut production over to a digest, subsequent config
+    # renders must keep that image source instead of switching to DO builds.
+    existing_backend = services.get(backend["name"])
+    if existing_backend and existing_backend.get("image"):
+        for key in ("git", "source_dir", "dockerfile_path"):
+            backend.pop(key, None)
+        backend["image"] = copy.deepcopy(existing_backend["image"])
+    services[backend["name"]] = backend
+    job = {k: copy.deepcopy(v) for k, v in backend.items() if k not in ["envs", "http_port", "health_check"]}
+    job.pop("internal_ports", None)
+    # One migration command applies product and social tables in public.
+    jobs["platform-migrate"] = dict(copy.deepcopy(job), name="platform-migrate", kind="PRE_DEPLOY", run_command="/platform-migrate",
+                                    envs=[secret("DATABASE_URL", "MIGRATION_DATABASE_URL")])
+    jobs.pop("postiz-migrate", None)
 
-    if stack == "full":
-        if required("TEMPORAL_NAMESPACE") == required("POSTIZ_TEMPORAL_NAMESPACE"):
-            raise ValueError("Publishing and Postiz require different Temporal namespaces")
-        postiz_env = [secret("DATABASE_URL"),
-                      secret("REDIS_URL", "POSTIZ_REDIS_URL"), secret("JWT_SECRET", "POSTIZ_JWT_SECRET"),
-                      secret("TEMPORAL_API_KEY", "POSTIZ_TEMPORAL_API_KEY")]
-        postiz_env += [env(key, value) for key, value in {
-            "TEMPORAL_ADDRESS": required("POSTIZ_TEMPORAL_ADDRESS"),
-            "TEMPORAL_NAMESPACE": required("POSTIZ_TEMPORAL_NAMESPACE"), "TEMPORAL_TLS": "true",
-            "FRONTEND_URL": origin, "MAIN_URL": origin,
-            "NEXT_PUBLIC_BACKEND_URL": origin + "/postiz", "BACKEND_INTERNAL_URL": "http://127.0.0.1:3000",
-            "STORAGE_PROVIDER": "cloudflare", "POSTIZ_PRIVATE_MEDIA": "true",
-            "CLOUDFLARE_ACCOUNT_ID": required("CLOUDFLARE_ACCOUNT_ID"),
-            "CLOUDFLARE_BUCKETNAME": required("CLOUDFLARE_BUCKETNAME"),
-            "CLOUDFLARE_BUCKET_URL": required("CLOUDFLARE_BUCKET_URL"), "CLOUDFLARE_REGION": "auto",
-        }.items()]
-        postiz_env += [secret(key) for key in ["CLOUDFLARE_ACCESS_KEY", "CLOUDFLARE_SECRET_ACCESS_KEY"]]
-        provider_secret_sources = {
-            "LINKEDIN_CLIENT_ID": "LINKEDIN_CLIENT_ID",
-            "LINKEDIN_CLIENT_SECRET": "LINKEDIN_CLIENT_SECRET",
-            "X_API_KEY": "POSTIZ_GO_X_API_KEY",
-            "X_API_SECRET": "POSTIZ_GO_X_API_SECRET",
-            "FACEBOOK_APP_ID": "POSTIZ_GO_FACEBOOK_APP_ID",
-            "FACEBOOK_APP_SECRET": "POSTIZ_GO_FACEBOOK_APP_SECRET",
-            "INSTAGRAM_APP_ID": "POSTIZ_GO_INSTAGRAM_APP_ID",
-            "INSTAGRAM_APP_SECRET": "POSTIZ_GO_INSTAGRAM_APP_SECRET",
-        }
-        postiz_env += [secret(key, source) for key, source in provider_secret_sources.items() if secrets.get(source)]
-        backend = service("screenshot-studio-backend", "services", "services/screenshot-studio-backend/backend/Dockerfile", 3000, "/readyz", "apps-s-1vcpu-2gb")
-        merge_env(backend, postiz_env + [env("PORT", "3000"), env("RUN_CRON", "true"), env("RUN_WORKER", "true")])
-        # Public Postiz callbacks/API use their own prefix; tenant publishing stays private.
-        backend["http_port"] = 3000
-        backend["internal_ports"] = [3003]
-        backend["health_check"]["port"] = 3003
-        # Once GitHub has cut production over to a digest, subsequent config
-        # renders must keep that image source instead of switching to DO builds.
-        existing_backend = services.get(backend["name"])
-        if existing_backend and existing_backend.get("image"):
-            for key in ("git", "source_dir", "dockerfile_path"):
-                backend.pop(key, None)
-            backend["image"] = copy.deepcopy(existing_backend["image"])
-        services[backend["name"]] = backend
-        job = {k: copy.deepcopy(v) for k, v in backend.items() if k not in ["envs", "http_port", "health_check"]}
-        job.pop("internal_ports", None)
-        job.update(name="postiz-migrate", kind="PRE_DEPLOY", run_command="/postiz-migrate", envs=[secret("DATABASE_URL")])
-        jobs[job["name"]] = job
-
-        temporal_env = [secret("TEMPORAL_API_KEY"), env("TEMPORAL_ADDRESS", required("TEMPORAL_ADDRESS")),
-                        env("TEMPORAL_NAMESPACE", required("TEMPORAL_NAMESPACE")), env("TEMPORAL_TLS", "true")]
-        tenant_env = temporal_env + [secret("DATABASE_URL"), secret("STORAGE_SERVICE_KEY"), secret("POSTIZ_API_KEY"),
-                  secret("PUBLISHING_SERVICE_TOKEN"),
-                  env("PORT", "8081"), env("RUN_CRON", "true"), env("STORAGE_API_URL", "http://storage:5000"),
-                  env("STORAGE_BUCKET", required("STORAGE_BUCKET")), env("POSTIZ_API_URL", "http://127.0.0.1:3000/public/v1"),
-                  env("PUBLISHING_DIRECT_PROVIDER", "true" if secrets.get("ENABLE_DIRECT_PROVIDER") == "true" else "false"),
-                  env("POSTIZ_PRIVATE_MEDIA", "true"), env("STORAGE_PROVIDER", "cloudflare"),
-                  env("CLOUDFLARE_ACCOUNT_ID", required("CLOUDFLARE_ACCOUNT_ID")),
-                  env("CLOUDFLARE_BUCKETNAME", required("CLOUDFLARE_BUCKETNAME")),
-                  env("CLOUDFLARE_BUCKET_URL", required("CLOUDFLARE_BUCKET_URL")),
-                  secret("CLOUDFLARE_ACCESS_KEY"), secret("CLOUDFLARE_SECRET_ACCESS_KEY"),
-                  env("RUN_MAINTENANCE", "true"), secret("AUDIT_RETENTION_DATABASE_URL"),
-                  secret("AUDIT_DRAIN_ENCRYPTION_KEY"), secret("RESEND_API_KEY"), secret("BETTER_AUTH_SECRET"),
-                  env("BETTER_AUTH_URL", origin), env("AUTH_EMAIL_FROM", required("AUTH_EMAIL_FROM")),
-                  env("COMPANY_POSTAL_ADDRESS", secrets.get("COMPANY_POSTAL_ADDRESS", ""))]
-        merge_env(backend, [dict(item, key="TENANT_" + item["key"]) for item in tenant_env])
-        backend["internal_ports"] = [3003, 8082]
-        for old_name in ("postiz-backend", "postiz-orchestrator", "publishing-backend", "publishing-orchestrator"):
-            services.pop(old_name, None)
-        merge_env(web, [env("POSTIZ_API_URL", "http://screenshot-studio-backend:3000/public/v1"), secret("POSTIZ_API_KEY")])
-        if secrets.get("ENABLE_ENT_PUBLISHING") == "true":
-            merge_env(web, [env("PUBLISHING_API_URL", "http://screenshot-studio-backend:8082"),
-                            secret("PUBLISHING_SERVICE_TOKEN")])
-        rules = spec.setdefault("ingress", {}).setdefault("rules", [])
-        rules[:] = [rule for rule in rules if rule.get("component", {}).get("name") not in ("postiz-backend", "screenshot-studio-backend")]
-        rules.insert(0, {"match": {"path": {"prefix": "/postiz"}}, "component": {"name": "screenshot-studio-backend"}})
+    temporal_env = [secret("TEMPORAL_API_KEY"), env("TEMPORAL_ADDRESS", required("TEMPORAL_ADDRESS")),
+                    env("TEMPORAL_NAMESPACE", required("TEMPORAL_NAMESPACE")), env("TEMPORAL_TLS", "true")]
+    tenant_env = temporal_env + [secret("DATABASE_URL"), secret("POSTIZ_API_KEY"),
+              secret("REDIS_URL", "POSTIZ_REDIS_URL"),
+              secret("PUBLISHING_SERVICE_TOKEN"),
+              env("PORT", "8081"), env("RUN_CRON", "true"),
+              env("POSTIZ_API_URL", "http://127.0.0.1:3000/public/v1"),
+              env("R2_ENDPOINT", required("R2_ENDPOINT")),
+              env("R2_REGION", secrets.get("R2_REGION", "auto")),
+              env("R2_BUCKET_NAME", required("R2_BUCKET_NAME")),
+              secret("R2_ACCESS_KEY_ID"), secret("R2_SECRET_ACCESS_KEY"),
+              env("RUN_MAINTENANCE", "true"), secret("AUDIT_RETENTION_DATABASE_URL"),
+              secret("AUDIT_DRAIN_ENCRYPTION_KEY"), secret("RESEND_API_KEY"), secret("BETTER_AUTH_SECRET"),
+              env("BETTER_AUTH_URL", origin), env("AUTH_EMAIL_FROM", required("AUTH_EMAIL_FROM")),
+              env("PLATFORM_CAMPAIGN_WORKFLOW", secrets.get("PLATFORM_CAMPAIGN_WORKFLOW", "")),
+              env("COMPANY_POSTAL_ADDRESS", secrets.get("COMPANY_POSTAL_ADDRESS", ""))]
+    merge_env(backend, [dict(item, key="TENANT_" + item["key"]) for item in tenant_env])
+    backend["internal_ports"] = [3003, 8082]
+    for old_name in ("postiz-backend", "postiz-orchestrator", "publishing-backend", "publishing-orchestrator"):
+        services.pop(old_name, None)
+    merge_env(web, [env("PUBLISHING_API_URL", "http://screenshot-studio-backend:8082"),
+                    secret("PUBLISHING_SERVICE_TOKEN")])
+    rules = spec.setdefault("ingress", {}).setdefault("rules", [])
+    rules[:] = [rule for rule in rules if rule.get("component", {}).get("name") not in ("postiz-backend", "screenshot-studio-backend")]
+    rules.insert(0, {"match": {"path": {"prefix": "/postiz"}}, "component": {"name": "screenshot-studio-backend"}})
 
     spec["services"] = list(services.values())
     spec["jobs"] = list(jobs.values())
@@ -196,11 +191,10 @@ def main():
     parser.add_argument("--base", type=Path, required=True)
     parser.add_argument("--secrets", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--stack", choices=["core", "full"], default="full")
     parser.add_argument("--branch", default="main")
     args = parser.parse_args()
     try:
-        spec = render(json.loads(args.base.read_text()), json.loads(args.secrets.read_text()), stack=args.stack, branch=args.branch)
+        spec = render(json.loads(args.base.read_text()), json.loads(args.secrets.read_text()), branch=args.branch)
     except (ValueError, KeyError) as error:
         parser.error(str(error))
     args.output.parent.mkdir(parents=True, exist_ok=True)

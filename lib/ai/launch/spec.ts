@@ -24,11 +24,11 @@ export async function draftReleaseSpec(
   campaignId: string,
   options: { fetcher?: TextFetcher } = {}
 ): Promise<StoredSpec> {
-  const campaign = await loadLaunchCampaign(tenant.organizationId, campaignId)
+  const campaign = await loadLaunchCampaign(tenant, campaignId)
   const release = campaign.release
   if (!release) throw new LaunchError('Link a release brief before drafting a spec.', 409)
 
-  const { latest } = await getReleaseSpecs(tenant.organizationId, release.id)
+  const { latest } = await getReleaseSpecs(tenant, release.id)
   const answers =
     latest?.content.openQuestions
       .filter((question) => question.answer.trim())

@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { appendAuditLog } from '@/lib/audit/log'
-import { toAuditDrainResponse } from '@/lib/audit/drain-response'
 import {
   auditDrainCreateSchema,
   auditDrainListSchema,
@@ -12,9 +10,8 @@ import {
   requireOrganizationPermission,
   requireSensitiveOrganizationPermission,
 } from '@/lib/auth/access'
-import { getAuditActor } from '@/lib/auth/principal'
 import { getRouteErrorResponse } from '@/lib/api/route-errors'
-import { prisma } from '@/lib/db'
+import { backendSDK } from '@/lib/backend/sdk'
 
 function getListInput(request: NextRequest) {
   return auditDrainListSchema.parse(Object.fromEntries(request.nextUrl.searchParams))
@@ -23,12 +20,12 @@ function getListInput(request: NextRequest) {
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const input = getListInput(request)
-    await requireOrganizationPermission(request.headers, input.organizationId, 'audit:read')
-    const drains = await prisma.auditDrain.findMany({
-      orderBy: { createdAt: 'desc' },
-      where: { organizationId: input.organizationId },
-    })
-    return NextResponse.json({ drains: drains.map(toAuditDrainResponse) })
+    const access = await requireOrganizationPermission(
+      request.headers,
+      input.organizationId,
+      'audit:read'
+    )
+    return NextResponse.json(await backendSDK(access).listAuditDrains())
   } catch (error) {
     return getRouteErrorResponse(error)
   }
@@ -43,30 +40,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       input.organizationId,
       'audit:manage'
     )
-    const drain = await prisma.$transaction(async (transaction) => {
-      const createdDrain = await transaction.auditDrain.create({
-        data: {
-          encryptedSigningSecret: encryptDrainSecret(input.signingSecret),
-          endpoint: input.endpoint,
-          name: input.name,
-          organizationId: access.organizationId,
-          provider: input.provider,
-        },
-      })
-      await appendAuditLog(transaction, {
-        action: 'audit.drain_created',
-        actor: getAuditActor(access.principal),
-        entityId: createdDrain.id,
-        entityType: 'audit_drain',
+    const result = await backendSDK(access).createAuditDrain(
+      {
+        encryptedSigningSecret: encryptDrainSecret(input.signingSecret),
+        endpoint: input.endpoint,
+        name: input.name,
+        provider: input.provider,
+      },
+      {
         ipHash: getAuditIpHash(request.headers),
-        metadata: { name: input.name, provider: input.provider },
-        organizationId: access.organizationId,
-        requestId: access.requestId,
         userAgentSummary: getUserAgentSummary(request.headers),
-      })
-      return createdDrain
-    })
-    return NextResponse.json({ drain: toAuditDrainResponse(drain) }, { status: 201 })
+      }
+    )
+    return NextResponse.json(result, { status: 201 })
   } catch (error) {
     return getRouteErrorResponse(error)
   }

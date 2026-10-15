@@ -3,6 +3,7 @@ package tenantpublishing
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	socialent "github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/temporalx"
 )
 
 type fakeBindings struct {
@@ -26,18 +28,14 @@ func (f fakeIntegrations) FindIntegration(context.Context, string, string, strin
 	return f.item, nil
 }
 
-type fakeMedia struct{ calls int }
-
-func (f *fakeMedia) UploadAsset(context.Context, postiz.PublishInput) (string, error) {
-	f.calls++
-	return "https://r2.example/private/image.png", nil
-}
-
 type fakeSigner struct{ calls int }
 
-func (f *fakeSigner) SignManagedURL(_ context.Context, path string) (string, error) {
+func (f *fakeSigner) SignDelivery(_ context.Context, organizationID, key string) (string, error) {
 	f.calls++
-	return path + "?fresh-signature", nil
+	if !strings.HasPrefix(key, "org/"+organizationID+"/") {
+		return "", errors.New("wrong tenant media")
+	}
+	return "https://r2.example/private/image.png?fresh-signature", nil
 }
 
 type fakePoster struct {
@@ -63,15 +61,15 @@ func (f *fakePoster) Post(_ context.Context, id, token string, posts []integrati
 	return []integrations.PostResponse{{PostID: "remote-post-1", Status: status}}, nil
 }
 
-func directFixture() (*Publisher, *fakeMedia, *fakeSigner, *fakePoster, postiz.PublishInput) {
-	media, signer, fakeProvider := &fakeMedia{}, &fakeSigner{}, &fakePoster{}
+func directFixture() (*Publisher, *fakeSigner, *fakePoster, postiz.PublishInput) {
+	signer, fakeProvider := &fakeSigner{}, &fakePoster{}
 	p := &Publisher{
 		bindings:     fakeBindings{&productent.PostizTenantBinding{GoOrganizationID: "social-org", SecretReference: "POSTIZ_API_KEY"}},
 		integrations: fakeIntegrations{&socialent.Integration{ID: "destination", OrganizationID: "social-org", ProviderIdentifier: "linkedin", InternalID: "remote-user", Token: "private-token"}},
-		media:        media, signer: signer, resolve: func(string) poster { return fakeProvider },
+		signer:       signer, resolve: func(string) poster { return fakeProvider },
 		now: func() time.Time { return time.Date(2026, 10, 14, 12, 0, 0, 0, time.UTC) },
 	}
-	return p, media, signer, fakeProvider, postiz.PublishInput{
+	return p, signer, fakeProvider, postiz.PublishInput{
 		OrganizationID: "product-org", DestinationID: "destination", Platform: "linkedin",
 		PostID:          "canonical-post-1",
 		SecretReference: "POSTIZ_API_KEY", AssetObjectKey: "org/product-org/image.png", AssetMediaType: "image/png", Caption: "Canary",
@@ -79,15 +77,15 @@ func directFixture() (*Publisher, *fakeMedia, *fakeSigner, *fakePoster, postiz.P
 }
 
 func TestDirectPublisherUsesFreshSignedMediaAndRemoteReceipt(t *testing.T) {
-	p, media, signer, poster, input := directFixture()
+	p, signer, poster, input := directFixture()
 	id, err := p.Publish(context.Background(), input)
-	if err != nil || id != "remote-post-1" || media.calls != 1 || signer.calls != 1 || poster.calls != 1 || poster.path != "https://r2.example/private/image.png?fresh-signature" {
-		t.Fatalf("id=%q err=%v media=%d signer=%d provider=%d path=%q", id, err, media.calls, signer.calls, poster.calls, poster.path)
+	if err != nil || id != "remote-post-1" || signer.calls != 1 || poster.calls != 1 || poster.path != "https://r2.example/private/image.png?fresh-signature" {
+		t.Fatalf("id=%q err=%v signer=%d provider=%d path=%q", id, err, signer.calls, poster.calls, poster.path)
 	}
 }
 
 func TestDirectPublisherAcceptsConfirmedInstagramReceipt(t *testing.T) {
-	p, _, _, poster, input := directFixture()
+	p, _, poster, input := directFixture()
 	input.Platform = "instagram-standalone"
 	p.integrations = fakeIntegrations{&socialent.Integration{ID: "destination", OrganizationID: "social-org", ProviderIdentifier: input.Platform, InternalID: "remote-user", Token: "private-token"}}
 	poster.status = "success"
@@ -98,19 +96,19 @@ func TestDirectPublisherAcceptsConfirmedInstagramReceipt(t *testing.T) {
 }
 
 func TestDirectPublisherRejectsExpiredCredentialsBeforeMediaOrProviderCall(t *testing.T) {
-	p, media, _, poster, input := directFixture()
+	p, signer, poster, input := directFixture()
 	expired := p.integrations.(fakeIntegrations)
 	date := time.Date(2026, 10, 14, 11, 0, 0, 0, time.UTC)
 	expired.item.TokenExpiration = &date
 	p.integrations = expired
 	_, err := p.Publish(context.Background(), input)
-	if err == nil || media.calls != 0 || poster.calls != 0 {
-		t.Fatalf("err=%v media=%d provider=%d", err, media.calls, poster.calls)
+	if err == nil || signer.calls != 0 || poster.calls != 0 {
+		t.Fatalf("err=%v signer=%d provider=%d", err, signer.calls, poster.calls)
 	}
 }
 
 func TestDirectPublisherMarksAmbiguousProviderFailureUnknown(t *testing.T) {
-	p, _, _, poster, input := directFixture()
+	p, _, poster, input := directFixture()
 	poster.err = context.DeadlineExceeded
 	_, err := p.Publish(context.Background(), input)
 	var providerErr *postiz.Error
@@ -119,11 +117,21 @@ func TestDirectPublisherMarksAmbiguousProviderFailureUnknown(t *testing.T) {
 	}
 }
 
+func TestDirectPublisherFailsExpiredCredentialWithoutUnknownDelivery(t *testing.T) {
+	p, _, poster, input := directFixture()
+	poster.err = temporalx.RefreshToken("linkedin", "{}", "{}", "expired")
+	_, err := p.Publish(context.Background(), input)
+	var providerErr *postiz.Error
+	if !errors.As(err, &providerErr) || providerErr.UnknownDelivery || providerErr.Status != 409 || poster.calls != 1 {
+		t.Fatalf("err=%v providerCalls=%d", err, poster.calls)
+	}
+}
+
 func TestDirectPublisherRejectsWrongWorkspaceBinding(t *testing.T) {
-	p, media, _, poster, input := directFixture()
+	p, signer, poster, input := directFixture()
 	input.SecretReference = "OTHER_WORKSPACE_KEY"
 	_, err := p.Publish(context.Background(), input)
-	if err == nil || media.calls != 0 || poster.calls != 0 {
-		t.Fatalf("err=%v media=%d provider=%d", err, media.calls, poster.calls)
+	if err == nil || signer.calls != 0 || poster.calls != 0 {
+		t.Fatalf("err=%v signer=%d provider=%d", err, signer.calls, poster.calls)
 	}
 }

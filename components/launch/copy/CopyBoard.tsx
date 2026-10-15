@@ -1,6 +1,6 @@
 'use client'
 
-import type { CampaignPostStatus } from '@prisma/client'
+import type { CampaignPostStatus } from '@/lib/tenant/campaign-status'
 import * as Tabs from '@radix-ui/react-tabs'
 import { Copy01Icon } from 'hugeicons-react'
 import { useRouter } from 'next/navigation'

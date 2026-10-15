@@ -5,9 +5,10 @@ import { requestJson } from './framework/browser'
 import { configureE2EFlow, expect, test } from './framework/flow'
 import { getMaintenanceHeaders } from './framework/maintenance'
 import {
-  createE2EDatabaseClient,
+  createE2EDatabase,
   createE2EObjectStoreClient,
   getE2EObjectStoreBucket,
+  queryRow,
 } from './framework/services'
 
 const screenshotSchema = z.object({
@@ -19,11 +20,15 @@ const screenshotSchema = z.object({
 configureE2EFlow()
 
 async function getCacheRecord(url: string) {
-  const database = createE2EDatabaseClient()
+  const database = createE2EDatabase()
   try {
-    return await database.screenshotCache.findFirst({ where: { url } })
+    return await queryRow<{ cloudinaryPublicId: string }>(
+      database,
+      'SELECT "cloudinaryPublicId" FROM screenshot_cache WHERE url = $1 LIMIT 1',
+      [url]
+    )
   } finally {
-    await database.$disconnect()
+    await database.end()
   }
 }
 

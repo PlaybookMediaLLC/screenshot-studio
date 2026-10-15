@@ -55,6 +55,46 @@ func (_u *OrganizationUpdate) SetNillableSlug(v *string) *OrganizationUpdate {
 	return _u
 }
 
+// SetLogo sets the "logo" field.
+func (_u *OrganizationUpdate) SetLogo(v string) *OrganizationUpdate {
+	_u.mutation.SetLogo(v)
+	return _u
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_u *OrganizationUpdate) SetNillableLogo(v *string) *OrganizationUpdate {
+	if v != nil {
+		_u.SetLogo(*v)
+	}
+	return _u
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (_u *OrganizationUpdate) ClearLogo() *OrganizationUpdate {
+	_u.mutation.ClearLogo()
+	return _u
+}
+
+// SetMetadata sets the "metadata" field.
+func (_u *OrganizationUpdate) SetMetadata(v string) *OrganizationUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
+}
+
+// SetNillableMetadata sets the "metadata" field if the given value is not nil.
+func (_u *OrganizationUpdate) SetNillableMetadata(v *string) *OrganizationUpdate {
+	if v != nil {
+		_u.SetMetadata(*v)
+	}
+	return _u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (_u *OrganizationUpdate) ClearMetadata() *OrganizationUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
+}
+
 // Mutation returns the OrganizationMutation object of the builder.
 func (_u *OrganizationUpdate) Mutation() *OrganizationMutation {
 	return _u.mutation
@@ -102,6 +142,18 @@ func (_u *OrganizationUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if value, ok := _u.mutation.Slug(); ok {
 		_spec.SetField(organization.FieldSlug, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.Logo(); ok {
+		_spec.SetField(organization.FieldLogo, field.TypeString, value)
+	}
+	if _u.mutation.LogoCleared() {
+		_spec.ClearField(organization.FieldLogo, field.TypeString)
+	}
+	if value, ok := _u.mutation.Metadata(); ok {
+		_spec.SetField(organization.FieldMetadata, field.TypeString, value)
+	}
+	if _u.mutation.MetadataCleared() {
+		_spec.ClearField(organization.FieldMetadata, field.TypeString)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{organization.Label}
@@ -147,6 +199,46 @@ func (_u *OrganizationUpdateOne) SetNillableSlug(v *string) *OrganizationUpdateO
 	if v != nil {
 		_u.SetSlug(*v)
 	}
+	return _u
+}
+
+// SetLogo sets the "logo" field.
+func (_u *OrganizationUpdateOne) SetLogo(v string) *OrganizationUpdateOne {
+	_u.mutation.SetLogo(v)
+	return _u
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_u *OrganizationUpdateOne) SetNillableLogo(v *string) *OrganizationUpdateOne {
+	if v != nil {
+		_u.SetLogo(*v)
+	}
+	return _u
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (_u *OrganizationUpdateOne) ClearLogo() *OrganizationUpdateOne {
+	_u.mutation.ClearLogo()
+	return _u
+}
+
+// SetMetadata sets the "metadata" field.
+func (_u *OrganizationUpdateOne) SetMetadata(v string) *OrganizationUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
+}
+
+// SetNillableMetadata sets the "metadata" field if the given value is not nil.
+func (_u *OrganizationUpdateOne) SetNillableMetadata(v *string) *OrganizationUpdateOne {
+	if v != nil {
+		_u.SetMetadata(*v)
+	}
+	return _u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (_u *OrganizationUpdateOne) ClearMetadata() *OrganizationUpdateOne {
+	_u.mutation.ClearMetadata()
 	return _u
 }
 
@@ -226,6 +318,18 @@ func (_u *OrganizationUpdateOne) sqlSave(ctx context.Context) (_node *Organizati
 	}
 	if value, ok := _u.mutation.Slug(); ok {
 		_spec.SetField(organization.FieldSlug, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Logo(); ok {
+		_spec.SetField(organization.FieldLogo, field.TypeString, value)
+	}
+	if _u.mutation.LogoCleared() {
+		_spec.ClearField(organization.FieldLogo, field.TypeString)
+	}
+	if value, ok := _u.mutation.Metadata(); ok {
+		_spec.SetField(organization.FieldMetadata, field.TypeString, value)
+	}
+	if _u.mutation.MetadataCleared() {
+		_spec.ClearField(organization.FieldMetadata, field.TypeString)
 	}
 	_node = &Organization{config: _u.config}
 	_spec.Assign = _node.assignValues

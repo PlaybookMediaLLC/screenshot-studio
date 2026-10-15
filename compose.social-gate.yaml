@@ -1,47 +1,68 @@
-# Run with --project-name screenshot-studio-social-gate so its Postiz database,
-# Redis, Temporal history, and fake destination cannot touch local live data.
+# Overlay on compose.yaml with a separate Compose project. Every durable
+# dependency, browser port, and fake destination belongs to this gate only.
 services:
-  postiz-go-db:
-    image: postgres:16-bookworm
+  app:
     environment:
-      POSTGRES_DB: postiz_go
-      POSTGRES_USER: postiz_go
-      POSTGRES_PASSWORD: local-social-gate-only
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postiz_go -d postiz_go']
-      interval: 5s
-      timeout: 5s
-      retries: 20
+      BETTER_AUTH_URL: http://localhost:3010
+      BETTER_AUTH_TRUSTED_ORIGINS: http://localhost:3010
+      NEXT_PUBLIC_APP_URL: http://localhost:3010
+    ports: !override
+      - '127.0.0.1:3010:3000'
 
-  postiz-go-redis:
-    image: redis:7.4-alpine
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 5s
-      timeout: 5s
-      retries: 20
+  postgres:
+    ports: !override
+      - '127.0.0.1:54349:5432'
 
-  postiz-go-temporal:
-    image: temporalio/temporal:1.8.2
-    command: server start-dev --ip 0.0.0.0
-    healthcheck:
-      test: ['CMD', 'temporal', 'operator', 'cluster', 'health', '--address', '127.0.0.1:7233']
-      interval: 2s
-      timeout: 2s
-      retries: 30
+  redis:
+    ports: !override
+      - '127.0.0.1:63809:6379'
 
-  postiz-go-migrate:
+  rustfs:
+    ports: !override
+      - '127.0.0.1:9013:9000'
+      - '127.0.0.1:9014:9001'
+
+  publishing-backend:
+    environment:
+      BETTER_AUTH_URL: http://localhost:3010
+      R2_BROWSER_ENDPOINT: http://localhost:9013
+      POSTIZ_API_URL: http://screenshot-studio-backend:3000/public/v1
+      POSTIZ_API_KEY_SOCIAL_GATE: ${POSTIZ_API_KEY_SOCIAL_GATE:-}
+    ports: !override
+      - '127.0.0.1:8180:8080'
+
+  publishing-orchestrator:
     build:
-      context: ./services
-      dockerfile: screenshot-studio-backend/backend/Dockerfile
       args:
         GO_BUILD_TAGS: e2e
-    image: screenshot-studio-postiz-backend:e2e
-    entrypoint: ['/postiz-migrate']
     environment:
-      DATABASE_URL: postgresql://postiz_go:local-social-gate-only@postiz-go-db:5432/postiz_go?sslmode=disable
+      POSTIZ_E2E_SOCIAL_URL: http://fake-social:8080
+    ports: !override
+      - '127.0.0.1:8181:8081'
     depends_on:
-      postiz-go-db:
+      fake-social:
+        condition: service_healthy
+
+  temporal:
+    ports: !override []
+
+  postiz-go-temporal:
+    ports: !override []
+
+  screenshot-studio-backend:
+    build:
+      args:
+        GO_BUILD_TAGS: e2e
+    environment:
+      FRONTEND_URL: http://localhost:3010
+      MAIN_URL: http://localhost:3110
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:3110
+      POSTIZ_E2E_SOCIAL_URL: http://fake-social:8080
+    ports: !override
+      - '127.0.0.1:3110:3000'
+      - '127.0.0.1:3112:3002'
+    depends_on:
+      fake-social:
         condition: service_healthy
 
   fake-social:
@@ -53,7 +74,6 @@ services:
       - ./e2e/fixtures/fake-social.mjs:/fake-social.mjs:ro
     ports:
       - '127.0.0.1:5680:8080'
-    networks: [default, web]
     healthcheck:
       test:
         [
@@ -65,58 +85,3 @@ services:
       interval: 2s
       timeout: 2s
       retries: 20
-
-  screenshot-studio-backend:
-    build:
-      context: ./services
-      dockerfile: screenshot-studio-backend/backend/Dockerfile
-      args:
-        GO_BUILD_TAGS: e2e
-    image: screenshot-studio-postiz-backend:e2e
-    # The local gate has no tenant publishing database; run the social child
-    # from the combined production image, as the local Postiz profile does.
-    entrypoint: ['/screenshot-studio-backend']
-    environment:
-      DATABASE_URL: postgresql://postiz_go:local-social-gate-only@postiz-go-db:5432/postiz_go?sslmode=disable
-      REDIS_URL: redis://postiz-go-redis:6379
-      TEMPORAL_ADDRESS: postiz-go-temporal:7233
-      JWT_SECRET: local-social-gate-only
-      FRONTEND_URL: http://localhost:3000
-      MAIN_URL: http://localhost:3110
-      NEXT_PUBLIC_BACKEND_URL: http://localhost:3110
-      BACKEND_INTERNAL_URL: http://screenshot-studio-backend:3000
-      POSTIZ_E2E_SOCIAL_URL: http://fake-social:8080
-      POSTIZ_E2E_R2_ENDPOINT: http://rustfs:9000
-      STORAGE_PROVIDER: cloudflare
-      POSTIZ_PRIVATE_MEDIA: 'true'
-      CLOUDFLARE_ACCOUNT_ID: local
-      CLOUDFLARE_ACCESS_KEY: ${R2_ACCESS_KEY_ID:?Set R2_ACCESS_KEY_ID in the local test env}
-      CLOUDFLARE_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:?Set R2_SECRET_ACCESS_KEY in the local test env}
-      CLOUDFLARE_REGION: ${R2_REGION:-us-east-1}
-      CLOUDFLARE_BUCKETNAME: ${R2_BUCKET_NAME:?Set R2_BUCKET_NAME in the local test env}
-      CLOUDFLARE_BUCKET_URL: http://rustfs:9000/${R2_BUCKET_NAME:?Set R2_BUCKET_NAME in the local test env}
-      RUN_CRON: 'true'
-      RUN_WORKER: 'true'
-      PORT: '3000'
-      ORCHESTRATOR_PORT: '3002'
-    networks:
-      default: {}
-      web:
-        aliases: [social-gate-go]
-    ports:
-      - '127.0.0.1:3110:3000'
-      - '127.0.0.1:3112:3002'
-    depends_on:
-      postiz-go-migrate:
-        condition: service_completed_successfully
-      postiz-go-redis:
-        condition: service_healthy
-      postiz-go-temporal:
-        condition: service_healthy
-      fake-social:
-        condition: service_healthy
-
-networks:
-  web:
-    external: true
-    name: ${SOCIAL_GATE_WEB_NETWORK:-screenshot-studio_default}

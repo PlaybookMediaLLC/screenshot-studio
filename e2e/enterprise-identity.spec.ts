@@ -10,7 +10,7 @@ import {
 import { browserRequest } from './framework/browser'
 import { configureE2EFlow, expect, test } from './framework/flow'
 import { startHttpMockServer, type HttpMockRequest } from './framework/http-server'
-import { createE2EDatabaseClient } from './framework/services'
+import { createE2EDatabase, queryRow } from './framework/services'
 
 const scimUserSchema = z.object({
   active: z.boolean(),
@@ -98,24 +98,30 @@ async function registerVerifiedOidcProvider(
     throw new Error(`OIDC registration failed: ${JSON.stringify(response.body)}`)
   }
 
-  const database = createE2EDatabaseClient()
+  const database = createE2EDatabase()
   try {
-    await database.ssoProvider.update({ data: { domainVerified: true }, where: { providerId } })
+    await database.query(
+      'UPDATE "ssoProvider" SET "domainVerified" = true WHERE "providerId" = $1',
+      [providerId]
+    )
   } finally {
-    await database.$disconnect()
+    await database.end()
   }
 }
 
 async function enableEnterpriseIdentity(organizationId: string): Promise<void> {
-  const database = createE2EDatabaseClient()
+  const database = createE2EDatabase()
   try {
-    await database.organizationEnterpriseSettings.upsert({
-      create: { organizationId, scimEnabled: true, ssoEnabled: true },
-      update: { scimEnabled: true, ssoEnabled: true },
-      where: { organizationId },
-    })
+    await database.query(
+      `INSERT INTO organization_enterprise_settings
+         ("organizationId", "scimEnabled", "ssoEnabled", "updatedAt")
+       VALUES ($1, true, true, now())
+       ON CONFLICT ("organizationId")
+       DO UPDATE SET "scimEnabled" = true, "ssoEnabled" = true, "updatedAt" = now()`,
+      [organizationId]
+    )
   } finally {
-    await database.$disconnect()
+    await database.end()
   }
 }
 
@@ -230,11 +236,15 @@ test('a SCIM directory can provision, update, deactivate, list, and deprovision 
   })
   expect(deactivated.status).toBe(204)
 
-  const database = createE2EDatabaseClient()
+  const database = createE2EDatabase()
   try {
     await expect
       .poll(async () => {
-        const user = await database.user.findUnique({ where: { id: provisioned.id } })
+        const user = await queryRow<{ banned: boolean | null; name: string }>(
+          database,
+          'SELECT banned, name FROM "user" WHERE id = $1',
+          [provisioned.id]
+        )
         return { banned: user?.banned, name: user?.name }
       })
       .toEqual({ banned: true, name: 'Directory User Renamed' })
@@ -248,16 +258,21 @@ test('a SCIM directory can provision, update, deactivate, list, and deprovision 
     await expect
       .poll(async () => {
         const [account, membership] = await Promise.all([
-          database.account.findFirst({
-            where: { providerId, userId: provisioned.id },
-          }),
-          database.member.findFirst({ where: { organizationId, userId: provisioned.id } }),
+          queryRow(database, 'SELECT id FROM account WHERE "providerId" = $1 AND "userId" = $2', [
+            providerId,
+            provisioned.id,
+          ]),
+          queryRow(
+            database,
+            'SELECT id FROM member WHERE "organizationId" = $1 AND "userId" = $2',
+            [organizationId, provisioned.id]
+          ),
         ])
         return { account: Boolean(account), membership: Boolean(membership) }
       })
       .toEqual({ account: false, membership: false })
   } finally {
-    await database.$disconnect()
+    await database.end()
   }
 })
 
@@ -286,21 +301,27 @@ test('a verified OIDC provider signs a user in and provisions the workspace memb
 
     const ssoPage = await signInWithSso(browser, ssoEmail)
     await expect.poll(() => findActiveOrganizationId(ssoPage)).toBe(organizationId)
-    const database = createE2EDatabaseClient()
+    const database = createE2EDatabase()
     try {
       await expect
         .poll(async () => {
-          const user = await database.user.findUnique({ where: { email: ssoEmail } })
+          const user = await queryRow<{ email: string; id: string }>(
+            database,
+            'SELECT id, email FROM "user" WHERE email = $1',
+            [ssoEmail]
+          )
           const member = user
-            ? await database.member.findUnique({
-                where: { organizationId_userId: { organizationId, userId: user.id } },
-              })
+            ? await queryRow<{ role: string }>(
+                database,
+                'SELECT role FROM member WHERE "organizationId" = $1 AND "userId" = $2',
+                [organizationId, user.id]
+              )
             : null
           return { email: user?.email, role: member?.role }
         })
         .toEqual({ email: ssoEmail, role: 'member' })
     } finally {
-      await database.$disconnect()
+      await database.end()
       await ssoPage.context().close()
     }
     expect(provider.calls.map(oidcPath)).toEqual(

@@ -16,7 +16,6 @@ func TestLoadOrchestratorRejectsInvalidTemporalConcurrency(t *testing.T) {
 	t.Setenv("STORAGE_BUCKET", "assets")
 	t.Setenv("STORAGE_SERVICE_KEY", "service-key")
 	t.Setenv("TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_EXECUTORS", "0")
-	t.Setenv("POSTIZ_REQUEST_TIMEOUT", "15s")
 	if _, err := LoadOrchestrator(); err == nil {
 		t.Fatal("expected nonpositive Temporal activity concurrency to fail")
 	}

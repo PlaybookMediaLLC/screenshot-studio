@@ -21,6 +21,10 @@ type Organization struct {
 	Name string `json:"name,omitempty"`
 	// Slug holds the value of the "slug" field.
 	Slug string `json:"slug,omitempty"`
+	// Logo holds the value of the "logo" field.
+	Logo *string `json:"logo,omitempty"`
+	// Metadata holds the value of the "metadata" field.
+	Metadata *string `json:"metadata,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt    time.Time `json:"created_at,omitempty"`
 	selectValues sql.SelectValues
@@ -31,7 +35,7 @@ func (*Organization) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case organization.FieldID, organization.FieldName, organization.FieldSlug:
+		case organization.FieldID, organization.FieldName, organization.FieldSlug, organization.FieldLogo, organization.FieldMetadata:
 			values[i] = new(sql.NullString)
 		case organization.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -67,6 +71,20 @@ func (_m *Organization) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field slug", values[i])
 			} else if value.Valid {
 				_m.Slug = value.String
+			}
+		case organization.FieldLogo:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field logo", values[i])
+			} else if value.Valid {
+				_m.Logo = new(string)
+				*_m.Logo = value.String
+			}
+		case organization.FieldMetadata:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+			} else if value.Valid {
+				_m.Metadata = new(string)
+				*_m.Metadata = value.String
 			}
 		case organization.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -115,6 +133,16 @@ func (_m *Organization) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("slug=")
 	builder.WriteString(_m.Slug)
+	builder.WriteString(", ")
+	if v := _m.Logo; v != nil {
+		builder.WriteString("logo=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.Metadata; v != nil {
+		builder.WriteString("metadata=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

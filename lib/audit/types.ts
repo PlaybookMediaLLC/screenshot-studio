@@ -1,6 +1,7 @@
-import type { AuditOutcome } from '@prisma/client'
 import type { AuditActor } from '@/lib/auth/principal'
 import type { AuditMetadata } from './metadata'
+
+export type AuditOutcome = 'SUCCEEDED' | 'FAILED' | 'DENIED'
 
 export const auditActions = [
   'audience.unsubscribed',

@@ -5,8 +5,12 @@ on:
     branches: [main]
     paths:
       - services/screenshot-studio-backend/**
+      - services/backend/**
+      - services/cmd/**
+      - services/ent/**
       - services/orchestrator/**
       - services/internal/**
+      - services/platformmigrations/**
       - services/go.mod
       - services/go.sum
       - .github/workflows/social-backend-image.yml

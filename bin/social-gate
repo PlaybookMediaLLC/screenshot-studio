@@ -6,111 +6,69 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 if [[ ! -f .local/dev.env ]]; then
-  echo 'Start the local web stack with ./bin/studio up first.' >&2
-  exit 1
+  ./bin/studio env
 fi
 
-APP_CONTAINER_ID="$(docker compose --env-file .local/dev.env --file compose.yaml ps -q app)"
-if [[ -z "$APP_CONTAINER_ID" ]]; then
-  echo 'The local web app is not running.' >&2
-  exit 1
-fi
-export SOCIAL_GATE_WEB_NETWORK
-SOCIAL_GATE_WEB_NETWORK="$(docker inspect "$APP_CONTAINER_ID" --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}')"
-if [[ -z "$SOCIAL_GATE_WEB_NETWORK" ]]; then
-  echo 'The local web app has no Docker network.' >&2
-  exit 1
-fi
-BOOTSTRAP_FILE="$(mktemp "$ROOT_DIR/.local/social-gate-XXXXXX.json")"
+set -a
+# shellcheck source=/dev/null
+source .local/dev.env
+set +a
+
+# BSD mktemp only replaces trailing X's, so the template has no suffix.
+BOOTSTRAP_FILE="$(mktemp "$ROOT_DIR/.local/social-gate.XXXXXX")"
 chmod 600 "$BOOTSTRAP_FILE"
-WEB_RECONFIGURED=false
-export SOCIAL_GATE_RENDERER_WAS_RUNNING=false
-if [[ -n "$(docker compose --env-file .local/dev.env --file compose.yaml --profile renderer ps -q design-renderer)" ]]; then
-  SOCIAL_GATE_RENDERER_WAS_RUNNING=true
-fi
 
 gate_compose() {
-  docker compose --env-file .local/dev.env --file compose.social-gate.yaml \
+  docker compose --env-file .local/dev.env --file compose.yaml --file compose.social-gate.yaml \
     --project-name screenshot-studio-social-gate "$@"
+}
+
+wait_http() {
+  local url=$1
+  for _ in $(seq 1 120); do
+    if curl --fail --silent --output /dev/null "$url"; then return 0; fi
+    sleep 1
+  done
+  echo "Social gate service did not become ready: $url" >&2
+  return 1
 }
 
 cleanup() {
   local original_status=$?
   trap - EXIT
   if [[ "$original_status" -ne 0 ]]; then
-    echo 'Social gate service logs (last 200 lines per container):' >&2
-    gate_compose logs --no-color --tail=200 2>&1 |
+    echo 'Social gate service logs (last 100 lines per container):' >&2
+    gate_compose --profile postiz-go logs --no-color --tail=100 2>&1 |
       sed -E 's#(https?://[^[:space:]"]+)\?[^[:space:]"]+#\1?[redacted]#g' >&2 || true
   fi
-  if [[ "$WEB_RECONFIGURED" == true ]]; then
-    node e2e/fixtures/configure-web.mjs restore || original_status=1
-  fi
-  gate_compose down --volumes --remove-orphans || original_status=1
+  gate_compose --profile postiz-go down --volumes --remove-orphans || original_status=1
   rm -f "$BOOTSTRAP_FILE"
   exit "$original_status"
 }
 trap cleanup EXIT
 
-if [[ "${SOCIAL_GATE_NO_BUILD:-}" == true ]]; then
-  gate_compose up --detach --no-build --wait
-else
-  gate_compose up --detach --build --wait
-fi
-for attempt in $(seq 1 60); do
-  if curl --fail --silent --output /dev/null http://127.0.0.1:3110/ &&
-    curl --fail --silent --output /dev/null http://127.0.0.1:3112/health/status; then
-    break
-  fi
-  if [[ "$attempt" == 60 ]]; then
-    echo 'The Go API and worker did not become healthy.' >&2
-    exit 1
-  fi
-  sleep 1
-done
-node e2e/fixtures/bootstrap-go.mjs "$BOOTSTRAP_FILE"
-WEB_RECONFIGURED=true
-if [[ "$SOCIAL_GATE_RENDERER_WAS_RUNNING" == true ]]; then
-  docker compose --env-file .local/dev.env --file compose.yaml --profile renderer stop design-renderer
-fi
-node e2e/fixtures/configure-web.mjs gate "$BOOTSTRAP_FILE"
-for attempt in $(seq 1 60); do
-  if curl --fail --silent --output /dev/null http://127.0.0.1:3000/api/health; then
-    break
-  fi
-  if [[ "$attempt" == 60 ]]; then
-    echo 'The web app did not become healthy after test configuration.' >&2
-    exit 1
-  fi
-  sleep 1
-done
-APP_CONTAINER_ID="$(docker compose --env-file .local/dev.env --file compose.yaml ps -q app)"
-docker exec "$APP_CONTAINER_ID" node -e '
-  const base = process.env.POSTIZ_API_URL;
-  const headers = { Authorization: process.env.POSTIZ_API_KEY_SOCIAL_GATE };
-  Promise.all(["me", "integrations"].map(async (path) => {
-    const response = await fetch(new URL(path, `${base}/`), { headers });
-    if (!response.ok) throw new Error(`Go ${path} returned ${response.status}`);
-    return response.json();
-  })).then(([me, integrations]) => {
-    if (!me.organization?.id || !integrations.some((item) => item.identifier === "e2e")) {
-      throw new Error("The web app cannot see its isolated Go destination");
-    }
-    process.stdout.write("Web-to-Go destination verified.\n");
-  }).catch((error) => { process.stderr.write(`${error.message}\n`); process.exit(1) });
-'
-
-set -a
-# shellcheck source=/dev/null
-source .local/dev.env
-set +a
-E2E_DATABASE_URL="$HOST_DATABASE_URL" \
-E2E_MAINTENANCE_SECRET="$CLEANUP_SECRET" \
+# The separate project has its own PostgreSQL, Redis, Temporal, and RustFS
+# volumes. Start the social API first so it can create a real OAuth test
+# destination; then pass that API key only to the isolated app/backend.
+gate_compose --profile postiz-go up --detach --build \
+  postgres redis rustfs rustfs-init temporal postiz-go-redis postiz-go-temporal \
+  platform-go-migrate fake-social screenshot-studio-backend
+wait_http http://127.0.0.1:3110/
+POSTIZ_SOCIAL_GATE_URL=http://127.0.0.1:3110 \
+  node e2e/fixtures/bootstrap-go.mjs "$BOOTSTRAP_FILE"
+POSTIZ_API_KEY_SOCIAL_GATE="$(node -e 'const f=JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); process.stdout.write(f.apiKey)' "$BOOTSTRAP_FILE")"
+export POSTIZ_API_KEY_SOCIAL_GATE
+gate_compose up --detach --build publishing-backend publishing-orchestrator app
+wait_http http://127.0.0.1:8180/readyz
+wait_http http://127.0.0.1:8181/readyz
+wait_http http://127.0.0.1:3010/api/health
+E2E_BASE_URL=http://localhost:3010 \
+E2E_DATABASE_URL="postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@127.0.0.1:54349/screenshot_studio?sslmode=disable" \
 E2E_R2_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
 E2E_R2_BUCKET_NAME="$R2_BUCKET_NAME" \
-E2E_R2_ENDPOINT=http://127.0.0.1:9003 \
+E2E_R2_ENDPOINT=http://127.0.0.1:9013 \
 E2E_R2_REGION="$R2_REGION" \
 E2E_R2_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
-E2E_REDIS_URL=redis://127.0.0.1:63799 \
-E2E_WEBHOOK_SECRET="$CLEANUP_SECRET" \
+E2E_REDIS_URL=redis://127.0.0.1:63809 \
 E2E_SOCIAL_GATE_BOOTSTRAP="$BOOTSTRAP_FILE" \
-  npx playwright test e2e/postiz-scheduling.spec.ts --grep 'real Go worker' --retries=0
+  npx playwright test e2e/social-gate.spec.ts --retries=0

@@ -1,0 +1,97 @@
+package httpapi
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+)
+
+type platformControlsFake struct {
+	ConfigurationStore
+	actor   product.Actor
+	created bool
+}
+
+func (f *platformControlsFake) AuthorizeRead(context.Context, product.Actor) error { return nil }
+func (f *platformControlsFake) GetWebhookSource(_ context.Context, id string) (*product.WebhookSource, error) {
+	return &product.WebhookSource{ID: id, OrganizationID: "org-1", Provider: "github"}, nil
+}
+func (f *platformControlsFake) IngestSourceRelease(_ context.Context, actor product.Actor, _ product.IngestSourceReleaseInput) (*product.SourceReleaseIngest, error) {
+	f.actor = actor
+	return &product.SourceReleaseIngest{Created: f.created, ReleaseID: "release-1"}, nil
+}
+
+func (f *platformControlsFake) ReplayOutboxEvent(_ context.Context, id string) error {
+	if id != "cevent00000001" {
+		return publishing.ErrNotFound
+	}
+	return nil
+}
+func (f *platformControlsFake) SyncWorkspaceEntitlement(_ context.Context, input product.EntitlementSyncInput) (*product.EntitlementSyncResult, error) {
+	return &product.EntitlementSyncResult{Version: input.ExpectedVersion + 1}, nil
+}
+
+func TestOutboxReplayAndBillingSyncAreServiceOnly(t *testing.T) {
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", &platformControlsFake{})
+	post := func(path, token, body string) *httptest.ResponseRecorder {
+		request := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+		request.Header.Set("Authorization", "Bearer "+token)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		return response
+	}
+	for path, want := range map[string]int{
+		"/v1/internal/outbox-events/cevent00000001/replay": http.StatusOK,
+		"/v1/internal/outbox-events/cevent00000002/replay": http.StatusNotFound,
+		"/v1/internal/outbox-events/NOT-AN-ID/replay":      http.StatusNotFound,
+	} {
+		if code := post(path, "secret", "").Code; code != want {
+			t.Errorf("%s: status %d want %d", path, code, want)
+		}
+	}
+	billing := `{"eventId":"e1","eventType":"t","expectedVersion":2,"organizationId":"org-1","plan":"pro","provider":"p","status":"active","featureOverrides":{}}`
+	if code := post("/v1/internal/billing/entitlements", "wrong", billing).Code; code != http.StatusUnauthorized {
+		t.Fatalf("unsigned billing sync status %d", code)
+	}
+	if response := post("/v1/internal/billing/entitlements", "secret", billing); response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"version":3`) {
+		t.Fatalf("billing sync %d %s", response.Code, response.Body.String())
+	}
+}
+
+func TestWebhookSourceIsFacadeOnlyAndIngestReportsReplays(t *testing.T) {
+	config := &platformControlsFake{created: true}
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", config)
+	lookup := func(token string) int {
+		request := httptest.NewRequest(http.MethodGet, "/v1/internal/source-apps/csourceapp0001/webhook", nil)
+		request.Header.Set("Authorization", "Bearer "+token)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		return response.Code
+	}
+	if lookup("wrong") != http.StatusUnauthorized || lookup("secret") != http.StatusOK {
+		t.Fatal("webhook source lookup must require the service token alone")
+	}
+	ingest := func() int {
+		request := httptest.NewRequest(http.MethodPost, "/v1/source-releases",
+			strings.NewReader(`{"eventId":"d1","sourceAppId":"csourceapp0001","title":"v2","benefitStatement":"Faster."}`))
+		request.Header.Set("Authorization", "Bearer secret")
+		request.Header.Set("X-Organization-ID", "org-1")
+		request.Header.Set("X-Principal-Kind", "webhook")
+		request.Header.Set("X-Principal-Display", "csourceapp0001")
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		return response.Code
+	}
+	if code := ingest(); code != http.StatusCreated || config.actor.Kind != "webhook" || config.actor.OrganizationID != "org-1" {
+		t.Fatalf("ingest status=%d actor=%+v", code, config.actor)
+	}
+	config.created = false
+	if code := ingest(); code != http.StatusOK {
+		t.Fatalf("replayed ingest status=%d", code)
+	}
+}

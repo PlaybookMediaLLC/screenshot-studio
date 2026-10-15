@@ -1,17 +1,15 @@
 import 'server-only'
 
 import { generateText, stepCountIs } from 'ai'
-import { appendAuditLog } from '@/lib/audit/log'
 import type { TenantContext } from '@/lib/auth/access'
-import { getAuditActor } from '@/lib/auth/principal'
-import { prisma } from '@/lib/db'
+import { backendSDK } from '@/lib/backend/sdk'
 import { assertPublicCaptureUrl } from '@/lib/screenshot-service'
 import {
   createDesignRenderer,
   type DesignRenderer,
   isDesignRendererReady,
 } from '@/lib/design/renderer'
-import { CampaignError } from '@/lib/tenant/campaigns'
+import { CampaignError, getCampaign } from '@/lib/tenant/campaigns'
 import { models, normalizeTokenUsage } from '../models'
 import { isScriptedModelEnabled } from '../models/scripted'
 import {
@@ -51,20 +49,12 @@ function getCaptureUrls(urls: Array<string | null | undefined>): string[] {
  * Runs inside the caller's tenant context, and every write is audited.
  */
 export async function runCampaignStudio(tenant: TenantContext, campaignId: string) {
-  const campaign = await prisma.campaign.findFirst({
-    include: {
-      productSurface: { select: { environment: true, name: true, url: true } },
-      release: true,
-    },
-    where: { id: campaignId, organizationId: tenant.organizationId },
-  })
+  const campaign = await getCampaign(tenant, campaignId)
   if (!campaign) throw new CampaignError('Campaign not found.', 404)
   if (!campaign.release) {
     throw new CampaignError('Link a release brief before generating a launch kit.', 409)
   }
-  const sourceUrls = Array.isArray(campaign.release.sourceUrls)
-    ? campaign.release.sourceUrls.filter((url): url is string => typeof url === 'string')
-    : []
+  const sourceUrls = campaign.release.sourceUrls ?? []
   const captureUrls = getCaptureUrls([campaign.productSurface?.url, ...sourceUrls])
   if (captureUrls.length === 0) {
     throw new CampaignError('Connect a public product URL before generating a launch kit.', 409)
@@ -114,26 +104,21 @@ export async function runCampaignStudio(tenant: TenantContext, campaignId: strin
   })
 
   const usage = normalizeTokenUsage(result.totalUsage)
-  await prisma.$transaction((transaction) =>
-    appendAuditLog(transaction, {
-      action: 'product.campaign_generated',
-      actor: getAuditActor(tenant.principal),
-      entityId: campaign.id,
-      entityType: 'campaign',
-      metadata: {
-        assetCount: record.assets.length,
-        // Not "...Tokens": the audit sanitizer redacts any key matching /token/.
-        inputUsage: usage.inputTokens,
-        modelId,
-        outputUsage: usage.outputTokens,
-        designMode,
-        postCount: record.savedPosts,
-        steps: result.steps.length,
-      },
-      organizationId: tenant.organizationId,
-      requestId: tenant.requestId,
-    })
-  )
+  await backendSDK(tenant).appendAuditEvent({
+    action: 'product.campaign_generated',
+    entityId: campaign.id,
+    entityType: 'campaign',
+    metadata: {
+      assetCount: record.assets.length,
+      // Not "...Tokens": the audit sanitizer redacts any key matching /token/.
+      inputUsage: usage.inputTokens,
+      modelId,
+      outputUsage: usage.outputTokens,
+      designMode,
+      postCount: record.savedPosts,
+      steps: result.steps.length,
+    },
+  })
   return {
     assets: record.assets,
     postCount: record.savedPosts,

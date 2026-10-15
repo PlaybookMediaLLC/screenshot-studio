@@ -25,7 +25,9 @@ type fakeStore struct {
 }
 
 type fakeVerifier struct {
-	input postiz.VerifyDestinationInput
+	input         postiz.VerifyDestinationInput
+	exchangeCalls int
+	pageCalls     int
 }
 
 func (f *fakeVerifier) VerifyDestination(_ context.Context, input postiz.VerifyDestinationInput) error {
@@ -34,6 +36,17 @@ func (f *fakeVerifier) VerifyDestination(_ context.Context, input postiz.VerifyD
 }
 func (f *fakeVerifier) BeginOAuth(context.Context, postiz.BeginOAuthInput) (string, error) {
 	return "https://api.x.com/oauth/authorize?oauth_token=test-state", nil
+}
+func (f *fakeVerifier) ExchangeOAuth(_ context.Context, provider, code, state string) (postiz.OAuthExchange, error) {
+	f.exchangeCalls++
+	if provider != "x" || code != "test-code" || state != "test-state" {
+		return postiz.OAuthExchange{}, fmt.Errorf("unexpected OAuth exchange")
+	}
+	return postiz.OAuthExchange{ID: "destination-1"}, nil
+}
+func (f *fakeVerifier) SelectInstagramPage(context.Context, string, string, string, string) error {
+	f.pageCalls++
+	return nil
 }
 
 type fakeScheduler struct {
@@ -99,6 +112,14 @@ func TestSocialOAuthBoundToSessionAndCompletesThroughEnt(t *testing.T) {
 	if wrongSession.Code != http.StatusForbidden {
 		t.Fatalf("another session verified OAuth: %d", wrongSession.Code)
 	}
+	wrongExchange := call("/v1/social-oauth/exchange", "session-2", `{"provider":"x","state":"test-state","code":"test-code"}`)
+	if wrongExchange.Code != http.StatusForbidden || verifier.exchangeCalls != 0 {
+		t.Fatalf("another session exchanged OAuth: status=%d calls=%d", wrongExchange.Code, verifier.exchangeCalls)
+	}
+	exchanged := call("/v1/social-oauth/exchange", "session-1", `{"provider":"x","state":"test-state","code":"test-code"}`)
+	if exchanged.Code != http.StatusOK || verifier.exchangeCalls != 1 || !strings.Contains(exchanged.Body.String(), `"id":"destination-1"`) {
+		t.Fatalf("exchange status=%d body=%s calls=%d", exchanged.Code, exchanged.Body, verifier.exchangeCalls)
+	}
 	verified := call("/v1/social-oauth/verify", "session-1", `{"provider":"x","state":"test-state"}`)
 	if verified.Code != http.StatusOK {
 		t.Fatalf("verify status=%d body=%s", verified.Code, verified.Body)
@@ -112,6 +133,10 @@ func TestSocialOAuthBoundToSessionAndCompletesThroughEnt(t *testing.T) {
 func TestAuthorizationURLRejectsWrongHost(t *testing.T) {
 	if _, _, err := validatedAuthorizationURL("https://evil.example/oauth?oauth_token=test", "x"); err == nil {
 		t.Fatal("accepted authorization URL from another host")
+	}
+	url, state, err := validatedAuthorizationURL("https://www.linkedin.com/oauth/v2/authorization?state=linked-state", "linkedin")
+	if err != nil || state != "linked-state" || url == "" {
+		t.Fatalf("LinkedIn authorization URL: url=%q state=%q err=%v", url, state, err)
 	}
 }
 func (f *fakeStore) CreateConnection(_ context.Context, _ publishing.Actor, input publishing.CreateConnectionInput) (*ent.ChannelConnection, error) {

@@ -63,6 +63,17 @@ type BeginOAuthInput struct {
 	SecretReference          string
 }
 
+type OAuthPage struct {
+	ID     string  `json:"id"`
+	PageID string  `json:"pageId"`
+	Name   *string `json:"name,omitempty"`
+}
+
+type OAuthExchange struct {
+	ID    string      `json:"id"`
+	Pages []OAuthPage `json:"pages,omitempty"`
+}
+
 type Error struct {
 	Status          int
 	UnknownDelivery bool
@@ -80,7 +91,7 @@ func New(baseURL string, httpClient *http.Client, assetReader AssetReader) *Clie
 }
 
 func (c *Client) BeginOAuth(ctx context.Context, input BeginOAuthInput) (string, error) {
-	if input.Provider != "x" && input.Provider != "instagram" && input.Provider != "instagram-standalone" {
+	if input.Provider != "x" && input.Provider != "instagram" && input.Provider != "instagram-standalone" && input.Provider != "linkedin" {
 		return "", &Error{Status: http.StatusBadRequest, message: "unsupported social provider"}
 	}
 	if !publishing.IsSecretReference(input.SecretReference) {
@@ -111,6 +122,61 @@ func (c *Client) BeginOAuth(ctx context.Context, input BeginOAuthInput) (string,
 		return "", &Error{Status: http.StatusBadGateway, message: "Postiz returned an invalid authorization URL"}
 	}
 	return result.URL, nil
+}
+
+// ExchangeOAuth forwards a provider callback to the social adapter. The
+// product backend checks the session-bound OAuth state before calling it.
+func (c *Client) ExchangeOAuth(ctx context.Context, provider, code, state string) (OAuthExchange, error) {
+	var result OAuthExchange
+	err := c.postOAuthJSON(ctx, "/integrations/social-connect/"+url.PathEscape(provider),
+		map[string]string{"code": code, "state": state, "timezone": "0"}, &result)
+	if err != nil {
+		return OAuthExchange{}, err
+	}
+	if result.ID == "" {
+		return OAuthExchange{}, NewError(http.StatusBadGateway, false, "social adapter returned no connection")
+	}
+	return result, nil
+}
+
+func (c *Client) SelectInstagramPage(ctx context.Context, integrationID, accountID, pageID, state string) error {
+	var result struct {
+		Success bool `json:"success"`
+	}
+	err := c.postOAuthJSON(ctx, "/integrations/public/provider/"+url.PathEscape(integrationID)+"/connect",
+		map[string]string{"id": accountID, "pageId": pageID, "state": state}, &result)
+	if err != nil {
+		return err
+	}
+	if !result.Success {
+		return NewError(http.StatusBadGateway, false, "social adapter did not connect the page")
+	}
+	return nil
+}
+
+func (c *Client) postOAuthJSON(ctx context.Context, endpoint string, input, output any) error {
+	data, err := json.Marshal(input)
+	if err != nil {
+		return err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint(endpoint), bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return NewError(http.StatusServiceUnavailable, false, "social adapter is unavailable")
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
+		return NewError(response.StatusCode, false, "social adapter rejected the callback")
+	}
+	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(output); err != nil {
+		return NewError(http.StatusBadGateway, false, "social adapter returned invalid JSON")
+	}
+	return nil
 }
 
 func (c *Client) VerifyDestination(ctx context.Context, input VerifyDestinationInput) error {

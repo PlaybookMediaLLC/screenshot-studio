@@ -143,6 +143,46 @@ func (_u *AuditLogUpdate) ClearEntityID() *AuditLogUpdate {
 	return _u
 }
 
+// SetIPHash sets the "ip_hash" field.
+func (_u *AuditLogUpdate) SetIPHash(v string) *AuditLogUpdate {
+	_u.mutation.SetIPHash(v)
+	return _u
+}
+
+// SetNillableIPHash sets the "ip_hash" field if the given value is not nil.
+func (_u *AuditLogUpdate) SetNillableIPHash(v *string) *AuditLogUpdate {
+	if v != nil {
+		_u.SetIPHash(*v)
+	}
+	return _u
+}
+
+// ClearIPHash clears the value of the "ip_hash" field.
+func (_u *AuditLogUpdate) ClearIPHash() *AuditLogUpdate {
+	_u.mutation.ClearIPHash()
+	return _u
+}
+
+// SetUserAgentSummary sets the "user_agent_summary" field.
+func (_u *AuditLogUpdate) SetUserAgentSummary(v string) *AuditLogUpdate {
+	_u.mutation.SetUserAgentSummary(v)
+	return _u
+}
+
+// SetNillableUserAgentSummary sets the "user_agent_summary" field if the given value is not nil.
+func (_u *AuditLogUpdate) SetNillableUserAgentSummary(v *string) *AuditLogUpdate {
+	if v != nil {
+		_u.SetUserAgentSummary(*v)
+	}
+	return _u
+}
+
+// ClearUserAgentSummary clears the value of the "user_agent_summary" field.
+func (_u *AuditLogUpdate) ClearUserAgentSummary() *AuditLogUpdate {
+	_u.mutation.ClearUserAgentSummary()
+	return _u
+}
+
 // SetMetadata sets the "metadata" field.
 func (_u *AuditLogUpdate) SetMetadata(v map[string]interface{}) *AuditLogUpdate {
 	_u.mutation.SetMetadata(v)
@@ -257,6 +297,18 @@ func (_u *AuditLogUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.EntityIDCleared() {
 		_spec.ClearField(auditlog.FieldEntityID, field.TypeString)
+	}
+	if value, ok := _u.mutation.IPHash(); ok {
+		_spec.SetField(auditlog.FieldIPHash, field.TypeString, value)
+	}
+	if _u.mutation.IPHashCleared() {
+		_spec.ClearField(auditlog.FieldIPHash, field.TypeString)
+	}
+	if value, ok := _u.mutation.UserAgentSummary(); ok {
+		_spec.SetField(auditlog.FieldUserAgentSummary, field.TypeString, value)
+	}
+	if _u.mutation.UserAgentSummaryCleared() {
+		_spec.ClearField(auditlog.FieldUserAgentSummary, field.TypeString)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(auditlog.FieldMetadata, field.TypeJSON, value)
@@ -400,6 +452,46 @@ func (_u *AuditLogUpdateOne) SetNillableEntityID(v *string) *AuditLogUpdateOne {
 // ClearEntityID clears the value of the "entity_id" field.
 func (_u *AuditLogUpdateOne) ClearEntityID() *AuditLogUpdateOne {
 	_u.mutation.ClearEntityID()
+	return _u
+}
+
+// SetIPHash sets the "ip_hash" field.
+func (_u *AuditLogUpdateOne) SetIPHash(v string) *AuditLogUpdateOne {
+	_u.mutation.SetIPHash(v)
+	return _u
+}
+
+// SetNillableIPHash sets the "ip_hash" field if the given value is not nil.
+func (_u *AuditLogUpdateOne) SetNillableIPHash(v *string) *AuditLogUpdateOne {
+	if v != nil {
+		_u.SetIPHash(*v)
+	}
+	return _u
+}
+
+// ClearIPHash clears the value of the "ip_hash" field.
+func (_u *AuditLogUpdateOne) ClearIPHash() *AuditLogUpdateOne {
+	_u.mutation.ClearIPHash()
+	return _u
+}
+
+// SetUserAgentSummary sets the "user_agent_summary" field.
+func (_u *AuditLogUpdateOne) SetUserAgentSummary(v string) *AuditLogUpdateOne {
+	_u.mutation.SetUserAgentSummary(v)
+	return _u
+}
+
+// SetNillableUserAgentSummary sets the "user_agent_summary" field if the given value is not nil.
+func (_u *AuditLogUpdateOne) SetNillableUserAgentSummary(v *string) *AuditLogUpdateOne {
+	if v != nil {
+		_u.SetUserAgentSummary(*v)
+	}
+	return _u
+}
+
+// ClearUserAgentSummary clears the value of the "user_agent_summary" field.
+func (_u *AuditLogUpdateOne) ClearUserAgentSummary() *AuditLogUpdateOne {
+	_u.mutation.ClearUserAgentSummary()
 	return _u
 }
 
@@ -547,6 +639,18 @@ func (_u *AuditLogUpdateOne) sqlSave(ctx context.Context) (_node *AuditLog, err 
 	}
 	if _u.mutation.EntityIDCleared() {
 		_spec.ClearField(auditlog.FieldEntityID, field.TypeString)
+	}
+	if value, ok := _u.mutation.IPHash(); ok {
+		_spec.SetField(auditlog.FieldIPHash, field.TypeString, value)
+	}
+	if _u.mutation.IPHashCleared() {
+		_spec.ClearField(auditlog.FieldIPHash, field.TypeString)
+	}
+	if value, ok := _u.mutation.UserAgentSummary(); ok {
+		_spec.SetField(auditlog.FieldUserAgentSummary, field.TypeString, value)
+	}
+	if _u.mutation.UserAgentSummaryCleared() {
+		_spec.ClearField(auditlog.FieldUserAgentSummary, field.TypeString)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(auditlog.FieldMetadata, field.TypeJSON, value)

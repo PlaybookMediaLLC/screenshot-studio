@@ -34,20 +34,20 @@ export const announcementRouter = router({
   list: organizationProcedure('publish:manage')
     .input(announcementListQuerySchema.optional())
     .query(async ({ ctx, input }) => {
-      const announcements = await listAnnouncements(ctx.access.organizationId, input?.limit ?? 50)
+      const announcements = await listAnnouncements(ctx.access, input?.limit ?? 50)
       return { announcements }
     }),
 
   reach: organizationProcedure('publish:manage').query(async ({ ctx }) => {
-    return { reach: await getAudienceReach(ctx.access.organizationId) }
+    return { reach: await getAudienceReach(ctx.access) }
   }),
 
   schedule: sensitiveOrganizationProcedure('publish:manage')
     .input(announcementScheduleSchema.extend({ idempotencyKey: idempotencyKeySchema }))
     .mutation(async ({ ctx, input }) => {
       const { idempotencyKey, ...announcement } = input
-      // AnnouncementError is registered in errors.ts, so its status maps
-      // to the matching tRPC code without a local translation layer.
+      // BackendSDKError is registered in errors.ts, so the backend's status
+      // and message map to the matching tRPC code without local translation.
       return scheduleAnnouncement(ctx.access, {
         ...announcement,
         idempotencyKey: idempotencyKey ?? randomUUID(),
@@ -69,7 +69,7 @@ export const audienceRouter = router({
   list: organizationProcedure('publish:manage')
     .input(audienceListQuerySchema.optional())
     .query(async ({ ctx, input }) => {
-      const subscribers = await listAudienceSubscribers(ctx.access.organizationId, {
+      const subscribers = await listAudienceSubscribers(ctx.access, {
         includeUnsubscribed: input?.includeUnsubscribed ?? false,
         limit: input?.limit ?? 100,
       })

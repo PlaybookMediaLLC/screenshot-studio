@@ -72,14 +72,14 @@ test('the scan would notice a route that reintroduces the gate', () => {
  * route file untouched, so the scan above still passes. Verified by actually
  * reversing them, which is why this second check exists.
  */
-const ASSETS_SOURCE = join(process.cwd(), 'lib', 'tenant', 'assets.ts')
+const ASSETS_SOURCE = join(process.cwd(), 'services', 'internal', 'product', 'assets.go')
 
 function deleteAssetGateOrder(source: string): { gate: number; ownership: number } {
-  const body = source.slice(source.indexOf('async function deleteAsset'))
+  const body = source.slice(source.indexOf('func (c *Configuration) DeleteAsset('))
   const scope = body.slice(0, body.indexOf('\n}\n') + 1)
   return {
-    gate: scope.indexOf("requireWorkspaceFeature(context.organizationId, 'asset:delete')"),
-    ownership: scope.indexOf('prisma.asset.findFirst'),
+    gate: scope.indexOf('requireFeature(features, plan, "asset:delete")'),
+    ownership: scope.indexOf('c.client.Asset.Query()'),
   }
 }
 
@@ -100,10 +100,11 @@ test('the order check fails when the gate is moved ahead of ownership', () => {
   // Negative control against the exact regression: the same source with the
   // two statements swapped must be rejected.
   const vulnerable = [
-    'async function deleteAsset(context, assetId) {',
-    "  await requireWorkspaceFeature(context.organizationId, 'asset:delete')",
-    '  const owned = await prisma.asset.findFirst({ where: { id: assetId } })',
-    "  if (!owned) return 'not-found'",
+    'func (c *Configuration) DeleteAsset(ctx context.Context, actor Actor, assetID string) {',
+    '\tif err := requireFeature(features, plan, "asset:delete"); err != nil {',
+    '\t\treturn "", err',
+    '\t}',
+    '\towned, err := c.client.Asset.Query().Where(asset.ID(assetID)).Only(ctx)',
     '}',
     '',
   ].join('\n')

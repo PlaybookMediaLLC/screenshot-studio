@@ -13,7 +13,7 @@ test:
 	go test ./...
 
 race:
-	go test -race ./backend/internal/httpapi ./internal/postiz ./internal/publishing ./internal/storage ./internal/temporalpublishing
+	go test -race ./backend/internal/httpapi ./internal/postiz ./internal/publishing ./internal/temporalpublishing
 
 vet:
 	go vet ./...
@@ -22,7 +22,7 @@ check: generate fmt-check test race vet
 	git diff --exit-code -- ent screenshot-studio-backend/ent
 
 build:
-	go build ./backend/cmd/backend ./orchestrator/cmd/orchestrator ./screenshot-studio-backend/backend/cmd/screenshot-studio-backend ./screenshot-studio-backend/orchestrator/cmd/screenshot-studio-orchestrator ./screenshot-studio-backend/cmd/postiz-migrate
+	go build ./backend/cmd/backend ./cmd/platform-migrate ./orchestrator/cmd/orchestrator ./screenshot-studio-backend/backend/cmd/screenshot-studio-backend ./screenshot-studio-backend/orchestrator/cmd/screenshot-studio-orchestrator ./screenshot-studio-backend/cmd/postiz-migrate
 
 acceptance:
 	@./scripts/acceptance.sh

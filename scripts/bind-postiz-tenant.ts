@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client'
 import { config } from 'dotenv'
+import { Pool } from 'pg'
 import { z } from 'zod'
 
 config({ path: '.local/dev.env', override: false, quiet: true })
@@ -18,17 +18,20 @@ async function main(): Promise<void> {
   const apiKey = process.env[secretReference]
   const apiURL = process.env.POSTIZ_BIND_API_URL ?? process.env.POSTIZ_API_URL
   if (!apiKey || !apiURL) throw new BindingError('Postiz API URL or referenced key is unavailable.')
-  process.env.DATABASE_URL =
+  // An operator tool run against the backend database, not part of the web runtime.
+  const databaseURL = new URL(
     process.env.POSTIZ_BIND_DATABASE_URL ??
-    process.env.HOST_DATABASE_URL ??
-    process.env.DATABASE_URL
-  const prisma = new PrismaClient()
+      process.env.HOST_DATABASE_URL ??
+      process.env.DATABASE_URL ??
+      ''
+  )
+  databaseURL.searchParams.delete('schema')
+  const database = new Pool({ connectionString: databaseURL.toString() })
   try {
-    const webOrganization = await prisma.organization.findUnique({
-      select: { id: true },
-      where: { id: organizationId },
-    })
-    if (!webOrganization) throw new BindingError('Web organization was not found.')
+    const webOrganization = await database.query('SELECT id FROM organization WHERE id = $1', [
+      organizationId,
+    ])
+    if (webOrganization.rowCount === 0) throw new BindingError('Web organization was not found.')
     const response = await fetch(new URL('me', `${apiURL.replace(/\/$/, '')}/`), {
       headers: { Authorization: apiKey },
       signal: AbortSignal.timeout(15_000),
@@ -36,9 +39,12 @@ async function main(): Promise<void> {
     if (!response.ok)
       throw new BindingError('The referenced Postiz key could not read its organization.')
     const me = meSchema.parse(await response.json())
-    const existing = await prisma.postizTenantBinding.findUnique({
-      where: { organizationId },
-    })
+    const {
+      rows: [existing],
+    } = await database.query<{ goOrganizationId: string; secretReference: string }>(
+      'SELECT "goOrganizationId", "secretReference" FROM postiz_tenant_binding WHERE "organizationId" = $1',
+      [organizationId]
+    )
     if (existing) {
       if (
         existing.goOrganizationId !== me.organization.id ||
@@ -51,12 +57,14 @@ async function main(): Promise<void> {
       process.stdout.write('Postiz organization binding is already present.\n')
       return
     }
-    await prisma.postizTenantBinding.create({
-      data: { goOrganizationId: me.organization.id, organizationId, secretReference },
-    })
+    await database.query(
+      `INSERT INTO postiz_tenant_binding ("organizationId", "goOrganizationId", "secretReference", "createdAt")
+       VALUES ($1, $2, $3, now())`,
+      [organizationId, me.organization.id, secretReference]
+    )
     process.stdout.write('Postiz organization binding created.\n')
   } finally {
-    await prisma.$disconnect()
+    await database.end()
   }
 }
 

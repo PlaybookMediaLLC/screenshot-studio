@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/url"
@@ -30,7 +31,7 @@ func oauthIdentity(w http.ResponseWriter, r *http.Request) (publishing.Actor, st
 }
 
 func validOAuthProvider(provider string) bool {
-	return provider == "x" || provider == "instagram" || provider == "instagram-standalone"
+	return provider == "x" || provider == "instagram" || provider == "instagram-standalone" || provider == "linkedin"
 }
 
 func decodeOAuthRequest(w http.ResponseWriter, r *http.Request, requireState, requireIntegration bool) (oauthRequest, bool) {
@@ -50,7 +51,7 @@ func validatedAuthorizationURL(raw, provider string) (string, string, error) {
 		return "", "", errors.New("invalid authorization URL")
 	}
 	host := map[string]string{
-		"x": "api.x.com", "instagram": "www.facebook.com", "instagram-standalone": "www.instagram.com",
+		"x": "api.x.com", "instagram": "www.facebook.com", "instagram-standalone": "www.instagram.com", "linkedin": "www.linkedin.com",
 	}[provider]
 	if u.Host != host {
 		return "", "", errors.New("unexpected authorization host")
@@ -64,6 +65,83 @@ func validatedAuthorizationURL(raw, provider string) (string, string, error) {
 		return "", "", errors.New("missing authorization state")
 	}
 	return u.String(), state, nil
+}
+
+type socialOAuthExchanger interface {
+	ExchangeOAuth(context.Context, string, string, string) (postiz.OAuthExchange, error)
+	SelectInstagramPage(context.Context, string, string, string, string) error
+}
+
+type oauthExchangeRequest struct {
+	Provider string `json:"provider"`
+	State    string `json:"state"`
+	Code     string `json:"code"`
+}
+
+func (s *Server) exchangeSocialOAuth(w http.ResponseWriter, r *http.Request) {
+	actor, sessionID, ok := oauthIdentity(w, r)
+	if !ok {
+		return
+	}
+	var input oauthExchangeRequest
+	if decodeJSON(r, &input) != nil || !validOAuthProvider(input.Provider) || input.State == "" || len(input.State) > 512 || input.Code == "" || len(input.Code) > 2048 {
+		writeError(w, http.StatusBadRequest, "invalid social OAuth callback")
+		return
+	}
+	start, err := s.store.OAuthStart(r.Context(), actor, sessionID, input.State, input.Provider, nil)
+	if err != nil {
+		writeOAuthStoreError(w, err)
+		return
+	}
+	binding, err := s.store.Binding(r.Context(), actor.Organization)
+	exchanger, supported := s.verifier.(socialOAuthExchanger)
+	if err != nil || binding == nil || binding.SecretReference != start.SecretReference || !supported {
+		writeError(w, http.StatusConflict, "social connection is unavailable for this workspace")
+		return
+	}
+	connected, err := exchanger.ExchangeOAuth(r.Context(), input.Provider, input.Code, input.State)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "social provider rejected the callback")
+		return
+	}
+	writeJSON(w, http.StatusOK, connected)
+}
+
+type oauthPageRequest struct {
+	State         string `json:"state"`
+	IntegrationID string `json:"integrationId"`
+	AccountID     string `json:"accountId"`
+	PageID        string `json:"pageId"`
+}
+
+func (s *Server) selectSocialOAuthPage(w http.ResponseWriter, r *http.Request) {
+	actor, sessionID, ok := oauthIdentity(w, r)
+	if !ok {
+		return
+	}
+	var input oauthPageRequest
+	if decodeJSON(r, &input) != nil || input.State == "" || len(input.State) > 512 ||
+		input.IntegrationID == "" || len(input.IntegrationID) > 160 || input.AccountID == "" ||
+		len(input.AccountID) > 160 || input.PageID == "" || len(input.PageID) > 160 {
+		writeError(w, http.StatusBadRequest, "invalid Instagram selection")
+		return
+	}
+	start, err := s.store.OAuthStart(r.Context(), actor, sessionID, input.State, "instagram", &input.IntegrationID)
+	if err != nil {
+		writeOAuthStoreError(w, err)
+		return
+	}
+	binding, err := s.store.Binding(r.Context(), actor.Organization)
+	exchanger, supported := s.verifier.(socialOAuthExchanger)
+	if err != nil || binding == nil || binding.SecretReference != start.SecretReference || !supported {
+		writeError(w, http.StatusConflict, "social connection is unavailable for this workspace")
+		return
+	}
+	if err := exchanger.SelectInstagramPage(r.Context(), input.IntegrationID, input.AccountID, input.PageID, input.State); err != nil {
+		writeError(w, http.StatusBadGateway, "Instagram account selection failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"selected": true})
 }
 
 func (s *Server) beginSocialOAuth(w http.ResponseWriter, r *http.Request) {

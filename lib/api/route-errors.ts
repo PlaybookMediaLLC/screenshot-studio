@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { Prisma } from '@prisma/client'
+import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import { ZodError } from 'zod'
 import { AuthorizationError } from '@/lib/auth/access'
 import {
@@ -13,19 +13,18 @@ import { CreativeWorkflowError } from '@/lib/tenant/creative'
 import { DesignError } from '@/lib/tenant/designs'
 import { ReleaseError } from '@/lib/tenant/releases'
 import { WorkspaceError } from '@/lib/workspace/errors'
-import { WorkspaceEntitlementError, WorkspaceQuotaError } from '@/lib/tenant/entitlements'
+import { asEntitlementError, WorkspaceQuotaError } from '@/lib/tenant/entitlements'
 
 function isDatabaseUnavailable(error: unknown): boolean {
   return (
-    error instanceof Prisma.PrismaClientInitializationError ||
-    (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P1001') ||
-    (typeof error === 'object' &&
-      error !== null &&
-      'body' in error &&
-      typeof error.body === 'object' &&
-      error.body !== null &&
-      'code' in error.body &&
-      error.body.code === 'FAILED_TO_GET_SESSION')
+    // Better Auth reports an unreachable backend auth store this way.
+    typeof error === 'object' &&
+    error !== null &&
+    'body' in error &&
+    typeof error.body === 'object' &&
+    error.body !== null &&
+    'code' in error.body &&
+    error.body.code === 'FAILED_TO_GET_SESSION'
   )
 }
 
@@ -65,8 +64,9 @@ function getQuotaErrorResponse(error: unknown): NextResponse | null {
   )
 }
 
-function getEntitlementErrorResponse(error: unknown): NextResponse | null {
-  if (!(error instanceof WorkspaceEntitlementError)) return null
+function getEntitlementErrorResponse(cause: unknown): NextResponse | null {
+  const error = asEntitlementError(cause)
+  if (!error) return null
 
   const documentation = 'https://www.screenshot-studio.com/api-reference'
 
@@ -96,12 +96,18 @@ function getCommercialErrorResponse(error: unknown): NextResponse | null {
   return getQuotaErrorResponse(error) ?? getEntitlementErrorResponse(error)
 }
 
-export function getRouteErrorResponse(error: unknown): NextResponse {
-  if (error instanceof AuthorizationError) {
+function getStatusErrorResponse(error: unknown): NextResponse | null {
+  const commercial = getCommercialErrorResponse(error)
+  if (commercial) return commercial
+  if (error instanceof AuthorizationError || error instanceof BackendSDKError) {
     return NextResponse.json({ error: error.message }, { status: error.status })
   }
-  const commercialResponse = getCommercialErrorResponse(error)
-  if (commercialResponse) return commercialResponse
+  return null
+}
+
+export function getRouteErrorResponse(error: unknown): NextResponse {
+  const statusResponse = getStatusErrorResponse(error)
+  if (statusResponse) return statusResponse
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
   }

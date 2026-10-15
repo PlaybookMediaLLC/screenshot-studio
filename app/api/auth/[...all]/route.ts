@@ -1,5 +1,5 @@
 import { toNextJsHandler } from 'better-auth/next-js'
-import { Prisma } from '@prisma/client'
+import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import { getClientIdentifier } from '@/lib/api/client-identity'
 import { AuthorizationError, resolveActiveOrganizationId } from '@/lib/auth/access'
 import { assertAuthEnvironment } from '@/lib/auth/environment'
@@ -13,7 +13,7 @@ import {
   type RateLimitPolicy,
   WORKSPACE_INVITATION_RATE_LIMIT,
 } from '@/lib/api/rate-limit-policy'
-import { prisma } from '@/lib/db'
+import { serviceBackend } from '@/lib/backend/sdk'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { isWorkspaceOperational } from '@/lib/workspace/access'
 
@@ -70,14 +70,13 @@ async function resolveRequestedOrganizationId(
 ): Promise<string | null> {
   if (typeof input.organizationId === 'string') return input.organizationId
   if (typeof input.organizationSlug === 'string') {
-    return (
-      (
-        await prisma.organization.findUnique({
-          select: { id: true },
-          where: { slug: input.organizationSlug },
-        })
-      )?.id ?? null
-    )
+    const { row } = await serviceBackend().authStore({
+      model: 'organization',
+      op: 'findOne',
+      select: ['id'],
+      where: [{ field: 'slug', value: input.organizationSlug }],
+    })
+    return typeof row?.id === 'string' ? row.id : null
   }
   return activeOrganizationId ?? null
 }
@@ -96,11 +95,16 @@ async function getRequestedWorkspaceId(request: Request): Promise<string | null>
   )
   if (!organizationId) return null
 
-  const membership = await prisma.member.findUnique({
-    select: { organizationId: true },
-    where: { organizationId_userId: { organizationId, userId: session.user.id } },
+  const { row } = await serviceBackend().authStore({
+    model: 'member',
+    op: 'findOne',
+    select: ['organizationId'],
+    where: [
+      { field: 'organizationId', value: organizationId },
+      { field: 'userId', value: session.user.id },
+    ],
   })
-  return membership?.organizationId ?? null
+  return typeof row?.organizationId === 'string' ? row.organizationId : null
 }
 
 async function enforceOperationalOrganization(request: Request): Promise<Response | null> {
@@ -213,7 +217,7 @@ const handler = toNextJsHandler({
         return Response.json({ error: error.message }, { status: error.status })
       }
 
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (error instanceof BackendSDKError && error.status === 409) {
         return Response.json({ error: 'This record already exists.' }, { status: 409 })
       }
 

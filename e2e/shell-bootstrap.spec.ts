@@ -70,7 +70,7 @@ test('a shell bootstraps from the stable API and never receives secrets', async 
   expect(withKey.status).toBe(403)
 
   // Internal service routes reject a browser session.
-  const internal = await requestJson(page, '/api/internal/tenant-outbox/dispatch', {})
+  const internal = await requestJson(page, '/api/internal/tenant-outbox/e2e-probe/replay', {})
   expect(internal.status).toBe(401)
 })
 

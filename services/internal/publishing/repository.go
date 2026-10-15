@@ -90,6 +90,24 @@ func (r *Repository) CreateScheduledPost(ctx context.Context, actor Actor, input
 		return CreateScheduledPostResult{}, err
 	}
 
+	connectionExists, err := r.client.ChannelConnection.Query().Where(
+		channelconnection.ID(input.ChannelConnectionID),
+		channelconnection.OrganizationID(actor.Organization),
+	).Exist(ctx)
+	if err != nil {
+		return CreateScheduledPostResult{}, err
+	}
+	variantExists, err := r.client.CreativeVariant.Query().Where(
+		creativevariant.ID(input.VariantID),
+		creativevariant.OrganizationID(actor.Organization),
+	).Exist(ctx)
+	if err != nil {
+		return CreateScheduledPostResult{}, err
+	}
+	if !connectionExists || !variantExists {
+		return CreateScheduledPostResult{}, ErrNotFound
+	}
+
 	eligible, err := r.isEligible(ctx, actor.Organization, input.VariantID, input.ChannelConnectionID)
 	if err != nil {
 		return CreateScheduledPostResult{}, err
@@ -154,6 +172,12 @@ func (r *Repository) isEligible(ctx context.Context, organizationID, variantID, 
 		creativevariant.StatusEQ(creativevariant.StatusAPPROVED),
 		creativevariant.HasApprovalWith(approval.StatusEQ(approval.StatusAPPROVED)),
 	).Exist(ctx)
+}
+
+// IsEligible rechecks the approved variant and active destination before a
+// product campaign atomically links its post to a canonical scheduled post.
+func (r *Repository) IsEligible(ctx context.Context, organizationID, variantID, connectionID string) (bool, error) {
+	return r.isEligible(ctx, organizationID, variantID, connectionID)
 }
 
 func (r *Repository) ListScheduledPosts(ctx context.Context, organizationID string, limit int) ([]*ent.ScheduledPost, error) {

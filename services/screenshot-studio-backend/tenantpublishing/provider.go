@@ -5,7 +5,6 @@ package tenantpublishing
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -17,7 +16,7 @@ import (
 	socialdatabase "github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/integrations/social"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/upload"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/temporalx"
 )
 
 type BindingLookup interface {
@@ -28,12 +27,8 @@ type IntegrationLookup interface {
 	FindIntegration(context.Context, string, string, string) (*socialent.Integration, error)
 }
 
-type MediaStager interface {
-	UploadAsset(context.Context, postiz.PublishInput) (string, error)
-}
-
 type MediaSigner interface {
-	SignManagedURL(context.Context, string) (string, error)
+	SignDelivery(context.Context, string, string) (string, error)
 }
 
 type poster interface {
@@ -43,37 +38,27 @@ type poster interface {
 type Publisher struct {
 	bindings     BindingLookup
 	integrations IntegrationLookup
-	media        MediaStager
 	signer       MediaSigner
 	resolve      func(string) poster
 	now          func() time.Time
 }
 
-func New(bindings BindingLookup, socialClient *socialent.Client, media MediaStager, signer MediaSigner) *Publisher {
+func New(bindings BindingLookup, socialClient *socialent.Client, signer MediaSigner) *Publisher {
 	manager := social.NewManager()
 	return &Publisher{
 		bindings: bindings, integrations: EntIntegrationLookup{Client: socialClient},
-		media: media, signer: signer, resolve: func(platform string) poster { return manager.GetSocialIntegration(platform) }, now: time.Now,
+		signer: signer, resolve: func(platform string) poster { return manager.GetSocialIntegration(platform) }, now: time.Now,
 	}
 }
 
 // OpenShared reads social integrations from the same DSN as canonical product
 // data. The caller owns the returned close function.
-func OpenShared(ctx context.Context, databaseURL string, bindings BindingLookup, media MediaStager) (*Publisher, func() error, error) {
+func OpenShared(ctx context.Context, databaseURL string, bindings BindingLookup, signer MediaSigner) (*Publisher, func() error, error) {
 	db, err := socialdatabase.Open(ctx, databaseURL)
 	if err != nil {
 		return nil, nil, err
 	}
-	signer, err := upload.NewPrivateMediaSigner()
-	if err != nil {
-		_ = db.Close()
-		return nil, nil, err
-	}
-	if signer == nil {
-		_ = db.Close()
-		return nil, nil, fmt.Errorf("direct provider publishing requires POSTIZ_PRIVATE_MEDIA=true")
-	}
-	return New(bindings, db.Client, media, signer), db.Close, nil
+	return New(bindings, db.Client, signer), db.Close, nil
 }
 
 type EntIntegrationLookup struct{ Client *socialent.Client }
@@ -94,7 +79,7 @@ func (r EntIntegrationLookup) FindIntegration(ctx context.Context, orgID, destin
 func (*Publisher) PublishesSynchronously() bool { return true }
 
 func (p *Publisher) Publish(ctx context.Context, input postiz.PublishInput) (string, error) {
-	if p.bindings == nil || p.integrations == nil || p.media == nil || p.signer == nil || p.resolve == nil {
+	if p.bindings == nil || p.integrations == nil || p.signer == nil || p.resolve == nil {
 		return "", postiz.NewError(http.StatusServiceUnavailable, false, "direct publisher is not configured")
 	}
 	if input.OrganizationID == "" || input.DestinationID == "" || input.Platform == "" || input.PostID == "" || input.AssetObjectKey == "" {
@@ -116,7 +101,7 @@ func (p *Publisher) Publish(ctx context.Context, input postiz.PublishInput) (str
 		return "", postiz.NewError(http.StatusConflict, false, "social credentials have expired or been disabled")
 	}
 	provider := p.resolve(input.Platform)
-	if provider == nil || (input.Platform != "linkedin" && input.Platform != "x" && input.Platform != "instagram-standalone") {
+	if provider == nil || !directPlatformAllowed(input.Platform) {
 		return "", postiz.NewError(http.StatusBadRequest, false, "social provider is unsupported")
 	}
 	providerSettings := input.ProviderSettings
@@ -127,13 +112,9 @@ func (p *Publisher) Publish(ctx context.Context, input postiz.PublishInput) (str
 	if err != nil {
 		return "", postiz.NewError(http.StatusBadRequest, false, "invalid provider settings")
 	}
-	path, err := p.media.UploadAsset(ctx, input)
+	path, err := p.signer.SignDelivery(ctx, input.OrganizationID, input.AssetObjectKey)
 	if err != nil {
-		return "", err
-	}
-	path, err = p.signer.SignManagedURL(ctx, path)
-	if err != nil {
-		return "", postiz.NewError(http.StatusServiceUnavailable, false, "private media could not be signed")
+		return "", postiz.NewError(http.StatusServiceUnavailable, false, "private asset could not be signed")
 	}
 	mediaType := "image"
 	if strings.HasPrefix(input.AssetMediaType, "video/") {
@@ -144,12 +125,15 @@ func (p *Publisher) Publish(ctx context.Context, input postiz.PublishInput) (str
 		Media: []integrations.MediaContent{{Type: mediaType, Path: path}},
 	}}, account)
 	if err != nil {
+		if temporalx.FailureType(err) == temporalx.TypeRefreshToken || temporalx.FailureType(err) == temporalx.TypeDisconnect {
+			return "", postiz.NewError(http.StatusConflict, false, "social credentials must be reconnected")
+		}
 		// The provider may have accepted the post before the call failed. A
 		// reconciliation step must inspect the remote account before retrying.
-		return "", postiz.NewError(http.StatusBadGateway, true, fmt.Sprintf("%s publication outcome is unknown: %v", input.Platform, err))
+		return "", postiz.NewError(http.StatusBadGateway, true, "social publication outcome is unknown")
 	}
 	if len(response) != 1 || response[0].PostID == "" ||
-		response[0].Status != "posted" && !(input.Platform == "instagram-standalone" && response[0].Status == "success") {
+		response[0].Status != "posted" && response[0].Status != "success" {
 		return "", postiz.NewError(http.StatusBadGateway, true, "provider returned no confirmed post receipt")
 	}
 	return response[0].PostID, nil

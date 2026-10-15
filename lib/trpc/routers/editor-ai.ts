@@ -34,7 +34,7 @@ export const editorAiRouter = router({
     .input(z.object({ document: designDocumentSchema, snapshot: snapshotSchema }))
     .mutation(async ({ ctx, input }) => {
       await requireConfigured()
-      await consumeWorkspaceQuota(ctx.access.organizationId, 'generation:monthly')
+      await consumeWorkspaceQuota(ctx.access, 'generation:monthly')
       return { suggestions: await critiqueDesign(input.document, input.snapshot) }
     }),
   explore: organizationProcedure('artifact:edit')
@@ -53,7 +53,7 @@ export const editorAiRouter = router({
           message: 'Save the image to the workspace first.',
         })
       }
-      await consumeWorkspaceQuota(ctx.access.organizationId, 'generation:monthly')
+      await consumeWorkspaceQuota(ctx.access, 'generation:monthly')
       return exploreDesignDirections(ctx.access, input.document, {
         count: input.count,
         direction: input.direction,

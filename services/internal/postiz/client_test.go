@@ -35,6 +35,43 @@ func TestUploadAssetStagesMediaWithoutCreatingSecondPost(t *testing.T) {
 	}
 }
 
+func TestOAuthExchangeAndInstagramSelectionUseSocialCallbackEndpoints(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if r.Method != http.MethodPost {
+			t.Fatalf("method = %s", r.Method)
+		}
+		var body map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		switch r.URL.Path {
+		case "/integrations/social-connect/instagram":
+			if body["code"] != "code" || body["state"] != "state" {
+				t.Fatalf("exchange body = %#v", body)
+			}
+			_ = json.NewEncoder(w).Encode(OAuthExchange{ID: "integration", Pages: []OAuthPage{{ID: "account", PageID: "page"}}})
+		case "/integrations/public/provider/integration/connect":
+			if body["id"] != "account" || body["pageId"] != "page" || body["state"] != "state" {
+				t.Fatalf("selection body = %#v", body)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]bool{"success": true})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	client := New(server.URL+"/public/v1", server.Client(), nil)
+	connected, err := client.ExchangeOAuth(context.Background(), "instagram", "code", "state")
+	if err != nil || connected.ID != "integration" || len(connected.Pages) != 1 {
+		t.Fatalf("connected=%#v err=%v", connected, err)
+	}
+	if err := client.SelectInstagramPage(context.Background(), "integration", "account", "page", "state"); err != nil || requests != 2 {
+		t.Fatalf("requests=%d err=%v", requests, err)
+	}
+}
+
 func TestPublishUploadsAssetAndCreatesPost(t *testing.T) {
 	t.Setenv("POSTIZ_API_KEY_TEST", "token")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

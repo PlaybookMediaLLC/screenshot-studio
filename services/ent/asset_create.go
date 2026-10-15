@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -26,15 +27,133 @@ func (_c *AssetCreate) SetOrganizationID(v string) *AssetCreate {
 	return _c
 }
 
+// SetCaptureID sets the "capture_id" field.
+func (_c *AssetCreate) SetCaptureID(v string) *AssetCreate {
+	_c.mutation.SetCaptureID(v)
+	return _c
+}
+
+// SetNillableCaptureID sets the "capture_id" field if the given value is not nil.
+func (_c *AssetCreate) SetNillableCaptureID(v *string) *AssetCreate {
+	if v != nil {
+		_c.SetCaptureID(*v)
+	}
+	return _c
+}
+
+// SetParentAssetID sets the "parent_asset_id" field.
+func (_c *AssetCreate) SetParentAssetID(v string) *AssetCreate {
+	_c.mutation.SetParentAssetID(v)
+	return _c
+}
+
+// SetNillableParentAssetID sets the "parent_asset_id" field if the given value is not nil.
+func (_c *AssetCreate) SetNillableParentAssetID(v *string) *AssetCreate {
+	if v != nil {
+		_c.SetParentAssetID(*v)
+	}
+	return _c
+}
+
 // SetObjectKey sets the "object_key" field.
 func (_c *AssetCreate) SetObjectKey(v string) *AssetCreate {
 	_c.mutation.SetObjectKey(v)
 	return _c
 }
 
+// SetSha256 sets the "sha256" field.
+func (_c *AssetCreate) SetSha256(v string) *AssetCreate {
+	_c.mutation.SetSha256(v)
+	return _c
+}
+
+// SetNillableSha256 sets the "sha256" field if the given value is not nil.
+func (_c *AssetCreate) SetNillableSha256(v *string) *AssetCreate {
+	if v != nil {
+		_c.SetSha256(*v)
+	}
+	return _c
+}
+
 // SetMediaType sets the "media_type" field.
 func (_c *AssetCreate) SetMediaType(v string) *AssetCreate {
 	_c.mutation.SetMediaType(v)
+	return _c
+}
+
+// SetBytes sets the "bytes" field.
+func (_c *AssetCreate) SetBytes(v int) *AssetCreate {
+	_c.mutation.SetBytes(v)
+	return _c
+}
+
+// SetWidth sets the "width" field.
+func (_c *AssetCreate) SetWidth(v int) *AssetCreate {
+	_c.mutation.SetWidth(v)
+	return _c
+}
+
+// SetNillableWidth sets the "width" field if the given value is not nil.
+func (_c *AssetCreate) SetNillableWidth(v *int) *AssetCreate {
+	if v != nil {
+		_c.SetWidth(*v)
+	}
+	return _c
+}
+
+// SetHeight sets the "height" field.
+func (_c *AssetCreate) SetHeight(v int) *AssetCreate {
+	_c.mutation.SetHeight(v)
+	return _c
+}
+
+// SetNillableHeight sets the "height" field if the given value is not nil.
+func (_c *AssetCreate) SetNillableHeight(v *int) *AssetCreate {
+	if v != nil {
+		_c.SetHeight(*v)
+	}
+	return _c
+}
+
+// SetStatus sets the "status" field.
+func (_c *AssetCreate) SetStatus(v asset.Status) *AssetCreate {
+	_c.mutation.SetStatus(v)
+	return _c
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_c *AssetCreate) SetNillableStatus(v *asset.Status) *AssetCreate {
+	if v != nil {
+		_c.SetStatus(*v)
+	}
+	return _c
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (_c *AssetCreate) SetCreatedAt(v time.Time) *AssetCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *AssetCreate) SetNillableCreatedAt(v *time.Time) *AssetCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *AssetCreate) SetUpdatedAt(v time.Time) *AssetCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *AssetCreate) SetNillableUpdatedAt(v *time.Time) *AssetCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
 	return _c
 }
 
@@ -66,6 +185,7 @@ func (_c *AssetCreate) Mutation() *AssetMutation {
 
 // Save creates the Asset in the database.
 func (_c *AssetCreate) Save(ctx context.Context) (*Asset, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -91,6 +211,22 @@ func (_c *AssetCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_c *AssetCreate) defaults() {
+	if _, ok := _c.mutation.Status(); !ok {
+		v := asset.DefaultStatus
+		_c.mutation.SetStatus(v)
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := asset.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := asset.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_c *AssetCreate) check() error {
 	if _, ok := _c.mutation.OrganizationID(); !ok {
@@ -101,6 +237,23 @@ func (_c *AssetCreate) check() error {
 	}
 	if _, ok := _c.mutation.MediaType(); !ok {
 		return &ValidationError{Name: "media_type", err: errors.New(`ent: missing required field "Asset.media_type"`)}
+	}
+	if _, ok := _c.mutation.Bytes(); !ok {
+		return &ValidationError{Name: "bytes", err: errors.New(`ent: missing required field "Asset.bytes"`)}
+	}
+	if _, ok := _c.mutation.Status(); !ok {
+		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Asset.status"`)}
+	}
+	if v, ok := _c.mutation.Status(); ok {
+		if err := asset.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Asset.status": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Asset.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Asset.updated_at"`)}
 	}
 	return nil
 }
@@ -141,13 +294,49 @@ func (_c *AssetCreate) createSpec() (*Asset, *sqlgraph.CreateSpec) {
 		_spec.SetField(asset.FieldOrganizationID, field.TypeString, value)
 		_node.OrganizationID = value
 	}
+	if value, ok := _c.mutation.CaptureID(); ok {
+		_spec.SetField(asset.FieldCaptureID, field.TypeString, value)
+		_node.CaptureID = &value
+	}
+	if value, ok := _c.mutation.ParentAssetID(); ok {
+		_spec.SetField(asset.FieldParentAssetID, field.TypeString, value)
+		_node.ParentAssetID = &value
+	}
 	if value, ok := _c.mutation.ObjectKey(); ok {
 		_spec.SetField(asset.FieldObjectKey, field.TypeString, value)
 		_node.ObjectKey = value
 	}
+	if value, ok := _c.mutation.Sha256(); ok {
+		_spec.SetField(asset.FieldSha256, field.TypeString, value)
+		_node.Sha256 = &value
+	}
 	if value, ok := _c.mutation.MediaType(); ok {
 		_spec.SetField(asset.FieldMediaType, field.TypeString, value)
 		_node.MediaType = value
+	}
+	if value, ok := _c.mutation.Bytes(); ok {
+		_spec.SetField(asset.FieldBytes, field.TypeInt, value)
+		_node.Bytes = value
+	}
+	if value, ok := _c.mutation.Width(); ok {
+		_spec.SetField(asset.FieldWidth, field.TypeInt, value)
+		_node.Width = &value
+	}
+	if value, ok := _c.mutation.Height(); ok {
+		_spec.SetField(asset.FieldHeight, field.TypeInt, value)
+		_node.Height = &value
+	}
+	if value, ok := _c.mutation.Status(); ok {
+		_spec.SetField(asset.FieldStatus, field.TypeEnum, value)
+		_node.Status = value
+	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(asset.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(asset.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
 	}
 	if nodes := _c.mutation.VariantsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -186,6 +375,7 @@ func (_c *AssetCreateBulk) Save(ctx context.Context) ([]*Asset, error) {
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*AssetMutation)
 				if !ok {

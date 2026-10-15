@@ -12,10 +12,14 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// Apikey is the client for interacting with the Apikey builders.
+	Apikey *ApikeyClient
 	// Approval is the client for interacting with the Approval builders.
 	Approval *ApprovalClient
 	// Asset is the client for interacting with the Asset builders.
 	Asset *AssetClient
+	// AudienceSubscriber is the client for interacting with the AudienceSubscriber builders.
+	AudienceSubscriber *AudienceSubscriberClient
 	// AuditDrain is the client for interacting with the AuditDrain builders.
 	AuditDrain *AuditDrainClient
 	// AuditDrainDelivery is the client for interacting with the AuditDrainDelivery builders.
@@ -24,28 +28,84 @@ type Tx struct {
 	AuditLog *AuditLogClient
 	// AuditOutbox is the client for interacting with the AuditOutbox builders.
 	AuditOutbox *AuditOutboxClient
+	// AuditRetentionPolicy is the client for interacting with the AuditRetentionPolicy builders.
+	AuditRetentionPolicy *AuditRetentionPolicyClient
+	// BillingEntitlementEvent is the client for interacting with the BillingEntitlementEvent builders.
+	BillingEntitlementEvent *BillingEntitlementEventClient
+	// BrandKit is the client for interacting with the BrandKit builders.
+	BrandKit *BrandKitClient
+	// BrandProfile is the client for interacting with the BrandProfile builders.
+	BrandProfile *BrandProfileClient
+	// Campaign is the client for interacting with the Campaign builders.
+	Campaign *CampaignClient
+	// CampaignAsset is the client for interacting with the CampaignAsset builders.
+	CampaignAsset *CampaignAssetClient
+	// CampaignPlan is the client for interacting with the CampaignPlan builders.
+	CampaignPlan *CampaignPlanClient
+	// CampaignPost is the client for interacting with the CampaignPost builders.
+	CampaignPost *CampaignPostClient
+	// CampaignRevision is the client for interacting with the CampaignRevision builders.
+	CampaignRevision *CampaignRevisionClient
 	// ChannelConnection is the client for interacting with the ChannelConnection builders.
 	ChannelConnection *ChannelConnectionClient
+	// CommunicationAttempt is the client for interacting with the CommunicationAttempt builders.
+	CommunicationAttempt *CommunicationAttemptClient
+	// CommunicationRecipient is the client for interacting with the CommunicationRecipient builders.
+	CommunicationRecipient *CommunicationRecipientClient
+	// ContentAngle is the client for interacting with the ContentAngle builders.
+	ContentAngle *ContentAngleClient
+	// CreativeTemplate is the client for interacting with the CreativeTemplate builders.
+	CreativeTemplate *CreativeTemplateClient
 	// CreativeVariant is the client for interacting with the CreativeVariant builders.
 	CreativeVariant *CreativeVariantClient
+	// CustomerCommunication is the client for interacting with the CustomerCommunication builders.
+	CustomerCommunication *CustomerCommunicationClient
+	// Design is the client for interacting with the Design builders.
+	Design *DesignClient
+	// Invitation is the client for interacting with the Invitation builders.
+	Invitation *InvitationClient
+	// LaunchRun is the client for interacting with the LaunchRun builders.
+	LaunchRun *LaunchRunClient
 	// Member is the client for interacting with the Member builders.
 	Member *MemberClient
 	// Organization is the client for interacting with the Organization builders.
 	Organization *OrganizationClient
+	// OrganizationEnterpriseSettings is the client for interacting with the OrganizationEnterpriseSettings builders.
+	OrganizationEnterpriseSettings *OrganizationEnterpriseSettingsClient
+	// OutboxEvent is the client for interacting with the OutboxEvent builders.
+	OutboxEvent *OutboxEventClient
 	// PostizTenantBinding is the client for interacting with the PostizTenantBinding builders.
 	PostizTenantBinding *PostizTenantBindingClient
+	// ProductSurface is the client for interacting with the ProductSurface builders.
+	ProductSurface *ProductSurfaceClient
 	// PublicationAttempt is the client for interacting with the PublicationAttempt builders.
 	PublicationAttempt *PublicationAttemptClient
+	// Release is the client for interacting with the Release builders.
+	Release *ReleaseClient
+	// ReleaseDocument is the client for interacting with the ReleaseDocument builders.
+	ReleaseDocument *ReleaseDocumentClient
+	// ReleaseSpec is the client for interacting with the ReleaseSpec builders.
+	ReleaseSpec *ReleaseSpecClient
 	// ScheduledPost is the client for interacting with the ScheduledPost builders.
 	ScheduledPost *ScheduledPostClient
+	// ScreenshotCache is the client for interacting with the ScreenshotCache builders.
+	ScreenshotCache *ScreenshotCacheClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
 	// SocialOAuthStart is the client for interacting with the SocialOAuthStart builders.
 	SocialOAuthStart *SocialOAuthStartClient
+	// SourceApp is the client for interacting with the SourceApp builders.
+	SourceApp *SourceAppClient
+	// SupportAccessGrant is the client for interacting with the SupportAccessGrant builders.
+	SupportAccessGrant *SupportAccessGrantClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// WorkspaceDeletion is the client for interacting with the WorkspaceDeletion builders.
 	WorkspaceDeletion *WorkspaceDeletionClient
+	// WorkspaceEntitlement is the client for interacting with the WorkspaceEntitlement builders.
+	WorkspaceEntitlement *WorkspaceEntitlementClient
+	// WorkspaceSettings is the client for interacting with the WorkspaceSettings builders.
+	WorkspaceSettings *WorkspaceSettingsClient
 
 	// lazily loaded.
 	client     *Client
@@ -177,23 +237,53 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.Apikey = NewApikeyClient(tx.config)
 	tx.Approval = NewApprovalClient(tx.config)
 	tx.Asset = NewAssetClient(tx.config)
+	tx.AudienceSubscriber = NewAudienceSubscriberClient(tx.config)
 	tx.AuditDrain = NewAuditDrainClient(tx.config)
 	tx.AuditDrainDelivery = NewAuditDrainDeliveryClient(tx.config)
 	tx.AuditLog = NewAuditLogClient(tx.config)
 	tx.AuditOutbox = NewAuditOutboxClient(tx.config)
+	tx.AuditRetentionPolicy = NewAuditRetentionPolicyClient(tx.config)
+	tx.BillingEntitlementEvent = NewBillingEntitlementEventClient(tx.config)
+	tx.BrandKit = NewBrandKitClient(tx.config)
+	tx.BrandProfile = NewBrandProfileClient(tx.config)
+	tx.Campaign = NewCampaignClient(tx.config)
+	tx.CampaignAsset = NewCampaignAssetClient(tx.config)
+	tx.CampaignPlan = NewCampaignPlanClient(tx.config)
+	tx.CampaignPost = NewCampaignPostClient(tx.config)
+	tx.CampaignRevision = NewCampaignRevisionClient(tx.config)
 	tx.ChannelConnection = NewChannelConnectionClient(tx.config)
+	tx.CommunicationAttempt = NewCommunicationAttemptClient(tx.config)
+	tx.CommunicationRecipient = NewCommunicationRecipientClient(tx.config)
+	tx.ContentAngle = NewContentAngleClient(tx.config)
+	tx.CreativeTemplate = NewCreativeTemplateClient(tx.config)
 	tx.CreativeVariant = NewCreativeVariantClient(tx.config)
+	tx.CustomerCommunication = NewCustomerCommunicationClient(tx.config)
+	tx.Design = NewDesignClient(tx.config)
+	tx.Invitation = NewInvitationClient(tx.config)
+	tx.LaunchRun = NewLaunchRunClient(tx.config)
 	tx.Member = NewMemberClient(tx.config)
 	tx.Organization = NewOrganizationClient(tx.config)
+	tx.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(tx.config)
+	tx.OutboxEvent = NewOutboxEventClient(tx.config)
 	tx.PostizTenantBinding = NewPostizTenantBindingClient(tx.config)
+	tx.ProductSurface = NewProductSurfaceClient(tx.config)
 	tx.PublicationAttempt = NewPublicationAttemptClient(tx.config)
+	tx.Release = NewReleaseClient(tx.config)
+	tx.ReleaseDocument = NewReleaseDocumentClient(tx.config)
+	tx.ReleaseSpec = NewReleaseSpecClient(tx.config)
 	tx.ScheduledPost = NewScheduledPostClient(tx.config)
+	tx.ScreenshotCache = NewScreenshotCacheClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
 	tx.SocialOAuthStart = NewSocialOAuthStartClient(tx.config)
+	tx.SourceApp = NewSourceAppClient(tx.config)
+	tx.SupportAccessGrant = NewSupportAccessGrantClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 	tx.WorkspaceDeletion = NewWorkspaceDeletionClient(tx.config)
+	tx.WorkspaceEntitlement = NewWorkspaceEntitlementClient(tx.config)
+	tx.WorkspaceSettings = NewWorkspaceSettingsClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.
@@ -203,7 +293,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: Approval.QueryXXX(), the query will be executed
+// applies a query, for example: Apikey.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

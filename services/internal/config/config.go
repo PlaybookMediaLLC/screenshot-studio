@@ -40,8 +40,6 @@ type Orchestrator struct {
 	ActivityTimeout           time.Duration
 	ExcludedQueues            []string
 	MaxAttempts               int
-	PostizAPIURL              string
-	ProviderTimeout           time.Duration
 	RetryDelay                time.Duration
 	RunCron                   bool
 	RunMaintenance            bool
@@ -52,9 +50,6 @@ type Orchestrator struct {
 	AuthBaseURL               string
 	AuthSecret                string
 	CompanyPostalAddress      string
-	StorageAPIURL             string
-	StorageBucket             string
-	StorageKey                string
 	WorkerConcurrencyDivider  int
 }
 
@@ -109,16 +104,13 @@ func LoadOrchestrator() (Orchestrator, error) {
 		ActivityTimeout:           envDuration("PUBLISHING_ACTIVITY_TIMEOUT", 30*time.Minute),
 		ExcludedQueues:            splitList(os.Getenv("EXCLUDE_QUEUE")),
 		MaxAttempts:               envInt("PUBLISHING_MAX_ATTEMPTS", 3),
-		PostizAPIURL:              envString("POSTIZ_API_URL", "https://api.postiz.com/public/v1"),
-		ProviderTimeout:           envDuration("POSTIZ_REQUEST_TIMEOUT", 15*time.Second),
 		RetryDelay:                envDuration("PUBLISHING_RETRY_DELAY", 2*time.Minute),
 		RunCron:                   runCron,
 		RunMaintenance:            runMaintenance,
 		AuditRetentionDatabaseURL: os.Getenv("AUDIT_RETENTION_DATABASE_URL"),
 		ResendAPIKey:              os.Getenv("RESEND_API_KEY"), EmailFrom: os.Getenv("AUTH_EMAIL_FROM"),
 		AuthBaseURL: os.Getenv("BETTER_AUTH_URL"), AuthSecret: os.Getenv("BETTER_AUTH_SECRET"),
-		CompanyPostalAddress: os.Getenv("COMPANY_POSTAL_ADDRESS"),
-		StorageAPIURL:        os.Getenv("STORAGE_API_URL"), StorageBucket: os.Getenv("STORAGE_BUCKET"), StorageKey: os.Getenv("STORAGE_SERVICE_KEY"),
+		CompanyPostalAddress:     os.Getenv("COMPANY_POSTAL_ADDRESS"),
 		WorkerConcurrencyDivider: envInt("WORKER_CONCURRENCY_DIVIDER", 1),
 	}
 	if cfg.RunMaintenance {
@@ -140,9 +132,6 @@ func LoadOrchestrator() (Orchestrator, error) {
 	if cfg.ActivityConcurrency < 1 || cfg.ActivityConcurrency > 1000 {
 		return Orchestrator{}, fmt.Errorf("TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_EXECUTORS must be between 1 and 1000")
 	}
-	if cfg.ProviderTimeout <= 0 {
-		return Orchestrator{}, fmt.Errorf("POSTIZ_REQUEST_TIMEOUT must be positive")
-	}
 	if cfg.MaxAttempts < 1 || cfg.MaxAttempts > 10 {
 		return Orchestrator{}, fmt.Errorf("PUBLISHING_MAX_ATTEMPTS must be between 1 and 10")
 	}
@@ -151,9 +140,6 @@ func LoadOrchestrator() (Orchestrator, error) {
 	}
 	if cfg.WorkerConcurrencyDivider < 1 || cfg.WorkerConcurrencyDivider > 1000 {
 		return Orchestrator{}, fmt.Errorf("WORKER_CONCURRENCY_DIVIDER must be between 1 and 1000")
-	}
-	if cfg.StorageAPIURL == "" || cfg.StorageBucket == "" || cfg.StorageKey == "" {
-		return Orchestrator{}, fmt.Errorf("STORAGE_API_URL, STORAGE_BUCKET, and STORAGE_SERVICE_KEY are required")
 	}
 	return cfg, nil
 }

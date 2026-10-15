@@ -56,6 +56,26 @@ func (_u *UserUpdate) SetNillableEmail(v *string) *UserUpdate {
 	return _u
 }
 
+// SetImage sets the "image" field.
+func (_u *UserUpdate) SetImage(v string) *UserUpdate {
+	_u.mutation.SetImage(v)
+	return _u
+}
+
+// SetNillableImage sets the "image" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableImage(v *string) *UserUpdate {
+	if v != nil {
+		_u.SetImage(*v)
+	}
+	return _u
+}
+
+// ClearImage clears the value of the "image" field.
+func (_u *UserUpdate) ClearImage() *UserUpdate {
+	_u.mutation.ClearImage()
+	return _u
+}
+
 // SetEmailVerified sets the "email_verified" field.
 func (_u *UserUpdate) SetEmailVerified(v bool) *UserUpdate {
 	_u.mutation.SetEmailVerified(v)
@@ -67,6 +87,26 @@ func (_u *UserUpdate) SetNillableEmailVerified(v *bool) *UserUpdate {
 	if v != nil {
 		_u.SetEmailVerified(*v)
 	}
+	return _u
+}
+
+// SetTwoFactorEnabled sets the "two_factor_enabled" field.
+func (_u *UserUpdate) SetTwoFactorEnabled(v bool) *UserUpdate {
+	_u.mutation.SetTwoFactorEnabled(v)
+	return _u
+}
+
+// SetNillableTwoFactorEnabled sets the "two_factor_enabled" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableTwoFactorEnabled(v *bool) *UserUpdate {
+	if v != nil {
+		_u.SetTwoFactorEnabled(*v)
+	}
+	return _u
+}
+
+// ClearTwoFactorEnabled clears the value of the "two_factor_enabled" field.
+func (_u *UserUpdate) ClearTwoFactorEnabled() *UserUpdate {
+	_u.mutation.ClearTwoFactorEnabled()
 	return _u
 }
 
@@ -110,6 +150,12 @@ func (_u *UserUpdate) ClearBanExpires() *UserUpdate {
 	return _u
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *UserUpdate) SetUpdatedAt(v time.Time) *UserUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
@@ -117,6 +163,7 @@ func (_u *UserUpdate) Mutation() *UserMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *UserUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -142,6 +189,14 @@ func (_u *UserUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_u *UserUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := user.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
+	}
+}
+
 func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	_spec := sqlgraph.NewUpdateSpec(user.Table, user.Columns, sqlgraph.NewFieldSpec(user.FieldID, field.TypeString))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
@@ -157,8 +212,20 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.Image(); ok {
+		_spec.SetField(user.FieldImage, field.TypeString, value)
+	}
+	if _u.mutation.ImageCleared() {
+		_spec.ClearField(user.FieldImage, field.TypeString)
+	}
 	if value, ok := _u.mutation.EmailVerified(); ok {
 		_spec.SetField(user.FieldEmailVerified, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.TwoFactorEnabled(); ok {
+		_spec.SetField(user.FieldTwoFactorEnabled, field.TypeBool, value)
+	}
+	if _u.mutation.TwoFactorEnabledCleared() {
+		_spec.ClearField(user.FieldTwoFactorEnabled, field.TypeBool)
 	}
 	if value, ok := _u.mutation.Banned(); ok {
 		_spec.SetField(user.FieldBanned, field.TypeBool, value)
@@ -171,6 +238,9 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.BanExpiresCleared() {
 		_spec.ClearField(user.FieldBanExpires, field.TypeTime)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -220,6 +290,26 @@ func (_u *UserUpdateOne) SetNillableEmail(v *string) *UserUpdateOne {
 	return _u
 }
 
+// SetImage sets the "image" field.
+func (_u *UserUpdateOne) SetImage(v string) *UserUpdateOne {
+	_u.mutation.SetImage(v)
+	return _u
+}
+
+// SetNillableImage sets the "image" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableImage(v *string) *UserUpdateOne {
+	if v != nil {
+		_u.SetImage(*v)
+	}
+	return _u
+}
+
+// ClearImage clears the value of the "image" field.
+func (_u *UserUpdateOne) ClearImage() *UserUpdateOne {
+	_u.mutation.ClearImage()
+	return _u
+}
+
 // SetEmailVerified sets the "email_verified" field.
 func (_u *UserUpdateOne) SetEmailVerified(v bool) *UserUpdateOne {
 	_u.mutation.SetEmailVerified(v)
@@ -231,6 +321,26 @@ func (_u *UserUpdateOne) SetNillableEmailVerified(v *bool) *UserUpdateOne {
 	if v != nil {
 		_u.SetEmailVerified(*v)
 	}
+	return _u
+}
+
+// SetTwoFactorEnabled sets the "two_factor_enabled" field.
+func (_u *UserUpdateOne) SetTwoFactorEnabled(v bool) *UserUpdateOne {
+	_u.mutation.SetTwoFactorEnabled(v)
+	return _u
+}
+
+// SetNillableTwoFactorEnabled sets the "two_factor_enabled" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableTwoFactorEnabled(v *bool) *UserUpdateOne {
+	if v != nil {
+		_u.SetTwoFactorEnabled(*v)
+	}
+	return _u
+}
+
+// ClearTwoFactorEnabled clears the value of the "two_factor_enabled" field.
+func (_u *UserUpdateOne) ClearTwoFactorEnabled() *UserUpdateOne {
+	_u.mutation.ClearTwoFactorEnabled()
 	return _u
 }
 
@@ -274,6 +384,12 @@ func (_u *UserUpdateOne) ClearBanExpires() *UserUpdateOne {
 	return _u
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *UserUpdateOne) SetUpdatedAt(v time.Time) *UserUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdateOne) Mutation() *UserMutation {
 	return _u.mutation
@@ -294,6 +410,7 @@ func (_u *UserUpdateOne) Select(field string, fields ...string) *UserUpdateOne {
 
 // Save executes the query and returns the updated User entity.
 func (_u *UserUpdateOne) Save(ctx context.Context) (*User, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -316,6 +433,14 @@ func (_u *UserUpdateOne) Exec(ctx context.Context) error {
 func (_u *UserUpdateOne) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *UserUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := user.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -351,8 +476,20 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	if value, ok := _u.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.Image(); ok {
+		_spec.SetField(user.FieldImage, field.TypeString, value)
+	}
+	if _u.mutation.ImageCleared() {
+		_spec.ClearField(user.FieldImage, field.TypeString)
+	}
 	if value, ok := _u.mutation.EmailVerified(); ok {
 		_spec.SetField(user.FieldEmailVerified, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.TwoFactorEnabled(); ok {
+		_spec.SetField(user.FieldTwoFactorEnabled, field.TypeBool, value)
+	}
+	if _u.mutation.TwoFactorEnabledCleared() {
+		_spec.ClearField(user.FieldTwoFactorEnabled, field.TypeBool)
 	}
 	if value, ok := _u.mutation.Banned(); ok {
 		_spec.SetField(user.FieldBanned, field.TypeBool, value)
@@ -365,6 +502,9 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if _u.mutation.BanExpiresCleared() {
 		_spec.ClearField(user.FieldBanExpires, field.TypeTime)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
 	}
 	_node = &User{config: _u.config}
 	_spec.Assign = _node.assignValues

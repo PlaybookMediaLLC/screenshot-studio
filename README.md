@@ -258,9 +258,9 @@ The deployed product publishes machine-readable interfaces for agents and API cl
 The app ships production Docker images, a portable Helm chart, and GitHub
 Actions workflows for DigitalOcean App Platform. See [deployment instructions](docs/deployment.md).
 
-For the hot-reload local stack, Temporal Go workers, Supabase Storage, RustFS, and
-Kind commands, see [local development](docs/local-development.md). Start with `make help` to
-view the team workflow.
+For the hot-reload local stack, Temporal Go workers, RustFS, and Kind commands,
+see [local development](docs/local-development.md). Start with `make help` to view
+the team workflow.
 
 Better Auth, fixed organization RBAC, SSO, SCIM, audit logs, retention, and SIEM drains are
 documented in [authentication and enterprise access](docs/authentication.md).
@@ -282,8 +282,8 @@ handling are documented in
 
 ## Tech stack
 
-Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Prisma · Zustand · Radix UI · Motion ·
-FFmpeg WASM · WebCodecs · Temporal · Postiz
+Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Go · Ent · PostgreSQL · Zustand · Radix UI ·
+Motion · FFmpeg WASM · WebCodecs · Temporal · Postiz
 
 ## Third-party providers
 

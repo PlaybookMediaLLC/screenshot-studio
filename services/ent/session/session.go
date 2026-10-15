@@ -3,6 +3,8 @@
 package session
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 )
 
@@ -17,8 +19,12 @@ const (
 	FieldToken = "token"
 	// FieldExpiresAt holds the string denoting the expires_at field in the database.
 	FieldExpiresAt = "expiresAt"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "createdAt"
 	// FieldActiveOrganizationID holds the string denoting the active_organization_id field in the database.
 	FieldActiveOrganizationID = "activeOrganizationId"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updatedAt"
 	// Table holds the table name of the session in the database.
 	Table = "session"
 )
@@ -29,7 +35,9 @@ var Columns = []string{
 	FieldUserID,
 	FieldToken,
 	FieldExpiresAt,
+	FieldCreatedAt,
 	FieldActiveOrganizationID,
+	FieldUpdatedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -41,6 +49,15 @@ func ValidColumn(column string) bool {
 	}
 	return false
 }
+
+var (
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
+)
 
 // OrderOption defines the ordering options for the Session queries.
 type OrderOption func(*sql.Selector)
@@ -65,7 +82,17 @@ func ByExpiresAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldExpiresAt, opts...).ToFunc()
 }
 
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
 // ByActiveOrganizationID orders the results by the active_organization_id field.
 func ByActiveOrganizationID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldActiveOrganizationID, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }

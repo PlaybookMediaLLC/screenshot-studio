@@ -38,6 +38,20 @@ func (_c *SessionCreate) SetExpiresAt(v time.Time) *SessionCreate {
 	return _c
 }
 
+// SetCreatedAt sets the "created_at" field.
+func (_c *SessionCreate) SetCreatedAt(v time.Time) *SessionCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *SessionCreate) SetNillableCreatedAt(v *time.Time) *SessionCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
 // SetActiveOrganizationID sets the "active_organization_id" field.
 func (_c *SessionCreate) SetActiveOrganizationID(v string) *SessionCreate {
 	_c.mutation.SetActiveOrganizationID(v)
@@ -48,6 +62,20 @@ func (_c *SessionCreate) SetActiveOrganizationID(v string) *SessionCreate {
 func (_c *SessionCreate) SetNillableActiveOrganizationID(v *string) *SessionCreate {
 	if v != nil {
 		_c.SetActiveOrganizationID(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *SessionCreate) SetUpdatedAt(v time.Time) *SessionCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *SessionCreate) SetNillableUpdatedAt(v *time.Time) *SessionCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
 	return _c
 }
@@ -65,6 +93,7 @@ func (_c *SessionCreate) Mutation() *SessionMutation {
 
 // Save creates the Session in the database.
 func (_c *SessionCreate) Save(ctx context.Context) (*Session, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -90,6 +119,18 @@ func (_c *SessionCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_c *SessionCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := session.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := session.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_c *SessionCreate) check() error {
 	if _, ok := _c.mutation.UserID(); !ok {
@@ -100,6 +141,12 @@ func (_c *SessionCreate) check() error {
 	}
 	if _, ok := _c.mutation.ExpiresAt(); !ok {
 		return &ValidationError{Name: "expires_at", err: errors.New(`ent: missing required field "Session.expires_at"`)}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Session.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Session.updated_at"`)}
 	}
 	return nil
 }
@@ -148,9 +195,17 @@ func (_c *SessionCreate) createSpec() (*Session, *sqlgraph.CreateSpec) {
 		_spec.SetField(session.FieldExpiresAt, field.TypeTime, value)
 		_node.ExpiresAt = value
 	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(session.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
 	if value, ok := _c.mutation.ActiveOrganizationID(); ok {
 		_spec.SetField(session.FieldActiveOrganizationID, field.TypeString, value)
 		_node.ActiveOrganizationID = &value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(session.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
 	}
 	return _node, _spec
 }
@@ -173,6 +228,7 @@ func (_c *SessionCreateBulk) Save(ctx context.Context) ([]*Session, error) {
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*SessionMutation)
 				if !ok {

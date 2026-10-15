@@ -1,93 +1,54 @@
 import 'server-only'
 
-import { appendAuditLog } from '@/lib/audit/log'
-import type { TenantContext } from '@/lib/auth/access'
-import { getAuditActor } from '@/lib/auth/principal'
-import { prisma } from '@/lib/db'
+import type { OrganizationAccess, TenantContext } from '@/lib/auth/access'
+import { backendSDK } from '@/lib/backend/sdk'
 import type { BrandKitCreateInput, BrandProfileUpsertInput, SourceAppCreateInput } from './schemas'
 
-export async function createBrandKit(context: TenantContext, input: BrandKitCreateInput) {
-  return prisma.$transaction(async (transaction) => {
-    const current = await transaction.brandKit.findFirst({
-      orderBy: { version: 'desc' },
-      select: { version: true },
-      where: { name: input.name, organizationId: context.organizationId },
-    })
-    const brandKit = await transaction.brandKit.create({
-      data: {
-        definition: input.definition,
-        name: input.name,
-        organizationId: context.organizationId,
-        status: input.publish ? 'ACTIVE' : 'DRAFT',
-        version: (current?.version ?? 0) + 1,
-      },
-    })
-    await appendAuditLog(transaction, {
-      action: 'product.brand_kit_created',
-      actor: getAuditActor(context.principal),
-      entityId: brandKit.id,
-      entityType: 'brand_kit',
-      organizationId: context.organizationId,
-      requestId: context.requestId,
-    })
-    return brandKit
-  })
+export async function listBrandKits(context: OrganizationAccess) {
+  const result = await backendSDK(context).listBrandKits()
+  return result.brandKits.map(({ createdAt, definition, id, name, status, version }) => ({
+    createdAt: new Date(createdAt),
+    definition,
+    id,
+    name,
+    status,
+    version,
+  }))
 }
 
-export async function getBrandProfile(organizationId: string) {
-  return prisma.brandProfile.findUnique({ where: { organizationId } })
+export async function createBrandKit(context: OrganizationAccess, input: BrandKitCreateInput) {
+  const kit = await backendSDK(context).createBrandKit(input)
+  return { ...kit, createdAt: new Date(kit.createdAt), updatedAt: new Date(kit.updatedAt) }
 }
 
-export async function upsertBrandProfile(context: TenantContext, input: BrandProfileUpsertInput) {
-  return prisma.$transaction(async (transaction) => {
-    const data = {
-      audience: input.audience,
-      ctaConventions: input.ctaConventions ?? null,
-      preferredStyles: input.preferredStyles,
-      productDescription: input.productDescription,
-      prohibitedTerms: input.prohibitedTerms,
-      socialHandles: input.socialHandles,
-      tagline: input.tagline ?? null,
-      tone: input.tone,
+export async function getBrandProfile(context: OrganizationAccess) {
+  const { brandProfile } = await backendSDK(context).getBrandProfile()
+  return (
+    brandProfile && {
+      ...brandProfile,
+      createdAt: new Date(brandProfile.createdAt),
+      updatedAt: new Date(brandProfile.updatedAt),
     }
-    const brandProfile = await transaction.brandProfile.upsert({
-      create: { ...data, organizationId: context.organizationId },
-      update: data,
-      where: { organizationId: context.organizationId },
-    })
-    await appendAuditLog(transaction, {
-      action: 'product.brand_profile_updated',
-      actor: getAuditActor(context.principal),
-      entityId: brandProfile.id,
-      entityType: 'brand_profile',
-      organizationId: context.organizationId,
-      requestId: context.requestId,
-    })
-    return brandProfile
-  })
+  )
+}
+
+export async function upsertBrandProfile(
+  context: OrganizationAccess,
+  input: BrandProfileUpsertInput
+) {
+  const profile = await backendSDK(context).upsertBrandProfile(input)
+  return {
+    ...profile,
+    createdAt: new Date(profile.createdAt),
+    updatedAt: new Date(profile.updatedAt),
+  }
 }
 
 export async function createSourceApp(context: TenantContext, input: SourceAppCreateInput) {
-  return prisma.$transaction(async (transaction) => {
-    const sourceApp = await transaction.sourceApp.create({
-      data: {
-        allowedHosts: input.allowedHosts,
-        externalId: input.externalId,
-        name: input.name,
-        organizationId: context.organizationId,
-        provider: input.provider,
-        secretReference: input.secretReference,
-        status: 'ACTIVE',
-      },
-    })
-    await appendAuditLog(transaction, {
-      action: 'product.source_app_created',
-      actor: getAuditActor(context.principal),
-      entityId: sourceApp.id,
-      entityType: 'source_app',
-      organizationId: context.organizationId,
-      requestId: context.requestId,
-    })
-    return sourceApp
-  })
+  const sourceApp = await backendSDK(context).createSourceApp(input)
+  return {
+    ...sourceApp,
+    createdAt: new Date(sourceApp.createdAt),
+    updatedAt: new Date(sourceApp.updatedAt),
+  }
 }

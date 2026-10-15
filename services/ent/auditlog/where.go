@@ -104,6 +104,16 @@ func EntityID(v string) predicate.AuditLog {
 	return predicate.AuditLog(sql.FieldEQ(FieldEntityID, v))
 }
 
+// IPHash applies equality check predicate on the "ip_hash" field. It's identical to IPHashEQ.
+func IPHash(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldEQ(FieldIPHash, v))
+}
+
+// UserAgentSummary applies equality check predicate on the "user_agent_summary" field. It's identical to UserAgentSummaryEQ.
+func UserAgentSummary(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldEQ(FieldUserAgentSummary, v))
+}
+
 // SearchText applies equality check predicate on the "search_text" field. It's identical to SearchTextEQ.
 func SearchText(v string) predicate.AuditLog {
 	return predicate.AuditLog(sql.FieldEQ(FieldSearchText, v))
@@ -672,6 +682,156 @@ func EntityIDEqualFold(v string) predicate.AuditLog {
 // EntityIDContainsFold applies the ContainsFold predicate on the "entity_id" field.
 func EntityIDContainsFold(v string) predicate.AuditLog {
 	return predicate.AuditLog(sql.FieldContainsFold(FieldEntityID, v))
+}
+
+// IPHashEQ applies the EQ predicate on the "ip_hash" field.
+func IPHashEQ(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldEQ(FieldIPHash, v))
+}
+
+// IPHashNEQ applies the NEQ predicate on the "ip_hash" field.
+func IPHashNEQ(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldNEQ(FieldIPHash, v))
+}
+
+// IPHashIn applies the In predicate on the "ip_hash" field.
+func IPHashIn(vs ...string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldIn(FieldIPHash, vs...))
+}
+
+// IPHashNotIn applies the NotIn predicate on the "ip_hash" field.
+func IPHashNotIn(vs ...string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldNotIn(FieldIPHash, vs...))
+}
+
+// IPHashGT applies the GT predicate on the "ip_hash" field.
+func IPHashGT(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldGT(FieldIPHash, v))
+}
+
+// IPHashGTE applies the GTE predicate on the "ip_hash" field.
+func IPHashGTE(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldGTE(FieldIPHash, v))
+}
+
+// IPHashLT applies the LT predicate on the "ip_hash" field.
+func IPHashLT(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldLT(FieldIPHash, v))
+}
+
+// IPHashLTE applies the LTE predicate on the "ip_hash" field.
+func IPHashLTE(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldLTE(FieldIPHash, v))
+}
+
+// IPHashContains applies the Contains predicate on the "ip_hash" field.
+func IPHashContains(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldContains(FieldIPHash, v))
+}
+
+// IPHashHasPrefix applies the HasPrefix predicate on the "ip_hash" field.
+func IPHashHasPrefix(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldHasPrefix(FieldIPHash, v))
+}
+
+// IPHashHasSuffix applies the HasSuffix predicate on the "ip_hash" field.
+func IPHashHasSuffix(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldHasSuffix(FieldIPHash, v))
+}
+
+// IPHashIsNil applies the IsNil predicate on the "ip_hash" field.
+func IPHashIsNil() predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldIsNull(FieldIPHash))
+}
+
+// IPHashNotNil applies the NotNil predicate on the "ip_hash" field.
+func IPHashNotNil() predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldNotNull(FieldIPHash))
+}
+
+// IPHashEqualFold applies the EqualFold predicate on the "ip_hash" field.
+func IPHashEqualFold(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldEqualFold(FieldIPHash, v))
+}
+
+// IPHashContainsFold applies the ContainsFold predicate on the "ip_hash" field.
+func IPHashContainsFold(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldContainsFold(FieldIPHash, v))
+}
+
+// UserAgentSummaryEQ applies the EQ predicate on the "user_agent_summary" field.
+func UserAgentSummaryEQ(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldEQ(FieldUserAgentSummary, v))
+}
+
+// UserAgentSummaryNEQ applies the NEQ predicate on the "user_agent_summary" field.
+func UserAgentSummaryNEQ(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldNEQ(FieldUserAgentSummary, v))
+}
+
+// UserAgentSummaryIn applies the In predicate on the "user_agent_summary" field.
+func UserAgentSummaryIn(vs ...string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldIn(FieldUserAgentSummary, vs...))
+}
+
+// UserAgentSummaryNotIn applies the NotIn predicate on the "user_agent_summary" field.
+func UserAgentSummaryNotIn(vs ...string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldNotIn(FieldUserAgentSummary, vs...))
+}
+
+// UserAgentSummaryGT applies the GT predicate on the "user_agent_summary" field.
+func UserAgentSummaryGT(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldGT(FieldUserAgentSummary, v))
+}
+
+// UserAgentSummaryGTE applies the GTE predicate on the "user_agent_summary" field.
+func UserAgentSummaryGTE(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldGTE(FieldUserAgentSummary, v))
+}
+
+// UserAgentSummaryLT applies the LT predicate on the "user_agent_summary" field.
+func UserAgentSummaryLT(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldLT(FieldUserAgentSummary, v))
+}
+
+// UserAgentSummaryLTE applies the LTE predicate on the "user_agent_summary" field.
+func UserAgentSummaryLTE(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldLTE(FieldUserAgentSummary, v))
+}
+
+// UserAgentSummaryContains applies the Contains predicate on the "user_agent_summary" field.
+func UserAgentSummaryContains(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldContains(FieldUserAgentSummary, v))
+}
+
+// UserAgentSummaryHasPrefix applies the HasPrefix predicate on the "user_agent_summary" field.
+func UserAgentSummaryHasPrefix(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldHasPrefix(FieldUserAgentSummary, v))
+}
+
+// UserAgentSummaryHasSuffix applies the HasSuffix predicate on the "user_agent_summary" field.
+func UserAgentSummaryHasSuffix(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldHasSuffix(FieldUserAgentSummary, v))
+}
+
+// UserAgentSummaryIsNil applies the IsNil predicate on the "user_agent_summary" field.
+func UserAgentSummaryIsNil() predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldIsNull(FieldUserAgentSummary))
+}
+
+// UserAgentSummaryNotNil applies the NotNil predicate on the "user_agent_summary" field.
+func UserAgentSummaryNotNil() predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldNotNull(FieldUserAgentSummary))
+}
+
+// UserAgentSummaryEqualFold applies the EqualFold predicate on the "user_agent_summary" field.
+func UserAgentSummaryEqualFold(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldEqualFold(FieldUserAgentSummary, v))
+}
+
+// UserAgentSummaryContainsFold applies the ContainsFold predicate on the "user_agent_summary" field.
+func UserAgentSummaryContainsFold(v string) predicate.AuditLog {
+	return predicate.AuditLog(sql.FieldContainsFold(FieldUserAgentSummary, v))
 }
 
 // MetadataIsNil applies the IsNil predicate on the "metadata" field.

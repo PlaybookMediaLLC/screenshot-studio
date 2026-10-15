@@ -44,9 +44,8 @@ function angleRank(key: string | null): number {
 export default async function CampaignCopyPage({ params }: CampaignCopyPageProps) {
   const { campaignId, locale } = await params
   const access = await requireCampaignPageAccess(locale)
-  const organizationId = access.organization.id
   // Scoped to the active workspace: another workspace's id is a 404.
-  const campaign = await getCampaign(organizationId, campaignId)
+  const campaign = await getCampaign(access.tenant, campaignId)
   if (!campaign) notFound()
 
   if (campaign.posts.length === 0) {
@@ -65,8 +64,8 @@ export default async function CampaignCopyPage({ params }: CampaignCopyPageProps
   }
 
   const [plans, specs] = await Promise.all([
-    getCampaignPlans(organizationId, campaign.id),
-    campaign.release ? getReleaseSpecs(organizationId, campaign.release.id) : null,
+    getCampaignPlans(access.tenant, campaign.id),
+    campaign.release ? getReleaseSpecs(access.tenant, campaign.release.id) : null,
   ])
   const workingPlan = plans.approved ?? plans.latest
   const plan = workingPlan?.content
@@ -83,7 +82,7 @@ export default async function CampaignCopyPage({ params }: CampaignCopyPageProps
         version,
         version === workingSpec.version
           ? workingSpec.content
-          : (await getSpecById(organizationId, match.id)).content
+          : (await getSpecById(access.tenant, match.id)).content
       )
     }
   }

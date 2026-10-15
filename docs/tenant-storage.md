@@ -1,122 +1,60 @@
 # Tenant asset storage
 
-Tenant assets are uploaded and downloaded through a Supabase Storage API
-service rather than by talking to object storage directly. The
-application signs URLs through it, which keeps per-tenant object keys and
-expiry policy in one place instead of spread across callers.
-
-This document covers the deployed service and the adaptations required to
-run it against a Postgres that Supabase does not manage.
+Tenant asset bytes live in a private S3-compatible bucket: Cloudflare R2 in
+production, RustFS locally. The Go backend is the only component that holds
+storage credentials. The web app never signs or reads objects on its own
+authority; it asks the backend for a short-lived signed URL.
 
 ## Shape
 
 | Piece | Where |
 | --- | --- |
-| Storage API | Fly app `screenshot-studio-storage`, `iad` |
-| Object bytes | Cloudflare R2 bucket `screenshot-studio`, via the S3 backend |
-| Object metadata | `storage` database on the same PlanetScale cluster |
-| Bucket | `tenant-assets`, private |
+| Object bytes | Private R2 bucket (RustFS on `localhost:9003` in Compose) |
+| Object metadata | `asset` rows in the product database, owned by the backend |
+| Signing | `services/internal/media` in the Go backend |
+| Web access | `lib/storage/client.ts` and `lib/tenant/assets.ts`, through the SDK |
 
-Object metadata lives in a separate database from tenant application
-data, so storage bookkeeping and the product schema stay independent and
-can be migrated on their own schedules.
+There is no separate storage metadata database or Storage API service. The
+`asset` row is the canonical record: its organization, object key, media
+type, size, hash, and status (`PENDING`, `UPLOADED`, `DELETED`).
 
-The application reaches the service through `STORAGE_API_URL`,
-`STORAGE_SERVICE_KEY`, and `STORAGE_BUCKET`. Without them,
-`lib/storage/client.ts` raises `TenantStorageUnavailableError`, which
-surfaces as a 503 rather than an unexplained server fault.
+## Flow
 
-## Authentication
+1. The web calls `signAssetUpload`. The backend checks the caller's role and
+   the workspace storage quota, inserts a `PENDING` asset, and returns a PUT
+   URL for its object key.
+2. The browser uploads directly to the bucket.
+3. The web calls `completeAssetUpload`. The backend confirms the object
+   exists, optionally checks its SHA-256, and marks the asset `UPLOADED`.
+4. Browser downloads call `signAssetDownload`. Rendering and AI tools call
+   `readAsset` through the SDK so the backend reads the object and returns its
+   bytes. Both operations require an `UPLOADED` asset in the caller's workspace.
 
-The service authorizes requests with an HS256 JWT signed by
-`AUTH_JWT_SECRET`. The application holds a long-lived token carrying
-`role: service_role`, which is what `STORAGE_SERVICE_KEY` contains.
+Object keys are namespaced `org/<organizationId>/...`, and the backend
+refuses a key outside the caller's organization. Signed URLs expire after
+two minutes, long enough to finish one transfer and no longer.
 
-The token is not a bearer credential for end users. Every application
-request is already authorized against the tenant before it reaches
-storage, and object keys are namespaced per organization, so the service
-key never leaves the server.
+## Configuration
 
-## Running against a non-Supabase Postgres
+The backend and worker read `R2_ENDPOINT`, `R2_BUCKET_NAME`,
+`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_REGION`, and optionally
+`R2_BROWSER_ENDPOINT` (the host the browser should use when it differs from
+the backend's endpoint, as with RustFS in Compose). The DigitalOcean spec
+renderer strips every storage and database key from the web service, and
+`test/web-database-boundary.test.ts` keeps database clients out of web code.
 
-Three adaptations were needed. Each failed loudly at startup, so any
-future migration to another Postgres will hit the same three.
-
-### The connection string cannot carry `sslrootcert=system`
-
-PlanetScale's connection string ends with
-`?sslmode=verify-full&sslrootcert=system`. Prisma understands `system` as
-"use the platform trust store". `node-postgres`, which Storage uses,
-treats the value as a file path and fails with
-`ENOENT: no such file or directory, open 'system'`.
-
-The service is given the same database with `sslmode=require` and no
-`sslrootcert`, so TLS is still enforced.
-
-### The Supabase roles must exist
-
-Storage migrations `GRANT` to `anon`, `authenticated`, `service_role`,
-and `supabase_storage_admin`. Those exist by default only on a
-Supabase-managed cluster. Without them the migration run stops at
-`s3-multipart-uploads` with `role "anon" does not exist`.
-
-They are created explicitly with `NOLOGIN NOINHERIT`, since nothing
-connects as them directly.
-
-### The connection role must be a member of those roles
-
-Storage issues `SET ROLE` per request, using the role named in the JWT. A
-Postgres role may only assume a role it belongs to, and the PlanetScale
-application role is not a superuser, so it must be granted membership:
-
-```sql
-GRANT anon, authenticated, service_role, supabase_storage_admin
-  TO "<connection role>";
-```
-
-This failure is worth calling out because of how it presents. Storage
-reports it as:
-
-```
-new row violates row-level security policy
-```
-
-The actual error, visible when the insert is reproduced directly against
-the database, is:
-
-```
-permission denied to set role "service_role"
-```
-
-The row-level security wording sends the investigation toward policies
-and `ALTER TABLE ... DISABLE ROW LEVEL SECURITY`, none of which help.
-Reproducing the statement outside the service is what surfaces the real
-cause.
+The bucket's CORS policy must allow `PUT` and `GET` from the web origin, with
+the `Content-Type` and `If-None-Match` request headers. Upload URLs are signed
+write-once (`If-None-Match: *`): a replayed PUT gets `412` and cannot replace
+bytes the backend already verified. The Compose RustFS initializer applies the
+policy locally; set it on the R2 bucket in production.
 
 ## Verification
 
-`scripts/verify-tenant-storage.ts` exercises the full path against a live
-service: sign an upload, PUT the bytes, complete the asset, sign a
-download, read the bytes back, and confirm a second tenant can neither
-complete nor download the asset.
-
-It requires `DATABASE_URL` and the three `STORAGE_*` variables, and it
-creates and removes its own fixtures.
-
-```bash
-npm run verify:storage
-```
-
-## Operational notes
-
-Machines do not scale to zero. Signing runs in the request path of an
-upload, so a cold start would be visible to a user waiting on a save.
-
-Image transformation is disabled. It requires a separate `imgproxy`
-service that is not deployed, and the application renders its own
-imagery.
-
-Upload limits mirror the tenant asset schema at 50 MB, so an oversized
-upload is refused by the application before it reaches storage. Signed
-URLs expire after 120 seconds, long enough to complete an upload and no
-longer.
+- `services/internal/media`: `TestPrivateMediaSigningAndObjectExistence`
+  covers signing, and `TestS3StoreRoundTrip` exercises a real bucket when
+  `MEDIA_TEST_ENDPOINT` and the `R2_*` variables are set.
+- `services/internal/product`: the asset integration tests cover upload
+  completion, duplicate completion, generated images, outbox events, and
+  cross-tenant key rejection against a disposable database.
+- `e2e/tenant-assets.spec.ts` runs the browser path on the local stack.

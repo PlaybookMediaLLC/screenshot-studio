@@ -21,8 +21,7 @@ type SpecPageProps = {
 export default async function SpecPage({ params, searchParams }: SpecPageProps) {
   const [{ campaignId, locale }, { version }] = await Promise.all([params, searchParams])
   const access = await requireCampaignPageAccess(locale)
-  const organizationId = access.organization.id
-  const campaign = await getCampaign(organizationId, campaignId)
+  const campaign = await getCampaign(access.tenant, campaignId)
   if (!campaign) notFound()
   const release = campaign.release
   if (!release) {
@@ -41,15 +40,15 @@ export default async function SpecPage({ params, searchParams }: SpecPageProps) 
   }
 
   const [specs, runs] = await Promise.all([
-    getReleaseSpecs(organizationId, release.id),
-    latestLaunchRuns(organizationId, campaign.id),
+    getReleaseSpecs(access.tenant, release.id),
+    latestLaunchRuns(access.tenant, campaign.id),
   ])
   // An earlier version by id; only ids listed for this release are accepted.
   const viewed =
     typeof version === 'string' &&
     version !== specs.latest?.id &&
     specs.versions.some((option) => option.id === version)
-      ? await getSpecById(organizationId, version)
+      ? await getSpecById(access.tenant, version)
       : specs.latest
   const run = runs.spec
   // A failure matters until a newer version is saved.

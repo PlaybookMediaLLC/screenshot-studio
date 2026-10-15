@@ -1,5 +1,8 @@
-import type { CampaignPostStatus, CampaignStatus } from '@prisma/client'
+import type { BackendCampaignPost, BackendCampaignStatus } from 'screenshot-studio-backend-sdk'
 import type { Permission } from '@/lib/auth/permissions'
+
+export type CampaignStatus = BackendCampaignStatus
+export type CampaignPostStatus = BackendCampaignPost['status']
 
 export type CampaignApprovalDecision = 'submit' | 'approve' | 'reject' | 'request_changes'
 

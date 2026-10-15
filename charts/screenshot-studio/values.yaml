@@ -39,17 +39,20 @@ service:
 config:
   betterAuthUrl: ''
   googleSiteVerification: ''
+  # Go backend that owns all data. The web has no database; it sends
+  # PUBLISHING_SERVICE_TOKEN from existingSecret with every backend call.
+  publishingApiUrl: ''
   screenshotApiUrl: 'https://api.microlink.io'
 
-# Optional Secret containing application connection, authentication, audit, and
-# R2 values. REDIS_URL is required when the screenshot API route is enabled.
+# Optional Secret containing application connection, authentication, and audit
+# values. REDIS_URL is required when the screenshot API route is enabled.
+# Only the migration job and local backend read its DATABASE_URL.
 existingSecret: ''
 
+# The Go platform migrator, shipped in the backend image.
 migration:
   command:
-    - ./node_modules/.bin/prisma
-    - migrate
-    - deploy
+    - /platform-migrate
   enabled: false
   image:
     repository: ''
@@ -62,17 +65,16 @@ local:
   enabled: false
   postgres:
     image: postgres:16-bookworm
-  pgbouncer:
-    image: bitnamilegacy/pgbouncer:latest
   redis:
     image: redis:7.4-alpine
   rustfs:
     image: rustfs/rustfs:1.0.1
-  storage:
-    image: supabase/storage-api:v1.37.8
   curlImage: curlimages/curl:8.12.1
-  imgproxy:
-    image: darthsim/imgproxy:v3.26.0
+  temporal:
+    image: temporalio/temporal:1.8.2
+  # Built from services/backend/Dockerfile; bin/studio kind-up loads it.
+  backend:
+    image: ''
   screenshotMock:
     image: hashicorp/http-echo:1.0.0
 

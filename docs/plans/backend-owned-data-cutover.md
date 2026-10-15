@@ -1,6 +1,6 @@
 # Backend-owned data and publishing cutover
 
-**Status:** Implementation in progress; customer cutover disabled
+**Status:** Web data access migrated; production cutover not yet applied
 **Date:** 2026-10-14
 **Decision owner:** Screenshot Studio
 
@@ -115,24 +115,67 @@ the customer path after adapter parity is proven.
 
 ## Implementation sequence
 
-### Current implementation checkpoint
+### Current implementation checkpoint (2026-10-15)
 
-- The web publishing facade now calls the npm-published, typed TypeScript SDK
-  `screenshot-studio-backend-sdk@0.1.0` for scheduling,
-  cancellation, connection listing/creation, and social OAuth when the backend
-  flag is enabled. The service token stays on the Next.js server.
-- The Go publishing API uses Ent for canonical post and attempt state and
-  validates the forwarded session and tenant membership. The Go Temporal worker
-  can invoke LinkedIn, X, and Instagram Login adapters directly and complete
-  from a remote receipt, without a legacy social `Post` row.
-- Local Compose and DigitalOcean spec rendering now point the social and
-  product Go components at the same database. A disposable database accepted
-  both current migration sets in `public`. The direct publisher flag remains
-  off until a production-shaped fake-provider run and live canaries pass.
-- The social API still stages media and stores its `Integration` model; the
-  Next.js app still runs Better Auth and most product APIs through Prisma;
-  Supabase Storage still has a separate metadata database. The final gate
-  below is therefore not met. No production cutover has been applied.
+- **The web holds no database access.** No runtime file imports a database
+  client or reads a database URL, and the web package ships no Prisma client.
+  `test/web-database-boundary.test.ts` enforces both in `npm test`. The Prisma
+  schema, migrations, and `lib/db.ts` are deleted.
+- **Every product read and write goes through Go.** Web modules call
+  `backendSDK(context)` (`lib/backend/sdk.ts`) for workspaces, membership,
+  invitations, brand, product surfaces, releases, campaigns, designs,
+  creative, launch specs/plans/revisions/runs, announcements and audience,
+  assets, the screenshot cache, audit logs/drains/retention, entitlements,
+  quotas, billing sync, source webhooks, outbox replay, AI tool writes,
+  publishing, and social OAuth. The npm registry package, dependency, and
+  lockfile are pinned to 0.1.7; its published JavaScript and type declarations
+  match the local SDK build, and a clean `npm ci` succeeds.
+- **Better Auth keeps its logic in the web, its rows in Go.** Password,
+  session, 2FA, SSO, SCIM, and API-key handling stay in Better Auth, which
+  reads and writes through a custom adapter (`lib/auth/backend-adapter.ts`)
+  backed by a service-authenticated Go auth store limited to Better Auth's
+  tables (`services/internal/authstore`). Organization hooks post auth events,
+  and Go provisions workspace settings and entitlements, ends a removed
+  member's sessions, and audits. This was chosen over porting Better Auth to
+  Go because it keeps auth behavior and cookies unchanged. Each adapter call is
+  one statement, so Better Auth's multi-step writes are not transactional.
+- **Go authorizes every request for its principal.** Sessions need a member
+  role. Organization API keys must be enabled, unexpired, and issued for the
+  workspace; the web checks their scopes first. Support grants must be live.
+  Webhook and service callers need an existing workspace that is not
+  scheduled for deletion.
+- **Dispatch lives in the backend.** The web dispatch routes for scheduled
+  posts, the tenant outbox, and audit drains are deleted; the Temporal worker
+  and maintenance jobs own them. The web's legacy Postiz client and scheduling
+  path are deleted. The worker calls LinkedIn, X, and Instagram adapters
+  directly, signs the original private asset when due, and records the remote
+  receipt on the canonical post. The operator tenant binding still maps
+  product organizations to social integrations.
+- **One migration owner.** `/platform-migrate` applies product and social SQL
+  into the same PostgreSQL database and `public` schema. Compose, kind/Helm,
+  CI, and the DigitalOcean predeploy job run it before the backend. It adopts
+  history Prisma already applied. The local stack runs the backend, Temporal,
+  and worker by default, and the web gets no database URL.
+- **Verified at this checkpoint:** the full Go suite with database integration
+  tests on disposable PostgreSQL, 298 web unit tests, typecheck, lint, format,
+  a Next production build, fresh public-schema migration repeated twice,
+  local Compose smoke, Better Auth sign-up/sign-in and organization flows
+  through Go, SDK API round trips, and one isolated Playwright publish with a
+  private image, one canonical receipt, zero legacy `Post` rows, idempotent
+  scheduling, and cancellation. The isolated full-stack gate also passed 429
+  and 500 retries, expired credentials, and one remote receipt per schedule.
+  Six browser scheduling/OAuth tests passed for X, LinkedIn, and both Instagram
+  callback variants. Production deployment has not been applied.
+- **Storage service retired.** Asset bytes stay in private R2 and the backend
+  signs every transfer; the Supabase Storage service, its metadata database,
+  and the web storage proxy are gone (`docs/tenant-storage.md`).
+- **Social gate on the backend path.** `bin/social-gate` runs an isolated full
+  stack and `e2e/social-gate.spec.ts` drives scheduling through the web SDK,
+  backend, Temporal worker, private RustFS, and fake social API. It asserts
+  canonical receipts and zero legacy social posts.
+- **Open before the release gates:** deploy the backend before the web, because
+  the old `web-migrate` job is replaced by `platform-migrate`; then run the live
+  LinkedIn and Instagram canaries through the customer UI.
 
 1. **Inventory and freeze the contract.** Enumerate every web Prisma import,
    tRPC/REST route, Better Auth plugin, AI tool write, webhook, maintenance job,

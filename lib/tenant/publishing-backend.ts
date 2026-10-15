@@ -1,9 +1,9 @@
 import 'server-only'
 
 import type { OrganizationAccess } from '@/lib/auth/access'
+import { backendSDK } from '@/lib/backend/sdk'
 import {
   BackendSDKError,
-  ScreenshotStudioBackendSDK,
   type OAuthProvider,
   type ScheduledPost,
 } from 'screenshot-studio-backend-sdk'
@@ -14,25 +14,8 @@ type ListedScheduledPost = ScheduledPost & {
   channelConnection: NonNullable<ScheduledPost['channelConnection']>
 }
 
-export function publishingBackendEnabled(): boolean {
-  return Boolean(process.env.PUBLISHING_API_URL)
-}
-
-function sdk(access: OrganizationAccess): ScreenshotStudioBackendSDK {
-  return new ScreenshotStudioBackendSDK(
-    process.env.PUBLISHING_API_URL ?? '',
-    process.env.PUBLISHING_SERVICE_TOKEN ?? '',
-    {
-      organizationId: access.organizationId,
-      requestId: access.requestId,
-      sessionId: access.principal.sessionId,
-      userId: access.principal.userId,
-    }
-  )
-}
-
 export async function listBackendScheduledPosts(access: OrganizationAccess, limit: number) {
-  const result = await sdk(access).listScheduledPosts(limit)
+  const result = await backendSDK(access).listScheduledPosts(limit)
   if (result.items.some((post) => !post.channelConnection)) {
     throw new BackendSDKError('Publishing backend returned an incomplete post.', 503)
   }
@@ -40,7 +23,7 @@ export async function listBackendScheduledPosts(access: OrganizationAccess, limi
 }
 
 export async function listBackendConnections(access: OrganizationAccess) {
-  const result = await sdk(access).listConnections()
+  const result = await backendSDK(access).listConnections()
   return result.items
 }
 
@@ -53,7 +36,7 @@ export async function createBackendConnection(
     secretReference: string
   }
 ) {
-  return sdk(access).createConnection(input)
+  return backendSDK(access).createConnection(input)
 }
 
 export async function createBackendScheduledPost(
@@ -66,16 +49,16 @@ export async function createBackendScheduledPost(
     variantId: string
   }
 ) {
-  return sdk(access).createScheduledPost(input)
+  return backendSDK(access).createScheduledPost(input)
 }
 
 export async function cancelBackendScheduledPost(access: OrganizationAccess, id: string) {
-  const scheduledPost = await sdk(access).cancelScheduledPost(id)
+  const scheduledPost = await backendSDK(access).cancelScheduledPost(id)
   return { scheduledPost }
 }
 
 export async function beginBackendSocialOAuth(access: OrganizationAccess, provider: OAuthProvider) {
-  const result = await sdk(access).beginSocialOAuth(provider)
+  const result = await backendSDK(access).beginSocialOAuth(provider)
   return result.url
 }
 
@@ -85,7 +68,7 @@ export async function verifyBackendSocialOAuth(
   state: string,
   integrationId?: string
 ) {
-  await sdk(access).verifySocialOAuth(provider, state, integrationId)
+  await backendSDK(access).verifySocialOAuth(provider, state, integrationId)
 }
 
 export async function rememberBackendInstagramIntegration(
@@ -93,7 +76,7 @@ export async function rememberBackendInstagramIntegration(
   state: string,
   integrationId: string
 ) {
-  await sdk(access).rememberInstagramIntegration(state, integrationId)
+  await backendSDK(access).rememberInstagramIntegration(state, integrationId)
 }
 
 export async function completeBackendSocialOAuth(
@@ -102,5 +85,5 @@ export async function completeBackendSocialOAuth(
   state: string,
   integrationId: string
 ) {
-  await sdk(access).completeSocialOAuth(provider, state, integrationId)
+  await backendSDK(access).completeSocialOAuth(provider, state, integrationId)
 }

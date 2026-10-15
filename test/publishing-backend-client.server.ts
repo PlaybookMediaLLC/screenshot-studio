@@ -11,7 +11,12 @@ import {
 
 const access = {
   organizationId: 'org_test',
-  principal: { sessionId: 'session_test', userId: 'user_test' },
+  principal: {
+    display: 'test@example.test',
+    kind: 'session',
+    sessionId: 'session_test',
+    userId: 'user_test',
+  },
   requestId: 'request_test',
 } as OrganizationAccess
 

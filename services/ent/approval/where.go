@@ -3,6 +3,8 @@
 package approval
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
@@ -71,6 +73,31 @@ func OrganizationID(v string) predicate.Approval {
 // VariantID applies equality check predicate on the "variant_id" field. It's identical to VariantIDEQ.
 func VariantID(v string) predicate.Approval {
 	return predicate.Approval(sql.FieldEQ(FieldVariantID, v))
+}
+
+// DecidedByUserID applies equality check predicate on the "decided_by_user_id" field. It's identical to DecidedByUserIDEQ.
+func DecidedByUserID(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldEQ(FieldDecidedByUserID, v))
+}
+
+// DecidedAt applies equality check predicate on the "decided_at" field. It's identical to DecidedAtEQ.
+func DecidedAt(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldEQ(FieldDecidedAt, v))
+}
+
+// Reason applies equality check predicate on the "reason" field. It's identical to ReasonEQ.
+func Reason(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldEQ(FieldReason, v))
+}
+
+// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
+func CreatedAt(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
 // OrganizationIDEQ applies the EQ predicate on the "organization_id" field.
@@ -221,6 +248,286 @@ func StatusIn(vs ...Status) predicate.Approval {
 // StatusNotIn applies the NotIn predicate on the "status" field.
 func StatusNotIn(vs ...Status) predicate.Approval {
 	return predicate.Approval(sql.FieldNotIn(FieldStatus, vs...))
+}
+
+// DecidedByUserIDEQ applies the EQ predicate on the "decided_by_user_id" field.
+func DecidedByUserIDEQ(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldEQ(FieldDecidedByUserID, v))
+}
+
+// DecidedByUserIDNEQ applies the NEQ predicate on the "decided_by_user_id" field.
+func DecidedByUserIDNEQ(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldNEQ(FieldDecidedByUserID, v))
+}
+
+// DecidedByUserIDIn applies the In predicate on the "decided_by_user_id" field.
+func DecidedByUserIDIn(vs ...string) predicate.Approval {
+	return predicate.Approval(sql.FieldIn(FieldDecidedByUserID, vs...))
+}
+
+// DecidedByUserIDNotIn applies the NotIn predicate on the "decided_by_user_id" field.
+func DecidedByUserIDNotIn(vs ...string) predicate.Approval {
+	return predicate.Approval(sql.FieldNotIn(FieldDecidedByUserID, vs...))
+}
+
+// DecidedByUserIDGT applies the GT predicate on the "decided_by_user_id" field.
+func DecidedByUserIDGT(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldGT(FieldDecidedByUserID, v))
+}
+
+// DecidedByUserIDGTE applies the GTE predicate on the "decided_by_user_id" field.
+func DecidedByUserIDGTE(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldGTE(FieldDecidedByUserID, v))
+}
+
+// DecidedByUserIDLT applies the LT predicate on the "decided_by_user_id" field.
+func DecidedByUserIDLT(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldLT(FieldDecidedByUserID, v))
+}
+
+// DecidedByUserIDLTE applies the LTE predicate on the "decided_by_user_id" field.
+func DecidedByUserIDLTE(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldLTE(FieldDecidedByUserID, v))
+}
+
+// DecidedByUserIDContains applies the Contains predicate on the "decided_by_user_id" field.
+func DecidedByUserIDContains(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldContains(FieldDecidedByUserID, v))
+}
+
+// DecidedByUserIDHasPrefix applies the HasPrefix predicate on the "decided_by_user_id" field.
+func DecidedByUserIDHasPrefix(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldHasPrefix(FieldDecidedByUserID, v))
+}
+
+// DecidedByUserIDHasSuffix applies the HasSuffix predicate on the "decided_by_user_id" field.
+func DecidedByUserIDHasSuffix(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldHasSuffix(FieldDecidedByUserID, v))
+}
+
+// DecidedByUserIDIsNil applies the IsNil predicate on the "decided_by_user_id" field.
+func DecidedByUserIDIsNil() predicate.Approval {
+	return predicate.Approval(sql.FieldIsNull(FieldDecidedByUserID))
+}
+
+// DecidedByUserIDNotNil applies the NotNil predicate on the "decided_by_user_id" field.
+func DecidedByUserIDNotNil() predicate.Approval {
+	return predicate.Approval(sql.FieldNotNull(FieldDecidedByUserID))
+}
+
+// DecidedByUserIDEqualFold applies the EqualFold predicate on the "decided_by_user_id" field.
+func DecidedByUserIDEqualFold(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldEqualFold(FieldDecidedByUserID, v))
+}
+
+// DecidedByUserIDContainsFold applies the ContainsFold predicate on the "decided_by_user_id" field.
+func DecidedByUserIDContainsFold(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldContainsFold(FieldDecidedByUserID, v))
+}
+
+// DecidedAtEQ applies the EQ predicate on the "decided_at" field.
+func DecidedAtEQ(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldEQ(FieldDecidedAt, v))
+}
+
+// DecidedAtNEQ applies the NEQ predicate on the "decided_at" field.
+func DecidedAtNEQ(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldNEQ(FieldDecidedAt, v))
+}
+
+// DecidedAtIn applies the In predicate on the "decided_at" field.
+func DecidedAtIn(vs ...time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldIn(FieldDecidedAt, vs...))
+}
+
+// DecidedAtNotIn applies the NotIn predicate on the "decided_at" field.
+func DecidedAtNotIn(vs ...time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldNotIn(FieldDecidedAt, vs...))
+}
+
+// DecidedAtGT applies the GT predicate on the "decided_at" field.
+func DecidedAtGT(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldGT(FieldDecidedAt, v))
+}
+
+// DecidedAtGTE applies the GTE predicate on the "decided_at" field.
+func DecidedAtGTE(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldGTE(FieldDecidedAt, v))
+}
+
+// DecidedAtLT applies the LT predicate on the "decided_at" field.
+func DecidedAtLT(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldLT(FieldDecidedAt, v))
+}
+
+// DecidedAtLTE applies the LTE predicate on the "decided_at" field.
+func DecidedAtLTE(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldLTE(FieldDecidedAt, v))
+}
+
+// DecidedAtIsNil applies the IsNil predicate on the "decided_at" field.
+func DecidedAtIsNil() predicate.Approval {
+	return predicate.Approval(sql.FieldIsNull(FieldDecidedAt))
+}
+
+// DecidedAtNotNil applies the NotNil predicate on the "decided_at" field.
+func DecidedAtNotNil() predicate.Approval {
+	return predicate.Approval(sql.FieldNotNull(FieldDecidedAt))
+}
+
+// ReasonEQ applies the EQ predicate on the "reason" field.
+func ReasonEQ(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldEQ(FieldReason, v))
+}
+
+// ReasonNEQ applies the NEQ predicate on the "reason" field.
+func ReasonNEQ(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldNEQ(FieldReason, v))
+}
+
+// ReasonIn applies the In predicate on the "reason" field.
+func ReasonIn(vs ...string) predicate.Approval {
+	return predicate.Approval(sql.FieldIn(FieldReason, vs...))
+}
+
+// ReasonNotIn applies the NotIn predicate on the "reason" field.
+func ReasonNotIn(vs ...string) predicate.Approval {
+	return predicate.Approval(sql.FieldNotIn(FieldReason, vs...))
+}
+
+// ReasonGT applies the GT predicate on the "reason" field.
+func ReasonGT(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldGT(FieldReason, v))
+}
+
+// ReasonGTE applies the GTE predicate on the "reason" field.
+func ReasonGTE(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldGTE(FieldReason, v))
+}
+
+// ReasonLT applies the LT predicate on the "reason" field.
+func ReasonLT(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldLT(FieldReason, v))
+}
+
+// ReasonLTE applies the LTE predicate on the "reason" field.
+func ReasonLTE(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldLTE(FieldReason, v))
+}
+
+// ReasonContains applies the Contains predicate on the "reason" field.
+func ReasonContains(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldContains(FieldReason, v))
+}
+
+// ReasonHasPrefix applies the HasPrefix predicate on the "reason" field.
+func ReasonHasPrefix(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldHasPrefix(FieldReason, v))
+}
+
+// ReasonHasSuffix applies the HasSuffix predicate on the "reason" field.
+func ReasonHasSuffix(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldHasSuffix(FieldReason, v))
+}
+
+// ReasonIsNil applies the IsNil predicate on the "reason" field.
+func ReasonIsNil() predicate.Approval {
+	return predicate.Approval(sql.FieldIsNull(FieldReason))
+}
+
+// ReasonNotNil applies the NotNil predicate on the "reason" field.
+func ReasonNotNil() predicate.Approval {
+	return predicate.Approval(sql.FieldNotNull(FieldReason))
+}
+
+// ReasonEqualFold applies the EqualFold predicate on the "reason" field.
+func ReasonEqualFold(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldEqualFold(FieldReason, v))
+}
+
+// ReasonContainsFold applies the ContainsFold predicate on the "reason" field.
+func ReasonContainsFold(v string) predicate.Approval {
+	return predicate.Approval(sql.FieldContainsFold(FieldReason, v))
+}
+
+// CreatedAtEQ applies the EQ predicate on the "created_at" field.
+func CreatedAtEQ(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
+func CreatedAtNEQ(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldNEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtIn applies the In predicate on the "created_at" field.
+func CreatedAtIn(vs ...time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
+func CreatedAtNotIn(vs ...time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldNotIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtGT applies the GT predicate on the "created_at" field.
+func CreatedAtGT(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldGT(FieldCreatedAt, v))
+}
+
+// CreatedAtGTE applies the GTE predicate on the "created_at" field.
+func CreatedAtGTE(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldGTE(FieldCreatedAt, v))
+}
+
+// CreatedAtLT applies the LT predicate on the "created_at" field.
+func CreatedAtLT(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldLT(FieldCreatedAt, v))
+}
+
+// CreatedAtLTE applies the LTE predicate on the "created_at" field.
+func CreatedAtLTE(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldNEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldNotIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldGT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldGTE(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldLT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v time.Time) predicate.Approval {
+	return predicate.Approval(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
 // HasVariant applies the HasEdge predicate on the "variant" edge.

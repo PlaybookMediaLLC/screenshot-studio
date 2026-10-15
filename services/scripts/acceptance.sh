@@ -53,9 +53,7 @@ if [[ "$(psql "$DATABASE_URL" -Atqc "SELECT to_regclass('public.scheduled_post')
   exit 1
 fi
 
-while IFS= read -r migration; do
-  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$migration"
-done < <(find "$ROOT/prisma/migrations" -mindepth 2 -maxdepth 2 -name migration.sql | sort)
+(cd "$SERVICES" && DATABASE_URL="$DATABASE_URL" go run ./cmd/platform-migrate)
 
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q <<'SQL'
 INSERT INTO "user" (id, name, email, "emailVerified", "createdAt", "updatedAt")
@@ -139,7 +137,7 @@ for _ in $(seq 1 100); do temporal operator cluster health --address "$TEMPORAL_
 temporal operator cluster health --address "$TEMPORAL_ADDRESS" >/dev/null
 
 (cd "$SERVICES" && go build -o "$WORK/backend" ./backend/cmd/backend && go build -o "$WORK/orchestrator" ./orchestrator/cmd/orchestrator)
-DATABASE_URL="$DATABASE_URL" PORT="$ORCHESTRATOR_PORT" TEMPORAL_ADDRESS="$TEMPORAL_ADDRESS" RUN_CRON=true STORAGE_API_URL="http://127.0.0.1:$BOUNDARY_PORT" STORAGE_BUCKET=test-bucket STORAGE_SERVICE_KEY=storage-key POSTIZ_API_URL="http://127.0.0.1:$BOUNDARY_PORT/api/public/v1" POSTIZ_API_KEY=postiz-key POSTIZ_REQUEST_TIMEOUT=5s "$WORK/orchestrator" >"$WORK/orchestrator.log" 2>&1 & echo $! >"$WORK/orchestrator.pid"
+DATABASE_URL="$DATABASE_URL" PORT="$ORCHESTRATOR_PORT" TEMPORAL_ADDRESS="$TEMPORAL_ADDRESS" RUN_CRON=true POSTIZ_API_URL="http://127.0.0.1:$BOUNDARY_PORT/api/public/v1" POSTIZ_API_KEY=postiz-key POSTIZ_REQUEST_TIMEOUT=5s "$WORK/orchestrator" >"$WORK/orchestrator.log" 2>&1 & echo $! >"$WORK/orchestrator.pid"
 DATABASE_URL="$DATABASE_URL" PORT="$BACKEND_PORT" TEMPORAL_ADDRESS="$TEMPORAL_ADDRESS" POSTIZ_API_URL="http://127.0.0.1:$BOUNDARY_PORT/api/public/v1" POSTIZ_API_KEY=postiz-key PUBLISHING_SERVICE_TOKEN=acceptance-service PUBLISHING_ACTIVITY_TIMEOUT=5s PUBLISHING_RETRY_DELAY=100ms "$WORK/backend" >"$WORK/backend.log" 2>&1 & echo $! >"$WORK/backend.pid"
 for _ in $(seq 1 100); do curl -fsS "http://127.0.0.1:$BACKEND_PORT/readyz" >/dev/null 2>&1 && break; sleep 0.1; done
 curl -fsS "http://127.0.0.1:$BACKEND_PORT/readyz" >/dev/null

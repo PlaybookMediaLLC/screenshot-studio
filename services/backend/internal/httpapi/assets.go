@@ -1,0 +1,148 @@
+package httpapi
+
+import (
+	"io"
+	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
+	"github.com/google/uuid"
+)
+
+func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
+	limit := 50
+	if r.URL.Query().Has("limit") {
+		value, err := strconv.Atoi(r.URL.Query().Get("limit"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid asset page size")
+			return
+		}
+		limit = value
+	}
+	cursor := strings.TrimSpace(r.URL.Query().Get("cursor"))
+	if limit < 1 || limit > 100 || len(cursor) > 128 {
+		writeError(w, http.StatusBadRequest, "invalid asset query")
+		return
+	}
+	page, err := s.configuration.ListAssets(r.Context(), workspaceActor(r), limit, cursor)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+func (s *Server) deleteAsset(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if _, err := uuid.Parse(id); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid asset ID")
+		return
+	}
+	result, err := s.configuration.DeleteAsset(r.Context(), workspaceActor(r), id)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	switch result {
+	case product.AssetMissing:
+		writeError(w, http.StatusNotFound, "Asset not found.")
+	case product.AssetInUse:
+		writeError(w, http.StatusConflict, "Asset is in use by a creative variant.")
+	case product.AssetNotReady:
+		writeError(w, http.StatusConflict, "Only uploaded assets can be deleted.")
+	default:
+		writeJSON(w, http.StatusOK, map[string]string{"status": string(result)})
+	}
+}
+
+func (s *Server) signAssetUpload(w http.ResponseWriter, r *http.Request) {
+	var input product.AssetUploadInput
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	result, err := s.configuration.SignAssetUpload(r.Context(), workspaceActor(r), input)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, result)
+}
+
+func (s *Server) completeAssetUpload(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if _, err := uuid.Parse(id); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid asset ID")
+		return
+	}
+	var input struct {
+		SHA256 *string `json:"sha256"`
+	}
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	row, err := s.configuration.CompleteAssetUpload(r.Context(), workspaceActor(r), id, input.SHA256)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"asset": row})
+}
+
+func (s *Server) signAssetDownload(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if _, err := uuid.Parse(id); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid asset ID")
+		return
+	}
+	url, err := s.configuration.SignAssetDownload(r.Context(), workspaceActor(r), id)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"downloadUrl": url})
+}
+
+func (s *Server) readAsset(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if _, err := uuid.Parse(id); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid asset ID")
+		return
+	}
+	body, mediaType, err := s.configuration.ReadAsset(r.Context(), workspaceActor(r), id)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", mediaType)
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(body)
+}
+
+func (s *Server) storeGeneratedAsset(w http.ResponseWriter, r *http.Request) {
+	width, widthErr := strconv.Atoi(r.Header.Get("X-Asset-Width"))
+	height, heightErr := strconv.Atoi(r.Header.Get("X-Asset-Height"))
+	if widthErr != nil || heightErr != nil {
+		writeError(w, http.StatusBadRequest, "invalid asset dimensions")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 50<<20+1)
+	body, err := io.ReadAll(r.Body)
+	if err != nil || len(body) > 50<<20 {
+		writeError(w, http.StatusRequestEntityTooLarge, "asset exceeds 50 MiB")
+		return
+	}
+	asset, err := s.configuration.StoreGeneratedAsset(r.Context(), workspaceActor(r), product.GeneratedAssetInput{
+		Body: body, Classification: r.Header.Get("X-Asset-Classification"),
+		ContentType: r.Header.Get("Content-Type"), FileName: r.Header.Get("X-Asset-File-Name"),
+		Height: height, Width: width, ParentAssetID: r.Header.Get("X-Parent-Asset-ID"),
+	})
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, asset)
+}

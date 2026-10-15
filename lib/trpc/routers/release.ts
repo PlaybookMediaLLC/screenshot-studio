@@ -19,13 +19,13 @@ export const releaseRouter = router({
   list: tenantProcedure({ apiKeyScope: 'artifact:read', permission: 'artifact:read' })
     .input(releaseListQuerySchema.optional())
     .query(async ({ ctx, input }) => {
-      const releases = await listReleases(ctx.tenant.organizationId, input?.limit ?? 50)
+      const releases = await listReleases(ctx.tenant, input?.limit ?? 50)
       return { releases }
     }),
   get: tenantProcedure({ apiKeyScope: 'artifact:read', permission: 'artifact:read' })
     .input(z.object({ releaseId: releaseIdSchema }))
     .query(async ({ ctx, input }) => {
-      const release = await getRelease(ctx.tenant.organizationId, input.releaseId)
+      const release = await getRelease(ctx.tenant, input.releaseId)
       if (!release) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Release not found.' })
       }

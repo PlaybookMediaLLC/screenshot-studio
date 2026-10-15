@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -33,9 +34,85 @@ func (_c *CreativeVariantCreate) SetSourceAssetID(v string) *CreativeVariantCrea
 	return _c
 }
 
+// SetReleaseID sets the "release_id" field.
+func (_c *CreativeVariantCreate) SetReleaseID(v string) *CreativeVariantCreate {
+	_c.mutation.SetReleaseID(v)
+	return _c
+}
+
+// SetBrandKitID sets the "brand_kit_id" field.
+func (_c *CreativeVariantCreate) SetBrandKitID(v string) *CreativeVariantCreate {
+	_c.mutation.SetBrandKitID(v)
+	return _c
+}
+
+// SetBrandKitVersion sets the "brand_kit_version" field.
+func (_c *CreativeVariantCreate) SetBrandKitVersion(v int) *CreativeVariantCreate {
+	_c.mutation.SetBrandKitVersion(v)
+	return _c
+}
+
+// SetTemplateID sets the "template_id" field.
+func (_c *CreativeVariantCreate) SetTemplateID(v string) *CreativeVariantCreate {
+	_c.mutation.SetTemplateID(v)
+	return _c
+}
+
+// SetTemplateVersion sets the "template_version" field.
+func (_c *CreativeVariantCreate) SetTemplateVersion(v int) *CreativeVariantCreate {
+	_c.mutation.SetTemplateVersion(v)
+	return _c
+}
+
+// SetRevision sets the "revision" field.
+func (_c *CreativeVariantCreate) SetRevision(v int) *CreativeVariantCreate {
+	_c.mutation.SetRevision(v)
+	return _c
+}
+
+// SetAspectRatio sets the "aspect_ratio" field.
+func (_c *CreativeVariantCreate) SetAspectRatio(v string) *CreativeVariantCreate {
+	_c.mutation.SetAspectRatio(v)
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *CreativeVariantCreate) SetStatus(v creativevariant.Status) *CreativeVariantCreate {
 	_c.mutation.SetStatus(v)
+	return _c
+}
+
+// SetCreatedByUserID sets the "created_by_user_id" field.
+func (_c *CreativeVariantCreate) SetCreatedByUserID(v string) *CreativeVariantCreate {
+	_c.mutation.SetCreatedByUserID(v)
+	return _c
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (_c *CreativeVariantCreate) SetCreatedAt(v time.Time) *CreativeVariantCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *CreativeVariantCreate) SetNillableCreatedAt(v *time.Time) *CreativeVariantCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *CreativeVariantCreate) SetUpdatedAt(v time.Time) *CreativeVariantCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *CreativeVariantCreate) SetNillableUpdatedAt(v *time.Time) *CreativeVariantCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
 	return _c
 }
 
@@ -76,6 +153,7 @@ func (_c *CreativeVariantCreate) Mutation() *CreativeVariantMutation {
 
 // Save creates the CreativeVariant in the database.
 func (_c *CreativeVariantCreate) Save(ctx context.Context) (*CreativeVariant, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -101,6 +179,18 @@ func (_c *CreativeVariantCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_c *CreativeVariantCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := creativevariant.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := creativevariant.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_c *CreativeVariantCreate) check() error {
 	if _, ok := _c.mutation.OrganizationID(); !ok {
@@ -109,6 +199,27 @@ func (_c *CreativeVariantCreate) check() error {
 	if _, ok := _c.mutation.SourceAssetID(); !ok {
 		return &ValidationError{Name: "source_asset_id", err: errors.New(`ent: missing required field "CreativeVariant.source_asset_id"`)}
 	}
+	if _, ok := _c.mutation.ReleaseID(); !ok {
+		return &ValidationError{Name: "release_id", err: errors.New(`ent: missing required field "CreativeVariant.release_id"`)}
+	}
+	if _, ok := _c.mutation.BrandKitID(); !ok {
+		return &ValidationError{Name: "brand_kit_id", err: errors.New(`ent: missing required field "CreativeVariant.brand_kit_id"`)}
+	}
+	if _, ok := _c.mutation.BrandKitVersion(); !ok {
+		return &ValidationError{Name: "brand_kit_version", err: errors.New(`ent: missing required field "CreativeVariant.brand_kit_version"`)}
+	}
+	if _, ok := _c.mutation.TemplateID(); !ok {
+		return &ValidationError{Name: "template_id", err: errors.New(`ent: missing required field "CreativeVariant.template_id"`)}
+	}
+	if _, ok := _c.mutation.TemplateVersion(); !ok {
+		return &ValidationError{Name: "template_version", err: errors.New(`ent: missing required field "CreativeVariant.template_version"`)}
+	}
+	if _, ok := _c.mutation.Revision(); !ok {
+		return &ValidationError{Name: "revision", err: errors.New(`ent: missing required field "CreativeVariant.revision"`)}
+	}
+	if _, ok := _c.mutation.AspectRatio(); !ok {
+		return &ValidationError{Name: "aspect_ratio", err: errors.New(`ent: missing required field "CreativeVariant.aspect_ratio"`)}
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "CreativeVariant.status"`)}
 	}
@@ -116,6 +227,15 @@ func (_c *CreativeVariantCreate) check() error {
 		if err := creativevariant.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "CreativeVariant.status": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.CreatedByUserID(); !ok {
+		return &ValidationError{Name: "created_by_user_id", err: errors.New(`ent: missing required field "CreativeVariant.created_by_user_id"`)}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "CreativeVariant.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "CreativeVariant.updated_at"`)}
 	}
 	if len(_c.mutation.SourceAssetIDs()) == 0 {
 		return &ValidationError{Name: "source_asset", err: errors.New(`ent: missing required edge "CreativeVariant.source_asset"`)}
@@ -159,9 +279,49 @@ func (_c *CreativeVariantCreate) createSpec() (*CreativeVariant, *sqlgraph.Creat
 		_spec.SetField(creativevariant.FieldOrganizationID, field.TypeString, value)
 		_node.OrganizationID = value
 	}
+	if value, ok := _c.mutation.ReleaseID(); ok {
+		_spec.SetField(creativevariant.FieldReleaseID, field.TypeString, value)
+		_node.ReleaseID = value
+	}
+	if value, ok := _c.mutation.BrandKitID(); ok {
+		_spec.SetField(creativevariant.FieldBrandKitID, field.TypeString, value)
+		_node.BrandKitID = value
+	}
+	if value, ok := _c.mutation.BrandKitVersion(); ok {
+		_spec.SetField(creativevariant.FieldBrandKitVersion, field.TypeInt, value)
+		_node.BrandKitVersion = value
+	}
+	if value, ok := _c.mutation.TemplateID(); ok {
+		_spec.SetField(creativevariant.FieldTemplateID, field.TypeString, value)
+		_node.TemplateID = value
+	}
+	if value, ok := _c.mutation.TemplateVersion(); ok {
+		_spec.SetField(creativevariant.FieldTemplateVersion, field.TypeInt, value)
+		_node.TemplateVersion = value
+	}
+	if value, ok := _c.mutation.Revision(); ok {
+		_spec.SetField(creativevariant.FieldRevision, field.TypeInt, value)
+		_node.Revision = value
+	}
+	if value, ok := _c.mutation.AspectRatio(); ok {
+		_spec.SetField(creativevariant.FieldAspectRatio, field.TypeString, value)
+		_node.AspectRatio = value
+	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(creativevariant.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.CreatedByUserID(); ok {
+		_spec.SetField(creativevariant.FieldCreatedByUserID, field.TypeString, value)
+		_node.CreatedByUserID = value
+	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(creativevariant.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(creativevariant.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
 	}
 	if nodes := _c.mutation.SourceAssetIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -217,6 +377,7 @@ func (_c *CreativeVariantCreateBulk) Save(ctx context.Context) ([]*CreativeVaria
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*CreativeVariantMutation)
 				if !ok {

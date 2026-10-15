@@ -9,11 +9,44 @@ import (
 )
 
 var (
+	// ApikeyColumns holds the columns for the "apikey" table.
+	ApikeyColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "configId", Type: field.TypeString, Default: "default"},
+		{Name: "name", Type: field.TypeString, Nullable: true},
+		{Name: "start", Type: field.TypeString, Nullable: true},
+		{Name: "referenceId", Type: field.TypeString},
+		{Name: "prefix", Type: field.TypeString, Nullable: true},
+		{Name: "key", Type: field.TypeString},
+		{Name: "enabled", Type: field.TypeBool, Nullable: true},
+		{Name: "expiresAt", Type: field.TypeTime, Nullable: true},
+		{Name: "permissions", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ApikeyTable holds the schema information for the "apikey" table.
+	ApikeyTable = &schema.Table{
+		Name:       "apikey",
+		Columns:    ApikeyColumns,
+		PrimaryKey: []*schema.Column{ApikeyColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "apikey_referenceId",
+				Unique:  false,
+				Columns: []*schema.Column{ApikeyColumns[4]},
+			},
+		},
+	}
 	// ApprovalColumns holds the columns for the "approval" table.
 	ApprovalColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "organizationId", Type: field.TypeString},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"PENDING", "APPROVED", "REJECTED"}},
+		{Name: "decidedByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "decidedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "reason", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
 		{Name: "variantId", Type: field.TypeString, Unique: true},
 	}
 	// ApprovalTable holds the schema information for the "approval" table.
@@ -24,7 +57,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "approval_creative_variant_approval",
-				Columns:    []*schema.Column{ApprovalColumns[3]},
+				Columns:    []*schema.Column{ApprovalColumns[8]},
 				RefColumns: []*schema.Column{CreativeVariantColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -33,7 +66,12 @@ var (
 			{
 				Name:    "approval_variantId",
 				Unique:  true,
-				Columns: []*schema.Column{ApprovalColumns[3]},
+				Columns: []*schema.Column{ApprovalColumns[8]},
+			},
+			{
+				Name:    "approval_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ApprovalColumns[1], ApprovalColumns[6]},
 			},
 		},
 	}
@@ -41,20 +79,77 @@ var (
 	AssetColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "organizationId", Type: field.TypeString},
+		{Name: "captureId", Type: field.TypeString, Nullable: true},
+		{Name: "parentAssetId", Type: field.TypeString, Nullable: true},
 		{Name: "objectKey", Type: field.TypeString},
+		{Name: "sha256", Type: field.TypeString, Nullable: true},
 		{Name: "mediaType", Type: field.TypeString},
+		{Name: "bytes", Type: field.TypeInt},
+		{Name: "width", Type: field.TypeInt, Nullable: true},
+		{Name: "height", Type: field.TypeInt, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"PENDING", "UPLOADED", "FAILED", "DELETED"}, Default: "PENDING"},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
 	}
 	// AssetTable holds the schema information for the "asset" table.
 	AssetTable = &schema.Table{
 		Name:       "asset",
 		Columns:    AssetColumns,
 		PrimaryKey: []*schema.Column{AssetColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "asset_objectKey",
+				Unique:  true,
+				Columns: []*schema.Column{AssetColumns[4]},
+			},
+			{
+				Name:    "asset_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{AssetColumns[1], AssetColumns[11]},
+			},
+		},
+	}
+	// AudienceSubscriberColumns holds the columns for the "audience_subscriber" table.
+	AudienceSubscriberColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "email", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString, Nullable: true},
+		{Name: "unsubscribedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "suppressedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "suppressionReason", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// AudienceSubscriberTable holds the schema information for the "audience_subscriber" table.
+	AudienceSubscriberTable = &schema.Table{
+		Name:       "audience_subscriber",
+		Columns:    AudienceSubscriberColumns,
+		PrimaryKey: []*schema.Column{AudienceSubscriberColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "audiencesubscriber_organizationId_email",
+				Unique:  true,
+				Columns: []*schema.Column{AudienceSubscriberColumns[1], AudienceSubscriberColumns[2]},
+			},
+			{
+				Name:    "audiencesubscriber_organizationId_unsubscribedAt_suppressedAt",
+				Unique:  false,
+				Columns: []*schema.Column{AudienceSubscriberColumns[1], AudienceSubscriberColumns[4], AudienceSubscriberColumns[5]},
+			},
+		},
 	}
 	// AuditDrainColumns holds the columns for the "audit_drain" table.
 	AuditDrainColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "organizationId", Type: field.TypeString},
 		{Name: "enabled", Type: field.TypeBool, Default: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "provider", Type: field.TypeEnum, Enums: []string{"GENERIC", "DATADOG", "SPLUNK"}, Default: "GENERIC"},
+		{Name: "endpoint", Type: field.TypeString},
+		{Name: "encryptedSigningSecret", Type: field.TypeString},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
 	}
 	// AuditDrainTable holds the schema information for the "audit_drain" table.
 	AuditDrainTable = &schema.Table{
@@ -99,6 +194,8 @@ var (
 		{Name: "outcome", Type: field.TypeEnum, Enums: []string{"SUCCEEDED", "FAILED", "DENIED"}, Default: "SUCCEEDED"},
 		{Name: "entityType", Type: field.TypeString},
 		{Name: "entityId", Type: field.TypeString, Nullable: true},
+		{Name: "ipHash", Type: field.TypeString, Nullable: true},
+		{Name: "userAgentSummary", Type: field.TypeString, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
 		{Name: "searchText", Type: field.TypeString, Default: ""},
 	}
@@ -144,6 +241,292 @@ var (
 			},
 		},
 	}
+	// AuditRetentionPolicyColumns holds the columns for the "audit_retention_policy" table.
+	AuditRetentionPolicyColumns = []*schema.Column{
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "retentionDays", Type: field.TypeInt, Default: 90},
+		{Name: "legalHold", Type: field.TypeBool, Default: false},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// AuditRetentionPolicyTable holds the schema information for the "audit_retention_policy" table.
+	AuditRetentionPolicyTable = &schema.Table{
+		Name:       "audit_retention_policy",
+		Columns:    AuditRetentionPolicyColumns,
+		PrimaryKey: []*schema.Column{AuditRetentionPolicyColumns[0]},
+	}
+	// BillingEntitlementEventColumns holds the columns for the "billing_entitlement_event" table.
+	BillingEntitlementEventColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "provider", Type: field.TypeString},
+		{Name: "eventId", Type: field.TypeString},
+		{Name: "eventType", Type: field.TypeString},
+		{Name: "entitlementVersion", Type: field.TypeInt},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// BillingEntitlementEventTable holds the schema information for the "billing_entitlement_event" table.
+	BillingEntitlementEventTable = &schema.Table{
+		Name:       "billing_entitlement_event",
+		Columns:    BillingEntitlementEventColumns,
+		PrimaryKey: []*schema.Column{BillingEntitlementEventColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billingentitlementevent_provider_eventId",
+				Unique:  true,
+				Columns: []*schema.Column{BillingEntitlementEventColumns[2], BillingEntitlementEventColumns[3]},
+			},
+			{
+				Name:    "billingentitlementevent_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{BillingEntitlementEventColumns[1], BillingEntitlementEventColumns[6]},
+			},
+		},
+	}
+	// BrandKitColumns holds the columns for the "brand_kit" table.
+	BrandKitColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "version", Type: field.TypeInt},
+		{Name: "definition", Type: field.TypeJSON},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "ACTIVE", "ARCHIVED"}, Default: "DRAFT"},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// BrandKitTable holds the schema information for the "brand_kit" table.
+	BrandKitTable = &schema.Table{
+		Name:       "brand_kit",
+		Columns:    BrandKitColumns,
+		PrimaryKey: []*schema.Column{BrandKitColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "brandkit_organizationId_name_version",
+				Unique:  true,
+				Columns: []*schema.Column{BrandKitColumns[1], BrandKitColumns[2], BrandKitColumns[3]},
+			},
+			{
+				Name:    "brandkit_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{BrandKitColumns[1], BrandKitColumns[6]},
+			},
+		},
+	}
+	// BrandProfileColumns holds the columns for the "brand_profile" table.
+	BrandProfileColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "productDescription", Type: field.TypeString},
+		{Name: "audience", Type: field.TypeString},
+		{Name: "tone", Type: field.TypeString},
+		{Name: "tagline", Type: field.TypeString, Nullable: true},
+		{Name: "ctaConventions", Type: field.TypeString, Nullable: true},
+		{Name: "prohibitedTerms", Type: field.TypeJSON},
+		{Name: "preferredStyles", Type: field.TypeJSON},
+		{Name: "socialHandles", Type: field.TypeJSON},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// BrandProfileTable holds the schema information for the "brand_profile" table.
+	BrandProfileTable = &schema.Table{
+		Name:       "brand_profile",
+		Columns:    BrandProfileColumns,
+		PrimaryKey: []*schema.Column{BrandProfileColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "brandprofile_organizationId",
+				Unique:  true,
+				Columns: []*schema.Column{BrandProfileColumns[1]},
+			},
+		},
+	}
+	// CampaignColumns holds the columns for the "campaign" table.
+	CampaignColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "objective", Type: field.TypeString},
+		{Name: "audience", Type: field.TypeString, Nullable: true},
+		{Name: "feature", Type: field.TypeString, Nullable: true},
+		{Name: "messaging", Type: field.TypeString, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "READY_FOR_REVIEW", "APPROVED", "ARCHIVED"}, Default: "DRAFT"},
+		{Name: "releaseId", Type: field.TypeString, Nullable: true},
+		{Name: "productSurfaceId", Type: field.TypeString, Nullable: true},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// CampaignTable holds the schema information for the "campaign" table.
+	CampaignTable = &schema.Table{
+		Name:       "campaign",
+		Columns:    CampaignColumns,
+		PrimaryKey: []*schema.Column{CampaignColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "campaign_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{CampaignColumns[1], CampaignColumns[11]},
+			},
+			{
+				Name:    "campaign_organizationId_releaseId",
+				Unique:  false,
+				Columns: []*schema.Column{CampaignColumns[1], CampaignColumns[8]},
+			},
+			{
+				Name:    "campaign_organizationId_productSurfaceId",
+				Unique:  false,
+				Columns: []*schema.Column{CampaignColumns[1], CampaignColumns[9]},
+			},
+		},
+	}
+	// CampaignAssetColumns holds the columns for the "campaign_asset" table.
+	CampaignAssetColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "campaignId", Type: field.TypeString},
+		{Name: "assetId", Type: field.TypeString},
+		{Name: "kind", Type: field.TypeString},
+		{Name: "caption", Type: field.TypeString, Nullable: true},
+		{Name: "planAssetKey", Type: field.TypeString, Nullable: true},
+		{Name: "variantLabel", Type: field.TypeString, Nullable: true},
+		{Name: "planVersion", Type: field.TypeInt, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// CampaignAssetTable holds the schema information for the "campaign_asset" table.
+	CampaignAssetTable = &schema.Table{
+		Name:       "campaign_asset",
+		Columns:    CampaignAssetColumns,
+		PrimaryKey: []*schema.Column{CampaignAssetColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "campaignasset_campaignId_assetId",
+				Unique:  true,
+				Columns: []*schema.Column{CampaignAssetColumns[2], CampaignAssetColumns[3]},
+			},
+			{
+				Name:    "campaignasset_organizationId_campaignId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{CampaignAssetColumns[1], CampaignAssetColumns[2], CampaignAssetColumns[9]},
+			},
+		},
+	}
+	// CampaignPlanColumns holds the columns for the "campaign_plan" table.
+	CampaignPlanColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "campaignId", Type: field.TypeString},
+		{Name: "specId", Type: field.TypeString, Nullable: true},
+		{Name: "version", Type: field.TypeInt},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "APPROVED", "SUPERSEDED"}, Default: "DRAFT"},
+		{Name: "origin", Type: field.TypeString},
+		{Name: "content", Type: field.TypeJSON},
+		{Name: "changeSummary", Type: field.TypeString, Nullable: true},
+		{Name: "modelId", Type: field.TypeString, Nullable: true},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "approvedByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "approvedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// CampaignPlanTable holds the schema information for the "campaign_plan" table.
+	CampaignPlanTable = &schema.Table{
+		Name:       "campaign_plan",
+		Columns:    CampaignPlanColumns,
+		PrimaryKey: []*schema.Column{CampaignPlanColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "campaignplan_campaignId_version",
+				Unique:  true,
+				Columns: []*schema.Column{CampaignPlanColumns[2], CampaignPlanColumns[4]},
+			},
+			{
+				Name:    "campaignplan_organizationId_campaignId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{CampaignPlanColumns[1], CampaignPlanColumns[2], CampaignPlanColumns[13]},
+			},
+		},
+	}
+	// CampaignPostColumns holds the columns for the "campaign_post" table.
+	CampaignPostColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "campaignId", Type: field.TypeString},
+		{Name: "angleId", Type: field.TypeString, Nullable: true},
+		{Name: "channel", Type: field.TypeString},
+		{Name: "copy", Type: field.TypeString},
+		{Name: "callToAction", Type: field.TypeString, Nullable: true},
+		{Name: "title", Type: field.TypeString, Nullable: true},
+		{Name: "phase", Type: field.TypeString, Nullable: true},
+		{Name: "planItemKey", Type: field.TypeString, Nullable: true},
+		{Name: "specVersion", Type: field.TypeInt, Nullable: true},
+		{Name: "planVersion", Type: field.TypeInt, Nullable: true},
+		{Name: "claims", Type: field.TypeJSON},
+		{Name: "reviewNote", Type: field.TypeString, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "READY_FOR_REVIEW", "APPROVED", "REJECTED", "NEEDS_CHANGES", "SCHEDULED", "PUBLISHED"}},
+		{Name: "scheduledAt", Type: field.TypeTime, Nullable: true},
+		{Name: "creativeVariantId", Type: field.TypeString, Nullable: true},
+		{Name: "scheduledPostId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// CampaignPostTable holds the schema information for the "campaign_post" table.
+	CampaignPostTable = &schema.Table{
+		Name:       "campaign_post",
+		Columns:    CampaignPostColumns,
+		PrimaryKey: []*schema.Column{CampaignPostColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "campaignpost_organizationId_status",
+				Unique:  false,
+				Columns: []*schema.Column{CampaignPostColumns[1], CampaignPostColumns[14]},
+			},
+			{
+				Name:    "campaignpost_campaignId",
+				Unique:  false,
+				Columns: []*schema.Column{CampaignPostColumns[2]},
+			},
+			{
+				Name:    "campaignpost_scheduledPostId",
+				Unique:  true,
+				Columns: []*schema.Column{CampaignPostColumns[17]},
+			},
+		},
+	}
+	// CampaignRevisionColumns holds the columns for the "campaign_revision" table.
+	CampaignRevisionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "campaignId", Type: field.TypeString},
+		{Name: "targetType", Type: field.TypeString},
+		{Name: "targetId", Type: field.TypeString},
+		{Name: "targetKey", Type: field.TypeString, Nullable: true},
+		{Name: "comment", Type: field.TypeString},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"PROPOSED", "APPLIED", "DISCARDED"}, Default: "PROPOSED"},
+		{Name: "proposal", Type: field.TypeJSON},
+		{Name: "modelId", Type: field.TypeString, Nullable: true},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "decidedByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "decidedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// CampaignRevisionTable holds the schema information for the "campaign_revision" table.
+	CampaignRevisionTable = &schema.Table{
+		Name:       "campaign_revision",
+		Columns:    CampaignRevisionColumns,
+		PrimaryKey: []*schema.Column{CampaignRevisionColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "campaignrevision_organizationId_campaignId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{CampaignRevisionColumns[1], CampaignRevisionColumns[2], CampaignRevisionColumns[13]},
+			},
+			{
+				Name:    "campaignrevision_organizationId_status_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{CampaignRevisionColumns[1], CampaignRevisionColumns[7], CampaignRevisionColumns[13]},
+			},
+		},
+	}
 	// ChannelConnectionColumns holds the columns for the "channel_connection" table.
 	ChannelConnectionColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -176,11 +559,139 @@ var (
 			},
 		},
 	}
+	// CommunicationAttemptColumns holds the columns for the "communication_attempt" table.
+	CommunicationAttemptColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "customerCommunicationId", Type: field.TypeString},
+		{Name: "attemptNumber", Type: field.TypeInt},
+		{Name: "startedAt", Type: field.TypeTime},
+		{Name: "completedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "outcome", Type: field.TypeEnum, Nullable: true, Enums: []string{"SUCCEEDED", "FAILED"}},
+		{Name: "providerMessageId", Type: field.TypeString, Nullable: true},
+		{Name: "failureCode", Type: field.TypeString, Nullable: true},
+	}
+	// CommunicationAttemptTable holds the schema information for the "communication_attempt" table.
+	CommunicationAttemptTable = &schema.Table{
+		Name:       "communication_attempt",
+		Columns:    CommunicationAttemptColumns,
+		PrimaryKey: []*schema.Column{CommunicationAttemptColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "communicationattempt_customerCommunicationId_attemptNumber",
+				Unique:  true,
+				Columns: []*schema.Column{CommunicationAttemptColumns[2], CommunicationAttemptColumns[3]},
+			},
+			{
+				Name:    "communicationattempt_organizationId_startedAt",
+				Unique:  false,
+				Columns: []*schema.Column{CommunicationAttemptColumns[1], CommunicationAttemptColumns[4]},
+			},
+		},
+	}
+	// CommunicationRecipientColumns holds the columns for the "communication_recipient" table.
+	CommunicationRecipientColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "customerCommunicationId", Type: field.TypeString},
+		{Name: "subscriberId", Type: field.TypeString, Nullable: true},
+		{Name: "email", Type: field.TypeString},
+		{Name: "deliveredAt", Type: field.TypeTime, Nullable: true},
+		{Name: "providerMessageId", Type: field.TypeString, Nullable: true},
+		{Name: "failureCode", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// CommunicationRecipientTable holds the schema information for the "communication_recipient" table.
+	CommunicationRecipientTable = &schema.Table{
+		Name:       "communication_recipient",
+		Columns:    CommunicationRecipientColumns,
+		PrimaryKey: []*schema.Column{CommunicationRecipientColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "communicationrecipient_customerCommunicationId_email",
+				Unique:  true,
+				Columns: []*schema.Column{CommunicationRecipientColumns[2], CommunicationRecipientColumns[4]},
+			},
+			{
+				Name:    "communicationrecipient_organizationId_deliveredAt",
+				Unique:  false,
+				Columns: []*schema.Column{CommunicationRecipientColumns[1], CommunicationRecipientColumns[5]},
+			},
+		},
+	}
+	// ContentAngleColumns holds the columns for the "content_angle" table.
+	ContentAngleColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "campaignId", Type: field.TypeString},
+		{Name: "title", Type: field.TypeString},
+		{Name: "hook", Type: field.TypeString},
+		{Name: "position", Type: field.TypeInt},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ContentAngleTable holds the schema information for the "content_angle" table.
+	ContentAngleTable = &schema.Table{
+		Name:       "content_angle",
+		Columns:    ContentAngleColumns,
+		PrimaryKey: []*schema.Column{ContentAngleColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "contentangle_campaignId_position",
+				Unique:  true,
+				Columns: []*schema.Column{ContentAngleColumns[2], ContentAngleColumns[5]},
+			},
+			{
+				Name:    "contentangle_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ContentAngleColumns[1], ContentAngleColumns[6]},
+			},
+		},
+	}
+	// CreativeTemplateColumns holds the columns for the "creative_template" table.
+	CreativeTemplateColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "version", Type: field.TypeInt},
+		{Name: "definition", Type: field.TypeJSON},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "ACTIVE", "ARCHIVED"}, Default: "DRAFT"},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// CreativeTemplateTable holds the schema information for the "creative_template" table.
+	CreativeTemplateTable = &schema.Table{
+		Name:       "creative_template",
+		Columns:    CreativeTemplateColumns,
+		PrimaryKey: []*schema.Column{CreativeTemplateColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "creativetemplate_organizationId_name_version",
+				Unique:  true,
+				Columns: []*schema.Column{CreativeTemplateColumns[1], CreativeTemplateColumns[2], CreativeTemplateColumns[3]},
+			},
+			{
+				Name:    "creativetemplate_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{CreativeTemplateColumns[1], CreativeTemplateColumns[6]},
+			},
+		},
+	}
 	// CreativeVariantColumns holds the columns for the "creative_variant" table.
 	CreativeVariantColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "organizationId", Type: field.TypeString},
+		{Name: "releaseId", Type: field.TypeString},
+		{Name: "brandKitId", Type: field.TypeString},
+		{Name: "brandKitVersion", Type: field.TypeInt},
+		{Name: "templateId", Type: field.TypeString},
+		{Name: "templateVersion", Type: field.TypeInt},
+		{Name: "revision", Type: field.TypeInt},
+		{Name: "aspectRatio", Type: field.TypeString},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "APPROVED", "ARCHIVED"}},
+		{Name: "createdByUserId", Type: field.TypeString},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
 		{Name: "sourceAssetId", Type: field.TypeString},
 	}
 	// CreativeVariantTable holds the schema information for the "creative_variant" table.
@@ -191,9 +702,152 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "creative_variant_asset_source_asset",
-				Columns:    []*schema.Column{CreativeVariantColumns[3]},
+				Columns:    []*schema.Column{CreativeVariantColumns[13]},
 				RefColumns: []*schema.Column{AssetColumns[0]},
 				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "creativevariant_releaseId_aspectRatio_revision",
+				Unique:  true,
+				Columns: []*schema.Column{CreativeVariantColumns[2], CreativeVariantColumns[8], CreativeVariantColumns[7]},
+			},
+			{
+				Name:    "creativevariant_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{CreativeVariantColumns[1], CreativeVariantColumns[11]},
+			},
+		},
+	}
+	// CustomerCommunicationColumns holds the columns for the "customer_communication" table.
+	CustomerCommunicationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "releaseDocumentId", Type: field.TypeString},
+		{Name: "channel", Type: field.TypeEnum, Enums: []string{"CHANGELOG", "IN_APP", "EMAIL", "SOCIAL"}},
+		{Name: "audienceReference", Type: field.TypeString, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "SCHEDULED", "PROCESSING", "DELIVERED", "FAILED", "CANCELLED"}, Default: "DRAFT"},
+		{Name: "scheduledFor", Type: field.TypeTime, Nullable: true},
+		{Name: "ctaUrl", Type: field.TypeString, Nullable: true},
+		{Name: "idempotencyKey", Type: field.TypeString},
+		{Name: "triggerRunId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// CustomerCommunicationTable holds the schema information for the "customer_communication" table.
+	CustomerCommunicationTable = &schema.Table{
+		Name:       "customer_communication",
+		Columns:    CustomerCommunicationColumns,
+		PrimaryKey: []*schema.Column{CustomerCommunicationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "customercommunication_organizationId_idempotencyKey",
+				Unique:  true,
+				Columns: []*schema.Column{CustomerCommunicationColumns[1], CustomerCommunicationColumns[8]},
+			},
+			{
+				Name:    "customercommunication_organizationId_status_scheduledFor",
+				Unique:  false,
+				Columns: []*schema.Column{CustomerCommunicationColumns[1], CustomerCommunicationColumns[5], CustomerCommunicationColumns[6]},
+			},
+		},
+	}
+	// DesignColumns holds the columns for the "design" table.
+	DesignColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "campaignId", Type: field.TypeString, Nullable: true},
+		{Name: "parentDesignId", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "templateId", Type: field.TypeString, Nullable: true},
+		{Name: "document", Type: field.TypeJSON},
+		{Name: "renderedAssetId", Type: field.TypeString, Nullable: true},
+		{Name: "renderKey", Type: field.TypeString, Nullable: true},
+		{Name: "planAssetKey", Type: field.TypeString, Nullable: true},
+		{Name: "variantLabel", Type: field.TypeString, Nullable: true},
+		{Name: "planVersion", Type: field.TypeInt, Nullable: true},
+		{Name: "critique", Type: field.TypeJSON, Nullable: true},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// DesignTable holds the schema information for the "design" table.
+	DesignTable = &schema.Table{
+		Name:       "design",
+		Columns:    DesignColumns,
+		PrimaryKey: []*schema.Column{DesignColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "design_organizationId_campaignId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{DesignColumns[1], DesignColumns[2], DesignColumns[14]},
+			},
+			{
+				Name:    "design_organizationId_renderKey",
+				Unique:  false,
+				Columns: []*schema.Column{DesignColumns[1], DesignColumns[8]},
+			},
+		},
+	}
+	// InvitationColumns holds the columns for the "invitation" table.
+	InvitationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "email", Type: field.TypeString},
+		{Name: "role", Type: field.TypeString, Nullable: true},
+		{Name: "status", Type: field.TypeString, Default: "pending"},
+		{Name: "expiresAt", Type: field.TypeTime},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "inviterId", Type: field.TypeString},
+	}
+	// InvitationTable holds the schema information for the "invitation" table.
+	InvitationTable = &schema.Table{
+		Name:       "invitation",
+		Columns:    InvitationColumns,
+		PrimaryKey: []*schema.Column{InvitationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "invitation_organizationId",
+				Unique:  false,
+				Columns: []*schema.Column{InvitationColumns[1]},
+			},
+			{
+				Name:    "invitation_email",
+				Unique:  false,
+				Columns: []*schema.Column{InvitationColumns[2]},
+			},
+			{
+				Name:    "invitation_organizationId_status_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{InvitationColumns[1], InvitationColumns[4], InvitationColumns[6]},
+			},
+		},
+	}
+	// LaunchRunColumns holds the columns for the "launch_run" table.
+	LaunchRunColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "campaignId", Type: field.TypeString},
+		{Name: "kind", Type: field.TypeString},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"RUNNING", "SUCCEEDED", "FAILED"}, Default: "RUNNING"},
+		{Name: "resultId", Type: field.TypeString, Nullable: true},
+		{Name: "summary", Type: field.TypeString, Nullable: true},
+		{Name: "error", Type: field.TypeString, Nullable: true},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "startedAt", Type: field.TypeTime},
+		{Name: "finishedAt", Type: field.TypeTime, Nullable: true},
+	}
+	// LaunchRunTable holds the schema information for the "launch_run" table.
+	LaunchRunTable = &schema.Table{
+		Name:       "launch_run",
+		Columns:    LaunchRunColumns,
+		PrimaryKey: []*schema.Column{LaunchRunColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "launchrun_organizationId_campaignId_startedAt",
+				Unique:  false,
+				Columns: []*schema.Column{LaunchRunColumns[1], LaunchRunColumns[2], LaunchRunColumns[9]},
 			},
 		},
 	}
@@ -233,6 +887,8 @@ var (
 		{Name: "id", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
 		{Name: "slug", Type: field.TypeString},
+		{Name: "logo", Type: field.TypeString, Nullable: true},
+		{Name: "metadata", Type: field.TypeString, Nullable: true},
 		{Name: "createdAt", Type: field.TypeTime},
 	}
 	// OrganizationTable holds the schema information for the "organization" table.
@@ -245,6 +901,53 @@ var (
 				Name:    "organization_slug",
 				Unique:  true,
 				Columns: []*schema.Column{OrganizationColumns[2]},
+			},
+		},
+	}
+	// OrganizationEnterpriseSettingsColumns holds the columns for the "organization_enterprise_settings" table.
+	OrganizationEnterpriseSettingsColumns = []*schema.Column{
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "ssoEnabled", Type: field.TypeBool, Default: false},
+		{Name: "scimEnabled", Type: field.TypeBool, Default: false},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// OrganizationEnterpriseSettingsTable holds the schema information for the "organization_enterprise_settings" table.
+	OrganizationEnterpriseSettingsTable = &schema.Table{
+		Name:       "organization_enterprise_settings",
+		Columns:    OrganizationEnterpriseSettingsColumns,
+		PrimaryKey: []*schema.Column{OrganizationEnterpriseSettingsColumns[0]},
+	}
+	// OutboxEventColumns holds the columns for the "outbox_event" table.
+	OutboxEventColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "type", Type: field.TypeString},
+		{Name: "aggregateType", Type: field.TypeString},
+		{Name: "aggregateId", Type: field.TypeString},
+		{Name: "payload", Type: field.TypeJSON},
+		{Name: "idempotencyKey", Type: field.TypeString},
+		{Name: "deliveredAt", Type: field.TypeTime, Nullable: true},
+		{Name: "processingAt", Type: field.TypeTime, Nullable: true},
+		{Name: "attempts", Type: field.TypeInt, Default: 0},
+		{Name: "lastError", Type: field.TypeString, Nullable: true},
+		{Name: "deadLetteredAt", Type: field.TypeTime, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// OutboxEventTable holds the schema information for the "outbox_event" table.
+	OutboxEventTable = &schema.Table{
+		Name:       "outbox_event",
+		Columns:    OutboxEventColumns,
+		PrimaryKey: []*schema.Column{OutboxEventColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "outboxevent_organizationId_idempotencyKey",
+				Unique:  true,
+				Columns: []*schema.Column{OutboxEventColumns[1], OutboxEventColumns[6]},
+			},
+			{
+				Name:    "outboxevent_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{OutboxEventColumns[1], OutboxEventColumns[12]},
 			},
 		},
 	}
@@ -270,6 +973,37 @@ var (
 				Name:    "postiztenantbinding_secretReference",
 				Unique:  true,
 				Columns: []*schema.Column{PostizTenantBindingColumns[2]},
+			},
+		},
+	}
+	// ProductSurfaceColumns holds the columns for the "product_surface" table.
+	ProductSurfaceColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "url", Type: field.TypeString},
+		{Name: "environment", Type: field.TypeString, Default: "production"},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "featureTags", Type: field.TypeJSON},
+		{Name: "screenshotAssetIds", Type: field.TypeJSON},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ProductSurfaceTable holds the schema information for the "product_surface" table.
+	ProductSurfaceTable = &schema.Table{
+		Name:       "product_surface",
+		Columns:    ProductSurfaceColumns,
+		PrimaryKey: []*schema.Column{ProductSurfaceColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "productsurface_organizationId_name",
+				Unique:  true,
+				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[2]},
+			},
+			{
+				Name:    "productsurface_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[8]},
 			},
 		},
 	}
@@ -308,6 +1042,111 @@ var (
 				Name:    "publicationattempt_organizationId_startedAt",
 				Unique:  false,
 				Columns: []*schema.Column{PublicationAttemptColumns[1], PublicationAttemptColumns[3]},
+			},
+		},
+	}
+	// ReleaseColumns holds the columns for the "release" table.
+	ReleaseColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "title", Type: field.TypeString},
+		{Name: "benefitStatement", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "audience", Type: field.TypeString, Nullable: true},
+		{Name: "sourceUrls", Type: field.TypeJSON},
+		{Name: "productSurfaceId", Type: field.TypeString, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "READY", "ARCHIVED", "CANCELLED"}, Default: "DRAFT"},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ReleaseTable holds the schema information for the "release" table.
+	ReleaseTable = &schema.Table{
+		Name:       "release",
+		Columns:    ReleaseColumns,
+		PrimaryKey: []*schema.Column{ReleaseColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "release_organizationId_status_updatedAt",
+				Unique:  false,
+				Columns: []*schema.Column{ReleaseColumns[1], ReleaseColumns[8], ReleaseColumns[11]},
+			},
+			{
+				Name:    "release_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ReleaseColumns[1], ReleaseColumns[10]},
+			},
+			{
+				Name:    "release_organizationId_productSurfaceId",
+				Unique:  false,
+				Columns: []*schema.Column{ReleaseColumns[1], ReleaseColumns[7]},
+			},
+		},
+	}
+	// ReleaseDocumentColumns holds the columns for the "release_document" table.
+	ReleaseDocumentColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "releaseId", Type: field.TypeString},
+		{Name: "revision", Type: field.TypeInt},
+		{Name: "frontMatter", Type: field.TypeJSON},
+		{Name: "bodyMarkdown", Type: field.TypeString},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "APPROVED", "ARCHIVED"}, Default: "DRAFT"},
+		{Name: "approvedByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "approvedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ReleaseDocumentTable holds the schema information for the "release_document" table.
+	ReleaseDocumentTable = &schema.Table{
+		Name:       "release_document",
+		Columns:    ReleaseDocumentColumns,
+		PrimaryKey: []*schema.Column{ReleaseDocumentColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "releasedocument_releaseId_revision",
+				Unique:  true,
+				Columns: []*schema.Column{ReleaseDocumentColumns[2], ReleaseDocumentColumns[3]},
+			},
+			{
+				Name:    "releasedocument_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ReleaseDocumentColumns[1], ReleaseDocumentColumns[9]},
+			},
+		},
+	}
+	// ReleaseSpecColumns holds the columns for the "release_spec" table.
+	ReleaseSpecColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "releaseId", Type: field.TypeString},
+		{Name: "version", Type: field.TypeInt},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "APPROVED", "SUPERSEDED"}, Default: "DRAFT"},
+		{Name: "origin", Type: field.TypeString},
+		{Name: "content", Type: field.TypeJSON},
+		{Name: "sources", Type: field.TypeJSON},
+		{Name: "changeSummary", Type: field.TypeString, Nullable: true},
+		{Name: "modelId", Type: field.TypeString, Nullable: true},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "approvedByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "approvedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// ReleaseSpecTable holds the schema information for the "release_spec" table.
+	ReleaseSpecTable = &schema.Table{
+		Name:       "release_spec",
+		Columns:    ReleaseSpecColumns,
+		PrimaryKey: []*schema.Column{ReleaseSpecColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "releasespec_releaseId_version",
+				Unique:  true,
+				Columns: []*schema.Column{ReleaseSpecColumns[2], ReleaseSpecColumns[3]},
+			},
+			{
+				Name:    "releasespec_organizationId_releaseId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ReleaseSpecColumns[1], ReleaseSpecColumns[2], ReleaseSpecColumns[13]},
 			},
 		},
 	}
@@ -356,13 +1195,38 @@ var (
 			},
 		},
 	}
+	// ScreenshotCacheColumns holds the columns for the "screenshot_cache" table.
+	ScreenshotCacheColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "urlHash", Type: field.TypeString, Unique: true},
+		{Name: "url", Type: field.TypeString},
+		{Name: "cloudinaryPublicId", Type: field.TypeString, Unique: true},
+		{Name: "cloudinaryUrl", Type: field.TypeString},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ScreenshotCacheTable holds the schema information for the "screenshot_cache" table.
+	ScreenshotCacheTable = &schema.Table{
+		Name:       "screenshot_cache",
+		Columns:    ScreenshotCacheColumns,
+		PrimaryKey: []*schema.Column{ScreenshotCacheColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "screenshotcache_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ScreenshotCacheColumns[5]},
+			},
+		},
+	}
 	// SessionColumns holds the columns for the "session" table.
 	SessionColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "userId", Type: field.TypeString},
 		{Name: "token", Type: field.TypeString},
 		{Name: "expiresAt", Type: field.TypeTime},
+		{Name: "createdAt", Type: field.TypeTime},
 		{Name: "activeOrganizationId", Type: field.TypeString, Nullable: true},
+		{Name: "updatedAt", Type: field.TypeTime},
 	}
 	// SessionTable holds the schema information for the "session" table.
 	SessionTable = &schema.Table{
@@ -407,14 +1271,82 @@ var (
 			},
 		},
 	}
+	// SourceAppColumns holds the columns for the "source_app" table.
+	SourceAppColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "provider", Type: field.TypeString, Default: "generic"},
+		{Name: "externalId", Type: field.TypeString, Nullable: true},
+		{Name: "secretReference", Type: field.TypeString, Nullable: true},
+		{Name: "allowedHosts", Type: field.TypeJSON},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "ACTIVE", "ARCHIVED"}, Default: "DRAFT"},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// SourceAppTable holds the schema information for the "source_app" table.
+	SourceAppTable = &schema.Table{
+		Name:       "source_app",
+		Columns:    SourceAppColumns,
+		PrimaryKey: []*schema.Column{SourceAppColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "sourceapp_organizationId_name",
+				Unique:  true,
+				Columns: []*schema.Column{SourceAppColumns[1], SourceAppColumns[2]},
+			},
+			{
+				Name:    "sourceapp_provider_externalId",
+				Unique:  true,
+				Columns: []*schema.Column{SourceAppColumns[3], SourceAppColumns[4]},
+			},
+			{
+				Name:    "sourceapp_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{SourceAppColumns[1], SourceAppColumns[8]},
+			},
+		},
+	}
+	// SupportAccessGrantColumns holds the columns for the "support_access_grant" table.
+	SupportAccessGrantColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "userId", Type: field.TypeString},
+		{Name: "scope", Type: field.TypeString, Default: "metadata:read"},
+		{Name: "purpose", Type: field.TypeString},
+		{Name: "expiresAt", Type: field.TypeTime},
+		{Name: "revokedAt", Type: field.TypeTime, Nullable: true},
+	}
+	// SupportAccessGrantTable holds the schema information for the "support_access_grant" table.
+	SupportAccessGrantTable = &schema.Table{
+		Name:       "support_access_grant",
+		Columns:    SupportAccessGrantColumns,
+		PrimaryKey: []*schema.Column{SupportAccessGrantColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "supportaccessgrant_organizationId_expiresAt",
+				Unique:  false,
+				Columns: []*schema.Column{SupportAccessGrantColumns[1], SupportAccessGrantColumns[5]},
+			},
+			{
+				Name:    "supportaccessgrant_userId_expiresAt",
+				Unique:  false,
+				Columns: []*schema.Column{SupportAccessGrantColumns[2], SupportAccessGrantColumns[5]},
+			},
+		},
+	}
 	// UserColumns holds the columns for the "user" table.
 	UserColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
 		{Name: "email", Type: field.TypeString},
+		{Name: "image", Type: field.TypeString, Nullable: true},
 		{Name: "emailVerified", Type: field.TypeBool, Default: false},
+		{Name: "twoFactorEnabled", Type: field.TypeBool, Nullable: true},
 		{Name: "banned", Type: field.TypeBool, Nullable: true},
 		{Name: "banExpires", Type: field.TypeTime, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
 	}
 	// UserTable holds the schema information for the "user" table.
 	UserTable = &schema.Table{
@@ -434,6 +1366,14 @@ var (
 		{Name: "id", Type: field.TypeString},
 		{Name: "organizationId", Type: field.TypeString},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"PENDING", "PROCESSING", "CANCELLED", "PURGED"}},
+		{Name: "requestedByUserId", Type: field.TypeString},
+		{Name: "scheduledFor", Type: field.TypeTime},
+		{Name: "processingAt", Type: field.TypeTime, Nullable: true},
+		{Name: "cancelledAt", Type: field.TypeTime, Nullable: true},
+		{Name: "purgedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "lastError", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
 	}
 	// WorkspaceDeletionTable holds the schema information for the "workspace_deletion" table.
 	WorkspaceDeletionTable = &schema.Table{
@@ -448,35 +1388,109 @@ var (
 			},
 		},
 	}
+	// WorkspaceEntitlementColumns holds the columns for the "workspace_entitlement" table.
+	WorkspaceEntitlementColumns = []*schema.Column{
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "plan", Type: field.TypeString, Default: "free"},
+		{Name: "status", Type: field.TypeString, Default: "active"},
+		{Name: "featureOverrides", Type: field.TypeJSON, Nullable: true},
+		{Name: "validUntil", Type: field.TypeTime, Nullable: true},
+		{Name: "graceUntil", Type: field.TypeTime, Nullable: true},
+		{Name: "version", Type: field.TypeInt, Default: 1},
+		{Name: "provider", Type: field.TypeString, Nullable: true},
+		{Name: "externalCustomerId", Type: field.TypeString, Nullable: true},
+		{Name: "externalSubscriptionId", Type: field.TypeString, Nullable: true},
+		{Name: "lastSyncedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// WorkspaceEntitlementTable holds the schema information for the "workspace_entitlement" table.
+	WorkspaceEntitlementTable = &schema.Table{
+		Name:       "workspace_entitlement",
+		Columns:    WorkspaceEntitlementColumns,
+		PrimaryKey: []*schema.Column{WorkspaceEntitlementColumns[0]},
+	}
+	// WorkspaceSettingsColumns holds the columns for the "workspace_settings" table.
+	WorkspaceSettingsColumns = []*schema.Column{
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "locale", Type: field.TypeString, Default: "en"},
+		{Name: "timeZone", Type: field.TypeString, Default: "UTC"},
+		{Name: "defaultPublishTime", Type: field.TypeString, Default: "09:00"},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// WorkspaceSettingsTable holds the schema information for the "workspace_settings" table.
+	WorkspaceSettingsTable = &schema.Table{
+		Name:       "workspace_settings",
+		Columns:    WorkspaceSettingsColumns,
+		PrimaryKey: []*schema.Column{WorkspaceSettingsColumns[0]},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		ApikeyTable,
 		ApprovalTable,
 		AssetTable,
+		AudienceSubscriberTable,
 		AuditDrainTable,
 		AuditDrainDeliveryTable,
 		AuditLogTable,
 		AuditOutboxTable,
+		AuditRetentionPolicyTable,
+		BillingEntitlementEventTable,
+		BrandKitTable,
+		BrandProfileTable,
+		CampaignTable,
+		CampaignAssetTable,
+		CampaignPlanTable,
+		CampaignPostTable,
+		CampaignRevisionTable,
 		ChannelConnectionTable,
+		CommunicationAttemptTable,
+		CommunicationRecipientTable,
+		ContentAngleTable,
+		CreativeTemplateTable,
 		CreativeVariantTable,
+		CustomerCommunicationTable,
+		DesignTable,
+		InvitationTable,
+		LaunchRunTable,
 		MemberTable,
 		OrganizationTable,
+		OrganizationEnterpriseSettingsTable,
+		OutboxEventTable,
 		PostizTenantBindingTable,
+		ProductSurfaceTable,
 		PublicationAttemptTable,
+		ReleaseTable,
+		ReleaseDocumentTable,
+		ReleaseSpecTable,
 		ScheduledPostTable,
+		ScreenshotCacheTable,
 		SessionTable,
 		SocialOauthStartTable,
+		SourceAppTable,
+		SupportAccessGrantTable,
 		UserTable,
 		WorkspaceDeletionTable,
+		WorkspaceEntitlementTable,
+		WorkspaceSettingsTable,
 	}
 )
 
 func init() {
+	ApikeyTable.Annotation = &entsql.Annotation{
+		Table: "apikey",
+	}
 	ApprovalTable.ForeignKeys[0].RefTable = CreativeVariantTable
 	ApprovalTable.Annotation = &entsql.Annotation{
 		Table: "approval",
 	}
 	AssetTable.Annotation = &entsql.Annotation{
 		Table: "asset",
+	}
+	AudienceSubscriberTable.Annotation = &entsql.Annotation{
+		Table: "audience_subscriber",
 	}
 	AuditDrainTable.Annotation = &entsql.Annotation{
 		Table: "audit_drain",
@@ -490,12 +1504,63 @@ func init() {
 	AuditOutboxTable.Annotation = &entsql.Annotation{
 		Table: "audit_outbox",
 	}
+	AuditRetentionPolicyTable.Annotation = &entsql.Annotation{
+		Table: "audit_retention_policy",
+	}
+	BillingEntitlementEventTable.Annotation = &entsql.Annotation{
+		Table: "billing_entitlement_event",
+	}
+	BrandKitTable.Annotation = &entsql.Annotation{
+		Table: "brand_kit",
+	}
+	BrandProfileTable.Annotation = &entsql.Annotation{
+		Table: "brand_profile",
+	}
+	CampaignTable.Annotation = &entsql.Annotation{
+		Table: "campaign",
+	}
+	CampaignAssetTable.Annotation = &entsql.Annotation{
+		Table: "campaign_asset",
+	}
+	CampaignPlanTable.Annotation = &entsql.Annotation{
+		Table: "campaign_plan",
+	}
+	CampaignPostTable.Annotation = &entsql.Annotation{
+		Table: "campaign_post",
+	}
+	CampaignRevisionTable.Annotation = &entsql.Annotation{
+		Table: "campaign_revision",
+	}
 	ChannelConnectionTable.Annotation = &entsql.Annotation{
 		Table: "channel_connection",
+	}
+	CommunicationAttemptTable.Annotation = &entsql.Annotation{
+		Table: "communication_attempt",
+	}
+	CommunicationRecipientTable.Annotation = &entsql.Annotation{
+		Table: "communication_recipient",
+	}
+	ContentAngleTable.Annotation = &entsql.Annotation{
+		Table: "content_angle",
+	}
+	CreativeTemplateTable.Annotation = &entsql.Annotation{
+		Table: "creative_template",
 	}
 	CreativeVariantTable.ForeignKeys[0].RefTable = AssetTable
 	CreativeVariantTable.Annotation = &entsql.Annotation{
 		Table: "creative_variant",
+	}
+	CustomerCommunicationTable.Annotation = &entsql.Annotation{
+		Table: "customer_communication",
+	}
+	DesignTable.Annotation = &entsql.Annotation{
+		Table: "design",
+	}
+	InvitationTable.Annotation = &entsql.Annotation{
+		Table: "invitation",
+	}
+	LaunchRunTable.Annotation = &entsql.Annotation{
+		Table: "launch_run",
 	}
 	MemberTable.Annotation = &entsql.Annotation{
 		Table: "member",
@@ -503,16 +1568,37 @@ func init() {
 	OrganizationTable.Annotation = &entsql.Annotation{
 		Table: "organization",
 	}
+	OrganizationEnterpriseSettingsTable.Annotation = &entsql.Annotation{
+		Table: "organization_enterprise_settings",
+	}
+	OutboxEventTable.Annotation = &entsql.Annotation{
+		Table: "outbox_event",
+	}
 	PostizTenantBindingTable.Annotation = &entsql.Annotation{
 		Table: "postiz_tenant_binding",
+	}
+	ProductSurfaceTable.Annotation = &entsql.Annotation{
+		Table: "product_surface",
 	}
 	PublicationAttemptTable.ForeignKeys[0].RefTable = ScheduledPostTable
 	PublicationAttemptTable.Annotation = &entsql.Annotation{
 		Table: "publication_attempt",
 	}
+	ReleaseTable.Annotation = &entsql.Annotation{
+		Table: "release",
+	}
+	ReleaseDocumentTable.Annotation = &entsql.Annotation{
+		Table: "release_document",
+	}
+	ReleaseSpecTable.Annotation = &entsql.Annotation{
+		Table: "release_spec",
+	}
 	ScheduledPostTable.ForeignKeys[0].RefTable = ChannelConnectionTable
 	ScheduledPostTable.Annotation = &entsql.Annotation{
 		Table: "scheduled_post",
+	}
+	ScreenshotCacheTable.Annotation = &entsql.Annotation{
+		Table: "screenshot_cache",
 	}
 	SessionTable.Annotation = &entsql.Annotation{
 		Table: "session",
@@ -520,10 +1606,22 @@ func init() {
 	SocialOauthStartTable.Annotation = &entsql.Annotation{
 		Table: "social_oauth_start",
 	}
+	SourceAppTable.Annotation = &entsql.Annotation{
+		Table: "source_app",
+	}
+	SupportAccessGrantTable.Annotation = &entsql.Annotation{
+		Table: "support_access_grant",
+	}
 	UserTable.Annotation = &entsql.Annotation{
 		Table: "user",
 	}
 	WorkspaceDeletionTable.Annotation = &entsql.Annotation{
 		Table: "workspace_deletion",
+	}
+	WorkspaceEntitlementTable.Annotation = &entsql.Annotation{
+		Table: "workspace_entitlement",
+	}
+	WorkspaceSettingsTable.Annotation = &entsql.Annotation{
+		Table: "workspace_settings",
 	}
 }

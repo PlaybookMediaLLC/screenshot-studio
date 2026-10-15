@@ -17,6 +17,10 @@ const (
 	FieldName = "name"
 	// FieldSlug holds the string denoting the slug field in the database.
 	FieldSlug = "slug"
+	// FieldLogo holds the string denoting the logo field in the database.
+	FieldLogo = "logo"
+	// FieldMetadata holds the string denoting the metadata field in the database.
+	FieldMetadata = "metadata"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "createdAt"
 	// Table holds the table name of the organization in the database.
@@ -28,6 +32,8 @@ var Columns = []string{
 	FieldID,
 	FieldName,
 	FieldSlug,
+	FieldLogo,
+	FieldMetadata,
 	FieldCreatedAt,
 }
 
@@ -62,6 +68,16 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 // BySlug orders the results by the slug field.
 func BySlug(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSlug, opts...).ToFunc()
+}
+
+// ByLogo orders the results by the logo field.
+func ByLogo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLogo, opts...).ToFunc()
+}
+
+// ByMetadata orders the results by the metadata field.
+func ByMetadata(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMetadata, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

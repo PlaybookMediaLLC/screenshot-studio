@@ -12,23 +12,53 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/audiencesubscriber"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditdrain"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditdraindelivery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditlog"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditoutbox"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditretentionpolicy"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/billingentitlementevent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandkit"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandprofile"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaign"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignasset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignplan"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignrevision"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationattempt"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/customercommunication"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organization"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasedocument"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasespec"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/screenshotcache"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -89,23 +119,53 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			approval.Table:            approval.ValidColumn,
-			asset.Table:               asset.ValidColumn,
-			auditdrain.Table:          auditdrain.ValidColumn,
-			auditdraindelivery.Table:  auditdraindelivery.ValidColumn,
-			auditlog.Table:            auditlog.ValidColumn,
-			auditoutbox.Table:         auditoutbox.ValidColumn,
-			channelconnection.Table:   channelconnection.ValidColumn,
-			creativevariant.Table:     creativevariant.ValidColumn,
-			member.Table:              member.ValidColumn,
-			organization.Table:        organization.ValidColumn,
-			postiztenantbinding.Table: postiztenantbinding.ValidColumn,
-			publicationattempt.Table:  publicationattempt.ValidColumn,
-			scheduledpost.Table:       scheduledpost.ValidColumn,
-			session.Table:             session.ValidColumn,
-			socialoauthstart.Table:    socialoauthstart.ValidColumn,
-			user.Table:                user.ValidColumn,
-			workspacedeletion.Table:   workspacedeletion.ValidColumn,
+			apikey.Table:                         apikey.ValidColumn,
+			approval.Table:                       approval.ValidColumn,
+			asset.Table:                          asset.ValidColumn,
+			audiencesubscriber.Table:             audiencesubscriber.ValidColumn,
+			auditdrain.Table:                     auditdrain.ValidColumn,
+			auditdraindelivery.Table:             auditdraindelivery.ValidColumn,
+			auditlog.Table:                       auditlog.ValidColumn,
+			auditoutbox.Table:                    auditoutbox.ValidColumn,
+			auditretentionpolicy.Table:           auditretentionpolicy.ValidColumn,
+			billingentitlementevent.Table:        billingentitlementevent.ValidColumn,
+			brandkit.Table:                       brandkit.ValidColumn,
+			brandprofile.Table:                   brandprofile.ValidColumn,
+			campaign.Table:                       campaign.ValidColumn,
+			campaignasset.Table:                  campaignasset.ValidColumn,
+			campaignplan.Table:                   campaignplan.ValidColumn,
+			campaignpost.Table:                   campaignpost.ValidColumn,
+			campaignrevision.Table:               campaignrevision.ValidColumn,
+			channelconnection.Table:              channelconnection.ValidColumn,
+			communicationattempt.Table:           communicationattempt.ValidColumn,
+			communicationrecipient.Table:         communicationrecipient.ValidColumn,
+			contentangle.Table:                   contentangle.ValidColumn,
+			creativetemplate.Table:               creativetemplate.ValidColumn,
+			creativevariant.Table:                creativevariant.ValidColumn,
+			customercommunication.Table:          customercommunication.ValidColumn,
+			design.Table:                         design.ValidColumn,
+			invitation.Table:                     invitation.ValidColumn,
+			launchrun.Table:                      launchrun.ValidColumn,
+			member.Table:                         member.ValidColumn,
+			organization.Table:                   organization.ValidColumn,
+			organizationenterprisesettings.Table: organizationenterprisesettings.ValidColumn,
+			outboxevent.Table:                    outboxevent.ValidColumn,
+			postiztenantbinding.Table:            postiztenantbinding.ValidColumn,
+			productsurface.Table:                 productsurface.ValidColumn,
+			publicationattempt.Table:             publicationattempt.ValidColumn,
+			release.Table:                        release.ValidColumn,
+			releasedocument.Table:                releasedocument.ValidColumn,
+			releasespec.Table:                    releasespec.ValidColumn,
+			scheduledpost.Table:                  scheduledpost.ValidColumn,
+			screenshotcache.Table:                screenshotcache.ValidColumn,
+			session.Table:                        session.ValidColumn,
+			socialoauthstart.Table:               socialoauthstart.ValidColumn,
+			sourceapp.Table:                      sourceapp.ValidColumn,
+			supportaccessgrant.Table:             supportaccessgrant.ValidColumn,
+			user.Table:                           user.ValidColumn,
+			workspacedeletion.Table:              workspacedeletion.ValidColumn,
+			workspaceentitlement.Table:           workspaceentitlement.ValidColumn,
+			workspacesettings.Table:              workspacesettings.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

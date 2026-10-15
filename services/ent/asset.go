@@ -5,6 +5,7 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -18,10 +19,28 @@ type Asset struct {
 	ID string `json:"id,omitempty"`
 	// OrganizationID holds the value of the "organization_id" field.
 	OrganizationID string `json:"organization_id,omitempty"`
+	// CaptureID holds the value of the "capture_id" field.
+	CaptureID *string `json:"capture_id,omitempty"`
+	// ParentAssetID holds the value of the "parent_asset_id" field.
+	ParentAssetID *string `json:"parent_asset_id,omitempty"`
 	// ObjectKey holds the value of the "object_key" field.
 	ObjectKey string `json:"object_key,omitempty"`
+	// Sha256 holds the value of the "sha256" field.
+	Sha256 *string `json:"sha256,omitempty"`
 	// MediaType holds the value of the "media_type" field.
 	MediaType string `json:"media_type,omitempty"`
+	// Bytes holds the value of the "bytes" field.
+	Bytes int `json:"bytes,omitempty"`
+	// Width holds the value of the "width" field.
+	Width *int `json:"width,omitempty"`
+	// Height holds the value of the "height" field.
+	Height *int `json:"height,omitempty"`
+	// Status holds the value of the "status" field.
+	Status asset.Status `json:"status,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AssetQuery when eager-loading is set.
 	Edges        AssetEdges `json:"edges"`
@@ -51,8 +70,12 @@ func (*Asset) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case asset.FieldID, asset.FieldOrganizationID, asset.FieldObjectKey, asset.FieldMediaType:
+		case asset.FieldBytes, asset.FieldWidth, asset.FieldHeight:
+			values[i] = new(sql.NullInt64)
+		case asset.FieldID, asset.FieldOrganizationID, asset.FieldCaptureID, asset.FieldParentAssetID, asset.FieldObjectKey, asset.FieldSha256, asset.FieldMediaType, asset.FieldStatus:
 			values[i] = new(sql.NullString)
+		case asset.FieldCreatedAt, asset.FieldUpdatedAt:
+			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -80,17 +103,76 @@ func (_m *Asset) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.OrganizationID = value.String
 			}
+		case asset.FieldCaptureID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field capture_id", values[i])
+			} else if value.Valid {
+				_m.CaptureID = new(string)
+				*_m.CaptureID = value.String
+			}
+		case asset.FieldParentAssetID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field parent_asset_id", values[i])
+			} else if value.Valid {
+				_m.ParentAssetID = new(string)
+				*_m.ParentAssetID = value.String
+			}
 		case asset.FieldObjectKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field object_key", values[i])
 			} else if value.Valid {
 				_m.ObjectKey = value.String
 			}
+		case asset.FieldSha256:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field sha256", values[i])
+			} else if value.Valid {
+				_m.Sha256 = new(string)
+				*_m.Sha256 = value.String
+			}
 		case asset.FieldMediaType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field media_type", values[i])
 			} else if value.Valid {
 				_m.MediaType = value.String
+			}
+		case asset.FieldBytes:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field bytes", values[i])
+			} else if value.Valid {
+				_m.Bytes = int(value.Int64)
+			}
+		case asset.FieldWidth:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field width", values[i])
+			} else if value.Valid {
+				_m.Width = new(int)
+				*_m.Width = int(value.Int64)
+			}
+		case asset.FieldHeight:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field height", values[i])
+			} else if value.Valid {
+				_m.Height = new(int)
+				*_m.Height = int(value.Int64)
+			}
+		case asset.FieldStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field status", values[i])
+			} else if value.Valid {
+				_m.Status = asset.Status(value.String)
+			}
+		case asset.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				_m.CreatedAt = value.Time
+			}
+		case asset.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				_m.UpdatedAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -136,11 +218,48 @@ func (_m *Asset) String() string {
 	builder.WriteString("organization_id=")
 	builder.WriteString(_m.OrganizationID)
 	builder.WriteString(", ")
+	if v := _m.CaptureID; v != nil {
+		builder.WriteString("capture_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.ParentAssetID; v != nil {
+		builder.WriteString("parent_asset_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
 	builder.WriteString("object_key=")
 	builder.WriteString(_m.ObjectKey)
 	builder.WriteString(", ")
+	if v := _m.Sha256; v != nil {
+		builder.WriteString("sha256=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
 	builder.WriteString("media_type=")
 	builder.WriteString(_m.MediaType)
+	builder.WriteString(", ")
+	builder.WriteString("bytes=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Bytes))
+	builder.WriteString(", ")
+	if v := _m.Width; v != nil {
+		builder.WriteString("width=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.Height; v != nil {
+		builder.WriteString("height=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("status=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

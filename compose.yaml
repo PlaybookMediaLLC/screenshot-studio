@@ -8,6 +8,19 @@ services:
     command: npm run dev
     env_file: .local/dev.env
     environment:
+      # The web has no database: every read and write goes through the Go
+      # backend. Blank the connection strings the shared env_file provides.
+      AUDIT_RETENTION_DATABASE_URL: ''
+      DATABASE_URL: ''
+      HOST_DATABASE_URL: ''
+      STORAGE_API_URL: ''
+      STORAGE_SERVICE_KEY: ''
+      R2_ACCESS_KEY_ID: ''
+      R2_SECRET_ACCESS_KEY: ''
+      POSTIZ_API_KEY: ''
+      POSTIZ_API_KEY_E2E: ''
+      POSTIZ_API_KEY_SOCIAL_GATE: ''
+      POSTIZ_API_URL: ''
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
       BETTER_AUTH_TRUSTED_ORIGINS: ${BETTER_AUTH_TRUSTED_ORIGINS:-http://localhost:3000}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
@@ -23,14 +36,10 @@ services:
       # Same interpolation as design-renderer, so both sides always agree.
       PLATFORM_RENDER_SERVICE_SECRET: ${PLATFORM_RENDER_SERVICE_SECRET:-}
       PLATFORM_RENDER_SERVICE_URL: http://localhost:8080
-      POSTIZ_API_KEY: ${POSTIZ_API_KEY:-}
-      POSTIZ_API_KEY_SOCIAL_GATE: ${POSTIZ_API_KEY_SOCIAL_GATE:-}
-      POSTIZ_API_URL: ${POSTIZ_API_URL:-}
-      PUBLISHING_API_URL: ${PUBLISHING_API_URL:-}
-      PUBLISHING_SERVICE_TOKEN: ${PUBLISHING_SERVICE_TOKEN:-}
+      PUBLISHING_API_URL: ${PUBLISHING_API_URL:-http://publishing-backend:8080}
+      PUBLISHING_SERVICE_TOKEN: ${PUBLISHING_SERVICE_TOKEN:-local-publishing-service}
       SCREENSHOT_API_URL: ${SCREENSHOT_API_URL:-https://api.microlink.io}
       SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS: ${SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS:-}
-      WATCHPACK_POLLING: 'true'
     ports:
       - '127.0.0.1:3000:3000'
     volumes:
@@ -38,13 +47,11 @@ services:
       - app_node_modules:/workspace/node_modules
       - app_next_cache:/workspace/.next
     depends_on:
-      postgres:
-        condition: service_healthy
+      publishing-backend-ready:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       rustfs-init:
-        condition: service_completed_successfully
-      storage-init:
         condition: service_completed_successfully
 
   # Design render service (services/design-renderer), as in production.
@@ -83,25 +90,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/10-init-databases.sh:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready --username=postgres --dbname=postgres']
+      # TCP, not the socket: the init-time server is socket-only, and the
+      # platform migrator connects over TCP as soon as this passes.
+      test: ['CMD-SHELL', 'pg_isready --host=127.0.0.1 --username=postgres --dbname=postgres']
       interval: 5s
       timeout: 5s
       retries: 20
-
-  pgbouncer:
-    image: bitnamilegacy/pgbouncer:latest
-    env_file: .local/dev.env
-    environment:
-      POSTGRESQL_HOST: postgres
-      POSTGRESQL_PORT: '5432'
-      POSTGRESQL_DATABASE: storage
-      POSTGRESQL_USERNAME: postgres
-      POSTGRESQL_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      PGBOUNCER_POOL_MODE: transaction
-      PGBOUNCER_IGNORE_STARTUP_PARAMETERS: extra_float_digits,options
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   redis:
     image: redis:7.4-alpine
@@ -137,28 +131,12 @@ services:
   rustfs-init:
     image: curlimages/curl:8.12.1
     env_file: .local/dev.env
+    volumes:
+      - ./infra/local/rustfs-init.sh:/rustfs-init.sh:ro
     depends_on:
       rustfs:
         condition: service_healthy
-    entrypoint: ['/bin/sh', '-ec']
-    command:
-      - |
-        sign() {
-          curl --fail --silent --show-error \
-            --aws-sigv4 'aws:amz:us-east-1:s3' \
-            --user "$${RUSTFS_ACCESS_KEY}:$${RUSTFS_SECRET_KEY}" "$$@"
-        }
-        if sign --head http://rustfs:9000/$${STORAGE_BUCKET} >/dev/null 2>&1; then exit 0; fi
-        sign --request PUT http://rustfs:9000/$${STORAGE_BUCKET} >/dev/null
-
-  imgproxy:
-    image: darthsim/imgproxy:v3.26.0
-    environment:
-      IMGPROXY_USE_ETAG: 'true'
-      IMGPROXY_ENABLE_WEBP_DETECTION: 'true'
-      IMGPROXY_DEVELOPMENT_ERRORS_MODE: 'true'
-    ports:
-      - '127.0.0.1:50020:8080'
+    entrypoint: ['/bin/sh', '/rustfs-init.sh']
 
   screenshot-mock:
     image: node:22-alpine
@@ -168,83 +146,59 @@ services:
     volumes:
       - .:/workspace:ro
 
-  storage:
-    image: supabase/storage-api:v1.37.8
-    env_file: .local/dev.env
-    environment:
-      SERVER_PORT: '5000'
-      AUTH_JWT_SECRET: ${STORAGE_JWT_SECRET}
-      AUTH_JWT_ALGORITHM: HS256
-      DATABASE_URL: ${STORAGE_DATABASE_URL}
-      DATABASE_POOL_URL: ${STORAGE_DATABASE_POOL_URL}
-      DB_INSTALL_ROLES: 'true'
-      STORAGE_BACKEND: s3
-      STORAGE_S3_BUCKET: ${STORAGE_BUCKET}
-      STORAGE_S3_ENDPOINT: http://rustfs:9000
-      STORAGE_S3_FORCE_PATH_STYLE: 'true'
-      STORAGE_S3_REGION: us-east-1
-      AWS_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY}
-      AWS_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY}
-      UPLOAD_FILE_SIZE_LIMIT: '524288000'
-      UPLOAD_FILE_SIZE_LIMIT_STANDARD: '52428800'
-      UPLOAD_SIGNED_URL_EXPIRATION_TIME: '120'
-      TUS_URL_PATH: /upload/resumable
-      TUS_URL_EXPIRY_MS: '3600000'
-      ENABLE_IMAGE_TRANSFORMATION: 'true'
-      IMGPROXY_URL: http://imgproxy:8080
-      IMGPROXY_REQUEST_TIMEOUT: '15'
-    ports:
-      - '127.0.0.1:5000:5000'
-    depends_on:
-      postgres:
-        condition: service_healthy
-      pgbouncer:
-        condition: service_started
-      rustfs-init:
-        condition: service_completed_successfully
-
-  storage-init:
-    image: curlimages/curl:8.12.1
-    env_file: .local/dev.env
-    entrypoint: ['/bin/sh', '-ec']
-    command:
-      - |
-        until curl --fail --silent http://storage:5000/status >/dev/null; do sleep 1; done
-        if curl --fail --silent \
-          --header "authorization: Bearer $${STORAGE_SERVICE_KEY}" \
-          --header "apikey: $${STORAGE_SERVICE_KEY}" \
-          http://storage:5000/bucket/$${STORAGE_BUCKET} >/dev/null; then exit 0; fi
-        curl --fail --silent --show-error \
-          --request POST http://storage:5000/bucket \
-          --header "authorization: Bearer $${STORAGE_SERVICE_KEY}" \
-          --header "apikey: $${STORAGE_SERVICE_KEY}" \
-          --header "content-type: application/json" \
-          --data "{\"id\":\"$${STORAGE_BUCKET}\",\"name\":\"$${STORAGE_BUCKET}\",\"public\":false}" >/dev/null
-    depends_on:
-      storage:
-        condition: service_started
-
   publishing-backend:
-    profiles: ['publishing']
     build:
       context: ./services
       dockerfile: backend/Dockerfile
+    image: screenshot-studio-publishing-backend:local
     env_file: .local/dev.env
     environment:
       PORT: '8080'
+      DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}
       POSTIZ_API_URL: ${POSTIZ_API_URL:-https://api.postiz.com/public/v1}
+      # Set by bin/social-gate for its isolated Go destination.
+      POSTIZ_API_KEY_SOCIAL_GATE: ${POSTIZ_API_KEY_SOCIAL_GATE:-}
+      PUBLISHING_RETRY_DELAY: ${PUBLISHING_RETRY_DELAY:-2m}
       PUBLISHING_SERVICE_TOKEN: ${PUBLISHING_SERVICE_TOKEN:-local-publishing-service}
+      R2_BROWSER_ENDPOINT: http://localhost:9003
       TEMPORAL_ADDRESS: temporal:7233
     ports:
       - '127.0.0.1:8080:8080'
     depends_on:
-      postgres:
-        condition: service_healthy
+      platform-go-migrate:
+        condition: service_completed_successfully
       temporal:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rustfs-init:
+        condition: service_completed_successfully
+
+  # The backend image is distroless (no shell or HTTP client for a
+  # healthcheck), so its readiness is probed from here.
+  publishing-backend-ready:
+    image: curlimages/curl:8.12.1
+    command: --fail --silent --show-error --output /dev/null --retry 60 --retry-delay 1 --retry-all-errors http://publishing-backend:8080/readyz
+    depends_on:
+      publishing-backend:
+        condition: service_started
+
+  # Applies the product schema before the backend or worker starts.
+  platform-go-migrate:
+    build:
+      context: ./services
+      dockerfile: backend/Dockerfile
+    image: screenshot-studio-publishing-backend:local
+    entrypoint: ['/platform-migrate']
+    environment:
+      DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
+    depends_on:
+      postgres:
         condition: service_healthy
 
   temporal:
-    profiles: ['publishing']
     image: temporalio/temporal:1.8.2
     command: server start-dev --ip 0.0.0.0
     ports:
@@ -256,32 +210,27 @@ services:
       timeout: 2s
       retries: 30
 
+  # Temporal worker for scheduled posts; the web no longer dispatches them.
   publishing-orchestrator:
-    profiles: ['publishing']
     build:
       context: ./services
       dockerfile: orchestrator/Dockerfile
     env_file: .local/dev.env
     environment:
       PORT: '8081'
+      DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
       POSTIZ_API_URL: ${POSTIZ_API_URL:-https://api.postiz.com/public/v1}
-      PUBLISHING_DIRECT_PROVIDER: ${PUBLISHING_DIRECT_PROVIDER:-false}
-      POSTIZ_PRIVATE_MEDIA: ${POSTIZ_PRIVATE_MEDIA:-false}
-      STORAGE_PROVIDER: ${POSTIZ_GO_STORAGE_PROVIDER:-local}
-      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
-      CLOUDFLARE_ACCESS_KEY: ${CLOUDFLARE_ACCESS_KEY:-}
-      CLOUDFLARE_SECRET_ACCESS_KEY: ${CLOUDFLARE_SECRET_ACCESS_KEY:-}
-      CLOUDFLARE_BUCKETNAME: ${CLOUDFLARE_BUCKETNAME:-}
-      CLOUDFLARE_BUCKET_URL: ${CLOUDFLARE_BUCKET_URL:-}
+      # Set by bin/social-gate for its isolated Go destination.
+      POSTIZ_API_KEY_SOCIAL_GATE: ${POSTIZ_API_KEY_SOCIAL_GATE:-}
+      PUBLISHING_RETRY_DELAY: ${PUBLISHING_RETRY_DELAY:-2m}
       RUN_CRON: ${RUN_CRON:-true}
-      STORAGE_API_URL: http://storage:5000
       TEMPORAL_ADDRESS: temporal:7233
     ports:
       - '127.0.0.1:8081:8081'
     depends_on:
-      postgres:
-        condition: service_healthy
-      storage-init:
+      platform-go-migrate:
+        condition: service_completed_successfully
+      rustfs-init:
         condition: service_completed_successfully
       temporal:
         condition: service_healthy
@@ -310,19 +259,6 @@ services:
       interval: 2s
       timeout: 2s
       retries: 30
-
-  postiz-go-migrate:
-    profiles: ['postiz-go']
-    build:
-      context: ./services
-      dockerfile: screenshot-studio-backend/backend/Dockerfile
-    image: screenshot-studio-postiz-backend:local
-    entrypoint: ['/postiz-migrate']
-    environment:
-      DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   screenshot-studio-backend:
     profiles: ['postiz-go']
@@ -366,7 +302,7 @@ services:
       - '127.0.0.1:3100:3000'
       - '127.0.0.1:3102:3002'
     depends_on:
-      postiz-go-migrate:
+      platform-go-migrate:
         condition: service_completed_successfully
       postiz-go-redis:
         condition: service_healthy

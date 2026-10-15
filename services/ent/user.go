@@ -21,12 +21,20 @@ type User struct {
 	Name string `json:"name,omitempty"`
 	// Email holds the value of the "email" field.
 	Email string `json:"email,omitempty"`
+	// Image holds the value of the "image" field.
+	Image *string `json:"image,omitempty"`
 	// EmailVerified holds the value of the "email_verified" field.
 	EmailVerified bool `json:"email_verified,omitempty"`
+	// TwoFactorEnabled holds the value of the "two_factor_enabled" field.
+	TwoFactorEnabled *bool `json:"two_factor_enabled,omitempty"`
 	// Banned holds the value of the "banned" field.
 	Banned *bool `json:"banned,omitempty"`
 	// BanExpires holds the value of the "ban_expires" field.
-	BanExpires   *time.Time `json:"ban_expires,omitempty"`
+	BanExpires *time.Time `json:"ban_expires,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt    time.Time `json:"updated_at,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -35,11 +43,11 @@ func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldEmailVerified, user.FieldBanned:
+		case user.FieldEmailVerified, user.FieldTwoFactorEnabled, user.FieldBanned:
 			values[i] = new(sql.NullBool)
-		case user.FieldID, user.FieldName, user.FieldEmail:
+		case user.FieldID, user.FieldName, user.FieldEmail, user.FieldImage:
 			values[i] = new(sql.NullString)
-		case user.FieldBanExpires:
+		case user.FieldBanExpires, user.FieldCreatedAt, user.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -74,11 +82,25 @@ func (_m *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Email = value.String
 			}
+		case user.FieldImage:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field image", values[i])
+			} else if value.Valid {
+				_m.Image = new(string)
+				*_m.Image = value.String
+			}
 		case user.FieldEmailVerified:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field email_verified", values[i])
 			} else if value.Valid {
 				_m.EmailVerified = value.Bool
+			}
+		case user.FieldTwoFactorEnabled:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field two_factor_enabled", values[i])
+			} else if value.Valid {
+				_m.TwoFactorEnabled = new(bool)
+				*_m.TwoFactorEnabled = value.Bool
 			}
 		case user.FieldBanned:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -93,6 +115,18 @@ func (_m *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.BanExpires = new(time.Time)
 				*_m.BanExpires = value.Time
+			}
+		case user.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				_m.CreatedAt = value.Time
+			}
+		case user.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				_m.UpdatedAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -136,8 +170,18 @@ func (_m *User) String() string {
 	builder.WriteString("email=")
 	builder.WriteString(_m.Email)
 	builder.WriteString(", ")
+	if v := _m.Image; v != nil {
+		builder.WriteString("image=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
 	builder.WriteString("email_verified=")
 	builder.WriteString(fmt.Sprintf("%v", _m.EmailVerified))
+	builder.WriteString(", ")
+	if v := _m.TwoFactorEnabled; v != nil {
+		builder.WriteString("two_factor_enabled=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.Banned; v != nil {
 		builder.WriteString("banned=")
@@ -148,6 +192,12 @@ func (_m *User) String() string {
 		builder.WriteString("ban_expires=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

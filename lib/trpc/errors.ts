@@ -1,5 +1,4 @@
 import { TRPCError, type TRPC_ERROR_CODE_KEY } from '@trpc/server'
-import { Prisma } from '@prisma/client'
 import { ZodError } from 'zod'
 
 const statusCodes: Record<number, TRPC_ERROR_CODE_KEY> = {
@@ -34,15 +33,14 @@ function getErrorStatus(error: Error & { status?: unknown }): TRPC_ERROR_CODE_KE
 
 function isDatabaseUnavailable(error: unknown): boolean {
   return (
-    error instanceof Prisma.PrismaClientInitializationError ||
-    (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P1001') ||
-    (typeof error === 'object' &&
-      error !== null &&
-      'body' in error &&
-      typeof error.body === 'object' &&
-      error.body !== null &&
-      'code' in error.body &&
-      error.body.code === 'FAILED_TO_GET_SESSION')
+    // Better Auth reports an unreachable backend auth store this way.
+    typeof error === 'object' &&
+    error !== null &&
+    'body' in error &&
+    typeof error.body === 'object' &&
+    error.body !== null &&
+    'code' in error.body &&
+    error.body.code === 'FAILED_TO_GET_SESSION'
   )
 }
 

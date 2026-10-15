@@ -4,6 +4,7 @@ package approval
 
 import (
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -20,6 +21,16 @@ const (
 	FieldVariantID = "variantId"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldDecidedByUserID holds the string denoting the decided_by_user_id field in the database.
+	FieldDecidedByUserID = "decidedByUserId"
+	// FieldDecidedAt holds the string denoting the decided_at field in the database.
+	FieldDecidedAt = "decidedAt"
+	// FieldReason holds the string denoting the reason field in the database.
+	FieldReason = "reason"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "createdAt"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updatedAt"
 	// EdgeVariant holds the string denoting the variant edge name in mutations.
 	EdgeVariant = "variant"
 	// Table holds the table name of the approval in the database.
@@ -39,6 +50,11 @@ var Columns = []string{
 	FieldOrganizationID,
 	FieldVariantID,
 	FieldStatus,
+	FieldDecidedByUserID,
+	FieldDecidedAt,
+	FieldReason,
+	FieldCreatedAt,
+	FieldUpdatedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -50,6 +66,15 @@ func ValidColumn(column string) bool {
 	}
 	return false
 }
+
+var (
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
+)
 
 // Status defines the type for the "status" enum field.
 type Status string
@@ -96,6 +121,31 @@ func ByVariantID(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByDecidedByUserID orders the results by the decided_by_user_id field.
+func ByDecidedByUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDecidedByUserID, opts...).ToFunc()
+}
+
+// ByDecidedAt orders the results by the decided_at field.
+func ByDecidedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDecidedAt, opts...).ToFunc()
+}
+
+// ByReason orders the results by the reason field.
+func ByReason(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReason, opts...).ToFunc()
+}
+
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
 // ByVariantField orders the results by variant field.

@@ -1,10 +1,8 @@
 import { APIError } from 'better-auth'
-import { appendAuditLog } from '@/lib/audit/log'
 import { WORKSPACE_INVITATION_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
-import { prisma } from '@/lib/db'
+import { serviceBackend } from '@/lib/backend/sdk'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { workspaceCreateSchema, workspaceOrganizationPatchSchema } from '@/lib/workspace/schemas'
-import { getAuditActor } from './principal'
 import { isSupportedOrganizationRole } from './permissions'
 
 type OrganizationHook = { organization: { id: string } }
@@ -60,11 +58,7 @@ type RoleUpdatedHook = {
 }
 
 async function requireOperationalWorkspace(organizationId: string): Promise<void> {
-  const deletion = await prisma.workspaceDeletion.findUnique({
-    select: { status: true },
-    where: { organizationId },
-  })
-  if (deletion && deletion.status !== 'CANCELLED') {
+  if (!(await serviceBackend().isWorkspaceOperational(organizationId))) {
     throw APIError.fromStatus('FORBIDDEN', { message: 'This workspace is unavailable.' })
   }
 }
@@ -88,6 +82,12 @@ async function enforceInvitationRateLimit(organizationId: string, userId: string
   }
 }
 
+function recordAuthEvent(
+  event: Parameters<ReturnType<typeof serviceBackend>['recordAuthEvent']>[0]
+) {
+  return serviceBackend().recordAuthEvent(event)
+}
+
 function parseWorkspaceInput<T>(result: { data?: T; success: boolean }): T {
   if (!result.success || result.data === undefined) {
     throw APIError.fromStatus('BAD_REQUEST', { message: 'Invalid workspace details.' })
@@ -103,146 +103,94 @@ export const organizationHooks = {
     },
   }),
   afterCreateOrganization: async ({ member, organization, user }: OrganizationCreatedHook) => {
-    await prisma.$transaction(async (transaction) => {
-      await transaction.workspaceSettings.upsert({
-        create: { organizationId: organization.id },
-        update: {},
-        where: { organizationId: organization.id },
-      })
-      await transaction.workspaceEntitlement.upsert({
-        create: { organizationId: organization.id },
-        update: {},
-        where: { organizationId: organization.id },
-      })
-      await appendAuditLog(transaction, {
-        action: 'product.workspace_created',
-        actor: getAuditActor({
-          display: user.email,
-          kind: 'session',
-          sessionId: '',
-          userId: user.id,
-        }),
-        entityId: organization.id,
-        entityType: 'organization',
-        organizationId: organization.id,
-        requestId: member.id,
-      })
+    // The backend provisions the workspace settings and entitlement rows.
+    await recordAuthEvent({
+      action: 'product.workspace_created',
+      actorDisplay: user.email,
+      actorUserId: user.id,
+      entityId: organization.id,
+      entityType: 'organization',
+      organizationId: organization.id,
+      requestId: member.id,
     })
   },
   afterAcceptInvitation: async ({ invitation, member, user }: InvitationAcceptedHook) => {
-    await prisma.$transaction(async (transaction) => {
-      await appendAuditLog(transaction, {
-        action: 'product.member_invitation_accepted',
-        actor: getAuditActor({
-          display: user.email,
-          kind: 'session',
-          sessionId: '',
-          userId: user.id,
-        }),
-        entityId: member.id,
-        entityType: 'member',
-        organizationId: invitation.organizationId,
-        requestId: invitation.id,
-      })
+    await recordAuthEvent({
+      action: 'product.member_invitation_accepted',
+      actorDisplay: user.email,
+      actorUserId: user.id,
+      entityId: member.id,
+      entityType: 'member',
+      organizationId: invitation.organizationId,
+      requestId: invitation.id,
     })
   },
   afterCancelInvitation: async ({ cancelledBy, invitation }: InvitationCancelledHook) => {
-    await prisma.$transaction(async (transaction) => {
-      await appendAuditLog(transaction, {
-        action: 'product.member_invitation_revoked',
-        actor: getAuditActor({
-          display: cancelledBy.email,
-          kind: 'session',
-          sessionId: '',
-          userId: cancelledBy.id,
-        }),
-        entityId: invitation.id,
-        entityType: 'invitation',
-        organizationId: invitation.organizationId,
-        requestId: invitation.id,
-      })
+    await recordAuthEvent({
+      action: 'product.member_invitation_revoked',
+      actorDisplay: cancelledBy.email,
+      actorUserId: cancelledBy.id,
+      entityId: invitation.id,
+      entityType: 'invitation',
+      organizationId: invitation.organizationId,
+      requestId: invitation.id,
     })
   },
   afterCreateInvitation: async ({ invitation, inviter }: InvitationCreatedHook) => {
-    await prisma.$transaction(async (transaction) => {
-      await appendAuditLog(transaction, {
-        action: 'product.member_invited',
-        actor: getAuditActor({
-          display: inviter.email,
-          kind: 'session',
-          sessionId: '',
-          userId: inviter.id,
-        }),
-        entityId: invitation.id,
-        entityType: 'invitation',
-        metadata: { role: invitation.role },
-        organizationId: invitation.organizationId,
-        requestId: invitation.id,
-      })
+    await recordAuthEvent({
+      action: 'product.member_invited',
+      actorDisplay: inviter.email,
+      actorUserId: inviter.id,
+      entityId: invitation.id,
+      entityType: 'invitation',
+      metadata: { role: invitation.role },
+      organizationId: invitation.organizationId,
+      requestId: invitation.id,
     })
   },
   afterRejectInvitation: async ({ invitation, user }: InvitationRejectedHook) => {
-    await prisma.$transaction(async (transaction) => {
-      await appendAuditLog(transaction, {
-        action: 'product.member_invitation_rejected',
-        actor: getAuditActor({
-          display: user.email,
-          kind: 'session',
-          sessionId: '',
-          userId: user.id,
-        }),
-        entityId: invitation.id,
-        entityType: 'invitation',
-        organizationId: invitation.organizationId,
-        requestId: invitation.id,
-      })
+    await recordAuthEvent({
+      action: 'product.member_invitation_rejected',
+      actorDisplay: user.email,
+      actorUserId: user.id,
+      entityId: invitation.id,
+      entityType: 'invitation',
+      organizationId: invitation.organizationId,
+      requestId: invitation.id,
     })
   },
   afterRemoveMember: async ({ member }: RemovedMemberHook) => {
-    await prisma.$transaction(async (transaction) => {
-      await transaction.session.deleteMany({
-        where: { activeOrganizationId: member.organizationId, userId: member.userId },
-      })
-      await appendAuditLog(transaction, {
-        action: 'product.member_removed',
-        actor: { type: 'SERVICE' },
-        entityId: member.id,
-        entityType: 'member',
-        organizationId: member.organizationId,
-        requestId: member.id,
-      })
+    // The backend also ends the removed member's sessions in this workspace.
+    await recordAuthEvent({
+      action: 'product.member_removed',
+      entityId: member.id,
+      entityType: 'member',
+      organizationId: member.organizationId,
+      removedUserId: member.userId,
+      requestId: member.id,
     })
   },
   afterUpdateMemberRole: async ({ member }: RoleUpdatedHook) => {
-    await prisma.$transaction((transaction) =>
-      appendAuditLog(transaction, {
-        action: 'product.member_role_changed',
-        actor: { type: 'SERVICE' },
-        entityId: member.id,
-        entityType: 'member',
-        metadata: { role: member.role },
-        organizationId: member.organizationId,
-        requestId: member.id,
-      })
-    )
+    await recordAuthEvent({
+      action: 'product.member_role_changed',
+      entityId: member.id,
+      entityType: 'member',
+      metadata: { role: member.role },
+      organizationId: member.organizationId,
+      requestId: member.id,
+    })
   },
   afterUpdateOrganization: async ({ member, organization, user }: OrganizationUpdatedHook) => {
     if (!organization) return
-    await prisma.$transaction((transaction) =>
-      appendAuditLog(transaction, {
-        action: 'product.workspace_updated',
-        actor: getAuditActor({
-          display: user.email,
-          kind: 'session',
-          sessionId: '',
-          userId: user.id,
-        }),
-        entityId: organization.id,
-        entityType: 'organization',
-        organizationId: member.organizationId,
-        requestId: organization.id,
-      })
-    )
+    await recordAuthEvent({
+      action: 'product.workspace_updated',
+      actorDisplay: user.email,
+      actorUserId: user.id,
+      entityId: organization.id,
+      entityType: 'organization',
+      organizationId: member.organizationId,
+      requestId: organization.id,
+    })
   },
   beforeAddMember: async ({ member }: MemberHook) => {
     await requireOperationalWorkspace(member.organizationId)
@@ -262,14 +210,16 @@ export const organizationHooks = {
     if (invitation.role === 'owner') {
       throw new Error('Use workspace ownership transfer instead.')
     }
-    await prisma.invitation.updateMany({
+    await serviceBackend().authStore({
       data: { status: 'expired' },
-      where: {
-        email: invitation.email.toLowerCase(),
-        expiresAt: { lte: new Date() },
-        organizationId: invitation.organizationId,
-        status: 'pending',
-      },
+      model: 'invitation',
+      op: 'updateMany',
+      where: [
+        { field: 'email', value: invitation.email.toLowerCase() },
+        { field: 'expiresAt', operator: 'lte', value: new Date().toISOString() },
+        { field: 'organizationId', value: invitation.organizationId },
+        { field: 'status', value: 'pending' },
+      ],
     })
   },
   beforeRemoveMember: async ({ member }: RemovedMemberHook) => {

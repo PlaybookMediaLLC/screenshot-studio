@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { getE2EUrl, openWorkspaceSetting, signUp, signUpAndCreateWorkspace } from './framework/auth'
 import { browserRequest } from './framework/browser'
 import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
-import { createE2EDatabaseClient } from './framework/services'
+import { createE2EDatabase, queryRow } from './framework/services'
 
 const invitationSchema = z.object({ id: z.string() })
 const sessionSchema = z.object({
@@ -18,17 +18,18 @@ async function createInvitation(page: Parameters<typeof openWorkspaceSetting>[0]
   await page.locator('input[name="email"]').fill(email)
   await page.getByRole('button', { name: 'Invite' }).click()
   await expect(page.getByText('Invitation created.')).toBeVisible()
-  const database = createE2EDatabaseClient()
+  const database = createE2EDatabase()
   try {
-    const invitation = await database.invitation.findFirst({
-      orderBy: { createdAt: 'desc' },
-      select: { id: true },
-      where: { email, status: 'pending' },
-    })
+    const invitation = await queryRow<{ id: string }>(
+      database,
+      `SELECT id FROM invitation WHERE email = $1 AND status = 'pending'
+       ORDER BY "createdAt" DESC LIMIT 1`,
+      [email]
+    )
     if (!invitation) throw new Error('Invitation was not created.')
     return invitationSchema.parse(invitation)
   } finally {
-    await database.$disconnect()
+    await database.end()
   }
 }
 
@@ -52,14 +53,14 @@ async function expectInvitationRejection(
 }
 
 async function expireInvitation(invitationId: string): Promise<void> {
-  const database = createE2EDatabaseClient()
+  const database = createE2EDatabase()
   try {
-    await database.invitation.update({
-      data: { expiresAt: new Date(Date.now() - 60_000) },
-      where: { id: invitationId },
-    })
+    await database.query(
+      `UPDATE invitation SET "expiresAt" = now() - interval '1 minute' WHERE id = $1`,
+      [invitationId]
+    )
   } finally {
-    await database.$disconnect()
+    await database.end()
   }
 }
 

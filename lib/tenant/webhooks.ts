@@ -1,10 +1,7 @@
 import 'server-only'
 
-import { randomUUID } from 'node:crypto'
-import { type Prisma } from '@prisma/client'
-import { appendAuditLog } from '@/lib/audit/log'
-import { getAuditActor, type WebhookPrincipal } from '@/lib/auth/principal'
-import { prisma } from '@/lib/db'
+import { backendSDK, orNull, serviceBackend } from '@/lib/backend/sdk'
+import type { WebhookPrincipal } from '@/lib/auth/principal'
 import type { ReleaseCreateInput } from './schemas'
 import {
   hasFreshWebhookTimestamp,
@@ -46,78 +43,9 @@ function getWebhookPrincipal(source: WebhookSource): WebhookPrincipal {
   return { connectionId: source.id, kind: 'webhook', organizationId: source.organizationId }
 }
 
-async function getIngestedRelease(
-  transaction: Prisma.TransactionClient,
-  input: SourceReleaseInput,
-  idempotencyKey: string
-): Promise<string | null> {
-  const event = await transaction.outboxEvent.findUnique({
-    where: {
-      organizationId_idempotencyKey: {
-        idempotencyKey,
-        organizationId: input.source.organizationId,
-      },
-    },
-  })
-  return event?.aggregateId ?? null
-}
-
-async function createIngestOutbox(
-  transaction: Prisma.TransactionClient,
-  input: SourceReleaseInput,
-  idempotencyKey: string,
-  releaseId: string
-): Promise<void> {
-  await transaction.outboxEvent.create({
-    data: {
-      aggregateId: releaseId,
-      aggregateType: 'release',
-      idempotencyKey,
-      organizationId: input.source.organizationId,
-      payload: { releaseId, sourceAppId: input.source.id },
-      type: 'release.ingested',
-    },
-  })
-}
-
-async function createIngestedRelease(
-  transaction: Prisma.TransactionClient,
-  input: SourceReleaseInput,
-  releaseId: string
-): Promise<void> {
-  await transaction.release.create({
-    data: {
-      audience: input.release.audience,
-      benefitStatement: input.release.benefitStatement,
-      description: input.release.description,
-      id: releaseId,
-      organizationId: input.source.organizationId,
-      sourceUrls: input.release.sourceUrls ?? [],
-      title: input.release.title,
-    },
-  })
-}
-
-async function auditReleaseIngest(
-  transaction: Prisma.TransactionClient,
-  input: SourceReleaseInput,
-  releaseId: string
-): Promise<void> {
-  await appendAuditLog(transaction, {
-    action: 'product.release_ingested',
-    actor: getAuditActor(getWebhookPrincipal(input.source)),
-    entityId: releaseId,
-    entityType: 'release',
-    organizationId: input.source.organizationId,
-    requestId: input.eventId,
-  })
-}
-
+/** Resolves an active source app before its signature, and so its tenant, is known. */
 export async function getWebhookSource(sourceAppId: string): Promise<WebhookSource | null> {
-  return prisma.sourceApp.findFirst({
-    select: { id: true, organizationId: true, provider: true, secretReference: true },
-    where: { id: sourceAppId, status: 'ACTIVE' },
-  })
+  return orNull(serviceBackend().getWebhookSource(sourceAppId))
 }
 
 export function verifyWebhookRequest(input: {
@@ -148,20 +76,22 @@ export function verifyWebhookRequest(input: {
   return input.source.provider === 'github' || hasFreshWebhookTimestamp(input.timestamp)
 }
 
+/** Call only after verifyWebhookRequest: the backend trusts the webhook principal. */
 export async function ingestSourceRelease(
   input: SourceReleaseInput
 ): Promise<{ created: boolean; releaseId: string }> {
-  const idempotencyKey = `source:${input.source.id}:${input.eventId}`
-  const releaseId = randomUUID()
-  return prisma.$transaction(async (transaction) => {
-    const existingReleaseId = await getIngestedRelease(transaction, input, idempotencyKey)
-    if (existingReleaseId) {
-      return { created: false, releaseId: existingReleaseId }
-    }
-
-    await createIngestOutbox(transaction, input, idempotencyKey, releaseId)
-    await createIngestedRelease(transaction, input, releaseId)
-    await auditReleaseIngest(transaction, input, releaseId)
-    return { created: true, releaseId }
+  const { audience, benefitStatement, description, sourceUrls, title } = input.release
+  return backendSDK({
+    organizationId: input.source.organizationId,
+    principal: getWebhookPrincipal(input.source),
+    requestId: input.eventId,
+  }).ingestSourceRelease({
+    audience,
+    benefitStatement,
+    description,
+    eventId: input.eventId,
+    sourceAppId: input.source.id,
+    sourceUrls,
+    title,
   })
 }

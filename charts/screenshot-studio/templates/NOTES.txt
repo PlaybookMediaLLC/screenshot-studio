@@ -1,5 +1,6 @@
-1. The core editor is ready without a database. To enable URL screenshot caching,
-   create a Secret with DATABASE_URL and R2 credentials, then set existingSecret.
+1. The core editor is ready without a backend. The web never connects to a
+   database: platform features call the Go backend at config.publishingApiUrl
+   with PUBLISHING_SERVICE_TOKEN and R2 credentials from existingSecret.
 
 2. Get the application URL by running these commands:
 {{- if .Values.httpRoute.enabled }}

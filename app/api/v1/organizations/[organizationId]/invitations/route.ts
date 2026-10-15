@@ -5,7 +5,11 @@ import { listWorkspaceInvitations } from '@/lib/workspace/service'
 export const GET = createShellJsonRoute<unknown, { organizationId: string }>({
   name: 'organizations.invitations',
   execute: async (request, { organizationId }) => {
-    await requireOrganizationPermission(request.headers, organizationId, 'invitation:read')
-    return { invitations: await listWorkspaceInvitations(organizationId) }
+    const access = await requireOrganizationPermission(
+      request.headers,
+      organizationId,
+      'invitation:read'
+    )
+    return { invitations: await listWorkspaceInvitations(access) }
   },
 })

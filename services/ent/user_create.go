@@ -32,6 +32,20 @@ func (_c *UserCreate) SetEmail(v string) *UserCreate {
 	return _c
 }
 
+// SetImage sets the "image" field.
+func (_c *UserCreate) SetImage(v string) *UserCreate {
+	_c.mutation.SetImage(v)
+	return _c
+}
+
+// SetNillableImage sets the "image" field if the given value is not nil.
+func (_c *UserCreate) SetNillableImage(v *string) *UserCreate {
+	if v != nil {
+		_c.SetImage(*v)
+	}
+	return _c
+}
+
 // SetEmailVerified sets the "email_verified" field.
 func (_c *UserCreate) SetEmailVerified(v bool) *UserCreate {
 	_c.mutation.SetEmailVerified(v)
@@ -42,6 +56,20 @@ func (_c *UserCreate) SetEmailVerified(v bool) *UserCreate {
 func (_c *UserCreate) SetNillableEmailVerified(v *bool) *UserCreate {
 	if v != nil {
 		_c.SetEmailVerified(*v)
+	}
+	return _c
+}
+
+// SetTwoFactorEnabled sets the "two_factor_enabled" field.
+func (_c *UserCreate) SetTwoFactorEnabled(v bool) *UserCreate {
+	_c.mutation.SetTwoFactorEnabled(v)
+	return _c
+}
+
+// SetNillableTwoFactorEnabled sets the "two_factor_enabled" field if the given value is not nil.
+func (_c *UserCreate) SetNillableTwoFactorEnabled(v *bool) *UserCreate {
+	if v != nil {
+		_c.SetTwoFactorEnabled(*v)
 	}
 	return _c
 }
@@ -70,6 +98,34 @@ func (_c *UserCreate) SetBanExpires(v time.Time) *UserCreate {
 func (_c *UserCreate) SetNillableBanExpires(v *time.Time) *UserCreate {
 	if v != nil {
 		_c.SetBanExpires(*v)
+	}
+	return _c
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (_c *UserCreate) SetCreatedAt(v time.Time) *UserCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *UserCreate) SetNillableCreatedAt(v *time.Time) *UserCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *UserCreate) SetUpdatedAt(v time.Time) *UserCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *UserCreate) SetNillableUpdatedAt(v *time.Time) *UserCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
 	}
 	return _c
 }
@@ -119,6 +175,14 @@ func (_c *UserCreate) defaults() {
 		v := user.DefaultEmailVerified
 		_c.mutation.SetEmailVerified(v)
 	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := user.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := user.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -131,6 +195,12 @@ func (_c *UserCreate) check() error {
 	}
 	if _, ok := _c.mutation.EmailVerified(); !ok {
 		return &ValidationError{Name: "email_verified", err: errors.New(`ent: missing required field "User.email_verified"`)}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "User.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "User.updated_at"`)}
 	}
 	return nil
 }
@@ -175,9 +245,17 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
 		_node.Email = value
 	}
+	if value, ok := _c.mutation.Image(); ok {
+		_spec.SetField(user.FieldImage, field.TypeString, value)
+		_node.Image = &value
+	}
 	if value, ok := _c.mutation.EmailVerified(); ok {
 		_spec.SetField(user.FieldEmailVerified, field.TypeBool, value)
 		_node.EmailVerified = value
+	}
+	if value, ok := _c.mutation.TwoFactorEnabled(); ok {
+		_spec.SetField(user.FieldTwoFactorEnabled, field.TypeBool, value)
+		_node.TwoFactorEnabled = &value
 	}
 	if value, ok := _c.mutation.Banned(); ok {
 		_spec.SetField(user.FieldBanned, field.TypeBool, value)
@@ -186,6 +264,14 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.BanExpires(); ok {
 		_spec.SetField(user.FieldBanExpires, field.TypeTime, value)
 		_node.BanExpires = &value
+	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
 	}
 	return _node, _spec
 }

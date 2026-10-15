@@ -1,16 +1,17 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
 
-const providers = ['x', 'instagram', 'instagram-standalone'] as const
+const providers = ['x', 'instagram', 'instagram-standalone', 'linkedin'] as const
 export type SocialOAuthProvider = (typeof providers)[number]
 
 export type SocialOAuthCompletion = {
+  exchange?: (state: string, code: string) => Promise<unknown>
   onConnected?: (state: string, integrationId: string) => Promise<void>
   onPageChoice?: (state: string, integrationId: string) => Promise<void>
 }
 
 export type InstagramSelection = {
-  beforeSelect?: (state: string, integrationId: string) => Promise<void>
+  selectPage?: (choice: InstagramChoice) => Promise<void>
   onSelected?: (state: string, integrationId: string) => Promise<void>
 }
 
@@ -30,19 +31,10 @@ const pageChoiceSchema = z.object({
   pageId: z.string().min(1),
   state: z.string().min(1),
 })
+type InstagramChoice = z.infer<typeof pageChoiceSchema>
 
 function isProvider(value: string): value is SocialOAuthProvider {
   return providers.some((provider) => provider === value)
-}
-
-function backendURL(path: string): URL | null {
-  const configured = process.env.POSTIZ_API_URL
-  if (!configured) return null
-  try {
-    return new URL(path, configured)
-  } catch {
-    return null
-  }
 }
 
 function htmlEscape(value: string): string {
@@ -115,65 +107,53 @@ export async function completeSocialOAuth(
   ) {
     return new Response(`${providerName} connection was not completed.`, { status: 400 })
   }
-  const callbackURL = backendURL(`/integrations/social-connect/${providerName}`)
-  if (!callbackURL) return new Response('Social connection is not configured.', { status: 503 })
+  if (!completion.exchange)
+    return new Response('Social connection is not configured.', { status: 503 })
 
-  try {
-    const result = await fetch(callbackURL, {
-      body: JSON.stringify({ code, state, timezone: '0' }),
-      cache: 'no-store',
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-      signal: AbortSignal.timeout(30_000),
+  const connected = connectionSchema.safeParse(await completion.exchange(state, code))
+  if (!connected.success) return connectionFailed(providerName)
+  if (providerName !== 'instagram') {
+    await completion.onConnected?.(state, connected.data.id)
+    return new Response(`${providerName} connected to Screenshot Studio Backend.`, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     })
-    if (!result.ok) return connectionFailed(providerName)
-    const connected = connectionSchema.safeParse(await result.json())
-    if (!connected.success) return connectionFailed(providerName)
-    if (providerName !== 'instagram') {
-      await completion.onConnected?.(state, connected.data.id)
-      return new Response(`${providerName} connected to Screenshot Studio Backend.`, {
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-      })
-    }
-
-    const pages = connected.data.pages ?? []
-    if (pages.length === 0) {
-      return new Response('No linked Instagram professional account was found.', { status: 409 })
-    }
-    await completion.onPageChoice?.(state, connected.data.id)
-    const secret = pickerSecret()
-    if (!secret) return new Response('Social connection is not configured.', { status: 503 })
-    const options = pages
-      .map((page) => {
-        const value = signChoice(
-          {
-            accountId: page.id,
-            expiresAt: Date.now() + 10 * 60 * 1000,
-            integrationId: connected.data.id,
-            pageId: page.pageId,
-            state,
-          },
-          secret
-        )
-        return `<label><input type="radio" name="choice" value="${htmlEscape(value)}" required> ${htmlEscape(page.name || page.id)}</label>`
-      })
-      .join('<br>')
-    return new Response(
-      `<!doctype html><html><head><meta charset="utf-8"><title>Select Instagram account</title></head><body><main><h1>Select an Instagram account</h1><form method="post">${options}<br><button type="submit">Connect account</button></form></main></body></html>`,
-      {
-        headers: {
-          'Cache-Control': 'no-store',
-          'Content-Security-Policy':
-            "default-src 'none'; style-src 'none'; form-action 'self'; base-uri 'none'",
-          'Content-Type': 'text/html; charset=utf-8',
-          'Referrer-Policy': 'no-referrer',
-          'X-Content-Type-Options': 'nosniff',
-        },
-      }
-    )
-  } catch {
-    return connectionFailed(providerName)
   }
+
+  const pages = connected.data.pages ?? []
+  if (pages.length === 0) {
+    return new Response('No linked Instagram professional account was found.', { status: 409 })
+  }
+  await completion.onPageChoice?.(state, connected.data.id)
+  const secret = pickerSecret()
+  if (!secret) return new Response('Social connection is not configured.', { status: 503 })
+  const options = pages
+    .map((page) => {
+      const value = signChoice(
+        {
+          accountId: page.id,
+          expiresAt: Date.now() + 10 * 60 * 1000,
+          integrationId: connected.data.id,
+          pageId: page.pageId,
+          state,
+        },
+        secret
+      )
+      return `<label><input type="radio" name="choice" value="${htmlEscape(value)}" required> ${htmlEscape(page.name || page.id)}</label>`
+    })
+    .join('<br>')
+  return new Response(
+    `<!doctype html><html><head><meta charset="utf-8"><title>Select Instagram account</title></head><body><main><h1>Select an Instagram account</h1><form method="post">${options}<br><button type="submit">Connect account</button></form></main></body></html>`,
+    {
+      headers: {
+        'Cache-Control': 'no-store',
+        'Content-Security-Policy':
+          "default-src 'none'; style-src 'none'; form-action 'self'; base-uri 'none'",
+        'Content-Type': 'text/html; charset=utf-8',
+        'Referrer-Policy': 'no-referrer',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    }
+  )
 }
 
 export async function selectInstagramAccount(
@@ -190,25 +170,11 @@ export async function selectInstagramAccount(
   const choice = typeof rawChoice === 'string' ? verifyChoice(rawChoice, secret) : null
   if (!choice)
     return new Response('Account selection expired. Please start again.', { status: 400 })
-  await selection.beforeSelect?.(choice.state, choice.integrationId)
-  const callbackURL = backendURL(
-    `/integrations/public/provider/${encodeURIComponent(choice.integrationId)}/connect`
-  )
-  if (!callbackURL) return new Response('Social connection is not configured.', { status: 503 })
-  try {
-    const result = await fetch(callbackURL, {
-      body: JSON.stringify({ id: choice.accountId, pageId: choice.pageId, state: choice.state }),
-      cache: 'no-store',
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-      signal: AbortSignal.timeout(30_000),
-    })
-    if (!result.ok) return connectionFailed('instagram')
-    await selection.onSelected?.(choice.state, choice.integrationId)
-    return new Response('Instagram connected to Screenshot Studio Backend.', {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    })
-  } catch {
-    return connectionFailed('instagram')
-  }
+  if (!selection.selectPage)
+    return new Response('Social connection is not configured.', { status: 503 })
+  await selection.selectPage(choice)
+  await selection.onSelected?.(choice.state, choice.integrationId)
+  return new Response('Instagram connected to Screenshot Studio Backend.', {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  })
 }

@@ -23,9 +23,13 @@ type Session struct {
 	Token string `json:"-"`
 	// ExpiresAt holds the value of the "expires_at" field.
 	ExpiresAt time.Time `json:"expires_at,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
 	// ActiveOrganizationID holds the value of the "active_organization_id" field.
 	ActiveOrganizationID *string `json:"active_organization_id,omitempty"`
-	selectValues         sql.SelectValues
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt    time.Time `json:"updated_at,omitempty"`
+	selectValues sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -35,7 +39,7 @@ func (*Session) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case session.FieldID, session.FieldUserID, session.FieldToken, session.FieldActiveOrganizationID:
 			values[i] = new(sql.NullString)
-		case session.FieldExpiresAt:
+		case session.FieldExpiresAt, session.FieldCreatedAt, session.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -76,12 +80,24 @@ func (_m *Session) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.ExpiresAt = value.Time
 			}
+		case session.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				_m.CreatedAt = value.Time
+			}
 		case session.FieldActiveOrganizationID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field active_organization_id", values[i])
 			} else if value.Valid {
 				_m.ActiveOrganizationID = new(string)
 				*_m.ActiveOrganizationID = value.String
+			}
+		case session.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				_m.UpdatedAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -127,10 +143,16 @@ func (_m *Session) String() string {
 	builder.WriteString("expires_at=")
 	builder.WriteString(_m.ExpiresAt.Format(time.ANSIC))
 	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
 	if v := _m.ActiveOrganizationID; v != nil {
 		builder.WriteString("active_organization_id=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

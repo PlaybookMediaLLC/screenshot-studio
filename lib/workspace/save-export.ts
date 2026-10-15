@@ -98,9 +98,10 @@ export async function saveExportToWorkspace(input: SaveToWorkspaceInput): Promis
     sha256,
   })
 
+  // The signed URL is write-once; storage refuses a second PUT.
   const upload = await fetch(uploadUrl, {
     body: blob,
-    headers: { 'content-type': blob.type },
+    headers: { 'content-type': blob.type, 'if-none-match': '*' },
     method: 'PUT',
   })
 

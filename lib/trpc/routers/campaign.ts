@@ -27,13 +27,13 @@ const campaignIdSchema = z.object({ campaignId: z.string().cuid() })
 
 export const campaignRouter = router({
   list: organizationProcedure('artifact:read').query(async ({ ctx }) => {
-    const campaigns = await listCampaigns(ctx.access.organizationId)
+    const campaigns = await listCampaigns(ctx.access)
     return { campaigns }
   }),
   get: organizationProcedure('artifact:read')
     .input(campaignIdSchema)
     .query(async ({ ctx, input }) => {
-      const campaign = await getCampaign(ctx.access.organizationId, input.campaignId)
+      const campaign = await getCampaign(ctx.access, input.campaignId)
       if (!campaign) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Campaign not found.' })
       }
@@ -58,7 +58,7 @@ export const campaignRouter = router({
           message: 'AI generation is not configured. Set OPENROUTER_API_KEY.',
         })
       }
-      await consumeWorkspaceQuota(ctx.access.organizationId, 'generation:monthly')
+      await consumeWorkspaceQuota(ctx.access, 'generation:monthly')
       return runCampaignStudio(ctx.access, input.campaignId)
     }),
   /** The transition table decides the permission; artifact:read only gates membership. */

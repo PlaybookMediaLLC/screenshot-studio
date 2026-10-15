@@ -32,6 +32,34 @@ func (_c *OrganizationCreate) SetSlug(v string) *OrganizationCreate {
 	return _c
 }
 
+// SetLogo sets the "logo" field.
+func (_c *OrganizationCreate) SetLogo(v string) *OrganizationCreate {
+	_c.mutation.SetLogo(v)
+	return _c
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableLogo(v *string) *OrganizationCreate {
+	if v != nil {
+		_c.SetLogo(*v)
+	}
+	return _c
+}
+
+// SetMetadata sets the "metadata" field.
+func (_c *OrganizationCreate) SetMetadata(v string) *OrganizationCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
+}
+
+// SetNillableMetadata sets the "metadata" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableMetadata(v *string) *OrganizationCreate {
+	if v != nil {
+		_c.SetMetadata(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *OrganizationCreate) SetCreatedAt(v time.Time) *OrganizationCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -146,6 +174,14 @@ func (_c *OrganizationCreate) createSpec() (*Organization, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Slug(); ok {
 		_spec.SetField(organization.FieldSlug, field.TypeString, value)
 		_node.Slug = value
+	}
+	if value, ok := _c.mutation.Logo(); ok {
+		_spec.SetField(organization.FieldLogo, field.TypeString, value)
+		_node.Logo = &value
+	}
+	if value, ok := _c.mutation.Metadata(); ok {
+		_spec.SetField(organization.FieldMetadata, field.TypeString, value)
+		_node.Metadata = &value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(organization.FieldCreatedAt, field.TypeTime, value)

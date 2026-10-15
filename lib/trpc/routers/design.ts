@@ -11,7 +11,7 @@ export const designRouter = router({
   get: organizationProcedure('artifact:read')
     .input(z.object({ designId: z.string().cuid() }))
     .query(async ({ ctx, input }) => {
-      const design = await getDesign(ctx.access.organizationId, input.designId)
+      const design = await getDesign(ctx.access, input.designId)
       if (!design) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Design not found.' })
       }

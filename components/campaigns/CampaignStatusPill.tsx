@@ -1,4 +1,4 @@
-import type { CampaignStatus } from '@prisma/client'
+import type { CampaignStatus } from '@/lib/tenant/campaign-status'
 import { Pill, type PillTone } from '@/components/platform-ui'
 
 const STATUS: Record<CampaignStatus, { label: string; tone: PillTone }> = {

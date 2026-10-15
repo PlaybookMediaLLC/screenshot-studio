@@ -1,7 +1,8 @@
 # Publishing services
 
-This directory contains the two Go deployables that replace the Podinfo service
-templates and implement Screenshot Studio's Postiz publishing boundary.
+This directory contains Screenshot Studio's Go product API, Temporal workers,
+and social provider services. The combined backend image runs them together in
+production; Compose can start the social API separately for local testing.
 
 ## Architecture
 
@@ -15,18 +16,17 @@ The split follows the useful boundary in Postiz's `apps/backend` and
   workflow, re-checks workspace and approval eligibility, and records
   publication attempts. The direct provider path calls the Go social adapters
   and stores their remote receipt without creating a second social `Post` row.
-- **Ent** is the shared Go data model. The schemas map to the existing Prisma
-  table and column names so the Next.js application and both Go services operate
-  on the same durable state machine. The transition target is one PostgreSQL
-  database and its `public` schema for product and social integration tables.
+- **Ent** is the Go data model and query layer for product and social records.
+  One PostgreSQL database and its `public` schema hold both. The Next.js app
+  calls the published SDK and never opens a database connection.
 
 Each scheduled post maps to one Temporal workflow: workflow ID `post_<post-id>`,
 workflow type `PostWorkflowV2`, workflow task queue `main`, and Postiz activity
 task queue `postiz`. `PostWorkflowV1` remains registered for replay safety. The
-workflow owns the scheduled timer, `cancel` and `poke` signals, rate-limit retry
-timer, and Postiz status-confirmation timers. The outbound Postiz mutation has
-one Temporal attempt. A timeout or invalid receipt is `UNKNOWN_DELIVERY` because
-retrying could create a duplicate social post.
+workflow owns the scheduled timer, `cancel` and `poke` signals, and bounded
+provider retry timers. The V2 activity calls the provider adapter directly and
+stores its remote receipt on the canonical attempt. An ambiguous failure is
+`UNKNOWN_DELIVERY` because retrying could create a duplicate social post.
 
 ## Postiz Temporal parity
 
@@ -39,34 +39,32 @@ every Temporal guarantee at Screenshot Studio's provider boundary:
 | Versioned workflows remain registered | `PostWorkflowV1` and `PostWorkflowV2` are both workers |
 | Atomic recovery start | `poke` plus `SignalWithStartWorkflow` and `USE_EXISTING` |
 | Searchable ownership | typed `organizationId` and `postId` attributes, registered on self-hosted Temporal |
-| Durable scheduling and provider backoff | Temporal timers; only explicit `429` responses retry |
+| Durable scheduling and provider backoff | Temporal timers; classified `429` and safe `5xx` responses retry |
 | No automatic retry of provider mutations | submit activity has one attempt; timeout becomes `UNKNOWN_DELIVERY` |
-| Pending provider confirmation | read-only status checks retry safely for up to 90 checks at 20-second intervals |
+| Pending provider confirmation | V1 keeps read-only status checks for replay; V2 requires a confirmed direct receipt |
 | Missing-post recovery | `missing-post-workflow` runs immediately and hourly when `RUN_CRON=true` |
 | Worker placement controls | `EXCLUDE_QUEUE` and `WORKER_CONCURRENCY_DIVIDER` |
 | Namespace readiness | `DescribeNamespace` with a 10-second bound |
 | TLS and API-key authentication | both settings apply independently |
 
 Postiz's per-social-network adapters, token refresh, comments, plugs, and repeat
-posts remain inside the social Go packages. With `PUBLISHING_DIRECT_PROVIDER=true`,
-Screenshot Studio's tenant Temporal activity invokes the LinkedIn, X, or
-Instagram Login adapter directly. The social HTTP API still handles OAuth and
-stages media during this transition, but customer publishing does not call
-`/public/v1/posts`. Postiz's autopost, streak,
+posts remain inside the social Go packages. Screenshot Studio's tenant Temporal
+activity invokes the LinkedIn, X, or Instagram adapter directly. The social
+HTTP API handles OAuth, but customer publishing does not call
+`/public/v1/posts` or stage a second media copy. Postiz's autopost, streak,
 and email workflows are product domains, not publishing transport, and remain
 owned by Screenshot Studio's campaign and email systems.
 
 ## Database ownership
 
-`ent/schema` is the Go schema and generated client source. During this staged
-cutover, Prisma migrations in the repository root remain the physical migration
-authority because Next.js still uses those tables. Ent must become the sole
-model and migration authority before the final database cutover. Do not call
-`client.Schema.Create` from either service. When a publishing table changes:
-
-1. update the Prisma schema and add a reviewed Prisma migration;
-2. update the matching Ent schema and storage keys;
-3. run `make generate` and `make check` in this directory.
+`ent/schema` and `screenshot-studio-backend/ent/schema` are the Ent sources for
+product and social tables. One ordered `/platform-migrate` command applies
+reviewed SQL from `platformmigrations/sql` and
+`screenshot-studio-backend/migrations` to the same `public` schema. Prisma and
+Drizzle are no longer runtime or migration authorities. Do not call
+`client.Schema.Create` from either service. When a table changes, update its
+Ent schema and reviewed SQL migration, then run `make generate` and `make
+check` in this directory.
 
 The Ent projections for `creative_variant`, `approval`, `asset`,
 `workspace_deletion`, and the audit tables intentionally contain only fields the
@@ -100,13 +98,12 @@ Both services require `DATABASE_URL` and connect to Temporal with
 `PUBLISHING_SERVICE_TOKEN` and refuses to start or authenticate without it. The
 orchestrator also requires:
 
-- `STORAGE_API_URL`, `STORAGE_BUCKET`, `STORAGE_SERVICE_KEY`
-- `POSTIZ_API_URL` (defaults to `https://api.postiz.com/public/v1`)
-- each allow-listed credential reference stored by a connection, for example
-  `POSTIZ_API_KEY` or `POSTIZ_OAUTH_TOKEN_CUSTOMER_A`
-- `PUBLISHING_DIRECT_PROVIDER=true` for direct Go provider publication; it
-  requires the social integration tables in the same database and
-  `POSTIZ_PRIVATE_MEDIA=true` with Cloudflare R2 signing configuration.
+- `R2_ENDPOINT`, `R2_BUCKET_NAME`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
+  (and optional `R2_REGION`, `R2_BROWSER_ENDPOINT`) for private tenant media
+- `POSTIZ_API_URL` and an allow-listed API key reference for social OAuth and
+  destination verification. They are held by the product backend, not the web.
+  The publishing worker reads social integration rows from the shared database
+  and signs the canonical private asset when due.
 
 Optional workflow controls are `TEMPORAL_TASK_QUEUE`,
 `TEMPORAL_POSTIZ_TASK_QUEUE`,
@@ -124,7 +121,7 @@ make build
 ```
 
 `make acceptance` additionally runs Temporal and both compiled services against an empty
-PostgreSQL database created from the repository's real Prisma migration SQL. It
+PostgreSQL database created from the platform migration SQL. It
 checks the one-post/one-workflow mapping, typed search attributes, durable timer,
 cancellation signal, missing-post recovery, authenticated HTTP API, Ent
 compatibility, idempotency, storage and Postiz HTTP boundaries, confirmed
@@ -147,9 +144,8 @@ build context.
 
 `screenshot-studio-backend/` is a Go port of Postiz's NestJS `apps/backend` and
 `apps/orchestrator` (plus the `nestjs-libraries` and `helpers` code they use).
-It is a drop-in replacement: same Prisma tables, HTTP routes, JSON shapes,
-Temporal workflow and activity names, task queues, IDs, signals and search
-attributes, and the same provider calls.
+It preserves the social HTTP and Temporal contracts for the adapter, while
+Screenshot Studio customer publishing uses the canonical product post state.
 
 Layout:
 
@@ -162,7 +158,7 @@ Layout:
   both binaries. Consumer-interface adapters live in `adapters.go`.
 - `screenshot-studio-backend/backend/{auth,api/*,publicapi}`: the controllers, guards and auth.
 - `screenshot-studio-backend/orchestrator/{workflows,activities,worker}`: the Temporal side.
-- `screenshot-studio-backend/internal/database/<domain>`: the Prisma repositories and services.
+- `screenshot-studio-backend/internal/database/<domain>`: the social Ent repositories and services.
 - `screenshot-studio-backend/internal/integrations/social/<provider>`: one package per provider.
 - `screenshot-studio-backend/internal/*`: the support libraries.
 - `screenshot-studio-backend/ent`: the generated Ent client.
@@ -178,15 +174,12 @@ Layout:
 (default 3002). Each process forces `time.Local = time.UTC`, as Postiz sets
 `TZ=UTC`.
 
-**Migrations.** Postiz migrates with Prisma, so by default the Go services use
-the schema as they find it. Set `POSTIZ_GO_MIGRATE=true` to apply
-`screenshot-studio-backend/migrations` at startup; this records the run in `_postiz_go_migrations`
-and adopts an existing Postiz schema.
-The deployable backend image also contains `/postiz-migrate`, a one-shot
-command used by Compose and Fly before the API and workers start.
-
-See [the deployment guide](../docs/postiz-go-deployment.md) for the optional
-local stack and the two Fly service configurations.
+**Migrations.** Run `/platform-migrate` before the API and workers. It applies
+both Ent-backed SQL sets to one database, records their history, and adopts
+compatible tables from the earlier Prisma deployment. `/postiz-migrate`
+remains in the image for isolated social-port tests; it is not a second
+production migration job. See [the deployment guide](../docs/postiz-go-deployment.md)
+for the local and App Platform configuration.
 
 ```sh
 go build ./screenshot-studio-backend/backend/cmd/screenshot-studio-backend ./screenshot-studio-backend/orchestrator/cmd/screenshot-studio-orchestrator

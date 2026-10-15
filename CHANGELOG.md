@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.17.1...v1.18.0) (2026-10-15)
+
+
+### Features
+
+* render designs in Cloudflare Browser Rendering over CDP ([#94](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/94)) ([bc73203](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/bc73203cec4debb73cdbdc3af01289ea468e85b8))
+
 ## [1.17.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.17.0...v1.17.1) (2026-10-15)
 
 

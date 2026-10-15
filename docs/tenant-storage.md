@@ -49,6 +49,28 @@ write-once (`If-None-Match: *`): a replayed PUT gets `412` and cannot replace
 bytes the backend already verified. The Compose RustFS initializer applies the
 policy locally; set it on the R2 bucket in production.
 
+## Public editor assets
+
+Tenant bytes never share a bucket with public files. In production the tenant
+bucket is `screenshot-studio`; it has no custom domain and no public
+development URL. The editor's backgrounds and overlays live in a separate
+public bucket, `screenshot-studio-public-assets`, served at
+`https://shots-assets.oppulence.io` (`NEXT_PUBLIC_R2_PUBLIC_URL`). The web
+fetches them through its same-origin `/r2-assets/` rewrite, and production
+images drop the local copies (see the `Dockerfile`).
+
+Object keys follow `getR2PublicUrl` in `lib/r2.ts`:
+
+| R2 key | Repository source |
+| --- | --- |
+| `backgrounds/<dir>/…` for `mac`, `mesh`, `paper`, `pattern`, `radiant`, `raycast`, `demo` | `public/<dir>/…` |
+| `assets/…` | `public/assets/…` |
+| `overlays/shadow/…` | `public/overlay-shadow/…` |
+| `overlays/arrow/…` | `public/overlay/…`, plus `arrow-1.svg`…`arrow-10.svg` from `public/arrow/` before commit `234f902` |
+
+Upload a new editor asset to the public bucket under its key before shipping
+code that references it. Never attach a public domain to the tenant bucket.
+
 ## Verification
 
 - `services/internal/media`: `TestPrivateMediaSigningAndObjectExistence`

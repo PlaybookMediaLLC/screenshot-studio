@@ -90,6 +90,7 @@ jobs:
       - run: python3 -m unittest discover -s infra/digitalocean -p 'test_*.py'
       - run: npm run quality:check
       - run: npm run test:publishing-backend-client
+      - run: npm run test:screenshot-capture
       - name: Validate local development configuration
         run: |
           ./bin/studio status

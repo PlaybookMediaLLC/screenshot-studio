@@ -2,6 +2,7 @@ import 'server-only'
 import { isIP } from 'node:net'
 import { z } from 'zod'
 import type { ScreenshotRequest } from '@/lib/api/schemas'
+import { isBlankImage } from '@/lib/screenshot-blank'
 
 const MICROLINK_API_URL = process.env.SCREENSHOT_API_URL || 'https://api.microlink.io'
 const MAX_SCREENSHOT_BYTES = 10 * 1024 * 1024
@@ -132,7 +133,7 @@ function getViewport(deviceType: ScreenshotRequest['deviceType']): Viewport {
   return { height: '1080', isMobile: 'false', width: '1920' }
 }
 
-function getCaptureUrl(input: ScreenshotRequest): string {
+function getCaptureUrl(input: ScreenshotRequest, waitForTimeout?: number): string {
   const viewport = getViewport(input.deviceType)
   const params = new URLSearchParams({
     'viewport.height': viewport.height,
@@ -143,6 +144,7 @@ function getCaptureUrl(input: ScreenshotRequest): string {
     screenshot: 'true',
     url: input.url,
   })
+  if (waitForTimeout) params.set('waitForTimeout', String(waitForTimeout))
 
   return `${MICROLINK_API_URL}/?${params.toString()}`
 }
@@ -160,8 +162,11 @@ function getServiceError(response: Response, data: z.infer<typeof microlinkRespo
   )
 }
 
-async function requestScreenshotUrl(input: ScreenshotRequest): Promise<string> {
-  const response = await fetch(getCaptureUrl(input), {
+async function requestScreenshotUrl(
+  input: ScreenshotRequest,
+  waitForTimeout?: number
+): Promise<string> {
+  const response = await fetch(getCaptureUrl(input, waitForTimeout), {
     method: 'GET',
     signal: AbortSignal.timeout(30_000),
   })
@@ -263,11 +268,26 @@ function normalizeCaptureError(error: unknown): Error {
   return new Error('Screenshot service failed')
 }
 
+/** How long a blank capture's retry waits after page load, for intro and fade-in animations. */
+const SETTLE_WAIT_MS = 4000
+
+async function captureOnce(input: ScreenshotRequest, waitForTimeout?: number): Promise<Buffer> {
+  return downloadScreenshot(await requestScreenshotUrl(input, waitForTimeout))
+}
+
+/**
+ * Captures once and, when the result is a single flat colour, once more after
+ * letting the page settle. Pages with an intro animation are still blank when
+ * the service shoots right after load. Throws 'blank_capture' if it stays blank.
+ */
 export async function captureScreenshot(input: ScreenshotRequest): Promise<ScreenshotCapture> {
   try {
-    const screenshotUrl = await requestScreenshotUrl(input)
-    const screenshot = (await downloadScreenshot(screenshotUrl)).toString('base64')
-    return { screenshot, strategy: 'microlink' }
+    let image = await captureOnce(input)
+    if (await isBlankImage(image)) {
+      image = await captureOnce(input, SETTLE_WAIT_MS)
+      if (await isBlankImage(image)) throw new Error('blank_capture')
+    }
+    return { screenshot: image.toString('base64'), strategy: 'microlink' }
   } catch (error) {
     throw normalizeCaptureError(error)
   }
@@ -284,6 +304,13 @@ export function getScreenshotFailure(error: unknown): ScreenshotFailure {
     return {
       message: 'Website took too long to load. Please try again or try a different URL.',
       status: 408,
+    }
+  }
+  if (message === 'blank_capture') {
+    return {
+      message:
+        'The page was still blank after waiting for it to load. It may need a login or block screenshots.',
+      status: 502,
     }
   }
   if (message === 'unsafe_capture_url') {

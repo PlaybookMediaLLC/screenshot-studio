@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
-import { apiError, methodNotAllowed } from '@/lib/api/errors'
+import { apiError, methodNotAllowed, type ApiErrorCode } from '@/lib/api/errors'
 import { getClientIdentifier } from '@/lib/api/client-identity'
 import { isInvalidRequest, parseJson } from '@/lib/api/request'
 import { screenshotRequestSchema, type ScreenshotRequest } from '@/lib/api/schemas'
@@ -17,6 +17,7 @@ import {
   captureScreenshot,
   getScreenshotFailure,
 } from '@/lib/screenshot-service'
+import { isBlankImage } from '@/lib/screenshot-blank'
 
 export const maxDuration = 60
 
@@ -82,7 +83,9 @@ async function loadCachedScreenshot(input: ScreenshotRequest, url: string): Prom
   }
 
   try {
-    return await getCachedScreenshot(getCacheKey(url, input))
+    const cached = await getCachedScreenshot(getCacheKey(url, input))
+    // Blank captures were cached before they were detected; recapture those.
+    return cached && !(await isBlankImage(Buffer.from(cached, 'base64'))) ? cached : null
   } catch (error) {
     console.warn('Cache check failed:', error)
     return null
@@ -150,31 +153,24 @@ function invalidRequestResponse(error: unknown): NextResponse {
   )
 }
 
+const failureResponses: Record<number, { code: ApiErrorCode; hint: string }> = {
+  400: { code: 'invalid_url', hint: 'Use an absolute, publicly reachable http or https URL.' },
+  408: { code: 'upstream_timeout', hint: 'Retry the request, or capture a lighter page.' },
+  502: {
+    code: 'upstream_failed',
+    hint: 'Check that the page shows content to a logged-out visitor, then retry.',
+  },
+  503: {
+    code: 'upstream_unavailable',
+    hint: 'This is a transient upstream failure. Retry with exponential backoff.',
+  },
+}
+
 function screenshotFailureResponse(error: unknown): NextResponse {
   const failure = getScreenshotFailure(error)
-  if (failure.status === 408) {
-    return apiError(
-      408,
-      'upstream_timeout',
-      failure.message,
-      'Retry the request, or capture a lighter page.'
-    )
-  }
-  if (failure.status === 503) {
-    return apiError(
-      503,
-      'upstream_unavailable',
-      failure.message,
-      'This is a transient upstream failure. Retry with exponential backoff.'
-    )
-  }
-  if (failure.status === 400) {
-    return apiError(
-      400,
-      'invalid_url',
-      failure.message,
-      'Use an absolute, publicly reachable http or https URL.'
-    )
+  const known = failureResponses[failure.status]
+  if (known) {
+    return apiError(failure.status, known.code, failure.message, known.hint)
   }
 
   return apiError(

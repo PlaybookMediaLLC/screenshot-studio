@@ -66,7 +66,22 @@ const nextConfig: NextConfig = {
           { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
         ],
       },
+      // Same isolation as the editor, so the video compressor gets the
+      // multi-threaded FFmpeg core instead of the much slower single thread.
+      {
+        source: '/:locale(es|fr|de|ja|pt|ko|zh)?/compress-video',
+        headers: [
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+        ],
+      },
       // An isolated page also requires compatible headers on its module worker.
+      // The unbundled FFmpeg worker (see lib/export/ffmpeg-encoder.ts) is a
+      // module worker too, so it needs the same header.
+      {
+        source: '/ffmpeg/:path*',
+        headers: [{ key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' }],
+      },
       {
         source: '/_next/static/:path*',
         headers: [{ key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' }],

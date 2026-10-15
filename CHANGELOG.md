@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.19.0...v1.20.0) (2026-10-15)
+
+
+### Features
+
+* **api:** centralize platform API routes on zod contracts and route() ([#100](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/100)) ([7027b73](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/7027b7366e2d8e65520fa6ba1c7742df4d19d5b0))
+
 ## [1.19.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.18.0...v1.19.0) (2026-10-15)
 
 

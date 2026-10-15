@@ -1,48 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auditRetentionQuerySchema, auditRetentionUpdateSchema } from '@/lib/audit/retention-schema'
-import { getAuditIpHash, getUserAgentSummary } from '@/lib/audit/request'
-import {
-  requireOrganizationPermission,
-  requireSensitiveOrganizationPermission,
-} from '@/lib/auth/access'
-import { getRouteErrorResponse } from '@/lib/api/route-errors'
+import { getAuditRetentionContract, updateAuditRetentionContract } from '@/lib/api/contracts/audit'
+import { route } from '@/lib/api/route'
+import { organizationAccess } from '@/lib/api/route-auth'
+import { getAuditRequestMetadata } from '@/lib/audit/request'
 import { backendSDK } from '@/lib/backend/sdk'
 
-function getQueryInput(request: NextRequest) {
-  return auditRetentionQuerySchema.parse(Object.fromEntries(request.nextUrl.searchParams))
-}
+/** The organization's audit retention policy. */
+export const GET = route(getAuditRetentionContract, {
+  auth: organizationAccess('audit:read', { scope: 'requested' }),
+  handler: async ({ access }) => backendSDK(access).getAuditRetention(),
+})
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  try {
-    const input = getQueryInput(request)
-    const access = await requireOrganizationPermission(
-      request.headers,
-      input.organizationId,
-      'audit:read'
-    )
-    return NextResponse.json(await backendSDK(access).getAuditRetention())
-  } catch (error) {
-    return getRouteErrorResponse(error)
-  }
-}
-
-export async function PUT(request: NextRequest): Promise<NextResponse> {
-  try {
-    const input = auditRetentionUpdateSchema.parse(await request.json())
-    const access = await requireSensitiveOrganizationPermission(
-      request.headers,
-      input.organizationId,
-      'audit:manage'
-    )
-    const policy = await backendSDK(access).updateAuditRetention(
-      { legalHold: input.legalHold, retentionDays: input.retentionDays },
-      {
-        ipHash: getAuditIpHash(request.headers),
-        userAgentSummary: getUserAgentSummary(request.headers),
-      }
-    )
-    return NextResponse.json(policy)
-  } catch (error) {
-    return getRouteErrorResponse(error)
-  }
-}
+/** Change the retention period or legal hold. */
+export const PUT = route(updateAuditRetentionContract, {
+  auth: organizationAccess('audit:manage', { scope: 'requested', sensitive: true }),
+  handler: async ({ access, body, request }) =>
+    backendSDK(access).updateAuditRetention(
+      { legalHold: body.legalHold, retentionDays: body.retentionDays },
+      getAuditRequestMetadata(request.headers)
+    ),
+})

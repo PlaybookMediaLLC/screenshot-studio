@@ -1,30 +1,30 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { syncBillingEntitlementContract } from '@/lib/api/contracts/internal'
+import { getPlatformApiEnvironment } from '@/lib/api/environment'
+import { platformHeaders } from '@/lib/api/request-context'
+import { type Authenticate, route } from '@/lib/api/route'
+import { AuthorizationError } from '@/lib/auth/access'
 import { entitlementSyncSchema, syncWorkspaceEntitlement } from '@/lib/billing/entitlements'
 import { verifyBillingSignature } from '@/lib/billing/signature'
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  const body = await request.text()
-  if (
-    !verifyBillingSignature(
-      body,
-      request.headers.get('x-screenshot-studio-signature'),
-      process.env.BILLING_ENTITLEMENT_WEBHOOK_SECRET ?? ''
-    )
-  ) {
-    return NextResponse.json({ error: 'Unauthorized billing event.' }, { status: 401 })
+/** Billing events authenticate with an HMAC signature over the exact body bytes. */
+const billingSignatureAccess: Authenticate<null> = async ({ raw, request }) => {
+  const { body } = await raw()
+  const signed = verifyBillingSignature(
+    z.string().parse(body),
+    request.headers.get(platformHeaders['x-screenshot-studio-signature']),
+    getPlatformApiEnvironment().BILLING_ENTITLEMENT_WEBHOOK_SECRET ?? ''
+  )
+  if (!signed) {
+    throw new AuthorizationError('Unauthorized billing event.', 401)
   }
-
-  try {
-    const result = await syncWorkspaceEntitlement(entitlementSyncSchema.parse(JSON.parse(body)))
-    return NextResponse.json(result, { status: result.replayed ? 200 : 202 })
-  } catch (error) {
-    const status =
-      error instanceof Error && 'status' in error && typeof error.status === 'number'
-        ? error.status
-        : 400
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Invalid billing event.' },
-      { status }
-    )
-  }
+  return null
 }
+
+/** Apply a verified billing event once per provider event id; a replay answers 200. */
+export const POST = route(syncBillingEntitlementContract, {
+  auth: billingSignatureAccess,
+  handler: async ({ body }) =>
+    syncWorkspaceEntitlement(entitlementSyncSchema.parse(JSON.parse(body))),
+  status: (result) => (result.replayed ? 200 : 202),
+})

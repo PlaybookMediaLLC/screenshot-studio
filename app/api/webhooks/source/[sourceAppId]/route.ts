@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getRouteErrorResponse } from '@/lib/api/route-errors'
+import { z } from 'zod'
+import { ingestSourceWebhookContract } from '@/lib/api/contracts/webhooks'
+import { type Authenticate, route } from '@/lib/api/route'
+import { AuthorizationError } from '@/lib/auth/access'
 import {
   getWebhookReleaseInput,
   getWebhookSource,
@@ -7,79 +9,105 @@ import {
   verifyWebhookRequest,
 } from '@/lib/tenant/webhooks'
 
-type RouteContext = { params: Promise<{ sourceAppId: string }> }
+/** Request headers a source webhook may carry, across providers. */
+const webhookHeaderSchema = z.enum([
+  'idempotency-key',
+  'webhook-id',
+  'webhook-signature',
+  'webhook-timestamp',
+  'x-github-delivery',
+  'x-github-event',
+  'x-gitlab-event',
+  'x-gitlab-event-uuid',
+  'x-hub-signature-256',
+  'x-screenshot-studio-event-id',
+  'x-screenshot-studio-signature',
+  'x-screenshot-studio-timestamp',
+])
 
-function getEventId(request: NextRequest, provider: string): string | null {
-  if (provider === 'gitlab') {
-    return (
-      request.headers.get('webhook-id') ??
-      request.headers.get('x-gitlab-event-uuid') ??
-      request.headers.get('idempotency-key')
-    )
+/** Where each webhook fact is read from, first header present wins. */
+const webhookHeaderSetSchema = z.object({
+  event: z.array(webhookHeaderSchema),
+  eventId: z.array(webhookHeaderSchema),
+  signature: z.array(webhookHeaderSchema),
+  timestamp: z.array(webhookHeaderSchema),
+})
+
+/** Providers with their own header conventions; anything else uses the GitHub-style set. */
+const webhookProviderSchema = z.enum(['gitlab'])
+
+const gitlabHeaders = webhookHeaderSetSchema.parse({
+  event: ['x-gitlab-event'],
+  eventId: ['webhook-id', 'x-gitlab-event-uuid', 'idempotency-key'],
+  signature: ['webhook-signature'],
+  timestamp: ['webhook-timestamp'],
+})
+
+const defaultHeaders = webhookHeaderSetSchema.parse({
+  event: ['x-github-event'],
+  eventId: ['x-github-delivery', 'x-screenshot-studio-event-id'],
+  signature: ['x-hub-signature-256', 'x-screenshot-studio-signature'],
+  timestamp: ['x-screenshot-studio-timestamp'],
+})
+
+/** The verified webhook: its delivery id and the source app it belongs to. */
+const webhookAccessSchema = z.object({
+  eventId: z.string().min(1),
+  source: z.custom<NonNullable<Awaited<ReturnType<typeof getWebhookSource>>>>(),
+})
+
+function headersFor(provider: string): z.infer<typeof webhookHeaderSetSchema> {
+  return provider === webhookProviderSchema.enum.gitlab ? gitlabHeaders : defaultHeaders
+}
+
+function firstHeader(headers: Headers, names: readonly string[]): string | null {
+  for (const name of names) {
+    const value = headers.get(name)
+    if (value !== null) return value
   }
+  return null
+}
 
-  return (
-    request.headers.get('x-github-delivery') ?? request.headers.get('x-screenshot-studio-event-id')
+/** A source webhook authenticates with its provider's signature over the exact body bytes. */
+const webhookSignatureAccess: Authenticate<z.infer<typeof webhookAccessSchema>> = async ({
+  raw,
+  request,
+}) => {
+  const { body, params } = await raw()
+  const source = await getWebhookSource(
+    ingestSourceWebhookContract.params.parse(params).sourceAppId
   )
-}
-
-function getSignature(request: NextRequest, provider: string): string | null {
-  if (provider === 'gitlab') {
-    return request.headers.get('webhook-signature')
+  const names = source && headersFor(source.provider)
+  const eventId = names && firstHeader(request.headers, names.eventId)
+  const verified =
+    source &&
+    names &&
+    eventId &&
+    verifyWebhookRequest({
+      body: z.string().parse(body),
+      eventId,
+      signature: firstHeader(request.headers, names.signature),
+      source,
+      timestamp: firstHeader(request.headers, names.timestamp),
+    })
+  if (!verified) {
+    throw new AuthorizationError('Unauthorized webhook.', 401)
   }
-
-  return (
-    request.headers.get('x-hub-signature-256') ??
-    request.headers.get('x-screenshot-studio-signature')
-  )
+  return webhookAccessSchema.parse({ eventId, source })
 }
 
-function getEventName(request: NextRequest, provider: string): string | null {
-  return provider === 'gitlab'
-    ? request.headers.get('x-gitlab-event')
-    : request.headers.get('x-github-event')
-}
-
-function getTimestamp(request: NextRequest, provider: string): string | null {
-  return provider === 'gitlab'
-    ? request.headers.get('webhook-timestamp')
-    : request.headers.get('x-screenshot-studio-timestamp')
-}
-
-export async function POST(
-  request: NextRequest,
-  routeContext: RouteContext
-): Promise<NextResponse> {
-  try {
-    const { sourceAppId } = await routeContext.params
-    const source = await getWebhookSource(sourceAppId)
-    const body = await request.text()
-    if (!source) {
-      return NextResponse.json({ error: 'Unauthorized webhook.' }, { status: 401 })
-    }
-
-    const eventId = getEventId(request, source.provider)
-    const isValid =
-      eventId &&
-      verifyWebhookRequest({
-        body,
-        eventId,
-        signature: getSignature(request, source.provider),
-        source,
-        timestamp: getTimestamp(request, source.provider),
-      })
-    if (!isValid) {
-      return NextResponse.json({ error: 'Unauthorized webhook.' }, { status: 401 })
-    }
-
-    const release = getWebhookReleaseInput(
-      source.provider,
-      getEventName(request, source.provider),
-      body
-    )
-    const result = await ingestSourceRelease({ eventId, release, source })
-    return NextResponse.json(result, { status: result.created ? 201 : 200 })
-  } catch (error) {
-    return getRouteErrorResponse(error)
-  }
-}
+/** Turn a verified release event into a release; a redelivery answers 200. */
+export const POST = route(ingestSourceWebhookContract, {
+  auth: webhookSignatureAccess,
+  handler: async ({ access: { eventId, source }, body, request }) =>
+    ingestSourceRelease({
+      eventId,
+      release: getWebhookReleaseInput(
+        source.provider,
+        firstHeader(request.headers, headersFor(source.provider).event),
+        body
+      ),
+      source,
+    }),
+  status: (result) => (result.created ? 201 : 200),
+})

@@ -1,21 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getRouteErrorResponse } from '@/lib/api/route-errors'
-import {
-  requireActiveOrganizationPermission,
-  requireSensitiveOrganizationPermission,
-} from '@/lib/auth/access'
+import { getEntitlementContract } from '@/lib/api/contracts/audit'
+import { route } from '@/lib/api/route'
+import { organizationAccess } from '@/lib/api/route-auth'
 import { backendSDK } from '@/lib/backend/sdk'
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  try {
-    const active = await requireActiveOrganizationPermission(request.headers, 'workspace:delete')
-    const access = await requireSensitiveOrganizationPermission(
-      request.headers,
-      active.organizationId,
-      'workspace:delete'
-    )
-    return NextResponse.json(await backendSDK(access).getWorkspaceEntitlement())
-  } catch (error) {
-    return getRouteErrorResponse(error)
-  }
-}
+/** The active organization's contract entitlement. Owner-level, fresh two-factor sign-in only. */
+export const GET = route(getEntitlementContract, {
+  auth: organizationAccess('workspace:delete', { sensitive: true }),
+  handler: async ({ access }) => backendSDK(access).getWorkspaceEntitlement(),
+})

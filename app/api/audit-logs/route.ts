@@ -1,31 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { listAuditLogsContract } from '@/lib/api/contracts/audit'
+import { route } from '@/lib/api/route'
+import { organizationAccess } from '@/lib/api/route-auth'
+import { getAuditRequestMetadata } from '@/lib/audit/request'
 import { backendSDK } from '@/lib/backend/sdk'
-import { getAuditIpHash, getUserAgentSummary } from '@/lib/audit/request'
-import { auditLogQuerySchema } from '@/lib/audit/query'
-import { requireOrganizationPermission } from '@/lib/auth/access'
-import { getRouteErrorResponse } from '@/lib/api/route-errors'
 
+/** Never prerender: every read is per-session and audited. */
 export const dynamic = 'force-dynamic'
 
-function getQueryInput(request: NextRequest) {
-  return auditLogQuerySchema.parse(Object.fromEntries(request.nextUrl.searchParams))
-}
-
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  try {
-    const input = getQueryInput(request)
-    const access = await requireOrganizationPermission(
-      request.headers,
-      input.organizationId,
-      'audit:read'
-    )
-    return NextResponse.json(
-      await backendSDK(access).listAuditLogs(input, {
-        ipHash: getAuditIpHash(request.headers),
-        userAgentSummary: getUserAgentSummary(request.headers),
-      })
-    )
-  } catch (error) {
-    return getRouteErrorResponse(error)
-  }
-}
+/** Page through the organization's audit log. Reading it is itself audited. */
+export const GET = route(listAuditLogsContract, {
+  auth: organizationAccess('audit:read', { scope: 'requested' }),
+  handler: async ({ access, query, request }) =>
+    backendSDK(access).listAuditLogs(query, getAuditRequestMetadata(request.headers)),
+})

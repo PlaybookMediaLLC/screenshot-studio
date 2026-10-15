@@ -1,6 +1,8 @@
 import { toNextJsHandler } from 'better-auth/next-js'
 import { BackendSDKError } from 'screenshot-studio-backend-sdk'
+import { z } from 'zod'
 import { getClientIdentifier } from '@/lib/api/client-identity'
+import { rateLimitHeaders } from '@/lib/api/platform-errors'
 import { AuthorizationError, resolveActiveOrganizationId } from '@/lib/auth/access'
 import { assertAuthEnvironment } from '@/lib/auth/environment'
 import {
@@ -22,16 +24,20 @@ import { isWorkspaceOperational } from '@/lib/workspace/access'
  * every page load, so limiting them would break normal browsing, and they
  * are not a credential-guessing surface.
  */
-const RATE_LIMITED_AUTH_PATHS = [
+const rateLimitedAuthPathSchema = z.enum([
   '/sign-in',
   '/sign-up',
   '/forget-password',
   '/reset-password',
   '/change-password',
   '/two-factor',
-]
+])
 
-const OPERATIONAL_ORGANIZATION_PATHS = [
+/** Member invitations get their own, per-actor budget. */
+const invitationPath = '/organization/invite-member'
+
+/** Organization endpoints that must refuse a workspace scheduled for deletion. */
+const operationalOrganizationPathSchema = z.enum([
   '/organization/add-member',
   '/organization/get-active-member',
   '/organization/get-full-organization',
@@ -43,33 +49,40 @@ const OPERATIONAL_ORGANIZATION_PATHS = [
   '/organization/set-active',
   '/organization/update',
   '/organization/update-member-role',
-]
+])
 
-type OrganizationRequestInput = { organizationId?: unknown; organizationSlug?: unknown }
+/** The organization a Better Auth organization request names, if any. */
+const organizationRequestInputSchema = z
+  .object({
+    organizationId: z.string().optional().catch(undefined),
+    organizationSlug: z.string().optional().catch(undefined),
+  })
+  .catch({})
 
-async function getOrganizationRequestInput(request: Request): Promise<OrganizationRequestInput> {
-  if (request.method === 'GET') {
-    const searchParams = new URL(request.url).searchParams
-    return {
-      organizationId: searchParams.get('organizationId') ?? undefined,
-      organizationSlug: searchParams.get('organizationSlug') ?? undefined,
-    }
-  }
+type OrganizationRequestInput = z.infer<typeof organizationRequestInputSchema>
 
+async function readOrganizationRequestBody(request: Request): Promise<unknown> {
   try {
-    const body = (await request.clone().json()) as OrganizationRequestInput
-    return body && typeof body === 'object' ? body : {}
+    return await request.clone().json()
   } catch {
     return {}
   }
+}
+
+async function getOrganizationRequestInput(request: Request): Promise<OrganizationRequestInput> {
+  const input =
+    request.method === 'GET'
+      ? Object.fromEntries(new URL(request.url).searchParams)
+      : await readOrganizationRequestBody(request)
+  return organizationRequestInputSchema.parse(input)
 }
 
 async function resolveRequestedOrganizationId(
   input: OrganizationRequestInput,
   activeOrganizationId: string | null | undefined
 ): Promise<string | null> {
-  if (typeof input.organizationId === 'string') return input.organizationId
-  if (typeof input.organizationSlug === 'string') {
+  if (input.organizationId !== undefined) return input.organizationId
+  if (input.organizationSlug !== undefined) {
     const { row } = await serviceBackend().authStore({
       model: 'organization',
       op: 'findOne',
@@ -109,7 +122,7 @@ async function getRequestedWorkspaceId(request: Request): Promise<string | null>
 
 async function enforceOperationalOrganization(request: Request): Promise<Response | null> {
   const { pathname } = new URL(request.url)
-  if (!OPERATIONAL_ORGANIZATION_PATHS.some((path) => pathname.endsWith(path))) {
+  if (!operationalOrganizationPathSchema.options.some((path) => pathname.endsWith(path))) {
     return null
   }
 
@@ -140,25 +153,18 @@ function getAuthRateLimitPolicy(request: Request): RateLimitPolicy | null {
   }
 
   const { pathname } = new URL(request.url)
-  if (pathname.includes('/organization/invite-member')) {
+  if (pathname.includes(invitationPath)) {
     return WORKSPACE_INVITATION_RATE_LIMIT
   }
-  return RATE_LIMITED_AUTH_PATHS.some((path) => pathname.includes(path)) ? AUTH_RATE_LIMIT : null
+  return rateLimitedAuthPathSchema.options.some((path) => pathname.includes(path))
+    ? AUTH_RATE_LIMIT
+    : null
 }
 
 function getRateLimitResponse(policy: RateLimitPolicy, resetAt: number): Response {
-  const retryAfter = Math.max(1, Math.ceil((resetAt - Date.now()) / 1000))
   return Response.json(
     { error: 'Too many attempts. Please try again shortly.' },
-    {
-      headers: {
-        'Retry-After': retryAfter.toString(),
-        'X-RateLimit-Limit': policy.maxRequests.toString(),
-        'X-RateLimit-Remaining': '0',
-        'X-RateLimit-Reset': resetAt.toString(),
-      },
-      status: 429,
-    }
+    { headers: rateLimitHeaders(policy.maxRequests, resetAt), status: 429 }
   )
 }
 
@@ -226,4 +232,8 @@ const handler = toNextJsHandler({
   },
 })
 
+/**
+ * Better Auth's handler, behind credential rate limits, the deleted-workspace
+ * guard, and enterprise identity audit logging.
+ */
 export const { DELETE, GET, PATCH, POST, PUT } = handler

@@ -21,7 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const DESCRIPTION =
-  "Compress, convert, resize, crop, and rotate images, or remove a background, right in your browser. Batch processing, no signup, no watermark, and nothing is uploaded.";
+  "Compress, convert, resize, crop, and rotate images, remove a background, or compress a video, right in your browser. Batch processing, no signup, no watermark, and nothing is uploaded.";
 
 export const metadata: Metadata = {
   title: "Free Online Image Tools: No Upload",
@@ -36,6 +36,7 @@ export const metadata: Metadata = {
     "crop image",
     "rotate image",
     "remove background",
+    "compress video",
     "batch image tools",
     "image tools without upload",
     "iloveimg alternative",
@@ -54,6 +55,7 @@ export const metadata: Metadata = {
 };
 
 const REMOVE_BACKGROUND = { name: "Remove Background", slug: "/remove-background" };
+const COMPRESS_VIDEO = { name: "Compress Video", slug: "/compress-video" };
 
 const PROMISES = ["Nothing is uploaded", "Batch processing", "No signup or watermark", "Open source"];
 
@@ -227,6 +229,27 @@ function RemoveBackgroundPreview() {
   );
 }
 
+function CompressVideoPreview() {
+  return (
+    <Well gradient={gradientColors.store_graphite}>
+      <span className={cn("flex w-[168px] flex-col gap-2 rounded-xl bg-white p-2", PREVIEW_SHADOW)}>
+        <span className="relative block h-16 overflow-hidden rounded-md">
+          <Photo gradient={gradientColors.teal_navy} className="absolute inset-0" />
+          <span className="absolute inset-0 m-auto size-0 border-y-[7px] border-l-[11px] border-y-transparent border-l-white" />
+        </span>
+        <span className="flex items-center justify-between px-0.5 text-[11px] leading-4">
+          <span className="text-neutral-500">
+            <span className="line-through">84 MB</span> → 9.6 MB
+          </span>
+          <span className="rounded-full bg-emerald-100 px-1.5 py-px font-semibold text-emerald-700 transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none">
+            -89%
+          </span>
+        </span>
+      </span>
+    </Well>
+  );
+}
+
 const TASKS = [
   {
     href: "/compress-image",
@@ -264,6 +287,12 @@ const TASKS = [
     description: "Cut out the subject and get a transparent PNG.",
     preview: <RemoveBackgroundPreview />,
   },
+  {
+    href: COMPRESS_VIDEO.slug,
+    title: "Compress a video",
+    description: "Shrink a video to a quality level or an exact size in MB.",
+    preview: <CompressVideoPreview />,
+  },
 ];
 
 const CONVERTER_GROUPS = Array.from(
@@ -275,7 +304,7 @@ const CONVERTER_GROUPS = Array.from(
 );
 
 export default function ToolsHubPage() {
-  const jsonLd = buildToolsHubJsonLd([...PRIMARY_TOOLS, REMOVE_BACKGROUND, ...CONVERTER_TOOLS]);
+  const jsonLd = buildToolsHubJsonLd([...PRIMARY_TOOLS, REMOVE_BACKGROUND, COMPRESS_VIDEO, ...CONVERTER_TOOLS]);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

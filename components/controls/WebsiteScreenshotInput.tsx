@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useEditorStore, useImageStore } from '@/lib/store'
+import { browserDisplayUrl } from '@/lib/browser-url'
 import { Loading03Icon, Globe02Icon, ComputerIcon, SmartPhone01Icon } from 'hugeicons-react'
 
 type DeviceType = 'desktop' | 'mobile'
@@ -16,7 +17,7 @@ export function WebsiteScreenshotInput() {
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const { setScreenshot } = useEditorStore()
-  const { setImage } = useImageStore()
+  const { setImage, setBrowserUrl } = useImageStore()
 
   const normalizeUrl = (urlString: string): string => {
     let normalized = urlString.trim()
@@ -127,6 +128,8 @@ export function WebsiteScreenshotInput() {
       // Update stores immediately
       setScreenshot({ src: blobUrl })
       setImage(file)
+      // Show the captured page's address in the browser frame, not the default URL.
+      setBrowserUrl(browserDisplayUrl(finalUrl))
 
       // Clear form
       setUrl('')

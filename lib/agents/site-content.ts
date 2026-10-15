@@ -85,6 +85,19 @@ export const AGENT_PAGES: AgentPage[] = [
     ],
   },
   {
+    path: "/compress-video",
+    title: "Compress Video Online: Free, No Upload - Screenshot Studio",
+    summary:
+      "A standalone video compressor. Drop in an MP4, MOV, WebM, or MKV file up to 1 GB, choose a quality level or a target size in MB, and download an MP4 with H.264 video and AAC audio. FFmpeg compiled to WebAssembly does the work inside the browser tab; the engine downloads once from a public CDN and is cached, and the video itself is not uploaded. No watermark.",
+    points: [
+      "Four quality levels, from visually identical to smallest file",
+      "Target size mode that works out the bitrate to fit a limit such as 10 or 25 MB",
+      "Optional downscale to 1080p, 720p, or 480p, never upscaling",
+      "Keep, shrink, or remove the audio track",
+      "Before and after file sizes with a preview of the result",
+    ],
+  },
+  {
     path: TOOLS_HUB_PATH,
     title: 'Free Online Image Tools - Screenshot Studio',
     summary:

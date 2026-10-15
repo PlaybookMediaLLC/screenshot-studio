@@ -14,6 +14,7 @@ const STATIC_PATHS = [
   '/tweet',
   '/mockup-generator',
   '/remove-background',
+  '/compress-video',
   TOOLS_HUB_PATH,
 
   '/features',

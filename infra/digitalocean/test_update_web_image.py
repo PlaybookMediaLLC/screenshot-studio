@@ -13,7 +13,9 @@ class UpdateWebImageTest(unittest.TestCase):
         self.base = {"spec": {
             "services": [
                 {"name": "web", "image": image, "envs": [{"key": "REDIS_URL", "value": "old", "type": "SECRET"},
-                                                         {"key": "DATABASE_URL", "value": "old", "type": "SECRET"}]},
+                                                         {"key": "DATABASE_URL", "value": "old", "type": "SECRET"},
+                                                         {"key": "R2_SECRET_ACCESS_KEY", "value": "old", "type": "SECRET"},
+                                                         {"key": "R2_ENDPOINT", "value": "old", "type": "GENERAL"}]},
                 {"name": "storage"}, {"name": "design-renderer"},
                 {"name": "screenshot-studio-backend"},
             ],
@@ -30,7 +32,8 @@ class UpdateWebImageTest(unittest.TestCase):
         self.assertEqual(result["services"][0]["image"], dict(module.IMAGE, tag=tag))
         self.assertEqual(result["jobs"], self.base["spec"]["jobs"])
         self.assertEqual(result["services"][0]["envs"][0]["value"], "runtime-redis")
-        self.assertNotIn("DATABASE_URL", {item["key"] for item in result["services"][0]["envs"]})
+        web_keys = {item["key"] for item in result["services"][0]["envs"]}
+        self.assertFalse(web_keys & {"DATABASE_URL", "R2_SECRET_ACCESS_KEY", "R2_ENDPOINT"})
         self.assertIn({"key": "CLIENT_IP_SOURCE", "value": "digitalocean",
                        "type": "GENERAL", "scope": "RUN_TIME"}, result["services"][0]["envs"])
         self.assertEqual(result["domains"], self.base["spec"]["domains"])

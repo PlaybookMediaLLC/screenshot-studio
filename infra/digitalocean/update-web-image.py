@@ -14,7 +14,11 @@ from pathlib import Path
 IMAGE = {"registry_type": "GHCR", "registry": "playbookmediallc", "repository": "screenshot-studio"}
 SERVICES = {"web", "storage", "design-renderer", "screenshot-studio-backend"}
 JOBS = {"platform-migrate", "postiz-migrate"}
-WEB_DATABASE_KEYS = {"DATABASE_URL", "DIRECT_URL", "MIGRATION_DATABASE_URL", "AUDIT_RETENTION_DATABASE_URL"}
+# The web reaches data and storage only through the backend (same list as render-spec.py).
+WEB_DATABASE_KEYS = {"DATABASE_URL", "DIRECT_URL", "MIGRATION_DATABASE_URL", "AUDIT_RETENTION_DATABASE_URL",
+                     "STORAGE_SERVICE_KEY", "STORAGE_API_URL", "STORAGE_PROXY_URL", "STORAGE_BUCKET",
+                     "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_ACCOUNT_ID", "R2_BUCKET_NAME", "R2_ENDPOINT", "R2_REGION",
+                     "POSTIZ_API_URL", "POSTIZ_API_KEY"}
 
 
 def update_web_image(base, tag, secrets=None):

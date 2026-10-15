@@ -85,7 +85,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
 
     def test_uses_infisical_for_new_backend_credentials(self):
         secrets = {key: "infisical-" + key for key in
-                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN".split()}
+                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
         secrets.update({cutover.SOCIAL_SECRET_SOURCES.get(key, key): "infisical-" + key
                         for key in cutover.OPTIONAL_SOCIAL_SECRETS})
         secrets.update({key: "other-service-" + key for key in cutover.OPTIONAL_SOCIAL_SECRETS
@@ -122,7 +122,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
 
     def test_web_reaches_backend_and_go_owns_migrations(self):
         secrets = {key: "infisical-" + key for key in
-                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN".split()}
+                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
         spec = cutover.consolidate(self.base, self.digest, secrets)
         web = next(item for item in spec["services"] if item["name"] == "web")
         envs = {item["key"]: item for item in web["envs"]}
@@ -134,6 +134,25 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         del secrets["MIGRATION_DATABASE_URL"]
         with self.assertRaisesRegex(ValueError, "MIGRATION_DATABASE_URL"):
             cutover.consolidate(spec, self.digest, secrets)
+
+    def test_product_api_gets_storage_and_quota_counter(self):
+        secrets = {key: "infisical-" + key for key in
+                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
+        first = cutover.consolidate(self.base, self.digest, secrets)
+        # The live production shape is the already-consolidated four services.
+        for spec in (first, cutover.consolidate(first, self.digest, secrets)):
+            backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
+            envs = {item["key"]: item for item in backend["envs"]}
+            self.assertEqual(len(envs), len(backend["envs"]))
+            self.assertEqual(envs["TENANT_R2_ENDPOINT"]["value"], "infisical-R2_ENDPOINT")
+            self.assertEqual(envs["TENANT_R2_BUCKET_NAME"]["value"], "infisical-R2_BUCKET_NAME")
+            self.assertEqual(envs["TENANT_R2_REGION"]["value"], "auto")
+            for key in ("R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "REDIS_URL"):
+                self.assertEqual(envs["TENANT_" + key], {"key": "TENANT_" + key, "value": "infisical-" + key,
+                                                         "type": "SECRET", "scope": "RUN_TIME"})
+        del secrets["R2_SECRET_ACCESS_KEY"]
+        with self.assertRaisesRegex(ValueError, "R2_SECRET_ACCESS_KEY"):
+            cutover.consolidate(first, self.digest, secrets)
 
 
 if __name__ == "__main__":

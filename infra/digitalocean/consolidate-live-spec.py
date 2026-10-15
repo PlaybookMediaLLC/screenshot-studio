@@ -79,6 +79,20 @@ def configure_publishing_api(backend, web, token, direct_enabled=False):
     set_secret_env(web["envs"], "PUBLISHING_SERVICE_TOKEN", token)
 
 
+def configure_product_api(backend, secrets):
+    """The product API signs R2 transfers and counts workspace quotas in Redis."""
+    if secrets is None:
+        return
+    for key in ("R2_ENDPOINT", "R2_BUCKET_NAME", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "REDIS_URL"):
+        if not secrets.get(key):
+            raise ValueError(f"Missing Infisical secret: {key}")
+    set_env(backend["envs"], "TENANT_R2_ENDPOINT", secrets["R2_ENDPOINT"])
+    set_env(backend["envs"], "TENANT_R2_BUCKET_NAME", secrets["R2_BUCKET_NAME"])
+    set_env(backend["envs"], "TENANT_R2_REGION", secrets.get("R2_REGION") or "auto")
+    for key in ("R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "REDIS_URL"):
+        set_secret_env(backend["envs"], "TENANT_" + key, secrets[key])
+
+
 def refresh_secrets(envs, secrets):
     if secrets is None:
         return
@@ -154,6 +168,7 @@ def consolidate(base, digest, secrets=None, tag=None):
         add_optional_social_secrets(backend["envs"], secrets)
         configure_publishing_api(backend, services["web"], publishing_token(services, secrets),
                                  secrets is not None and secrets.get("ENABLE_DIRECT_PROVIDER") == "true")
+        configure_product_api(backend, secrets)
         backend["image"] = image
         migration = next((item for item in spec.get("jobs", []) if item["name"] == "postiz-migrate"), None)
         if migration is None:
@@ -193,6 +208,7 @@ def consolidate(base, digest, secrets=None, tag=None):
     set_env(social_env, "TENANT_RUN_CRON", "true")
     configure_publishing_api(social, services["web"], publishing_token(services, secrets),
                              secrets is not None and secrets.get("ENABLE_DIRECT_PROVIDER") == "true")
+    configure_product_api(social, secrets)
     if len({item["key"] for item in social_env}) != len(social_env):
         raise ValueError("Backend environment contains duplicate keys")
     social["name"] = BACKEND

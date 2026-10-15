@@ -1,11 +1,15 @@
 import 'server-only'
 import { timingSafeEqual } from 'node:crypto'
 import type { NextRequest } from 'next/server'
+import { getPlatformApiEnvironment } from '@/lib/api/environment'
+import { platformHeaders } from '@/lib/api/request-context'
 
-export const MAINTENANCE_SECRET_HEADER = 'x-screenshot-studio-maintenance-secret'
+/** Header that carries the operator maintenance secret. */
+export const MAINTENANCE_SECRET_HEADER = platformHeaders['x-screenshot-studio-maintenance-secret']
 
+/** Whether the request carries the maintenance secret, compared in constant time. */
 export function hasMaintenanceAccess(request: NextRequest): boolean {
-  const expected = process.env.CLEANUP_SECRET
+  const expected = getPlatformApiEnvironment().CLEANUP_SECRET
   const provided = request.headers.get(MAINTENANCE_SECRET_HEADER)
 
   if (!expected || !provided) {

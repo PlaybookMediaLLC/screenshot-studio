@@ -7,12 +7,20 @@
  * transitive dependency along with them.
  */
 
-export interface RateLimitPolicy {
+import { z } from 'zod'
+
+/** A fixed-window rate limit. */
+export const rateLimitPolicySchema = z.object({
+  /** Most requests allowed per window. */
+  maxRequests: z.int().positive(),
   /** Namespace so different policies never share a counter for the same client. */
-  name: string
-  maxRequests: number
-  windowMs: number
-}
+  name: z.string().min(1),
+  /** Window length in milliseconds. */
+  windowMs: z.int().positive(),
+})
+
+/** One of {@link rateLimitPolicySchema}. */
+export type RateLimitPolicy = z.infer<typeof rateLimitPolicySchema>
 
 /**
  * Screenshot capture is expensive but user-driven, so the window stays
@@ -43,6 +51,7 @@ export const WORKSPACE_INVITATION_RATE_LIMIT: RateLimitPolicy = {
   windowMs: 60 * 60 * 1_000,
 }
 
+/** Resending an invitation emails the invitee again, so it gets a tighter budget. */
 export const WORKSPACE_INVITATION_RESEND_RATE_LIMIT: RateLimitPolicy = {
   maxRequests: 3,
   name: 'workspace-invitation-resend',

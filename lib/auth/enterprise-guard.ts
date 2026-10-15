@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { z } from 'zod'
-import { getAuditIpHash, getUserAgentSummary } from '@/lib/audit/request'
+import { getAuditRequestMetadata } from '@/lib/audit/request'
 import { backendSDK, serviceBackend } from '@/lib/backend/sdk'
 import {
   AuthorizationError,
@@ -140,7 +140,6 @@ export async function logEnterpriseAuthRequest(
   await backendSDK(enterpriseRequest.access).appendAuditEvent({
     action: enterpriseRequest.action,
     entityType: enterpriseRequest.entityType,
-    ipHash: getAuditIpHash(request.headers),
-    userAgentSummary: getUserAgentSummary(request.headers),
+    ...getAuditRequestMetadata(request.headers),
   })
 }

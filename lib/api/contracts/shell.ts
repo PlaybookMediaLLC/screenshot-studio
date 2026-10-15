@@ -152,7 +152,8 @@ export const getOrganizationContract = defineContract({
   name: 'organizations.get',
   output: z.object({
     organization: z.object({
-      createdAt: z.string(),
+      // The backend's `GET /v1/workspace` does not send it today, so it stays optional.
+      createdAt: z.string().optional(),
       id: z.string(),
       logo: z.string().nullable(),
       name: z.string(),

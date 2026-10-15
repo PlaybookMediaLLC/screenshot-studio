@@ -80,3 +80,12 @@ test('the spec error envelope lists every platform error code', () => {
   >
   assert.ok(schemas.Error.properties?.code?.enum?.includes('conflict'))
 })
+
+test('contracts accept what the Go backend actually sends', () => {
+  // GET /v1/workspace omits createdAt even though the SDK type declares it;
+  // a required field here would turn a working response into a 500.
+  const parsed = shell.getOrganizationContract.output.safeParse({
+    organization: { id: 'org_1', logo: null, name: 'Acme', role: 'owner', slug: 'acme' },
+  })
+  assert.ok(parsed.success)
+})

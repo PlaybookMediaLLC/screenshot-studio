@@ -36,7 +36,11 @@ async function startBrowser(): Promise<void> {
   ]
   // Ubuntu runners block Chromium's sandbox; Playwright's own launch also disables it.
   if (process.platform === 'linux') args.push('--no-sandbox')
-  browser = spawn(chromium.executablePath(), args, { stdio: ['ignore', 'ignore', 'pipe'] })
+  // Its own process group, so stopping it also stops Chrome's helper processes.
+  browser = spawn(chromium.executablePath(), args, {
+    detached: true,
+    stdio: ['ignore', 'ignore', 'pipe'],
+  })
   let output = ''
   browser.stderr?.on('data', (chunk) => (output = (output + chunk).slice(-2_000)))
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -52,7 +56,7 @@ async function startBrowser(): Promise<void> {
 async function stopBrowser(): Promise<void> {
   if (!browser || browser.exitCode !== null || browser.signalCode !== null) return
   const exited = new Promise((resolve) => browser?.once('exit', resolve))
-  browser?.kill('SIGKILL')
+  process.kill(-browser.pid!, 'SIGKILL')
   await exited
 }
 

@@ -275,7 +275,9 @@ export function route<C extends RouteContract, Access>(
   const erased = binding as unknown as ErasedBinding
   return async (request, context) => {
     const startedAt = performance.now()
-    const { access, response } = await runRoute(contract, erased, request, await context.params)
+    // Next.js passes no params for routes without dynamic segments.
+    const params = (await context?.params) ?? {}
+    const { access, response } = await runRoute(contract, erased, request, params)
     const requestId = getRequestId(request.headers)
     response.headers.set(platformHeaders['x-request-id'], requestId)
     if (!response.headers.has(platformHeaders['cache-control'])) {

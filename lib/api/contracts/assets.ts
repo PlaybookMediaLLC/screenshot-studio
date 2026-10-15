@@ -34,7 +34,7 @@ export const createAssetUploadUrlContract = defineContract({
   docs: workspaceDocs({
     bodyName: 'AssetUploadRequest',
     description:
-      'Creates an asset record and a short-lived signed upload URL. Requires the `upload:sign` scope.',
+      'Creates an asset record and a short-lived signed upload URL. Upload the bytes with `PUT`, the declared `Content-Type`, and `If-None-Match: *`: the URL is write-once and both headers are part of its signature. Requires the `upload:sign` scope.',
     operationId: 'createAssetUploadUrl',
     responses: { '201': 'Signed upload instructions.', '400': 'The asset metadata is invalid.' },
     tag: 'Assets',

@@ -246,3 +246,20 @@ test('the log line names the route, caller kind, and organization only', async (
   assert.equal(line.client, 'unknown')
   assert.doesNotMatch(JSON.stringify(line), /secret-agent/)
 })
+
+test('routes without dynamic segments work when Next.js passes no params', async (t) => {
+  captureLogs(t)
+  const contract = defineContract({
+    method: 'GET',
+    name: 'me',
+    output: z.object({ ok: z.boolean() }),
+    path: '/api/v1/me',
+    summary: 'Me',
+  })
+  const handler = route(contract, { auth: allow, handler: async () => ({ ok: true }) })
+  const request = new NextRequest('https://studio.test/api/v1/me')
+  for (const nextContext of [undefined, { params: Promise.resolve(undefined) }]) {
+    const response = await handler(request, nextContext as never)
+    assert.equal(response.status, 200)
+  }
+})

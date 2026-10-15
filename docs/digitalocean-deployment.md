@@ -40,9 +40,13 @@ and [app spec reference](https://docs.digitalocean.com/products/app-platform/ref
   rollback until the cutover is accepted; they are not runtime dependencies.
 - Upstash: the existing Screenshot Studio Redis instance. Postiz uses that
   instance too; its URL is independently configurable with `POSTIZ_REDIS_URL`.
-- R2: the private product media bucket contains canonical assets. The legacy
-  Postiz media bucket may remain for rollback, but customer publishing signs
-  the product asset directly at dispatch. No local filesystem is durable media.
+- R2: the private product media bucket (`screenshot-studio`) contains
+  canonical assets and has no public domain. Editor backgrounds and overlays
+  live in the separate public bucket `screenshot-studio-public-assets` at
+  `shots-assets.oppulence.io` ([storage guide](tenant-storage.md#public-editor-assets)).
+  The legacy Postiz media bucket may remain for rollback, but customer
+  publishing signs the product asset directly at dispatch. No local filesystem
+  is durable media.
 - Temporal Cloud: `screenshot-studio-publishing.kpisa` and
   `screenshot-studio-postiz.kpisa`, both in AWS US East, with seven-day history
   retention. Each registers `organizationId` and `postId` as Keyword search

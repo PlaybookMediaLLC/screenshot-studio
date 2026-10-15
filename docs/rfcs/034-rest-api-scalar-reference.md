@@ -163,27 +163,38 @@ Validation failures may add an `issues` array containing field paths and message
 - Every operation declares authentication, scopes, request schemas, success schemas, error schemas, and rate-limit behavior.
 - Internal routes and session-only application implementation details are excluded.
 - CI validates the document shape and verifies that documented public paths respond.
-- Longer term, resource-level schemas may generate OpenAPI fragments from the same Zod definitions used by handlers. That migration must preserve stable operation IDs.
+- Public operations are generated from the same Zod contracts the handlers validate with. Each contract declares its `operationId`, which must stay stable.
 
 ## Endpoint extension framework
 
-New authenticated JSON endpoints use `createTenantJsonRoute` from
-`lib/api/v1/route.ts`. The framework keeps each Route Handler declarative and
-requires four explicit decisions:
+New platform endpoints declare a Zod contract with `defineContract` from
+`lib/api/contract.ts` in `lib/api/contracts/`, then bind it in the Route
+Handler with `route` from `lib/api/route.ts`. The contract names the method and
+path and holds the schemas for path params, query, headers, body, and the
+response. The binding makes the remaining explicit decisions:
 
-1. the API-key scope and browser-session permission;
-2. an optional named pricing or enterprise feature entitlement;
-3. a required Zod schema plus an extractor for untrusted request values;
-4. the tenant domain service to execute;
-5. an optional response mapper for non-`200` behavior.
+1. the authenticator from `lib/api/route-auth.ts`: `tenantAccess` with the
+   API-key scope and browser-session permission, `organizationAccess`,
+   `sessionAccess`, or a signature authenticator;
+2. an optional named pricing or enterprise feature entitlement and quota, in
+   the tenant requirement;
+3. the tenant domain service to execute, in `handler`;
+4. an optional `status` picker when an operation has more than one success
+   status.
 
-The framework resolves `TenantContext`, applies the shared authorization
-boundary, validates the extractor result with `schema.parseAsync`, and only then
-invokes the domain service. Endpoint code must not manually parse or bypass this
-Zod boundary. Inputs spanning path, query, headers, and body use one composed
-Zod object so the complete operation contract remains inspectable. Domain
-logic remains in `lib/tenant`; handlers must not call tRPC or duplicate service
-logic.
+`route` runs one fixed pipeline. It authenticates before any input is read,
+parses every request location with the contract schemas, invokes the domain
+service, and parses the result through the contract's response schema, so
+fields outside the contract never reach a caller. Endpoint code must not parse
+request values itself. Domain logic remains in `lib/tenant`; handlers must not
+call tRPC or duplicate service logic.
+
+`lib/api/openapi-platform.ts` generates the public platform half of
+`lib/api/openapi.ts` from the documented contracts, so the specification cannot
+drift from validation. `test/openapi-contracts.test.ts` checks that every
+contract is served by the route file its path names, and
+`test/api-platform-boundary.test.ts` checks that every fork route goes through
+`route`.
 
 Every file below `app/api/v1` must have a one-to-one OpenAPI path. The
 deterministic registry validator at

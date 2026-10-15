@@ -31,19 +31,6 @@ export class WorkspaceQuotaError extends Error {
   }
 }
 
-/** The backend reports a plan gate as a 403 that carries the feature decision. */
-export function asEntitlementError(error: unknown): WorkspaceEntitlementError | null {
-  if (error instanceof WorkspaceEntitlementError) return error
-  if (!(error instanceof BackendSDKError)) return null
-  const { code, currentPlan, feature, requiredPlan } = error.details
-  if (code !== 'workspace_feature_not_entitled') return null
-  return new WorkspaceEntitlementError(
-    feature as WorkspaceFeature,
-    currentPlan as WorkspacePlan,
-    requiredPlan as WorkspacePlan
-  )
-}
-
 /** The backend evaluates the canonical workspace entitlement on every check. */
 export async function requireWorkspaceFeature(
   context: TenantContext,

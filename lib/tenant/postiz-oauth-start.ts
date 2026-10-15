@@ -3,7 +3,7 @@ import 'server-only'
 import {
   AuthorizationError,
   requireActiveOrganizationPermission,
-  requireSensitiveOrganizationPermission,
+  requireSensitiveActiveOrganizationPermission,
   type OrganizationAccess,
 } from '@/lib/auth/access'
 import { backendSDK } from '@/lib/backend/sdk'
@@ -29,12 +29,7 @@ export async function startSocialOAuth(
   headers: Headers,
   provider: SocialOAuthProvider
 ): Promise<string> {
-  const active = await requireActiveOrganizationPermission(headers, 'publish:manage')
-  const access = await requireSensitiveOrganizationPermission(
-    headers,
-    active.organizationId,
-    'publish:manage'
-  )
+  const access = await requireSensitiveActiveOrganizationPermission(headers, 'publish:manage')
   return beginBackendSocialOAuth(access, provider)
 }
 

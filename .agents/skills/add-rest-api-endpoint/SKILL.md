@@ -12,44 +12,57 @@ Add versioned public operations to the existing Next.js application without dupl
 1. Name the product action, owning workspace resource, HTTP method, and required API-key scope.
 2. Reuse an existing domain service. Avoid calling tRPC from a Route Handler and avoid copying business logic out of `lib/tenant`.
 3. Add the handler below `app/api/v1`. Use plural kebab-case resources and opaque identifiers.
-4. Build authenticated JSON handlers with `createTenantJsonRoute` from `lib/api/v1/route.ts`. Supply:
-   - one explicit API-key scope and browser-session permission;
-   - a named `feature` entitlement for any plan-gated capability;
-   - a named `quota` for metered or costly operations;
-   - a required Zod `schema` that defines the complete route input contract;
-   - an `input` function that only extracts untrusted path, query, header, and body values;
-   - an `execute` function that receives the server-resolved `TenantContext`;
-   - a `respond` function only when the default `200` JSON response is insufficient.
-     The framework, not the endpoint, calls `schema.parseAsync`. Do not parse manually or bypass this Zod boundary.
-5. Never accept `organizationId` as authorization. Resolve workspace ownership through `requireTenantAccess` inside the framework.
+4. Declare the operation with `defineContract` from `lib/api/contract.ts` in the owning file under `lib/api/contracts/`. Supply:
+   - `name`, `method`, `path`, `summary`, and the default success `status`;
+   - Zod schemas for `params`, `query`, `headers`, and `body`, whichever the operation reads;
+   - an `output` schema wrapped in `mirrors<SourceType>()` so a field the schema would drop fails the build;
+   - `docs` with a stable `operationId`, tag, security, and a description for every documented status.
+5. Bind the contract in the route file with `route` from `lib/api/route.ts`:
+   - `auth: tenantAccess({ apiKeyScope, permission, feature?, quota? })` from `lib/api/route-auth.ts`;
+   - `handler`, which receives the parsed `params`, `query`, `headers`, `body`, and the resolved `access`;
+   - `status` only when the operation has more than one success status.
+     The framework, not the endpoint, parses every request location and the response. Do not parse manually.
+6. Never accept `organizationId` as authorization. `tenantAccess` resolves workspace ownership through `requireTenantAccess`.
    Never accept a plan, billing status, or entitlement from the request. The framework resolves it from the authenticated workspace.
-6. Add the exact path, method, stable `operationId`, security requirement, schemas, and responses to `lib/api/openapi.ts`. Scalar reads this document automatically.
-7. Add a focused contract test and extend `tests/verify-agent-endpoints.ts` when the route can be exercised without destructive durable effects.
-8. Run the deterministic registry check, formatting, lint, typecheck, tests, and a production build.
+7. Add the contract to `documentedContracts` in `lib/api/contracts/index.ts`. `lib/api/openapi-platform.ts` generates the OpenAPI operation, and Scalar reads it automatically.
+8. Add a focused contract test and extend `tests/verify-agent-endpoints.ts` when the route can be exercised without destructive durable effects.
+9. Run the deterministic registry check, formatting, lint, typecheck, tests, and a production build.
 
 ## Route template
 
 ```ts
-import { NextResponse } from 'next/server'
-import { createTenantJsonRoute } from '@/lib/api/v1/route'
-import { inputSchema } from '@/lib/tenant/schemas'
-import { performAction } from '@/lib/tenant/example'
+// lib/api/contracts/examples.ts
+/** `POST /api/v1/examples` */
+export const createExampleContract = defineContract({
+  body: exampleCreateSchema,
+  docs: workspaceDocs({
+    description: 'Creates an example in the API key workspace. Requires the `example:write` scope.',
+    operationId: 'createExample',
+    responses: { '201': 'Example created.', '400': 'The example input is invalid.' },
+    tag: 'Workspace',
+  }),
+  method: 'POST',
+  name: 'examples.create',
+  output: z.object({ example: mirrors<Example>()(exampleSchema) }),
+  path: '/api/v1/examples',
+  status: 201,
+  summary: 'Create an example',
+})
 
-export const POST = createTenantJsonRoute({
-  access: { apiKeyScope: 'example:write', permission: 'artifact:edit' },
-  schema: inputSchema,
-  input: (request) => request.json(),
-  execute: (tenant, input) => performAction(tenant, input),
-  respond: (result) => NextResponse.json(result, { status: 201 }),
+// app/api/v1/examples/route.ts
+/** Create an example. */
+export const POST = route(createExampleContract, {
+  auth: tenantAccess({ apiKeyScope: 'example:write', permission: 'artifact:edit' }),
+  handler: async ({ access, body }) => ({ example: await createExample(access, body) }),
 })
 ```
 
-For dynamic paths, accept the provided route context in `input`, await `context.params`, and return those raw values as part of the object validated by the route's Zod `schema`.
+For dynamic paths, declare a `params` schema such as `z.object({ exampleId: z.string().uuid() })`; the handler receives the parsed `params`.
 
 ## Contract rules
 
 - Keep `/api/v1` additive. Require a new major version for breaking request or response changes.
-- Every authenticated JSON route must declare its Zod schema through the framework. Endpoint-local calls to `parse`, `safeParse`, or ad hoc validation are not substitutes.
+- Every route declares its Zod contract and goes through `route`. Endpoint-local calls to `parse`, `safeParse`, or ad hoc validation are not substitutes; `test/api-platform-boundary.test.ts` enforces this, along with zod-only types and TSDoc on every export.
 - Gate commercial capabilities by named feature, not a client-supplied plan or scattered `if (plan === ...)` checks. Define plan defaults and contract overrides in `lib/billing/plans.ts`.
 - Put update and delete entitlement checks in the shared access boundary before request parsing or domain execution. Compatibility routes must use the same gate so callers cannot bypass pricing through an older path.
 - Enforce destructive feature checks again in the owning domain service so tRPC, jobs, support tooling, and future transports cannot bypass the route declaration.
@@ -80,3 +93,4 @@ Test the happy path, invalid input, missing authentication, missing scope, and a
 
 - `references/contracts.md` documents path, authentication, OpenAPI, errors, and rollout conventions.
 - `scripts/validate-rest-api.ts` verifies that every `/api/v1` Route Handler is represented in OpenAPI and every documented v1 operation has a handler.
+- `test/openapi-contracts.test.ts` verifies that every contract is bound by the route file its path names.

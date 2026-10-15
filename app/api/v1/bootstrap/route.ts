@@ -1,11 +1,10 @@
-import { createShellJsonRoute } from '@/lib/api/v1/route'
-import { requireActiveOrganizationPermission } from '@/lib/auth/access'
+import { getBootstrapContract } from '@/lib/api/contracts/shell'
+import { route } from '@/lib/api/route'
+import { organizationAccess } from '@/lib/api/route-auth'
 import { getPlaybookBootstrap } from '@/lib/core/bootstrap'
 
-export const GET = createShellJsonRoute({
-  name: 'bootstrap',
-  execute: async (request) =>
-    getPlaybookBootstrap(
-      await requireActiveOrganizationPermission(request.headers, 'workspace:read')
-    ),
+/** Everything a shell needs to render the active organization. */
+export const GET = route(getBootstrapContract, {
+  auth: organizationAccess('workspace:read'),
+  handler: async ({ access }) => getPlaybookBootstrap(access),
 })

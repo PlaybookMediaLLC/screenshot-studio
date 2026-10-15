@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { randomUUID } from 'node:crypto'
+import { getRequestId } from '@/lib/api/request-context'
 import { backendSDK } from '@/lib/backend/sdk'
 import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import { assertAuthEnvironment } from './environment'
@@ -48,9 +49,7 @@ type AuthSession = {
   id: string
 }
 
-export function getRequestId(headers: Headers): string {
-  return headers.get('x-request-id') ?? randomUUID()
-}
+export { getRequestId }
 
 export async function resolveActiveOrganizationId(
   session: AuthSession,
@@ -163,13 +162,41 @@ export async function requireSessionAccess(headers: Headers): Promise<SessionAcc
   return { principal, requestId: getRequestId(headers) }
 }
 
-async function requireActiveSessionOrganization(headers: Headers): Promise<OrganizationAccess> {
+type AuthSessionResult = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>
+
+async function requireAuthSession(headers: Headers): Promise<AuthSessionResult> {
   const session = await auth.api.getSession({ headers, query: { disableCookieCache: true } })
   if (!session) {
     throw new AuthorizationError('Authentication is required.', 401)
   }
+  return session
+}
+
+/**
+ * The session's active organization. Session-only: there is no API-key path.
+ * Pass `session` when the caller already read it, so it is read once.
+ */
+async function requireActiveSessionOrganization(
+  headers: Headers,
+  session?: AuthSessionResult
+): Promise<OrganizationAccess> {
   // The backend rechecks membership, role, and workspace deletion state.
-  return getBackendActiveOrganization(session, getRequestId(headers))
+  return getBackendActiveOrganization(
+    session ?? (await requireAuthSession(headers)),
+    getRequestId(headers)
+  )
+}
+
+function assertPermission(access: OrganizationAccess, permission: Permission): void {
+  if (!hasPermission(access.role, permission)) {
+    throw new AuthorizationError('You do not have permission for this organization.', 403)
+  }
+}
+
+function assertActiveOrganization(access: OrganizationAccess, organizationId: string): void {
+  if (access.organizationId !== organizationId) {
+    throw new AuthorizationError('The requested organization is not active.', 403)
+  }
 }
 
 export async function requireActiveOrganizationPermission(
@@ -177,10 +204,7 @@ export async function requireActiveOrganizationPermission(
   permission: Permission
 ): Promise<OrganizationAccess> {
   const access = await requireActiveSessionOrganization(headers)
-  if (!hasPermission(access.role, permission)) {
-    throw new AuthorizationError('You do not have permission for this organization.', 403)
-  }
-
+  assertPermission(access, permission)
   return access
 }
 
@@ -190,10 +214,7 @@ export async function requireOrganizationPermission(
   permission: Permission
 ): Promise<OrganizationAccess> {
   const access = await requireActiveOrganizationPermission(headers, permission)
-  if (access.organizationId !== organizationId) {
-    throw new AuthorizationError('The requested organization is not active.', 403)
-  }
-
+  assertActiveOrganization(access, organizationId)
   return access
 }
 
@@ -210,20 +231,41 @@ export async function requireSupportTenantContext(
   return getBackendSupportContext(principal, organizationId, scope, getRequestId(headers))
 }
 
-export async function requireSensitiveOrganizationPermission(
-  headers: Headers,
-  organizationId: string,
-  permission: Permission
-): Promise<OrganizationAccess> {
-  const access = await requireOrganizationPermission(headers, organizationId, permission)
-  const session = await auth.api.getSession({ headers, query: { disableCookieCache: true } })
-  if (!session || Date.now() - session.session.createdAt.getTime() > freshSessionAgeMilliseconds) {
+function assertFreshTwoFactorSession(session: AuthSessionResult): void {
+  if (Date.now() - session.session.createdAt.getTime() > freshSessionAgeMilliseconds) {
     throw new AuthorizationError('A fresh sign-in is required.', 401)
   }
   if (!session.user.twoFactorEnabled) {
     throw new AuthorizationError('Two-factor authentication is required.', 403)
   }
+}
 
+/**
+ * Same as {@link requireActiveOrganizationPermission}, and the session must
+ * be under 15 minutes old with two-factor authentication enabled. Reads the
+ * session once.
+ */
+export async function requireSensitiveActiveOrganizationPermission(
+  headers: Headers,
+  permission: Permission
+): Promise<OrganizationAccess> {
+  const session = await requireAuthSession(headers)
+  const access = await requireActiveSessionOrganization(headers, session)
+  assertPermission(access, permission)
+  assertFreshTwoFactorSession(session)
+  return access
+}
+
+export async function requireSensitiveOrganizationPermission(
+  headers: Headers,
+  organizationId: string,
+  permission: Permission
+): Promise<OrganizationAccess> {
+  const session = await requireAuthSession(headers)
+  const access = await requireActiveSessionOrganization(headers, session)
+  assertPermission(access, permission)
+  assertActiveOrganization(access, organizationId)
+  assertFreshTwoFactorSession(session)
   return access
 }
 

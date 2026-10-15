@@ -6,7 +6,7 @@ import { AuthShell } from '@/components/auth/AuthShell'
 import { getEnabledSocialProviders, isPasswordAuthEnabled } from '@/lib/auth/methods'
 import { redirectIfSignedIn } from '@/lib/auth/page-access'
 
-export const metadata: Metadata = { title: 'Sign in | Screenshot Studio' }
+export const metadata: Metadata = { title: 'Sign in' }
 
 type AuthPageProps = {
   params: Promise<{ locale: string }>

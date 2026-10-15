@@ -1,7 +1,7 @@
 import { TRPCError, type TRPC_ERROR_CODE_KEY } from '@trpc/server'
-import { ZodError } from 'zod'
+import { toApiFailure } from '@/lib/api/platform-errors'
 
-const statusCodes: Record<number, TRPC_ERROR_CODE_KEY> = {
+const statusCodes: Partial<Record<number, TRPC_ERROR_CODE_KEY>> = {
   400: 'BAD_REQUEST',
   401: 'UNAUTHORIZED',
   403: 'FORBIDDEN',
@@ -11,78 +11,17 @@ const statusCodes: Record<number, TRPC_ERROR_CODE_KEY> = {
   503: 'SERVICE_UNAVAILABLE',
 }
 
-const domainErrorNames = new Set([
-  'AnnouncementError',
-  'AuthorizationError',
-  'BackendSDKError',
-  'CampaignError',
-  'CreativeWorkflowError',
-  'DesignError',
-  'LaunchError',
-  'PublishingBackendError',
-  'ReleaseError',
-  'ScheduledPostError',
-  'WorkspaceEntitlementError',
-  'WorkspaceError',
-  'WorkspaceQuotaError',
-])
-
-function getErrorStatus(error: Error & { status?: unknown }): TRPC_ERROR_CODE_KEY | null {
-  return typeof error.status === 'number' ? (statusCodes[error.status] ?? null) : null
-}
-
-function isDatabaseUnavailable(error: unknown): boolean {
-  return (
-    // Better Auth reports an unreachable backend auth store this way.
-    typeof error === 'object' &&
-    error !== null &&
-    'body' in error &&
-    typeof error.body === 'object' &&
-    error.body !== null &&
-    'code' in error.body &&
-    error.body.code === 'FAILED_TO_GET_SESSION'
-  )
-}
-
 /**
  * Map a thrown domain error to the TRPCError that carries the same HTTP
- * status the REST routes used to return. Mirrors lib/api/route-errors.ts.
- * Returns null when the error is not a recognized domain error.
+ * status the REST routes return. Both surfaces resolve errors through
+ * `toApiFailure`, so they cannot disagree. Returns null when the error is not
+ * a recognized domain error.
  */
 export function getDomainTRPCError(error: unknown): TRPCError | null {
   if (error instanceof TRPCError) {
     return error
   }
-  if (error instanceof ZodError || error instanceof SyntaxError) {
-    return new TRPCError({ cause: error, code: 'BAD_REQUEST', message: 'Invalid request.' })
-  }
-  if (isDatabaseUnavailable(error)) {
-    return new TRPCError({
-      code: 'SERVICE_UNAVAILABLE',
-      message: 'A required dependency is unavailable.',
-    })
-  }
-  if (!(error instanceof Error)) {
-    return null
-  }
-  if (error.name === 'InvalidTenantObjectKeyError') {
-    return new TRPCError({ cause: error, code: 'BAD_REQUEST', message: error.message })
-  }
-  if (error.name === 'TenantStorageUnavailableError') {
-    return new TRPCError({
-      cause: error,
-      code: 'SERVICE_UNAVAILABLE',
-      message: 'A required dependency is unavailable.',
-    })
-  }
-  if (error.name === 'TenantStorageObjectMissingError') {
-    return new TRPCError({ cause: error, code: 'BAD_REQUEST', message: error.message })
-  }
-  if (domainErrorNames.has(error.name)) {
-    const code = getErrorStatus(error)
-    if (code) {
-      return new TRPCError({ cause: error, code, message: error.message })
-    }
-  }
-  return null
+  const failure = toApiFailure(error)
+  const code = failure && statusCodes[failure.status]
+  return code ? new TRPCError({ cause: error, code, message: failure.message }) : null
 }

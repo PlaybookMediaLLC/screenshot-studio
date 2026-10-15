@@ -5,7 +5,7 @@ import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { WorkspaceActivity } from '@/components/workspace/WorkspaceActivity'
 import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
 
-export const metadata: Metadata = { title: 'Activity | Screenshot Studio' }
+export const metadata: Metadata = { title: 'Activity' }
 
 type ActivityPageProps = {
   params: Promise<{ locale: string }>

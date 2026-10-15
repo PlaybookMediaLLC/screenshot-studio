@@ -1,11 +1,10 @@
-import { createShellJsonRoute } from '@/lib/api/v1/route'
-import { requireSessionAccess } from '@/lib/auth/access'
+import { getCurrentUserContract } from '@/lib/api/contracts/shell'
+import { route } from '@/lib/api/route'
+import { sessionAccess } from '@/lib/api/route-auth'
 import { backendSDK } from '@/lib/backend/sdk'
 
-export const GET = createShellJsonRoute({
-  name: 'me',
-  execute: async (request) => {
-    const access = await requireSessionAccess(request.headers)
-    return backendSDK({ ...access, organizationId: '' }).getCurrentUser()
-  },
+/** The signed-in user. */
+export const GET = route(getCurrentUserContract, {
+  auth: sessionAccess,
+  handler: async ({ access }) => backendSDK({ ...access, organizationId: '' }).getCurrentUser(),
 })

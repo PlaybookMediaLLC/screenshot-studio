@@ -17,7 +17,7 @@ import { getCampaign } from '@/lib/tenant/campaigns'
 import { listCampaignDesigns } from '@/lib/tenant/designs'
 import { requireCampaignPageAccess } from '../../page-access'
 
-export const metadata: Metadata = { title: 'Campaign assets | Screenshot Studio' }
+export const metadata: Metadata = { title: 'Campaign assets' }
 
 type CampaignAssetsPageProps = {
   params: Promise<{ campaignId: string; locale: string }>

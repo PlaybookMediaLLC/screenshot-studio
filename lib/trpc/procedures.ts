@@ -1,15 +1,14 @@
 import 'server-only'
 
+import type { TenantAccessRequirement } from '@/lib/api/access-requirements'
 import {
   requireActiveOrganizationPermission,
   requireSessionAccess,
-  requireSensitiveOrganizationPermission,
+  requireSensitiveActiveOrganizationPermission,
   type OrganizationAccess,
   type TenantContext,
 } from '@/lib/auth/access'
-import type { ApiKeyScope } from '@/lib/auth/api-key-scopes'
 import type { Permission } from '@/lib/auth/permissions'
-import type { WorkspaceFeature, WorkspaceQuota } from '@/lib/billing/plans'
 import { requireTenantAccess } from '@/lib/tenant/access'
 import { publicProcedure } from './init'
 
@@ -41,10 +40,8 @@ export function organizationProcedure(permission: Permission) {
  */
 export function sensitiveOrganizationProcedure(permission: Permission) {
   return publicProcedure.use(async ({ ctx, next }) => {
-    const active = await requireActiveOrganizationPermission(ctx.headers, permission)
-    const access: OrganizationAccess = await requireSensitiveOrganizationPermission(
+    const access: OrganizationAccess = await requireSensitiveActiveOrganizationPermission(
       ctx.headers,
-      active.organizationId,
       permission
     )
     return next({ ctx: { ...ctx, access } })
@@ -55,12 +52,7 @@ export function sensitiveOrganizationProcedure(permission: Permission) {
  * Session member with the named permission, or an organization API key with
  * the named product scope. Mirrors requireTenantAccess on the REST surface.
  */
-export function tenantProcedure(requirement: {
-  apiKeyScope: ApiKeyScope
-  feature?: WorkspaceFeature
-  permission: Permission
-  quota?: WorkspaceQuota
-}) {
+export function tenantProcedure(requirement: TenantAccessRequirement) {
   return publicProcedure.use(async ({ ctx, next }) => {
     const tenant: TenantContext = await requireTenantAccess(ctx.headers, requirement)
     return next({ ctx: { ...ctx, tenant } })

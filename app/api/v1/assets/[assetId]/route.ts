@@ -1,35 +1,28 @@
-import { NextResponse } from 'next/server'
-import { z } from 'zod'
-import { createTenantJsonRoute } from '@/lib/api/v1/route'
+import { assetDeletionResultSchema, deleteAssetContract } from '@/lib/api/contracts/assets'
+import { errorResponse, route } from '@/lib/api/route'
+import { tenantAccess } from '@/lib/api/route-auth'
 import { deleteAsset } from '@/lib/tenant/assets'
 
-const assetDeleteSchema = z.object({
-  assetId: z.string().min(1),
-})
-
-export const DELETE = createTenantJsonRoute({
+/** Delete an uploaded asset that no creative variant uses. */
+export const DELETE = route(deleteAssetContract, {
   // No `feature` here on purpose. The `asset:delete` plan gate runs inside
   // `deleteAsset`, after ownership is resolved, so a caller cannot learn that
   // a foreign asset exists by comparing a 403 against a 404.
-  access: {
+  auth: tenantAccess({
     apiKeyScope: 'asset:write',
     permission: 'artifact:edit',
     quota: 'api:write:minute',
-  },
-  schema: assetDeleteSchema,
-  input: async (_request, context) => context.params,
-  execute: (tenant, { assetId }) => deleteAsset(tenant, assetId),
-  respond: (result) => {
-    if (result === 'not-found') {
-      return NextResponse.json({ error: 'Asset not found.' }, { status: 404 })
+  }),
+  handler: async ({ access, params }) => {
+    const result = await deleteAsset(access, params.assetId)
+    const outcome = assetDeletionResultSchema.enum
+    if (result === outcome['not-found']) return errorResponse(404, 'Asset not found.')
+    if (result === outcome['in-use']) {
+      return errorResponse(409, 'Asset is in use by a creative variant.')
     }
-    if (result === 'in-use') {
-      return NextResponse.json({ error: 'Asset is in use by a creative variant.' }, { status: 409 })
+    if (result === outcome['not-ready']) {
+      return errorResponse(409, 'Only uploaded assets can be deleted.')
     }
-    if (result === 'not-ready') {
-      return NextResponse.json({ error: 'Only uploaded assets can be deleted.' }, { status: 409 })
-    }
-
-    return NextResponse.json({ accepted: true }, { status: 202 })
+    return { accepted: true as const }
   },
 })

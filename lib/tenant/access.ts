@@ -2,17 +2,8 @@ import 'server-only'
 
 import { requireActiveOrganizationPermission, type TenantContext } from '@/lib/auth/access'
 import { requireOrganizationApiKeyScope } from '@/lib/auth/api-keys'
-import type { ApiKeyScope } from '@/lib/auth/api-key-scopes'
-import type { Permission } from '@/lib/auth/permissions'
+import type { TenantAccessRequirement } from '@/lib/api/access-requirements'
 import { consumeWorkspaceQuota, requireWorkspaceFeature } from '@/lib/tenant/entitlements'
-import type { WorkspaceFeature, WorkspaceQuota } from '@/lib/billing/plans'
-
-type TenantAccessRequirement = {
-  apiKeyScope: ApiKeyScope
-  feature?: WorkspaceFeature
-  permission: Permission
-  quota?: WorkspaceQuota
-}
 
 export async function requireTenantAccess(
   headers: Headers,

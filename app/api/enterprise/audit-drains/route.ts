@@ -1,59 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server'
-import {
-  auditDrainCreateSchema,
-  auditDrainListSchema,
-  validateDrainEndpoint,
-} from '@/lib/audit/drain-schema'
+import { createAuditDrainContract, listAuditDrainsContract } from '@/lib/api/contracts/audit'
+import { route } from '@/lib/api/route'
+import { organizationAccess } from '@/lib/api/route-auth'
 import { encryptDrainSecret } from '@/lib/audit/drains'
-import { getAuditIpHash, getUserAgentSummary } from '@/lib/audit/request'
-import {
-  requireOrganizationPermission,
-  requireSensitiveOrganizationPermission,
-} from '@/lib/auth/access'
-import { getRouteErrorResponse } from '@/lib/api/route-errors'
+import { getAuditRequestMetadata } from '@/lib/audit/request'
 import { backendSDK } from '@/lib/backend/sdk'
 
-function getListInput(request: NextRequest) {
-  return auditDrainListSchema.parse(Object.fromEntries(request.nextUrl.searchParams))
-}
+/** The organization's audit drains. */
+export const GET = route(listAuditDrainsContract, {
+  auth: organizationAccess('audit:read', { scope: 'requested' }),
+  handler: async ({ access }) => backendSDK(access).listAuditDrains(),
+})
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  try {
-    const input = getListInput(request)
-    const access = await requireOrganizationPermission(
-      request.headers,
-      input.organizationId,
-      'audit:read'
-    )
-    return NextResponse.json(await backendSDK(access).listAuditDrains())
-  } catch (error) {
-    return getRouteErrorResponse(error)
-  }
-}
-
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  try {
-    const input = auditDrainCreateSchema.parse(await request.json())
-    validateDrainEndpoint(input.endpoint)
-    const access = await requireSensitiveOrganizationPermission(
-      request.headers,
-      input.organizationId,
-      'audit:manage'
-    )
-    const result = await backendSDK(access).createAuditDrain(
+/** Add a drain. The signing secret is encrypted before it leaves this process. */
+export const POST = route(createAuditDrainContract, {
+  auth: organizationAccess('audit:manage', { scope: 'requested', sensitive: true }),
+  handler: async ({ access, body, request }) =>
+    backendSDK(access).createAuditDrain(
       {
-        encryptedSigningSecret: encryptDrainSecret(input.signingSecret),
-        endpoint: input.endpoint,
-        name: input.name,
-        provider: input.provider,
+        encryptedSigningSecret: encryptDrainSecret(body.signingSecret),
+        endpoint: body.endpoint,
+        name: body.name,
+        provider: body.provider,
       },
-      {
-        ipHash: getAuditIpHash(request.headers),
-        userAgentSummary: getUserAgentSummary(request.headers),
-      }
-    )
-    return NextResponse.json(result, { status: 201 })
-  } catch (error) {
-    return getRouteErrorResponse(error)
-  }
-}
+      getAuditRequestMetadata(request.headers)
+    ),
+})

@@ -6,6 +6,8 @@
  * proxy headers. Other installations retain their existing proxy behavior.
  */
 
+import { getPlatformApiEnvironment } from '@/lib/api/environment'
+
 const UNKNOWN_CLIENT = 'unknown'
 
 function getProxyClientIp(headers: Headers): string | null {
@@ -22,8 +24,9 @@ function getProxyClientIp(headers: Headers): string | null {
   return headers.get('x-real-ip')?.trim() || null
 }
 
+/** The client IP from the trusted proxy header for this deployment, or null. */
 export function getClientIp(headers: Headers): string | null {
-  if (process.env.CLIENT_IP_SOURCE === 'digitalocean') {
+  if (getPlatformApiEnvironment().CLIENT_IP_SOURCE === 'digitalocean') {
     return headers.get('do-connecting-ip')?.trim() || null
   }
   return getProxyClientIp(headers)

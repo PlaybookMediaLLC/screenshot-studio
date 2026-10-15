@@ -13,7 +13,7 @@ type WorkspacePageProps = {
 export async function generateMetadata({ params }: WorkspacePageProps): Promise<Metadata> {
   const { section } = await params
   const found = findSettingsSection(section?.[0])
-  return { title: `${found?.title ?? 'Settings'} · Settings | Screenshot Studio` }
+  return { title: `${found?.title ?? 'Settings'} · Settings` }
 }
 
 export default async function WorkspacePage({ params }: WorkspacePageProps) {

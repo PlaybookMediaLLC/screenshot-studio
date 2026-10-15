@@ -18,3 +18,11 @@ export function getAuditIpHash(headers: Headers): string | undefined {
 export function getUserAgentSummary(headers: Headers): string | undefined {
   return headers.get('user-agent')?.slice(0, 256) ?? undefined
 }
+
+/**
+ * The request facts every audited write records: a keyed hash of the client
+ * IP and a bounded user-agent string.
+ */
+export function getAuditRequestMetadata(headers: Headers) {
+  return { ipHash: getAuditIpHash(headers), userAgentSummary: getUserAgentSummary(headers) }
+}

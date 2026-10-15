@@ -8,7 +8,7 @@ import { listProductSurfaces } from '@/lib/tenant/product-surfaces'
 import { headers } from 'next/headers'
 import { requireCampaignPageAccess } from '../page-access'
 
-export const metadata: Metadata = { title: 'New campaign | Screenshot Studio' }
+export const metadata: Metadata = { title: 'New campaign' }
 
 type NewCampaignPageProps = {
   params: Promise<{ locale: string }>

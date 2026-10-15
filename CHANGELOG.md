@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.17.0...v1.17.1) (2026-10-15)
+
+
+### Bug Fixes
+
+* **deploy:** run postiz-migrate as the migration owner ([#95](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/95)) ([3683df1](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/3683df1d8ea621bfd239e4c945b068c21ad0f8a3))
+
 ## [1.17.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.16.4...v1.17.0) (2026-10-15)
 
 

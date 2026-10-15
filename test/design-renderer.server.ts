@@ -87,7 +87,8 @@ after(async () => {
   await stopBrowser()
   app.close()
   thirdParty.close()
-  rmSync(profile, { force: true, recursive: true })
+  // Chrome's child processes can still be writing to the profile as it exits.
+  rmSync(profile, { force: true, maxRetries: 5, recursive: true, retryDelay: 200 })
 })
 
 test('renders over CDP, keeps the page on the app origin, and reconnects', async () => {

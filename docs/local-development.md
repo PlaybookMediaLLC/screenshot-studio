@@ -154,20 +154,10 @@ curl --fail http://localhost:8081/healthz
 make publishing-test
 ```
 
-For a service-level acceptance run, point the guarded test command at a fresh,
-empty PostgreSQL database. Its name must contain `acceptance` or `test`:
-
-```sh
-createdb publishing_acceptance
-PUBLISHING_ACCEPTANCE_DATABASE_URL='postgresql://localhost/publishing_acceptance?sslmode=disable' \
-  make publishing-acceptance
-```
-
-The acceptance run applies the schema with the Go platform migrator, starts a local
-Temporal development server and both compiled Go services, and verifies their
-workflow, HTTP, Ent, storage, Postiz, and audit boundaries. Install the Temporal
-CLI before running it. The local Postiz protocol endpoint never publishes to a
-real social account.
+For the end-to-end publishing check, run `./bin/social-gate`. It starts an
+isolated stack with the web, backend, Temporal worker, private RustFS, and a fake
+social provider, then publishes through the direct Go path. It never publishes
+to a real social account.
 
 The backend is a server-to-server API and requires the local
 `PUBLISHING_SERVICE_TOKEN` for tenant operations. Each scheduled post starts one

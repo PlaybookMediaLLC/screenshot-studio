@@ -178,6 +178,14 @@ test('the backend worker publishes once through Go, retries, honors cancellation
     await page.waitForTimeout(30_000)
     expect(await statusOf(cancelled.scheduledPost.id)).toBe('CANCELLED')
     expect((await fakeState()).requests).toBe(1)
+    const actions = await queryRows<{ action: string }>(
+      database,
+      `SELECT action FROM audit_log WHERE "organizationId" = $1 AND action LIKE 'post.%'`,
+      [organizationId]
+    )
+    expect(new Set(actions.map((row) => row.action))).toEqual(
+      new Set(['post.connection_created', 'post.scheduled', 'post.cancelled', 'post.published'])
+    )
 
     // A throttled or failing provider is retried into exactly one remote post.
     for (const mode of ['throttle-once', 'server-error-once'] as const) {

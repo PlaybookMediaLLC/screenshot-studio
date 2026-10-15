@@ -120,14 +120,10 @@ make check
 make build
 ```
 
-`make acceptance` additionally runs Temporal and both compiled services against an empty
-PostgreSQL database created from the platform migration SQL. It
-checks the one-post/one-workflow mapping, typed search attributes, durable timer,
-cancellation signal, missing-post recovery, authenticated HTTP API, Ent
-compatibility, idempotency, storage and Postiz HTTP boundaries, confirmed
-publication receipts, and audit state. The Temporal CLI is required.
-Set `PUBLISHING_ACCEPTANCE_DATABASE_URL` to a disposable empty database whose
-name contains `acceptance` or `test`; the script refuses any other database.
+`./bin/social-gate` (from the repository root) is the end-to-end check: it runs
+the web, backend, Temporal worker, private RustFS, and a fake social provider,
+and publishes through the direct Go path. The database-gated Go tests cover the
+workflow mapping, missing-post and due-post recovery, and Ent compatibility.
 
 From the repository root, start the optional Compose profile with:
 

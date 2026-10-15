@@ -1,4 +1,4 @@
-.PHONY: generate fmt fmt-check test race vet check build acceptance
+.PHONY: generate fmt fmt-check test race vet check build
 
 generate:
 	go generate ./ent ./screenshot-studio-backend/ent
@@ -23,6 +23,3 @@ check: generate fmt-check test race vet
 
 build:
 	go build ./backend/cmd/backend ./cmd/platform-migrate ./orchestrator/cmd/orchestrator ./screenshot-studio-backend/backend/cmd/screenshot-studio-backend ./screenshot-studio-backend/orchestrator/cmd/screenshot-studio-orchestrator ./screenshot-studio-backend/cmd/postiz-migrate
-
-acceptance:
-	@./scripts/acceptance.sh

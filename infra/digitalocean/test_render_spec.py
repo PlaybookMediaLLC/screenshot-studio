@@ -20,7 +20,7 @@ class DeploymentSpecTest(unittest.TestCase):
             "jobs": [{"name": "web-migrate", "kind": "PRE_DEPLOY"}],
             "ingress": {"rules": [{"match": {"path": {"prefix": "/"}}, "component": {"name": "web"}}]},
         }
-        keys = "DATABASE_URL BETTER_AUTH_SECRET AUDIT_IP_HASH_SECRET AUDIT_DRAIN_ENCRYPTION_KEY REDIS_URL STORAGE_SERVICE_KEY R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY PLATFORM_RENDER_SERVICE_SECRET BETTER_AUTH_URL BETTER_AUTH_TRUSTED_ORIGINS STORAGE_BUCKET STORAGE_DATABASE_URL STORAGE_JWT_SECRET R2_BUCKET_NAME R2_ENDPOINT MIGRATION_DATABASE_URL TEMPORAL_NAMESPACE POSTIZ_TEMPORAL_NAMESPACE POSTIZ_REDIS_URL POSTIZ_JWT_SECRET POSTIZ_TEMPORAL_API_KEY POSTIZ_TEMPORAL_ADDRESS CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_BUCKETNAME CLOUDFLARE_BUCKET_URL CLOUDFLARE_ACCESS_KEY CLOUDFLARE_SECRET_ACCESS_KEY TEMPORAL_API_KEY TEMPORAL_ADDRESS PUBLISHING_SERVICE_TOKEN POSTIZ_API_KEY AUDIT_RETENTION_DATABASE_URL RESEND_API_KEY AUTH_EMAIL_FROM"
+        keys = "DATABASE_URL BETTER_AUTH_SECRET AUDIT_IP_HASH_SECRET AUDIT_DRAIN_ENCRYPTION_KEY REDIS_URL STORAGE_SERVICE_KEY R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY PLATFORM_RENDER_CDP_TOKEN PLATFORM_RENDER_CDP_URL BETTER_AUTH_URL BETTER_AUTH_TRUSTED_ORIGINS STORAGE_BUCKET STORAGE_DATABASE_URL STORAGE_JWT_SECRET R2_BUCKET_NAME R2_ENDPOINT MIGRATION_DATABASE_URL TEMPORAL_NAMESPACE POSTIZ_TEMPORAL_NAMESPACE POSTIZ_REDIS_URL POSTIZ_JWT_SECRET POSTIZ_TEMPORAL_API_KEY POSTIZ_TEMPORAL_ADDRESS CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_BUCKETNAME CLOUDFLARE_BUCKET_URL CLOUDFLARE_ACCESS_KEY CLOUDFLARE_SECRET_ACCESS_KEY TEMPORAL_API_KEY TEMPORAL_ADDRESS PUBLISHING_SERVICE_TOKEN POSTIZ_API_KEY AUDIT_RETENTION_DATABASE_URL RESEND_API_KEY AUTH_EMAIL_FROM"
         self.secrets = {key: "fixture-" + key for key in keys.split()}
         self.secrets.update(DATABASE_URL="postgresql://web:secret@db:5432/tenant",
                             MIGRATION_DATABASE_URL="postgresql://migrate:secret@db:5432/tenant",
@@ -33,16 +33,16 @@ class DeploymentSpecTest(unittest.TestCase):
         self.assertEqual(services["web"]["image"], self.base["services"][0]["image"])
         self.assertEqual(services["web"]["instance_count"], 2)
         self.assertEqual(spec["domains"], self.base["domains"])
-        for name in ["design-renderer"]:
-            self.assertNotIn("http_port", services[name])
-            self.assertTrue(services[name]["internal_ports"])
-        self.assertEqual(set(services), {"web", "design-renderer", "screenshot-studio-backend"})
+        self.assertEqual(set(services), {"web", "screenshot-studio-backend"})
+        web_envs = {item["key"]: item for item in services["web"]["envs"]}
+        self.assertEqual(web_envs["PLATFORM_RENDER_CDP_URL"]["value"], "fixture-PLATFORM_RENDER_CDP_URL")
+        self.assertEqual(web_envs["PLATFORM_RENDER_CDP_TOKEN"]["type"], "SECRET")
         self.assertEqual({r["component"]["name"] for r in spec["ingress"]["rules"]}, {"web", "screenshot-studio-backend"})
         for component in spec["services"] + spec["jobs"]:
             for item in component.get("envs", []):
                 if item["key"] != "EXISTING_SETTING":
                     self.assertEqual(item.get("scope"), "RUN_TIME")
-                if item["key"] in ["DATABASE_URL", "JWT_SECRET", "TEMPORAL_API_KEY", "TENANT_DATABASE_URL", "TENANT_TEMPORAL_API_KEY", "RENDER_SERVICE_SECRET"]:
+                if item["key"] in ["DATABASE_URL", "JWT_SECRET", "TEMPORAL_API_KEY", "TENANT_DATABASE_URL", "TENANT_TEMPORAL_API_KEY", "PLATFORM_RENDER_CDP_TOKEN"]:
                     self.assertEqual(item["type"], "SECRET")
         self.assertNotIn("AUDIT_RETENTION_DATABASE_URL", {e["key"] for e in services["web"]["envs"]})
         backend = services["screenshot-studio-backend"]

@@ -12,7 +12,10 @@ import re
 from pathlib import Path
 
 IMAGE = {"registry_type": "GHCR", "registry": "playbookmediallc", "repository": "screenshot-studio"}
-SERVICES = {"web", "storage", "design-renderer", "screenshot-studio-backend"}
+SERVICES = {"web", "storage", "screenshot-studio-backend"}
+# Designs render in Cloudflare Browser Rendering over CDP, not a render service.
+RETIRED_SERVICES = {"design-renderer"}
+RETIRED_WEB_KEYS = {"PLATFORM_RENDER_SERVICE_URL", "PLATFORM_RENDER_SERVICE_SECRET"}
 JOBS = {"platform-migrate", "postiz-migrate"}
 # The web reaches data and storage only through the backend (same list as render-spec.py).
 WEB_DATABASE_KEYS = {"DATABASE_URL", "DIRECT_URL", "MIGRATION_DATABASE_URL", "AUDIT_RETENTION_DATABASE_URL",
@@ -33,7 +36,7 @@ def update_web_image(base, tag, secrets=None):
     jobs = {item["name"]: item for item in spec.get("jobs", [])}
     if "web-migrate" in jobs:
         raise ValueError("Deploy the backend first; its platform-migrate job replaces web-migrate")
-    if set(services) != SERVICES or set(jobs) != JOBS:
+    if set(services) - RETIRED_SERVICES != SERVICES or set(jobs) != JOBS:
         raise ValueError("Production topology changed; inspect the app before updating web")
 
     web = services["web"]
@@ -42,7 +45,17 @@ def update_web_image(base, tag, secrets=None):
         raise ValueError("web image source changed")
     web["image"] = dict(IMAGE, tag=tag)
 
-    web_envs = web["envs"] = [item for item in web.get("envs", []) if item["key"] not in WEB_DATABASE_KEYS]
+    spec["services"] = [item for item in spec["services"] if item["name"] not in RETIRED_SERVICES]
+    web_envs = web["envs"] = [item for item in web.get("envs", [])
+                              if item["key"] not in WEB_DATABASE_KEYS | RETIRED_WEB_KEYS]
+    if secrets is not None:
+        if not secrets.get("PLATFORM_RENDER_CDP_URL"):
+            raise ValueError("Missing Infisical secret: PLATFORM_RENDER_CDP_URL")
+        web_envs[:] = [item for item in web_envs if not item["key"].startswith("PLATFORM_RENDER_CDP_")]
+        web_envs += [{"key": "PLATFORM_RENDER_CDP_URL", "value": secrets["PLATFORM_RENDER_CDP_URL"],
+                      "type": "GENERAL", "scope": "RUN_TIME"},
+                     # Filled from Infisical with the other secrets below.
+                     {"key": "PLATFORM_RENDER_CDP_TOKEN", "value": "", "type": "SECRET", "scope": "RUN_TIME"}]
     source = next((item for item in web_envs if item["key"] == "CLIENT_IP_SOURCE"), None)
     if source is None:
         web_envs.append({"key": "CLIENT_IP_SOURCE", "value": "digitalocean",

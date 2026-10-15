@@ -164,7 +164,8 @@ def consolidate(base, digest, secrets=None, tag=None):
         base = base[0]
     spec = copy.deepcopy(base.get("spec", base))
     services = {item["name"]: item for item in spec["services"]}
-    if set(services) == {"web", "storage", "design-renderer", BACKEND}:
+    # The web deploy retires design-renderer; both shapes are current.
+    if set(services) - {"design-renderer"} == {"web", "storage", BACKEND}:
         backend = services[BACKEND]
         if backend.get("image", {}).get("registry_type") != "GHCR":
             raise ValueError("Combined backend image source changed")

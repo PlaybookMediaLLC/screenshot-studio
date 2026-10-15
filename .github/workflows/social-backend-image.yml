@@ -122,7 +122,7 @@ jobs:
           doctl apps propose --app "$APP_ID" --spec "$work/spec.json" -o json > "$work/proposal.json"
           doctl apps update "$APP_ID" --spec "$work/spec.json" --wait > "$work/update.log"
           doctl apps get "$APP_ID" -o json > "$work/after.json"
-          test "$(jq -r '.[0].spec.services | length' "$work/after.json")" = 4
+          test "$(jq -r '.[0].spec.services | length' "$work/after.json")" -le 4
           test "$(jq -r '.[0].spec.services[] | select(.name == "screenshot-studio-backend") | .image.tag' "$work/after.json")" = "social-backend-$GITHUB_SHA"
           if test "$(jq -r '.[0].active_deployment.id // empty' "$work/after.json")" = "$previous_id"; then
             test "$(jq -r '.[0].spec.services[] | select(.name == "screenshot-studio-backend") | .image.tag' "$work/before.json")" = "social-backend-$GITHUB_SHA"

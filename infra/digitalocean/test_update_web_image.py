@@ -15,7 +15,8 @@ class UpdateWebImageTest(unittest.TestCase):
                 {"name": "web", "image": image, "envs": [{"key": "REDIS_URL", "value": "old", "type": "SECRET"},
                                                          {"key": "DATABASE_URL", "value": "old", "type": "SECRET"},
                                                          {"key": "R2_SECRET_ACCESS_KEY", "value": "old", "type": "SECRET"},
-                                                         {"key": "R2_ENDPOINT", "value": "old", "type": "GENERAL"}]},
+                                                         {"key": "R2_ENDPOINT", "value": "old", "type": "GENERAL"},
+                                                         {"key": "PLATFORM_RENDER_SERVICE_URL", "value": "http://design-renderer:8080", "type": "GENERAL"}]},
                 {"name": "storage"}, {"name": "design-renderer"},
                 {"name": "screenshot-studio-backend"},
             ],
@@ -28,12 +29,23 @@ class UpdateWebImageTest(unittest.TestCase):
 
     def test_updates_only_web_image_and_refreshes_scoped_credentials(self):
         tag = "web-" + "b" * 40
-        result = module.update_web_image(self.base, tag, {"REDIS_URL": "runtime-redis"})
+        cdp = {"PLATFORM_RENDER_CDP_URL": "wss://render.example/devtools", "PLATFORM_RENDER_CDP_TOKEN": "cdp-token"}
+        result = module.update_web_image(self.base, tag, {"REDIS_URL": "runtime-redis", **cdp})
         self.assertEqual(result["services"][0]["image"], dict(module.IMAGE, tag=tag))
         self.assertEqual(result["jobs"], self.base["spec"]["jobs"])
         self.assertEqual(result["services"][0]["envs"][0]["value"], "runtime-redis")
         web_keys = {item["key"] for item in result["services"][0]["envs"]}
-        self.assertFalse(web_keys & {"DATABASE_URL", "R2_SECRET_ACCESS_KEY", "R2_ENDPOINT"})
+        self.assertFalse(web_keys & {"DATABASE_URL", "R2_SECRET_ACCESS_KEY", "R2_ENDPOINT", "PLATFORM_RENDER_SERVICE_URL"})
+        web_envs = {item["key"]: item for item in result["services"][0]["envs"]}
+        self.assertEqual(web_envs["PLATFORM_RENDER_CDP_URL"]["value"], "wss://render.example/devtools")
+        self.assertEqual(web_envs["PLATFORM_RENDER_CDP_TOKEN"]["value"], "cdp-token")
+        self.assertNotIn("design-renderer", {item["name"] for item in result["services"]})
+        # The renderer is already gone on later deploys; the token is required.
+        again = module.update_web_image(result, tag, {"REDIS_URL": "runtime-redis", **cdp})
+        self.assertEqual(len(again["services"][0]["envs"]), len({item["key"] for item in again["services"][0]["envs"]}))
+        with self.assertRaisesRegex(ValueError, "PLATFORM_RENDER_CDP_TOKEN"):
+            module.update_web_image(result, tag, {"REDIS_URL": "runtime-redis",
+                                                  "PLATFORM_RENDER_CDP_URL": "wss://render.example/devtools"})
         self.assertIn({"key": "CLIENT_IP_SOURCE", "value": "digitalocean",
                        "type": "GENERAL", "scope": "RUN_TIME"}, result["services"][0]["envs"])
         self.assertEqual(result["domains"], self.base["spec"]["domains"])

@@ -7,5 +7,5 @@ type ProfilePageProps = {
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { locale } = await params
-  redirect(getLocalizedPath(locale, '/workspace'))
+  redirect(getLocalizedPath(locale, '/workspace/account'))
 }

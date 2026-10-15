@@ -7,7 +7,7 @@ import { Page } from '@/components/platform-ui'
 import { WorkspaceAssets } from '@/components/workspace/WorkspaceAssets'
 import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
 
-export const metadata: Metadata = { title: 'Assets | Screenshot Studio' }
+export const metadata: Metadata = { title: 'Assets' }
 
 type AssetsPageProps = {
   params: Promise<{ locale: string }>

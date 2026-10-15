@@ -7,7 +7,7 @@ import { EmptyState, Page } from '@/components/platform-ui'
 import { listCampaigns } from '@/lib/tenant/campaigns'
 import { requireCampaignPageAccess } from './page-access'
 
-export const metadata: Metadata = { title: 'Campaigns | Screenshot Studio' }
+export const metadata: Metadata = { title: 'Campaigns' }
 
 type CampaignsPageProps = {
   params: Promise<{ locale: string }>

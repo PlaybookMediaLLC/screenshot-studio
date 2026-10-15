@@ -11,7 +11,7 @@ import { getCampaignPlans, getPlanById, getReleaseSpecs, getSpecById } from '@/l
 import { getCampaign } from '@/lib/tenant/campaigns'
 import { requireCampaignPageAccess } from '../../page-access'
 
-export const metadata: Metadata = { title: 'Campaign plan | Screenshot Studio' }
+export const metadata: Metadata = { title: 'Campaign plan' }
 
 type PlanPageProps = {
   params: Promise<{ campaignId: string; locale: string }>

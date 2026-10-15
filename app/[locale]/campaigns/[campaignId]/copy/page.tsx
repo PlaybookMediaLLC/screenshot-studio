@@ -22,7 +22,7 @@ import { getCampaignPlans, getReleaseSpecs, getSpecById } from '@/lib/launch/sto
 import { getCampaign } from '@/lib/tenant/campaigns'
 import { requireCampaignPageAccess } from '../../page-access'
 
-export const metadata: Metadata = { title: 'Campaign copy | Screenshot Studio' }
+export const metadata: Metadata = { title: 'Campaign copy' }
 
 type CampaignCopyPageProps = {
   params: Promise<{ campaignId: string; locale: string }>

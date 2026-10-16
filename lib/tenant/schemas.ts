@@ -337,6 +337,15 @@ export const creativeTemplateCreateSchema = z.object({
   name: z.string().trim().min(1).max(100),
 })
 
+/** Rename a preset or brand kit (every version of its name). */
+export const libraryRenameSchema = z.object({
+  id: z.string().cuid(),
+  name: z.string().trim().min(1).max(100),
+})
+
+/** Archive a preset or brand kit (every version of its name). */
+export const libraryArchiveSchema = z.object({ id: z.string().cuid() })
+
 export const creativeVariantCreateSchema = z.object({
   aspectRatio: z
     .string()

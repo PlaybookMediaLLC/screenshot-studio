@@ -20,7 +20,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "screenshot-studio-backend-sdk": ["./packages/screenshot-studio-backend-sdk/src/index.ts"]
     }
   },
   "include": [

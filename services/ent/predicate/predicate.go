@@ -156,6 +156,15 @@ type SourceApp func(*sql.Selector)
 // SourceChange is the predicate function for sourcechange builders.
 type SourceChange func(*sql.Selector)
 
+// StorePublishingCredential is the predicate function for storepublishingcredential builders.
+type StorePublishingCredential func(*sql.Selector)
+
+// StoreReview is the predicate function for storereview builders.
+type StoreReview func(*sql.Selector)
+
+// StoreReviewComment is the predicate function for storereviewcomment builders.
+type StoreReviewComment func(*sql.Selector)
+
 // SupportAccessGrant is the predicate function for supportaccessgrant builders.
 type SupportAccessGrant func(*sql.Selector)
 

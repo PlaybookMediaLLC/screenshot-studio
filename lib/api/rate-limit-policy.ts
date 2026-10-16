@@ -90,3 +90,13 @@ export const LINK_PREVIEW_RATE_LIMIT: RateLimitPolicy = {
   name: 'link-preview',
   windowMs: 60_000,
 }
+
+/**
+ * Comments through a public review link. Reviewers leave a handful of notes;
+ * the cap stops a leaked link from being used to flood a workspace.
+ */
+export const STORE_REVIEW_COMMENT_RATE_LIMIT: RateLimitPolicy = {
+  maxRequests: 30,
+  name: 'store-review-comment',
+  windowMs: 10 * 60_000,
+}

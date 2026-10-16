@@ -84,7 +84,7 @@ conversation.
 - **Templates** — reusable image and animated templates with replaceable demo media
 - **Animations** — 30+ presets, timeline editor, keyframe control
 - **Image tools** — crop, resize, rotate, compress, format conversion, and background removal
-- **App Store screenshots** — multi-slide layouts, device frames, crop guides, and batch export
+- **App Store screenshots** — layered slides, multi-device and panoramic layouts, localization, store compliance checks, every-size export, review links, and App Store Connect and Google Play uploads ([guide](docs/store-screenshots.md))
 - **Video export** — MP4, WebM, GIF with hardware-accelerated encoding
 - **High-res export** — PNG/JPG up to 5x scale, fully in-browser
 

@@ -65,6 +65,13 @@ function readPrompt(options: LanguageModelV4CallOptions) {
   return { calls, results, text: texts.join('\n\n') }
 }
 
+function systemText(options: LanguageModelV4CallOptions): string {
+  return options.prompt
+    .filter((message) => message.role === 'system')
+    .map((message) => (typeof message.content === 'string' ? message.content : ''))
+    .join('\n')
+}
+
 function toolNames(options: LanguageModelV4CallOptions): string[] {
   return (options.tools ?? []).map((tool) => ('name' in tool ? tool.name : '')).filter(Boolean)
 }
@@ -786,7 +793,51 @@ const SUBMIT_TOOLS = [
   'submitCritique',
   'submitLinkCopy',
   'submitProductProfile',
+  'submitTranslations',
+  'submitCopySuggestions',
 ] as const
+
+// ------------------------------------------------- store screenshots --
+
+function jsonAfter(text: string, label: string): unknown {
+  const start = text.indexOf(`${label}:\n`)
+  if (start === -1) return null
+  try {
+    return JSON.parse(text.slice(start + label.length + 2).trim())
+  } catch {
+    return null
+  }
+}
+
+/** A visible pseudo-translation: locale marker plus the source, tags untouched. */
+function scriptTranslations(text: string) {
+  const locale = field(text, 'Target locale') || 'xx'
+  const items = (jsonAfter(text, 'Items') as Array<{ id: string; text: string }> | null) ?? []
+  const language = locale.split('-')[0]!.toUpperCase()
+  return { translations: items.map((item) => ({ id: item.id, text: `${language}: ${item.text}` })) }
+}
+
+/** Plain headlines built from the brief's first sentence and each slide's topic; no numbers. */
+function scriptCopySuggestions(text: string, system: string) {
+  const slides = (jsonAfter(text, 'Slides') as Array<{ id: string; topic: string; currentHeadline: string }> | null) ?? []
+  const brief = text.match(/Product brief:\n([^\n]+)/)?.[1] ?? ''
+  const count = Number(system.match(/Give (\d+) distinct variants/)?.[1] ?? 2)
+  const words = (value: string) => value.replace(/[0-9]/g, '').split(/\s+/).filter(Boolean)
+  return {
+    slides: slides.map((slide) => ({
+      id: slide.id,
+      suggestions: Array.from({ length: count }, (_, index) => {
+        const source = words(slide.topic || slide.currentHeadline || brief)
+        const headline = clip(source.slice(index, index + 4).join(' ') || 'Do more with less effort', 32)
+        return {
+          headline: headline.charAt(0).toUpperCase() + headline.slice(1),
+          rationale: 'Built only from the words in your brief and slide topic.',
+          subheadline: clip(firstSentence(brief.replace(/[0-9]/g, '')), 60),
+        }
+      }),
+    })),
+  }
+}
 
 export function createScriptedModel(modelId: string): LanguageModelV4 {
   return new MockLanguageModelV4({
@@ -812,7 +863,11 @@ export function createScriptedModel(modelId: string): LanguageModelV4 {
                     ? scriptLinkCopy(text)
                     : submit === 'submitProductProfile'
                       ? scriptProductProfile(text)
-                      : scriptRevision(text, toolProperties(options, 'proposeRevision'))
+                      : submit === 'submitTranslations'
+                        ? scriptTranslations(text)
+                        : submit === 'submitCopySuggestions'
+                          ? scriptCopySuggestions(text, systemText(options))
+                          : scriptRevision(text, toolProperties(options, 'proposeRevision'))
         return respond(toolCalls([{ input, toolName: submit }]))
       }
       if (names.includes('captureProductPage')) {

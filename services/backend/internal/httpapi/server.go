@@ -189,6 +189,17 @@ type ConfigurationStore interface {
 	ScheduleCampaignPost(context.Context, product.Actor, string, string, product.ScheduleCampaignPostInput) (*product.ScheduleCampaignPostResult, error)
 	UpdateCampaignPost(context.Context, product.Actor, string, string, product.UpdateCampaignPostInput) (*product.CampaignPostItem, error)
 	CreateDesign(context.Context, product.Actor, product.CreateDesignInput) (*product.DesignRecord, error)
+	CreateStoreReview(context.Context, product.Actor, product.CreateStoreReviewInput) (*product.StoreReviewRecord, error)
+	ListStoreReviews(context.Context, product.Actor, string) ([]product.StoreReviewRecord, error)
+	GetStoreReview(context.Context, product.Actor, string) (*product.StoreReviewRecord, error)
+	GetSharedStoreReview(context.Context, product.Actor, string, string) (*product.StoreReviewRecord, error)
+	RevokeStoreReview(context.Context, product.Actor, string) error
+	AddStoreReviewComment(context.Context, product.Actor, string, product.AddStoreReviewCommentInput) (*product.StoreReviewComment, error)
+	ResolveStoreReviewComment(context.Context, product.Actor, string, string, bool) error
+	CreateStorePublishingCredential(context.Context, product.Actor, product.CreateStorePublishingCredentialInput) (*product.StorePublishingCredential, error)
+	ListStorePublishingCredentials(context.Context, product.Actor) ([]product.StorePublishingCredential, error)
+	GetStorePublishingCredentialSecret(context.Context, product.Actor, string) (*product.StorePublishingCredentialSecret, error)
+	DeleteStorePublishingCredential(context.Context, product.Actor, string) error
 	GetDesign(context.Context, product.Actor, string) (*product.DesignRecord, error)
 	UpdateDesignDocument(context.Context, product.Actor, string, map[string]any) error
 	SetDesignRender(context.Context, product.Actor, string, string, *string) error
@@ -236,6 +247,7 @@ func NewWithConfiguration(store Store, scheduler WorkflowScheduler, verifier Des
 		s.registerWorkspace(mux)
 		s.registerInternal(mux)
 		s.registerCampaignAssets(mux)
+		s.registerStoreScreenshots(mux)
 		s.registerLaunch(mux)
 		s.registerConversations(mux)
 		s.registerPlatformControls(mux)

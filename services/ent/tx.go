@@ -112,6 +112,12 @@ type Tx struct {
 	SourceApp *SourceAppClient
 	// SourceChange is the client for interacting with the SourceChange builders.
 	SourceChange *SourceChangeClient
+	// StorePublishingCredential is the client for interacting with the StorePublishingCredential builders.
+	StorePublishingCredential *StorePublishingCredentialClient
+	// StoreReview is the client for interacting with the StoreReview builders.
+	StoreReview *StoreReviewClient
+	// StoreReviewComment is the client for interacting with the StoreReviewComment builders.
+	StoreReviewComment *StoreReviewCommentClient
 	// SupportAccessGrant is the client for interacting with the SupportAccessGrant builders.
 	SupportAccessGrant *SupportAccessGrantClient
 	// SurfaceCapture is the client for interacting with the SurfaceCapture builders.
@@ -309,6 +315,9 @@ func (tx *Tx) init() {
 	tx.SocialOAuthStart = NewSocialOAuthStartClient(tx.config)
 	tx.SourceApp = NewSourceAppClient(tx.config)
 	tx.SourceChange = NewSourceChangeClient(tx.config)
+	tx.StorePublishingCredential = NewStorePublishingCredentialClient(tx.config)
+	tx.StoreReview = NewStoreReviewClient(tx.config)
+	tx.StoreReviewComment = NewStoreReviewCommentClient(tx.config)
 	tx.SupportAccessGrant = NewSupportAccessGrantClient(tx.config)
 	tx.SurfaceCapture = NewSurfaceCaptureClient(tx.config)
 	tx.User = NewUserClient(tx.config)

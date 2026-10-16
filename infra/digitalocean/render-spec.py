@@ -88,7 +88,8 @@ def render(base, secrets, *, branch="main"):
                          "SOURCE_WEBHOOK_SIGNING_KEY",
                          "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID",
                          "GITHUB_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET",
-                         "OPENROUTER_API_KEY", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]
+                         "OPENROUTER_API_KEY", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
+                         "STORE_PUBLISHING_ENCRYPTION_KEY"]
     stripe_price_keys = ["STRIPE_PRICE_PRO_MONTHLY", "STRIPE_PRICE_PRO_ANNUAL", "STRIPE_PRICE_BUSINESS_MONTHLY",
                          "STRIPE_PRICE_BUSINESS_ANNUAL", "STRIPE_PRICE_EXTRA_LAUNCH"]
     merge_env(web, [secret(key) for key in web_keys] +

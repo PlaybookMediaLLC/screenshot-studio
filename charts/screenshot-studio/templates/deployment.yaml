@@ -121,6 +121,12 @@ spec:
                   name: {{ . }}
                   key: AUDIT_DRAIN_ENCRYPTION_KEY
                   optional: true
+            - name: STORE_PUBLISHING_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: STORE_PUBLISHING_ENCRYPTION_KEY
+                  optional: true
             {{- end }}
           {{- with .Values.startupProbe }}
           startupProbe:

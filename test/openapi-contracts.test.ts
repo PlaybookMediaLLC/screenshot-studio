@@ -13,6 +13,8 @@ import * as linkPreview from '@/lib/api/contracts/link-preview'
 import * as releases from '@/lib/api/contracts/releases'
 import * as shell from '@/lib/api/contracts/shell'
 import * as sourceApps from '@/lib/api/contracts/source-apps'
+import * as storePublishing from '@/lib/api/contracts/store-publishing'
+import * as storeScreenshots from '@/lib/api/contracts/store-screenshots'
 import * as unsubscribe from '@/lib/api/contracts/unsubscribe'
 import * as webhooks from '@/lib/api/contracts/webhooks'
 import { openApiSpec } from '@/lib/api/openapi'
@@ -30,6 +32,8 @@ const contracts = new Map<string, RouteContract>(
     releases,
     shell,
     sourceApps,
+    storePublishing,
+    storeScreenshots,
     unsubscribe,
     webhooks,
   ]

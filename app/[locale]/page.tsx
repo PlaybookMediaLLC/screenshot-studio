@@ -76,7 +76,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     ...OG_DEFAULTS,
-    title: 'Screenshot Studio - Free Screenshot Editor & Mockup Maker',
+    title: 'Shots - Free Screenshot Editor & Mockup Maker',
     description:
       'Free screenshot editor online — add backgrounds, shadows, 3D effects, and animations. Export as PNG, JPG, or video.',
     url: '/',

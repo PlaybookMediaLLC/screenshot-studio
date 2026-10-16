@@ -129,7 +129,7 @@ const jsonLd = {
     {
       "@type": "SoftwareApplication",
       "@id": `${PAGE_URL}#software`,
-      name: "Screenshot Studio - Browser Mockup Generator",
+      name: "Shots - Browser Mockup Generator",
       applicationCategory: "DesignApplication",
       operatingSystem: "Web Browser",
       description:
@@ -200,7 +200,7 @@ export default function BrowserMockupsPage() {
       preview={<BrowserPreview />}
       capabilities={capabilities}
       steps={steps}
-      alternativesIntro="Screely only adds a macOS or Windows window frame, with no device mockups or 3D effects. Screenshot Studio adds Safari and Chrome browser frames alongside device mockups, 3D tilt, and animation, all free."
+      alternativesIntro="Screely only adds a macOS or Windows window frame, with no device mockups or 3D effects. Shots adds Safari and Chrome browser frames alongside device mockups, 3D tilt, and animation, all free."
       alternativeSlugs={["screely", "shots-so", "pika-style"]}
       guideLinks={[
         {

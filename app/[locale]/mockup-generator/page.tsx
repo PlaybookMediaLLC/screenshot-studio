@@ -145,13 +145,13 @@ export default function MockupGeneratorPage() {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://www.screenshot-studio.com",
+        item: "https://shots.playbookmedia.io",
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Mockup Generator",
-        item: "https://www.screenshot-studio.com/mockup-generator",
+        item: "https://shots.playbookmedia.io/mockup-generator",
       },
     ],
   };
@@ -161,10 +161,10 @@ export default function MockupGeneratorPage() {
     "@graph": [
       {
         "@type": "SoftwareApplication",
-        name: "Screenshot Studio - Mockup Generator",
+        name: "Shots - Mockup Generator",
         applicationCategory: "DesignApplication",
         operatingSystem: "Web Browser",
-        url: "https://www.screenshot-studio.com/mockup-generator",
+        url: "https://shots.playbookmedia.io/mockup-generator",
         description:
           "Free online mockup generator that places screenshots in iPhone, MacBook, Apple Watch, and browser frames. No signup, no watermark.",
         offers: {
@@ -185,7 +185,7 @@ export default function MockupGeneratorPage() {
         "@type": "HowTo",
         name: "How to make a device mockup from a screenshot",
         totalTime: "PT1M",
-        tool: { "@type": "HowToTool", name: "Screenshot Studio" },
+        tool: { "@type": "HowToTool", name: "Shots" },
         step: howToSteps.map((step, index) => ({
           "@type": "HowToStep",
           position: index + 1,
@@ -215,7 +215,7 @@ export default function MockupGeneratorPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
 
-      <Navigation brandName="Screenshot Studio" />
+      <Navigation brandName="Shots" />
 
       <main className="flex-1">
         <section className="px-6 pb-20 pt-32">
@@ -227,7 +227,7 @@ export default function MockupGeneratorPage() {
               Free Online Mockup Generator for Screenshots
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground md:text-xl">
-              Screenshot Studio is a free online mockup generator. Drop a
+              Shots is a free online mockup generator. Drop a
               screenshot into an iPhone 17 Pro, MacBook Pro, Apple Watch, or a
               Safari or Chrome frame, arrange up to {MAX_DEVICE_MOCKUPS} devices
               in one scene, and export a PNG at up to 5x. It runs in your
@@ -388,7 +388,7 @@ export default function MockupGeneratorPage() {
         </section>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

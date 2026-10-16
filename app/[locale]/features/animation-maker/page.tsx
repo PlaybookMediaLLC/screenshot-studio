@@ -120,7 +120,7 @@ const jsonLd = {
     {
       "@type": "SoftwareApplication",
       "@id": `${PAGE_URL}#software`,
-      name: "Screenshot Studio - Animation Maker",
+      name: "Shots - Animation Maker",
       applicationCategory: "MultimediaApplication",
       operatingSystem: "Web Browser",
       description:

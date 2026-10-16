@@ -8,19 +8,19 @@ import { CHANGELOG as changelog } from "@/lib/seo/changelog";
 export const metadata: Metadata = {
   title: "Changelog - Latest Updates & Features",
   description:
-    "See what's new in Screenshot Studio. Latest updates including animation timeline, video export, 3D effects, and more.",
+    "See what's new in Shots. Latest updates including animation timeline, video export, 3D effects, and more.",
   keywords: [
-    "screenshot studio changelog",
-    "screenshot studio updates",
+    "shots changelog",
+    "shots updates",
     "screenshot editor new features",
     "image editor release notes",
     "animation maker updates",
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Changelog - Screenshot Studio",
+    title: "Changelog - Shots",
     description:
-      "See what's new in Screenshot Studio. Latest updates including animation timeline, video export, and more.",
+      "See what's new in Shots. Latest updates including animation timeline, video export, and more.",
     url: "/changelog",
   },
   alternates: {
@@ -58,25 +58,25 @@ export default function ChangelogPage() {
             "@type": "ListItem",
             position: 1,
             name: "Home",
-            item: "https://www.screenshot-studio.com",
+            item: "https://shots.playbookmedia.io",
           },
           {
             "@type": "ListItem",
             position: 2,
             name: "Changelog",
-            item: "https://www.screenshot-studio.com/changelog",
+            item: "https://shots.playbookmedia.io/changelog",
           },
         ],
       },
       {
         "@type": "WebPage",
-        name: "Screenshot Studio Changelog",
+        name: "Shots Changelog",
         description:
-          "Latest updates, new features, and improvements to Screenshot Studio.",
-        url: "https://www.screenshot-studio.com/changelog",
+          "Latest updates, new features, and improvements to Shots.",
+        url: "https://shots.playbookmedia.io/changelog",
         mainEntity: {
           "@type": "ItemList",
-          name: "Screenshot Studio Release History",
+          name: "Shots Release History",
           itemListElement: changelog.map((entry, index) => ({
             "@type": "ListItem",
             position: index + 1,
@@ -180,7 +180,7 @@ export default function ChangelogPage() {
         </div>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

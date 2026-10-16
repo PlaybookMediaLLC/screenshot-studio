@@ -8,9 +8,9 @@ import { guides } from "@/lib/seo/guides";
 import { buildCollectionJsonLd } from "@/lib/seo/json-ld";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
 
-const TITLE = "Screenshot Studio Alternatives Compared";
+const TITLE = "Shots Alternatives Compared";
 const DESCRIPTION =
-  "Side-by-side comparisons of Screenshot Studio against Pika Style, Shots.so, CleanShot X, Snagit, Xnapper, Screely, Carbon, Ray.so, and remove.bg.";
+  "Side-by-side comparisons of Shots against Pika Style, Shots.so, CleanShot X, Snagit, Xnapper, Screely, Carbon, Ray.so, and remove.bg.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: `${TITLE} - Screenshot Studio`,
+    title: `${TITLE} - Shots`,
     description: DESCRIPTION,
     url: "/compare",
   },
@@ -44,7 +44,7 @@ export default function CompareHubPage() {
     TITLE,
     DESCRIPTION,
     comparisons.map((comparison) => ({
-      name: `Screenshot Studio vs ${comparison.competitorName}`,
+      name: `Shots vs ${comparison.competitorName}`,
       url: `/compare/${comparison.slug}`,
     })),
   );
@@ -63,8 +63,8 @@ export default function CompareHubPage() {
           <ToolHero
             parent={null}
             name="Compare"
-            title="How Screenshot Studio Compares"
-            intro="Honest, feature-by-feature breakdowns against the tools people weigh Screenshot Studio against. Each page lists what the alternative costs, where it is genuinely stronger, and where Screenshot Studio does more for free."
+            title="How Shots Compares"
+            intro="Honest, feature-by-feature breakdowns against the tools people weigh Shots against. Each page lists what the alternative costs, where it is genuinely stronger, and where Shots does more for free."
           />
 
           <section>
@@ -73,7 +73,7 @@ export default function CompareHubPage() {
               <LinkCardGrid
                 items={comparisons.map((comparison) => ({
                   href: `/compare/${comparison.slug}`,
-                  eyebrow: "Screenshot Studio vs",
+                  eyebrow: "Shots vs",
                   title: comparison.competitorName,
                   description: comparison.tagline,
                   meta: `${comparison.competitorName}: ${comparison.competitorPricing}`,
@@ -92,7 +92,7 @@ export default function CompareHubPage() {
             <SectionTitle>Best-of roundups</SectionTitle>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Weighing more than two tools? These guides rank every option,
-              including the ones that beat Screenshot Studio at something.
+              including the ones that beat Shots at something.
             </p>
             <div className="mt-5">
               <LinkCardGrid
@@ -116,7 +116,7 @@ export default function CompareHubPage() {
         </div>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

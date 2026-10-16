@@ -8,7 +8,7 @@ export function ProductOverview(): React.JSX.Element {
           <div className="hidden w-full shrink-0 justify-center md:flex md:w-[30%] md:justify-start md:pr-12 lg:w-[28%] lg:pr-16">
             <Image
               src="/logo-mark.png"
-              alt="Screenshot Studio"
+              alt="Shots"
               width={256}
               height={256}
               className="h-60 w-60 self-end object-contain lg:h-64 lg:w-64"
@@ -30,12 +30,12 @@ export function ProductOverview(): React.JSX.Element {
               }}
             >
               <span className="landing-heading block md:whitespace-nowrap">
-                Screenshot Studio?
+                Shots?
               </span>
             </h2>
             <div className="mt-6 max-w-2xl space-y-2 text-[15px] leading-normal text-muted-foreground md:text-base">
               <p>
-                Screenshot Studio is a free, open-source screenshot editor that
+                Shots is a free, open-source screenshot editor that
                 runs entirely in your browser. It turns raw captures into images
                 you can publish. No signup, no watermarks, nothing to install.
               </p>

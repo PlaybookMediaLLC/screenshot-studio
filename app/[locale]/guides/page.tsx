@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: `${TITLE} - Screenshot Studio`,
+    title: `${TITLE} - Shots`,
     description: DESCRIPTION,
     url: "/guides",
   },
@@ -113,7 +113,7 @@ export default function GuidesHubPage() {
               <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
                 Practical how-tos for editing, annotating, and presenting
                 screenshots, plus honest roundups of the tools people compare,
-                including where Screenshot Studio falls short.
+                including where Shots falls short.
               </p>
             </div>
             <nav aria-label="Guide topics" className="flex flex-wrap gap-2">
@@ -234,7 +234,7 @@ export default function GuidesHubPage() {
         </div>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

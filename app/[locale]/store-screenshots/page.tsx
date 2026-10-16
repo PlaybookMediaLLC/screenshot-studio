@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "App Store Screenshot Maker - Screenshot Studio",
+    title: "App Store Screenshot Maker - Shots",
     description:
       "Build a coordinated App Store screenshot set in your browser. Templates, headings, device frames, and 1320x2868 export. Free, no signup.",
     url: "/store-screenshots",

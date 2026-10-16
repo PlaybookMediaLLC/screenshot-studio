@@ -122,7 +122,7 @@ const RESOURCES_OPEN_DELAY = 150
 const RESOURCES_CLOSE_DELAY = 200
 const MENU_EASE_OUT = [0.16, 1, 0.3, 1] as const
 
-export function Navigation({ brandName = 'Screenshot Studio' }: NavigationProps) {
+export function Navigation({ brandName = 'Shots' }: NavigationProps) {
   const [resourcesOpen, setResourcesOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)

@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Code to Image Generator - Screenshot Studio",
+    title: "Code to Image Generator - Shots",
     description:
       "Turn code into beautiful, shareable images. Themes, gradients, line numbers, and window frames. Free, no signup.",
     url: PAGE_URL,
@@ -96,7 +96,7 @@ const faqs = [
   {
     question: "How is this different from Ray.so or Carbon?",
     answer:
-      "It covers the same core workflow, themes, gradients, line numbers, and a window frame, built into Screenshot Studio's own editor, with shareable links and no account required.",
+      "It covers the same core workflow, themes, gradients, line numbers, and a window frame, built into Shots' own editor, with shareable links and no account required.",
   },
   {
     question: "How do I add a code screenshot to a GitHub README?",
@@ -132,7 +132,7 @@ const jsonLd = {
     {
       "@type": "SoftwareApplication",
       "@id": `${PAGE_URL}#software`,
-      name: "Screenshot Studio - Code to Image",
+      name: "Shots - Code to Image",
       applicationCategory: "DesignApplication",
       operatingSystem: "Web Browser",
       description:
@@ -206,7 +206,7 @@ export default function CodeSnippetsFeaturePage() {
       preview={<CodePreview />}
       capabilities={capabilities}
       steps={steps}
-      alternativesIntro="Carbon and Ray.so are established code screenshot tools with more syntax themes. Screenshot Studio matches the core workflow for free and adds gradient backgrounds, a transparent export, and a full screenshot and mockup editor for everything else."
+      alternativesIntro="Carbon and Ray.so are established code screenshot tools with more syntax themes. Shots matches the core workflow for free and adds gradient backgrounds, a transparent export, and a full screenshot and mockup editor for everything else."
       alternativeSlugs={["carbon", "ray-so"]}
       guideLinks={[
         { href: "/guides/best-code-to-image-tools", label: "Best code to image tools" },

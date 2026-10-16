@@ -122,7 +122,7 @@ const jsonLd = {
     {
       "@type": "SoftwareApplication",
       "@id": `${PAGE_URL}#software`,
-      name: "Screenshot Studio - Social Media Graphics Maker",
+      name: "Shots - Social Media Graphics Maker",
       applicationCategory: "DesignApplication",
       operatingSystem: "Web Browser",
       description:
@@ -199,7 +199,7 @@ export default function SocialMediaGraphicsPage() {
       preview={<SocialPreview />}
       capabilities={capabilities}
       steps={steps}
-      alternativesIntro="Shots.so and Pika Style both make shareable social graphics from screenshots. Screenshot Studio covers the same platform sizes and backgrounds for free, with an animation timeline and 3D tilt on top."
+      alternativesIntro="Shots.so and Pika Style both make shareable social graphics from screenshots. Shots covers the same platform sizes and backgrounds for free, with an animation timeline and 3D tilt on top."
       alternativeSlugs={["shots-so", "pika-style"]}
       guideLinks={[
         { href: "/guides/best-free-shots-so-alternatives", label: "Best free Shots.so alternatives" },

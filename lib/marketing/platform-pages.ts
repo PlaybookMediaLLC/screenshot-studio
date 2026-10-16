@@ -68,12 +68,12 @@ export const PLATFORM_PAGES: Record<PlatformPagePath, PlatformPage> = {
   [P['/product']]: {
     title: 'Product: Release to Launch in One Workspace',
     description:
-      'The Screenshot Studio platform: release intake, launch intelligence, the creative engine, approvals, publishing, and guardrails, in one workspace.',
+      'The Shots platform: release intake, launch intelligence, the creative engine, approvals, publishing, and guardrails, in one workspace.',
     label: 'Overview',
     blurb: 'Every part, one workspace',
     group: G.product,
     summary:
-      'Overview of the Screenshot Studio platform. Six parts turn a release into a reviewed, scheduled launch: release intake, launch intelligence, the creative engine, approvals, publishing, and guardrails.',
+      'Overview of the Shots platform. Six parts turn a release into a reviewed, scheduled launch: release intake, launch intelligence, the creative engine, approvals, publishing, and guardrails.',
   },
   [P['/product/launch-intelligence']]: {
     title: 'Launch Intelligence: Cited Specs, Plans, and Posts',
@@ -100,7 +100,7 @@ export const PLATFORM_PAGES: Record<PlatformPagePath, PlatformPage> = {
     blurb: 'The editor renders every asset',
     group: G.product,
     summary:
-      'The creative engine is the Screenshot Studio editor used as a renderer. Agents capture the product surface and source pages, compose them in device and browser frames with the brand kit, and save editor designs that open for manual changes.',
+      'The creative engine is the Shots editor used as a renderer. Agents capture the product surface and source pages, compose them in device and browser frames with the brand kit, and save editor designs that open for manual changes.',
   },
   [P['/product/approvals']]: {
     title: 'Approvals: A Server-Side Gate for Every Post',
@@ -145,12 +145,12 @@ export const PLATFORM_PAGES: Record<PlatformPagePath, PlatformPage> = {
   [P['/use-cases']]: {
     title: 'Use Cases: Launches, Features, Changelogs, and Email',
     description:
-      'What teams use Screenshot Studio for: feature launches, product launches, and release notes that reach the changelog and the inbox.',
+      'What teams use Shots for: feature launches, product launches, and release notes that reach the changelog and the inbox.',
     label: 'All use cases',
     blurb: 'What teams launch with it',
     group: G.solutions,
     summary:
-      'Use cases for Screenshot Studio: announcing a shipped feature, planning a product launch across teaser, launch day, and follow-up, and turning release notes into a changelog entry and a consented email.',
+      'Use cases for Shots: announcing a shipped feature, planning a product launch across teaser, launch day, and follow-up, and turning release notes into a changelog entry and a consented email.',
   },
   [P['/use-cases/feature-launches']]: {
     title: 'Feature Launches: Announce What You Shipped the Same Day',
@@ -160,7 +160,7 @@ export const PLATFORM_PAGES: Record<PlatformPagePath, PlatformPage> = {
     blurb: 'Ship it, then say so',
     group: G.solutions,
     summary:
-      'Feature launches with Screenshot Studio: describe the release or send it from GitHub, review the cited spec, approve a plan, and approve channel posts with real product screenshots in one batch.',
+      'Feature launches with Shots: describe the release or send it from GitHub, review the cited spec, approve a plan, and approve channel posts with real product screenshots in one batch.',
   },
   [P['/use-cases/product-launches']]: {
     title: 'Product Launches: Teaser, Launch Day, and Follow-Up',
@@ -170,7 +170,7 @@ export const PLATFORM_PAGES: Record<PlatformPagePath, PlatformPage> = {
     blurb: 'A launch plan, not a scramble',
     group: G.solutions,
     summary:
-      'Product launches with Screenshot Studio: a campaign plan split into teaser, launch day, and follow-up, hero and feature assets in 16:9, 1:1, 4:5, and 9:16, and channel copy checked against each channel limit.',
+      'Product launches with Shots: a campaign plan split into teaser, launch day, and follow-up, hero and feature assets in 16:9, 1:1, 4:5, and 9:16, and channel copy checked against each channel limit.',
   },
   [P['/use-cases/changelog-and-email']]: {
     title: 'Changelog and Email: Release Notes People Read',
@@ -180,17 +180,17 @@ export const PLATFORM_PAGES: Record<PlatformPagePath, PlatformPage> = {
     blurb: 'Release notes that land',
     group: G.solutions,
     summary:
-      'Screenshot Studio drafts a changelog entry and an email announcement for each release. Release email goes only to consenting subscribers, honors per-organization unsubscribe and suppression, and delivers exactly once per address.',
+      'Shots drafts a changelog entry and an email announcement for each release. Release email goes only to consenting subscribers, honors per-organization unsubscribe and suppression, and delivers exactly once per address.',
   },
   [P['/solutions/founders']]: {
     title: 'For Founders: Marketing That Ships When You Do',
     description:
-      'You build the product, review the PRs, and write the announcement. Screenshot Studio drafts the launch from your release so marketing stops waiting for a free afternoon.',
+      'You build the product, review the PRs, and write the announcement. Shots drafts the launch from your release so marketing stops waiting for a free afternoon.',
     label: 'Founders',
     blurb: 'For teams of one to ten',
     group: G.solutions,
     summary:
-      'Screenshot Studio for founders: the release you already wrote becomes a cited brief, real screenshots, and channel posts. Self-approval is allowed, the editor is free, and nothing publishes without you.',
+      'Shots for founders: the release you already wrote becomes a cited brief, real screenshots, and channel posts. Self-approval is allowed, the editor is free, and nothing publishes without you.',
   },
   [P['/solutions/product-marketing']]: {
     title: 'For Product Marketing: From Brief to Launch Kit',
@@ -200,7 +200,7 @@ export const PLATFORM_PAGES: Record<PlatformPagePath, PlatformPage> = {
     blurb: 'One source of truth per launch',
     group: G.solutions,
     summary:
-      'Screenshot Studio for product marketing teams: a versioned, cited launch spec, approved campaign plans, separate creator, approver, and publisher roles, brand kits on every design, and an audit trail of every decision.',
+      'Shots for product marketing teams: a versioned, cited launch spec, approved campaign plans, separate creator, approver, and publisher roles, brand kits on every design, and an audit trail of every decision.',
   },
   [P['/solutions/developer-tools']]: {
     title: 'For Developer Tools: Launches Your Users Trust',
@@ -210,77 +210,77 @@ export const PLATFORM_PAGES: Record<PlatformPagePath, PlatformPage> = {
     blurb: 'For products developers use',
     group: G.solutions,
     summary:
-      'Screenshot Studio for developer tool companies: releases from CI or GitHub and GitLab webhooks, specs that cite the pull request, code-to-image rendering, changelog copy, and llms.txt and Markdown pages for agents.',
+      'Shots for developer tool companies: releases from CI or GitHub and GitLab webhooks, specs that cite the pull request, code-to-image rendering, changelog copy, and llms.txt and Markdown pages for agents.',
   },
   [P['/integrations']]: {
     title: 'Integrations: GitHub, GitLab, Social, Email, and SIEM',
     description:
-      'Where Screenshot Studio connects: GitHub and GitLab release webhooks, the REST API, X, LinkedIn, and Instagram, release email, SSO providers, and Splunk and Datadog audit drains.',
+      'Where Shots connects: GitHub and GitLab release webhooks, the REST API, X, LinkedIn, and Instagram, release email, SSO providers, and Splunk and Datadog audit drains.',
     label: 'Integrations',
     blurb: 'Where it connects',
     group: G.developers,
     summary:
-      'Screenshot Studio integrations, each marked available, early access, or planned: release intake from GitHub, GitLab, generic webhooks, and the REST API; publishing to X, LinkedIn, and Instagram; release email; Google, GitHub, and Microsoft sign-in with SAML and OIDC SSO; and Splunk, Datadog, and HTTPS audit drains.',
+      'Shots integrations, each marked available, early access, or planned: release intake from GitHub, GitLab, generic webhooks, and the REST API; publishing to X, LinkedIn, and Instagram; release email; Google, GitHub, and Microsoft sign-in with SAML and OIDC SSO; and Splunk, Datadog, and HTTPS audit drains.',
   },
   [P['/security']]: {
     title: 'Security: Every Control, Written Down',
     description:
-      'How Screenshot Studio protects your workspace: SSO and SCIM, six roles, an append-only audit log, SIEM drains, tenant isolation, private storage, AI safeguards, and the providers we run on.',
+      'How Shots protects your workspace: SSO and SCIM, six roles, an append-only audit log, SIEM drains, tenant isolation, private storage, AI safeguards, and the providers we run on.',
     label: 'Security',
     blurb: 'Controls, data, and providers',
     group: G.company,
     summary:
-      'Security at Screenshot Studio: Better Auth organizations with six roles, SAML and OIDC SSO, SCIM, TOTP two-factor, an append-only audit log with hashed IPs, signed SIEM drains, 90-day default retention with legal hold, organization-scoped private storage, and AI inputs treated as untrusted. Hosting is in the United States.',
+      'Security at Shots: Better Auth organizations with six roles, SAML and OIDC SSO, SCIM, TOTP two-factor, an append-only audit log with hashed IPs, signed SIEM drains, 90-day default retention with legal hold, organization-scoped private storage, and AI inputs treated as untrusted. Hosting is in the United States.',
   },
   [P['/enterprise']]: {
     title: 'Enterprise: SSO, SCIM, Audit Drains, and Legal Hold',
     description:
-      'Screenshot Studio Enterprise: SAML and OIDC SSO, SCIM provisioning, Splunk and Datadog audit drains, extended retention, legal hold, enterprise quotas, and self-hosting.',
+      'Shots Enterprise: SAML and OIDC SSO, SCIM provisioning, Splunk and Datadog audit drains, extended retention, legal hold, enterprise quotas, and self-hosting.',
     label: 'Enterprise',
     blurb: 'For security reviews',
     group: G.company,
     summary:
-      'Screenshot Studio Enterprise adds SAML and OIDC SSO, SCIM provisioning, signed audit drains to Splunk, Datadog, or any HTTPS endpoint, longer audit retention, legal hold, and the highest workspace quotas. The platform can also be self-hosted with Docker and Helm.',
+      'Shots Enterprise adds SAML and OIDC SSO, SCIM provisioning, signed audit drains to Splunk, Datadog, or any HTTPS endpoint, longer audit retention, legal hold, and the highest workspace quotas. The platform can also be self-hosted with Docker and Helm.',
   },
   [P['/pricing']]: {
     title: 'Pricing: Free, Pro, Business, and Enterprise',
     description:
-      'Screenshot Studio plans and limits: AI credits, scheduled posts, and release emails per month, API writes per minute, concurrent jobs, and storage, from a free workspace to Enterprise.',
+      'Shots plans and limits: AI credits, scheduled posts, and release emails per month, API writes per minute, concurrent jobs, and storage, from a free workspace to Enterprise.',
     label: 'Pricing',
     blurb: 'Plans and limits',
     group: null,
     summary:
-      'Screenshot Studio workspace plans: Free ($0), Pro ($199 a month, or $169 billed annually), Business ($699 a month, or $594 billed annually), and Enterprise (from $3,000 a month, billed annually), with monthly generation, API write, concurrent job, and storage limits. The editor is free. Launch intelligence is in early access for design partners.',
+      'Shots workspace plans: Free ($0), Pro ($199 a month, or $169 billed annually), Business ($699 a month, or $594 billed annually), and Enterprise (from $3,000 a month, billed annually), with monthly generation, API write, concurrent job, and storage limits. The editor is free. Launch intelligence is in early access for design partners.',
   },
   [P['/roadmap']]: {
     title: 'Roadmap: What Ships Now and What Comes Next',
     description:
-      'The public Screenshot Studio roadmap, from shipped primitives to URL onboarding, GitHub change detection, demo videos, the weekly plan, and autonomy modes.',
+      'The public Shots roadmap, from shipped primitives to URL onboarding, GitHub change detection, demo videos, the weekly plan, and autonomy modes.',
     label: 'Roadmap',
     blurb: 'Shipped, now, next, later',
     group: G.company,
     summary:
-      'The Screenshot Studio roadmap, grouped as shipped, in progress, next, and later, with links to the RFC behind each item.',
+      'The Shots roadmap, grouped as shipped, in progress, next, and later.',
   },
   [P['/design-partners']]: {
     title: 'Design Partners: Shape the Launch Platform',
     description:
-      'Join the Screenshot Studio design partner program: early access to launch intelligence, a direct line to the team, and a say in what ships next.',
+      'Join the Shots design partner program: early access to launch intelligence, a direct line to the team, and a say in what ships next.',
     label: 'Design partners',
     blurb: 'Early access program',
     group: G.company,
     summary:
-      'The Screenshot Studio design partner program gives teams that ship every week early access to launch intelligence and a direct line to the builders, in exchange for real releases and honest feedback.',
+      'The Shots design partner program gives teams that ship every week early access to launch intelligence and a direct line to the builders, in exchange for real releases and honest feedback.',
   },
   [P['/principles']]: {
-    title: 'Principles: How Screenshot Studio Is Built',
+    title: 'Principles: How Shots Is Built',
     description:
       'The decisions behind the platform: primitives before agents, recipes before autonomy, the workspace over chat, structural approval, and cite or ask.',
     label: 'Principles',
     blurb: 'How we build it',
     group: G.company,
     summary:
-      'The design principles behind Screenshot Studio, quoted from its RFCs: freeze the promise, build inside-out, recipes before agents, the workspace over chat, approval as structure, cite or ask, and degrade into something useful.',
+      'The design principles behind Shots: freeze the promise, build inside-out, recipes before agents, the workspace over chat, approval as structure, cite or ask, and degrade into something useful.',
   },
 }
 
@@ -298,7 +298,7 @@ export function platformMetadata(path: PlatformPagePath): Metadata {
     title,
     description,
     alternates: { canonical: path },
-    openGraph: { ...OG_DEFAULTS, title: `${title} | Screenshot Studio`, description, url: path },
+    openGraph: { ...OG_DEFAULTS, title: `${title} | Shots`, description, url: path },
   }
 }
 
@@ -311,6 +311,6 @@ export function platformAgentPages(): {
 }[] {
   return platformPagePathSchema.options.map((path) => {
     const { points, summary, title } = PLATFORM_PAGES[path]
-    return { path, title: `${title} - Screenshot Studio`, summary, points }
+    return { path, title: `${title} - Shots`, summary, points }
   })
 }

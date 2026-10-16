@@ -11,19 +11,19 @@ import {
 } from "@/lib/seo/docs-shared";
 
 export const metadata: Metadata = {
-  title: "Screenshot Studio Developer Portal",
+  title: "Shots Developer Portal",
   description:
-    "Developer portal for Screenshot Studio: API docs, OpenAPI 3.1 spec, authentication, rate limits, quickstart requests, and the open-source repository.",
+    "Developer portal for Shots: API docs, OpenAPI 3.1 spec, authentication, rate limits, quickstart requests, and the open-source repository.",
   keywords: [
-    "Screenshot Studio developers",
-    "Screenshot Studio developer portal",
-    "Screenshot Studio API",
+    "Shots developers",
+    "Shots developer portal",
+    "Shots API",
     "screenshot API quickstart",
     "screenshot OpenAPI spec",
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Screenshot Studio Developer Portal",
+    title: "Shots Developer Portal",
     description:
       "API docs, OpenAPI spec, authentication, quickstart requests, and the open-source repository.",
     url: "/developers",
@@ -79,7 +79,7 @@ const QUICKSTART = [
     id: "capture",
     title: "1. Capture a live page",
     body: "This anonymous utility accepts a URL and returns a base64 PNG.",
-    code: `curl -s -X POST https://www.screenshot-studio.com/api/screenshot \\
+    code: `curl -s -X POST https://shots.playbookmedia.io/api/screenshot \\
   -H "Content-Type: application/json" \\
   -d '{"url":"https://example.com","deviceType":"desktop"}' \\
   | jq -r .screenshot | base64 -d > shot.png`,
@@ -88,7 +88,7 @@ const QUICKSTART = [
     id: "optimize",
     title: "2. Optimize the export",
     body: "Send the image back through Sharp to recompress it as WebP.",
-    code: `curl -s -X POST https://www.screenshot-studio.com/api/export \\
+    code: `curl -s -X POST https://shots.playbookmedia.io/api/export \\
   -F "image=@shot.png" \\
   -F "format=webp" \\
   -F "qualityPreset=high" \\
@@ -104,7 +104,7 @@ const QUICKSTART = [
   "message": "URL is required",
   "hint": "Send a JSON body with a \\"url\\" string.",
   "status": 400,
-  "documentation": "https://www.screenshot-studio.com/docs#errors"
+  "documentation": "https://shots.playbookmedia.io/docs#errors"
 }`,
   },
 ];
@@ -119,10 +119,10 @@ export default function DevelopersPage() {
           className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl"
           style={{ fontFamily: INTER }}
         >
-          Screenshot Studio Developer Portal
+          Shots Developer Portal
         </h1>
         <p className="mb-12 text-lg leading-relaxed text-muted-foreground">
-          Screenshot Studio is an open-source screenshot editor and workspace
+          Shots is an open-source screenshot editor and workspace
           platform with anonymous utility endpoints and an authenticated tenant
           REST API. Scalar provides an interactive reference, the contract is
           published as OpenAPI 3.1, and the application is Apache 2.0 on GitHub.
@@ -237,7 +237,7 @@ npm run dev`}</code>
               serves Markdown when asked:
             </p>
             <pre className={codeBlockClassName}>
-              <code>{`curl -H "Accept: text/markdown" https://www.screenshot-studio.com/docs`}</code>
+              <code>{`curl -H "Accept: text/markdown" https://shots.playbookmedia.io/docs`}</code>
             </pre>
           </section>
 

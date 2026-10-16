@@ -380,7 +380,7 @@ func (a *App) request(ctx context.Context, method, target, authorization, accept
 	}
 	request.Header.Set("Accept", accept)
 	request.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-	request.Header.Set("User-Agent", "screenshot-studio-github-app")
+	request.Header.Set("User-Agent", "shots-github-app")
 	if authorization != "" {
 		request.Header.Set("Authorization", authorization)
 	}

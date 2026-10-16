@@ -227,7 +227,7 @@ smoke() {
     --header 'content-type: application/json' --data '{}' \
     http://127.0.0.1:3000/api/screenshot/invalidate)" == "401" ]]
   [[ "$(curl --silent --output /dev/null --write-out '%{http_code}' --request POST \
-    --header "x-screenshot-studio-maintenance-secret: $CLEANUP_SECRET" \
+    --header "x-shots-maintenance-secret: $CLEANUP_SECRET" \
     --header 'content-type: application/json' --data '{"url":"not-a-url"}' \
     http://127.0.0.1:3000/api/screenshot/invalidate)" == "400" ]]
   rate_limit_smoke

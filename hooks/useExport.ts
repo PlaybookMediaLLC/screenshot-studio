@@ -284,7 +284,7 @@ export function useExport(selectedAspectRatio: string) {
       anim.set(96)
       const fileExtension =
         settings.format === 'jpeg' ? 'jpg' : settings.format === 'webp' ? 'webp' : 'png'
-      const fileName = `screenshot-studio-${Date.now()}.${fileExtension}`
+      const fileName = `shots-${Date.now()}.${fileExtension}`
 
       try {
         await saveExportedImage(

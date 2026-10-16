@@ -419,7 +419,7 @@ export function AvailabilityPill({ status }: { status: Availability }) {
   )
 }
 
-/** A centered pull quote with its source, for principle and RFC citations. */
+/** A centered pull quote with its source, for principle citations. */
 export function PullQuote({ quote, source }: { quote: string; source: string }) {
   return (
     <figure className="bg-[#111] px-6 py-16 text-center sm:px-16 sm:py-20">

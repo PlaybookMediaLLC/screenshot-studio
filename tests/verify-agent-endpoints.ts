@@ -43,7 +43,7 @@ const CHECKS: Check[] = [
     headers: { Accept: "text/markdown;q=0.9, text/html;q=0.1" },
     expectStatus: 200,
     expectHeaders: { "content-type": /text\/markdown/ },
-    expectBody: [/# Screenshot Studio API Documentation/],
+    expectBody: [/# Shots API Documentation/],
   },
   {
     name: "direct markdown route ignores spoofed routing headers",
@@ -54,7 +54,7 @@ const CHECKS: Check[] = [
       "content-type": /text\/markdown/,
       vary: /\bAccept\b(?!-)/i,
     },
-    expectBody: [/# Screenshot Studio API Documentation/],
+    expectBody: [/# Shots API Documentation/],
   },
   {
     name: "browser Accept still gets HTML",
@@ -92,7 +92,7 @@ const CHECKS: Check[] = [
     path: "/api-reference",
     expectStatus: 200,
     expectHeaders: { "content-type": /text\/html/ },
-    expectBody: [/Screenshot Studio API Reference/, /\/openapi\.json/, /scalar/i],
+    expectBody: [/Shots API Reference/, /\/openapi\.json/, /scalar/i],
   },
   {
     name: "/openapi.json serves the spec",
@@ -141,7 +141,7 @@ const CHECKS: Check[] = [
     name: "/docs renders",
     path: "/docs",
     expectStatus: 200,
-    expectBody: [/Screenshot Studio API Documentation/, /operationId/],
+    expectBody: [/Shots API Documentation/, /operationId/],
   },
   {
     name: "/docs/authentication renders",

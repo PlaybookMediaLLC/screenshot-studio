@@ -228,12 +228,12 @@ export function EditorTopBar({ title, description, shortcuts, frameExport }: Edi
       <div className="flex items-center gap-2">
         <Link
           href="/"
-          aria-label="Choose a Screenshot Studio tool"
+          aria-label="Choose a Shots tool"
           className="shrink-0 transition-opacity hover:opacity-80"
         >
           <Image
             src="/logo-mark.png"
-            alt="Screenshot Studio"
+            alt="Shots"
             width={28}
             height={28}
             className="h-7 w-7"
@@ -242,7 +242,7 @@ export function EditorTopBar({ title, description, shortcuts, frameExport }: Edi
         </Link>
         <span className="text-sm font-medium text-white/90">{title}</span>
         <span className="hidden text-xs text-white/40 sm:inline">
-          by Screenshot Studio
+          by Shots
         </span>
       </div>
 

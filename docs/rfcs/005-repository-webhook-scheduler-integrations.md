@@ -226,9 +226,9 @@ The customer sends an event in this minimum shape:
 The request carries three headers:
 
 ```text
-X-Screenshot-Studio-Event-Id: <unique event id>
-X-Screenshot-Studio-Timestamp: 2026-08-13T15:04:05Z
-X-Screenshot-Studio-Signature: v1=<hex HMAC-SHA-256 of "<event id>.<timestamp>.<raw body>">
+X-Shots-Event-Id: <unique event id>
+X-Shots-Timestamp: 2026-08-13T15:04:05Z
+X-Shots-Signature: v1=<hex HMAC-SHA-256 of "<event id>.<timestamp>.<raw body>">
 ```
 
 The signature binds the event ID and timestamp to the exact body, so a
@@ -262,10 +262,10 @@ connection.revoked
 Every delivery uses a versioned JSON envelope and signed headers:
 
 ```text
-X-Screenshot-Studio-Event: distribution.published
-X-Screenshot-Studio-Delivery: evt_...
-X-Screenshot-Studio-Timestamp: 2026-08-13T15:04:05Z
-X-Screenshot-Studio-Signature: v1=<HMAC-SHA-256>
+X-Shots-Event: distribution.published
+X-Shots-Delivery: evt_...
+X-Shots-Timestamp: 2026-08-13T15:04:05Z
+X-Shots-Signature: v1=<HMAC-SHA-256>
 ```
 
 The signature covers timestamp and the exact raw body. Receivers must reject an

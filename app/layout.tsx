@@ -263,8 +263,8 @@ const fontVariables = [
 
 export const metadata: Metadata = {
   title: {
-    default: 'Screenshot Studio - Screenshot Beautifier & Mockup Maker',
-    template: '%s | Screenshot Studio',
+    default: 'Shots - Screenshot Beautifier & Mockup Maker',
+    template: '%s | Shots',
   },
   // Add your Google Search Console verification code here
   // Get it from: https://search.google.com/search-console
@@ -282,7 +282,7 @@ export const metadata: Metadata = {
     'online screenshot editor',
     'screenshot beautifier',
     'screenshot editor',
-    'screenshot studio',
+    'shots',
     'free image editor',
     'online image editor',
     // Competitor & alternative keywords
@@ -357,9 +357,9 @@ export const metadata: Metadata = {
     'free online screenshot beautifier',
     'image presentation maker',
   ],
-  authors: [{ name: 'Screenshot Studio', url: SITE_URL }],
-  creator: 'Screenshot Studio',
-  publisher: 'Screenshot Studio',
+  authors: [{ name: 'Shots', url: SITE_URL }],
+  creator: 'Shots',
+  publisher: 'Shots',
   metadataBase: new URL(SITE_URL),
   alternates: {
     canonical: '/',
@@ -368,26 +368,24 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: '/',
-    siteName: 'Screenshot Studio',
-    title: 'Screenshot Studio - Free Screenshot Editor Online',
+    siteName: 'Shots',
+    title: 'Shots - Free Screenshot Editor Online',
     description: `Screenshot editor online: create stunning social media graphics in seconds. ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, animations, 3D effects, and video export. Free workspace plan available.`,
     images: [
       {
         url: `${SITE_URL}/og.jpg`,
         width: 1200,
         height: 630,
-        alt: 'Screenshot Studio - Transform Screenshots into Professional Graphics',
+        alt: 'Shots - Launch what you shipped.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Screenshot Studio - Free Screenshot Editor Online',
+    title: 'Shots - Free Screenshot Editor Online',
     description:
       'Free screenshot editor online — transform screenshots into stunning graphics. Animations, 3D effects, video export. No signup.',
     images: [`${SITE_URL}/og.jpg`],
-    creator: '@screenshotstdio',
-    site: '@screenshotstdio',
   },
   robots: {
     index: true,

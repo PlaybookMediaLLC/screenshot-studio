@@ -32,7 +32,7 @@ export function FoundersPage() {
   return (
     <MarketingShell finale={{ lead: 'You shipped it.', trail: 'Now say so.' }}>
       <PageHero
-        body="You build the product, review the pull requests, and answer the support email. The launch post waits for a free afternoon that never comes. Screenshot Studio drafts it from the release you already wrote."
+        body="You build the product, review the pull requests, and answer the support email. The launch post waits for a free afternoon that never comes. Shots drafts it from the release you already wrote."
         eyebrow={{ href: '/use-cases', label: 'Founders', parent: 'Solutions' }}
         lead="You are the engineer, the PM,"
         location="founders_hero"

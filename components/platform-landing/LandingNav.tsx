@@ -61,7 +61,7 @@ export function LandingNav() {
           <Link className="flex shrink-0 items-center gap-2.5" href="/landing">
             <Image alt="" className="size-7" height={28} priority src="/logo-mark.png" width={28} />
             <span className="text-[15px] font-medium tracking-[-0.02em] text-white">
-              Screenshot Studio
+              Shots
             </span>
           </Link>
           <ul className="hidden items-center gap-1 text-[15px] lg:flex">
@@ -108,7 +108,7 @@ export function LandingNav() {
           </ul>
           <div className="ml-auto flex items-center gap-2 sm:gap-4">
             <a
-              aria-label="Screenshot Studio on GitHub"
+              aria-label="Shots on GitHub"
               className="hidden size-9 items-center justify-center rounded-full text-white/55 transition-colors hover:text-white sm:inline-flex"
               href={GITHUB_URL}
               rel="noopener noreferrer"

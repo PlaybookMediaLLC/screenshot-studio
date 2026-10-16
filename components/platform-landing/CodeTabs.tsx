@@ -16,7 +16,7 @@ const TAB = codeTabSchema.enum
 const EXAMPLES: Record<CodeTab, { label: string; code: string; response: string }> = {
   curl: {
     label: 'cURL',
-    code: `curl https://www.screenshot-studio.com/api/v1/releases \\
+    code: `curl https://shots.playbookmedia.io/api/v1/releases \\
   -H "x-api-key: $SCREENSHOT_STUDIO_API_KEY" \\
   -H "Idempotency-Key: release-v2.4.0" \\
   -H "Content-Type: application/json" \\
@@ -36,7 +36,7 @@ const EXAMPLES: Record<CodeTab, { label: string; code: string; response: string 
   },
   typescript: {
     label: 'TypeScript',
-    code: `const res = await fetch('https://www.screenshot-studio.com/api/v1/releases', {
+    code: `const res = await fetch('https://shots.playbookmedia.io/api/v1/releases', {
   method: 'POST',
   headers: {
     'x-api-key': process.env.SCREENSHOT_STUDIO_API_KEY!,
@@ -57,13 +57,13 @@ const { created, release } = await res.json()`,
   webhook: {
     label: 'GitHub webhook',
     code: `# GitHub › Settings › Webhooks › Add webhook
-Payload URL   https://www.screenshot-studio.com/api/webhooks/source/{sourceAppId}
+Payload URL   https://shots.playbookmedia.io/api/webhooks/source/{sourceAppId}
 Content type  application/json
 Secret        your source app secret   # verified as X-Hub-Signature-256
 Events        Releases
 
 # GitLab sends webhook-signature, any other pipeline signs
-# X-Screenshot-Studio-Signature over the exact body bytes.`,
+# X-Shots-Signature over the exact body bytes.`,
     response: `201 Created  { "created": true, "releaseId": "cm…" }
 # Redeliveries are deduplicated by X-GitHub-Delivery.`,
   },

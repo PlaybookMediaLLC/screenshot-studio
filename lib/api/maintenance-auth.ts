@@ -5,7 +5,7 @@ import { getPlatformApiEnvironment } from '@/lib/api/environment'
 import { platformHeaders } from '@/lib/api/request-context'
 
 /** Header that carries the operator maintenance secret. */
-export const MAINTENANCE_SECRET_HEADER = platformHeaders['x-screenshot-studio-maintenance-secret']
+export const MAINTENANCE_SECRET_HEADER = platformHeaders['x-shots-maintenance-secret']
 
 /** Whether the request carries the maintenance secret, compared in constant time. */
 export function hasMaintenanceAccess(request: NextRequest): boolean {

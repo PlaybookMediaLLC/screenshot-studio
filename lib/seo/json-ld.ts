@@ -14,28 +14,15 @@ import {
   atLeast,
 } from "@/lib/seo/product-facts";
 
-const BASE_URL = "https://www.screenshot-studio.com";
+const BASE_URL = "https://shots.playbookmedia.io";
 
-export const PERSON_ID = `${BASE_URL}/#founder`;
-
-export function getFounderSchema() {
-  return {
-    "@type": "Person",
-    "@id": PERSON_ID,
-    name: "Kartik Labhshetwar",
-    url: `${BASE_URL}/about`,
-    sameAs: [
-      "https://x.com/code_kartik",
-      "https://github.com/KartikLabhshetwar",
-    ],
-  };
-}
+export const ORGANIZATION_ID = `${BASE_URL}/#organization`;
 
 export function getOrganizationSchema() {
   return {
     "@type": "Organization",
-    "@id": `${BASE_URL}/#organization`,
-    name: "Screenshot Studio",
+    "@id": ORGANIZATION_ID,
+    name: "Shots",
     url: BASE_URL,
     logo: {
       "@type": "ImageObject",
@@ -43,21 +30,13 @@ export function getOrganizationSchema() {
       width: 512,
       height: 512,
     },
-    sameAs: [
-      "https://github.com/PlaybookMediaLLC/screenshot-studio",
-      "https://x.com/screenshotstdio",
-    ],
-    founder: { "@id": PERSON_ID },
-    email: "kartik.labhshetwar@gmail.com",
-    address: {
-      "@type": "PostalAddress",
-      addressCountry: "IN",
-    },
+    sameAs: ["https://github.com/PlaybookMediaLLC/screenshot-studio"],
+    email: "team@playbookmedia.io",
     contactPoint: [
       {
         "@type": "ContactPoint",
         contactType: "customer support",
-        email: "kartik.labhshetwar@gmail.com",
+        email: "team@playbookmedia.io",
         url: `${BASE_URL}/contact`,
         availableLanguage: [
           "English",
@@ -74,7 +53,7 @@ export function getOrganizationSchema() {
         "@type": "ContactPoint",
         contactType: "technical support",
         url: "https://github.com/PlaybookMediaLLC/screenshot-studio/issues",
-        email: "kartik.labhshetwar@gmail.com",
+        email: "team@playbookmedia.io",
       },
     ],
     description:
@@ -87,7 +66,7 @@ export function getWebSiteSchema() {
     "@type": "WebSite",
     "@id": `${BASE_URL}/#website`,
     url: BASE_URL,
-    name: "Screenshot Studio",
+    name: "Shots",
     publisher: {
       "@id": `${BASE_URL}/#organization`,
     },
@@ -99,14 +78,14 @@ export function getSoftwareApplicationSchema() {
   return {
     "@type": "SoftwareApplication",
     "@id": `${BASE_URL}/#application`,
-    name: "Screenshot Studio",
+    name: "Shots",
     url: BASE_URL,
     applicationCategory: "DesignApplication",
     applicationSubCategory: "Screenshot Editor",
     operatingSystem: "Any (Web Browser)",
     softwareHelp: {
       "@type": "CreativeWork",
-      name: "Screenshot Studio API Documentation",
+      name: "Shots API Documentation",
       url: `${BASE_URL}/docs`,
     },
     offers: {
@@ -117,8 +96,8 @@ export function getSoftwareApplicationSchema() {
     softwareVersion: LATEST_VERSION,
     dateModified: LAST_UPDATED_ISO,
     releaseNotes: `${BASE_URL}/changelog`,
-    author: { "@id": PERSON_ID },
-    publisher: { "@id": `${BASE_URL}/#organization` },
+    author: { "@id": ORGANIZATION_ID },
+    publisher: { "@id": ORGANIZATION_ID },
     license: "https://www.apache.org/licenses/LICENSE-2.0",
     featureList: [
       `${atLeast(PRODUCT_FACTS.backgrounds)} gradient, mesh, and solid backgrounds`,
@@ -142,7 +121,6 @@ export function getRootJsonLd() {
   return {
     "@context": "https://schema.org",
     "@graph": [
-      getFounderSchema(),
       getOrganizationSchema(),
       getWebSiteSchema(),
       getSoftwareApplicationSchema(),

@@ -125,7 +125,7 @@ export function DesignPartnersPage() {
           </ul>
           <PullQuote
             quote="A founder who runs onboarding once and never comes back received a demo, not a product."
-            source="RFC 021, measurement"
+            source="Measurement"
           />
         </div>
       </Section>

@@ -40,12 +40,12 @@ const EXPORT_STEP = {
 
 const UPLOAD_STEP = {
   title: "Open the editor and add your screenshot",
-  body: "Go to screenshot-studio.com/editor and paste with Cmd+V (Ctrl+V on Windows), drag the file onto the page, or click to browse. PNG, JPG, and WebP files up to 100MB work, and there is no account to create.",
+  body: "Go to shots.playbookmedia.io/editor and paste with Cmd+V (Ctrl+V on Windows), drag the file onto the page, or click to browse. PNG, JPG, and WebP files up to 100MB work, and there is no account to create.",
 };
 
 const NO_WATERMARK_FAQ = {
   q: "Will my screenshot have a watermark?",
-  a: "No. Every export from Screenshot Studio is clean, at every resolution, with no account and no paid plan.",
+  a: "No. Every export from Shots is clean, at every resolution, with no account and no paid plan.",
 };
 
 const PRIVACY_FAQ = {
@@ -71,7 +71,7 @@ export const howToGuides: HowToGuide[] = [
       "screenshot editor without watermark",
     ],
     answer:
-      "To edit a screenshot online, paste it into a browser editor such as Screenshot Studio, use the Design tab to add text, arrows, shapes, or blur, pick a background from the BG tab, and export a PNG, JPEG, or WebP. It is free, needs no signup, and adds no watermark.",
+      "To edit a screenshot online, paste it into a browser editor such as Shots, use the Design tab to add text, arrows, shapes, or blur, pick a background from the BG tab, and export a PNG, JPEG, or WebP. It is free, needs no signup, and adds no watermark.",
     cta: EDITOR_CTA,
     steps: [
       UPLOAD_STEP,
@@ -94,7 +94,7 @@ export const howToGuides: HowToGuide[] = [
         heading: "What you can change in a screenshot editor",
         paragraphs: [
           "A screenshot editor is built for one job: making a capture clear enough to share. That usually means pointing at something, hiding something, and making the whole image look intentional instead of cropped out of a busy desktop.",
-          "Screenshot Studio covers all three in one page. It works on the screenshot you already have, so there is nothing to install and nothing to capture again.",
+          "Shots covers all three in one page. It works on the screenshot you already have, so there is nothing to install and nothing to capture again.",
         ],
         bullets: [
           "Point: arrows, curved arrows, lines, rectangles, and circles in 12 preset colors or any custom color, with stroke widths from 1 to 24px.",
@@ -120,12 +120,12 @@ export const howToGuides: HowToGuide[] = [
     faqs: [
       {
         q: "What is the best free screenshot editor online?",
-        a: "For most people, a browser editor is enough. Screenshot Studio is free and open source, runs in any modern browser, and covers text, arrows, blur, backgrounds, frames, 3D, and video export without a watermark. If you only need to crop, the editor built into your operating system is fine.",
+        a: "For most people, a browser editor is enough. Shots is free and open source, runs in any modern browser, and covers text, arrows, blur, backgrounds, frames, 3D, and video export without a watermark. If you only need to crop, the editor built into your operating system is fine.",
       },
       NO_WATERMARK_FAQ,
       {
         q: "Can I edit screenshots on my phone?",
-        a: "Screenshot Studio is designed for a laptop or desktop browser, where there is room for the canvas and the panels. On a phone, your built-in photo editor is quicker for simple crops and markup.",
+        a: "Shots is designed for a laptop or desktop browser, where there is room for the canvas and the panels. On a phone, your built-in photo editor is quicker for simple crops and markup.",
       },
       PRIVACY_FAQ,
     ],
@@ -146,7 +146,7 @@ export const howToGuides: HowToGuide[] = [
       "put text on screenshot",
     ],
     answer:
-      "Open the screenshot in Screenshot Studio, go to the Add Text section in the Design tab, type your caption, then set the font, weight, size, color, and position. Add a shadow if the text sits on a busy area, and export as PNG. It is free and adds no watermark.",
+      "Open the screenshot in Shots, go to the Add Text section in the Design tab, type your caption, then set the font, weight, size, color, and position. Add a shadow if the text sits on a busy area, and export as PNG. It is free and adds no watermark.",
     cta: EDITOR_CTA,
     steps: [
       UPLOAD_STEP,
@@ -184,7 +184,7 @@ export const howToGuides: HowToGuide[] = [
       {
         heading: "Adding text vs changing text",
         paragraphs: [
-          "Screenshot Studio adds new text layers on top of your image. It does not detect or rewrite text that is already inside the screenshot. That keeps captures honest: labels and captions explain what is on screen without changing what the screen showed.",
+          "Shots adds new text layers on top of your image. It does not detect or rewrite text that is already inside the screenshot. That keeps captures honest: labels and captions explain what is on screen without changing what the screen showed.",
           "If you need to hide something in the original, such as a name or an email address, use the blur tool instead.",
         ],
       },
@@ -192,7 +192,7 @@ export const howToGuides: HowToGuide[] = [
     faqs: [
       {
         q: "How do I add text to a screenshot for free?",
-        a: "Paste the screenshot into screenshot-studio.com/editor, open Add Text in the Design tab, type your text, style it, and export. There is no signup and no watermark.",
+        a: "Paste the screenshot into shots.playbookmedia.io/editor, open Add Text in the Design tab, type your text, style it, and export. There is no signup and no watermark.",
       },
       {
         q: "Which fonts can I use?",
@@ -200,7 +200,7 @@ export const howToGuides: HowToGuide[] = [
       },
       {
         q: "Can I edit the original text inside a screenshot?",
-        a: "No. Screenshot Studio adds text on top of your image and does not change the text that was captured. To hide existing text, blur or mosaic that area instead.",
+        a: "No. Shots adds text on top of your image and does not change the text that was captured. To hide existing text, blur or mosaic that area instead.",
       },
       NO_WATERMARK_FAQ,
     ],
@@ -222,7 +222,7 @@ export const howToGuides: HowToGuide[] = [
       "mosaic screenshot",
     ],
     answer:
-      "Open the screenshot in Screenshot Studio, choose Blur in the Draw & Markup section of the Design tab, and drag a box over each area you want to hide. Switch any region between Blur and Mosaic and raise the amount until the text cannot be read, then export.",
+      "Open the screenshot in Shots, choose Blur in the Draw & Markup section of the Design tab, and drag a box over each area you want to hide. Switch any region between Blur and Mosaic and raise the amount until the text cannot be read, then export.",
     cta: EDITOR_CTA,
     steps: [
       UPLOAD_STEP,
@@ -268,7 +268,7 @@ export const howToGuides: HowToGuide[] = [
     faqs: [
       {
         q: "How do I blur part of a screenshot for free?",
-        a: "Open the image in screenshot-studio.com/editor, pick Blur under Draw & Markup, drag over the area, and export. There is no signup and no watermark.",
+        a: "Open the image in shots.playbookmedia.io/editor, pick Blur under Draw & Markup, drag over the area, and export. There is no signup and no watermark.",
       },
       {
         q: "Can I pixelate instead of blur?",
@@ -298,7 +298,7 @@ export const howToGuides: HowToGuide[] = [
       "highlight screenshot",
     ],
     answer:
-      "Paste the screenshot into Screenshot Studio, open Draw & Markup in the Design tab, and use Arrow, Curve, Line, Rect, or Circle to point at what matters. Pick a color and stroke width, add a short label with Add Text, blur anything private, and export.",
+      "Paste the screenshot into Shots, open Draw & Markup in the Design tab, and use Arrow, Curve, Line, Rect, or Circle to point at what matters. Pick a color and stroke width, add a short label with Add Text, blur anything private, and export.",
     cta: EDITOR_CTA,
     steps: [
       UPLOAD_STEP,
@@ -343,7 +343,7 @@ export const howToGuides: HowToGuide[] = [
     faqs: [
       {
         q: "How do I add an arrow to a screenshot?",
-        a: "Open the screenshot in screenshot-studio.com/editor, choose Arrow or Curve under Draw & Markup in the Design tab, and drag from where the arrow should start to where it should point.",
+        a: "Open the screenshot in shots.playbookmedia.io/editor, choose Arrow or Curve under Draw & Markup in the Design tab, and drag from where the arrow should start to where it should point.",
       },
       {
         q: "Can I highlight part of a screenshot?",
@@ -373,7 +373,7 @@ export const howToGuides: HowToGuide[] = [
       "pretty screenshot",
     ],
     answer:
-      "To make a screenshot look professional, give it breathing room and depth: place it on a gradient or wallpaper background, add padding, round the corners, and add a soft shadow. In Screenshot Studio that takes under a minute, and Design Themes apply a full look in one click.",
+      "To make a screenshot look professional, give it breathing room and depth: place it on a gradient or wallpaper background, add padding, round the corners, and add a soft shadow. In Shots that takes under a minute, and Design Themes apply a full look in one click.",
     cta: EDITOR_CTA,
     steps: [
       UPLOAD_STEP,
@@ -419,7 +419,7 @@ export const howToGuides: HowToGuide[] = [
     faqs: [
       {
         q: "What is a screenshot beautifier?",
-        a: "A screenshot beautifier wraps a plain capture in a background, padding, rounded corners, and a shadow so it looks ready to publish. Screenshot Studio does this for free in the browser, and adds browser frames, device mockups, 3D, and animation.",
+        a: "A screenshot beautifier wraps a plain capture in a background, padding, rounded corners, and a shadow so it looks ready to publish. Shots does this for free in the browser, and adds browser frames, device mockups, 3D, and animation.",
       },
       {
         q: "How many backgrounds are there?",
@@ -448,7 +448,7 @@ export const howToGuides: HowToGuide[] = [
       "screenshot video maker",
     ],
     answer:
-      "Open your screenshot in Screenshot Studio, click Animate under the canvas or open the Motion tab, and pick a preset such as Hero Landing, Slide In 3D, or Ken Burns Zoom In. Adjust the timeline length, then use Export Video to save an MP4 or WebM rendered at 60fps.",
+      "Open your screenshot in Shots, click Animate under the canvas or open the Motion tab, and pick a preset such as Hero Landing, Slide In 3D, or Ken Burns Zoom In. Adjust the timeline length, then use Export Video to save an MP4 or WebM rendered at 60fps.",
     cta: EDITOR_CTA,
     steps: [
       UPLOAD_STEP,
@@ -492,7 +492,7 @@ export const howToGuides: HowToGuide[] = [
     faqs: [
       {
         q: "Can I turn a screenshot into a video for free?",
-        a: "Yes. Screenshot Studio exports MP4 and WebM videos for free, with no watermark and no account.",
+        a: "Yes. Shots exports MP4 and WebM videos for free, with no watermark and no account.",
       },
       {
         q: "How long can the animation be?",
@@ -524,7 +524,7 @@ export const howToGuides: HowToGuide[] = [
       "perspective mockup online",
     ],
     answer:
-      "Upload your screenshot to Screenshot Studio, open the 3D tab on the right, and pick a Layout Preset such as SaaS Hero or Isometric. Fine-tune with Rotate X, Rotate Y, Rotate Z, Depth, and Scale, add a background and shadow, and export a PNG or turn it into a video.",
+      "Upload your screenshot to Shots, open the 3D tab on the right, and pick a Layout Preset such as SaaS Hero or Isometric. Fine-tune with Rotate X, Rotate Y, Rotate Z, Depth, and Scale, add a background and shadow, and export a PNG or turn it into a video.",
     cta: EDITOR_CTA,
     steps: [
       UPLOAD_STEP,
@@ -569,7 +569,7 @@ export const howToGuides: HowToGuide[] = [
     faqs: [
       {
         q: "How do I make a screenshot 3D for free?",
-        a: "Open it in screenshot-studio.com/editor, choose a preset in the 3D tab, adjust the rotation, and export. There is no signup and no watermark.",
+        a: "Open it in shots.playbookmedia.io/editor, choose a preset in the 3D tab, adjust the rotation, and export. There is no signup and no watermark.",
       },
       {
         q: "Can I make an isometric screenshot?",
@@ -598,7 +598,7 @@ export const howToGuides: HowToGuide[] = [
       "screenshot in phone frame",
     ],
     answer:
-      "Upload your screenshot to Screenshot Studio, switch the toggle at the top of the Design tab to Device, and pick a Phone, Watch, or Laptop frame such as iPhone 17 Pro or MacBook Pro. Choose a layout, add a background, and export. It is free with no watermark.",
+      "Upload your screenshot to Shots, switch the toggle at the top of the Design tab to Device, and pick a Phone, Watch, or Laptop frame such as iPhone 17 Pro or MacBook Pro. Choose a layout, add a background, and export. It is free with no watermark.",
     cta: { href: "/mockup-generator", label: "Open the mockup generator" },
     steps: [
       UPLOAD_STEP,
@@ -641,11 +641,11 @@ export const howToGuides: HowToGuide[] = [
     faqs: [
       {
         q: "Is the iPhone mockup free?",
-        a: "Yes. Every device frame and layout in Screenshot Studio is free, with no account and no watermark.",
+        a: "Yes. Every device frame and layout in Shots is free, with no account and no watermark.",
       },
       {
         q: "Are there Android or iPad frames?",
-        a: "Not yet. Screenshot Studio covers iPhone, MacBook, and Apple Watch. Our best free mockup generators guide lists tools with Android and iPad frames.",
+        a: "Not yet. Shots covers iPhone, MacBook, and Apple Watch. Our best free mockup generators guide lists tools with Android and iPad frames.",
       },
       {
         q: "Can I show more than one device?",
@@ -673,7 +673,7 @@ export const howToGuides: HowToGuide[] = [
       "website screenshot mockup",
     ],
     answer:
-      "Upload your website screenshot to Screenshot Studio, switch the toggle at the top of the Design tab to Browser, and pick Safari, Safari Dark, Chrome, or Chrome Dark. Type your URL into the address bar field, adjust the header size, add a background, and export.",
+      "Upload your website screenshot to Shots, switch the toggle at the top of the Design tab to Browser, and pick Safari, Safari Dark, Chrome, or Chrome Dark. Type your URL into the address bar field, adjust the header size, add a background, and export.",
     cta: EDITOR_CTA,
     steps: [
       {
@@ -740,7 +740,7 @@ export const howToGuides: HowToGuide[] = [
       "instagram post size",
     ],
     answer:
-      "Instagram crops screenshots that do not match its ratios. Put the screenshot on a 1080x1350 (4:5) canvas for feed posts, 1080x1080 for square posts, or 1080x1920 (9:16) for Stories and Reels. Screenshot Studio has these as presets, adds a background around the screenshot so nothing is cut off, and exports with no watermark.",
+      "Instagram crops screenshots that do not match its ratios. Put the screenshot on a 1080x1350 (4:5) canvas for feed posts, 1080x1080 for square posts, or 1080x1920 (9:16) for Stories and Reels. Shots has these as presets, adds a background around the screenshot so nothing is cut off, and exports with no watermark.",
     cta: EDITOR_CTA,
     steps: [
       UPLOAD_STEP,
@@ -762,7 +762,7 @@ export const howToGuides: HowToGuide[] = [
       {
         heading: "Instagram sizes at a glance",
         paragraphs: [
-          "These are the canvas presets built into Screenshot Studio. Export at 1x for the exact pixel size, or 2x for extra sharpness that Instagram will scale down.",
+          "These are the canvas presets built into Shots. Export at 1x for the exact pixel size, or 2x for extra sharpness that Instagram will scale down.",
         ],
         bullets: [
           "Feed portrait: 1080x1350 (4:5). Takes up the most room in the feed, so it is usually the best choice.",
@@ -781,7 +781,7 @@ export const howToGuides: HowToGuide[] = [
     faqs: [
       {
         q: "What size should a screenshot be for Instagram?",
-        a: "Use 1080x1350 for feed posts, 1080x1080 for square posts, and 1080x1920 for Stories and Reels. Screenshot Studio has presets for each.",
+        a: "Use 1080x1350 for feed posts, 1080x1080 for square posts, and 1080x1920 for Stories and Reels. Shots has presets for each.",
       },
       {
         q: "How do I post a screenshot on Instagram without it getting cropped?",
@@ -810,7 +810,7 @@ export const howToGuides: HowToGuide[] = [
       "app screenshot maker",
     ],
     answer:
-      "App Store Connect accepts 1320x2868 portrait screenshots for 6.9-inch iPhone displays, and Apple scales that set down for smaller iPhones. Screenshot Studio's App Store screenshot generator outputs exactly 1320x2868, with 1 to 10 slides and six templates. The main editor also has presets for 6.5-inch and 5.5-inch iPhones and 12.9-inch iPad Pro.",
+      "App Store Connect accepts 1320x2868 portrait screenshots for 6.9-inch iPhone displays, and Apple scales that set down for smaller iPhones. Shots' App Store screenshot generator outputs exactly 1320x2868, with 1 to 10 slides and six templates. The main editor also has presets for 6.5-inch and 5.5-inch iPhones and 12.9-inch iPad Pro.",
     cta: { href: "/store-screenshots", label: "Make App Store screenshots" },
     steps: [
       {
@@ -819,7 +819,7 @@ export const howToGuides: HowToGuide[] = [
       },
       {
         title: "Open the App Store screenshot generator",
-        body: "Go to screenshot-studio.com/store-screenshots. Output is fixed at 1320x2868, the iPhone 6.9-inch size.",
+        body: "Go to shots.playbookmedia.io/store-screenshots. Output is fixed at 1320x2868, the iPhone 6.9-inch size.",
       },
       {
         title: "Choose a template",
@@ -838,7 +838,7 @@ export const howToGuides: HowToGuide[] = [
       {
         heading: "Screenshot sizes you can make here",
         paragraphs: [
-          "Apple's exact requirements change as new iPhones ship, so check the Screenshot specifications page in App Store Connect Help before you submit. These are the sizes Screenshot Studio can produce today.",
+          "Apple's exact requirements change as new iPhones ship, so check the Screenshot specifications page in App Store Connect Help before you submit. These are the sizes Shots can produce today.",
         ],
         bullets: [
           "iPhone 6.9-inch: 1320x2868 (App Store screenshot generator).",
@@ -901,7 +901,7 @@ export const howToGuides: HowToGuide[] = [
       "edit screenshot",
     ],
     answer:
-      "Capture the screen straight to your clipboard (Shift+Cmd+Ctrl+4 on Mac, Windows+Shift+S on Windows, Ctrl+Shift+Show windows on Chromebook), then open screenshot-studio.com/editor and press Cmd+V or Ctrl+V. The screenshot opens ready to annotate, blur, style, and export, with no file to save first.",
+      "Capture the screen straight to your clipboard (Shift+Cmd+Ctrl+4 on Mac, Windows+Shift+S on Windows, Ctrl+Shift+Show windows on Chromebook), then open shots.playbookmedia.io/editor and press Cmd+V or Ctrl+V. The screenshot opens ready to annotate, blur, style, and export, with no file to save first.",
     cta: EDITOR_CTA,
     steps: [
       {
@@ -910,7 +910,7 @@ export const howToGuides: HowToGuide[] = [
       },
       {
         title: "Open the editor",
-        body: "Go to screenshot-studio.com/editor in any browser. Bookmark it so the next edit is one click away.",
+        body: "Go to shots.playbookmedia.io/editor in any browser. Bookmark it so the next edit is one click away.",
       },
       {
         title: "Paste",
@@ -958,11 +958,11 @@ export const howToGuides: HowToGuide[] = [
     faqs: [
       {
         q: "How do I screenshot and edit at the same time?",
-        a: "Capture to the clipboard with your system shortcut, then paste into screenshot-studio.com/editor. There is no need to save the file first.",
+        a: "Capture to the clipboard with your system shortcut, then paste into shots.playbookmedia.io/editor. There is no need to save the file first.",
       },
       {
         q: "Can I paste a screenshot anywhere on the site?",
-        a: "Yes. Pasting or dropping an image anywhere on Screenshot Studio opens it in the editor. If the editor already has an image, the new one is added as an extra layer.",
+        a: "Yes. Pasting or dropping an image anywhere on Shots opens it in the editor. If the editor already has an image, the new one is added as an extra layer.",
       },
       {
         q: "How do I crop a screenshot?",
@@ -987,7 +987,7 @@ export const howToGuides: HowToGuide[] = [
       "twitter screenshot generator",
     ],
     answer:
-      "Instead of cropping a screenshot of your feed, paste the post's link into Screenshot Studio's Tweet to image tool. It renders a clean card in light or dark, lets you add a background and padding, and downloads a sharp PNG. It is free and needs no X login.",
+      "Instead of cropping a screenshot of your feed, paste the post's link into Shots' Tweet to image tool. It renders a clean card in light or dark, lets you add a background and padding, and downloads a sharp PNG. It is free and needs no X login.",
     cta: { href: "/tweet", label: "Open Tweet to image" },
     steps: [
       {
@@ -996,7 +996,7 @@ export const howToGuides: HowToGuide[] = [
       },
       {
         title: "Paste it into Tweet to image",
-        body: "Go to screenshot-studio.com/tweet and paste the link. The post appears as a clean card with no feed, replies, or buttons around it.",
+        body: "Go to shots.playbookmedia.io/tweet and paste the link. The post appears as a clean card with no feed, replies, or buttons around it.",
       },
       {
         title: "Style the card",
@@ -1027,7 +1027,7 @@ export const howToGuides: HowToGuide[] = [
     faqs: [
       {
         q: "Do I need to log in to X?",
-        a: "No. Paste a link to a public post and the tool builds the image. There is no X login and no Screenshot Studio account.",
+        a: "No. Paste a link to a public post and the tool builds the image. There is no X login and no Shots account.",
       },
       {
         q: "Can I make a dark mode tweet image?",

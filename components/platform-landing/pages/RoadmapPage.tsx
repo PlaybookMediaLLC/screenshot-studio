@@ -1,11 +1,8 @@
 import { cn } from '@/lib/utils'
 import { MarketingShell, PageHero, PullQuote } from '../blocks'
-import { GITHUB_URL } from '../LandingNav'
 import { MONO, MUTED, Section, SectionIntro } from '../primitives'
 
-const DOC = (file: string) => `${GITHUB_URL}/blob/main/docs/${file}`
-
-type Item = { title: string; body: string; ref: string; href: string }
+type Item = { title: string; body: string }
 
 const COLUMNS: { name: string; tone: string; note: string; items: Item[] }[] = [
   {
@@ -16,44 +13,30 @@ const COLUMNS: { name: string; tone: string; note: string; items: Item[] }[] = [
       {
         title: 'Launch intelligence',
         body: 'Cited spec, plan, visuals and copy, review and revise. Early access.',
-        ref: 'Docs',
-        href: DOC('launch-intelligence.md'),
       },
       {
         title: 'Approval workflow',
         body: 'Server-side states, batch approval, six roles.',
-        ref: 'RFC 019',
-        href: DOC('rfcs/019-approval-workflow.md'),
       },
       {
         title: 'Publishing abstraction',
         body: 'Durable scheduling with receipts behind one provider seam.',
-        ref: 'RFC 020',
-        href: DOC('rfcs/020-postiz-publishing.md'),
       },
       {
         title: 'Campaign objects',
         body: 'Campaigns, angles, and posts as database objects.',
-        ref: 'RFC 014',
-        href: DOC('rfcs/014-structured-marketing-objects.md'),
       },
       {
         title: 'Brand and product surfaces',
         body: 'Brand profile and kits, and the map from features to screens.',
-        ref: 'RFC 011, 013',
-        href: DOC('rfcs/011-brand-profile.md'),
       },
       {
         title: 'Tenancy, auth, and enterprise',
         body: 'Organizations, roles, SSO, SCIM, audit logs, and SIEM drains.',
-        ref: 'RFC 002, 003',
-        href: DOC('rfcs/003-better-auth-enterprise-audit.md'),
       },
       {
         title: 'Release intake',
         body: 'Signed webhooks and the release and asset pipeline.',
-        ref: 'RFC 005, 006',
-        href: DOC('rfcs/005-repository-webhook-scheduler-integrations.md'),
       },
     ],
   },
@@ -65,8 +48,6 @@ const COLUMNS: { name: string; tone: string; note: string; items: Item[] }[] = [
       {
         title: 'REST API and reference',
         body: 'A first-class REST API with an interactive Scalar reference.',
-        ref: 'RFC 034',
-        href: DOC('rfcs/034-rest-api-scalar-reference.md'),
       },
     ],
   },
@@ -78,38 +59,26 @@ const COLUMNS: { name: string; tone: string; note: string; items: Item[] }[] = [
       {
         title: 'Programmable creative engine',
         body: 'The editor as domain services, so the UI, the API, and the agent render the same way.',
-        ref: 'RFC 010',
-        href: DOC('rfcs/010-programmable-creative-engine.md'),
       },
       {
         title: 'Paste a URL, get a profile',
         body: 'Product intelligence and a background onboarding agent with ideal customer profiles.',
-        ref: 'RFC 012, 032',
-        href: DOC('rfcs/032-background-onboarding-agent.md'),
       },
       {
         title: 'The launch recipe',
         body: 'A deterministic, resumable feature-launch pipeline.',
-        ref: 'RFC 015',
-        href: DOC('rfcs/015-feature-launch-recipe.md'),
       },
       {
         title: 'Typed marketing tools',
         body: 'About ten domain tools for an agent with no infrastructure access.',
-        ref: 'RFC 016',
-        href: DOC('rfcs/016-ai-sdk-marketing-tools.md'),
       },
       {
         title: 'Conversation and workspace',
         body: 'One sentence to a draft campaign, in a workspace that works without chat.',
-        ref: 'RFC 017, 018',
-        href: DOC('rfcs/018-campaign-workspace.md'),
       },
       {
         title: 'Three core workflows',
         body: 'Launch something, ship a feature, stay visible, and seven posts at onboarding.',
-        ref: 'RFC 021',
-        href: DOC('rfcs/021-core-workflows.md'),
       },
     ],
   },
@@ -121,51 +90,41 @@ const COLUMNS: { name: string; tone: string; note: string; items: Item[] }[] = [
       {
         title: 'Changes become launches',
         body: 'Merged pull requests suggest campaigns. Deploys capture fresh screens.',
-        ref: 'RFC 022, 023',
-        href: DOC('rfcs/022-github-integration.md'),
       },
       {
         title: 'Demo videos',
         body: 'Captioned demos from captured product flows.',
-        ref: 'RFC 024',
-        href: DOC('rfcs/024-demo-video-generation.md'),
       },
       {
         title: 'Pillars and the weekly plan',
         body: 'Content pillars and a weekly plan approved in one action.',
-        ref: 'RFC 025, 029',
-        href: DOC('rfcs/029-recurring-campaign-generation.md'),
       },
       {
         title: 'Research, analytics, feedback',
         body: 'Cited research, post performance, and plans weighted by what worked.',
-        ref: 'RFC 026, 027, 028',
-        href: DOC('rfcs/028-feedback-driven-generation.md'),
       },
       {
         title: 'Policies and autonomy',
         body: 'Approval policies, then Manual, Copilot, and Autopilot modes.',
-        ref: 'RFC 030, 031',
-        href: DOC('rfcs/031-autonomy-modes.md'),
       },
     ],
   },
 ]
 
 const GENERATIONS = [
-  ['V1', 'Screenshot Studio plus AI creative generation'],
+  ['V1', 'The editor plus AI creative generation'],
   ['V2', 'URL to campaign'],
   ['V3', 'Product changes to campaigns, automatically'],
   ['V4', 'Campaign, publish, performance, next campaign'],
   ['V5', 'Marketing intelligence across GitHub, website, and analytics'],
 ] as const
 
-/** /roadmap: shipped, now, next, and later, each linked to its RFC. */
+/** /roadmap: shipped, now, next, and later. */
 export function RoadmapPage() {
   return (
     <MarketingShell finale={{ lead: 'Help decide', trail: 'what ships next.' }}>
       <PageHero
-        body="The plan is written down and public. Primitives first, then recipes, then the agent. Autonomy comes last, and only as far as your approval policies allow. Every item links to the document behind it."
+        body="The plan is written down and public. Primitives first, then recipes, then the agent. Autonomy comes last, and only as far as your approval policies allow."
         eyebrow={{ label: 'Roadmap' }}
         lead="Today you bring the release."
         location="roadmap_hero"
@@ -185,22 +144,12 @@ export function RoadmapPage() {
               <ul className="mt-8 space-y-3">
                 {column.items.map((item) => (
                   <li key={item.title}>
-                    <a
-                      className="group block bg-[#111] p-4 transition-colors hover:bg-[#161616]"
-                      href={item.href}
-                      rel="noopener noreferrer"
-                      target="_blank"
-                    >
-                      <span className="flex items-baseline justify-between gap-3">
-                        <span className="text-[15px] text-white">{item.title}</span>
-                        <span className={cn(MONO, 'shrink-0 text-[10.5px]', MUTED)}>
-                          {item.ref}
-                        </span>
-                      </span>
+                    <div className="bg-[#111] p-4">
+                      <span className="text-[15px] text-white">{item.title}</span>
                       <span className={cn('mt-1.5 block text-[13.5px] leading-[1.5]', MUTED)}>
                         {item.body}
                       </span>
-                    </a>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -236,7 +185,7 @@ export function RoadmapPage() {
         <div className="mt-24">
           <PullQuote
             quote="When a founder can paste a SaaS URL, get seven good posts with real product screenshots, approve them, and schedule them, we have a product founders can pay for."
-            source="RFC 009, the critical path"
+            source="The critical path"
           />
         </div>
       </Section>

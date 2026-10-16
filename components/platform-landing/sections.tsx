@@ -52,7 +52,7 @@ export function StatsSection() {
         <p className="text-balance text-[24px] leading-[1.3] tracking-[-0.015em] text-white sm:text-[30px]">
           You ship every week. The announcement ships when someone finds a free afternoon.{' '}
           <span className={MUTED}>
-            Screenshot Studio turns the release you already wrote into the launch you never had time
+            Shots turns the release you already wrote into the launch you never had time
             to make.
           </span>
         </p>
@@ -118,7 +118,7 @@ export function ProblemSection() {
           </ul>
         </div>
         <div className="bg-[#111] p-8 sm:p-12">
-          <p className={cn('text-[15px]', MUTED)}>Every release, with Screenshot Studio</p>
+          <p className={cn('text-[15px]', MUTED)}>Every release, with Shots</p>
           <ul className="mt-8 space-y-4">
             {WITH.map((item) => (
               <li className="flex items-center gap-4 text-lg text-white" key={item}>
@@ -749,7 +749,7 @@ export function PricingSection() {
 
 const FAQS = [
   {
-    q: 'What is Screenshot Studio?',
+    q: 'What is Shots?',
     a: 'A launch platform for software teams. You describe a release, or send it from GitHub. It drafts a cited brief, plans the campaign, designs visuals from your real product, and writes channel-ready posts. You approve before anything goes out. Underneath sits the open-source screenshot editor, which stays free.',
   },
   {
@@ -774,7 +774,7 @@ const FAQS = [
   },
   {
     q: 'Do you train models on my content?',
-    a: 'No. Screenshot Studio learns your taste by retrieving your own workspace history at generation time: approved posts, rejected posts with notes, and applied revisions. Nothing is shared across workspaces.',
+    a: 'No. Shots learns your taste by retrieving your own workspace history at generation time: approved posts, rejected posts with notes, and applied revisions. Nothing is shared across workspaces.',
   },
   {
     q: 'Is the editor still free and open source?',

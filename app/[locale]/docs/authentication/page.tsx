@@ -6,18 +6,18 @@ import { OG_DEFAULTS } from "@/lib/seo/metadata";
 import { INTER, codeBlockClassName, linkClassName } from "@/lib/seo/docs-shared";
 
 export const metadata: Metadata = {
-  title: "Screenshot Studio API Authentication",
+  title: "Shots API Authentication",
   description:
-    "Authentication for Screenshot Studio anonymous utility endpoints and workspace-scoped /api/v1 tenant operations.",
+    "Authentication for Shots anonymous utility endpoints and workspace-scoped /api/v1 tenant operations.",
   keywords: [
-    "Screenshot Studio API authentication",
-    "Screenshot Studio API key",
+    "Shots API authentication",
+    "Shots API key",
     "screenshot API rate limit",
     "screenshot API no auth",
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Screenshot Studio API Authentication",
+    title: "Shots API Authentication",
     description:
       "Anonymous editor utilities, workspace API keys, signed-in sessions, and rate-limit semantics.",
     url: "/docs/authentication",
@@ -60,10 +60,10 @@ export default function AuthenticationPage() {
           className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl"
           style={{ fontFamily: INTER }}
         >
-          Screenshot Studio API Authentication
+          Shots API Authentication
         </h1>
         <p className="mb-12 text-lg leading-relaxed text-muted-foreground">
-          Screenshot Studio has two API surfaces. Editor utility endpoints such
+          Shots has two API surfaces. Editor utility endpoints such
           as <code>/api/screenshot</code> are anonymous and shaped by per-IP
           limits. Versioned <code>/api/v1</code> tenant endpoints require a
           workspace API key with the declared scope or a signed-in user session
@@ -84,7 +84,7 @@ export default function AuthenticationPage() {
               to them. A complete capture request looks like this:
             </p>
             <pre className={codeBlockClassName}>
-              <code>{`curl -X POST https://www.screenshot-studio.com/api/screenshot \\
+              <code>{`curl -X POST https://shots.playbookmedia.io/api/screenshot \\
   -H "Content-Type: application/json" \\
   -d '{"url":"https://example.com"}'`}</code>
             </pre>
@@ -105,7 +105,7 @@ export default function AuthenticationPage() {
               feature, and quota where the operation requires them.
             </p>
             <pre className={codeBlockClassName}>
-              <code>{`curl https://www.screenshot-studio.com/api/v1/releases \\
+              <code>{`curl https://shots.playbookmedia.io/api/v1/releases \\
   -H "X-API-Key: $SCREENSHOT_STUDIO_API_KEY"`}</code>
             </pre>
           </section>
@@ -171,7 +171,7 @@ export default function AuthenticationPage() {
   "message": "Rate limit exceeded. Please try again later.",
   "hint": "Wait 42 seconds, then retry. This endpoint allows 20 requests per minute per IP address.",
   "status": 429,
-  "documentation": "https://www.screenshot-studio.com/docs#errors",
+  "documentation": "https://shots.playbookmedia.io/docs#errors",
   "retryAfter": 42
 }`}</code>
             </pre>

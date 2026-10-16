@@ -41,7 +41,7 @@ export function ProductLaunchesPage() {
   return (
     <MarketingShell finale={{ lead: 'Launch day,', trail: 'planned like a release.' }}>
       <PageHero
-        body="A product launch is a week of coordinated posts, not one tweet. Screenshot Studio plans it as a timeline, makes the assets in every format, and holds everything for one review before it goes out."
+        body="A product launch is a week of coordinated posts, not one tweet. Shots plans it as a timeline, makes the assets in every format, and holds everything for one review before it goes out."
         eyebrow={{ href: '/use-cases', label: 'Product launches', parent: 'Use cases' }}
         lead="A launch plan,"
         location="product_launches_hero"

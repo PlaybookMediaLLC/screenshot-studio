@@ -86,7 +86,7 @@ export function EmailLayout({
       <Preview>{preview}</Preview>
       <Body style={styles.body}>
         <Container style={styles.container}>
-          <Text style={styles.wordmark}>Screenshot Studio</Text>
+          <Text style={styles.wordmark}>Shots</Text>
           {children}
           <Hr style={styles.hr} />
           <Section>

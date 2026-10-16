@@ -2,12 +2,12 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
-import { GithubIcon, NewTwitterIcon, Mail01Icon } from "hugeicons-react";
+import { GithubIcon, Mail01Icon } from "hugeicons-react";
 
 export const metadata: Metadata = {
   title: "Contact Us",
   description:
-    "Get in touch with the Screenshot Studio team. Report bugs, suggest features, or just say hi.",
+    "Get in touch with the Shots team. Report bugs, suggest features, or just say hi.",
   alternates: {
     canonical: "/contact",
   },
@@ -40,18 +40,10 @@ const contacts = [
     icon: GithubIcon,
     title: "Request a Feature",
     description:
-      "Have an idea to make Screenshot Studio better? We'd love to hear it.",
+      "Have an idea to make Shots better? We'd love to hear it.",
   },
   {
-    href: "https://x.com/screenshotstdio",
-    external: true,
-    icon: NewTwitterIcon,
-    title: "Twitter / X",
-    description:
-      "Follow @screenshotstdio for release notes, tips, and product updates.",
-  },
-  {
-    href: "mailto:kartik.labhshetwar@gmail.com",
+    href: "mailto:team@playbookmedia.io",
     external: false,
     icon: Mail01Icon,
     title: "Email",
@@ -125,7 +117,7 @@ export default function ContactPage() {
             <Link href="/changelog" className={linkClassName}>
               changelog
             </Link>
-            . Screenshot Studio is free, needs no account, and processes your
+            . Shots is free, needs no account, and processes your
             images in the browser, so there is nothing to cancel and no
             subscription to manage.
           </p>
@@ -145,7 +137,7 @@ export default function ContactPage() {
             Contributing
           </h2>
           <p className="leading-relaxed text-muted-foreground">
-            Screenshot Studio is open source. If you&apos;re a developer and
+            Shots is open source. If you&apos;re a developer and
             want to contribute, check out the{" "}
             <Link
               href="https://github.com/PlaybookMediaLLC/screenshot-studio"
@@ -161,7 +153,7 @@ export default function ContactPage() {
         </section>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

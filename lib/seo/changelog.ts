@@ -332,7 +332,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "1.0.0",
     title: "Complete Revamp",
     description:
-      "A ground-up rebuild of Screenshot Studio with a modern stack, new UI, and powerful new features.",
+      "A ground-up rebuild of Shots with a modern stack, new UI, and powerful new features.",
     changes: [
       {
         type: "added",

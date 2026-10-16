@@ -84,7 +84,7 @@ export function SecurityPage() {
   return (
     <MarketingShell finale={{ lead: 'Every control,', trail: 'written down.' }}>
       <PageHero
-        body="Screenshot Studio is built for the security review. One authorization path for every request, an audit log the application cannot edit, private storage scoped to your organization, and AI that treats the internet as untrusted."
+        body="Shots is built for the security review. One authorization path for every request, an audit log the application cannot edit, private storage scoped to your organization, and AI that treats the internet as untrusted."
         eyebrow={{ label: 'Security' }}
         lead="Every control,"
         location="security_hero"

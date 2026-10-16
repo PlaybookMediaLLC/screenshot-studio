@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 
 const TITLE = "Features: Screenshot & Mockup Tools";
 const DESCRIPTION =
-  "All Screenshot Studio features: screenshot beautifier, browser and device mockups, social media graphics, animations, 3D effects, and code images. Free, no signup.";
+  "All Shots features: screenshot beautifier, browser and device mockups, social media graphics, animations, 3D effects, and code images. Free, no signup.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Features - Screenshot Studio",
+    title: "Features - Shots",
     description:
       "All tools and capabilities in one free editor. Beautify, animate, and transform screenshots.",
     url: "/features",
@@ -219,7 +219,7 @@ export default function FeaturesPage() {
             <SectionTitle>Mockups for every screen</SectionTitle>
             <div className="mt-4 max-w-3xl space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
-                Screenshot Studio is a free mockup maker that runs entirely in
+                Shots is a free mockup maker that runs entirely in
                 your browser. Drop in a screenshot of an app, website, or UI
                 design and turn it into a polished mockup in seconds. No
                 account, no watermark, and nothing to install.
@@ -239,7 +239,7 @@ export default function FeaturesPage() {
                 <Link href="/compare/pika-style" className="text-foreground underline underline-offset-4">
                   Pika Style
                 </Link>
-                , you will feel at home here. Screenshot Studio covers the
+                , you will feel at home here. Shots covers the
                 same backgrounds, browser frames, and animation workflow for
                 free, with no signup and no watermark. See the full{" "}
                 <Link

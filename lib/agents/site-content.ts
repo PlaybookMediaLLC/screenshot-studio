@@ -23,9 +23,9 @@ export interface AgentPage {
 export const AGENT_PAGES: AgentPage[] = [
   {
     path: '/',
-    title: 'Screenshot Studio - Free Screenshot Editor & Mockup Maker',
+    title: 'Shots - Free Screenshot Editor & Mockup Maker',
     summary:
-      'The signed-in Screenshot Studio editor. Drop in a screenshot and add gradient backgrounds, browser mockups, shadows, 3D perspective, and animation, then export a PNG, JPEG, WebP, MP4, WebM, or GIF. Editing runs client side, so imported images are not uploaded merely to edit them; export compression sends the finished image to the server, which returns it without storing it. A free workspace plan is available, some capabilities require a higher plan, and editor exports have no watermark.',
+      'The signed-in Shots editor. Drop in a screenshot and add gradient backgrounds, browser mockups, shadows, 3D perspective, and animation, then export a PNG, JPEG, WebP, MP4, WebM, or GIF. Editing runs client side, so imported images are not uploaded merely to edit them; export compression sends the finished image to the server, which returns it without storing it. A free workspace plan is available, some capabilities require a higher plan, and editor exports have no watermark.',
     points: [
       `${atLeast(PRODUCT_FACTS.backgrounds)} gradient, mesh, and solid backgrounds`,
       'Safari, Chrome, and Arc browser mockups in light and dark',
@@ -37,9 +37,9 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: '/landing',
-    title: 'Screenshot Studio - Turn Every Release into a Launch',
+    title: 'Shots - Turn Every Release into a Launch',
     summary:
-      'Product landing page for the Screenshot Studio platform. A release (typed in, sent through the REST API with an X-API-Key, or delivered by a signed GitHub, GitLab, or custom webhook) becomes a cited launch spec, a campaign plan, on-brand visuals from the real product, and channel copy for X, LinkedIn, Instagram, Product Hunt, the changelog, and email. Every post needs a human approval before it can be scheduled. Launch intelligence is in early access; the open-source editor stays on a free workspace plan.',
+      'Product landing page for the Shots platform. A release (typed in, sent through the REST API with an X-API-Key, or delivered by a signed GitHub, GitLab, or custom webhook) becomes a cited launch spec, a campaign plan, on-brand visuals from the real product, and channel copy for X, LinkedIn, Instagram, Product Hunt, the changelog, and email. Every post needs a human approval before it can be scheduled. Launch intelligence is in early access; the open-source editor stays on a free workspace plan.',
     points: [
       'Launch spec: every claim cites the brief or a source; uncited claims become open questions',
       'Campaign plan: channels, angles, assets with capture hints, and a teaser, launch day, and follow-up timeline',
@@ -52,13 +52,13 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: '/free-screenshot-editor',
-    title: 'Free Screenshot Editor Online - Screenshot Studio',
+    title: 'Free Screenshot Editor Online - Shots',
     summary:
       'Browser-based screenshot editor for signed-in workspaces, with a free plan and no export watermark. Covers the full editing workflow from upload to export.',
   },
   {
     path: '/code',
-    title: 'Code to Image: Beautiful Screenshots - Screenshot Studio',
+    title: 'Code to Image: Beautiful Screenshots - Shots',
     summary:
       'A focused code to image editor. Paste code, pick a syntax theme and gradient background, toggle line numbers and a window frame, then export a PNG or copy a shareable link. Rendering happens in the browser, so code is not sent to a server to create the image. Available to signed-in workspaces, with a free plan and no export watermark.',
     points: [
@@ -71,7 +71,7 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: '/tweet',
-    title: 'Tweet to Image: Turn Posts on X into Images - Screenshot Studio',
+    title: 'Tweet to Image: Turn Posts on X into Images - Shots',
     summary:
       'A focused tweet to image editor. Paste a link to a public post on X, pick a light or dark card and a gradient or transparent background, then export a PNG or copy it to the clipboard. Available to signed-in workspaces, with a free plan and no export watermark.',
     points: [
@@ -83,7 +83,7 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: '/remove-background',
-    title: 'Remove Background from Image: Free - Screenshot Studio',
+    title: 'Remove Background from Image: Free - Shots',
     summary:
       'A standalone background remover for signed-in workspaces. Drop in a PNG, JPG, WebP, or AVIF image and download a transparent PNG at the original resolution. The BiRefNet-lite model runs on the device with WebGPU, falling back to WebAssembly; the weights download once from Hugging Face and are cached, and the image itself is never uploaded. A free plan is available and exports have no watermark.',
     points: [
@@ -96,7 +96,7 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: "/compress-video",
-    title: "Compress Video Online: Free, No Upload - Screenshot Studio",
+    title: "Compress Video Online: Free, No Upload - Shots",
     summary:
       "A standalone video compressor. Drop in an MP4, MOV, WebM, or MKV file up to 1 GB, choose a quality level or a target size in MB, and download an MP4 with H.264 video and AAC audio. FFmpeg compiled to WebAssembly does the work inside the browser tab; the engine downloads once from a public CDN and is cached, and the video itself is not uploaded. No watermark.",
     points: [
@@ -109,7 +109,7 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: TOOLS_HUB_PATH,
-    title: 'Free Online Image Tools - Screenshot Studio',
+    title: 'Free Online Image Tools - Shots',
     summary:
       'Index of the standalone image utilities for signed-in workspaces: compress, convert, resize, crop, and rotate, plus six direct format converters. Every tool decodes, processes, and encodes in the browser using Canvas and Web Workers, so images are never uploaded. Batch input is supported and multiple results download as one zip. A free plan is available and exports have no watermark.',
     points: [
@@ -122,64 +122,64 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: '/features',
-    title: 'Features - Screenshot Studio',
+    title: 'Features - Shots',
     summary:
-      'Index of every Screenshot Studio feature: backgrounds, browser mockups, device frames, 3D effects, animation, text and image overlays, and export formats.',
+      'Index of every Shots feature: backgrounds, browser mockups, device frames, 3D effects, animation, text and image overlays, and export formats.',
   },
   {
     path: '/features/screenshot-beautifier',
-    title: 'Screenshot Beautifier - Screenshot Studio',
+    title: 'Screenshot Beautifier - Shots',
     summary:
       'Background, padding, corner radius, and shadow controls that turn a raw screenshot into a presentable graphic.',
   },
   {
     path: '/features/social-media-graphics',
-    title: 'Social Media Graphics Maker - Screenshot Studio',
+    title: 'Social Media Graphics Maker - Shots',
     summary:
       'Aspect ratio presets and styling for X/Twitter, Instagram, LinkedIn, and Product Hunt images.',
   },
   {
     path: '/features/animation-maker',
-    title: 'Animation Maker - Screenshot Studio',
+    title: 'Animation Maker - Shots',
     summary: `Keyframe timeline, ${PRODUCT_FACTS.animationPresets} animation presets, multi-slide slideshows, and in-browser MP4, WebM, and GIF encoding via FFmpeg WASM.`,
   },
   {
     path: '/features/3d-effects',
-    title: '3D Effects - Screenshot Studio',
+    title: '3D Effects - Shots',
     summary:
       'Perspective transforms, tilt, depth, and shadow controls for pseudo-3D product shots.',
   },
   {
     path: '/features/browser-mockups',
-    title: 'Browser Mockups - Screenshot Studio',
+    title: 'Browser Mockups - Shots',
     summary:
       'Safari, Chrome, and Arc browser frames plus macOS window chrome, with editable URL bar text.',
   },
   {
     path: '/features/code-snippets',
-    title: 'Code to Image Generator: Free - Screenshot Studio',
+    title: 'Code to Image Generator: Free - Shots',
     summary:
       'Marketing overview of the code to image tool: syntax themes, gradient backgrounds, line numbers, window frame, and shareable links, positioned as a free ray.so and carbon.now.sh alternative.',
   },
   {
     path: '/for/developers',
-    title: 'Screenshot Studio for Developers',
+    title: 'Shots for Developers',
     summary:
       'Ship README, changelog, and docs screenshots that look designed, plus a standalone code to image tool at /code.',
   },
   {
     path: '/for/marketers',
-    title: 'Screenshot Studio for Marketers',
+    title: 'Shots for Marketers',
     summary: 'Launch graphics, ad creative, and social posts built from product screenshots.',
   },
   {
     path: '/for/designers',
-    title: 'Screenshot Studio for Designers',
+    title: 'Shots for Designers',
     summary: 'Present work with mockups, framing, and animation without leaving the browser.',
   },
   {
     path: '/docs',
-    title: 'Screenshot Studio API Documentation',
+    title: 'Shots API Documentation',
     summary:
       'HTTP API reference for anonymous editor utilities and authenticated /api/v1 tenant operations, including schemas, rate limits, and error codes. The machine-readable contract is published at /openapi.json.',
     points: [
@@ -193,7 +193,7 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: '/docs/authentication',
-    title: 'Screenshot Studio API Authentication',
+    title: 'Shots API Authentication',
     summary:
       'Editor utility endpoints are anonymous and shaped by per-IP limits. Workspace-scoped /api/v1 operations require an X-API-Key organization key or an authorized signed-in session.',
     points: [
@@ -206,7 +206,7 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: '/developers',
-    title: 'Screenshot Studio Developer Portal',
+    title: 'Shots Developer Portal',
     summary:
       'Developer entry point: API docs, OpenAPI spec, authentication and rate limits, quickstart requests, agent files, and the open-source repository.',
     points: [
@@ -220,30 +220,30 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: '/changelog',
-    title: 'Changelog - Screenshot Studio',
+    title: 'Changelog - Shots',
     summary: 'Release notes and shipped changes, newest first.',
   },
   {
     path: '/about',
-    title: 'About Screenshot Studio',
+    title: 'About Shots',
     summary:
-      'Why Screenshot Studio exists, what it offers, and how the open-source project is run.',
+      'Why Shots exists, what it offers, and how the open-source project is run.',
   },
   {
     path: '/contact',
-    title: 'Contact Screenshot Studio',
+    title: 'Contact Shots',
     summary: 'Ways to reach the maintainers: GitHub issues, X/Twitter, and email.',
   },
   {
     path: '/privacy-policy',
-    title: 'Privacy Policy - Screenshot Studio',
+    title: 'Privacy Policy - Shots',
     summary:
       'How account and workspace data, browser-local editing, server-assisted operations, analytics, ads, and cookies are handled.',
   },
   {
     path: '/terms',
-    title: 'Terms & Conditions - Screenshot Studio',
-    summary: 'Terms of use for Screenshot Studio.',
+    title: 'Terms & Conditions - Shots',
+    summary: 'Terms of use for Shots.',
   },
 ]
 
@@ -274,13 +274,13 @@ ${claimsNote(comparison)}`,
       body: comparison.competitorLimitations.map((limitation) => `- ${limitation}`).join('\n'),
     },
     {
-      heading: 'What Screenshot Studio does differently',
+      heading: 'What Shots does differently',
       body: comparison.studioAdvantages.map((advantage) => `- ${advantage}`).join('\n'),
     },
     {
       heading: 'Feature comparison',
       body: [
-        `| Feature | Screenshot Studio | ${cell(comparison.competitorName)} |`,
+        `| Feature | Shots | ${cell(comparison.competitorName)} |`,
         '| --- | --- | --- |',
         ...comparison.features.map(
           (feature) =>
@@ -315,7 +315,7 @@ for (const comparison of comparisons) {
 for (const tool of TOOLS) {
   AGENT_PAGES.push({
     path: tool.slug,
-    title: `${tool.title} - Screenshot Studio`,
+    title: `${tool.title} - Shots`,
     summary: `${tool.intro} Runs entirely in the browser: the image is decoded, processed, and re-encoded locally and never uploaded. Available to signed-in workspaces with a free plan and no export watermark.`,
     points: tool.features,
     sections: [...(tool.sections ?? []), renderFaqSection(tool.faqs)],
@@ -381,7 +381,7 @@ export function renderNotFoundMarkdown(pathname: string): string {
   return [
     '# 404 Not Found',
     '',
-    `No page exists at \`${pathname}\` on Screenshot Studio.`,
+    `No page exists at \`${pathname}\` on Shots.`,
     '',
     '## Where to look next',
     '',

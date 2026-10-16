@@ -128,7 +128,7 @@ function finishExport<F extends string>(
   format: F
 ): { format: F } {
   progress.done();
-  downloadBlob(blob, `screenshotstudio-${namePrefix}-${Date.now()}.${format}`);
+  downloadBlob(blob, `shots-${namePrefix}-${Date.now()}.${format}`);
   return { format };
 }
 

@@ -12,7 +12,7 @@ const billingSignatureAccess: Authenticate<null> = async ({ raw, request }) => {
   const { body } = await raw()
   const signed = verifyBillingSignature(
     z.string().parse(body),
-    request.headers.get(platformHeaders['x-screenshot-studio-signature']),
+    request.headers.get(platformHeaders['x-shots-signature']),
     getPlatformApiEnvironment().BILLING_ENTITLEMENT_WEBHOOK_SECRET ?? ''
   )
   if (!signed) {

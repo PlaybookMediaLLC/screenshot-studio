@@ -191,7 +191,7 @@ export function ApprovalsPage() {
       <div className="mx-auto w-full max-w-[1280px] px-6 sm:px-10">
         <PullQuote
           quote="Approval is the human gate the whole platform rests on."
-          source="RFC 019, campaign approval"
+          source="Campaign approval"
         />
       </div>
 

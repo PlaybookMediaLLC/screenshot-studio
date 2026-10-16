@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import { NewTwitterIcon } from "hugeicons-react";
 import { GitHubIcon } from "@/components/ui/github-star-button";
 import { AdSenseScript } from "@/components/AdSenseScript";
 import { TOOLS } from "@/lib/seo/tools";
@@ -11,11 +10,6 @@ interface FooterProps {
 }
 
 const GITHUB_URL = "https://github.com/PlaybookMediaLLC/screenshot-studio";
-const X_URL = "https://x.com/screenshotstdio";
-const PEERLIST_URL =
-  "https://peerlist.io/code_kartik/project/screenshot-studio";
-const PEERLIST_BADGE =
-  "https://dqy38fnwh4fqs.cloudfront.net/website/project-spotlight/project-week-rank-one-dark.svg";
 
 const navCol1 = [
   { href: "/editor", label: "Screenshot Editor" },
@@ -75,7 +69,7 @@ function FooterNavLink({
   );
 }
 
-export function Footer({ brandName = "Screenshot Studio" }: FooterProps) {
+export function Footer({ brandName = "Shots" }: FooterProps) {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -112,33 +106,6 @@ export function Footer({ brandName = "Screenshot Studio" }: FooterProps) {
               <br />
               you can ship.
             </p>
-            <div className="mt-auto flex flex-wrap items-center gap-3">
-              <a
-                href={PEERLIST_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex w-fit opacity-90 transition-opacity duration-150 hover:opacity-100"
-              >
-                <img
-                  src={PEERLIST_BADGE}
-                  alt="Peerlist Project Spotlight. Rank 1"
-                  className="h-10 w-auto"
-                />
-              </a>
-              <a
-                href="https://usefulshelf.co/apps/screenshot-studio?utm_source=screenshot-studio&utm_medium=referral&utm_campaign=badge&utm_content=lime"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img
-                  src="https://usefulshelf.co/badge/screenshot-studio.svg?theme=lime"
-                  alt="Featured on UsefulShelf"
-                  width={248}
-                  height={66}
-                  className="h-10 w-auto"
-                />
-              </a>
-            </div>
           </div>
 
           <div className="grid h-full w-full grid-cols-2 gap-2 sm:grid-cols-3 md:max-w-xl md:justify-self-end">
@@ -194,15 +161,6 @@ export function Footer({ brandName = "Screenshot Studio" }: FooterProps) {
               className="inline-flex size-10 items-center justify-center rounded-md bg-foreground/[0.04] text-foreground/90 ring-1 ring-border transition-colors duration-150 hover:bg-foreground/[0.08] hover:text-foreground"
             >
               <GitHubIcon className="size-[18px]" />
-            </a>
-            <a
-              href={X_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="X"
-              className="inline-flex size-10 items-center justify-center rounded-md bg-foreground/[0.04] text-foreground/90 ring-1 ring-border transition-colors duration-150 hover:bg-foreground/[0.08] hover:text-foreground"
-            >
-              <NewTwitterIcon className="size-4" />
             </a>
             <Link
               href="/privacy-policy"

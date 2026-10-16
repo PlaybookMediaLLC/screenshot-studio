@@ -245,7 +245,7 @@ export default function ForDesignersPage() {
             <div className="space-y-4 text-lg leading-relaxed text-muted-foreground">
               <p>
                 Export a frame from Figma, Sketch, or your running app, drop it
-                into Screenshot Studio, and get a presentation-ready UI mockup in
+                into Shots, and get a presentation-ready UI mockup in
                 under a minute. Pick a browser frame or a clean device-style
                 window, set the padding and corner radius, and choose from more
                 than a hundred gradient and solid backgrounds.
@@ -258,7 +258,7 @@ export default function ForDesignersPage() {
                 LinkedIn.
               </p>
               <p>
-                Screenshot Studio is free and open source, so you can use it for
+                Shots is free and open source, so you can use it for
                 client work without licenses, watermarks, or accounts.
               </p>
             </div>
@@ -285,7 +285,7 @@ export default function ForDesignersPage() {
         </div>
       </section>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

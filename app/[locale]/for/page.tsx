@@ -6,9 +6,9 @@ import { Footer } from "@/components/landing/Footer";
 import { buildCollectionJsonLd } from "@/lib/seo/json-ld";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
 
-const TITLE = "Who Screenshot Studio Is For";
+const TITLE = "Who Shots Is For";
 const DESCRIPTION =
-  "How developers, designers, and marketers use Screenshot Studio to turn raw screenshots into polished graphics, mockups, and animated demos.";
+  "How developers, designers, and marketers use Shots to turn raw screenshots into polished graphics, mockups, and animated demos.";
 
 const AUDIENCES = [
   {
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: `${TITLE} - Screenshot Studio`,
+    title: `${TITLE} - Shots`,
     description: DESCRIPTION,
     url: "/for",
   },
@@ -58,7 +58,7 @@ export default function AudienceHubPage() {
     TITLE,
     DESCRIPTION,
     AUDIENCES.map((audience) => ({
-      name: `Screenshot Studio for ${audience.name}`,
+      name: `Shots for ${audience.name}`,
       url: audience.href,
     })),
   );
@@ -75,7 +75,7 @@ export default function AudienceHubPage() {
         <section className="px-6 pt-28 pb-12">
           <div className="mx-auto max-w-5xl">
             <h1 className="mb-3 text-3xl font-semibold tracking-[-0.02em] text-foreground sm:text-4xl">
-              Who Screenshot Studio Is For
+              Who Shots Is For
             </h1>
             <p className="max-w-2xl text-base text-muted-foreground">
               The same browser-based editor, framed around three jobs people

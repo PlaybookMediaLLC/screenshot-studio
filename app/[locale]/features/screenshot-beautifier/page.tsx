@@ -133,7 +133,7 @@ const jsonLd = {
     {
       "@type": "SoftwareApplication",
       "@id": `${PAGE_URL}#software`,
-      name: "Screenshot Studio - Screenshot Beautifier",
+      name: "Shots - Screenshot Beautifier",
       applicationCategory: "DesignApplication",
       operatingSystem: "Web Browser",
       description:
@@ -208,7 +208,7 @@ export default function ScreenshotBeautifierPage() {
       preview={<BeautifierPreview />}
       capabilities={capabilities}
       steps={steps}
-      alternativesIntro="Screenshot Studio covers the same backgrounds, shadows, and frames as these beautifier tools, and adds a free animation timeline and 3D tilt with no paywall."
+      alternativesIntro="Shots covers the same backgrounds, shadows, and frames as these beautifier tools, and adds a free animation timeline and 3D tilt with no paywall."
       alternativeSlugs={[
         "shots-so",
         "pika-style",

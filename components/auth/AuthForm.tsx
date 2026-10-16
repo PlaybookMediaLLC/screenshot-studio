@@ -174,7 +174,7 @@ export function AuthForm({ mode, passwordAuthEnabled, socialProviders }: AuthFor
 
       {passwordAuthEnabled ? (
         <p className="text-center text-sm text-muted-foreground">
-          {isSignUp ? 'Already have an account?' : 'New to Screenshot Studio?'}{' '}
+          {isSignUp ? 'Already have an account?' : 'New to Shots?'}{' '}
           <Link
             className="font-medium text-foreground underline-offset-4 hover:underline"
             href={`${isSignUp ? '/sign-in' : '/sign-up'}?callbackURL=${encodeURIComponent(callbackURL)}`}

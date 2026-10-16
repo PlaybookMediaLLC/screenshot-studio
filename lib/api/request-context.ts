@@ -8,8 +8,8 @@ export const platformHeaderSchema = z.enum([
   'x-api-key',
   'x-playbook-client',
   'x-request-id',
-  'x-screenshot-studio-maintenance-secret',
-  'x-screenshot-studio-signature',
+  'x-shots-maintenance-secret',
+  'x-shots-signature',
 ])
 
 /** One of {@link platformHeaderSchema}. */

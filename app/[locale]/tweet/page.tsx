@@ -44,7 +44,7 @@ const faqs = [
   {
     question: 'How do I turn a tweet into an image?',
     answer:
-      'Copy the post link from X, paste it into Screenshot Studio, choose a light or dark card and a background, then export a PNG or copy the image to your clipboard.',
+      'Copy the post link from X, paste it into Shots, choose a light or dark card and a background, then export a PNG or copy the image to your clipboard.',
   },
   {
     question: 'Does it work with x.com and twitter.com links?',
@@ -78,7 +78,7 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'SoftwareApplication',
-      name: 'Screenshot Studio - Tweet to Image',
+      name: 'Shots - Tweet to Image',
       applicationCategory: 'DesignApplication',
       operatingSystem: 'Web Browser',
       description:

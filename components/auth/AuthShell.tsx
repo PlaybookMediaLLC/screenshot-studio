@@ -22,7 +22,7 @@ export function AuthShell({ children, description, eyebrow, footer, title }: Aut
         <header className="flex flex-col gap-4">
           <Link className="w-fit" href="/landing">
             <Image
-              alt="Screenshot Studio"
+              alt="Shots"
               className="size-12 rounded-xl"
               height={48}
               priority

@@ -26,7 +26,7 @@ export function ProductMarketingPage() {
   return (
     <MarketingShell finale={{ lead: 'One source of truth.', trail: 'Every launch.' }}>
       <PageHero
-        body="Engineering ships, and you find out from the changelog. Screenshot Studio turns each release into a cited brief your whole team can trust, a plan you approve, and assets and copy built to both."
+        body="Engineering ships, and you find out from the changelog. Shots turns each release into a cited brief your whole team can trust, a plan you approve, and assets and copy built to both."
         eyebrow={{ href: '/use-cases', label: 'Product marketing', parent: 'Solutions' }}
         lead="From brief to launch kit"
         location="product_marketing_hero"

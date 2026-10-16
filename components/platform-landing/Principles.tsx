@@ -6,27 +6,27 @@ import { cn } from '@/lib/utils'
 import { MUTED } from './primitives'
 import { useHydratedReducedMotion } from './useHydratedReducedMotion'
 
-/** Design commitments quoted from the platform's README and RFCs, in place of testimonials. */
+/** Design commitments behind the platform, in place of testimonials. */
 const PRINCIPLES = [
   {
     name: 'Safe tools',
-    source: 'README, the marketing tools',
+    source: 'The marketing tools',
     quote: 'The model decides what to do. The application decides how it is done safely.',
   },
   {
     name: 'Human approval',
-    source: 'RFC 019, campaign approval',
+    source: 'Campaign approval',
     quote:
       'Approval is a server-side state machine. It is not a UI convention, not a boolean flag, and not something a tool call can skip.',
   },
   {
     name: 'Structured campaigns',
-    source: 'RFC 014, marketing objects',
+    source: 'Marketing objects',
     quote: 'The database is the source of truth for a campaign. A conversation is an input method.',
   },
   {
     name: 'Recipes first',
-    source: 'RFC 015, the launch recipe',
+    source: 'The launch recipe',
     quote:
       'An agent that fails produces an unclear failure. A recipe that fails names its failing step.',
   },

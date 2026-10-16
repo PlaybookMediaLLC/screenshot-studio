@@ -15,7 +15,6 @@ import {
   Download04Icon,
   FileZipIcon,
   GridIcon,
-  NewTwitterIcon,
   RedoIcon,
   RefreshIcon,
   Settings02Icon,
@@ -148,8 +147,8 @@ function StoreHeader({
     <header className="relative flex h-16 shrink-0 items-center justify-between gap-3 border-b border-foreground/10 bg-background px-3 sm:px-4">
       <div className="flex min-w-0 items-center gap-2">
         <Link href="/" className="flex shrink-0 items-center gap-2.5 transition-opacity hover:opacity-80">
-          <Image src="/logo-mark.png" alt="Screenshot Studio" width={32} height={32} className="size-8" priority />
-          <span className="hidden text-sm font-semibold tracking-tight text-foreground lg:inline">Screenshot Studio</span>
+          <Image src="/logo-mark.png" alt="Shots" width={32} height={32} className="size-8" priority />
+          <span className="hidden text-sm font-semibold tracking-tight text-foreground lg:inline">Shots</span>
         </Link>
         <div className="mx-1 hidden h-4 w-px bg-foreground/10 sm:block" />
         <p className="hidden truncate text-xs font-medium text-foreground sm:block">Store screenshots</p>
@@ -213,15 +212,6 @@ function StoreHeader({
           <div className="hidden sm:block">
             <GitHubStarButton compact />
           </div>
-          <a
-            href="https://x.com/code_kartik"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Follow Screenshot Studio on X"
-            className="flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:text-foreground"
-          >
-            <NewTwitterIcon className="size-[18px]" />
-          </a>
         </div>
       )}
     </header>

@@ -48,7 +48,7 @@ export const GET = route(unsubscribePageContract, {
       : 'This unsubscribe link is not valid. It may have been altered in transit.'
 
     return new Response(
-      `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Unsubscribe</title></head><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:48px;max-width:32rem;margin:0 auto;color:#18181b"><h1 style="font-size:20px;margin:0 0 12px">Screenshot Studio</h1><p style="font-size:15px;line-height:24px">${body}</p></body></html>`,
+      `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Unsubscribe</title></head><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:48px;max-width:32rem;margin:0 auto;color:#18181b"><h1 style="font-size:20px;margin:0 0 12px">Shots</h1><p style="font-size:15px;line-height:24px">${body}</p></body></html>`,
       { headers: { 'content-type': 'text/html; charset=utf-8' }, status: accepted ? 200 : 400 }
     )
   },

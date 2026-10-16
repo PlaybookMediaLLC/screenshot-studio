@@ -410,11 +410,11 @@ test('a generic source rejects stale events and stops ingesting when disabled', 
   // The signature binds the event ID and timestamp to the body.
   const signedHeaders = (timestamp: string, eventId: string = randomUUID()) => ({
     'content-type': 'application/json',
-    'x-screenshot-studio-event-id': eventId,
-    'x-screenshot-studio-signature': `v1=${createHmac('sha256', getWebhookSecret())
+    'x-shots-event-id': eventId,
+    'x-shots-signature': `v1=${createHmac('sha256', getWebhookSecret())
       .update(`${eventId}.${timestamp}.${body}`)
       .digest('hex')}`,
-    'x-screenshot-studio-timestamp': timestamp,
+    'x-shots-timestamp': timestamp,
   })
 
   const accepted = await browserRequest(page, `/api/webhooks/source/${source.id}`, {
@@ -433,14 +433,14 @@ test('a generic source rejects stale events and stops ingesting when disabled', 
     browserRequest(page, `/api/webhooks/source/${source.id}`, { body, headers, method: 'POST' })
   const original = await send(captured)
   const replayed = await send(captured)
-  const newId = await send({ ...captured, 'x-screenshot-studio-event-id': randomUUID() })
+  const newId = await send({ ...captured, 'x-shots-event-id': randomUUID() })
   const newTime = await send({
     ...captured,
-    'x-screenshot-studio-timestamp': new Date(Date.now() + 1_000).toISOString(),
+    'x-shots-timestamp': new Date(Date.now() + 1_000).toISOString(),
   })
   const bodyOnly = await send({
     ...captured,
-    'x-screenshot-studio-signature': getWebhookSignature(body, getWebhookSecret()),
+    'x-shots-signature': getWebhookSignature(body, getWebhookSecret()),
   })
   const githubStyle = await send({
     'content-type': 'application/json',

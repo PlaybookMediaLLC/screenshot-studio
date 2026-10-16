@@ -42,7 +42,7 @@ export function buildToolJsonLd(tool: ToolDefinition) {
       {
         "@type": "SoftwareApplication",
         "@id": `${url}#application`,
-        name: `Screenshot Studio: ${tool.name}`,
+        name: `Shots: ${tool.name}`,
         url,
         applicationCategory: "MultimediaApplication",
         applicationSubCategory: "Image Editor",

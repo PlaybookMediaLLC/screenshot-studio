@@ -35,7 +35,7 @@ export function AcceptInvitation({ invitationId }: AcceptInvitationProps) {
       <div>
         <h1 className="text-xl font-semibold">Join this workspace</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Confirm that you want to accept this Screenshot Studio invitation.
+          Confirm that you want to accept this Shots invitation.
         </p>
       </div>
       {error ? (

@@ -1,4 +1,4 @@
-const maintenanceSecretHeader = 'x-screenshot-studio-maintenance-secret'
+const maintenanceSecretHeader = 'x-shots-maintenance-secret'
 
 export function getMaintenanceHeaders(): Record<string, string> {
   const secret = process.env.E2E_MAINTENANCE_SECRET

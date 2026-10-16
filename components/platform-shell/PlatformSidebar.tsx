@@ -227,7 +227,7 @@ function Brand({ collapsed }: { collapsed: boolean }) {
       <Image alt="" className="size-6 rounded-md" height={24} src="/logo-mark.png" width={24} />
       {collapsed ? null : (
         <span className="truncate text-sm font-semibold tracking-tight text-neutral-100">
-          Screenshot Studio
+          Shots
         </span>
       )}
     </Link>

@@ -138,19 +138,19 @@ export default function ForMarketersPage() {
             "@type": "ListItem",
             position: 1,
             name: "Home",
-            item: "https://www.screenshot-studio.com",
+            item: "https://shots.playbookmedia.io",
           },
           {
             "@type": "ListItem",
             position: 2,
             name: "For Marketers",
-            item: "https://www.screenshot-studio.com/for/marketers",
+            item: "https://shots.playbookmedia.io/for/marketers",
           },
         ],
       },
       {
         "@type": "SoftwareApplication",
-        name: "Screenshot Studio for Marketers",
+        name: "Shots for Marketers",
         applicationCategory: "DesignApplication",
         operatingSystem: "Web Browser",
         description:
@@ -218,7 +218,7 @@ export default function ForMarketersPage() {
                 className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
                 style={{ fontFamily: INTER }}
               >
-                How Marketers Use Screenshot Studio
+                How Marketers Use Shots
               </h2>
               <p className="mx-auto max-w-2xl text-muted-foreground">
                 From landing page heroes to social campaigns, create visuals
@@ -256,7 +256,7 @@ export default function ForMarketersPage() {
                 className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
                 style={{ fontFamily: INTER }}
               >
-                Why Marketing Teams Choose Screenshot Studio
+                Why Marketing Teams Choose Shots
               </h2>
             </div>
 
@@ -323,7 +323,7 @@ export default function ForMarketersPage() {
         </section>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

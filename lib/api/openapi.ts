@@ -15,13 +15,13 @@ const errorResponse = (description: string) => ({
 export const openApiSpec = {
   openapi: '3.1.0',
   info: {
-    title: 'Screenshot Studio API',
+    title: 'Shots API',
     version: '1.0.0',
-    summary: 'Public HTTP API for Screenshot Studio.',
+    summary: 'Public HTTP API for Shots.',
     description:
-      'Screenshot Studio exposes anonymous editor utilities for screenshot capture, export compression, tweet resolution, and approved media proxying. Workspace-scoped `/api/v1` operations require an organization API key with the declared scope. Shell operations under `/api/v1` (bootstrap, organizations, membership) describe the signed-in user and require a session; they refuse API keys. Every error response uses the same JSON envelope with a stable `code` and a human-readable `hint`.',
+      'Shots exposes anonymous editor utilities for screenshot capture, export compression, tweet resolution, and approved media proxying. Workspace-scoped `/api/v1` operations require an organization API key with the declared scope. Shell operations under `/api/v1` (bootstrap, organizations, membership) describe the signed-in user and require a session; they refuse API keys. Every error response uses the same JSON envelope with a stable `code` and a human-readable `hint`.',
     contact: {
-      name: 'Screenshot Studio',
+      name: 'Shots',
       url: `${BASE_URL}/contact`,
     },
     license: {
@@ -32,7 +32,7 @@ export const openApiSpec = {
   },
   servers: [{ url: BASE_URL, description: 'Production' }],
   externalDocs: {
-    description: 'Interactive Screenshot Studio API reference',
+    description: 'Interactive Shots API reference',
     url: `${BASE_URL}/api-reference`,
   },
   security: [],
@@ -233,7 +233,7 @@ export const openApiSpec = {
         operationId: 'getOpenApiSpec',
         summary: 'Fetch this OpenAPI specification',
         description:
-          'Returns the OpenAPI 3.1 document describing every public Screenshot Studio operation.',
+          'Returns the OpenAPI 3.1 document describing every public Shots operation.',
         tags: ['Discovery'],
         responses: {
           '200': {
@@ -250,7 +250,7 @@ export const openApiSpec = {
         operationId: 'getLlmsTxt',
         summary: 'Fetch the llms.txt site overview',
         description:
-          'Returns a Markdown overview of Screenshot Studio: features, pages, pricing, and contact details.',
+          'Returns a Markdown overview of Shots: features, pages, pricing, and contact details.',
         tags: ['Discovery'],
         responses: {
           '200': {

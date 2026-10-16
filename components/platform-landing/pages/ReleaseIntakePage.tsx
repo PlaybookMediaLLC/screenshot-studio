@@ -57,7 +57,7 @@ const ENDPOINTS = [
 const WEBHOOKS = [
   ['GitHub', 'X-Hub-Signature-256', 'X-GitHub-Delivery'],
   ['GitLab', 'webhook-signature', 'webhook-timestamp'],
-  ['Any pipeline', 'X-Screenshot-Studio-Signature', 'X-Screenshot-Studio-Timestamp, -Event-Id'],
+  ['Any pipeline', 'X-Shots-Signature', 'X-Shots-Timestamp, -Event-Id'],
 ] as const
 
 /** A real error body, built by the same function every route uses. */

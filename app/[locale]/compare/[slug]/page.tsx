@@ -148,7 +148,7 @@ export default async function ComparisonPage({ params }: PageProps) {
 
   const otherComparisons = comparisons.filter((c) => c.slug !== slug);
   const relatedGuides = relatedGuidesFor(data);
-  const cta = data.cta ?? { href: "/editor", label: "Try Screenshot Studio Free" };
+  const cta = data.cta ?? { href: "/editor", label: "Try Shots Free" };
   const pageUrl = `${SITE_URL}/compare/${data.slug}`;
 
   const structuredData = {
@@ -177,7 +177,7 @@ export default async function ComparisonPage({ params }: PageProps) {
         url: pageUrl,
         mainEntity: {
           "@type": "SoftwareApplication",
-          name: "Screenshot Studio",
+          name: "Shots",
           applicationCategory: "DesignApplication",
           operatingSystem: "Any (Web Browser)",
           offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
@@ -200,7 +200,7 @@ export default async function ComparisonPage({ params }: PageProps) {
             <ToolHero
               parent={{ href: "/compare", label: "Compare" }}
               name={`vs ${data.competitorName}`}
-              title={`Screenshot Studio vs ${data.competitorName}`}
+              title={`Shots vs ${data.competitorName}`}
               intro={data.tagline}
             >
               <div className="mt-8 flex flex-col items-center justify-center gap-2 sm:flex-row">
@@ -229,7 +229,7 @@ export default async function ComparisonPage({ params }: PageProps) {
           <section aria-label="At a glance" className="grid gap-3 md:grid-cols-2">
             <SideCard
               featured
-              name="Screenshot Studio"
+              name="Shots"
               pricing={`Free, open source (${PRODUCT_FACTS.license}), runs in any browser`}
               heading="Where it wins"
               points={data.studioAdvantages}
@@ -258,7 +258,7 @@ export default async function ComparisonPage({ params }: PageProps) {
                       scope="col"
                       className="bg-foreground/[0.03] px-5 py-4 text-left font-semibold text-foreground"
                     >
-                      Screenshot Studio
+                      Shots
                     </th>
                     <th
                       scope="col"
@@ -330,7 +330,7 @@ export default async function ComparisonPage({ params }: PageProps) {
               <LinkCardGrid
                 items={otherComparisons.map((comp) => ({
                   href: `/compare/${comp.slug}`,
-                  eyebrow: "Screenshot Studio vs",
+                  eyebrow: "Shots vs",
                   title: comp.competitorName,
                   description: comp.tagline,
                 }))}
@@ -351,7 +351,7 @@ export default async function ComparisonPage({ params }: PageProps) {
         </div>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

@@ -6,13 +6,13 @@ import { Footer } from '@/components/landing/Footer'
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description:
-    'Privacy Policy for Screenshot Studio. What stays on your device, what is sent to our server, how ads and analytics use cookies, and how to opt out.',
+    'Privacy Policy for Shots. What stays on your device, what is sent to our server, how ads and analytics use cookies, and how to opt out.',
   alternates: {
     canonical: '/privacy-policy',
   },
 }
 
-const CONTACT_EMAIL = 'kartik.labhshetwar@gmail.com'
+const CONTACT_EMAIL = 'team@playbookmedia.io'
 
 const linkClassName =
   'text-foreground underline decoration-foreground/30 underline-offset-4 transition-colors hover:decoration-foreground/60'
@@ -86,7 +86,7 @@ export default function PrivacyPolicyPage() {
         <div className="max-w-none space-y-8">
           <Section title="Overview">
             <p className="mb-3 leading-relaxed text-muted-foreground">
-              Screenshot Studio combines a browser-based image editor with a workspace platform. An
+              Shots combines a browser-based image editor with a workspace platform. An
               account and workspace membership are required to use the editor. We store the
               identity, session, membership, and workspace data needed to provide that service.
             </p>
@@ -186,7 +186,7 @@ export default function PrivacyPolicyPage() {
 
           <Section id="advertising" title="Advertising">
             <p className="mb-3 leading-relaxed text-muted-foreground">
-              Screenshot Studio is free because it shows ads served by Google AdSense on content
+              Shots is free because it shows ads served by Google AdSense on content
               pages such as guides, comparisons, and tool pages. The images you edit are never
               shared with Google or any ad partner.
             </p>
@@ -269,7 +269,7 @@ export default function PrivacyPolicyPage() {
             <p className="mb-3 leading-relaxed text-muted-foreground">
               We use secure authentication and session cookies for signed-in users. We also set{' '}
               <Code>NEXT_LOCALE</Code> to remember your language choice, and{' '}
-              <Code>screenshot-studio-store-active</Code> only when you have an App Store screenshot
+              <Code>shots-store-active</Code> only when you have an App Store screenshot
               project open, so the page can restore it on your next visit. That cookie holds the
               value 1 and no identifier.
             </p>
@@ -381,7 +381,7 @@ export default function PrivacyPolicyPage() {
 
           <Section title="Children">
             <p className="leading-relaxed text-muted-foreground">
-              Screenshot Studio is not directed at children under 13 (or under 16 in the EEA and
+              Shots is not directed at children under 13 (or under 16 in the EEA and
               UK), and we do not knowingly collect information from them. Ads on this site are not
               intended for children.
             </p>
@@ -389,7 +389,7 @@ export default function PrivacyPolicyPage() {
 
           <Section title="Open Source">
             <p className="leading-relaxed text-muted-foreground">
-              Screenshot Studio is open source. Every claim on this page about how the editor
+              Shots is open source. Every claim on this page about how the editor
               handles your images can be checked against the{' '}
               <ExternalLink href="https://github.com/PlaybookMediaLLC/screenshot-studio">
                 source code on GitHub
@@ -421,7 +421,7 @@ export default function PrivacyPolicyPage() {
         </div>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   )
 }

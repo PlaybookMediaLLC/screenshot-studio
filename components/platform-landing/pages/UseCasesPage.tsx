@@ -18,7 +18,7 @@ const NEXT = [
   },
 ]
 
-/** /use-cases: the jobs teams hire Screenshot Studio for, shipped and next. */
+/** /use-cases: the jobs teams hire Shots for, shipped and next. */
 export function UseCasesPage() {
   return (
     <MarketingShell>
@@ -27,7 +27,7 @@ export function UseCasesPage() {
         eyebrow={{ label: 'Use cases' }}
         lead="What teams launch"
         location="use_cases_hero"
-        trail="with Screenshot Studio."
+        trail="with Shots."
       >
         <HeroStage>
           <WeekMock />

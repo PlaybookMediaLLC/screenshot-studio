@@ -38,7 +38,7 @@ export function DeveloperToolsPage() {
   return (
     <MarketingShell finale={{ lead: 'Launches your users', trail: 'can check.' }}>
       <PageHero
-        body="Developers read the pull request before they believe the tweet. Screenshot Studio starts from the pull request too: releases arrive from CI or a webhook, every claim cites its source, and the changelog says what the release does not do."
+        body="Developers read the pull request before they believe the tweet. Shots starts from the pull request too: releases arrive from CI or a webhook, every claim cites its source, and the changelog says what the release does not do."
         eyebrow={{ href: '/use-cases', label: 'Developer tools', parent: 'Solutions' }}
         lead="For products"
         location="developer_tools_hero"

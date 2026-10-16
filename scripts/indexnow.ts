@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { posix } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SITE_URL = "https://www.screenshot-studio.com";
+const SITE_URL = "https://shots.playbookmedia.io";
 const KEY_LOCATION = `${SITE_URL}/indexnow-key.txt`;
 const INDEXNOW_ENDPOINT = "https://api.indexnow.org/indexnow";
 const SITE_CHROME = new Set([

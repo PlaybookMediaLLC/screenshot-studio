@@ -275,7 +275,7 @@ export function WorkflowSection() {
   return (
     <Section id="workflow">
       <SectionIntro
-        body="Screenshot Studio runs the launch the way a good team would: understand the change, agree on a plan, make the assets, check the work, then ship it. You approve each stage."
+        body="Shots runs the launch the way a good team would: understand the change, agree on a plan, make the assets, check the work, then ship it. You approve each stage."
         label="Workflow"
         lead="One release in."
         trail="A reviewed launch out."

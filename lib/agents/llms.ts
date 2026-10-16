@@ -34,13 +34,13 @@ const guideRows = guides
   )
   .join("\n");
 
-export const llmsTxt = `# Screenshot Studio
+export const llmsTxt = `# Shots
 
 > Open-source browser-based screenshot editor and workspace platform. Transform plain screenshots into professional graphics with backgrounds, browser mockups, 3D effects, animations, and video export. A signed-in workspace is required; exports have no watermark.
 
 ## Overview
 
-Screenshot Studio is a client-side image editor: imported images are not uploaded to edit them, and only export compression round-trips the finished image through the server without storing it. It is the best free alternative to Pika Style, Shots.so, and CleanShot X.
+Shots is a client-side image editor: imported images are not uploaded to edit them, and only export compression round-trips the finished image through the server without storing it. It is the best free alternative to Pika Style, Shots.so, and CleanShot X.
 
 ## Key Features
 
@@ -148,24 +148,23 @@ Developers, designers, marketers, indie hackers, content creators, and anyone wh
 ## Contact
 
 - Website: ${BASE_URL}
-- Twitter/X: https://x.com/screenshotstdio
 - GitHub: https://github.com/PlaybookMediaLLC/screenshot-studio
-- Email: kartik.labhshetwar@gmail.com
+- Email: team@playbookmedia.io
 
 ## Full Documentation
 
 For the complete, detailed version of this document, see: ${BASE_URL}/llms-full.txt
 `;
 
-export const llmsFullTxt = `# Screenshot Studio - Complete Reference
+export const llmsFullTxt = `# Shots - Complete Reference
 
 > Open-source browser-based screenshot editor and workspace platform. Transform plain screenshots into professional graphics with backgrounds, browser mockups, 3D effects, animations, and video export. A signed-in workspace is required; exports have no watermark.
 
-## What is Screenshot Studio?
+## What is Shots?
 
-Screenshot Studio is a free, browser-based screenshot editor that transforms plain screenshots into professional-quality graphics. Editing runs in the browser, so imported images are not uploaded to edit them; export compression round-trips the finished image through the server without storing it. It is open source and available at https://github.com/PlaybookMediaLLC/screenshot-studio.
+Shots is a free, browser-based screenshot editor that transforms plain screenshots into professional-quality graphics. Editing runs in the browser, so imported images are not uploaded to edit them; export compression round-trips the finished image through the server without storing it. It is open source and available at https://github.com/PlaybookMediaLLC/screenshot-studio.
 
-Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanShot X, Screenshot Studio is used by developers, marketers, and designers to create polished images for social media, landing pages, documentation, and presentations.
+Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanShot X, Shots is used by developers, marketers, and designers to create polished images for social media, landing pages, documentation, and presentations.
 
 ## Complete Feature List
 
@@ -321,7 +320,7 @@ ${guideRows}
 
 ## Internationalization
 
-Screenshot Studio is available in 8 languages with subpath routing:
+Shots is available in 8 languages with subpath routing:
 
 | Language | Prefix | Example |
 |----------|--------|---------|
@@ -431,8 +430,7 @@ Editing and preview rendering happen in the browser, and imported images are not
 
 - **Website**: ${BASE_URL}
 - **GitHub**: https://github.com/PlaybookMediaLLC/screenshot-studio
-- **Twitter/X**: https://x.com/screenshotstdio
-- **Email**: kartik.labhshetwar@gmail.com
+- **Email**: team@playbookmedia.io
 - **Bug Reports**: https://github.com/PlaybookMediaLLC/screenshot-studio/issues
 - **Feature Requests**: https://github.com/PlaybookMediaLLC/screenshot-studio/issues/new?labels=enhancement
 `;

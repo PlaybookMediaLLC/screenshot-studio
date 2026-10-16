@@ -125,7 +125,7 @@ const jsonLd = {
     {
       '@type': 'SoftwareApplication',
       '@id': `${PAGE_URL}#application`,
-      name: 'Screenshot Studio - Remove Background',
+      name: 'Shots - Remove Background',
       url: PAGE_URL,
       applicationCategory: 'DesignApplication',
       applicationSubCategory: 'Background Remover',

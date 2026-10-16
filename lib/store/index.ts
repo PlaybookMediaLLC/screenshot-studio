@@ -2184,7 +2184,7 @@ export const useImageStore = create<ImageState>()(
       editorMode: 'screenshot',
       setEditorMode: (mode) => {
         const currentBorder = get().imageBorder
-        const currentUrl = get().browserUrl || 'screenshot-studio.com'
+        const currentUrl = get().browserUrl || 'shots.playbookmedia.io'
         if (mode === 'browser') {
           // Apply default browser frame (Chrome Dark) if no browser frame is active
           const isBrowserFrame = [
@@ -2224,7 +2224,7 @@ export const useImageStore = create<ImageState>()(
           set({ editorMode: mode })
         }
       },
-      browserUrl: 'screenshot-studio.com',
+      browserUrl: 'shots.playbookmedia.io',
       setBrowserUrl: (url) => {
         const currentBorder = get().imageBorder
         set({

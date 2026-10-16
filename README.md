@@ -1,14 +1,14 @@
-# Screenshot Studio
+# Shots
 
-Ship your product. Screenshot Studio turns what you build into content people understand.
+Ship your product. Shots turns what you build into content people understand.
 
-Screenshot Studio started as a free, browser-based screenshot editor. It is growing into a
+Shots started as a free, browser-based screenshot editor. It is growing into a
 marketing platform for software founders. The editor is the creative engine. An AI copilot
 plans campaigns. The platform renders assets, collects approval, and publishes.
 
-**Live platform and editor:** [screenshot-studio.com](https://www.screenshot-studio.com) ·
-**Image tools:** [screenshot-studio.com/tools](https://www.screenshot-studio.com/tools) ·
-**Code to image:** [screenshot-studio.com/code](https://www.screenshot-studio.com/code)
+**Live platform and editor:** [shots.playbookmedia.io](https://shots.playbookmedia.io) ·
+**Image tools:** [shots.playbookmedia.io/tools](https://shots.playbookmedia.io/tools) ·
+**Code to image:** [shots.playbookmedia.io/code](https://shots.playbookmedia.io/code)
 
 ## The thesis
 
@@ -56,7 +56,7 @@ The target experience:
                                │
              ┌─────────────────┼────────────────┐
              ▼                 ▼                ▼
-      Screenshot Studio   Temporal          Postiz
+      Shots   Temporal          Postiz
       rendering engine    durable work      publishing
 ```
 
@@ -209,7 +209,7 @@ material for marketing the product.
           ┌─────────────────┼───────────────────────┐
           ▼                 ▼                       ▼
         Ideas              Copy                  Creative
-          │                 │              Screenshot Studio
+          │                 │              Shots
           └─────────────────┴───────────────────────┐
                                                     ▼
                                                 Campaign
@@ -246,11 +246,11 @@ Open [localhost:3000](http://localhost:3000). Core features need no environment 
 
 The deployed product publishes machine-readable interfaces for agents and API clients:
 
-- [`llms.txt`](https://www.screenshot-studio.com/llms.txt) and
-  [`llms-full.txt`](https://www.screenshot-studio.com/llms-full.txt)
-- [OpenAPI 3.1 specification](https://www.screenshot-studio.com/openapi.json)
-- [API documentation](https://www.screenshot-studio.com/docs) and
-  [developer portal](https://www.screenshot-studio.com/developers)
+- [`llms.txt`](https://shots.playbookmedia.io/llms.txt) and
+  [`llms-full.txt`](https://shots.playbookmedia.io/llms-full.txt)
+- [OpenAPI 3.1 specification](https://shots.playbookmedia.io/openapi.json)
+- [API documentation](https://shots.playbookmedia.io/docs) and
+  [developer portal](https://shots.playbookmedia.io/developers)
 - Markdown representations of supported pages via `Accept: text/markdown`
 
 ## Deployment
@@ -322,9 +322,3 @@ Runtime credentials live in Fly secrets (`fly secrets set`), never in the repo o
 in GitHub secrets. GitHub holds only the deploy token and the build-time
 `NEXT_PUBLIC_*` variables, which are compiled into the client bundle and are
 therefore public by design.
-
-## Acknowledgements
-
-Built on the open-source
-[Screenshot Studio](https://github.com/KartikLabhshetwar/screenshot-studio) editor by
-Kartik Labhshetwar.

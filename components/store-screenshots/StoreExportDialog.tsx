@@ -109,7 +109,7 @@ export function StoreExportDialog({
       }
 
       const zipBlob = await zip.generateAsync({ type: "blob" });
-      downloadBlob(zipBlob, "screenshot-studio-store-assets.zip");
+      downloadBlob(zipBlob, "shots-store-assets.zip");
       toast.success("Store screenshots exported", {
         description: `${completed} PNG files packaged for App Store Connect.`,
       });

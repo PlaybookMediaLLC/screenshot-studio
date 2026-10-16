@@ -73,7 +73,7 @@ const faqs = [
   {
     question: 'Is it free, and is there a watermark?',
     answer:
-      'It is completely free with no signup, no daily limit, and no watermark. Screenshot Studio is open source under the Apache 2.0 licence.',
+      'It is completely free with no signup, no daily limit, and no watermark. Shots is open source under the Apache 2.0 licence.',
   },
 ];
 
@@ -124,7 +124,7 @@ const jsonLd = {
     {
       '@type': 'SoftwareApplication',
       '@id': `${PAGE_URL}#application`,
-      name: 'Screenshot Studio: Compress Video',
+      name: 'Shots: Compress Video',
       url: PAGE_URL,
       applicationCategory: 'MultimediaApplication',
       applicationSubCategory: 'Video Compressor',

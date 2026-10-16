@@ -1,4 +1,4 @@
-# Contributing to Screenshot Studio
+# Contributing to Shots
 
 ## Setup
 

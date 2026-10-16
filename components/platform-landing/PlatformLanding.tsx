@@ -69,7 +69,7 @@ function Hero() {
         </h1>
         <div className="lg:pb-2">
           <p className="max-w-[46ch] text-lg leading-[1.5] text-white/65">
-            Screenshot Studio reads what you shipped, writes a cited launch brief, designs on-brand
+            Shots reads what you shipped, writes a cited launch brief, designs on-brand
             visuals from your real product, and drafts posts for every channel. Nothing goes out
             until you approve it.
           </p>

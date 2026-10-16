@@ -133,7 +133,7 @@ export function ProductPage() {
         <div className="mt-24 space-y-4">
           <PullQuote
             quote="If we reverse this order and start with the agent, we debug hallucinated workflows instead of building a product."
-            source="RFC 009, the marketing platform thesis"
+            source="The marketing platform thesis"
           />
           <TileGrid
             items={[

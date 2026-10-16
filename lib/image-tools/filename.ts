@@ -79,5 +79,5 @@ export function uniqueFilename(name: string, taken: Set<string>): string {
 
 /** Name for the zip a batch run produces. */
 export function batchArchiveName(toolSlug: string): string {
-  return `screenshot-studio-${sanitizeFilename(toolSlug)}.zip`;
+  return `shots-${sanitizeFilename(toolSlug)}.zip`;
 }

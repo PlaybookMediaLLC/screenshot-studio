@@ -102,7 +102,7 @@ test("rendered markdown carries a heading, canonical URL, and resources", () => 
   const md = renderAgentPageMarkdown(page);
   assert.ok(md.startsWith(`# ${page.title}`));
   assert.match(md, /## Canonical URL/);
-  assert.match(md, /https:\/\/www\.screenshot-studio\.com\/docs/);
+  assert.match(md, /https:\/\/shots\.playbookmedia\.io\/docs/);
   for (const resource of AGENT_RESOURCES) {
     assert.ok(md.includes(resource.url), `missing ${resource.url}`);
   }
@@ -135,7 +135,7 @@ test("Scalar renders the canonical OpenAPI document", async () => {
 
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /text\/html/);
-  assert.match(html, /Screenshot Studio API Reference/);
+  assert.match(html, /Shots API Reference/);
   assert.match(html, /\/openapi\.json/);
   assert.match(html, /scalar/i);
 });
@@ -244,7 +244,7 @@ test("error envelope is stable and backward compatible", () => {
   assert.equal(body.hint, "Send a url.");
   assert.equal(
     body.documentation,
-    "https://www.screenshot-studio.com/api-reference#errors",
+    "https://shots.playbookmedia.io/api-reference#errors",
   );
 });
 
@@ -280,13 +280,13 @@ test("methodNotAllowed advertises Allow and notFoundJson points at the spec", as
   assert.match(missingJson.hint, /openapi\.json/);
 });
 
-test("agent-facing copy points at the canonical www host and the brand X account", () => {
+test("agent-facing copy points at the canonical host and no upstream identity", () => {
   const sources = [llmsTxt, llmsFullTxt, BASE_URL, openApiSpec.servers[0].url];
   for (const source of sources) {
-    assert.doesNotMatch(source, /https:\/\/screenshot-studio\.com/);
+    assert.doesNotMatch(source, /screenshot-studio\.com/);
   }
-  assert.match(llmsTxt, /x\.com\/screenshotstdio/);
-  assert.equal(BASE_URL, "https://www.screenshot-studio.com");
+  assert.doesNotMatch(llmsTxt, /screenshotstdio|kartik/i);
+  assert.equal(BASE_URL, "https://shots.playbookmedia.io");
 });
 
 test("agent-facing copy does not claim images never reach a server", () => {

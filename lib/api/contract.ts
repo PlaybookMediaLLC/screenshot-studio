@@ -60,7 +60,7 @@ export const contractDocsSchema = z.object({
   /** Component name for the body schema; an unnamed body is inlined. */
   bodyName: componentNameSchema.optional(),
   description: z.string().min(21),
-  /** Vendor extensions, such as `x-screenshot-studio-entitlement`. */
+  /** Vendor extensions, such as `x-shots-entitlement`. */
   extensions: z.record(z.string().regex(/^x-/), z.unknown()).optional(),
   operationId: z.string().regex(/^[a-zA-Z][a-zA-Z0-9]*$/),
   /** Component name for the response schema; an unnamed response is inlined. */

@@ -62,7 +62,7 @@ const PRIVACY_FAQ: ToolFaq = {
 const FREE_FAQ: ToolFaq = {
   question: "Is it free, and is there a watermark?",
   answer:
-    "It is completely free with no signup, no account, no daily limit, and no watermark. Screenshot Studio is open source under the Apache 2.0 licence.",
+    "It is completely free with no signup, no account, no daily limit, and no watermark. Shots is open source under the Apache 2.0 licence.",
 };
 
 const BATCH_FAQ: ToolFaq = {

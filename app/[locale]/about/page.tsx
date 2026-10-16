@@ -9,9 +9,9 @@ import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 import { TOOLS } from "@/lib/seo/tools";
 
 export const metadata: Metadata = {
-  title: { absolute: "About Screenshot Studio: Free Open-Source Screenshot Editor" },
+  title: { absolute: "About Shots" },
   description:
-    "About Screenshot Studio, the free, open-source browser tool that transforms plain screenshots into professional graphics.",
+    "About Shots, the launch platform that turns every release into polished, ready-to-publish content.",
   alternates: {
     canonical: "/about",
   },
@@ -71,13 +71,13 @@ export default function AboutPage() {
           className="mb-6 text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl"
           style={{ fontFamily: INTER }}
         >
-          About Screenshot Studio
+          About Shots
         </h1>
 
         <div className="space-y-8">
           <section>
             <p className="text-lg leading-relaxed text-muted-foreground">
-              Screenshot Studio is a free, open-source screenshot editor built
+              Shots is a free, open-source screenshot editor built
               for developers, designers, and marketers who want their images to
               look professional, without paying for expensive tools or signing
               up for yet another account.
@@ -147,7 +147,7 @@ export default function AboutPage() {
               </li>
               <li>
                 When another tool is the better choice for a job, we say so,
-                and we list Screenshot Studio&apos;s own limitations next to its
+                and we list Shots&apos; own limitations next to its
                 strengths.
               </li>
               <li>
@@ -172,7 +172,7 @@ export default function AboutPage() {
               How We Keep It Current
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              Screenshot Studio ships regularly, and every release is written up
+              Shots ships regularly, and every release is written up
               in the{" "}
               <Link href="/changelog" className={linkClassName}>
                 changelog
@@ -211,7 +211,7 @@ export default function AboutPage() {
               Open Source
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              Screenshot Studio is fully open source. You can view, contribute
+              Shots is fully open source. You can view, contribute
               to, or fork the project on{" "}
               <Link
                 href="https://github.com/PlaybookMediaLLC/screenshot-studio"
@@ -233,24 +233,15 @@ export default function AboutPage() {
               Built By
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              Created and maintained by{" "}
+              Built and maintained by Playbook Media, with contributions from the
+              open-source community on GitHub. You can reach the team at{" "}
               <Link
-                href="https://x.com/code_kartik"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="mailto:team@playbookmedia.io"
                 className={linkClassName}
               >
-                Kartik Labhshetwar
+                team@playbookmedia.io
               </Link>
-              , an independent developer, with contributions from the
-              open-source community on GitHub. You can reach Kartik at{" "}
-              <Link
-                href="mailto:kartik.labhshetwar@gmail.com"
-                className={linkClassName}
-              >
-                kartik.labhshetwar@gmail.com
-              </Link>
-              . If you find Screenshot Studio useful, consider starring the repo
+              . If you find Shots useful, consider starring the repo
               or sharing it with others.
             </p>
           </section>

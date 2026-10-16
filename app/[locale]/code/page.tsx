@@ -58,7 +58,7 @@ const faqs = [
   {
     question: 'How do I make a beautiful code screenshot for a README?',
     answer:
-      'Paste the snippet into Screenshot Studio, pick a syntax theme, turn the background off for a transparent PNG or keep a gradient, export at 2x, commit the file to your repository, and embed it in README.md with a relative image path and alt text.',
+      'Paste the snippet into Shots, pick a syntax theme, turn the background off for a transparent PNG or keep a gradient, export at 2x, commit the file to your repository, and embed it in README.md with a relative image path and alt text.',
   },
   {
     question: 'Should I use a code image or a fenced code block in my README?',
@@ -78,7 +78,7 @@ const faqs = [
   {
     question: 'How many syntax themes are included?',
     answer:
-      '14 color themes (Midnight, Candy, Sunset, and more), each pairable with its own gradient, one of Screenshot Studio\'s gradient and image backgrounds, or a simple pattern.',
+      '14 color themes (Midnight, Candy, Sunset, and more), each pairable with its own gradient, one of Shots\' gradient and image backgrounds, or a simple pattern.',
   },
   {
     question: 'Can I export a transparent background?',
@@ -97,7 +97,7 @@ const faqJsonLd = {
   '@graph': [
     {
       '@type': 'SoftwareApplication',
-      name: 'Screenshot Studio - Code to Image',
+      name: 'Shots - Code to Image',
       applicationCategory: 'DesignApplication',
       operatingSystem: 'Web Browser',
       description:

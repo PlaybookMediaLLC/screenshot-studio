@@ -51,7 +51,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Free Screenshot Editor Online - Screenshot Studio",
+    title: "Free Screenshot Editor Online - Shots",
     description:
       `Beautify screenshots instantly with ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, 3D effects, and animations. Free, no signup required.`,
     url: "/free-screenshot-editor",
@@ -175,11 +175,11 @@ const useCases = [
 const faqs = [
   {
     q: "Is this screenshot editor really free?",
-    a: "Yes, Screenshot Studio is 100% free with no hidden costs, premium tiers, or watermarks. Every feature is available to everyone. Unlimited exports, full resolution, no restrictions.",
+    a: "Yes, Shots is 100% free with no hidden costs, premium tiers, or watermarks. Every feature is available to everyone. Unlimited exports, full resolution, no restrictions.",
   },
   {
     q: "Do I need to install anything?",
-    a: "No. Screenshot Studio runs entirely in your browser. There is nothing to download or install. Just open the editor and start editing your screenshots immediately.",
+    a: "No. Shots runs entirely in your browser. There is nothing to download or install. Just open the editor and start editing your screenshots immediately.",
   },
   {
     q: "Do I need to create an account?",
@@ -203,7 +203,7 @@ const faqs = [
   },
   {
     q: "How does it compare to Canva or Figma?",
-    a: "Screenshot Studio is purpose-built for screenshot beautification. Unlike general-purpose editors, it offers one-click presets, 3D perspective transforms, animation timelines, and video export, all optimized for the screenshot-to-social-media workflow.",
+    a: "Shots is purpose-built for screenshot beautification. Unlike general-purpose editors, it offers one-click presets, 3D perspective transforms, animation timelines, and video export, all optimized for the screenshot-to-social-media workflow.",
   },
 ];
 
@@ -246,22 +246,22 @@ export default function FreeScreenshotEditorPage() {
             "@type": "ListItem",
             position: 1,
             name: "Home",
-            item: "https://www.screenshot-studio.com",
+            item: "https://shots.playbookmedia.io",
           },
           {
             "@type": "ListItem",
             position: 2,
             name: "Free Screenshot Editor",
-            item: "https://www.screenshot-studio.com/free-screenshot-editor",
+            item: "https://shots.playbookmedia.io/free-screenshot-editor",
           },
         ],
       },
       {
         "@type": "SoftwareApplication",
-        name: "Screenshot Studio - Free Screenshot Editor Online",
+        name: "Shots - Free Screenshot Editor Online",
         description:
           "Free screenshot editor online. Beautify screenshots with backgrounds, shadows, 3D effects, animations, and video export. No signup required.",
-        url: "https://www.screenshot-studio.com/free-screenshot-editor",
+        url: "https://shots.playbookmedia.io/free-screenshot-editor",
         applicationCategory: "DesignApplication",
         applicationSubCategory: "Screenshot Editor",
         operatingSystem: "Any (Web Browser)",
@@ -424,7 +424,7 @@ export default function FreeScreenshotEditorPage() {
               </h2>
               <p className="mx-auto max-w-2xl text-muted-foreground">
                 Whether you are a developer, marketer, designer, or content
-                creator, Screenshot Studio has you covered.
+                creator, Shots has you covered.
               </p>
             </div>
 

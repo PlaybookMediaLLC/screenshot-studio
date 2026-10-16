@@ -141,7 +141,7 @@ const roundupGuides: RoundupGuide[] = [
     slug: "best-free-screenshot-mockup-generators",
     title: "Best Free Screenshot Mockup Generators (2026)",
     metaDescription:
-      "The best free online mockup generators for screenshots in 2026: Screenshot Studio, DeviceShots, SnapMock, MockUPhone, Shots.so, Pika Style, and Mockuuups Studio, compared on devices, 3D, video, and watermarks.",
+      "The best free online mockup generators for screenshots in 2026: Shots, DeviceShots, SnapMock, MockUPhone, Shots.so, Pika Style, and Mockuuups Studio, compared on devices, 3D, video, and watermarks.",
     keywords: [
       "best free mockup generator",
       "free online mockup generator for screenshots",
@@ -152,12 +152,12 @@ const roundupGuides: RoundupGuide[] = [
       "mockup generator no watermark",
     ],
     answer:
-      "The best free mockup generators for screenshots in 2026 are Screenshot Studio (3D angles, multi-device layouts, and video export), DeviceShots (76 device frames), SnapMock (perspective presets), and MockUPhone (open source, with Android and Samsung models). Screenshot Studio, DeviceShots, and SnapMock need no account and add no watermark. Shots.so and Pika Style offer more templates but keep some features on paid plans.",
+      "The best free mockup generators for screenshots in 2026 are Shots (3D angles, multi-device layouts, and video export), DeviceShots (76 device frames), SnapMock (perspective presets), and MockUPhone (open source, with Android and Samsung models). Shots, DeviceShots, and SnapMock need no account and add no watermark. Shots.so and Pika Style offer more templates but keep some features on paid plans.",
     criteria:
       "We compared what each tool gives you for free: device range, 3D or perspective, animation and video export, export resolution, and whether free exports carry a watermark or need an account.",
     tools: [
       {
-        name: "Screenshot Studio",
+        name: "Shots",
         url: "/mockup-generator",
         bestFor: "3D angles, multi-device layouts, and video, free",
         price: STUDIO_LICENSE,
@@ -186,23 +186,23 @@ const roundupGuides: RoundupGuide[] = [
     faqs: [
       {
         q: "What is the best free mockup generator for screenshots?",
-        a: "Screenshot Studio, DeviceShots, and SnapMock are the strongest free picks with no account and no watermark. Choose Screenshot Studio for 3D angles, multi-device layouts, and video export, DeviceShots for the largest device catalog, and SnapMock for quick perspective presets.",
+        a: "Shots, DeviceShots, and SnapMock are the strongest free picks with no account and no watermark. Choose Shots for 3D angles, multi-device layouts, and video export, DeviceShots for the largest device catalog, and SnapMock for quick perspective presets.",
       },
       {
         q: "Which mockup generators add a watermark on the free plan?",
-        a: "BrandBird's free plan and Screenhance's free plan (3 exports a month) add a watermark, and Mockuuups Studio's free tier requires attribution. Screenshot Studio, DeviceShots, SnapMock, and Screely state that free exports have no watermark.",
+        a: "BrandBird's free plan and Screenhance's free plan (3 exports a month) add a watermark, and Mockuuups Studio's free tier requires attribution. Shots, DeviceShots, SnapMock, and Screely state that free exports have no watermark.",
       },
       {
         q: "Can I make a 3D device mockup for free?",
-        a: "Yes. Screenshot Studio includes 3D perspective and angled iPhone and MacBook mockups for free, and SnapMock has free isometric and tilted presets. Pika Style puts tilt on its Pro plan.",
+        a: "Yes. Shots includes 3D perspective and angled iPhone and MacBook mockups for free, and SnapMock has free isometric and tilted presets. Pika Style puts tilt on its Pro plan.",
       },
       {
         q: "Which free mockup generator exports video?",
-        a: `Screenshot Studio exports animated mockups as ${VIDEO_FORMATS_SENTENCE} for free. Shots.so has animation presets, and Screenhance exports GIF and WebM with clean MP4 on its Pro plan.`,
+        a: `Shots exports animated mockups as ${VIDEO_FORMATS_SENTENCE} for free. Shots.so has animation presets, and Screenhance exports GIF and WebM with clean MP4 on its Pro plan.`,
       },
       {
         q: "Do mockup generators upload my screenshot?",
-        a: "Not all of them. DeviceShots keeps screenshots in the browser, and Screenshot Studio edits in the browser without uploading imported images. Check each tool's privacy policy before using sensitive screenshots elsewhere.",
+        a: "Not all of them. DeviceShots keeps screenshots in the browser, and Shots edits in the browser without uploading imported images. Check each tool's privacy policy before using sensitive screenshots elsewhere.",
       },
     ],
   },
@@ -211,7 +211,7 @@ const roundupGuides: RoundupGuide[] = [
     slug: "best-free-screenshot-editors-no-watermark",
     title: "Best Free Screenshot Editors With No Watermark (2026)",
     metaDescription:
-      "Free screenshot editors that never add a watermark: Screenshot Studio, ShareX, Flameshot, Greenshot, Screenshot Editor, Guidejar, Photopea, and the tools built into Windows and macOS.",
+      "Free screenshot editors that never add a watermark: Shots, ShareX, Flameshot, Greenshot, Screenshot Editor, Guidejar, Photopea, and the tools built into Windows and macOS.",
     keywords: [
       "free screenshot editor no watermark",
       "best free screenshot editor",
@@ -223,12 +223,12 @@ const roundupGuides: RoundupGuide[] = [
       "free screenshot annotation tool",
     ],
     answer:
-      "The best free screenshot editors with no watermark are Screenshot Studio (in the browser, with blur, arrows, backgrounds, and mockups), ShareX (capture and annotation on Windows), Flameshot (Windows, macOS, and Linux), and Greenshot (free on Windows). For quick blur and redaction in a browser tab, Screenshot Editor and Guidejar are also free, with no watermark and no account.",
+      "The best free screenshot editors with no watermark are Shots (in the browser, with blur, arrows, backgrounds, and mockups), ShareX (capture and annotation on Windows), Flameshot (Windows, macOS, and Linux), and Greenshot (free on Windows). For quick blur and redaction in a browser tab, Screenshot Editor and Guidejar are also free, with no watermark and no account.",
     criteria:
       "We kept tools that export without a watermark on the free plan, then compared platform, built-in screen capture, annotation and redaction tools, and account requirements.",
     tools: [
       {
-        name: "Screenshot Studio",
+        name: "Shots",
         url: "/free-screenshot-editor",
         bestFor: "Redacting and polishing screenshots in any browser",
         price: STUDIO_LICENSE,
@@ -322,15 +322,15 @@ const roundupGuides: RoundupGuide[] = [
     faqs: [
       {
         q: "What is the best free screenshot editor with no watermark?",
-        a: "It depends on where you work. Screenshot Studio is the best pick in a browser on any OS, with blur, arrows, backgrounds, and mockups. ShareX is the most complete on Windows, and Flameshot covers Windows, macOS, and Linux.",
+        a: "It depends on where you work. Shots is the best pick in a browser on any OS, with blur, arrows, backgrounds, and mockups. ShareX is the most complete on Windows, and Flameshot covers Windows, macOS, and Linux.",
       },
       {
         q: "Which free screenshot editor can blur sensitive information?",
-        a: "Screenshot Studio, ShareX, Flameshot, Screenshot Editor, and Guidejar all include a blur tool. ShareX, Flameshot, and Screenshot Editor can also pixelate, and Screenshot Editor has opaque redaction.",
+        a: "Shots, ShareX, Flameshot, Screenshot Editor, and Guidejar all include a blur tool. ShareX, Flameshot, and Screenshot Editor can also pixelate, and Screenshot Editor has opaque redaction.",
       },
       {
         q: "Is there a free screenshot editor for Chromebook or Linux?",
-        a: "Yes. Browser-based editors such as Screenshot Studio, Screenshot Editor, Guidejar, and Photopea work on a Chromebook. On Linux, Flameshot is a native option, and the browser tools work too.",
+        a: "Yes. Browser-based editors such as Shots, Screenshot Editor, Guidejar, and Photopea work on a Chromebook. On Linux, Flameshot is a native option, and the browser tools work too.",
       },
       {
         q: "Do built-in tools like Snipping Tool add a watermark?",
@@ -347,7 +347,7 @@ const roundupGuides: RoundupGuide[] = [
     slug: "best-code-to-image-tools",
     title: "Best Code to Image Tools for READMEs and Social Posts (2026)",
     metaDescription:
-      "The best tools for turning code into images in 2026: Carbon, Ray.so, Screenshot Studio, CodeSnap, CodeImage, and Snappify, compared on themes, backgrounds, export formats, and price.",
+      "The best tools for turning code into images in 2026: Carbon, Ray.so, Shots, CodeSnap, CodeImage, and Snappify, compared on themes, backgrounds, export formats, and price.",
     keywords: [
       "best code to image tool",
       "code screenshot tool",
@@ -357,7 +357,7 @@ const roundupGuides: RoundupGuide[] = [
       "codesnap vs carbon",
       "code to png",
     ],
-    answer: `Carbon is the best-known free code to image tool, with 29 themes and PNG or SVG export. Ray.so is the quickest way to a clean snippet. Screenshot Studio adds gradient, image, and pattern backgrounds, transparent PNGs for GitHub READMEs, and a full editor for mockups and video, with ${PRODUCT_FACTS.codeThemes} themes. To stay inside your editor, the CodeSnap VS Code extension is free and uses your own theme.`,
+    answer: `Carbon is the best-known free code to image tool, with 29 themes and PNG or SVG export. Ray.so is the quickest way to a clean snippet. Shots adds gradient, image, and pattern backgrounds, transparent PNGs for GitHub READMEs, and a full editor for mockups and video, with ${PRODUCT_FACTS.codeThemes} themes. To stay inside your editor, the CodeSnap VS Code extension is free and uses your own theme.`,
     criteria:
       "We compared tools that turn source code into an image on themes, backgrounds, export formats, open source status, and whether you need an account.",
     tools: [
@@ -382,7 +382,7 @@ const roundupGuides: RoundupGuide[] = [
         limitations: "Static image export only.",
       },
       {
-        name: "Screenshot Studio",
+        name: "Shots",
         url: "/code",
         bestFor: "README images, and code inside mockups or video",
         price: STUDIO_LICENSE,
@@ -425,7 +425,7 @@ const roundupGuides: RoundupGuide[] = [
     faqs: [
       {
         q: "What is the best tool to make code screenshots for a README?",
-        a: "Any tool that exports a sharp PNG works. Screenshot Studio and CodeSnap can export a transparent background, which sits cleanly in both GitHub light and dark mode. Commit the image to your repository and reference it with a relative path, which is what GitHub recommends for images stored in a repo.",
+        a: "Any tool that exports a sharp PNG works. Shots and CodeSnap can export a transparent background, which sits cleanly in both GitHub light and dark mode. Commit the image to your repository and reference it with a relative path, which is what GitHub recommends for images stored in a repo.",
       },
       {
         q: "How do I show a different code image in GitHub dark mode?",
@@ -437,7 +437,7 @@ const roundupGuides: RoundupGuide[] = [
       },
       {
         q: "Can I turn a code snippet into a video?",
-        a: `Yes. Snappify animates code, with watermarked video on its free plan. In Screenshot Studio, export the code image, open it in the main editor, add an animation preset, and export ${VIDEO_FORMATS_SENTENCE} for free.`,
+        a: `Yes. Snappify animates code, with watermarked video on its free plan. In Shots, export the code image, open it in the main editor, add an animation preset, and export ${VIDEO_FORMATS_SENTENCE} for free.`,
       },
       {
         q: "Should I use an image or a code block in my README?",
@@ -450,7 +450,7 @@ const roundupGuides: RoundupGuide[] = [
     slug: "best-free-shots-so-alternatives",
     title: "Best Free Shots.so Alternatives (2026)",
     metaDescription:
-      "Free alternatives to Shots.so for screenshot mockups: Screenshot Studio, DeviceShots, SnapMock, Pika Style, Screely, MockUPhone, and BrandBird, compared on devices, 3D, video, and watermarks.",
+      "Free alternatives to Shots.so for screenshot mockups: Shots, DeviceShots, SnapMock, Pika Style, Screely, MockUPhone, and BrandBird, compared on devices, 3D, video, and watermarks.",
     keywords: [
       "shots.so alternative",
       "best free alternatives to shots.so",
@@ -460,12 +460,12 @@ const roundupGuides: RoundupGuide[] = [
       "free mockup generator",
     ],
     answer:
-      "The best free Shots.so alternatives are Screenshot Studio (3D, animation, and video export, free and open source), DeviceShots (76 device frames with no account or watermark), and SnapMock (free perspective presets). Pika Style is closest in template variety but puts tilt on Pro, and Screely is the simplest choice for window frames. Shots.so still has more device models than most, including Android phones and iPads.",
+      "The best free Shots.so alternatives are Shots (3D, animation, and video export, free and open source), DeviceShots (76 device frames with no account or watermark), and SnapMock (free perspective presets). Pika Style is closest in template variety but puts tilt on Pro, and Screely is the simplest choice for window frames. Shots.so still has more device models than most, including Android phones and iPads.",
     criteria:
       "Each pick covers Shots.so's core job, putting a screenshot in a device or window frame on a background, and we noted what each one does for free.",
     tools: [
       {
-        name: "Screenshot Studio",
+        name: "Shots",
         url: "/compare/shots-so",
         bestFor: "Shots.so-style 3D and animation, free",
         price: STUDIO_LICENSE,
@@ -492,7 +492,7 @@ const roundupGuides: RoundupGuide[] = [
     faqs: [
       {
         q: "What is the best free alternative to Shots.so?",
-        a: "Screenshot Studio is the closest free match if you use Shots.so for 3D and animated mockups: it includes 3D perspective, an animation timeline, and video export with no account and no watermark, and it is open source. If you mainly need more device models, DeviceShots has 76 frames for free.",
+        a: "Shots is the closest free match if you use Shots.so for 3D and animated mockups: it includes 3D perspective, an animation timeline, and video export with no account and no watermark, and it is open source. If you mainly need more device models, DeviceShots has 76 frames for free.",
       },
       {
         q: "Is Shots.so free?",
@@ -500,11 +500,11 @@ const roundupGuides: RoundupGuide[] = [
       },
       {
         q: "Which Shots.so alternatives have Android and iPad mockups?",
-        a: "MockUPhone and SnapMock include iPad and Pixel frames for free, and MockUPhone adds Samsung Galaxy models. DeviceShots also has iPad frames. Screenshot Studio covers iPhone, MacBook, and Apple Watch, but not Android or iPad yet.",
+        a: "MockUPhone and SnapMock include iPad and Pixel frames for free, and MockUPhone adds Samsung Galaxy models. DeviceShots also has iPad frames. Shots covers iPhone, MacBook, and Apple Watch, but not Android or iPad yet.",
       },
       {
         q: "Are there open source alternatives to Shots.so?",
-        a: `Yes. Screenshot Studio (${PRODUCT_FACTS.license}) and MockUPhone (Apache 2.0) are open source. Shots.so has no public source code.`,
+        a: `Yes. Shots (${PRODUCT_FACTS.license}) and MockUPhone (Apache 2.0) are open source. Shots.so has no public source code.`,
       },
     ],
   },
@@ -513,7 +513,7 @@ const roundupGuides: RoundupGuide[] = [
     slug: "best-free-screely-alternatives",
     title: "Best Free Screely Alternatives (2026)",
     metaDescription:
-      "Free alternatives to Screely for framing screenshots: Screenshot Studio, DeviceShots, SnapMock, Shots.so, Pika Style, MockUPhone, and BrandBird, compared on frames, 3D, and video.",
+      "Free alternatives to Screely for framing screenshots: Shots, DeviceShots, SnapMock, Shots.so, Pika Style, MockUPhone, and BrandBird, compared on frames, 3D, and video.",
     keywords: [
       "screely alternative",
       "screely alternatives",
@@ -523,12 +523,12 @@ const roundupGuides: RoundupGuide[] = [
       "free screenshot mockup tool",
     ],
     answer:
-      "Screely is a free, simple way to put a screenshot in a macOS or Windows window on a background. If you need more, Screenshot Studio adds device mockups, 3D perspective, annotation, blur, and video export for free; DeviceShots has the biggest free device catalog; and SnapMock adds free perspective presets. Screely is still the quickest option for a plain window frame, and it exports PDF, which most alternatives do not.",
+      "Screely is a free, simple way to put a screenshot in a macOS or Windows window on a background. If you need more, Shots adds device mockups, 3D perspective, annotation, blur, and video export for free; DeviceShots has the biggest free device catalog; and SnapMock adds free perspective presets. Screely is still the quickest option for a plain window frame, and it exports PDF, which most alternatives do not.",
     criteria:
       "Each pick does Screely's core job, framing a screenshot on a background for free, and adds at least one thing Screely does not: device frames, 3D, annotation, or video.",
     tools: [
       {
-        name: "Screenshot Studio",
+        name: "Shots",
         url: "/compare/screely",
         bestFor: "Window frames plus devices, 3D, and video",
         price: STUDIO_LICENSE,
@@ -546,7 +546,7 @@ const roundupGuides: RoundupGuide[] = [
     faqs: [
       {
         q: "What is the best free alternative to Screely?",
-        a: "Screenshot Studio is the closest free upgrade: it keeps Screely's window frames and backgrounds and adds device mockups, 3D, annotation, blur, and video export, with no account and no watermark. For the largest set of free device frames, try DeviceShots.",
+        a: "Shots is the closest free upgrade: it keeps Screely's window frames and backgrounds and adds device mockups, 3D, annotation, blur, and video export, with no account and no watermark. For the largest set of free device frames, try DeviceShots.",
       },
       {
         q: "Is Screely free?",
@@ -554,11 +554,11 @@ const roundupGuides: RoundupGuide[] = [
       },
       {
         q: "Which Screely alternatives have phone mockups?",
-        a: "Screenshot Studio, DeviceShots, SnapMock, Shots.so, Pika Style, MockUPhone, and BrandBird all include phone frames. MockUPhone and SnapMock also cover Android devices.",
+        a: "Shots, DeviceShots, SnapMock, Shots.so, Pika Style, MockUPhone, and BrandBird all include phone frames. MockUPhone and SnapMock also cover Android devices.",
       },
       {
         q: "Can I annotate screenshots in a Screely alternative?",
-        a: "Yes. Screenshot Studio has arrows, lines, shapes, text, and blur or mosaic regions in the same editor as its frames and backgrounds.",
+        a: "Yes. Shots has arrows, lines, shapes, text, and blur or mosaic regions in the same editor as its frames and backgrounds.",
       },
     ],
   },

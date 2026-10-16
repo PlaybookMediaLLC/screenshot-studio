@@ -9,7 +9,7 @@ import { getCampaign } from '@/lib/tenant/campaigns'
 import { requireCampaignPageAccess } from '../page-access'
 
 // Absolute: the root template would add a second suffix, and children set their own.
-export const metadata: Metadata = { title: { absolute: 'Campaign | Screenshot Studio' } }
+export const metadata: Metadata = { title: { absolute: 'Campaign | Shots' } }
 
 type CampaignLayoutProps = {
   children: ReactNode

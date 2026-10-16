@@ -11,21 +11,21 @@ import {
 } from "@/lib/seo/docs-shared";
 
 export const metadata: Metadata = {
-  title: "Screenshot Studio API Documentation",
+  title: "Shots API Documentation",
   description:
-    "Screenshot Studio API documentation: anonymous editor utilities, authenticated tenant endpoints, rate limits, errors, and the OpenAPI 3.1 specification.",
+    "Shots API documentation: anonymous editor utilities, authenticated tenant endpoints, rate limits, errors, and the OpenAPI 3.1 specification.",
   keywords: [
-    "Screenshot Studio API",
-    "Screenshot Studio API docs",
-    "Screenshot Studio OpenAPI",
+    "Shots API",
+    "Shots API docs",
+    "Shots OpenAPI",
     "screenshot API",
     "screenshot capture API",
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Screenshot Studio API Documentation",
+    title: "Shots API Documentation",
     description:
-      "Endpoints, schemas, rate limits, and error codes for the public Screenshot Studio API.",
+      "Endpoints, schemas, rate limits, and error codes for the public Shots API.",
     url: "/docs",
   },
   alternates: {
@@ -49,7 +49,7 @@ const ENDPOINTS: Endpoint[] = [
     path: "/api/screenshot",
     description:
       "Renders the page at the given URL and returns the screenshot as a base64-encoded PNG. Results are cached per URL, device type, and color scheme.",
-    request: `curl -X POST https://www.screenshot-studio.com/api/screenshot \\
+    request: `curl -X POST https://shots.playbookmedia.io/api/screenshot \\
   -H "Content-Type: application/json" \\
   -d '{
     "url": "https://example.com",
@@ -72,7 +72,7 @@ const ENDPOINTS: Endpoint[] = [
     path: "/api/export",
     description:
       "Recompresses an image with Sharp and returns the optimized bytes. JPEG uses MozJPEG, WebP uses libwebp, PNG uses adaptive filtering. The response body is the image itself, not JSON.",
-    request: `curl -X POST https://www.screenshot-studio.com/api/export \\
+    request: `curl -X POST https://shots.playbookmedia.io/api/export \\
   -F "image=@shot.png" \\
   -F "format=webp" \\
   -F "qualityPreset=high" \\
@@ -88,7 +88,7 @@ content-type: image/webp
     path: "/api/tweet/{id}",
     description:
       "Returns the public tweet payload used to render a tweet as an image. The id is the numeric status ID from the tweet URL.",
-    request: `curl https://www.screenshot-studio.com/api/tweet/1234567890123456789`,
+    request: `curl https://shots.playbookmedia.io/api/tweet/1234567890123456789`,
     response: `{
   "data": {
     "id_str": "1234567890123456789",
@@ -103,7 +103,7 @@ content-type: image/webp
     path: "/api/image-proxy",
     description:
       "Streams a Twitter-hosted image through this origin so it can be drawn onto a canvas without tainting it. Only pbs.twimg.com, abs.twimg.com, ton.twitter.com, and video.twimg.com are allowed.",
-    request: `curl "https://www.screenshot-studio.com/api/image-proxy?url=https://pbs.twimg.com/media/EXAMPLE.jpg" \\
+    request: `curl "https://shots.playbookmedia.io/api/image-proxy?url=https://pbs.twimg.com/media/EXAMPLE.jpg" \\
   -o media.jpg`,
     response: `HTTP/2 200
 content-type: image/jpeg
@@ -203,10 +203,10 @@ export default function DocsPage() {
           className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl"
           style={{ fontFamily: INTER }}
         >
-          Screenshot Studio API Documentation
+          Shots API Documentation
         </h1>
         <p className="mb-12 text-lg leading-relaxed text-muted-foreground">
-          Screenshot Studio exposes anonymous editor utilities for capture,
+          Shots exposes anonymous editor utilities for capture,
           export compression, tweet resolution, and approved media proxying. It
           also exposes authenticated <code>/api/v1</code> tenant operations for
           workspace automation. Every failing request uses the shared JSON error
@@ -229,7 +229,7 @@ export default function DocsPage() {
               Capture a page and write the PNG to disk in one command.
             </p>
             <pre className={codeBlockClassName}>
-              <code>{`curl -s -X POST https://www.screenshot-studio.com/api/screenshot \\
+              <code>{`curl -s -X POST https://shots.playbookmedia.io/api/screenshot \\
   -H "Content-Type: application/json" \\
   -d '{"url":"https://example.com"}' \\
   | jq -r .screenshot | base64 -d > shot.png`}</code>
@@ -244,7 +244,7 @@ export default function DocsPage() {
               Base URL
             </h2>
             <pre className={codeBlockClassName}>
-              <code>https://www.screenshot-studio.com</code>
+              <code>https://shots.playbookmedia.io</code>
             </pre>
           </section>
 
@@ -309,7 +309,7 @@ export default function DocsPage() {
   "message": "URL is required",
   "hint": "Send a JSON body with a \\"url\\" string, for example {\\"url\\": \\"https://example.com\\"}.",
   "status": 400,
-  "documentation": "https://www.screenshot-studio.com/docs#errors"
+  "documentation": "https://shots.playbookmedia.io/docs#errors"
 }`}</code>
             </pre>
             <div className="overflow-x-auto">
@@ -363,7 +363,7 @@ export default function DocsPage() {
               <code>404</code> with a Markdown body listing where to look next.
             </p>
             <pre className={codeBlockClassName}>
-              <code>{`curl -H "Accept: text/markdown" https://www.screenshot-studio.com/`}</code>
+              <code>{`curl -H "Accept: text/markdown" https://shots.playbookmedia.io/`}</code>
             </pre>
           </section>
 

@@ -151,19 +151,19 @@ export default function ForDevelopersPage() {
             "@type": "ListItem",
             position: 1,
             name: "Home",
-            item: "https://www.screenshot-studio.com",
+            item: "https://shots.playbookmedia.io",
           },
           {
             "@type": "ListItem",
             position: 2,
             name: "For Developers",
-            item: "https://www.screenshot-studio.com/for/developers",
+            item: "https://shots.playbookmedia.io/for/developers",
           },
         ],
       },
       {
         "@type": "SoftwareApplication",
-        name: "Screenshot Studio for Developers",
+        name: "Shots for Developers",
         applicationCategory: "DesignApplication",
         operatingSystem: "Web Browser",
         description:
@@ -231,7 +231,7 @@ export default function ForDevelopersPage() {
                 className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
                 style={{ fontFamily: INTER }}
               >
-                How Developers Use Screenshot Studio
+                How Developers Use Shots
               </h2>
               <p className="mx-auto max-w-2xl text-muted-foreground">
                 From README files to conference talks, make every screenshot
@@ -302,7 +302,7 @@ export default function ForDevelopersPage() {
               className="mb-12 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              Why Developers Choose Screenshot Studio
+              Why Developers Choose Shots
             </h2>
             <div className="space-y-6">
               {reasons.map((reason) => (
@@ -407,7 +407,7 @@ export default function ForDevelopersPage() {
         </section>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

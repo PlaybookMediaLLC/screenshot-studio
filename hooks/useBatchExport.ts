@@ -110,7 +110,7 @@ export function useBatchExport(selectedAspectRatio: string, exportSettings: Expo
       }
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const zipFileName = `screenshot-studio-batch-${Date.now()}.zip`;
+      const zipFileName = `shots-batch-${Date.now()}.zip`;
 
       const url = URL.createObjectURL(zipBlob);
       const link = document.createElement('a');

@@ -244,7 +244,7 @@ func TestAuditDrainsWireFormatAndRetryCeiling(t *testing.T) {
 	}
 	s.Drains = &DrainSender{Key: key, HTTP: &http.Client{Transport: roundTripper(func(r *http.Request) (*http.Response, error) {
 		calls++
-		if r.Header.Get("x-screenshot-studio-signature") == "" {
+		if r.Header.Get("x-shots-signature") == "" {
 			t.Error("missing signature")
 		}
 		var payload map[string]any

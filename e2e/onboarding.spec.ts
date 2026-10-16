@@ -18,8 +18,9 @@ test('a new user can create an account and workspace', async ({ app, identity, p
   await page.getByLabel('Workspace name').fill(identity.workspaceName)
   await page.getByRole('button', { name: 'Create workspace' }).click()
 
-  // There is no free plan: the new workspace is asked to choose one.
-  await app.expectPath('/pricing')
+  // There is no free plan: onboarding ends by choosing one.
+  await app.expectPath('/onboarding/plan')
+  await expect(page.getByRole('heading', { name: 'Choose a plan' })).toBeVisible()
   await app.open('/onboarding')
   await app.expectPath('/onboarding')
   await expect(page.getByRole('button', { name: 'Create workspace' })).toBeVisible()

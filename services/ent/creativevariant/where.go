@@ -100,6 +100,11 @@ func TemplateVersion(v int) predicate.CreativeVariant {
 	return predicate.CreativeVariant(sql.FieldEQ(FieldTemplateVersion, v))
 }
 
+// DesignID applies equality check predicate on the "design_id" field. It's identical to DesignIDEQ.
+func DesignID(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldDesignID, v))
+}
+
 // Revision applies equality check predicate on the "revision" field. It's identical to RevisionEQ.
 func Revision(v int) predicate.CreativeVariant {
 	return predicate.CreativeVariant(sql.FieldEQ(FieldRevision, v))
@@ -375,6 +380,16 @@ func BrandKitIDHasSuffix(v string) predicate.CreativeVariant {
 	return predicate.CreativeVariant(sql.FieldHasSuffix(FieldBrandKitID, v))
 }
 
+// BrandKitIDIsNil applies the IsNil predicate on the "brand_kit_id" field.
+func BrandKitIDIsNil() predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIsNull(FieldBrandKitID))
+}
+
+// BrandKitIDNotNil applies the NotNil predicate on the "brand_kit_id" field.
+func BrandKitIDNotNil() predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotNull(FieldBrandKitID))
+}
+
 // BrandKitIDEqualFold applies the EqualFold predicate on the "brand_kit_id" field.
 func BrandKitIDEqualFold(v string) predicate.CreativeVariant {
 	return predicate.CreativeVariant(sql.FieldEqualFold(FieldBrandKitID, v))
@@ -423,6 +438,16 @@ func BrandKitVersionLT(v int) predicate.CreativeVariant {
 // BrandKitVersionLTE applies the LTE predicate on the "brand_kit_version" field.
 func BrandKitVersionLTE(v int) predicate.CreativeVariant {
 	return predicate.CreativeVariant(sql.FieldLTE(FieldBrandKitVersion, v))
+}
+
+// BrandKitVersionIsNil applies the IsNil predicate on the "brand_kit_version" field.
+func BrandKitVersionIsNil() predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIsNull(FieldBrandKitVersion))
+}
+
+// BrandKitVersionNotNil applies the NotNil predicate on the "brand_kit_version" field.
+func BrandKitVersionNotNil() predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotNull(FieldBrandKitVersion))
 }
 
 // TemplateIDEQ applies the EQ predicate on the "template_id" field.
@@ -480,6 +505,16 @@ func TemplateIDHasSuffix(v string) predicate.CreativeVariant {
 	return predicate.CreativeVariant(sql.FieldHasSuffix(FieldTemplateID, v))
 }
 
+// TemplateIDIsNil applies the IsNil predicate on the "template_id" field.
+func TemplateIDIsNil() predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIsNull(FieldTemplateID))
+}
+
+// TemplateIDNotNil applies the NotNil predicate on the "template_id" field.
+func TemplateIDNotNil() predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotNull(FieldTemplateID))
+}
+
 // TemplateIDEqualFold applies the EqualFold predicate on the "template_id" field.
 func TemplateIDEqualFold(v string) predicate.CreativeVariant {
 	return predicate.CreativeVariant(sql.FieldEqualFold(FieldTemplateID, v))
@@ -528,6 +563,91 @@ func TemplateVersionLT(v int) predicate.CreativeVariant {
 // TemplateVersionLTE applies the LTE predicate on the "template_version" field.
 func TemplateVersionLTE(v int) predicate.CreativeVariant {
 	return predicate.CreativeVariant(sql.FieldLTE(FieldTemplateVersion, v))
+}
+
+// TemplateVersionIsNil applies the IsNil predicate on the "template_version" field.
+func TemplateVersionIsNil() predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIsNull(FieldTemplateVersion))
+}
+
+// TemplateVersionNotNil applies the NotNil predicate on the "template_version" field.
+func TemplateVersionNotNil() predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotNull(FieldTemplateVersion))
+}
+
+// DesignIDEQ applies the EQ predicate on the "design_id" field.
+func DesignIDEQ(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEQ(FieldDesignID, v))
+}
+
+// DesignIDNEQ applies the NEQ predicate on the "design_id" field.
+func DesignIDNEQ(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNEQ(FieldDesignID, v))
+}
+
+// DesignIDIn applies the In predicate on the "design_id" field.
+func DesignIDIn(vs ...string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIn(FieldDesignID, vs...))
+}
+
+// DesignIDNotIn applies the NotIn predicate on the "design_id" field.
+func DesignIDNotIn(vs ...string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotIn(FieldDesignID, vs...))
+}
+
+// DesignIDGT applies the GT predicate on the "design_id" field.
+func DesignIDGT(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGT(FieldDesignID, v))
+}
+
+// DesignIDGTE applies the GTE predicate on the "design_id" field.
+func DesignIDGTE(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldGTE(FieldDesignID, v))
+}
+
+// DesignIDLT applies the LT predicate on the "design_id" field.
+func DesignIDLT(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLT(FieldDesignID, v))
+}
+
+// DesignIDLTE applies the LTE predicate on the "design_id" field.
+func DesignIDLTE(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldLTE(FieldDesignID, v))
+}
+
+// DesignIDContains applies the Contains predicate on the "design_id" field.
+func DesignIDContains(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldContains(FieldDesignID, v))
+}
+
+// DesignIDHasPrefix applies the HasPrefix predicate on the "design_id" field.
+func DesignIDHasPrefix(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldHasPrefix(FieldDesignID, v))
+}
+
+// DesignIDHasSuffix applies the HasSuffix predicate on the "design_id" field.
+func DesignIDHasSuffix(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldHasSuffix(FieldDesignID, v))
+}
+
+// DesignIDIsNil applies the IsNil predicate on the "design_id" field.
+func DesignIDIsNil() predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldIsNull(FieldDesignID))
+}
+
+// DesignIDNotNil applies the NotNil predicate on the "design_id" field.
+func DesignIDNotNil() predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldNotNull(FieldDesignID))
+}
+
+// DesignIDEqualFold applies the EqualFold predicate on the "design_id" field.
+func DesignIDEqualFold(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldEqualFold(FieldDesignID, v))
+}
+
+// DesignIDContainsFold applies the ContainsFold predicate on the "design_id" field.
+func DesignIDContainsFold(v string) predicate.CreativeVariant {
+	return predicate.CreativeVariant(sql.FieldContainsFold(FieldDesignID, v))
 }
 
 // RevisionEQ applies the EQ predicate on the "revision" field.

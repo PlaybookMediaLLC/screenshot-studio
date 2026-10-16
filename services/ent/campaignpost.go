@@ -44,6 +44,10 @@ type CampaignPost struct {
 	Claims []map[string]interface{} `json:"claims,omitempty"`
 	// ReviewNote holds the value of the "review_note" field.
 	ReviewNote *string `json:"review_note,omitempty"`
+	// ApprovedByUserID holds the value of the "approved_by_user_id" field.
+	ApprovedByUserID *string `json:"approved_by_user_id,omitempty"`
+	// ApprovedAt holds the value of the "approved_at" field.
+	ApprovedAt *time.Time `json:"approved_at,omitempty"`
 	// Status holds the value of the "status" field.
 	Status campaignpost.Status `json:"status,omitempty"`
 	// ScheduledAt holds the value of the "scheduled_at" field.
@@ -68,9 +72,9 @@ func (*CampaignPost) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case campaignpost.FieldSpecVersion, campaignpost.FieldPlanVersion:
 			values[i] = new(sql.NullInt64)
-		case campaignpost.FieldID, campaignpost.FieldOrganizationID, campaignpost.FieldCampaignID, campaignpost.FieldAngleID, campaignpost.FieldChannel, campaignpost.FieldCopy, campaignpost.FieldCallToAction, campaignpost.FieldTitle, campaignpost.FieldPhase, campaignpost.FieldPlanItemKey, campaignpost.FieldReviewNote, campaignpost.FieldStatus, campaignpost.FieldCreativeVariantID, campaignpost.FieldScheduledPostID:
+		case campaignpost.FieldID, campaignpost.FieldOrganizationID, campaignpost.FieldCampaignID, campaignpost.FieldAngleID, campaignpost.FieldChannel, campaignpost.FieldCopy, campaignpost.FieldCallToAction, campaignpost.FieldTitle, campaignpost.FieldPhase, campaignpost.FieldPlanItemKey, campaignpost.FieldReviewNote, campaignpost.FieldApprovedByUserID, campaignpost.FieldStatus, campaignpost.FieldCreativeVariantID, campaignpost.FieldScheduledPostID:
 			values[i] = new(sql.NullString)
-		case campaignpost.FieldScheduledAt, campaignpost.FieldCreatedAt, campaignpost.FieldUpdatedAt:
+		case campaignpost.FieldApprovedAt, campaignpost.FieldScheduledAt, campaignpost.FieldCreatedAt, campaignpost.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -180,6 +184,20 @@ func (_m *CampaignPost) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.ReviewNote = new(string)
 				*_m.ReviewNote = value.String
+			}
+		case campaignpost.FieldApprovedByUserID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field approved_by_user_id", values[i])
+			} else if value.Valid {
+				_m.ApprovedByUserID = new(string)
+				*_m.ApprovedByUserID = value.String
+			}
+		case campaignpost.FieldApprovedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field approved_at", values[i])
+			} else if value.Valid {
+				_m.ApprovedAt = new(time.Time)
+				*_m.ApprovedAt = value.Time
 			}
 		case campaignpost.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -309,6 +327,16 @@ func (_m *CampaignPost) String() string {
 	if v := _m.ReviewNote; v != nil {
 		builder.WriteString("review_note=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.ApprovedByUserID; v != nil {
+		builder.WriteString("approved_by_user_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.ApprovedAt; v != nil {
+		builder.WriteString("approved_at=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("status=")

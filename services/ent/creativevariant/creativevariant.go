@@ -29,6 +29,8 @@ const (
 	FieldTemplateID = "templateId"
 	// FieldTemplateVersion holds the string denoting the template_version field in the database.
 	FieldTemplateVersion = "templateVersion"
+	// FieldDesignID holds the string denoting the design_id field in the database.
+	FieldDesignID = "designId"
 	// FieldRevision holds the string denoting the revision field in the database.
 	FieldRevision = "revision"
 	// FieldAspectRatio holds the string denoting the aspect_ratio field in the database.
@@ -73,6 +75,7 @@ var Columns = []string{
 	FieldBrandKitVersion,
 	FieldTemplateID,
 	FieldTemplateVersion,
+	FieldDesignID,
 	FieldRevision,
 	FieldAspectRatio,
 	FieldStatus,
@@ -165,6 +168,11 @@ func ByTemplateID(opts ...sql.OrderTermOption) OrderOption {
 // ByTemplateVersion orders the results by the template_version field.
 func ByTemplateVersion(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTemplateVersion, opts...).ToFunc()
+}
+
+// ByDesignID orders the results by the design_id field.
+func ByDesignID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDesignID, opts...).ToFunc()
 }
 
 // ByRevision orders the results by the revision field.

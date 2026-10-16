@@ -1,5 +1,5 @@
 import type Stripe from 'stripe'
-import type { z } from 'zod'
+import { z } from 'zod'
 import type { entitlementSyncSchema } from '@/lib/billing/entitlements'
 import {
   CREDIT_PACKS,
@@ -115,4 +115,28 @@ export function creditGrantForSession(
     return pack ? total + CREDIT_PACKS[pack].credits * (item.quantity ?? 1) : total
   }, 0)
   return credits > 0 ? { credits, organizationId, provider: 'stripe', reference: session.id } : null
+}
+
+/** Where a buyer returning from subscription Checkout goes next. */
+export const checkoutReturnSchema = z.enum(['mismatch', 'pending', 'success'])
+
+/**
+ * The outcome of a returning subscription Checkout: `mismatch` when the
+ * session is unknown or tagged with another workspace, `success` once the
+ * applied entitlement is a paid plan in good standing, otherwise `pending`
+ * (the webhook finishes the job).
+ */
+export function checkoutReturnFor(
+  session: Pick<Stripe.Checkout.Session, 'client_reference_id'> | null,
+  organizationId: string,
+  entitlement: Pick<z.input<typeof entitlementSyncSchema>, 'plan' | 'status'> | null
+): z.infer<typeof checkoutReturnSchema> {
+  if (!session || session.client_reference_id !== organizationId) {
+    return checkoutReturnSchema.enum.mismatch
+  }
+  return entitlement &&
+    entitlement.plan !== workspacePlanSchema.enum.free &&
+    (entitlement.status === 'active' || entitlement.status === 'trialing')
+    ? checkoutReturnSchema.enum.success
+    : checkoutReturnSchema.enum.pending
 }

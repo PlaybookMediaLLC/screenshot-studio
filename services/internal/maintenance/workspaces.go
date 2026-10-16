@@ -74,7 +74,7 @@ func (s *Store) purgeWorkspace(ctx context.Context, id, org string) error {
 				}
 			}
 		}
-		tables := []string{"audit_drain", "audit_retention_policy", "communication_recipient", "communication_attempt", "customer_communication", "launch_run", "campaign_revision", "campaign_plan", "release_spec", "campaign_post", "content_angle", "campaign_asset", "design", "campaign", "publication_attempt", "scheduled_post", "channel_connection", "approval", "creative_variant", "release_document", "capture_job", "capture", "asset", "creative_template", "capture_recipe", "source_app", "brand_kit", "brand_profile", "product_surface", "release", "audience_subscriber", "support_access_grant", "outbox_event", "organization_enterprise_settings", "workspace_settings", "invitation", "member"}
+		tables := []string{"audit_drain", "audit_retention_policy", "communication_recipient", "communication_attempt", "customer_communication", "launch_run", "campaign_revision", "campaign_plan", "release_spec", "campaign_post", "content_angle", "campaign_asset", "campaign", "publication_attempt", "scheduled_post", "channel_connection", "approval", "creative_variant", "design", "release_document", "capture_job", "capture", "asset", "creative_template", "capture_recipe", "source_app", "brand_kit", "brand_profile", "product_surface", "release", "audience_subscriber", "support_access_grant", "outbox_event", "organization_enterprise_settings", "workspace_settings", "invitation", "member"}
 		for _, table := range tables {
 			if _, err := tx.ExecContext(ctx, `DELETE FROM "`+table+`" WHERE "organizationId"=$1`, org); err != nil {
 				return err

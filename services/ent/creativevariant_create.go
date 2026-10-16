@@ -46,9 +46,25 @@ func (_c *CreativeVariantCreate) SetBrandKitID(v string) *CreativeVariantCreate 
 	return _c
 }
 
+// SetNillableBrandKitID sets the "brand_kit_id" field if the given value is not nil.
+func (_c *CreativeVariantCreate) SetNillableBrandKitID(v *string) *CreativeVariantCreate {
+	if v != nil {
+		_c.SetBrandKitID(*v)
+	}
+	return _c
+}
+
 // SetBrandKitVersion sets the "brand_kit_version" field.
 func (_c *CreativeVariantCreate) SetBrandKitVersion(v int) *CreativeVariantCreate {
 	_c.mutation.SetBrandKitVersion(v)
+	return _c
+}
+
+// SetNillableBrandKitVersion sets the "brand_kit_version" field if the given value is not nil.
+func (_c *CreativeVariantCreate) SetNillableBrandKitVersion(v *int) *CreativeVariantCreate {
+	if v != nil {
+		_c.SetBrandKitVersion(*v)
+	}
 	return _c
 }
 
@@ -58,9 +74,39 @@ func (_c *CreativeVariantCreate) SetTemplateID(v string) *CreativeVariantCreate 
 	return _c
 }
 
+// SetNillableTemplateID sets the "template_id" field if the given value is not nil.
+func (_c *CreativeVariantCreate) SetNillableTemplateID(v *string) *CreativeVariantCreate {
+	if v != nil {
+		_c.SetTemplateID(*v)
+	}
+	return _c
+}
+
 // SetTemplateVersion sets the "template_version" field.
 func (_c *CreativeVariantCreate) SetTemplateVersion(v int) *CreativeVariantCreate {
 	_c.mutation.SetTemplateVersion(v)
+	return _c
+}
+
+// SetNillableTemplateVersion sets the "template_version" field if the given value is not nil.
+func (_c *CreativeVariantCreate) SetNillableTemplateVersion(v *int) *CreativeVariantCreate {
+	if v != nil {
+		_c.SetTemplateVersion(*v)
+	}
+	return _c
+}
+
+// SetDesignID sets the "design_id" field.
+func (_c *CreativeVariantCreate) SetDesignID(v string) *CreativeVariantCreate {
+	_c.mutation.SetDesignID(v)
+	return _c
+}
+
+// SetNillableDesignID sets the "design_id" field if the given value is not nil.
+func (_c *CreativeVariantCreate) SetNillableDesignID(v *string) *CreativeVariantCreate {
+	if v != nil {
+		_c.SetDesignID(*v)
+	}
 	return _c
 }
 
@@ -202,18 +248,6 @@ func (_c *CreativeVariantCreate) check() error {
 	if _, ok := _c.mutation.ReleaseID(); !ok {
 		return &ValidationError{Name: "release_id", err: errors.New(`ent: missing required field "CreativeVariant.release_id"`)}
 	}
-	if _, ok := _c.mutation.BrandKitID(); !ok {
-		return &ValidationError{Name: "brand_kit_id", err: errors.New(`ent: missing required field "CreativeVariant.brand_kit_id"`)}
-	}
-	if _, ok := _c.mutation.BrandKitVersion(); !ok {
-		return &ValidationError{Name: "brand_kit_version", err: errors.New(`ent: missing required field "CreativeVariant.brand_kit_version"`)}
-	}
-	if _, ok := _c.mutation.TemplateID(); !ok {
-		return &ValidationError{Name: "template_id", err: errors.New(`ent: missing required field "CreativeVariant.template_id"`)}
-	}
-	if _, ok := _c.mutation.TemplateVersion(); !ok {
-		return &ValidationError{Name: "template_version", err: errors.New(`ent: missing required field "CreativeVariant.template_version"`)}
-	}
 	if _, ok := _c.mutation.Revision(); !ok {
 		return &ValidationError{Name: "revision", err: errors.New(`ent: missing required field "CreativeVariant.revision"`)}
 	}
@@ -285,19 +319,23 @@ func (_c *CreativeVariantCreate) createSpec() (*CreativeVariant, *sqlgraph.Creat
 	}
 	if value, ok := _c.mutation.BrandKitID(); ok {
 		_spec.SetField(creativevariant.FieldBrandKitID, field.TypeString, value)
-		_node.BrandKitID = value
+		_node.BrandKitID = &value
 	}
 	if value, ok := _c.mutation.BrandKitVersion(); ok {
 		_spec.SetField(creativevariant.FieldBrandKitVersion, field.TypeInt, value)
-		_node.BrandKitVersion = value
+		_node.BrandKitVersion = &value
 	}
 	if value, ok := _c.mutation.TemplateID(); ok {
 		_spec.SetField(creativevariant.FieldTemplateID, field.TypeString, value)
-		_node.TemplateID = value
+		_node.TemplateID = &value
 	}
 	if value, ok := _c.mutation.TemplateVersion(); ok {
 		_spec.SetField(creativevariant.FieldTemplateVersion, field.TypeInt, value)
-		_node.TemplateVersion = value
+		_node.TemplateVersion = &value
+	}
+	if value, ok := _c.mutation.DesignID(); ok {
+		_spec.SetField(creativevariant.FieldDesignID, field.TypeString, value)
+		_node.DesignID = &value
 	}
 	if value, ok := _c.mutation.Revision(); ok {
 		_spec.SetField(creativevariant.FieldRevision, field.TypeInt, value)

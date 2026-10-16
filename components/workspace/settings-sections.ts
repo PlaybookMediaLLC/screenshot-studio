@@ -1,7 +1,16 @@
 /** Workspace settings sections, each its own route; shared by the sidebar and the page. */
 
 export type SettingId =
-  'api' | 'audit' | 'brand' | 'general' | 'members' | 'profile' | 'roles' | 'security' | 'sso'
+  | 'api'
+  | 'audit'
+  | 'billing'
+  | 'brand'
+  | 'general'
+  | 'members'
+  | 'profile'
+  | 'roles'
+  | 'security'
+  | 'sso'
 
 export type SettingSection = {
   description: string
@@ -35,6 +44,12 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     id: 'roles',
     slug: 'roles',
     title: 'Roles',
+  },
+  {
+    description: 'Your plan, billing status, and AI credits.',
+    id: 'billing',
+    slug: 'billing',
+    title: 'Billing',
   },
   {
     description: 'Two-factor authentication and session controls.',

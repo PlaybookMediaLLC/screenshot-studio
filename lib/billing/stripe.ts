@@ -16,6 +16,8 @@ import {
   workspacePlanSchema,
 } from '@/lib/billing/plans'
 import {
+  checkoutReturnFor,
+  checkoutReturnSchema,
   creditGrantForSession,
   entitlementForSubscription,
   governingSubscription,
@@ -97,7 +99,8 @@ async function workspaceSubscriptions(api: Stripe, organizationId: string) {
   return data
 }
 
-const returnUrl = () => `${getAuthBaseUrl()}/pricing`
+const appUrl = (path: string) => `${getAuthBaseUrl()}${path}`
+const returnUrl = () => appUrl('/workspace/billing')
 
 let portalConfiguration: Promise<string> | null = null
 
@@ -195,12 +198,12 @@ export async function createBillingSession(input: {
 
   const session = await api.checkout.sessions.create({
     allow_promotion_codes: true,
-    cancel_url: `${returnUrl()}?checkout=cancelled`,
+    cancel_url: appUrl('/pricing?checkout=cancelled'),
     client_reference_id: input.organizationId,
     line_items: [{ price, quantity: 1 }],
     mode: 'subscription',
     subscription_data: { metadata: { organizationId: input.organizationId } },
-    success_url: `${returnUrl()}?checkout=success`,
+    success_url: appUrl('/api/billing/checkout/return?session_id={CHECKOUT_SESSION_ID}'),
   })
   if (!session.url) throw new Error('Stripe returned a Checkout session without a URL.')
   return { url: session.url }
@@ -273,7 +276,22 @@ export async function syncStripeEvent(event: Stripe.Event): Promise<{ synced: bo
   }
   if (!SUBSCRIPTION_EVENTS.has(event.type)) return { synced: false }
   const { id } = event.data.object as Stripe.Subscription
-  const changed = await api.subscriptions.retrieve(id)
+  const entitlement = await syncSubscription(api, await api.subscriptions.retrieve(id), event)
+  return { synced: entitlement !== null }
+}
+
+/**
+ * Re-reads every subscription the workspace has and applies the plan of the
+ * one that governs, so events delivered out of order, or a second
+ * subscription ending, still leave the right plan. A stale entitlement
+ * version is retried with the one the backend reports. Returns what was
+ * applied, or null when the subscriptions grant no change.
+ */
+async function syncSubscription(
+  api: Stripe,
+  changed: Stripe.Subscription,
+  event: { id: string; type: string }
+) {
   const organizationId = changed.metadata.organizationId
   const siblings = organizationId ? await workspaceSubscriptions(api, organizationId) : []
   const plans = priceIds()
@@ -282,14 +300,14 @@ export async function syncStripeEvent(event: Stripe.Event): Promise<{ synced: bo
     plans
   )
   const entitlement = governing && entitlementForSubscription(governing, event, plans)
-  if (!entitlement) return { synced: false }
+  if (!entitlement) return null
   let expectedVersion = 0
   for (let attempt = 0; ; attempt += 1) {
     try {
       await syncWorkspaceEntitlement(
         entitlementSyncSchema.parse({ ...entitlement, expectedVersion })
       )
-      return { synced: true }
+      return entitlement
     } catch (error) {
       const current = error instanceof BackendSDKError ? error.details.currentVersion : undefined
       if (
@@ -304,4 +322,40 @@ export async function syncStripeEvent(event: Stripe.Event): Promise<{ synced: bo
       throw error
     }
   }
+}
+
+/**
+ * Applies a finished subscription Checkout as soon as the buyer returns,
+ * without waiting for the webhook, through the same sync the webhook runs.
+ * The session id is the event id, so a reload replays instead of reapplying.
+ * A session that belongs to another workspace, or one Stripe does not know,
+ * is refused.
+ */
+export async function completeCheckout(input: {
+  organizationId: string
+  sessionId: string
+}): Promise<z.infer<typeof checkoutReturnSchema>> {
+  const api = stripe()
+  if (!api) return checkoutReturnSchema.enum.pending
+  const session = await api.checkout.sessions
+    .retrieve(input.sessionId, { expand: ['subscription'] })
+    .catch((error: unknown) => {
+      if (error instanceof Stripe.errors.StripeInvalidRequestError) return null
+      throw error
+    })
+  const subscription =
+    session?.status === 'complete' &&
+    session.client_reference_id === input.organizationId &&
+    session.subscription &&
+    typeof session.subscription !== 'string'
+      ? session.subscription
+      : null
+  const entitlement =
+    session && subscription
+      ? await syncSubscription(api, subscription, {
+          id: session.id,
+          type: 'checkout.session.completed',
+        })
+      : null
+  return checkoutReturnFor(session, input.organizationId, entitlement)
 }

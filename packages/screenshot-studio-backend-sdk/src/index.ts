@@ -335,6 +335,8 @@ export type BackendCampaignListItem = {
 
 export type BackendCampaignPost = {
   angleId: string | null
+  approvedAt: string | null
+  approvedByUserId: string | null
   callToAction: string | null
   campaignId: string
   channel: string
@@ -350,6 +352,8 @@ export type BackendCampaignPost = {
   reviewNote: string | null
   scheduledAt: string | null
   scheduledPostId: string | null
+  /** Delivery state of `scheduledPostId`; CANCELLED or FAILED can be rescheduled. */
+  scheduledPostStatus: ScheduledPost['status'] | null
   specVersion: number | null
   status:
     | 'DRAFT'
@@ -420,6 +424,8 @@ export type BackendCreateCampaignInput = {
 }
 
 export type BackendDesign = {
+  /** The newest approved render. It differs from `renderedAssetId` after a re-render. */
+  approvedVariant: { id: string; sourceAssetId: string } | null
   campaignId: string | null
   createdAt: string
   createdByUserId: string | null
@@ -464,17 +470,19 @@ export type BackendCreativeTemplate = {
   version: number
 }
 
+/** A fixed image to publish: a design render, or a brand kit and template version. */
 export type BackendCreativeVariant = {
   aspectRatio: string
-  brandKitId: string
-  brandKitVersion: number
+  brandKitId: string | null
+  brandKitVersion: number | null
+  designId: string | null
   id: string
   releaseId: string
   revision: number
   sourceAssetId: string
   status: string
-  templateId: string
-  templateVersion: number
+  templateId: string | null
+  templateVersion: number | null
 }
 
 export type BackendCreativeApproval = {
@@ -765,6 +773,8 @@ export type BackendLaunchRun = {
   campaignId: string
   error: string | null
   finishedAt: string | null
+  /** Last time the worker reported it was alive. */
+  heartbeatAt: string | null
   id: string
   kind: string
   resultId: string | null
@@ -1286,7 +1296,7 @@ export class ScreenshotStudioBackendSDK {
   async scheduleCampaignPost(
     campaignId: string,
     postId: string,
-    input: { channelConnectionId: string; scheduledAt?: string }
+    input: { channelConnectionId: string; creativeVariantId?: string; scheduledAt?: string }
   ) {
     return this.request<BackendCampaignPost>(
       `v1/campaigns/${encodeURIComponent(campaignId)}/posts/${encodeURIComponent(postId)}/schedule`,
@@ -1297,6 +1307,14 @@ export class ScreenshotStudioBackendSDK {
   async listCampaignDesigns(campaignId: string) {
     return this.request<{ designs: BackendDesign[] }>(
       `v1/campaigns/${encodeURIComponent(campaignId)}/designs`
+    )
+  }
+
+  /** Approves a design's current render for publishing; repeating it is a no-op. */
+  async approveCampaignDesign(campaignId: string, designId: string) {
+    return this.request<{ approval: BackendCreativeApproval; variant: BackendCreativeVariant }>(
+      `v1/campaigns/${encodeURIComponent(campaignId)}/designs/${encodeURIComponent(designId)}/approval`,
+      { method: 'POST' }
     )
   }
 
@@ -1807,6 +1825,21 @@ export class ScreenshotStudioBackendSDK {
       body: input,
       method: 'POST',
     })
+  }
+
+  /** Keeps a run's lease; `running` is false once the run was cancelled or expired. */
+  async heartbeatLaunchRun(runId: string) {
+    return this.request<{ running: boolean }>(
+      `v1/launch/runs/${encodeURIComponent(runId)}/heartbeat`,
+      { method: 'POST' }
+    )
+  }
+
+  async cancelLaunchRun(runId: string) {
+    return this.request<{ cancelled: boolean }>(
+      `v1/launch/runs/${encodeURIComponent(runId)}/cancel`,
+      { method: 'POST' }
+    )
   }
 
   async getCampaignAsset(campaignId: string, assetId: string) {

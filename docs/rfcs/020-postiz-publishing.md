@@ -2,6 +2,7 @@
 
 **Status:** Partially implemented (see `lib/tenant/publishing-backend.ts` and `services/internal/publishing`)
 **Status note (2026-10-16):** Approved campaign posts cannot be scheduled yet: `creativeVariantId` is never set, and there is no channel-connect or schedule UI.
+**Phase 0 update (2026-10-16):** Launch visuals become schedulable: `ApproveCampaignDesign` creates an approved creative variant from a design's render, and `ScheduleCampaignPost` accepts that variant, checks the post channel against the connection platform, and reschedules after CANCELLED or FAILED (never after UNKNOWN_DELIVERY). Posts report their scheduled post's state instead of a write-back from the publish workers. The Approve visual, Schedule, and Channels screens ship with SDK 0.1.12.
 **Date:** 2026-08-17
 **Revised:** 2026-10-14
 **Depends on:** RFC 005 and RFC 019

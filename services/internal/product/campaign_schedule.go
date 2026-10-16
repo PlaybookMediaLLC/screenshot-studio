@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -9,19 +10,40 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaign"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/lucsky/cuid"
 )
 
 type ScheduleCampaignPostInput struct {
-	ChannelConnectionID string     `json:"channelConnectionId"`
-	ScheduledAt         *time.Time `json:"scheduledAt"`
+	ChannelConnectionID string `json:"channelConnectionId"`
+	// CreativeVariantID attaches an approved visual of this campaign's designs.
+	CreativeVariantID *string    `json:"creativeVariantId"`
+	ScheduledAt       *time.Time `json:"scheduledAt"`
+}
+
+// campaignChannelPlatforms lists the connection platforms that publish each
+// campaign post channel. Other channels cannot be scheduled.
+var campaignChannelPlatforms = map[string][]string{
+	"x":         {"x"},
+	"linkedin":  {"linkedin"},
+	"instagram": {"instagram", "instagram-standalone"},
 }
 
 type ScheduleCampaignPostResult struct {
 	Post          CampaignPostItem   `json:"post"`
 	ScheduledPost *ent.ScheduledPost `json:"-"`
+}
+
+func scheduledCampaignPostItem(post *ent.CampaignPost, scheduled *ent.ScheduledPost) CampaignPostItem {
+	item := campaignPostItem(post)
+	status := string(scheduled.Status)
+	item.ScheduledPostStatus = &status
+	return item
 }
 
 func nextCampaignPublishTime(now time.Time, timeZone, publishTime string) (time.Time, error) {
@@ -43,7 +65,7 @@ func nextCampaignPublishTime(now time.Time, timeZone, publishTime string) (time.
 
 func (c *Configuration) ScheduleCampaignPost(ctx context.Context, actor Actor, campaignID, postID string,
 	input ScheduleCampaignPostInput) (*ScheduleCampaignPostResult, error) {
-	if err := c.authorizeRoles(ctx, actor,
+	if err := c.authorizeDecision(ctx, actor,
 		"owner", "admin", "publisher"); err != nil {
 		return nil, err
 	}
@@ -70,20 +92,65 @@ func (c *Configuration) ScheduleCampaignPost(ctx context.Context, actor Actor, c
 	if err != nil {
 		return nil, err
 	}
+	// A cancelled or failed scheduled post can be replaced. UNKNOWN_DELIVERY
+	// may have reached the channel, so it is never replaced.
+	var prior *ent.ScheduledPost
 	if post.Status == campaignpost.StatusSCHEDULED && post.ScheduledPostID != nil {
 		scheduled, err := tx.ScheduledPost.Query().Where(scheduledpost.ID(*post.ScheduledPostID),
 			scheduledpost.OrganizationID(actor.OrganizationID)).Only(ctx)
 		if err != nil {
 			return nil, err
 		}
-		if scheduled.ChannelConnectionID != input.ChannelConnectionID {
-			return nil, publishing.ErrConflict
+		switch scheduled.Status {
+		case scheduledpost.StatusCANCELLED, scheduledpost.StatusFAILED:
+			prior = scheduled
+		case scheduledpost.StatusUNKNOWN_DELIVERY:
+			return nil, conflict("This post may already be live. Check the channel before scheduling it again.")
+		default:
+			if scheduled.ChannelConnectionID != input.ChannelConnectionID {
+				return nil, publishing.ErrConflict
+			}
+			return &ScheduleCampaignPostResult{Post: scheduledCampaignPostItem(post, scheduled), ScheduledPost: scheduled}, nil
 		}
-		return &ScheduleCampaignPostResult{Post: campaignPostItem(post), ScheduledPost: scheduled}, nil
 	}
-	if post.Status != campaignpost.StatusAPPROVED || post.CreativeVariantID == nil ||
+	if (prior == nil && post.Status != campaignpost.StatusAPPROVED) ||
 		utf8.RuneCountInString(post.Copy) > 3000 || strings.TrimSpace(post.Copy) == "" {
 		return nil, publishing.ErrConflict
+	}
+	variantID := post.CreativeVariantID
+	if input.CreativeVariantID != nil {
+		variant, err := tx.CreativeVariant.Query().Where(creativevariant.ID(*input.CreativeVariantID),
+			creativevariant.OrganizationID(actor.OrganizationID), creativevariant.StatusEQ(creativevariant.StatusAPPROVED),
+			creativevariant.DesignIDNotNil()).Only(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return nil, err
+		}
+		owned := false
+		if variant != nil {
+			owned, err = tx.Design.Query().Where(design.ID(*variant.DesignID), design.CampaignID(campaignID),
+				design.OrganizationID(actor.OrganizationID)).Exist(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if !owned {
+			return nil, publishing.ErrNotFound
+		}
+		variantID = &variant.ID
+	}
+	if variantID == nil {
+		return nil, conflict("Approve a visual for this post before scheduling it.")
+	}
+	connection, err := tx.ChannelConnection.Query().Where(channelconnection.ID(input.ChannelConnectionID),
+		channelconnection.OrganizationID(actor.OrganizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, publishing.ErrNotEligible
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !slices.Contains(campaignChannelPlatforms[post.Channel], connection.Platform) {
+		return nil, conflict("This channel cannot publish a " + post.Channel + " post.")
 	}
 	scheduledAt := time.Time{}
 	if input.ScheduledAt != nil {
@@ -105,7 +172,7 @@ func (c *Configuration) ScheduleCampaignPost(ctx context.Context, actor Actor, c
 	if !scheduledAt.After(time.Now()) {
 		return nil, ErrInvalidInput
 	}
-	eligible, err := c.auth.IsEligible(ctx, actor.OrganizationID, *post.CreativeVariantID, input.ChannelConnectionID)
+	eligible, err := c.auth.IsEligible(ctx, actor.OrganizationID, *variantID, input.ChannelConnectionID)
 	if err != nil {
 		return nil, err
 	}
@@ -122,10 +189,16 @@ func (c *Configuration) ScheduleCampaignPost(ctx context.Context, actor Actor, c
 			refund()
 		}
 	}()
+	key, guard := "campaign-post:"+postID, []predicate.CampaignPost{
+		campaignpost.StatusEQ(campaignpost.StatusAPPROVED), campaignpost.ScheduledPostIDIsNil()}
+	if prior != nil {
+		key += ":" + prior.ID
+		guard = []predicate.CampaignPost{campaignpost.StatusEQ(campaignpost.StatusSCHEDULED), campaignpost.ScheduledPostID(prior.ID)}
+	}
 	scheduled, err := tx.ScheduledPost.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
-		SetVariantID(*post.CreativeVariantID).SetChannelConnectionID(input.ChannelConnectionID).
+		SetVariantID(*variantID).SetChannelConnectionID(input.ChannelConnectionID).
 		SetScheduledFor(scheduledAt).SetStatus(scheduledpost.StatusSCHEDULED).
-		SetCaption(post.Copy).SetIdempotencyKey("campaign-post:" + postID).Save(ctx)
+		SetCaption(post.Copy).SetIdempotencyKey(key).Save(ctx)
 	if err != nil {
 		if ent.IsConstraintError(err) {
 			return nil, publishing.ErrConflict
@@ -133,9 +206,8 @@ func (c *Configuration) ScheduleCampaignPost(ctx context.Context, actor Actor, c
 		return nil, err
 	}
 	count, err := tx.CampaignPost.Update().Where(campaignpost.ID(postID), campaignpost.CampaignID(campaignID),
-		campaignpost.OrganizationID(actor.OrganizationID), campaignpost.StatusEQ(campaignpost.StatusAPPROVED),
-		campaignpost.ScheduledPostIDIsNil()).SetStatus(campaignpost.StatusSCHEDULED).
-		SetScheduledAt(scheduledAt).SetScheduledPostID(scheduled.ID).Save(ctx)
+		campaignpost.OrganizationID(actor.OrganizationID)).Where(guard...).SetStatus(campaignpost.StatusSCHEDULED).
+		SetScheduledAt(scheduledAt).SetScheduledPostID(scheduled.ID).SetCreativeVariantID(*variantID).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +230,7 @@ func (c *Configuration) ScheduleCampaignPost(ctx context.Context, actor Actor, c
 	if err != nil {
 		return nil, err
 	}
-	result := &ScheduleCampaignPostResult{Post: campaignPostItem(updated), ScheduledPost: scheduled}
+	result := &ScheduleCampaignPostResult{Post: scheduledCampaignPostItem(updated, scheduled), ScheduledPost: scheduled}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}

@@ -26,13 +26,15 @@ type CreativeVariant struct {
 	// ReleaseID holds the value of the "release_id" field.
 	ReleaseID string `json:"release_id,omitempty"`
 	// BrandKitID holds the value of the "brand_kit_id" field.
-	BrandKitID string `json:"brand_kit_id,omitempty"`
+	BrandKitID *string `json:"brand_kit_id,omitempty"`
 	// BrandKitVersion holds the value of the "brand_kit_version" field.
-	BrandKitVersion int `json:"brand_kit_version,omitempty"`
+	BrandKitVersion *int `json:"brand_kit_version,omitempty"`
 	// TemplateID holds the value of the "template_id" field.
-	TemplateID string `json:"template_id,omitempty"`
+	TemplateID *string `json:"template_id,omitempty"`
 	// TemplateVersion holds the value of the "template_version" field.
-	TemplateVersion int `json:"template_version,omitempty"`
+	TemplateVersion *int `json:"template_version,omitempty"`
+	// DesignID holds the value of the "design_id" field.
+	DesignID *string `json:"design_id,omitempty"`
 	// Revision holds the value of the "revision" field.
 	Revision int `json:"revision,omitempty"`
 	// AspectRatio holds the value of the "aspect_ratio" field.
@@ -91,7 +93,7 @@ func (*CreativeVariant) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case creativevariant.FieldBrandKitVersion, creativevariant.FieldTemplateVersion, creativevariant.FieldRevision:
 			values[i] = new(sql.NullInt64)
-		case creativevariant.FieldID, creativevariant.FieldOrganizationID, creativevariant.FieldSourceAssetID, creativevariant.FieldReleaseID, creativevariant.FieldBrandKitID, creativevariant.FieldTemplateID, creativevariant.FieldAspectRatio, creativevariant.FieldStatus, creativevariant.FieldCreatedByUserID:
+		case creativevariant.FieldID, creativevariant.FieldOrganizationID, creativevariant.FieldSourceAssetID, creativevariant.FieldReleaseID, creativevariant.FieldBrandKitID, creativevariant.FieldTemplateID, creativevariant.FieldDesignID, creativevariant.FieldAspectRatio, creativevariant.FieldStatus, creativevariant.FieldCreatedByUserID:
 			values[i] = new(sql.NullString)
 		case creativevariant.FieldCreatedAt, creativevariant.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -138,25 +140,36 @@ func (_m *CreativeVariant) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field brand_kit_id", values[i])
 			} else if value.Valid {
-				_m.BrandKitID = value.String
+				_m.BrandKitID = new(string)
+				*_m.BrandKitID = value.String
 			}
 		case creativevariant.FieldBrandKitVersion:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field brand_kit_version", values[i])
 			} else if value.Valid {
-				_m.BrandKitVersion = int(value.Int64)
+				_m.BrandKitVersion = new(int)
+				*_m.BrandKitVersion = int(value.Int64)
 			}
 		case creativevariant.FieldTemplateID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field template_id", values[i])
 			} else if value.Valid {
-				_m.TemplateID = value.String
+				_m.TemplateID = new(string)
+				*_m.TemplateID = value.String
 			}
 		case creativevariant.FieldTemplateVersion:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field template_version", values[i])
 			} else if value.Valid {
-				_m.TemplateVersion = int(value.Int64)
+				_m.TemplateVersion = new(int)
+				*_m.TemplateVersion = int(value.Int64)
+			}
+		case creativevariant.FieldDesignID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field design_id", values[i])
+			} else if value.Valid {
+				_m.DesignID = new(string)
+				*_m.DesignID = value.String
 			}
 		case creativevariant.FieldRevision:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -249,17 +262,30 @@ func (_m *CreativeVariant) String() string {
 	builder.WriteString("release_id=")
 	builder.WriteString(_m.ReleaseID)
 	builder.WriteString(", ")
-	builder.WriteString("brand_kit_id=")
-	builder.WriteString(_m.BrandKitID)
+	if v := _m.BrandKitID; v != nil {
+		builder.WriteString("brand_kit_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
-	builder.WriteString("brand_kit_version=")
-	builder.WriteString(fmt.Sprintf("%v", _m.BrandKitVersion))
+	if v := _m.BrandKitVersion; v != nil {
+		builder.WriteString("brand_kit_version=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
-	builder.WriteString("template_id=")
-	builder.WriteString(_m.TemplateID)
+	if v := _m.TemplateID; v != nil {
+		builder.WriteString("template_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
-	builder.WriteString("template_version=")
-	builder.WriteString(fmt.Sprintf("%v", _m.TemplateVersion))
+	if v := _m.TemplateVersion; v != nil {
+		builder.WriteString("template_version=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.DesignID; v != nil {
+		builder.WriteString("design_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("revision=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Revision))

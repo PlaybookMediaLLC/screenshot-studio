@@ -242,11 +242,11 @@ func init() {
 	// campaignpost.DefaultClaims holds the default value on creation for the claims field.
 	campaignpost.DefaultClaims = campaignpostDescClaims.Default.([]map[string]interface{})
 	// campaignpostDescCreatedAt is the schema descriptor for created_at field.
-	campaignpostDescCreatedAt := campaignpostFields[18].Descriptor()
+	campaignpostDescCreatedAt := campaignpostFields[20].Descriptor()
 	// campaignpost.DefaultCreatedAt holds the default value on creation for the created_at field.
 	campaignpost.DefaultCreatedAt = campaignpostDescCreatedAt.Default.(func() time.Time)
 	// campaignpostDescUpdatedAt is the schema descriptor for updated_at field.
-	campaignpostDescUpdatedAt := campaignpostFields[19].Descriptor()
+	campaignpostDescUpdatedAt := campaignpostFields[21].Descriptor()
 	// campaignpost.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	campaignpost.DefaultUpdatedAt = campaignpostDescUpdatedAt.Default.(func() time.Time)
 	// campaignpost.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -334,11 +334,11 @@ func init() {
 	creativevariantFields := schema.CreativeVariant{}.Fields()
 	_ = creativevariantFields
 	// creativevariantDescCreatedAt is the schema descriptor for created_at field.
-	creativevariantDescCreatedAt := creativevariantFields[12].Descriptor()
+	creativevariantDescCreatedAt := creativevariantFields[13].Descriptor()
 	// creativevariant.DefaultCreatedAt holds the default value on creation for the created_at field.
 	creativevariant.DefaultCreatedAt = creativevariantDescCreatedAt.Default.(func() time.Time)
 	// creativevariantDescUpdatedAt is the schema descriptor for updated_at field.
-	creativevariantDescUpdatedAt := creativevariantFields[13].Descriptor()
+	creativevariantDescUpdatedAt := creativevariantFields[14].Descriptor()
 	// creativevariant.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	creativevariant.DefaultUpdatedAt = creativevariantDescUpdatedAt.Default.(func() time.Time)
 	// creativevariant.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

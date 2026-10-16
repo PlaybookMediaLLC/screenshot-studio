@@ -127,8 +127,17 @@ function featuresFor(plan: DisplayedPlan, previous: DisplayedPlan | null): strin
   return fromCode.length > 0 ? fromCode : ['Higher limits on every quota']
 }
 
-/** Polar-style plan columns: price, limits, and what each plan adds. */
-export function PlanCards({ location }: { location: string }) {
+/**
+ * Polar-style plan columns: price, limits, and what each plan adds. Set
+ * `withExtras` to false to show only the plans, e.g. while choosing a first plan.
+ */
+export function PlanCards({
+  location,
+  withExtras = true,
+}: {
+  location: string
+  withExtras?: boolean
+}) {
   const plans = DISPLAYED_PLANS
   return (
     <div>
@@ -212,31 +221,36 @@ export function PlanCards({ location }: { location: string }) {
           )
         })}
       </div>
-      <div className="mt-4 flex flex-col gap-6 bg-[#111] p-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="text-xl tracking-[-0.015em] text-white">
-            Extra launch{' '}
-            <span className={cn(MONO, 'ml-2 text-[13px] text-white/70')}>
-              {CREDIT_PACKS.launch.price}
-            </span>
-          </h3>
-          <p className={cn('mt-1 max-w-[560px] text-[15px] leading-[1.6]', MUTED)}>
-            {CREDIT_PACKS.launch.credits.toLocaleString('en-US')} AI credits, about one launch, on
-            any plan. They are spent after the monthly allowance and do not expire.
+      {withExtras ? (
+        <>
+          <div className="mt-4 flex flex-col gap-6 bg-[#111] p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-xl tracking-[-0.015em] text-white">
+                Extra launch{' '}
+                <span className={cn(MONO, 'ml-2 text-[13px] text-white/70')}>
+                  {CREDIT_PACKS.launch.price}
+                </span>
+              </h3>
+              <p className={cn('mt-1 max-w-[560px] text-[15px] leading-[1.6]', MUTED)}>
+                {CREDIT_PACKS.launch.credits.toLocaleString('en-US')} AI credits, about one launch,
+                for any subscribed workspace. They are spent after the monthly allowance and do not
+                expire.
+              </p>
+            </div>
+            <CheckoutButton
+              choices={[{ body: { pack: 'launch' }, label: 'Buy an extra launch' }]}
+              className="sm:w-[240px]"
+              location={`${location}_extra_launch`}
+              path={checkoutPathSchema.enum['/api/billing/credits']}
+            />
+          </div>
+          <p className={cn('mt-6 max-w-[760px] text-[15px] leading-[1.6]', MUTED)}>
+            Launch intelligence is in early access for design partners on any plan. One credit is
+            one cent of AI cost. A launch uses about 430 credits ($4.30). At zero, Shots stops
+            before the next AI call.
           </p>
-        </div>
-        <CheckoutButton
-          choices={[{ body: { pack: 'launch' }, label: 'Buy an extra launch' }]}
-          className="sm:w-[240px]"
-          location={`${location}_extra_launch`}
-          path={checkoutPathSchema.enum['/api/billing/credits']}
-        />
-      </div>
-      <p className={cn('mt-6 max-w-[760px] text-[15px] leading-[1.6]', MUTED)}>
-        Launch intelligence is in early access for design partners on any plan. One credit is one
-        cent of AI cost. A launch uses about 430 credits ($4.30). At zero, Shots stops before the
-        next AI call.
-      </p>
+        </>
+      ) : null}
     </div>
   )
 }

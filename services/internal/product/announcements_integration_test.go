@@ -48,9 +48,13 @@ func TestAnnouncementsAndAudience(t *testing.T) {
 		exec(`INSERT INTO session (id,"expiresAt",token,"createdAt","updatedAt","userId","activeOrganizationId") VALUES ($1,now()+interval '1 hour',$1,now(),now(),$2,$3)`, "session_"+user, user, org)
 		exec(`INSERT INTO member (id,"organizationId","userId",role,"createdAt") VALUES ($1,$2,$3,$4,now())`, "member_"+user, org, user, role)
 	}
+	outsider := "outsider_" + id
+	exec(`INSERT INTO "user" (id,name,email,"emailVerified","createdAt","updatedAt") VALUES ($1,$1,$2,true,now(),now())`, outsider, outsider+"@example.test")
+	exec(`INSERT INTO session (id,"expiresAt",token,"createdAt","updatedAt","userId","activeOrganizationId") VALUES ($1,now()+interval '1 hour',$1,now(),now(),$2,$3)`, "session_"+outsider, outsider, other)
+	exec(`INSERT INTO member (id,"organizationId","userId",role,"createdAt") VALUES ($1,$2,$3,'owner',now())`, "member_"+outsider, other, outsider)
 	t.Cleanup(func() {
 		_, _ = db.SQL.ExecContext(ctx, `DELETE FROM organization WHERE id=$1 OR id=$2`, org, other)
-		_, _ = db.SQL.ExecContext(ctx, `DELETE FROM "user" WHERE id=$1 OR id=$2`, owner, creator)
+		_, _ = db.SQL.ExecContext(ctx, `DELETE FROM "user" WHERE id=$1 OR id=$2 OR id=$3`, owner, creator, outsider)
 	})
 	exec(`INSERT INTO release (id,"organizationId",title,"benefitStatement","updatedAt") VALUES ($1,$2,'Faster exports','Exports finish sooner',now())`, "release"+id, org)
 	exec(`INSERT INTO release_document (id,"organizationId","releaseId",revision,"frontMatter","bodyMarkdown",status,"updatedAt") VALUES ($1,$2,$3,2,'{}','Body','APPROVED',now()),($4,$2,$3,3,'{}','Body','DRAFT',now())`,
@@ -64,6 +68,7 @@ func TestAnnouncementsAndAudience(t *testing.T) {
 	creatorSession := Actor{OrganizationID: org, UserID: creator, SessionID: "session_" + creator}
 	service := Actor{OrganizationID: org, Kind: "service", Display: "b@example.test"}
 	foreign := Actor{OrganizationID: other, Kind: "service"}
+	foreignSession := Actor{OrganizationID: other, UserID: outsider, SessionID: "session_" + outsider}
 	schedule := func(actor Actor, document, key string) (*AnnouncementSchedule, error) {
 		return repo.ScheduleAnnouncement(ctx, actor, ScheduleAnnouncementInput{IdempotencyKey: key, ReleaseDocumentID: document})
 	}
@@ -126,8 +131,11 @@ func TestAnnouncementsAndAudience(t *testing.T) {
 	if _, err := schedule(session, draft, "draft"); !errors.Is(err, publishing.ErrConflict) {
 		t.Fatalf("draft scheduled: %v", err)
 	}
-	if _, err := schedule(foreign, approved, "foreign"); !errors.Is(err, publishing.ErrNotFound) {
+	if _, err := schedule(foreignSession, approved, "foreign"); !errors.Is(err, publishing.ErrNotFound) {
 		t.Fatalf("foreign document scheduled: %v", err)
+	}
+	if _, err := schedule(service, approved, "service"); !errors.Is(err, publishing.ErrForbidden) {
+		t.Fatalf("service scheduled: %v", err)
 	}
 	if _, err := schedule(creatorSession, approved, "creator"); !errors.Is(err, publishing.ErrForbidden) {
 		t.Fatalf("creator scheduled: %v", err)
@@ -167,7 +175,7 @@ func TestAnnouncementsAndAudience(t *testing.T) {
 		t.Fatalf("foreign listed=%+v err=%v", listed, err)
 	}
 
-	if cancelled, err := repo.CancelAnnouncement(ctx, foreign, first.Announcement.ID); err != nil || cancelled {
+	if cancelled, err := repo.CancelAnnouncement(ctx, foreignSession, first.Announcement.ID); err != nil || cancelled {
 		t.Fatalf("foreign cancelled=%v err=%v", cancelled, err)
 	}
 	for _, want := range []bool{true, false} {

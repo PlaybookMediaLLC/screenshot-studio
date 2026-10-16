@@ -21,6 +21,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasespec"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/lucsky/cuid"
 )
@@ -55,9 +56,13 @@ var (
 	launchRunKinds     = []string{"spec", "plan", "produce", "revision"}
 )
 
-// A run that never finished (the web server restarted mid-run) counts as
-// failed after this long, so it no longer blocks a new run.
-const launchRunStaleAfter = 20 * time.Minute
+// A run that stopped heartbeating (the web server restarted mid-run) counts
+// as failed after launchRunHeartbeatStaleAfter, or after launchRunStaleAfter
+// when it never sent a heartbeat, so it no longer blocks a new run.
+const (
+	launchRunHeartbeatStaleAfter = 2 * time.Minute
+	launchRunStaleAfter          = 20 * time.Minute
+)
 
 func launchUserID(actor Actor) *string {
 	if actor.IsSession() && actor.UserID != "" {
@@ -295,7 +300,7 @@ func (c *Configuration) SaveLaunchSpec(ctx context.Context, actor Actor, release
 // ApproveLaunchSpec approves one version and supersedes the release's
 // previously approved one.
 func (c *Configuration) ApproveLaunchSpec(ctx context.Context, actor Actor, id string) (*LaunchSpec, error) {
-	if err := c.authorizeRoles(ctx, actor, launchApproveRoles...); err != nil {
+	if err := c.authorizeDecision(ctx, actor, launchApproveRoles...); err != nil {
 		return nil, err
 	}
 	tx, err := c.client.Tx(ctx)
@@ -464,7 +469,7 @@ func (c *Configuration) SaveLaunchPlan(ctx context.Context, actor Actor, campaig
 // ApproveLaunchPlan approves one version and supersedes the campaign's
 // previously approved one.
 func (c *Configuration) ApproveLaunchPlan(ctx context.Context, actor Actor, id string) (*LaunchPlan, error) {
-	if err := c.authorizeRoles(ctx, actor, launchApproveRoles...); err != nil {
+	if err := c.authorizeDecision(ctx, actor, launchApproveRoles...); err != nil {
 		return nil, err
 	}
 	tx, err := c.client.Tx(ctx)
@@ -867,6 +872,28 @@ func applyLaunchChange(ctx context.Context, tx *ent.Tx, actor Actor, revision *e
 			after.Claims = []map[string]any{}
 		}
 		update := tx.CampaignPost.UpdateOneID(post.ID).SetCopy(after.Copy).SetClaims(after.Claims)
+		// Approved copy never changes in place: an edit sends it back to
+		// draft, and a post that may be live cannot be edited.
+		switch post.Status {
+		case campaignpost.StatusPUBLISHED:
+			return "", nil, conflict("This post is published and can no longer be edited.")
+		case campaignpost.StatusSCHEDULED:
+			if post.ScheduledPostID != nil {
+				dead, err := tx.ScheduledPost.Query().Where(scheduledpost.ID(*post.ScheduledPostID),
+					scheduledpost.OrganizationID(organizationID),
+					scheduledpost.StatusIn(scheduledpost.StatusCANCELLED, scheduledpost.StatusFAILED)).Exist(ctx)
+				if err != nil {
+					return "", nil, err
+				}
+				if !dead {
+					return "", nil, conflict("Cancel the scheduled post first.")
+				}
+			}
+			update.SetStatus(campaignpost.StatusDRAFT).ClearScheduledPostID().ClearScheduledAt().
+				ClearApprovedAt().ClearApprovedByUserID()
+		case campaignpost.StatusAPPROVED:
+			update.SetStatus(campaignpost.StatusDRAFT).ClearApprovedAt().ClearApprovedByUserID()
+		}
 		if after.CallToAction == "" {
 			update.ClearCallToAction()
 		} else {
@@ -1139,16 +1166,18 @@ type LaunchRunRecord struct {
 	CampaignID string     `json:"campaignId"`
 	Error      *string    `json:"error"`
 	FinishedAt *time.Time `json:"finishedAt"`
-	ID         string     `json:"id"`
-	Kind       string     `json:"kind"`
-	ResultID   *string    `json:"resultId"`
-	StartedAt  time.Time  `json:"startedAt"`
-	Status     string     `json:"status"`
-	Summary    *string    `json:"summary"`
+	// HeartbeatAt is the last time the worker reported it was alive.
+	HeartbeatAt *time.Time `json:"heartbeatAt"`
+	ID          string     `json:"id"`
+	Kind        string     `json:"kind"`
+	ResultID    *string    `json:"resultId"`
+	StartedAt   time.Time  `json:"startedAt"`
+	Status      string     `json:"status"`
+	Summary     *string    `json:"summary"`
 }
 
 func launchRunRecord(row *ent.LaunchRun) LaunchRunRecord {
-	return LaunchRunRecord{CampaignID: row.CampaignID, Error: row.Error, FinishedAt: row.FinishedAt, ID: row.ID,
+	return LaunchRunRecord{CampaignID: row.CampaignID, Error: row.Error, FinishedAt: row.FinishedAt, HeartbeatAt: row.HeartbeatAt, ID: row.ID,
 		Kind: row.Kind, ResultID: row.ResultID, StartedAt: row.StartedAt, Status: string(row.Status), Summary: row.Summary}
 }
 
@@ -1182,21 +1211,21 @@ func (c *Configuration) StartLaunchRun(ctx context.Context, actor Actor, campaig
 	}
 	now := time.Now().UTC()
 	if kind != "revision" {
-		// ponytail: check-then-insert under read committed, as before; two
-		// starts in the same instant can both run. A per-campaign advisory
-		// lock closes it if duplicate runs show up.
-		active, err := tx.LaunchRun.Query().Where(launchrun.CampaignID(campaignID), launchrun.Kind(kind),
-			launchrun.OrganizationID(actor.OrganizationID), launchrun.StartedAtGT(now.Add(-launchRunStaleAfter)),
-			launchrun.StatusEQ(launchrun.StatusRUNNING)).Exist(ctx)
-		if err != nil {
+		// A dead run gives up its slot here; the partial unique index on
+		// running runs then admits exactly one of concurrent starts.
+		if _, err := tx.LaunchRun.Update().Where(launchrun.CampaignID(campaignID), launchrun.Kind(kind),
+			launchrun.OrganizationID(actor.OrganizationID), launchrun.StatusEQ(launchrun.StatusRUNNING),
+			launchrun.Or(launchrun.HeartbeatAtLT(now.Add(-launchRunHeartbeatStaleAfter)),
+				launchrun.And(launchrun.HeartbeatAtIsNil(), launchrun.StartedAtLT(now.Add(-launchRunStaleAfter))))).
+			SetStatus(launchrun.StatusFAILED).SetFinishedAt(now).SetError("The run stopped responding.").Save(ctx); err != nil {
 			return nil, err
-		}
-		if active {
-			return nil, errLaunchRunActive
 		}
 	}
 	row, err := tx.LaunchRun.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetCampaignID(campaignID).
 		SetKind(kind).SetNillableCreatedByUserID(launchUserID(actor)).SetStartedAt(now).Save(ctx)
+	if ent.IsConstraintError(err) {
+		return nil, errLaunchRunActive
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -1215,13 +1244,62 @@ func (c *Configuration) FinishLaunchRun(ctx context.Context, actor Actor, id str
 	if status != launchrun.StatusSUCCEEDED && status != launchrun.StatusFAILED {
 		return ErrInvalidInput
 	}
-	count, err := c.client.LaunchRun.Update().Where(launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID)).
+	// Only a running run finishes; a cancelled or expired one stays as it is.
+	count, err := c.client.LaunchRun.Update().Where(launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID),
+		launchrun.StatusEQ(launchrun.StatusRUNNING)).
 		SetStatus(status).SetFinishedAt(time.Now().UTC()).SetNillableResultID(input.ResultID).
 		SetNillableSummary(input.Summary).SetNillableError(input.Error).Save(ctx)
 	if err != nil {
 		return err
 	}
 	if count == 0 {
+		return c.launchRunExists(ctx, actor, id)
+	}
+	return nil
+}
+
+// HeartbeatLaunchRun records that a run's worker is alive and reports whether
+// the run is still RUNNING. A worker stops when it is not.
+func (c *Configuration) HeartbeatLaunchRun(ctx context.Context, actor Actor, id string) (bool, error) {
+	if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
+		return false, err
+	}
+	count, err := c.client.LaunchRun.Update().Where(launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID),
+		launchrun.StatusEQ(launchrun.StatusRUNNING)).SetHeartbeatAt(time.Now().UTC()).Save(ctx)
+	if err != nil {
+		return false, err
+	}
+	if count == 0 {
+		return false, c.launchRunExists(ctx, actor, id)
+	}
+	return true, nil
+}
+
+// CancelLaunchRun fails a running run and reports whether it did. The worker
+// sees it on its next heartbeat and stops.
+func (c *Configuration) CancelLaunchRun(ctx context.Context, actor Actor, id string) (bool, error) {
+	if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
+		return false, err
+	}
+	count, err := c.client.LaunchRun.Update().Where(launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID),
+		launchrun.StatusEQ(launchrun.StatusRUNNING)).SetStatus(launchrun.StatusFAILED).
+		SetFinishedAt(time.Now().UTC()).SetError("Cancelled.").Save(ctx)
+	if err != nil {
+		return false, err
+	}
+	if count == 0 {
+		return false, c.launchRunExists(ctx, actor, id)
+	}
+	return true, nil
+}
+
+// launchRunExists answers nil for a run of this workspace, else not found.
+func (c *Configuration) launchRunExists(ctx context.Context, actor Actor, id string) error {
+	exists, err := c.client.LaunchRun.Query().Where(launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID)).Exist(ctx)
+	if err != nil {
+		return err
+	}
+	if !exists {
 		return launchNotFound("Run")
 	}
 	return nil

@@ -122,6 +122,20 @@ func (_c *LaunchRunCreate) SetNillableStartedAt(v *time.Time) *LaunchRunCreate {
 	return _c
 }
 
+// SetHeartbeatAt sets the "heartbeat_at" field.
+func (_c *LaunchRunCreate) SetHeartbeatAt(v time.Time) *LaunchRunCreate {
+	_c.mutation.SetHeartbeatAt(v)
+	return _c
+}
+
+// SetNillableHeartbeatAt sets the "heartbeat_at" field if the given value is not nil.
+func (_c *LaunchRunCreate) SetNillableHeartbeatAt(v *time.Time) *LaunchRunCreate {
+	if v != nil {
+		_c.SetHeartbeatAt(*v)
+	}
+	return _c
+}
+
 // SetFinishedAt sets the "finished_at" field.
 func (_c *LaunchRunCreate) SetFinishedAt(v time.Time) *LaunchRunCreate {
 	_c.mutation.SetFinishedAt(v)
@@ -279,6 +293,10 @@ func (_c *LaunchRunCreate) createSpec() (*LaunchRun, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.StartedAt(); ok {
 		_spec.SetField(launchrun.FieldStartedAt, field.TypeTime, value)
 		_node.StartedAt = value
+	}
+	if value, ok := _c.mutation.HeartbeatAt(); ok {
+		_spec.SetField(launchrun.FieldHeartbeatAt, field.TypeTime, value)
+		_node.HeartbeatAt = &value
 	}
 	if value, ok := _c.mutation.FinishedAt(); ok {
 		_spec.SetField(launchrun.FieldFinishedAt, field.TypeTime, value)

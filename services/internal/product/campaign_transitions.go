@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaign"
@@ -55,10 +56,14 @@ func campaignTransitionRoles(from, to campaign.Status) []string {
 }
 
 func (c *Configuration) TransitionCampaign(ctx context.Context, actor Actor, id, status string) (*CampaignTransition, error) {
+	to := campaign.Status(status)
+	// Approving is a decision only a person makes.
+	if to == campaign.StatusAPPROVED && !actor.IsSession() {
+		return nil, publishing.ErrForbidden
+	}
 	if err := c.AuthorizeRead(ctx, actor); err != nil {
 		return nil, err
 	}
-	to := campaign.Status(status)
 	if to != campaign.StatusDRAFT && to != campaign.StatusREADY_FOR_REVIEW &&
 		to != campaign.StatusAPPROVED && to != campaign.StatusARCHIVED {
 		return nil, ErrInvalidInput
@@ -134,7 +139,11 @@ func (c *Configuration) TransitionCampaignPosts(ctx context.Context, actor Actor
 	if !ok || len(input.PostIDs) > 100 || (input.Note != nil && len(*input.Note) > 1000) {
 		return nil, ErrInvalidInput
 	}
-	if err := c.authorizeRoles(ctx, actor, roles...); err != nil {
+	authorize := c.authorizeDecision
+	if input.Decision == "submit" {
+		authorize = c.authorizeRoles
+	}
+	if err := authorize(ctx, actor, roles...); err != nil {
 		return nil, err
 	}
 	seen := make(map[string]bool, len(input.PostIDs))
@@ -175,8 +184,9 @@ func (c *Configuration) TransitionCampaignPosts(ctx context.Context, actor Actor
 	update := tx.CampaignPost.Update().Where(campaignpost.IDIn(ids...), campaignpost.CampaignID(campaignID),
 		campaignpost.OrganizationID(actor.OrganizationID), campaignpost.StatusIn(from...)).SetStatus(to)
 	if input.Decision == "approve" {
-		update.ClearReviewNote()
+		update.ClearReviewNote().SetApprovedAt(time.Now().UTC()).SetApprovedByUserID(actor.UserID)
 	} else if input.Decision == "reject" || input.Decision == "request_changes" {
+		update.ClearApprovedAt().ClearApprovedByUserID()
 		if input.Note != nil && strings.TrimSpace(*input.Note) != "" {
 			update.SetReviewNote(strings.TrimSpace(*input.Note))
 		}

@@ -2,6 +2,7 @@
 
 **Status:** Partially implemented (core shipped; see `lib/tenant/campaign-status.ts`, `lib/tenant/campaigns.ts`, `lib/trpc/routers/campaign.ts`)
 **Status note (2026-10-16):** Missing: a content hash on the approved version, decided-by and decided-at fields, and approval notifications.
+**Phase 0 update (2026-10-16):** Approval now records `approvedByUserId` and `approvedAt`. Revising an APPROVED post returns it to DRAFT; revising a live SCHEDULED or a PUBLISHED post is refused. Approval and scheduling decisions are sessions only in the backend (`authorizeDecision`). A content hash was not added because the launch revision is the only path that edits an existing post's copy.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 003, RFC 014, and RFC 018

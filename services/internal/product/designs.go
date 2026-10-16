@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaign"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/google/uuid"
@@ -55,6 +58,15 @@ type DesignRecord struct {
 	TemplateID      *string        `json:"templateId"`
 	UpdatedAt       time.Time      `json:"updatedAt"`
 	VariantLabel    *string        `json:"variantLabel"`
+	// ApprovedVariant is the newest approved render. When its source asset is
+	// not the current render, the design changed since approval.
+	ApprovedVariant *ApprovedDesignVariant `json:"approvedVariant"`
+}
+
+// ApprovedDesignVariant names the approved creative variant of a design.
+type ApprovedDesignVariant struct {
+	ID            string `json:"id"`
+	SourceAssetID string `json:"sourceAssetId"`
 }
 
 func designRecord(row *ent.Design) DesignRecord {
@@ -322,9 +334,26 @@ func (c *Configuration) ListCampaignDesigns(ctx context.Context, actor Actor, ca
 	if err != nil {
 		return nil, err
 	}
+	ids := make([]string, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.ID)
+	}
+	variants, err := c.client.CreativeVariant.Query().Where(creativevariant.DesignIDIn(ids...),
+		creativevariant.OrganizationID(actor.OrganizationID), creativevariant.StatusEQ(creativevariant.StatusAPPROVED)).
+		Order(ent.Desc(creativevariant.FieldRevision)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	approved := map[string]*ApprovedDesignVariant{}
+	for _, variant := range variants {
+		if approved[*variant.DesignID] == nil {
+			approved[*variant.DesignID] = &ApprovedDesignVariant{ID: variant.ID, SourceAssetID: variant.SourceAssetID}
+		}
+	}
 	items := make([]DesignRecord, 0, len(rows))
 	for _, row := range rows {
 		item := designRecord(row)
+		item.ApprovedVariant = approved[row.ID]
 		if row.RenderedAssetID != nil {
 			media, err := c.client.Asset.Query().Where(asset.ID(*row.RenderedAssetID), asset.OrganizationID(actor.OrganizationID)).Only(ctx)
 			if err != nil && !ent.IsNotFound(err) {
@@ -337,4 +366,110 @@ func (c *Configuration) ListCampaignDesigns(ctx context.Context, actor Actor, ca
 		items = append(items, item)
 	}
 	return items, nil
+}
+
+// ApproveCampaignDesign approves a design's current render for publishing. The
+// render becomes a creative variant (one per design and render), so a later
+// re-render never changes what was approved.
+func (c *Configuration) ApproveCampaignDesign(ctx context.Context, actor Actor, campaignID, designID string) (*CreativeApprovalDecision, error) {
+	if err := c.authorizeDecision(ctx, actor, creativeApproveRoles...); err != nil {
+		return nil, err
+	}
+	tx, err := c.client.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	owner, err := tx.Campaign.Query().Where(campaign.ID(campaignID), campaign.OrganizationID(actor.OrganizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, publishing.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	row, err := tx.Design.Query().Where(design.ID(designID), design.CampaignID(campaignID),
+		design.OrganizationID(actor.OrganizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, publishing.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if owner.ReleaseID == nil {
+		return nil, conflict("Link this campaign to a release before approving a visual.")
+	}
+	var render *ent.Asset
+	if row.RenderedAssetID != nil {
+		render, err = tx.Asset.Query().Where(asset.ID(*row.RenderedAssetID), asset.OrganizationID(actor.OrganizationID),
+			asset.StatusEQ(asset.StatusUPLOADED)).Only(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return nil, err
+		}
+	}
+	if render == nil || render.Width == nil || render.Height == nil || *render.Width < 1 || *render.Height < 1 {
+		return nil, conflict("Render this design before approving it.")
+	}
+	variant, err := tx.CreativeVariant.Query().Where(creativevariant.DesignID(row.ID),
+		creativevariant.SourceAssetID(render.ID), creativevariant.OrganizationID(actor.OrganizationID)).Only(ctx)
+	if err != nil && !ent.IsNotFound(err) {
+		return nil, err
+	}
+	if variant == nil {
+		ratio := designAspectRatio(*render.Width, *render.Height)
+		current, err := tx.CreativeVariant.Query().Where(creativevariant.ReleaseID(*owner.ReleaseID),
+			creativevariant.AspectRatio(ratio)).Order(ent.Desc(creativevariant.FieldRevision)).First(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return nil, err
+		}
+		revision := 1
+		if current != nil {
+			revision = current.Revision + 1
+		}
+		variant, err = tx.CreativeVariant.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
+			SetReleaseID(*owner.ReleaseID).SetSourceAssetID(render.ID).SetDesignID(row.ID).
+			SetRevision(revision).SetAspectRatio(ratio).SetStatus(creativevariant.StatusDRAFT).
+			SetCreatedByUserID(actor.UserID).Save(ctx)
+		if ent.IsConstraintError(err) {
+			return nil, publishing.ErrConflict
+		}
+		if err != nil {
+			return nil, err
+		}
+		if _, err := tx.Approval.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
+			SetVariantID(variant.ID).SetStatus(approval.StatusPENDING).Save(ctx); err != nil {
+			return nil, err
+		}
+		if err := appendConfigurationAudit(ctx, tx, actor, "product.creative_variant_created", "creative_variant", variant.ID,
+			map[string]any{"designId": row.ID}); err != nil {
+			return nil, err
+		}
+	} else if variant.Status == creativevariant.StatusAPPROVED {
+		// Approving the same render again changes nothing.
+		decided, err := tx.Approval.Query().Where(approval.VariantID(variant.ID), approval.OrganizationID(actor.OrganizationID)).Only(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return nil, err
+		}
+		if decided != nil && decided.Status == approval.StatusAPPROVED {
+			return &CreativeApprovalDecision{Approval: creativeApprovalRecord(decided.Unwrap()),
+				Variant: creativeVariantRecord(variant.Unwrap())}, nil
+		}
+	}
+	decision, err := decideVariantTx(ctx, tx, actor, variant.ID, CreativeApprovalInput{Status: "APPROVED"})
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return &CreativeApprovalDecision{Approval: creativeApprovalRecord(decision.approval.Unwrap()),
+		Variant: creativeVariantRecord(decision.variant.Unwrap())}, nil
+}
+
+// designAspectRatio reduces render dimensions to a ratio such as 16:9.
+func designAspectRatio(width, height int) string {
+	a, b := width, height
+	for b != 0 {
+		a, b = b, a%b
+	}
+	return strconv.Itoa(width/a) + ":" + strconv.Itoa(height/a)
 }

@@ -179,6 +179,15 @@ func (f *fakeConfiguration) CreateCreativeTemplate(context.Context, product.Acto
 func (f *fakeConfiguration) CreateCreativeVariant(context.Context, product.Actor, product.CreateCreativeVariantInput) (*product.CreativeVariantRecord, error) {
 	return &product.CreativeVariantRecord{ID: "variant-1", Status: "DRAFT"}, nil
 }
+func (f *fakeConfiguration) ApproveCampaignDesign(_ context.Context, _ product.Actor, _, designID string) (*product.CreativeApprovalDecision, error) {
+	return &product.CreativeApprovalDecision{Variant: product.CreativeVariantRecord{ID: "variant-1", DesignID: &designID, Status: "APPROVED"}}, nil
+}
+func (f *fakeConfiguration) HeartbeatLaunchRun(context.Context, product.Actor, string) (bool, error) {
+	return true, nil
+}
+func (f *fakeConfiguration) CancelLaunchRun(context.Context, product.Actor, string) (bool, error) {
+	return false, publishing.ErrNotFound
+}
 func (f *fakeConfiguration) DecideCreativeVariant(context.Context, product.Actor, string, product.CreativeApprovalInput) (*product.CreativeApprovalDecision, error) {
 	return &product.CreativeApprovalDecision{Variant: product.CreativeVariantRecord{ID: "variant-1", Status: "APPROVED"}}, nil
 }
@@ -304,6 +313,29 @@ func TestCampaignRoutesRejectInvalidIDsAndRequireSession(t *testing.T) {
 		`{"channelConnectionId":"connection-1"}`)
 	if scheduled.Code != http.StatusOK || scheduler.started.PostID != "scheduled-1" {
 		t.Fatalf("campaign schedule status=%d workflow=%+v body=%s", scheduled.Code, scheduler.started, scheduled.Body.String())
+	}
+	if response := configurationRequest(handler, http.MethodPost,
+		"/v1/campaigns/c123456789012345678901234/designs/not-a-design/approval", ""); response.Code != http.StatusBadRequest {
+		t.Fatalf("invalid design ID status=%d", response.Code)
+	}
+	approved := configurationRequest(handler, http.MethodPost,
+		"/v1/campaigns/c123456789012345678901234/designs/d123456789012345678901234/approval", "")
+	if approved.Code != http.StatusOK || !strings.Contains(approved.Body.String(), `"designId":"d123456789012345678901234"`) {
+		t.Fatalf("design approval status=%d body=%s", approved.Code, approved.Body.String())
+	}
+}
+
+func TestLaunchRunLeaseRoutes(t *testing.T) {
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", &fakeConfiguration{})
+	beat := configurationRequest(handler, http.MethodPost, "/v1/launch/runs/c123456789012345678901234/heartbeat", "")
+	if beat.Code != http.StatusOK || !strings.Contains(beat.Body.String(), `"running":true`) {
+		t.Fatalf("heartbeat status=%d body=%s", beat.Code, beat.Body.String())
+	}
+	if cancel := configurationRequest(handler, http.MethodPost, "/v1/launch/runs/c123456789012345678901234/cancel", ""); cancel.Code != http.StatusNotFound {
+		t.Fatalf("cancel of an unknown run status=%d", cancel.Code)
+	}
+	if invalid := configurationRequest(handler, http.MethodPost, "/v1/launch/runs/bad/cancel", ""); invalid.Code != http.StatusBadRequest {
+		t.Fatalf("invalid run ID status=%d", invalid.Code)
 	}
 }
 

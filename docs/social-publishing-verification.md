@@ -17,7 +17,8 @@ activity runs. A confirmed remote receipt is required for `PUBLISHED`.
 | Instagram with Facebook Login | Mock callback and Page selection tests only. | None. | Unverified. |
 | Other providers | Provider-specific unit coverage varies. | None. | Unverified. |
 
-The backend cutover has **not** been deployed to the production host. Earlier
+The backend cutover is deployed to the production host (verified with
+`doctl apps get` on 2026-10-16), but no live canary has run on it yet. Earlier
 live posts prove the social accounts and provider integrations worked under
 the previous publish path; they do not prove the new canonical worker path.
 The previously queued 25-hour Instagram canary has no verified final receipt

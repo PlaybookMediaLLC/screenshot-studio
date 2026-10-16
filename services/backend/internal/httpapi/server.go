@@ -74,6 +74,8 @@ type ConfigurationStore interface {
 	GetLaunchPreferences(context.Context, product.Actor) (*product.LaunchPreferenceExamples, error)
 	StartLaunchRun(context.Context, product.Actor, string, string) (*product.LaunchRunRecord, error)
 	FinishLaunchRun(context.Context, product.Actor, string, product.FinishLaunchRunInput) error
+	HeartbeatLaunchRun(context.Context, product.Actor, string) (bool, error)
+	CancelLaunchRun(context.Context, product.Actor, string) (bool, error)
 	GetLaunchRun(context.Context, product.Actor, string) (*product.LaunchRunRecord, error)
 	ListLaunchRuns(context.Context, product.Actor, string) ([]product.LaunchRunRecord, error)
 	ListAuditDrains(context.Context, product.Actor) ([]product.AuditDrainRecord, error)
@@ -177,6 +179,7 @@ type ConfigurationStore interface {
 	UpdateDesignDocument(context.Context, product.Actor, string, map[string]any) error
 	SetDesignRender(context.Context, product.Actor, string, string, *string) error
 	ListCampaignDesigns(context.Context, product.Actor, string) ([]product.DesignRecord, error)
+	ApproveCampaignDesign(context.Context, product.Actor, string, string) (*product.CreativeApprovalDecision, error)
 	GetEntitlementSummary(context.Context, product.Actor) (*product.EntitlementSummary, error)
 	GetFeatureDecision(context.Context, product.Actor, string) (*product.FeatureDecision, error)
 	ListCreativeTemplates(context.Context, product.Actor) ([]product.CreativeTemplateRecord, error)

@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { FaqBlock, MarketingShell, PageHero, TileGrid } from '../blocks'
 import { MUTED, Section, SectionIntro } from '../primitives'
 import { PlanCards, PlanComparison } from '../pricing'
+import { PricingNotice } from '../PricingNotice'
 import { CreditMeter } from '../diagrams/CreditMeter'
 
 const EDITOR_TOOLS = [
@@ -39,6 +40,7 @@ export function PricingPage() {
         secondary={{ href: '/contact', label: 'Contact sales' }}
         trail="Change plans or cancel any time from the billing portal."
       >
+        <PricingNotice />
         <PlanCards location="pricing_cards" />
       </PageHero>
 

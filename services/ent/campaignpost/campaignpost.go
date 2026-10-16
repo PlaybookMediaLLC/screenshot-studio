@@ -40,6 +40,10 @@ const (
 	FieldClaims = "claims"
 	// FieldReviewNote holds the string denoting the review_note field in the database.
 	FieldReviewNote = "reviewNote"
+	// FieldApprovedByUserID holds the string denoting the approved_by_user_id field in the database.
+	FieldApprovedByUserID = "approvedByUserId"
+	// FieldApprovedAt holds the string denoting the approved_at field in the database.
+	FieldApprovedAt = "approvedAt"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldScheduledAt holds the string denoting the scheduled_at field in the database.
@@ -72,6 +76,8 @@ var Columns = []string{
 	FieldPlanVersion,
 	FieldClaims,
 	FieldReviewNote,
+	FieldApprovedByUserID,
+	FieldApprovedAt,
 	FieldStatus,
 	FieldScheduledAt,
 	FieldCreativeVariantID,
@@ -195,6 +201,16 @@ func ByPlanVersion(opts ...sql.OrderTermOption) OrderOption {
 // ByReviewNote orders the results by the review_note field.
 func ByReviewNote(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldReviewNote, opts...).ToFunc()
+}
+
+// ByApprovedByUserID orders the results by the approved_by_user_id field.
+func ByApprovedByUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldApprovedByUserID, opts...).ToFunc()
+}
+
+// ByApprovedAt orders the results by the approved_at field.
+func ByApprovedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldApprovedAt, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

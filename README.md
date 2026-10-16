@@ -131,27 +131,35 @@ Each step builds only on the steps before it.
 
 **Phase 0: fix what is broken now that every customer pays**
 
-1. **Paywall experience** ([035](docs/rfcs/035-pricing-and-unit-economics.md))
-   - Show a notice on `/pricing` when someone is sent there to subscribe, and after checkout or a credit purchase.
-   - Land checkout success in the app, with a "finishing setup" state until Stripe confirms.
-   - Add a choose-a-plan step to onboarding.
-   - Add a Billing section to workspace settings.
-   - Block credit packs without a subscription.
-   - Decide whether to offer a trial.
+Status as of 2026-10-16: the backend for every step is done; the campaign UI for steps 2, 3,
+and 5 lands with SDK 0.1.12.
+
+1. **Paywall experience** ([035](docs/rfcs/035-pricing-and-unit-economics.md)), done
+   - `/pricing` explains why someone was sent there and what happened after checkout or a credit purchase.
+   - Checkout success returns to the app and applies the plan at once, without waiting for the webhook.
+   - Onboarding has a "Choose a plan" step.
+   - Workspace settings have a Billing section: plan, status, credits left, and the billing portal.
+   - Credit packs require a subscription. There is no trial.
 2. **Approve → schedule → publish end to end** ([020](docs/rfcs/020-postiz-publishing.md), [014](docs/rfcs/014-structured-marketing-objects.md))
-   - Link launch designs to the post's creative. Today nothing sets `creativeVariantId`, so approved campaign posts cannot be scheduled.
-   - Add a UI to connect channels.
-   - Add a UI to schedule approved posts.
-   - Write PUBLISHED and CANCELLED back to the campaign post.
-3. **Approved content can't change** ([014](docs/rfcs/014-structured-marketing-objects.md), [019](docs/rfcs/019-approval-workflow.md))
-   - Pin a content hash at approval and check it before scheduling.
-   - Stop revisions from rewriting approved or scheduled posts.
-4. **Security check:** prove API-key, service, and webhook actors can never approve a post, and add a test.
-5. **Durable launch runs** ([004](docs/rfcs/004-trigger-dev-background-jobs.md)): move AI launch runs from Next.js `after()` to Temporal.
+   - Done: approving a launch visual creates an approved creative variant, and scheduling attaches it to the post.
+   - Done: the post channel must match the connected platform.
+   - Done: a cancelled or failed post can be rescheduled, but a post whose delivery is uncertain never is.
+   - Posts report their scheduled post's state.
+   - Next: the Approve visual, Schedule, and Channels screens.
+3. **Approved content can't change** ([014](docs/rfcs/014-structured-marketing-objects.md), [019](docs/rfcs/019-approval-workflow.md)), done
+   - Approval records who approved a post and when.
+   - Revising an approved post sends it back to draft.
+   - Revising a live scheduled or published post is refused.
+4. **Security check**, done: approvals and scheduling refuse API-key, service, webhook, and support actors in the backend itself, with a test for every entrypoint.
+5. **Launch runs** ([004](docs/rfcs/004-trigger-dev-background-jobs.md))
+   - Done: the database enforces one active run per kind.
+   - Done: runs carry a heartbeat lease, so a dead run fails within minutes.
+   - Done: runs can be cancelled.
+   - Next: the web heartbeat and the Cancel button.
 6. **Production data cutover** ([002](docs/rfcs/002-planetscale-tenant-data-model.md))
-   - Apply the Go single-database cutover in production.
-   - Run the tenant-isolation matrix against production.
-   - Enforce an append-only audit log in the database.
+   - Done: the Go single-database cutover is applied in production (verified 2026-10-16).
+   - Done: a trigger makes `audit_log` append-only; only the retention purge deletes rows.
+   - Next: run the tenant-isolation matrix against a non-production deployment.
 
 **Phase 1: the critical path**
 

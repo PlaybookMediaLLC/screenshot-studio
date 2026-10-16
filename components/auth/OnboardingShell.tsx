@@ -5,6 +5,13 @@ import { cn } from '@/lib/utils'
 
 export type OnboardingStep = { description: string; title: string }
 
+/** The onboarding steps, in order: account, workspace, plan. */
+export const ONBOARDING_STEPS: OnboardingStep[] = [
+  { description: 'Your sign-in details.', title: 'Create your account' },
+  { description: "Your team's shared home.", title: 'Create your workspace' },
+  { description: 'Pick how often you ship.', title: 'Choose a plan' },
+]
+
 /**
  * Onboarding after Polar's: a framed split screen with the steps on the left
  * and the current step's panel on the right. Steps before `current` show as

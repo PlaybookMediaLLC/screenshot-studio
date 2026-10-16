@@ -68,7 +68,7 @@ export function OnboardingForm() {
         name: input.data.name,
         slug: input.data.slug,
       })
-      window.location.assign('/')
+      window.location.assign('/onboarding/plan')
     } catch (requestError) {
       setError(getAuthErrorMessage(requestError, 'Could not create the workspace.'))
       setIsSubmitting(false)

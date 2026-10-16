@@ -4,6 +4,7 @@ import { router } from './init'
 import { announcementRouter, audienceRouter } from './routers/announcement'
 import { apiKeyRouter } from './routers/api-key'
 import { assetRouter } from './routers/asset'
+import { billingRouter } from './routers/billing'
 import { campaignRouter } from './routers/campaign'
 import { brandKitRouter, brandProfileRouter, sourceAppRouter } from './routers/configuration'
 import { creativeTemplateRouter, creativeVariantRouter } from './routers/creative'
@@ -21,6 +22,7 @@ export const appRouter = router({
   apiKey: apiKeyRouter,
   audience: audienceRouter,
   asset: assetRouter,
+  billing: billingRouter,
   brandKit: brandKitRouter,
   brandProfile: brandProfileRouter,
   campaign: campaignRouter,

@@ -461,6 +461,8 @@ var (
 		{Name: "planVersion", Type: field.TypeInt, Nullable: true},
 		{Name: "claims", Type: field.TypeJSON},
 		{Name: "reviewNote", Type: field.TypeString, Nullable: true},
+		{Name: "approvedByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "approvedAt", Type: field.TypeTime, Nullable: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "READY_FOR_REVIEW", "APPROVED", "REJECTED", "NEEDS_CHANGES", "SCHEDULED", "PUBLISHED"}},
 		{Name: "scheduledAt", Type: field.TypeTime, Nullable: true},
 		{Name: "creativeVariantId", Type: field.TypeString, Nullable: true},
@@ -477,7 +479,7 @@ var (
 			{
 				Name:    "campaignpost_organizationId_status",
 				Unique:  false,
-				Columns: []*schema.Column{CampaignPostColumns[1], CampaignPostColumns[14]},
+				Columns: []*schema.Column{CampaignPostColumns[1], CampaignPostColumns[16]},
 			},
 			{
 				Name:    "campaignpost_campaignId",
@@ -487,7 +489,7 @@ var (
 			{
 				Name:    "campaignpost_scheduledPostId",
 				Unique:  true,
-				Columns: []*schema.Column{CampaignPostColumns[17]},
+				Columns: []*schema.Column{CampaignPostColumns[19]},
 			},
 		},
 	}
@@ -682,10 +684,11 @@ var (
 		{Name: "id", Type: field.TypeString},
 		{Name: "organizationId", Type: field.TypeString},
 		{Name: "releaseId", Type: field.TypeString},
-		{Name: "brandKitId", Type: field.TypeString},
-		{Name: "brandKitVersion", Type: field.TypeInt},
-		{Name: "templateId", Type: field.TypeString},
-		{Name: "templateVersion", Type: field.TypeInt},
+		{Name: "brandKitId", Type: field.TypeString, Nullable: true},
+		{Name: "brandKitVersion", Type: field.TypeInt, Nullable: true},
+		{Name: "templateId", Type: field.TypeString, Nullable: true},
+		{Name: "templateVersion", Type: field.TypeInt, Nullable: true},
+		{Name: "designId", Type: field.TypeString, Nullable: true},
 		{Name: "revision", Type: field.TypeInt},
 		{Name: "aspectRatio", Type: field.TypeString},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "APPROVED", "ARCHIVED"}},
@@ -702,7 +705,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "creative_variant_asset_source_asset",
-				Columns:    []*schema.Column{CreativeVariantColumns[13]},
+				Columns:    []*schema.Column{CreativeVariantColumns[14]},
 				RefColumns: []*schema.Column{AssetColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -711,12 +714,17 @@ var (
 			{
 				Name:    "creativevariant_releaseId_aspectRatio_revision",
 				Unique:  true,
-				Columns: []*schema.Column{CreativeVariantColumns[2], CreativeVariantColumns[8], CreativeVariantColumns[7]},
+				Columns: []*schema.Column{CreativeVariantColumns[2], CreativeVariantColumns[9], CreativeVariantColumns[8]},
+			},
+			{
+				Name:    "creativevariant_designId_sourceAssetId",
+				Unique:  true,
+				Columns: []*schema.Column{CreativeVariantColumns[7], CreativeVariantColumns[14]},
 			},
 			{
 				Name:    "creativevariant_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{CreativeVariantColumns[1], CreativeVariantColumns[11]},
+				Columns: []*schema.Column{CreativeVariantColumns[1], CreativeVariantColumns[12]},
 			},
 		},
 	}
@@ -916,6 +924,7 @@ var (
 		{Name: "error", Type: field.TypeString, Nullable: true},
 		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
 		{Name: "startedAt", Type: field.TypeTime},
+		{Name: "heartbeatAt", Type: field.TypeTime, Nullable: true},
 		{Name: "finishedAt", Type: field.TypeTime, Nullable: true},
 	}
 	// LaunchRunTable holds the schema information for the "launch_run" table.

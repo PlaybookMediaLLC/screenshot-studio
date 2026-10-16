@@ -71,7 +71,7 @@ jobs:
           docker logout ghcr.io
           docker buildx imagetools inspect "ghcr.io/playbookmediallc/screenshot-studio@$IMAGE_DIGEST"
 
-  # Every push to main deploys: back up the database, migrate, then cut over.
+  # Every push to main deploys: record a restore point, migrate, then cut over.
   deploy:
     needs: publish
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.deploy)
@@ -113,7 +113,7 @@ jobs:
           secret-path: /screenshot-studio
           include-imports: 'false'
           recursive: 'false'
-      - name: Back up the production database
+      - name: Record a database restore point
         if: steps.head.outputs.current == 'true'
         run: infra/digitalocean/backup-database.sh "deploy-${GITHUB_SHA::12}"
       - if: steps.head.outputs.current == 'true'

@@ -113,10 +113,10 @@ secrets when finished.
 
 Every push to `main` deploys what it changed:
 
-1. `Social backend image` runs when the commit changes the backend. It takes
-   an on-demand PlanetScale backup (`infra/digitalocean/backup-database.sh`,
-   kept 14 days) and stops if the backup does not succeed. It then deploys
-   the backend, whose `platform-migrate` job applies pending migrations first.
+1. `Social backend image` runs when the commit changes the backend. It
+   records the database restore point in the run summary
+   (`infra/digitalocean/backup-database.sh`), then deploys the backend, whose
+   `platform-migrate` job applies pending migrations first.
 2. `Web image` runs when the commit changes the web. If the same commit also
    changed the backend, it waits for that backend deploy to succeed. It then
    builds the image, refreshes encrypted web credentials and any `STRIPE_*`
@@ -128,12 +128,15 @@ newer commit's run deploys. To redeploy without a new commit, dispatch either
 workflow on `main` with `deploy=true`. App Platform does not deploy
 uncommitted files.
 
-The backup needs these Infisical values in `prod`, `/screenshot-studio`:
-`PLANETSCALE_SERVICE_TOKEN_ID` and `PLANETSCALE_SERVICE_TOKEN` (a service
-token with `read_backups` and `write_backups` on the database),
-`PLANETSCALE_ORGANIZATION`, `PLANETSCALE_DATABASE`, and optionally
-`PLANETSCALE_BRANCH` (default `main`). Without them the backend deploy stops
-before migrating.
+PlanetScale Postgres backs up production every 12 hours and supports
+point-in-time recovery to any moment from the oldest backup (2 days by
+default) up to 5 minutes ago. To undo a bad migration, restore the recorded
+timestamp to a new branch (Backups > Restore to new branch) and point the
+database URLs at it. If Infisical holds `PLANETSCALE_SERVICE_TOKEN_ID`,
+`PLANETSCALE_SERVICE_TOKEN` (`read_backups`, `write_backups`),
+`PLANETSCALE_ORGANIZATION`, and `PLANETSCALE_DATABASE` (optionally
+`PLANETSCALE_BRANCH`, default `main`), the deploy also takes an on-demand
+backup kept 14 days, and stops if it fails.
 
 ## Migrations and database permissions
 
@@ -153,8 +156,9 @@ Asset bytes stay in private R2, signed by the backend; there is no separate
 storage service or database. The [storage guide](tenant-storage.md) covers the
 bucket settings and CORS.
 
-The backend deploy backs up the database before applying migrations. Review
-each migration's compatibility with the previous app before merging it. The 2026-10-13 deployment applied the
+The backend deploy records a restore point before applying migrations.
+Review each migration's compatibility with the previous app before merging
+it. The 2026-10-13 deployment applied the
 eight existing migrations from `20260820090000_workspace_administration`
 through `20261008120000_launch_intelligence`. The private backup and migration
 record are in `.context/digitalocean/` for this workspace. Database rollback is

@@ -1,17 +1,28 @@
 #!/usr/bin/env bash
-# Take an on-demand PlanetScale backup of the production branch and wait until
-# it succeeds. The backend deploy runs this before platform-migrate, so every
-# migration has a restore point. Credentials come from Infisical; the service
-# token needs read_backups and write_backups on the database.
+# Record a restore point before the backend deploy migrates the database.
+#
+# PlanetScale Postgres backs up production every 12 hours and supports
+# point-in-time recovery to any moment from the oldest backup (2 days by
+# default) up to 5 minutes ago, so the timestamp printed here is always a
+# usable restore point: Backups > Restore to new branch > that time.
+#
+# With a PlanetScale service token in Infisical (read_backups, write_backups),
+# it also takes an on-demand backup, kept 14 days, and fails if that backup
+# does not succeed.
 set -euo pipefail
 
-: "${PLANETSCALE_SERVICE_TOKEN_ID:?Missing Infisical secret: PLANETSCALE_SERVICE_TOKEN_ID}"
-: "${PLANETSCALE_SERVICE_TOKEN:?Missing Infisical secret: PLANETSCALE_SERVICE_TOKEN}"
-: "${PLANETSCALE_ORGANIZATION:?Missing Infisical secret: PLANETSCALE_ORGANIZATION}"
-: "${PLANETSCALE_DATABASE:?Missing Infisical secret: PLANETSCALE_DATABASE}"
-branch="${PLANETSCALE_BRANCH:-main}"
 label="${1:?Usage: backup-database.sh <label>}"
+restore_point="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
+echo "Database restore point before this deploy: $restore_point (PlanetScale point-in-time recovery)" | tee -a "$summary"
 
+if [ -z "${PLANETSCALE_SERVICE_TOKEN_ID:-}" ] || [ -z "${PLANETSCALE_SERVICE_TOKEN:-}" ] ||
+  [ -z "${PLANETSCALE_ORGANIZATION:-}" ] || [ -z "${PLANETSCALE_DATABASE:-}" ]; then
+  echo "No PlanetScale service token in Infisical; relying on point-in-time recovery."
+  exit 0
+fi
+
+branch="${PLANETSCALE_BRANCH:-main}"
 api="https://api.planetscale.com/v1/organizations/$PLANETSCALE_ORGANIZATION/databases/$PLANETSCALE_DATABASE/branches/$branch/backups"
 auth="Authorization: $PLANETSCALE_SERVICE_TOKEN_ID:$PLANETSCALE_SERVICE_TOKEN"
 
@@ -25,7 +36,7 @@ for _ in $(seq 1 90); do
   state="$(curl --fail-with-body --silent --show-error "$api/$id" -H "$auth" | jq -er .state)"
   case "$state" in
     success)
-      echo "PlanetScale backup $id is ready (kept 14 days)."
+      echo "PlanetScale backup $id is ready (kept 14 days)." | tee -a "$summary"
       exit 0
       ;;
     failed | canceled | ignored)

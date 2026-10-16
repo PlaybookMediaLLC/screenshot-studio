@@ -15,3 +15,16 @@ The package's current methods list, create, and cancel scheduled posts; list
 and create channel connections; and begin, verify, remember, and complete social
 OAuth. The returned post status includes `UNKNOWN_DELIVERY`, which requires
 remote reconciliation before any retry.
+
+## Releasing
+
+CI publishes the package; nobody runs `npm publish`. Bump `version` in this
+`package.json` in the pull request that changes the SDK. The Publish SDK
+workflow (`.github/workflows/publish-sdk.yml`) fails a pull request that
+changes the SDK without a new version, and publishes the new version when the
+change reaches `main`. Then pin the app to it: `npm install
+screenshot-studio-backend-sdk@<version> --save-exact` and `bun install`.
+
+The workflow authenticates with npm trusted publishing. On npmjs.com, the
+package's trusted publisher is GitHub Actions, `PlaybookMediaLLC/screenshot-studio`,
+workflow `publish-sdk.yml`.

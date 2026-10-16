@@ -36,7 +36,7 @@ var projectEditRoles = []string{"owner", "admin", "creator"}
 type ProjectRevisionConflictError struct{ Current int }
 
 func (e *ProjectRevisionConflictError) Error() string {
-	return fmt.Sprintf("the project changed since revision was read; it is at revision %d", e.Current)
+	return fmt.Sprintf("This project was saved elsewhere since you opened it; it is now at revision %d.", e.Current)
 }
 
 func (e *ProjectRevisionConflictError) Unwrap() error { return publishing.ErrConflict }

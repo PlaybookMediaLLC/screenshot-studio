@@ -461,6 +461,45 @@ export type BackendCreateDesignInput = {
   variantLabel?: string
 }
 
+/** A cloud project: an editor composition with revision-checked writes. */
+export type BackendProject = {
+  createdAt: string
+  createdByUserId: string | null
+  document: Record<string, unknown>
+  documentVersion: number
+  id: string
+  name: string
+  organizationId: string
+  /** Every document write is based on this; a stale one is refused with 409. */
+  revision: number
+  updatedAt: string
+  updatedByUserId: string | null
+}
+
+/** How a project version came to be. */
+export type BackendProjectVersionKind = 'autosave' | 'named' | 'restore' | 'duplicate'
+
+/** A snapshot in a project's history; `document` is only on a single version. */
+export type BackendProjectVersion = {
+  createdAt: string
+  createdByName: string | null
+  createdByUserId: string | null
+  document?: Record<string, unknown>
+  id: string
+  kind: BackendProjectVersionKind
+  name: string | null
+  projectId: string
+  revision: number
+}
+
+/** Filters for a project list; `cursor` comes from the previous page. */
+export type BackendProjectListQuery = {
+  cursor?: string
+  limit?: number
+  search?: string
+  sort?: 'updated' | 'name'
+}
+
 export type BackendCreativeTemplate = {
   createdAt: string
   definition: Record<string, unknown>
@@ -1338,6 +1377,80 @@ export class ScreenshotStudioBackendSDK {
       body: { assetId, renderKey },
       method: 'PUT',
     })
+  }
+
+  async listProjects(query: BackendProjectListQuery = {}) {
+    const params = new URLSearchParams()
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== '') params.set(key, String(value))
+    }
+    return this.request<{ items: BackendProject[]; nextCursor: string | null }>(
+      `v1/projects?${params}`
+    )
+  }
+
+  async createProject(input: { document: unknown; name: string }) {
+    return this.request<BackendProject>('v1/projects', { body: input, method: 'POST' })
+  }
+
+  async getProject(id: string) {
+    return this.request<BackendProject>(`v1/projects/${encodeURIComponent(id)}`)
+  }
+
+  async renameProject(id: string, name: string) {
+    return this.request<BackendProject>(`v1/projects/${encodeURIComponent(id)}`, {
+      body: { name },
+      method: 'PATCH',
+    })
+  }
+
+  /** Writes a document based on `baseRevision`; a stale write fails with 409 and `currentRevision`. */
+  async updateProjectDocument(id: string, input: { baseRevision: number; document: unknown }) {
+    return this.request<{ revision: number; updatedAt: string }>(
+      `v1/projects/${encodeURIComponent(id)}/document`,
+      { body: input, method: 'PUT' }
+    )
+  }
+
+  async duplicateProject(id: string, name?: string) {
+    return this.request<BackendProject>(`v1/projects/${encodeURIComponent(id)}/duplicate`, {
+      body: name === undefined ? {} : { name },
+      method: 'POST',
+    })
+  }
+
+  async deleteProject(id: string) {
+    return this.request<{ deleted: true }>(`v1/projects/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async listProjectVersions(id: string) {
+    return this.request<{ versions: BackendProjectVersion[] }>(
+      `v1/projects/${encodeURIComponent(id)}/versions`
+    )
+  }
+
+  async getProjectVersion(id: string, versionId: string) {
+    return this.request<BackendProjectVersion & { document: Record<string, unknown> }>(
+      `v1/projects/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}`
+    )
+  }
+
+  /** Names the project's current document as a version. */
+  async createProjectVersion(id: string, name: string) {
+    return this.request<BackendProjectVersion>(`v1/projects/${encodeURIComponent(id)}/versions`, {
+      body: { name },
+      method: 'POST',
+    })
+  }
+
+  /** Makes a version the current document, as a new revision based on `baseRevision`. */
+  async restoreProjectVersion(id: string, versionId: string, baseRevision: number) {
+    return this.request<BackendProject>(
+      `v1/projects/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}/restore`,
+      { body: { baseRevision }, method: 'POST' }
+    )
   }
 
   async listCreativeTemplates() {

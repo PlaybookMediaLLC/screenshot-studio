@@ -550,6 +550,25 @@ function scriptVisuals(text: string, results: ToolResult[], calls: ToolCall[]): 
   )
 }
 
+// ------------------------------------------------------------- marketing --
+
+/**
+ * The marketing agent's script: read the product and brand, then submit the
+ * posts the prompt lists (a `Post ids: a, b` line) for review, then stop.
+ */
+function scriptApproval(text: string, names: string[], calls: ToolCall[]): ToolCall[] | null {
+  const reads = ['getProduct', 'getBrand'].filter((name) => names.includes(name))
+  if (reads.length > 0 && !calls.some((call) => reads.includes(call.toolName))) {
+    return reads.map((toolName) => ({ input: {}, toolName }))
+  }
+  if (calls.some((call) => call.toolName === 'requestApproval')) return null
+  const postIds = (text.match(/^Post ids: (.+)$/m)?.[1] ?? '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean)
+  return postIds.length > 0 ? [{ input: { postIds }, toolName: 'requestApproval' }] : null
+}
+
 /** Three link preview copy options that pass the length checks, built from the page's title. */
 function scriptLinkCopy(text: string) {
   const name = (text.match(/^- title: (.+)$/m)?.[1] ?? 'This page').replace(/\s+/g, ' ').trim()
@@ -690,6 +709,11 @@ export function createScriptedModel(modelId: string): LanguageModelV4 {
         return respond([
           { text: 'Captured the product and made the planned product shots.', type: 'text' },
         ])
+      }
+      if (names.includes('requestApproval')) {
+        const next = scriptApproval(text, names, calls)
+        if (next) return respond(toolCalls(next))
+        return respond([{ text: 'Submitted the posts for review.', type: 'text' }])
       }
       return respond([{ text: 'Done.', type: 'text' }])
     },

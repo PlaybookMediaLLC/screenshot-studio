@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { designCatalogSections } from '@/lib/design/catalog'
 import { describeDesignCatalog } from '@/lib/design/catalog-sections'
 import { designEditSchema } from '@/lib/design/document'
+import type { ToolCapability } from './executor'
 
 /**
  * Tools for the in-editor copilot.
@@ -15,6 +16,18 @@ import { designEditSchema } from '@/lib/design/document'
 
 export const editorClientToolNames = ['inspectCanvas', 'applyChanges', 'undoLastChange'] as const
 export type EditorClientToolName = (typeof editorClientToolNames)[number]
+
+/**
+ * RFC 016 capability records, for documentation only: the browser runs these
+ * tools against the editor the user already has open, not the executor. A
+ * turn is at most four model steps.
+ */
+export const editorCopilotCapabilities = {
+  applyChanges: { effect: 'draft', maxCallsPerRun: 4, permission: 'artifact:edit' },
+  inspectCanvas: { effect: 'read', maxCallsPerRun: 4, permission: 'artifact:read' },
+  listDesignOptions: { effect: 'read', maxCallsPerRun: 4, permission: 'workspace:read' },
+  undoLastChange: { effect: 'draft', maxCallsPerRun: 4, permission: 'artifact:edit' },
+} as const satisfies Record<string, ToolCapability>
 
 export function createEditorCopilotTools() {
   return {

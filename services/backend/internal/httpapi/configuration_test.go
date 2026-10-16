@@ -339,6 +339,26 @@ func TestLaunchRunLeaseRoutes(t *testing.T) {
 	}
 }
 
+// Agent run and conversation routes reject malformed input before the store.
+func TestAgentAndConversationRoutesValidateInput(t *testing.T) {
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", &fakeConfiguration{})
+	for _, request := range []struct{ method, path, body string }{
+		{http.MethodPost, "/v1/launch/runs", `{"kind":"agent","campaignId":"../x"}`},
+		{http.MethodPost, "/v1/launch/runs", `{"kind":"agent","workspaceId":"other"}`},
+		{http.MethodPost, "/v1/launch/runs/bad/steps", `{"index":0,"kind":"model","status":"SUCCEEDED"}`},
+		{http.MethodGet, "/v1/launch/runs/bad/steps", ""},
+		{http.MethodGet, "/v1/conversations?limit=500", ""},
+		{http.MethodGet, "/v1/conversations?campaignId=../x", ""},
+		{http.MethodPost, "/v1/conversations", `{"campaignId":"../x"}`},
+		{http.MethodPatch, "/v1/conversations/c123456789012345678901234", `{"campaignId":"../x"}`},
+		{http.MethodPost, "/v1/conversations/c123456789012345678901234/messages", `{"role":"user","kind":"text","content":"x","launchRunId":"../x"}`},
+	} {
+		if response := configurationRequest(handler, request.method, request.path, request.body); response.Code != http.StatusBadRequest {
+			t.Errorf("%s %s status=%d body=%s", request.method, request.path, response.Code, response.Body.String())
+		}
+	}
+}
+
 func TestActiveAccessRequiresSession(t *testing.T) {
 	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", &fakeConfiguration{})
 	valid := configurationRequest(handler, http.MethodGet, "/v1/access", "")

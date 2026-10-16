@@ -52,6 +52,10 @@ func TestEntProjectionsMatchMigratedTables(t *testing.T) {
 		"product_surface":                  func() error { _, err := c.ProductSurface.Query().Limit(1).All(ctx); return err },
 		"surface_capture":                  func() error { _, err := c.SurfaceCapture.Query().Limit(1).All(ctx); return err },
 		"product_profile":                  func() error { _, err := c.ProductProfile.Query().Limit(1).All(ctx); return err },
+		"launch_run_step":                  func() error { _, err := c.LaunchRunStep.Query().Limit(1).All(ctx); return err },
+		"conversation":                     func() error { _, err := c.Conversation.Query().Limit(1).All(ctx); return err },
+		"conversation_message":             func() error { _, err := c.ConversationMessage.Query().Limit(1).All(ctx); return err },
+		"workspace_settings":               func() error { _, err := c.WorkspaceSettings.Query().Limit(1).All(ctx); return err },
 	}
 	for table, query := range queries {
 		if err := query(); err != nil {

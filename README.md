@@ -115,12 +115,12 @@ built from real product screenshots, approves them, and schedules them.
 
 ### Where each RFC stands
 
-| Status      | RFCs                                                                                                                                                                                                                                                                                                                                                                                            |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shipped     | 007 tRPC product surface; 034 phases 1–2 (zod contracts, OpenAPI 3.1, Scalar reference); 035 paid plans, Stripe billing, credit metering                                                                                                                                                                                                                                                        |
+| Status      | RFCs                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shipped     | 007 tRPC product surface; 034 phases 1–2 (zod contracts, OpenAPI 3.1, Scalar reference); 035 paid plans, Stripe billing, credit metering                                                                                                                                                                                                                                |
 | Partial     | 002 tenant data model; 003 auth, enterprise, audit; 005 inbound webhooks and GitHub App; 006 asset pipeline; 009 thesis (V1 and part of V2); 010 creative engine; 011 brand profile; 013 product surfaces; 014 campaign objects; 016 AI tools; 018 campaign workspace; 019 approval; 020 publishing; 021 core workflows; 022 GitHub integration; 023 deployment capture |
-| Not started | 008, 012, 017, 024, 025, 026, 027, 028, 029, 030, 031, 032                                                                                                                                                                                                                                                                                                                                      |
-| Superseded  | 001 (by the AI launch pipeline); 004 (by Temporal); 015 (by the launch pipeline in `lib/ai/launch`); 033 (the SDK ships to npm instead)                                                                                                                                                                                                                                                         |
+| Not started | 008, 012, 017, 024, 025, 026, 027, 028, 029, 030, 031, 032                                                                                                                                                                                                                                                                                                              |
+| Superseded  | 001 (by the AI launch pipeline); 004 (by Temporal); 015 (by the launch pipeline in `lib/ai/launch`); 033 (the SDK ships to npm instead)                                                                                                                                                                                                                                 |
 
 There is no free plan. Every workspace needs an active subscription to use the editor, the
 tools, or the API ([035](docs/rfcs/035-pricing-and-unit-economics.md)).
@@ -131,8 +131,7 @@ Each step builds only on the steps before it.
 
 **Phase 0: fix what is broken now that every customer pays**
 
-Status as of 2026-10-16: the backend for every step is done; the campaign UI for steps 2, 3,
-and 5 lands with SDK 0.1.12.
+Status as of 2026-10-16: done, including the campaign UI for steps 2, 3, and 5 (#129).
 
 1. **Paywall experience** ([035](docs/rfcs/035-pricing-and-unit-economics.md)), done
    - `/pricing` explains why someone was sent there and what happened after checkout or a credit purchase.
@@ -161,32 +160,38 @@ and 5 lands with SDK 0.1.12.
    - Done: a trigger makes `audit_log` append-only; only the retention purge deletes rows.
    - Next: run the tenant-isolation matrix against a non-production deployment.
 
-**Phase 1: the critical path**
+**Phase 1: the critical path**, done (#129, #131)
 
-7. **Brand profile enforcement** ([011](docs/rfcs/011-brand-profile.md))
-   - Strict brand-kit schema and logo upload.
-   - Prohibited terms checked on manual edits and before scheduling.
+A founder pastes their URL during onboarding, reviews the product profile Shots drafts,
+and gets a launch campaign of seven posts with real product screenshots to approve and
+schedule.
+
+7. **Brand profile enforcement** ([011](docs/rfcs/011-brand-profile.md)), done
+   - Strict brand kits with a logo upload and a contrast warning.
+   - Prohibited terms with a reason and match mode, checked in the backend on every copy write and before scheduling.
 8. **Product asset map** ([013](docs/rfcs/013-product-asset-map.md))
-   - Capture history per product page and lookup by feature.
-   - Deploy and release captures feed campaigns.
+   - Done: capture history per product page, freshness, failure reasons, capture now.
+   - Done: lookup by feature, which planning uses.
+   - Done: deployment captures are recorded.
+   - Next: release screenshots as captures.
 9. **Product intelligence and the onboarding agent** ([012](docs/rfcs/012-product-intelligence.md), [032](docs/rfcs/032-background-onboarding-agent.md))
-   - A product profile with provenance.
-   - A URL step in onboarding with a fast first result.
-   - A background crawl.
-10. **Workflow 1, URL → seven posts** ([021](docs/rfcs/021-core-workflows.md))
-    - Posts stream in during onboarding.
-    - Batch approve, connect a channel, schedule.
-    - Funnel metrics.
-11. **Campaign workspace** ([018](docs/rfcs/018-campaign-workspace.md))
-    - Inline editing with autosave.
-    - Approve all.
-    - Keep or discard when regenerating.
-    - Decide whether campaigns stay limited to design partners.
-12. **Approval details** ([019](docs/rfcs/019-approval-workflow.md))
-    - Record who decided and when.
-    - Notifications.
+   - Done: a cited product profile with per-field provenance and locks on your edits.
+   - Done: the "Your product" onboarding step reads the site in about 20 seconds.
+   - Next: a background crawl and the ideal-customer profile.
+10. **Workflow 1, URL → seven posts** ([021](docs/rfcs/021-core-workflows.md)), done
+    - Confirming the profile builds the first launch campaign and lands on Copy.
+    - From Copy: batch approve, connect a channel, schedule.
+    - Funnel events at start, confirm, and ready.
+11. **Campaign workspace** ([018](docs/rfcs/018-campaign-workspace.md)), done
+    - Inline editing with autosave and conflict handling.
+    - Approve all or selected.
+    - Keep or discard when revising.
+    - Campaigns are included in every paid plan.
+12. **Approval details** ([019](docs/rfcs/019-approval-workflow.md)), done
+    - Who decided and when.
+    - Email notifications on submit and decision.
     - Per-channel length limits.
-    - An automated submit-for-review action.
+    - API-key submit-for-review.
 
 **Phase 2: the AI agent layer**
 

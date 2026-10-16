@@ -347,6 +347,8 @@ export type WorkspaceSettings = {
   locale: string
   timeZone: string
   defaultPublishTime: string
+  /** The workspace AI agent kill switch; on unless an owner or admin turned it off. */
+  aiAgentEnabled: boolean
   createdAt: string
   updatedAt: string
 }
@@ -368,6 +370,8 @@ export type BackendBootstrapSnapshot = {
   settings: Pick<WorkspaceSettings, 'locale' | 'timeZone' | 'defaultPublishTime'> | null
   entitlements: { features: Record<string, boolean>; plan: string; status: string }
   capabilities: {
+    /** Whether AI agent runs are allowed in this workspace (the kill switch). */
+    aiAgent: boolean
     browserAutomation: boolean
     engineeringAgent: boolean
     publishing: boolean
@@ -928,6 +932,117 @@ export type BackendLaunchRun = {
   summary: string | null
 }
 
+/** Every launch run status. Pipeline runs only reach RUNNING, SUCCEEDED, and FAILED. */
+export type BackendLaunchRunStatus =
+  | 'BUDGET_EXHAUSTED'
+  | 'CANCELLED'
+  | 'FAILED'
+  | 'RUNNING'
+  | 'SUCCEEDED'
+
+/** An agent or conversation run (RFC 016). It may have no campaign. */
+export type BackendAgentRun = Omit<BackendLaunchRun, 'campaignId' | 'kind' | 'status'> & {
+  campaignId: string | null
+  costCents: number
+  kind: 'agent' | 'conversation'
+  status: BackendLaunchRunStatus
+  stepCount: number
+  tokensIn: number
+  tokensOut: number
+}
+
+/** A step outcome; DENIED is a tool call refused by authorization. */
+export type BackendLaunchRunStepStatus = 'DENIED' | 'FAILED' | 'SUCCEEDED'
+
+/** What a tool call does, from its capability record. */
+export type BackendToolEffect = 'approval-request' | 'external' | 'read' | 'render' | 'write'
+
+/**
+ * One step a worker appends. `index` is the worker's step number: re-sending
+ * a recorded index answers 409, so a resumed worker never duplicates a step.
+ * Summaries are redacted by the caller; the backend also blanks
+ * credential-like keys and caps each at 16 KiB.
+ */
+export type BackendLaunchRunStepInput = {
+  durationMs?: number
+  effect?: BackendToolEffect | null
+  errorCode?: string | null
+  index: number
+  inputSummary?: unknown
+  kind: 'model' | 'tool'
+  outputSummary?: unknown
+  status: BackendLaunchRunStepStatus
+  tokensIn?: number
+  tokensOut?: number
+  /** Required for a tool step, absent for a model step. */
+  toolName?: string | null
+}
+
+/** A persisted step of a run's trace. */
+export type BackendLaunchRunStep = {
+  createdAt: string
+  durationMs: number
+  effect: BackendToolEffect | null
+  errorCode: string | null
+  id: string
+  index: number
+  inputSummary: unknown
+  kind: 'model' | 'tool'
+  outputSummary: unknown
+  runId: string
+  status: BackendLaunchRunStepStatus
+  tokensIn: number
+  tokensOut: number
+  toolName: string | null
+}
+
+/** A workspace-visible conversation (RFC 017), without its messages. */
+export type BackendConversation = {
+  campaignId: string | null
+  createdAt: string
+  createdByUserId: string | null
+  id: string
+  status: 'ACTIVE' | 'ARCHIVED'
+  title: string
+  updatedAt: string
+}
+
+export type BackendConversationMessageRole = 'assistant' | 'tool' | 'user'
+export type BackendConversationMessageKind = 'clarification' | 'text' | 'tool'
+
+export type BackendConversationMessage = {
+  content: string
+  conversationId: string
+  createdAt: string
+  id: string
+  kind: BackendConversationMessageKind
+  launchRunId: string | null
+  metadata: unknown
+  role: BackendConversationMessageRole
+  toolName: string | null
+}
+
+/**
+ * A message to append. Any member sends a plain user text message; any
+ * other role or kind needs owner, admin, or creator. Content is at most
+ * 20,000 characters.
+ */
+export type BackendConversationMessageInput = {
+  content: string
+  kind: BackendConversationMessageKind
+  launchRunId?: string | null
+  metadata?: unknown
+  role: BackendConversationMessageRole
+  toolName?: string | null
+}
+
+/** A conversation change for its author or an owner or admin; `campaignId: null` unlinks. */
+export type BackendConversationUpdate = {
+  campaignId?: string | null
+  status?: 'ACTIVE' | 'ARCHIVED'
+  title?: string
+}
+
 /** A new spec or plan version. Metadata is flat and lands in the audit entry. */
 export type BackendLaunchVersionInput = {
   changeSummary: string
@@ -1032,6 +1147,8 @@ export type ListedWorkspace = {
 }
 
 export type UpdateWorkspaceInput = {
+  /** Turns AI agent runs on or off. Owner or admin only; audited. */
+  aiAgentEnabled?: boolean
   defaultPublishTime?: string
   description?: string | null
   locale?: string
@@ -2017,13 +2134,18 @@ export class ScreenshotStudioBackendSDK {
     return this.request<BackendLaunchRun>(`v1/launch/runs/${encodeURIComponent(runId)}`)
   }
 
+  /** Ends a running run. The counters are an agent run's totals; omitted ones are kept. */
   async finishLaunchRun(
     runId: string,
     input: {
+      costCents?: number
       error?: string
       resultId?: string | null
-      status: 'FAILED' | 'SUCCEEDED'
+      status: 'BUDGET_EXHAUSTED' | 'FAILED' | 'SUCCEEDED'
+      stepCount?: number
       summary?: string | null
+      tokensIn?: number
+      tokensOut?: number
     }
   ) {
     return this.request<{ updated: true }>(`v1/launch/runs/${encodeURIComponent(runId)}/finish`, {
@@ -2040,10 +2162,76 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
+  /** Agent runs end CANCELLED; pipeline runs end FAILED with "Cancelled.". */
   async cancelLaunchRun(runId: string) {
     return this.request<{ cancelled: boolean }>(
       `v1/launch/runs/${encodeURIComponent(runId)}/cancel`,
       { method: 'POST' }
+    )
+  }
+
+  /**
+   * Starts an agent or conversation run, optionally about a campaign. Needs
+   * owner, admin, or creator; answers 403 when the workspace turned AI off.
+   */
+  async startAgentRun(input: { campaignId?: string | null; kind: 'agent' | 'conversation' }) {
+    return this.request<BackendAgentRun>('v1/launch/runs', { body: input, method: 'POST' })
+  }
+
+  async getAgentRun(runId: string) {
+    return this.request<BackendAgentRun>(`v1/launch/runs/${encodeURIComponent(runId)}`)
+  }
+
+  async appendLaunchRunStep(runId: string, input: BackendLaunchRunStepInput) {
+    return this.request<BackendLaunchRunStep>(
+      `v1/launch/runs/${encodeURIComponent(runId)}/steps`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  /** A run's trace in step order, up to 500 steps. */
+  async listLaunchRunSteps(runId: string) {
+    return this.request<{ steps: BackendLaunchRunStep[] }>(
+      `v1/launch/runs/${encodeURIComponent(runId)}/steps`
+    )
+  }
+
+  /** Any member starts a conversation; an empty title becomes "New conversation". */
+  async createConversation(input: { campaignId?: string | null; title?: string }) {
+    return this.request<BackendConversation>('v1/conversations', { body: input, method: 'POST' })
+  }
+
+  /** Most recently active first; status defaults to ACTIVE, limit to 20 (at most 100). */
+  async listConversations(
+    options: { campaignId?: string; limit?: number; status?: 'ACTIVE' | 'ARCHIVED' } = {}
+  ) {
+    const parameters = new URLSearchParams()
+    if (options.campaignId) parameters.set('campaignId', options.campaignId)
+    if (options.limit !== undefined) parameters.set('limit', String(options.limit))
+    if (options.status) parameters.set('status', options.status)
+    return this.request<{ conversations: BackendConversation[] }>(`v1/conversations?${parameters}`)
+  }
+
+  /** A conversation with its 200 newest messages, oldest first. */
+  async getConversation(conversationId: string) {
+    return this.request<{
+      conversation: BackendConversation
+      messages: BackendConversationMessage[]
+    }>(`v1/conversations/${encodeURIComponent(conversationId)}`)
+  }
+
+  /** Answers 409 for an archived conversation. */
+  async appendConversationMessage(conversationId: string, input: BackendConversationMessageInput) {
+    return this.request<BackendConversationMessage>(
+      `v1/conversations/${encodeURIComponent(conversationId)}/messages`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  async updateConversation(conversationId: string, input: BackendConversationUpdate) {
+    return this.request<BackendConversation>(
+      `v1/conversations/${encodeURIComponent(conversationId)}`,
+      { body: input, method: 'PATCH' }
     )
   }
 

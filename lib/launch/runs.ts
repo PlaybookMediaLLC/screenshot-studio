@@ -68,8 +68,14 @@ export async function startLaunchRun(
   input: {
     campaignId: string
     kind: LaunchRunKind
-    /** Stop when `signal` aborts: the run was cancelled or its lease lapsed. */
-    work: (signal: AbortSignal) => Promise<{ resultId?: string | null; summary?: string | null }>
+    /**
+     * Stop when `signal` aborts: the run was cancelled or its lease lapsed.
+     * `runId` is the launch run, for audit entries the work records.
+     */
+    work: (
+      signal: AbortSignal,
+      runId: string
+    ) => Promise<{ resultId?: string | null; summary?: string | null }>
   }
 ): Promise<LaunchRunView> {
   const backend = backendSDK(tenant)
@@ -87,7 +93,7 @@ export async function startLaunchRun(
         .catch(() => undefined)
     }, HEARTBEAT_MS)
     try {
-      const result = await withAiCredits(tenant, () => input.work(abort.signal))
+      const result = await withAiCredits(tenant, () => input.work(abort.signal, run.id))
       await backend.finishLaunchRun(run.id, {
         resultId: result.resultId ?? null,
         status: 'SUCCEEDED',

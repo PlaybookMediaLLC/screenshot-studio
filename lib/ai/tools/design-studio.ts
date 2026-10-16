@@ -1,6 +1,5 @@
 import 'server-only'
 
-import { tool } from 'ai'
 import sharp from 'sharp'
 import { z } from 'zod'
 import { backendSDK, orNull } from '@/lib/backend/sdk'
@@ -19,6 +18,7 @@ import { createDesign, getDesign } from '@/lib/tenant/designs'
 import { type BrandKitValues, brandDesignChanges } from '@/lib/launch/brand'
 import type { RenderCritique } from '../launch/critique'
 import type { CampaignStudioRecord, CampaignStudioScope } from './campaign-studio'
+import { defineTool } from './executor'
 
 /** Extra behavior when the tools run inside the launch pipeline. */
 export type LaunchToolOptions = {
@@ -27,6 +27,8 @@ export type LaunchToolOptions = {
   /** Reviews each render; a "fix" verdict is returned to the agent to act on. */
   critique: (input: {
     previewJpegBase64: string
+    /** Aborts when the render call times out or the run is cancelled. */
+    signal: AbortSignal
     texts: string[]
   }) => Promise<RenderCritique | null>
   /** Per-run budgets sized to the plan. */
@@ -58,6 +60,8 @@ const variantLabelSchema = z
 const MAX_DESIGNS = 10
 /** Includes re-renders after the agent reviews and fixes a design. */
 const MAX_RENDERS = 8
+/** Catalog lookups are free; the cap only stops a runaway loop. */
+const MAX_CATALOG_LOOKUPS = 20
 
 /** Any section of a DesignDocument; omitted sections are left as they are. */
 export function createDesignStudioTools(
@@ -67,9 +71,6 @@ export function createDesignStudioTools(
   launch?: LaunchToolOptions
 ) {
   const maxDesigns = launch?.limits?.designs ?? MAX_DESIGNS
-  const maxRenders = launch?.limits?.renders ?? MAX_RENDERS
-  let designs = 0
-  let renders = 0
   const failure = (message: string) => ({ error: message, ok: false as const })
 
   /** Captures this campaign owns; designs may only show these. */
@@ -92,7 +93,6 @@ export function createDesignStudioTools(
     templateId?: string
     variantLabel?: string
   }) {
-    designs += 1
     const design = await createDesign(scope.tenant, {
       campaignId: scope.campaignId,
       planVersion: scope.planVersion,
@@ -101,12 +101,17 @@ export function createDesignStudioTools(
     return { designId: design.id, ok: true as const }
   }
 
-  const listDesignOptions = tool({
+  const listDesignOptions = defineTool(scope.run, {
     description:
       'Look up what the editor can do: templates (start here), aspect ratios, backgrounds ' +
       '(gradients, mesh/magic gradients, solids, images), fonts, device mockups and layouts, ' +
       'frames/patterns/shadows, overlays (arrows, light/shadow textures), and animation presets.',
+    effect: 'read',
     inputSchema: z.object({ section: z.enum(designCatalogSections) }),
+    maxCallsPerRun: MAX_CATALOG_LOOKUPS,
+    name: 'listDesignOptions',
+    permission: 'workspace:read',
+    timeoutMs: 5_000,
     execute: async ({ section }) => ({
       ok: true as const,
       options: describeDesignCatalog(section),
@@ -114,11 +119,12 @@ export function createDesignStudioTools(
     }),
   })
 
-  const createDesignFromTemplate = tool({
+  const createDesignFromTemplate = defineTool(scope.run, {
     description:
       'Start a design from a template with the product capture in it. Layout templates place ' +
       'the headline and subheadline; editor templates and presets style the screenshot only. ' +
       'Use a mobile capture for mobileScreenshotAssetId when the template shows phones.',
+    effect: 'draft',
     inputSchema: z.object({
       headline: z.string().trim().max(60).optional(),
       mobileScreenshotAssetId: z.string().uuid().optional(),
@@ -133,8 +139,12 @@ export function createDesignStudioTools(
         .optional(),
       variantLabel: variantLabelSchema,
     }),
+    budget: 'designs',
+    maxCallsPerRun: maxDesigns,
+    name: 'createDesignFromTemplate',
+    permission: 'artifact:edit',
+    timeoutMs: 30_000,
     execute: async (input) => {
-      if (designs >= maxDesigns) return failure(`At most ${maxDesigns} designs per run.`)
       if (
         !(await requireCapture(input.screenshotAssetId)) ||
         !(await requireCapture(input.mobileScreenshotAssetId))
@@ -169,13 +179,14 @@ export function createDesignStudioTools(
     },
   })
 
-  const editDesign = tool({
+  const editDesign = defineTool(scope.run, {
     description:
       'Change any part of a design: background, canvas/aspect ratio, frame, shadow, 3D tilt, ' +
       'filters, devices, text, overlays, annotations (arrows, boxes, circles), redactions ' +
       '(blur/mosaic), or animation. By default saves the result as a new variant and keeps the ' +
       'original; set replace=true to edit in place. Positions are 0-1 fractions of the canvas ' +
       '(text positions are 0-100 percentages); text fontSize is a fraction of canvas width.',
+    effect: 'draft',
     inputSchema: z.object({
       changes: designChangesSchema,
       designId: z.string().cuid(),
@@ -183,6 +194,12 @@ export function createDesignStudioTools(
       replace: z.boolean().default(false),
       variantLabel: variantLabelSchema,
     }),
+    // Every edit counts, new variants and in-place fixes alike.
+    budget: 'designs',
+    maxCallsPerRun: maxDesigns,
+    name: 'editDesign',
+    permission: 'artifact:edit',
+    timeoutMs: 30_000,
     execute: async ({ changes, designId, name, replace, variantLabel }) => {
       const design = await requireCampaignDesign(designId)
       if (!design) return failure('Unknown designId for this campaign.')
@@ -198,7 +215,6 @@ export function createDesignStudioTools(
         await backendSDK(scope.tenant).replaceDesign(design.id, { document, name, variantLabel })
         return { designId: design.id, ok: true as const }
       }
-      if (designs >= maxDesigns) return failure(`At most ${maxDesigns} designs per run.`)
       return saveDesign({
         document,
         name: name ?? `${design.name} variant`,
@@ -210,21 +226,25 @@ export function createDesignStudioTools(
     },
   })
 
-  const renderDesign = tool({
+  const renderDesign = defineTool(scope.run, {
     description:
       'Render a finished design to a PNG with the editor renderer and attach it to the campaign. ' +
       'Returns a preview of the rendered image: check it, and if text is hard to read, cropped, ' +
       'or overlapping, fix the design with editDesign (replace=true) and render it again. ' +
       'Render only the designs worth publishing.',
+    effect: 'draft',
     inputSchema: z.object({
       caption: z.string().trim().min(1).max(200).describe('Alt text describing the image.'),
       designId: z.string().cuid(),
     }),
-    execute: async ({ caption, designId }) => {
-      if (renders >= maxRenders) return failure(`At most ${maxRenders} renders per run.`)
+    maxCallsPerRun: launch?.limits?.renders ?? MAX_RENDERS,
+    name: 'renderDesign',
+    permission: 'artifact:edit',
+    // The editor render (up to a minute) plus the critique's model call.
+    timeoutMs: 180_000,
+    execute: async ({ caption, designId }, { signal }) => {
       const design = await requireCampaignDesign(designId)
       if (!design) return failure('Unknown designId for this campaign.')
-      renders += 1
       let rendered
       try {
         rendered = await renderDesignForTenant(scope.tenant, getRenderer, design)
@@ -262,6 +282,7 @@ export function createDesignStudioTools(
       if (launch) {
         const critique = await launch.critique({
           previewJpegBase64: previewBase64,
+          signal,
           texts: design.document.texts.map((text) => text.text),
         })
         if (critique) {

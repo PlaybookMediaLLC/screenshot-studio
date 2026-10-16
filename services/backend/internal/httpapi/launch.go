@@ -31,7 +31,10 @@ func (s *Server) registerLaunch(mux *http.ServeMux) {
 	handle("GET /v1/launch/revisions/{id}", s.getLaunchRevision)
 	handle("POST /v1/launch/revisions/{id}/apply", s.applyLaunchRevision)
 	handle("POST /v1/launch/revisions/{id}/discard", s.discardLaunchRevision)
+	handle("POST /v1/launch/runs", s.startAgentRun)
 	handle("GET /v1/launch/runs/{id}", s.getLaunchRun)
+	handle("GET /v1/launch/runs/{id}/steps", s.listLaunchRunSteps)
+	handle("POST /v1/launch/runs/{id}/steps", s.appendLaunchRunStep)
 	handle("POST /v1/launch/runs/{id}/finish", s.finishLaunchRun)
 	handle("POST /v1/launch/runs/{id}/heartbeat", s.heartbeatLaunchRun)
 	handle("POST /v1/launch/runs/{id}/cancel", s.cancelLaunchRun)
@@ -150,6 +153,35 @@ func (s *Server) startLaunchRun(w http.ResponseWriter, r *http.Request) {
 	}
 	if id, ok := launchID(w, r, "id"); ok && launchBody(w, r, &input) {
 		result, err := s.configuration.StartLaunchRun(r.Context(), workspaceActor(r), id, input.Kind)
+		writeLaunch(w, http.StatusCreated, result, err)
+	}
+}
+
+// startAgentRun starts an agent or conversation run, with or without a campaign.
+func (s *Server) startAgentRun(w http.ResponseWriter, r *http.Request) {
+	var input product.StartAgentRunInput
+	if !launchBody(w, r, &input) {
+		return
+	}
+	if input.CampaignID != nil && !resourceIDPattern.MatchString(*input.CampaignID) {
+		writeError(w, http.StatusBadRequest, "invalid campaignId")
+		return
+	}
+	result, err := s.configuration.StartAgentRun(r.Context(), workspaceActor(r), input)
+	writeLaunch(w, http.StatusCreated, result, err)
+}
+
+func (s *Server) listLaunchRunSteps(w http.ResponseWriter, r *http.Request) {
+	if id, ok := launchID(w, r, "id"); ok {
+		steps, err := s.configuration.ListLaunchRunSteps(r.Context(), workspaceActor(r), id)
+		writeLaunch(w, http.StatusOK, map[string]any{"steps": steps}, err)
+	}
+}
+
+func (s *Server) appendLaunchRunStep(w http.ResponseWriter, r *http.Request) {
+	var input product.LaunchRunStepInput
+	if id, ok := launchID(w, r, "id"); ok && launchBody(w, r, &input) {
+		result, err := s.configuration.AppendLaunchRunStep(r.Context(), workspaceActor(r), id, input)
 		writeLaunch(w, http.StatusCreated, result, err)
 	}
 }

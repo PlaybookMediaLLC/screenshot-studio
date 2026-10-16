@@ -54,14 +54,16 @@ export const campaignRouter = router({
    */
   generate: organizationProcedure('release:create')
     .input(z.object({ campaignId: z.string().cuid() }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input, signal }) => {
       if (!isCampaignStudioConfigured()) {
         throw new TRPCError({
           code: 'SERVICE_UNAVAILABLE',
           message: 'AI generation is not configured. Set OPENROUTER_API_KEY.',
         })
       }
-      return withAiCredits(ctx.access, () => runCampaignStudio(ctx.access, input.campaignId))
+      return withAiCredits(ctx.access, () =>
+        runCampaignStudio(ctx.access, input.campaignId, signal)
+      )
     }),
   /** The transition table decides the permission; artifact:read only gates membership. */
   transition: organizationProcedure('artifact:read')

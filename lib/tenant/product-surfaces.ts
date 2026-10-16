@@ -11,6 +11,7 @@ import {
   BackendSDKError,
   type ProductSurface,
   type SurfaceCapture,
+  type SurfaceCaptureSource,
 } from 'screenshot-studio-backend-sdk'
 import { storeGeneratedAsset } from './assets'
 import type { ProductSurfaceCreateInput, ProductSurfaceUpdateInput } from './schemas'
@@ -85,11 +86,15 @@ export type SurfaceCaptureFailure = { message: string; status: number }
  * Capture a surface's page now and make it the current capture. The page is
  * shot through the same SSRF-guarded screenshot service and rate limit the
  * campaign studio uses, stored as a capture asset, and recorded as a manual
- * capture, which supersedes the previous one without deleting it.
+ * capture, which supersedes the previous one without deleting it. An agent
+ * capture records `source: 'agent'` and the run that asked for it.
  */
 export async function captureProductSurface(
   context: OrganizationAccess,
-  surfaceId: string
+  surfaceId: string,
+  origin: { source: Extract<SurfaceCaptureSource, 'agent' | 'manual'>; sourceId?: string } = {
+    source: 'manual',
+  }
 ): Promise<{ capture: SurfaceCapture } | { failure: SurfaceCaptureFailure } | null> {
   const surface = (await listProductSurfaces(context)).find((entry) => entry.id === surfaceId)
   if (!surface) return null
@@ -123,7 +128,7 @@ export async function captureProductSurface(
   })
   const capture = await backendSDK(context).recordSurfaceCapture(surfaceId, {
     assetId: asset.id,
-    source: 'manual',
+    ...origin,
   })
   return { capture }
 }

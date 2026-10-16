@@ -7,6 +7,8 @@ import { getFontCSS } from '@/lib/constants/fonts';
 import type { TextOverlay } from '@/lib/store';
 import { canvasOf, collectSnapLines, endSnapDrag, snapDrag } from '@/lib/editor/snap-dom';
 import type { SnapLines } from '@/lib/editor/snapping';
+import { useLayerMotion, useTextReveal } from '@/lib/animation/use-motion';
+import { RevealedText } from '../motion/motion-layers';
 
 export function getDraggedTextPosition(
   start: TextOverlay['position'], deltaX: number, deltaY: number, width: number, height: number,
@@ -75,6 +77,11 @@ function DraggableText({
     [boxWidth, fontCss, fontVersion, overlay.fit, overlay.fontSize, overlay.fontWeight, overlay.letterSpacing, overlay.text]
   );
 
+  // Keyframes and a reveal are drawn at the playhead; dragging edits the design.
+  const motionTarget = useMemo(() => ({ id: overlay.id, kind: 'text' as const }), [overlay.id]);
+  const motion = useLayerMotion(motionTarget);
+  const reveal = useTextReveal(overlay.id, overlay.text);
+
   if (!overlay.isVisible) return null;
 
   return (
@@ -119,15 +126,15 @@ function DraggableText({
       onLostPointerCapture={() => { drag.current = null; setIsDragging(false); endSnapDrag(); }}
       style={{
         position: 'absolute',
-        left: `${textX}px`,
-        top: `${textY}px`,
-        transform: 'translate(-50%, -50%)',
+        left: `${textX + motion.x * canvasW}px`,
+        top: `${textY + motion.y * canvasH}px`,
+        transform: `translate(-50%, -50%) rotate(${motion.rotation}deg) scale(${motion.scale})`,
         fontSize: `${fontSize}px`,
         fontWeight: overlay.fontWeight.includes('bold') ? 'bold' : overlay.fontWeight === 'italic' ? 'normal' : overlay.fontWeight,
         fontStyle: overlay.fontWeight.includes('italic') ? 'italic' : 'normal',
         fontFamily: fontCss,
         ...textFillCss(overlay.fill, overlay.color),
-        opacity: overlay.opacity,
+        opacity: overlay.opacity * motion.opacity,
         textShadow: gradient ? undefined : shadow,
         filter: gradient && shadow ? `drop-shadow(${shadow})` : undefined,
         whiteSpace: overlay.fit === 'wrap' && boxWidth ? 'pre-wrap' : 'pre',
@@ -145,7 +152,7 @@ function DraggableText({
         pointerEvents: 'auto',
       }}
     >
-      {overlay.text}
+      {reveal ? <RevealedText {...reveal} /> : overlay.text}
     </div>
   );
 }

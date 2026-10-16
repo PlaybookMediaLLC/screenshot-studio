@@ -14,6 +14,8 @@ export type CanvasGeometry = {
   imageNaturalSize: { height: number; width: number } | null
   /** The screenshot's adjustments as a CSS filter, so a callout matches it. */
   imageFilter: string | undefined
+  /** Where a scroll-through has the screenshot, so a callout magnifies what is in view. */
+  imageObjectPosition?: string
 }
 
 /** The stage's geometry, provided by the canvas renderer. */

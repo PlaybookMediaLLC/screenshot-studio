@@ -159,6 +159,7 @@ function Callout({ box, element, geometry }: RendererProps<'callout'>) {
           left: box.width / 2 - props.borderWidth - props.source.x * width,
           maxWidth: 'none',
           objectFit: 'cover',
+          objectPosition: geometry.imageObjectPosition,
           position: 'absolute',
           top: box.height / 2 - props.borderWidth - props.source.y * height,
           width,

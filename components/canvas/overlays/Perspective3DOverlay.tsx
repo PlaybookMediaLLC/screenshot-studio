@@ -40,6 +40,8 @@ interface Perspective3DOverlayProps {
   image: HTMLImageElement;
   imageOpacity: number;
   imageFilters?: ImageFilters;
+  /** Where a scroll-through has the screenshot inside its frame. */
+  imageObjectPosition?: string;
 }
 
 export function Perspective3DOverlay({
@@ -64,6 +66,7 @@ export function Perspective3DOverlay({
   image,
   imageOpacity,
   imageFilters,
+  imageObjectPosition,
 }: Perspective3DOverlayProps) {
   if (!has3DTransform) return null;
 
@@ -221,6 +224,7 @@ export function Perspective3DOverlay({
               width: `${imageScaledW}px`,
               height: `${imageScaledH}px`,
               objectFit: 'cover',
+              objectPosition: imageObjectPosition,
               opacity: imageOpacity,
               filter: imageFilterStyle,
               borderRadius: getImageBorderRadius(),

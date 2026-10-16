@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.0.1...v2.1.0) (2026-10-16)
+
+
+### Features
+
+* **editor:** sleeker editor header and an always-collapsed sidebar ([#125](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/125)) ([dc88e7e](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/dc88e7e9f02e7f7171f5b5656ba17e04e9c3872a))
+
 ## [2.0.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.0.0...v2.0.1) (2026-10-16)
 
 

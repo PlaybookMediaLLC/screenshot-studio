@@ -39,7 +39,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { GitHubStarButton } from "@/components/ui/github-star-button";
 import { MobileBanner } from "@/components/editor/MobileBanner";
 import { StoreExportDialog } from "./StoreExportDialog";
 import {
@@ -208,11 +207,7 @@ function StoreHeader({
           </div>
         </>
       ) : (
-        <div className="flex items-center gap-1">
-          <div className="hidden sm:block">
-            <GitHubStarButton compact />
-          </div>
-        </div>
+        <div className="flex items-center gap-1" />
       )}
     </header>
   );

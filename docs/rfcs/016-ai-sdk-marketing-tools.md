@@ -1,6 +1,7 @@
 # RFC 016: AI SDK and Typed Marketing Tools
 
-**Status:** Proposed
+**Status:** Partially implemented
+**Status note (2026-10-16):** The AI SDK and domain tools in `lib/ai/` power the launch pipeline and the editor copilot. The full tool surface and security model in this RFC are not complete.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 004, RFC 010 through RFC 015

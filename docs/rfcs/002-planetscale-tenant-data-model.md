@@ -1,6 +1,7 @@
 # RFC 002: PlanetScale Tenant Data Model and Media Lineage
 
-**Status:** Implemented locally; deployment verification pending
+**Status:** Partially implemented (Go single-database cutover not yet applied in production; isolation matrix not run against production)
+**Status note (2026-10-16):** Data lives in PlanetScale Postgres through Go `ent` and SQL migrations in `services/platformmigrations/sql`. There is no Prisma. The web never touches the database; it calls the Go backend through the SDK.
 **Date:** 2026-08-14
 **Depends on:** RFC 001 and RFC 003
 **Owners:** Engineering

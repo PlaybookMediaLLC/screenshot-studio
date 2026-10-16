@@ -1,6 +1,7 @@
 # RFC 005: Repository, Webhook, and Scheduling Provider Integrations
 
-**Status:** Proposed
+**Status:** Partially implemented
+**Status note (2026-10-16):** Shipped: inbound GitHub, GitLab, and generic signed webhooks, the GitHub App, and Postiz OAuth. Missing: outbound webhooks.
 **Date:** 2026-08-13
 **Depends on:** RFC 001, RFC 002, RFC 003, and RFC 004
 **Owners:** Product, Engineering, and Security

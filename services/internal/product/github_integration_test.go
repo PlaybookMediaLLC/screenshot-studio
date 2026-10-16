@@ -108,6 +108,8 @@ func TestGitHubConnectionsChangesAndReleases(t *testing.T) {
 		t.Fatalf("start without an App: %v", err)
 	}
 	repo := NewConfiguration(db.Client).WithGitHubApp(fake)
+	subscribe(t, ctx, repo, orgA, "pro")
+	subscribe(t, ctx, repo, orgB, "pro")
 	if _, err := repo.StartGitHubInstall(ctx, member); !errors.Is(err, publishing.ErrForbidden) {
 		t.Fatalf("a member started an install: %v", err)
 	}

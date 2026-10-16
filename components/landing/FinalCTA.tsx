@@ -37,15 +37,6 @@ export function FinalCTA({
               {ctaLabel}
             </Button>
           </Link>
-          <Link href="https://github.com/PlaybookMediaLLC/screenshot-studio" target="_blank">
-            <Button
-              variant="outline"
-              size="lg"
-              className="text-base px-8 py-5 font-medium rounded-lg"
-            >
-              View on GitHub
-            </Button>
-          </Link>
         </div>
 
         <p className="mt-8 text-sm text-muted-foreground/60">

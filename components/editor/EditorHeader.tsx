@@ -46,7 +46,6 @@ import { ExportSlideshowDialog } from '@/lib/export-slideshow-dialog'
 import { ImageExportProgressView } from '@/components/canvas/dialogs/ImageProgressView'
 import { FormatSelector, QualityPresetSelector, ScaleSlider } from '@/components/export'
 import { cn } from '@/lib/utils'
-import { GitHubStarButton } from '@/components/ui/github-star-button'
 import { SaveToWorkspaceButton } from '@/components/workspace/SaveToWorkspaceButton'
 import { FeedbackWidget } from '@/components/FeedbackWidget'
 import { AccountMenu } from '@/components/auth/AccountMenu'
@@ -528,7 +527,6 @@ export function EditorHeader() {
           </Button>
           <AccountMenu />
           {!isMobile ? <FeedbackWidget /> : null}
-          {!isMobile ? <GitHubStarButton compact /> : null}
         </div>
       </header>
 

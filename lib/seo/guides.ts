@@ -229,7 +229,7 @@ const roundupGuides: RoundupGuide[] = [
     tools: [
       {
         name: "Shots",
-        url: "/free-screenshot-editor",
+        url: "/features/screenshot-beautifier",
         bestFor: "Redacting and polishing screenshots in any browser",
         price: STUDIO_LICENSE,
         platform: "Browser on Mac, Windows, Linux, and Chromebook",

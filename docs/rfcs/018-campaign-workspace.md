@@ -1,6 +1,7 @@
 # RFC 018: Campaign Workspace
 
-**Status:** Proposed
+**Status:** Partially implemented
+**Status note (2026-10-16):** Shipped behind the `campaign:workflow` rollout flag, which design-partner workspaces receive through feature overrides.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 014, RFC 017, and RFC 019

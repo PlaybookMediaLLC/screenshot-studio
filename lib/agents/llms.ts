@@ -74,7 +74,6 @@ ${primaryToolLines}
 - Product overview: ${BASE_URL}/landing
 - Pricing: ${BASE_URL}/pricing
 - Design partners (launch intelligence early access): ${BASE_URL}/design-partners
-- Screenshot Editor Online: ${BASE_URL}/free-screenshot-editor
 - App Store Screenshot Maker: ${BASE_URL}/store-screenshots
 - Code to Image: ${BASE_URL}/code
 - Mockup Generator: ${BASE_URL}/mockup-generator
@@ -111,7 +110,6 @@ ${primaryToolLines}
 - llms-full.txt: ${BASE_URL}/llms-full.txt
 - Sitemap: ${BASE_URL}/sitemap.xml
 - robots.txt: ${BASE_URL}/robots.txt
-- Source code: https://github.com/PlaybookMediaLLC/screenshot-studio
 
 The editor utility endpoints under paths such as \`/api/screenshot\` require a signed-in session or a workspace API key with the artifact:read scope in \`X-API-Key\`, and per-IP limits apply on top. Create a workspace API key in Settings → Developer API (/workspace/developers). Workspace-scoped \`/api/v1\` operations require an organization key in \`X-API-Key\` or an authorized signed-in session. Every error is JSON with a stable \`code\`, a \`message\`, and a \`hint\`. Any page also serves Markdown when the request sends \`Accept: text/markdown\`.
 
@@ -153,7 +151,6 @@ Software teams that ship releases, plus developers, designers, and marketers who
 ## Contact
 
 - Website: ${BASE_URL}
-- GitHub: https://github.com/PlaybookMediaLLC/screenshot-studio
 - Email: team@playbookmedia.io
 
 ## Full Documentation
@@ -169,7 +166,7 @@ export const llmsFullTxt = `# Shots - Complete Reference
 
 Shots is a paid launch platform; there is no free plan. A release, typed in, sent through the API, or delivered by a GitHub, GitLab, or custom webhook, becomes a launch brief where every claim cites a source, a campaign plan, visuals rendered with the workspace brand kit, and channel copy for X, LinkedIn, Instagram, Product Hunt, the changelog, and email. Every post needs a human approval before it can be scheduled. Launch intelligence is in early access for design partners (${BASE_URL}/design-partners).
 
-Shots also includes a browser-based screenshot editor in every plan, with no watermark. Editing runs in the browser, so imported images are not uploaded to edit them; saved designs are stored in the workspace, and export compression round-trips the finished image through the server without storing it. It is open source and available at https://github.com/PlaybookMediaLLC/screenshot-studio.
+Shots also includes a browser-based screenshot editor in every plan, with no watermark. Editing runs in the browser, so imported images are not uploaded to edit them; saved designs are stored in the workspace, and export compression round-trips the finished image through the server without storing it. It is open source under the Apache 2.0 license.
 
 The editor is an open-source alternative to Pika Style, Shots.so (a separate product), and CleanShot X for images on social media, landing pages, documentation, and presentations.
 
@@ -266,7 +263,6 @@ The editor is an open-source alternative to Pika Style, Shots.so (a separate pro
 | Landing | ${BASE_URL}/landing | Launch platform overview |
 | Pricing | ${BASE_URL}/pricing | Pro, Business, and Enterprise plans |
 | Design Partners | ${BASE_URL}/design-partners | Early access to launch intelligence |
-| Screenshot Editor Online | ${BASE_URL}/free-screenshot-editor | SEO landing page for the screenshot editor |
 | Mockup Generator | ${BASE_URL}/mockup-generator | iPhone, MacBook, and Apple Watch mockups with 3D angles and multi-device layouts |
 | Image Tools Hub | ${BASE_URL}/tools | Index of the standalone image utilities |
 | Remove Background | ${BASE_URL}/remove-background | On-device AI background remover that exports a transparent PNG |
@@ -445,8 +441,6 @@ Editing and preview rendering happen in the browser, and imported images are not
 ## Contact & Links
 
 - **Website**: ${BASE_URL}
-- **GitHub**: https://github.com/PlaybookMediaLLC/screenshot-studio
 - **Email**: team@playbookmedia.io
-- **Bug Reports**: https://github.com/PlaybookMediaLLC/screenshot-studio/issues
-- **Feature Requests**: https://github.com/PlaybookMediaLLC/screenshot-studio/issues/new?labels=enhancement
+- **Bug Reports and Feature Requests**: team@playbookmedia.io
 `;

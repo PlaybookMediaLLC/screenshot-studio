@@ -1,6 +1,7 @@
 # RFC 023: Deployment-Driven Screenshot Automation
 
-**Status:** Proposed
+**Status:** Partially implemented
+**Status note (2026-10-16):** The first deployment-capture slice shipped. Authenticated capture and the rest of this RFC are not built.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 010, RFC 013, and RFC 022

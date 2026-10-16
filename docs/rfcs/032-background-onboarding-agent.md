@@ -1,6 +1,7 @@
 # RFC 032: Background Onboarding Agent and ICP Extraction
 
-**Status:** Proposed
+**Status:** Not started
+**Status note (2026-10-16):** Nothing in this RFC is built.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 004, RFC 011, and RFC 012

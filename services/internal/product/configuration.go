@@ -263,6 +263,9 @@ type UpdateSourceAppInput struct {
 }
 
 func (c *Configuration) CreateSourceApp(ctx context.Context, actor Actor, input CreateSourceAppInput) (*ent.SourceApp, error) {
+	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, "source-app:create"); err != nil {
+		return nil, err
+	}
 	var installationRowID *string
 	if input.GitHubConnectionID != nil {
 		// The App's own secret signs its deliveries; a connected source names none.

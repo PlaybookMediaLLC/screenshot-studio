@@ -1,72 +1,93 @@
 # RFC 034: First-Class REST API and Scalar Reference
 
-**Status:** Accepted  
+**Status:** Partially implemented (phases 1–2 shipped)  
+**Status note (2026-10-16):** Contracts, the generated OpenAPI 3.1 document, the Scalar reference, and the first `/api/v1` resources are live. Campaigns, approvals, scheduled posts, and the client ecosystem are not built.  
 **Date:** 2026-08-26  
+**Revised:** 2026-10-16  
 **Owners:** Platform Engineering  
 **Depends on:** RFC 002, RFC 003, RFC 007
 
 ## Decision
 
-Screenshot Studio will ship a versioned, workspace-aware REST API as a first-class product surface. The same Next.js application will publish:
+Shots ships a versioned, workspace-aware REST API as a first-class product
+surface. The same Next.js application publishes:
 
 - interactive Scalar documentation at `/api-reference`;
 - the canonical OpenAPI 3.1 document at `/openapi.json` and `/.well-known/openapi.json`;
-- stable JSON endpoints under `/api/v1` for new platform operations;
-- the existing editor-oriented endpoints under `/api` until they can be versioned without breaking users.
+- stable JSON endpoints under `/api/v1` for platform operations;
+- the editor utility endpoints under `/api` until they can be versioned without breaking users.
 
-The OpenAPI document is the public contract. Scalar renders that contract and provides request examples and an interactive client. It must not become a second, manually maintained description of the API.
+The OpenAPI document is the public contract. It is generated from the same
+zod contracts the handlers validate with. Scalar renders that contract and
+provides request examples and an interactive client. It is never a second,
+manually maintained description of the API.
 
 ## Context
 
-The application already has Next.js Route Handlers, standardized JSON errors, an OpenAPI 3.1 document, anonymous editor endpoints, and authenticated tenant endpoints. It does not have an interactive API explorer, and its tenant endpoints are not yet organized into a stable public version namespace.
+Route Handlers, standardized JSON errors, and an OpenAPI 3.1 document existed
+before this RFC, but there was no interactive reference and tenant endpoints
+had no stable version namespace. Phases 1 and 2 below closed both gaps.
 
-Dub's open-source application is useful prior art for treating the web application and HTTP API as one product: route handlers live with the Next.js application, operations have typed schemas, and the API contract can drive SDK and documentation workflows. Screenshot Studio will adopt that product boundary while using Scalar for the interactive reference.
+Dub's open-source application is prior art for treating the web application
+and HTTP API as one product: route handlers live with the Next.js application,
+operations have typed schemas, and the contract drives SDK and documentation
+workflows. Shots adopts that boundary and uses Scalar for the reference.
+
+Product data lives behind the Go backend. API handlers call it through
+`lib/backend/sdk.ts`; they never touch the database.
 
 ## Goals
 
 - Give engineers one discoverable, interactive reference for every supported REST operation.
 - Make API-key calls and browser-session calls enforce the same workspace authorization rules.
-- Establish `/api/v1` before expanding the platform API.
 - Keep OpenAPI operation IDs, request schemas, response schemas, examples, and implementation behavior synchronized.
 - Preserve request IDs, auditability, idempotency, rate limits, and tenant isolation.
-- Support future generated clients without making a generated SDK part of this RFC.
+- Support generated clients from the same contract.
 
 ## Non-goals
 
 - Replacing tRPC for the first-party browser application.
-- Immediately moving or removing existing `/api/screenshot`, `/api/export`, or other editor endpoints.
-- Exposing internal Trigger.dev dispatch routes.
+- Moving or removing `/api/screenshot`, `/api/export`, or the other editor endpoints before versioned replacements exist.
+- Exposing internal service routes.
 - Publishing database-shaped CRUD endpoints.
 - Supporting GraphQL.
-- Generating or publishing an SDK in the first rollout.
 
 ## Public surface
 
-| URL                                              | Purpose                              | Authentication                             |
-| ------------------------------------------------ | ------------------------------------ | ------------------------------------------ |
-| `/api-reference`                                 | Scalar interactive API documentation | Public                                     |
-| `/openapi.json`                                  | Canonical OpenAPI 3.1 document       | Public                                     |
-| `/.well-known/openapi.json`                      | Well-known alias for discovery       | Public                                     |
-| `/api/v1/*`                                      | Versioned platform REST API          | API key or supported user session          |
-| `/api/screenshot`, `/api/export`, `/api/tweet/*` | Existing editor REST operations      | Existing per-route policy                  |
-| `/api/internal/*`                                | Service-only operations              | Never included in the public specification |
+| URL                                                                     | Purpose                              | Authentication                                                         |
+| ----------------------------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------- |
+| `/api-reference`                                                        | Scalar interactive API documentation | Public                                                                 |
+| `/openapi.json`                                                         | Canonical OpenAPI 3.1 document       | Public                                                                 |
+| `/.well-known/openapi.json`                                             | Well-known alias for discovery       | Public                                                                 |
+| `/api/v1/*`                                                             | Versioned platform REST API          | Workspace API key or user session, per operation                       |
+| `/api/screenshot`, `/api/export`, `/api/tweet/{id}`, `/api/image-proxy` | Editor utility operations            | Session or API key with `artifact:read`, on a workspace with paid plan |
+| `/api/internal/*`                                                       | Service-only operations              | Never included in the public specification                             |
 
 ## Resource model
 
-The first `/api/v1` resources mirror product concepts rather than database tables:
+`/api/v1` resources mirror product concepts rather than database tables.
 
-- `releases`
-- `assets`
-- `source-apps`
+Shipped:
+
+- `releases` (list, create)
+- `assets` (signed upload URL, upload completion, signed download URL, delete)
+- `source-apps` (create, update)
+- `link-preview`
+- workspace shell operations: `me`, `bootstrap`, and `organizations` with
+  members, invitations, permissions, capabilities, settings, and activation
+
+Planned:
+
 - `campaigns`
 - `approvals`
 - `scheduled-posts`
 
-A resource may be added only when its authorization, lifecycle, idempotency, and audit behavior are defined in its owning RFC.
+A resource may be added only when its authorization, lifecycle, idempotency,
+and audit behavior are defined in its owning RFC.
 
 ## URL and versioning contract
 
-- New platform endpoints use `/api/v1/{resource}`.
+- Platform endpoints use `/api/v1/{resource}`.
 - Resource names are lowercase, plural, and kebab-case.
 - Identifiers are opaque strings and must not encode tenant information.
 - Breaking request or response changes require a new major URL version.
@@ -78,47 +99,126 @@ A resource may be added only when its authorization, lifecycle, idempotency, and
 
 Requests use one of these paths:
 
-1. `Authorization: Bearer <workspace-api-key>` for machine callers.
-2. The authenticated application session for supported same-origin browser calls.
+1. **Workspace API key** in the `X-API-Key` header, for machine callers. The
+   OpenAPI security scheme is `workspaceApiKey`. Keys belong to one workspace
+   and carry explicit scopes from `lib/auth/api-key-scopes.ts`, such as
+   `artifact:read`, `release:create`, `source:write`, and `asset:write`.
+2. **User session**, the Better Auth session cookie (`workspaceSession`), for
+   same-origin browser calls. A session call is checked against the member's
+   role permissions in the active workspace.
 
-API keys carry explicit scopes. Every handler calls the shared tenant-access boundary before reading or mutating tenant data. A client cannot choose an arbitrary workspace ID to widen access. If a workspace selector is accepted, it is checked against the authenticated principal before use.
+Each binding picks its authenticator from `lib/api/route-auth.ts`:
+`tenantAccess` accepts either path and names both the API-key scope and the
+session permission; `organizationAccess` and `sessionAccess` are
+session-based. Workspace shell operations (`me`, `bootstrap`,
+`organizations`) are session-only and return `403` when an API key is sent.
 
-Scalar may display the bearer-token input, but it must not persist, log, prefill, or send credentials anywhere except the selected API request.
+A client cannot choose an arbitrary workspace ID to widen access. A requested
+workspace is checked against the authenticated principal before use.
+
+### Editor utilities need an account and a paid plan
+
+There is no free plan (RFC 035). `/api/screenshot`, `/api/export`,
+`/api/tweet/{id}`, and `/api/image-proxy` call `requirePaidAccess`
+(`lib/api/require-account.ts`), which requires a signed-in session or an API
+key with `artifact:read`, plus the `workspace:use` feature:
+
+| Condition                                      | Status | Code                             |
+| ---------------------------------------------- | ------ | -------------------------------- |
+| No session and no valid API key                | `401`  | `unauthorized`                   |
+| Authenticated, but lacking scope or permission | `403`  | `forbidden`                      |
+| Workspace has no active paid plan              | `403`  | `workspace_feature_not_entitled` |
+
+### Platform headers
+
+Platform-specific headers use the `X-Shots-` prefix: `X-Shots-Signature` on
+signed internal and webhook calls, `X-Shots-Event-Id` and `X-Shots-Timestamp`
+on inbound source webhooks, and `X-Shots-Maintenance-Secret` on maintenance
+routes. The OpenAPI vendor extension for plan requirements is
+`x-shots-entitlement`. Header names are declared once in
+`lib/api/request-context.ts`.
+
+Scalar may display the API-key input, but it must not persist, log, prefill,
+or send credentials anywhere except the selected API request.
 
 ## Pricing and enterprise entitlement boundary
 
-Commercial authorization is capability-based and server-resolved. Routes declare a stable named feature such as `asset:delete` or `enterprise:scim`; they do not compare arbitrary tier strings inside handlers. `requireTenantAccess` authenticates the principal, resolves the workspace, verifies scope or permission, and then checks the workspace entitlement before any request parsing or domain execution.
+Commercial authorization is capability-based and server-resolved. Routes
+declare a named feature such as `asset:delete` or `workspace:use`; they do
+not compare plan strings inside handlers. `requireTenantAccess` authenticates
+the principal, resolves the workspace, verifies scope or permission, then asks
+the Go backend for a feature decision and consumes any declared quota, all
+before request parsing or domain execution.
 
-`WorkspaceEntitlement` stores the server-owned plan, lifecycle status, optional expiry, and validated per-feature contract overrides. A missing record receives conservative free-plan defaults. Suspended, expired, unknown, or malformed records fail closed for paid features. Request data, API-key metadata, and browser state can never assert a plan or override.
+The Go backend owns `WorkspaceEntitlement`: the plan, lifecycle status,
+optional expiry and grace date, and validated per-feature overrides. Plan
+values are `free`, `pro`, `business`, and `enterprise`. `free` is not a plan
+anyone buys; it is the state of a workspace without a subscription, and it
+has no features and zero allowances. A workspace without an entitlement
+record reads as `free`. Suspended, expired, unknown, or malformed records fail
+closed. Request data, API-key metadata, and browser state can never assert a
+plan or override.
 
-Default plans are `free`, `pro`, `business`, and `enterprise`, but feature checks are the durable contract. This supports negotiated enterprise agreements without creating fragile numeric tier comparisons. Resource update and delete paths have separate capabilities so contracts can permit one without the other. The initial live gated mutation is `asset:delete`, available on Pro and higher unless an explicit contract override grants or revokes it; `asset:update` is reserved for the corresponding update operation. Compatibility routes use the same access requirement to prevent path-based bypass.
+Feature checks, not plan names, are the durable contract. This supports
+negotiated enterprise agreements without numeric tier comparisons. Update and
+delete have separate capabilities so a contract can permit one without the
+other. Pro and higher include `workspace:use`, `asset:create`, `asset:read`,
+`asset:update`, `asset:delete`, `release:create`, and `source-app:create`;
+Enterprise adds `enterprise:sso`, `enterprise:scim`, and
+`enterprise:audit-drain`. `campaign:workflow` is a rollout flag granted only
+through overrides. Compatibility routes use the same requirement as their
+`/api/v1` counterparts to prevent path-based bypass.
 
-The entitlement migration backfills existing workspaces to `business` so enabling the gate does not silently remove capabilities from current customers. New workspaces must receive an entitlement from the billing or onboarding service; until that happens, the fail-closed fallback is `free`. Plan changes and contract overrides are server-side billing operations and are not exposed through tenant product endpoints.
+`requireTenantAccess` checks `workspace:use` on every tenant operation before
+any declared feature, so every `/api/v1` route and the editor utilities refuse
+a workspace without an active subscription with `403
+workspace_feature_not_entitled`. The Go backend enforces the same rule on its
+writes: `asset:create`, `asset:delete`, `release:create` (API, form, and
+webhook ingestion), and `source-app:create`. Only asset deletion still declares
+its feature in the contract and carries the `x-shots-entitlement` tag; see
+Rollout.
 
 ### Billing synchronization and administration
 
-Billing providers and authorized support automation write through the signed internal endpoint at `/api/internal/billing/entitlements`. The endpoint verifies an HMAC over the raw body, requires a provider event ID, and records an immutable receipt. Replays return the original version without repeating effects. Every mutation supplies `expectedVersion`; stale concurrent changes return `409` and never overwrite newer contract state. The plan change, lifecycle state, event reference, previous version, and new version are written to the tenant audit log in the same transaction.
+Stripe events arrive at `POST /api/webhooks/stripe` and are applied through
+the signed internal endpoint at `/api/internal/billing/entitlements`
+(RFC 035). That endpoint verifies an HMAC over the raw body in the
+`X-Shots-Signature` header, requires a provider event ID, and records an
+immutable receipt. Replays return the original version without repeating
+effects. Every mutation supplies `expectedVersion`; stale concurrent changes
+return `409` and never overwrite newer state. Plan changes are written to the
+tenant audit log.
 
-Workspace owners may read the safe entitlement summary through `/api/enterprise/entitlement` only after a fresh sign-in and TOTP. Plan mutation remains service-controlled, so a tenant owner cannot self-grant paid or enterprise capabilities. New organizations receive an explicit free entitlement during provisioning.
+Workspace owners may read the entitlement summary through
+`/api/enterprise/entitlement` after a fresh sign-in and TOTP. Plan mutation is
+service-controlled, so a tenant owner cannot grant themselves paid or
+enterprise capabilities.
 
-### Quotas, caching, and outage policy
+### Quotas and outage policy
 
-Plans define named quotas for API writes, storage bytes, monthly generation, and concurrent jobs. Metered write routes declare a quota alongside their feature. Redis provides distributed counters and emits standard `429`, `Retry-After`, and `X-RateLimit-*` metadata. Costly writes fail closed when the distributed counter is unavailable; reads remain available.
+Plans define named quotas for API writes per minute, storage, monthly AI
+credits, posts, emails, and concurrent jobs (RFC 035). Metered write routes
+declare a quota alongside their feature. The Go backend counts them in Redis
+and the web returns `429` with `Retry-After` and `X-RateLimit-*` headers.
+Costly writes fail closed when the counter is unavailable; reads remain
+available.
 
-Entitlement records use a 30-second distributed cache and a five-second process-local cache. Billing commits invalidate both. If Redis is unavailable, authorization reads fall back to PlanetScale and keep only the bounded local cache. A PlanetScale failure returns `503`; the service does not trust indefinitely stale plan data.
-
-`active` and `trialing` plans are usable. `past_due` remains usable only until the server-owned `graceUntil` timestamp. `suspended`, `cancelled`, expired, unknown, and malformed records fail closed for paid capabilities. Downgrades take effect immediately after the synchronized transaction and cache invalidation. Refund policy and provider retry schedules remain billing-provider concerns, while webhook replay and product authorization semantics remain provider-neutral here.
+The Go backend evaluates the entitlement on every check; the web keeps no
+entitlement cache. `active` and `trialing` are usable. `past_due` remains
+usable until the server-owned grace date. Cancelled, unpaid, and paused
+subscriptions return the workspace to `free`, which keeps its data but locks
+it. Downgrades take effect as soon as the sync commits.
 
 ## Request contract
 
 - JSON request bodies use `Content-Type: application/json`.
-- Upload operations use documented multipart fields or signed upload URLs.
+- Uploads use signed upload URLs.
 - Zod schemas validate path, query, header, and body inputs at the route boundary.
-- The REST framework requires a Zod schema for every authenticated JSON operation and is the sole owner of the `parseAsync` call.
+- `route` is the sole owner of input parsing; endpoint code never parses request values itself.
 - Unknown fields are rejected for mutation requests unless a resource RFC explicitly allows them.
 - Timestamps use RFC 3339 UTC strings.
 - Pagination uses an opaque `cursor` and bounded `limit`.
-- Mutation requests that can be retried accept `Idempotency-Key` with a maximum length of 128 characters.
+- Retryable mutations accept `Idempotency-Key` with a maximum length of 128 characters.
 - Request bodies have route-specific size limits.
 
 ## Response contract
@@ -135,9 +235,13 @@ Successful single-resource responses return the resource directly. Collections u
 }
 ```
 
-Creation returns `201 Created`. Idempotent replay may return `200 OK` with the original result. Deletion returns `204 No Content` unless the resource requires a terminal-state representation.
+Creation returns `201 Created`. Idempotent replay may return `200 OK` with the
+original result. Deletion returns `204 No Content`, or `202 Accepted` when it
+is queued.
 
-Every response includes `X-Request-Id`. Rate-limited responses include `Retry-After` and the documented `X-RateLimit-*` headers.
+Every response includes `X-Request-Id`. A caller-supplied `X-Request-Id` is
+kept when valid and forwarded to the Go backend. Rate-limited responses
+include `Retry-After` and the `X-RateLimit-*` headers.
 
 ## Error contract
 
@@ -150,86 +254,70 @@ All public JSON failures use one envelope:
   "message": "Human-readable summary",
   "hint": "Action the caller can take",
   "status": 400,
-  "documentation": "https://www.screenshot-studio.com/api-reference"
+  "documentation": "https://shots.playbookmedia.io/api-reference#errors"
 }
 ```
 
-Validation failures may add an `issues` array containing field paths and messages. Error codes are stable within an API major version. Internal exceptions, provider payloads, SQL errors, secrets, and stack traces are never returned.
+Validation failures may add an `issues` array with field paths and messages.
+Error codes are stable within an API major version. Internal exceptions,
+provider payloads, SQL errors, secrets, and stack traces are never returned.
 
 ## OpenAPI ownership
 
-- `lib/api/openapi.ts` is the canonical assembled specification during the first phase.
-- Every public operation has a unique, stable `operationId`.
+- `lib/api/openapi.ts` assembles the document; `lib/api/openapi-platform.ts` generates the platform half from the contracts.
+- Every public operation has a unique, stable `operationId`, declared in its contract.
 - Every operation declares authentication, scopes, request schemas, success schemas, error schemas, and rate-limit behavior.
-- Internal routes and session-only application implementation details are excluded.
-- CI validates the document shape and verifies that documented public paths respond.
-- Public operations are generated from the same Zod contracts the handlers validate with. Each contract declares its `operationId`, which must stay stable.
+- Internal routes are excluded.
+- CI validates the document shape and checks that every contract is served by the route file its path names.
 
 ## Endpoint extension framework
 
-New platform endpoints declare a Zod contract with `defineContract` from
+Platform endpoints declare a zod contract with `defineContract` from
 `lib/api/contract.ts` in `lib/api/contracts/`, then bind it in the Route
 Handler with `route` from `lib/api/route.ts`. The contract names the method and
 path and holds the schemas for path params, query, headers, body, and the
-response. The binding makes the remaining explicit decisions:
+response. The binding makes the remaining decisions:
 
-1. the authenticator from `lib/api/route-auth.ts`: `tenantAccess` with the
-   API-key scope and browser-session permission, `organizationAccess`,
-   `sessionAccess`, or a signature authenticator;
-2. an optional named pricing or enterprise feature entitlement and quota, in
-   the tenant requirement;
-3. the tenant domain service to execute, in `handler`;
-4. an optional `status` picker when an operation has more than one success
-   status.
+1. the authenticator from `lib/api/route-auth.ts`;
+2. an optional feature and quota, in the tenant requirement;
+3. the domain call to execute, in `handler`, through the backend SDK;
+4. an optional `status` picker when an operation has more than one success status.
 
 `route` runs one fixed pipeline. It authenticates before any input is read,
-parses every request location with the contract schemas, invokes the domain
-service, and parses the result through the contract's response schema, so
-fields outside the contract never reach a caller. Endpoint code must not parse
-request values itself. Domain logic remains in `lib/tenant`; handlers must not
-call tRPC or duplicate service logic.
+parses every request location with the contract schemas, invokes the handler,
+and parses the result through the response schema, so fields outside the
+contract never reach a caller. Handlers must not call tRPC or duplicate domain
+logic.
 
-`lib/api/openapi-platform.ts` generates the public platform half of
-`lib/api/openapi.ts` from the documented contracts, so the specification cannot
-drift from validation. `test/openapi-contracts.test.ts` checks that every
-contract is served by the route file its path names, and
-`test/api-platform-boundary.test.ts` checks that every fork route goes through
-`route`.
-
-Every file below `app/api/v1` must have a one-to-one OpenAPI path. The
-deterministic registry validator at
-`.agents/skills/add-rest-api-endpoint/scripts/validate-rest-api.ts` enforces
-that invariant.
+`test/openapi-contracts.test.ts` checks that every contract is served by the
+route file its path names, and `test/api-platform-boundary.test.ts` checks
+that every fork route goes through `route`, uses only zod-derived types, and
+carries TSDoc on every export. Every file below `app/api/v1` must have a
+one-to-one OpenAPI path; the validator at
+`.agents/skills/add-rest-api-endpoint/scripts/validate-rest-api.ts` enforces it.
 
 ## Endpoint authoring skill
 
-The repository ships the `add-rest-api-endpoint` skill at
-`.agents/skills/add-rest-api-endpoint/SKILL.md`. Use it whenever adding or
-changing a public REST operation. The skill defines:
-
-- route naming and versioning rules;
-- framework usage and tenant authorization requirements;
-- Zod parsing and idempotency conventions;
-- OpenAPI and Scalar registration;
-- contract, tenant-isolation, build, and production verification gates.
-
-Detailed contracts live in the skill's `references/contracts.md`. Keeping this
-workflow in the repository makes endpoint expansion repeatable for engineers
-and coding agents rather than dependent on institutional memory.
+The `add-rest-api-endpoint` skill at
+`.agents/skills/add-rest-api-endpoint/SKILL.md` is the procedure for adding or
+changing a public REST operation. It covers route naming and versioning,
+framework use and tenant authorization, zod parsing and idempotency, OpenAPI
+and Scalar registration, and the verification gates. Detailed contracts live
+in its `references/contracts.md`.
 
 ## Scalar reference
 
-The Next.js route at `/api-reference` uses `@scalar/nextjs-api-reference` and loads `/openapi.json`. The reference is public and read-only except for requests users explicitly initiate through Scalar's client.
+`/api-reference` (`app/api-reference/route.ts`) uses
+`@scalar/nextjs-api-reference` and loads `/openapi.json`. The reference is
+public and read-only except for requests a user starts in Scalar's client.
 
-The page must:
+As configured:
 
-- load successfully without authentication;
-- show the current API title and operations;
-- support dark and light browser preferences;
-- offer copyable examples and interactive requests;
-- expose bearer authentication only for operations that declare it;
-- avoid indexing secrets or retaining them server-side;
-- use the same production OpenAPI document available to machines.
+- it loads without authentication and is titled "Shots API Reference";
+- it is themed to match the site and fixed to dark mode;
+- the `workspaceApiKey` scheme is preselected, and curl is the default example client;
+- Scalar's agent, MCP, and developer tools are disabled, and telemetry is off;
+- it renders the same production OpenAPI document machines fetch.
 
 ## Security and privacy
 
@@ -238,8 +326,8 @@ The page must:
 - Logs redact authorization, cookies, signed URLs, and sensitive request fields.
 - Scalar loads only the public OpenAPI document and approved static assets.
 - A future strict CSP must use a per-request nonce for Scalar scripts and must not weaken the rest of the application policy.
-- Browser-executed requests remain subject to the explicit origin policy. Public OpenAPI access does not imply permissive CORS for authenticated operations.
-- Rate limits apply by workspace/API key and, where useful, by IP.
+- Public OpenAPI access does not imply permissive CORS for authenticated operations.
+- Rate limits apply per workspace.
 
 ## Audit and observability
 
@@ -253,46 +341,48 @@ Each request records or propagates:
 - idempotency outcome for mutations;
 - audit event ID for security-sensitive state changes.
 
-Metrics must distinguish documentation traffic from API operation traffic. Alerts cover elevated 5xx rates, authorization failures, latency, and sustained rate-limit pressure.
+Metrics distinguish documentation traffic from API traffic. Alerts cover
+elevated 5xx rates, authorization failures, latency, and sustained rate-limit
+pressure.
 
 ## Rollout
 
-### Phase 1: discoverability
+### Phase 1: discoverability (shipped)
 
-- Publish Scalar at `/api-reference`.
-- Continue publishing the existing OpenAPI document.
-- Link Scalar from the developer portal and README-facing developer resources.
-- Add smoke coverage for the Scalar HTML and OpenAPI fetch.
+- Scalar at `/api-reference`, the OpenAPI document at `/openapi.json` and `/.well-known/openapi.json`.
+- Links from the developer docs.
 
-### Phase 2: versioned tenant API
+### Phase 2: versioned tenant API (shipped)
 
-- Introduce `/api/v1` route handlers for the first approved resources.
-- Reuse tenant services and authorization from the tRPC surface.
-- Add bearer security schemes, scopes, pagination, request IDs, and audit events to OpenAPI.
-- Keep current tenant routes as compatibility adapters until consumers migrate.
+- Zod contracts and `route` for every platform endpoint, with the OpenAPI platform half generated from them.
+- `/api/v1` for releases, source apps, signed asset uploads, upload completion, signed downloads, asset deletion, link preview, and the workspace shell.
+- API-key and session security schemes, scopes, pagination, and request IDs in OpenAPI.
+- `/api/tenant/*` kept as compatibility adapters until consumers migrate.
 
-Initial Phase 2 operations cover releases, source apps, signed asset uploads,
-asset completion, signed asset downloads, and asset deletion.
+### Remaining work
 
-### Phase 3: client ecosystem
-
-- Generate a typed client from the production OpenAPI contract.
-- Publish examples and automation recipes.
-- Add contract-diff checks that block unintended breaking changes.
+1. `/api/v1` resources for `campaigns`, `approvals`, and `scheduled-posts`,
+   each after its owning RFC defines authorization, lifecycle, idempotency,
+   and audit behavior.
+2. Declare the required feature on every gated operation and tag it with
+   `x-shots-entitlement` (feature, minimum plan, quota). Today only
+   `deleteAsset` carries the tag.
+3. A typed client generated from the production OpenAPI document.
+4. An OpenAPI diff in CI that blocks unintended breaking changes.
 
 ## Acceptance criteria
 
-- `GET /api-reference` returns `200`, HTML, the Screenshot Studio API title, and a Scalar bootstrap script.
+- `GET /api-reference` returns `200`, HTML, the Shots API Reference title, and a Scalar bootstrap script.
 - The Scalar page references `/openapi.json` rather than embedding a divergent contract.
 - `GET /openapi.json` and `GET /.well-known/openapi.json` return the same valid OpenAPI 3.1 document.
 - Every documented public path has a stable `operationId` and declared responses.
-- The developer portal links to the interactive reference and raw specification.
-- Unknown `/api/*` paths still return the standardized JSON `404` envelope.
+- Unknown `/api/*` paths return the standardized JSON `404` envelope.
 - Authenticated `/api/v1` routes cannot cross workspace boundaries in tenant-isolation verification.
-- Plan-gated update and delete operations reject free, expired, and suspended workspaces before domain execution, while validated enterprise overrides are honored.
+- Editor utility endpoints return `401 unauthorized` without credentials and `403 workspace_feature_not_entitled` for a workspace without a paid plan.
+- Plan-gated operations reject `free`, expired, and suspended workspaces before domain execution, while validated enterprise overrides are honored.
 - REST, compatibility routes, tRPC, jobs, and direct destructive domain calls cannot bypass the same feature policy.
 - Billing event replays are idempotent, stale versions return `409`, and entitlement changes produce tenant audit records.
-- Machine-readable OpenAPI extensions declare feature, minimum-plan, and quota requirements.
+- Every gated operation declares its feature, minimum plan, and quota in `x-shots-entitlement`.
 - Mutation retries with the same idempotency key cannot create duplicate durable effects.
 - Documentation and API smoke tests run in CI.
 

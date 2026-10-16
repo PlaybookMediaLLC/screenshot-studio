@@ -17,7 +17,6 @@ export async function requirePaidAccess(request: Request): Promise<NextResponse 
   try {
     await requireTenantAccess(request.headers, {
       apiKeyScope: 'artifact:read',
-      feature: 'workspace:use',
       permission: 'workspace:read',
     })
     return null

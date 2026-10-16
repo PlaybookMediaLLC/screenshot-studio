@@ -1,6 +1,7 @@
 # RFC 022: GitHub Integration and Marketing-Worthy Change Detection
 
-**Status:** Proposed
+**Status:** Partially implemented
+**Status note (2026-10-16):** Shipped: the GitHub App, the install handshake, and release backfill. Missing: suggestions.
 **Date:** 2026-08-17
 **Revised:** 2026-10-15
 **Depends on:** RFC 005 and RFC 021

@@ -1,6 +1,8 @@
 # RFC 001: Guided Release Kit
 
-**Status:** Proposed
+**Status:** Superseded by the AI launch pipeline
+**Status note (2026-10-16):** The guided release kit was built as the AI launch pipeline. This document is kept for history.
+**Superseded by:** the AI launch pipeline (`lib/ai/launch/`, runs in `lib/launch/runs.ts`) and RFC 035
 **Date:** 2026-08-13
 **Owners:** Product and Engineering
 **Depends on:** RFC 002 and RFC 003

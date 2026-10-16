@@ -1,6 +1,8 @@
 # RFC 033: Monorepo Workspace Migration
 
-**Status:** Deferred
+**Status:** Superseded
+**Status note (2026-10-16):** The backend SDK shipped as a second artifact without a workspace migration: CI publishes it to npm from main.
+**Superseded by:** the npm-published backend SDK in `packages/screenshot-studio-backend-sdk`
 **Date:** 2026-08-19
 **Depends on:** none
 **Owners:** Engineering

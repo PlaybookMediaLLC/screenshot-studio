@@ -2,10 +2,6 @@ import type { GuideLink, HowToGuide } from "@/lib/seo/guides";
 
 const EDITOR_CTA: GuideLink = { href: "/editor", label: "Open the editor" };
 
-const FREE_EDITOR: GuideLink = {
-  href: "/free-screenshot-editor",
-  label: "Online screenshot editor",
-};
 const BEAUTIFIER: GuideLink = {
   href: "/features/screenshot-beautifier",
   label: "Screenshot beautifier",
@@ -129,7 +125,7 @@ export const howToGuides: HowToGuide[] = [
       },
       PRIVACY_FAQ,
     ],
-    related: [FREE_EDITOR, BEAUTIFIER, BROWSER_MOCKUPS, CROP],
+    related: [BEAUTIFIER, BROWSER_MOCKUPS, CROP],
   },
   {
     kind: "how-to",
@@ -204,7 +200,7 @@ export const howToGuides: HowToGuide[] = [
       },
       NO_WATERMARK_FAQ,
     ],
-    related: [FREE_EDITOR, SOCIAL, BEAUTIFIER],
+    related: [SOCIAL, BEAUTIFIER],
   },
   {
     kind: "how-to",
@@ -280,7 +276,7 @@ export const howToGuides: HowToGuide[] = [
       },
       PRIVACY_FAQ,
     ],
-    related: [FREE_EDITOR, CROP, BEAUTIFIER],
+    related: [CROP, BEAUTIFIER],
   },
   {
     kind: "how-to",
@@ -355,7 +351,7 @@ export const howToGuides: HowToGuide[] = [
       },
       NO_WATERMARK_FAQ,
     ],
-    related: [FREE_EDITOR, BEAUTIFIER, BROWSER_MOCKUPS],
+    related: [BEAUTIFIER, BROWSER_MOCKUPS],
   },
   {
     kind: "how-to",
@@ -431,7 +427,7 @@ export const howToGuides: HowToGuide[] = [
       },
       NO_WATERMARK_FAQ,
     ],
-    related: [BEAUTIFIER, SOCIAL, BROWSER_MOCKUPS, FREE_EDITOR],
+    related: [BEAUTIFIER, SOCIAL, BROWSER_MOCKUPS],
   },
   {
     kind: "how-to",
@@ -723,7 +719,7 @@ export const howToGuides: HowToGuide[] = [
       },
       NO_WATERMARK_FAQ,
     ],
-    related: [BROWSER_MOCKUPS, BEAUTIFIER, FREE_EDITOR],
+    related: [BROWSER_MOCKUPS, BEAUTIFIER],
   },
   {
     kind: "how-to",
@@ -970,7 +966,7 @@ export const howToGuides: HowToGuide[] = [
       },
       PRIVACY_FAQ,
     ],
-    related: [FREE_EDITOR, CROP, COMPRESS],
+    related: [BEAUTIFIER, CROP, COMPRESS],
   },
   {
     kind: "how-to",

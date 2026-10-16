@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
 )
 
 type EntitlementSummary struct {
@@ -33,6 +34,18 @@ type FeatureNotEntitledError struct {
 
 func (e *FeatureNotEntitledError) Error() string {
 	return fmt.Sprintf("The %s capability is not available on the current workspace plan.", e.Feature)
+}
+
+// requireWorkspaceFeature refuses the call unless the workspace's current
+// entitlement grants feature. There is no free plan: a workspace without a
+// subscription is granted nothing.
+func (c *Configuration) requireWorkspaceFeature(ctx context.Context, organizationID, feature string) error {
+	entitlement, err := c.client.WorkspaceEntitlement.Query().Where(workspaceentitlement.ID(organizationID)).Only(ctx)
+	if err != nil && !ent.IsNotFound(err) {
+		return err
+	}
+	plan, _, features := evaluateBootstrapEntitlement(entitlement, time.Now().UTC())
+	return requireFeature(features, plan, feature)
 }
 
 func requireFeature(features map[string]bool, plan, feature string) error {

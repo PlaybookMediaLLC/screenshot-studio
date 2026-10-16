@@ -104,13 +104,23 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: '/free-screenshot-editor',
+        destination: '/features/screenshot-beautifier',
+        permanent: true,
+      },
+      {
+        source: '/:locale(es|fr|de|ja|pt|ko|zh)/free-screenshot-editor',
+        destination: '/:locale/features/screenshot-beautifier',
+        permanent: true,
+      },
+      {
         source: '/free-screenshot-editor-online',
-        destination: '/free-screenshot-editor',
+        destination: '/features/screenshot-beautifier',
         permanent: true,
       },
       {
         source: '/free-screenshot-studio/:path*',
-        destination: '/free-screenshot-editor',
+        destination: '/features/screenshot-beautifier',
         permanent: true,
       },
       {

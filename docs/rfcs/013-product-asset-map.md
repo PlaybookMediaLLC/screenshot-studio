@@ -1,6 +1,7 @@
 # RFC 013: Product Asset Map
 
 **Status:** Partially implemented (`ProductSurface` model and tRPC router exist; capture binding and freshness do not)
+**Status note (2026-10-16):** Still partial. Models are Go `ent` schemas in `services/ent/schema`.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 010 and RFC 012

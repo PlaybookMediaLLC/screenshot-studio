@@ -46,7 +46,6 @@ export function getOrganizationSchema() {
       width: 512,
       height: 512,
     },
-    sameAs: ["https://github.com/PlaybookMediaLLC/screenshot-studio"],
     email: "team@playbookmedia.io",
     contactPoint: [
       {
@@ -68,7 +67,7 @@ export function getOrganizationSchema() {
       {
         "@type": "ContactPoint",
         contactType: "technical support",
-        url: "https://github.com/PlaybookMediaLLC/screenshot-studio/issues",
+        url: `${BASE_URL}/contact`,
         email: "team@playbookmedia.io",
       },
     ],

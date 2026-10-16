@@ -1,6 +1,7 @@
 # RFC 011: First-Class Brand Context
 
 **Status:** Partially implemented (`BrandProfile` and `BrandKit` models exist; validation, versioning, and enforcement do not)
+**Status note (2026-10-16):** Still partial. Models are Go `ent` schemas in `services/ent/schema`.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 010

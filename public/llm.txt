@@ -24,7 +24,6 @@ Shots also includes a screenshot editor in every plan, with no watermark, plus b
 - Landing: https://shots.playbookmedia.io/landing
 - Pricing: https://shots.playbookmedia.io/pricing
 - Design partners: https://shots.playbookmedia.io/design-partners
-- Screenshot Editor Online: https://shots.playbookmedia.io/free-screenshot-editor
 - Mockup Generator: https://shots.playbookmedia.io/mockup-generator
 - Code to Image: https://shots.playbookmedia.io/code
 - Features: https://shots.playbookmedia.io/features
@@ -100,7 +99,6 @@ Plans: Pro ($199/mo, or $169/mo billed annually), Business ($699/mo, or $594/mo 
 
 ## Contact
 - Website: https://shots.playbookmedia.io
-- GitHub: https://github.com/PlaybookMediaLLC/screenshot-studio
 - Email: team@playbookmedia.io
 
 ## LLMs.txt

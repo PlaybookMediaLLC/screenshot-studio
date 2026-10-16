@@ -1,6 +1,7 @@
 # RFC 025: Content Pillars and the Weekly Calendar
 
-**Status:** Proposed
+**Status:** Not started
+**Status note (2026-10-16):** Nothing in this RFC is built.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 018 and RFC 021

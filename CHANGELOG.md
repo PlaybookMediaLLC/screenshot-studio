@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.21.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.21.0...v1.21.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **deploy:** keep secrets set on the app directly instead of failing ([#107](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/107)) ([1bf789a](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1bf789aaab132f23e6e584775fd9fa1c345c5970))
+
 ## [1.21.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.20.0...v1.21.0) (2026-10-16)
 
 

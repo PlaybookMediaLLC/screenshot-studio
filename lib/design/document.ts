@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { canvasElementSchema } from '@/lib/editor/elements/schema'
 import { isGoogleFontId } from '@/lib/typography/google-fonts'
 import { textAlignSchema, textFillSchema, textFitSchema, textRoleSchema } from '@/lib/typography/text-style'
+import { frameChromeSchema } from '@/lib/frames/schema'
 import { designCatalog, frameTypes, isKnownBackground } from './catalog'
 
 /**
@@ -235,6 +236,8 @@ export const designDocumentSchema = z.object({
       })
       .optional(),
     browserHeaderSize: z.number().min(50).max(200).optional(),
+    /** Browser and window options when `frame.type` is a browser or window. */
+    chrome: frameChromeSchema.optional(),
     perspective: z
       .object({
         perspective: z.number().min(200).max(5000).default(2400),

@@ -14,6 +14,7 @@ import {
 import { exportDesignDocument } from './export'
 import { resolveEditorTemplate } from './templates'
 import { resetPlayback } from '@/lib/store/playback'
+import { DEFAULT_FRAME_CHROME } from '@/lib/frames/schema'
 
 /**
  * Write designs and design changes into the editor stores.
@@ -116,6 +117,7 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
       ? { browserHeaderSize: imageChanges.browserHeaderSize }
       : {}),
   })
+  if (imageChanges.chrome) useImageStore.setState({ frameChrome: structuredClone(imageChanges.chrome) })
   if (shadow?.preset) useImageStore.getState().setShadowPreset(shadow.preset)
   if (shadow?.custom) useImageStore.setState({ imageShadow: shadow.custom })
   if (frame) {
@@ -321,6 +323,7 @@ export function applyDesignDocument(
     const mainSrc = document.image.src ? resolve(document.image.src) : null
     const keepImage = !mainSrc ? useImageStore.getState().uploadedImageUrl : null
     useImageStore.getState().clearImage()
+    useImageStore.setState({ frameChrome: { ...DEFAULT_FRAME_CHROME } })
     if (keepImage) useImageStore.getState().setUploadedImageUrl(keepImage, 'design')
     writeSections(document, resolve)
   })

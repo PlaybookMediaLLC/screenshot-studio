@@ -1,4 +1,6 @@
 import { MOBILE_BREAKPOINT } from "@/hooks/use-mobile";
+import { chromeBoxForContent, type Insets } from "@/lib/frames/geometry";
+import type { FrameChrome } from "@/lib/frames/schema";
 
 export interface CanvasDimensions {
   canvasW: number;
@@ -12,6 +14,8 @@ export interface CanvasDimensions {
   frameOffset: number;
   windowPadding: number;
   windowHeader: number;
+  /** Browser or window chrome around the image; the top equals `windowHeader`. */
+  chromeInsets: Insets;
   eclipseBorder: number;
   groupCenterX: number;
   groupCenterY: number;
@@ -37,7 +41,9 @@ export function calculateCanvasDimensions(
     width: number;
     padding?: number;
   },
-  browserHeaderSize?: number
+  browserHeaderSize?: number,
+  /** The main screenshot's browser or window chrome, when it has one. */
+  chrome?: { kind: "browser" | "window"; chrome: FrameChrome } | null
 ): CanvasDimensions {
   const imageAspect = image.naturalWidth / image.naturalHeight;
   const isMobileViewport = viewportSize.width < MOBILE_BREAKPOINT;
@@ -74,8 +80,6 @@ export function calculateCanvasDimensions(
     imageScaledH *= 0.88;
   }
 
-  const isMacosFrame = frame.type === 'macos-light' || frame.type === 'macos-dark';
-  const isWindowsFrame = frame.type === 'windows-light' || frame.type === 'windows-dark';
   const isPhotograph = frame.type === 'photograph';
   const isStyleFrame = ['glass-light', 'glass-dark', 'outline-light', 'border-light', 'border-dark'].includes(frame.type);
 
@@ -94,27 +98,28 @@ export function calculateCanvasDimensions(
   const windowPadding = showFrame && isPhotograph ? 8 : (showFrame && isStyleFrame ? stylePadding : 0);
 
   // Header/footer height:
-  // - Safari (macOS): 22px toolbar
-  // - Chrome (Windows): 36px (tab bar + address bar)
+  // - Browser and window chrome: proportional to the image, scaled by the header size
   // - Polaroid: 16px extra bottom (24px total bottom - 8px already in windowPadding)
-  const defaultHeader = isMacosFrame ? 22 : (isWindowsFrame ? 36 : 0);
-  const browserHeader = (isMacosFrame || isWindowsFrame) && browserHeaderSize != null ? Math.round(defaultHeader * (browserHeaderSize / 100)) : defaultHeader;
-  const windowHeader = showFrame && isMacosFrame ? browserHeader : (showFrame && isWindowsFrame ? browserHeader : (showFrame && isPhotograph ? 16 : 0));
+  const chromeInsets = showFrame && chrome
+    ? chromeBoxForContent(chrome.kind, chrome.chrome, { height: imageScaledH, width: imageScaledW }, (browserHeaderSize ?? 100) / 100).insets
+    : { bottom: 0, left: 0, right: 0, top: 0 };
+  const windowHeader = showFrame && chrome ? chromeInsets.top : (showFrame && isPhotograph ? 16 : 0);
 
   const eclipseBorder = 0;
 
   const framedW =
-    imageScaledW + frameOffset * 2 + windowPadding * 2 + eclipseBorder;
+    imageScaledW + frameOffset * 2 + windowPadding * 2 + eclipseBorder + chromeInsets.left + chromeInsets.right;
   const framedH =
     imageScaledH +
     frameOffset * 2 +
     windowPadding * 2 +
     windowHeader +
-    eclipseBorder;
+    eclipseBorder +
+    chromeInsets.bottom;
 
   const groupCenterX = canvasW / 2 + screenshot.offsetX;
   const groupCenterY = canvasH / 2 + screenshot.offsetY;
-  const imageX = groupCenterX + frameOffset + windowPadding - imageScaledW / 2;
+  const imageX = groupCenterX + frameOffset + windowPadding + chromeInsets.left - imageScaledW / 2;
   const imageY =
     groupCenterY +
     frameOffset +
@@ -134,6 +139,7 @@ export function calculateCanvasDimensions(
     frameOffset,
     windowPadding,
     windowHeader,
+    chromeInsets,
     eclipseBorder,
     groupCenterX,
     groupCenterY,
@@ -155,7 +161,7 @@ export interface StageRect {
  * 3D): inside its frame's padding and browser bar, at the layer's scale.
  */
 export function mainImageRect(
-  dimensions: Pick<CanvasDimensions, 'canvasW' | 'canvasH' | 'framedW' | 'framedH' | 'imageScaledW' | 'imageScaledH' | 'windowPadding' | 'windowHeader'>,
+  dimensions: Pick<CanvasDimensions, 'canvasW' | 'canvasH' | 'chromeInsets' | 'framedW' | 'framedH' | 'imageScaledW' | 'imageScaledH' | 'windowPadding' | 'windowHeader'>,
   screenshot: { offsetX: number; offsetY: number; scale: number },
   frameType: string
 ): StageRect {
@@ -163,9 +169,9 @@ export function mainImageRect(
   const centerX = dimensions.canvasW / 2 + screenshot.offsetX;
   const centerY = dimensions.canvasH / 2 + screenshot.offsetY;
   // Browser bars sit above the image; a photograph's extra margin is below it.
-  const barAbove = frameType.startsWith('macos') || frameType.startsWith('windows') ? dimensions.windowHeader : 0;
+  const barAbove = frameType === 'photograph' ? 0 : dimensions.windowHeader;
   return {
-    x: centerX - (dimensions.framedW * scale) / 2 + dimensions.windowPadding * scale,
+    x: centerX - (dimensions.framedW * scale) / 2 + (dimensions.windowPadding + dimensions.chromeInsets.left) * scale,
     y: centerY - (dimensions.framedH * scale) / 2 + (dimensions.windowPadding + barAbove) * scale,
     width: dimensions.imageScaledW * scale,
     height: dimensions.imageScaledH * scale,

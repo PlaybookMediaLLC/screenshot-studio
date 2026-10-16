@@ -43,6 +43,8 @@ export const designCatalog = {
     'outline-light',
     'border-light',
     'border-dark',
+    'browser',
+    'window',
   ] as const,
   gradients: Object.keys(gradientColors),
   magicGradients: Object.keys(magicGradients).map((key) => `magic:${key}`),

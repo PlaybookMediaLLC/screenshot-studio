@@ -1,6 +1,6 @@
 'use client'
 
-import { detectSensitiveText, type Finding, type OcrWord } from './patterns'
+import { detectSensitiveText, type Finding, type ImageBox, type OcrWord } from './patterns'
 
 /**
  * Scan a screenshot for sensitive content, entirely in this browser: the
@@ -38,7 +38,10 @@ async function loadCanvas(src: string): Promise<HTMLCanvasElement> {
 }
 
 /** OCR words with their line index, in reading order. */
-async function readWords(canvas: HTMLCanvasElement, onProgress: (progress: number) => void): Promise<OcrWord[]> {
+async function readWords(
+  canvas: HTMLCanvasElement,
+  onProgress: (progress: number) => void
+): Promise<OcrWord[]> {
   const { createWorker } = await import('tesseract.js')
   const worker = await createWorker('eng', 1, {
     logger: (message: { progress: number; status: string }) => {
@@ -54,7 +57,12 @@ async function readWords(canvas: HTMLCanvasElement, onProgress: (progress: numbe
         for (const textLine of paragraph.lines) {
           for (const word of textLine.words) {
             if (word.text.trim()) {
-              words.push({ bbox: word.bbox, confidence: word.confidence, line, text: word.text.trim() })
+              words.push({
+                bbox: word.bbox,
+                confidence: word.confidence,
+                line,
+                text: word.text.trim(),
+              })
             }
           }
           line++
@@ -67,6 +75,36 @@ async function readWords(canvas: HTMLCanvasElement, onProgress: (progress: numbe
   }
 }
 
+/**
+ * Square tiles covering the image at several scales, overlapping by a
+ * quarter. The face model expects a face to fill much of its input, so
+ * small faces (avatars, people in a page) are only found in the smaller tiles.
+ */
+export function faceTiles(width: number, height: number, grids: readonly number[] = [1, 2, 3, 5]) {
+  const tiles: { size: number; x: number; y: number }[] = []
+  for (const grid of grids) {
+    const size = Math.min(width, height, Math.ceil(Math.max(width, height) / grid / 0.75))
+    const stepX =
+      width > size ? (width - size) / Math.max(1, Math.ceil((width - size) / (size * 0.75))) : 1
+    const stepY =
+      height > size ? (height - size) / Math.max(1, Math.ceil((height - size) / (size * 0.75))) : 1
+    for (let y = 0; y <= Math.max(0, height - size) + 0.5; y += stepY) {
+      for (let x = 0; x <= Math.max(0, width - size) + 0.5; x += stepX) {
+        tiles.push({ size, x: Math.round(x), y: Math.round(y) })
+      }
+    }
+  }
+  return tiles
+}
+
+/** Overlap of two boxes as intersection over union. */
+export function overlap(a: ImageBox, b: ImageBox): number {
+  const x = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x))
+  const y = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y))
+  const intersection = x * y
+  return intersection / (a.width * a.height + b.width * b.height - intersection || 1)
+}
+
 async function findFaces(canvas: HTMLCanvasElement): Promise<Finding[]> {
   const { FaceDetector, FilesetResolver } = await import('@mediapipe/tasks-vision')
   const fileset = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM)
@@ -75,34 +113,50 @@ async function findFaces(canvas: HTMLCanvasElement): Promise<Finding[]> {
     minDetectionConfidence: MIN_FACE_SCORE,
     runningMode: 'IMAGE',
   })
+  const tile = document.createElement('canvas')
+  const tileContext = tile.getContext('2d')!
+  const found: { box: ImageBox; score: number }[] = []
   try {
-    const { detections } = detector.detect(canvas)
-    return detections.flatMap((detection, index) => {
-      const box = detection.boundingBox
-      if (!box) return []
-      // The detector's box is tight to the face; grow it to cover hair and chin.
-      const padX = box.width * 0.25
-      const padY = box.height * 0.3
-      const x = Math.max(0, box.originX - padX)
-      const y = Math.max(0, box.originY - padY)
-      return [
-        {
+    for (const { size, x, y } of faceTiles(canvas.width, canvas.height)) {
+      tile.width = size
+      tile.height = size
+      tileContext.drawImage(canvas, x, y, size, size, 0, 0, size, size)
+      for (const detection of detector.detect(tile).detections) {
+        const box = detection.boundingBox
+        if (!box) continue
+        // The detector's box is tight to the face; grow it to cover hair and chin.
+        const padX = box.width * 0.25
+        const padY = box.height * 0.3
+        const left = Math.max(0, x + box.originX - padX)
+        const top = Math.max(0, y + box.originY - padY)
+        found.push({
           box: {
-            height: (Math.min(canvas.height, box.originY + box.height + padY) - y) / canvas.height,
-            width: (Math.min(canvas.width, box.originX + box.width + padX) - x) / canvas.width,
-            x: x / canvas.width,
-            y: y / canvas.height,
+            height:
+              (Math.min(canvas.height, y + box.originY + box.height + padY) - top) / canvas.height,
+            width:
+              (Math.min(canvas.width, x + box.originX + box.width + padX) - left) / canvas.width,
+            x: left / canvas.width,
+            y: top / canvas.height,
           },
-          confidence: Math.round((detection.categories[0]?.score ?? MIN_FACE_SCORE) * 100) / 100,
-          id: `face-${index}`,
-          kind: 'face' as const,
-          label: 'Face',
-        },
-      ]
-    })
+          score: detection.categories[0]?.score ?? MIN_FACE_SCORE,
+        })
+      }
+    }
   } finally {
     detector.close()
   }
+  // The same face is found in several tiles: keep the most confident of each.
+  const kept: typeof found = []
+  for (const face of found.sort((a, b) => b.score - a.score)) {
+    if (!kept.some((other) => overlap(other.box, face.box) > 0.3)) kept.push(face)
+  }
+  return kept.map((face, index) => ({
+    box: face.box,
+    confidence: Math.round(face.score * 100) / 100,
+    id: `face-${index}`,
+    kind: 'face' as const,
+    label: 'Face',
+  }))
 }
 
 /**
@@ -121,7 +175,9 @@ export async function scanImage(
 
   onProgress({ message: 'Finding faces', progress: 0.05 })
   const faces = await findFaces(canvas).catch((error: unknown) => {
-    warnings.push(`Face detection is unavailable (${error instanceof Error ? error.message : 'load failed'}).`)
+    warnings.push(
+      `Face detection is unavailable (${error instanceof Error ? error.message : 'load failed'}).`
+    )
     return [] as Finding[]
   })
   signal?.throwIfAborted()
@@ -130,7 +186,9 @@ export async function scanImage(
   const words = await readWords(canvas, (progress) =>
     onProgress({ message: 'Reading text', progress: 0.2 + progress * 0.75 })
   ).catch((error: unknown) => {
-    warnings.push(`Text recognition is unavailable (${error instanceof Error ? error.message : 'load failed'}).`)
+    warnings.push(
+      `Text recognition is unavailable (${error instanceof Error ? error.message : 'load failed'}).`
+    )
     return [] as OcrWord[]
   })
   signal?.throwIfAborted()

@@ -16,7 +16,12 @@ function line(texts: string[], lineIndex: number, confidence = 95): OcrWord[] {
   let x = 10
   return texts.map((text) => {
     const width = text.length * 10
-    const word = { bbox: { x0: x, x1: x + width, y0: lineIndex * 40, y1: lineIndex * 40 + 20 }, confidence, line: lineIndex, text }
+    const word = {
+      bbox: { x0: x, x1: x + width, y0: lineIndex * 40, y1: lineIndex * 40 + 20 },
+      confidence,
+      line: lineIndex,
+      text,
+    }
     x += width + 10
     return word
   })
@@ -24,7 +29,11 @@ function line(texts: string[], lineIndex: number, confidence = 95): OcrWord[] {
 
 test('emails and known key formats are found with high confidence', () => {
   assert.equal(classifyToken('jane.doe@example.com')?.kind, 'email')
-  assert.equal(classifyToken('(ops@acme.io)')?.kind, 'email', 'punctuation around a token is ignored')
+  assert.equal(
+    classifyToken('(ops@acme.io)')?.kind,
+    'email',
+    'punctuation around a token is ignored'
+  )
   for (const key of [
     'AKIAIOSFODNN7EXAMPLE',
     'ghp_1234567890abcdefghijABCDEFGHIJ123456',
@@ -40,7 +49,15 @@ test('emails and known key formats are found with high confidence', () => {
 })
 
 test('ordinary interface text is not flagged', () => {
-  for (const word of ['Dashboard', 'Settings', 'Welcome', 'v2.4.1', '2026', 'https://example.com/docs', 'Projects']) {
+  for (const word of [
+    'Dashboard',
+    'Settings',
+    'Welcome',
+    'v2.4.1',
+    '2026',
+    'https://example.com/docs',
+    'Projects',
+  ]) {
     assert.equal(classifyToken(word), null, word)
   }
   assert.equal(nameConfidence('Sign', 'Out'), 0)
@@ -93,4 +110,25 @@ test('redactions are strong enough to be unreadable and stay inside the image', 
     x: 700,
     y: 0,
   })
+})
+
+test('face tiles cover the whole image at every scale and duplicates merge', async () => {
+  const { faceTiles, overlap } = await import('../lib/redaction/scan')
+  const tiles = faceTiles(1400, 800)
+  for (const grid of [800, Math.ceil(1400 / 2 / 0.75)]) {
+    const level = tiles.filter((tile) => tile.size === Math.min(800, grid))
+    assert.ok(level.length > 0)
+    assert.ok(level.some((tile) => tile.x === 0 && tile.y === 0))
+    assert.ok(
+      level.some((tile) => tile.x + tile.size >= 1400),
+      'tiles reach the right edge'
+    )
+    assert.ok(
+      level.some((tile) => tile.y + tile.size >= 800),
+      'tiles reach the bottom edge'
+    )
+  }
+  assert.ok(Math.min(...tiles.map((tile) => tile.size)) < 400, 'small tiles find small faces')
+  assert.ok(overlap({ height: 1, width: 1, x: 0, y: 0 }, { height: 1, width: 1, x: 0, y: 0 }) === 1)
+  assert.equal(overlap({ height: 1, width: 1, x: 0, y: 0 }, { height: 1, width: 1, x: 2, y: 2 }), 0)
 })

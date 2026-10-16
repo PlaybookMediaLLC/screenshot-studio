@@ -87,7 +87,7 @@ export function StyleSection() {
   const currentPadding = imageBorder.padding ?? 2;
 
   return (
-    <SectionWrapper title="Style" defaultOpen={true}>
+    <SectionWrapper title="Border style" defaultOpen={true}>
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-2 p-1">
           {stylePresets.map(({ value, label }) => {

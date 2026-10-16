@@ -18,9 +18,16 @@ function post(message: RenderResponse) {
  */
 export function LocalRenderHost() {
   const queue = useRef<RenderJob[]>([])
+  const current = useRef<RenderJob | null>(null)
   const [job, setJob] = useState<RenderJob | null>(null)
 
-  const next = useCallback(() => setJob(queue.current.shift() ?? null), [])
+  // Queue work happens outside state updaters: React may run an updater
+  // twice, which would take two jobs off the queue and drop one.
+  const pump = useCallback(() => {
+    if (current.current) return
+    current.current = queue.current.shift() ?? null
+    setJob(current.current)
+  }, [])
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<RenderRequest>) => {
@@ -32,12 +39,12 @@ export function LocalRenderHost() {
       }
       if (message.type !== 'render') return
       queue.current.push(message)
-      setJob((current) => current ?? queue.current.shift() ?? null)
+      pump()
     }
     window.addEventListener('message', onMessage)
     post({ type: 'ready' })
     return () => window.removeEventListener('message', onMessage)
-  }, [])
+  }, [pump])
 
   const handleReady = useCallback(async () => {
     if (!job) return
@@ -47,8 +54,9 @@ export function LocalRenderHost() {
     } catch (error) {
       post({ type: 'error', id: job.id, message: error instanceof Error ? error.message : 'Render failed.' })
     }
-    next()
-  }, [job, next])
+    current.current = null
+    pump()
+  }, [job, pump])
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-transparent p-6">

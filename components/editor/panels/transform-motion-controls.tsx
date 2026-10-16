@@ -6,6 +6,9 @@ import {
   SectionWrapper,
 } from '../sections';
 import { cn } from '@/lib/utils';
+import { DocumentPreview } from '@/components/design/DocumentPreview';
+import { PRESET_PREVIEW_PROGRESS, withAnimationPreset } from '@/lib/animation/preview';
+import { useEditorDocument } from '@/lib/design/use-editor-document';
 import { selectScreenshot, useImageStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { ANIMATION_PRESETS, CATEGORY_LABELS } from '@/lib/animation/presets';
@@ -411,10 +414,6 @@ const ANIM_PRESET_BY_CATEGORY = ANIMATION_PRESETS.reduce(
 /** Part of the inspector's 3D or Motion tab. */
 export function AnimationControls() {
   const {
-    uploadedImageUrl,
-    backgroundConfig,
-    borderRadius,
-    imageShadow,
     animationClips,
     addAnimationClip,
     clearAnimationClips,
@@ -423,9 +422,8 @@ export function AnimationControls() {
     timeline,
   } = useImageStore();
 
-  const screenshot = useImageStore(useShallow(selectScreenshot));
   const cssAspectRatio = useCanvasAspectRatio();
-  const previewImageUrl = uploadedImageUrl || screenshot?.src || null;
+  const editorDocument = useEditorDocument();
   const firstCategory = Object.keys(ANIM_PRESET_BY_CATEGORY)[0];
 
   const handlePresetClick = (preset: AnimationPreset) => {
@@ -440,7 +438,6 @@ export function AnimationControls() {
     setShowTimeline(true);
   };
 
-  const backgroundStyle = getBackgroundCSS(backgroundConfig, 384);
   const hasAnimation = animationClips.length > 0;
 
   return (
@@ -487,27 +484,11 @@ export function AnimationControls() {
                     )}
                     style={{ aspectRatio: cssAspectRatio }}
                   >
-                    <div className="absolute inset-0" style={backgroundStyle} />
-
-                    <div className="absolute inset-0 flex items-center justify-center p-2">
-                      {previewImageUrl ? (
-                        <div className="w-[85%] h-[85%]">
-                          <img
-                            src={previewImageUrl}
-                            alt={preset.name}
-                            className="w-full h-full object-contain"
-                            style={{
-                              borderRadius: `${Math.min(borderRadius, 6)}px`,
-                              boxShadow: imageShadow.enabled
-                                ? 'var(--shadow-lg)'
-                                : undefined,
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-[85%] h-[85%] bg-foreground/[0.08] rounded-md border border-foreground/10" />
-                      )}
-                    </div>
+                    <DocumentPreview
+                      alt={`${preset.name} animation`}
+                      document={editorDocument ? withAnimationPreset(editorDocument, preset) : null}
+                      time={preset.duration * PRESET_PREVIEW_PROGRESS}
+                    />
 
                     <div className="absolute inset-0 bg-background/40 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center">
                       <div className="bg-foreground/[0.12] border border-foreground/15 rounded-md p-2">
@@ -544,10 +525,10 @@ export function AnimationControls() {
         );
       })}
 
-      {!previewImageUrl && (
+      {!editorDocument && (
         <div className="p-3 rounded-md bg-foreground/[0.04] border border-foreground/10 text-center">
           <p className="text-xs text-muted-foreground">
-            Upload an image to see animation previews
+            Add a screenshot to preview animations on your design
           </p>
         </div>
       )}

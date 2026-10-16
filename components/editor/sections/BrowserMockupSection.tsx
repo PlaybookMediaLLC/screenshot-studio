@@ -113,7 +113,7 @@ export function BrowserMockupSection() {
 
   return (
     <>
-      <SectionWrapper title="Style" defaultOpen={true}>
+      <SectionWrapper title="Browser" defaultOpen={true}>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2 p-1">
             {browserStyles.map(({ value, label }) => {

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { brandBindingSchema } from '@/lib/brand/binding'
 import { designCopySchema } from '@/lib/captions/channels'
+import { easingSchema, isAudioSource, LOCAL_AUDIO_DATA_REF, timelineMotionShape } from '@/lib/animation/motion-schema'
 import { canvasElementSchema } from '@/lib/editor/elements/schema'
 import { isGoogleFontId } from '@/lib/typography/google-fonts'
 import { textAlignSchema, textFillSchema, textFitSchema, textRoleSchema } from '@/lib/typography/text-style'
@@ -114,19 +115,8 @@ const shadowSchema = z.object({
   spread: z.number().min(-100).max(100).default(0),
 })
 
-const easingNames = [
-  'linear',
-  'ease-in',
-  'ease-out',
-  'ease-in-out',
-  'ease-in-cubic',
-  'ease-out-cubic',
-  'ease-in-expo',
-  'ease-out-expo',
-] as const
-
 const keyframeSchema = z.object({
-  easing: z.enum(easingNames),
+  easing: easingSchema,
   id: z.string().max(80),
   properties: z.record(z.string().max(40), z.number()),
   /** Milliseconds from the start of the timeline. */
@@ -165,6 +155,8 @@ const timelineSchema = z.object({
     )
     .max(200)
     .default([]),
+  /** Keyframed layer properties, text reveals, scroll-throughs, audio, and captions. */
+  ...timelineMotionShape,
 })
 
 export const designDocumentSchema = z.object({
@@ -461,7 +453,7 @@ export function getLocalDesignSources(document: DesignDocument): string[] {
   const found = new Set<string>()
   const visit = (value: unknown) => {
     if (typeof value === 'string') {
-      if (LOCAL_REF.test(value)) found.add(value)
+      if (LOCAL_REF.test(value) || LOCAL_AUDIO_DATA_REF.test(value)) found.add(value)
     } else if (Array.isArray(value)) {
       value.forEach(visit)
     } else if (isPlainObject(value)) {
@@ -478,7 +470,7 @@ export function mapDesignSources(
   map: (ref: string) => string
 ): DesignDocument {
   const visit = (value: unknown): unknown => {
-    if (typeof value === 'string') return isDesignSource(value) ? map(value) : value
+    if (typeof value === 'string') return isDesignSource(value) || isAudioSource(value) ? map(value) : value
     if (Array.isArray(value)) return value.map(visit)
     if (isPlainObject(value)) {
       return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, visit(item)]))

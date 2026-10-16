@@ -38,6 +38,11 @@ const AnimationControls = dynamic(
   { ssr: false }
 )
 
+const MotionPanel = dynamic(
+  () => import('../motion/MotionPanel').then((module) => module.MotionPanel),
+  { ssr: false }
+)
+
 /** One panel tab: its label, icon, a hint for the tooltip, and what it shows. */
 export type PanelTabDefinition<Tab extends EditorPanelTab> = {
   content: () => React.ReactNode
@@ -126,8 +131,13 @@ export const INSPECTOR_TABS: readonly PanelTabDefinition<InspectorTab>[] = [
     label: '3D',
   },
   {
-    content: () => <AnimationControls />,
-    hint: 'Animation presets and the timeline',
+    content: () => (
+      <div className="space-y-1">
+        <MotionPanel />
+        <AnimationControls />
+      </div>
+    ),
+    hint: 'Keyframes, reveals, scroll-through, audio, captions, and animation presets',
     icon: <VideoReplayIcon size={14} />,
     id: 'motion',
     label: 'Motion',

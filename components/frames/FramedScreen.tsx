@@ -10,10 +10,12 @@ import type { Mockup } from '@/types/mockup'
 import { ChromeFrame } from './ChromeFrame'
 import { CodeScreen } from './CodeScreen'
 
-/** What a screen does when it is clicked, dropped on, or cropped. */
+/** What a screen does when it is clicked, dropped on, or cropped, and where its image sits. */
 export type ScreenHandlers = {
   editing?: boolean
   screenFilter?: string
+  /** Where a scroll-through has the image inside the screen (CSS object-position). */
+  screenObjectPosition?: string
   onScreenClick?: () => void
   onScreenDoubleClick?: () => void
   onScreenFile?: (file: File) => void
@@ -62,6 +64,7 @@ export function FramedScreen({
         orientation={mockup.orientation}
         screen={mockup.screen}
         screenFilter={handlers.screenFilter}
+        screenObjectPosition={handlers.screenObjectPosition}
       />
     )
   }
@@ -70,6 +73,7 @@ export function FramedScreen({
     <Screen
       editing={handlers.editing ?? false}
       filter={handlers.screenFilter}
+      objectPosition={handlers.screenObjectPosition}
       onClick={handlers.onScreenClick}
       onCropKeyDown={handlers.onScreenKeyDown}
       onDoubleClick={handlers.onScreenDoubleClick}

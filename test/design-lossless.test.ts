@@ -16,6 +16,7 @@ const identity = (ref: string) => ref
 const sticker = 'blob:http://localhost/sticker'
 const main = 'blob:http://localhost/main'
 const slide = 'blob:http://localhost/slide-2'
+const music = 'blob:http://localhost/music'
 
 function richEditor() {
   const store = useImageStore.getState()
@@ -56,6 +57,59 @@ function richEditor() {
     canvasPadding: 64,
     customDimensions: { height: 1000, width: 1500 },
     imageName: 'main.png',
+    motion: {
+      audio: [
+        {
+          gain: 0.8,
+          id: 'audio-1',
+          muted: false,
+          name: 'music.mp3',
+          sourceDuration: 9000,
+          src: music,
+          start: 250,
+          trimEnd: 4000,
+          trimStart: 500,
+        },
+      ],
+      captions: {
+        items: [{ end: 1800, id: 'caption-1', start: 200, text: 'Meet the new dashboard' }],
+        style: { background: 'rgba(0,0,0,0.6)', color: '#ffffff', fontFamily: 'inter', fontSize: 0.03, fontWeight: 'bold', y: 88 },
+      },
+      layerTracks: [
+        {
+          id: 'track-spot',
+          keyframes: [
+            { easing: 'linear', id: 'kf-a', time: 0, value: 0.2 },
+            { bezier: { x1: 0.2, x2: 0.1, y1: 1.4, y2: 1 }, easing: 'ease-out', id: 'kf-b', time: 1200, value: 0.8 },
+          ],
+          property: 'dim',
+          target: { id: 'element-1', kind: 'element' },
+        },
+        {
+          id: 'track-image',
+          keyframes: [{ easing: 'ease-in-out', id: 'kf-c', time: 600, value: 1.2 }],
+          property: 'scale',
+          target: { kind: 'image' },
+        },
+      ],
+      reveals: [
+        { duration: 900, easing: 'linear', id: 'reveal-1', mode: 'typewriter', start: 100, targetId: 'text-1' },
+      ],
+      scrolls: [
+        {
+          direction: 'vertical',
+          duration: 2500,
+          easing: 'ease-in-out',
+          from: 0,
+          id: 'scroll-1',
+          pauses: [{ at: 0.4, hold: 500 }],
+          start: 300,
+          target: { kind: 'image' },
+          to: 1,
+          viewport: 1.6,
+        },
+      ],
+    },
     imageOverlays: [
       {
         blur: 2,
@@ -164,6 +218,9 @@ test('a lossless export reproduces the editor exactly', () => {
   assert.equal(state.slides.length, 2)
   assert.deepEqual(state.customDimensions, { height: 1000, width: 1500 })
   assert.equal(state.animationClips[0]?.presetId, 'drop-in')
+  assert.equal(state.motion.audio[0]?.src, music)
+  assert.equal(state.motion.layerTracks[0]?.keyframes[1]?.bezier?.y1, 1.4)
+  assert.equal(state.motion.scrolls[0]?.pauses[0]?.hold, 500)
 })
 
 test('the AI view of the canvas leaves local images and hidden layers out', () => {
@@ -173,23 +230,49 @@ test('the AI view of the canvas leaves local images and hidden layers out', () =
   assert.equal(forAi.overlays.length, 0, 'a local sticker is not portable')
   assert.equal(forAi.texts.length, 0, 'hidden text is not shown to the AI')
   assert.equal(forAi.slides, undefined)
+  assert.equal(forAi.timeline?.audio, undefined, 'local audio is not portable')
+  assert.equal(forAi.timeline?.captions?.items.length, 1, 'captions are')
   assert.deepEqual(getLocalDesignSources(forAi), [])
 })
 
 test('local sources can be swapped for uploaded assets before a document is stored', () => {
   richEditor()
   const local = exportDesignDocument({ keepLocalSources: true })
-  assert.deepEqual(getLocalDesignSources(local).sort(), [main, slide, sticker].sort())
+  assert.deepEqual(getLocalDesignSources(local).sort(), [main, music, slide, sticker].sort())
 
   const ids: Record<string, string> = {
+    [music]: 'asset:44444444-4444-4444-8444-444444444444',
     [main]: 'asset:11111111-1111-4111-8111-111111111111',
     [slide]: 'asset:22222222-2222-4222-8222-222222222222',
     [sticker]: 'asset:33333333-3333-4333-8333-333333333333',
   }
   const stored = mapDesignSources(local, (ref) => ids[ref] ?? ref)
   assert.deepEqual(getLocalDesignSources(stored), [])
-  assert.equal(getDesignAssetIds(stored).length, 3)
+  assert.equal(getDesignAssetIds(stored).length, 4)
   assert.equal(stored.slides?.items[1]?.src, ids[slide])
+  assert.equal(stored.timeline?.audio?.[0]?.src, ids[music], 'audio is stored as a workspace asset')
+})
+
+test('an autosaved draft’s inlined audio is uploaded like a local image', () => {
+  richEditor()
+  const inlined = 'data:audio/wav;base64,UklGRg=='
+  useImageStore.setState((state) => ({
+    motion: { ...state.motion, audio: state.motion.audio.map((clip) => ({ ...clip, src: inlined })) },
+  }))
+  const local = exportDesignDocument({ keepLocalSources: true })
+  assert.ok(getLocalDesignSources(local).includes(inlined))
+  const stored = mapDesignSources(local, (ref) => (ref === inlined ? 'asset:55555555-5555-4555-8555-555555555555' : ref))
+  assert.equal(stored.timeline?.audio?.[0]?.src, 'asset:55555555-5555-4555-8555-555555555555')
+})
+
+test('a timeline from before motion still parses and adds no motion', () => {
+  const document = parseDesignDocument({
+    image: { src: null },
+    timeline: { duration: 3000, tracks: [] },
+    version: 2,
+  })
+  assert.equal(document.timeline?.layerTracks, undefined)
+  assert.equal(document.timeline?.audio, undefined)
 })
 
 const screenShot = 'blob:http://localhost/screen-2'

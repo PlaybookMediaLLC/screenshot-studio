@@ -9,6 +9,9 @@ import type { DesignCopy } from '@/lib/captions/channels'
 import { createElementsSlice, type ElementsSlice } from './elements-slice'
 import { createFramesSlice, type FramesSlice } from './frames-slice'
 import { isChromeFrameType } from '@/lib/frames/main-frame'
+import { createMotionSlice, type MotionSlice } from './motion-slice'
+import { emptyMotion } from '@/lib/animation/motion-schema'
+import { motionEnd } from '@/lib/animation/motion-evaluate'
 import { shallow } from 'zustand/shallow'
 import { temporal } from 'zundo'
 import { GradientKey } from '@/lib/constants/gradient-colors'
@@ -258,7 +261,7 @@ export function endHistoryGesture() {
 }
 
 // Re-export existing ImageState interface and store
-export interface ImageState extends ElementsSlice, FramesSlice {
+export interface ImageState extends ElementsSlice, FramesSlice, MotionSlice {
   uploadedImageUrl: string | null
   imageName: string | null
   selectedGradient: GradientKey
@@ -470,6 +473,7 @@ export const useImageStore = create<ImageState>()(
     (set, get) => ({
       ...createElementsSlice(set, get),
       ...createFramesSlice(set),
+      ...createMotionSlice(set),
       slides: [],
       activeSlideId: null,
 
@@ -650,6 +654,7 @@ export const useImageStore = create<ImageState>()(
           activeAnnotationTool: null,
           blurRegions: [],
           elements: [],
+          motion: emptyMotion(),
           selectedElementId: null,
           brand: null,
           copy: null,
@@ -732,6 +737,7 @@ export const useImageStore = create<ImageState>()(
           activeAnnotationTool: null,
           blurRegions: [],
           elements: [],
+          motion: emptyMotion(),
           selectedElementId: null,
           brand: null,
           copy: null,
@@ -1436,6 +1442,7 @@ export const useImageStore = create<ImageState>()(
           activeAnnotationTool: null,
           blurRegions: [],
           elements: [],
+          motion: emptyMotion(),
           selectedElementId: null,
           brand: null,
           copy: null,
@@ -1773,10 +1780,14 @@ export const useImageStore = create<ImageState>()(
       },
 
       clearAnimationClips: () => {
-        set({
+        set((state) => ({
           animationClips: [],
-          timeline: { ...DEFAULT_TIMELINE_STATE },
-        })
+          // Keyframes, reveals, scrolls, and captions stay, so the timeline still holds them.
+          timeline: {
+            ...DEFAULT_TIMELINE_STATE,
+            duration: Math.max(DEFAULT_TIMELINE_STATE.duration, Math.ceil(motionEnd(state.motion))),
+          },
+        }))
       },
 
       // Annotations (custom SVG)

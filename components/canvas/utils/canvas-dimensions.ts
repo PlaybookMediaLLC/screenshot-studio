@@ -24,7 +24,7 @@ export interface CanvasDimensions {
 }
 
 export function calculateCanvasDimensions(
-  image: HTMLImageElement,
+  image: Pick<HTMLImageElement, 'naturalWidth' | 'naturalHeight'>,
   containerWidth: number,
   containerHeight: number,
   viewportSize: { width: number; height: number },

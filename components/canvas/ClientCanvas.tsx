@@ -15,6 +15,9 @@ import { ElementLayer } from "./elements/ElementLayer";
 import { imageFilterCss } from "@/lib/editor/image-adjustments";
 import { toCanvasShadow } from "./utils/shadow-utils";
 import { useImageMotion } from "@/lib/animation/use-image-motion";
+import { MAIN_IMAGE_TARGET, useLayerMotion, useScroll } from "@/lib/animation/use-motion";
+import { coverOverflow, imageWithMotion, scrollObjectPosition } from "@/lib/animation/motion-evaluate";
+import { CaptionLayer } from "./motion/motion-layers";
 import { useTextFontLoader } from "@/lib/typography/load-text-fonts";
 import { CanvasStageShell } from "./CanvasStageShell";
 import { Perspective3DOverlay } from "./overlays/Perspective3DOverlay";
@@ -55,7 +58,15 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   const shadow = useMemo(() => toCanvasShadow(imageShadow), [imageShadow]);
   useTextFontLoader();
   // Drawn values at the playhead; the document keeps its own.
-  const { perspective3D, imageOpacity } = useImageMotion();
+  const presetMotion = useImageMotion();
+  const imageLayerMotion = useLayerMotion(MAIN_IMAGE_TARGET);
+  // A scroll-through shows the screenshot through a viewport of its own shape.
+  const imageScroll = useScroll(MAIN_IMAGE_TARGET);
+  const scrollViewport = imageScroll?.scroll.viewport;
+  const layoutImage = useMemo(
+    () => (scrollViewport ? { naturalHeight: 1000, naturalWidth: Math.round(scrollViewport * 1000) } : image),
+    [image, scrollViewport]
+  );
 
   const {
     backgroundConfig,
@@ -236,7 +247,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
         // Don't deselect when interacting with editor panel controls
         // (sliders, inputs, buttons, etc.) so users can tweak selected items
         const el = target as HTMLElement;
-        if (el.closest?.('[data-slot="slider"], input, button, [role="button"], [data-radix-collection-item], .moveable-control-box, [data-resize-handle]')) return;
+        if (el.closest?.('[data-slot="slider"], input, button, [role="button"], [data-radix-collection-item], .moveable-control-box, [data-resize-handle], [data-keep-selection]')) return;
 
         setSelectedOverlayId(null);
         setIsMainImageSelected(false);
@@ -389,7 +400,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   ]);
 
   const dimensions = calculateCanvasDimensions(
-    image,
+    layoutImage,
     containerWidth,
     containerHeight,
     viewportSize,
@@ -422,12 +433,29 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   }, [canvasW, canvasH, framedW, framedH, setCanvasDimensions]);
 
   const showFrame = frame.enabled && frame.type !== "none";
+  const { perspective3D, imageOpacity } = imageWithMotion(presetMotion, imageLayerMotion, {
+    canvasH,
+    canvasW,
+    framedH,
+    framedW,
+  });
+  const imageObjectPosition = imageScroll
+    ? scrollObjectPosition(
+        imageScroll.progress,
+        imageScroll.scroll.direction,
+        coverOverflow(
+          { height: image.naturalHeight, width: image.naturalWidth },
+          { height: imageScaledH, width: imageScaledW }
+        )[imageScroll.scroll.direction === "vertical" ? "y" : "x"]
+      )
+    : undefined;
 
   const geometry: CanvasGeometry = {
     canvasH,
     canvasW,
     imageFilter: imageFilterCss(imageFilters),
     imageNaturalSize: { height: image.naturalHeight, width: image.naturalWidth },
+    imageObjectPosition,
     imageRect: hasSourceImage
       ? mainImageRect(dimensions, screenshot, showFrame ? frame.type : "none")
       : null,
@@ -541,6 +569,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           image={image}
           imageOpacity={imageOpacity}
           imageFilters={imageFilters}
+          imageObjectPosition={imageObjectPosition}
         /> : null}
 
         {hasSourceImage && has3DTransform && (
@@ -595,6 +624,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
               showFrame={showFrame}
               imageOpacity={imageOpacity}
               imageFilters={imageFilters}
+              imageObjectPosition={imageObjectPosition}
               isMainImageSelected={isMainImageSelected}
               setIsMainImageSelected={setIsMainImageSelected}
               setSelectedOverlayId={setSelectedOverlayId}
@@ -634,6 +664,8 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
         <CanvasGeometryContext.Provider value={geometry}>
           <ElementLayer zIndex={205} />
         </CanvasGeometryContext.Provider>
+
+        <CaptionLayer canvasW={canvasW} canvasH={canvasH} />
 
         <HTMLBlurRegionLayer
           blurRegions={blurRegions}

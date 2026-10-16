@@ -1,5 +1,6 @@
 'use client'
 
+import { motionFromTimeline } from '@/lib/animation/motion-schema'
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { createDeviceScreen, createMockup } from '@/lib/device-mockups/layouts'
 import type { DeviceLayoutId } from '@/types/mockup'
@@ -197,8 +198,10 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
 
   if (changes.timeline) {
     const { clips, duration, isLooping, tracks } = changes.timeline
+    const motion = motionFromTimeline(changes.timeline)
     useImageStore.setState((state) => ({
       animationClips: clips.map((clip) => ({ ...clip })),
+      motion: { ...motion, audio: motion.audio.map((clip) => ({ ...clip, src: resolve(clip.src) })) },
       timeline: { ...state.timeline, duration, isLooping, tracks: structuredClone(tracks) },
     }))
     resetPlayback()

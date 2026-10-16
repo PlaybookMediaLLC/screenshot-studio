@@ -17,6 +17,8 @@ import {
   LayerBringToFrontIcon,
 } from 'hugeicons-react';
 import { useMoveableSnapping } from '../use-moveable-snapping';
+import { useLayerMotions } from '@/lib/animation/use-motion';
+import { MotionWrap } from '../motion/motion-layers';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -215,6 +217,7 @@ export function HTMLImageOverlayLayer({
   const [interacting, setInteracting] = useState(false);
   const moveableRef = useRef<Moveable | null>(null);
   const snapping = useMoveableSnapping(selectedEl, imageOverlays.length);
+  const motions = useLayerMotions('sticker');
 
   const handleSelect = useCallback(
     (id: string) => {
@@ -232,6 +235,7 @@ export function HTMLImageOverlayLayer({
   const isShadow = selectedOverlay?.src.includes('overlay-shadow');
 
   // Keep Moveable bounding box synchronized with external slider / store changes
+  const selectedMotion = selectedOverlay ? motions[selectedOverlay.id] : undefined;
   useEffect(() => {
     if (moveableRef.current) {
       moveableRef.current.updateRect();
@@ -244,6 +248,7 @@ export function HTMLImageOverlayLayer({
     selectedOverlay?.flipX,
     selectedOverlay?.flipY,
     selectedOverlay?.blur,
+    selectedMotion,
   ]);
 
   return (
@@ -262,13 +267,18 @@ export function HTMLImageOverlayLayer({
         if (!overlayImg) return null;
 
         return (
-          <OverlayElement
+          <MotionWrap
             key={overlay.id}
-            overlay={overlay}
-            overlayImg={overlayImg}
-            onSelect={() => handleSelect(overlay.id)}
-            elRef={overlay.id === selectedOverlayId ? setSelectedEl : undefined}
-          />
+            motion={motions[overlay.id]}
+            origin={`${overlay.position.x}px ${overlay.position.y}px`}
+          >
+            <OverlayElement
+              overlay={overlay}
+              overlayImg={overlayImg}
+              onSelect={() => handleSelect(overlay.id)}
+              elRef={overlay.id === selectedOverlayId ? setSelectedEl : undefined}
+            />
+          </MotionWrap>
         );
       })}
 

@@ -321,6 +321,17 @@ export function useAutosaveDraft() {
               };
             }))
           );
+          // Timeline audio is blob-backed like images; inline it so it survives a reload.
+          const processedMotion = {
+            ...persistedImage.motion,
+            audio: await Promise.all(
+              persistedImage.motion.audio.map(async (clip) => ({
+                ...clip,
+                src: await toPersistableSrc(clip.src),
+              }))
+            ),
+          };
+
           const processedMockups = await processMockups(persistedImage.mockups);
           const processedDeviceLayoutSnapshot = persistedImage.deviceLayoutSnapshot
             ? await processMockups(persistedImage.deviceLayoutSnapshot)
@@ -334,6 +345,7 @@ export function useAutosaveDraft() {
             backgroundConfig: processedBackgroundConfig,
             imageOverlays: processedImageOverlays,
             slides: processedSlides,
+            motion: processedMotion,
             mockups: processedMockups,
             deviceLayoutSnapshot: processedDeviceLayoutSnapshot,
             deviceScreenAssets,

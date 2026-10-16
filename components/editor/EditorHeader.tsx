@@ -58,6 +58,7 @@ import { AccountMenu } from '@/components/auth/AccountMenu'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { hasVisibleMockups, shouldRenderSourceImage } from '@/lib/device-mockups/layouts'
 import { removeScreenshot } from '@/lib/editor/remove-screenshot'
+import { hasMotionContent } from '@/lib/animation/motion-schema'
 
 /** A quiet square toolbar button with a tooltip; `active` marks a toggled tool. */
 function ToolButton({
@@ -175,8 +176,9 @@ export function EditorHeader() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleUndo, handleRedo])
 
+  const hasMotion = useImageStore((state) => hasMotionContent(state.motion))
   const showVideoExport =
-    slides.length > 0 || timeline.tracks.length > 0 || animationClips.length > 0
+    slides.length > 0 || timeline.tracks.length > 0 || animationClips.length > 0 || hasMotion
 
   const { copyImage, isCopying, copyProgress, renderExportBlob } = useExport(selectedAspectRatio)
   const [shareOpen, setShareOpen] = React.useState(false)

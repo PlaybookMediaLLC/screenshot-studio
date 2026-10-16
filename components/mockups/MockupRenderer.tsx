@@ -16,6 +16,9 @@ import type { Mockup } from "@/types/mockup";
 import { useImageMotion } from "@/lib/animation/use-image-motion";
 import { imageFilterCss } from "@/lib/editor/image-adjustments";
 import { useMoveableSnapping } from "@/components/canvas/use-moveable-snapping";
+import { MotionWrap } from "@/components/canvas/motion/motion-layers";
+import { scrollObjectPosition } from "@/lib/animation/motion-evaluate";
+import { useLayerMotions, useScroll } from "@/lib/animation/use-motion";
 
 interface MockupRendererProps {
   mockup: Mockup;
@@ -44,6 +47,9 @@ function MockupRenderer({ mockup, canvasWidth, canvasHeight, zIndex }: MockupRen
   const [isRotating, setIsRotating] = useState(false);
 
   const isSelected = selectedDeviceId === mockup.id;
+  // A scroll-through moves a cover-fitted screenshot inside the screen.
+  const scrollTarget = useMemo(() => ({ id: mockup.id, kind: "device" as const }), [mockup.id]);
+  const screenScroll = useScroll(scrollTarget);
   const snapping = useMoveableSnapping(isSelected ? targetElement : null, mockup.id);
   const isEditingScreen = editingScreenDeviceId === mockup.id;
   const width = mockup.size * canvasWidth;
@@ -243,12 +249,15 @@ function MockupRenderer({ mockup, canvasWidth, canvasHeight, zIndex }: MockupRen
         }}
       >
         <FramedScreen
-          mockup={mockup}
+          mockup={screenScroll ? { ...mockup, screen: { ...mockup.screen, fit: "cover" } } : mockup}
           width={width}
           height={height}
           handlers={{
             editing: isEditingScreen,
             screenFilter,
+            screenObjectPosition: screenScroll
+              ? scrollObjectPosition(screenScroll.progress, screenScroll.scroll.direction)
+              : undefined,
             onScreenClick: mockup.screen.src || mockup.screen.code ? undefined : openScreenPicker,
             onScreenDoubleClick: mockup.screen.code ? undefined : openScreenPicker,
             onScreenFile: mockup.screen.src || mockup.screen.code ? undefined : replaceScreen,
@@ -354,6 +363,7 @@ function MockupRenderer({ mockup, canvasWidth, canvasHeight, zIndex }: MockupRen
 
 export function MockupSceneRenderer({ canvasWidth, canvasHeight }: { canvasWidth: number; canvasHeight: number }): React.JSX.Element {
   const mockups = useImageStore((state) => state.mockups);
+  const motions = useLayerMotions("device");
   // Drawn values at the playhead, like the main image.
   const { perspective3D, imageOpacity } = useImageMotion();
 
@@ -379,13 +389,18 @@ export function MockupSceneRenderer({ canvasWidth, canvasHeight }: { canvasWidth
         }}
       >
         {mockups.map((mockup, index) => (
-          <MockupRenderer
+          <MotionWrap
             key={mockup.id}
-            mockup={mockup}
-            canvasWidth={canvasWidth}
-            canvasHeight={canvasHeight}
-            zIndex={index + 1}
-          />
+            motion={motions[mockup.id]}
+            origin={`${mockup.position.x * 100}% ${mockup.position.y * 100}%`}
+          >
+            <MockupRenderer
+              mockup={mockup}
+              canvasWidth={canvasWidth}
+              canvasHeight={canvasHeight}
+              zIndex={index + 1}
+            />
+          </MotionWrap>
         ))}
       </div>
     </div>

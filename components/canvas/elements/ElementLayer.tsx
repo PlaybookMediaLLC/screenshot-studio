@@ -1,7 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import Moveable from 'react-moveable'
+import { elementWithMotion } from '@/lib/animation/motion-evaluate'
+import { useLayerMotions } from '@/lib/animation/use-motion'
 import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts'
 import type { CanvasElement, ElementOf } from '@/lib/editor/elements/schema'
 import { useImageStore } from '@/lib/store'
@@ -137,22 +139,30 @@ export function ElementLayer({ zIndex }: { zIndex: number }) {
   const moveableRef = useRef<Moveable | null>(null)
   const selected = elements.find((element) => element.id === selectedId) ?? null
   const { canvasH, canvasW } = geometry
+  // Elements are drawn as they are at the playhead; edits apply to the design.
+  const motions = useLayerMotions('element')
+  const shownElements = useMemo(
+    () => elements.map((element) => (motions[element.id] ? elementWithMotion(element, motions[element.id]!) : element)),
+    [elements, motions]
+  )
+  const shownSelected = shownElements.find((element) => element.id === selectedId) ?? null
 
   useEffect(() => {
     moveableRef.current?.updateRect()
-  }, [selected, canvasW, canvasH])
+  }, [shownSelected, canvasW, canvasH])
 
   const commitBox = useCallback(
-    (node: HTMLElement | SVGElement, element: CanvasElement) => {
+    (node: HTMLElement | SVGElement, element: CanvasElement, shown: CanvasElement) => {
       const width = parseFloat(node.style.width)
       const height = parseFloat(node.style.height)
       const left = parseFloat(node.style.left)
       const top = parseFloat(node.style.top)
+      // The box was moved as drawn; the change applies to the design under its motion.
       updateElement(element.id, {
-        height: height / canvasH,
-        width: width / canvasW,
-        x: (left + width / 2) / canvasW,
-        y: (top + height / 2) / canvasH,
+        height: (element.height * height) / canvasH / shown.height,
+        width: (element.width * width) / canvasW / shown.width,
+        x: element.x + (left + width / 2) / canvasW - shown.x,
+        y: element.y + (top + height / 2) / canvasH - shown.y,
       })
     },
     [canvasH, canvasW, updateElement]
@@ -188,8 +198,8 @@ export function ElementLayer({ zIndex }: { zIndex: number }) {
       data-element-layer="true"
       style={{ inset: 0, overflow: 'visible', pointerEvents: 'none', position: 'absolute', zIndex }}
     >
-      <CalloutLinks elements={elements} />
-      {elements.map((element) => {
+      <CalloutLinks elements={shownElements} />
+      {shownElements.map((element) => {
         if (!element.visible) return null
         const box = boxOf(element, canvasW, canvasH)
         return (
@@ -219,8 +229,10 @@ export function ElementLayer({ zIndex }: { zIndex: number }) {
           </div>
         )
       })}
-      {selected?.type === 'callout' && selected.visible ? <CalloutSourceHandle callout={selected} /> : null}
-      {selected && target && selected.visible && !selected.locked ? (
+      {shownSelected?.type === 'callout' && shownSelected.visible ? (
+        <CalloutSourceHandle callout={shownSelected} />
+      ) : null}
+      {selected && shownSelected && target && selected.visible && !selected.locked ? (
         <Moveable
           draggable
           edge={false}
@@ -230,21 +242,21 @@ export function ElementLayer({ zIndex }: { zIndex: number }) {
             node.style.left = `${left}px`
             node.style.top = `${top}px`
           }}
-          onDragEnd={({ target: node }) => commitBox(node, selected)}
+          onDragEnd={({ target: node }) => commitBox(node, selected, shownSelected)}
           onResize={({ drag, height, target: node, width }) => {
             node.style.width = `${width}px`
             node.style.height = `${height}px`
             node.style.left = `${drag.left}px`
             node.style.top = `${drag.top}px`
           }}
-          onResizeEnd={({ target: node }) => commitBox(node, selected)}
+          onResizeEnd={({ target: node }) => commitBox(node, selected, shownSelected)}
           onRotate={({ target: node, transform }) => {
             node.style.transform = transform
           }}
           onRotateEnd={({ target: node }) => {
             const match = node.style.transform.match(/rotate\(([-\d.]+)deg\)/)
             if (!match) return
-            let degrees = parseFloat(match[1]) % 360
+            let degrees = (parseFloat(match[1]) - (shownSelected.rotation - selected.rotation)) % 360
             if (degrees > 180) degrees -= 360
             if (degrees < -180) degrees += 360
             updateElement(selected.id, { rotation: Math.round(degrees) })

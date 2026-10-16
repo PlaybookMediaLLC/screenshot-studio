@@ -25,6 +25,8 @@ interface DeviceShellProps {
   editing?: boolean;
   /** CSS filter for the screen image: the screenshot's adjustments. */
   screenFilter?: string;
+  /** Where a scroll-through has the screen image. */
+  screenObjectPosition?: string;
   onScreenClick?: () => void;
   onScreenDoubleClick?: () => void;
   onScreenFile?: (file: File) => void;
@@ -64,6 +66,7 @@ export function Screen({
   style,
   imageStyle,
   filter,
+  objectPosition,
   emptyStatePosition,
   emptyStateWidth,
   emptyStateTransform,
@@ -84,6 +87,7 @@ export function Screen({
   style?: CSSProperties;
   imageStyle?: CSSProperties;
   filter?: string;
+  objectPosition?: string;
   emptyStatePosition?: { x: number; y: number };
   emptyStateWidth?: number;
   emptyStateTransform?: string;
@@ -171,6 +175,7 @@ export function Screen({
             ...imageStyle,
             filter,
             objectFit: screen.fit,
+            objectPosition,
             transform: `translate(${screen.offset.x}%, ${screen.offset.y}%) scale(${screen.scale})`,
             transformOrigin: "center",
             pointerEvents: "none",
@@ -239,6 +244,7 @@ export function DeviceShell({
   content,
   editing = false,
   screenFilter,
+  screenObjectPosition,
   onScreenClick,
   onScreenDoubleClick,
   onScreenFile,
@@ -254,6 +260,7 @@ export function DeviceShell({
     children: content,
     editing,
     filter: screenFilter,
+    objectPosition: screenObjectPosition,
     onClick: onScreenClick,
     onDoubleClick: onScreenDoubleClick,
     onFile: onScreenFile,

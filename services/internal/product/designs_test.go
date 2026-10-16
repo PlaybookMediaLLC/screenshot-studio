@@ -49,3 +49,23 @@ func TestDesignAssetIDsReadsVersionTwoSections(t *testing.T) {
 		t.Fatalf("unknown version accepted: %v", err)
 	}
 }
+
+func TestDesignAssetIDsChecksTimelineAudio(t *testing.T) {
+	music := "5f2b8c1e-3a4d-4e6f-9a0b-1c2d3e4f5a6b"
+	document := map[string]any{
+		"version": float64(2),
+		"image":   map[string]any{"src": nil},
+		"timeline": map[string]any{
+			"duration": float64(4000),
+			"audio":    []any{map[string]any{"src": "asset:" + music, "start": float64(0)}},
+		},
+	}
+	ids, err := designAssetIDs(document)
+	if err != nil || len(ids) != 1 || ids[0] != music {
+		t.Fatalf("timeline audio assets=%v err=%v", ids, err)
+	}
+	document["timeline"].(map[string]any)["audio"] = []any{map[string]any{"src": "blob:http://localhost/music"}}
+	if _, err := designAssetIDs(document); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("local audio accepted: %v", err)
+	}
+}

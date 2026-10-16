@@ -51,6 +51,8 @@ interface HTMLMainImageLayerProps {
   showFrame: boolean;
   imageOpacity: number;
   imageFilters?: ImageFilters;
+  /** Where a scroll-through has the screenshot inside its frame. */
+  imageObjectPosition?: string;
   isMainImageSelected: boolean;
   setIsMainImageSelected: (selected: boolean) => void;
   setSelectedOverlayId: (id: string | null) => void;
@@ -117,6 +119,7 @@ export function HTMLMainImageLayer({
   showFrame,
   imageOpacity,
   imageFilters,
+  imageObjectPosition,
   isMainImageSelected,
   setIsMainImageSelected,
   setSelectedOverlayId,
@@ -440,6 +443,8 @@ export function HTMLMainImageLayer({
         width: '100%',
         height: '100%',
         objectFit: 'cover',
+        // A scroll-through moves the screenshot inside its frame.
+        objectPosition: imageObjectPosition,
         opacity: imageOpacity,
         filter: imageFilter,
         display: 'block',

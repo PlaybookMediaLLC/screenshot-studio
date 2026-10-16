@@ -20,6 +20,22 @@ import {
 } from "./export/ffmpeg-encoder";
 import { useImageStore } from "@/lib/store";
 import { usePlaybackStore } from "@/lib/store/playback";
+import { renderAudioMix } from "@/lib/animation/audio-mix";
+import { isAudioEncodingSupported } from "./export/audio-track";
+
+/**
+ * The timeline's audio mixed for a video `durationMs` long, or null without
+ * audio. A file that cannot be decoded fails the export rather than leaving
+ * the video silent.
+ */
+async function mixExportAudio(durationMs: number): Promise<AudioBuffer | null> {
+  return renderAudioMix(useImageStore.getState().motion.audio, durationMs);
+}
+
+/** True when WebCodecs can encode this audio for the container; FFmpeg takes it otherwise. */
+async function canEncodeAudio(container: "mp4" | "webm", audio: AudioBuffer | null): Promise<boolean> {
+  return !audio || (await isAudioEncodingSupported(container, audio));
+}
 
 /**
  * True when an error was raised because the user cancelled the export.
@@ -184,17 +200,24 @@ export async function exportSlideshowVideo(options: VideoExportOptions = {}) {
 
   try {
     let result;
+    const { slides, slideshow } = useImageStore.getState();
+    const slideshowMs =
+      (slides.length > 0
+        ? slides.reduce((total, slide) => total + (slide.duration || slideshow.defaultDuration || 2), 0)
+        : slideshow.defaultDuration || 2) * 1000;
+    // GIF has no audio track; video formats carry the timeline's audio.
+    const audio = format === "gif" ? null : await mixExportAudio(slideshowMs);
 
     if (format === "webm") {
-      result = isWebCodecsSupported() && await isVpxSupported()
-        ? await exportSlideshowWithWebCodecs("webm", quality, progress, signal, settings)
-        : await exportSlideshowWithFFmpeg("webm", quality, progress, signal, settings);
+      result = isWebCodecsSupported() && await isVpxSupported() && await canEncodeAudio("webm", audio)
+        ? await exportSlideshowWithWebCodecs("webm", quality, progress, signal, settings, audio)
+        : await exportSlideshowWithFFmpeg("webm", quality, progress, signal, settings, audio);
     } else if (format === "gif") {
       result = await exportSlideshowWithFFmpeg("gif", quality, progress, signal, settings);
-    } else if (isWebCodecsSupported() && await isH264Supported()) {
-      result = await exportSlideshowWithWebCodecs("mp4", quality, progress, signal, settings);
+    } else if (isWebCodecsSupported() && await isH264Supported() && await canEncodeAudio("mp4", audio)) {
+      result = await exportSlideshowWithWebCodecs("mp4", quality, progress, signal, settings, audio);
     } else {
-      result = await exportSlideshowWithFFmpeg("mp4", quality, progress, signal, settings);
+      result = await exportSlideshowWithFFmpeg("mp4", quality, progress, signal, settings, audio);
     }
 
     restoreStoreState(savedState);
@@ -214,7 +237,8 @@ async function exportSlideshowWithWebCodecs(
   quality: VideoQuality,
   progress: ReturnType<typeof useExportProgress.getState>,
   signal: AbortSignal | undefined,
-  settings: EncodeSettings
+  settings: EncodeSettings,
+  audio: AudioBuffer | null = null
 ) {
   const state: { encoder: WebCodecsVideoEncoder | null; frameIndex: number } = {
     encoder: null,
@@ -232,6 +256,7 @@ async function exportSlideshowWithWebCodecs(
             fps: settings.fps,
             bitrate: QUALITY_BITRATES[quality],
             container: format,
+            audio,
           });
           await state.encoder.initialize();
         }
@@ -269,7 +294,8 @@ async function exportSlideshowWithFFmpeg(
   quality: VideoQuality,
   progress: ReturnType<typeof useExportProgress.getState>,
   signal: AbortSignal | undefined,
-  settings: EncodeSettings
+  settings: EncodeSettings,
+  audio: AudioBuffer | null = null
 ) {
   const { slides, slideshow, uploadedImageUrl } = useImageStore.getState();
 
@@ -306,6 +332,7 @@ async function exportSlideshowWithFFmpeg(
           fps: settings.fps,
           format,
           quality,
+          audio,
           onProgress: (p) => progress.set(40 + p * 0.6),
           onLog: () => {},
         });
@@ -373,32 +400,43 @@ export async function exportAnimationVideo(options: VideoExportOptions = {}) {
       }
     }
 
+    // The timeline's audio, mixed to the video's length. GIF has no audio track.
+    const audio = format === "gif" ? null : await mixExportAudio(useImageStore.getState().timeline.duration);
+
     // Route to appropriate encoder
     let result;
     switch (selectedEncoder) {
       case "ffmpeg":
-        result = await exportAnimationWithFFmpeg(format as FFmpegFormat, quality, progress, signal, settings);
+        result = await exportAnimationWithFFmpeg(format as FFmpegFormat, quality, progress, signal, settings, audio);
         break;
 
       case "webcodecs": {
         const webCodecsFormat = format === "webm" ? "webm" : "mp4";
         const codecSupported = webCodecsFormat === "webm" ? await isVpxSupported() : await isH264Supported();
-        if (isWebCodecsSupported() && codecSupported) {
-          result = await exportAnimationWithWebCodecs(webCodecsFormat, quality, progress, signal, settings);
+        const audioSupported = await canEncodeAudio(webCodecsFormat, audio);
+        if (isWebCodecsSupported() && codecSupported && audioSupported) {
+          result = await exportAnimationWithWebCodecs(webCodecsFormat, quality, progress, signal, settings, audio);
           break;
         }
-        // Fall through to FFmpeg if WebCodecs unavailable
-        console.warn("WebCodecs not available, falling back to FFmpeg");
-        result = await exportAnimationWithFFmpeg(format as FFmpegFormat, quality, progress, signal, settings);
+        // Fall through to FFmpeg when WebCodecs cannot encode the video or its audio.
+        console.warn(
+          audioSupported
+            ? "WebCodecs not available, falling back to FFmpeg"
+            : "This browser has no WebCodecs audio encoder for the container; encoding with FFmpeg"
+        );
+        result = await exportAnimationWithFFmpeg(format as FFmpegFormat, quality, progress, signal, settings, audio);
         break;
       }
 
       case "mediarecorder":
+        if (audio) {
+          throw new Error("The MediaRecorder encoder cannot include the timeline's audio. Export with the default encoder.");
+        }
         result = await exportAnimationWithMediaRecorder(format as VideoFormat, quality, progress, signal, settings);
         break;
 
       default:
-        result = await exportAnimationWithFFmpeg(format as FFmpegFormat, quality, progress, signal, settings);
+        result = await exportAnimationWithFFmpeg(format as FFmpegFormat, quality, progress, signal, settings, audio);
         break;
     }
 
@@ -419,7 +457,8 @@ async function exportAnimationWithFFmpeg(
   quality: VideoQuality,
   progress: ReturnType<typeof useExportProgress.getState>,
   signal: AbortSignal | undefined,
-  settings: EncodeSettings
+  settings: EncodeSettings,
+  audio: AudioBuffer | null = null
 ) {
   const state: { encoder: FFmpegVideoEncoder | null } = { encoder: null };
 
@@ -439,6 +478,7 @@ async function exportAnimationWithFFmpeg(
             fps: settings.fps,
             format,
             quality,
+            audio,
             onProgress: (p) => progress.set(40 + p * 0.6),
             onLog: () => {},
           });
@@ -478,7 +518,8 @@ async function exportAnimationWithWebCodecs(
   quality: VideoQuality,
   progress: ReturnType<typeof useExportProgress.getState>,
   signal: AbortSignal | undefined,
-  settings: EncodeSettings
+  settings: EncodeSettings,
+  audio: AudioBuffer | null = null
 ) {
   const state: { encoder: WebCodecsVideoEncoder | null; frameCount: number } = {
     encoder: null,
@@ -497,6 +538,7 @@ async function exportAnimationWithWebCodecs(
             fps: settings.fps,
             bitrate: QUALITY_BITRATES[quality],
             container: format,
+            audio,
           });
           await state.encoder.initialize();
         }

@@ -401,7 +401,7 @@ test('sitemaps, history, duplicates, and CI scripts', async () => {
 
   const { githubActionsSnippet, nodeSnippet } = await import('@/lib/link-preview/automation')
   const options = {
-    apiOrigin: 'https://shot.playbookmedia.io',
+    apiOrigin: 'https://shots.playbookmedia.io',
     failOnErrors: true,
     minScore: 80,
     urls: ["https://a.example/it's"],

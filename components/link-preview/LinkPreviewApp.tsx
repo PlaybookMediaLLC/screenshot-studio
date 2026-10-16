@@ -23,6 +23,7 @@ import {
 } from '@/lib/api/contracts/link-preview'
 import { auditLinkPreview, issueSeveritySchema } from '@/lib/link-preview/audit'
 import { CRAWLERS } from '@/lib/link-preview/crawlers'
+import { CANONICAL_HOST } from '@/lib/canonical-host'
 import { scoreLinkPreview } from '@/lib/link-preview/metadata'
 import {
   type LinkPreviewSnapshot,
@@ -65,7 +66,7 @@ import {
 } from './PlatformPreviews'
 import { PostComposer, SharePanel } from './SharePanel'
 
-const EXAMPLES = ['shot.playbookmedia.io', 'linear.app', 'vercel.com']
+const EXAMPLES = [CANONICAL_HOST, 'linear.app', 'vercel.com']
 const RECENT_KEY = 'link-preview:recent'
 const MAX_RECENT = 10
 

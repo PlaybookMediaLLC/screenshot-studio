@@ -113,7 +113,8 @@ function AiCopy({
         <div>
           <h3 className="text-sm font-medium text-foreground">Write it with AI</h3>
           <p className="text-xs text-muted-foreground">
-            Three title and description options from what the page says. Uses one AI generation.
+            Three title and description options from what the page says. Uses your workspace&apos;s AI
+            credits.
           </p>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={write} disabled={loading}>

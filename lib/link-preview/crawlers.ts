@@ -3,6 +3,7 @@ import {
   linkPreviewAgentSchema,
   type LinkPreviewCrawler,
 } from '@/lib/api/contracts/link-preview'
+import { CANONICAL_HOST } from '@/lib/canonical-host'
 
 /** What a platform's crawler is called: its display name, robots.txt token, and user agent. */
 export const CRAWLERS: Record<
@@ -41,8 +42,7 @@ export const CRAWLERS: Record<
 }
 
 /** The user agent the default fetch sends: a browser-like preview bot. */
-export const DEFAULT_USER_AGENT =
-  'Mozilla/5.0 (compatible; ScreenshotStudioLinkPreview/1.0; +https://shot.playbookmedia.io/link-preview)'
+export const DEFAULT_USER_AGENT = `Mozilla/5.0 (compatible; ScreenshotStudioLinkPreview/1.0; +https://${CANONICAL_HOST}/link-preview)`
 
 /** The user agent to send when fetching as `agent`. */
 export function userAgentFor(agent: LinkPreviewAgent): string {

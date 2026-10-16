@@ -6,7 +6,7 @@
 
 /** What the generated checks test, and against which API. */
 export type AutomationOptions = {
-  /** Origin of this app, such as https://shot.playbookmedia.io. */
+  /** Origin of this app, such as https://shots.playbookmedia.io. */
   apiOrigin: string
   urls: string[]
   minScore: number

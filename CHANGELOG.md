@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.2.0...v2.3.0) (2026-10-16)
+
+
+### Features
+
+* schedule launch posts, enforce the brand, and add Phase 1 backends ([#129](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/129)) ([a0838db](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/a0838db3fc6842229b1db56e848c62a9ce9b0687))
+
 ## [2.2.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.1.0...v2.2.0) (2026-10-16)
 
 

@@ -21,7 +21,8 @@ export function ChromeFrame({
   tone,
   width,
 }: {
-  children: ReactNode
+  /** The content: a screenshot, code, or nothing. */
+  children?: ReactNode
   /** Behind the content, and the window color of a minimal terminal. */
   contentBackground?: string
   frame: { chrome: FrameChrome; kind: 'browser' | 'window' }

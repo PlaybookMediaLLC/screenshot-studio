@@ -299,13 +299,16 @@ test('one chrome renderer draws every browser and window, light and dark', () =>
   for (const tone of ['light', 'dark'] as const) {
     for (const { chrome, kind } of chromes) {
       const html = renderToStaticMarkup(
-        createElement(ChromeFrame, {
-          children: createElement('img', { alt: 'content' }),
-          frame: { chrome: { ...chrome, address: 'acme.dev/pricing', title: 'Build' }, kind },
-          height: 500,
-          tone,
-          width: 800,
-        })
+        createElement(
+          ChromeFrame,
+          {
+            frame: { chrome: { ...chrome, address: 'acme.dev/pricing', title: 'Build' }, kind },
+            height: 500,
+            tone,
+            width: 800,
+          },
+          createElement('img', { alt: 'content' })
+        )
       )
       assert.match(html, /data-frame-screen="true"/)
       assert.match(html, /alt="content"/)

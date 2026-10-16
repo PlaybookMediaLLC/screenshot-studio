@@ -79,3 +79,14 @@ export const LAUNCH_AI_RATE_LIMIT: RateLimitPolicy = {
   name: 'launch-ai',
   windowMs: 60_000,
 }
+
+/**
+ * Link previews fetch an arbitrary public page plus its robots.txt, sitemap,
+ * favicon, and images, so each workspace gets a budget that covers a batch
+ * check or a CI run but not a crawler.
+ */
+export const LINK_PREVIEW_RATE_LIMIT: RateLimitPolicy = {
+  maxRequests: 60,
+  name: 'link-preview',
+  windowMs: 60_000,
+}

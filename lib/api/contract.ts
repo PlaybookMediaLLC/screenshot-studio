@@ -46,6 +46,7 @@ export const documentedStatusSchema = z.enum([
   '403',
   '404',
   '409',
+  '422',
   '429',
   '503',
 ])

@@ -98,7 +98,7 @@ export function VersionHistoryDialog({
       .then((list) => {
         if (!active) return
         setVersions({ error: null, value: list })
-        setSelectedId((id) => id ?? list[0]?.id ?? null)
+        setSelectedId(list[0]?.id ?? null)
       })
       .catch((error: unknown) => active && setVersions({ error: errorMessage(error), value: null }))
     return () => {

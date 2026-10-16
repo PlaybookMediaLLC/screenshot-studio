@@ -69,6 +69,10 @@ func TestProjects(t *testing.T) {
 	if err != nil || created.Revision != 1 || created.Name != "Launch hero" || created.DocumentVersion != 2 {
 		t.Fatalf("created=%+v err=%v", created, err)
 	}
+	if versions, err := repo.ListProjectVersions(ctx, actor, created.ID); err != nil || len(versions) != 1 ||
+		versions[0].Revision != 1 || versions[0].Name == nil || *versions[0].Name != "Project created" {
+		t.Fatalf("starting point not kept: versions=%+v err=%v", versions, err)
+	}
 	if _, err := repo.CreateProject(ctx, actor, "Local image", map[string]any{
 		"version": float64(2), "image": map[string]any{"src": "blob:http://localhost/x"},
 	}); !errors.Is(err, ErrInvalidInput) {

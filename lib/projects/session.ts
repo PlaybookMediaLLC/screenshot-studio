@@ -341,14 +341,19 @@ async function saved(): Promise<{ projectId: string; revision: number; trpcClien
   return { projectId, revision, trpcClient: client }
 }
 
-/** Stop autosave and unlink the editor from the project; the canvas stays as it is. */
-export function closeProject(): void {
+/** Stop autosave, leaving the address bar and the recovery record as they are. */
+function stopSession(): void {
   unsubscribe?.()
   unsubscribe = null
   clearTimeout(saveTimer)
   savedKey = null
   edits = 0
   useProjectSession.setState(CLOSED)
+}
+
+/** Stop autosave and unlink the editor from the project; the canvas stays as it is. */
+export function closeProject(): void {
+  stopSession()
   writeOwner(null)
   setProjectParam(null)
 }
@@ -367,7 +372,7 @@ export async function openProject(
   // owner record is read, or this device's own write would look like a conflict.
   await running
   const owner = readOwner()
-  closeProject()
+  stopSession()
   client = trpcClient
   useProjectSession.setState({ ...CLOSED, projectId, status: 'loading' })
   try {
@@ -393,11 +398,11 @@ export async function openProject(
     adopt(trpcClient, project, key)
     return 'opened'
   } catch (error) {
-    closeProject()
-    // Unless the project is gone, keep what a later reload needs to retry and recover.
-    if (!(error instanceof TRPCClientError && error.data?.code === 'NOT_FOUND')) {
-      writeOwner(owner)
-      setProjectParam(projectId)
+    stopSession()
+    // A reload retries and recovers, unless the project is gone.
+    if (error instanceof TRPCClientError && error.data?.code === 'NOT_FOUND') {
+      if (owner?.projectId === projectId) writeOwner(null)
+      setProjectParam(null)
     }
     throw error
   }

@@ -166,6 +166,11 @@ func (c *Configuration) CreateProject(ctx context.Context, actor Actor, name str
 	if err != nil {
 		return nil, err
 	}
+	// The starting point is in the history, and it holds off the first checkpoint.
+	created := "Project created"
+	if _, err := recordProjectVersion(ctx, tx, actor, row, projectversion.KindAutosave, &created); err != nil {
+		return nil, err
+	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.project_created", "project", row.ID); err != nil {
 		return nil, err
 	}

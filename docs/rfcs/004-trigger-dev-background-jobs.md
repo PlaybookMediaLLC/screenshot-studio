@@ -1,6 +1,8 @@
 # RFC 004: Trigger.dev Background Jobs at Scale
 
-**Status:** Proposed
+**Status:** Superseded by Temporal
+**Status note (2026-10-16):** Trigger.dev was never adopted. AI launch runs still run in Next.js `after()` (`lib/launch/runs.ts`), not in Temporal.
+**Superseded by:** Temporal workers in `services/internal/temporalpublishing` and `services/internal/temporalmaintenance`
 **Date:** 2026-08-13
 **Depends on:** RFC 001, RFC 002, and RFC 003
 **Owners:** Engineering and Operations

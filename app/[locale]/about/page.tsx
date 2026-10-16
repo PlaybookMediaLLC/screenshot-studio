@@ -212,17 +212,8 @@ export default function AboutPage() {
               Open source
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              Shots is fully open source. You can view, contribute
-              to, or fork the project on{" "}
-              <Link
-                href="https://github.com/PlaybookMediaLLC/screenshot-studio"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={linkClassName}
-              >
-                GitHub
-              </Link>
-              . We believe the best tools are built in the open.
+              Shots is open source under the Apache 2.0 license. We believe
+              the best tools are built in the open.
             </p>
           </section>
 
@@ -235,15 +226,14 @@ export default function AboutPage() {
             </h2>
             <p className="leading-relaxed text-muted-foreground">
               Built and maintained by Playbook Media, with contributions from the
-              open-source community on GitHub. You can reach the team at{" "}
+              open-source community. You can reach the team at{" "}
               <Link
                 href="mailto:team@playbookmedia.io"
                 className={linkClassName}
               >
                 team@playbookmedia.io
               </Link>
-              . If you find Shots useful, consider starring the repo
-              or sharing it with others.
+              . If you find Shots useful, consider sharing it with others.
             </p>
           </section>
         </div>

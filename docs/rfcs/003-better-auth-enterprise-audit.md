@@ -1,6 +1,7 @@
 # RFC 003: Better Auth, Enterprise Access, and Audit Logging
 
 **Status:** Partially implemented
+**Status note (2026-10-16):** Mostly shipped. Missing: the support-grant approval flow, required TOTP, and a database-enforced append-only audit log.
 **Date:** 2026-08-14
 **Depends on:** RFC 002
 **Owners:** Engineering and Security

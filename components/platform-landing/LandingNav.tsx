@@ -1,14 +1,10 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowDown01Icon, ArrowRight01Icon, Menu01Icon } from 'hugeicons-react'
-import { GitHubIcon } from '@/components/ui/github-star-button'
 import { navGroupSchema, pagesInGroup, type NavGroup } from '@/lib/marketing/platform-pages'
 import { cn } from '@/lib/utils'
 import { CtaLink } from './CtaLink'
 import { CONTAINER, MONO, MUTED } from './primitives'
-
-/** The fork's public repository. */
-export const GITHUB_URL = 'https://github.com/PlaybookMediaLLC/screenshot-studio'
 
 const GROUP = navGroupSchema.enum
 
@@ -107,15 +103,6 @@ export function LandingNav() {
             </li>
           </ul>
           <div className="ml-auto flex items-center gap-2 sm:gap-4">
-            <a
-              aria-label="Shots on GitHub"
-              className="hidden size-9 items-center justify-center rounded-full text-white/55 transition-colors hover:text-white sm:inline-flex"
-              href={GITHUB_URL}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              <GitHubIcon className="size-[18px]" />
-            </a>
             <Link
               className="hidden text-[15px] text-white transition-colors hover:text-white/70 sm:block"
               href="/sign-in"

@@ -390,12 +390,9 @@ export default function PrivacyPolicyPage() {
 
           <Section title="Open Source">
             <p className="leading-relaxed text-muted-foreground">
-              Shots is open source. Every claim on this page about how the editor
-              handles your images can be checked against the{' '}
-              <ExternalLink href="https://github.com/PlaybookMediaLLC/screenshot-studio">
-                source code on GitHub
-              </ExternalLink>
-              .
+              Shots is open source under the Apache 2.0 license, so every claim on
+              this page about how the editor handles your images can be checked
+              against its source code.
             </p>
           </Section>
 

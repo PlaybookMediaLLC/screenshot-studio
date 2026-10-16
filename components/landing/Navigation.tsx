@@ -26,7 +26,6 @@ import {
   SourceCodeIcon,
   Video01Icon,
 } from 'hugeicons-react'
-import { GitHubStarButton } from '@/components/ui/github-star-button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { cn } from '@/lib/utils'
@@ -42,7 +41,7 @@ const resourceGroups = [
       {
         label: 'Screenshot Editor',
         description: 'Frame, annotate, and export online',
-        href: '/free-screenshot-editor',
+        href: '/features/screenshot-beautifier',
         icon: Edit02Icon,
       },
       {
@@ -412,9 +411,6 @@ export function Navigation({ brandName = 'Shots' }: NavigationProps) {
         <div className="col-start-3 flex items-center gap-2 justify-self-end shrink-0">
           <div className="hidden md:block">
             <AccountMenu />
-          </div>
-          <div className="hidden md:block">
-            <GitHubStarButton />
           </div>
           <button
             type="button"

@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { NewTwitterIcon } from "hugeicons-react";
-import { GitHubStarButton } from "@/components/ui/github-star-button";
 import { MobileBanner } from "@/components/editor/MobileBanner";
 import { getStoreProfile } from "@/lib/store-screenshots/config";
 
@@ -37,9 +36,6 @@ function LoadingHeader({ variant }: { variant: StoreLoadingVariant }): React.JSX
         </>
       ) : (
         <div className="flex items-center gap-1 opacity-55">
-          <div className="hidden sm:block">
-            <GitHubStarButton compact />
-          </div>
           <span className="flex size-9 items-center justify-center text-muted-foreground" aria-hidden="true">
             <NewTwitterIcon className="size-[18px]" />
           </span>

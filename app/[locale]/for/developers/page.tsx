@@ -120,7 +120,7 @@ const reasons = [
   {
     title: "Open source",
     description:
-      "Fully open source on GitHub. Inspect the code, contribute, or self-host.",
+      "Open source under Apache 2.0. Inspect the code, contribute, or self-host.",
   },
   {
     title: "Privacy first",

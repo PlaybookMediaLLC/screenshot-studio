@@ -1,6 +1,7 @@
 # RFC 021: The Three Core Workflows
 
-**Status:** Proposed
+**Status:** Partially implemented
+**Status note (2026-10-16):** Parts of the three workflows exist through the launch pipeline and release intake. Scheduling approved posts is blocked on RFC 020.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 015 through RFC 020

@@ -118,7 +118,6 @@ export function AgentSummary() {
           <h2 className={headingClass}>Standalone editors</h2>
           <LinkList
             items={[
-              { href: '/free-screenshot-editor', label: 'Screenshot editor online' },
               { href: '/code', label: 'Code to image' },
               { href: '/tweet', label: 'Tweet to image' },
               { href: '/remove-background', label: 'Background remover' },

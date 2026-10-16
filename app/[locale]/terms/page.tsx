@@ -111,16 +111,7 @@ export default function TermsPage() {
               The images you create with Shots belong to you. We
               claim no ownership or rights over content you produce using the
               tool. The Shots software itself is open source and
-              licensed under the terms specified in our{" "}
-              <Link
-                href="https://github.com/PlaybookMediaLLC/screenshot-studio"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={linkClassName}
-              >
-                GitHub repository
-              </Link>
-              .
+              licensed under the Apache 2.0 license.
             </p>
           </section>
 

@@ -1,29 +1,61 @@
 # RFC 035: Pricing and Unit Economics
 
-**Status:** Accepted; implemented (see Implementation)  
+**Status:** Implemented; revised for no free plan (see Implementation)  
+**Status note (2026-10-16):** The Free plan was removed. Every workspace needs a paid plan to use the product.  
 **Date:** 2026-10-15  
+**Revised:** 2026-10-16  
 **Owners:** Product and Engineering  
 **Depends on:** RFC 015, RFC 021, RFC 034, `lib/billing/plans.ts`, `services/internal/product/quota.go`
 
 ## Decision
 
-Sell four plans, priced on the value of a launch and protected by a cost-based
-meter, at a 75% gross margin when a workspace uses half its allowance.
+Sell three paid plans, priced on the value of a launch and protected by a
+cost-based meter, at a 75% gross margin when a workspace uses half its
+allowance. There is no free plan.
 
 | Plan       | Monthly     | Billed annually | Included each month                                                                    |
 | ---------- | ----------- | --------------- | -------------------------------------------------------------------------------------- |
-| Free       | $0          | $0              | Editor and tools, release intake, approvals, 500 AI credits                            |
 | Pro        | $199        | $169/mo         | 3,600 AI credits (about 8 launches), 120 posts, 5,000 emails                           |
 | Business   | $699        | $594/mo         | 13,200 AI credits (about 30 launches), 480 posts, 25,000 emails                        |
 | Enterprise | from $3,000 | annual only     | 54,000 AI credits (about 125 launches), 2,400 posts, 100,000 emails, SSO, SCIM, drains |
 
-An extra launch is $29 for 500 AI credits, on any plan. Pack credits are
-spent after the monthly allowance and do not expire. A one-time free trial
-launch for Free workspaces is proposed but not built.
+Every plan includes the editor, every image tool, release intake, and
+approvals. An extra launch is $29 for 500 AI credits. Pack credits are spent
+after the monthly allowance and do not expire. No trial is configured.
 
 **One AI credit is $0.01 of model spend at list price.** Every AI action
 consumes credits in proportion to what it costs. With prompt caching and the
 visuals agent on Sonnet, a launch is about 430 credits.
+
+### No free plan
+
+Every customer pays. The editor and the tools are part of the paid product,
+not a separate free tier, so there is one way in: choose a plan.
+
+- A free tier serves people who never buy, and its cost (model spend,
+  captures, storage, support) is paid by the customers who do.
+- The editor and tools are worth paying for on their own. Giving them away
+  sets their price at zero.
+- One rule is easier to enforce than two. The product needs one gate, not a
+  separate allowance table and abuse controls for unpaid use.
+
+`free` remains an internal plan value: it is the state of a workspace without
+a subscription. It has no features and every allowance is zero. A new
+workspace starts in that state, and a workspace returns to it when its
+subscription ends.
+
+### Allowances
+
+| Allowance               | Pro   | Business | Enterprise |
+| ----------------------- | ----- | -------- | ---------- |
+| AI credits per month    | 3,600 | 13,200   | 54,000     |
+| Scheduled posts / month | 120   | 480      | 2,400      |
+| Emails per month        | 5,000 | 25,000   | 100,000    |
+| API writes per minute   | 300   | 1,500    | 10,000     |
+| Concurrent jobs         | 5     | 25       | 250        |
+| Storage                 | 25 GB | 250 GB   | 5 TB       |
+
+A workspace without a subscription gets zero of each.
 
 ## What the customer is buying
 
@@ -130,8 +162,10 @@ payment processing is about 1.2%.
 - Monthly plans clear 75% at half use and stay above 60% at full use.
 - Annual plans (15% off) land at 72–73% at half use and about 80% at 30% use,
   which is where annual customers usually sit.
-- Free costs at most $3.96 a month per active workspace. The one-time trial
-  launch costs $6.92 once, as acquisition spend.
+- There is no unpaid usage to subsidize. A workspace without a subscription
+  cannot run AI actions, schedule posts, or send email, so blended margin is
+  the paid-plan margin above. Its only cost is the data it keeps: at most
+  $0.38 a month for a lapsed Pro workspace at its full 25 GB in R2.
 - An extra launch at $29 costs at most $6.14: 500 credits of model spend plus
   card fees (2.9% + $0.30). That is a 79% margin. Its posts and emails come
   from the plan's own allowances.
@@ -169,23 +203,58 @@ longer depends on the action mix. A Pro workspace cannot spend more than its
    sending a release announcement charges `emails:monthly` per recipient,
    both before the work and refunded if it does not commit.
 6. **Checkout.** `POST /api/billing/checkout` opens Stripe Checkout for a
-   free workspace, or the billing portal for one that already subscribes.
+   workspace without a subscription, or the billing portal for one that
+   already subscribes (`lib/billing/stripe.ts`).
    `POST /api/webhooks/stripe` verifies the Stripe signature, reads the
    subscription fresh from Stripe, and applies it through the same versioned
    entitlement sync as the signed billing webhook, retrying a stale version
    with the one the backend reports. When a workspace has more than one
    subscription, the live one decides, then the larger plan, then the newest,
-   so an old subscription ending never downgrades a paying workspace. A
-   past-due workspace keeps its plan for 14 days; an ended subscription
-   returns the workspace to Free.
+   so an old subscription ending never downgrades a paying workspace.
+   Subscription states map in `lib/billing/stripe-events.ts`: `active` and
+   `trialing` keep the plan; `past_due` keeps it until a grace date 14 days
+   after the current period started (`PAST_DUE_GRACE_DAYS`); `canceled`,
+   `unpaid`, `paused`, and `incomplete_expired` return the workspace to
+   `free`. The portal cancels at period end.
 7. **Extra launches.** `POST /api/billing/credits` opens a one-time Checkout
    for a 500-credit pack. When the session is paid, the webhook grants the
    credits through the backend (`workspace_credit_grant`, once per Checkout
    session). AI credit usage draws on the monthly allowance first, then on
-   purchased packs, oldest first.
+   purchased packs, oldest first. Packs can be bought without a subscription
+   today; see Open items.
 8. **Sonnet for the long loops.** The production visuals agent and the
    editor copilot use the `drafting` role. Watch the visual critique pass
    rate and move visuals back to `deep` if it drops.
+9. **Cancellation locks the workspace.** A workspace on `free` keeps its
+   releases, assets, campaigns, and settings, but cannot use any of them
+   until it subscribes again. Nothing is deleted when a subscription ends.
+10. **The `workspace:use` gate.** Using the product at all requires the
+    `workspace:use` feature, which every paid plan includes and `free` does
+    not. It is enforced in these places:
+    - **Go backend.** `services/internal/product/entitlements.go` sets its
+      minimum plan to Pro; `services/internal/product/bootstrap.go` grants it
+      only to an active workspace on a paid plan, which is what the web reads;
+      `services/internal/product/quota.go` gives `free` zero of every
+      allowance and refuses metering for an inactive workspace; storage
+      limits in `services/internal/product/assets_media.go` give `free` 0
+      bytes. A workspace with no entitlement record reads as `free`.
+    - **Web proxy.** `lib/auth/sign-in-gate.ts` redirects the standalone
+      editor tools and every image tool: no session goes to sign-in, no
+      workspace to onboarding, no paid plan to `/pricing?subscribe=required`.
+    - **Page guards.** The editor at `/`, assets, activity, and campaigns
+      read `hasPaidPlan` from `lib/auth/page-access.ts` and redirect the
+      same way.
+    - **Editor utility APIs.** `/api/screenshot`, `/api/export`,
+      `/api/tweet/{id}`, and `/api/image-proxy` call `requirePaidAccess`
+      (`lib/api/require-account.ts`). They accept a session or a workspace
+      API key with `artifact:read`, and return `401 unauthorized` without
+      either and `403 workspace_feature_not_entitled` without a paid plan.
+    - **Tenant API.** `requireTenantAccess` (`lib/tenant/access.ts`) checks
+      `workspace:use` on every `/api/v1` operation, for sessions and API keys.
+    - **Go writes.** Creating releases (API, form, and webhook ingestion) and
+      source apps requires `release:create` and `source-app:create`, which
+      only paid plans grant (`requireWorkspaceFeature` in
+      `services/internal/product/entitlements.go`).
 
 Stripe setup. The products live in the Playbook Media organization's account
 (`acct_1OXB7hJ5a5YKQUvY`), in live mode:
@@ -218,6 +287,25 @@ Infisical holds to the web service, so they need no manual App Platform edit.
 Until both secrets are set, the Upgrade and Buy buttons send people to the
 contact page.
 
+## Open items
+
+1. **Paywall notice on `/pricing`.** The gates redirect to
+   `/pricing?subscribe=required`, but the page does not yet explain why the
+   visitor landed there.
+2. **Checkout success lands in the app.** Checkout returns to
+   `/pricing?checkout=success`. It should land in the app with a "finishing
+   setup" state that waits for the webhook to apply the plan.
+3. **Choose a plan during onboarding.** A new workspace starts on `free` and
+   only finds the paywall when it opens a product page.
+4. **In-app Billing settings.** Plan, usage against allowances, credit
+   balance, and the portal link belong in workspace settings.
+5. **Block credit packs without a subscription.** `POST /api/billing/credits`
+   sells a pack to any workspace, including one on `free` that cannot use it.
+6. **Trial decision.** Decide whether to offer a trial. None is configured
+   in Checkout today.
+7. **Seat, product, and channel limits** (see Packaging beyond credits) are
+   not enforced.
+
 ## Optional cost reductions
 
 - **Shrink the tool schemas.** `editDesign` alone is about 11,900 characters
@@ -230,11 +318,11 @@ contact page.
 
 Recommended limits that are not enforced in code today:
 
-| Limit           | Free | Pro | Business | Enterprise |
-| --------------- | ---- | --- | -------- | ---------- |
-| Seats           | 2    | 5   | 20       | unlimited  |
-| Products        | 1    | 1   | 5        | unlimited  |
-| Social channels | –    | 3   | 15       | unlimited  |
+| Limit           | Pro | Business | Enterprise |
+| --------------- | --- | -------- | ---------- |
+| Seats           | 5   | 20       | unlimited  |
+| Products        | 1   | 5        | unlimited  |
+| Social channels | 3   | 15       | unlimited  |
 
 Seats cost nothing to serve. They are a packaging line between a founder and a
 team, not a cost line.
@@ -245,6 +333,9 @@ team, not a cost line.
   post in April 2026. Keep X posts countable separately.
 - **Model prices** move. Credits are defined in list-price dollars, so a price
   change updates the credit cost of an action, not the plan.
+- **No free plan** removes the try-before-buy path. Watch pricing-page
+  conversion and sign-ups that never subscribe, and revisit the trial
+  decision (Open items) with that data.
 - **Utilization assumptions** are estimates. Measure credit use per workspace
   in the first quarter and revisit allowances.
 - **Fixed-cost sizes** are estimates from the deployment doc and should be

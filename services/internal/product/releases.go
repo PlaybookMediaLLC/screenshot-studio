@@ -213,6 +213,9 @@ func (c *Configuration) CreateRelease(ctx context.Context, actor Actor, input Cr
 		"owner", "admin", "creator"); err != nil {
 		return nil, err
 	}
+	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, "release:create"); err != nil {
+		return nil, err
+	}
 	input.Title = strings.TrimSpace(input.Title)
 	input.BenefitStatement = strings.TrimSpace(input.BenefitStatement)
 	if !validReleaseBrief(input.Title, input.BenefitStatement, input.Audience, input.Description, input.SourceURLs) ||

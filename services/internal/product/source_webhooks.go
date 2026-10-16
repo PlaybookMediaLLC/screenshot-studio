@@ -107,6 +107,9 @@ func (c *Configuration) IngestSourceRelease(ctx context.Context, actor Actor, in
 	if err := c.authorizeRoles(ctx, actor); err != nil {
 		return nil, err
 	}
+	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, "release:create"); err != nil {
+		return nil, err
+	}
 	input.Title = strings.TrimSpace(input.Title)
 	input.BenefitStatement = strings.TrimSpace(input.BenefitStatement)
 	if input.SourceURLs == nil {

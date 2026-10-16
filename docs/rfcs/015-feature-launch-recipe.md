@@ -1,6 +1,8 @@
 # RFC 015: Deterministic Feature Launch Recipe
 
-**Status:** Proposed
+**Status:** Superseded by the AI launch pipeline
+**Status note (2026-10-16):** The launch recipe was built as the AI launch pipeline. This document is kept for history.
+**Superseded by:** the AI launch pipeline in `lib/ai/launch/`
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 004, RFC 010 through RFC 014

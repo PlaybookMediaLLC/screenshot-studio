@@ -13,6 +13,8 @@ export async function requireTenantAccess(
     ? await requireOrganizationApiKeyScope(headers, requirement.apiKeyScope)
     : await requireActiveOrganizationPermission(headers, requirement.permission)
 
+  // There is no free plan: every tenant operation needs an active subscription.
+  await requireWorkspaceFeature(context, 'workspace:use')
   if (requirement.feature) {
     await requireWorkspaceFeature(context, requirement.feature)
   }

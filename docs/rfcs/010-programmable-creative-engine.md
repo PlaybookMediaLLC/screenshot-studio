@@ -1,6 +1,7 @@
 # RFC 010: Programmable Creative Engine
 
-**Status:** Proposed
+**Status:** Partially implemented
+**Status note (2026-10-16):** DesignDocument v1 and the Cloudflare Browser Rendering renderer shipped (`lib/design/`). The rest of this RFC is not built.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 002, RFC 004, RFC 006, and RFC 009

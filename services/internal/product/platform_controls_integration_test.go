@@ -59,6 +59,8 @@ func TestAuditControlsAndSourceWebhooks(t *testing.T) {
 	})
 
 	repo := NewConfiguration(db.Client)
+	subscribe(t, ctx, repo, org, "pro")
+	subscribe(t, ctx, repo, other, "pro")
 	owner := Actor{OrganizationID: org, UserID: userID, SessionID: sessionID, RequestID: "request_" + id}
 	foreign := Actor{OrganizationID: other, Kind: "service"}
 	request := AuditRequest{IPHash: "hash_" + id, UserAgentSummary: "test agent"}
@@ -221,6 +223,10 @@ func TestAuditControlsAndSourceWebhooks(t *testing.T) {
 		t.Fatalf("replay audits=%d", n)
 	}
 
+	// Back to no subscription, so the contract is exercised from its default.
+	exec(`DELETE FROM workspace_entitlement WHERE "organizationId"=$1`, org)
+	exec(`DELETE FROM billing_entitlement_event WHERE "organizationId"=$1`, org)
+	exec(`DELETE FROM audit_log WHERE "organizationId"=$1 AND action='billing.entitlement_changed'`, org)
 	if contract, err := repo.GetWorkspaceEntitlement(ctx, owner); err != nil || contract.Plan != "free" || contract.Version != 0 {
 		t.Fatalf("default contract=%+v err=%v", contract, err)
 	}

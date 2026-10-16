@@ -38,7 +38,7 @@ const CONTROLS = [
 ] as const
 
 const TOOLS = [
-  { href: '/free-screenshot-editor', label: 'Screenshot editor' },
+  { href: '/features/screenshot-beautifier', label: 'Screenshot editor' },
   { href: '/mockup-generator', label: 'Mockup generator' },
   { href: '/store-screenshots', label: 'App Store screenshots' },
   { href: '/code', label: 'Code to image' },
@@ -111,7 +111,7 @@ export function CreativeEnginePage() {
         eyebrow={{ href: '/product', label: 'Creative engine', parent: 'Product' }}
         lead="Every visual is built in the Shots editor,"
         location="creative_engine_hero"
-        secondary={{ href: '/free-screenshot-editor', label: 'Open the editor' }}
+        secondary={{ href: '/editor', label: 'Open the editor' }}
         trail="so you can open it and change anything."
       >
         <HeroStage variant={1}>

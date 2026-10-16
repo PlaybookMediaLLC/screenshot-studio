@@ -51,16 +51,18 @@ test('upstream merge preserves the canonical fork workflow and public identity',
     /KartikLabhshetwar\/screenshot-studio/
   )
 
+  const contributing = source('CONTRIBUTING.md')
+  assert.doesNotMatch(contributing, /opennookorg\/screenshot-studio/i)
+  assert.match(contributing, /PlaybookMediaLLC\/screenshot-studio/)
+
+  // User-facing surfaces link to no source repository, upstream's or the fork's.
   for (const path of [
-    'CONTRIBUTING.md',
     'components/landing/Footer.tsx',
-    'components/ui/github-star-button.tsx',
+    'components/platform-landing/LandingNav.tsx',
     'lib/agents/llms.ts',
     'lib/seo/json-ld.ts',
   ]) {
-    const contents = source(path)
-    assert.doesNotMatch(contents, /opennookorg\/screenshot-studio/i, path)
-    assert.match(contents, /PlaybookMediaLLC\/screenshot-studio/, path)
+    assert.doesNotMatch(source(path), /github\.com\/[\w-]+\/screenshot-studio/i, path)
   }
 
   for (const path of ['app/api/llms/route.ts', 'app/api/llms-full/route.ts']) {

@@ -1,6 +1,7 @@
 # RFC 009: Marketing Platform Thesis and Customer Loop
 
-**Status:** Proposed
+**Status:** Partially implemented
+**Status note (2026-10-16):** V1 (the editor plus AI creative generation) shipped. Part of V2 (URL to campaign) shipped through the launch pipeline.
 **Date:** 2026-08-17
 **Depends on:** RFC 001 through RFC 008
 **Owners:** Product and Engineering

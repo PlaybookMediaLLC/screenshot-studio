@@ -102,84 +102,128 @@ conversation.
 - Brand kits, creative templates, variant approval, and scheduled posts through Postiz
 - Typed tRPC API for browser and API-key callers, with REST intake routes for machines
 - Durable Go backend execution on Temporal with outbox recovery
+- Paid plans only (Pro, Business, Enterprise) through Stripe Checkout and the billing portal, with metered AI credits and extra-launch credit packs; a workspace without a subscription has no access
+- Launch intelligence: a release becomes a cited launch brief, a plan, visuals, and per-channel copy, each reviewed by a teammate (early access, behind the `campaign:workflow` rollout)
+- Interactive API reference at `/api-reference` (Scalar), generated from the OpenAPI 3.1 contract at `/openapi.json`
 
 ## Roadmap
 
-### RFC priority order
+The design lives in [docs/rfcs/](docs/rfcs/). The status below was checked against the
+code on 2026-10-16, not taken from the RFCs' own status lines. The critical path is the
+promise in [009](docs/rfcs/009-marketing-platform-thesis.md): a founder pastes a URL, gets seven good posts
+built from real product screenshots, approves them, and schedules them.
 
-The [RFC detail audit](docs/rfcs/000-detail-audit-2026-08-26.md) recorded which proposals needed stronger contracts or documentation backfill. Every RFC it flagged now carries implementation-grade detail: typed contracts, lifecycle, authorization, failure behavior, rollout, and testable acceptance criteria. The audit is retained as the checklist new RFCs are measured against. The full plan lives in [docs/rfcs/](docs/rfcs/). Implementation follows this order:
+### Where each RFC stands
 
-| Priority   | RFC                                                                                                | Scope                                                                                        | Status      |
-| ---------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------- |
-| Done       | 002–006                                                                                            | Tenant data model, auth, jobs, webhooks, asset pipeline                                      | Implemented |
-| Done       | 011, 013, 014, 019, 020                                                                            | Brand profile, product surfaces, campaign objects, approval workflow, scheduling abstraction | Implemented |
-| 1          | [034](docs/rfcs/034-rest-api-scalar-reference.md)                                                  | First-class REST API and interactive Scalar reference                                        | In progress |
-| 2          | [010](docs/rfcs/010-programmable-creative-engine.md)                                               | Programmable creative engine — the editor as domain services                                 | Next up     |
-| 3          | [012](docs/rfcs/012-product-intelligence.md) + [032](docs/rfcs/032-background-onboarding-agent.md) | Product intelligence and the background onboarding agent with ICP extraction                 | Planned     |
-| 4          | [015](docs/rfcs/015-feature-launch-recipe.md)                                                      | Deterministic feature-launch recipe                                                          | Planned     |
-| 5          | [016](docs/rfcs/016-ai-sdk-marketing-tools.md)                                                     | AI SDK and typed marketing tools                                                             | Planned     |
-| 6          | [017](docs/rfcs/017-conversational-campaign-creation.md)                                           | Conversational campaign creation                                                             | Planned     |
-| 7          | [018](docs/rfcs/018-campaign-workspace.md)                                                         | Campaign workspace UI                                                                        | Planned     |
-| 8          | [021](docs/rfcs/021-core-workflows.md)                                                             | The three core workflows and 7-post onboarding — the chargeable milestone                    | Planned     |
-| Defer (V3) | 022, 023, 024, 025, 008                                                                            | GitHub triggers, deployment capture, demo videos, content pillars, Cloudflare data plane     | Deferred    |
-| Defer (V4) | 026, 027, 028                                                                                      | External research, analytics, feedback-driven generation                                     | Deferred    |
-| Defer (V5) | 029, 030, 031                                                                                      | Weekly autonomy, approval policies, autopilot modes                                          | Deferred    |
-| Superseded | 001                                                                                                | Release-kit umbrella                                                                         | Superseded  |
-| Done       | [007](docs/rfcs/007-mvp-rpc-product-surface.md)                                                    | tRPC product surface over the tenant domain services                                         | Implemented |
-| Deferred   | [033](docs/rfcs/033-workspace-migration.md)                                                        | Monorepo workspace migration — deferred until a second deployable exists                     | Deferred    |
+| Status      | RFCs                                                                                                                                                                                                                                                                                                                                                                                            |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shipped     | 007 tRPC product surface; 034 phases 1–2 (zod contracts, OpenAPI 3.1, Scalar reference); 035 paid plans, Stripe billing, credit metering                                                                                                                                                                                                                                                        |
+| Partial     | 002 tenant data model; 003 auth, enterprise, audit; 005 inbound webhooks and GitHub App; 006 asset pipeline; 009 thesis (V1 and part of V2); 010 creative engine; 011 brand profile; 013 product surfaces; 014 campaign objects; 016 AI tools; 018 campaign workspace (behind a rollout flag); 019 approval; 020 publishing; 021 core workflows; 022 GitHub integration; 023 deployment capture |
+| Not started | 008, 012, 017, 024, 025, 026, 027, 028, 029, 030, 031, 032                                                                                                                                                                                                                                                                                                                                      |
+| Superseded  | 001 (by the AI launch pipeline); 004 (by Temporal); 015 (by the launch pipeline in `lib/ai/launch`); 033 (the SDK ships to npm instead)                                                                                                                                                                                                                                                         |
 
-Three gaps block the chargeable milestone. Two need RFCs written: billing with usage quotas,
-and authenticated page capture. The third is scoped inside
-[RFC 020](docs/rfcs/020-postiz-publishing.md): self-service publishing depends on Postiz OAuth,
-so channel connections currently require operator provisioning.
+There is no free plan. Every workspace needs an active subscription to use the editor, the
+tools, or the API ([035](docs/rfcs/035-pricing-and-unit-economics.md)).
 
-### The build sequence
+### Implementation plan
 
-The build order, in sequence:
+Each step builds only on the steps before it.
 
-1. **`MarketingAgent` with 8–10 typed tools** on the
-   [Vercel AI SDK](https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling).
-   A constrained environment with strong tools — no autonomous browsing, no direct data access.
-2. **One primary workflow: `URL → Launch Pack`.** The founder enters an app URL and one
-   sentence. The system analyzes the site, captures relevant screens, generates campaign
-   angles, builds assets from existing templates, writes channel-specific copy, and shows an
-   approval screen. Nothing publishes automatically.
-3. **The editor as the agent's rendering API.** The agent does not "make an image". It calls
-   `createCreative({template, captureId, headline, perspective, brandKitId})` and the editor
-   renders the asset deterministically.
-4. **Durable execution on Temporal.**
-   Campaign generation fans out into capture, copy, render, and scheduling jobs. The run
-   pauses for human approval before `publishPost`.
-5. **[Postiz OAuth](https://postiz.com/blog/direct-postiz-integration-oauth-api) as the social
-   infrastructure.** Users connect their accounts once. The platform never stores their API keys.
-6. **Three recipes before any autonomy:** `Launch a product`, `Announce a feature`, and
-   `Keep my product visible`.
-7. **Close the feedback loop.** Post performance flows back through Postiz. The agent gains
-   `getCampaignPerformance()`, `findWinningHooks()`, and `generateFollowupCampaign()`.
+**Phase 0: fix what is broken now that every customer pays**
 
-The first tool surface stays deliberately small:
+1. **Paywall experience** ([035](docs/rfcs/035-pricing-and-unit-economics.md))
+   - Show a notice on `/pricing` when someone is sent there to subscribe, and after checkout or a credit purchase.
+   - Land checkout success in the app, with a "finishing setup" state until Stripe confirms.
+   - Add a choose-a-plan step to onboarding.
+   - Add a Billing section to workspace settings.
+   - Block credit packs without a subscription.
+   - Decide whether to offer a trial.
+2. **Approve → schedule → publish end to end** ([020](docs/rfcs/020-postiz-publishing.md), [014](docs/rfcs/014-structured-marketing-objects.md))
+   - Link launch designs to the post's creative. Today nothing sets `creativeVariantId`, so approved campaign posts cannot be scheduled.
+   - Add a UI to connect channels.
+   - Add a UI to schedule approved posts.
+   - Write PUBLISHED and CANCELLED back to the campaign post.
+3. **Approved content can't change** ([014](docs/rfcs/014-structured-marketing-objects.md), [019](docs/rfcs/019-approval-workflow.md))
+   - Pin a content hash at approval and check it before scheduling.
+   - Stop revisions from rewriting approved or scheduled posts.
+4. **Security check:** prove API-key, service, and webhook actors can never approve a post, and add a test.
+5. **Durable launch runs** ([004](docs/rfcs/004-trigger-dev-background-jobs.md)): move AI launch runs from Next.js `after()` to Temporal.
+6. **Production data cutover** ([002](docs/rfcs/002-planetscale-tenant-data-model.md))
+   - Apply the Go single-database cutover in production.
+   - Run the tenant-isolation matrix against production.
+   - Enforce an append-only audit log in the database.
 
-```ts
-const marketingTools = {
-  getProductContext,
-  getBrandKit,
+**Phase 1: the critical path**
 
-  captureProductPage,
-  captureElement,
+7. **Brand profile enforcement** ([011](docs/rfcs/011-brand-profile.md))
+   - Strict brand-kit schema and logo upload.
+   - Prohibited terms checked on manual edits and before scheduling.
+8. **Product asset map** ([013](docs/rfcs/013-product-asset-map.md))
+   - Capture history per product page and lookup by feature.
+   - Deploy and release captures feed campaigns.
+9. **Product intelligence and the onboarding agent** ([012](docs/rfcs/012-product-intelligence.md), [032](docs/rfcs/032-background-onboarding-agent.md))
+   - A product profile with provenance.
+   - A URL step in onboarding with a fast first result.
+   - A background crawl.
+10. **Workflow 1, URL → seven posts** ([021](docs/rfcs/021-core-workflows.md))
+    - Posts stream in during onboarding.
+    - Batch approve, connect a channel, schedule.
+    - Funnel metrics.
+11. **Campaign workspace** ([018](docs/rfcs/018-campaign-workspace.md))
+    - Inline editing with autosave.
+    - Approve all.
+    - Keep or discard when regenerating.
+    - Decide whether campaigns stay limited to design partners.
+12. **Approval details** ([019](docs/rfcs/019-approval-workflow.md))
+    - Record who decided and when.
+    - Notifications.
+    - Per-channel length limits.
+    - An automated submit-for-review action.
 
-  createScreenshotCreative,
-  createCarousel,
-  createAnimatedDemo,
+**Phase 2: the AI agent layer**
 
-  generateSocialCopy,
+13. **Marketing tools runtime** ([016](docs/rfcs/016-ai-sdk-marketing-tools.md))
+    - Capability records per tool.
+    - A step trace and per-tool audit entries.
+    - Loop detection and a per-workspace kill switch.
+    - A red-team pass.
+14. **Conversational campaign creation** ([017](docs/rfcs/017-conversational-campaign-creation.md)).
 
-  createCampaign,
-  requestCampaignApproval,
+**Phase 3: product changes become campaigns**
 
-  listSocialChannels,
-  scheduleSocialPost,
-}
-```
+15. **GitHub suggestions** ([022](docs/rfcs/022-github-integration.md))
+    - Filters for chores and opted-out PRs.
+    - Accept or dismiss a suggested campaign.
+    - Digests.
+16. **Deployment captures** ([023](docs/rfcs/023-deployment-screenshot-automation.md))
+    - Readiness checks.
+    - Capture only the changed pages.
+    - Before/after comparison against baselines.
+
+**Phase 4: measure, then improve**
+
+17. **Analytics ingestion** ([027](docs/rfcs/027-analytics-ingestion.md)): post metrics through the existing Postiz analytics endpoint.
+18. **Feedback-driven generation** ([028](docs/rfcs/028-feedback-driven-generation.md)): report-only first, then bounded adjustments.
+
+**Phase 5: recurring work and autonomy**
+
+19. Content pillars and a weekly calendar ([025](docs/rfcs/025-content-pillars.md)).
+20. Recurring campaigns ([029](docs/rfcs/029-recurring-campaign-generation.md)).
+21. Approval policies ([030](docs/rfcs/030-approval-policies.md)).
+22. Autonomy modes ([031](docs/rfcs/031-autonomy-modes.md)): Manual and Copilot first, then Autopilot.
+
+**Phase 6: expansion**
+
+23. Demo videos ([024](docs/rfcs/024-demo-video-generation.md)).
+24. External research ([026](docs/rfcs/026-external-research-tools.md)).
+25. Outbound webhooks ([005](docs/rfcs/005-repository-webhook-scheduler-integrations.md)).
+26. REST API phase 3 ([034](docs/rfcs/034-rest-api-scalar-reference.md))
+    - Campaign, approval, and scheduled-post endpoints.
+    - A generated client.
+    - An OpenAPI diff check in CI.
+27. Creative engine render API and compose helpers ([010](docs/rfcs/010-programmable-creative-engine.md)).
+28. Enterprise remainder ([003](docs/rfcs/003-better-auth-enterprise-audit.md)): support-access approvals and required two-factor.
+29. Asset verification and quarantine ([006](docs/rfcs/006-release-inputs-and-artifact-pipeline.md)).
 
 ## Where this goes
 
@@ -294,7 +338,7 @@ variables that configure it, so you can trace a credential back to its console.
 
 | Provider                                                                                                           | Role                                               | Environment variables                                                                                                                  |
 | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| [DigitalOcean App Platform](https://www.digitalocean.com/products/app-platform)                                   | Application hosting                                | `DIGITALOCEAN_PRODUCTION_TOKEN` (CI only)                                                                                             |
+| [DigitalOcean App Platform](https://www.digitalocean.com/products/app-platform)                                    | Application hosting                                | `DIGITALOCEAN_PRODUCTION_TOKEN` (CI only)                                                                                              |
 | [PlanetScale](https://planetscale.com) ([console](https://app.planetscale.com))                                    | Managed Postgres, primary datastore                | `DATABASE_URL`                                                                                                                         |
 | [Upstash](https://upstash.com) ([console](https://console.upstash.com))                                            | Serverless Redis for rate limiting and caching     | `REDIS_URL`                                                                                                                            |
 | [Cloudflare R2](https://developers.cloudflare.com/r2/) ([dashboard](https://dash.cloudflare.com/?to=/:account/r2)) | Object storage for exports, uploads, and assets    | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`, `R2_REGION`, `NEXT_PUBLIC_R2_PUBLIC_URL` |
@@ -306,17 +350,17 @@ Temporal runs publishing and maintenance in the Go backend. See
 
 ### Optional integrations
 
-| Provider                                                                    | Role                                                         | Environment variables                                 |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------- |
-| [Postiz](https://postiz.com) ([docs](https://docs.postiz.com))              | Social scheduling and publishing                             | `POSTIZ_API_URL`                                      |
-| [Microlink](https://microlink.io) ([docs](https://microlink.io/docs))       | Screenshot capture API                                       | `SCREENSHOT_API_URL`                                  |
-| [OpenRouter](https://openrouter.ai) ([models](https://openrouter.ai/models)) | Model access for the campaign studio agent                   | `OPENROUTER_API_KEY`, optional `PLATFORM_AI_MODEL_*`  |
-| [PostHog](https://posthog.com) ([app](https://app.posthog.com))             | Product analytics and session insight                        | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` |
-| [Google Cloud](https://console.cloud.google.com/apis/credentials)           | Google OAuth sign-in                                         | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`            |
-| [GitHub OAuth](https://github.com/settings/developers)                      | GitHub sign-in and release intake                            | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`            |
-| [Microsoft Entra ID](https://entra.microsoft.com)                           | Microsoft SSO for enterprise tenants                         | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`      |
-| Billing provider or support automation                                      | Signed workspace plan and entitlement synchronization        | `BILLING_ENTITLEMENT_WEBHOOK_SECRET`                  |
-| [Stripe](https://stripe.com) ([dashboard](https://dashboard.stripe.com))   | Self-serve Checkout, billing portal, and extra-launch credit packs; events at `/api/webhooks/stripe` sync the plan and grant credits | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_{PRO,BUSINESS}_{MONTHLY,ANNUAL}`, `STRIPE_PRICE_EXTRA_LAUNCH` |
+| Provider                                                                     | Role                                                                                                                                 | Environment variables                                                                                                     |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| [Postiz](https://postiz.com) ([docs](https://docs.postiz.com))               | Social scheduling and publishing                                                                                                     | `POSTIZ_API_URL`                                                                                                          |
+| [Microlink](https://microlink.io) ([docs](https://microlink.io/docs))        | Screenshot capture API                                                                                                               | `SCREENSHOT_API_URL`                                                                                                      |
+| [OpenRouter](https://openrouter.ai) ([models](https://openrouter.ai/models)) | Model access for the campaign studio agent                                                                                           | `OPENROUTER_API_KEY`, optional `PLATFORM_AI_MODEL_*`                                                                      |
+| [PostHog](https://posthog.com) ([app](https://app.posthog.com))              | Product analytics and session insight                                                                                                | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`                                                                     |
+| [Google Cloud](https://console.cloud.google.com/apis/credentials)            | Google OAuth sign-in                                                                                                                 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`                                                                                |
+| [GitHub OAuth](https://github.com/settings/developers)                       | GitHub sign-in and release intake                                                                                                    | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`                                                                                |
+| [Microsoft Entra ID](https://entra.microsoft.com)                            | Microsoft SSO for enterprise tenants                                                                                                 | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`                                                                          |
+| Billing provider or support automation                                       | Signed workspace plan and entitlement synchronization                                                                                | `BILLING_ENTITLEMENT_WEBHOOK_SECRET`                                                                                      |
+| [Stripe](https://stripe.com) ([dashboard](https://dashboard.stripe.com))     | Self-serve Checkout, billing portal, and extra-launch credit packs; events at `/api/webhooks/stripe` sync the plan and grant credits | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_{PRO,BUSINESS}_{MONTHLY,ANNUAL}`, `STRIPE_PRICE_EXTRA_LAUNCH` |
 
 Runtime credentials live in Fly secrets (`fly secrets set`), never in the repo or
 in GitHub secrets. GitHub holds only the deploy token and the build-time

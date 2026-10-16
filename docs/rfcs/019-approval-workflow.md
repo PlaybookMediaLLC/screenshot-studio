@@ -1,6 +1,7 @@
 # RFC 019: Campaign Approval Workflow
 
-**Status:** Implemented (see `lib/tenant/campaign-status.ts`, `lib/tenant/campaigns.ts`, `lib/trpc/routers/campaign.ts`)
+**Status:** Partially implemented (core shipped; see `lib/tenant/campaign-status.ts`, `lib/tenant/campaigns.ts`, `lib/trpc/routers/campaign.ts`)
+**Status note (2026-10-16):** Missing: a content hash on the approved version, decided-by and decided-at fields, and approval notifications.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 003, RFC 014, and RFC 018

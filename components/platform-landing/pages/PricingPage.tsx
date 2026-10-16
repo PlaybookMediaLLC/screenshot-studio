@@ -10,13 +10,12 @@ import {
 import { PRODUCT_FACTS } from '@/lib/seo/product-facts'
 import { cn } from '@/lib/utils'
 import { FaqBlock, MarketingShell, PageHero, TileGrid } from '../blocks'
-import { GITHUB_URL } from '../LandingNav'
 import { MUTED, Section, SectionIntro } from '../primitives'
 import { PlanCards, PlanComparison } from '../pricing'
 import { CreditMeter } from '../diagrams/CreditMeter'
 
 const EDITOR_TOOLS = [
-  { href: '/free-screenshot-editor', label: 'Screenshot editor' },
+  { href: '/features/screenshot-beautifier', label: 'Screenshot editor' },
   { href: '/mockup-generator', label: 'Mockup generator' },
   { href: '/store-screenshots', label: 'App Store screenshots' },
   { href: '/code', label: 'Code to image' },
@@ -161,20 +160,7 @@ export function PricingPage() {
           },
           {
             q: 'Can I self-host instead?',
-            a: (
-              <>
-                Yes. The platform ships Docker images and a Helm chart in the{' '}
-                <a
-                  className="text-white underline-offset-4 hover:underline"
-                  href={GITHUB_URL}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  open-source repository
-                </a>
-                .
-              </>
-            ),
+            a: 'Yes. The platform is open source under Apache 2.0 and ships Docker images and a Helm chart.',
           },
         ]}
       />

@@ -1,6 +1,7 @@
 # RFC 020: Postiz Publishing Abstraction
 
-**Status:** Implemented (see `lib/tenant/publishing-backend.ts` and `services/internal/publishing`)
+**Status:** Partially implemented (see `lib/tenant/publishing-backend.ts` and `services/internal/publishing`)
+**Status note (2026-10-16):** Approved campaign posts cannot be scheduled yet: `creativeVariantId` is never set, and there is no channel-connect or schedule UI.
 **Date:** 2026-08-17
 **Revised:** 2026-10-14
 **Depends on:** RFC 005 and RFC 019

@@ -1,6 +1,7 @@
 # RFC 008: Cloudflare Data Plane for Release Assets
 
-**Status:** Proposed
+**Status:** Not started
+**Status note (2026-10-16):** Its premise, Trigger.dev as the job runner, is obsolete. Background work runs on Temporal.
 **Date:** 2026-08-13
 **Depends on:** RFC 002, RFC 003, RFC 005, RFC 006, and RFC 007
 **Complements:** RFC 004 and RFC 006

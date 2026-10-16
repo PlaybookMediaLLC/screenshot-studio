@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
-import { GithubIcon, Mail01Icon } from "hugeicons-react";
+import { Bug01Icon, Idea01Icon, Mail01Icon } from "hugeicons-react";
 
 export const metadata: Metadata = {
   title: "Contact Us",
@@ -27,17 +27,17 @@ const INTER =
 
 const contacts = [
   {
-    href: "https://github.com/PlaybookMediaLLC/screenshot-studio/issues",
-    external: true,
-    icon: GithubIcon,
+    href: "mailto:team@playbookmedia.io?subject=Bug%20report",
+    external: false,
+    icon: Bug01Icon,
     title: "Report a bug",
     description:
-      "Found something broken? Open an issue on GitHub and we'll look into it.",
+      "Found something broken? Email us the details and we'll look into it.",
   },
   {
-    href: "https://github.com/PlaybookMediaLLC/screenshot-studio/issues/new?labels=enhancement",
-    external: true,
-    icon: GithubIcon,
+    href: "mailto:team@playbookmedia.io?subject=Feature%20request",
+    external: false,
+    icon: Idea01Icon,
     title: "Request a feature",
     description:
       "Have an idea to make Shots better? We'd love to hear it.",
@@ -97,7 +97,7 @@ export default function ContactPage() {
           ))}
         </div>
 
-        <section className="mb-8 rounded-2xl bg-card p-6 ring-1 ring-inset ring-border shadow-[var(--card-highlight-shadow)]">
+        <section className="rounded-2xl bg-card p-6 ring-1 ring-inset ring-border shadow-[var(--card-highlight-shadow)]">
           <h2
             className="mb-2 text-lg font-semibold tracking-[-0.02em] text-foreground"
             style={{ fontFamily: INTER }}
@@ -123,33 +123,10 @@ export default function ContactPage() {
           <p className="leading-relaxed text-muted-foreground">
             When reporting a bug, include your browser and operating system,
             the steps you took, and a screenshot or exported file if you can.
-            GitHub issues are usually answered within a few days; email may
-            take a little longer.
+            We usually reply within a few days.
           </p>
         </section>
 
-        <section className="rounded-2xl bg-card p-6 ring-1 ring-inset ring-border shadow-[var(--card-highlight-shadow)]">
-          <h2
-            className="mb-2 text-lg font-semibold tracking-[-0.02em] text-foreground"
-            style={{ fontFamily: INTER }}
-          >
-            Contributing
-          </h2>
-          <p className="leading-relaxed text-muted-foreground">
-            Shots is open source. If you&apos;re a developer and
-            want to contribute, check out the{" "}
-            <Link
-              href="https://github.com/PlaybookMediaLLC/screenshot-studio"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={linkClassName}
-            >
-              GitHub repository
-            </Link>
-            . Pull requests, bug reports, and feature suggestions are all
-            welcome.
-          </p>
-        </section>
       </main>
 
       <Footer brandName="Shots" />

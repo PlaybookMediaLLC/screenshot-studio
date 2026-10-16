@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import { GitHubIcon } from "@/components/ui/github-star-button";
 import { AdSenseScript } from "@/components/AdSenseScript";
 import { TOOLS } from "@/lib/seo/tools";
 import { guides } from "@/lib/seo/guides";
@@ -9,11 +8,8 @@ interface FooterProps {
   brandName?: string;
 }
 
-const GITHUB_URL = "https://github.com/PlaybookMediaLLC/screenshot-studio";
-
 const navCol1 = [
   { href: "/editor", label: "Screenshot Editor" },
-  { href: "/free-screenshot-editor", label: "Screenshot editor online" },
   { href: "/store-screenshots", label: "App store screenshots" },
   { href: "/code", label: "Code to image" },
   { href: "/tweet", label: "Tweet to image" },
@@ -140,15 +136,6 @@ export function Footer({ brandName = "Shots" }: FooterProps) {
 
         <div className="mt-6 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <div className="flex flex-wrap items-center gap-2">
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="GitHub"
-              className="inline-flex size-10 items-center justify-center rounded-md bg-foreground/[0.04] text-foreground/90 ring-1 ring-border transition-colors duration-150 hover:bg-foreground/[0.08] hover:text-foreground"
-            >
-              <GitHubIcon className="size-[18px]" />
-            </a>
             <Link
               href="/privacy-policy"
               className="inline-flex h-10 items-center rounded-md bg-foreground/[0.04] px-3 text-sm text-foreground/90 ring-1 ring-border transition-colors duration-150 hover:bg-foreground/[0.08] hover:text-foreground"

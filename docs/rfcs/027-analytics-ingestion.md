@@ -1,6 +1,7 @@
 # RFC 027: Post Performance Analytics
 
-**Status:** Proposed
+**Status:** Not started
+**Status note (2026-10-16):** Nothing in this RFC is built.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 014 and RFC 020

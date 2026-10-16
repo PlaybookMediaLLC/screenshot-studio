@@ -1,6 +1,7 @@
 # RFC 031: Autonomy Modes
 
-**Status:** Proposed
+**Status:** Not started
+**Status note (2026-10-16):** Nothing in this RFC is built.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 029 and RFC 030

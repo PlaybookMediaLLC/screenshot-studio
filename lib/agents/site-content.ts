@@ -51,12 +51,6 @@ export const AGENT_PAGES: AgentPage[] = [
     ],
   },
   {
-    path: '/free-screenshot-editor',
-    title: 'Screenshot Editor Online - Shots',
-    summary:
-      'Browser-based screenshot editor for signed-in workspaces, included in every plan, with no export watermark. Covers the full editing workflow from upload to export.',
-  },
-  {
     path: '/code',
     title: 'Code to Image: Code Screenshots - Shots',
     summary:
@@ -209,14 +203,13 @@ export const AGENT_PAGES: AgentPage[] = [
     path: '/developers',
     title: 'Shots Developer Portal',
     summary:
-      'Developer entry point: API docs, OpenAPI spec, authentication and rate limits, quickstart requests, agent files, and the open-source repository.',
+      'Developer entry point: API docs, OpenAPI spec, authentication and rate limits, quickstart requests, and agent files.',
     points: [
       'API docs: /docs',
       'Interactive API reference: /api-reference',
       'OpenAPI 3.1 spec: /openapi.json',
       'Authentication and rate limits: /docs/authentication',
       'Agent overview: /llms.txt and /llms-full.txt',
-      'Source: https://github.com/PlaybookMediaLLC/screenshot-studio',
     ],
   },
   {

@@ -1,6 +1,7 @@
 # RFC 030: Approval Policies
 
-**Status:** Proposed
+**Status:** Not started
+**Status note (2026-10-16):** Nothing in this RFC is built.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 003, RFC 019, and RFC 029

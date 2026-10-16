@@ -67,11 +67,6 @@ const RESOURCES = [
     label: "llms-full.txt",
     detail: "Long-form Markdown reference covering features and the API.",
   },
-  {
-    href: "https://github.com/PlaybookMediaLLC/screenshot-studio",
-    label: "Source code on GitHub",
-    detail: "Apache 2.0. Issues, discussions, and self-hosting instructions.",
-  },
 ];
 
 const QUICKSTART = [
@@ -127,7 +122,7 @@ export default function DevelopersPage() {
           Shots is an open-source screenshot editor and workspace
           platform with editor utility endpoints and a tenant REST API, both
           authenticated by a signed-in session or a workspace API key. Scalar provides an interactive reference, the contract is
-          published as OpenAPI 3.1, and the application is Apache 2.0 on GitHub.
+          published as OpenAPI 3.1, and the application is open source under Apache 2.0.
         </p>
 
         <div className="space-y-12">
@@ -214,14 +209,8 @@ export default function DevelopersPage() {
               There is no separate sandbox host. Send utility endpoints only
               disposable public inputs. Tenant API calls can read or
               mutate workspace data and may consume plan quotas, so use a test
-              workspace or run the full stack locally:
+              workspace.
             </p>
-            <pre className={codeBlockClassName}>
-              <code>{`git clone https://github.com/PlaybookMediaLLC/screenshot-studio.git
-cd screenshot-studio
-npm install
-npm run dev`}</code>
-            </pre>
           </section>
 
           <section id="agents">
@@ -257,11 +246,8 @@ npm run dev`}</code>
               No official CLI tool and no MCP server are published yet. The
               curl examples above are the supported command-line path. If you
               want either one,{" "}
-              <a
-                href="https://github.com/PlaybookMediaLLC/screenshot-studio/issues"
-                className={linkClassName}
-              >
-                open an issue
+              <a href="mailto:team@playbookmedia.io" className={linkClassName}>
+                email us
               </a>
               .
             </p>
@@ -275,12 +261,9 @@ npm run dev`}</code>
               Support
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              File bugs and feature requests on{" "}
-              <a
-                href="https://github.com/PlaybookMediaLLC/screenshot-studio/issues"
-                className={linkClassName}
-              >
-                GitHub issues
+              Email bugs and feature requests to{" "}
+              <a href="mailto:team@playbookmedia.io" className={linkClassName}>
+                team@playbookmedia.io
               </a>
               , or reach the maintainers through the{" "}
               <Link href="/contact" className={linkClassName}>

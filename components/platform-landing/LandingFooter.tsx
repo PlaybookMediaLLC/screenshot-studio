@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { ArrowUpRight01Icon } from 'hugeicons-react'
 import { navGroupSchema, pagesInGroup, type NavGroup } from '@/lib/marketing/platform-pages'
 import { cn } from '@/lib/utils'
-import { GITHUB_URL } from './LandingNav'
 import { CONTAINER, MUTED } from './primitives'
 
 const fromRegistry = (group: NavGroup) =>
@@ -29,7 +28,7 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
   {
     title: 'Editor',
     links: [
-      { href: '/free-screenshot-editor', label: 'Screenshot editor' },
+      { href: '/features/screenshot-beautifier', label: 'Screenshot editor' },
       { href: '/mockup-generator', label: 'Mockup generator' },
       { href: '/store-screenshots', label: 'App Store screenshots' },
       { href: '/code', label: 'Code to image' },
@@ -46,7 +45,6 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: '/changelog', label: 'Changelog' },
       { href: '/about', label: 'About' },
       { href: '/contact', label: 'Contact' },
-      { href: GITHUB_URL, label: 'GitHub' },
       { href: '/privacy-policy', label: 'Privacy' },
       { href: '/terms', label: 'Terms' },
     ],

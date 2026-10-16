@@ -133,7 +133,7 @@ const relatedLinks = [
   { href: "/features/browser-mockups", label: "Browser Mockups" },
   { href: "/features/3d-effects", label: "3D Effects" },
   { href: "/store-screenshots", label: "Store Screenshots" },
-  { href: "/free-screenshot-editor", label: "Free Screenshot Editor" },
+  { href: "/features/screenshot-beautifier", label: "Screenshot Beautifier" },
 ] as const;
 
 export default function MockupGeneratorPage() {

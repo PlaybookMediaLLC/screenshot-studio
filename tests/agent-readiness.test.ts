@@ -298,7 +298,7 @@ test("agent-facing copy does not claim images never reach a server", () => {
   }
 });
 
-test("agent-facing product copy preserves fork identity and workspace access", () => {
+test("agent-facing product copy links no source repository and keeps workspace access", () => {
   const productCopy = [
     llmsTxt,
     llmsFullTxt,
@@ -309,7 +309,7 @@ test("agent-facing product copy preserves fork identity and workspace access", (
   assert.doesNotMatch(productCopy, /no signup|no paid tier|no premium tier/i);
   assert.match(llmsTxt, /signed-in workspace is required/i);
   assert.match(llmsFullTxt, /signed-in workspace is required/i);
-  assert.match(productCopy, /github\.com\/PlaybookMediaLLC\/screenshot-studio/);
+  assert.doesNotMatch(productCopy, /github\.com\/[\w-]+\/screenshot-studio/i);
 });
 
 test("agent-facing API copy distinguishes utility and tenant authentication", () => {

@@ -5,6 +5,8 @@ import { resetPlayback, usePlaybackStore } from './playback'
 import { NEUTRAL_IMAGE_FILTERS } from '@/lib/editor/image-adjustments'
 import type { TextAlign, TextFill, TextFit, TextRole } from '@/lib/typography/text-style'
 import { createElementsSlice, type ElementsSlice } from './elements-slice'
+import { createMotionSlice, type MotionSlice } from './motion-slice'
+import { emptyMotion } from '@/lib/animation/motion-schema'
 import { shallow } from 'zustand/shallow'
 import { temporal } from 'zundo'
 import { GradientKey } from '@/lib/constants/gradient-colors'
@@ -252,7 +254,7 @@ export function endHistoryGesture() {
 }
 
 // Re-export existing ImageState interface and store
-export interface ImageState extends ElementsSlice {
+export interface ImageState extends ElementsSlice, MotionSlice {
   uploadedImageUrl: string | null
   imageName: string | null
   selectedGradient: GradientKey
@@ -457,6 +459,7 @@ export const useImageStore = create<ImageState>()(
   temporal(
     (set, get) => ({
       ...createElementsSlice(set, get),
+      ...createMotionSlice(set),
       slides: [],
       activeSlideId: null,
 
@@ -635,6 +638,7 @@ export const useImageStore = create<ImageState>()(
           activeAnnotationTool: null,
           blurRegions: [],
           elements: [],
+          motion: emptyMotion(),
           selectedElementId: null,
           // Reset timeline/animation
           timeline: { ...DEFAULT_TIMELINE_STATE },
@@ -715,6 +719,7 @@ export const useImageStore = create<ImageState>()(
           activeAnnotationTool: null,
           blurRegions: [],
           elements: [],
+          motion: emptyMotion(),
           selectedElementId: null,
           // Reset timeline/animation
           timeline: { ...DEFAULT_TIMELINE_STATE },
@@ -1413,6 +1418,7 @@ export const useImageStore = create<ImageState>()(
           activeAnnotationTool: null,
           blurRegions: [],
           elements: [],
+          motion: emptyMotion(),
           selectedElementId: null,
           timeline: { ...DEFAULT_TIMELINE_STATE },
           animationClips: [],

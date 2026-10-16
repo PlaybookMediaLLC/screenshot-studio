@@ -3,6 +3,16 @@
 import { type ImageState, useImageStore } from '@/lib/store'
 import { useDeviceUIStore } from '@/lib/store/device-ui'
 import {
+  audioClipSchema,
+  captionItemSchema,
+  hasMotionContent,
+  keyframeTrackSchema,
+  scrollMotionSchema,
+  textRevealSchema,
+  type TimelineMotion,
+  timelineFieldsFromMotion,
+} from '@/lib/animation/motion-schema'
+import {
   DESIGN_DOCUMENT_VERSION,
   type DesignDocument,
   designDocumentSchema,
@@ -53,6 +63,22 @@ function validItems<T>(
   return items
     .map((item) => valid(schema.element, item))
     .filter((item): item is T => item !== undefined)
+}
+
+/**
+ * Motion as document fields. Each item is checked on its own, so one bad
+ * caption never drops the timeline; local audio stays only in the lossless view.
+ */
+function portableMotion(motion: TimelineMotion, keepLocalSources: boolean) {
+  return timelineFieldsFromMotion({
+    audio: validItems({ element: audioClipSchema }, motion.audio).filter(
+      (clip) => keepLocalSources || !LOCAL.test(clip.src)
+    ),
+    captions: { ...motion.captions, items: validItems({ element: captionItemSchema }, motion.captions.items) },
+    layerTracks: validItems({ element: keyframeTrackSchema }, motion.layerTracks),
+    reveals: validItems({ element: textRevealSchema }, motion.reveals),
+    scrolls: validItems({ element: scrollMotionSchema }, motion.scrolls),
+  })
 }
 
 /** The live editor as a document. See {@link ExportDesignOptions} for local images. */
@@ -271,12 +297,13 @@ export function documentFromState(
         }))
     ),
     timeline:
-      image.timeline.tracks.length > 0 || image.animationClips.length > 0
+      image.timeline.tracks.length > 0 || image.animationClips.length > 0 || hasMotionContent(image.motion)
         ? valid(shape.timeline, {
             clips: image.animationClips,
             duration: image.timeline.duration,
             isLooping: image.timeline.isLooping,
             tracks: image.timeline.tracks,
+            ...portableMotion(image.motion, keepLocalSources),
           })
         : undefined,
     version: DESIGN_DOCUMENT_VERSION,

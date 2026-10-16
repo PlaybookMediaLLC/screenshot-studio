@@ -168,3 +168,23 @@ export function postLength(text: string, channel: ShareChannel, url: string): nu
   const counted = linkLength ? withLink.replace(URLS, 'x'.repeat(linkLength)) : withLink
   return [...new Intl.Segmenter().segment(counted)].length
 }
+
+/**
+ * Links in post text: full URLs, and bare domains on common TLDs as people
+ * type them (so "Node.js" is not a link), never email addresses.
+ */
+const LINK =
+  /\bhttps?:\/\/[^\s<>()"'`]+|(?<![@\w.-])(?:[a-z0-9-]+\.)+(?:com|net|org|io|dev|app|co|ai|so|sh|xyz|tech|me|gg|tv|fm|ly|to|us|uk|de|fr|ca|au|in|page|site|store|shop|blog|cloud|studio|design)\b(?:\/[^\s<>()"'`]*)?/gi
+
+/** The distinct links in `text`, as https URLs, without trailing punctuation. */
+export function linksInText(text: string): string[] {
+  const links = (text.match(LINK) ?? []).flatMap((match) => {
+    const trimmed = match.replace(/[.,;:!?)\]}'"]+$/, '')
+    try {
+      return [new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`).toString()]
+    } catch {
+      return []
+    }
+  })
+  return [...new Set(links)]
+}

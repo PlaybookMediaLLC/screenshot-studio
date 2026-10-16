@@ -655,6 +655,39 @@ export function TechnicalPanel({ preview }: PanelProps) {
           </ol>
         </section>
       )}
+      {(preview.targets?.length || preview.tracking) && (
+        <Section title="Link targets">
+          {preview.targets?.map((target) => (
+            <Field key={target.kind} label={`${target.kind} → ${target.url}`}>
+              {target.error ? (
+                <span className="text-red-400">{target.error}</span>
+              ) : (
+                <span className="inline-flex flex-wrap items-center justify-end gap-2">
+                  <Pill tone={statusTone(target.status ?? 0)}>{target.status}</Pill>
+                  {target.finalUrl && target.finalUrl !== target.url ? (
+                    <span className="text-amber-300">redirects to {target.finalUrl}</span>
+                  ) : (
+                    <span className="text-muted-foreground">reaches the page</span>
+                  )}
+                </span>
+              )}
+            </Field>
+          ))}
+          {preview.tracking && (
+            <Field label="UTM tags through redirects">
+              {preview.tracking.error ? (
+                <span className="text-red-400">{preview.tracking.error}</span>
+              ) : preview.tracking.kept ? (
+                <span className="text-emerald-400">Kept, so campaign analytics see the source</span>
+              ) : (
+                <span className="text-red-400">
+                  Dropped on the way to {preview.tracking.finalUrl}
+                </span>
+              )}
+            </Field>
+          )}
+        </Section>
+      )}
       {crawlers && (
         <Section title="Crawler access (robots.txt)">
           {crawlers.map((access) => (

@@ -35,9 +35,11 @@ import { AutomatePanel } from './AutomatePanel'
 import { BatchCheck } from './BatchCheck'
 import { copyText, normalizeUrl, requestPreview } from './client'
 import { CompareView } from './CompareView'
+import { CrawlerMatrix } from './CrawlerMatrix'
 import { ExtrasPanel } from './ExtrasPanel'
 import { FixPanel } from './FixPanel'
 import { HistoryCard } from './HistoryCard'
+import { JavaScriptCheck } from './JavaScriptCheck'
 import { ImageStudio } from './ImageStudio'
 import {
   BasicPanel,
@@ -570,6 +572,15 @@ export function LinkPreviewApp() {
               <Button onClick={clear} variant="outline" className="mt-4">
                 Try another URL
               </Button>
+              {url && (
+                <div className="mt-10 w-full text-left">
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    Blocked by bot protection or a firewall? See which platform crawlers get
+                    through.
+                  </p>
+                  <CrawlerMatrix key={url} url={url} />
+                </div>
+              )}
             </div>
           )}
 
@@ -616,6 +627,7 @@ export function LinkPreviewApp() {
                 </div>
                 <TabsContent value={TAB.overview} className="space-y-6">
                   <HistoryCard entries={history} />
+                  <JavaScriptCheck key={preview.url} preview={preview} />
                   <OverviewPanel preview={preview} issues={issues} />
                 </TabsContent>
                 <TabsContent value={TAB.previews} className="space-y-6">
@@ -736,7 +748,8 @@ export function LinkPreviewApp() {
                   <ImageStudio preview={preview} url={url} onUse={tryImage} />
                   <ImagesPanel preview={preview} onUse={tryImage} />
                 </TabsContent>
-                <TabsContent value={TAB.technical}>
+                <TabsContent value={TAB.technical} className="space-y-6">
+                  <CrawlerMatrix key={preview.url} url={preview.url} />
                   <TechnicalPanel preview={preview} />
                 </TabsContent>
                 <TabsContent value={TAB.raw}>

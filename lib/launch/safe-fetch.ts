@@ -198,7 +198,9 @@ export type Hop = { status: number; url: string }
 /** Follow checked redirects to the first non-redirect response; failures are already closed. */
 async function safeRequest(
   input: string,
-  options: SafeFetchOptions
+  options: SafeFetchOptions,
+  /** Return 4xx and 5xx responses instead of failing on them. */
+  acceptErrors = false
 ): Promise<{ hops: Hop[]; ok: true; response: TransportResponse; url: URL } | FetchFailure> {
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
   const transport = options.transport ?? nodeTransport
@@ -246,7 +248,7 @@ async function safeRequest(
       }
       continue
     }
-    if (response.status >= 400 || response.status === 0) {
+    if (response.status === 0 || (response.status >= 400 && !acceptErrors)) {
       response.destroy()
       return { ok: false, reason: `The source returned HTTP ${response.status}.`, status: 'failed' }
     }
@@ -343,4 +345,52 @@ export async function safeProbe(input: string, options: SafeFetchOptions = {}): 
   const requested = await safeRequest(input, options)
   if (requested.ok) requested.response.destroy()
   return requested.ok
+}
+
+/** Where a link ends up, with its status, whatever the status is. The body is never read. */
+export async function safeResolve(
+  input: string,
+  options: SafeFetchOptions = {}
+): Promise<{ hops: Hop[]; ok: true; status: number; url: string } | FetchFailure> {
+  const requested = await safeRequest(input, options, true)
+  if (!requested.ok) return requested
+  requested.response.destroy()
+  return {
+    hops: requested.hops,
+    ok: true,
+    status: requested.response.status,
+    url: requested.url.toString(),
+  }
+}
+
+/**
+ * A page as a crawler receives it, error statuses included: status, headers,
+ * and the start of the body, so a block or bot challenge can be recognized.
+ */
+export async function safeFetchPage(
+  input: string,
+  options: SafeFetchOptions = {}
+): Promise<
+  | {
+      body: string
+      headers: TransportResponse['headers']
+      hops: Hop[]
+      ok: true
+      status: number
+      url: string
+    }
+  | FetchFailure
+> {
+  const requested = await safeRequest(input, options, true)
+  if (!requested.ok) return requested
+  const read = await readBody(requested.response, options.maxBytes ?? DEFAULT_MAX_BYTES)
+  if (!read.ok) return read
+  return {
+    body: read.bytes.toString('utf8'),
+    headers: requested.response.headers,
+    hops: requested.hops,
+    ok: true,
+    status: requested.response.status,
+    url: requested.url.toString(),
+  }
 }

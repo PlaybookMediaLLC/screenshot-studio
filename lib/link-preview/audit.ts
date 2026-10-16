@@ -798,6 +798,48 @@ function appAndLanguageIssues(preview: LinkPreview, add: Add) {
   }
 }
 
+/** Where the canonical and og:url lead, and whether tracking tags survive the redirects. */
+function linkTargetIssues(preview: LinkPreview, add: Add) {
+  for (const target of preview.targets ?? []) {
+    const id = target.kind.replace(':', '-')
+    if (target.error) {
+      add(
+        error,
+        indexing,
+        `${id}-unreachable`,
+        `The ${target.kind} URL could not be reached`,
+        `${target.error} Platforms and search engines follow it, so point it at a live page.`
+      )
+    } else if (target.status && target.status >= 400) {
+      add(
+        error,
+        indexing,
+        `${id}-broken`,
+        `The ${target.kind} URL returns HTTP ${target.status}`,
+        `${target.url} is broken, so shares and search credit go to an error page. Point it at this page.`
+      )
+    } else if (target.finalUrl && !sameUrl(target.finalUrl, target.url)) {
+      add(
+        warning,
+        indexing,
+        `${id}-redirects`,
+        `The ${target.kind} URL redirects`,
+        `${target.url} redirects to ${target.finalUrl}. Use the final URL so crawlers do not have to follow the hop.`
+      )
+    }
+  }
+  const { tracking } = preview
+  if (tracking && tracking.kept === false) {
+    add(
+      error,
+      technical,
+      'tracking-dropped',
+      'Redirects drop UTM tags',
+      `A link tagged with utm_source ended at ${tracking.finalUrl} without it, so campaign analytics lose every click. Keep the query string in the redirect, or share the final URL.`
+    )
+  }
+}
+
 /** Every issue with the page's preview, errors first. */
 export function auditLinkPreview(preview: LinkPreview): LinkPreviewIssue[] {
   const issues: LinkPreviewIssue[] = []
@@ -811,5 +853,6 @@ export function auditLinkPreview(preview: LinkPreview): LinkPreviewIssue[] {
   copyQualityIssues(preview, add)
   mediaIssues(preview, add)
   appAndLanguageIssues(preview, add)
+  linkTargetIssues(preview, add)
   return issues.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity])
 }

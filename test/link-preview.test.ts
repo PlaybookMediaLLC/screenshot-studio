@@ -415,3 +415,104 @@ test('sitemaps, history, duplicates, and CI scripts', async () => {
     /if \(report.score < 80\) failed = true/
   )
 })
+
+test('bot challenges are recognized and JavaScript-only tags are found', async () => {
+  const { detectChallenge } = await import('@/lib/link-preview/crawlers')
+  assert.equal(
+    detectChallenge(403, { server: 'cloudflare' }, '<html><head><title>Just a moment...</title>'),
+    'Cloudflare challenge'
+  )
+  assert.equal(detectChallenge(200, { 'cf-mitigated': 'challenge' }, ''), 'Cloudflare challenge')
+  assert.equal(
+    detectChallenge(403, {}, '<script src="https://ct.captcha-delivery.com/c.js">'),
+    'DataDome'
+  )
+  assert.equal(detectChallenge(200, { server: 'cloudflare' }, '<title>Ledgerly</title>'), undefined)
+
+  const { scriptDifferences } = await import('@/lib/link-preview/javascript')
+  const raw = parseLinkPreview('<head><title>Loading…</title></head>', 'https://app.example/')
+  const changes = scriptDifferences(raw, {
+    ogImage: 'https://app.example/og.png',
+    ogTitle: 'Ledgerly',
+    tagCount: 12,
+    title: 'Ledgerly · Invoices',
+  })
+  assert.deepEqual(
+    changes.map(({ change, label }) => [label, change]),
+    [
+      ['Title', 'changed'],
+      ['og:title', 'added'],
+      ['og:image', 'added'],
+    ]
+  )
+})
+
+test('broken link targets and dropped UTM tags are reported', () => {
+  const base = parseLinkPreview(PAGE, 'https://ledgerly.example/')
+  const ids = auditLinkPreview({
+    ...base,
+    targets: [
+      { kind: 'canonical', status: 404, url: 'https://ledgerly.example/old' },
+      {
+        finalUrl: 'https://ledgerly.example/home',
+        kind: 'og:url',
+        status: 200,
+        url: 'https://ledgerly.example/',
+      },
+    ],
+    tracking: {
+      finalUrl: 'https://ledgerly.example/',
+      kept: false,
+      url: 'https://ledgerly.example/?utm_source=screenshot-studio',
+    },
+  }).map((issue) => issue.id)
+  assert.ok(ids.includes('canonical-broken'))
+  assert.ok(ids.includes('og-url-redirects'))
+  assert.ok(ids.includes('tracking-dropped'))
+})
+
+test('the publishing gate reads each link in a post and blocks broken previews', async () => {
+  const { linksInText } = await import('@/lib/link-preview/share')
+  assert.deepEqual(
+    linksInText(
+      'New pricing → ledgerly.com/pricing. Docs: https://docs.ledgerly.io/start). Mail hi@ledgerly.com. Built with Node.js'
+    ),
+    ['https://ledgerly.com/pricing', 'https://docs.ledgerly.io/start']
+  )
+  const { postLinkProblems } = await import('@/lib/link-preview/gate')
+  const good = parseLinkPreview(
+    `<head><title>Ledgerly pricing for growing teams</title><meta property="og:image" content="https://ledgerly.example/og.png"><meta name="twitter:card" content="summary_large_image"></head>`,
+    'https://ledgerly.example/pricing'
+  )
+  const read: Parameters<typeof postLinkProblems>[1] = async (url) =>
+    url.includes('pricing')
+      ? { ok: true, preview: good }
+      : url.includes('docs')
+        ? { ok: true, preview: parseLinkPreview('<head></head>', url) }
+        : { ok: false, reason: 'The source returned HTTP 404.' }
+  assert.deepEqual(await postLinkProblems('See ledgerly.com/pricing', read), [])
+  const problems = await postLinkProblems('Docs at docs.ledgerly.io and gone.ledgerly.com/x', read)
+  assert.equal(problems.length, 2)
+  assert.match(problems[0]!, /^https:\/\/docs.ledgerly.io\/: The page has no <title>; No og:image/)
+  assert.match(problems[1]!, /could not be read: The source returned HTTP 404/)
+})
+
+test('the crawler fetch keeps error statuses, and resolve reports where a link ends', async () => {
+  const { safeFetchPage, safeResolve } = await import('@/lib/launch/safe-fetch')
+  const transport: Transport = async ({ url }) => ({
+    body: (async function* () {
+      yield Buffer.from(url.pathname === '/blocked' ? '<title>Just a moment...</title>' : 'ok')
+    })(),
+    destroy: () => undefined,
+    headers:
+      url.pathname === '/old' ? { location: '/new?utm_source=x' } : { 'content-type': 'text/html' },
+    status: url.pathname === '/blocked' ? 403 : url.pathname === '/old' ? 301 : 200,
+  })
+  const resolve = async () => [{ address: '93.184.216.34', family: 4 }]
+  const blocked = await safeFetchPage('https://public.example/blocked', { resolve, transport })
+  assert.ok(blocked.ok && blocked.status === 403 && blocked.body.includes('Just a moment'))
+  const resolved = await safeResolve('https://public.example/old', { resolve, transport })
+  assert.ok(resolved.ok)
+  assert.equal(resolved.url, 'https://public.example/new?utm_source=x')
+  assert.equal(resolved.status, 200)
+})

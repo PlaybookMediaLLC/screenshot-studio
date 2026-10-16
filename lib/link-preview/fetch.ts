@@ -3,25 +3,32 @@ import 'server-only'
 import sharp from 'sharp'
 import { z } from 'zod'
 import {
+  type CrawlerFetch,
   type LinkPreview,
   type LinkPreviewAgent,
   linkPreviewAgentSchema,
   type LinkPreviewImage,
   type LinkPreviewOembed,
+  type LinkPreviewRendered,
+  type LinkPreviewTarget,
+  linkTargetKindSchema,
 } from '@/lib/api/contracts/link-preview'
 import {
   allowedTestHosts,
   type FetchedText,
   safeFetchBytes,
+  safeFetchPage,
   safeFetchText,
   safeProbe,
+  safeResolve,
   type SafeFetchOptions,
 } from '@/lib/launch/safe-fetch'
-import { userAgentFor } from '@/lib/link-preview/crawlers'
+import { detectChallenge, userAgentFor } from '@/lib/link-preview/crawlers'
 import { oembedLink } from '@/lib/link-preview/extras'
 import { parseLinkPreview } from '@/lib/link-preview/metadata'
 import { crawlerAccess } from '@/lib/link-preview/robots'
 import { parseSitemap, robotsSitemaps } from '@/lib/link-preview/sitemap'
+import { assertPublicCaptureUrl } from '@/lib/screenshot-service'
 
 const SIDE_TIMEOUT_MS = 5_000
 const IMAGE_TIMEOUT_MS = 8_000
@@ -86,6 +93,51 @@ function header(headers: Record<string, string | string[] | undefined> | undefin
   return (Array.isArray(value) ? value.join(', ') : value) || undefined
 }
 
+/** The tags a tracking check adds to the shared link, then looks for at the end of the redirects. */
+const TRACKING_TAGS = {
+  utm_campaign: 'preview-check',
+  utm_medium: 'link-preview',
+  utm_source: 'screenshot-studio',
+}
+
+const comparable = (url: string) => url.replace(/#.*$/, '').replace(/\/$/, '')
+
+/** Where the canonical and og:url lead, when they point anywhere but this page. */
+async function readTargets(
+  pageUrl: string,
+  links: Array<[LinkPreviewTarget['kind'], string | undefined]>,
+  options: SafeFetchOptions
+): Promise<LinkPreviewTarget[]> {
+  const seen = new Set([comparable(pageUrl)])
+  const targets = links.filter((entry): entry is [LinkPreviewTarget['kind'], string] => {
+    const [, url] = entry
+    if (!url || seen.has(comparable(url))) return false
+    seen.add(comparable(url))
+    return true
+  })
+  return Promise.all(
+    targets.map(async ([kind, url]) => {
+      const resolved = await safeResolve(url, options)
+      return resolved.ok
+        ? { finalUrl: resolved.url, kind, status: resolved.status, url }
+        : { error: resolved.reason, kind, url }
+    })
+  )
+}
+
+/** Share `url` with UTM tags and see whether they reach the page. */
+async function readTracking(url: string, options: SafeFetchOptions) {
+  const tagged = new URL(url)
+  for (const [name, value] of Object.entries(TRACKING_TAGS)) tagged.searchParams.set(name, value)
+  const resolved = await safeResolve(tagged.toString(), options)
+  if (!resolved.ok) return { error: resolved.reason, url: tagged.toString() }
+  return {
+    finalUrl: resolved.url,
+    kept: new URL(resolved.url).searchParams.get('utm_source') === TRACKING_TAGS.utm_source,
+    url: tagged.toString(),
+  }
+}
+
 /** Read an image's type, weight, and pixel size without decoding its pixels. */
 async function inspectImage(url: string, options: SafeFetchOptions): Promise<LinkPreviewImage> {
   const fetched = await safeFetchBytes(url, {
@@ -139,12 +191,22 @@ export async function readLinkPreview(
     (imageUrl): imageUrl is string => !!imageUrl
   )
   const oembedUrl = oembedLink(parsed)
-  const [robots, sitemap, favicon, images, oembed] = await Promise.all([
+  const { canonical: CANONICAL } = linkTargetKindSchema.enum
+  const [robots, sitemap, favicon, images, oembed, targets, tracking] = await Promise.all([
     safeFetchText(`${origin}/robots.txt`, { ...side, maxBytes: ROBOTS_MAX_BYTES }),
     found('/sitemap.xml'),
     parsed.favicon ?? found('/favicon.ico'),
     Promise.all(imageUrls.map((imageUrl) => inspectImage(imageUrl, options))),
     oembedUrl ? readOembed(oembedUrl, side) : undefined,
+    readTargets(
+      page.url,
+      [
+        [CANONICAL, parsed.canonical],
+        [linkTargetKindSchema.enum['og:url'], parsed.ogUrl],
+      ],
+      side
+    ),
+    readTracking(url, side),
   ])
 
   return {
@@ -168,6 +230,8 @@ export async function readLinkPreview(
       robotsFile: robots.ok ? robots.url : undefined,
       robotsTxt: robots.ok ? robots.body.slice(0, ROBOTS_SHOWN_CHARS) : undefined,
       sitemap,
+      targets,
+      tracking,
     },
   }
 }
@@ -267,5 +331,117 @@ export async function optimizePreviewImage(
       reason: 'The file is not an image that can be converted.',
       status: 'failed',
     }
+  }
+}
+
+const MATRIX_MAX_BYTES = 400_000
+const MATRIX_TIMEOUT_MS = 8_000
+
+/**
+ * The page as every crawler receives it, side by side: status, title, image,
+ * and any bot protection that answered instead. Error statuses are kept,
+ * because a 403 for one crawler is the finding.
+ */
+export async function readCrawlerMatrix(url: string): Promise<CrawlerFetch[]> {
+  return Promise.all(
+    linkPreviewAgentSchema.options.map(async (agent) => {
+      const startedAt = performance.now()
+      const page = await safeFetchPage(url, {
+        allowedPrivateHosts: allowedTestHosts(),
+        headers: {
+          accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1',
+          'user-agent': userAgentFor(agent),
+        },
+        maxBytes: MATRIX_MAX_BYTES,
+        timeoutMs: MATRIX_TIMEOUT_MS,
+      })
+      const durationMs = Math.round(performance.now() - startedAt)
+      if (!page.ok) return { agent, durationMs, error: page.reason }
+      const parsed = parseLinkPreview(page.body, page.url)
+      return {
+        agent,
+        challenge: detectChallenge(page.status, page.headers, page.body),
+        durationMs,
+        finalUrl: page.url,
+        ogImage: parsed.ogImage,
+        ogTitle: parsed.ogTitle,
+        status: page.status,
+        title: parsed.title,
+        twitterCard: parsed.twitterCard,
+      }
+    })
+  )
+}
+
+/** The headless browser the screenshot API already uses, which also returns rendered HTML. */
+const RENDER_API_URL = process.env.SCREENSHOT_API_URL || 'https://api.microlink.io'
+
+const renderResponseSchema = z.object({
+  data: z.object({ head: z.string().nullish() }).partial().nullish(),
+  message: z.string().optional(),
+  status: z.string(),
+})
+
+/**
+ * The page's preview tags after its JavaScript runs, read from the `<head>`
+ * a headless browser rendered. Private addresses are refused before the URL
+ * leaves the server, as they are for screenshots.
+ */
+export async function readRenderedHead(
+  url: string
+): Promise<{ ok: true; rendered: LinkPreviewRendered } | Extract<FetchedText, { ok: false }>> {
+  try {
+    assertPublicCaptureUrl(url)
+  } catch {
+    return { ok: false, reason: 'This address cannot be rendered.', status: 'blocked' }
+  }
+  const params = new URLSearchParams({
+    'data.head.attr': 'html',
+    'data.head.selector': 'head',
+    meta: 'false',
+    prerender: 'true',
+    url,
+  })
+  let response: Response
+  try {
+    response = await fetch(`${RENDER_API_URL}/?${params}`, { signal: AbortSignal.timeout(30_000) })
+  } catch {
+    return { ok: false, reason: 'The page took too long to render.', status: 'failed' }
+  }
+  if (response.status === 429) {
+    return {
+      ok: false,
+      reason: 'The rendering service is at its limit. Try again later.',
+      status: 'failed',
+    }
+  }
+  const body = renderResponseSchema.safeParse(await response.json().catch(() => null))
+  const head = body.success ? body.data.data?.head : undefined
+  if (!response.ok || !body.success || body.data.status !== 'success' || typeof head !== 'string') {
+    return {
+      ok: false,
+      reason: (body.success && body.data.message) || 'The page could not be rendered.',
+      status: 'failed',
+    }
+  }
+  const parsed = parseLinkPreview(`<html><head>${head}</head></html>`, url)
+  return {
+    ok: true,
+    rendered: {
+      canonical: parsed.canonical,
+      description: parsed.description,
+      ogDescription: parsed.ogDescription,
+      ogImage: parsed.ogImage,
+      ogSiteName: parsed.ogSiteName,
+      ogTitle: parsed.ogTitle,
+      ogType: parsed.ogType,
+      ogUrl: parsed.ogUrl,
+      tagCount: parsed.tags.length,
+      title: parsed.title,
+      twitterCard: parsed.twitterCard,
+      twitterDescription: parsed.twitterDescription,
+      twitterImage: parsed.twitterImage,
+      twitterTitle: parsed.twitterTitle,
+    },
   }
 }

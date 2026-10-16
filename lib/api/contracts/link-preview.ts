@@ -114,6 +114,31 @@ export const linkPreviewOembedSchema = z.object({
 /** One of {@link linkPreviewOembedSchema}. */
 export type LinkPreviewOembed = z.infer<typeof linkPreviewOembedSchema>
 
+/** Which link on the page a target check followed. */
+export const linkTargetKindSchema = z.enum(['canonical', 'og:url'])
+
+/** Where the page's canonical or og:url actually leads. */
+export const linkPreviewTargetSchema = z.object({
+  kind: linkTargetKindSchema,
+  url: z.string(),
+  /** The final status after redirects. */
+  status: z.int().optional(),
+  finalUrl: z.string().optional(),
+  error: z.string().optional(),
+})
+
+/** One of {@link linkPreviewTargetSchema}. */
+export type LinkPreviewTarget = z.infer<typeof linkPreviewTargetSchema>
+
+/** Whether UTM tags on the shared link survive the redirects to the page. */
+export const linkPreviewTrackingSchema = z.object({
+  /** The link as shared, with test UTM tags. */
+  url: z.string(),
+  finalUrl: z.string().optional(),
+  kept: z.boolean().optional(),
+  error: z.string().optional(),
+})
+
 const text = z.string().optional()
 
 /** The metadata that decides how a link unfurls on social platforms. URLs are absolute. */
@@ -161,6 +186,8 @@ export const linkPreviewSchema = z.object({
   crawlers: z.array(linkPreviewCrawlerAccessSchema).optional(),
   /** The robots.txt file, cut at 20,000 characters. */
   robotsTxt: z.string().optional(),
+  targets: z.array(linkPreviewTargetSchema).optional(),
+  tracking: linkPreviewTrackingSchema.optional(),
   oembed: linkPreviewOembedSchema.optional(),
 })
 
@@ -276,4 +303,65 @@ export const readSitemapContract = defineContract({
   path: '/api/link-preview/sitemap',
   query: z.object({ url: z.url({ protocol: /^https?$/ }).max(2048) }),
   summary: 'List a site’s pages from its sitemap',
+})
+
+/** What one crawler received when it requested the page. */
+export const crawlerFetchSchema = z.object({
+  agent: linkPreviewAgentSchema,
+  durationMs: z.int().nonnegative(),
+  /** The final status after redirects. */
+  status: z.int().optional(),
+  error: z.string().optional(),
+  finalUrl: z.string().optional(),
+  title: z.string().optional(),
+  ogTitle: z.string().optional(),
+  ogImage: z.string().optional(),
+  twitterCard: z.string().optional(),
+  /** The bot protection that answered instead of the page, such as Cloudflare. */
+  challenge: z.string().optional(),
+})
+
+/** One of {@link crawlerFetchSchema}. */
+export type CrawlerFetch = z.infer<typeof crawlerFetchSchema>
+
+/** `GET /api/link-preview/crawlers`: the page as every platform crawler receives it, side by side. */
+export const crawlerMatrixContract = defineContract({
+  method: 'GET',
+  name: 'link-preview.crawlers',
+  output: z.object({ results: z.array(crawlerFetchSchema) }),
+  path: '/api/link-preview/crawlers',
+  query: z.object({ url: z.url({ protocol: /^https?$/ }).max(2048) }),
+  summary: 'Fetch a page as every crawler',
+})
+
+/** The preview tags as they stand after the page's JavaScript runs in a browser. */
+export const linkPreviewRenderedSchema = linkPreviewSchema
+  .pick({
+    title: true,
+    description: true,
+    canonical: true,
+    ogTitle: true,
+    ogDescription: true,
+    ogImage: true,
+    ogUrl: true,
+    ogType: true,
+    ogSiteName: true,
+    twitterCard: true,
+    twitterTitle: true,
+    twitterDescription: true,
+    twitterImage: true,
+  })
+  .extend({ tagCount: z.int().nonnegative() })
+
+/** One of {@link linkPreviewRenderedSchema}. */
+export type LinkPreviewRendered = z.infer<typeof linkPreviewRenderedSchema>
+
+/** `GET /api/link-preview/rendered`: the page's tags after JavaScript, from a headless browser. */
+export const renderedHeadContract = defineContract({
+  method: 'GET',
+  name: 'link-preview.rendered',
+  output: linkPreviewRenderedSchema,
+  path: '/api/link-preview/rendered',
+  query: z.object({ url: z.url({ protocol: /^https?$/ }).max(2048) }),
+  summary: 'Read the tags after JavaScript runs',
 })

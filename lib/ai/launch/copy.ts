@@ -66,6 +66,8 @@ export async function writeLaunchCopy(
     campaign: LaunchCampaign
     examples: PreferenceExamples
     plan: StoredPlan
+    /** Stops the model when the launch run is cancelled. */
+    signal?: AbortSignal
     spec: StoredSpec
   }
 ) {
@@ -84,6 +86,7 @@ export async function writeLaunchCopy(
   const writeChannel = async (channel: LaunchChannel) => {
     const items = input.plan.content.timeline.filter((item) => item.channel === channel)
     const run = await runSubmitStage({
+      abortSignal: input.signal,
       description:
         `Save the ${channel} posts. Each post lists the spec claims it relies on. ` +
         'Returns the problems to fix if any post breaks a channel rule or the brand voice.',

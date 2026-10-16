@@ -57,11 +57,13 @@ export function RunButton({
   const [startedAt, setStartedAt] = useState<number | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState(initialError ?? null)
+  const [runId, setRunId] = useState<string | null>(null)
   const running = startedAt !== null
 
   async function follow(runId: string) {
     if (following.current === runId) return
     following.current = runId
+    setRunId(runId)
     setError(null)
     setStartedAt((value) => value ?? Date.now())
     try {
@@ -78,7 +80,16 @@ export function RunButton({
       setError(errorMessage(failure))
     } finally {
       following.current = null
+      setRunId(null)
       setStartedAt(null)
+    }
+  }
+
+  async function cancel(id: string) {
+    try {
+      await trpcClient.launch.cancelRun.mutate({ runId: id })
+    } catch (failure) {
+      setError(errorMessage(failure))
     }
   }
 
@@ -132,6 +143,17 @@ export function RunButton({
             {clock(now - startedAt)}
             {hint ? ` · ${hint}` : null}
           </span>
+        ) : null}
+        {runId ? (
+          <Button
+            className="rounded-lg"
+            onClick={() => void cancel(runId)}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            Cancel
+          </Button>
         ) : null}
       </div>
       {error ? (

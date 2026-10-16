@@ -91,7 +91,17 @@ export async function scheduleCampaignPost(
   return withDates(
     await backendSDK(context).scheduleCampaignPost(campaignId, postId, {
       channelConnectionId: input.channelConnectionId,
+      creativeVariantId: input.creativeVariantId,
       scheduledAt: input.scheduledAt?.toISOString(),
     })
   )
+}
+
+/** Approve a design's current render as the visual its posts publish with. */
+export async function approveCampaignDesign(
+  context: TenantContext,
+  campaignId: string,
+  designId: string
+) {
+  return backendSDK(context).approveCampaignDesign(campaignId, designId)
 }

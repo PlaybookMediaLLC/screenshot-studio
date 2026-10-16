@@ -490,3 +490,100 @@ func TestGitHubCompletionAsksForAChoice(t *testing.T) {
 		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
 }
+
+type brandRulesConfiguration struct {
+	fakeConfiguration
+	profile product.UpsertBrandProfileInput
+}
+
+func (c *brandRulesConfiguration) UpsertBrandProfile(_ context.Context, actor product.Actor, input product.UpsertBrandProfileInput) (*ent.BrandProfile, error) {
+	c.profile = input
+	return &ent.BrandProfile{ID: "profile-1", OrganizationID: actor.OrganizationID, ProhibitedTerms: input.ProhibitedTerms}, nil
+}
+
+func (c *brandRulesConfiguration) CreateCampaign(context.Context, product.Actor, product.CreateCampaignInput) (*product.CampaignDetail, error) {
+	return nil, &product.ProhibitedTermsError{Matches: []product.TermMatch{{Term: "Acme", Reason: "Competitor", MatchMode: "word"}}}
+}
+
+func TestBrandProfileTakesLegacyTermsAndBlockedCopyIsAConflict(t *testing.T) {
+	config := &brandRulesConfiguration{}
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", config)
+	saved := configurationRequest(handler, http.MethodPost, "/v1/brand-profile",
+		`{"audience":"Devs","productDescription":"Studio","tone":"Clear","prohibitedTerms":["Acme",{"term":"cheap","reason":"Off brand","matchMode":"phrase"}]}`)
+	if saved.Code != http.StatusOK || len(config.profile.ProhibitedTerms) != 2 || config.profile.ProhibitedTerms[0].Term != "Acme" ||
+		config.profile.ProhibitedTerms[1].MatchMode != "phrase" || !strings.Contains(saved.Body.String(), `"reason":"Off brand"`) {
+		t.Fatalf("profile status=%d body=%s input=%+v", saved.Code, saved.Body, config.profile)
+	}
+	blocked := configurationRequest(handler, http.MethodPost, "/v1/campaigns", `{"name":"Launch","objective":"Adoption"}`)
+	var body struct {
+		Code    string              `json:"code"`
+		Matches []product.TermMatch `json:"matches"`
+	}
+	if blocked.Code != http.StatusConflict || json.Unmarshal(blocked.Body.Bytes(), &body) != nil || body.Code != "brand_prohibited_terms" ||
+		len(body.Matches) != 1 || body.Matches[0].Reason != "Competitor" {
+		t.Fatalf("blocked status=%d body=%s", blocked.Code, blocked.Body)
+	}
+}
+
+type submittingConfiguration struct {
+	fakeConfiguration
+	decision product.CampaignPostDecision
+}
+
+func (c *submittingConfiguration) TransitionCampaignPosts(_ context.Context, actor product.Actor, _ string, input product.CampaignPostDecision) (*product.CampaignPostTransition, error) {
+	c.actor, c.decision = actor, input
+	return &product.CampaignPostTransition{PostIDs: input.PostIDs, Status: "READY_FOR_REVIEW"}, nil
+}
+
+func (c *submittingConfiguration) UpdateCampaignPost(_ context.Context, _ product.Actor, _, postID string, input product.UpdateCampaignPostInput) (*product.CampaignPostItem, error) {
+	return &product.CampaignPostItem{ID: postID, Copy: *input.Copy, Status: "DRAFT"}, nil
+}
+
+func TestUpdateCampaignPostRoute(t *testing.T) {
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", &submittingConfiguration{})
+	path := "/v1/campaigns/c123456789012345678901234/posts/p123456789012345678901234"
+	if edited := configurationRequest(handler, http.MethodPatch, path, `{"expectedCopy":"a","copy":"b"}`); edited.Code != http.StatusOK ||
+		!strings.Contains(edited.Body.String(), `"copy":"b"`) {
+		t.Fatalf("edit status=%d body=%s", edited.Code, edited.Body)
+	}
+	if bad := configurationRequest(handler, http.MethodPatch, path, `{"expectedCopy":"a","status":"APPROVED"}`); bad.Code != http.StatusBadRequest {
+		t.Fatalf("status smuggled into an edit: %d", bad.Code)
+	}
+}
+
+func TestSubmitRouteOnlySubmits(t *testing.T) {
+	config := &submittingConfiguration{}
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", config)
+	response := configurationRequest(handler, http.MethodPost, "/v1/campaigns/c123456789012345678901234/posts/submit", `{"postIds":["p1"]}`)
+	if response.Code != http.StatusOK || config.decision.Decision != "submit" || len(config.decision.PostIDs) != 1 {
+		t.Fatalf("submit status=%d body=%s decision=%+v", response.Code, response.Body, config.decision)
+	}
+	if smuggled := configurationRequest(handler, http.MethodPost, "/v1/campaigns/c123456789012345678901234/posts/submit", `{"decision":"approve"}`); smuggled.Code != http.StatusBadRequest {
+		t.Fatalf("decision in a submit body status=%d", smuggled.Code)
+	}
+}
+
+type surfaceLookupConfiguration struct {
+	fakeConfiguration
+	lookup product.FindSurfacesInput
+}
+
+func (c *surfaceLookupConfiguration) FindSurfacesForFeature(_ context.Context, _ product.Actor, input product.FindSurfacesInput) ([]product.SurfaceMatch, error) {
+	c.lookup = input
+	asset := "asset-1"
+	return []product.SurfaceMatch{{CurrentCaptureAssetID: &asset, Reason: product.SurfaceMatchTag, Score: 100,
+		Surface: &ent.ProductSurface{ID: "surface-1", Slug: "approvals", FeatureTags: []string{}, ScreenshotAssetIds: []string{}}}}, nil
+}
+
+func TestSurfaceLookupReadsFeatureTagsAndLimit(t *testing.T) {
+	config := &surfaceLookupConfiguration{}
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", config)
+	response := configurationRequest(handler, http.MethodGet, "/v1/product-surfaces/match?feature=approvals&tag=a&tag=b&limit=3", "")
+	if response.Code != http.StatusOK || config.lookup.Feature != "approvals" || len(config.lookup.Tags) != 2 || config.lookup.Limit != 3 ||
+		!strings.Contains(response.Body.String(), `"currentCaptureAssetId":"asset-1"`) || !strings.Contains(response.Body.String(), `"slug":"approvals"`) {
+		t.Fatalf("lookup status=%d body=%s input=%+v", response.Code, response.Body, config.lookup)
+	}
+	if bad := configurationRequest(handler, http.MethodGet, "/v1/product-surfaces/match?feature=x&limit=many", ""); bad.Code != http.StatusBadRequest {
+		t.Fatalf("bad limit status=%d", bad.Code)
+	}
+}

@@ -115,6 +115,46 @@ func (_u *ProductSurfaceUpdate) AppendScreenshotAssetIds(v []string) *ProductSur
 	return _u
 }
 
+// SetLastCapturedAt sets the "last_captured_at" field.
+func (_u *ProductSurfaceUpdate) SetLastCapturedAt(v time.Time) *ProductSurfaceUpdate {
+	_u.mutation.SetLastCapturedAt(v)
+	return _u
+}
+
+// SetNillableLastCapturedAt sets the "last_captured_at" field if the given value is not nil.
+func (_u *ProductSurfaceUpdate) SetNillableLastCapturedAt(v *time.Time) *ProductSurfaceUpdate {
+	if v != nil {
+		_u.SetLastCapturedAt(*v)
+	}
+	return _u
+}
+
+// ClearLastCapturedAt clears the value of the "last_captured_at" field.
+func (_u *ProductSurfaceUpdate) ClearLastCapturedAt() *ProductSurfaceUpdate {
+	_u.mutation.ClearLastCapturedAt()
+	return _u
+}
+
+// SetLastCaptureFailureCode sets the "last_capture_failure_code" field.
+func (_u *ProductSurfaceUpdate) SetLastCaptureFailureCode(v string) *ProductSurfaceUpdate {
+	_u.mutation.SetLastCaptureFailureCode(v)
+	return _u
+}
+
+// SetNillableLastCaptureFailureCode sets the "last_capture_failure_code" field if the given value is not nil.
+func (_u *ProductSurfaceUpdate) SetNillableLastCaptureFailureCode(v *string) *ProductSurfaceUpdate {
+	if v != nil {
+		_u.SetLastCaptureFailureCode(*v)
+	}
+	return _u
+}
+
+// ClearLastCaptureFailureCode clears the value of the "last_capture_failure_code" field.
+func (_u *ProductSurfaceUpdate) ClearLastCaptureFailureCode() *ProductSurfaceUpdate {
+	_u.mutation.ClearLastCaptureFailureCode()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ProductSurfaceUpdate) SetUpdatedAt(v time.Time) *ProductSurfaceUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -201,6 +241,18 @@ func (_u *ProductSurfaceUpdate) sqlSave(ctx context.Context) (_node int, err err
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, productsurface.FieldScreenshotAssetIds, value)
 		})
+	}
+	if value, ok := _u.mutation.LastCapturedAt(); ok {
+		_spec.SetField(productsurface.FieldLastCapturedAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastCapturedAtCleared() {
+		_spec.ClearField(productsurface.FieldLastCapturedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.LastCaptureFailureCode(); ok {
+		_spec.SetField(productsurface.FieldLastCaptureFailureCode, field.TypeString, value)
+	}
+	if _u.mutation.LastCaptureFailureCodeCleared() {
+		_spec.ClearField(productsurface.FieldLastCaptureFailureCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(productsurface.FieldUpdatedAt, field.TypeTime, value)
@@ -308,6 +360,46 @@ func (_u *ProductSurfaceUpdateOne) SetScreenshotAssetIds(v []string) *ProductSur
 // AppendScreenshotAssetIds appends value to the "screenshot_asset_ids" field.
 func (_u *ProductSurfaceUpdateOne) AppendScreenshotAssetIds(v []string) *ProductSurfaceUpdateOne {
 	_u.mutation.AppendScreenshotAssetIds(v)
+	return _u
+}
+
+// SetLastCapturedAt sets the "last_captured_at" field.
+func (_u *ProductSurfaceUpdateOne) SetLastCapturedAt(v time.Time) *ProductSurfaceUpdateOne {
+	_u.mutation.SetLastCapturedAt(v)
+	return _u
+}
+
+// SetNillableLastCapturedAt sets the "last_captured_at" field if the given value is not nil.
+func (_u *ProductSurfaceUpdateOne) SetNillableLastCapturedAt(v *time.Time) *ProductSurfaceUpdateOne {
+	if v != nil {
+		_u.SetLastCapturedAt(*v)
+	}
+	return _u
+}
+
+// ClearLastCapturedAt clears the value of the "last_captured_at" field.
+func (_u *ProductSurfaceUpdateOne) ClearLastCapturedAt() *ProductSurfaceUpdateOne {
+	_u.mutation.ClearLastCapturedAt()
+	return _u
+}
+
+// SetLastCaptureFailureCode sets the "last_capture_failure_code" field.
+func (_u *ProductSurfaceUpdateOne) SetLastCaptureFailureCode(v string) *ProductSurfaceUpdateOne {
+	_u.mutation.SetLastCaptureFailureCode(v)
+	return _u
+}
+
+// SetNillableLastCaptureFailureCode sets the "last_capture_failure_code" field if the given value is not nil.
+func (_u *ProductSurfaceUpdateOne) SetNillableLastCaptureFailureCode(v *string) *ProductSurfaceUpdateOne {
+	if v != nil {
+		_u.SetLastCaptureFailureCode(*v)
+	}
+	return _u
+}
+
+// ClearLastCaptureFailureCode clears the value of the "last_capture_failure_code" field.
+func (_u *ProductSurfaceUpdateOne) ClearLastCaptureFailureCode() *ProductSurfaceUpdateOne {
+	_u.mutation.ClearLastCaptureFailureCode()
 	return _u
 }
 
@@ -427,6 +519,18 @@ func (_u *ProductSurfaceUpdateOne) sqlSave(ctx context.Context) (_node *ProductS
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, productsurface.FieldScreenshotAssetIds, value)
 		})
+	}
+	if value, ok := _u.mutation.LastCapturedAt(); ok {
+		_spec.SetField(productsurface.FieldLastCapturedAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastCapturedAtCleared() {
+		_spec.ClearField(productsurface.FieldLastCapturedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.LastCaptureFailureCode(); ok {
+		_spec.SetField(productsurface.FieldLastCaptureFailureCode, field.TypeString, value)
+	}
+	if _u.mutation.LastCaptureFailureCodeCleared() {
+		_spec.ClearField(productsurface.FieldLastCaptureFailureCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(productsurface.FieldUpdatedAt, field.TypeTime, value)

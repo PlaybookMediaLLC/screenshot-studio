@@ -82,6 +82,8 @@ type Tx struct {
 	OutboxEvent *OutboxEventClient
 	// PostizTenantBinding is the client for interacting with the PostizTenantBinding builders.
 	PostizTenantBinding *PostizTenantBindingClient
+	// ProductProfile is the client for interacting with the ProductProfile builders.
+	ProductProfile *ProductProfileClient
 	// ProductSurface is the client for interacting with the ProductSurface builders.
 	ProductSurface *ProductSurfaceClient
 	// PublicationAttempt is the client for interacting with the PublicationAttempt builders.
@@ -106,6 +108,8 @@ type Tx struct {
 	SourceChange *SourceChangeClient
 	// SupportAccessGrant is the client for interacting with the SupportAccessGrant builders.
 	SupportAccessGrant *SupportAccessGrantClient
+	// SurfaceCapture is the client for interacting with the SurfaceCapture builders.
+	SurfaceCapture *SurfaceCaptureClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// WorkspaceCreditGrant is the client for interacting with the WorkspaceCreditGrant builders.
@@ -284,6 +288,7 @@ func (tx *Tx) init() {
 	tx.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(tx.config)
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
 	tx.PostizTenantBinding = NewPostizTenantBindingClient(tx.config)
+	tx.ProductProfile = NewProductProfileClient(tx.config)
 	tx.ProductSurface = NewProductSurfaceClient(tx.config)
 	tx.PublicationAttempt = NewPublicationAttemptClient(tx.config)
 	tx.Release = NewReleaseClient(tx.config)
@@ -296,6 +301,7 @@ func (tx *Tx) init() {
 	tx.SourceApp = NewSourceAppClient(tx.config)
 	tx.SourceChange = NewSourceChangeClient(tx.config)
 	tx.SupportAccessGrant = NewSupportAccessGrantClient(tx.config)
+	tx.SurfaceCapture = NewSurfaceCaptureClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 	tx.WorkspaceCreditGrant = NewWorkspaceCreditGrantClient(tx.config)
 	tx.WorkspaceDeletion = NewWorkspaceDeletionClient(tx.config)

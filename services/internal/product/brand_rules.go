@@ -1,0 +1,150 @@
+package product
+
+import (
+	"context"
+	"regexp"
+	"strings"
+	"unicode/utf8"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandprofile"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/google/uuid"
+)
+
+// Brand rules enforced on write (docs/rfcs/011-brand-profile.md): copy that
+// uses a prohibited term is refused, and a brand kit definition is validated
+// and saved in its canonical schema-version-1 shape.
+
+// TermMatch is a prohibited term found in copy, with the reason to show.
+type TermMatch = brand.TermMatch
+
+// ProhibitedTermsError refuses copy that uses the workspace's prohibited
+// terms. It is a conflict: the copy is valid, the brand forbids it.
+type ProhibitedTermsError struct {
+	Matches []TermMatch
+}
+
+func (e *ProhibitedTermsError) Error() string {
+	terms := make([]string, 0, len(e.Matches))
+	for _, match := range e.Matches {
+		if match.Reason != "" {
+			terms = append(terms, `"`+match.Term+`" (`+match.Reason+`)`)
+		} else {
+			terms = append(terms, `"`+match.Term+`"`)
+		}
+	}
+	return "This copy uses terms the brand prohibits: " + strings.Join(terms, ", ") + "."
+}
+
+func (e *ProhibitedTermsError) Unwrap() error { return publishing.ErrConflict }
+
+// checkProhibited returns the workspace's prohibited terms found in texts.
+func checkProhibited(ctx context.Context, profiles *ent.BrandProfileClient, organizationID string, texts ...string) ([]TermMatch, error) {
+	profile, err := profiles.Query().Where(brandprofile.OrganizationID(organizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return brand.Check(profile.ProhibitedTerms, texts...), nil
+}
+
+// requireAllowedCopy refuses texts that use a prohibited term.
+func requireAllowedCopy(ctx context.Context, profiles *ent.BrandProfileClient, organizationID string, texts ...string) error {
+	matches, err := checkProhibited(ctx, profiles, organizationID, texts...)
+	if err != nil {
+		return err
+	}
+	if len(matches) > 0 {
+		return &ProhibitedTermsError{Matches: matches}
+	}
+	return nil
+}
+
+func optionalText(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
+var brandHexPattern = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
+
+// normalizeBrandKitDefinition validates a schema-version-1 kit definition
+// (brandKitDefinitionSchema in lib/tenant/schemas.ts) and returns it in its
+// canonical shape, with the logo asset to verify. A missing schemaVersion is
+// a legacy definition and is read as 1; legacy colors.foreground is text.
+func normalizeBrandKitDefinition(definition map[string]any) (map[string]any, string, error) {
+	if definition == nil {
+		return nil, "", invalid("A brand kit needs a definition.")
+	}
+	if version, ok := definition["schemaVersion"]; ok && version != float64(1) && version != 1 {
+		return nil, "", invalid("definition.schemaVersion must be 1.")
+	}
+	colors, _ := definition["colors"].(map[string]any)
+	if colors == nil {
+		return nil, "", invalid("definition.colors is required.")
+	}
+	text, hasText := colors["text"]
+	if !hasText {
+		text = colors["foreground"]
+	}
+	canonicalColors := map[string]any{}
+	for _, color := range []struct {
+		name  string
+		value any
+	}{{"text", text}, {"background", colors["background"]}, {"accent", colors["accent"]}} {
+		name := color.name
+		hex, ok := color.value.(string)
+		hex = strings.TrimSpace(hex)
+		if !ok || !brandHexPattern.MatchString(hex) {
+			return nil, "", invalid("definition.colors." + name + " must be a #RRGGBB hex color.")
+		}
+		canonicalColors[name] = hex
+	}
+	typography, _ := definition["typography"].(map[string]any)
+	canonicalTypography := map[string]any{}
+	for _, name := range []string{"headingFamily", "bodyFamily"} {
+		value, present := typography[name]
+		if !present && name == "bodyFamily" {
+			continue
+		}
+		font, ok := value.(string)
+		font = strings.TrimSpace(font)
+		if !ok || font == "" || utf8.RuneCountInString(font) > 64 {
+			return nil, "", invalid("definition.typography." + name + " must be a font name of at most 64 characters.")
+		}
+		canonicalTypography[name] = font
+	}
+	canonical := map[string]any{"schemaVersion": 1, "colors": canonicalColors, "typography": canonicalTypography}
+	logoAssetID := ""
+	if logo, present := definition["logo"]; present && logo != nil {
+		fields, _ := logo.(map[string]any)
+		id, _ := fields["primaryAssetId"].(string)
+		if _, err := uuid.Parse(id); err != nil {
+			return nil, "", invalid("definition.logo.primaryAssetId must be an asset ID.")
+		}
+		logoAssetID = id
+		canonical["logo"] = map[string]any{"primaryAssetId": id}
+	}
+	return canonical, logoAssetID, nil
+}
+
+// requireBrandLogo checks that a kit's logo is an uploaded image of the workspace.
+func requireBrandLogo(ctx context.Context, assets *ent.AssetClient, organizationID, assetID string) error {
+	logo, err := assets.Query().Where(asset.ID(assetID), asset.OrganizationID(organizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return invalid("definition.logo.primaryAssetId is not an asset of this workspace.")
+	}
+	if err != nil {
+		return err
+	}
+	if logo.Status != asset.StatusUPLOADED || !strings.HasPrefix(logo.MediaType, "image/") {
+		return invalid("definition.logo.primaryAssetId must be an uploaded image.")
+	}
+	return nil
+}

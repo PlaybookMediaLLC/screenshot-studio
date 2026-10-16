@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test'
 import { z } from 'zod'
 import { getE2EUrl } from './auth'
 import type { E2EIdentity } from './flow'
-import { grantWorkspacePlan } from './services'
+import { createE2EDatabase, grantWorkspacePlan } from './services'
 import { getTotpCode } from './totp'
 
 /** Publishing setup shared by the scheduling flows and the social gate. */
@@ -158,7 +158,11 @@ export async function createUploadedAsset(page: Page): Promise<string> {
 export async function createApprovedVariant(page: Page): Promise<string> {
   const assetId = await createUploadedAsset(page)
   const kitResponse = await trpcMutation(page, 'brandKit.create', {
-    definition: { accent: '#7047eb' },
+    definition: {
+      colors: { accent: '#7047eb', background: '#ffffff', text: '#111111' },
+      schemaVersion: 1,
+      typography: { headingFamily: 'inter' },
+    },
     name: 'Launch brand',
     publish: true,
   })
@@ -211,4 +215,40 @@ export async function createScheduledPost(
     variantId,
   })
   return { response, scheduledPost: scheduledPostSchema.parse(response.body).scheduledPost }
+}
+
+/** The Postiz credential the e2e stack binds test workspaces to. */
+export const e2eSecretReference = 'POSTIZ_API_KEY_E2E'
+
+/** Bind the active workspace to the Postiz mock's organization, `go-<organizationId>`. */
+export async function bindTestGoOrganization(page: Page): Promise<string> {
+  const organizationId = await getActiveOrganizationId(page)
+  const goOrganizationId = `go-${organizationId}`
+  const database = createE2EDatabase()
+  try {
+    await database.query('DELETE FROM postiz_tenant_binding WHERE "secretReference" = $1', [
+      e2eSecretReference,
+    ])
+    await database.query(
+      `INSERT INTO postiz_tenant_binding ("organizationId", "goOrganizationId", "secretReference")
+       VALUES ($1, $2, $3)`,
+      [organizationId, goOrganizationId, e2eSecretReference]
+    )
+  } finally {
+    await database.end()
+  }
+  return organizationId
+}
+
+export async function unbindTestGoOrganization(organizationId: string | null): Promise<void> {
+  if (!organizationId) return
+  const database = createE2EDatabase()
+  try {
+    await database.query(
+      'DELETE FROM postiz_tenant_binding WHERE "organizationId" = $1 AND "secretReference" = $2',
+      [organizationId, e2eSecretReference]
+    )
+  } finally {
+    await database.end()
+  }
 }

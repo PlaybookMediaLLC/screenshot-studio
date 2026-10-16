@@ -47,6 +47,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
@@ -59,6 +60,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacecreditgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
@@ -160,6 +162,7 @@ func checkColumn(t, c string) error {
 			organizationenterprisesettings.Table: organizationenterprisesettings.ValidColumn,
 			outboxevent.Table:                    outboxevent.ValidColumn,
 			postiztenantbinding.Table:            postiztenantbinding.ValidColumn,
+			productprofile.Table:                 productprofile.ValidColumn,
 			productsurface.Table:                 productsurface.ValidColumn,
 			publicationattempt.Table:             publicationattempt.ValidColumn,
 			release.Table:                        release.ValidColumn,
@@ -172,6 +175,7 @@ func checkColumn(t, c string) error {
 			sourceapp.Table:                      sourceapp.ValidColumn,
 			sourcechange.Table:                   sourcechange.ValidColumn,
 			supportaccessgrant.Table:             supportaccessgrant.ValidColumn,
+			surfacecapture.Table:                 surfacecapture.ValidColumn,
 			user.Table:                           user.ValidColumn,
 			workspacecreditgrant.Table:           workspacecreditgrant.ValidColumn,
 			workspacedeletion.Table:              workspacedeletion.ValidColumn,

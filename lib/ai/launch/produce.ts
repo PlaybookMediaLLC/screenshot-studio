@@ -35,7 +35,11 @@ import { VISUALS_FALLBACK_INSTRUCTIONS, VISUALS_INSTRUCTIONS } from './prompts'
  * exist, else the latest drafts. Whatever finished is kept if the other half
  * fails.
  */
-export async function produceCampaign(tenant: TenantContext, campaignId: string) {
+export async function produceCampaign(
+  tenant: TenantContext,
+  campaignId: string,
+  signal?: AbortSignal
+) {
   const campaign = await loadLaunchCampaign(tenant, campaignId)
   if (!campaign.release) throw new LaunchError('Link a release brief first.', 409)
   const [spec, plan] = await Promise.all([
@@ -52,6 +56,7 @@ export async function produceCampaign(tenant: TenantContext, campaignId: string)
     getActiveBrand(tenant),
     loadPreferenceExamples(tenant),
   ])
+  signal?.throwIfAborted()
 
   const record: CampaignStudioRecord = { assets: [], savedPosts: 0 }
   const scope = {
@@ -100,6 +105,7 @@ export async function produceCampaign(tenant: TenantContext, campaignId: string)
   // The visuals agent drafts on Sonnet: its long tool loop is most of a launch's cost.
   const [visualsRun, copyRun] = await Promise.allSettled([
     generateText({
+      abortSignal: signal,
       model: models.languageModel('drafting'),
       prompt,
       stopWhen: stepCountIs(designMode ? budget.steps : Math.ceil(budget.steps / 2)),
@@ -108,13 +114,14 @@ export async function produceCampaign(tenant: TenantContext, campaignId: string)
     }).finally(async () => {
       if (renderer) await (await renderer).close().catch(() => undefined)
     }),
-    writeLaunchCopy(tenant, { brand, campaign, examples, plan, spec }),
+    writeLaunchCopy(tenant, { brand, campaign, examples, plan, signal, spec }),
   ])
   if (visualsRun.status === 'rejected') throw visualsRun.reason
   if (copyRun.status === 'rejected') throw copyRun.reason
   const visuals = visualsRun.value
   const copy = copyRun.value
   const usage = normalizeTokenUsage(visuals.totalUsage)
+  signal?.throwIfAborted()
   await backendSDK(tenant).appendAuditEvent({
     action: 'product.campaign_produced',
     entityId: campaignId,

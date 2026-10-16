@@ -49,6 +49,8 @@ func (s *Server) registerWorkspace(mux *http.ServeMux) {
 	mux.Handle("GET /v1/campaigns/{id}", s.authenticateProduct(http.HandlerFunc(s.getCampaign)))
 	mux.Handle("POST /v1/campaigns/{id}/transition", s.authenticateProduct(http.HandlerFunc(s.transitionCampaign)))
 	mux.Handle("POST /v1/campaigns/{id}/posts/decide", s.authenticateProduct(http.HandlerFunc(s.decideCampaignPosts)))
+	mux.Handle("PATCH /v1/campaigns/{id}/posts/{postId}", s.authenticateProduct(http.HandlerFunc(s.updateCampaignPost)))
+	mux.Handle("POST /v1/campaigns/{id}/posts/submit", s.authenticateProduct(http.HandlerFunc(s.submitCampaignPosts)))
 	mux.Handle("POST /v1/campaigns/{id}/posts/{postId}/schedule", s.authenticateProduct(http.HandlerFunc(s.scheduleCampaignPost)))
 	mux.Handle("GET /v1/campaigns/{id}/designs", s.authenticateProduct(http.HandlerFunc(s.listCampaignDesigns)))
 	mux.Handle("POST /v1/designs", s.authenticateProduct(http.HandlerFunc(s.createDesign)))

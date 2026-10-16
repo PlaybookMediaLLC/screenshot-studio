@@ -48,6 +48,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
@@ -60,12 +61,15 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacecreditgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacegithubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/profile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 )
 
@@ -113,6 +117,7 @@ const (
 	TypeOrganizationEnterpriseSettings = "OrganizationEnterpriseSettings"
 	TypeOutboxEvent                    = "OutboxEvent"
 	TypePostizTenantBinding            = "PostizTenantBinding"
+	TypeProductProfile                 = "ProductProfile"
 	TypeProductSurface                 = "ProductSurface"
 	TypePublicationAttempt             = "PublicationAttempt"
 	TypeRelease                        = "Release"
@@ -125,6 +130,7 @@ const (
 	TypeSourceApp                      = "SourceApp"
 	TypeSourceChange                   = "SourceChange"
 	TypeSupportAccessGrant             = "SupportAccessGrant"
+	TypeSurfaceCapture                 = "SurfaceCapture"
 	TypeUser                           = "User"
 	TypeWorkspaceCreditGrant           = "WorkspaceCreditGrant"
 	TypeWorkspaceDeletion              = "WorkspaceDeletion"
@@ -8767,8 +8773,8 @@ type BrandProfileMutation struct {
 	tone                   *string
 	tagline                *string
 	cta_conventions        *string
-	prohibited_terms       *[]string
-	appendprohibited_terms []string
+	prohibited_terms       *[]brand.ProhibitedTerm
+	appendprohibited_terms []brand.ProhibitedTerm
 	preferred_styles       *[]string
 	appendpreferred_styles []string
 	social_handles         *map[string]string
@@ -9127,13 +9133,13 @@ func (m *BrandProfileMutation) ResetCtaConventions() {
 }
 
 // SetProhibitedTerms sets the "prohibited_terms" field.
-func (m *BrandProfileMutation) SetProhibitedTerms(s []string) {
-	m.prohibited_terms = &s
+func (m *BrandProfileMutation) SetProhibitedTerms(bt []brand.ProhibitedTerm) {
+	m.prohibited_terms = &bt
 	m.appendprohibited_terms = nil
 }
 
 // ProhibitedTerms returns the value of the "prohibited_terms" field in the mutation.
-func (m *BrandProfileMutation) ProhibitedTerms() (r []string, exists bool) {
+func (m *BrandProfileMutation) ProhibitedTerms() (r []brand.ProhibitedTerm, exists bool) {
 	v := m.prohibited_terms
 	if v == nil {
 		return
@@ -9144,7 +9150,7 @@ func (m *BrandProfileMutation) ProhibitedTerms() (r []string, exists bool) {
 // OldProhibitedTerms returns the old "prohibited_terms" field's value of the BrandProfile entity.
 // If the BrandProfile object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BrandProfileMutation) OldProhibitedTerms(ctx context.Context) (v []string, err error) {
+func (m *BrandProfileMutation) OldProhibitedTerms(ctx context.Context) (v []brand.ProhibitedTerm, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldProhibitedTerms is only allowed on UpdateOne operations")
 	}
@@ -9158,13 +9164,13 @@ func (m *BrandProfileMutation) OldProhibitedTerms(ctx context.Context) (v []stri
 	return oldValue.ProhibitedTerms, nil
 }
 
-// AppendProhibitedTerms adds s to the "prohibited_terms" field.
-func (m *BrandProfileMutation) AppendProhibitedTerms(s []string) {
-	m.appendprohibited_terms = append(m.appendprohibited_terms, s...)
+// AppendProhibitedTerms adds bt to the "prohibited_terms" field.
+func (m *BrandProfileMutation) AppendProhibitedTerms(bt []brand.ProhibitedTerm) {
+	m.appendprohibited_terms = append(m.appendprohibited_terms, bt...)
 }
 
 // AppendedProhibitedTerms returns the list of values that were appended to the "prohibited_terms" field in this mutation.
-func (m *BrandProfileMutation) AppendedProhibitedTerms() ([]string, bool) {
+func (m *BrandProfileMutation) AppendedProhibitedTerms() ([]brand.ProhibitedTerm, bool) {
 	if len(m.appendprohibited_terms) == 0 {
 		return nil, false
 	}
@@ -9517,7 +9523,7 @@ func (m *BrandProfileMutation) SetField(name string, value ent.Value) error {
 		m.SetCtaConventions(v)
 		return nil
 	case brandprofile.FieldProhibitedTerms:
-		v, ok := value.([]string)
+		v, ok := value.([]brand.ProhibitedTerm)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -30148,6 +30154,1034 @@ func (m *PostizTenantBindingMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown PostizTenantBinding edge %s", name)
 }
 
+// ProductProfileMutation represents an operation that mutates the ProductProfile nodes in the graph.
+type ProductProfileMutation struct {
+	config
+	op                 Op
+	typ                string
+	id                 *string
+	organization_id    *string
+	name               *string
+	url                *string
+	summary            *string
+	problem            *string
+	audience           *string
+	capabilities       *[]string
+	appendcapabilities []string
+	proof_points       *[]profile.ProofPoint
+	appendproof_points []profile.ProofPoint
+	pricing_note       *string
+	competitors        *[]string
+	appendcompetitors  []string
+	provenance         *map[string]profile.FieldProvenance
+	created_at         *time.Time
+	updated_at         *time.Time
+	clearedFields      map[string]struct{}
+	done               bool
+	oldValue           func(context.Context) (*ProductProfile, error)
+	predicates         []predicate.ProductProfile
+}
+
+var _ ent.Mutation = (*ProductProfileMutation)(nil)
+
+// productprofileOption allows management of the mutation configuration using functional options.
+type productprofileOption func(*ProductProfileMutation)
+
+// newProductProfileMutation creates new mutation for the ProductProfile entity.
+func newProductProfileMutation(c config, op Op, opts ...productprofileOption) *ProductProfileMutation {
+	m := &ProductProfileMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeProductProfile,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withProductProfileID sets the ID field of the mutation.
+func withProductProfileID(id string) productprofileOption {
+	return func(m *ProductProfileMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ProductProfile
+		)
+		m.oldValue = func(ctx context.Context) (*ProductProfile, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ProductProfile.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withProductProfile sets the old ProductProfile of the mutation.
+func withProductProfile(node *ProductProfile) productprofileOption {
+	return func(m *ProductProfileMutation) {
+		m.oldValue = func(context.Context) (*ProductProfile, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ProductProfileMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ProductProfileMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ProductProfile entities.
+func (m *ProductProfileMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ProductProfileMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ProductProfileMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ProductProfile.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *ProductProfileMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *ProductProfileMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the ProductProfile entity.
+// If the ProductProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductProfileMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *ProductProfileMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetName sets the "name" field.
+func (m *ProductProfileMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *ProductProfileMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the ProductProfile entity.
+// If the ProductProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductProfileMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *ProductProfileMutation) ResetName() {
+	m.name = nil
+}
+
+// SetURL sets the "url" field.
+func (m *ProductProfileMutation) SetURL(s string) {
+	m.url = &s
+}
+
+// URL returns the value of the "url" field in the mutation.
+func (m *ProductProfileMutation) URL() (r string, exists bool) {
+	v := m.url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldURL returns the old "url" field's value of the ProductProfile entity.
+// If the ProductProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductProfileMutation) OldURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldURL: %w", err)
+	}
+	return oldValue.URL, nil
+}
+
+// ResetURL resets all changes to the "url" field.
+func (m *ProductProfileMutation) ResetURL() {
+	m.url = nil
+}
+
+// SetSummary sets the "summary" field.
+func (m *ProductProfileMutation) SetSummary(s string) {
+	m.summary = &s
+}
+
+// Summary returns the value of the "summary" field in the mutation.
+func (m *ProductProfileMutation) Summary() (r string, exists bool) {
+	v := m.summary
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSummary returns the old "summary" field's value of the ProductProfile entity.
+// If the ProductProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductProfileMutation) OldSummary(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSummary is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSummary requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSummary: %w", err)
+	}
+	return oldValue.Summary, nil
+}
+
+// ResetSummary resets all changes to the "summary" field.
+func (m *ProductProfileMutation) ResetSummary() {
+	m.summary = nil
+}
+
+// SetProblem sets the "problem" field.
+func (m *ProductProfileMutation) SetProblem(s string) {
+	m.problem = &s
+}
+
+// Problem returns the value of the "problem" field in the mutation.
+func (m *ProductProfileMutation) Problem() (r string, exists bool) {
+	v := m.problem
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProblem returns the old "problem" field's value of the ProductProfile entity.
+// If the ProductProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductProfileMutation) OldProblem(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProblem is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProblem requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProblem: %w", err)
+	}
+	return oldValue.Problem, nil
+}
+
+// ResetProblem resets all changes to the "problem" field.
+func (m *ProductProfileMutation) ResetProblem() {
+	m.problem = nil
+}
+
+// SetAudience sets the "audience" field.
+func (m *ProductProfileMutation) SetAudience(s string) {
+	m.audience = &s
+}
+
+// Audience returns the value of the "audience" field in the mutation.
+func (m *ProductProfileMutation) Audience() (r string, exists bool) {
+	v := m.audience
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAudience returns the old "audience" field's value of the ProductProfile entity.
+// If the ProductProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductProfileMutation) OldAudience(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAudience is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAudience requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAudience: %w", err)
+	}
+	return oldValue.Audience, nil
+}
+
+// ResetAudience resets all changes to the "audience" field.
+func (m *ProductProfileMutation) ResetAudience() {
+	m.audience = nil
+}
+
+// SetCapabilities sets the "capabilities" field.
+func (m *ProductProfileMutation) SetCapabilities(s []string) {
+	m.capabilities = &s
+	m.appendcapabilities = nil
+}
+
+// Capabilities returns the value of the "capabilities" field in the mutation.
+func (m *ProductProfileMutation) Capabilities() (r []string, exists bool) {
+	v := m.capabilities
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCapabilities returns the old "capabilities" field's value of the ProductProfile entity.
+// If the ProductProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductProfileMutation) OldCapabilities(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCapabilities is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCapabilities requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCapabilities: %w", err)
+	}
+	return oldValue.Capabilities, nil
+}
+
+// AppendCapabilities adds s to the "capabilities" field.
+func (m *ProductProfileMutation) AppendCapabilities(s []string) {
+	m.appendcapabilities = append(m.appendcapabilities, s...)
+}
+
+// AppendedCapabilities returns the list of values that were appended to the "capabilities" field in this mutation.
+func (m *ProductProfileMutation) AppendedCapabilities() ([]string, bool) {
+	if len(m.appendcapabilities) == 0 {
+		return nil, false
+	}
+	return m.appendcapabilities, true
+}
+
+// ResetCapabilities resets all changes to the "capabilities" field.
+func (m *ProductProfileMutation) ResetCapabilities() {
+	m.capabilities = nil
+	m.appendcapabilities = nil
+}
+
+// SetProofPoints sets the "proof_points" field.
+func (m *ProductProfileMutation) SetProofPoints(pp []profile.ProofPoint) {
+	m.proof_points = &pp
+	m.appendproof_points = nil
+}
+
+// ProofPoints returns the value of the "proof_points" field in the mutation.
+func (m *ProductProfileMutation) ProofPoints() (r []profile.ProofPoint, exists bool) {
+	v := m.proof_points
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProofPoints returns the old "proof_points" field's value of the ProductProfile entity.
+// If the ProductProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductProfileMutation) OldProofPoints(ctx context.Context) (v []profile.ProofPoint, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProofPoints is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProofPoints requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProofPoints: %w", err)
+	}
+	return oldValue.ProofPoints, nil
+}
+
+// AppendProofPoints adds pp to the "proof_points" field.
+func (m *ProductProfileMutation) AppendProofPoints(pp []profile.ProofPoint) {
+	m.appendproof_points = append(m.appendproof_points, pp...)
+}
+
+// AppendedProofPoints returns the list of values that were appended to the "proof_points" field in this mutation.
+func (m *ProductProfileMutation) AppendedProofPoints() ([]profile.ProofPoint, bool) {
+	if len(m.appendproof_points) == 0 {
+		return nil, false
+	}
+	return m.appendproof_points, true
+}
+
+// ResetProofPoints resets all changes to the "proof_points" field.
+func (m *ProductProfileMutation) ResetProofPoints() {
+	m.proof_points = nil
+	m.appendproof_points = nil
+}
+
+// SetPricingNote sets the "pricing_note" field.
+func (m *ProductProfileMutation) SetPricingNote(s string) {
+	m.pricing_note = &s
+}
+
+// PricingNote returns the value of the "pricing_note" field in the mutation.
+func (m *ProductProfileMutation) PricingNote() (r string, exists bool) {
+	v := m.pricing_note
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPricingNote returns the old "pricing_note" field's value of the ProductProfile entity.
+// If the ProductProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductProfileMutation) OldPricingNote(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPricingNote is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPricingNote requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPricingNote: %w", err)
+	}
+	return oldValue.PricingNote, nil
+}
+
+// ResetPricingNote resets all changes to the "pricing_note" field.
+func (m *ProductProfileMutation) ResetPricingNote() {
+	m.pricing_note = nil
+}
+
+// SetCompetitors sets the "competitors" field.
+func (m *ProductProfileMutation) SetCompetitors(s []string) {
+	m.competitors = &s
+	m.appendcompetitors = nil
+}
+
+// Competitors returns the value of the "competitors" field in the mutation.
+func (m *ProductProfileMutation) Competitors() (r []string, exists bool) {
+	v := m.competitors
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompetitors returns the old "competitors" field's value of the ProductProfile entity.
+// If the ProductProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductProfileMutation) OldCompetitors(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCompetitors is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCompetitors requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompetitors: %w", err)
+	}
+	return oldValue.Competitors, nil
+}
+
+// AppendCompetitors adds s to the "competitors" field.
+func (m *ProductProfileMutation) AppendCompetitors(s []string) {
+	m.appendcompetitors = append(m.appendcompetitors, s...)
+}
+
+// AppendedCompetitors returns the list of values that were appended to the "competitors" field in this mutation.
+func (m *ProductProfileMutation) AppendedCompetitors() ([]string, bool) {
+	if len(m.appendcompetitors) == 0 {
+		return nil, false
+	}
+	return m.appendcompetitors, true
+}
+
+// ResetCompetitors resets all changes to the "competitors" field.
+func (m *ProductProfileMutation) ResetCompetitors() {
+	m.competitors = nil
+	m.appendcompetitors = nil
+}
+
+// SetProvenance sets the "provenance" field.
+func (m *ProductProfileMutation) SetProvenance(mp map[string]profile.FieldProvenance) {
+	m.provenance = &mp
+}
+
+// Provenance returns the value of the "provenance" field in the mutation.
+func (m *ProductProfileMutation) Provenance() (r map[string]profile.FieldProvenance, exists bool) {
+	v := m.provenance
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProvenance returns the old "provenance" field's value of the ProductProfile entity.
+// If the ProductProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductProfileMutation) OldProvenance(ctx context.Context) (v map[string]profile.FieldProvenance, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProvenance is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProvenance requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProvenance: %w", err)
+	}
+	return oldValue.Provenance, nil
+}
+
+// ResetProvenance resets all changes to the "provenance" field.
+func (m *ProductProfileMutation) ResetProvenance() {
+	m.provenance = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ProductProfileMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ProductProfileMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ProductProfile entity.
+// If the ProductProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductProfileMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ProductProfileMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ProductProfileMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ProductProfileMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ProductProfile entity.
+// If the ProductProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductProfileMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ProductProfileMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the ProductProfileMutation builder.
+func (m *ProductProfileMutation) Where(ps ...predicate.ProductProfile) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ProductProfileMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ProductProfileMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ProductProfile, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ProductProfileMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ProductProfileMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ProductProfile).
+func (m *ProductProfileMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ProductProfileMutation) Fields() []string {
+	fields := make([]string, 0, 13)
+	if m.organization_id != nil {
+		fields = append(fields, productprofile.FieldOrganizationID)
+	}
+	if m.name != nil {
+		fields = append(fields, productprofile.FieldName)
+	}
+	if m.url != nil {
+		fields = append(fields, productprofile.FieldURL)
+	}
+	if m.summary != nil {
+		fields = append(fields, productprofile.FieldSummary)
+	}
+	if m.problem != nil {
+		fields = append(fields, productprofile.FieldProblem)
+	}
+	if m.audience != nil {
+		fields = append(fields, productprofile.FieldAudience)
+	}
+	if m.capabilities != nil {
+		fields = append(fields, productprofile.FieldCapabilities)
+	}
+	if m.proof_points != nil {
+		fields = append(fields, productprofile.FieldProofPoints)
+	}
+	if m.pricing_note != nil {
+		fields = append(fields, productprofile.FieldPricingNote)
+	}
+	if m.competitors != nil {
+		fields = append(fields, productprofile.FieldCompetitors)
+	}
+	if m.provenance != nil {
+		fields = append(fields, productprofile.FieldProvenance)
+	}
+	if m.created_at != nil {
+		fields = append(fields, productprofile.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, productprofile.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ProductProfileMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case productprofile.FieldOrganizationID:
+		return m.OrganizationID()
+	case productprofile.FieldName:
+		return m.Name()
+	case productprofile.FieldURL:
+		return m.URL()
+	case productprofile.FieldSummary:
+		return m.Summary()
+	case productprofile.FieldProblem:
+		return m.Problem()
+	case productprofile.FieldAudience:
+		return m.Audience()
+	case productprofile.FieldCapabilities:
+		return m.Capabilities()
+	case productprofile.FieldProofPoints:
+		return m.ProofPoints()
+	case productprofile.FieldPricingNote:
+		return m.PricingNote()
+	case productprofile.FieldCompetitors:
+		return m.Competitors()
+	case productprofile.FieldProvenance:
+		return m.Provenance()
+	case productprofile.FieldCreatedAt:
+		return m.CreatedAt()
+	case productprofile.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ProductProfileMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case productprofile.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case productprofile.FieldName:
+		return m.OldName(ctx)
+	case productprofile.FieldURL:
+		return m.OldURL(ctx)
+	case productprofile.FieldSummary:
+		return m.OldSummary(ctx)
+	case productprofile.FieldProblem:
+		return m.OldProblem(ctx)
+	case productprofile.FieldAudience:
+		return m.OldAudience(ctx)
+	case productprofile.FieldCapabilities:
+		return m.OldCapabilities(ctx)
+	case productprofile.FieldProofPoints:
+		return m.OldProofPoints(ctx)
+	case productprofile.FieldPricingNote:
+		return m.OldPricingNote(ctx)
+	case productprofile.FieldCompetitors:
+		return m.OldCompetitors(ctx)
+	case productprofile.FieldProvenance:
+		return m.OldProvenance(ctx)
+	case productprofile.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case productprofile.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ProductProfile field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProductProfileMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case productprofile.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case productprofile.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case productprofile.FieldURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetURL(v)
+		return nil
+	case productprofile.FieldSummary:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSummary(v)
+		return nil
+	case productprofile.FieldProblem:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProblem(v)
+		return nil
+	case productprofile.FieldAudience:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAudience(v)
+		return nil
+	case productprofile.FieldCapabilities:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCapabilities(v)
+		return nil
+	case productprofile.FieldProofPoints:
+		v, ok := value.([]profile.ProofPoint)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProofPoints(v)
+		return nil
+	case productprofile.FieldPricingNote:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPricingNote(v)
+		return nil
+	case productprofile.FieldCompetitors:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompetitors(v)
+		return nil
+	case productprofile.FieldProvenance:
+		v, ok := value.(map[string]profile.FieldProvenance)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProvenance(v)
+		return nil
+	case productprofile.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case productprofile.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ProductProfile field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ProductProfileMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ProductProfileMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProductProfileMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ProductProfile numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ProductProfileMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ProductProfileMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ProductProfileMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown ProductProfile nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ProductProfileMutation) ResetField(name string) error {
+	switch name {
+	case productprofile.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case productprofile.FieldName:
+		m.ResetName()
+		return nil
+	case productprofile.FieldURL:
+		m.ResetURL()
+		return nil
+	case productprofile.FieldSummary:
+		m.ResetSummary()
+		return nil
+	case productprofile.FieldProblem:
+		m.ResetProblem()
+		return nil
+	case productprofile.FieldAudience:
+		m.ResetAudience()
+		return nil
+	case productprofile.FieldCapabilities:
+		m.ResetCapabilities()
+		return nil
+	case productprofile.FieldProofPoints:
+		m.ResetProofPoints()
+		return nil
+	case productprofile.FieldPricingNote:
+		m.ResetPricingNote()
+		return nil
+	case productprofile.FieldCompetitors:
+		m.ResetCompetitors()
+		return nil
+	case productprofile.FieldProvenance:
+		m.ResetProvenance()
+		return nil
+	case productprofile.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case productprofile.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ProductProfile field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ProductProfileMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ProductProfileMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ProductProfileMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ProductProfileMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ProductProfileMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ProductProfileMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ProductProfileMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ProductProfile unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ProductProfileMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ProductProfile edge %s", name)
+}
+
 // ProductSurfaceMutation represents an operation that mutates the ProductSurface nodes in the graph.
 type ProductSurfaceMutation struct {
 	config
@@ -30156,6 +31190,7 @@ type ProductSurfaceMutation struct {
 	id                         *string
 	organization_id            *string
 	name                       *string
+	slug                       *string
 	url                        *string
 	environment                *string
 	description                *string
@@ -30163,6 +31198,8 @@ type ProductSurfaceMutation struct {
 	appendfeature_tags         []string
 	screenshot_asset_ids       *[]string
 	appendscreenshot_asset_ids []string
+	last_captured_at           *time.Time
+	last_capture_failure_code  *string
 	created_at                 *time.Time
 	updated_at                 *time.Time
 	clearedFields              map[string]struct{}
@@ -30345,6 +31382,42 @@ func (m *ProductSurfaceMutation) OldName(ctx context.Context) (v string, err err
 // ResetName resets all changes to the "name" field.
 func (m *ProductSurfaceMutation) ResetName() {
 	m.name = nil
+}
+
+// SetSlug sets the "slug" field.
+func (m *ProductSurfaceMutation) SetSlug(s string) {
+	m.slug = &s
+}
+
+// Slug returns the value of the "slug" field in the mutation.
+func (m *ProductSurfaceMutation) Slug() (r string, exists bool) {
+	v := m.slug
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlug returns the old "slug" field's value of the ProductSurface entity.
+// If the ProductSurface object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductSurfaceMutation) OldSlug(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSlug is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSlug requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlug: %w", err)
+	}
+	return oldValue.Slug, nil
+}
+
+// ResetSlug resets all changes to the "slug" field.
+func (m *ProductSurfaceMutation) ResetSlug() {
+	m.slug = nil
 }
 
 // SetURL sets the "url" field.
@@ -30570,6 +31643,104 @@ func (m *ProductSurfaceMutation) ResetScreenshotAssetIds() {
 	m.appendscreenshot_asset_ids = nil
 }
 
+// SetLastCapturedAt sets the "last_captured_at" field.
+func (m *ProductSurfaceMutation) SetLastCapturedAt(t time.Time) {
+	m.last_captured_at = &t
+}
+
+// LastCapturedAt returns the value of the "last_captured_at" field in the mutation.
+func (m *ProductSurfaceMutation) LastCapturedAt() (r time.Time, exists bool) {
+	v := m.last_captured_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastCapturedAt returns the old "last_captured_at" field's value of the ProductSurface entity.
+// If the ProductSurface object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductSurfaceMutation) OldLastCapturedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastCapturedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastCapturedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastCapturedAt: %w", err)
+	}
+	return oldValue.LastCapturedAt, nil
+}
+
+// ClearLastCapturedAt clears the value of the "last_captured_at" field.
+func (m *ProductSurfaceMutation) ClearLastCapturedAt() {
+	m.last_captured_at = nil
+	m.clearedFields[productsurface.FieldLastCapturedAt] = struct{}{}
+}
+
+// LastCapturedAtCleared returns if the "last_captured_at" field was cleared in this mutation.
+func (m *ProductSurfaceMutation) LastCapturedAtCleared() bool {
+	_, ok := m.clearedFields[productsurface.FieldLastCapturedAt]
+	return ok
+}
+
+// ResetLastCapturedAt resets all changes to the "last_captured_at" field.
+func (m *ProductSurfaceMutation) ResetLastCapturedAt() {
+	m.last_captured_at = nil
+	delete(m.clearedFields, productsurface.FieldLastCapturedAt)
+}
+
+// SetLastCaptureFailureCode sets the "last_capture_failure_code" field.
+func (m *ProductSurfaceMutation) SetLastCaptureFailureCode(s string) {
+	m.last_capture_failure_code = &s
+}
+
+// LastCaptureFailureCode returns the value of the "last_capture_failure_code" field in the mutation.
+func (m *ProductSurfaceMutation) LastCaptureFailureCode() (r string, exists bool) {
+	v := m.last_capture_failure_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastCaptureFailureCode returns the old "last_capture_failure_code" field's value of the ProductSurface entity.
+// If the ProductSurface object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductSurfaceMutation) OldLastCaptureFailureCode(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastCaptureFailureCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastCaptureFailureCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastCaptureFailureCode: %w", err)
+	}
+	return oldValue.LastCaptureFailureCode, nil
+}
+
+// ClearLastCaptureFailureCode clears the value of the "last_capture_failure_code" field.
+func (m *ProductSurfaceMutation) ClearLastCaptureFailureCode() {
+	m.last_capture_failure_code = nil
+	m.clearedFields[productsurface.FieldLastCaptureFailureCode] = struct{}{}
+}
+
+// LastCaptureFailureCodeCleared returns if the "last_capture_failure_code" field was cleared in this mutation.
+func (m *ProductSurfaceMutation) LastCaptureFailureCodeCleared() bool {
+	_, ok := m.clearedFields[productsurface.FieldLastCaptureFailureCode]
+	return ok
+}
+
+// ResetLastCaptureFailureCode resets all changes to the "last_capture_failure_code" field.
+func (m *ProductSurfaceMutation) ResetLastCaptureFailureCode() {
+	m.last_capture_failure_code = nil
+	delete(m.clearedFields, productsurface.FieldLastCaptureFailureCode)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *ProductSurfaceMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -30676,12 +31847,15 @@ func (m *ProductSurfaceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProductSurfaceMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 12)
 	if m.organization_id != nil {
 		fields = append(fields, productsurface.FieldOrganizationID)
 	}
 	if m.name != nil {
 		fields = append(fields, productsurface.FieldName)
+	}
+	if m.slug != nil {
+		fields = append(fields, productsurface.FieldSlug)
 	}
 	if m.url != nil {
 		fields = append(fields, productsurface.FieldURL)
@@ -30697,6 +31871,12 @@ func (m *ProductSurfaceMutation) Fields() []string {
 	}
 	if m.screenshot_asset_ids != nil {
 		fields = append(fields, productsurface.FieldScreenshotAssetIds)
+	}
+	if m.last_captured_at != nil {
+		fields = append(fields, productsurface.FieldLastCapturedAt)
+	}
+	if m.last_capture_failure_code != nil {
+		fields = append(fields, productsurface.FieldLastCaptureFailureCode)
 	}
 	if m.created_at != nil {
 		fields = append(fields, productsurface.FieldCreatedAt)
@@ -30716,6 +31896,8 @@ func (m *ProductSurfaceMutation) Field(name string) (ent.Value, bool) {
 		return m.OrganizationID()
 	case productsurface.FieldName:
 		return m.Name()
+	case productsurface.FieldSlug:
+		return m.Slug()
 	case productsurface.FieldURL:
 		return m.URL()
 	case productsurface.FieldEnvironment:
@@ -30726,6 +31908,10 @@ func (m *ProductSurfaceMutation) Field(name string) (ent.Value, bool) {
 		return m.FeatureTags()
 	case productsurface.FieldScreenshotAssetIds:
 		return m.ScreenshotAssetIds()
+	case productsurface.FieldLastCapturedAt:
+		return m.LastCapturedAt()
+	case productsurface.FieldLastCaptureFailureCode:
+		return m.LastCaptureFailureCode()
 	case productsurface.FieldCreatedAt:
 		return m.CreatedAt()
 	case productsurface.FieldUpdatedAt:
@@ -30743,6 +31929,8 @@ func (m *ProductSurfaceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldOrganizationID(ctx)
 	case productsurface.FieldName:
 		return m.OldName(ctx)
+	case productsurface.FieldSlug:
+		return m.OldSlug(ctx)
 	case productsurface.FieldURL:
 		return m.OldURL(ctx)
 	case productsurface.FieldEnvironment:
@@ -30753,6 +31941,10 @@ func (m *ProductSurfaceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldFeatureTags(ctx)
 	case productsurface.FieldScreenshotAssetIds:
 		return m.OldScreenshotAssetIds(ctx)
+	case productsurface.FieldLastCapturedAt:
+		return m.OldLastCapturedAt(ctx)
+	case productsurface.FieldLastCaptureFailureCode:
+		return m.OldLastCaptureFailureCode(ctx)
 	case productsurface.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case productsurface.FieldUpdatedAt:
@@ -30779,6 +31971,13 @@ func (m *ProductSurfaceMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetName(v)
+		return nil
+	case productsurface.FieldSlug:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlug(v)
 		return nil
 	case productsurface.FieldURL:
 		v, ok := value.(string)
@@ -30814,6 +32013,20 @@ func (m *ProductSurfaceMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetScreenshotAssetIds(v)
+		return nil
+	case productsurface.FieldLastCapturedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastCapturedAt(v)
+		return nil
+	case productsurface.FieldLastCaptureFailureCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastCaptureFailureCode(v)
 		return nil
 	case productsurface.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -30862,6 +32075,12 @@ func (m *ProductSurfaceMutation) ClearedFields() []string {
 	if m.FieldCleared(productsurface.FieldDescription) {
 		fields = append(fields, productsurface.FieldDescription)
 	}
+	if m.FieldCleared(productsurface.FieldLastCapturedAt) {
+		fields = append(fields, productsurface.FieldLastCapturedAt)
+	}
+	if m.FieldCleared(productsurface.FieldLastCaptureFailureCode) {
+		fields = append(fields, productsurface.FieldLastCaptureFailureCode)
+	}
 	return fields
 }
 
@@ -30879,6 +32098,12 @@ func (m *ProductSurfaceMutation) ClearField(name string) error {
 	case productsurface.FieldDescription:
 		m.ClearDescription()
 		return nil
+	case productsurface.FieldLastCapturedAt:
+		m.ClearLastCapturedAt()
+		return nil
+	case productsurface.FieldLastCaptureFailureCode:
+		m.ClearLastCaptureFailureCode()
+		return nil
 	}
 	return fmt.Errorf("unknown ProductSurface nullable field %s", name)
 }
@@ -30892,6 +32117,9 @@ func (m *ProductSurfaceMutation) ResetField(name string) error {
 		return nil
 	case productsurface.FieldName:
 		m.ResetName()
+		return nil
+	case productsurface.FieldSlug:
+		m.ResetSlug()
 		return nil
 	case productsurface.FieldURL:
 		m.ResetURL()
@@ -30907,6 +32135,12 @@ func (m *ProductSurfaceMutation) ResetField(name string) error {
 		return nil
 	case productsurface.FieldScreenshotAssetIds:
 		m.ResetScreenshotAssetIds()
+		return nil
+	case productsurface.FieldLastCapturedAt:
+		m.ResetLastCapturedAt()
+		return nil
+	case productsurface.FieldLastCaptureFailureCode:
+		m.ResetLastCaptureFailureCode()
 		return nil
 	case productsurface.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -40999,6 +42233,703 @@ func (m *SupportAccessGrantMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *SupportAccessGrantMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown SupportAccessGrant edge %s", name)
+}
+
+// SurfaceCaptureMutation represents an operation that mutates the SurfaceCapture nodes in the graph.
+type SurfaceCaptureMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	organization_id *string
+	surface_id      *string
+	asset_id        *string
+	source          *surfacecapture.Source
+	source_id       *string
+	captured_at     *time.Time
+	superseded_at   *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*SurfaceCapture, error)
+	predicates      []predicate.SurfaceCapture
+}
+
+var _ ent.Mutation = (*SurfaceCaptureMutation)(nil)
+
+// surfacecaptureOption allows management of the mutation configuration using functional options.
+type surfacecaptureOption func(*SurfaceCaptureMutation)
+
+// newSurfaceCaptureMutation creates new mutation for the SurfaceCapture entity.
+func newSurfaceCaptureMutation(c config, op Op, opts ...surfacecaptureOption) *SurfaceCaptureMutation {
+	m := &SurfaceCaptureMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSurfaceCapture,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withSurfaceCaptureID sets the ID field of the mutation.
+func withSurfaceCaptureID(id string) surfacecaptureOption {
+	return func(m *SurfaceCaptureMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *SurfaceCapture
+		)
+		m.oldValue = func(ctx context.Context) (*SurfaceCapture, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().SurfaceCapture.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSurfaceCapture sets the old SurfaceCapture of the mutation.
+func withSurfaceCapture(node *SurfaceCapture) surfacecaptureOption {
+	return func(m *SurfaceCaptureMutation) {
+		m.oldValue = func(context.Context) (*SurfaceCapture, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m SurfaceCaptureMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m SurfaceCaptureMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of SurfaceCapture entities.
+func (m *SurfaceCaptureMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *SurfaceCaptureMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *SurfaceCaptureMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().SurfaceCapture.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *SurfaceCaptureMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *SurfaceCaptureMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the SurfaceCapture entity.
+// If the SurfaceCapture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SurfaceCaptureMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *SurfaceCaptureMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetSurfaceID sets the "surface_id" field.
+func (m *SurfaceCaptureMutation) SetSurfaceID(s string) {
+	m.surface_id = &s
+}
+
+// SurfaceID returns the value of the "surface_id" field in the mutation.
+func (m *SurfaceCaptureMutation) SurfaceID() (r string, exists bool) {
+	v := m.surface_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSurfaceID returns the old "surface_id" field's value of the SurfaceCapture entity.
+// If the SurfaceCapture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SurfaceCaptureMutation) OldSurfaceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSurfaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSurfaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSurfaceID: %w", err)
+	}
+	return oldValue.SurfaceID, nil
+}
+
+// ResetSurfaceID resets all changes to the "surface_id" field.
+func (m *SurfaceCaptureMutation) ResetSurfaceID() {
+	m.surface_id = nil
+}
+
+// SetAssetID sets the "asset_id" field.
+func (m *SurfaceCaptureMutation) SetAssetID(s string) {
+	m.asset_id = &s
+}
+
+// AssetID returns the value of the "asset_id" field in the mutation.
+func (m *SurfaceCaptureMutation) AssetID() (r string, exists bool) {
+	v := m.asset_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAssetID returns the old "asset_id" field's value of the SurfaceCapture entity.
+// If the SurfaceCapture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SurfaceCaptureMutation) OldAssetID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAssetID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAssetID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAssetID: %w", err)
+	}
+	return oldValue.AssetID, nil
+}
+
+// ResetAssetID resets all changes to the "asset_id" field.
+func (m *SurfaceCaptureMutation) ResetAssetID() {
+	m.asset_id = nil
+}
+
+// SetSource sets the "source" field.
+func (m *SurfaceCaptureMutation) SetSource(s surfacecapture.Source) {
+	m.source = &s
+}
+
+// Source returns the value of the "source" field in the mutation.
+func (m *SurfaceCaptureMutation) Source() (r surfacecapture.Source, exists bool) {
+	v := m.source
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSource returns the old "source" field's value of the SurfaceCapture entity.
+// If the SurfaceCapture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SurfaceCaptureMutation) OldSource(ctx context.Context) (v surfacecapture.Source, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSource is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSource requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSource: %w", err)
+	}
+	return oldValue.Source, nil
+}
+
+// ResetSource resets all changes to the "source" field.
+func (m *SurfaceCaptureMutation) ResetSource() {
+	m.source = nil
+}
+
+// SetSourceID sets the "source_id" field.
+func (m *SurfaceCaptureMutation) SetSourceID(s string) {
+	m.source_id = &s
+}
+
+// SourceID returns the value of the "source_id" field in the mutation.
+func (m *SurfaceCaptureMutation) SourceID() (r string, exists bool) {
+	v := m.source_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceID returns the old "source_id" field's value of the SurfaceCapture entity.
+// If the SurfaceCapture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SurfaceCaptureMutation) OldSourceID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceID: %w", err)
+	}
+	return oldValue.SourceID, nil
+}
+
+// ClearSourceID clears the value of the "source_id" field.
+func (m *SurfaceCaptureMutation) ClearSourceID() {
+	m.source_id = nil
+	m.clearedFields[surfacecapture.FieldSourceID] = struct{}{}
+}
+
+// SourceIDCleared returns if the "source_id" field was cleared in this mutation.
+func (m *SurfaceCaptureMutation) SourceIDCleared() bool {
+	_, ok := m.clearedFields[surfacecapture.FieldSourceID]
+	return ok
+}
+
+// ResetSourceID resets all changes to the "source_id" field.
+func (m *SurfaceCaptureMutation) ResetSourceID() {
+	m.source_id = nil
+	delete(m.clearedFields, surfacecapture.FieldSourceID)
+}
+
+// SetCapturedAt sets the "captured_at" field.
+func (m *SurfaceCaptureMutation) SetCapturedAt(t time.Time) {
+	m.captured_at = &t
+}
+
+// CapturedAt returns the value of the "captured_at" field in the mutation.
+func (m *SurfaceCaptureMutation) CapturedAt() (r time.Time, exists bool) {
+	v := m.captured_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCapturedAt returns the old "captured_at" field's value of the SurfaceCapture entity.
+// If the SurfaceCapture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SurfaceCaptureMutation) OldCapturedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCapturedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCapturedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCapturedAt: %w", err)
+	}
+	return oldValue.CapturedAt, nil
+}
+
+// ResetCapturedAt resets all changes to the "captured_at" field.
+func (m *SurfaceCaptureMutation) ResetCapturedAt() {
+	m.captured_at = nil
+}
+
+// SetSupersededAt sets the "superseded_at" field.
+func (m *SurfaceCaptureMutation) SetSupersededAt(t time.Time) {
+	m.superseded_at = &t
+}
+
+// SupersededAt returns the value of the "superseded_at" field in the mutation.
+func (m *SurfaceCaptureMutation) SupersededAt() (r time.Time, exists bool) {
+	v := m.superseded_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSupersededAt returns the old "superseded_at" field's value of the SurfaceCapture entity.
+// If the SurfaceCapture object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SurfaceCaptureMutation) OldSupersededAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSupersededAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSupersededAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSupersededAt: %w", err)
+	}
+	return oldValue.SupersededAt, nil
+}
+
+// ClearSupersededAt clears the value of the "superseded_at" field.
+func (m *SurfaceCaptureMutation) ClearSupersededAt() {
+	m.superseded_at = nil
+	m.clearedFields[surfacecapture.FieldSupersededAt] = struct{}{}
+}
+
+// SupersededAtCleared returns if the "superseded_at" field was cleared in this mutation.
+func (m *SurfaceCaptureMutation) SupersededAtCleared() bool {
+	_, ok := m.clearedFields[surfacecapture.FieldSupersededAt]
+	return ok
+}
+
+// ResetSupersededAt resets all changes to the "superseded_at" field.
+func (m *SurfaceCaptureMutation) ResetSupersededAt() {
+	m.superseded_at = nil
+	delete(m.clearedFields, surfacecapture.FieldSupersededAt)
+}
+
+// Where appends a list predicates to the SurfaceCaptureMutation builder.
+func (m *SurfaceCaptureMutation) Where(ps ...predicate.SurfaceCapture) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the SurfaceCaptureMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *SurfaceCaptureMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.SurfaceCapture, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *SurfaceCaptureMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *SurfaceCaptureMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (SurfaceCapture).
+func (m *SurfaceCaptureMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *SurfaceCaptureMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.organization_id != nil {
+		fields = append(fields, surfacecapture.FieldOrganizationID)
+	}
+	if m.surface_id != nil {
+		fields = append(fields, surfacecapture.FieldSurfaceID)
+	}
+	if m.asset_id != nil {
+		fields = append(fields, surfacecapture.FieldAssetID)
+	}
+	if m.source != nil {
+		fields = append(fields, surfacecapture.FieldSource)
+	}
+	if m.source_id != nil {
+		fields = append(fields, surfacecapture.FieldSourceID)
+	}
+	if m.captured_at != nil {
+		fields = append(fields, surfacecapture.FieldCapturedAt)
+	}
+	if m.superseded_at != nil {
+		fields = append(fields, surfacecapture.FieldSupersededAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *SurfaceCaptureMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case surfacecapture.FieldOrganizationID:
+		return m.OrganizationID()
+	case surfacecapture.FieldSurfaceID:
+		return m.SurfaceID()
+	case surfacecapture.FieldAssetID:
+		return m.AssetID()
+	case surfacecapture.FieldSource:
+		return m.Source()
+	case surfacecapture.FieldSourceID:
+		return m.SourceID()
+	case surfacecapture.FieldCapturedAt:
+		return m.CapturedAt()
+	case surfacecapture.FieldSupersededAt:
+		return m.SupersededAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *SurfaceCaptureMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case surfacecapture.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case surfacecapture.FieldSurfaceID:
+		return m.OldSurfaceID(ctx)
+	case surfacecapture.FieldAssetID:
+		return m.OldAssetID(ctx)
+	case surfacecapture.FieldSource:
+		return m.OldSource(ctx)
+	case surfacecapture.FieldSourceID:
+		return m.OldSourceID(ctx)
+	case surfacecapture.FieldCapturedAt:
+		return m.OldCapturedAt(ctx)
+	case surfacecapture.FieldSupersededAt:
+		return m.OldSupersededAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown SurfaceCapture field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SurfaceCaptureMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case surfacecapture.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case surfacecapture.FieldSurfaceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSurfaceID(v)
+		return nil
+	case surfacecapture.FieldAssetID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAssetID(v)
+		return nil
+	case surfacecapture.FieldSource:
+		v, ok := value.(surfacecapture.Source)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSource(v)
+		return nil
+	case surfacecapture.FieldSourceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceID(v)
+		return nil
+	case surfacecapture.FieldCapturedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCapturedAt(v)
+		return nil
+	case surfacecapture.FieldSupersededAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSupersededAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown SurfaceCapture field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *SurfaceCaptureMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *SurfaceCaptureMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SurfaceCaptureMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown SurfaceCapture numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *SurfaceCaptureMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(surfacecapture.FieldSourceID) {
+		fields = append(fields, surfacecapture.FieldSourceID)
+	}
+	if m.FieldCleared(surfacecapture.FieldSupersededAt) {
+		fields = append(fields, surfacecapture.FieldSupersededAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *SurfaceCaptureMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *SurfaceCaptureMutation) ClearField(name string) error {
+	switch name {
+	case surfacecapture.FieldSourceID:
+		m.ClearSourceID()
+		return nil
+	case surfacecapture.FieldSupersededAt:
+		m.ClearSupersededAt()
+		return nil
+	}
+	return fmt.Errorf("unknown SurfaceCapture nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *SurfaceCaptureMutation) ResetField(name string) error {
+	switch name {
+	case surfacecapture.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case surfacecapture.FieldSurfaceID:
+		m.ResetSurfaceID()
+		return nil
+	case surfacecapture.FieldAssetID:
+		m.ResetAssetID()
+		return nil
+	case surfacecapture.FieldSource:
+		m.ResetSource()
+		return nil
+	case surfacecapture.FieldSourceID:
+		m.ResetSourceID()
+		return nil
+	case surfacecapture.FieldCapturedAt:
+		m.ResetCapturedAt()
+		return nil
+	case surfacecapture.FieldSupersededAt:
+		m.ResetSupersededAt()
+		return nil
+	}
+	return fmt.Errorf("unknown SurfaceCapture field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *SurfaceCaptureMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *SurfaceCaptureMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *SurfaceCaptureMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *SurfaceCaptureMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *SurfaceCaptureMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *SurfaceCaptureMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *SurfaceCaptureMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown SurfaceCapture unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *SurfaceCaptureMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown SurfaceCapture edge %s", name)
 }
 
 // UserMutation represents an operation that mutates the User nodes in the graph.

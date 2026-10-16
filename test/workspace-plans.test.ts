@@ -29,6 +29,18 @@ test('enterprise-only features remain unavailable to lower plans', () => {
   assert.equal(hasWorkspaceFeature('enterprise', 'enterprise:sso'), true)
 })
 
+test('every paid plan includes the campaign workflow', () => {
+  assert.equal(hasWorkspaceFeature('free', 'campaign:workflow'), false)
+  assert.equal(hasWorkspaceFeature('pro', 'campaign:workflow'), true)
+  assert.equal(hasWorkspaceFeature('business', 'campaign:workflow'), true)
+  assert.equal(hasWorkspaceFeature('enterprise', 'campaign:workflow'), true)
+  assert.equal(getMinimumPlan('campaign:workflow'), 'pro')
+  assert.equal(
+    hasWorkspaceFeature('pro', 'campaign:workflow', { 'campaign:workflow': false }),
+    false
+  )
+})
+
 test('contract overrides can grant or revoke one feature without changing plans', () => {
   assert.equal(hasWorkspaceFeature('free', 'asset:delete', { 'asset:delete': true }), true)
   assert.equal(

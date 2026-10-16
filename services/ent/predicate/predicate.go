@@ -111,6 +111,9 @@ type OutboxEvent func(*sql.Selector)
 // PostizTenantBinding is the predicate function for postiztenantbinding builders.
 type PostizTenantBinding func(*sql.Selector)
 
+// ProductProfile is the predicate function for productprofile builders.
+type ProductProfile func(*sql.Selector)
+
 // ProductSurface is the predicate function for productsurface builders.
 type ProductSurface func(*sql.Selector)
 
@@ -146,6 +149,9 @@ type SourceChange func(*sql.Selector)
 
 // SupportAccessGrant is the predicate function for supportaccessgrant builders.
 type SupportAccessGrant func(*sql.Selector)
+
+// SurfaceCapture is the predicate function for surfacecapture builders.
+type SurfaceCapture func(*sql.Selector)
 
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

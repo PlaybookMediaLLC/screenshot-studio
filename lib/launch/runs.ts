@@ -5,6 +5,7 @@ import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import type { TenantContext } from '@/lib/auth/access'
 import { withAiCredits } from '@/lib/ai/metering'
 import { backendSDK, withDates } from '@/lib/backend/sdk'
+import { HEARTBEAT_MS, isRunStale } from './run-lease'
 import { LaunchError } from './store'
 
 /**
@@ -13,20 +14,20 @@ import { LaunchError } from './store'
  * Drafting a spec takes about a minute and producing a campaign several, longer
  * than a request should stay open behind proxies. A run is recorded, the work
  * continues after the response (`after`), and the UI polls the run. One run of
- * each kind per campaign at a time; a run that never finished (the server
- * restarted mid-run) counts as failed once it is older than STALE_AFTER_MS;
- * the backend applies the same window when it checks for an active run.
+ * each kind per campaign at a time. The work heartbeats while it runs; a run
+ * whose heartbeat lapsed (the server restarted mid-run) counts as failed, the
+ * same window the backend applies when it checks for an active run. A
+ * cancelled run stops its work at the next heartbeat.
  */
 
 export const LAUNCH_RUN_KINDS = ['spec', 'plan', 'produce', 'revision'] as const
 export type LaunchRunKind = (typeof LAUNCH_RUN_KINDS)[number]
 
-const STALE_AFTER_MS = 20 * 60_000
-
 export type LaunchRunView = {
   campaignId: string
   error: string | null
   finishedAt: Date | null
+  heartbeatAt: Date | null
   id: string
   kind: string
   resultId: string | null
@@ -36,7 +37,7 @@ export type LaunchRunView = {
 }
 
 function view(run: LaunchRunView): LaunchRunView {
-  if (run.status === 'RUNNING' && Date.now() - run.startedAt.getTime() > STALE_AFTER_MS) {
+  if (run.status === 'RUNNING' && isRunStale(run)) {
     return { ...run, error: 'The run stopped before it finished. Try again.', status: 'FAILED' }
   }
   return run
@@ -67,15 +68,26 @@ export async function startLaunchRun(
   input: {
     campaignId: string
     kind: LaunchRunKind
-    work: () => Promise<{ resultId?: string | null; summary?: string | null }>
+    /** Stop when `signal` aborts: the run was cancelled or its lease lapsed. */
+    work: (signal: AbortSignal) => Promise<{ resultId?: string | null; summary?: string | null }>
   }
 ): Promise<LaunchRunView> {
   const backend = backendSDK(tenant)
   // The backend refuses a second active run of the same kind (revisions excepted).
   const run = withDates(await backend.startLaunchRun(input.campaignId, input.kind))
   after(async () => {
+    const abort = new AbortController()
+    const heartbeat = setInterval(() => {
+      backend
+        .heartbeatLaunchRun(run.id)
+        .then(({ running }) => {
+          if (!running) abort.abort()
+        })
+        // A missed beat is retried on the next tick; the lease outlasts several.
+        .catch(() => undefined)
+    }, HEARTBEAT_MS)
     try {
-      const result = await withAiCredits(tenant, input.work)
+      const result = await withAiCredits(tenant, () => input.work(abort.signal))
       await backend.finishLaunchRun(run.id, {
         resultId: result.resultId ?? null,
         status: 'SUCCEEDED',
@@ -87,9 +99,12 @@ export async function startLaunchRun(
         reason: error instanceof Error ? error.message : 'unknown',
         runId: run.id,
       })
+      // A cancelled or expired run is already finished; the backend ignores this.
       await backend
         .finishLaunchRun(run.id, { error: failureMessage(error), status: 'FAILED' })
         .catch(() => undefined)
+    } finally {
+      clearInterval(heartbeat)
     }
   })
   return view(run)
@@ -111,4 +126,9 @@ export async function latestLaunchRuns(
     if (!latest[kind]) latest[kind] = view(run)
   }
   return latest
+}
+
+/** Cancel a running run; its work stops at its next heartbeat. */
+export async function cancelLaunchRun(tenant: TenantContext, runId: string) {
+  return backendSDK(tenant).cancelLaunchRun(runId)
 }

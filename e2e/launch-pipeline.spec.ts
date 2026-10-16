@@ -1,5 +1,13 @@
+import { randomBytes } from 'node:crypto'
 import { getActiveOrganizationId, signUpAndCreateWorkspace } from './framework/auth'
 import { configureE2EFlow, expect, test } from './framework/flow'
+import { startHttpMockServer } from './framework/http-server'
+import {
+  bindTestGoOrganization,
+  e2eSecretReference,
+  enablePublishingTwoFactor,
+  unbindTestGoOrganization,
+} from './framework/publishing'
 import { createE2EDatabase, queryRow, queryRows } from './framework/services'
 import { trpcMutation } from './framework/trpc'
 
@@ -7,7 +15,9 @@ import { trpcMutation } from './framework/trpc'
  * The launch pipeline end to end: a release with only a title and source
  * links becomes a cited spec (the injection attempt in one source is flagged
  * and ignored), a plan, a produced campaign with provenance, and a reviewer's
- * AI revision that changes one post and nothing else. The app runs with the
+ * AI revision that changes one post and nothing else. Then the copy is
+ * approved, a visual is approved, and an X post is scheduled to a Postiz
+ * destination (mocked), cancelled, and rescheduled. The app runs with the
  * scripted model (PLATFORM_AI_SCRIPTED=1, see bin/studio), so this needs no
  * provider key; the mock serves the sources and a real product screenshot.
  */
@@ -17,7 +27,7 @@ configureE2EFlow()
 const MOCK = 'http://screenshot-mock:5678'
 const RUN_TIMEOUT = 90_000
 
-test('a release becomes a cited spec, a plan, a produced campaign, and a revised post', async ({
+test('a release becomes a cited spec, a plan, a produced campaign, a revised post, and a schedule', async ({
   identity,
   page,
 }) => {
@@ -62,6 +72,17 @@ test('a release becomes a cited spec, a plan, a produced campaign, and a revised
   await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible()
 
   const database = createE2EDatabase()
+  let boundOrganizationId: string | null = null
+  // The Postiz mock: the destination check reads the account and its integrations.
+  const postiz = await startHttpMockServer((request) => {
+    if (request.url === '/api/public/v1/me') {
+      return { body: { organization: { id: `go-${boundOrganizationId}` } } }
+    }
+    if (request.url === '/api/public/v1/integrations') {
+      return { body: [{ id: 'launch-x-integration', identifier: 'x', disabled: false }] }
+    }
+    return { body: { error: 'Not found.' }, status: 404 }
+  }, 5679)
   const getPosts = () =>
     queryRows<{
       channel: string
@@ -177,6 +198,87 @@ test('a release becomes a cited spec, a plan, a produced campaign, and a revised
       )
     ).toEqual({ comment: 'Lead with the time saved', status: 'APPLIED' })
 
+    // ------------------------------------------------------------- approve
+    await page.getByRole('button', { name: /^Submit all \d+ for review$/ }).click()
+    await expect(page.getByText(/sent for review$/)).toBeVisible()
+    await page.getByRole('button', { name: /^Approve all \d+$/ }).click()
+    await expect(page.getByText(/posts? approved$/)).toBeVisible()
+    // Every channel tab stays mounted; check the one on screen.
+    await expect(
+      page
+        .getByRole('tabpanel')
+        .filter({ visible: true })
+        .getByText(/^Approved by /)
+        .first()
+    ).toBeVisible()
+
+    // Production made product shots (no renderer in e2e), so the approvable
+    // design is one rendered from the A1 shot.
+    const shot = await queryRow<{ assetId: string; organizationId: string }>(
+      database,
+      `SELECT "assetId", "organizationId" FROM campaign_asset
+       WHERE "campaignId" = $1 AND "planAssetKey" = 'A1' ORDER BY "createdAt" LIMIT 1`,
+      [campaignId]
+    )
+    if (!shot) throw new Error('No A1 product shot was produced.')
+    await database.query(
+      `INSERT INTO design (id, "organizationId", "campaignId", name, document, "renderedAssetId",
+         "planAssetKey", "updatedAt")
+       VALUES ($1, $2, $3, 'Launch hero', '{}', $4, 'A1', now())`,
+      [`c${randomBytes(12).toString('hex')}`, shot.organizationId, campaignId, shot.assetId]
+    )
+    await page.goto(`/campaigns/${campaignId}/assets`)
+    await page.getByRole('button', { name: 'Approve visual' }).click()
+    await expect(page.getByText('Visual approved')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Approve visual' })).toHaveCount(0)
+
+    // ------------------------------------------------------------ schedule
+    await enablePublishingTwoFactor(page, identity.password)
+    boundOrganizationId = await bindTestGoOrganization(page)
+    const connection = await trpcMutation(page, 'channelConnection.create', {
+      externalAccountId: 'launch-x-integration',
+      platform: 'x',
+      secretReference: e2eSecretReference,
+    })
+    expect(connection.status, JSON.stringify(connection.body)).toBe(200)
+
+    const xPost = after.find((post) => post.channel === 'x')!
+    await page.goto(`/campaigns/${campaignId}/copy`)
+    await page.getByRole('tab', { name: /^X/ }).click()
+    const xCard = page.getByRole('article').filter({ hasText: xPost.copy.slice(0, 40) })
+    const dialog = page.getByRole('dialog')
+    const submitSchedule = async (label: 'Reschedule' | 'Schedule', done: RegExp) => {
+      await xCard.getByRole('button', { name: label, exact: true }).click()
+      await expect(dialog.getByLabel('Account')).toHaveValue(/.+/)
+      await dialog.getByRole('button', { name: label, exact: true }).click()
+      // Mock links preview badly; skipping the check is the user's call.
+      const skip = dialog.getByRole('button', { name: 'Schedule without the link check' })
+      await expect(page.getByText(done).or(skip)).toBeVisible()
+      if (await skip.isVisible()) await skip.click()
+      await expect(page.getByText(done)).toBeVisible()
+    }
+    const scheduledPost = () =>
+      queryRow<{ scheduledPostId: string | null; status: string }>(
+        database,
+        'SELECT status, "scheduledPostId" FROM campaign_post WHERE id = $1',
+        [xPost.id]
+      )
+
+    await submitSchedule('Schedule', /^Post scheduled$/)
+    await expect(xCard.getByText(/^Scheduled for .+ · Queued$/)).toBeVisible()
+    const first = await scheduledPost()
+    expect(first?.status).toBe('SCHEDULED')
+
+    await xCard.getByRole('button', { name: 'Cancel schedule' }).click()
+    await expect(page.getByText('Scheduled post cancelled')).toBeVisible()
+    await expect(xCard.getByText(/· Cancelled$/)).toBeVisible()
+
+    await submitSchedule('Reschedule', /^Post rescheduled$/)
+    await expect(xCard.getByText(/^Scheduled for .+ · Queued$/)).toBeVisible()
+    const second = await scheduledPost()
+    expect(second?.status).toBe('SCHEDULED')
+    expect(second?.scheduledPostId).not.toBe(first?.scheduledPostId)
+
     const actions = (
       await queryRows<{ action: string }>(
         database,
@@ -197,6 +299,8 @@ test('a release becomes a cited spec, a plan, a produced campaign, and a revised
       expect(actions).toContain(action)
     }
   } finally {
+    await postiz.close()
+    await unbindTestGoOrganization(boundOrganizationId)
     await database.end()
   }
 })

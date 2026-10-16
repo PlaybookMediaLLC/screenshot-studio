@@ -26,7 +26,7 @@ import {
   SPEC_SECTIONS,
   validatePlanReferences,
 } from '@/lib/launch/spec-schema'
-import { getLaunchRun, latestLaunchRuns, startLaunchRun } from '@/lib/launch/runs'
+import { cancelLaunchRun, getLaunchRun, latestLaunchRuns, startLaunchRun } from '@/lib/launch/runs'
 import {
   applyRevision,
   approvePlan,
@@ -122,6 +122,11 @@ export const launchRouter = router({
       run: await getLaunchRun(ctx.access, input.runId),
     })),
 
+  /** Cancel a running spec, plan, produce, or revision run. */
+  cancelRun: organizationProcedure('release:create')
+    .input(z.object({ runId: z.string().cuid() }))
+    .mutation(async ({ ctx, input }) => cancelLaunchRun(ctx.access, input.runId)),
+
   spec: router({
     generate: organizationProcedure('release:create')
       .input(campaignInput)
@@ -130,8 +135,8 @@ export const launchRouter = router({
         const run = await startLaunchRun(ctx.access, {
           campaignId: input.campaignId,
           kind: 'spec',
-          work: async () => {
-            const spec = await draftReleaseSpec(ctx.access, input.campaignId)
+          work: async (signal) => {
+            const spec = await draftReleaseSpec(ctx.access, input.campaignId, { signal })
             return { resultId: spec.id, summary: spec.changeSummary }
           },
         })
@@ -186,8 +191,8 @@ export const launchRouter = router({
         const run = await startLaunchRun(ctx.access, {
           campaignId: input.campaignId,
           kind: 'plan',
-          work: async () => {
-            const plan = await draftCampaignPlan(ctx.access, input.campaignId)
+          work: async (signal) => {
+            const plan = await draftCampaignPlan(ctx.access, input.campaignId, signal)
             return { resultId: plan.id, summary: plan.changeSummary }
           },
         })
@@ -246,8 +251,8 @@ export const launchRouter = router({
       const run = await startLaunchRun(ctx.access, {
         campaignId: input.campaignId,
         kind: 'produce',
-        work: async () => {
-          const result = await produceCampaign(ctx.access, input.campaignId)
+        work: async (signal) => {
+          const result = await produceCampaign(ctx.access, input.campaignId, signal)
           return {
             summary:
               `${result.assetCount} visual${result.assetCount === 1 ? '' : 's'} and ${result.postCount} post${result.postCount === 1 ? '' : 's'}${result.designMode ? '' : ' (product shots: the editor renderer was unavailable)'}. ${result.summary}`.trim(),
@@ -271,8 +276,8 @@ export const launchRouter = router({
         const run = await startLaunchRun(ctx.access, {
           campaignId: input.campaignId,
           kind: 'revision',
-          work: async () => {
-            const revision = await proposeCampaignRevision(ctx.access, input)
+          work: async (signal) => {
+            const revision = await proposeCampaignRevision(ctx.access, { ...input, signal })
             return { resultId: revision.id, summary: revision.proposal.summary }
           },
         })

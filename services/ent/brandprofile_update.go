@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
 )
 
 // BrandProfileUpdate is the builder for updating BrandProfile entities.
@@ -112,13 +113,13 @@ func (_u *BrandProfileUpdate) ClearCtaConventions() *BrandProfileUpdate {
 }
 
 // SetProhibitedTerms sets the "prohibited_terms" field.
-func (_u *BrandProfileUpdate) SetProhibitedTerms(v []string) *BrandProfileUpdate {
+func (_u *BrandProfileUpdate) SetProhibitedTerms(v []brand.ProhibitedTerm) *BrandProfileUpdate {
 	_u.mutation.SetProhibitedTerms(v)
 	return _u
 }
 
 // AppendProhibitedTerms appends value to the "prohibited_terms" field.
-func (_u *BrandProfileUpdate) AppendProhibitedTerms(v []string) *BrandProfileUpdate {
+func (_u *BrandProfileUpdate) AppendProhibitedTerms(v []brand.ProhibitedTerm) *BrandProfileUpdate {
 	_u.mutation.AppendProhibitedTerms(v)
 	return _u
 }
@@ -343,13 +344,13 @@ func (_u *BrandProfileUpdateOne) ClearCtaConventions() *BrandProfileUpdateOne {
 }
 
 // SetProhibitedTerms sets the "prohibited_terms" field.
-func (_u *BrandProfileUpdateOne) SetProhibitedTerms(v []string) *BrandProfileUpdateOne {
+func (_u *BrandProfileUpdateOne) SetProhibitedTerms(v []brand.ProhibitedTerm) *BrandProfileUpdateOne {
 	_u.mutation.SetProhibitedTerms(v)
 	return _u
 }
 
 // AppendProhibitedTerms appends value to the "prohibited_terms" field.
-func (_u *BrandProfileUpdateOne) AppendProhibitedTerms(v []string) *BrandProfileUpdateOne {
+func (_u *BrandProfileUpdateOne) AppendProhibitedTerms(v []brand.ProhibitedTerm) *BrandProfileUpdateOne {
 	_u.mutation.AppendProhibitedTerms(v)
 	return _u
 }

@@ -1,6 +1,7 @@
 import { Album02Icon, ArrowDown01Icon } from 'hugeicons-react'
 import type { ReactNode } from 'react'
 import { RevisePanel } from '@/components/launch/RevisePanel'
+import { ApproveVisualButton } from '@/components/launch/assets/ApproveVisualButton'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { EmptyState, Pill, type PillTone, Section } from '@/components/platform-ui'
 import type { CampaignPlanContent } from '@/lib/launch/spec-schema'
@@ -8,7 +9,8 @@ import type { CampaignPlanContent } from '@/lib/launch/spec-schema'
 /**
  * The campaign's visuals, grouped by the plan asset each one realizes (A1,
  * A2…): editor designs with their render review, and product shots as the
- * fallback. A server component; only the revise panel is interactive.
+ * fallback. A server component; only the approve and revise controls are
+ * interactive.
  */
 
 export type Critique = {
@@ -22,6 +24,8 @@ export type Critique = {
 export type BoardImage = { height: number | null; url: string | null; width: number | null }
 
 export type BoardVisual = {
+  /** The approved render of a design; null until a render is approved. */
+  approvedVariant: { id: string; sourceAssetId: string } | null
   caption: string | null
   createdAt: number
   critique: Critique | null
@@ -38,6 +42,8 @@ export type BoardVisual = {
   image: BoardImage | null
   name: string
   planAssetKey: string | null
+  /** The design's current render; a re-render makes a new asset. */
+  renderedAssetId: string | null
   variantLabel: string | null
 }
 
@@ -49,7 +55,12 @@ export type BoardCapture = BoardImage & {
 
 type PlanAsset = CampaignPlanContent['assets'][number]
 
-type CardOptions = { aiConfigured: boolean; campaignId: string; canEdit: boolean }
+type CardOptions = {
+  aiConfigured: boolean
+  campaignId: string
+  canApprove: boolean
+  canEdit: boolean
+}
 
 /** "feature_shot" → "Feature shot". */
 function kindLabel(kind: string): string {
@@ -139,6 +150,8 @@ function VisualCard({
   stale: boolean
   visual: BoardVisual
 }) {
+  const approved = visual.approvedVariant !== null
+  const changed = approved && visual.approvedVariant?.sourceAssetId !== visual.renderedAssetId
   return (
     <li className="flex flex-col overflow-hidden rounded-xl bg-white/[0.02] ring-1 ring-white/[0.08]">
       <div className="grid place-items-center bg-[radial-gradient(circle_at_center,#1a1a1a,#0c0c0c)] p-3">
@@ -170,6 +183,11 @@ function VisualCard({
             ) : null}
           </div>
           <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+            {changed ? (
+              <Pill tone="yellow">Changed since approval</Pill>
+            ) : approved ? (
+              <Pill tone="green">Approved</Pill>
+            ) : null}
             {stale ? <Pill>From an earlier plan</Pill> : null}
             {visual.variantLabel ? <Pill tone="purple">Variant {visual.variantLabel}</Pill> : null}
           </div>
@@ -189,6 +207,16 @@ function VisualCard({
           >
             Open in editor
           </ButtonLink>
+          {options.canApprove &&
+          visual.designId &&
+          visual.renderedAssetId &&
+          (changed || !approved) ? (
+            <ApproveVisualButton
+              campaignId={options.campaignId}
+              designId={visual.designId}
+              label={changed ? 'Approve new render' : 'Approve visual'}
+            />
+          ) : null}
           {options.canEdit && visual.designId ? (
             <RevisePanel
               campaignId={options.campaignId}

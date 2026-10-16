@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandprofile"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
 )
 
 // BrandProfileCreate is the builder for creating a BrandProfile entity.
@@ -73,7 +74,7 @@ func (_c *BrandProfileCreate) SetNillableCtaConventions(v *string) *BrandProfile
 }
 
 // SetProhibitedTerms sets the "prohibited_terms" field.
-func (_c *BrandProfileCreate) SetProhibitedTerms(v []string) *BrandProfileCreate {
+func (_c *BrandProfileCreate) SetProhibitedTerms(v []brand.ProhibitedTerm) *BrandProfileCreate {
 	_c.mutation.SetProhibitedTerms(v)
 	return _c
 }

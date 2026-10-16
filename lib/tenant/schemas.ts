@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { fontFamilies } from '@/lib/constants/fonts'
 import { assetClassifications } from './object-key'
 
 const contentTypeSchema = z
@@ -36,8 +37,43 @@ export const assetUploadSchema = z.object({
   sha256: sha256Schema.optional(),
 })
 
+const hexColorSchema = z
+  .string()
+  .trim()
+  .regex(/^#[0-9a-f]{6}$/i, 'Use a #RRGGBB hex color.')
+
+/** Brand fonts are editor catalog ids, never URLs or family names (RFC 011). */
+const brandFontSchema = z.enum(fontFamilies.map((font) => font.id))
+
+/** Image types a brand logo may be uploaded as. */
+export const brandLogoContentTypeSchema = z.enum(['image/png', 'image/webp', 'image/jpeg'])
+
+/** Largest brand logo upload, in bytes (RFC 011 asset processing). */
+export const BRAND_LOGO_MAX_BYTES = 5 * 1024 * 1024
+
+/**
+ * A brand kit definition, schema version 1. Field names match the Go
+ * validator. Legacy `colors.foreground` is accepted and saved as `text`.
+ */
+export const brandKitDefinitionSchema = z.object({
+  colors: z.preprocess(
+    (value) => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return value
+      const { foreground, ...colors } = value as Record<string, unknown>
+      return { text: foreground, ...colors }
+    },
+    z.object({ accent: hexColorSchema, background: hexColorSchema, text: hexColorSchema })
+  ),
+  logo: z.object({ primaryAssetId: assetIdSchema }).optional(),
+  schemaVersion: z.literal(1).default(1),
+  typography: z.object({
+    bodyFamily: brandFontSchema.optional(),
+    headingFamily: brandFontSchema,
+  }),
+})
+
 export const brandKitCreateSchema = z.object({
-  definition: z.record(z.string(), z.json()),
+  definition: brandKitDefinitionSchema,
   name: z.string().trim().min(1).max(100),
   publish: z.boolean().default(false),
 })
@@ -146,6 +182,8 @@ export const campaignTransitionSchema = z.object({
 
 export const campaignPostScheduleSchema = z.object({
   channelConnectionId: z.string().cuid(),
+  /** The approved visual to publish with the post. */
+  creativeVariantId: z.string().cuid().optional(),
   scheduledAt: z.coerce
     .date()
     .refine((value) => value.getTime() > Date.now(), {

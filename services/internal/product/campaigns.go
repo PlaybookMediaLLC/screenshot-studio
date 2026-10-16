@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -287,6 +288,15 @@ func (c *Configuration) GetCampaign(ctx context.Context, actor Actor, id string)
 	return detail, nil
 }
 
+// campaignPostTexts lists the copy and calls to action checked against the brand.
+func campaignPostTexts(posts []CampaignPostInput) []string {
+	texts := make([]string, 0, 2*len(posts))
+	for _, post := range posts {
+		texts = append(texts, post.Copy, optionalText(post.CallToAction))
+	}
+	return texts
+}
+
 func validCampaignCreate(input CreateCampaignInput) bool {
 	if strings.TrimSpace(input.Name) == "" || utf8.RuneCountInString(input.Name) > 160 ||
 		strings.TrimSpace(input.Objective) == "" || utf8.RuneCountInString(input.Objective) > 500 ||
@@ -358,6 +368,9 @@ func (c *Configuration) CreateCampaign(ctx context.Context, actor Actor, input C
 			return nil, publishing.ErrNotFound
 		}
 	}
+	if err := requireAllowedCopy(ctx, tx.BrandProfile, actor.OrganizationID, campaignPostTexts(input.Posts)...); err != nil {
+		return nil, err
+	}
 	organization, err := tx.Organization.Get(ctx, actor.OrganizationID)
 	if err != nil {
 		return nil, err
@@ -418,4 +431,68 @@ func (c *Configuration) CreateCampaign(ctx context.Context, actor Actor, input C
 		return nil, err
 	}
 	return c.GetCampaign(ctx, actor, id)
+}
+
+// UpdateCampaignPostInput is a person's edit to a post. ExpectedCopy is the
+// copy the edit was made against. A nil field is unchanged; an empty call to
+// action or title clears it.
+type UpdateCampaignPostInput struct {
+	CallToAction *string `json:"callToAction"`
+	Copy         *string `json:"copy"`
+	ExpectedCopy *string `json:"expectedCopy"`
+	Title        *string `json:"title"`
+}
+
+// UpdateCampaignPost edits a post's copy, call to action, or title with the
+// rules an applied revision follows: an approved post returns to draft, a
+// live post cannot change, prohibited terms are refused, and an edit made
+// against older copy is a conflict. It needs release:create.
+func (c *Configuration) UpdateCampaignPost(ctx context.Context, actor Actor, campaignID, postID string, input UpdateCampaignPostInput) (*CampaignPostItem, error) {
+	if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
+		return nil, err
+	}
+	if input.ExpectedCopy == nil || (input.Copy == nil && input.CallToAction == nil && input.Title == nil) ||
+		(input.Copy != nil && (strings.TrimSpace(*input.Copy) == "" || utf8.RuneCountInString(*input.Copy) > 10000)) ||
+		studioTooLong(input.CallToAction, 300) || studioTooLong(input.Title, 200) {
+		return nil, ErrInvalidInput
+	}
+	tx, err := c.client.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	post, err := tx.CampaignPost.Query().Where(campaignpost.ID(postID), campaignpost.CampaignID(campaignID),
+		campaignpost.OrganizationID(actor.OrganizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, publishing.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	stale := conflict("This post changed since you opened it. Reload it to see the latest copy.")
+	if err := revisePost(ctx, tx, post, *input.ExpectedCopy, stale,
+		postRevision{CallToAction: input.CallToAction, Copy: input.Copy, Title: input.Title}); err != nil {
+		return nil, err
+	}
+	updated, err := tx.CampaignPost.Get(ctx, post.ID)
+	if err != nil {
+		return nil, err
+	}
+	fields := []string{}
+	for name, value := range map[string]*string{"callToAction": input.CallToAction, "copy": input.Copy, "title": input.Title} {
+		if value != nil {
+			fields = append(fields, name)
+		}
+	}
+	slices.Sort(fields)
+	if err := appendConfigurationAudit(ctx, tx, actor, "product.campaign_post_edited", "campaign_post", post.ID,
+		map[string]any{"campaignId": campaignID, "fields": strings.Join(fields, ","), "from": string(post.Status),
+			"to": string(updated.Status)}); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	item := campaignPostItem(updated)
+	return &item, nil
 }

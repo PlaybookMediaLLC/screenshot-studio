@@ -27,7 +27,8 @@ import { runSubmitStage, stageMetadata } from './run'
 /** Plan the campaign from the release's approved (or latest) spec. */
 export async function draftCampaignPlan(
   tenant: TenantContext,
-  campaignId: string
+  campaignId: string,
+  signal?: AbortSignal
 ): Promise<StoredPlan> {
   const campaign = await loadLaunchCampaign(tenant, campaignId)
   if (!campaign.release) throw new LaunchError('Link a release brief before planning.', 409)
@@ -62,6 +63,7 @@ export async function draftCampaignPlan(
     .join('\n\n')
 
   const run = await runSubmitStage({
+    abortSignal: signal,
     description:
       'Submit the complete campaign plan. Angles cite spec claim refs; assets and timeline ' +
       'items reference angle and asset keys; capture hints use registered URLs only.',

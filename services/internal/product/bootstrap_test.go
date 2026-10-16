@@ -33,3 +33,27 @@ func TestBootstrapEntitlementRespectsStatusDatesAndOverrides(t *testing.T) {
 		t.Fatalf("rollout flag changed unrelated features: %+v", features)
 	}
 }
+
+func TestPaidPlansIncludeCampaignWorkflow(t *testing.T) {
+	t.Setenv("PLATFORM_CAMPAIGN_WORKFLOW", "")
+	now := time.Date(2026, time.October, 14, 12, 0, 0, 0, time.UTC)
+	for _, plan := range []string{"pro", "business", "enterprise"} {
+		_, _, features := evaluateBootstrapEntitlement(&ent.WorkspaceEntitlement{Plan: plan, Status: "active"}, now)
+		if !features["campaign:workflow"] {
+			t.Fatalf("%s plan lacks campaign:workflow", plan)
+		}
+	}
+	if _, _, features := evaluateBootstrapEntitlement(&ent.WorkspaceEntitlement{Plan: "free", Status: "active"}, now); features["campaign:workflow"] {
+		t.Fatal("free workspace has campaign:workflow")
+	}
+	if _, _, features := evaluateBootstrapEntitlement(&ent.WorkspaceEntitlement{Plan: "pro", Status: "canceled"}, now); features["campaign:workflow"] {
+		t.Fatal("inactive workspace has campaign:workflow")
+	}
+	revoked := &ent.WorkspaceEntitlement{Plan: "business", Status: "active", FeatureOverrides: map[string]any{"campaign:workflow": false}}
+	if _, _, features := evaluateBootstrapEntitlement(revoked, now); features["campaign:workflow"] {
+		t.Fatal("override did not revoke campaign:workflow")
+	}
+	if minimumFeaturePlan["campaign:workflow"] != "pro" {
+		t.Fatalf("campaign:workflow minimum plan = %s", minimumFeaturePlan["campaign:workflow"])
+	}
+}

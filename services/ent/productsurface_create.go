@@ -32,6 +32,12 @@ func (_c *ProductSurfaceCreate) SetName(v string) *ProductSurfaceCreate {
 	return _c
 }
 
+// SetSlug sets the "slug" field.
+func (_c *ProductSurfaceCreate) SetSlug(v string) *ProductSurfaceCreate {
+	_c.mutation.SetSlug(v)
+	return _c
+}
+
 // SetURL sets the "url" field.
 func (_c *ProductSurfaceCreate) SetURL(v string) *ProductSurfaceCreate {
 	_c.mutation.SetURL(v)
@@ -75,6 +81,34 @@ func (_c *ProductSurfaceCreate) SetFeatureTags(v []string) *ProductSurfaceCreate
 // SetScreenshotAssetIds sets the "screenshot_asset_ids" field.
 func (_c *ProductSurfaceCreate) SetScreenshotAssetIds(v []string) *ProductSurfaceCreate {
 	_c.mutation.SetScreenshotAssetIds(v)
+	return _c
+}
+
+// SetLastCapturedAt sets the "last_captured_at" field.
+func (_c *ProductSurfaceCreate) SetLastCapturedAt(v time.Time) *ProductSurfaceCreate {
+	_c.mutation.SetLastCapturedAt(v)
+	return _c
+}
+
+// SetNillableLastCapturedAt sets the "last_captured_at" field if the given value is not nil.
+func (_c *ProductSurfaceCreate) SetNillableLastCapturedAt(v *time.Time) *ProductSurfaceCreate {
+	if v != nil {
+		_c.SetLastCapturedAt(*v)
+	}
+	return _c
+}
+
+// SetLastCaptureFailureCode sets the "last_capture_failure_code" field.
+func (_c *ProductSurfaceCreate) SetLastCaptureFailureCode(v string) *ProductSurfaceCreate {
+	_c.mutation.SetLastCaptureFailureCode(v)
+	return _c
+}
+
+// SetNillableLastCaptureFailureCode sets the "last_capture_failure_code" field if the given value is not nil.
+func (_c *ProductSurfaceCreate) SetNillableLastCaptureFailureCode(v *string) *ProductSurfaceCreate {
+	if v != nil {
+		_c.SetLastCaptureFailureCode(*v)
+	}
 	return _c
 }
 
@@ -169,6 +203,9 @@ func (_c *ProductSurfaceCreate) check() error {
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "ProductSurface.name"`)}
 	}
+	if _, ok := _c.mutation.Slug(); !ok {
+		return &ValidationError{Name: "slug", err: errors.New(`ent: missing required field "ProductSurface.slug"`)}
+	}
 	if _, ok := _c.mutation.URL(); !ok {
 		return &ValidationError{Name: "url", err: errors.New(`ent: missing required field "ProductSurface.url"`)}
 	}
@@ -230,6 +267,10 @@ func (_c *ProductSurfaceCreate) createSpec() (*ProductSurface, *sqlgraph.CreateS
 		_spec.SetField(productsurface.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
+	if value, ok := _c.mutation.Slug(); ok {
+		_spec.SetField(productsurface.FieldSlug, field.TypeString, value)
+		_node.Slug = value
+	}
 	if value, ok := _c.mutation.URL(); ok {
 		_spec.SetField(productsurface.FieldURL, field.TypeString, value)
 		_node.URL = value
@@ -249,6 +290,14 @@ func (_c *ProductSurfaceCreate) createSpec() (*ProductSurface, *sqlgraph.CreateS
 	if value, ok := _c.mutation.ScreenshotAssetIds(); ok {
 		_spec.SetField(productsurface.FieldScreenshotAssetIds, field.TypeJSON, value)
 		_node.ScreenshotAssetIds = value
+	}
+	if value, ok := _c.mutation.LastCapturedAt(); ok {
+		_spec.SetField(productsurface.FieldLastCapturedAt, field.TypeTime, value)
+		_node.LastCapturedAt = &value
+	}
+	if value, ok := _c.mutation.LastCaptureFailureCode(); ok {
+		_spec.SetField(productsurface.FieldLastCaptureFailureCode, field.TypeString, value)
+		_node.LastCaptureFailureCode = &value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(productsurface.FieldCreatedAt, field.TypeTime, value)

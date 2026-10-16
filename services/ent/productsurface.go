@@ -22,6 +22,8 @@ type ProductSurface struct {
 	OrganizationID string `json:"organization_id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
+	// Slug holds the value of the "slug" field.
+	Slug string `json:"slug,omitempty"`
 	// URL holds the value of the "url" field.
 	URL string `json:"url,omitempty"`
 	// Environment holds the value of the "environment" field.
@@ -32,6 +34,10 @@ type ProductSurface struct {
 	FeatureTags []string `json:"feature_tags,omitempty"`
 	// ScreenshotAssetIds holds the value of the "screenshot_asset_ids" field.
 	ScreenshotAssetIds []string `json:"screenshot_asset_ids,omitempty"`
+	// LastCapturedAt holds the value of the "last_captured_at" field.
+	LastCapturedAt *time.Time `json:"last_captured_at,omitempty"`
+	// LastCaptureFailureCode holds the value of the "last_capture_failure_code" field.
+	LastCaptureFailureCode *string `json:"last_capture_failure_code,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -46,9 +52,9 @@ func (*ProductSurface) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case productsurface.FieldFeatureTags, productsurface.FieldScreenshotAssetIds:
 			values[i] = new([]byte)
-		case productsurface.FieldID, productsurface.FieldOrganizationID, productsurface.FieldName, productsurface.FieldURL, productsurface.FieldEnvironment, productsurface.FieldDescription:
+		case productsurface.FieldID, productsurface.FieldOrganizationID, productsurface.FieldName, productsurface.FieldSlug, productsurface.FieldURL, productsurface.FieldEnvironment, productsurface.FieldDescription, productsurface.FieldLastCaptureFailureCode:
 			values[i] = new(sql.NullString)
-		case productsurface.FieldCreatedAt, productsurface.FieldUpdatedAt:
+		case productsurface.FieldLastCapturedAt, productsurface.FieldCreatedAt, productsurface.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -82,6 +88,12 @@ func (_m *ProductSurface) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
 				_m.Name = value.String
+			}
+		case productsurface.FieldSlug:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field slug", values[i])
+			} else if value.Valid {
+				_m.Slug = value.String
 			}
 		case productsurface.FieldURL:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -117,6 +129,20 @@ func (_m *ProductSurface) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &_m.ScreenshotAssetIds); err != nil {
 					return fmt.Errorf("unmarshal field screenshot_asset_ids: %w", err)
 				}
+			}
+		case productsurface.FieldLastCapturedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field last_captured_at", values[i])
+			} else if value.Valid {
+				_m.LastCapturedAt = new(time.Time)
+				*_m.LastCapturedAt = value.Time
+			}
+		case productsurface.FieldLastCaptureFailureCode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field last_capture_failure_code", values[i])
+			} else if value.Valid {
+				_m.LastCaptureFailureCode = new(string)
+				*_m.LastCaptureFailureCode = value.String
 			}
 		case productsurface.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -172,6 +198,9 @@ func (_m *ProductSurface) String() string {
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
+	builder.WriteString("slug=")
+	builder.WriteString(_m.Slug)
+	builder.WriteString(", ")
 	builder.WriteString("url=")
 	builder.WriteString(_m.URL)
 	builder.WriteString(", ")
@@ -188,6 +217,16 @@ func (_m *ProductSurface) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("screenshot_asset_ids=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ScreenshotAssetIds))
+	builder.WriteString(", ")
+	if v := _m.LastCapturedAt; v != nil {
+		builder.WriteString("last_captured_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.LastCaptureFailureCode; v != nil {
+		builder.WriteString("last_capture_failure_code=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

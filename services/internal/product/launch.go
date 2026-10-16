@@ -567,6 +567,13 @@ func (c *Configuration) SaveLaunchPosts(ctx context.Context, actor Actor, campai
 	if !exists {
 		return nil, launchNotFound("Campaign")
 	}
+	texts := make([]string, 0, 3*len(input.Posts))
+	for _, post := range input.Posts {
+		texts = append(texts, post.Title, post.Copy, post.CallToAction)
+	}
+	if err := requireAllowedCopy(ctx, tx.BrandProfile, actor.OrganizationID, texts...); err != nil {
+		return nil, err
+	}
 	position := 0
 	last, err := tx.ContentAngle.Query().Where(contentangle.CampaignID(campaignID)).Order(ent.Desc(contentangle.FieldPosition)).First(ctx)
 	if err != nil && !ent.IsNotFound(err) {
@@ -865,50 +872,14 @@ func applyLaunchChange(ctx context.Context, tx *ent.Tx, actor Actor, revision *e
 			Copy         string           `json:"copy"`
 			Title        string           `json:"title"`
 		}
-		if json.Unmarshal(change.After, &after) != nil || strings.TrimSpace(after.Copy) == "" {
+		if json.Unmarshal(change.After, &after) != nil {
 			return "", nil, ErrInvalidInput
 		}
 		if after.Claims == nil {
 			after.Claims = []map[string]any{}
 		}
-		update := tx.CampaignPost.UpdateOneID(post.ID).SetCopy(after.Copy).SetClaims(after.Claims)
-		// Approved copy never changes in place: an edit sends it back to
-		// draft, and a post that may be live cannot be edited.
-		switch post.Status {
-		case campaignpost.StatusPUBLISHED:
-			return "", nil, conflict("This post is published and can no longer be edited.")
-		case campaignpost.StatusSCHEDULED:
-			if post.ScheduledPostID != nil {
-				dead, err := tx.ScheduledPost.Query().Where(scheduledpost.ID(*post.ScheduledPostID),
-					scheduledpost.OrganizationID(organizationID),
-					scheduledpost.StatusIn(scheduledpost.StatusCANCELLED, scheduledpost.StatusFAILED)).Exist(ctx)
-				if err != nil {
-					return "", nil, err
-				}
-				if !dead {
-					return "", nil, conflict("Cancel the scheduled post first.")
-				}
-			}
-			update.SetStatus(campaignpost.StatusDRAFT).ClearScheduledPostID().ClearScheduledAt().
-				ClearApprovedAt().ClearApprovedByUserID()
-		case campaignpost.StatusAPPROVED:
-			update.SetStatus(campaignpost.StatusDRAFT).ClearApprovedAt().ClearApprovedByUserID()
-		}
-		if after.CallToAction == "" {
-			update.ClearCallToAction()
-		} else {
-			update.SetCallToAction(after.CallToAction)
-		}
-		if after.Title == "" {
-			update.ClearTitle()
-		} else {
-			update.SetTitle(after.Title)
-		}
-		// Revised copy goes back through review.
-		if post.Status == campaignpost.StatusNEEDS_CHANGES || post.Status == campaignpost.StatusREJECTED {
-			update.SetStatus(campaignpost.StatusDRAFT)
-		}
-		return "", nil, update.Exec(ctx)
+		return "", nil, revisePost(ctx, tx, post, before.Copy, errLaunchStale, postRevision{CallToAction: &after.CallToAction,
+			Claims: after.Claims, Copy: &after.Copy, Title: &after.Title})
 	case "spec_section":
 		spec, err := tx.ReleaseSpec.Query().Where(releasespec.ID(change.TargetID), releasespec.OrganizationID(organizationID)).Only(ctx)
 		if ent.IsNotFound(err) {
@@ -1014,6 +985,85 @@ func applyLaunchChange(ctx context.Context, tx *ent.Tx, actor Actor, revision *e
 		return row.ID, nil, nil
 	}
 	return "", nil, ErrInvalidInput
+}
+
+// postRevision is an edit to a post. A nil field is unchanged; an empty call
+// to action or title clears it.
+type postRevision struct {
+	CallToAction *string
+	Claims       []map[string]any
+	Copy         *string
+	Title        *string
+}
+
+// revisePost edits a post's copy under the review rules. expectedCopy is the
+// copy the edit was made against; a mismatch returns stale. Approved copy
+// never changes in place: an edit sends it back to draft and clears the
+// approval, and a post that may be live cannot be edited. The result must
+// pass the brand's prohibited terms.
+func revisePost(ctx context.Context, tx *ent.Tx, post *ent.CampaignPost, expectedCopy string, stale error, edit postRevision) error {
+	if post.Copy != expectedCopy {
+		return stale
+	}
+	copyText, title, callToAction := post.Copy, optionalText(post.Title), optionalText(post.CallToAction)
+	if edit.Copy != nil {
+		copyText = *edit.Copy
+	}
+	if edit.Title != nil {
+		title = *edit.Title
+	}
+	if edit.CallToAction != nil {
+		callToAction = *edit.CallToAction
+	}
+	if strings.TrimSpace(copyText) == "" {
+		return ErrInvalidInput
+	}
+	if err := requireAllowedCopy(ctx, tx.BrandProfile, post.OrganizationID, title, copyText, callToAction); err != nil {
+		return err
+	}
+	update := tx.CampaignPost.UpdateOneID(post.ID).Where(campaignpost.Copy(expectedCopy)).SetCopy(copyText)
+	if edit.Claims != nil {
+		update.SetClaims(edit.Claims)
+	}
+	switch post.Status {
+	case campaignpost.StatusPUBLISHED:
+		return conflict("This post is published and can no longer be edited.")
+	case campaignpost.StatusSCHEDULED:
+		if post.ScheduledPostID != nil {
+			dead, err := tx.ScheduledPost.Query().Where(scheduledpost.ID(*post.ScheduledPostID),
+				scheduledpost.OrganizationID(post.OrganizationID),
+				scheduledpost.StatusIn(scheduledpost.StatusCANCELLED, scheduledpost.StatusFAILED)).Exist(ctx)
+			if err != nil {
+				return err
+			}
+			if !dead {
+				return conflict("Cancel the scheduled post first.")
+			}
+		}
+		update.SetStatus(campaignpost.StatusDRAFT).ClearScheduledPostID().ClearScheduledAt().
+			ClearApprovedAt().ClearApprovedByUserID()
+	case campaignpost.StatusAPPROVED:
+		update.SetStatus(campaignpost.StatusDRAFT).ClearApprovedAt().ClearApprovedByUserID()
+	case campaignpost.StatusNEEDS_CHANGES, campaignpost.StatusREJECTED:
+		// Revised copy goes back through review.
+		update.SetStatus(campaignpost.StatusDRAFT)
+	}
+	if callToAction == "" {
+		update.ClearCallToAction()
+	} else {
+		update.SetCallToAction(callToAction)
+	}
+	if title == "" {
+		update.ClearTitle()
+	} else {
+		update.SetTitle(title)
+	}
+	err := update.Exec(ctx)
+	if ent.IsNotFound(err) {
+		// The copy changed between the read and the write.
+		return stale
+	}
+	return err
 }
 
 // moveLaunchPosts moves posts to a revised spec version when their claims

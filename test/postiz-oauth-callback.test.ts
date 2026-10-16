@@ -18,7 +18,8 @@ test('X maps its OAuth 1 callback fields to the backend exchange', async () => {
       },
     }
   )
-  assert.equal(result.status, 200)
+  assert.equal(result.status, 303)
+  assert.equal(result.headers.get('Location'), '/workspace/channels?connected=x')
   assert.deepEqual(calls, [['token', 'verifier']])
 })
 
@@ -36,8 +37,8 @@ test('Instagram Login forwards code and state without exposing the backend respo
       },
     }
   )
-  assert.equal(result.status, 200)
-  assert.match(await result.text(), /connected/)
+  assert.equal(result.status, 303)
+  assert.equal(result.headers.get('Location'), '/workspace/channels?connected=instagram-standalone')
   assert.deepEqual(calls, [['state1', 'code1']])
 })
 
@@ -47,7 +48,7 @@ test('LinkedIn uses the same session-bound callback exchange', async () => {
     'linkedin',
     { exchange: async () => ({ id: 'go-linkedin' }) }
   )
-  assert.equal(result.status, 200)
+  assert.equal(result.status, 303)
 })
 
 test('Facebook Login requires a linked Instagram account selection', async () => {
@@ -80,7 +81,8 @@ test('Facebook Login requires a linked Instagram account selection', async () =>
       },
     }
   )
-  assert.equal(selected.status, 200)
+  assert.equal(selected.status, 303)
+  assert.equal(selected.headers.get('Location'), '/workspace/channels?connected=instagram')
   assert.deepEqual(selections, [
     {
       accountId: 'ig1',

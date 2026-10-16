@@ -2,7 +2,7 @@ import 'server-only'
 
 import { assertPublicCaptureUrl } from '@/lib/screenshot-service'
 import type { BrandKitValues } from '@/lib/launch/brand'
-import { brandFontId } from '@/lib/launch/brand'
+import { brandFontId, prohibitedTermList } from '@/lib/launch/brand'
 import { defuseMarkup } from '@/lib/launch/sanitize'
 import {
   type CampaignPlanContent,
@@ -63,7 +63,7 @@ export function formatBrandVoice(brand: ActiveBrand): string | null {
     line('Tone', profile.tone),
     line('Tagline', profile.tagline),
     line('Call-to-action conventions', profile.ctaConventions),
-    line('Never use', Array.isArray(profile.prohibitedTerms) ? profile.prohibitedTerms : []),
+    line('Never use', prohibitedTermList(profile.prohibitedTerms)),
     line('Preferred styles', Array.isArray(profile.preferredStyles) ? profile.preferredStyles : []),
     line('Social handles', handles),
     '</brand_voice>',
@@ -73,10 +73,7 @@ export function formatBrandVoice(brand: ActiveBrand): string | null {
 }
 
 export function prohibitedTermsOf(brand: ActiveBrand): string[] {
-  const terms = brand.profile?.prohibitedTerms
-  return Array.isArray(terms)
-    ? terms.filter((term): term is string => typeof term === 'string')
-    : []
+  return prohibitedTermList(brand.profile?.prohibitedTerms)
 }
 
 /** The spec as the downstream stages see it: claims with refs, plus open questions as unknowns. */

@@ -170,6 +170,9 @@ func (c *Configuration) SaveCampaignCopy(ctx context.Context, actor Actor, campa
 	if !owned {
 		return publishing.ErrNotFound
 	}
+	if err := requireAllowedCopy(ctx, tx.BrandProfile, actor.OrganizationID, campaignPostTexts(input.Posts)...); err != nil {
+		return err
+	}
 	offset := 0
 	last, err := tx.ContentAngle.Query().Where(contentangle.CampaignID(campaignID)).Order(ent.Desc(contentangle.FieldPosition)).First(ctx)
 	if err != nil && !ent.IsNotFound(err) {

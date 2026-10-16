@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import { ProfileForm } from '@/components/auth/ProfileForm'
+import { ChannelConnections } from './ChannelConnections'
 import { WorkspaceAuditSettings } from './WorkspaceAuditSettings'
 import { WorkspaceBilling } from './WorkspaceBilling'
 import { WorkspaceBrandSettings } from './WorkspaceBrandSettings'
@@ -42,6 +43,7 @@ function getDetailContent({
     ),
     billing: <WorkspaceBilling canManage={canManage} />,
     brand: <WorkspaceBrandSettings canManage={canManage} />,
+    channels: <ChannelConnections canManage={hasPermission(role, 'publish:manage')} />,
     general: (
       <WorkspaceGeneralSettings
         canDelete={hasPermission(role, 'workspace:delete')}

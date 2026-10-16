@@ -17,6 +17,8 @@ const (
 	FieldOrganizationID = "organizationId"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// FieldSlug holds the string denoting the slug field in the database.
+	FieldSlug = "slug"
 	// FieldURL holds the string denoting the url field in the database.
 	FieldURL = "url"
 	// FieldEnvironment holds the string denoting the environment field in the database.
@@ -27,6 +29,10 @@ const (
 	FieldFeatureTags = "featureTags"
 	// FieldScreenshotAssetIds holds the string denoting the screenshot_asset_ids field in the database.
 	FieldScreenshotAssetIds = "screenshotAssetIds"
+	// FieldLastCapturedAt holds the string denoting the last_captured_at field in the database.
+	FieldLastCapturedAt = "lastCapturedAt"
+	// FieldLastCaptureFailureCode holds the string denoting the last_capture_failure_code field in the database.
+	FieldLastCaptureFailureCode = "lastCaptureFailureCode"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "createdAt"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -40,11 +46,14 @@ var Columns = []string{
 	FieldID,
 	FieldOrganizationID,
 	FieldName,
+	FieldSlug,
 	FieldURL,
 	FieldEnvironment,
 	FieldDescription,
 	FieldFeatureTags,
 	FieldScreenshotAssetIds,
+	FieldLastCapturedAt,
+	FieldLastCaptureFailureCode,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -88,6 +97,11 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
+// BySlug orders the results by the slug field.
+func BySlug(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSlug, opts...).ToFunc()
+}
+
 // ByURL orders the results by the url field.
 func ByURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldURL, opts...).ToFunc()
@@ -101,6 +115,16 @@ func ByEnvironment(opts ...sql.OrderTermOption) OrderOption {
 // ByDescription orders the results by the description field.
 func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+}
+
+// ByLastCapturedAt orders the results by the last_captured_at field.
+func ByLastCapturedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastCapturedAt, opts...).ToFunc()
+}
+
+// ByLastCaptureFailureCode orders the results by the last_capture_failure_code field.
+func ByLastCaptureFailureCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastCaptureFailureCode, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

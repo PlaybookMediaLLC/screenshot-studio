@@ -24,11 +24,13 @@ test('an owner can persist workspace, profile, and active brand-kit settings', a
 
   await openWorkspaceSetting(page, 'Brand kit')
   await page.getByLabel('Brand kit name').fill('Launch system')
-  await page.getByLabel('Primary typeface').fill('Inter')
+  await page.getByLabel('Primary typeface').selectOption('inter')
   await page.getByRole('button', { name: 'Publish brand kit' }).click()
   await expect(page.getByText('Launch system')).toBeVisible()
   await expect(page.getByText('v1 · active')).toBeVisible()
 
   await page.reload()
-  await expect(page.locator('aside').getByText(workspaceName, { exact: true })).toBeVisible()
+  // The sidebar is an icon rail; the workspace name shows in the account menu.
+  await page.getByRole('button', { name: 'Open account menu' }).click()
+  await expect(page.getByText(`Workspace: ${workspaceName}`, { exact: true })).toBeVisible()
 })

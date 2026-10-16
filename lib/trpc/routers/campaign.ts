@@ -4,6 +4,7 @@ import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { campaignPostTransitions } from '@/lib/tenant/campaign-status'
 import {
+  approveCampaignDesign,
   createCampaign,
   getCampaign,
   listCampaigns,
@@ -80,6 +81,13 @@ export const campaignRouter = router({
         input.postIds,
         input.note
       )
+    }),
+  /** Approve a design's current render so its posts can be scheduled with it. */
+  approveDesign: organizationProcedure('release:approve')
+    .input(campaignIdSchema.extend({ designId: z.string().cuid() }))
+    .mutation(async ({ ctx, input }) => {
+      await approveCampaignDesign(ctx.access, input.campaignId, input.designId)
+      return { approved: true }
     }),
   schedulePost: organizationProcedure('publish:manage')
     .input(

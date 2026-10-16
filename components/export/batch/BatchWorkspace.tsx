@@ -298,6 +298,8 @@ export function BatchWorkspace({ onOpenChange, open, styleSources = [] }: BatchW
   const [importing, setImporting] = React.useState<{ done: number; total: number } | null>(null)
   const [running, setRunning] = React.useState(false)
   const [confirmClear, setConfirmClear] = React.useState(false)
+  /** Files the last import could not add, with the reason; shown until dismissed. */
+  const [notAdded, setNotAdded] = React.useState<string[]>([])
   const controller = React.useRef<AbortController | null>(null)
   const fileInput = React.useRef<HTMLInputElement>(null)
 
@@ -371,14 +373,7 @@ export function BatchWorkspace({ onOpenChange, open, styleSources = [] }: BatchW
       // Keep import order, whatever order the decodes finished in.
       setItems((list) => [...list, ...decoded.filter((item): item is BatchItem => item !== null)])
     }
-    if (rejected.length > 0) {
-      toast.error(
-        `${rejected.length === 1 ? 'One file was' : `${rejected.length} files were`} not added`,
-        {
-          description: rejected.slice(0, 4).join(' '),
-        }
-      )
-    }
+    setNotAdded(rejected)
   }
 
   const settings = { format, pdfCompression, quality, scale, targets }
@@ -610,6 +605,33 @@ export function BatchWorkspace({ onOpenChange, open, styleSources = [] }: BatchW
               ref={fileInput}
               type="file"
             />
+            {notAdded.length > 0 ? (
+              <div
+                className="mx-4 mt-3 flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-xs text-destructive"
+                role="alert"
+              >
+                <Alert02Icon className="mt-0.5 shrink-0" size={14} />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">
+                    {notAdded.length === 1 ? 'One file was' : `${notAdded.length} files were`} not
+                    added
+                  </p>
+                  <ul className="mt-0.5 space-y-0.5">
+                    {notAdded.slice(0, 5).map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                    {notAdded.length > 5 ? <li>and {notAdded.length - 5} more</li> : null}
+                  </ul>
+                </div>
+                <button
+                  className="shrink-0 cursor-pointer rounded px-1.5 py-0.5 hover:bg-destructive/10"
+                  onClick={() => setNotAdded([])}
+                  type="button"
+                >
+                  Dismiss
+                </button>
+              </div>
+            ) : null}
             {total === 0 ? (
               <div className="grid flex-1 place-items-center p-6" data-batch-dropzone>
                 <button

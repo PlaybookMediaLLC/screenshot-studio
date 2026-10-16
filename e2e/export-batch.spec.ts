@@ -213,7 +213,10 @@ test('batch mode applies the design to several screenshots and exports every siz
       .querySelector('[data-batch-dropzone]')!
       .dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: data }))
   })
-  await expect(page.getByText(/notes\.txt: File type not supported/)).toBeVisible()
+  const notAdded = batch.getByRole('alert').filter({ hasText: 'not added' })
+  await expect(notAdded).toContainText(/notes\.txt: File type not supported/)
+  await notAdded.getByRole('button', { name: 'Dismiss' }).click()
+  await expect(notAdded).toBeHidden()
   const shots = [
     { height: 900, width: 1400 },
     { height: 1600, width: 900 },

@@ -11,6 +11,7 @@ import { nextPaint, STAGE_ELEMENT_ID, waitForStageImages } from '@/lib/render/ca
 import { useImageStore } from '@/lib/store'
 import { usePlaybackStore } from '@/lib/store/playback'
 import { loadTextFonts } from '@/lib/typography/load-text-fonts'
+import { loadCodeFont } from '@/components/frames/CodeScreen'
 
 type StageRendererProps = {
   document: DesignDocument
@@ -64,6 +65,7 @@ export function StageRenderer({ document, sources = {}, time = 0, onReady }: Sta
     void (async () => {
       // Web fonts load from stylesheets added while the stage mounted.
       await loadTextFonts(useImageStore.getState().textOverlays)
+      await Promise.all(useImageStore.getState().mockups.map((mockup) => mockup.screen.code && loadCodeFont(mockup.screen.code)))
       await window.document.fonts.ready
       // Layers placed in the layout phase paint, then their images load.
       await nextPaint()

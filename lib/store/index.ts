@@ -7,6 +7,8 @@ import type { TextAlign, TextFill, TextFit, TextRole } from '@/lib/typography/te
 import type { BrandBinding } from '@/lib/brand/binding'
 import type { DesignCopy } from '@/lib/captions/channels'
 import { createElementsSlice, type ElementsSlice } from './elements-slice'
+import { createFramesSlice, type FramesSlice } from './frames-slice'
+import { isChromeFrameType } from '@/lib/frames/main-frame'
 import { shallow } from 'zustand/shallow'
 import { temporal } from 'zundo'
 import { GradientKey } from '@/lib/constants/gradient-colors'
@@ -179,6 +181,8 @@ export interface ImageBorder {
     | 'outline-light'
     | 'border-light'
     | 'border-dark'
+    | 'browser'
+    | 'window'
   padding?: number
   title?: string
   opacity?: number
@@ -254,7 +258,7 @@ export function endHistoryGesture() {
 }
 
 // Re-export existing ImageState interface and store
-export interface ImageState extends ElementsSlice {
+export interface ImageState extends ElementsSlice, FramesSlice {
   uploadedImageUrl: string | null
   imageName: string | null
   selectedGradient: GradientKey
@@ -465,6 +469,7 @@ export const useImageStore = create<ImageState>()(
   temporal(
     (set, get) => ({
       ...createElementsSlice(set, get),
+      ...createFramesSlice(set),
       slides: [],
       activeSlideId: null,
 
@@ -1837,30 +1842,20 @@ export const useImageStore = create<ImageState>()(
         const currentBorder = get().imageBorder
         const currentUrl = get().browserUrl || 'shots.playbookmedia.io'
         if (mode === 'browser') {
-          // Apply default browser frame (Chrome Dark) if no browser frame is active
-          const isBrowserFrame = [
-            'macos-light',
-            'macos-dark',
-            'windows-light',
-            'windows-dark',
-          ].includes(currentBorder.type)
+          // Apply the default browser frame if no browser or window frame is active
+          const isBrowserFrame = isChromeFrameType(currentBorder.type)
           set({
             editorMode: mode,
             imageBorder: {
               ...currentBorder,
               enabled: true,
-              type: isBrowserFrame ? currentBorder.type : 'windows-dark',
+              type: isBrowserFrame ? currentBorder.type : 'browser',
               title: currentUrl,
             },
           })
         } else {
           // Switching back to screenshot: disable browser frame
-          const isBrowserFrame = [
-            'macos-light',
-            'macos-dark',
-            'windows-light',
-            'windows-dark',
-          ].includes(currentBorder.type)
+          const isBrowserFrame = isChromeFrameType(currentBorder.type)
           if (isBrowserFrame) {
             set({
               editorMode: mode,

@@ -32,6 +32,8 @@ import {
   Target01Icon,
 } from 'hugeicons-react';
 import { ELEMENT_LABELS } from '@/components/editor/inspector/ElementInspector';
+import { ScreenLayerList } from '@/components/frames/panels/ScreenLayerList';
+import { isScreenScene } from '@/lib/frames/commands';
 
 // ── Local overlay assets ─────────────────────────────────────────────────────
 
@@ -80,7 +82,6 @@ interface LayerItem {
 
 export function DepthSection() {
   const {
-    uploadedImageUrl,
     imageName,
     imageOverlays,
     textOverlays,
@@ -106,6 +107,8 @@ export function DepthSection() {
   const selectedBlurId = useImageStore((state) => state.selectedBlurId);
   const selectedElementId = useImageStore((state) => state.selectedElementId);
   const elements = useImageStore((state) => state.elements);
+  // In a composition the screenshot is drawn by its screen, listed under Screens.
+  const mainImageUrl = useImageStore((state) => (isScreenScene(state) ? null : state.uploadedImageUrl));
   const selectedLayerId =
     selectedOverlayId ?? selectedTextId ?? selectedElementId ?? selectedAnnotationId ?? selectedBlurId;
   const selectLayer = (layer: LayerItem | null) => {
@@ -291,18 +294,19 @@ export function DepthSection() {
 
   return (
     <div className="space-y-2">
+      <ScreenLayerList />
       <SectionWrapper
         title="Layers"
         defaultOpen={true}
         action={
-          layers.length + (uploadedImageUrl ? 1 : 0) > 0 ? (
+          layers.length + (mainImageUrl ? 1 : 0) > 0 ? (
             <span className="text-[10px] tabular-nums text-muted-foreground">
-              {layers.length + (uploadedImageUrl ? 1 : 0)}
+              {layers.length + (mainImageUrl ? 1 : 0)}
             </span>
           ) : undefined
         }
       >
-        {layers.length === 0 && !uploadedImageUrl ? (
+        {layers.length === 0 && !mainImageUrl ? (
           <div className="flex flex-col items-center gap-2 py-6 text-center">
             <LayersLogoIcon size={28} className="text-muted-foreground/50" />
             <p className="text-xs text-muted-foreground">
@@ -457,7 +461,7 @@ export function DepthSection() {
                 </div>
               );
             })}
-            {uploadedImageUrl && (
+            {mainImageUrl && (
               <button
                 type="button"
                 className={cn(
@@ -474,7 +478,7 @@ export function DepthSection() {
               >
                 <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 overflow-hidden bg-foreground/[0.06] border border-foreground/10">
                   <img
-                    src={uploadedImageUrl}
+                    src={mainImageUrl}
                     alt=""
                     draggable={false}
                     className="w-full h-full object-cover"

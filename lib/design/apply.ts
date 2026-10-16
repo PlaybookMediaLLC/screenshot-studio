@@ -14,6 +14,9 @@ import {
 import { exportDesignDocument } from './export'
 import { resolveEditorTemplate } from './templates'
 import { resetPlayback } from '@/lib/store/playback'
+import { applyCompositionLayout } from '@/lib/frames/commands'
+import { compositionLayoutSchema } from '@/lib/frames/layouts'
+import { DEFAULT_FRAME_CHROME } from '@/lib/frames/schema'
 
 /**
  * Write designs and design changes into the editor stores.
@@ -118,6 +121,7 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
       ? { browserHeaderSize: imageChanges.browserHeaderSize }
       : {}),
   })
+  if (imageChanges.chrome) useImageStore.setState({ frameChrome: structuredClone(imageChanges.chrome) })
   if (shadow?.preset) useImageStore.getState().setShadowPreset(shadow.preset)
   if (shadow?.custom) useImageStore.setState({ imageShadow: shadow.custom })
   if (frame) {
@@ -155,11 +159,15 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
       deviceLayoutSnapshot: null,
       mockups: changes.devices.mockups.map((device, index) => {
         const custom = Boolean(device.screen.src)
-        const screenSrc = device.screen.src ? resolve(device.screen.src) : mainSrc
+        // A code screen draws its code; any other screen without a source shows the main image.
+        const screenSrc = device.screen.code ? null : device.screen.src ? resolve(device.screen.src) : mainSrc
         const screen = createDeviceScreen(screenSrc, device.screen.name ?? 'design', custom)
         return {
           ...createMockup(device.definitionId, screen, index),
           ...(device.id ? { id: device.id } : {}),
+          ...(device.frame ? { frame: structuredClone(device.frame) } : {}),
+          ...(device.color ? { color: device.color } : {}),
+          ...(device.orientation ? { orientation: device.orientation } : {}),
           isVisible: device.visible ?? true,
           opacity: device.opacity,
           position: { ...device.position },
@@ -169,13 +177,17 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
             fit: device.screen.fit,
             offset: device.screen.offset ? { ...device.screen.offset } : screen.offset,
             scale: device.screen.scale ?? screen.scale,
+            ...(device.screen.aspect !== undefined ? { aspect: device.screen.aspect } : {}),
+            ...(device.screen.code ? { code: structuredClone(device.screen.code) } : {}),
           },
           size: device.size,
         }
       }),
     })
   } else if (changes.devices?.layoutId) {
-    useImageStore.getState().applyDeviceLayout(changes.devices.layoutId as DeviceLayoutId)
+    const composition = compositionLayoutSchema.safeParse(changes.devices.layoutId)
+    if (composition.success) applyCompositionLayout(composition.data)
+    else useImageStore.getState().applyDeviceLayout(changes.devices.layoutId as DeviceLayoutId)
   } else if (changes.devices && changes.devices.mockups.length === 0) {
     useImageStore.setState({ activeDeviceLayoutId: null, deviceLayoutSnapshot: null, mockups: [] })
   }
@@ -323,6 +335,7 @@ export function applyDesignDocument(
     const mainSrc = document.image.src ? resolve(document.image.src) : null
     const keepImage = !mainSrc ? useImageStore.getState().uploadedImageUrl : null
     useImageStore.getState().clearImage()
+    useImageStore.setState({ frameChrome: { ...DEFAULT_FRAME_CHROME } })
     if (keepImage) useImageStore.getState().setUploadedImageUrl(keepImage, 'design')
     writeSections(document, resolve)
   })

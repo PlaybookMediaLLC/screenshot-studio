@@ -98,6 +98,10 @@ export function normalizeDraftMockups(
       opacity: mockup.opacity,
       isVisible: mockup.isVisible,
       screen,
+      // A screen's frame and drawn-device options survive a reload.
+      ...(mockup.frame ? { frame: mockup.frame } : {}),
+      ...(mockup.color ? { color: mockup.color } : {}),
+      ...(mockup.orientation ? { orientation: mockup.orientation } : {}),
     }];
   });
 

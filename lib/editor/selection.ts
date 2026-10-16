@@ -31,6 +31,12 @@ export function useEditorSelection(): EditorSelection {
   return null
 }
 
+/** Select one composition screen (a screenshot, code, or device), and nothing else. */
+export function selectScreen(id: string) {
+  clearEditorSelection()
+  useDeviceUIStore.getState().setSelectedDeviceId(id)
+}
+
 /** Clear every selection. */
 export function clearEditorSelection() {
   const state = useImageStore.getState()

@@ -38,6 +38,8 @@ import {
   shouldRenderSourceImage,
 } from "@/lib/device-mockups/layouts";
 import { removeScreenshot } from '@/lib/editor/remove-screenshot'
+import { useMainChromeFrame } from "@/components/frames/use-main-chrome";
+import { useFrameToneSync } from "@/lib/frames/use-frame-tone";
 
 // Reference to the HTML canvas container for export
 let globalCanvasContainer: HTMLDivElement | null = null;
@@ -113,6 +115,8 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
 
   const hasDeviceScene = editorMode === "device" && hasVisibleMockups(mockups);
   const hasSourceImage = !!uploadedImageUrl && !!screenshot.src && shouldRenderSourceImage(editorMode, mockups);
+  const mainChrome = useMainChromeFrame();
+  useFrameToneSync();
   const selectedDeviceId = useDeviceUIStore((state) => state.selectedDeviceId);
   const setSelectedDeviceId = useDeviceUIStore((state) => state.setSelectedDeviceId);
   const setEditingScreenDeviceId = useDeviceUIStore((state) => state.setEditingScreenDeviceId);
@@ -392,7 +396,8 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     { padding: canvasPadding },
     screenshot,
     frame,
-    browserHeaderSize
+    browserHeaderSize,
+    mainChrome
   );
 
   const {
@@ -518,6 +523,8 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           screenshot={screenshot}
           shadow={shadow}
           frame={frame}
+          chrome={mainChrome}
+          chromeScale={browserHeaderSize / 100}
           showFrame={showFrame}
           framedW={framedW}
           framedH={framedH}
@@ -582,6 +589,8 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
               imageScaledH={imageScaledH}
               screenshot={screenshot}
               frame={frame}
+              chrome={mainChrome}
+              chromeScale={browserHeaderSize / 100}
               shadow={shadow}
               showFrame={showFrame}
               imageOpacity={imageOpacity}

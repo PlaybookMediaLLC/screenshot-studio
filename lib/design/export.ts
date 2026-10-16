@@ -2,6 +2,7 @@
 
 import { type ImageState, useImageStore } from '@/lib/store'
 import { useDeviceUIStore } from '@/lib/store/device-ui'
+import { isChromeFrameType } from '@/lib/frames/main-frame'
 import {
   DESIGN_DOCUMENT_VERSION,
   type DesignDocument,
@@ -121,12 +122,17 @@ export function documentFromState(
             mockups: image.mockups
               .filter((mockup) => keepLocalSources || mockup.isVisible)
               .map((mockup) => ({
+                color: mockup.color,
                 definitionId: mockup.definitionId,
+                frame: mockup.frame,
                 id: mockup.id,
                 opacity: mockup.opacity,
                 position: { x: clamp(mockup.position.x, 0, 1), y: clamp(mockup.position.y, 0, 1) },
+                orientation: mockup.orientation,
                 rotation: mockup.rotation,
                 screen: {
+                  aspect: mockup.screen.aspect,
+                  code: mockup.screen.code,
                   fit: mockup.screen.fit,
                   name: mockup.screen.name ?? undefined,
                   offset: {
@@ -148,6 +154,10 @@ export function documentFromState(
     elements: image.elements.filter((element) => keepLocalSources || element.visible),
     image: {
       browserHeaderSize: image.browserHeaderSize,
+      chrome:
+        image.imageBorder.enabled && isChromeFrameType(image.imageBorder.type)
+          ? valid(shape.image.shape.chrome, { ...image.frameChrome, address: image.browserUrl })
+          : undefined,
       frame: valid(shape.image.shape.frame, {
         color: hex.test(image.imageBorder.color) ? image.imageBorder.color : '#ffffff',
         opacity: image.imageBorder.opacity ?? 1,

@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
+import { usePlaybackStore } from '@/lib/store/playback';
 import { cn } from '@/lib/utils';
 
 interface TimelinePlayheadProps {
@@ -10,8 +11,10 @@ interface TimelinePlayheadProps {
 }
 
 export function TimelinePlayhead({ width, height }: TimelinePlayheadProps) {
-  const { timeline, setPlayhead } = useImageStore();
-  const { playhead, duration, isPlaying } = timeline;
+  const duration = useImageStore((state) => state.timeline.duration);
+  const playhead = usePlaybackStore((state) => state.playhead);
+  const isPlaying = usePlaybackStore((state) => state.isPlaying);
+  const setPlayhead = usePlaybackStore((state) => state.seek);
   const [isDragging, setIsDragging] = React.useState(false);
   const playheadRef = React.useRef<HTMLDivElement>(null);
 

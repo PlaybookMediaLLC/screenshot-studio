@@ -1,7 +1,6 @@
 import { useImageStore } from "@/lib/store";
-import { exportSlideFrame, exportSlideFrameAsCanvas } from "./export-slideFrame";
-import { getClipInterpolatedProperties } from "@/lib/animation/interpolation";
-import { DEFAULT_ANIMATABLE_PROPERTIES } from "@/types/animation";
+import { usePlaybackStore } from "@/lib/store/playback";
+import { exportSlideFrameAsCanvas } from "./export-slideFrame";
 
 function wait(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -175,36 +174,6 @@ export async function switchToSlideAndWait(
   forceReflow();
 }
 
-export async function renderSlidesToFrames() {
-  const { slides, slideshow, uploadedImageUrl } = useImageStore.getState();
-
-  const frames: { img: HTMLImageElement; duration: number }[] = [];
-
-  // If no slides but has an uploaded image, create a single frame from it
-  if (slides.length === 0 && uploadedImageUrl) {
-    const img = await exportSlideFrame();
-    frames.push({
-      img,
-      duration: slideshow.defaultDuration || 2,
-    });
-    return frames;
-  }
-
-  for (const slide of slides) {
-    await switchToSlideAndWait(slide.id, slide.src, 100);
-
-    const img = await exportSlideFrame();
-
-    // Use individual slide duration, fallback to default
-    frames.push({
-      img,
-      duration: slide.duration || slideshow.defaultDuration || 2,
-    });
-  }
-
-  return frames;
-}
-
 /**
  * Stream slide frames to a callback for encoding (no memory accumulation).
  * Each slide is captured once and the callback is invoked for each frame.
@@ -266,110 +235,6 @@ export async function streamSlidesToEncoder(
 }
 
 /**
- * Render animation timeline to frames at specified fps
- * Uses batched processing with UI yields to keep the interface responsive
- */
-export async function renderAnimationToFrames(
-  fps: number = 60,
-  onProgress?: (progress: number) => void
-) {
-  const store = useImageStore.getState();
-  const { timeline, animationClips, slides, slideshow, setActiveSlide, setPerspective3D, setImageOpacity } = store;
-  const { duration, tracks } = timeline;
-
-  if (tracks.length === 0 && slides.length <= 1) {
-    throw new Error("No animation tracks to render");
-  }
-
-  const frames: { img: HTMLImageElement; duration: number }[] = [];
-  const frameIntervalMs = 1000 / fps;
-  const totalFrames = Math.ceil(duration / frameIntervalMs);
-  const frameDuration = 1 / fps; // Duration each frame should display (in seconds)
-
-  // Process frames in batches to keep UI responsive
-  const BATCH_SIZE = 5; // Process 5 frames before yielding
-
-  // Disable CSS transitions on 3D overlay so each frame captures exact values
-  const restoreTransitions = disableOverlayTransitions();
-
-  let lastSlideId: string | null = null;
-
-  try {
-    for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
-      const time = frameIndex * frameIntervalMs;
-
-      // Switch to the correct slide based on time (for multi-slide animations)
-      if (slides.length > 1) {
-        const targetSlideId = getActiveSlideAtTime(slides, time, slideshow.defaultDuration);
-        if (targetSlideId && targetSlideId !== lastSlideId) {
-          setActiveSlide(targetSlideId);
-          lastSlideId = targetSlideId;
-          forceReflow();
-
-          // Wait for slide image to load and DOM to update
-          const slide = slides.find(s => s.id === targetSlideId);
-          if (slide) {
-            await waitForImageLoad(slide.src, 3000);
-            await waitForDOMImageUpdate(slide.src, 3000);
-          }
-        }
-      }
-
-      // Calculate interpolated properties at this time using clip-aware interpolation
-      const interpolated = getClipInterpolatedProperties(
-        animationClips,
-        tracks,
-        time,
-        DEFAULT_ANIMATABLE_PROPERTIES
-      );
-
-      // Apply interpolated properties to store
-      setPerspective3D({
-        perspective: interpolated.perspective,
-        rotateX: interpolated.rotateX,
-        rotateY: interpolated.rotateY,
-        rotateZ: interpolated.rotateZ,
-        translateX: interpolated.translateX,
-        translateY: interpolated.translateY,
-        scale: interpolated.scale,
-      });
-
-      if (interpolated.imageOpacity !== undefined) {
-        setImageOpacity(interpolated.imageOpacity);
-      }
-
-      // Force DOM reflow so transforms apply instantly (transitions are disabled)
-      forceReflow();
-
-      // Double-RAF: ensures React has committed DOM changes and browser has painted
-      await waitForDOMCommit();
-
-      // Capture the frame
-      const img = await exportSlideFrame();
-
-      frames.push({
-        img,
-        duration: frameDuration,
-      });
-
-      // Report progress
-      if (onProgress) {
-        onProgress((frameIndex + 1) / totalFrames * 100);
-      }
-
-      // Yield to main thread every BATCH_SIZE frames to keep UI responsive
-      if ((frameIndex + 1) % BATCH_SIZE === 0) {
-        await yieldToMain();
-      }
-    }
-  } finally {
-    restoreTransitions();
-  }
-
-  return frames;
-}
-
-/**
  * Stream animation frames to encoder callback (no memory accumulation).
  * Captures each frame and immediately passes it to onFrame for encoding.
  */
@@ -380,7 +245,7 @@ export async function streamAnimationToEncoder(
   signal?: AbortSignal
 ): Promise<{ width: number; height: number; totalFrames: number }> {
   const store = useImageStore.getState();
-  const { timeline, animationClips, slides, slideshow, setActiveSlide, setPerspective3D, setImageOpacity } = store;
+  const { timeline, slides, slideshow, setActiveSlide } = store;
   const { duration, tracks } = timeline;
 
   if (tracks.length === 0 && slides.length <= 1) {
@@ -420,28 +285,8 @@ export async function streamAnimationToEncoder(
         }
       }
 
-      // Calculate interpolated properties at this time using clip-aware interpolation
-      const interpolated = getClipInterpolatedProperties(
-        animationClips,
-        tracks,
-        time,
-        DEFAULT_ANIMATABLE_PROPERTIES
-      );
-
-      // Apply interpolated properties to store
-      setPerspective3D({
-        perspective: interpolated.perspective,
-        rotateX: interpolated.rotateX,
-        rotateY: interpolated.rotateY,
-        rotateZ: interpolated.rotateZ,
-        translateX: interpolated.translateX,
-        translateY: interpolated.translateY,
-        scale: interpolated.scale,
-      });
-
-      if (interpolated.imageOpacity !== undefined) {
-        setImageOpacity(interpolated.imageOpacity);
-      }
+      // The canvas evaluates every animation at the playhead.
+      usePlaybackStore.setState({ playhead: time });
 
       // Force DOM reflow so transforms apply instantly (transitions are disabled)
       forceReflow();

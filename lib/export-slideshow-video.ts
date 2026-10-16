@@ -19,6 +19,7 @@ import {
   type FFmpegFormat,
 } from "./export/ffmpeg-encoder";
 import { useImageStore } from "@/lib/store";
+import { usePlaybackStore } from "@/lib/store/playback";
 
 /**
  * True when an error was raised because the user cancelled the export.
@@ -83,23 +84,18 @@ export async function preloadFFmpeg(
  * Save current store state for rollback on error
  */
 function saveStoreState() {
-  const store = useImageStore.getState();
-  return {
-    perspective3D: { ...store.perspective3D },
-    imageOpacity: store.imageOpacity,
-    activeSlideId: store.activeSlideId,
-  };
+  const { playhead, isPlaying } = usePlaybackStore.getState();
+  usePlaybackStore.setState({ isPlaying: false });
+  return { activeSlideId: useImageStore.getState().activeSlideId, isPlaying, playhead };
 }
 
 /**
  * Restore store state (used on export error)
  */
 function restoreStoreState(saved: ReturnType<typeof saveStoreState>) {
-  const store = useImageStore.getState();
-  store.setPerspective3D(saved.perspective3D);
-  store.setImageOpacity(saved.imageOpacity);
+  usePlaybackStore.setState({ isPlaying: saved.isPlaying, playhead: saved.playhead });
   if (saved.activeSlideId) {
-    store.setActiveSlide(saved.activeSlideId);
+    useImageStore.getState().setActiveSlide(saved.activeSlideId);
   }
 }
 

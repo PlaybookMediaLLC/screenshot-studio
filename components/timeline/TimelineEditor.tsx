@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
+import { usePlaybackStore } from '@/lib/store/playback';
 import { TimelineControls } from './TimelineControls';
 import { useTimelinePlayback } from './hooks/useTimelinePlayback';
 import { cn } from '@/lib/utils';
@@ -33,7 +34,8 @@ function TimeTrack({
   width: number;
   trackRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const { setPlayhead, stopPlayback } = useImageStore();
+  const setPlayhead = usePlaybackStore((state) => state.seek);
+  const stopPlayback = usePlaybackStore((state) => state.pause);
   const durationSeconds = duration / 1000;
   const wholeSeconds = Math.floor(durationSeconds);
 
@@ -92,7 +94,9 @@ function PlayheadTicker({
   timeLabel: string;
   trackRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const { setPlayhead, timeline, stopPlayback } = useImageStore();
+  const timeline = useImageStore((state) => state.timeline);
+  const setPlayhead = usePlaybackStore((state) => state.seek);
+  const stopPlayback = usePlaybackStore((state) => state.pause);
   const [isDragging, setIsDragging] = React.useState(false);
 
   React.useEffect(() => {
@@ -558,6 +562,7 @@ function SlideDurationHandle({
 /* ─── Main Timeline Editor ───────────────────────────────────── */
 export function TimelineEditor() {
   const { timeline, uploadedImageUrl, slides, showTimeline, setActiveRightPanelTab, toggleTimeline } = useImageStore();
+  const playhead = usePlaybackStore((state) => state.playhead);
   const [viewportWidth, setViewportWidth] = React.useState(0);
   const [lockedPixelsPerSecond, setLockedPixelsPerSecond] = React.useState<number | null>(null);
   const viewportRef = React.useRef<HTMLDivElement>(null);
@@ -592,8 +597,8 @@ export function TimelineEditor() {
   );
   const trackContentWidth = durationSeconds * pixelsPerSecond;
   const timelineWidth = trackContentWidth + TRACK_LABEL_WIDTH;
-  const playheadPosition = (timeline.playhead / timeline.duration) * trackContentWidth + TRACK_LABEL_WIDTH;
-  const playheadTimeLabel = formatTime(timeline.playhead);
+  const playheadPosition = (playhead / timeline.duration) * trackContentWidth + TRACK_LABEL_WIDTH;
+  const playheadTimeLabel = formatTime(playhead);
   const totalTrackHeight = 25 + 49 + 57;
 
   const handleAddAnimation = () => {

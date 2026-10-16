@@ -83,6 +83,12 @@ function richEditor() {
       opacity: 0.4,
       spread: 6,
     },
+    brand: {
+      applied: { background: { type: 'solid', value: '#101010' }, 'texts.headline.color': '#fafafa' },
+      kitId: 'ckbrandkit00000000000000',
+      name: 'Acme',
+      version: 3,
+    },
     pattern: {
       blur: 0,
       color: '#ffffff',

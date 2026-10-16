@@ -209,6 +209,7 @@ export function documentFromState(
         }))
     ),
     pattern: image.pattern.enabled ? valid(shape.pattern, image.pattern) : undefined,
+    brand: image.brand ?? undefined,
     redactions: validItems(
       shape.redactions.unwrap(),
       image.blurRegions

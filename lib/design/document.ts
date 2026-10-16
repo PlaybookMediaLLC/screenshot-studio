@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { brandBindingSchema } from '@/lib/brand/binding'
 import { canvasElementSchema } from '@/lib/editor/elements/schema'
 import { isGoogleFontId } from '@/lib/typography/google-fonts'
 import { textAlignSchema, textFillSchema, textFitSchema, textRoleSchema } from '@/lib/typography/text-style'
@@ -395,6 +396,8 @@ export const designDocumentSchema = z.object({
   elements: z.array(canvasElementSchema).max(60).default([]),
   /** The full timeline: clips from presets and keyframed tracks. Wins over `animation`. */
   timeline: timelineSchema.optional(),
+  /** The brand kit the design follows, and what it set. */
+  brand: brandBindingSchema.optional(),
   /** Several screenshots shown one after another. */
   slides: z
     .object({

@@ -1,15 +1,20 @@
 import 'server-only'
 
+import { hasPermission } from '@/lib/auth/permissions'
 import {
+  archiveBrandKit,
   createBrandKit,
   createSourceApp,
   getBrandProfile,
   listBrandKits,
+  renameBrandKit,
   upsertBrandProfile,
 } from '@/lib/tenant/configuration'
 import {
   brandKitCreateSchema,
   brandProfileUpsertSchema,
+  libraryArchiveSchema,
+  libraryRenameSchema,
   sourceAppCreateSchema,
 } from '@/lib/tenant/schemas'
 import { getSourceWebhookSetup } from '@/lib/tenant/webhooks'
@@ -17,9 +22,10 @@ import { router } from '../init'
 import { organizationProcedure, tenantProcedure } from '../procedures'
 
 export const brandKitRouter = router({
-  list: organizationProcedure('brand:manage').query(async ({ ctx }) => {
+  // Every member reads brand kits to apply them; managing them needs brand:manage.
+  list: organizationProcedure('artifact:read').query(async ({ ctx }) => {
     const brandKits = await listBrandKits(ctx.access)
-    return { brandKits }
+    return { brandKits, canManage: hasPermission(ctx.access.role, 'brand:manage') }
   }),
   create: organizationProcedure('brand:manage')
     .input(brandKitCreateSchema)
@@ -27,6 +33,14 @@ export const brandKitRouter = router({
       const brandKit = await createBrandKit(ctx.access, input)
       return { brandKit }
     }),
+  rename: organizationProcedure('brand:manage')
+    .input(libraryRenameSchema)
+    .mutation(async ({ ctx, input }) => ({
+      brandKit: await renameBrandKit(ctx.access, input.id, input.name),
+    })),
+  archive: organizationProcedure('brand:manage')
+    .input(libraryArchiveSchema)
+    .mutation(({ ctx, input }) => archiveBrandKit(ctx.access, input.id)),
 })
 
 export const brandProfileRouter = router({

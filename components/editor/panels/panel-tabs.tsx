@@ -24,6 +24,8 @@ import {
   TextSection,
   TransformsGallery,
 } from '../sections'
+import { BrandSection } from '../brand/BrandSection'
+import { PresetLibrarySection } from '../presets/PresetLibrarySection'
 import { RedactSection } from '../redaction/RedactSection'
 import { TypographySection } from '../typography/TypographySection'
 import { FrameSection } from './FrameSection'
@@ -50,6 +52,8 @@ export const COMPOSE_TABS: readonly PanelTabDefinition<ComposeTab>[] = [
     content: () => (
       <div className="space-y-1">
         <QuickTemplatesSection />
+        <BrandSection />
+        <PresetLibrarySection />
         <ScreenshotDesignSection />
         <TextSection />
         <TypographySection />
@@ -59,7 +63,7 @@ export const COMPOSE_TABS: readonly PanelTabDefinition<ComposeTab>[] = [
         <RedactSection />
       </div>
     ),
-    hint: 'Templates, text, elements, stickers, markup, and redaction',
+    hint: 'Templates, brand, presets, text, elements, stickers, markup, and redaction',
     icon: <PaintBoardIcon size={14} />,
     id: 'design',
     label: 'Design',

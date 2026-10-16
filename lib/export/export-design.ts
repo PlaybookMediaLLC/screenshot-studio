@@ -5,7 +5,7 @@ import type { DesignDocument } from '@/lib/design/document'
 import { exportDesignDocument } from '@/lib/design/export'
 import { captureStage, type StageOutput } from '@/lib/render/capture'
 import { renderDocument } from '@/lib/render/scene-renderer'
-import { adaptDocumentToSize } from './adapt'
+import { adaptDocumentToSize, withoutBackground } from './adapt'
 import { type PdfCompression, type QualityPresetName } from './formats'
 import { batchIndex, designFileName, safeBaseName, zipFileName } from './naming'
 import { pdfImageFromBlob, type PdfPage, writePdf } from './pdf'
@@ -55,22 +55,6 @@ export type StillExportRequest = {
 
 /** One produced file. */
 export type ExportedFile = { blob: Blob; name: string }
-
-/** The document with no background: transparent, without pattern or grain. */
-export function withoutBackground(document: DesignDocument): DesignDocument {
-  return {
-    ...document,
-    background: {
-      blur: 0,
-      noise: 0,
-      opacity: 1,
-      radius: document.background?.radius,
-      type: 'solid',
-      value: 'transparent',
-    },
-    pattern: undefined,
-  }
-}
 
 /** Natural width / height of an image URL, or undefined when it cannot be read. */
 export async function imageAspectOf(src: string | null | undefined): Promise<number | undefined> {

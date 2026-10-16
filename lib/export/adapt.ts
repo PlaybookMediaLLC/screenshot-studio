@@ -350,3 +350,19 @@ export function adaptDocumentToSize(
     texts,
   })
 }
+
+/** The document with no background: transparent, without pattern or grain. */
+export function withoutBackground(document: DesignDocument): DesignDocument {
+  return {
+    ...document,
+    background: {
+      blur: 0,
+      noise: 0,
+      opacity: 1,
+      radius: document.background?.radius,
+      type: 'solid',
+      value: 'transparent',
+    },
+    pattern: undefined,
+  }
+}

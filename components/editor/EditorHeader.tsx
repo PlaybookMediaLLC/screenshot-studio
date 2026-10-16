@@ -48,6 +48,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { CopyProgressDialog } from '@/components/canvas/dialogs/CopyProgressDialog'
 import { ExportSlideshowDialog } from '@/lib/export-slideshow-dialog'
 import { ExportPanel } from '@/components/export/ExportPanel'
+import { BatchWorkspace } from '@/components/export/batch/BatchWorkspace'
 import { cn } from '@/lib/utils'
 import { ProjectMenu } from '@/components/projects/ProjectMenu'
 import { FeedbackWidget } from '@/components/FeedbackWidget'
@@ -120,6 +121,7 @@ export function EditorHeader() {
   const [exportOpen, setExportOpen] = React.useState(false)
   const [exportSlideshowOpen, setExportSlideshowOpen] = React.useState(false)
   const [exportBusy, setExportBusy] = React.useState(false)
+  const [batchOpen, setBatchOpen] = React.useState(false)
   const [resetOpen, setResetOpen] = React.useState(false)
 
   const currentAspectRatio = aspectRatios.find((ar) => ar.id === selectedAspectRatio)
@@ -367,7 +369,14 @@ export function EditorHeader() {
               onPointerDownOutside={exportBusy ? (e) => e.preventDefault() : undefined}
               sideOffset={10}
             >
-              <ExportPanel onBusyChange={setExportBusy} onExported={() => setExportOpen(false)} />
+              <ExportPanel
+                onBusyChange={setExportBusy}
+                onExported={() => setExportOpen(false)}
+                onOpenBatch={() => {
+                  setExportOpen(false)
+                  setBatchOpen(true)
+                }}
+              />
             </PopoverContent>
           </Popover>
 
@@ -437,6 +446,8 @@ export function EditorHeader() {
       <CopyProgressDialog open={isCopying} progress={copyProgress} />
 
       <ExportSlideshowDialog open={exportSlideshowOpen} onOpenChange={setExportSlideshowOpen} />
+
+      <BatchWorkspace onOpenChange={setBatchOpen} open={batchOpen} />
     </>
   )
 }

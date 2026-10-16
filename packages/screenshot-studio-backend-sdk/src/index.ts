@@ -500,6 +500,60 @@ export type BackendProjectListQuery = {
   sort?: 'updated' | 'name'
 }
 
+/** Who may open a share link: anyone with it, or members of its workspace. */
+export type ShareLinkAccess = 'PUBLIC' | 'WORKSPACE'
+
+/** A published artifact, as its workspace sees it. */
+export type BackendShareLink = {
+  access: ShareLinkAccess
+  altText: string | null
+  assetId: string
+  createdAt: string
+  description: string | null
+  expiresAt: string | null
+  height: number | null
+  id: string
+  mediaType: string
+  posterAssetId: string | null
+  projectId: string | null
+  revokedAt: string | null
+  title: string
+  token: string
+  updatedAt: string
+  width: number | null
+}
+
+/** What a share page may show for a live link. */
+export type BackendPublicShareLink = {
+  access: ShareLinkAccess
+  altText: string | null
+  createdAt: string
+  description: string | null
+  expiresAt: string | null
+  height: number | null
+  mediaType: string
+  organizationId: string
+  posterMediaType: string | null
+  title: string
+  width: number | null
+}
+
+/** A provider an integration connects. */
+export type IntegrationProvider = 'SLACK' | 'NOTION' | 'FIGMA'
+
+/** A workspace's connection to a provider account, without credentials. */
+export type BackendIntegration = {
+  createdAt: string
+  createdByUserId: string | null
+  displayName: string
+  externalId: string
+  id: string
+  provider: IntegrationProvider
+  scopes: string[]
+  tokenExpiresAt: string | null
+  updatedAt: string
+}
+
 export type BackendCreativeTemplate = {
   createdAt: string
   definition: Record<string, unknown>
@@ -1466,6 +1520,96 @@ export class ScreenshotStudioBackendSDK {
       `v1/projects/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}/restore`,
       { body: { baseRevision }, method: 'POST' }
     )
+  }
+
+  async listShareLinks() {
+    return this.request<{ shareLinks: BackendShareLink[] }>('v1/share-links')
+  }
+
+  async createShareLink(input: {
+    access: ShareLinkAccess
+    altText?: string | null
+    assetId: string
+    description?: string | null
+    expiresAt?: string | null
+    posterAssetId?: string | null
+    projectId?: string | null
+    title: string
+  }) {
+    return this.request<BackendShareLink>('v1/share-links', { body: input, method: 'POST' })
+  }
+
+  async updateShareLink(
+    id: string,
+    input: {
+      access?: ShareLinkAccess
+      altText?: string | null
+      clearExpiry?: boolean
+      description?: string | null
+      expiresAt?: string | null
+      title?: string
+    }
+  ) {
+    return this.request<BackendShareLink>(`v1/share-links/${encodeURIComponent(id)}`, {
+      body: input,
+      method: 'PATCH',
+    })
+  }
+
+  async revokeShareLink(id: string) {
+    return this.request<{ revoked: true }>(`v1/share-links/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+  }
+
+  /** A live link by its token, for the share page; requires the service token alone. */
+  async resolveShareLink(token: string) {
+    return this.request<BackendPublicShareLink>(`v1/internal/share-links/${encodeURIComponent(token)}`)
+  }
+
+  /** A live link's media or poster bytes; requires the service token alone. */
+  async readShareLinkObject(token: string, variant: 'media' | 'poster') {
+    return this.request<Uint8Array>(
+      `v1/internal/share-links/${encodeURIComponent(token)}/object?variant=${variant}`,
+      { responseType: 'bytes' }
+    )
+  }
+
+  async listIntegrations() {
+    return this.request<{ integrations: BackendIntegration[] }>('v1/integrations')
+  }
+
+  async saveIntegration(input: {
+    displayName: string
+    encryptedCredentials: string
+    externalId: string
+    provider: IntegrationProvider
+    scopes: string[]
+    tokenExpiresAt: string | null
+  }) {
+    return this.request<BackendIntegration>('v1/integrations', { body: input, method: 'POST' })
+  }
+
+  async integrationCredentials(id: string) {
+    return this.request<BackendIntegration & { encryptedCredentials: string }>(
+      `v1/integrations/${encodeURIComponent(id)}/credentials`
+    )
+  }
+
+  async updateIntegrationCredentials(
+    id: string,
+    input: { encryptedCredentials: string; tokenExpiresAt: string | null }
+  ) {
+    return this.request<{ updated: true }>(`v1/integrations/${encodeURIComponent(id)}/credentials`, {
+      body: input,
+      method: 'PUT',
+    })
+  }
+
+  async deleteIntegration(id: string) {
+    return this.request<{ deleted: true }>(`v1/integrations/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
   }
 
   async listCreativeTemplates() {

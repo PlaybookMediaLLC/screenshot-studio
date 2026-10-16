@@ -90,6 +90,9 @@ type GitHubInstallStart func(*sql.Selector)
 // GitHubInstallation is the predicate function for githubinstallation builders.
 type GitHubInstallation func(*sql.Selector)
 
+// IntegrationConnection is the predicate function for integrationconnection builders.
+type IntegrationConnection func(*sql.Selector)
+
 // Invitation is the predicate function for invitation builders.
 type Invitation func(*sql.Selector)
 
@@ -140,6 +143,9 @@ type ScreenshotCache func(*sql.Selector)
 
 // Session is the predicate function for session builders.
 type Session func(*sql.Selector)
+
+// ShareLink is the predicate function for sharelink builders.
+type ShareLink func(*sql.Selector)
 
 // SocialOAuthStart is the predicate function for socialoauthstart builders.
 type SocialOAuthStart func(*sql.Selector)

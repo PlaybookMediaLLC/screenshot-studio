@@ -34,6 +34,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
@@ -52,6 +53,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/screenshotcache"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
@@ -407,6 +409,22 @@ func init() {
 	githubinstallation.DefaultUpdatedAt = githubinstallationDescUpdatedAt.Default.(func() time.Time)
 	// githubinstallation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	githubinstallation.UpdateDefaultUpdatedAt = githubinstallationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	integrationconnectionFields := schema.IntegrationConnection{}.Fields()
+	_ = integrationconnectionFields
+	// integrationconnectionDescScopes is the schema descriptor for scopes field.
+	integrationconnectionDescScopes := integrationconnectionFields[6].Descriptor()
+	// integrationconnection.DefaultScopes holds the default value on creation for the scopes field.
+	integrationconnection.DefaultScopes = integrationconnectionDescScopes.Default.([]string)
+	// integrationconnectionDescCreatedAt is the schema descriptor for created_at field.
+	integrationconnectionDescCreatedAt := integrationconnectionFields[9].Descriptor()
+	// integrationconnection.DefaultCreatedAt holds the default value on creation for the created_at field.
+	integrationconnection.DefaultCreatedAt = integrationconnectionDescCreatedAt.Default.(func() time.Time)
+	// integrationconnectionDescUpdatedAt is the schema descriptor for updated_at field.
+	integrationconnectionDescUpdatedAt := integrationconnectionFields[10].Descriptor()
+	// integrationconnection.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	integrationconnection.DefaultUpdatedAt = integrationconnectionDescUpdatedAt.Default.(func() time.Time)
+	// integrationconnection.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	integrationconnection.UpdateDefaultUpdatedAt = integrationconnectionDescUpdatedAt.UpdateDefault.(func() time.Time)
 	invitationFields := schema.Invitation{}.Fields()
 	_ = invitationFields
 	// invitationDescStatus is the schema descriptor for status field.
@@ -605,6 +623,18 @@ func init() {
 	session.DefaultUpdatedAt = sessionDescUpdatedAt.Default.(func() time.Time)
 	// session.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	session.UpdateDefaultUpdatedAt = sessionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	sharelinkFields := schema.ShareLink{}.Fields()
+	_ = sharelinkFields
+	// sharelinkDescCreatedAt is the schema descriptor for created_at field.
+	sharelinkDescCreatedAt := sharelinkFields[13].Descriptor()
+	// sharelink.DefaultCreatedAt holds the default value on creation for the created_at field.
+	sharelink.DefaultCreatedAt = sharelinkDescCreatedAt.Default.(func() time.Time)
+	// sharelinkDescUpdatedAt is the schema descriptor for updated_at field.
+	sharelinkDescUpdatedAt := sharelinkFields[14].Descriptor()
+	// sharelink.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	sharelink.DefaultUpdatedAt = sharelinkDescUpdatedAt.Default.(func() time.Time)
+	// sharelink.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	sharelink.UpdateDefaultUpdatedAt = sharelinkDescUpdatedAt.UpdateDefault.(func() time.Time)
 	socialoauthstartFields := schema.SocialOAuthStart{}.Fields()
 	_ = socialoauthstartFields
 	// socialoauthstartDescCreatedAt is the schema descriptor for created_at field.

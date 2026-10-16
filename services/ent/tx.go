@@ -68,6 +68,8 @@ type Tx struct {
 	GitHubInstallStart *GitHubInstallStartClient
 	// GitHubInstallation is the client for interacting with the GitHubInstallation builders.
 	GitHubInstallation *GitHubInstallationClient
+	// IntegrationConnection is the client for interacting with the IntegrationConnection builders.
+	IntegrationConnection *IntegrationConnectionClient
 	// Invitation is the client for interacting with the Invitation builders.
 	Invitation *InvitationClient
 	// LaunchRun is the client for interacting with the LaunchRun builders.
@@ -102,6 +104,8 @@ type Tx struct {
 	ScreenshotCache *ScreenshotCacheClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
+	// ShareLink is the client for interacting with the ShareLink builders.
+	ShareLink *ShareLinkClient
 	// SocialOAuthStart is the client for interacting with the SocialOAuthStart builders.
 	SocialOAuthStart *SocialOAuthStartClient
 	// SourceApp is the client for interacting with the SourceApp builders.
@@ -281,6 +285,7 @@ func (tx *Tx) init() {
 	tx.Design = NewDesignClient(tx.config)
 	tx.GitHubInstallStart = NewGitHubInstallStartClient(tx.config)
 	tx.GitHubInstallation = NewGitHubInstallationClient(tx.config)
+	tx.IntegrationConnection = NewIntegrationConnectionClient(tx.config)
 	tx.Invitation = NewInvitationClient(tx.config)
 	tx.LaunchRun = NewLaunchRunClient(tx.config)
 	tx.Member = NewMemberClient(tx.config)
@@ -298,6 +303,7 @@ func (tx *Tx) init() {
 	tx.ScheduledPost = NewScheduledPostClient(tx.config)
 	tx.ScreenshotCache = NewScreenshotCacheClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
+	tx.ShareLink = NewShareLinkClient(tx.config)
 	tx.SocialOAuthStart = NewSocialOAuthStartClient(tx.config)
 	tx.SourceApp = NewSourceAppClient(tx.config)
 	tx.SourceChange = NewSourceChangeClient(tx.config)

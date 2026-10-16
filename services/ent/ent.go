@@ -40,6 +40,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
@@ -57,6 +58,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/screenshotcache"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
@@ -155,6 +157,7 @@ func checkColumn(t, c string) error {
 			design.Table:                         design.ValidColumn,
 			githubinstallstart.Table:             githubinstallstart.ValidColumn,
 			githubinstallation.Table:             githubinstallation.ValidColumn,
+			integrationconnection.Table:          integrationconnection.ValidColumn,
 			invitation.Table:                     invitation.ValidColumn,
 			launchrun.Table:                      launchrun.ValidColumn,
 			member.Table:                         member.ValidColumn,
@@ -172,6 +175,7 @@ func checkColumn(t, c string) error {
 			scheduledpost.Table:                  scheduledpost.ValidColumn,
 			screenshotcache.Table:                screenshotcache.ValidColumn,
 			session.Table:                        session.ValidColumn,
+			sharelink.Table:                      sharelink.ValidColumn,
 			socialoauthstart.Table:               socialoauthstart.ValidColumn,
 			sourceapp.Table:                      sourceapp.ValidColumn,
 			sourcechange.Table:                   sourcechange.ValidColumn,

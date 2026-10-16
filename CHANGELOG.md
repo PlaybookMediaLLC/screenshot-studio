@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.22.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.21.3...v1.22.0) (2026-10-16)
+
+
+### Features
+
+* **github:** connect a GitHub App and turn releases into launch briefs ([#106](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/106)) ([d84357b](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/d84357b16876a3b892aadf72bf4fd387c0339fa4))
+
 ## [1.21.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.21.2...v1.21.3) (2026-10-16)
 
 

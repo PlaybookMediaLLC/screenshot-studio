@@ -139,6 +139,47 @@ func TestRetentionHonorsLegalHoldAndDefaultPolicy(t *testing.T) {
 		t.Fatalf("repeated deletion %d", n)
 	}
 }
+func TestAuditLogIsAppendOnly(t *testing.T) {
+	s, _ := setup(t)
+	exec(t, s.DB, `INSERT INTO audit_log(id,"organizationId","requestId","actorType",action,"entityType") VALUES('kept','a','r','SERVICE','test','test')`)
+	for _, statement := range []string{`UPDATE audit_log SET action='rewritten' WHERE id='kept'`, `DELETE FROM audit_log WHERE id='kept'`} {
+		if _, err := s.DB.ExecContext(context.Background(), statement); err == nil || !strings.Contains(err.Error(), "append-only") {
+			t.Fatalf("%s: err=%v", statement, err)
+		}
+	}
+	err := transaction(context.Background(), s.DB, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(context.Background(), `SET LOCAL shots.audit_retention = 'on'`); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(context.Background(), `UPDATE audit_log SET action='rewritten' WHERE id='kept'`); err == nil {
+			t.Fatal("a retention transaction rewrote an audit row")
+		}
+		return nil
+	})
+	if err == nil {
+		t.Fatal("the refused update did not abort the transaction")
+	}
+	err = transaction(context.Background(), s.DB, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(context.Background(), `SET LOCAL shots.audit_retention = 'on'`); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(context.Background(), `DELETE FROM audit_log WHERE id='kept'`)
+		return err
+	})
+	if err != nil {
+		t.Fatalf("retention delete: %v", err)
+	}
+	expect(t, s.DB, 0, `SELECT count(*) FROM audit_log WHERE id='kept'`)
+
+	// Deleting a user may only clear "actorUserId"; nothing else may change.
+	exec(t, s.DB, `INSERT INTO "user"(id,name,email,"emailVerified","createdAt","updatedAt") VALUES('actor','Actor','actor@example.test',false,now(),now())`)
+	exec(t, s.DB, `INSERT INTO audit_log(id,"organizationId","requestId","actorType","actorUserId",action,"entityType") VALUES('by-user','a','r','USER','actor','test','test')`)
+	if _, err := s.DB.ExecContext(context.Background(), `UPDATE audit_log SET "actorUserId"=NULL, action='rewritten' WHERE id='by-user'`); err == nil {
+		t.Fatal("clearing the actor also rewrote the action")
+	}
+	exec(t, s.DB, `DELETE FROM "user" WHERE id='actor'`)
+	expect(t, s.DB, 1, `SELECT count(*) FROM audit_log WHERE id='by-user' AND "actorUserId" IS NULL AND action='test'`)
+}
 func TestWorkspaceCleanupKeepsAuditAndOtherTenants(t *testing.T) {
 	s, o := setup(t)
 	asset(t, s, "asset-a", "a", "UPLOADED")

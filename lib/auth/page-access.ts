@@ -82,7 +82,8 @@ async function getBackendPageAccess(requestHeaders: Headers, session: SignedInSe
     // environment (local development, staging, e2e).
     campaignWorkflowEnabled:
       Boolean(workspace) &&
-      (process.env.PLATFORM_CAMPAIGN_WORKFLOW === 'enabled' || features['campaign:workflow'] === true),
+      (process.env.PLATFORM_CAMPAIGN_WORKFLOW === 'enabled' ||
+        features['campaign:workflow'] === true),
     hasOrganization: count > 0,
     // There is no free plan: only an active paid subscription grants this.
     hasPaidPlan: features['workspace:use'] === true,

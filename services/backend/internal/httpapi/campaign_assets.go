@@ -17,6 +17,7 @@ func (s *Server) registerCampaignAssets(mux *http.ServeMux) {
 	handle("PUT /v1/campaigns/{id}/assets/{assetId}", s.linkCampaignAsset)
 	handle("POST /v1/campaigns/{id}/copy", s.saveCampaignCopy)
 	handle("PUT /v1/designs/{id}", s.replaceDesign)
+	handle("POST /v1/campaigns/{id}/designs/{designId}/approval", s.approveCampaignDesign)
 }
 
 // campaignAssetPath reads the campaign and asset IDs, answering 400 when malformed.
@@ -98,4 +99,18 @@ func (s *Server) replaceDesign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"updated": true})
+}
+
+func (s *Server) approveCampaignDesign(w http.ResponseWriter, r *http.Request) {
+	campaignID, designID := r.PathValue("id"), r.PathValue("designId")
+	if !resourceIDPattern.MatchString(campaignID) || !resourceIDPattern.MatchString(designID) {
+		writeError(w, http.StatusBadRequest, "invalid campaign or design ID")
+		return
+	}
+	result, err := s.configuration.ApproveCampaignDesign(r.Context(), workspaceActor(r), campaignID, designID)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }

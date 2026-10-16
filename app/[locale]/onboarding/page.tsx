@@ -1,18 +1,13 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { OnboardingForm } from '@/components/auth/OnboardingForm'
-import { OnboardingShell } from '@/components/auth/OnboardingShell'
+import { ONBOARDING_STEPS, OnboardingShell } from '@/components/auth/OnboardingShell'
 import { SignOutButton } from '@/components/auth/SignOutButton'
 import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
 
 type OnboardingPageProps = {
   params: Promise<{ locale: string }>
 }
-
-const STEPS = [
-  { description: 'Your sign-in details.', title: 'Create your account' },
-  { description: "Your team's shared home.", title: 'Create your workspace' },
-]
 
 export default async function OnboardingPage({ params }: OnboardingPageProps) {
   const [{ locale }, requestHeaders] = await Promise.all([params, headers()])
@@ -29,7 +24,7 @@ export default async function OnboardingPage({ params }: OnboardingPageProps) {
           <SignOutButton className="h-auto w-fit p-0 text-xs text-neutral-400" variant="link" />
         </div>
       }
-      steps={STEPS}
+      steps={ONBOARDING_STEPS}
     >
       <OnboardingForm />
     </OnboardingShell>

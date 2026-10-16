@@ -17,6 +17,10 @@ func (s *Store) AuditRetention(ctx context.Context) (int, error) {
 	total := 0
 	for _, org := range organizations {
 		err = transaction(ctx, s.RetentionDB, func(tx *sql.Tx) error {
+			// The append-only trigger on audit_log admits deletes only here.
+			if _, e := tx.ExecContext(ctx, `SET LOCAL shots.audit_retention = 'on'`); e != nil {
+				return e
+			}
 			// Re-evaluate legal hold in the deletion statement; no cached policy list.
 			result, e := tx.ExecContext(ctx, `DELETE FROM audit_log a WHERE "organizationId"=$1 AND NOT EXISTS (SELECT 1 FROM audit_retention_policy p WHERE p."organizationId"=$1 AND p."legalHold") AND "createdAt" < now() - make_interval(days => COALESCE((SELECT "retentionDays" FROM audit_retention_policy WHERE "organizationId"=$1),90))`, org)
 			if e != nil {

@@ -12794,6 +12794,8 @@ type CampaignPostMutation struct {
 	claims              *[]map[string]interface{}
 	appendclaims        []map[string]interface{}
 	review_note         *string
+	approved_by_user_id *string
+	approved_at         *time.Time
 	status              *campaignpost.Status
 	scheduled_at        *time.Time
 	creative_variant_id *string
@@ -13539,6 +13541,104 @@ func (m *CampaignPostMutation) ResetReviewNote() {
 	delete(m.clearedFields, campaignpost.FieldReviewNote)
 }
 
+// SetApprovedByUserID sets the "approved_by_user_id" field.
+func (m *CampaignPostMutation) SetApprovedByUserID(s string) {
+	m.approved_by_user_id = &s
+}
+
+// ApprovedByUserID returns the value of the "approved_by_user_id" field in the mutation.
+func (m *CampaignPostMutation) ApprovedByUserID() (r string, exists bool) {
+	v := m.approved_by_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldApprovedByUserID returns the old "approved_by_user_id" field's value of the CampaignPost entity.
+// If the CampaignPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CampaignPostMutation) OldApprovedByUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldApprovedByUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldApprovedByUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldApprovedByUserID: %w", err)
+	}
+	return oldValue.ApprovedByUserID, nil
+}
+
+// ClearApprovedByUserID clears the value of the "approved_by_user_id" field.
+func (m *CampaignPostMutation) ClearApprovedByUserID() {
+	m.approved_by_user_id = nil
+	m.clearedFields[campaignpost.FieldApprovedByUserID] = struct{}{}
+}
+
+// ApprovedByUserIDCleared returns if the "approved_by_user_id" field was cleared in this mutation.
+func (m *CampaignPostMutation) ApprovedByUserIDCleared() bool {
+	_, ok := m.clearedFields[campaignpost.FieldApprovedByUserID]
+	return ok
+}
+
+// ResetApprovedByUserID resets all changes to the "approved_by_user_id" field.
+func (m *CampaignPostMutation) ResetApprovedByUserID() {
+	m.approved_by_user_id = nil
+	delete(m.clearedFields, campaignpost.FieldApprovedByUserID)
+}
+
+// SetApprovedAt sets the "approved_at" field.
+func (m *CampaignPostMutation) SetApprovedAt(t time.Time) {
+	m.approved_at = &t
+}
+
+// ApprovedAt returns the value of the "approved_at" field in the mutation.
+func (m *CampaignPostMutation) ApprovedAt() (r time.Time, exists bool) {
+	v := m.approved_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldApprovedAt returns the old "approved_at" field's value of the CampaignPost entity.
+// If the CampaignPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CampaignPostMutation) OldApprovedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldApprovedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldApprovedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldApprovedAt: %w", err)
+	}
+	return oldValue.ApprovedAt, nil
+}
+
+// ClearApprovedAt clears the value of the "approved_at" field.
+func (m *CampaignPostMutation) ClearApprovedAt() {
+	m.approved_at = nil
+	m.clearedFields[campaignpost.FieldApprovedAt] = struct{}{}
+}
+
+// ApprovedAtCleared returns if the "approved_at" field was cleared in this mutation.
+func (m *CampaignPostMutation) ApprovedAtCleared() bool {
+	_, ok := m.clearedFields[campaignpost.FieldApprovedAt]
+	return ok
+}
+
+// ResetApprovedAt resets all changes to the "approved_at" field.
+func (m *CampaignPostMutation) ResetApprovedAt() {
+	m.approved_at = nil
+	delete(m.clearedFields, campaignpost.FieldApprovedAt)
+}
+
 // SetStatus sets the "status" field.
 func (m *CampaignPostMutation) SetStatus(c campaignpost.Status) {
 	m.status = &c
@@ -13828,7 +13928,7 @@ func (m *CampaignPostMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CampaignPostMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 21)
 	if m.organization_id != nil {
 		fields = append(fields, campaignpost.FieldOrganizationID)
 	}
@@ -13867,6 +13967,12 @@ func (m *CampaignPostMutation) Fields() []string {
 	}
 	if m.review_note != nil {
 		fields = append(fields, campaignpost.FieldReviewNote)
+	}
+	if m.approved_by_user_id != nil {
+		fields = append(fields, campaignpost.FieldApprovedByUserID)
+	}
+	if m.approved_at != nil {
+		fields = append(fields, campaignpost.FieldApprovedAt)
 	}
 	if m.status != nil {
 		fields = append(fields, campaignpost.FieldStatus)
@@ -13920,6 +14026,10 @@ func (m *CampaignPostMutation) Field(name string) (ent.Value, bool) {
 		return m.Claims()
 	case campaignpost.FieldReviewNote:
 		return m.ReviewNote()
+	case campaignpost.FieldApprovedByUserID:
+		return m.ApprovedByUserID()
+	case campaignpost.FieldApprovedAt:
+		return m.ApprovedAt()
 	case campaignpost.FieldStatus:
 		return m.Status()
 	case campaignpost.FieldScheduledAt:
@@ -13967,6 +14077,10 @@ func (m *CampaignPostMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldClaims(ctx)
 	case campaignpost.FieldReviewNote:
 		return m.OldReviewNote(ctx)
+	case campaignpost.FieldApprovedByUserID:
+		return m.OldApprovedByUserID(ctx)
+	case campaignpost.FieldApprovedAt:
+		return m.OldApprovedAt(ctx)
 	case campaignpost.FieldStatus:
 		return m.OldStatus(ctx)
 	case campaignpost.FieldScheduledAt:
@@ -14078,6 +14192,20 @@ func (m *CampaignPostMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetReviewNote(v)
+		return nil
+	case campaignpost.FieldApprovedByUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetApprovedByUserID(v)
+		return nil
+	case campaignpost.FieldApprovedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetApprovedAt(v)
 		return nil
 	case campaignpost.FieldStatus:
 		v, ok := value.(campaignpost.Status)
@@ -14202,6 +14330,12 @@ func (m *CampaignPostMutation) ClearedFields() []string {
 	if m.FieldCleared(campaignpost.FieldReviewNote) {
 		fields = append(fields, campaignpost.FieldReviewNote)
 	}
+	if m.FieldCleared(campaignpost.FieldApprovedByUserID) {
+		fields = append(fields, campaignpost.FieldApprovedByUserID)
+	}
+	if m.FieldCleared(campaignpost.FieldApprovedAt) {
+		fields = append(fields, campaignpost.FieldApprovedAt)
+	}
 	if m.FieldCleared(campaignpost.FieldScheduledAt) {
 		fields = append(fields, campaignpost.FieldScheduledAt)
 	}
@@ -14248,6 +14382,12 @@ func (m *CampaignPostMutation) ClearField(name string) error {
 		return nil
 	case campaignpost.FieldReviewNote:
 		m.ClearReviewNote()
+		return nil
+	case campaignpost.FieldApprovedByUserID:
+		m.ClearApprovedByUserID()
+		return nil
+	case campaignpost.FieldApprovedAt:
+		m.ClearApprovedAt()
 		return nil
 	case campaignpost.FieldScheduledAt:
 		m.ClearScheduledAt()
@@ -14304,6 +14444,12 @@ func (m *CampaignPostMutation) ResetField(name string) error {
 		return nil
 	case campaignpost.FieldReviewNote:
 		m.ResetReviewNote()
+		return nil
+	case campaignpost.FieldApprovedByUserID:
+		m.ResetApprovedByUserID()
+		return nil
+	case campaignpost.FieldApprovedAt:
+		m.ResetApprovedAt()
 		return nil
 	case campaignpost.FieldStatus:
 		m.ResetStatus()
@@ -19446,6 +19592,7 @@ type CreativeVariantMutation struct {
 	template_id          *string
 	template_version     *int
 	addtemplate_version  *int
+	design_id            *string
 	revision             *int
 	addrevision          *int
 	aspect_ratio         *string
@@ -19692,7 +19839,7 @@ func (m *CreativeVariantMutation) BrandKitID() (r string, exists bool) {
 // OldBrandKitID returns the old "brand_kit_id" field's value of the CreativeVariant entity.
 // If the CreativeVariant object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreativeVariantMutation) OldBrandKitID(ctx context.Context) (v string, err error) {
+func (m *CreativeVariantMutation) OldBrandKitID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldBrandKitID is only allowed on UpdateOne operations")
 	}
@@ -19706,9 +19853,22 @@ func (m *CreativeVariantMutation) OldBrandKitID(ctx context.Context) (v string, 
 	return oldValue.BrandKitID, nil
 }
 
+// ClearBrandKitID clears the value of the "brand_kit_id" field.
+func (m *CreativeVariantMutation) ClearBrandKitID() {
+	m.brand_kit_id = nil
+	m.clearedFields[creativevariant.FieldBrandKitID] = struct{}{}
+}
+
+// BrandKitIDCleared returns if the "brand_kit_id" field was cleared in this mutation.
+func (m *CreativeVariantMutation) BrandKitIDCleared() bool {
+	_, ok := m.clearedFields[creativevariant.FieldBrandKitID]
+	return ok
+}
+
 // ResetBrandKitID resets all changes to the "brand_kit_id" field.
 func (m *CreativeVariantMutation) ResetBrandKitID() {
 	m.brand_kit_id = nil
+	delete(m.clearedFields, creativevariant.FieldBrandKitID)
 }
 
 // SetBrandKitVersion sets the "brand_kit_version" field.
@@ -19729,7 +19889,7 @@ func (m *CreativeVariantMutation) BrandKitVersion() (r int, exists bool) {
 // OldBrandKitVersion returns the old "brand_kit_version" field's value of the CreativeVariant entity.
 // If the CreativeVariant object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreativeVariantMutation) OldBrandKitVersion(ctx context.Context) (v int, err error) {
+func (m *CreativeVariantMutation) OldBrandKitVersion(ctx context.Context) (v *int, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldBrandKitVersion is only allowed on UpdateOne operations")
 	}
@@ -19761,10 +19921,24 @@ func (m *CreativeVariantMutation) AddedBrandKitVersion() (r int, exists bool) {
 	return *v, true
 }
 
+// ClearBrandKitVersion clears the value of the "brand_kit_version" field.
+func (m *CreativeVariantMutation) ClearBrandKitVersion() {
+	m.brand_kit_version = nil
+	m.addbrand_kit_version = nil
+	m.clearedFields[creativevariant.FieldBrandKitVersion] = struct{}{}
+}
+
+// BrandKitVersionCleared returns if the "brand_kit_version" field was cleared in this mutation.
+func (m *CreativeVariantMutation) BrandKitVersionCleared() bool {
+	_, ok := m.clearedFields[creativevariant.FieldBrandKitVersion]
+	return ok
+}
+
 // ResetBrandKitVersion resets all changes to the "brand_kit_version" field.
 func (m *CreativeVariantMutation) ResetBrandKitVersion() {
 	m.brand_kit_version = nil
 	m.addbrand_kit_version = nil
+	delete(m.clearedFields, creativevariant.FieldBrandKitVersion)
 }
 
 // SetTemplateID sets the "template_id" field.
@@ -19784,7 +19958,7 @@ func (m *CreativeVariantMutation) TemplateID() (r string, exists bool) {
 // OldTemplateID returns the old "template_id" field's value of the CreativeVariant entity.
 // If the CreativeVariant object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreativeVariantMutation) OldTemplateID(ctx context.Context) (v string, err error) {
+func (m *CreativeVariantMutation) OldTemplateID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldTemplateID is only allowed on UpdateOne operations")
 	}
@@ -19798,9 +19972,22 @@ func (m *CreativeVariantMutation) OldTemplateID(ctx context.Context) (v string, 
 	return oldValue.TemplateID, nil
 }
 
+// ClearTemplateID clears the value of the "template_id" field.
+func (m *CreativeVariantMutation) ClearTemplateID() {
+	m.template_id = nil
+	m.clearedFields[creativevariant.FieldTemplateID] = struct{}{}
+}
+
+// TemplateIDCleared returns if the "template_id" field was cleared in this mutation.
+func (m *CreativeVariantMutation) TemplateIDCleared() bool {
+	_, ok := m.clearedFields[creativevariant.FieldTemplateID]
+	return ok
+}
+
 // ResetTemplateID resets all changes to the "template_id" field.
 func (m *CreativeVariantMutation) ResetTemplateID() {
 	m.template_id = nil
+	delete(m.clearedFields, creativevariant.FieldTemplateID)
 }
 
 // SetTemplateVersion sets the "template_version" field.
@@ -19821,7 +20008,7 @@ func (m *CreativeVariantMutation) TemplateVersion() (r int, exists bool) {
 // OldTemplateVersion returns the old "template_version" field's value of the CreativeVariant entity.
 // If the CreativeVariant object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreativeVariantMutation) OldTemplateVersion(ctx context.Context) (v int, err error) {
+func (m *CreativeVariantMutation) OldTemplateVersion(ctx context.Context) (v *int, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldTemplateVersion is only allowed on UpdateOne operations")
 	}
@@ -19853,10 +20040,73 @@ func (m *CreativeVariantMutation) AddedTemplateVersion() (r int, exists bool) {
 	return *v, true
 }
 
+// ClearTemplateVersion clears the value of the "template_version" field.
+func (m *CreativeVariantMutation) ClearTemplateVersion() {
+	m.template_version = nil
+	m.addtemplate_version = nil
+	m.clearedFields[creativevariant.FieldTemplateVersion] = struct{}{}
+}
+
+// TemplateVersionCleared returns if the "template_version" field was cleared in this mutation.
+func (m *CreativeVariantMutation) TemplateVersionCleared() bool {
+	_, ok := m.clearedFields[creativevariant.FieldTemplateVersion]
+	return ok
+}
+
 // ResetTemplateVersion resets all changes to the "template_version" field.
 func (m *CreativeVariantMutation) ResetTemplateVersion() {
 	m.template_version = nil
 	m.addtemplate_version = nil
+	delete(m.clearedFields, creativevariant.FieldTemplateVersion)
+}
+
+// SetDesignID sets the "design_id" field.
+func (m *CreativeVariantMutation) SetDesignID(s string) {
+	m.design_id = &s
+}
+
+// DesignID returns the value of the "design_id" field in the mutation.
+func (m *CreativeVariantMutation) DesignID() (r string, exists bool) {
+	v := m.design_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDesignID returns the old "design_id" field's value of the CreativeVariant entity.
+// If the CreativeVariant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreativeVariantMutation) OldDesignID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDesignID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDesignID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDesignID: %w", err)
+	}
+	return oldValue.DesignID, nil
+}
+
+// ClearDesignID clears the value of the "design_id" field.
+func (m *CreativeVariantMutation) ClearDesignID() {
+	m.design_id = nil
+	m.clearedFields[creativevariant.FieldDesignID] = struct{}{}
+}
+
+// DesignIDCleared returns if the "design_id" field was cleared in this mutation.
+func (m *CreativeVariantMutation) DesignIDCleared() bool {
+	_, ok := m.clearedFields[creativevariant.FieldDesignID]
+	return ok
+}
+
+// ResetDesignID resets all changes to the "design_id" field.
+func (m *CreativeVariantMutation) ResetDesignID() {
+	m.design_id = nil
+	delete(m.clearedFields, creativevariant.FieldDesignID)
 }
 
 // SetRevision sets the "revision" field.
@@ -20195,7 +20445,7 @@ func (m *CreativeVariantMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CreativeVariantMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.organization_id != nil {
 		fields = append(fields, creativevariant.FieldOrganizationID)
 	}
@@ -20216,6 +20466,9 @@ func (m *CreativeVariantMutation) Fields() []string {
 	}
 	if m.template_version != nil {
 		fields = append(fields, creativevariant.FieldTemplateVersion)
+	}
+	if m.design_id != nil {
+		fields = append(fields, creativevariant.FieldDesignID)
 	}
 	if m.revision != nil {
 		fields = append(fields, creativevariant.FieldRevision)
@@ -20257,6 +20510,8 @@ func (m *CreativeVariantMutation) Field(name string) (ent.Value, bool) {
 		return m.TemplateID()
 	case creativevariant.FieldTemplateVersion:
 		return m.TemplateVersion()
+	case creativevariant.FieldDesignID:
+		return m.DesignID()
 	case creativevariant.FieldRevision:
 		return m.Revision()
 	case creativevariant.FieldAspectRatio:
@@ -20292,6 +20547,8 @@ func (m *CreativeVariantMutation) OldField(ctx context.Context, name string) (en
 		return m.OldTemplateID(ctx)
 	case creativevariant.FieldTemplateVersion:
 		return m.OldTemplateVersion(ctx)
+	case creativevariant.FieldDesignID:
+		return m.OldDesignID(ctx)
 	case creativevariant.FieldRevision:
 		return m.OldRevision(ctx)
 	case creativevariant.FieldAspectRatio:
@@ -20361,6 +20618,13 @@ func (m *CreativeVariantMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTemplateVersion(v)
+		return nil
+	case creativevariant.FieldDesignID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDesignID(v)
 		return nil
 	case creativevariant.FieldRevision:
 		v, ok := value.(int)
@@ -20472,7 +20736,23 @@ func (m *CreativeVariantMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *CreativeVariantMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(creativevariant.FieldBrandKitID) {
+		fields = append(fields, creativevariant.FieldBrandKitID)
+	}
+	if m.FieldCleared(creativevariant.FieldBrandKitVersion) {
+		fields = append(fields, creativevariant.FieldBrandKitVersion)
+	}
+	if m.FieldCleared(creativevariant.FieldTemplateID) {
+		fields = append(fields, creativevariant.FieldTemplateID)
+	}
+	if m.FieldCleared(creativevariant.FieldTemplateVersion) {
+		fields = append(fields, creativevariant.FieldTemplateVersion)
+	}
+	if m.FieldCleared(creativevariant.FieldDesignID) {
+		fields = append(fields, creativevariant.FieldDesignID)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -20485,6 +20765,23 @@ func (m *CreativeVariantMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *CreativeVariantMutation) ClearField(name string) error {
+	switch name {
+	case creativevariant.FieldBrandKitID:
+		m.ClearBrandKitID()
+		return nil
+	case creativevariant.FieldBrandKitVersion:
+		m.ClearBrandKitVersion()
+		return nil
+	case creativevariant.FieldTemplateID:
+		m.ClearTemplateID()
+		return nil
+	case creativevariant.FieldTemplateVersion:
+		m.ClearTemplateVersion()
+		return nil
+	case creativevariant.FieldDesignID:
+		m.ClearDesignID()
+		return nil
+	}
 	return fmt.Errorf("unknown CreativeVariant nullable field %s", name)
 }
 
@@ -20512,6 +20809,9 @@ func (m *CreativeVariantMutation) ResetField(name string) error {
 		return nil
 	case creativevariant.FieldTemplateVersion:
 		m.ResetTemplateVersion()
+		return nil
+	case creativevariant.FieldDesignID:
+		m.ResetDesignID()
 		return nil
 	case creativevariant.FieldRevision:
 		m.ResetRevision()
@@ -25870,6 +26170,7 @@ type LaunchRunMutation struct {
 	error              *string
 	created_by_user_id *string
 	started_at         *time.Time
+	heartbeat_at       *time.Time
 	finished_at        *time.Time
 	clearedFields      map[string]struct{}
 	done               bool
@@ -26357,6 +26658,55 @@ func (m *LaunchRunMutation) ResetStartedAt() {
 	m.started_at = nil
 }
 
+// SetHeartbeatAt sets the "heartbeat_at" field.
+func (m *LaunchRunMutation) SetHeartbeatAt(t time.Time) {
+	m.heartbeat_at = &t
+}
+
+// HeartbeatAt returns the value of the "heartbeat_at" field in the mutation.
+func (m *LaunchRunMutation) HeartbeatAt() (r time.Time, exists bool) {
+	v := m.heartbeat_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHeartbeatAt returns the old "heartbeat_at" field's value of the LaunchRun entity.
+// If the LaunchRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LaunchRunMutation) OldHeartbeatAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHeartbeatAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHeartbeatAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHeartbeatAt: %w", err)
+	}
+	return oldValue.HeartbeatAt, nil
+}
+
+// ClearHeartbeatAt clears the value of the "heartbeat_at" field.
+func (m *LaunchRunMutation) ClearHeartbeatAt() {
+	m.heartbeat_at = nil
+	m.clearedFields[launchrun.FieldHeartbeatAt] = struct{}{}
+}
+
+// HeartbeatAtCleared returns if the "heartbeat_at" field was cleared in this mutation.
+func (m *LaunchRunMutation) HeartbeatAtCleared() bool {
+	_, ok := m.clearedFields[launchrun.FieldHeartbeatAt]
+	return ok
+}
+
+// ResetHeartbeatAt resets all changes to the "heartbeat_at" field.
+func (m *LaunchRunMutation) ResetHeartbeatAt() {
+	m.heartbeat_at = nil
+	delete(m.clearedFields, launchrun.FieldHeartbeatAt)
+}
+
 // SetFinishedAt sets the "finished_at" field.
 func (m *LaunchRunMutation) SetFinishedAt(t time.Time) {
 	m.finished_at = &t
@@ -26440,7 +26790,7 @@ func (m *LaunchRunMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LaunchRunMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
 	if m.organization_id != nil {
 		fields = append(fields, launchrun.FieldOrganizationID)
 	}
@@ -26467,6 +26817,9 @@ func (m *LaunchRunMutation) Fields() []string {
 	}
 	if m.started_at != nil {
 		fields = append(fields, launchrun.FieldStartedAt)
+	}
+	if m.heartbeat_at != nil {
+		fields = append(fields, launchrun.FieldHeartbeatAt)
 	}
 	if m.finished_at != nil {
 		fields = append(fields, launchrun.FieldFinishedAt)
@@ -26497,6 +26850,8 @@ func (m *LaunchRunMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedByUserID()
 	case launchrun.FieldStartedAt:
 		return m.StartedAt()
+	case launchrun.FieldHeartbeatAt:
+		return m.HeartbeatAt()
 	case launchrun.FieldFinishedAt:
 		return m.FinishedAt()
 	}
@@ -26526,6 +26881,8 @@ func (m *LaunchRunMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldCreatedByUserID(ctx)
 	case launchrun.FieldStartedAt:
 		return m.OldStartedAt(ctx)
+	case launchrun.FieldHeartbeatAt:
+		return m.OldHeartbeatAt(ctx)
 	case launchrun.FieldFinishedAt:
 		return m.OldFinishedAt(ctx)
 	}
@@ -26600,6 +26957,13 @@ func (m *LaunchRunMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStartedAt(v)
 		return nil
+	case launchrun.FieldHeartbeatAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHeartbeatAt(v)
+		return nil
 	case launchrun.FieldFinishedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -26649,6 +27013,9 @@ func (m *LaunchRunMutation) ClearedFields() []string {
 	if m.FieldCleared(launchrun.FieldCreatedByUserID) {
 		fields = append(fields, launchrun.FieldCreatedByUserID)
 	}
+	if m.FieldCleared(launchrun.FieldHeartbeatAt) {
+		fields = append(fields, launchrun.FieldHeartbeatAt)
+	}
 	if m.FieldCleared(launchrun.FieldFinishedAt) {
 		fields = append(fields, launchrun.FieldFinishedAt)
 	}
@@ -26677,6 +27044,9 @@ func (m *LaunchRunMutation) ClearField(name string) error {
 		return nil
 	case launchrun.FieldCreatedByUserID:
 		m.ClearCreatedByUserID()
+		return nil
+	case launchrun.FieldHeartbeatAt:
+		m.ClearHeartbeatAt()
 		return nil
 	case launchrun.FieldFinishedAt:
 		m.ClearFinishedAt()
@@ -26715,6 +27085,9 @@ func (m *LaunchRunMutation) ResetField(name string) error {
 		return nil
 	case launchrun.FieldStartedAt:
 		m.ResetStartedAt()
+		return nil
+	case launchrun.FieldHeartbeatAt:
+		m.ResetHeartbeatAt()
 		return nil
 	case launchrun.FieldFinishedAt:
 		m.ResetFinishedAt()

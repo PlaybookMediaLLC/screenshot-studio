@@ -32,6 +32,8 @@ const (
 	FieldCreatedByUserID = "createdByUserId"
 	// FieldStartedAt holds the string denoting the started_at field in the database.
 	FieldStartedAt = "startedAt"
+	// FieldHeartbeatAt holds the string denoting the heartbeat_at field in the database.
+	FieldHeartbeatAt = "heartbeatAt"
 	// FieldFinishedAt holds the string denoting the finished_at field in the database.
 	FieldFinishedAt = "finishedAt"
 	// Table holds the table name of the launchrun in the database.
@@ -50,6 +52,7 @@ var Columns = []string{
 	FieldError,
 	FieldCreatedByUserID,
 	FieldStartedAt,
+	FieldHeartbeatAt,
 	FieldFinishedAt,
 }
 
@@ -146,6 +149,11 @@ func ByCreatedByUserID(opts ...sql.OrderTermOption) OrderOption {
 // ByStartedAt orders the results by the started_at field.
 func ByStartedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStartedAt, opts...).ToFunc()
+}
+
+// ByHeartbeatAt orders the results by the heartbeat_at field.
+func ByHeartbeatAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHeartbeatAt, opts...).ToFunc()
 }
 
 // ByFinishedAt orders the results by the finished_at field.

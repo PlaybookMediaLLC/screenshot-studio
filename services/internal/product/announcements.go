@@ -183,7 +183,7 @@ func (c *Configuration) GetAudienceReach(ctx context.Context, actor Actor) (int,
 // and empty audiences are refused; a repeated idempotency key returns the
 // original announcement.
 func (c *Configuration) ScheduleAnnouncement(ctx context.Context, actor Actor, input ScheduleAnnouncementInput) (*AnnouncementSchedule, error) {
-	if err := c.authorizeRoles(ctx, actor, announcementRoles...); err != nil {
+	if err := c.authorizeDecision(ctx, actor, announcementRoles...); err != nil {
 		return nil, err
 	}
 	input.IdempotencyKey = strings.TrimSpace(input.IdempotencyKey)
@@ -278,7 +278,7 @@ func (c *Configuration) ScheduleAnnouncement(ctx context.Context, actor Actor, i
 // did. Once delivery claims it the messages may already be with the provider,
 // so a later cancel would report a stop that did not happen.
 func (c *Configuration) CancelAnnouncement(ctx context.Context, actor Actor, id string) (bool, error) {
-	if err := c.authorizeRoles(ctx, actor, announcementRoles...); err != nil {
+	if err := c.authorizeDecision(ctx, actor, announcementRoles...); err != nil {
 		return false, err
 	}
 	tx, err := c.client.Tx(ctx)

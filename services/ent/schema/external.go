@@ -22,10 +22,11 @@ func (CreativeVariant) Fields() []ent.Field {
 		field.String("organization_id").StorageKey("organizationId").Immutable(),
 		field.String("source_asset_id").StorageKey("sourceAssetId").Immutable(),
 		field.String("release_id").StorageKey("releaseId").Immutable(),
-		field.String("brand_kit_id").StorageKey("brandKitId").Immutable(),
-		field.Int("brand_kit_version").StorageKey("brandKitVersion").Immutable(),
-		field.String("template_id").StorageKey("templateId").Immutable(),
-		field.Int("template_version").StorageKey("templateVersion").Immutable(),
+		field.String("brand_kit_id").StorageKey("brandKitId").Optional().Nillable().Immutable(),
+		field.Int("brand_kit_version").StorageKey("brandKitVersion").Optional().Nillable().Immutable(),
+		field.String("template_id").StorageKey("templateId").Optional().Nillable().Immutable(),
+		field.Int("template_version").StorageKey("templateVersion").Optional().Nillable().Immutable(),
+		field.String("design_id").StorageKey("designId").Optional().Nillable().Immutable(),
 		field.Int("revision").StorageKey("revision").Immutable(),
 		field.String("aspect_ratio").StorageKey("aspectRatio").Immutable(),
 		field.Enum("status").StorageKey("status").Values("DRAFT", "APPROVED", "ARCHIVED"),
@@ -42,6 +43,7 @@ func (CreativeVariant) Edges() []ent.Edge {
 }
 func (CreativeVariant) Indexes() []ent.Index {
 	return []ent.Index{index.Fields("release_id", "aspect_ratio", "revision").Unique(),
+		index.Fields("design_id", "source_asset_id").Unique(),
 		index.Fields("organization_id", "created_at")}
 }
 

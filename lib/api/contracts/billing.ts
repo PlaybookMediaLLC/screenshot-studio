@@ -24,3 +24,13 @@ export const createCreditPackSessionContract = defineContract({
   path: '/api/billing/credits',
   summary: 'Open Stripe Checkout for an AI credit pack for the active workspace',
 })
+
+/** `GET /api/billing/checkout/return`: where Stripe sends the buyer after a subscription Checkout. */
+export const completeCheckoutContract = defineContract({
+  method: 'GET',
+  name: 'billing.checkout.return',
+  output: z.undefined(),
+  path: '/api/billing/checkout/return',
+  query: z.object({ session_id: z.string().min(1).max(255) }),
+  summary: 'Apply a finished Stripe Checkout and send the buyer on',
+})

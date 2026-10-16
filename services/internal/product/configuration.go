@@ -114,6 +114,16 @@ func (c *Configuration) authorizeRoles(ctx context.Context, actor Actor, roles .
 	return publishing.ErrUnauthorized
 }
 
+// authorizeDecision guards approve, schedule, and announce: a person decides
+// these, so an API key, support grant, webhook, or service is refused here
+// rather than trusted to the web facade.
+func (c *Configuration) authorizeDecision(ctx context.Context, actor Actor, roles ...string) error {
+	if !actor.IsSession() {
+		return publishing.ErrForbidden
+	}
+	return c.authorizeRoles(ctx, actor, roles...)
+}
+
 type CreateBrandKitInput struct {
 	Name       string         `json:"name"`
 	Definition map[string]any `json:"definition"`

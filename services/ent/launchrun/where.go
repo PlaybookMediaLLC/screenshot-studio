@@ -104,6 +104,11 @@ func StartedAt(v time.Time) predicate.LaunchRun {
 	return predicate.LaunchRun(sql.FieldEQ(FieldStartedAt, v))
 }
 
+// HeartbeatAt applies equality check predicate on the "heartbeat_at" field. It's identical to HeartbeatAtEQ.
+func HeartbeatAt(v time.Time) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldEQ(FieldHeartbeatAt, v))
+}
+
 // FinishedAt applies equality check predicate on the "finished_at" field. It's identical to FinishedAtEQ.
 func FinishedAt(v time.Time) predicate.LaunchRun {
 	return predicate.LaunchRun(sql.FieldEQ(FieldFinishedAt, v))
@@ -662,6 +667,56 @@ func StartedAtLT(v time.Time) predicate.LaunchRun {
 // StartedAtLTE applies the LTE predicate on the "started_at" field.
 func StartedAtLTE(v time.Time) predicate.LaunchRun {
 	return predicate.LaunchRun(sql.FieldLTE(FieldStartedAt, v))
+}
+
+// HeartbeatAtEQ applies the EQ predicate on the "heartbeat_at" field.
+func HeartbeatAtEQ(v time.Time) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldEQ(FieldHeartbeatAt, v))
+}
+
+// HeartbeatAtNEQ applies the NEQ predicate on the "heartbeat_at" field.
+func HeartbeatAtNEQ(v time.Time) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldNEQ(FieldHeartbeatAt, v))
+}
+
+// HeartbeatAtIn applies the In predicate on the "heartbeat_at" field.
+func HeartbeatAtIn(vs ...time.Time) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldIn(FieldHeartbeatAt, vs...))
+}
+
+// HeartbeatAtNotIn applies the NotIn predicate on the "heartbeat_at" field.
+func HeartbeatAtNotIn(vs ...time.Time) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldNotIn(FieldHeartbeatAt, vs...))
+}
+
+// HeartbeatAtGT applies the GT predicate on the "heartbeat_at" field.
+func HeartbeatAtGT(v time.Time) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldGT(FieldHeartbeatAt, v))
+}
+
+// HeartbeatAtGTE applies the GTE predicate on the "heartbeat_at" field.
+func HeartbeatAtGTE(v time.Time) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldGTE(FieldHeartbeatAt, v))
+}
+
+// HeartbeatAtLT applies the LT predicate on the "heartbeat_at" field.
+func HeartbeatAtLT(v time.Time) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldLT(FieldHeartbeatAt, v))
+}
+
+// HeartbeatAtLTE applies the LTE predicate on the "heartbeat_at" field.
+func HeartbeatAtLTE(v time.Time) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldLTE(FieldHeartbeatAt, v))
+}
+
+// HeartbeatAtIsNil applies the IsNil predicate on the "heartbeat_at" field.
+func HeartbeatAtIsNil() predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldIsNull(FieldHeartbeatAt))
+}
+
+// HeartbeatAtNotNil applies the NotNil predicate on the "heartbeat_at" field.
+func HeartbeatAtNotNil() predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldNotNull(FieldHeartbeatAt))
 }
 
 // FinishedAtEQ applies the EQ predicate on the "finished_at" field.

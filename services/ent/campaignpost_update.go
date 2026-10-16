@@ -243,6 +243,46 @@ func (_u *CampaignPostUpdate) ClearReviewNote() *CampaignPostUpdate {
 	return _u
 }
 
+// SetApprovedByUserID sets the "approved_by_user_id" field.
+func (_u *CampaignPostUpdate) SetApprovedByUserID(v string) *CampaignPostUpdate {
+	_u.mutation.SetApprovedByUserID(v)
+	return _u
+}
+
+// SetNillableApprovedByUserID sets the "approved_by_user_id" field if the given value is not nil.
+func (_u *CampaignPostUpdate) SetNillableApprovedByUserID(v *string) *CampaignPostUpdate {
+	if v != nil {
+		_u.SetApprovedByUserID(*v)
+	}
+	return _u
+}
+
+// ClearApprovedByUserID clears the value of the "approved_by_user_id" field.
+func (_u *CampaignPostUpdate) ClearApprovedByUserID() *CampaignPostUpdate {
+	_u.mutation.ClearApprovedByUserID()
+	return _u
+}
+
+// SetApprovedAt sets the "approved_at" field.
+func (_u *CampaignPostUpdate) SetApprovedAt(v time.Time) *CampaignPostUpdate {
+	_u.mutation.SetApprovedAt(v)
+	return _u
+}
+
+// SetNillableApprovedAt sets the "approved_at" field if the given value is not nil.
+func (_u *CampaignPostUpdate) SetNillableApprovedAt(v *time.Time) *CampaignPostUpdate {
+	if v != nil {
+		_u.SetApprovedAt(*v)
+	}
+	return _u
+}
+
+// ClearApprovedAt clears the value of the "approved_at" field.
+func (_u *CampaignPostUpdate) ClearApprovedAt() *CampaignPostUpdate {
+	_u.mutation.ClearApprovedAt()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *CampaignPostUpdate) SetStatus(v campaignpost.Status) *CampaignPostUpdate {
 	_u.mutation.SetStatus(v)
@@ -453,6 +493,18 @@ func (_u *CampaignPostUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.ReviewNoteCleared() {
 		_spec.ClearField(campaignpost.FieldReviewNote, field.TypeString)
+	}
+	if value, ok := _u.mutation.ApprovedByUserID(); ok {
+		_spec.SetField(campaignpost.FieldApprovedByUserID, field.TypeString, value)
+	}
+	if _u.mutation.ApprovedByUserIDCleared() {
+		_spec.ClearField(campaignpost.FieldApprovedByUserID, field.TypeString)
+	}
+	if value, ok := _u.mutation.ApprovedAt(); ok {
+		_spec.SetField(campaignpost.FieldApprovedAt, field.TypeTime, value)
+	}
+	if _u.mutation.ApprovedAtCleared() {
+		_spec.ClearField(campaignpost.FieldApprovedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(campaignpost.FieldStatus, field.TypeEnum, value)
@@ -712,6 +764,46 @@ func (_u *CampaignPostUpdateOne) ClearReviewNote() *CampaignPostUpdateOne {
 	return _u
 }
 
+// SetApprovedByUserID sets the "approved_by_user_id" field.
+func (_u *CampaignPostUpdateOne) SetApprovedByUserID(v string) *CampaignPostUpdateOne {
+	_u.mutation.SetApprovedByUserID(v)
+	return _u
+}
+
+// SetNillableApprovedByUserID sets the "approved_by_user_id" field if the given value is not nil.
+func (_u *CampaignPostUpdateOne) SetNillableApprovedByUserID(v *string) *CampaignPostUpdateOne {
+	if v != nil {
+		_u.SetApprovedByUserID(*v)
+	}
+	return _u
+}
+
+// ClearApprovedByUserID clears the value of the "approved_by_user_id" field.
+func (_u *CampaignPostUpdateOne) ClearApprovedByUserID() *CampaignPostUpdateOne {
+	_u.mutation.ClearApprovedByUserID()
+	return _u
+}
+
+// SetApprovedAt sets the "approved_at" field.
+func (_u *CampaignPostUpdateOne) SetApprovedAt(v time.Time) *CampaignPostUpdateOne {
+	_u.mutation.SetApprovedAt(v)
+	return _u
+}
+
+// SetNillableApprovedAt sets the "approved_at" field if the given value is not nil.
+func (_u *CampaignPostUpdateOne) SetNillableApprovedAt(v *time.Time) *CampaignPostUpdateOne {
+	if v != nil {
+		_u.SetApprovedAt(*v)
+	}
+	return _u
+}
+
+// ClearApprovedAt clears the value of the "approved_at" field.
+func (_u *CampaignPostUpdateOne) ClearApprovedAt() *CampaignPostUpdateOne {
+	_u.mutation.ClearApprovedAt()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *CampaignPostUpdateOne) SetStatus(v campaignpost.Status) *CampaignPostUpdateOne {
 	_u.mutation.SetStatus(v)
@@ -952,6 +1044,18 @@ func (_u *CampaignPostUpdateOne) sqlSave(ctx context.Context) (_node *CampaignPo
 	}
 	if _u.mutation.ReviewNoteCleared() {
 		_spec.ClearField(campaignpost.FieldReviewNote, field.TypeString)
+	}
+	if value, ok := _u.mutation.ApprovedByUserID(); ok {
+		_spec.SetField(campaignpost.FieldApprovedByUserID, field.TypeString, value)
+	}
+	if _u.mutation.ApprovedByUserIDCleared() {
+		_spec.ClearField(campaignpost.FieldApprovedByUserID, field.TypeString)
+	}
+	if value, ok := _u.mutation.ApprovedAt(); ok {
+		_spec.SetField(campaignpost.FieldApprovedAt, field.TypeTime, value)
+	}
+	if _u.mutation.ApprovedAtCleared() {
+		_spec.ClearField(campaignpost.FieldApprovedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(campaignpost.FieldStatus, field.TypeEnum, value)

@@ -6,10 +6,12 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditlog"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasespec"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
@@ -275,5 +277,116 @@ func TestLaunchPipeline(t *testing.T) {
 	}
 	if runs, err := repo.ListLaunchRuns(ctx, owner, campaignID); err != nil || len(runs) != 4 {
 		t.Fatalf("runs=%d err=%v", len(runs), err)
+	}
+}
+
+// A run holds its slot while it heartbeats: concurrent starts admit exactly
+// one, a dead run gives the slot up, and a cancelled run stops its worker.
+func TestLaunchRunLease(t *testing.T) {
+	url := os.Getenv("PUBLISHING_TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("PUBLISHING_TEST_DATABASE_URL is not set")
+	}
+	ctx := context.Background()
+	db, err := database.Open(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	var name string
+	if err := db.SQL.QueryRowContext(ctx, `SELECT current_database()`).Scan(&name); err != nil || !strings.Contains(name, "test") {
+		t.Fatalf("refusing database %q: %v", name, err)
+	}
+	id := cuid.New()
+	org, userID, campaignID := "org_"+id, "user_"+id, "campaign_"+id
+	for _, statement := range []struct {
+		query string
+		args  []any
+	}{
+		{`INSERT INTO "user" (id,name,email,"emailVerified","createdAt","updatedAt") VALUES ($1,'Owner',$2,true,now(),now())`, []any{userID, id + "@example.test"}},
+		{`INSERT INTO organization (id,name,slug,"createdAt") VALUES ($1,$1,$1,now())`, []any{org}},
+		{`INSERT INTO session (id,"expiresAt",token,"createdAt","updatedAt","userId","activeOrganizationId") VALUES ($1,now()+interval '1 hour',$1,now(),now(),$2,$3)`, []any{"session_" + id, userID, org}},
+		{`INSERT INTO member (id,"organizationId","userId",role,"createdAt") VALUES ($1,$2,$3,'owner',now())`, []any{"member_" + id, org, userID}},
+		{`INSERT INTO campaign (id,"organizationId",name,objective,"updatedAt") VALUES ($1,$2,'Campaign','Adoption',now())`, []any{campaignID, org}},
+	} {
+		if _, err := db.SQL.ExecContext(ctx, statement.query, statement.args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Cleanup(func() {
+		_, _ = db.SQL.ExecContext(ctx, `DELETE FROM organization WHERE id=$1`, org)
+		_, _ = db.SQL.ExecContext(ctx, `DELETE FROM "user" WHERE id=$1`, userID)
+	})
+	repo := NewConfiguration(db.Client)
+	owner := Actor{OrganizationID: org, UserID: userID, SessionID: "session_" + id}
+
+	results := make(chan error, 8)
+	var started sync.WaitGroup
+	for range cap(results) {
+		started.Add(1)
+		go func() {
+			defer started.Done()
+			_, err := repo.StartLaunchRun(ctx, owner, campaignID, "produce")
+			results <- err
+		}()
+	}
+	started.Wait()
+	close(results)
+	won := 0
+	for err := range results {
+		if err == nil {
+			won++
+		} else if !errors.Is(err, publishing.ErrConflict) {
+			t.Fatal(err)
+		}
+	}
+	running, err := db.Client.LaunchRun.Query().Where(launchrun.CampaignID(campaignID), launchrun.StatusEQ(launchrun.StatusRUNNING)).All(ctx)
+	if won != 1 || err != nil || len(running) != 1 {
+		t.Fatalf("concurrent starts won=%d running=%d err=%v", won, len(running), err)
+	}
+	run := running[0]
+
+	if alive, err := repo.HeartbeatLaunchRun(ctx, owner, run.ID); err != nil || !alive {
+		t.Fatalf("heartbeat alive=%v err=%v", alive, err)
+	}
+	// A run that stopped heartbeating gives its slot to a new start.
+	if _, err := db.SQL.ExecContext(ctx, `UPDATE launch_run SET "heartbeatAt"=now()-interval '3 minutes' WHERE id=$1`, run.ID); err != nil {
+		t.Fatal(err)
+	}
+	next, err := repo.StartLaunchRun(ctx, owner, campaignID, "produce")
+	if err != nil {
+		t.Fatalf("start after a dead run: %v", err)
+	}
+	if expired, err := repo.GetLaunchRun(ctx, owner, run.ID); err != nil || expired.Status != "FAILED" || expired.FinishedAt == nil {
+		t.Fatalf("dead run=%+v err=%v", expired, err)
+	}
+	if alive, err := repo.HeartbeatLaunchRun(ctx, owner, run.ID); err != nil || alive {
+		t.Fatalf("dead run heartbeat alive=%v err=%v", alive, err)
+	}
+	// Finishing an expired run changes nothing.
+	if err := repo.FinishLaunchRun(ctx, owner, run.ID, FinishLaunchRunInput{Status: "SUCCEEDED"}); err != nil {
+		t.Fatal(err)
+	}
+	if expired, err := repo.GetLaunchRun(ctx, owner, run.ID); err != nil || expired.Status != "FAILED" {
+		t.Fatalf("finished dead run=%+v err=%v", expired, err)
+	}
+
+	// Cancel fails the run once; its worker learns on the next heartbeat.
+	for _, want := range []bool{true, false} {
+		if cancelled, err := repo.CancelLaunchRun(ctx, owner, next.ID); err != nil || cancelled != want {
+			t.Fatalf("cancel=%v want %v err=%v", cancelled, want, err)
+		}
+	}
+	if cancelled, err := repo.GetLaunchRun(ctx, owner, next.ID); err != nil || cancelled.Status != "FAILED" || cancelled.Error == nil || *cancelled.Error != "Cancelled." {
+		t.Fatalf("cancelled run=%+v err=%v", cancelled, err)
+	}
+	if alive, err := repo.HeartbeatLaunchRun(ctx, owner, next.ID); err != nil || alive {
+		t.Fatalf("cancelled run heartbeat alive=%v err=%v", alive, err)
+	}
+	if _, err := repo.CancelLaunchRun(ctx, owner, "missing_"+id); !errors.Is(err, publishing.ErrNotFound) {
+		t.Fatalf("cancel of a missing run: %v", err)
+	}
+	if _, err := repo.StartLaunchRun(ctx, owner, campaignID, "produce"); err != nil {
+		t.Fatalf("start after cancel: %v", err)
 	}
 }

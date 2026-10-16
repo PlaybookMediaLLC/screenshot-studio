@@ -136,6 +136,26 @@ func (_u *LaunchRunUpdate) ClearCreatedByUserID() *LaunchRunUpdate {
 	return _u
 }
 
+// SetHeartbeatAt sets the "heartbeat_at" field.
+func (_u *LaunchRunUpdate) SetHeartbeatAt(v time.Time) *LaunchRunUpdate {
+	_u.mutation.SetHeartbeatAt(v)
+	return _u
+}
+
+// SetNillableHeartbeatAt sets the "heartbeat_at" field if the given value is not nil.
+func (_u *LaunchRunUpdate) SetNillableHeartbeatAt(v *time.Time) *LaunchRunUpdate {
+	if v != nil {
+		_u.SetHeartbeatAt(*v)
+	}
+	return _u
+}
+
+// ClearHeartbeatAt clears the value of the "heartbeat_at" field.
+func (_u *LaunchRunUpdate) ClearHeartbeatAt() *LaunchRunUpdate {
+	_u.mutation.ClearHeartbeatAt()
+	return _u
+}
+
 // SetFinishedAt sets the "finished_at" field.
 func (_u *LaunchRunUpdate) SetFinishedAt(v time.Time) *LaunchRunUpdate {
 	_u.mutation.SetFinishedAt(v)
@@ -239,6 +259,12 @@ func (_u *LaunchRunUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.CreatedByUserIDCleared() {
 		_spec.ClearField(launchrun.FieldCreatedByUserID, field.TypeString)
+	}
+	if value, ok := _u.mutation.HeartbeatAt(); ok {
+		_spec.SetField(launchrun.FieldHeartbeatAt, field.TypeTime, value)
+	}
+	if _u.mutation.HeartbeatAtCleared() {
+		_spec.ClearField(launchrun.FieldHeartbeatAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.FinishedAt(); ok {
 		_spec.SetField(launchrun.FieldFinishedAt, field.TypeTime, value)
@@ -371,6 +397,26 @@ func (_u *LaunchRunUpdateOne) SetNillableCreatedByUserID(v *string) *LaunchRunUp
 // ClearCreatedByUserID clears the value of the "created_by_user_id" field.
 func (_u *LaunchRunUpdateOne) ClearCreatedByUserID() *LaunchRunUpdateOne {
 	_u.mutation.ClearCreatedByUserID()
+	return _u
+}
+
+// SetHeartbeatAt sets the "heartbeat_at" field.
+func (_u *LaunchRunUpdateOne) SetHeartbeatAt(v time.Time) *LaunchRunUpdateOne {
+	_u.mutation.SetHeartbeatAt(v)
+	return _u
+}
+
+// SetNillableHeartbeatAt sets the "heartbeat_at" field if the given value is not nil.
+func (_u *LaunchRunUpdateOne) SetNillableHeartbeatAt(v *time.Time) *LaunchRunUpdateOne {
+	if v != nil {
+		_u.SetHeartbeatAt(*v)
+	}
+	return _u
+}
+
+// ClearHeartbeatAt clears the value of the "heartbeat_at" field.
+func (_u *LaunchRunUpdateOne) ClearHeartbeatAt() *LaunchRunUpdateOne {
+	_u.mutation.ClearHeartbeatAt()
 	return _u
 }
 
@@ -507,6 +553,12 @@ func (_u *LaunchRunUpdateOne) sqlSave(ctx context.Context) (_node *LaunchRun, er
 	}
 	if _u.mutation.CreatedByUserIDCleared() {
 		_spec.ClearField(launchrun.FieldCreatedByUserID, field.TypeString)
+	}
+	if value, ok := _u.mutation.HeartbeatAt(); ok {
+		_spec.SetField(launchrun.FieldHeartbeatAt, field.TypeTime, value)
+	}
+	if _u.mutation.HeartbeatAtCleared() {
+		_spec.ClearField(launchrun.FieldHeartbeatAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.FinishedAt(); ok {
 		_spec.SetField(launchrun.FieldFinishedAt, field.TypeTime, value)

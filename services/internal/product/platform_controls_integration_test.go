@@ -226,7 +226,20 @@ func TestAuditControlsAndSourceWebhooks(t *testing.T) {
 	// Back to no subscription, so the contract is exercised from its default.
 	exec(`DELETE FROM workspace_entitlement WHERE "organizationId"=$1`, org)
 	exec(`DELETE FROM billing_entitlement_event WHERE "organizationId"=$1`, org)
-	exec(`DELETE FROM audit_log WHERE "organizationId"=$1 AND action='billing.entitlement_changed'`, org)
+	// The audit log is append-only; only a retention-flagged transaction deletes.
+	retention, err := db.SQL.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := retention.ExecContext(ctx, `SET LOCAL shots.audit_retention = 'on'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := retention.ExecContext(ctx, `DELETE FROM audit_log WHERE "organizationId"=$1 AND action='billing.entitlement_changed'`, org); err != nil {
+		t.Fatal(err)
+	}
+	if err := retention.Commit(); err != nil {
+		t.Fatal(err)
+	}
 	if contract, err := repo.GetWorkspaceEntitlement(ctx, owner); err != nil || contract.Plan != "free" || contract.Version != 0 {
 		t.Fatalf("default contract=%+v err=%v", contract, err)
 	}

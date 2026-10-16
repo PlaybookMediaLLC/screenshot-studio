@@ -124,6 +124,16 @@ func ReviewNote(v string) predicate.CampaignPost {
 	return predicate.CampaignPost(sql.FieldEQ(FieldReviewNote, v))
 }
 
+// ApprovedByUserID applies equality check predicate on the "approved_by_user_id" field. It's identical to ApprovedByUserIDEQ.
+func ApprovedByUserID(v string) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldEQ(FieldApprovedByUserID, v))
+}
+
+// ApprovedAt applies equality check predicate on the "approved_at" field. It's identical to ApprovedAtEQ.
+func ApprovedAt(v time.Time) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldEQ(FieldApprovedAt, v))
+}
+
 // ScheduledAt applies equality check predicate on the "scheduled_at" field. It's identical to ScheduledAtEQ.
 func ScheduledAt(v time.Time) predicate.CampaignPost {
 	return predicate.CampaignPost(sql.FieldEQ(FieldScheduledAt, v))
@@ -957,6 +967,131 @@ func ReviewNoteEqualFold(v string) predicate.CampaignPost {
 // ReviewNoteContainsFold applies the ContainsFold predicate on the "review_note" field.
 func ReviewNoteContainsFold(v string) predicate.CampaignPost {
 	return predicate.CampaignPost(sql.FieldContainsFold(FieldReviewNote, v))
+}
+
+// ApprovedByUserIDEQ applies the EQ predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDEQ(v string) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldEQ(FieldApprovedByUserID, v))
+}
+
+// ApprovedByUserIDNEQ applies the NEQ predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDNEQ(v string) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldNEQ(FieldApprovedByUserID, v))
+}
+
+// ApprovedByUserIDIn applies the In predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDIn(vs ...string) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldIn(FieldApprovedByUserID, vs...))
+}
+
+// ApprovedByUserIDNotIn applies the NotIn predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDNotIn(vs ...string) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldNotIn(FieldApprovedByUserID, vs...))
+}
+
+// ApprovedByUserIDGT applies the GT predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDGT(v string) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldGT(FieldApprovedByUserID, v))
+}
+
+// ApprovedByUserIDGTE applies the GTE predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDGTE(v string) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldGTE(FieldApprovedByUserID, v))
+}
+
+// ApprovedByUserIDLT applies the LT predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDLT(v string) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldLT(FieldApprovedByUserID, v))
+}
+
+// ApprovedByUserIDLTE applies the LTE predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDLTE(v string) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldLTE(FieldApprovedByUserID, v))
+}
+
+// ApprovedByUserIDContains applies the Contains predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDContains(v string) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldContains(FieldApprovedByUserID, v))
+}
+
+// ApprovedByUserIDHasPrefix applies the HasPrefix predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDHasPrefix(v string) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldHasPrefix(FieldApprovedByUserID, v))
+}
+
+// ApprovedByUserIDHasSuffix applies the HasSuffix predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDHasSuffix(v string) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldHasSuffix(FieldApprovedByUserID, v))
+}
+
+// ApprovedByUserIDIsNil applies the IsNil predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDIsNil() predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldIsNull(FieldApprovedByUserID))
+}
+
+// ApprovedByUserIDNotNil applies the NotNil predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDNotNil() predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldNotNull(FieldApprovedByUserID))
+}
+
+// ApprovedByUserIDEqualFold applies the EqualFold predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDEqualFold(v string) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldEqualFold(FieldApprovedByUserID, v))
+}
+
+// ApprovedByUserIDContainsFold applies the ContainsFold predicate on the "approved_by_user_id" field.
+func ApprovedByUserIDContainsFold(v string) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldContainsFold(FieldApprovedByUserID, v))
+}
+
+// ApprovedAtEQ applies the EQ predicate on the "approved_at" field.
+func ApprovedAtEQ(v time.Time) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldEQ(FieldApprovedAt, v))
+}
+
+// ApprovedAtNEQ applies the NEQ predicate on the "approved_at" field.
+func ApprovedAtNEQ(v time.Time) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldNEQ(FieldApprovedAt, v))
+}
+
+// ApprovedAtIn applies the In predicate on the "approved_at" field.
+func ApprovedAtIn(vs ...time.Time) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldIn(FieldApprovedAt, vs...))
+}
+
+// ApprovedAtNotIn applies the NotIn predicate on the "approved_at" field.
+func ApprovedAtNotIn(vs ...time.Time) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldNotIn(FieldApprovedAt, vs...))
+}
+
+// ApprovedAtGT applies the GT predicate on the "approved_at" field.
+func ApprovedAtGT(v time.Time) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldGT(FieldApprovedAt, v))
+}
+
+// ApprovedAtGTE applies the GTE predicate on the "approved_at" field.
+func ApprovedAtGTE(v time.Time) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldGTE(FieldApprovedAt, v))
+}
+
+// ApprovedAtLT applies the LT predicate on the "approved_at" field.
+func ApprovedAtLT(v time.Time) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldLT(FieldApprovedAt, v))
+}
+
+// ApprovedAtLTE applies the LTE predicate on the "approved_at" field.
+func ApprovedAtLTE(v time.Time) predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldLTE(FieldApprovedAt, v))
+}
+
+// ApprovedAtIsNil applies the IsNil predicate on the "approved_at" field.
+func ApprovedAtIsNil() predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldIsNull(FieldApprovedAt))
+}
+
+// ApprovedAtNotNil applies the NotNil predicate on the "approved_at" field.
+func ApprovedAtNotNil() predicate.CampaignPost {
+	return predicate.CampaignPost(sql.FieldNotNull(FieldApprovedAt))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.

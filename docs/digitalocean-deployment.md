@@ -1,10 +1,12 @@
 # DigitalOcean production deployment
 
-**Cutover status (2026-10-15):** The single-database Go product/SDK cutover is
-implemented and tested locally, but has not been applied to this production
-app. The deployment records below describe the earlier architecture. Deploy
-the new backend migration and image before updating the web image, then run
-test-destination canaries as described in
+**Cutover status (2026-10-16):** The single-database Go product/SDK cutover is
+applied in production. `doctl apps get` shows the `web`, `storage`, and combined
+`screenshot-studio-backend` services, the `platform-migrate` and
+`postiz-migrate` pre-deploy jobs, and no `web-migrate`; the active deployment
+runs the images built from `d2482e6`. Every push to `main` now deploys the
+backend first and the web second. Live social canaries on the cutover
+architecture are still outstanding; see
 [social publishing verification](social-publishing-verification.md).
 
 Production is `screenshot-studio-production` in DigitalOcean's `nyc` region,

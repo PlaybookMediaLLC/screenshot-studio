@@ -33,6 +33,8 @@ func (s *Server) registerLaunch(mux *http.ServeMux) {
 	handle("POST /v1/launch/revisions/{id}/discard", s.discardLaunchRevision)
 	handle("GET /v1/launch/runs/{id}", s.getLaunchRun)
 	handle("POST /v1/launch/runs/{id}/finish", s.finishLaunchRun)
+	handle("POST /v1/launch/runs/{id}/heartbeat", s.heartbeatLaunchRun)
+	handle("POST /v1/launch/runs/{id}/cancel", s.cancelLaunchRun)
 	handle("PUT /v1/launch/designs/{id}/critique", s.setLaunchDesignCritique)
 }
 
@@ -222,6 +224,20 @@ func (s *Server) finishLaunchRun(w http.ResponseWriter, r *http.Request) {
 	if id, ok := launchID(w, r, "id"); ok && launchBody(w, r, &input) {
 		err := s.configuration.FinishLaunchRun(r.Context(), workspaceActor(r), id, input)
 		writeLaunch(w, http.StatusOK, map[string]bool{"updated": true}, err)
+	}
+}
+
+func (s *Server) heartbeatLaunchRun(w http.ResponseWriter, r *http.Request) {
+	if id, ok := launchID(w, r, "id"); ok {
+		running, err := s.configuration.HeartbeatLaunchRun(r.Context(), workspaceActor(r), id)
+		writeLaunch(w, http.StatusOK, map[string]bool{"running": running}, err)
+	}
+}
+
+func (s *Server) cancelLaunchRun(w http.ResponseWriter, r *http.Request) {
+	if id, ok := launchID(w, r, "id"); ok {
+		cancelled, err := s.configuration.CancelLaunchRun(r.Context(), workspaceActor(r), id)
+		writeLaunch(w, http.StatusOK, map[string]bool{"cancelled": cancelled}, err)
 	}
 }
 

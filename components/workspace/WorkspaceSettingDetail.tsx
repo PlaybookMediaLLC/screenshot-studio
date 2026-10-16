@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react'
 import { ProfileForm } from '@/components/auth/ProfileForm'
 import { WorkspaceAuditSettings } from './WorkspaceAuditSettings'
+import { WorkspaceBilling } from './WorkspaceBilling'
 import { WorkspaceBrandSettings } from './WorkspaceBrandSettings'
 import { WorkspaceDeveloperSettings } from './WorkspaceDeveloperSettings'
 import { WorkspaceGeneralSettings } from './WorkspaceGeneralSettings'
@@ -39,6 +40,7 @@ function getDetailContent({
         organizationId={organization.id}
       />
     ),
+    billing: <WorkspaceBilling canManage={canManage} />,
     brand: <WorkspaceBrandSettings canManage={canManage} />,
     general: (
       <WorkspaceGeneralSettings

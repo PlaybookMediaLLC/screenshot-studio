@@ -130,6 +130,7 @@ func (LaunchRun) Fields() []ent.Field {
 		field.String("error").StorageKey("error").Optional().Nillable(),
 		field.String("created_by_user_id").StorageKey("createdByUserId").Optional().Nillable(),
 		field.Time("started_at").StorageKey("startedAt").Default(time.Now).Immutable(),
+		field.Time("heartbeat_at").StorageKey("heartbeatAt").Optional().Nillable(),
 		field.Time("finished_at").StorageKey("finishedAt").Optional().Nillable(),
 	}
 }

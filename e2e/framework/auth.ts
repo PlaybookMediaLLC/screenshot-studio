@@ -15,8 +15,8 @@ export async function signUpAndCreateWorkspace(identity: E2EIdentity, page: Page
   await signUp(identity, page)
   await page.getByLabel('Workspace name').fill(identity.workspaceName)
   await page.getByRole('button', { name: 'Create workspace' }).click()
-  // There is no free plan: a new workspace is sent to choose one first.
-  await expectPath(page, '/pricing')
+  // There is no free plan: onboarding ends by choosing one.
+  await expectPath(page, '/onboarding/plan')
   const organizationId = await getActiveOrganizationId(page)
   await grantWorkspacePlan(organizationId, 'pro')
   await page.goto(getE2EUrl('/'))

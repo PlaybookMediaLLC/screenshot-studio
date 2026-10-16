@@ -162,6 +162,34 @@ func (_c *CampaignPostCreate) SetNillableReviewNote(v *string) *CampaignPostCrea
 	return _c
 }
 
+// SetApprovedByUserID sets the "approved_by_user_id" field.
+func (_c *CampaignPostCreate) SetApprovedByUserID(v string) *CampaignPostCreate {
+	_c.mutation.SetApprovedByUserID(v)
+	return _c
+}
+
+// SetNillableApprovedByUserID sets the "approved_by_user_id" field if the given value is not nil.
+func (_c *CampaignPostCreate) SetNillableApprovedByUserID(v *string) *CampaignPostCreate {
+	if v != nil {
+		_c.SetApprovedByUserID(*v)
+	}
+	return _c
+}
+
+// SetApprovedAt sets the "approved_at" field.
+func (_c *CampaignPostCreate) SetApprovedAt(v time.Time) *CampaignPostCreate {
+	_c.mutation.SetApprovedAt(v)
+	return _c
+}
+
+// SetNillableApprovedAt sets the "approved_at" field if the given value is not nil.
+func (_c *CampaignPostCreate) SetNillableApprovedAt(v *time.Time) *CampaignPostCreate {
+	if v != nil {
+		_c.SetApprovedAt(*v)
+	}
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *CampaignPostCreate) SetStatus(v campaignpost.Status) *CampaignPostCreate {
 	_c.mutation.SetStatus(v)
@@ -410,6 +438,14 @@ func (_c *CampaignPostCreate) createSpec() (*CampaignPost, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.ReviewNote(); ok {
 		_spec.SetField(campaignpost.FieldReviewNote, field.TypeString, value)
 		_node.ReviewNote = &value
+	}
+	if value, ok := _c.mutation.ApprovedByUserID(); ok {
+		_spec.SetField(campaignpost.FieldApprovedByUserID, field.TypeString, value)
+		_node.ApprovedByUserID = &value
+	}
+	if value, ok := _c.mutation.ApprovedAt(); ok {
+		_spec.SetField(campaignpost.FieldApprovedAt, field.TypeTime, value)
+		_node.ApprovedAt = &value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(campaignpost.FieldStatus, field.TypeEnum, value)

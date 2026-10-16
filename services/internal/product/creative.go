@@ -43,17 +43,20 @@ type CreateCreativeVariantInput struct {
 	TemplateID    string `json:"templateId"`
 }
 
+// CreativeVariantRecord is a fixed image to publish: a design render (DesignID)
+// or a brand kit and template version applied to a source asset.
 type CreativeVariantRecord struct {
-	AspectRatio     string `json:"aspectRatio"`
-	BrandKitID      string `json:"brandKitId"`
-	BrandKitVersion int    `json:"brandKitVersion"`
-	ID              string `json:"id"`
-	ReleaseID       string `json:"releaseId"`
-	Revision        int    `json:"revision"`
-	SourceAssetID   string `json:"sourceAssetId"`
-	Status          string `json:"status"`
-	TemplateID      string `json:"templateId"`
-	TemplateVersion int    `json:"templateVersion"`
+	AspectRatio     string  `json:"aspectRatio"`
+	BrandKitID      *string `json:"brandKitId"`
+	BrandKitVersion *int    `json:"brandKitVersion"`
+	DesignID        *string `json:"designId"`
+	ID              string  `json:"id"`
+	ReleaseID       string  `json:"releaseId"`
+	Revision        int     `json:"revision"`
+	SourceAssetID   string  `json:"sourceAssetId"`
+	Status          string  `json:"status"`
+	TemplateID      *string `json:"templateId"`
+	TemplateVersion *int    `json:"templateVersion"`
 }
 
 type CreativeApprovalInput struct {
@@ -85,7 +88,7 @@ func creativeTemplateRecord(row *ent.CreativeTemplate) CreativeTemplateRecord {
 
 func creativeVariantRecord(row *ent.CreativeVariant) CreativeVariantRecord {
 	return CreativeVariantRecord{AspectRatio: row.AspectRatio, BrandKitID: row.BrandKitID,
-		BrandKitVersion: row.BrandKitVersion, ID: row.ID, ReleaseID: row.ReleaseID,
+		BrandKitVersion: row.BrandKitVersion, DesignID: row.DesignID, ID: row.ID, ReleaseID: row.ReleaseID,
 		Revision: row.Revision, SourceAssetID: row.SourceAssetID, Status: string(row.Status),
 		TemplateID: row.TemplateID, TemplateVersion: row.TemplateVersion}
 }
@@ -226,8 +229,7 @@ func (c *Configuration) CreateCreativeVariant(ctx context.Context, actor Actor, 
 }
 
 func (c *Configuration) DecideCreativeVariant(ctx context.Context, actor Actor, id string, input CreativeApprovalInput) (*CreativeApprovalDecision, error) {
-	if err := c.authorizeRoles(ctx, actor,
-		"owner", "admin", "approver"); err != nil {
+	if err := c.authorizeDecision(ctx, actor, creativeApproveRoles...); err != nil {
 		return nil, err
 	}
 	if input.Status != "APPROVED" && input.Status != "REJECTED" ||
@@ -239,6 +241,29 @@ func (c *Configuration) DecideCreativeVariant(ctx context.Context, actor Actor, 
 		return nil, err
 	}
 	defer tx.Rollback()
+	decision, err := decideVariantTx(ctx, tx, actor, id, input)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return &CreativeApprovalDecision{Approval: creativeApprovalRecord(decision.approval.Unwrap()),
+		Variant: creativeVariantRecord(decision.variant.Unwrap())}, nil
+}
+
+// creativeApproveRoles hold release:approve in the web role map.
+var creativeApproveRoles = []string{"owner", "admin", "approver"}
+
+type variantDecision struct {
+	approval *ent.Approval
+	variant  *ent.CreativeVariant
+}
+
+// decideVariantTx records an approve or reject decision on a variant and its
+// audit event inside the caller's transaction. The caller has authorized the
+// actor and validated the input.
+func decideVariantTx(ctx context.Context, tx *ent.Tx, actor Actor, id string, input CreativeApprovalInput) (*variantDecision, error) {
 	variant, err := tx.CreativeVariant.Query().Where(creativevariant.ID(id),
 		creativevariant.OrganizationID(actor.OrganizationID), creativevariant.StatusNEQ(creativevariant.StatusARCHIVED)).Only(ctx)
 	if ent.IsNotFound(err) {
@@ -285,9 +310,5 @@ func (c *Configuration) DecideCreativeVariant(ctx context.Context, actor Actor, 
 		map[string]any{"status": input.Status}); err != nil {
 		return nil, err
 	}
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-	return &CreativeApprovalDecision{Approval: creativeApprovalRecord(approved.Unwrap()),
-		Variant: creativeVariantRecord(updated.Unwrap())}, nil
+	return &variantDecision{approval: approved, variant: updated}, nil
 }

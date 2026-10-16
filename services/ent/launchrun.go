@@ -35,6 +35,8 @@ type LaunchRun struct {
 	CreatedByUserID *string `json:"created_by_user_id,omitempty"`
 	// StartedAt holds the value of the "started_at" field.
 	StartedAt time.Time `json:"started_at,omitempty"`
+	// HeartbeatAt holds the value of the "heartbeat_at" field.
+	HeartbeatAt *time.Time `json:"heartbeat_at,omitempty"`
 	// FinishedAt holds the value of the "finished_at" field.
 	FinishedAt   *time.Time `json:"finished_at,omitempty"`
 	selectValues sql.SelectValues
@@ -47,7 +49,7 @@ func (*LaunchRun) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case launchrun.FieldID, launchrun.FieldOrganizationID, launchrun.FieldCampaignID, launchrun.FieldKind, launchrun.FieldStatus, launchrun.FieldResultID, launchrun.FieldSummary, launchrun.FieldError, launchrun.FieldCreatedByUserID:
 			values[i] = new(sql.NullString)
-		case launchrun.FieldStartedAt, launchrun.FieldFinishedAt:
+		case launchrun.FieldStartedAt, launchrun.FieldHeartbeatAt, launchrun.FieldFinishedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -128,6 +130,13 @@ func (_m *LaunchRun) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.StartedAt = value.Time
 			}
+		case launchrun.FieldHeartbeatAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field heartbeat_at", values[i])
+			} else if value.Valid {
+				_m.HeartbeatAt = new(time.Time)
+				*_m.HeartbeatAt = value.Time
+			}
 		case launchrun.FieldFinishedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field finished_at", values[i])
@@ -205,6 +214,11 @@ func (_m *LaunchRun) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("started_at=")
 	builder.WriteString(_m.StartedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.HeartbeatAt; v != nil {
+		builder.WriteString("heartbeat_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	if v := _m.FinishedAt; v != nil {
 		builder.WriteString("finished_at=")

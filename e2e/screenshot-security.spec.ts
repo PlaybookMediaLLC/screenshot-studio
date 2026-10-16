@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { requestJson } from './framework/browser'
+import { signUpAndCreateWorkspace } from './framework/auth'
 import { configureE2EFlow, expect, test } from './framework/flow'
 import { startHttpMockServer } from './framework/http-server'
 import { createE2EDatabase, queryRow } from './framework/services'
@@ -24,7 +25,12 @@ async function getCacheRecord(url: string) {
   }
 }
 
-configureE2EFlow()
+// The screenshot API needs a paid workspace; the fixture gives it Pro.
+configureE2EFlow({
+  beforeEach: async ({ identity, page }) => {
+    await signUpAndCreateWorkspace(identity, page)
+  },
+})
 
 test('capture rejects local and private network targets before a remote capture starts', async ({
   app,

@@ -15,6 +15,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/lucsky/cuid"
 )
@@ -81,6 +82,8 @@ type CampaignAngle struct {
 
 type CampaignPostItem struct {
 	AngleID           *string          `json:"angleId"`
+	ApprovedAt        *time.Time       `json:"approvedAt"`
+	ApprovedByUserID  *string          `json:"approvedByUserId"`
 	CallToAction      *string          `json:"callToAction"`
 	CampaignID        string           `json:"campaignId"`
 	Channel           string           `json:"channel"`
@@ -96,10 +99,12 @@ type CampaignPostItem struct {
 	ReviewNote        *string          `json:"reviewNote"`
 	ScheduledAt       *time.Time       `json:"scheduledAt"`
 	ScheduledPostID   *string          `json:"scheduledPostId"`
-	SpecVersion       *int             `json:"specVersion"`
-	Status            string           `json:"status"`
-	Title             *string          `json:"title"`
-	UpdatedAt         time.Time        `json:"updatedAt"`
+	// ScheduledPostStatus is the delivery state of ScheduledPostID.
+	ScheduledPostStatus *string   `json:"scheduledPostStatus"`
+	SpecVersion         *int      `json:"specVersion"`
+	Status              string    `json:"status"`
+	Title               *string   `json:"title"`
+	UpdatedAt           time.Time `json:"updatedAt"`
 }
 
 type CampaignAssetItem struct {
@@ -154,8 +159,9 @@ func campaignPostItem(post *ent.CampaignPost) CampaignPostItem {
 	if claims == nil {
 		claims = []map[string]any{}
 	}
-	return CampaignPostItem{AngleID: post.AngleID, CallToAction: post.CallToAction,
-		CampaignID: post.CampaignID, Channel: post.Channel, Claims: claims, Copy: post.Copy, CreatedAt: post.CreatedAt,
+	return CampaignPostItem{AngleID: post.AngleID, ApprovedAt: post.ApprovedAt, ApprovedByUserID: post.ApprovedByUserID,
+		CallToAction: post.CallToAction,
+		CampaignID:   post.CampaignID, Channel: post.Channel, Claims: claims, Copy: post.Copy, CreatedAt: post.CreatedAt,
 		CreativeVariantID: post.CreativeVariantID, ID: post.ID, OrganizationID: post.OrganizationID,
 		Phase: post.Phase, PlanItemKey: post.PlanItemKey, PlanVersion: post.PlanVersion,
 		ReviewNote: post.ReviewNote, ScheduledAt: post.ScheduledAt, ScheduledPostID: post.ScheduledPostID,
@@ -236,8 +242,27 @@ func (c *Configuration) GetCampaign(ctx context.Context, actor Actor, id string)
 	if err != nil {
 		return nil, err
 	}
+	scheduledIDs := []string{}
 	for _, post := range posts {
-		detail.Posts = append(detail.Posts, campaignPostItem(post))
+		if post.ScheduledPostID != nil {
+			scheduledIDs = append(scheduledIDs, *post.ScheduledPostID)
+		}
+	}
+	scheduled, err := c.client.ScheduledPost.Query().Where(scheduledpost.IDIn(scheduledIDs...),
+		scheduledpost.OrganizationID(actor.OrganizationID)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	delivery := make(map[string]*ent.ScheduledPost, len(scheduled))
+	for _, row := range scheduled {
+		delivery[row.ID] = row
+	}
+	for _, post := range posts {
+		item := campaignPostItem(post)
+		if post.ScheduledPostID != nil && delivery[*post.ScheduledPostID] != nil {
+			item = scheduledCampaignPostItem(post, delivery[*post.ScheduledPostID])
+		}
+		detail.Posts = append(detail.Posts, item)
 	}
 	links, err := c.client.CampaignAsset.Query().Where(campaignasset.CampaignID(id), campaignasset.OrganizationID(actor.OrganizationID)).
 		Order(ent.Asc(campaignasset.FieldCreatedAt), ent.Asc(campaignasset.FieldID)).All(ctx)

@@ -140,6 +140,21 @@ func (_u *CreativeVariantUpdate) sqlSave(ctx context.Context) (_node int, err er
 			}
 		}
 	}
+	if _u.mutation.BrandKitIDCleared() {
+		_spec.ClearField(creativevariant.FieldBrandKitID, field.TypeString)
+	}
+	if _u.mutation.BrandKitVersionCleared() {
+		_spec.ClearField(creativevariant.FieldBrandKitVersion, field.TypeInt)
+	}
+	if _u.mutation.TemplateIDCleared() {
+		_spec.ClearField(creativevariant.FieldTemplateID, field.TypeString)
+	}
+	if _u.mutation.TemplateVersionCleared() {
+		_spec.ClearField(creativevariant.FieldTemplateVersion, field.TypeInt)
+	}
+	if _u.mutation.DesignIDCleared() {
+		_spec.ClearField(creativevariant.FieldDesignID, field.TypeString)
+	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(creativevariant.FieldStatus, field.TypeEnum, value)
 	}
@@ -335,6 +350,21 @@ func (_u *CreativeVariantUpdateOne) sqlSave(ctx context.Context) (_node *Creativ
 				ps[i](selector)
 			}
 		}
+	}
+	if _u.mutation.BrandKitIDCleared() {
+		_spec.ClearField(creativevariant.FieldBrandKitID, field.TypeString)
+	}
+	if _u.mutation.BrandKitVersionCleared() {
+		_spec.ClearField(creativevariant.FieldBrandKitVersion, field.TypeInt)
+	}
+	if _u.mutation.TemplateIDCleared() {
+		_spec.ClearField(creativevariant.FieldTemplateID, field.TypeString)
+	}
+	if _u.mutation.TemplateVersionCleared() {
+		_spec.ClearField(creativevariant.FieldTemplateVersion, field.TypeInt)
+	}
+	if _u.mutation.DesignIDCleared() {
+		_spec.ClearField(creativevariant.FieldDesignID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(creativevariant.FieldStatus, field.TypeEnum, value)

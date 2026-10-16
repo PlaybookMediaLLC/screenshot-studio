@@ -32,6 +32,8 @@ func (CampaignPost) Fields() []ent.Field {
 		field.Int("plan_version").StorageKey("planVersion").Optional().Nillable(),
 		field.JSON("claims", []map[string]any{}).StorageKey("claims").Default([]map[string]any{}),
 		field.String("review_note").StorageKey("reviewNote").Optional().Nillable(),
+		field.String("approved_by_user_id").StorageKey("approvedByUserId").Optional().Nillable(),
+		field.Time("approved_at").StorageKey("approvedAt").Optional().Nillable(),
 		field.Enum("status").StorageKey("status").Values("DRAFT", "READY_FOR_REVIEW", "APPROVED", "REJECTED", "NEEDS_CHANGES", "SCHEDULED", "PUBLISHED"),
 		field.Time("scheduled_at").StorageKey("scheduledAt").Optional().Nillable(),
 		field.String("creative_variant_id").StorageKey("creativeVariantId").Optional().Nillable(),

@@ -37,13 +37,16 @@ test("autosave never replaces the saved canvas background", async () => {
   assert.match(source, /useImageStore\.setState\(\{\s*\.\.\.definedOnly\(rest\)/);
 });
 
-test("device library ships licensed device assets", () => {
-  assert.equal(MOCKUP_DEFINITIONS.length, 17);
-  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "phone").length, 5);
+test("device library ships licensed device assets and in-house drawn devices", () => {
+  assert.equal(MOCKUP_DEFINITIONS.length, 25);
+  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "phone").length, 7);
   assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "watch").length, 7);
-  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "tablet").length, 0);
-  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "laptop").length, 5);
-  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "desktop").length, 0);
+  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "tablet").length, 2);
+  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "laptop").length, 6);
+  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "desktop").length, 2);
+  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "spatial").length, 1);
+  // Every device is either licensed artwork or drawn in-house, never both.
+  assert.ok(MOCKUP_DEFINITIONS.every((definition) => Boolean(definition.asset) !== Boolean(definition.art)));
   assert.equal(new Set(MOCKUP_DEFINITIONS.map((definition) => definition.id)).size, MOCKUP_DEFINITIONS.length);
 
   const licensedAssets = MOCKUP_DEFINITIONS.filter((definition) => definition.asset);

@@ -3,6 +3,7 @@ import type {
   DeviceLayoutDefinition,
   MockupDefinition,
 } from "@/types/mockup";
+import { DRAWN_DEVICE_DEFINITIONS } from "@/lib/frames/devices";
 
 export const MAX_DEVICE_MOCKUPS = 6;
 
@@ -241,6 +242,7 @@ export const MOCKUP_DEFINITIONS: MockupDefinition[] = [
       screen: { x: 0.092068, y: 0.024691, width: 0.815864, height: 0.861111 },
     },
   },
+  ...DRAWN_DEVICE_DEFINITIONS,
 ];
 
 const MOCKUP_DEFINITION_BY_ID = new Map(

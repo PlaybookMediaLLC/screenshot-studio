@@ -84,6 +84,10 @@ type Tx struct {
 	PostizTenantBinding *PostizTenantBindingClient
 	// ProductSurface is the client for interacting with the ProductSurface builders.
 	ProductSurface *ProductSurfaceClient
+	// Project is the client for interacting with the Project builders.
+	Project *ProjectClient
+	// ProjectVersion is the client for interacting with the ProjectVersion builders.
+	ProjectVersion *ProjectVersionClient
 	// PublicationAttempt is the client for interacting with the PublicationAttempt builders.
 	PublicationAttempt *PublicationAttemptClient
 	// Release is the client for interacting with the Release builders.
@@ -285,6 +289,8 @@ func (tx *Tx) init() {
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
 	tx.PostizTenantBinding = NewPostizTenantBindingClient(tx.config)
 	tx.ProductSurface = NewProductSurfaceClient(tx.config)
+	tx.Project = NewProjectClient(tx.config)
+	tx.ProjectVersion = NewProjectVersionClient(tx.config)
 	tx.PublicationAttempt = NewPublicationAttemptClient(tx.config)
 	tx.Release = NewReleaseClient(tx.config)
 	tx.ReleaseDocument = NewReleaseDocumentClient(tx.config)

@@ -42,6 +42,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/projectversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasedocument"
@@ -485,6 +487,28 @@ func init() {
 	productsurface.DefaultUpdatedAt = productsurfaceDescUpdatedAt.Default.(func() time.Time)
 	// productsurface.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	productsurface.UpdateDefaultUpdatedAt = productsurfaceDescUpdatedAt.UpdateDefault.(func() time.Time)
+	projectFields := schema.Project{}.Fields()
+	_ = projectFields
+	// projectDescRevision is the schema descriptor for revision field.
+	projectDescRevision := projectFields[5].Descriptor()
+	// project.DefaultRevision holds the default value on creation for the revision field.
+	project.DefaultRevision = projectDescRevision.Default.(int)
+	// projectDescCreatedAt is the schema descriptor for created_at field.
+	projectDescCreatedAt := projectFields[8].Descriptor()
+	// project.DefaultCreatedAt holds the default value on creation for the created_at field.
+	project.DefaultCreatedAt = projectDescCreatedAt.Default.(func() time.Time)
+	// projectDescUpdatedAt is the schema descriptor for updated_at field.
+	projectDescUpdatedAt := projectFields[9].Descriptor()
+	// project.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	project.DefaultUpdatedAt = projectDescUpdatedAt.Default.(func() time.Time)
+	// project.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	project.UpdateDefaultUpdatedAt = projectDescUpdatedAt.UpdateDefault.(func() time.Time)
+	projectversionFields := schema.ProjectVersion{}.Fields()
+	_ = projectversionFields
+	// projectversionDescCreatedAt is the schema descriptor for created_at field.
+	projectversionDescCreatedAt := projectversionFields[8].Descriptor()
+	// projectversion.DefaultCreatedAt holds the default value on creation for the created_at field.
+	projectversion.DefaultCreatedAt = projectversionDescCreatedAt.Default.(func() time.Time)
 	publicationattemptFields := schema.PublicationAttempt{}.Fields()
 	_ = publicationattemptFields
 	// publicationattemptDescAttemptNumber is the schema descriptor for attempt_number field.

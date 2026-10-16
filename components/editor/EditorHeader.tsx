@@ -56,6 +56,7 @@ import { ImageExportProgressView } from '@/components/canvas/dialogs/ImageProgre
 import { FormatSelector, QualityPresetSelector, ScaleSlider } from '@/components/export'
 import { cn } from '@/lib/utils'
 import { SaveToWorkspaceButton } from '@/components/workspace/SaveToWorkspaceButton'
+import { ProjectMenu } from '@/components/projects/ProjectMenu'
 import { FeedbackWidget } from '@/components/FeedbackWidget'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -258,6 +259,7 @@ export function EditorHeader() {
             <MagicWand01Icon className="shrink-0" size={15} />
             {!isMobile ? <span>Templates</span> : null}
           </button>
+          <ProjectMenu compact={isMobile} />
         </div>
 
         {/* One floating toolbar: history, guides, and canvas size. */}

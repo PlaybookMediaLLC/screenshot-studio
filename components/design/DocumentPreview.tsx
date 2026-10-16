@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 const PREVIEW_OUTPUT: StageOutput = { format: 'jpeg', maxWidth: 480, quality: 'medium' }
 
 /** True once the element has been near the viewport; previews render lazily. */
-function useNearViewport<T extends Element>(): [React.RefObject<T | null>, boolean] {
+export function useNearViewport<T extends Element>(): [React.RefObject<T | null>, boolean] {
   const ref = React.useRef<T>(null)
   const [near, setNear] = React.useState(false)
   React.useEffect(() => {

@@ -1,0 +1,155 @@
+'use client'
+
+import { LoaderCircle } from 'lucide-react'
+import { type FormEvent, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { useTRPCClient } from '@/lib/trpc/react'
+import { CampaignCopilot } from './CampaignCopilot'
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Something went wrong.'
+}
+
+/**
+ * The campaigns list's one-sentence start: "What did you ship?" creates a
+ * conversation, sends the sentence, and opens the panel on it.
+ */
+export function ShipInput({ aiEnabled }: { aiEnabled: boolean }) {
+  const client = useTRPCClient()
+  const [value, setValue] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    const content = value.trim()
+    if (!content) return
+    setBusy(true)
+    setError(null)
+    try {
+      const { conversation } = await client.conversation.create.mutate({
+        title: content.slice(0, 80),
+      })
+      await client.conversation.send.mutate({ content, conversationId: conversation.id })
+      setConversationId(conversation.id)
+      setOpen(true)
+      setValue('')
+    } catch (failure) {
+      setError(errorMessage(failure))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!aiEnabled) {
+    return (
+      <p className="rounded-2xl bg-white/[0.02] px-5 py-4 text-sm text-neutral-500 ring-1 ring-white/[0.06]">
+        AI is turned off for this workspace.
+      </p>
+    )
+  }
+  return (
+    <>
+      <form
+        className="flex flex-col gap-2 rounded-2xl bg-white/[0.02] p-4 ring-1 ring-white/[0.06]"
+        onSubmit={submit}
+      >
+        <label className="text-sm font-medium text-white" htmlFor="ship-input">
+          What did you ship?
+        </label>
+        <div className="flex flex-col gap-2 md:flex-row">
+          <input
+            className="h-10 w-full rounded-lg bg-white/[0.03] px-3 text-sm text-white ring-1 ring-white/[0.08] outline-none placeholder:text-neutral-600 focus:ring-white/20"
+            disabled={busy}
+            id="ship-input"
+            maxLength={4_000}
+            onChange={(event) => setValue(event.target.value)}
+            placeholder="We just shipped recurring invoices. Market it."
+            value={value}
+          />
+          <Button className="h-10 rounded-lg" disabled={busy || !value.trim()} type="submit">
+            {busy ? <LoaderCircle aria-hidden className="animate-spin" /> : null}
+            Draft a campaign
+          </Button>
+        </div>
+        {error ? (
+          <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </form>
+      <CampaignCopilot
+        aiEnabled={aiEnabled}
+        conversationId={conversationId}
+        onOpenChange={setOpen}
+        open={open}
+      />
+    </>
+  )
+}
+
+/**
+ * "Ask Shots" on a campaign's pages: opens the panel on the campaign's latest
+ * conversation, or a new one about it.
+ */
+export function AskShotsButton({
+  aiEnabled,
+  campaignId,
+}: {
+  aiEnabled: boolean
+  campaignId: string
+}) {
+  const client = useTRPCClient()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+
+  async function openPanel() {
+    setError(null)
+    if (conversationId) return setOpen(true)
+    setBusy(true)
+    try {
+      const { conversations } = await client.conversation.list.query({ campaignId })
+      const id =
+        conversations[0]?.id ??
+        (await client.conversation.create.mutate({ campaignId })).conversation.id
+      setConversationId(id)
+      setOpen(true)
+    } catch (failure) {
+      setError(errorMessage(failure))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <Button
+        className="rounded-lg"
+        disabled={busy}
+        onClick={() => void openPanel()}
+        size="sm"
+        title={error ?? undefined}
+        type="button"
+        variant="outline"
+      >
+        {busy ? <LoaderCircle aria-hidden className="animate-spin" /> : null}
+        Ask Shots
+      </Button>
+      {error ? (
+        <span className="text-xs text-red-300" role="alert">
+          {error}
+        </span>
+      ) : null}
+      <CampaignCopilot
+        aiEnabled={aiEnabled}
+        conversationId={conversationId}
+        onOpenChange={setOpen}
+        open={open}
+      />
+    </>
+  )
+}

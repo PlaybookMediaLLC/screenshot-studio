@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import type { BackendAuditEvent } from 'screenshot-studio-backend-sdk'
+import type { BackendAuditEvent, BackendLaunchRunStepInput } from 'screenshot-studio-backend-sdk'
 import { z } from 'zod'
 import {
   createToolRun,
@@ -12,12 +12,18 @@ import {
 } from '@/lib/ai/tools/executor'
 import type { OrganizationRole } from '@/lib/auth/permissions'
 
-/** A run whose audit events land in `events`. */
+/** A run whose audit events land in `events` and trace steps in `steps`. */
 function fakeRun(
   role: OrganizationRole,
-  options: { audit?: () => Promise<unknown>; launchRunId?: string; signal?: AbortSignal } = {}
+  options: {
+    audit?: () => Promise<unknown>
+    launchRunId?: string
+    recordStep?: () => Promise<unknown>
+    signal?: AbortSignal
+  } = {}
 ) {
   const events: BackendAuditEvent[] = []
+  const steps: BackendLaunchRunStepInput[] = []
   const run = createToolRun({
     access: {
       organizationId: 'org_1',
@@ -31,9 +37,14 @@ function fakeRun(
         events.push(event)
       }),
     launchRunId: options.launchRunId,
+    recordStep:
+      options.recordStep ??
+      (async (step) => {
+        steps.push(step)
+      }),
     signal: options.signal,
   })
-  return { events, run }
+  return { events, run, steps }
 }
 
 function spec(
@@ -220,6 +231,112 @@ test('a failing audit write never fails the tool', async () => {
     const { run } = fakeRun('creator', { audit: () => Promise.reject(new Error('down')) })
     assert.deepEqual(await call(run, spec(), { value: 3 }), { ok: true, value: 3 })
     await flushToolRun(run)
+  } finally {
+    console.error = errors
+  }
+})
+
+test('every call, refused or not, appends one tool step with the next index', async () => {
+  const { run, steps } = fakeRun('creator', { launchRunId: 'run_42' })
+  const capped = spec({ maxCallsPerRun: 1 })
+  await call(run, capped, { value: 1 })
+  await call(run, capped, { value: 2 })
+  await call(run, spec({ effect: 'external', name: 'fetch', permission: 'release:approve' }), {
+    value: 3,
+  })
+  await flushToolRun(run)
+  assert.deepEqual(
+    steps.map((step) => ({ ...step, durationMs: 0 })),
+    [
+      {
+        durationMs: 0,
+        effect: 'write',
+        errorCode: null,
+        index: 0,
+        inputSummary: { value: 1 },
+        kind: 'tool',
+        outputSummary: { ok: true, value: 1 },
+        status: 'SUCCEEDED',
+        toolName: 'echo',
+      },
+      {
+        durationMs: 0,
+        effect: 'write',
+        errorCode: 'call_limit',
+        index: 1,
+        inputSummary: { value: 2 },
+        kind: 'tool',
+        outputSummary: { code: 'CALL_LIMIT', error: 'At most 1 echo calls per run.', ok: false },
+        status: 'FAILED',
+        toolName: 'echo',
+      },
+      {
+        durationMs: 0,
+        effect: 'external',
+        errorCode: 'denied',
+        index: 2,
+        inputSummary: { value: 3 },
+        kind: 'tool',
+        outputSummary: {
+          code: 'DENIED',
+          error: 'This run is not allowed to call fetch.',
+          ok: false,
+        },
+        status: 'DENIED',
+        toolName: 'fetch',
+      },
+    ]
+  )
+  assert.equal(run.stepIndex, 3)
+})
+
+test('step summaries redact credentials, omit binary, and stay small', async () => {
+  const { run, steps } = fakeRun('creator')
+  const image = 'A'.repeat(40_000)
+  const noisy = spec({
+    execute: () =>
+      ({
+        nested: { deep: true },
+        ok: true,
+        previewJpegBase64: image,
+        rendered: new Uint8Array(8),
+        urls: ['https://a.example', 'https://b.example'],
+      }) as unknown as { ok: true; value: number },
+  })
+  await call(run, noisy, {
+    accessToken: 'secret-token',
+    logo: `data:image/png;base64,${image}`,
+    note: 'word '.repeat(1_000),
+    value: 1,
+  })
+  await flushToolRun(run)
+  const [step] = steps
+  assert.deepEqual(step!.inputSummary, {
+    accessToken: '[REDACTED]',
+    logo: `[${image.length + 22} characters omitted]`,
+    note: `${'word '.repeat(40)}…`,
+    value: 1,
+  })
+  assert.deepEqual(step!.outputSummary, {
+    nested: '[object]',
+    ok: true,
+    previewJpegBase64: '[40000 characters omitted]',
+    rendered: '[binary omitted]',
+    urls: '[2 items]',
+  })
+  const json = JSON.stringify(step)
+  assert.ok(!json.includes('AAAA') && !json.includes('secret-token'))
+  assert.ok(Buffer.byteLength(json) < 16 << 10)
+})
+
+test('a failing step write never fails the tool', async () => {
+  const errors = console.error
+  console.error = () => undefined
+  try {
+    const { run } = fakeRun('creator', { recordStep: () => Promise.reject(new Error('down')) })
+    assert.deepEqual(await call(run, spec(), { value: 3 }), { ok: true, value: 3 })
+    await flushToolRun(run)
+    assert.equal(run.pending.size, 0)
   } finally {
     console.error = errors
   }

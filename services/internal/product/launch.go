@@ -1252,13 +1252,16 @@ type FinishLaunchRunInput struct {
 }
 
 // StartLaunchRun records a background AI run. One run of each kind per
-// campaign at a time, except revisions.
+// campaign at a time, except revisions. It needs the workspace's AI switch on.
 func (c *Configuration) StartLaunchRun(ctx context.Context, actor Actor, campaignID, kind string) (*LaunchRunRecord, error) {
 	if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
 		return nil, err
 	}
 	if !slices.Contains(launchRunKinds, kind) {
 		return nil, ErrInvalidInput
+	}
+	if err := c.RequireAIAgent(ctx, actor); err != nil {
+		return nil, err
 	}
 	return c.startLaunchRun(ctx, actor, &campaignID, kind)
 }
@@ -1308,7 +1311,7 @@ func (c *Configuration) startLaunchRun(ctx context.Context, actor Actor, campaig
 }
 
 func (c *Configuration) FinishLaunchRun(ctx context.Context, actor Actor, id string, input FinishLaunchRunInput) error {
-	if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
+	if _, err := c.authorizeLaunchRun(ctx, actor, id); err != nil {
 		return err
 	}
 	// CANCELLED is set only by CancelLaunchRun.
@@ -1340,7 +1343,7 @@ func (c *Configuration) FinishLaunchRun(ctx context.Context, actor Actor, id str
 // HeartbeatLaunchRun records that a run's worker is alive and reports whether
 // the run is still RUNNING. A worker stops when it is not.
 func (c *Configuration) HeartbeatLaunchRun(ctx context.Context, actor Actor, id string) (bool, error) {
-	if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
+	if _, err := c.authorizeLaunchRun(ctx, actor, id); err != nil {
 		return false, err
 	}
 	count, err := c.client.LaunchRun.Update().Where(launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID),
@@ -1359,7 +1362,7 @@ func (c *Configuration) HeartbeatLaunchRun(ctx context.Context, actor Actor, id 
 // pipeline run ends FAILED with "Cancelled.", which is what the web released
 // with SDK 0.1.13 renders.
 func (c *Configuration) CancelLaunchRun(ctx context.Context, actor Actor, id string) (bool, error) {
-	if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
+	if _, err := c.authorizeLaunchRun(ctx, actor, id); err != nil {
 		return false, err
 	}
 	now := time.Now().UTC()

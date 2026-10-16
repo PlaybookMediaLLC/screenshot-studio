@@ -84,6 +84,10 @@ func TestAgentRunsAndConversations(t *testing.T) {
 	}
 	_, err = repo.StartAgentRun(ctx, owner, StartAgentRunInput{Kind: "agent"})
 	expect(err, publishing.ErrForbidden, "agent run while AI is off")
+	_, err = repo.StartAgentRun(ctx, viewer, StartAgentRunInput{Kind: "conversation"})
+	expect(err, publishing.ErrForbidden, "conversation run while AI is off")
+	_, err = repo.StartLaunchRun(ctx, owner, campaignID, "spec")
+	expect(err, publishing.ErrForbidden, "pipeline run while AI is off")
 	if _, err := repo.UpdateWorkspace(ctx, owner, UpdateWorkspaceInput{AIAgentEnabled: &on, Name: org, Slug: org}); err != nil || audited("product.workspace_ai_agent_enabled") != 1 {
 		t.Fatalf("re-enable err=%v", err)
 	}
@@ -191,6 +195,43 @@ func TestAgentRunsAndConversations(t *testing.T) {
 	}
 	if listed, err := repo.ListConversations(ctx, foreign, ListConversationsInput{}); err != nil || len(listed) != 0 {
 		t.Fatalf("foreign listed=%+v err=%v", listed, err)
+	}
+
+	// Viewers converse: a member runs their own conversation turn end to end;
+	// another person's run, or another author's conversation, stays closed.
+	viewerTurn, err := repo.StartAgentRun(ctx, viewer, StartAgentRunInput{Kind: "conversation"})
+	if err != nil {
+		t.Fatalf("viewer conversation run err=%v", err)
+	}
+	if _, err := repo.AppendConversationMessage(ctx, viewer, conversation.ID, AppendConversationMessageInput{Role: "assistant", Kind: "text",
+		Content: "Here is a draft.", LaunchRunID: &viewerTurn.ID}); err != nil {
+		t.Fatalf("viewer assistant message on own run: %v", err)
+	}
+	if _, err := repo.AppendLaunchRunStep(ctx, viewer, viewerTurn.ID, LaunchRunStepInput{Index: 0, Kind: "tool", ToolName: &toolName, Status: "DENIED"}); err != nil {
+		t.Fatalf("viewer step on own run: %v", err)
+	}
+	if running, err := repo.HeartbeatLaunchRun(ctx, viewer, viewerTurn.ID); err != nil || !running {
+		t.Fatalf("viewer heartbeat running=%v err=%v", running, err)
+	}
+	_, err = repo.AppendConversationMessage(ctx, viewer, conversation.ID, AppendConversationMessageInput{Role: "assistant", Kind: "text",
+		Content: "x", LaunchRunID: &turn.ID})
+	expect(err, publishing.ErrForbidden, "viewer citing another person's run")
+	_, err = repo.AppendConversationMessage(ctx, viewer2, conversation.ID, AppendConversationMessageInput{Role: "tool", Kind: "tool",
+		Content: "x", LaunchRunID: &viewerTurn.ID})
+	expect(err, publishing.ErrForbidden, "viewer citing a run they did not start")
+	viewer2Turn, err := repo.StartAgentRun(ctx, viewer2, StartAgentRunInput{Kind: "conversation"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = repo.AppendConversationMessage(ctx, viewer2, conversation.ID, AppendConversationMessageInput{Role: "assistant", Kind: "clarification",
+		Content: "x", LaunchRunID: &viewer2Turn.ID})
+	expect(err, publishing.ErrForbidden, "viewer recording into another author's conversation")
+	expect(repo.FinishLaunchRun(ctx, viewer2, viewerTurn.ID, FinishLaunchRunInput{Status: "SUCCEEDED"}), publishing.ErrForbidden, "viewer finishing another's run")
+	if err := repo.FinishLaunchRun(ctx, viewer, viewerTurn.ID, FinishLaunchRunInput{Status: "SUCCEEDED"}); err != nil {
+		t.Fatalf("viewer finish own run: %v", err)
+	}
+	if cancelled, err := repo.CancelLaunchRun(ctx, viewer2, viewer2Turn.ID); err != nil || !cancelled {
+		t.Fatalf("viewer cancel own run=%v err=%v", cancelled, err)
 	}
 
 	// The author or an admin renames, links, and archives.

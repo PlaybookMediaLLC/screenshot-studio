@@ -4,6 +4,7 @@ import { type FormEvent, useState } from 'react'
 import { Group, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from './settings-client'
@@ -18,6 +19,7 @@ type WorkspaceGeneralSettingsProps = {
     name: string
     slug: string
     workspaceSettings?: {
+      aiAgentEnabled: boolean
       defaultPublishTime: string
       description: string | null
       locale: string
@@ -44,6 +46,7 @@ export function WorkspaceGeneralSettings({
     setIsSaving(true)
     try {
       await trpcClient.workspace.update.mutate({
+        aiAgentEnabled: data.aiAgentEnabled === 'on',
         defaultPublishTime: String(data.defaultPublishTime ?? ''),
         description: String(data.description ?? '').trim() || null,
         locale: String(data.locale ?? ''),
@@ -162,6 +165,22 @@ export function WorkspaceGeneralSettings({
                 name="defaultPublishTime"
                 required
                 type="time"
+              />
+            </Row>
+          </Group>
+        </Section>
+
+        <Section title="AI">
+          <Group>
+            <Row
+              description="When off, no AI runs start in this workspace."
+              label={label('workspace-ai-agent', 'Let AI draft campaigns')}
+            >
+              <Checkbox
+                defaultChecked={organization.workspaceSettings?.aiAgentEnabled ?? true}
+                disabled={!canManage}
+                id="workspace-ai-agent"
+                name="aiAgentEnabled"
               />
             </Row>
           </Group>

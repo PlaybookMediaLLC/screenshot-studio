@@ -569,6 +569,118 @@ function scriptApproval(text: string, names: string[], calls: ToolCall[]): ToolC
   return postIds.length > 0 ? [{ input: { postIds }, toolName: 'requestApproval' }] : null
 }
 
+// ---------------------------------------------------------- conversation --
+
+/** The user messages of the prompt, oldest first. */
+function userTexts(options: LanguageModelV4CallOptions): string[] {
+  return options.prompt.flatMap((message) =>
+    message.role === 'user'
+      ? (message.content as unknown as Array<Record<string, unknown>>)
+          .filter((part) => part.type === 'text' && typeof part.text === 'string')
+          .map((part) => String(part.text))
+      : []
+  )
+}
+
+const SHIPPED =
+  /\b(?:shipped|launched|released|added|built)\s+(?:a |an |the |our )?(.+?)(?:[.!?]|$)/i
+
+type ScriptedSurface = { name: string; reason?: string; slug: string }
+type ScriptedResult = {
+  assetCount?: number
+  error?: string
+  name?: string
+  ok?: boolean
+  postCount?: number
+  surface?: string
+  surfaces?: ScriptedSurface[]
+}
+
+/**
+ * The campaign agent's script (RFC 017): read the product, brand, and the
+ * pages that match the shipped feature; ask once when several match (and the
+ * question tool is offered), otherwise create the campaign on the one match
+ * or the homepage, draft it, and report with the assumptions stated. "Approve"
+ * gets a refusal and no tool calls.
+ */
+function scriptConversation(
+  options: LanguageModelV4CallOptions,
+  names: string[],
+  calls: ToolCall[],
+  results: ToolResult[]
+): LanguageModelV4Content[] {
+  const users = userTexts(options)
+  const last = users.at(-1) ?? ''
+  const called = (name: string) => calls.some((call) => call.toolName === name)
+  const output = (name: string) =>
+    results.findLast((result) => result.toolName === name)?.output as ScriptedResult | undefined
+  if (/\bapprove\b/i.test(last)) {
+    return [
+      {
+        text: 'I cannot approve posts. A person approves them on the campaign’s Copy page.',
+        type: 'text',
+      },
+    ]
+  }
+  const shipped = users.findLast((text) => SHIPPED.test(text)) ?? last
+  const feature = clip(shipped.match(SHIPPED)?.[1]?.trim() || firstSentence(shipped), 120)
+  if (!called('listProductSurfaces')) {
+    return toolCalls([
+      { input: {}, toolName: 'getProduct' },
+      { input: {}, toolName: 'getBrand' },
+      { input: { feature, limit: 5 }, toolName: 'listProductSurfaces' },
+    ])
+  }
+  const matches = (output('listProductSurfaces')?.surfaces ?? []).filter(
+    (surface) => surface.reason !== 'fallback'
+  )
+  if (!called('createCampaign')) {
+    if (matches.length > 1 && names.includes('askClarification')) {
+      return toolCalls([
+        {
+          input: {
+            options: matches.slice(0, 6).map((surface) => surface.name),
+            question: `Which page shows ${feature}?`,
+          },
+          toolName: 'askClarification',
+        },
+      ])
+    }
+    const chosen =
+      matches.find((surface) => last.toLowerCase().includes(surface.name.toLowerCase())) ??
+      matches[0]
+    return toolCalls([
+      {
+        input: {
+          benefit: clip(`${feature} is now available.`, 200),
+          feature,
+          ...(chosen ? { surfaceSlug: chosen.slug } : {}),
+        },
+        toolName: 'createCampaign',
+      },
+    ])
+  }
+  const created = output('createCampaign')
+  if (created?.ok && !called('generateCampaign')) {
+    return toolCalls([{ input: {}, toolName: 'generateCampaign' }])
+  }
+  const generated = output('generateCampaign')
+  const page = matches.length
+    ? `I used your ${created?.surface ?? matches[0]!.name} page${matches.length > 1 ? ', which I assumed is the one you meant' : ''}.`
+    : 'No page matched, so I assumed your homepage shows it.'
+  const lines = created?.ok
+    ? [
+        created.name ? `I created the campaign “${created.name}”.` : 'I worked on this campaign.',
+        page,
+        generated?.ok
+          ? `I drafted ${generated.postCount ?? 0} posts and ${generated.assetCount ?? 0} visuals.`
+          : `I could not draft the posts: ${generated?.error ?? 'the step failed'} You can retry that step.`,
+        'I assumed the workspace’s default channels.',
+      ]
+    : [`I could not create the campaign: ${created?.error ?? 'the step failed'}`]
+  return [{ text: lines.join(' '), type: 'text' }]
+}
+
 /** Three link preview copy options that pass the length checks, built from the page's title. */
 function scriptLinkCopy(text: string) {
   const name = (text.match(/^- title: (.+)$/m)?.[1] ?? 'This page').replace(/\s+/g, ' ').trim()
@@ -783,6 +895,9 @@ export function createScriptedModel(modelId: string): LanguageModelV4 {
         return respond([
           { text: 'Captured the product and made the planned product shots.', type: 'text' },
         ])
+      }
+      if (names.includes('createCampaign')) {
+        return respond(scriptConversation(options, names, calls, results))
       }
       if (names.includes('requestApproval')) {
         const next = scriptApproval(text, names, calls)

@@ -18,8 +18,9 @@ import (
 
 // Conversations (docs/rfcs/017-conversational-campaign-creation.md) are
 // visible to the whole workspace. Any member reads them, starts one, and
-// sends plain user messages; recording agent output (assistant, tool, or
-// clarification messages) needs a role that can start agent runs. Renaming,
+// sends plain user messages. Recording agent output (assistant, tool, or
+// clarification messages) needs a role that can start agent runs, or the
+// conversation's author citing a conversation run they started. Renaming,
 // linking, and archiving is for the author or an owner or admin. Another
 // workspace's conversation is not found.
 
@@ -219,12 +220,21 @@ func (c *Configuration) GetConversation(ctx context.Context, actor Actor, id str
 // AppendConversationMessage adds a message to an active conversation.
 func (c *Configuration) AppendConversationMessage(ctx context.Context, actor Actor, id string, input AppendConversationMessageInput) (*ConversationMessageRecord, error) {
 	role, kind := conversationmessage.Role(input.Role), conversationmessage.Kind(input.Kind)
+	// asStarter: the caller may record agent output only as the cited run's starter.
+	asStarter := false
 	if role == conversationmessage.RoleUser && kind == conversationmessage.KindText {
 		if err := c.AuthorizeRead(ctx, actor); err != nil {
 			return nil, err
 		}
-	} else if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
-		return nil, err
+	} else if input.LaunchRunID == nil {
+		if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
+			return nil, err
+		}
+	} else {
+		var err error
+		if asStarter, err = c.authorizeLaunchRun(ctx, actor, *input.LaunchRunID); err != nil {
+			return nil, err
+		}
 	}
 	if conversationmessage.RoleValidator(role) != nil || conversationmessage.KindValidator(kind) != nil ||
 		strings.TrimSpace(input.Content) == "" || utf8.RuneCountInString(input.Content) > conversationContentMax ||
@@ -249,6 +259,9 @@ func (c *Configuration) AppendConversationMessage(ctx context.Context, actor Act
 	}
 	if parent.Status == conversation.StatusARCHIVED {
 		return nil, errConversationArchived
+	}
+	if asStarter && (parent.CreatedByUserID == nil || *parent.CreatedByUserID != actor.UserID) {
+		return nil, forbidden("Only the conversation's author records its agent output.")
 	}
 	if input.LaunchRunID != nil {
 		exists, err := tx.LaunchRun.Query().Where(launchrun.ID(*input.LaunchRunID), launchrun.OrganizationID(actor.OrganizationID)).Exist(ctx)

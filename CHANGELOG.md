@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.23.0...v2.0.0) (2026-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* webhook and maintenance callers must send X-Shots-* headers instead of X-Screenshot-Studio-*.
+
+### Features
+
+* rebrand as Shots, require a paid plan, and rewrite the site ([#118](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/118)) ([eff29fb](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/eff29fbe2f9cf487cee97a83ff44cbbe5a30c964))
+
 ## [1.23.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.22.0...v1.23.0) (2026-10-16)
 
 

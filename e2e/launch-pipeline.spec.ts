@@ -203,7 +203,14 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
     await expect(page.getByText(/sent for review$/)).toBeVisible()
     await page.getByRole('button', { name: /^Approve all \d+$/ }).click()
     await expect(page.getByText(/posts? approved$/)).toBeVisible()
-    await expect(page.getByText(/^Approved by /).first()).toBeVisible()
+    // Every channel tab stays mounted; check the one on screen.
+    await expect(
+      page
+        .getByRole('tabpanel')
+        .filter({ visible: true })
+        .getByText(/^Approved by /)
+        .first()
+    ).toBeVisible()
 
     // Production made product shots (no renderer in e2e), so the approvable
     // design is one rendered from the A1 shot.

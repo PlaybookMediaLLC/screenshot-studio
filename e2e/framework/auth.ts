@@ -4,6 +4,7 @@ import type { E2EIdentity } from './flow'
 import { browserJson } from './browser'
 import { grantWorkspacePlan } from './services'
 import { getTotpCode } from './totp'
+import { SETTINGS_SECTIONS, settingsHref } from '../../components/workspace/settings-sections'
 
 const sessionSchema = z.object({
   session: z.object({ activeOrganizationId: z.string().nullable() }),
@@ -154,10 +155,10 @@ export async function enableTwoFactor(page: Page, password: string): Promise<Two
 }
 
 export async function openWorkspaceSetting(page: Page, name: string): Promise<void> {
-  await page.goto('/workspace', { timeout: 45_000, waitUntil: 'load' })
-  await page
-    .getByRole('navigation', { name: 'Workspace settings' })
-    .getByRole('link', { exact: true, name })
-    .click()
+  // The sidebar is an icon rail whose settings open in a flyout, so go to the
+  // section's own route rather than clicking through the menu.
+  const section = SETTINGS_SECTIONS.find((candidate) => candidate.title === name)
+  if (!section) throw new Error(`No workspace settings section is titled ${name}.`)
+  await page.goto(settingsHref(section), { timeout: 45_000, waitUntil: 'load' })
   await expect(page.getByRole('heading', { exact: true, level: 2, name })).toBeVisible()
 }

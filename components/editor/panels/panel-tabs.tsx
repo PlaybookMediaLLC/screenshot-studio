@@ -24,6 +24,7 @@ import {
   TextSection,
   TransformsGallery,
 } from '../sections'
+import { RedactSection } from '../redaction/RedactSection'
 import { FrameSection } from './FrameSection'
 import { SelectionInspector } from './SelectionInspector'
 import { PerspectiveSliders, TransformControls } from './transform-motion-controls'
@@ -53,9 +54,10 @@ export const COMPOSE_TABS: readonly PanelTabDefinition<ComposeTab>[] = [
         <ElementsSection />
         <ImageOverlaySection />
         <AnnotateSection />
+        <RedactSection />
       </div>
     ),
-    hint: 'Templates, text, elements, stickers, and markup',
+    hint: 'Templates, text, elements, stickers, markup, and redaction',
     icon: <PaintBoardIcon size={14} />,
     id: 'design',
     label: 'Design',

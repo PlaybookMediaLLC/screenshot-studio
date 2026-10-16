@@ -60,6 +60,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacecreditgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacegithubinstallation"
@@ -172,6 +173,7 @@ func checkColumn(t, c string) error {
 			sourcechange.Table:                   sourcechange.ValidColumn,
 			supportaccessgrant.Table:             supportaccessgrant.ValidColumn,
 			user.Table:                           user.ValidColumn,
+			workspacecreditgrant.Table:           workspacecreditgrant.ValidColumn,
 			workspacedeletion.Table:              workspacedeletion.ValidColumn,
 			workspaceentitlement.Table:           workspaceentitlement.ValidColumn,
 			workspacegithubinstallation.Table:    workspacegithubinstallation.ValidColumn,

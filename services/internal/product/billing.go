@@ -49,13 +49,13 @@ type WorkspaceEntitlementRecord struct {
 	Version          int            `json:"version"`
 }
 
-// entitlementConflict tells the provider which version to retry against.
-type entitlementConflict struct{ current int }
+// EntitlementConflictError tells the provider which version to retry against.
+type EntitlementConflictError struct{ Current int }
 
-func (e entitlementConflict) Error() string {
-	return fmt.Sprintf("Entitlement version conflict. Current version is %d.", e.current)
+func (e EntitlementConflictError) Error() string {
+	return fmt.Sprintf("Entitlement version conflict. Current version is %d.", e.Current)
 }
-func (e entitlementConflict) Unwrap() error { return publishing.ErrConflict }
+func (e EntitlementConflictError) Unwrap() error { return publishing.ErrConflict }
 
 func validEntitlementSync(input EntitlementSyncInput) bool {
 	bounded := func(value *string) bool { return value == nil || len(*value) <= 255 }
@@ -127,7 +127,7 @@ func (c *Configuration) syncWorkspaceEntitlement(ctx context.Context, input Enti
 		currentVersion = current.Version
 	}
 	if currentVersion != input.ExpectedVersion {
-		return nil, entitlementConflict{current: currentVersion}
+		return nil, EntitlementConflictError{Current: currentVersion}
 	}
 	version := currentVersion + 1
 	overrides := make(map[string]any, len(input.FeatureOverrides))
@@ -166,7 +166,7 @@ func (c *Configuration) syncWorkspaceEntitlement(ctx context.Context, input Enti
 			return nil, err
 		}
 		if updated != 1 {
-			return nil, entitlementConflict{current: currentVersion}
+			return nil, EntitlementConflictError{Current: currentVersion}
 		}
 	} else if err := tx.WorkspaceEntitlement.Create().SetID(input.OrganizationID).
 		SetPlan(input.Plan).SetStatus(input.Status).SetFeatureOverrides(overrides).

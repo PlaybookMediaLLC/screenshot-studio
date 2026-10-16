@@ -16,6 +16,7 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/quota"
 	"github.com/google/uuid"
 	"github.com/lucsky/cuid"
 )
@@ -38,6 +39,19 @@ type recordingQuotaCounter struct{ count int }
 func (q *recordingQuotaCounter) Increment(_ context.Context, _ string, amount int, _ time.Duration) (int, error) {
 	q.count += amount
 	return q.count, nil
+}
+
+// recordingMonthlyMeter mirrors quota.MonthlyMeter's semantics in memory:
+// it records overruns and reports Reached once usage is over the limit.
+type recordingMonthlyMeter struct{ used map[string]int64 }
+
+func (m *recordingMonthlyMeter) Meter(_ context.Context, key string, amount, limit int64) (quota.MonthlyUsage, error) {
+	if m.used == nil {
+		m.used = map[string]int64{}
+	}
+	m.used[key] += amount
+	used := m.used[key]
+	return quota.MonthlyUsage{Used: min(used, limit), Remaining: max(limit-used, 0), Reached: used > limit}, nil
 }
 
 func (o *recordingAssetObjects) SignUpload(_ context.Context, key, _ string) (string, error) {
@@ -116,12 +130,68 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if err != nil || decision.Allowed || decision.CurrentPlan != "free" || decision.RequiredPlan != "pro" {
 		t.Fatalf("feature decision=%+v err=%v", decision, err)
 	}
-	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, "generation:monthly", 1); err != nil || remaining != 249 {
-		t.Fatalf("monthly quota remaining=%d err=%v", remaining, err)
+	meter := &recordingMonthlyMeter{}
+	repo.WithMonthlyMeter(meter)
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 0); err != nil || remaining != 250 {
+		t.Fatalf("AI credit peek remaining=%d err=%v", remaining, err)
 	}
-	quotaCounter.count = 249
-	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, "generation:monthly", 2); !errors.Is(err, ErrQuotaExceeded) {
-		t.Fatalf("monthly quota overrun accepted: %v", err)
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 40); err != nil || remaining != 210 {
+		t.Fatalf("AI credits remaining=%d err=%v", remaining, err)
+	}
+	// Web images older than the credit meter still meter AI credits.
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, "generation:monthly", 10); err != nil || remaining != 200 {
+		t.Fatalf("legacy generation quota remaining=%d err=%v", remaining, err)
+	}
+	var exceeded *QuotaExceededError
+	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 201); !errors.As(err, &exceeded) ||
+		exceeded.Quota != QuotaAICredits || exceeded.Limit != 250 || !exceeded.ResetAt.Equal(nextMonthStart(time.Now())) {
+		t.Fatalf("AI credit overrun accepted: %v", err)
+	}
+	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 0); !errors.Is(err, ErrQuotaExceeded) {
+		t.Fatalf("exhausted AI credits read as available: %v", err)
+	}
+	// Purchased packs pay for usage past the allowance, once per provider reference.
+	pack := CreditGrantInput{Credits: 500, OrganizationID: orgID, Provider: "stripe", Reference: "cs_" + id}
+	if result, err := repo.GrantWorkspaceCredits(ctx, pack); err != nil || result.Replayed || result.Balance != 500 {
+		t.Fatalf("credit grant=%+v err=%v", result, err)
+	}
+	if result, err := repo.GrantWorkspaceCredits(ctx, pack); err != nil || !result.Replayed || result.Balance != 500 {
+		t.Fatalf("replayed credit grant=%+v err=%v", result, err)
+	}
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 0); err != nil || remaining != 500 {
+		t.Fatalf("AI credits with a pack remaining=%d err=%v", remaining, err)
+	}
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 30); err != nil || remaining != 470 {
+		t.Fatalf("AI credits drawn from a pack remaining=%d err=%v", remaining, err)
+	}
+	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 471); !errors.Is(err, ErrQuotaExceeded) {
+		t.Fatalf("a call past the pack err=%v", err)
+	}
+	if balance, err := repo.creditBalance(ctx, orgID); err != nil || balance != 0 {
+		t.Fatalf("pack balance after overrun=%d err=%v", balance, err)
+	}
+	if _, err := repo.GrantWorkspaceCredits(ctx, CreditGrantInput{Credits: 500, OrganizationID: "missing_" + id, Provider: "stripe", Reference: "cs_missing_" + id}); !errors.Is(err, publishing.ErrNotFound) {
+		t.Fatalf("grant to a missing workspace err=%v", err)
+	}
+	if _, err := repo.GrantWorkspaceCredits(ctx, CreditGrantInput{OrganizationID: orgID, Provider: "stripe", Reference: "cs_empty_" + id}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("empty grant err=%v", err)
+	}
+	refund, err := repo.ChargeMonthlyQuota(ctx, orgID, QuotaPosts, 4)
+	if err != nil {
+		t.Fatalf("post charge: %v", err)
+	}
+	refund()
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaPosts, 0); err != nil || remaining != 10 {
+		t.Fatalf("refunded posts remaining=%d err=%v", remaining, err)
+	}
+	if _, err := repo.ChargeMonthlyQuota(ctx, orgID, QuotaPosts, 11); !errors.Is(err, ErrQuotaExceeded) {
+		t.Fatalf("post overrun accepted: %v", err)
+	}
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaPosts, 0); err != nil || remaining != 10 {
+		t.Fatalf("a refused post charge used the allowance: remaining=%d err=%v", remaining, err)
+	}
+	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, "unknown:monthly", 1); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("unknown quota accepted: %v", err)
 	}
 	if err := repo.AuthorizeSession(ctx, actor); err != nil {
 		t.Fatalf("session rejected: %v", err)

@@ -9,7 +9,10 @@ test-destination canaries as described in
 
 Production is `screenshot-studio-production` in DigitalOcean's `nyc` region,
 app ID `c525b0ba-b92a-4174-ae91-4ab4d7c92fd2`, at
-<https://shots.oppulence.io>. The local `doctl` context is `solomonai-cluster`.
+<https://shots.playbookmedia.io>. The retired `shots.oppulence.io` stays on the
+app as an alias: its pages redirect, and its API routes still answer for
+webhooks configured with the old host. The local `doctl` context is
+`solomonai-cluster`.
 
 | Component | Source | Readiness | Exposure |
 | --- | --- | --- | --- |
@@ -106,11 +109,34 @@ replaces `web-migrate` with `platform-migrate`. Generated specs contain
 plaintext secrets and must never enter git or logs. Delete local exported
 secrets when finished.
 
-For a web release, dispatch the `Web image` GitHub workflow on `main` with
-`deploy=true`. It builds the web image on GitHub, refreshes encrypted web
-credentials from Infisical, removes any web database URL, and updates web to
-the commit SHA tag. It refuses an app that still has `web-migrate`: deploy the
-backend first. App Platform does not deploy uncommitted files.
+## Releases
+
+Every push to `main` deploys what it changed:
+
+1. `Social backend image` runs when the commit changes the backend. It
+   records the database restore point in the run summary
+   (`infra/digitalocean/backup-database.sh`), then deploys the backend, whose
+   `platform-migrate` job applies pending migrations first.
+2. `Web image` runs when the commit changes the web. If the same commit also
+   changed the backend, it waits for that backend deploy to succeed. It then
+   builds the image, refreshes encrypted web credentials and any `STRIPE_*`
+   keys from Infisical, and updates web to the commit SHA tag. It refuses an
+   app that still has `web-migrate`.
+
+A deploy for a commit that `main` has already moved past is skipped; the
+newer commit's run deploys. To redeploy without a new commit, dispatch either
+workflow on `main` with `deploy=true`. App Platform does not deploy
+uncommitted files.
+
+PlanetScale Postgres backs up production every 12 hours and supports
+point-in-time recovery to any moment from the oldest backup (2 days by
+default) up to 5 minutes ago. To undo a bad migration, restore the recorded
+timestamp to a new branch (Backups > Restore to new branch) and point the
+database URLs at it. If Infisical holds `PLANETSCALE_SERVICE_TOKEN_ID`,
+`PLANETSCALE_SERVICE_TOKEN` (`read_backups`, `write_backups`),
+`PLANETSCALE_ORGANIZATION`, and `PLANETSCALE_DATABASE` (optionally
+`PLANETSCALE_BRANCH`, default `main`), the deploy also takes an on-demand
+backup kept 14 days, and stops if it fails.
 
 ## Migrations and database permissions
 
@@ -130,8 +156,9 @@ Asset bytes stay in private R2, signed by the backend; there is no separate
 storage service or database. The [storage guide](tenant-storage.md) covers the
 bucket settings and CORS.
 
-Before applying pending migrations, take a database backup and review their
-compatibility with the previous app. The 2026-10-13 deployment applied the
+The backend deploy records a restore point before applying migrations.
+Review each migration's compatibility with the previous app before merging
+it. The 2026-10-13 deployment applied the
 eight existing migrations from `20260820090000_workspace_administration`
 through `20261008120000_launch_intelligence`. The private backup and migration
 record are in `.context/digitalocean/` for this workspace. Database rollback is

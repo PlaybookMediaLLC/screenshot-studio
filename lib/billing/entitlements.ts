@@ -28,3 +28,13 @@ export async function syncWorkspaceEntitlement(
 ): Promise<{ replayed: boolean; version: number }> {
   return serviceBackend().syncWorkspaceEntitlement(input)
 }
+
+/** Adds a paid AI credit pack once per provider reference; a replay grants nothing. */
+export async function grantWorkspaceCredits(input: {
+  credits: number
+  organizationId: string
+  provider: string
+  reference: string
+}): Promise<{ balance: number; replayed: boolean }> {
+  return serviceBackend().grantWorkspaceCredits(input)
+}

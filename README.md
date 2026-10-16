@@ -316,6 +316,7 @@ Temporal runs publishing and maintenance in the Go backend. See
 | [GitHub OAuth](https://github.com/settings/developers)                      | GitHub sign-in and release intake                            | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`            |
 | [Microsoft Entra ID](https://entra.microsoft.com)                           | Microsoft SSO for enterprise tenants                         | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`      |
 | Billing provider or support automation                                      | Signed workspace plan and entitlement synchronization        | `BILLING_ENTITLEMENT_WEBHOOK_SECRET`                  |
+| [Stripe](https://stripe.com) ([dashboard](https://dashboard.stripe.com))   | Self-serve Checkout, billing portal, and extra-launch credit packs; events at `/api/webhooks/stripe` sync the plan and grant credits | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_{PRO,BUSINESS}_{MONTHLY,ANNUAL}`, `STRIPE_PRICE_EXTRA_LAUNCH` |
 
 Runtime credentials live in Fly secrets (`fly secrets set`), never in the repo or
 in GitHub secrets. GitHub holds only the deploy token and the build-time

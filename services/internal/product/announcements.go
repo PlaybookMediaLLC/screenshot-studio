@@ -226,6 +226,18 @@ func (c *Configuration) ScheduleAnnouncement(ctx context.Context, actor Actor, i
 	if found, err := existing(); err == nil || !ent.IsNotFound(err) {
 		return found, err
 	}
+	// Each subscriber reached is one email against the plan's monthly
+	// allowance; a failed or raced insert gives the emails back.
+	refund, err := c.ChargeMonthlyQuota(ctx, org, QuotaEmails, reach)
+	if err != nil {
+		return nil, err
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			refund()
+		}
+	}()
 	scheduledFor := time.Now()
 	if input.ScheduledFor != nil {
 		scheduledFor = *input.ScheduledFor
@@ -258,6 +270,7 @@ func (c *Configuration) ScheduleAnnouncement(ctx context.Context, actor Actor, i
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+	committed = true
 	return &AnnouncementSchedule{Announcement: announcement(row), Created: true}, nil
 }
 

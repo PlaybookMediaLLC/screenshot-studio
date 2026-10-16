@@ -585,6 +585,18 @@ func (f UserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMutation", m)
 }
 
+// The WorkspaceCreditGrantFunc type is an adapter to allow the use of ordinary
+// function as WorkspaceCreditGrant mutator.
+type WorkspaceCreditGrantFunc func(context.Context, *ent.WorkspaceCreditGrantMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WorkspaceCreditGrantFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.WorkspaceCreditGrantMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WorkspaceCreditGrantMutation", m)
+}
+
 // The WorkspaceDeletionFunc type is an adapter to allow the use of ordinary
 // function as WorkspaceDeletion mutator.
 type WorkspaceDeletionFunc func(context.Context, *ent.WorkspaceDeletionMutation) (ent.Value, error)

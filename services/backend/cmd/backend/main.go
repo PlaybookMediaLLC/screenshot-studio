@@ -79,6 +79,12 @@ func main() {
 		}
 		defer counter.Close()
 		configuration.WithQuotaCounter(counter)
+		meter, err := counter.MonthlyMeter()
+		if err != nil {
+			slog.Error("monthly quota meter unavailable", "error", err)
+			os.Exit(1)
+		}
+		configuration.WithMonthlyMeter(meter)
 	}
 
 	server := &http.Server{

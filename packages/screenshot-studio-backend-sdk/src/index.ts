@@ -666,6 +666,15 @@ export type GitHubInstallationRecord = {
   suspended: boolean
 }
 
+/** A paid AI credit pack the web facade verified with the billing provider. */
+export type BackendCreditGrant = {
+  credits: number
+  organizationId: string
+  provider: string
+  /** The provider's id for the purchase; a repeated reference grants nothing. */
+  reference: string
+}
+
 /** A billing provider event whose HMAC the web facade already verified. */
 export type BackendEntitlementSync = {
   eventId: string
@@ -1627,6 +1636,14 @@ export class ScreenshotStudioBackendSDK {
   async syncWorkspaceEntitlement(input: BackendEntitlementSync) {
     return this.request<{ replayed: boolean; version: number }>(
       'v1/internal/billing/entitlements',
+      { body: input, method: 'POST' }
+    )
+  }
+
+  /** Facade-only: adds a paid AI credit pack once per provider reference. */
+  async grantWorkspaceCredits(input: BackendCreditGrant) {
+    return this.request<{ balance: number; replayed: boolean }>(
+      'v1/internal/billing/credit-grants',
       { body: input, method: 'POST' }
     )
   }

@@ -48,15 +48,15 @@ export async function requireWorkspaceFeature(
 
 /**
  * Metered quotas count in the backend's shared counter and fail closed when
- * it is unavailable.
+ * it is unavailable. Returns what is left; an amount of 0 only reads it.
  */
 export async function consumeWorkspaceQuota(
   context: TenantContext,
   quota: WorkspaceQuota,
   amount = 1
-): Promise<void> {
+): Promise<number> {
   try {
-    await backendSDK(context).consumeWorkspaceQuota(quota, amount)
+    return (await backendSDK(context).consumeWorkspaceQuota(quota, amount)).remaining
   } catch (error) {
     if (error instanceof BackendSDKError && error.status === 429) {
       const { limit, resetAt } = error.details

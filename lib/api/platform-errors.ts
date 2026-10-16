@@ -118,6 +118,7 @@ export const statusErrorNameSchema = z.enum([
   'AnnouncementError',
   'AuthorizationError',
   'BackendSDKError',
+  'BillingError',
   'CampaignError',
   'CreativeWorkflowError',
   'DesignError',

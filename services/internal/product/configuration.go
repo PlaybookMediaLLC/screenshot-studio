@@ -52,6 +52,7 @@ type Configuration struct {
 	invitations InvitationMailer
 	objects     AssetObjectStore
 	quota       QuotaCounter
+	meter       MonthlyMeter
 	github      GitHubApp
 	capture     Capturer
 	// imageHost admits the hosts screenshots may be downloaded from; GitHub's by default.

@@ -97,9 +97,10 @@ export async function produceCampaign(tenant: TenantContext, campaignId: string)
     .join('\n\n')
 
   // The copy works from the spec and plan, not the visuals, so both run at once.
+  // The visuals agent drafts on Sonnet: its long tool loop is most of a launch's cost.
   const [visualsRun, copyRun] = await Promise.allSettled([
     generateText({
-      model: models.languageModel('deep'),
+      model: models.languageModel('drafting'),
       prompt,
       stopWhen: stepCountIs(designMode ? budget.steps : Math.ceil(budget.steps / 2)),
       system: designMode ? VISUALS_INSTRUCTIONS : VISUALS_FALLBACK_INSTRUCTIONS,
@@ -122,7 +123,7 @@ export async function produceCampaign(tenant: TenantContext, campaignId: string)
       assetCount: record.assets.length,
       designMode,
       inputUsage: usage.inputTokens,
-      modelId: models.modelId('deep'),
+      modelId: models.modelId('drafting'),
       outputUsage: usage.outputTokens,
       planVersion: plan.version,
       postCount: copy.postCount,

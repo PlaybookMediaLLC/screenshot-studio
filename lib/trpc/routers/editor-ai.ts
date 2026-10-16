@@ -4,9 +4,9 @@ import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { isCampaignStudioConfigured } from '@/lib/ai/agents/campaign-studio'
 import { critiqueDesign, exploreDesignDirections } from '@/lib/ai/agents/editor-assist'
+import { withAiCredits } from '@/lib/ai/metering'
 import { designDocumentSchema } from '@/lib/design/document'
 import { isDesignRendererReady } from '@/lib/design/renderer'
-import { consumeWorkspaceQuota } from '@/lib/tenant/entitlements'
 import { router } from '../init'
 import { organizationProcedure } from '../procedures'
 
@@ -34,8 +34,11 @@ export const editorAiRouter = router({
     .input(z.object({ document: designDocumentSchema, snapshot: snapshotSchema }))
     .mutation(async ({ ctx, input }) => {
       await requireConfigured()
-      await consumeWorkspaceQuota(ctx.access, 'generation:monthly')
-      return { suggestions: await critiqueDesign(input.document, input.snapshot) }
+      return {
+        suggestions: await withAiCredits(ctx.access, () =>
+          critiqueDesign(input.document, input.snapshot)
+        ),
+      }
     }),
   explore: organizationProcedure('artifact:edit')
     .input(
@@ -53,10 +56,11 @@ export const editorAiRouter = router({
           message: 'Save the image to the workspace first.',
         })
       }
-      await consumeWorkspaceQuota(ctx.access, 'generation:monthly')
-      return exploreDesignDirections(ctx.access, input.document, {
-        count: input.count,
-        direction: input.direction,
-      })
+      return withAiCredits(ctx.access, () =>
+        exploreDesignDirections(ctx.access, input.document, {
+          count: input.count,
+          direction: input.direction,
+        })
+      )
     }),
 })

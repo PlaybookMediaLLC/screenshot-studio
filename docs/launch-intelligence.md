@@ -149,8 +149,10 @@ posts from an earlier plan so a replan never mixes silently with older work.
 
 - Tenant isolation: every query is scoped by organization; tools are built per
   run around one tenant and campaign, and capture only registered URLs.
-- Quotas and limits: each AI action consumes one `generation:monthly` unit and
-  is rate-limited per workspace (`LAUNCH_AI_RATE_LIMIT`).
+- Quotas and limits: every model call is charged `ai:credits:monthly` for what
+  it costs (one credit is $0.01 at list price; `lib/ai/metering`), an action
+  with no credits left is refused before it starts, and AI actions are
+  rate-limited per workspace (`LAUNCH_AI_RATE_LIMIT`).
 - Audit: spec, plan, production, and revision actions write audit events with
   model id and usage.
 - Untrusted input: sources are sanitized, flagged, and fenced; stages that read

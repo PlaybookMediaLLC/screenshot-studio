@@ -55,6 +55,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacecreditgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacegithubinstallation"
@@ -664,6 +665,12 @@ func init() {
 	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
 	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
+	workspacecreditgrantFields := schema.WorkspaceCreditGrant{}.Fields()
+	_ = workspacecreditgrantFields
+	// workspacecreditgrantDescCreatedAt is the schema descriptor for created_at field.
+	workspacecreditgrantDescCreatedAt := workspacecreditgrantFields[6].Descriptor()
+	// workspacecreditgrant.DefaultCreatedAt holds the default value on creation for the created_at field.
+	workspacecreditgrant.DefaultCreatedAt = workspacecreditgrantDescCreatedAt.Default.(func() time.Time)
 	workspacedeletionFields := schema.WorkspaceDeletion{}.Fields()
 	_ = workspacedeletionFields
 	// workspacedeletionDescCreatedAt is the schema descriptor for created_at field.

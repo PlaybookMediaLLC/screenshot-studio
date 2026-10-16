@@ -26,6 +26,7 @@ export {
 export {
   createModelMiddleware,
   MAX_OUTPUT_TOKENS,
+  type ModelCallMeter,
   type ModelLogger,
   type ModelMiddlewareOptions,
   normalizeTokenUsage,

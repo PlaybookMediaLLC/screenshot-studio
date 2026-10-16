@@ -114,6 +114,9 @@ func (f *fakeConfiguration) StoreGeneratedAsset(context.Context, product.Actor, 
 func (f *fakeConfiguration) ConsumeWorkspaceQuota(context.Context, product.Actor, string, int) (int, error) {
 	return 29, nil
 }
+func (f *fakeConfiguration) ChargeMonthlyQuota(context.Context, string, string, int) (func(), error) {
+	return func() {}, nil
+}
 func (f *fakeConfiguration) ListReleases(context.Context, product.Actor, int) ([]product.ReleaseListItem, error) {
 	return []product.ReleaseListItem{}, nil
 }

@@ -1491,6 +1491,34 @@ var (
 			},
 		},
 	}
+	// WorkspaceCreditGrantColumns holds the columns for the "workspace_credit_grant" table.
+	WorkspaceCreditGrantColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "provider", Type: field.TypeString},
+		{Name: "reference", Type: field.TypeString},
+		{Name: "credits", Type: field.TypeInt},
+		{Name: "remaining", Type: field.TypeInt},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// WorkspaceCreditGrantTable holds the schema information for the "workspace_credit_grant" table.
+	WorkspaceCreditGrantTable = &schema.Table{
+		Name:       "workspace_credit_grant",
+		Columns:    WorkspaceCreditGrantColumns,
+		PrimaryKey: []*schema.Column{WorkspaceCreditGrantColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "workspacecreditgrant_provider_reference",
+				Unique:  true,
+				Columns: []*schema.Column{WorkspaceCreditGrantColumns[2], WorkspaceCreditGrantColumns[3]},
+			},
+			{
+				Name:    "workspacecreditgrant_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{WorkspaceCreditGrantColumns[1], WorkspaceCreditGrantColumns[6]},
+			},
+		},
+	}
 	// WorkspaceDeletionColumns holds the columns for the "workspace_deletion" table.
 	WorkspaceDeletionColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1627,6 +1655,7 @@ var (
 		SourceChangeTable,
 		SupportAccessGrantTable,
 		UserTable,
+		WorkspaceCreditGrantTable,
 		WorkspaceDeletionTable,
 		WorkspaceEntitlementTable,
 		WorkspaceGithubInstallationTable,
@@ -1782,6 +1811,9 @@ func init() {
 	}
 	UserTable.Annotation = &entsql.Annotation{
 		Table: "user",
+	}
+	WorkspaceCreditGrantTable.Annotation = &entsql.Annotation{
+		Table: "workspace_credit_grant",
 	}
 	WorkspaceDeletionTable.Annotation = &entsql.Annotation{
 		Table: "workspace_deletion",

@@ -150,6 +150,9 @@ type SupportAccessGrant func(*sql.Selector)
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
 
+// WorkspaceCreditGrant is the predicate function for workspacecreditgrant builders.
+type WorkspaceCreditGrant func(*sql.Selector)
+
 // WorkspaceDeletion is the predicate function for workspacedeletion builders.
 type WorkspaceDeletion func(*sql.Selector)
 

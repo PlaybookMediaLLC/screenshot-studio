@@ -12,11 +12,18 @@ on:
       - package.json
       - package-lock.json
       - next.config.ts
+      - proxy.ts
+      - instrumentation-client.ts
+      - hooks/**
+      - i18n/**
+      - messages/**
+      - types/**
       - .github/workflows/web-image.yml
+      - infra/digitalocean/update-web-image.py
   workflow_dispatch:
     inputs:
       deploy:
-        description: Deploy the web image (deploy the backend first; it owns migrations)
+        description: Redeploy this commit to production (pushes to main deploy automatically)
         type: boolean
         default: false
 
@@ -67,9 +74,38 @@ jobs:
           docker logout ghcr.io
           docker buildx imagetools inspect "ghcr.io/playbookmediallc/screenshot-studio@$IMAGE_DIGEST"
 
-  deploy:
+  # The backend owns migrations. When this commit also changed it, the web
+  # deploys only after the backend deploy of the same commit succeeds. This
+  # job holds no deploy lock, so the backend deploy is never blocked by it.
+  backend-first:
     needs: publish
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Wait for this commit's backend deploy
+        run: |
+          set -euo pipefail
+          while :; do
+            run="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow social-backend-image.yml \
+              --commit "$GITHUB_SHA" --event push --json status,conclusion \
+              --jq 'if length == 0 then "none" else "\(.[0].status) \(.[0].conclusion)" end')"
+            case "$run" in
+              none) echo "This commit did not change the backend."; exit 0 ;;
+              "completed success") echo "Backend deployed."; exit 0 ;;
+              completed*) echo "Backend run ended as: $run; not deploying web." >&2; exit 1 ;;
+            esac
+            sleep 30
+          done
+
+  # Every push to main deploys the web.
+  deploy:
+    needs: [publish, backend-first]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.deploy)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: production
@@ -105,7 +141,11 @@ jobs:
           set -euo pipefail
           umask 077
           test -n "$APP_ID"
-          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA"
+          head_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
+          if test "$head_sha" != "$GITHUB_SHA"; then
+            echo "Skipped: main is at $head_sha, whose own run deploys it." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           work="$(mktemp -d)"
           trap 'rm -rf "$work"' EXIT
           doctl apps get "$APP_ID" -o json > "$work/before.json"
@@ -117,5 +157,5 @@ jobs:
           doctl apps get "$APP_ID" -o json > "$work/after.json"
           test "$(jq -r '.[0].spec.services[] | select(.name == "web") | .image.tag' "$work/after.json")" = "web-$GITHUB_SHA"
           test "$(jq -r '.[0].active_deployment.phase // empty' "$work/after.json")" = ACTIVE
-          curl --fail --silent --show-error --retry 6 --retry-delay 5 https://shots.oppulence.io/api/health > /dev/null
+          curl --fail --silent --show-error --retry 6 --retry-delay 5 https://shots.playbookmedia.io/api/health > /dev/null
           echo "Web active: https://cloud.digitalocean.com/apps/$APP_ID" >> "$GITHUB_STEP_SUMMARY"

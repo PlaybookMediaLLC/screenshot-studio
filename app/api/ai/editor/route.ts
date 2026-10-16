@@ -1,12 +1,12 @@
 import { generateText, type ModelMessage, stepCountIs } from 'ai'
 import { isCampaignStudioConfigured } from '@/lib/ai/agents/campaign-studio'
+import { withAiCredits } from '@/lib/ai/metering'
 import { models } from '@/lib/ai/models'
 import { EDITOR_COPILOT_INSTRUCTIONS, scopeInstructions } from '@/lib/ai/prompts/editor-copilot'
 import { createEditorCopilotTools, editorClientToolNames } from '@/lib/ai/tools/editor-copilot'
 import { editorCopilotContract, editorMessageRoleSchema } from '@/lib/api/contracts/ai'
 import { errorResponse, route } from '@/lib/api/route'
 import { organizationAccess } from '@/lib/api/route-auth'
-import { consumeWorkspaceQuota } from '@/lib/tenant/entitlements'
 
 /** The model loop can run several tool steps; give it room on serverless hosts. */
 export const maxDuration = 120
@@ -57,7 +57,8 @@ function trimSnapshots(messages: ModelMessage[]): ModelMessage[] {
 async function runTurn(messages: ModelMessage[], selection: string | null) {
   const result = await generateText({
     messages: trimSnapshots(messages),
-    model: models.languageModel('deep'),
+    // Sonnet: each round trip re-sends the canvas snapshot and tool schemas.
+    model: models.languageModel('drafting'),
     stopWhen: stepCountIs(4),
     system: EDITOR_COPILOT_INSTRUCTIONS + scopeInstructions(selection),
     tools: createEditorCopilotTools(),
@@ -86,10 +87,6 @@ export const POST = route(editorCopilotContract, {
       (message) => message.role === editorMessageRoleSchema.enum.user
     )
     if (lastUser < 0) return errorResponse(400, 'A user message is required.')
-    // One unit of the generation quota per user request, not per tool round trip.
-    if (lastUser === messages.length - 1) {
-      await consumeWorkspaceQuota(access, 'generation:monthly')
-    }
     const stepsThisTurn = messages
       .slice(lastUser)
       .filter((message) => message.role === editorMessageRoleSchema.enum.assistant).length
@@ -101,6 +98,7 @@ export const POST = route(editorCopilotContract, {
         text: 'I stopped here to avoid going in circles. Tell me what to adjust next.',
       }
     }
-    return runTurn(messages, body.selection)
+    // Every round trip is charged AI credits for what its model calls cost.
+    return withAiCredits(access, () => runTurn(messages, body.selection))
   },
 })

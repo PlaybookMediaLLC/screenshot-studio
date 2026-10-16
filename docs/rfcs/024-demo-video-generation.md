@@ -276,7 +276,7 @@ solve that problem in the least reviewable place in the product.
 | Open in the editor  | `artifact:edit`    | not applicable |
 
 Video rendering is metered under the `creative:render` workspace feature that
-RFC 010 introduces, with a higher `generation:monthly` cost proportional to
+RFC 010 introduces, with a higher `ai:credits:monthly` cost proportional to
 frame count. Every referenced capture is verified to belong to the workspace
 before rendering starts.
 

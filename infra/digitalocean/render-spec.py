@@ -88,7 +88,9 @@ def render(base, secrets, *, branch="main"):
                          "SOURCE_WEBHOOK_SIGNING_KEY",
                          "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID",
                          "GITHUB_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET",
-                         "OPENROUTER_API_KEY"]
+                         "OPENROUTER_API_KEY", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]
+    stripe_price_keys = ["STRIPE_PRICE_PRO_MONTHLY", "STRIPE_PRICE_PRO_ANNUAL", "STRIPE_PRICE_BUSINESS_MONTHLY",
+                         "STRIPE_PRICE_BUSINESS_ANNUAL", "STRIPE_PRICE_EXTRA_LAUNCH"]
     merge_env(web, [secret(key) for key in web_keys] +
               [secret(key) for key in optional_web_keys if secrets.get(key)] + [
         env("BETTER_AUTH_URL", origin),
@@ -98,7 +100,7 @@ def render(base, secrets, *, branch="main"):
         env("PLATFORM_DESIGN_RENDERER", "enabled"),
         env("PLATFORM_RENDER_CDP_URL", required("PLATFORM_RENDER_CDP_URL")),
         env("PLATFORM_RENDER_BASE_URL", origin),
-    ] + [env(key, secrets[key]) for key in ["AUTH_EMAIL_FROM"] if secrets.get(key)])
+    ] + [env(key, secrets[key]) for key in ["AUTH_EMAIL_FROM", *stripe_price_keys] if secrets.get(key)])
     services.pop("storage", None)
 
     # Designs render in Cloudflare Browser Rendering over CDP.

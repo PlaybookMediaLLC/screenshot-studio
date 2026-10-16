@@ -7,6 +7,7 @@ import { documentedContracts } from '@/lib/api/contracts'
 import * as ai from '@/lib/api/contracts/ai'
 import * as assets from '@/lib/api/contracts/assets'
 import * as audit from '@/lib/api/contracts/audit'
+import * as billing from '@/lib/api/contracts/billing'
 import * as internal from '@/lib/api/contracts/internal'
 import * as releases from '@/lib/api/contracts/releases'
 import * as shell from '@/lib/api/contracts/shell'
@@ -18,7 +19,7 @@ import { openApiSpec } from '@/lib/api/openapi'
 const ROOT = process.cwd()
 
 const contracts = new Map<string, RouteContract>(
-  [ai, assets, audit, internal, releases, shell, sourceApps, unsubscribe, webhooks]
+  [ai, assets, audit, billing, internal, releases, shell, sourceApps, unsubscribe, webhooks]
     .flatMap((module) => Object.entries(module))
     .filter(([, value]) => routeContractSchema.safeParse(value).success)
     .map(([name, value]) => [name, value as RouteContract])

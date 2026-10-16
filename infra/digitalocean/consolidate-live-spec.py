@@ -26,6 +26,9 @@ SOCIAL_SECRET_SOURCES = {
     "INSTAGRAM_APP_ID": "POSTIZ_GO_INSTAGRAM_APP_ID",
     "INSTAGRAM_APP_SECRET": "POSTIZ_GO_INSTAGRAM_APP_SECRET",
 }
+# Set on the app directly rather than in Infisical (the GitHub App behind
+# release intake). Deploys keep their encrypted values as they are.
+LIVE_ONLY_SECRETS = ("TENANT_GITHUB_APP_CLIENT_SECRET", "TENANT_GITHUB_APP_PRIVATE_KEY")
 OPTIONAL_SOCIAL_SECRETS = (
     "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "X_API_KEY", "X_API_SECRET",
     "FACEBOOK_APP_ID", "FACEBOOK_APP_SECRET", "INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET",
@@ -103,9 +106,12 @@ def refresh_secrets(envs, secrets):
         if key in OPTIONAL_SOCIAL_SECRETS:
             continue
         source = key.removeprefix("TENANT_") if key.startswith("TENANT_") else SOCIAL_SECRET_SOURCES.get(key, key)
-        if not secrets.get(source):
+        if secrets.get(source):
+            item["value"] = secrets[source]
+        elif key in LIVE_ONLY_SECRETS and item.get("value"):
+            continue
+        else:
             raise ValueError(f"Missing Infisical secret: {source}")
-        item["value"] = secrets[source]
 
 
 def shared_database(backend, migration, secrets=None):

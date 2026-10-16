@@ -510,6 +510,27 @@ function scriptVisuals(text: string, results: ToolResult[], calls: ToolCall[]): 
   )
 }
 
+/** Three link preview copy options that pass the length checks, built from the page's title. */
+function scriptLinkCopy(text: string) {
+  const name = (text.match(/^- title: (.+)$/m)?.[1] ?? 'This page').replace(/\s+/g, ' ').trim()
+  const short = name.length > 40 ? `${name.slice(0, 39).trimEnd()}` : name
+  const angles = [
+    { angle: 'Main benefit', lead: 'what it does', pitch: 'what it does for you' },
+    { angle: 'Problem solved', lead: 'why it matters', pitch: 'the problem it solves' },
+    { angle: 'Who it is for', lead: 'who it is for', pitch: 'who it is built for' },
+  ]
+  return {
+    variants: angles.map(({ angle, lead, pitch }) => ({
+      angle,
+      description: clip(
+        `See ${pitch} on ${short}. A clear, factual summary of the page for social cards and search.`,
+        160
+      ),
+      title: clip(`${short}: ${lead}`.padEnd(30, '.'), 60),
+    })),
+  }
+}
+
 // ---------------------------------------------------------------- model --
 
 const usage = {
@@ -533,6 +554,7 @@ const SUBMIT_TOOLS = [
   'saveLaunchCopy',
   'proposeRevision',
   'submitCritique',
+  'submitLinkCopy',
 ] as const
 
 export function createScriptedModel(modelId: string): LanguageModelV4 {
@@ -555,7 +577,9 @@ export function createScriptedModel(modelId: string): LanguageModelV4 {
                 ? scriptCopy(text)
                 : submit === 'submitCritique'
                   ? { brand: 5, issues: [], legibility: 5, specFidelity: 5, verdict: 'pass' }
-                  : scriptRevision(text, toolProperties(options, 'proposeRevision'))
+                  : submit === 'submitLinkCopy'
+                    ? scriptLinkCopy(text)
+                    : scriptRevision(text, toolProperties(options, 'proposeRevision'))
         return respond(toolCalls([{ input, toolName: submit }]))
       }
       if (names.includes('captureProductPage')) {

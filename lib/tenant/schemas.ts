@@ -152,6 +152,8 @@ export const campaignPostScheduleSchema = z.object({
       message: 'Scheduled time must be in the future.',
     })
     .optional(),
+  /** Schedule even though a link in the post would preview badly. */
+  skipLinkCheck: z.boolean().default(false),
 })
 
 const releaseFields = {

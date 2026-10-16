@@ -17,6 +17,7 @@ import {
 } from '@/lib/tenant/campaign-status'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
+import { PostLinkCheck } from '@/components/link-preview/PostLinkCheck'
 
 export type CopyPost = {
   /** "G1 · Upgrade with one command", from the plan. */
@@ -265,6 +266,7 @@ function PostCard({ permissions, post }: { permissions: Permissions; post: CopyP
           <h3 className="text-base font-medium text-balance text-white">{post.title}</h3>
         ) : null}
         <p className="text-sm leading-6 whitespace-pre-wrap text-neutral-200">{post.copy}</p>
+        <PostLinkCheck text={post.copy} />
         {post.callToAction || limit ? (
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             {post.callToAction ? (

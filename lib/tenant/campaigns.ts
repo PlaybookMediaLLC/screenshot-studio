@@ -2,7 +2,10 @@ import 'server-only'
 
 import type { BackendCampaignStatus } from 'screenshot-studio-backend-sdk'
 import { backendSDK, orNull, withDates } from '@/lib/backend/sdk'
+import { linkPreviewAgentSchema } from '@/lib/api/contracts/link-preview'
 import type { OrganizationAccess, TenantContext } from '@/lib/auth/access'
+import { readLinkPreview } from '@/lib/link-preview/fetch'
+import { postLinkProblems } from '@/lib/link-preview/gate'
 import type { CampaignApprovalDecision } from './campaign-status'
 import type { CampaignCreateInput, CampaignPostScheduleInput } from './schemas'
 
@@ -57,13 +60,34 @@ export async function transitionCampaignPosts(
   return backendSDK(context).decideCampaignPosts(campaignId, { decision, note, postIds })
 }
 
-/** The backend creates the canonical scheduled post and starts its workflow. */
+/**
+ * The backend creates the canonical scheduled post and starts its workflow.
+ * First every link in the post is read the way platforms will read it; a
+ * link whose preview is broken stops the schedule unless the caller skips
+ * the check on purpose.
+ */
 export async function scheduleCampaignPost(
   context: TenantContext,
   campaignId: string,
   postId: string,
   input: CampaignPostScheduleInput
 ) {
+  if (!input.skipLinkCheck) {
+    const post = (await getCampaign(context, campaignId))?.posts.find(
+      (entry) => entry.id === postId
+    )
+    const problems = post
+      ? await postLinkProblems(post.copy, (url) =>
+          readLinkPreview(url, linkPreviewAgentSchema.enum.default)
+        )
+      : []
+    if (problems.length) {
+      throw new CampaignError(
+        `Not scheduled: a link in this post would preview badly. ${problems.join(' ')} Fix the page, or schedule again with the link check skipped.`,
+        409
+      )
+    }
+  }
   return withDates(
     await backendSDK(context).scheduleCampaignPost(campaignId, postId, {
       channelConnectionId: input.channelConnectionId,

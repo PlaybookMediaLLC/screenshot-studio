@@ -3,6 +3,7 @@
 import {
   Activity01Icon,
   Album02Icon,
+  Link01Icon,
   Megaphone01Icon,
   Menu01Icon,
   PaintBoardIcon,
@@ -33,6 +34,7 @@ const NAV_GROUPS: { items: NavItem[]; label?: string }[] = [
       { href: '/', icon: PaintBoardIcon, label: 'Editor' },
       { href: '/campaigns', icon: Megaphone01Icon, label: 'Campaigns' },
       { href: '/assets', icon: Album02Icon, label: 'Assets' },
+      { href: '/link-preview', icon: Link01Icon, label: 'Link preview' },
     ],
   },
   {

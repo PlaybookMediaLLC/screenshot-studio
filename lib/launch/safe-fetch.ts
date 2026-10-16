@@ -24,6 +24,9 @@ const TEXT_TYPES = [
   'text/markdown',
   'text/x-markdown',
   'application/json',
+  'application/json+oembed',
+  'application/xml',
+  'text/xml',
   'application/xhtml+xml',
   'application/vnd.github+json',
 ]
@@ -95,7 +98,16 @@ export type SafeFetchOptions = {
 }
 
 export type FetchedText =
-  | { body: string; contentType: string; ok: true; truncated: boolean; url: string }
+  | {
+      body: string
+      contentType: string
+      headers?: TransportResponse['headers']
+      /** Every response on the way, redirects first and the page last. */
+      hops?: Array<{ status: number; url: string }>
+      ok: true
+      truncated: boolean
+      url: string
+    }
   | { ok: false; reason: string; status: 'blocked' | 'failed' }
 
 const defaultResolver: Resolver = async (hostname) =>
@@ -178,11 +190,18 @@ async function checkHop(
   return addresses[0]!
 }
 
-export async function safeFetchText(
+type FetchFailure = Extract<FetchedText, { ok: false }>
+
+/** One response in a redirect chain. */
+export type Hop = { status: number; url: string }
+
+/** Follow checked redirects to the first non-redirect response; failures are already closed. */
+async function safeRequest(
   input: string,
-  options: SafeFetchOptions = {}
-): Promise<FetchedText> {
-  const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES
+  options: SafeFetchOptions,
+  /** Return 4xx and 5xx responses instead of failing on them. */
+  acceptErrors = false
+): Promise<{ hops: Hop[]; ok: true; response: TransportResponse; url: URL } | FetchFailure> {
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
   const transport = options.transport ?? nodeTransport
   let url: URL
@@ -191,6 +210,7 @@ export async function safeFetchText(
   } catch {
     return { ok: false, reason: 'The link is not a valid URL.', status: 'blocked' }
   }
+  const hops: Hop[] = []
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
     const checked = await checkHop(url, options)
     if ('reason' in checked) return { ok: false, reason: checked.reason, status: 'blocked' }
@@ -215,6 +235,7 @@ export async function safeFetchText(
         status: 'failed',
       }
     }
+    hops.push({ status: response.status, url: url.toString() })
     if (response.status >= 300 && response.status < 400) {
       const location = header(response.headers, 'location')
       response.destroy()
@@ -227,47 +248,149 @@ export async function safeFetchText(
       }
       continue
     }
-    if (response.status >= 400 || response.status === 0) {
+    if (response.status === 0 || (response.status >= 400 && !acceptErrors)) {
       response.destroy()
       return { ok: false, reason: `The source returned HTTP ${response.status}.`, status: 'failed' }
     }
-    const contentType = header(response.headers, 'content-type').split(';')[0]!.trim().toLowerCase()
-    if (contentType && !TEXT_TYPES.includes(contentType)) {
-      response.destroy()
-      return { ok: false, reason: `The source is ${contentType}, not text.`, status: 'failed' }
-    }
-    const chunks: Buffer[] = []
-    let size = 0
-    let truncated = false
-    try {
-      for await (const chunk of response.body) {
-        const buffer = typeof chunk === 'string' ? Buffer.from(chunk) : chunk
-        if (size + buffer.length > maxBytes) {
-          chunks.push(buffer.subarray(0, maxBytes - size))
-          truncated = true
-          response.destroy()
-          break
-        }
-        chunks.push(buffer)
-        size += buffer.length
-      }
-    } catch (error) {
-      if (!truncated) {
-        return {
-          ok: false,
-          reason:
-            error instanceof Error ? error.message.slice(0, 200) : 'The source could not be read.',
-          status: 'failed',
-        }
-      }
-    }
-    return {
-      body: Buffer.concat(chunks).toString('utf8'),
-      contentType: contentType || 'text/html',
-      ok: true,
-      truncated,
-      url: url.toString(),
-    }
+    return { hops, ok: true, response, url }
   }
   return { ok: false, reason: 'The link redirected too many times.', status: 'failed' }
+}
+
+async function readBody(
+  response: TransportResponse,
+  maxBytes: number
+): Promise<{ bytes: Buffer; ok: true; truncated: boolean } | FetchFailure> {
+  const chunks: Buffer[] = []
+  let size = 0
+  let truncated = false
+  try {
+    for await (const chunk of response.body) {
+      const buffer = typeof chunk === 'string' ? Buffer.from(chunk) : chunk
+      if (size + buffer.length > maxBytes) {
+        chunks.push(buffer.subarray(0, maxBytes - size))
+        truncated = true
+        response.destroy()
+        break
+      }
+      chunks.push(buffer)
+      size += buffer.length
+    }
+  } catch (error) {
+    if (!truncated) {
+      return {
+        ok: false,
+        reason:
+          error instanceof Error ? error.message.slice(0, 200) : 'The source could not be read.',
+        status: 'failed',
+      }
+    }
+  }
+  return { bytes: Buffer.concat(chunks), ok: true, truncated }
+}
+
+function contentTypeOf(response: TransportResponse): string {
+  return header(response.headers, 'content-type').split(';')[0]!.trim().toLowerCase()
+}
+
+export async function safeFetchText(
+  input: string,
+  options: SafeFetchOptions = {}
+): Promise<FetchedText> {
+  const requested = await safeRequest(input, options)
+  if (!requested.ok) return requested
+  const { hops, response, url } = requested
+  const contentType = contentTypeOf(response)
+  if (contentType && !TEXT_TYPES.includes(contentType)) {
+    response.destroy()
+    return { ok: false, reason: `The source is ${contentType}, not text.`, status: 'failed' }
+  }
+  const read = await readBody(response, options.maxBytes ?? DEFAULT_MAX_BYTES)
+  if (!read.ok) return read
+  return {
+    body: read.bytes.toString('utf8'),
+    contentType: contentType || 'text/html',
+    headers: response.headers,
+    hops,
+    ok: true,
+    truncated: read.truncated,
+    url: url.toString(),
+  }
+}
+
+/** A response body of any type, read under the same checks and cap as `safeFetchText`. */
+export type FetchedBytes =
+  { bytes: Buffer; contentType: string; ok: true; truncated: boolean; url: string } | FetchFailure
+
+/** Fetch a body of any content type, such as an image, under the same checks. */
+export async function safeFetchBytes(
+  input: string,
+  options: SafeFetchOptions = {}
+): Promise<FetchedBytes> {
+  const requested = await safeRequest(input, options)
+  if (!requested.ok) return requested
+  const read = await readBody(requested.response, options.maxBytes ?? DEFAULT_MAX_BYTES)
+  if (!read.ok) return read
+  return {
+    bytes: read.bytes,
+    contentType: contentTypeOf(requested.response),
+    ok: true,
+    truncated: read.truncated,
+    url: requested.url.toString(),
+  }
+}
+
+/** Whether a link answers 2xx, under the same checks as `safeFetchText`. The body is never read. */
+export async function safeProbe(input: string, options: SafeFetchOptions = {}): Promise<boolean> {
+  const requested = await safeRequest(input, options)
+  if (requested.ok) requested.response.destroy()
+  return requested.ok
+}
+
+/** Where a link ends up, with its status, whatever the status is. The body is never read. */
+export async function safeResolve(
+  input: string,
+  options: SafeFetchOptions = {}
+): Promise<{ hops: Hop[]; ok: true; status: number; url: string } | FetchFailure> {
+  const requested = await safeRequest(input, options, true)
+  if (!requested.ok) return requested
+  requested.response.destroy()
+  return {
+    hops: requested.hops,
+    ok: true,
+    status: requested.response.status,
+    url: requested.url.toString(),
+  }
+}
+
+/**
+ * A page as a crawler receives it, error statuses included: status, headers,
+ * and the start of the body, so a block or bot challenge can be recognized.
+ */
+export async function safeFetchPage(
+  input: string,
+  options: SafeFetchOptions = {}
+): Promise<
+  | {
+      body: string
+      headers: TransportResponse['headers']
+      hops: Hop[]
+      ok: true
+      status: number
+      url: string
+    }
+  | FetchFailure
+> {
+  const requested = await safeRequest(input, options, true)
+  if (!requested.ok) return requested
+  const read = await readBody(requested.response, options.maxBytes ?? DEFAULT_MAX_BYTES)
+  if (!read.ok) return read
+  return {
+    body: read.bytes.toString('utf8'),
+    headers: requested.response.headers,
+    hops: requested.hops,
+    ok: true,
+    status: requested.response.status,
+    url: requested.url.toString(),
+  }
 }

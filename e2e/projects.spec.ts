@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import type { Page, Route } from '@playwright/test'
 import { getE2EUrl, signUpAndCreateWorkspace } from './framework/auth'
 import { configureE2EFlow, expect, test } from './framework/flow'
 import { trpcMutation, trpcQuery } from './framework/trpc'
@@ -69,15 +69,18 @@ test('a project autosaves, reopens after a reload, and restores a named version'
 test('unsaved changes survive a reload before autosave runs', async ({ identity, page }) => {
   await signUpAndCreateWorkspace(identity, page)
   await saveAsProject(page, 'Interrupted')
-  // Go offline so autosave cannot reach the server, then reload once the
-  // editor's local draft has the edit.
-  await page.context().setOffline(true)
+  // Saves cannot reach the server (the leave-page save included), so the edit
+  // exists only in this device's draft when the page reloads.
+  const blockSaves = (route: Route) => route.abort('internetdisconnected')
+  await page.route('**/api/trpc/**project.updateDocument**', blockSaves)
   await addText(page)
   await expect(projectButton(page, 'Interrupted', 'Offline, saved on this device')).toBeVisible({
     timeout: 30_000,
   })
-  await page.context().setOffline(false)
+  // Let the draft autosave (1 s) write the edit before reloading.
+  await page.waitForTimeout(2_000)
   await page.reload()
+  await page.unroute('**/api/trpc/**project.updateDocument**', blockSaves)
   await expect(page.getByText('Recovered your unsaved changes')).toBeVisible({ timeout: 60_000 })
   await expect(texts(page)).toHaveCount(1)
   await expect(projectButton(page, 'Interrupted')).toBeVisible({ timeout: 30_000 })

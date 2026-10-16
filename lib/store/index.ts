@@ -7,6 +7,7 @@ import type { TextAlign, TextFill, TextFit, TextRole } from '@/lib/typography/te
 import { createElementsSlice, type ElementsSlice } from './elements-slice'
 import { createMotionSlice, type MotionSlice } from './motion-slice'
 import { emptyMotion } from '@/lib/animation/motion-schema'
+import { motionEnd } from '@/lib/animation/motion-evaluate'
 import { shallow } from 'zustand/shallow'
 import { temporal } from 'zundo'
 import { GradientKey } from '@/lib/constants/gradient-colors'
@@ -1754,10 +1755,14 @@ export const useImageStore = create<ImageState>()(
       },
 
       clearAnimationClips: () => {
-        set({
+        set((state) => ({
           animationClips: [],
-          timeline: { ...DEFAULT_TIMELINE_STATE },
-        })
+          // Keyframes, reveals, scrolls, and captions stay, so the timeline still holds them.
+          timeline: {
+            ...DEFAULT_TIMELINE_STATE,
+            duration: Math.max(DEFAULT_TIMELINE_STATE.duration, Math.ceil(motionEnd(state.motion))),
+          },
+        }))
       },
 
       // Annotations (custom SVG)

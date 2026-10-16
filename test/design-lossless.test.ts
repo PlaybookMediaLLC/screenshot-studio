@@ -89,6 +89,10 @@ function richEditor() {
       name: 'Acme',
       version: 3,
     },
+    copy: {
+      altText: 'A dashboard screenshot with the headline “Ship faster”.',
+      captions: { linkedin: 'Ship faster with the new dashboard.', x: 'Ship faster.' },
+    },
     pattern: {
       blur: 0,
       color: '#ffffff',

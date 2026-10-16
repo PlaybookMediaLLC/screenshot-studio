@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { brandBindingSchema } from '@/lib/brand/binding'
+import { designCopySchema } from '@/lib/captions/channels'
 import { canvasElementSchema } from '@/lib/editor/elements/schema'
 import { isGoogleFontId } from '@/lib/typography/google-fonts'
 import { textAlignSchema, textFillSchema, textFitSchema, textRoleSchema } from '@/lib/typography/text-style'
@@ -398,6 +399,8 @@ export const designDocumentSchema = z.object({
   timeline: timelineSchema.optional(),
   /** The brand kit the design follows, and what it set. */
   brand: brandBindingSchema.optional(),
+  /** Alt text and social captions written for the design. */
+  copy: designCopySchema.optional(),
   /** Several screenshots shown one after another. */
   slides: z
     .object({

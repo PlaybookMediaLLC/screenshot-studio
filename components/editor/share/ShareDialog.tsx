@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { CHANNELS, shareChannelSchema } from '@/lib/link-preview/share'
 import { useProjectSession } from '@/lib/projects/session'
+import { useImageStore } from '@/lib/store'
 import {
   embedSnippets,
   SHARE_ACCESS_LABELS,
@@ -93,7 +94,11 @@ export function ShareDialog({
 
   React.useEffect(() => {
     if (!open) return
+    // Captions and alt text written in the AI panel fill the link's text.
+    const copy = useImageStore.getState().copy
     setTitle(project.name || defaultTitle || 'Untitled design')
+    setDescription(copy?.captions.linkedin ?? Object.values(copy?.captions ?? {})[0] ?? '')
+    setAltText(copy?.altText ?? '')
     setLink(null)
     setError(null)
   }, [defaultTitle, open, project.name])

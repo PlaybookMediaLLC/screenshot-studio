@@ -106,6 +106,7 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
   }
   if (changes.pattern) image.setPattern(changes.pattern)
   if (changes.brand) image.setBrand(changes.brand)
+  if (changes.copy) image.setCopy(changes.copy)
 
   const imageChanges = changes.image ?? {}
   const { frame, shadow } = imageChanges

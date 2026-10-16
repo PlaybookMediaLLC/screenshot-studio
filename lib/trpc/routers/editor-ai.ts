@@ -3,63 +3,132 @@ import 'server-only'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { isCampaignStudioConfigured } from '@/lib/ai/agents/campaign-studio'
-import { critiqueDesign, exploreDesignDirections } from '@/lib/ai/agents/editor-assist'
+import { type BrandVoice, writeCopy } from '@/lib/ai/agents/captions'
+import { critiqueDesign, proposeVariants } from '@/lib/ai/agents/editor-assist'
+import { BackgroundGenerationError, generateBackground } from '@/lib/ai/images/background'
+import { backgroundRequestSchema } from '@/lib/ai/images/background-request'
 import { withAiCredits } from '@/lib/ai/metering'
+import { variantCountSchema } from '@/lib/ai/variants'
+import { backendSDK } from '@/lib/backend/sdk'
+import { captionChannelSchema } from '@/lib/captions/channels'
 import { designDocumentSchema } from '@/lib/design/document'
-import { isDesignRendererReady } from '@/lib/design/renderer'
+import { getBrandProfile } from '@/lib/tenant/configuration'
 import { router } from '../init'
 import { organizationProcedure } from '../procedures'
 
 /** Up to ~2 MB of base64 JPEG: a snapshot, never a full export. */
 const snapshotSchema = z.string().max(2_800_000).nullable()
 
-async function requireConfigured(needsRenderer = false) {
-  if (!isCampaignStudioConfigured() || (needsRenderer && !(await isDesignRendererReady()))) {
+function requireConfigured() {
+  if (!isCampaignStudioConfigured()) {
     throw new TRPCError({
       code: 'SERVICE_UNAVAILABLE',
-      message: needsRenderer
-        ? 'Rendering variations is unavailable right now. Try again in a minute.'
-        : 'AI is not configured for this environment.',
+      message: 'AI is not configured for this environment.',
     })
+  }
+}
+
+/** The workspace's brand voice; members who cannot read the profile write without it. */
+async function brandVoice(
+  access: Parameters<typeof getBrandProfile>[0]
+): Promise<BrandVoice | null> {
+  try {
+    const profile = await getBrandProfile(access)
+    if (!profile) return null
+    const terms = z.array(z.string()).catch([]).parse(profile.prohibitedTerms)
+    return {
+      audience: profile.audience,
+      ctaConventions: profile.ctaConventions,
+      productDescription: profile.productDescription,
+      prohibitedTerms: terms,
+      tone: profile.tone,
+    }
+  } catch {
+    return null
   }
 }
 
 export const editorAiRouter = router({
   /** Which in-editor AI features this environment and workspace can use. */
-  status: organizationProcedure('artifact:read').query(async () => ({
-    copilot: isCampaignStudioConfigured(),
-    directions: isCampaignStudioConfigured() && (await isDesignRendererReady()),
-  })),
+  status: organizationProcedure('artifact:read').query(() => {
+    const configured = isCampaignStudioConfigured()
+    return {
+      backgrounds: configured,
+      captions: configured,
+      copilot: configured,
+      variants: configured,
+    }
+  }),
   critique: organizationProcedure('artifact:edit')
     .input(z.object({ document: designDocumentSchema, snapshot: snapshotSchema }))
     .mutation(async ({ ctx, input }) => {
-      await requireConfigured()
+      requireConfigured()
       return {
         suggestions: await withAiCredits(ctx.access, () =>
           critiqueDesign(input.document, input.snapshot)
         ),
       }
     }),
-  explore: organizationProcedure('artifact:edit')
+  /** Complete, distinct versions of the design, as changes the browser applies to its own copy. */
+  variants: organizationProcedure('artifact:edit')
     .input(
       z.object({
-        count: z.number().int().min(2).max(6).default(4),
-        direction: z.string().trim().max(300).optional(),
+        count: variantCountSchema.default(4),
         document: designDocumentSchema,
+        instruction: z.string().trim().max(300).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      await requireConfigured(true)
-      if (!input.document.image.src?.startsWith('asset:')) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Save the image to the workspace first.',
-        })
+      requireConfigured()
+      return {
+        variants: await withAiCredits(ctx.access, () =>
+          proposeVariants(input.document, { count: input.count, instruction: input.instruction })
+        ),
       }
+    }),
+  /** Draw a background from a description and palette, stored as a workspace image. */
+  generateBackground: organizationProcedure('artifact:edit')
+    .input(backgroundRequestSchema)
+    .mutation(async ({ ctx, input }) => {
+      requireConfigured()
+      try {
+        const image = await withAiCredits(ctx.access, () => generateBackground(input))
+        const asset = await backendSDK(ctx.access).storeGeneratedAsset({
+          body: image.body,
+          classification: 'derived',
+          contentType: 'image/webp',
+          fileName: 'ai-background.webp',
+          height: image.height,
+          width: image.width,
+        })
+        return { assetId: asset.id, height: image.height, width: image.width }
+      } catch (error) {
+        if (error instanceof BackgroundGenerationError) {
+          throw new TRPCError({ cause: error, code: 'BAD_REQUEST', message: error.message })
+        }
+        throw error
+      }
+    }),
+  /** Alt text and platform-aware captions for the design, from a snapshot and its text. */
+  captions: organizationProcedure('artifact:edit')
+    .input(
+      z.object({
+        channels: z.array(captionChannelSchema).min(1).max(6),
+        document: designDocumentSchema,
+        notes: z.string().trim().max(1000).optional(),
+        snapshot: z.string().min(1).max(2_800_000),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      requireConfigured()
+      const brand = await brandVoice(ctx.access)
       return withAiCredits(ctx.access, () =>
-        exploreDesignDirections(ctx.access, input.document, {
-          count: input.count,
-          direction: input.direction,
+        writeCopy({
+          brand,
+          channels: input.channels,
+          document: input.document,
+          notes: input.notes,
+          snapshotJpegBase64: input.snapshot,
         })
       )
     }),

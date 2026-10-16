@@ -5,6 +5,7 @@ import { resetPlayback, usePlaybackStore } from './playback'
 import { NEUTRAL_IMAGE_FILTERS } from '@/lib/editor/image-adjustments'
 import type { TextAlign, TextFill, TextFit, TextRole } from '@/lib/typography/text-style'
 import type { BrandBinding } from '@/lib/brand/binding'
+import type { DesignCopy } from '@/lib/captions/channels'
 import { createElementsSlice, type ElementsSlice } from './elements-slice'
 import { shallow } from 'zustand/shallow'
 import { temporal } from 'zundo'
@@ -290,6 +291,8 @@ export interface ImageState extends ElementsSlice {
   pattern: BackgroundPattern
   /** The brand kit the design follows, and what it set (see lib/brand/apply.ts). */
   brand: BrandBinding | null
+  /** Alt text and captions written for the design (see lib/captions). */
+  copy: DesignCopy | null
   exportSettings: {
     quality: '1x' | '2x' | '3x'
     format: 'png' | 'jpeg' | 'webp'
@@ -350,6 +353,7 @@ export interface ImageState extends ElementsSlice {
   setCanvasPadding: (padding: number) => void
   setPattern: (pattern: Partial<BackgroundPattern>) => void
   setBrand: (brand: BrandBinding | null) => void
+  setCopy: (copy: DesignCopy | null) => void
   resetCanvasSettings: () => void
   setExportSettings: (settings: Partial<ImageState['exportSettings']>) => void
   // Slideshow
@@ -532,6 +536,7 @@ export const useImageStore = create<ImageState>()(
       canvasPadding: DEFAULT_CANVAS_PADDING,
       pattern: { ...DEFAULT_BACKGROUND_PATTERN },
       brand: null,
+      copy: null,
       exportSettings: {
         quality: '2x',
         format: 'png',
@@ -642,6 +647,7 @@ export const useImageStore = create<ImageState>()(
           elements: [],
           selectedElementId: null,
           brand: null,
+          copy: null,
           // Reset timeline/animation
           timeline: { ...DEFAULT_TIMELINE_STATE },
           animationClips: [],
@@ -723,6 +729,7 @@ export const useImageStore = create<ImageState>()(
           elements: [],
           selectedElementId: null,
           brand: null,
+          copy: null,
           // Reset timeline/animation
           timeline: { ...DEFAULT_TIMELINE_STATE },
           animationClips: [],
@@ -1367,6 +1374,8 @@ export const useImageStore = create<ImageState>()(
 
       setBrand: (brand) => set({ brand }),
 
+      setCopy: (copy) => set({ copy }),
+
       resetCanvasSettings: () => {
         set({
           imageScale: 100,
@@ -1424,6 +1433,7 @@ export const useImageStore = create<ImageState>()(
           elements: [],
           selectedElementId: null,
           brand: null,
+          copy: null,
           timeline: { ...DEFAULT_TIMELINE_STATE },
           animationClips: [],
           showTimeline: false,

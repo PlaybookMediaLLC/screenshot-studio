@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { Cancel01Icon, Delete02Icon } from 'hugeicons-react'
-import { MockupControls } from '@/components/mockups'
+import { ScreenInspector } from '@/components/frames/panels/ScreenInspector'
 import { TextProperties } from '@/components/text-overlay/text-overlay-controls'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Slider } from '@/components/ui/slider'
@@ -22,7 +22,7 @@ import { ElementInspector } from '../inspector/ElementInspector'
 
 const KIND_LABELS: Record<SelectionKind, string> = {
   annotation: 'Markup',
-  device: 'Device',
+  device: 'Screen',
   element: 'Element',
   image: 'Screenshot',
   redaction: 'Redaction',
@@ -142,10 +142,8 @@ export function SelectionInspector() {
         </SectionWrapper>
       ) : kind === 'sticker' && id ? (
         <StickerProperties id={id} />
-      ) : kind === 'device' ? (
-        <SectionWrapper title="Device" defaultOpen>
-          <MockupControls />
-        </SectionWrapper>
+      ) : kind === 'device' && id ? (
+        <ScreenInspector id={id} />
       ) : kind === 'annotation' ? (
         <AnnotateSection />
       ) : kind === 'redaction' && id ? (

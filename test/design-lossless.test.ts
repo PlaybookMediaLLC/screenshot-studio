@@ -9,6 +9,7 @@ import {
 } from '@/lib/design/document'
 import { exportDesignDocument } from '@/lib/design/export'
 import { useImageStore } from '@/lib/store'
+import type { Mockup } from '@/types/mockup'
 
 const canvas = { canvasH: 900, canvasW: 1600 }
 const identity = (ref: string) => ref
@@ -179,6 +180,136 @@ test('local sources can be swapped for uploaded assets before a document is stor
   assert.deepEqual(getLocalDesignSources(stored), [])
   assert.equal(getDesignAssetIds(stored).length, 3)
   assert.equal(stored.slides?.items[1]?.src, ids[slide])
+})
+
+const screenShot = 'blob:http://localhost/screen-2'
+
+/** A composition with one screen of every frame kind, and a browser frame on the main image. */
+function framedComposition() {
+  richEditor()
+  const chrome = {
+    activeTab: 1,
+    address: 'shots.playbookmedia.io/launch',
+    appearance: 'auto' as const,
+    bookmarks: ['Docs', 'Pricing'],
+    browser: 'firefox' as const,
+    showBookmarks: true,
+    tabs: ['Home', 'Launch'],
+    title: 'Launch',
+    tone: 'dark' as const,
+    window: 'terminal-macos' as const,
+  }
+  const screen = (src: string | null, extra: Partial<Mockup['screen']> = {}): Mockup['screen'] => ({
+    fit: 'cover',
+    isCustom: Boolean(src),
+    name: src ? 'screen.png' : null,
+    offset: { x: 0.1, y: -0.2 },
+    scale: 1.25,
+    src,
+    ...extra,
+  })
+  useImageStore.setState({
+    activeDeviceLayoutId: 'bento',
+    browserUrl: 'shots.playbookmedia.io/launch',
+    editorMode: 'device',
+    frameChrome: { ...chrome, appearance: 'dark', browser: 'arc' },
+    imageBorder: { color: '#000000', enabled: true, opacity: 1, padding: 0, title: 'shots.playbookmedia.io/launch', type: 'browser', width: 8 },
+    mockups: [
+      {
+        definitionId: 'pixel-9-pro',
+        frame: { chrome, kind: 'browser' },
+        id: 'screen-browser',
+        isVisible: true,
+        opacity: 1,
+        position: { x: 0.3, y: 0.5 },
+        rotation: 0,
+        screen: screen(null, { aspect: 1.6, isCustom: false, name: 'main.png', src: main }),
+        size: 0.5,
+      },
+      {
+        color: 'hazel',
+        definitionId: 'pixel-9-pro',
+        frame: { chrome, kind: 'device' },
+        id: 'screen-device',
+        isVisible: true,
+        opacity: 0.9,
+        orientation: 'landscape',
+        position: { x: 0.75, y: 0.3 },
+        rotation: 4,
+        screen: screen(screenShot, { aspect: 0.46 }),
+        size: 0.3,
+      },
+      {
+        definitionId: 'iphone-17-pro-front',
+        frame: { chrome: { ...chrome, appearance: 'light' }, kind: 'window' },
+        id: 'screen-code',
+        isVisible: true,
+        opacity: 1,
+        position: { x: 0.75, y: 0.75 },
+        rotation: 0,
+        screen: {
+          ...screen(null),
+          code: { code: 'npm run ship\n', font: 'google:Fira Code', language: 'shell-session', lineNumbers: false, padding: 2, theme: 'github' },
+          name: 'Code',
+        },
+        size: 0.3,
+      },
+      {
+        definitionId: 'iphone-17-pro-front',
+        frame: { kind: 'none' },
+        id: 'screen-bare',
+        isVisible: false,
+        opacity: 1,
+        position: { x: 0.2, y: 0.8 },
+        rotation: -3,
+        screen: screen(screenShot, { aspect: 1 }),
+        size: 0.2,
+      },
+    ],
+  })
+}
+
+test('frames, chrome options, and composition screens survive a lossless round trip', () => {
+  framedComposition()
+  const exported = exportDesignDocument({ keepLocalSources: true })
+  assert.equal(exported.image.frame?.type, 'browser')
+  assert.equal(exported.image.chrome?.browser, 'arc')
+  assert.equal(exported.devices?.layoutId, 'bento')
+  assert.equal(exported.devices?.mockups.length, 4)
+  assert.equal(exported.devices?.mockups[0]?.screen.src, null, 'a screen showing the main image follows it')
+  assert.equal(exported.devices?.mockups[2]?.screen.code?.language, 'shell-session')
+
+  useImageStore.getState().clearImage()
+  applyDesignDocument(exported, identity)
+  useImageStore.setState({ canvasDimensions: { ...canvas, framedH: 800, framedW: 1400 } })
+  applyDesignLayout(exported, identity, canvas)
+
+  assert.deepEqual(exportDesignDocument({ keepLocalSources: true }), exported)
+  const { frameChrome, mockups } = useImageStore.getState()
+  assert.equal(frameChrome.browser, 'arc')
+  assert.deepEqual(mockups.map((mockup) => mockup.frame?.kind), ['browser', 'device', 'window', 'none'])
+  assert.equal(mockups[0]?.screen.src, main)
+  assert.equal(mockups[1]?.orientation, 'landscape')
+  assert.equal(mockups[1]?.color, 'hazel')
+  assert.equal(mockups[2]?.screen.src, null, 'a code screen never shows the main image')
+  assert.equal(mockups[2]?.screen.code?.theme, 'github')
+  assert.deepEqual(mockups[0]?.frame?.chrome?.tabs, ['Home', 'Launch'])
+})
+
+test('documents from before frames parse unchanged and render their old browser frame', () => {
+  const legacy = parseDesignDocument({
+    devices: { mockups: [{ definitionId: 'iphone-17-pro-front', position: { x: 0.5, y: 0.5 }, size: 0.3 }] },
+    image: { frame: { title: 'app', type: 'macos-dark' }, src: null },
+    mode: 'device',
+    version: 1,
+  })
+  assert.equal(legacy.image.chrome, undefined)
+  assert.equal(legacy.devices?.mockups[0]?.frame, undefined)
+  applyDesignDocument(legacy, identity)
+  const state = useImageStore.getState()
+  assert.equal(state.mockups[0]?.frame, undefined, 'an old device stays a device')
+  assert.equal(state.imageBorder.type, 'macos-dark')
+  assert.deepEqual(exportDesignDocument({ keepLocalSources: true }).devices?.mockups[0]?.frame, undefined)
 })
 
 test('a version 1 document is read as version 2', () => {

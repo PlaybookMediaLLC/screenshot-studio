@@ -216,8 +216,8 @@ test("drafts store inherited device images once without changing custom screens"
 });
 
 test("device screen uploads use durable data URLs instead of leaking blob URLs", async () => {
-  const controls = await readFile(
-    new URL("../components/mockups/MockupControls.tsx", import.meta.url),
+  const commands = await readFile(
+    new URL("../lib/frames/commands.ts", import.meta.url),
     "utf8",
   );
   const renderer = await readFile(
@@ -225,9 +225,9 @@ test("device screen uploads use durable data URLs instead of leaking blob URLs",
     "utf8",
   );
 
-  assert.match(controls, /blobToDataUrl\(file\)/);
-  assert.match(renderer, /blobToDataUrl\(file\)/);
-  assert.doesNotMatch(controls, /URL\.createObjectURL\(file\)/);
+  // Replacing a screen's image (canvas double-click or the inspector) goes through one command.
+  assert.match(commands, /export async function replaceScreenImage[\s\S]*?blobToDataUrl\(file\)/);
+  assert.match(renderer, /replaceScreenImage\(mockup\.id, file\)/);
   assert.doesNotMatch(renderer, /URL\.createObjectURL\(file\)/);
 });
 

@@ -75,10 +75,14 @@ export function cloneMockups(mockups: Mockup[]): Mockup[] {
   }));
 }
 
+/** A screen the canvas can draw: visible, and on a known device when its frame is a device. */
+export function isRenderableScreen(mockup: Mockup): boolean {
+  if (!mockup.isVisible) return false;
+  return (mockup.frame?.kind ?? "device") !== "device" || Boolean(getMockupDefinition(mockup.definitionId));
+}
+
 export function hasVisibleMockups(mockups: readonly Mockup[]): boolean {
-  return mockups.some((mockup) => (
-    mockup.isVisible && Boolean(getMockupDefinition(mockup.definitionId))
-  ));
+  return mockups.some(isRenderableScreen);
 }
 
 export function shouldRenderSourceImage(

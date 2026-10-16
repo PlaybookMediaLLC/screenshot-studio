@@ -4,6 +4,7 @@ import { fontFamilies } from '@/lib/constants/fonts'
 import { gradientColors } from '@/lib/constants/gradient-colors'
 import { magicGradients, meshGradients } from '@/lib/constants/mesh-gradients'
 import { DEVICE_LAYOUTS, MOCKUP_DEFINITIONS } from '@/lib/constants/mockups'
+import { compositionLayoutSchema } from '@/lib/frames/layouts'
 import { solidColors } from '@/lib/constants/solid-colors'
 import { backgroundCategories } from '@/lib/r2-backgrounds'
 import { ARROW_PATHS, SHADOW_OVERLAY_PATHS } from '@/lib/r2-overlays'
@@ -23,7 +24,7 @@ export const designCatalog = {
   arrowOverlays: [...ARROW_PATHS],
   aspectRatios: ids(aspectRatios).filter((id) => id !== 'custom'),
   backgroundImages: backgroundCategories,
-  deviceLayouts: ids(DEVICE_LAYOUTS),
+  deviceLayouts: [...ids(DEVICE_LAYOUTS), ...compositionLayoutSchema.options],
   fonts: fontFamilies.map((font) => ({
     category: font.category,
     id: font.id,

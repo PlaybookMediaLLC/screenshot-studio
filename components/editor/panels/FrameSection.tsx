@@ -1,66 +1,89 @@
 'use client'
 
-import * as React from 'react'
-import { Globe02Icon, Image01Icon, SmartPhone01Icon } from 'hugeicons-react'
+import { BrowserOptions, WindowOptions } from '@/components/frames/panels/ChromeOptions'
+import { CompositionSection } from '@/components/frames/panels/CompositionSection'
+import { DeviceOptions } from '@/components/frames/panels/DeviceOptions'
+import { changeChrome, chooseFrame, type FrameChoice, useFrameTarget } from '@/components/frames/panels/frame-target'
 import { SegmentedControl } from '@/components/ui/segmented-control'
-import { useImageStore } from '@/lib/store'
-import { BrowserMockupSection, DeviceFramesSection, StyleSection } from '../sections'
+import { screenLabel } from '@/lib/frames/labels'
+import { StyleSection } from '../sections'
 
-const FRAME_KINDS = [
+const FRAME_CHOICES = [
   {
     description: 'The screenshot on its own, with an optional border style.',
-    icon: <Image01Icon size={14} />,
-    id: 'screenshot',
+    id: 'style',
     label: 'Style',
   },
   {
-    description: 'The screenshot inside a browser window with its address bar.',
-    icon: <Globe02Icon size={14} />,
+    description: 'Inside a browser: Safari, Chrome, Arc, Edge, or Firefox, with its tabs and address bar.',
     id: 'browser',
     label: 'Browser',
   },
   {
-    description: 'The screenshot on the screen of phones, tablets, laptops, and displays.',
-    icon: <SmartPhone01Icon size={14} />,
+    description: 'Inside an app or terminal window on macOS or Windows.',
+    id: 'window',
+    label: 'Window',
+  },
+  {
+    description: 'On the screen of a phone, tablet, laptop, desktop, watch, or Vision Pro.',
     id: 'device',
     label: 'Device',
   },
-] as const
-
-type FrameKind = (typeof FRAME_KINDS)[number]['id']
+] as const satisfies readonly { id: FrameChoice; label: string; description: string }[]
 
 /**
- * What holds the screenshot. Choosing a frame here is the only way to
- * switch between a plain screenshot, a browser window, and devices, so the
- * frame and its options live in one place.
+ * What holds the screenshot. In a composition the frame belongs to the
+ * selected screen, or to every screen when none is selected; below it, the
+ * composition's screens and layouts.
  */
 export function FrameSection() {
-  const editorMode = useImageStore((state) => state.editorMode)
-  const setEditorMode = useImageStore((state) => state.setEditorMode)
-  const current = FRAME_KINDS.find((kind) => kind.id === editorMode) ?? FRAME_KINDS[0]
+  const target = useFrameTarget()
+  const current = FRAME_CHOICES.find((choice) => choice.id === target.choice) ?? FRAME_CHOICES[0]
+  const { screens } = target
+  const mixed = !target.single && new Set(screens.map((screen) => screen.frame?.kind ?? 'device')).size > 1
+  const scope =
+    screens.length === 0
+      ? 'the screenshot'
+      : target.single
+        ? screenLabel(screens[0]!).toLowerCase()
+        : `all ${screens.length} screens`
+  const onChange = (changes: Parameters<typeof changeChrome>[1]) => changeChrome(target, changes)
 
   return (
     <div className="space-y-3">
+      <p className="px-0.5 text-[11px] text-muted-foreground" data-frame-scope="true">
+        Frame for <span className="font-medium text-foreground">{scope}</span>
+      </p>
       <SegmentedControl
-        onChange={(id) => setEditorMode(id as FrameKind)}
-        options={FRAME_KINDS.map((kind) => ({
-          ariaLabel: `${kind.label} frame`,
-          icon: kind.icon,
-          id: kind.id,
-          label: kind.label,
+        ariaLabel="Frame"
+        onChange={(id) => chooseFrame(target, id as FrameChoice)}
+        options={FRAME_CHOICES.map((choice) => ({
+          ariaLabel: `${choice.label} frame`,
+          id: choice.id,
+          label: choice.label,
+          tooltip: choice.description,
         }))}
-        value={editorMode}
+        value={target.choice}
       />
-      <p className="px-0.5 text-[11px] leading-snug text-muted-foreground">{current.description}</p>
+      <p className="px-0.5 text-[11px] leading-snug text-muted-foreground">
+        {mixed ? 'These screens use different frames; a choice here applies to all of them.' : current.description}
+      </p>
       <div className="space-y-1">
-        {editorMode === 'device' ? (
-          <DeviceFramesSection />
-        ) : editorMode === 'browser' ? (
-          <BrowserMockupSection />
-        ) : (
+        {target.choice === 'device' ? (
+          <DeviceOptions target={target} />
+        ) : target.choice === 'browser' ? (
+          <BrowserOptions chrome={target.chrome} onChange={onChange} />
+        ) : target.choice === 'window' ? (
+          <WindowOptions chrome={target.chrome} onChange={onChange} />
+        ) : screens.length === 0 ? (
           <StyleSection />
+        ) : (
+          <p className="rounded-md bg-foreground/[0.04] px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
+            No frame: the screenshot shows on its own with rounded corners and a soft shadow.
+          </p>
         )}
       </div>
+      <CompositionSection />
     </div>
   )
 }

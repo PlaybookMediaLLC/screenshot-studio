@@ -2,7 +2,12 @@ import { z } from 'zod'
 import { canvasElementSchema } from '@/lib/editor/elements/schema'
 import { isGoogleFontId } from '@/lib/typography/google-fonts'
 import { textAlignSchema, textFillSchema, textFitSchema, textRoleSchema } from '@/lib/typography/text-style'
-import { frameChromeSchema } from '@/lib/frames/schema'
+import {
+  codeContentSchema,
+  deviceOrientationSchema,
+  frameChromeSchema,
+  screenFrameSchema,
+} from '@/lib/frames/schema'
 import { designCatalog, frameTypes, isKnownBackground } from './catalog'
 
 /**
@@ -270,12 +275,21 @@ export const designDocumentSchema = z.object({
         .array(
           z.object({
             ...layerIdentity,
+            /** A drawn device's color id. */
+            color: z.string().max(40).optional(),
             definitionId: enumOf(mockupIds),
+            /** What holds the screen; omitted means the device in `definitionId`. */
+            frame: screenFrameSchema.optional(),
             opacity: z.number().min(0).max(1).default(1),
+            orientation: deviceOrientationSchema.optional(),
             position: z.object({ x: unit, y: unit }),
             rotation: z.number().min(-180).max(180).default(0),
             screen: z
               .object({
+                /** The content's width / height, so a browser, window, or bare frame fits it. */
+                aspect: z.number().min(0.05).max(20).optional(),
+                /** Code drawn as the screen instead of an image. */
+                code: codeContentSchema.optional(),
                 fit: z.enum(['cover', 'contain']).default('cover'),
                 name: z.string().max(200).optional(),
                 /** Pan inside the screen, as a fraction of the screen. */

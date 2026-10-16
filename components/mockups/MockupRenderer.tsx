@@ -2,10 +2,14 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import Moveable from "react-moveable";
-import { DeviceShell } from "./DeviceShell";
+import { FramedScreen } from "@/components/frames/FramedScreen";
 import { CanvasObjectTopControls } from "@/components/canvas/html/CanvasObjectTopControls";
 import { getMockupDefinition, MAX_DEVICE_MOCKUPS } from "@/lib/constants/mockups";
-import { blobToDataUrl } from "@/lib/image-storage";
+import { replaceScreenImage } from "@/lib/frames/commands";
+import { screenBoxAspect } from "@/lib/frames/geometry";
+import { screenLabel } from "@/lib/frames/labels";
+import { isRenderableScreen } from "@/lib/device-mockups/layouts";
+import { toast } from "sonner";
 import { useDeviceUIStore } from "@/lib/store/device-ui";
 import { useImageStore } from "@/lib/store";
 import type { Mockup } from "@/types/mockup";
@@ -43,7 +47,8 @@ function MockupRenderer({ mockup, canvasWidth, canvasHeight, zIndex }: MockupRen
   const snapping = useMoveableSnapping(isSelected ? targetElement : null, mockup.id);
   const isEditingScreen = editingScreenDeviceId === mockup.id;
   const width = mockup.size * canvasWidth;
-  const height = definition ? width / definition.aspectRatio : width;
+  const height = width / screenBoxAspect(mockup);
+  const label = definition && !mockup.frame ? definition.name : screenLabel(mockup);
   const left = mockup.position.x * canvasWidth - width / 2;
   const top = mockup.position.y * canvasHeight - height / 2;
 
@@ -194,32 +199,27 @@ function MockupRenderer({ mockup, canvasWidth, canvasHeight, zIndex }: MockupRen
   }, [mockup.id, setEditingScreenDeviceId, setSelectedDeviceId]);
 
   const replaceScreen = useCallback(async (file: File): Promise<void> => {
-    const src = await blobToDataUrl(file);
-    updateMockup(mockup.id, {
-      screen: {
-        ...mockup.screen,
-        src,
-        name: file.name,
-        isCustom: true,
-        scale: 1,
-        offset: { x: 0, y: 0 },
-      },
-    });
-  }, [mockup.id, mockup.screen, updateMockup]);
+    try {
+      await replaceScreenImage(mockup.id, file);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "That image couldn't be used.");
+    }
+  }, [mockup.id]);
 
-  if (!definition || !mockup.isVisible) return null;
+  if (!isRenderableScreen(mockup)) return null;
 
   return (
     <>
       <div
         ref={setTargetElement}
         data-device-id={mockup.id}
+        data-frame-kind={mockup.frame?.kind ?? "device"}
         role="group"
         tabIndex={0}
         aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight"
         aria-label={isEditingScreen
-          ? `Crop ${definition.name} screen. Use arrow keys to pan the image.`
-          : `${definition.name}. Use arrow keys to move the device.`}
+          ? `Crop ${label} screen. Use arrow keys to pan the image.`
+          : `${label}. Use arrow keys to move it.`}
         className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground/70"
         onKeyDown={handleDeviceKeyDown}
         onFocus={() => setSelectedDeviceId(mockup.id)}
@@ -242,22 +242,25 @@ function MockupRenderer({ mockup, canvasWidth, canvasHeight, zIndex }: MockupRen
           zIndex,
         }}
       >
-        <DeviceShell
-          definition={definition}
-          screen={mockup.screen}
-          editing={isEditingScreen}
-          screenFilter={screenFilter}
-          onScreenClick={mockup.screen.src ? undefined : openScreenPicker}
-          onScreenDoubleClick={openScreenPicker}
-          onScreenFile={mockup.screen.src ? undefined : replaceScreen}
-          onScreenPointerDown={handleCropPointerDown}
+        <FramedScreen
+          mockup={mockup}
+          width={width}
+          height={height}
+          handlers={{
+            editing: isEditingScreen,
+            screenFilter,
+            onScreenClick: mockup.screen.src || mockup.screen.code ? undefined : openScreenPicker,
+            onScreenDoubleClick: mockup.screen.code ? undefined : openScreenPicker,
+            onScreenFile: mockup.screen.src || mockup.screen.code ? undefined : replaceScreen,
+            onScreenPointerDown: handleCropPointerDown,
+          }}
         />
         <input
           ref={screenFileInputRef}
           type="file"
           accept="image/*"
           className="hidden"
-          aria-label={`Upload image for ${definition.name}`}
+          aria-label={`Upload image for ${label}`}
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) replaceScreen(file);

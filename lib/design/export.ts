@@ -122,12 +122,17 @@ export function documentFromState(
             mockups: image.mockups
               .filter((mockup) => keepLocalSources || mockup.isVisible)
               .map((mockup) => ({
+                color: mockup.color,
                 definitionId: mockup.definitionId,
+                frame: mockup.frame,
                 id: mockup.id,
                 opacity: mockup.opacity,
                 position: { x: clamp(mockup.position.x, 0, 1), y: clamp(mockup.position.y, 0, 1) },
+                orientation: mockup.orientation,
                 rotation: mockup.rotation,
                 screen: {
+                  aspect: mockup.screen.aspect,
+                  code: mockup.screen.code,
                   fit: mockup.screen.fit,
                   name: mockup.screen.name ?? undefined,
                   offset: {

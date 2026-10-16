@@ -14,28 +14,31 @@ import {
   atLeast,
 } from "@/lib/seo/product-facts";
 
-const BASE_URL = "https://www.screenshot-studio.com";
+const BASE_URL = "https://shots.playbookmedia.io";
 
-export const PERSON_ID = `${BASE_URL}/#founder`;
+export const ORGANIZATION_ID = `${BASE_URL}/#organization`;
 
-export function getFounderSchema() {
-  return {
-    "@type": "Person",
-    "@id": PERSON_ID,
-    name: "Kartik Labhshetwar",
-    url: `${BASE_URL}/about`,
-    sameAs: [
-      "https://x.com/code_kartik",
-      "https://github.com/KartikLabhshetwar",
-    ],
-  };
-}
+/**
+ * Offer for SoftwareApplication JSON-LD. Shots has no free plan, so every
+ * app schema quotes the entry plan: Pro at $199 per month.
+ */
+export const PRO_PLAN_OFFER = {
+  "@type": "Offer",
+  price: "199",
+  priceCurrency: "USD",
+  priceSpecification: {
+    "@type": "UnitPriceSpecification",
+    price: "199",
+    priceCurrency: "USD",
+    billingDuration: "P1M",
+  },
+} as const;
 
 export function getOrganizationSchema() {
   return {
     "@type": "Organization",
-    "@id": `${BASE_URL}/#organization`,
-    name: "Screenshot Studio",
+    "@id": ORGANIZATION_ID,
+    name: "Shots",
     url: BASE_URL,
     logo: {
       "@type": "ImageObject",
@@ -43,21 +46,13 @@ export function getOrganizationSchema() {
       width: 512,
       height: 512,
     },
-    sameAs: [
-      "https://github.com/PlaybookMediaLLC/screenshot-studio",
-      "https://x.com/screenshotstdio",
-    ],
-    founder: { "@id": PERSON_ID },
-    email: "kartik.labhshetwar@gmail.com",
-    address: {
-      "@type": "PostalAddress",
-      addressCountry: "IN",
-    },
+    sameAs: ["https://github.com/PlaybookMediaLLC/screenshot-studio"],
+    email: "team@playbookmedia.io",
     contactPoint: [
       {
         "@type": "ContactPoint",
         contactType: "customer support",
-        email: "kartik.labhshetwar@gmail.com",
+        email: "team@playbookmedia.io",
         url: `${BASE_URL}/contact`,
         availableLanguage: [
           "English",
@@ -74,11 +69,11 @@ export function getOrganizationSchema() {
         "@type": "ContactPoint",
         contactType: "technical support",
         url: "https://github.com/PlaybookMediaLLC/screenshot-studio/issues",
-        email: "kartik.labhshetwar@gmail.com",
+        email: "team@playbookmedia.io",
       },
     ],
     description:
-      "Free, open-source screenshot editor with backgrounds, browser mockups, 3D effects, animations, and video export.",
+      "Open-source launch platform: Shots reads a software release, writes a cited launch brief, designs on-brand visuals, and drafts posts, and nothing ships until a person approves. Every plan includes a screenshot editor with backgrounds, browser mockups, 3D effects, animations, and video export.",
   };
 }
 
@@ -87,7 +82,7 @@ export function getWebSiteSchema() {
     "@type": "WebSite",
     "@id": `${BASE_URL}/#website`,
     url: BASE_URL,
-    name: "Screenshot Studio",
+    name: "Shots",
     publisher: {
       "@id": `${BASE_URL}/#organization`,
     },
@@ -99,26 +94,22 @@ export function getSoftwareApplicationSchema() {
   return {
     "@type": "SoftwareApplication",
     "@id": `${BASE_URL}/#application`,
-    name: "Screenshot Studio",
+    name: "Shots",
     url: BASE_URL,
     applicationCategory: "DesignApplication",
     applicationSubCategory: "Screenshot Editor",
     operatingSystem: "Any (Web Browser)",
     softwareHelp: {
       "@type": "CreativeWork",
-      name: "Screenshot Studio API Documentation",
+      name: "Shots API Documentation",
       url: `${BASE_URL}/docs`,
     },
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "USD",
-    },
+    offers: PRO_PLAN_OFFER,
     softwareVersion: LATEST_VERSION,
     dateModified: LAST_UPDATED_ISO,
     releaseNotes: `${BASE_URL}/changelog`,
-    author: { "@id": PERSON_ID },
-    publisher: { "@id": `${BASE_URL}/#organization` },
+    author: { "@id": ORGANIZATION_ID },
+    publisher: { "@id": ORGANIZATION_ID },
     license: "https://www.apache.org/licenses/LICENSE-2.0",
     featureList: [
       `${atLeast(PRODUCT_FACTS.backgrounds)} gradient, mesh, and solid backgrounds`,
@@ -131,7 +122,7 @@ export function getSoftwareApplicationSchema() {
       `Text and image overlays with ${PRODUCT_FACTS.fonts} Google Fonts`,
       `${PRODUCT_FACTS.codeThemes} code-snippet themes`,
       `High-res ${IMAGE_EXPORT_FORMATS.join("/")} export up to ${PRODUCT_FACTS.maxExportScale}x scale`,
-      "No signup required",
+      "Editor and image tools included in every plan",
       "No watermarks",
       `Open source (${PRODUCT_FACTS.license})`,
     ],
@@ -142,7 +133,6 @@ export function getRootJsonLd() {
   return {
     "@context": "https://schema.org",
     "@graph": [
-      getFounderSchema(),
       getOrganizationSchema(),
       getWebSiteSchema(),
       getSoftwareApplicationSchema(),

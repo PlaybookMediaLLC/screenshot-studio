@@ -19,7 +19,7 @@ const emailWebhookSchema = z.string().url().optional()
 const senderSchema = z.string().email().optional()
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails'
-const DEFAULT_SENDER = 'Screenshot Studio <noreply@oppulence.app>'
+const DEFAULT_SENDER = 'Shots <noreply@playbookmedia.io>'
 
 /**
  * Bound on the provider request.

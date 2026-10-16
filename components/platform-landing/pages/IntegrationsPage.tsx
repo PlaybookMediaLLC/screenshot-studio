@@ -27,11 +27,13 @@ import { cn } from '@/lib/utils'
 import {
   AvailabilityPill,
   FaqBlock,
+  HeroStage,
   LinkCards,
   MarketingShell,
   PageHero,
   type Availability,
 } from '../blocks'
+import { IntegrationsHub } from '../diagrams/IntegrationsHub'
 import { MUTED, Section, SectionIntro } from '../primitives'
 
 type Integration = {
@@ -74,14 +76,14 @@ const CATEGORIES: { label: string; lead: string; trail: string; items: Integrati
       {
         name: 'GitHub App',
         icon: GitPullRequestIcon,
-        status: 'Planned',
-        body: 'Merged pull requests worth announcing become suggested launches.',
+        status: 'Available',
+        body: 'Connect a repository. Merges are held for the next published release, which arrives with its notes and linked pull requests.',
       },
       {
-        name: 'Deploy webhooks',
+        name: 'Deploy captures',
         icon: Rocket01Icon,
-        status: 'Planned',
-        body: 'Successful deploys trigger fresh captures of the screens that changed.',
+        status: 'Available',
+        body: 'A successful production deploy on GitHub captures fresh screenshots of your registered product pages.',
       },
     ],
   },
@@ -94,13 +96,13 @@ const CATEGORIES: { label: string; lead: string; trail: string; items: Integrati
         name: 'X',
         icon: NewTwitterIcon,
         status: 'Early access',
-        body: 'Scheduled posts with one image and a stored receipt.',
+        body: 'Scheduled posts with one image, confirmed by the network.',
       },
       {
         name: 'LinkedIn',
         icon: Linkedin01Icon,
         status: 'Early access',
-        body: 'Scheduled posts with one image and a stored receipt.',
+        body: 'Scheduled posts with one image, confirmed by the network.',
       },
       {
         name: 'Instagram',
@@ -112,7 +114,7 @@ const CATEGORIES: { label: string; lead: string; trail: string; items: Integrati
         name: 'Release email',
         icon: Mail01Icon,
         status: 'Early access',
-        body: 'Consented announcements delivered through Resend, once per address.',
+        body: 'Release emails to subscribers who opted in, delivered through Resend, once per address.',
       },
       {
         name: 'Buffer and Post Bridge',
@@ -130,8 +132,8 @@ const CATEGORIES: { label: string; lead: string; trail: string; items: Integrati
   },
   {
     label: 'Identity and audit',
-    lead: 'Who gets in,',
-    trail: 'and who is watching.',
+    lead: 'Sign-in, single sign-on,',
+    trail: 'and audit log export.',
     items: [
       {
         name: 'Google',
@@ -161,20 +163,20 @@ const CATEGORIES: { label: string; lead: string; trail: string; items: Integrati
         name: 'SCIM',
         icon: UserGroupIcon,
         status: 'Available',
-        body: 'Automatic provisioning and deprovisioning. Enterprise.',
+        body: 'SCIM user provisioning and deprovisioning. Enterprise.',
       },
       {
         name: 'Splunk, Datadog, HTTPS',
         icon: Database01Icon,
         status: 'Available',
-        body: 'Signed audit drains to your SIEM. Enterprise.',
+        body: 'Signed audit log export to your security log tool (SIEM). Enterprise.',
       },
     ],
   },
   {
     label: 'Under the hood',
-    lead: 'What does',
-    trail: 'the work.',
+    lead: 'What powers the AI,',
+    trail: 'rendering, storage, and delivery.',
     items: [
       {
         name: 'Claude via OpenRouter',
@@ -186,25 +188,25 @@ const CATEGORIES: { label: string; lead: string; trail: string; items: Integrati
         name: 'Temporal',
         icon: WorkflowSquare01Icon,
         status: 'Available',
-        body: 'Durable workflows for scheduled posts and maintenance.',
+        body: 'Workflows that survive restarts, for scheduled posts and maintenance.',
       },
       {
         name: 'Cloudflare Browser Rendering',
         icon: BrowserIcon,
         status: 'Available',
-        body: 'Headless Chromium for design renders, with no customer credentials.',
+        body: 'Headless Chromium for rendering visuals, with no customer credentials.',
       },
       {
         name: 'Cloudflare R2',
         icon: ServerStack01Icon,
         status: 'Available',
-        body: 'Private, organization-scoped asset storage.',
+        body: 'Private storage, kept separate for each workspace.',
       },
       {
         name: 'Microlink',
         icon: Image01Icon,
         status: 'Available',
-        body: 'Capture for public pages, behind SSRF checks.',
+        body: 'Captures of public pages, with private addresses blocked.',
       },
       {
         name: 'PostHog',
@@ -216,19 +218,34 @@ const CATEGORIES: { label: string; lead: string; trail: string; items: Integrati
   },
 ]
 
+/** The items of one category, for the hero hub diagram. */
+const categoryItems = (label: string) =>
+  (CATEGORIES.find((category) => category.label === label)?.items ?? []).map(
+    ({ name, status }) => ({ name, status })
+  )
+
 /** /integrations: every connection, marked available, early access, or planned. */
 export function IntegrationsPage() {
   return (
-    <MarketingShell finale={{ lead: 'Starts where you ship.', trail: 'Ends where users read.' }}>
+    <MarketingShell
+      finale={{ lead: "Need a tool we don't connect to yet?", trail: 'Tell us which one.' }}
+    >
       <PageHero
         body="Releases come in from GitHub, GitLab, your pipeline, or the API. Launches go out to X, LinkedIn, Instagram, and the inbox. Identity and audit plug into the tools your security team already runs."
         eyebrow={{ label: 'Integrations' }}
-        lead="Starts where you ship."
+        lead="Connect GitHub, GitLab, and your pipeline,"
         location="integrations_hero"
         primary={{ href: '/product/release-intake', label: 'Release intake' }}
         secondary={{ href: '/contact', label: 'Request an integration' }}
-        trail="Ends where your users read."
-      />
+        trail="then publish to X, LinkedIn, Instagram, and email."
+      >
+        <HeroStage>
+          <IntegrationsHub
+            distribution={categoryItems('Distribution')}
+            intake={categoryItems('Intake')}
+          />
+        </HeroStage>
+      </PageHero>
       {CATEGORIES.map((category) => (
         <Section key={category.label}>
           <SectionIntro label={category.label} lead={category.lead} trail={category.trail} />
@@ -251,7 +268,7 @@ export function IntegrationsPage() {
         items={[
           {
             q: 'What does early access mean for social channels?',
-            a: 'Delivery is built and tested. During early access we connect each workspace’s channels with you and verify the first posts together.',
+            a: "Delivery is built and tested. During early access we connect each workspace's channels with you and verify the first posts together.",
           },
           {
             q: 'Do you have Slack or Zapier integrations?',
@@ -265,7 +282,11 @@ export function IntegrationsPage() {
       />
 
       <Section>
-        <SectionIntro label="Related" lead="Keep reading." trail="Every part connects." />
+        <SectionIntro
+          label="Related"
+          lead="Read how releases arrive,"
+          trail="how posts are published, and what Enterprise adds."
+        />
         <div className="mt-24">
           <LinkCards paths={['/product/release-intake', '/product/publishing', '/enterprise']} />
         </div>

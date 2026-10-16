@@ -22,8 +22,10 @@ import { atLeast, PRODUCT_FACTS } from '@/lib/seo/product-facts'
 import { cn } from '@/lib/utils'
 import { ArrowLink, FaqBlock } from './blocks'
 import { CodeTabs } from './CodeTabs'
-import { PlanCards } from './pricing'
+import { PLAN_PRICES, PlanCards } from './pricing'
 import { CreativeMock } from './WorkflowSection'
+import { ApprovalFlow } from './diagrams/ApprovalFlow'
+import { GuardrailsFlow } from './diagrams/GuardrailsFlow'
 import {
   Check,
   CONTAINER,
@@ -39,9 +41,9 @@ import {
 // ---------------------------------------------------------------- stats --
 
 const STATS = [
-  { value: String(SPEC_SECTIONS.length), label: 'sections in every cited launch spec' },
+  { value: String(SPEC_SECTIONS.length), label: 'sections in every launch brief' },
   { value: String(LAUNCH_CHANNELS.length), label: 'channels drafted from one release' },
-  { value: '0', label: 'posts published without a human approval' },
+  { value: '0', label: "posts published without a teammate's approval" },
 ]
 
 /** Sim-style statement with large figures on hairline rows. */
@@ -50,10 +52,9 @@ export function StatsSection() {
     <section className={cn(CONTAINER, 'py-24 sm:py-32')}>
       <div className="grid gap-12 lg:grid-cols-2 lg:gap-24">
         <p className="text-balance text-[24px] leading-[1.3] tracking-[-0.015em] text-white sm:text-[30px]">
-          You ship every week. The announcement ships when someone finds a free afternoon.{' '}
+          You ship every week. The launch post goes out when someone finds a free afternoon.{' '}
           <span className={MUTED}>
-            Screenshot Studio turns the release you already wrote into the launch you never had time
-            to make.
+            Shots turns the release you already wrote into the launch you never had time to make.
           </span>
         </p>
         <dl className="divide-y divide-[#212121] border-y border-[#212121]">
@@ -77,7 +78,7 @@ export function StatsSection() {
 const WITHOUT = [
   'Crop the screenshot, again',
   'Hunt for the brand hex code',
-  'Write five versions of one announcement',
+  'Write five versions of one post',
   'Paste each into a different tool',
   'Chase a teammate for sign-off',
   'Hope nothing claims what the product cannot do',
@@ -85,11 +86,11 @@ const WITHOUT = [
 
 const WITH = [
   'Describe the release once, or let GitHub send it',
-  'Check a brief where every claim cites a source',
+  'Check a launch brief where every claim cites a source',
   'Approve a plan for every channel',
   'Review real screenshots, framed on brand',
-  'Approve seven posts in one click',
-  'Ship on schedule, with a receipt',
+  'Approve six posts in one click',
+  'Publish on schedule, with confirmation',
 ]
 
 /** The gap between shipping and announcing, as a before and after. */
@@ -97,10 +98,10 @@ export function ProblemSection() {
   return (
     <Section>
       <SectionIntro
-        body="The feature is live. The changelog is a commit message. The screenshot sits in Slack, and the post is a draft nobody approved. Users never hear about the work, so the work never pays you back."
+        body="The feature is live, but the changelog is a commit message. The screenshot sits in Slack, and the post is a draft nobody approved. Work your users never hear about can't win you customers."
         label="The gap"
-        lead="Shipping happens by default."
-        trail="Launching happens by design."
+        lead="Your release shipped."
+        trail="Most of your users haven't heard about it."
       />
       <div className="mt-24 grid gap-4 md:grid-cols-2">
         <div className="border border-[#212121] p-8 sm:p-12">
@@ -118,7 +119,7 @@ export function ProblemSection() {
           </ul>
         </div>
         <div className="bg-[#111] p-8 sm:p-12">
-          <p className={cn('text-[15px]', MUTED)}>Every release, with Screenshot Studio</p>
+          <p className={cn('text-[15px]', MUTED)}>Every release, with Shots</p>
           <ul className="mt-8 space-y-4">
             {WITH.map((item) => (
               <li className="flex items-center gap-4 text-lg text-white" key={item}>
@@ -166,7 +167,7 @@ export function BrandWidget() {
         </div>
         <div className="mt-2 flex items-baseline justify-between text-[13px]">
           <span className="text-[#858585]">Applied to</span>
-          <span className="text-white">4 designs</span>
+          <span className="text-white">4 visuals</span>
         </div>
       </div>
     </Window>
@@ -206,12 +207,12 @@ export function TimelineWidget() {
 const ENGINE = [
   {
     title: 'Real screens, framed',
-    body: 'Safari and Chrome mockups, Arc, macOS, and Windows frames, device shells, and 3D perspective. The capture tool shoots your live product.',
+    body: 'Safari and Chrome mockups, Arc, macOS, and Windows frames, device shells, and 3D perspective. Shots captures your live product to fill them.',
     widget: <BrowserWidget />,
   },
   {
     title: 'Your brand, applied',
-    body: 'Every design takes your kit: the background gradient, the accent, the text color, the nearest font. Nobody picks a hex code twice.',
+    body: 'Every visual uses your kit: the background gradient, the accent, the text color, and the nearest font. Nobody picks a hex code twice.',
     widget: <BrandWidget />,
   },
   {
@@ -235,10 +236,10 @@ export function EngineSection() {
   return (
     <Section id="editor">
       <SectionIntro
-        body="Every visual the agents make is an editor design, not a flat image. Open it, move anything by hand, and save it back to the workspace."
+        body="Every visual the AI makes opens in the editor as layers. Move anything by hand and save it back to the workspace."
         label="Creative engine"
-        lead="Real screenshots."
-        trail="Not stock art."
+        lead="Visuals made from your real product"
+        trail="that you can edit in the Shots editor."
       >
         <div className="mt-10">
           <ArrowLink href="/product/creative-engine">See the creative engine</ArrowLink>
@@ -268,15 +269,9 @@ export function EngineSection() {
 
 // ---------------------------------------------------------------- approval --
 
-const FLOW = [
-  { who: 'creator', what: 'Submits 7 posts for review' },
-  { who: 'approver', what: 'Approves all 7 in one transaction' },
-  { who: 'publisher', what: 'Schedules approved posts only' },
-]
-
 const ROLES = [
   { role: 'owner', can: 'Billing, SSO, roles, everything' },
-  { role: 'admin', can: 'Members, brand, channels, releases' },
+  { role: 'admin', can: 'Teammates, brand, channels, releases' },
   { role: 'creator', can: 'Create releases, edit drafts, submit' },
   { role: 'approver', can: 'Approve, reject, request changes' },
   { role: 'publisher', can: 'Schedule and cancel approved posts' },
@@ -288,52 +283,29 @@ export function ApprovalSection() {
   return (
     <Section>
       <SectionIntro
-        body="Approval is a state machine on the server, not a checkbox in the UI. The same rules run for the browser, the API, and every agent. An API key can create a release. It cannot approve a post."
+        body="Approval is enforced on the server, so the same rules apply in the browser, the API, and the AI. An API key can create a release. It cannot approve a post."
         label="Approval"
-        lead="Machines draft."
-        trail="People decide."
+        lead="Nothing publishes"
+        trail="until a teammate approves it."
       >
         <div className="mt-10">
           <ArrowLink href="/product/approvals">How approval works</ArrowLink>
         </div>
       </SectionIntro>
-      <div className="mt-24 grid gap-4 lg:grid-cols-2">
-        <div className="flex flex-col items-center border border-[#212121] px-6 py-14 sm:px-12">
-          <div className="w-full max-w-[340px] bg-[#111] px-5 py-4">
-            <p className="text-[15px] text-white">Copy agent</p>
-            <p className={cn('text-sm', MUTED)}>Drafted 7 posts for Recurring invoices</p>
-          </div>
-          <span aria-hidden="true" className="my-4 h-8 w-px bg-white/30" />
-          <div className="w-full max-w-[340px] bg-[#181818] py-3.5 text-center text-[15px] text-white">
-            Server-side approval
-          </div>
-          <ul className="w-full max-w-[340px] space-y-px bg-[#111] p-2">
-            {FLOW.map((step) => (
-              <li className="flex items-center gap-3 px-3 py-3" key={step.who}>
-                <Check />
-                <span className="flex-1 text-[15px] text-white">{step.what}</span>
-                <span className={cn(MONO, 'text-[11px]', MUTED)}>{step.who}</span>
-              </li>
-            ))}
-          </ul>
-          <span aria-hidden="true" className="my-4 h-8 w-px bg-white/30" />
-          <div className="w-full max-w-[340px] bg-[#111] px-5 py-4">
-            <p className="text-[15px] text-white">
-              Published <span className="text-emerald-400">with receipt</span>
-            </p>
-            <p className={cn(MONO, 'mt-1 text-[11.5px]', MUTED)}>1 audit entry · postCount: 7</p>
-          </div>
-        </div>
-        <div className="flex flex-col justify-between bg-[#111] p-8 sm:p-12">
+      <div className="mt-24">
+        <ApprovalFlow />
+      </div>
+      <div className="mt-4">
+        <div className="grid gap-12 bg-[#111] p-8 sm:p-12 lg:grid-cols-2">
           <div>
             <p className="text-balance text-[24px] leading-[1.35] tracking-[-0.02em] text-white sm:text-[28px]">
-              Agents draft. People decide.{' '}
+              Every decision is on the record.{' '}
               <span className={MUTED}>
-                The audit log keeps the record, in the same transaction.
+                The audit log saves who approved what together with the change itself.
               </span>
             </p>
           </div>
-          <dl className="mt-12 divide-y divide-[#212121] border-t border-[#212121]">
+          <dl className="divide-y divide-[#212121] border-t border-[#212121]">
             {ROLES.map((row) => (
               <div className="flex items-baseline justify-between gap-6 py-3.5" key={row.role}>
                 <dt className={cn(MONO, 'text-[13px] text-white')}>{row.role}</dt>
@@ -353,7 +325,7 @@ const CHANNELS = [
   { name: 'X', icon: NewTwitterIcon, mode: 'Scheduled' },
   { name: 'LinkedIn', icon: Linkedin01Icon, mode: 'Scheduled' },
   { name: 'Instagram', icon: InstagramIcon, mode: 'Scheduled' },
-  { name: 'Email', icon: Mail01Icon, mode: 'Announced' },
+  { name: 'Email', icon: Mail01Icon, mode: 'Sent' },
   { name: 'Product Hunt', icon: Rocket01Icon, mode: 'Drafted' },
   { name: 'Changelog', icon: Note01Icon, mode: 'Drafted' },
 ]
@@ -361,7 +333,7 @@ const CHANNELS = [
 const LOG = [
   { id: 'post_8f2a', path: 'SCHEDULED → PROCESSING → PUBLISHED', tone: 'text-emerald-300' },
   { id: 'post_91c4', path: 'retry 429 → PUBLISHED, once', tone: 'text-emerald-300' },
-  { id: 'post_a07e', path: 'UNKNOWN_DELIVERY → held for a person', tone: 'text-amber-200' },
+  { id: 'post_a07e', path: 'UNKNOWN_DELIVERY → held for a teammate', tone: 'text-amber-200' },
 ]
 
 /** A delivery log: a clean publish, a safe retry, and an uncertain delivery held for review. */
@@ -385,10 +357,10 @@ export function PublishingSection() {
   return (
     <Section>
       <SectionIntro
-        body="Approved posts run on durable workflows. At send time each post is checked again: approval, asset, workspace, destination. It is marked published only when the network returns a receipt. An uncertain delivery goes to a person, never back into the queue."
+        body="When a post is due, Shots checks its approval, visual, workspace, and destination again. It counts as published only when the network confirms it. If delivery is uncertain, a teammate decides what happens next."
         label="Publishing"
-        lead="Scheduled once."
-        trail="Published exactly once."
+        lead="Each approved post goes out once,"
+        trail="and the network confirms it."
       >
         <div className="mt-10">
           <ArrowLink href="/product/publishing">How publishing works</ArrowLink>
@@ -427,8 +399,8 @@ const GUARDS = [
     snippet: '<source id="S2" trust="untrusted">',
   },
   {
-    title: 'SSRF-safe fetching',
-    body: 'Public http(s) only. Every resolved address is checked, every redirect re-checked, and every response capped in size and time.',
+    title: 'Public pages only',
+    body: 'Source links can reach public web addresses only. Every address and redirect is checked, and every response is capped in size and time.',
     snippet: 'redirect hop → resolve → public? yes',
   },
   {
@@ -437,18 +409,18 @@ const GUARDS = [
     snippet: 'proofPoints.2 → openQuestions.0',
   },
   {
-    title: 'Copy guards',
-    body: 'Channel limits, hype words, your prohibited terms, unknown links, and uncited claims are rejected. The model gets the reason and fixes the post.',
+    title: 'Copy checks',
+    body: 'A post fails if it runs over the channel limit or uses hype words, your banned terms, unknown links, or uncited claims. The AI gets the reason and fixes the post.',
     snippet: 'x: 291 > 280 · rewrite',
   },
   {
-    title: 'Stages without side effects',
-    body: 'Stages that read sources cannot act. The workspace comes from your session, never from model output or a crawled page.',
+    title: "Readers can't act",
+    body: "Steps that read sources can't take actions. Your login decides the workspace, and nothing the AI writes or a page says can change it.",
     snippet: 'tools: [] · workspace: session',
   },
   {
     title: 'Metered and audited',
-    body: 'Each model call is charged AI credits for what it costs, is rate-limited per workspace, and writes an audit event with the model and usage.',
+    body: 'Each AI call is charged credits at cost, rate-limited per workspace, and logged with the model and usage.',
     snippet: 'launch.spec · model · tokens',
   },
 ]
@@ -458,24 +430,31 @@ export function GuardrailsSection() {
   return (
     <Section>
       <SectionIntro
-        body="Release notes, pull requests, and web pages can carry instructions aimed at an AI. Every source is cleaned, fenced, and flagged before a model reads it, and every output is checked before it is saved."
+        body="Release notes, pull requests, and web pages can hide instructions aimed at an AI. Shots cleans and labels every source before the AI reads it, and checks every output before it is saved."
         label="Guardrails"
-        lead="Sources are evidence."
-        trail="Never instructions."
+        lead="Release notes and web pages can't steer the AI."
+        trail="Text that reads like orders is flagged for you."
       >
         <div className="mt-10">
           <ArrowLink href="/product/guardrails">Read about the guardrails</ArrowLink>
         </div>
       </SectionIntro>
-      <ul className="mt-24 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {GUARDS.map((guard) => (
-          <li className="flex flex-col bg-[#111] p-8 sm:p-10" key={guard.title}>
-            <code className={cn(MONO, 'truncate text-[12px] text-white/50')}>{guard.snippet}</code>
-            <h3 className="mt-14 text-[22px] tracking-[-0.015em] text-white">{guard.title}</h3>
-            <p className={cn('mt-3 text-base leading-[1.55]', MUTED)}>{guard.body}</p>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-24 grid gap-4 lg:grid-cols-2">
+        <div className="self-start border border-[#212121] p-6 sm:p-8 lg:sticky lg:top-24">
+          <GuardrailsFlow compact />
+        </div>
+        <ul className="grid gap-4">
+          {GUARDS.map((guard) => (
+            <li className="flex flex-col bg-[#111] p-8 sm:p-10" key={guard.title}>
+              <code className={cn(MONO, 'truncate text-[12px] text-white/50')}>
+                {guard.snippet}
+              </code>
+              <h3 className="mt-14 text-[22px] tracking-[-0.015em] text-white">{guard.title}</h3>
+              <p className={cn('mt-3 text-base leading-[1.55]', MUTED)}>{guard.body}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
     </Section>
   )
 }
@@ -492,12 +471,12 @@ const DEV_LINKS = [
   {
     href: '/docs/authentication',
     title: 'Scoped keys',
-    body: 'Five scopes. Keys create, never approve or publish.',
+    body: "Five scopes. A key can create releases but can't approve or publish.",
   },
   {
     href: '/llms.txt',
     title: 'llms.txt',
-    body: 'Markdown for agents. Supported pages answer Accept: text/markdown.',
+    body: 'Markdown for AI tools. Supported pages answer Accept: text/markdown.',
   },
 ]
 
@@ -506,10 +485,10 @@ export function DevelopersSection() {
   return (
     <Section id="developers">
       <SectionIntro
-        body="Send a release from CI, a deploy hook, or a signed webhook. Idempotency keys make retries safe. The release waits in your workspace, ready to become a campaign."
+        body="Post a release from CI or a deploy script, or point a signed webhook at Shots. The release waits in your workspace, ready to become a launch."
         label="Developers"
-        lead="Releases in."
-        trail="From any pipeline."
+        lead="Send a release from your pipeline."
+        trail="Retries are safe with an idempotency key."
       >
         <div className="mt-10">
           <ArrowLink href="/product/release-intake">Explore release intake</ArrowLink>
@@ -551,7 +530,7 @@ const CONTROLS = [
   {
     icon: Key01Icon,
     title: 'SSO and SCIM',
-    body: 'SAML and OIDC single sign-on, SCIM provisioning and deprovisioning.',
+    body: 'SAML and OIDC single sign-on, plus SCIM user provisioning and deprovisioning.',
   },
   {
     icon: UserGroupIcon,
@@ -561,12 +540,12 @@ const CONTROLS = [
   {
     icon: Database01Icon,
     title: 'Append-only audit log',
-    body: 'The app can insert and read audit rows, never edit or delete them. IPs are hashed.',
+    body: 'The app can add and read audit rows but cannot edit or delete them. IPs are hashed.',
   },
   {
     icon: WorkflowSquare01Icon,
-    title: 'SIEM drains',
-    body: 'Signed CloudEvents to any endpoint, or presets for Splunk and Datadog.',
+    title: 'Audit log export',
+    body: 'Signed CloudEvents to your security log tool (SIEM), with presets for Splunk and Datadog.',
   },
   {
     icon: Shield01Icon,
@@ -576,7 +555,7 @@ const CONTROLS = [
   {
     icon: LockIcon,
     title: 'Private storage',
-    body: 'Files namespaced per organization. Signed URLs expire in two minutes. Uploads are write-once.',
+    body: "Files are kept separate per workspace. Signed links expire in two minutes. Uploads can't be overwritten.",
   },
   {
     icon: FingerPrintIcon,
@@ -585,8 +564,8 @@ const CONTROLS = [
   },
   {
     icon: Shield01Icon,
-    title: 'Tenant isolation',
-    body: 'Tenancy comes from the signed-in principal, never from input. Foreign IDs return 404, proven by a two-tenant test.',
+    title: 'Workspace isolation',
+    body: 'Your login decides which workspace you see. IDs from another workspace return 404, and a test with two workspaces proves it.',
   },
   {
     icon: ServerStack01Icon,
@@ -600,10 +579,10 @@ export function SecuritySection() {
   return (
     <Section id="security">
       <SectionIntro
-        body="Built on Better Auth organizations with one authorization path for every request. Each control below is documented in the repository, down to the database role."
+        body="Every request goes through the same permission checks. Each control below is documented in the open-source repository, down to the database role."
         label="Security"
-        lead="Ready for the security review."
-        trail="Every control, documented."
+        lead="SSO, six roles, and an append-only audit log,"
+        trail="ready for your security review."
       >
         <div className="mt-10">
           <ArrowLink href="/security">Visit the security page</ArrowLink>
@@ -636,12 +615,12 @@ const ROADMAP: { status: RoadmapStatus; title: string; body: string }[] = [
   {
     status: RS.Shipped,
     title: 'Launch intelligence',
-    body: 'Release, cited spec, plan, visuals and copy, review and revise.',
+    body: 'Release, cited launch brief, plan, visuals and posts, review and revise.',
   },
   {
     status: RS.Shipped,
     title: 'Workspace and assets',
-    body: 'Save designs to the workspace, reopen them in the editor, save again.',
+    body: 'Save visuals to the workspace, reopen them in the editor, and save again.',
   },
   {
     status: RS.Shipped,
@@ -649,19 +628,19 @@ const ROADMAP: { status: RoadmapStatus; title: string; body: string }[] = [
     body: 'REST, scoped keys, idempotency, and signed GitHub and GitLab webhooks.',
   },
   {
+    status: RS.Shipped,
+    title: 'Screenshots after every deploy',
+    body: 'A successful production deploy on GitHub captures fresh screenshots of your product pages.',
+  },
+  {
     status: RS.Next,
-    title: 'Paste a URL, get seven posts',
-    body: 'A reviewable product profile in seconds and a first week of posts in minutes.',
+    title: 'Paste a URL, get a week of posts',
+    body: 'A product profile to review in seconds, then a first week of posts in minutes.',
   },
   {
     status: RS.Planned,
     title: 'Merged PR to suggested launch',
-    body: 'A pull request worth announcing becomes a suggestion, never an automatic post.',
-  },
-  {
-    status: RS.Planned,
-    title: 'Screenshots after every deploy',
-    body: 'Fresh captures of changed screens, with before and after pairs.',
+    body: 'A pull request worth announcing becomes a suggested launch for you to review.',
   },
   {
     status: RS.Planned,
@@ -671,12 +650,12 @@ const ROADMAP: { status: RoadmapStatus; title: string; body: string }[] = [
   {
     status: RS.Planned,
     title: 'The weekly plan',
-    body: 'Monday morning: one plan, seven posts, one approval.',
+    body: 'Every Monday, one plan for the week that you approve in one step.',
   },
   {
     status: RS.Planned,
     title: 'Copilot and Autopilot',
-    body: 'Proactive suggestions, then policy-bound publishing you switch on.',
+    body: 'Suggestions first. Later, automatic publishing within approval rules you switch on.',
   },
 ]
 
@@ -685,10 +664,10 @@ export function RoadmapSection() {
   return (
     <Section>
       <SectionIntro
-        body="The plan is public and written down. Primitives first, then recipes, then the agent. Autonomy comes last, and only as far as your approval policies allow."
+        body="We built the manual tools first, then step-by-step workflows, then the AI. More automation comes last, and only as far as your approval rules allow."
         label="Roadmap"
-        lead="Today you bring the release."
-        trail="Next, your product brings it."
+        lead="Today you send Shots a release."
+        trail="Next, paste a URL and get a first week of posts."
       >
         <div className="mt-10">
           <ArrowLink href="/roadmap">See the full roadmap</ArrowLink>
@@ -729,10 +708,10 @@ export function PricingSection() {
   return (
     <Section id="pricing">
       <SectionIntro
-        body="The editor is free. Paid plans raise every limit, and Enterprise adds the controls a security review asks for."
+        body="Every plan includes the editor, release intake, and the API. Higher plans raise every limit, and Enterprise adds the controls a security review asks for."
         label="Pricing"
-        lead="Start free."
-        trail="Grow into the platform."
+        lead="Three plans."
+        trail={`Pro is ${PLAN_PRICES.pro.price} a month for teams that ship every week.`}
       >
         <div className="mt-10">
           <ArrowLink href="/pricing">Compare every plan</ArrowLink>
@@ -749,36 +728,36 @@ export function PricingSection() {
 
 const FAQS = [
   {
-    q: 'What is Screenshot Studio?',
-    a: 'A launch platform for software teams. You describe a release, or send it from GitHub. It drafts a cited brief, plans the campaign, designs visuals from your real product, and writes channel-ready posts. You approve before anything goes out. Underneath sits the open-source screenshot editor, which stays free.',
+    q: 'What is Shots?',
+    a: 'A launch platform for software teams. You describe a release, or send it from GitHub. Shots writes a launch brief where every claim cites a source, plans the launch, designs visuals from your real product, and drafts posts for each channel. You approve before anything goes out. The open-source screenshot editor underneath is included in every plan.',
   },
   {
     q: 'Will it ever post without me?',
-    a: 'No. Approval is enforced on the server. Agents and API keys can create drafts. Only signed-in members move posts to review, only members with approval rights can approve, and only approved posts can be scheduled.',
+    a: 'No. Approval is enforced on the server. The AI and API keys can create drafts. Only signed-in teammates can submit posts for review. Only teammates with approval rights can approve, and only approved posts can be scheduled.',
   },
   {
     q: 'Where do the screenshots come from?',
-    a: 'Your live product. The capture tool photographs the product URL and the release source links, then composes the result in the editor with your brand kit. Pages behind a login are not supported yet.',
+    a: "Your live product. Shots captures your product URL and the release's source links, then lays them out in the editor with your brand kit. Pages behind a login are not supported yet.",
   },
   {
     q: 'How does it avoid making things up?',
-    a: `Every claim in the ${SPEC_SECTIONS.length}-section spec cites the brief or a source. A claim with no source is removed and becomes an open question for you. Posts may only cite claims the spec contains, and posts that break that rule are rejected.`,
+    a: `Every claim in the ${SPEC_SECTIONS.length}-section launch brief cites your release or a source. A claim with no source is removed and becomes an open question for you. Posts may only use claims the launch brief contains, and a post that breaks that rule fails the copy checks.`,
   },
   {
     q: 'Which channels does it cover?',
-    a: 'Copy for X, LinkedIn, Instagram, Product Hunt, your changelog, and email. Scheduled delivery to X, LinkedIn, and Instagram is in early access, and channel connections are set up with you.',
+    a: `Posts for all ${LAUNCH_CHANNELS.length} channels: X, LinkedIn, Instagram, Product Hunt, your changelog, and email. Scheduled publishing to X, LinkedIn, and Instagram is in early access, and we set up channel connections with you.`,
   },
   {
     q: 'Can I edit what it makes?',
-    a: 'Yes. Edit copy inline, open any visual in the full editor, or ask for a revision and apply it from a diff. Nothing you approved changes on its own.',
+    a: 'Yes. Edit copy inline, open any visual in the full editor, or ask for a revision and apply it from a diff. Approved posts stay exactly as you approved them.',
   },
   {
     q: 'Do you train models on my content?',
-    a: 'No. Screenshot Studio learns your taste by retrieving your own workspace history at generation time: approved posts, rejected posts with notes, and applied revisions. Nothing is shared across workspaces.',
+    a: 'No. Each time Shots writes, it looks up your own workspace history: approved posts, rejected posts with notes, and applied revisions. Nothing is shared across workspaces.',
   },
   {
-    q: 'Is the editor still free and open source?',
-    a: `Yes. The editor is ${PRODUCT_FACTS.license} licensed, available on a free workspace plan, and exports carry no watermark.`,
+    q: 'Is the editor still open source?',
+    a: `Yes. The editor is ${PRODUCT_FACTS.license} licensed, included in every plan, and exports carry no watermark.`,
   },
 ]
 

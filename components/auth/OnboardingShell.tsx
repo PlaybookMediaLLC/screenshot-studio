@@ -34,7 +34,7 @@ export function OnboardingShell({
                 src="/logo-mark.png"
                 width={28}
               />
-              <span className="text-sm font-semibold tracking-tight">Screenshot Studio</span>
+              <span className="text-sm font-semibold tracking-tight">Shots</span>
             </div>
             <ol className="flex flex-col gap-6">
               {steps.map((step, index) => {

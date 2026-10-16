@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     'mockup editor online free',
     'mockup design online',
     'mockup free online',
-    'free online mockup generator no watermark',
+    'online mockup generator no watermark',
     'free mockup generator without watermark',
     'app mockup generator',
     'website mockup generator',
@@ -76,7 +76,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     ...OG_DEFAULTS,
-    title: 'Screenshot Studio - Free Screenshot Editor & Mockup Maker',
+    title: 'Shots - Free Screenshot Editor & Mockup Maker',
     description:
       'Free screenshot editor online — add backgrounds, shadows, 3D effects, and animations. Export as PNG, JPG, or video.',
     url: '/',
@@ -93,6 +93,7 @@ export default async function EditorPage({ params }: EditorPageProps) {
   if (!access) redirect(getLocalizedPath(locale, '/sign-in'))
   if (!access.hasOrganization) redirect(getLocalizedPath(locale, '/onboarding'))
   if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
+  if (!access.hasPaidPlan) redirect(getLocalizedPath(locale, '/pricing?subscribe=required'))
 
   return (
     <PlatformShell

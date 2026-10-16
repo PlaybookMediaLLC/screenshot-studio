@@ -123,28 +123,32 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	repo.WithQuotaCounter(quotaCounter)
 	actor := Actor{OrganizationID: orgID, UserID: userID, SessionID: "session_" + id, RequestID: "request_" + id}
 	entitlements, err := repo.GetEntitlementSummary(ctx, actor)
-	if err != nil || entitlements.Plan != "free" || !entitlements.Features["asset:read"] || entitlements.Features["asset:delete"] {
+	if err != nil || entitlements.Plan != "free" || entitlements.Features["asset:read"] || entitlements.Features["workspace:use"] {
 		t.Fatalf("workspace entitlements=%+v err=%v", entitlements, err)
 	}
 	decision, err := repo.GetFeatureDecision(ctx, actor, "asset:delete")
 	if err != nil || decision.Allowed || decision.CurrentPlan != "free" || decision.RequiredPlan != "pro" {
 		t.Fatalf("feature decision=%+v err=%v", decision, err)
 	}
+	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 0); !errors.Is(err, ErrQuotaExceeded) {
+		t.Fatalf("unsubscribed workspace has AI credits: %v", err)
+	}
+	subscribe(t, ctx, repo, orgID, "pro")
 	meter := &recordingMonthlyMeter{}
 	repo.WithMonthlyMeter(meter)
-	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 0); err != nil || remaining != 250 {
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 0); err != nil || remaining != 3_600 {
 		t.Fatalf("AI credit peek remaining=%d err=%v", remaining, err)
 	}
-	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 40); err != nil || remaining != 210 {
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 40); err != nil || remaining != 3_560 {
 		t.Fatalf("AI credits remaining=%d err=%v", remaining, err)
 	}
 	// Web images older than the credit meter still meter AI credits.
-	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, "generation:monthly", 10); err != nil || remaining != 200 {
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, "generation:monthly", 10); err != nil || remaining != 3_550 {
 		t.Fatalf("legacy generation quota remaining=%d err=%v", remaining, err)
 	}
 	var exceeded *QuotaExceededError
-	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 201); !errors.As(err, &exceeded) ||
-		exceeded.Quota != QuotaAICredits || exceeded.Limit != 250 || !exceeded.ResetAt.Equal(nextMonthStart(time.Now())) {
+	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 3_551); !errors.As(err, &exceeded) ||
+		exceeded.Quota != QuotaAICredits || exceeded.Limit != 3_600 || !exceeded.ResetAt.Equal(nextMonthStart(time.Now())) {
 		t.Fatalf("AI credit overrun accepted: %v", err)
 	}
 	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 0); !errors.Is(err, ErrQuotaExceeded) {
@@ -181,13 +185,13 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 		t.Fatalf("post charge: %v", err)
 	}
 	refund()
-	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaPosts, 0); err != nil || remaining != 10 {
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaPosts, 0); err != nil || remaining != 120 {
 		t.Fatalf("refunded posts remaining=%d err=%v", remaining, err)
 	}
-	if _, err := repo.ChargeMonthlyQuota(ctx, orgID, QuotaPosts, 11); !errors.Is(err, ErrQuotaExceeded) {
+	if _, err := repo.ChargeMonthlyQuota(ctx, orgID, QuotaPosts, 121); !errors.Is(err, ErrQuotaExceeded) {
 		t.Fatalf("post overrun accepted: %v", err)
 	}
-	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaPosts, 0); err != nil || remaining != 10 {
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaPosts, 0); err != nil || remaining != 120 {
 		t.Fatalf("a refused post charge used the allowance: remaining=%d err=%v", remaining, err)
 	}
 	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, "unknown:monthly", 1); !errors.Is(err, ErrInvalidInput) {
@@ -257,11 +261,6 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if result, err := repo.DeleteAsset(ctx, actor, "asset_other_"+id); err != nil || result != AssetMissing {
 		t.Fatalf("foreign asset deletion disclosed ownership: result=%s err=%v", result, err)
 	}
-	var notEntitled *FeatureNotEntitledError
-	if _, err := repo.DeleteAsset(ctx, actor, "asset_old_"+id); !errors.As(err, &notEntitled) ||
-		notEntitled.Feature != "asset:delete" || notEntitled.CurrentPlan != "free" || notEntitled.RequiredPlan != "pro" {
-		t.Fatalf("free plan asset deletion allowed: %v", err)
-	}
 	objects := &recordingAssetObjects{}
 	repo.WithObjectStore(objects)
 	signed, err := repo.SignAssetUpload(ctx, actor, AssetUploadInput{
@@ -326,9 +325,14 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if _, _, err := repo.ReadAsset(ctx, secondActor, generated.ID); !errors.Is(err, publishing.ErrNotFound) {
 		t.Fatalf("cross-tenant asset bytes were visible: %v", err)
 	}
-	if result, err := repo.SignAssetUpload(ctx, secondActor, AssetUploadInput{
-		Bytes: 1, Classification: "input", ContentType: "image/png", FileName: "first.png",
-	}); err != nil || result.Asset.Status != "PENDING" {
+	firstUpload := AssetUploadInput{Bytes: 1, Classification: "input", ContentType: "image/png", FileName: "first.png"}
+	var notEntitled *FeatureNotEntitledError
+	if _, err := repo.SignAssetUpload(ctx, secondActor, firstUpload); !errors.As(err, &notEntitled) ||
+		notEntitled.Feature != "asset:create" || notEntitled.CurrentPlan != "free" || notEntitled.RequiredPlan != "pro" {
+		t.Fatalf("unsubscribed workspace upload allowed: %v", err)
+	}
+	subscribe(t, ctx, repo, workspace.ID, "pro")
+	if result, err := repo.SignAssetUpload(ctx, secondActor, firstUpload); err != nil || result.Asset.Status != "PENDING" {
 		t.Fatalf("first upload in empty workspace=%+v err=%v", result, err)
 	}
 	t.Cleanup(func() { _, _ = db.SQL.ExecContext(ctx, `DELETE FROM organization WHERE id=$1`, workspace.ID) })
@@ -340,11 +344,11 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if err != nil || bootstrap.User.ID != userID || bootstrap.Organization.ID != orgID ||
 		bootstrap.Role != "owner" || len(bootstrap.Organizations) != 2 ||
 		bootstrap.Counters.Approvals != 0 || bootstrap.Counters.Attention != 0 ||
-		!bootstrap.Entitlements.Features["asset:read"] || bootstrap.Entitlements.Features["asset:update"] {
+		!bootstrap.Entitlements.Features["asset:read"] || !bootstrap.Entitlements.Features["workspace:use"] {
 		t.Fatalf("bootstrap=%+v err=%v", bootstrap, err)
 	}
 	if _, err := db.SQL.ExecContext(ctx,
-		`INSERT INTO workspace_entitlement ("organizationId",plan,status,"featureOverrides","createdAt","updatedAt") VALUES ($1,'pro','active','{"asset:update":false}',now(),now())`, orgID); err != nil {
+		`UPDATE workspace_entitlement SET "featureOverrides"='{"asset:update":false}' WHERE "organizationId"=$1`, orgID); err != nil {
 		t.Fatal(err)
 	}
 	bootstrap, err = repo.Bootstrap(ctx, actor)

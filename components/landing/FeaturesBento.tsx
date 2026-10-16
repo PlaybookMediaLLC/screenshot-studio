@@ -11,19 +11,19 @@ import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 
 const FEATURE_CARDS: MagicBentoCard[] = [
   {
-    title: "Device Frames",
+    title: "Device frames",
     description: "macOS, Windows, Arc, etc.",
     label: "Frames",
     visual: <FramesVisual />,
   },
   {
-    title: "3D Transforms",
+    title: "3D transforms",
     description: "30+ perspective presets with realistic tilt.",
     label: "Depth",
     visual: <TransformsVisual />,
   },
   {
-    title: "Beautiful Backgrounds",
+    title: "Backgrounds",
     description:
       `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solids, images, blur, and noise. One click polish.`,
     label: "Style",
@@ -31,7 +31,7 @@ const FEATURE_CARDS: MagicBentoCard[] = [
     large: true,
   },
   {
-    title: "Animations & Video",
+    title: "Animations & video",
     description:
       `${atLeast(PRODUCT_FACTS.animationPresets)} presets plus a timeline editor. Export MP4, WebM, or GIF.`,
     label: "Motion",
@@ -39,13 +39,13 @@ const FEATURE_CARDS: MagicBentoCard[] = [
     large: true,
   },
   {
-    title: "Tweet & Code Snippets",
+    title: "Tweet & code snippets",
     description: "Paste a tweet URL or drop code.",
     label: "Capture",
     visual: <CaptureVisual />,
   },
   {
-    title: "High-Res Export",
+    title: "High-res export",
     description: "PNG or JPG up to 5×.",
     label: "Export",
     visual: <ExportVisual />,

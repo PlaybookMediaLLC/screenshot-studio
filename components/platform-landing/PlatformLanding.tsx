@@ -69,7 +69,7 @@ function Hero() {
         </h1>
         <div className="lg:pb-2">
           <p className="max-w-[46ch] text-lg leading-[1.5] text-white/65">
-            Screenshot Studio reads what you shipped, writes a cited launch brief, designs on-brand
+            Shots reads what you shipped, writes a cited launch brief, designs on-brand
             visuals from your real product, and drafts posts for every channel. Nothing goes out
             until you approve it.
           </p>
@@ -88,7 +88,7 @@ function Hero() {
       <Stage className="mt-16 p-3 sm:mt-20 sm:p-10 lg:p-14" variant={0}>
         <Window
           className="w-full"
-          meta={<span className={cn(MONO, 'text-[11.5px]')}>launch run · illustrative</span>}
+          meta={<span className={cn(MONO, 'text-[11.5px]')}>example launch</span>}
           title={
             <>
               <span className="size-2 rounded-full bg-emerald-400" />
@@ -104,7 +104,7 @@ function Hero() {
 
       <div className="mt-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <p className={cn('text-[15px]', MUTED)}>
-          Starts where you ship. Ends where your users read.
+          Takes releases from GitHub and GitLab. Drafts posts for the channels your users read.
         </p>
         <ul className="flex flex-wrap items-center gap-x-7 gap-y-3">
           {STACK.map(({ icon: Icon, name }) => (

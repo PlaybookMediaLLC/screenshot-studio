@@ -59,17 +59,15 @@ async function loadBackendPageWorkspace(
   return (await backendSDK({ ...access, organizationId: active.id }).getWorkspace()).workspace
 }
 
-async function loadBackendCampaignFlag(
+/** The workspace's plan features, or none when there is no usable workspace. */
+async function loadBackendFeatures(
   active: ListedWorkspace | undefined,
   access: BackendSessionAccess,
   workspace: Workspace | null
-) {
-  if (!active || !workspace) return false
-  // PLATFORM_CAMPAIGN_WORKFLOW=enabled turns the rollout on for a whole
-  // environment (local development, staging, e2e).
-  if (process.env.PLATFORM_CAMPAIGN_WORKFLOW === 'enabled') return true
+): Promise<Record<string, boolean>> {
+  if (!active || !workspace) return {}
   const bootstrap = await backendSDK({ ...access, organizationId: active.id }).getBootstrap()
-  return bootstrap.entitlements.features['campaign:workflow'] === true
+  return bootstrap.entitlements.features
 }
 
 async function getBackendPageAccess(requestHeaders: Headers, session: SignedInSession) {
@@ -78,9 +76,16 @@ async function getBackendPageAccess(requestHeaders: Headers, session: SignedInSe
     session
   )
   const workspace = await loadBackendPageWorkspace(active, sessionAccess)
+  const features = await loadBackendFeatures(active, sessionAccess, workspace)
   return {
-    campaignWorkflowEnabled: await loadBackendCampaignFlag(active, sessionAccess, workspace),
+    // PLATFORM_CAMPAIGN_WORKFLOW=enabled turns the rollout on for a whole
+    // environment (local development, staging, e2e).
+    campaignWorkflowEnabled:
+      Boolean(workspace) &&
+      (process.env.PLATFORM_CAMPAIGN_WORKFLOW === 'enabled' || features['campaign:workflow'] === true),
     hasOrganization: count > 0,
+    // There is no free plan: only an active paid subscription grants this.
+    hasPaidPlan: features['workspace:use'] === true,
     isWorkspaceOperational: Boolean(workspace),
     organization: backendPageOrganization(active, workspace),
     role: active?.role ?? 'viewer',
@@ -119,4 +124,24 @@ export async function redirectIfSignedIn(
       ? callbackURL
       : '/'
   redirect(getLocalizedPath(locale, target))
+}
+
+/**
+ * The access for a product page, which needs a signed-in teammate in a
+ * workspace with an active paid plan. Anyone else is sent to the step they
+ * are missing: sign-in, onboarding, workspace recovery, or choosing a plan.
+ */
+export async function requirePaidPageAccess(
+  requestHeaders: Headers,
+  locale: string,
+  returnTo: string
+) {
+  const access = await getPageAccess(requestHeaders)
+  if (!access) {
+    redirect(getLocalizedPath(locale, `/sign-in?callbackURL=${encodeURIComponent(returnTo)}`))
+  }
+  if (!access.hasOrganization) redirect(getLocalizedPath(locale, '/onboarding'))
+  if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
+  if (!access.hasPaidPlan) redirect(getLocalizedPath(locale, '/pricing?subscribe=required'))
+  return access
 }

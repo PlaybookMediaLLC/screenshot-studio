@@ -177,7 +177,7 @@ Better Auth and audit secrets. Do not copy `.local/dev.env` to another
 environment.
 
 Cache cleanup and invalidation use the generated `CLEANUP_SECRET` in the
-`x-screenshot-studio-maintenance-secret` request header. It is server-only;
+`x-shots-maintenance-secret` request header. It is server-only;
 never send it from the browser.
 
 ## Quality checks

@@ -21,9 +21,9 @@ const webhookHeaderSchema = z.enum([
   'x-gitlab-event',
   'x-gitlab-event-uuid',
   'x-hub-signature-256',
-  'x-screenshot-studio-event-id',
-  'x-screenshot-studio-signature',
-  'x-screenshot-studio-timestamp',
+  'x-shots-event-id',
+  'x-shots-signature',
+  'x-shots-timestamp',
 ])
 
 /** Where each webhook fact is read from, first header present wins. */
@@ -52,9 +52,9 @@ const gitlabHeaders = webhookHeaderSetSchema.parse({
 
 const genericHeaders = webhookHeaderSetSchema.parse({
   event: [],
-  eventId: ['x-screenshot-studio-event-id'],
-  signature: ['x-screenshot-studio-signature'],
-  timestamp: ['x-screenshot-studio-timestamp'],
+  eventId: ['x-shots-event-id'],
+  signature: ['x-shots-signature'],
+  timestamp: ['x-shots-timestamp'],
 })
 
 /** The verified webhook: its delivery id and the source app it belongs to. */

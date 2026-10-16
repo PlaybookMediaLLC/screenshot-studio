@@ -58,6 +58,7 @@ func TestAnnouncementsAndAudience(t *testing.T) {
 
 	meter := &recordingMonthlyMeter{}
 	repo := NewConfiguration(db.Client).WithMonthlyMeter(meter)
+	subscribe(t, ctx, repo, org, "pro")
 	emails := monthlyMeterKey(QuotaEmails, org, time.Now())
 	session := Actor{OrganizationID: org, UserID: owner, SessionID: "session_" + owner, RequestID: "req_" + id}
 	creatorSession := Actor{OrganizationID: org, UserID: creator, SessionID: "session_" + creator}

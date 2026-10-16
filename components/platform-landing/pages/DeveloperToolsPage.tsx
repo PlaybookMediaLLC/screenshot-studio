@@ -36,15 +36,17 @@ function CodeImageMock() {
 /** /solutions/developer-tools: launches for products whose users read code. */
 export function DeveloperToolsPage() {
   return (
-    <MarketingShell finale={{ lead: 'Launches your users', trail: 'can check.' }}>
+    <MarketingShell
+      finale={{ lead: 'Get an API key', trail: 'and send your first release from CI.' }}
+    >
       <PageHero
-        body="Developers read the pull request before they believe the tweet. Screenshot Studio starts from the pull request too: releases arrive from CI or a webhook, every claim cites its source, and the changelog says what the release does not do."
+        body="Developers read the pull request before they believe the tweet. Shots starts from the pull request too. Releases arrive from CI or a webhook, every claim cites its source, and the changelog says what the release does not do yet."
         eyebrow={{ href: '/use-cases', label: 'Developer tools', parent: 'Solutions' }}
-        lead="For products"
+        lead="Launches for products"
         location="developer_tools_hero"
-        primary={{ href: '/product/release-intake', label: 'Explore the API' }}
+        primary={{ href: '/api-reference', label: 'Explore the API' }}
         secondary={{ href: '/sign-up', label: 'Get started' }}
-        trail="developers use."
+        trail="that developers use."
       >
         <Stage className="px-4 py-12 sm:px-12 sm:py-20" variant={3}>
           <div className="w-full min-w-0 max-w-[760px]">
@@ -55,27 +57,27 @@ export function DeveloperToolsPage() {
 
       <Section>
         <SectionIntro
-          body="Your audience can tell marketing from engineering. Keep the launch close to the engineering."
+          body="Your audience can tell marketing copy from engineering notes, so keep the launch close to the engineering."
           label="Credibility"
-          lead="Claims that cite"
-          trail="the pull request."
+          lead="Every claim points to a source"
+          trail="your users can open and check."
         />
         <div className="mt-24 space-y-24">
           <SplitFeature
-            body="Pull requests and GitHub releases are read through the GitHub API and numbered as sources. Every claim in the spec points at one, and posts may only cite claims the spec contains."
+            body="Shots reads pull requests and GitHub releases through the GitHub API and numbers them as sources. Every claim in the launch brief points at one, and posts may only use claims the launch brief contains."
             bullets={[
-              'No benchmark the sources do not state',
-              'Limitations are part of the spec',
-              'Hype words are rejected outright',
+              'Benchmarks only when a source states them',
+              'Limitations are part of the launch brief',
+              'Hype words fail the copy checks',
             ]}
             index={0}
             link={{ href: '/product/guardrails', label: 'Read about the guardrails' }}
-            title="Sourced, not spun"
+            title="Every claim has a source"
           >
             <SpecMock />
           </SplitFeature>
           <SplitFeature
-            body="The changelog entry comes from the same spec as the posts, so release notes and announcements never disagree."
+            body="The changelog entry comes from the same launch brief as the posts, so your release notes and your posts agree."
             index={1}
             link={{ href: '/use-cases/changelog-and-email', label: 'Changelog and email' }}
             title="A changelog that matches"
@@ -83,7 +85,7 @@ export function DeveloperToolsPage() {
             <ChangelogMock />
           </SplitFeature>
           <SplitFeature
-            body={`Some launches are best shown as code. The code image editor ships ${PRODUCT_FACTS.codeThemes} syntax themes, ${PRODUCT_FACTS.codeLanguages} languages, and shareable links, free in your browser.`}
+            body={`Some launches are best shown as code. The code image editor ships ${PRODUCT_FACTS.codeThemes} syntax themes, ${PRODUCT_FACTS.codeLanguages} languages, and shareable links, included in every plan.`}
             index={2}
             link={{ href: '/code', label: 'Open code to image' }}
             title="Show the code"
@@ -95,10 +97,10 @@ export function DeveloperToolsPage() {
 
       <Section>
         <SectionIntro
-          body="Your docs are read by agents now. So are ours."
-          label="Machine-readable"
-          lead="Built for the tools"
-          trail="your users use."
+          body="Developers now read docs through AI assistants, so we publish ours in formats those tools can read."
+          label="For AI tools"
+          lead="Docs that AI tools can read:"
+          trail="OpenAPI, llms.txt, and Markdown pages."
         />
         <div className="mt-24">
           <TileGrid
@@ -106,17 +108,17 @@ export function DeveloperToolsPage() {
               {
                 snippet: '/openapi.json',
                 title: 'OpenAPI 3.1',
-                body: 'Generated from the Zod contracts the routes validate with, with a live Scalar reference.',
+                body: 'Generated from the Zod contracts the API routes validate with, plus an interactive reference at /api-reference.',
               },
               {
                 snippet: '/llms.txt',
                 title: 'llms.txt',
-                body: 'A Markdown overview and a long-form reference for agents and LLM crawlers.',
+                body: 'A Markdown overview and a long-form reference for AI assistants and crawlers.',
               },
               {
                 snippet: 'Accept: text/markdown',
                 title: 'Markdown pages',
-                body: 'Supported pages return Markdown when an agent asks for it.',
+                body: 'Supported pages return Markdown when an AI tool asks for it.',
               },
             ]}
           />
@@ -130,7 +132,7 @@ export function DeveloperToolsPage() {
         items={[
           {
             q: 'Can it read private repositories?',
-            a: 'Release webhooks from private repositories work. Pull request links are read through the public GitHub API, so for a private repository put the key details in the brief, where they count as trusted.',
+            a: 'Release webhooks from private repositories work. Pull request links are read through the public GitHub API. For a private repository, put the key details in the release itself, which Shots trusts.',
           },
           {
             q: 'Does it read our source code?',
@@ -144,7 +146,11 @@ export function DeveloperToolsPage() {
       />
 
       <Section>
-        <SectionIntro label="Related" lead="Keep reading." trail="Every part connects." />
+        <SectionIntro
+          label="Related"
+          lead="For the technical details, see release intake,"
+          trail="integrations, and the guardrails."
+        />
         <div className="mt-24">
           <LinkCards paths={['/product/release-intake', '/integrations', '/product/guardrails']} />
         </div>

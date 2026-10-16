@@ -27,6 +27,7 @@ import {
 } from '../blocks'
 import { MONO, MUTED, Section, SectionIntro, Tag, Window } from '../primitives'
 import { CopyMock, PlanMock, ReviewMock, SpecMock, VisualsMock } from '../WorkflowSection'
+import { CitationTrail } from '../diagrams/CitationTrail'
 
 /** What each spec section holds. Keyed by the schema, so a new section fails the build here. */
 const SECTION_NOTES: Record<SpecSectionKey, string> = {
@@ -40,7 +41,7 @@ const SECTION_NOTES: Record<SpecSectionKey, string> = {
   limitations: 'What it does not do yet.',
   faqs: 'Questions and answers for the launch.',
   messaging: 'Pillars, positioning against alternatives, and calls to action.',
-  openQuestions: 'Gaps the model would otherwise have to invent. You answer them.',
+  openQuestions: 'Gaps no source covers. You answer them.',
 }
 
 const ASSET_LABELS: Record<(typeof ASSET_KINDS)[number], string> = {
@@ -51,9 +52,9 @@ const ASSET_LABELS: Record<(typeof ASSET_KINDS)[number], string> = {
 }
 
 const REVISION_LABELS: Record<(typeof REVISION_TARGETS)[number], string> = {
-  spec_section: 'A spec section',
+  spec_section: 'A launch brief section',
   post: 'A post',
-  design: 'A design',
+  design: 'A visual',
   plan: 'The plan',
 }
 
@@ -89,14 +90,16 @@ const limit = (value: number) => (value > 0 ? value.toLocaleString('en-US') : 'n
 /** /product/launch-intelligence: sources, spec, plan, production, review, learning, and limits. */
 export function LaunchIntelligencePage() {
   return (
-    <MarketingShell finale={{ lead: 'Ship the feature.', trail: 'Get the launch, cited.' }}>
+    <MarketingShell
+      finale={{ lead: 'Apply for early access', trail: 'and run your next release through it.' }}
+    >
       <PageHero
-        body="Launch intelligence reads what you shipped, drafts a launch spec where every claim has a source, plans the campaign, and produces visuals and copy for every channel. You approve each stage, and it learns from what you keep."
+        body="Launch intelligence reads what you shipped and writes a launch brief where every claim has a source. Then it plans the launch and drafts visuals and posts for every channel. You approve each stage, and the AI learns from what you keep."
         eyebrow={{ href: '/product', label: 'Launch intelligence', parent: 'Product' }}
-        lead="A launch team"
+        lead="Launch posts drafted from your release,"
         location="launch_intelligence_hero"
         secondary={{ href: '/design-partners', label: 'Become a design partner' }}
-        trail="that cites its sources."
+        trail="with a source for every claim."
       >
         <HeroStage>
           <div className="grid w-full max-w-[880px] gap-4 md:grid-cols-2">
@@ -108,7 +111,7 @@ export function LaunchIntelligencePage() {
 
       <Section>
         <SectionIntro
-          body="Everything the release says about itself, and nothing it does not. Sources are evidence for the model, never instructions to it."
+          body="The AI works only from what your release and its links say. Text in a source that reads like instructions is flagged for you."
           label="Sources"
           lead="It reads the release"
           trail="and everything it links to."
@@ -118,18 +121,18 @@ export function LaunchIntelligencePage() {
             items={[
               {
                 snippet: 'brief · trusted',
-                title: 'The brief',
-                body: 'Title, why it matters, description, audience, and the open questions you have answered. Typed by your team, so it is trusted.',
+                title: 'Your release',
+                body: 'Title, why it matters, description, audience, and the open questions you answered. Your team typed it, so the AI trusts it.',
               },
               {
                 snippet: 'S1 … S8',
                 title: 'Numbered sources',
-                body: 'Each source link and the product URL, fetched safely. Pull requests and GitHub releases are read through the GitHub API, everything else as HTML or text.',
+                body: 'Each source link and the product URL, fetched from public addresses only. Pull requests and GitHub releases are read through the GitHub API. Everything else is read as HTML or text.',
               },
               {
                 snippet: 'trust="untrusted"',
-                title: 'Machine briefs are fenced',
-                body: 'A release from a webhook or an API key has no author on your team. Its brief is fenced like a source, checked for prompt injection, and shown with the sources for review.',
+                title: 'Automated releases are checked',
+                body: 'A release from a webhook or an API key has no author on your team. The AI treats its text like any other source, checks it for hidden instructions, and shows it to you for review.',
               },
             ]}
           />
@@ -138,14 +141,15 @@ export function LaunchIntelligencePage() {
 
       <Section>
         <SectionIntro
-          body="The spec is the single source of truth for the launch. A claim that cites nothing, or cites a source that does not exist, is removed and becomes an open question. Every draft, edit, and applied revision is a new version, and one version is approved."
-          label="The spec"
-          lead={`${SPEC_SECTIONS.length} sections.`}
-          trail="Every claim cited."
+          body="Every post is written from the launch brief. A claim that cites nothing, or cites a missing source, is removed and becomes an open question. Every draft, edit, and applied revision saves a new version, and you approve one."
+          label="The launch brief"
+          lead={`${SPEC_SECTIONS.length} sections in every launch brief,`}
+          trail="and each claim cites a source."
         />
-        <div className="mt-24">
+        <div className="mt-24 space-y-12">
+          <CitationTrail />
           <RowTable
-            caption="Launch spec sections"
+            caption="Launch brief sections"
             head={['Section', 'What it holds']}
             rows={SPEC_SECTIONS.map((section) => ({
               label: SPEC_SECTION_LABELS[section],
@@ -157,14 +161,14 @@ export function LaunchIntelligencePage() {
 
       <Section>
         <SectionIntro
-          body="Approve the plan the way you would approve a pull request. Then everything downstream is built to it, and anything built to an older plan is marked."
+          body="Review the plan the way you would review a pull request. Everything after it is built to the approved plan, and anything built to an older plan is marked."
           label="The plan"
-          lead="A plan first."
-          trail="Posts second."
+          lead="You approve the plan"
+          trail="before any post is written."
         />
         <div className="mt-24">
           <SplitFeature
-            body="Each channel gets a role and a cadence. Each angle maps to a messaging pillar. Each asset names the capability it shows, the page to capture, the device, and what to focus on."
+            body="Each channel gets a role and a cadence, and each angle maps to a messaging pillar. Each visual names the capability it shows, the page to capture, the device, and the focus."
             index={0}
             title="Channels, angles, assets, and a timeline"
           >
@@ -181,7 +185,7 @@ export function LaunchIntelligencePage() {
             </div>
           </div>
           <div className="bg-[#111] p-8">
-            <p className={cn('text-[15px]', MUTED)}>Assets and formats</p>
+            <p className={cn('text-[15px]', MUTED)}>Visuals and formats</p>
             <div className="mt-5 flex flex-wrap gap-2">
               {ASSET_KINDS.map((kind) => (
                 <Tag key={kind}>{ASSET_LABELS[kind]}</Tag>
@@ -207,19 +211,19 @@ export function LaunchIntelligencePage() {
 
       <Section>
         <SectionIntro
-          body="A visuals agent and a copy agent run side by side against the approved spec and plan. Neither moves on until its work passes the checks."
+          body="The AI makes the visuals and writes the posts at the same time. Neither moves on until its work passes the checks."
           label="Produce"
-          lead="Two agents."
-          trail="One spec, one brand."
+          lead="Visuals and posts are made side by side"
+          trail="from the approved launch brief and plan."
         />
         <div className="mt-24 space-y-24">
           <SplitFeature
-            body="The visuals agent captures your product, composes it in the editor, and applies the workspace brand kit: a gradient from the brand background to the accent, the brand text color, and the nearest font in the catalog."
+            body="The AI captures your product, lays it out in the editor, and applies your brand kit: a gradient from the brand background to the accent, the brand text color, and the nearest font in the catalog."
             bullets={[
-              'Designs carry their plan asset and an A or B variant label',
-              'Every render is critiqued against the spec, the brand kit, and legibility',
-              'A failing render is fixed and rendered again before the agent moves on',
-              'The critique is stored with the design and shown on the asset board',
+              'Visuals carry their place in the plan and an A or B variant label',
+              'Every visual is checked against the launch brief, the brand kit, and legibility',
+              'A visual that fails is fixed and rendered again before the AI moves on',
+              'The check results are saved with the visual and shown on the asset board',
             ]}
             index={1}
             link={{ href: '/product/creative-engine', label: 'See the creative engine' }}
@@ -228,15 +232,15 @@ export function LaunchIntelligencePage() {
             <VisualsMock />
           </SplitFeature>
           <SplitFeature
-            body="The copy agent writes channel-native posts in your brand voice, several angles per channel, and lists the spec claims each post relies on."
+            body="The AI writes posts for each channel in your brand voice, with several angles per channel. Each post lists the claims from the launch brief it relies on."
             bullets={[
-              'Over-limit posts are rejected with the measured overflow',
-              'Hype words and your prohibited terms are rejected',
+              'Over-limit posts fail with the measured overflow',
+              'Hype words and your banned terms fail',
               'Links must point at the product or a release source',
-              'Email addresses and uncited claims are rejected',
+              'Email addresses and uncited claims fail',
             ]}
             index={2}
-            title="Copy that cites its claims"
+            title="Posts that cite their claims"
           >
             <CopyMock />
           </SplitFeature>
@@ -245,10 +249,10 @@ export function LaunchIntelligencePage() {
 
       <Section>
         <SectionIntro
-          body="Copy is checked against these rules before it is saved. The model gets the reasons back and fixes the post in the same run. Anything still failing is never stored."
+          body="Copy checks run before a post is saved. The AI gets the reasons back and fixes the post in the same launch. A post that still fails is discarded."
           label="Channel rules"
-          lead="Limits, checked."
-          trail="Not suggested."
+          lead="Every post is checked against its channel's limits"
+          trail="before it is saved."
         />
         <div className="mt-24 grid gap-16 lg:grid-cols-[1.4fr_1fr]">
           <RowTable
@@ -273,7 +277,7 @@ export function LaunchIntelligencePage() {
           <div>
             <p className="text-lg text-white">Words it will not write</p>
             <p className={cn('mt-2 text-[15px]', MUTED)}>
-              Plus every term on your brand profile&apos;s prohibited list.
+              Plus every term on your brand profile&apos;s banned list.
             </p>
             <ul className="mt-6 flex flex-wrap gap-2">
               {HYPE_TERMS.map((term) => (
@@ -294,14 +298,14 @@ export function LaunchIntelligencePage() {
 
       <Section>
         <SectionIntro
-          body="Reviewers approve, reject with a note, or request changes. Revise with AI works on any piece and returns a proposal, never an edit."
+          body="Reviewers approve, reject with a note, or request changes. Revise with AI works on any piece and returns a proposal for you to review."
           label="Review"
-          lead="Proposals, not edits."
-          trail="You apply what you want."
+          lead="AI revisions arrive as proposals"
+          trail="that you apply or discard."
         />
         <div className="mt-24">
           <SplitFeature
-            body="A revision proposal shows a word diff for its target, plus consistency updates for anything that depends on it, such as the posts that cite a messaging pillar you just changed. Choose which updates to include. Nothing changes until you apply."
+            body="A proposal shows a word diff for its target. It also suggests matching updates for anything that depends on it, such as posts that cite a messaging pillar you changed. Choose which updates to include. Nothing changes until you apply."
             bullets={REVISION_TARGETS.map((target) => `${REVISION_LABELS[target]} can be revised`)}
             index={3}
             link={{ href: '/product/approvals', label: 'How approval works' }}
@@ -314,10 +318,10 @@ export function LaunchIntelligencePage() {
 
       <Section>
         <SectionIntro
-          body="Every plan, copy, and revision run starts from your own history: posts you approved, posts you sent back with a note, and the changes you asked for. Retrieval is deterministic and scoped to your workspace. No model is trained on it."
+          body="Each plan, post, and revision starts from your history: posts you approved, posts you sent back with a note, and changes you asked for. Shots looks this up within your workspace only, the same way every time. No model is trained on it."
           label="Learning"
           lead="It learns your taste"
-          trail="from your team, not the internet."
+          trail="from your team's own history."
         />
         <div className="mt-24">
           <Window meta="generated by formatTeamPreferences()" title="team_preferences">
@@ -335,10 +339,10 @@ export function LaunchIntelligencePage() {
 
       <Section>
         <SectionIntro
-          body="Bounded, attributable, and testable. Every action has a cost you can see and a record you can audit."
+          body="Every AI action has a cost you can see and a record you can audit."
           label="Under the hood"
-          lead="Models, meters,"
-          trail="and an audit trail."
+          lead="Which models run,"
+          trail="what they cost, and what gets logged."
         />
         <div className="mt-24">
           <TileGrid
@@ -352,17 +356,17 @@ export function LaunchIntelligencePage() {
               {
                 icon: Database01Icon,
                 title: 'Metered per workspace',
-                body: `Each model call is charged AI credits for what it costs, and AI actions are limited to ${LAUNCH_AI_RATE_LIMIT.maxRequests} a minute per workspace, so a burst of clicks cannot spend the month.`,
+                body: `Each AI call is charged credits at cost. AI actions are limited to ${LAUNCH_AI_RATE_LIMIT.maxRequests} a minute per workspace, so a burst of clicks can't spend the month.`,
               },
               {
                 icon: Shield01Icon,
                 title: 'Audited',
-                body: 'Spec, plan, production, and revision actions write audit events with the model ID and token usage. Prompts and completions are not written to the audit log.',
+                body: 'Launch brief, plan, drafting, and revision actions write audit events with the model ID and token usage. Prompts and completions stay out of the audit log.',
               },
               {
                 icon: FileValidationIcon,
                 title: 'Tested without a model',
-                body: 'A deterministic scripted model runs the whole pipeline in end-to-end tests. Production builds refuse it.',
+                body: 'End-to-end tests run the whole launch with a scripted stand-in model. Production builds refuse it.',
               },
             ]}
           />
@@ -373,29 +377,33 @@ export function LaunchIntelligencePage() {
         items={[
           {
             q: 'What does it need from me?',
-            a: 'A release title and either a sentence on why it matters or at least one source link. More sources make a better spec: the pull request, the changelog entry, and the docs page.',
+            a: 'A release title and either a sentence on why it matters or at least one source link. More sources make a better launch brief: the pull request, the changelog entry, and the docs page.',
           },
           {
             q: 'What happens when it does not know something?',
-            a: 'It asks. Gaps become open questions on the spec instead of invented claims, and your answers become part of the trusted brief.',
+            a: 'It asks. Gaps become open questions on the launch brief, and your answers become part of the release.',
           },
           {
-            q: 'Can I edit the spec and plan myself?',
-            a: 'Yes. Every human edit creates a new version. Approve the version you want the campaign built from.',
+            q: 'Can I edit the launch brief and plan myself?',
+            a: 'Yes. Every edit saves a new version. Approve the version you want the launch built from.',
           },
           {
             q: 'Does it publish anything?',
-            a: 'No. Launch intelligence drafts. Posts go to review, and only approved posts can be scheduled.',
+            a: 'No. The AI only drafts. Posts go to review, and only approved posts can be scheduled.',
           },
           {
             q: 'How do I get access?',
-            a: 'Launch intelligence is in early access for design partners. Apply on the design partners page and we will enable it on your workspace.',
+            a: 'It is in early access for design partners. Apply on the design partners page and we will turn it on for your workspace.',
           },
         ]}
       />
 
       <Section>
-        <SectionIntro label="Related" lead="Keep reading." trail="Every part connects." />
+        <SectionIntro
+          label="Related"
+          lead="Read how the AI is kept honest,"
+          trail="how approval works, and a feature launch end to end."
+        />
         <div className="mt-24">
           <LinkCards
             paths={['/product/guardrails', '/product/approvals', '/use-cases/feature-launches']}

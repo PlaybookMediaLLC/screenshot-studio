@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
+import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";
 import {
   Github01Icon,
   SourceCodeIcon,
@@ -15,7 +16,7 @@ import {
 export const metadata: Metadata = {
   title: "Screenshot Editor for Developers",
   description:
-    "Beautify code screenshots, terminal output, and app UIs with backgrounds, 3D effects, and animations. Free screenshot mockup tool for developers, no signup.",
+    "Beautify code screenshots, terminal output, and app UIs with backgrounds, 3D effects, and animations. Screenshot mockup tool for developers.",
   keywords: [
     "screenshot editor for developers",
     "code screenshot beautifier",
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Screenshot Editor for Developers",
     description:
-      "Beautify code screenshots, terminal output, and project UIs. Free browser-based tool for developers.",
+      "Beautify code screenshots, terminal output, and project UIs. Browser-based tool for developers.",
     url: "/for/developers",
   },
   alternates: {
@@ -61,37 +62,37 @@ const INTER =
 const useCases = [
   {
     icon: Github01Icon,
-    title: "GitHub README Images",
+    title: "GitHub README images",
     description:
       "Make your open source projects stand out with polished screenshots in README files. Add backgrounds and shadows to app screenshots that show off your work at its best.",
   },
   {
     icon: SourceCodeIcon,
-    title: "Code Snippet Sharing",
+    title: "Code snippet sharing",
     description:
-      "Share beautiful code screenshots on Twitter, LinkedIn, or dev blogs. Add gradient backgrounds and device frames that make your code pop in any feed.",
+      "Share code screenshots on Twitter, LinkedIn, or dev blogs, with gradient backgrounds and device frames.",
   },
   {
     icon: ComputerTerminal01Icon,
-    title: "Terminal & CLI Output",
+    title: "Terminal & CLI output",
     description:
-      "Turn raw terminal output into clean visuals for documentation and tutorials. Add macOS window frames and subtle shadows for a professional finish.",
+      "Turn raw terminal output into clean visuals for documentation and tutorials. Add macOS window frames and subtle shadows.",
   },
   {
     icon: DocumentCodeIcon,
-    title: "Technical Blog Posts",
+    title: "Technical blog posts",
     description:
-      "Create eye-catching hero images and inline screenshots for dev.to, Hashnode, or your personal blog. Consistent styling across all your content.",
+      "Create hero images and inline screenshots for dev.to, Hashnode, or your personal blog. Consistent styling across all your content.",
   },
   {
     icon: Layers01Icon,
-    title: "Portfolio & Case Studies",
+    title: "Portfolio & case studies",
     description:
-      "Showcase your projects with 3D perspective mockups and professional styling. Present your work the way it deserves to be seen.",
+      "Present your projects in 3D perspective mockups.",
   },
   {
     icon: Video01Icon,
-    title: "Demo Videos & GIFs",
+    title: "Demo videos & GIFs",
     description:
       "Create animated walkthroughs of your apps with zoom, pan, and transition effects. Export as MP4 or GIF for issue trackers and pull requests.",
   },
@@ -99,35 +100,35 @@ const useCases = [
 
 const workflows = [
   {
-    title: "Paste from Clipboard",
+    title: "Paste from clipboard",
     description:
       "Take a screenshot with your OS shortcut, then Cmd+V directly into the editor. No saving files first.",
   },
   {
-    title: "Drag & Drop",
+    title: "Drag & drop",
     description:
       "Drag any image file from your file manager straight onto the canvas. Supports PNG, JPG, WebP.",
   },
   {
-    title: "One-Click Presets",
+    title: "One-click presets",
     description:
-      "Pick a preset that matches your style. Dark mode gradients, minimal whites, or vibrant colors. Done in seconds.",
+      "Pick a preset that matches your style. Dark mode gradients, minimal whites, or vibrant colors.",
   },
 ];
 
 const reasons = [
   {
-    title: "Open Source",
+    title: "Open source",
     description:
       "Fully open source on GitHub. Inspect the code, contribute, or self-host.",
   },
   {
-    title: "Privacy First",
+    title: "Privacy first",
     description:
       "Editing runs in your browser. Imported images are not uploaded to edit them, and export compression returns the finished image without storing it.",
   },
   {
-    title: "Fast & Lightweight",
+    title: "Fast & lightweight",
     description:
       "No heavy downloads or Electron apps. Just open a browser tab and start editing.",
   },
@@ -151,35 +152,31 @@ export default function ForDevelopersPage() {
             "@type": "ListItem",
             position: 1,
             name: "Home",
-            item: "https://www.screenshot-studio.com",
+            item: "https://shots.playbookmedia.io",
           },
           {
             "@type": "ListItem",
             position: 2,
             name: "For Developers",
-            item: "https://www.screenshot-studio.com/for/developers",
+            item: "https://shots.playbookmedia.io/for/developers",
           },
         ],
       },
       {
         "@type": "SoftwareApplication",
-        name: "Screenshot Studio for Developers",
+        name: "Shots for Developers",
         applicationCategory: "DesignApplication",
         operatingSystem: "Web Browser",
         description:
-          "Free screenshot editor built for developers. Beautify code screenshots, terminal output, and project UIs for READMEs, blogs, and portfolios.",
-        offers: {
-          "@type": "Offer",
-          price: "0",
-          priceCurrency: "USD",
-        },
+          "Screenshot editor built for developers. Beautify code screenshots, terminal output, and project UIs for READMEs, blogs, and portfolios.",
+        offers: PRO_PLAN_OFFER,
         featureList: [
           "Code screenshot beautification",
           "Terminal window frames",
           "GitHub README images",
           "3D perspective mockups",
           "Animation and video export",
-          "No signup required",
+          "Included in every Shots plan",
         ],
       },
     ],
@@ -206,12 +203,12 @@ export default function ForDevelopersPage() {
               className="mb-6 text-4xl font-semibold tracking-[-0.04em] text-foreground md:text-6xl"
               style={{ fontFamily: INTER }}
             >
-              Screenshot Editor for Developers
+              Screenshot editor for developers
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground md:text-xl">
-              Make your code, projects, and portfolio look professional. Add
-              backgrounds, device frames, 3D effects, and animations to any
-              screenshot. Free in your browser.
+              Add backgrounds, device frames, 3D effects, and animations to
+              code, terminal, and app screenshots. Runs in your browser and is
+              included in every Shots plan.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link href="/editor" className={ctaClassName}>
@@ -231,7 +228,7 @@ export default function ForDevelopersPage() {
                 className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
                 style={{ fontFamily: INTER }}
               >
-                How Developers Use Screenshot Studio
+                How developers use Shots
               </h2>
               <p className="mx-auto max-w-2xl text-muted-foreground">
                 From README files to conference talks, make every screenshot
@@ -269,11 +266,10 @@ export default function ForDevelopersPage() {
                 className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
                 style={{ fontFamily: INTER }}
               >
-                Fits Your Workflow
+                Fits your workflow
               </h2>
               <p className="text-muted-foreground">
-                No accounts, no installs, no bloat. Just a fast editor in your
-                browser.
+                No installs. The editor runs in your browser.
               </p>
             </div>
 
@@ -302,7 +298,7 @@ export default function ForDevelopersPage() {
               className="mb-12 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              Why Developers Choose Screenshot Studio
+              Why developers choose Shots
             </h2>
             <div className="space-y-6">
               {reasons.map((reason) => (
@@ -332,8 +328,8 @@ export default function ForDevelopersPage() {
               Automate it from CI
             </h2>
             <p className="mb-4 text-muted-foreground">
-              Everything the editor does by hand is also available over HTTP, with
-              no API key and no account. <code className="rounded bg-muted px-1.5 py-0.5 text-sm">POST /api/screenshot</code>{" "}
+              Parts of the workflow are also available over HTTP, with no API
+              key. <code className="rounded bg-muted px-1.5 py-0.5 text-sm">POST /api/screenshot</code>{" "}
               captures a live URL as a PNG and{" "}
               <code className="rounded bg-muted px-1.5 py-0.5 text-sm">POST /api/export</code>{" "}
               recompresses an image, which is enough to regenerate README and docs
@@ -366,7 +362,7 @@ export default function ForDevelopersPage() {
               className="mb-8 text-center text-2xl font-semibold tracking-[-0.03em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              Explore Features
+              Explore features
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {featureLinks.map((link) => (
@@ -395,10 +391,10 @@ export default function ForDevelopersPage() {
               className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
               style={{ fontFamily: INTER }}
             >
-              Ship Better Looking Projects
+              Ship better looking projects
             </h2>
             <p className="mb-8 text-lg text-muted-foreground">
-              Free forever. No signup. No watermarks.
+              Included in every Shots plan. No watermarks.
             </p>
             <Link href="/editor" className={ctaClassName}>
               Open Editor
@@ -407,7 +403,7 @@ export default function ForDevelopersPage() {
         </section>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

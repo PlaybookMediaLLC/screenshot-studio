@@ -24,24 +24,24 @@ interface FAQProps {
 
 const defaultFAQs: FAQItem[] = [
   {
-    question: "What is Screenshot Studio?",
+    question: "What is Shots?",
     answer:
-      `Screenshot Studio is a free, browser-based screenshot editor that turns plain screenshots into professional graphics. It offers ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, Safari and Chrome browser mockups, 3D perspective effects, an animation timeline with ${PRODUCT_FACTS.animationPresets} presets, and video export. It is open source under ${PRODUCT_FACTS.license}, with no signup, no download, and no watermark.`,
+      `Shots is a launch platform: it reads a software release, writes a cited launch brief, designs on-brand visuals, and drafts posts, and nothing ships until a person approves. Every plan includes a browser-based screenshot editor with ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, Safari and Chrome browser mockups, 3D perspective effects, an animation timeline with ${PRODUCT_FACTS.animationPresets} presets, and video export. It is open source under ${PRODUCT_FACTS.license} and adds no watermark.`,
   },
   {
-    question: "Is Screenshot Studio really free?",
+    question: "How much does Shots cost?",
     answer:
-      "Yes. Screenshot Studio is 100% free with no hidden costs. Unlimited exports, all features, no watermarks. No signup required.",
+      "Shots has no free plan. Pro is $199/mo ($169/mo billed annually), Business is $699/mo ($594/mo billed annually), and Enterprise starts at $3,000/mo billed annually. The editor and image tools are included in every plan, with unlimited exports and no watermark. The AI launch features are in early access for design partners.",
   },
   {
     question: "Do I need to create an account?",
     answer:
-      "No. Just open the editor and start creating. Your work saves automatically in your browser with unlimited undo/redo.",
+      "Yes. Sign up, create a workspace, and subscribe to a plan to use the editor and tools. Your designs save to your workspace, and exports have no watermark.",
   },
   {
-    question: "Is there a free screenshot editor I can use online?",
+    question: "Is there a screenshot editor I can use online?",
     answer:
-      "Yes. Screenshot Studio runs entirely in your browser, so there is nothing to download and nothing to install. Open the editor and start adding backgrounds, shadows, frames, and 3D effects to your screenshots straight away.",
+      "Yes. Shots runs entirely in your browser, so there is nothing to download and nothing to install. Open the editor and start adding backgrounds, shadows, frames, and 3D effects to your screenshots straight away.",
   },
   {
     question: "What frames and styles are available?",
@@ -64,14 +64,14 @@ const defaultFAQs: FAQItem[] = [
       `Yes. Paste a tweet URL to capture it as a high-resolution image in light or dark theme. The code snippet generator supports ${PRODUCT_FACTS.codeThemes} syntax themes, ${PRODUCT_FACTS.codeLanguages} programming languages, and ${PRODUCT_FACTS.codeFonts} monospace fonts.`,
   },
   {
-    question: "What makes Screenshot Studio different from other screenshot editors?",
+    question: "What makes Shots different from other screenshot editors?",
     answer:
-      `It is purpose-built for making screenshots presentable rather than for general image editing: one-click design presets, ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, ${PRODUCT_FACTS.deviceMockups} device mockups, 3D perspective transforms, an animation timeline, and video export. All of it is free, watermark-free, and needs no account.`,
+      `It is purpose-built for making screenshots presentable rather than for general image editing: one-click design presets, ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, ${PRODUCT_FACTS.deviceMockups} device mockups, 3D perspective transforms, an animation timeline, and video export. The editor is included in every plan and adds no watermark.`,
   },
   {
     question: "Is my data stored on your servers?",
     answer:
-      "No. Editing runs in your browser and imported images are not uploaded to edit them. Only export compression sends the finished image to the server, which recompresses it in memory and returns it without storing it.",
+      "Your designs save to your Shots workspace so you can return to them. Export compression sends the finished image to the server, which recompresses it in memory and returns it without storing it.",
   },
 ];
 
@@ -193,7 +193,7 @@ export function FAQ({
             {title}.
           </h2>
           <p className="mt-5 max-w-[300px] text-pretty text-[15px] leading-relaxed text-muted-foreground md:text-base">
-            Quick answers about Screenshot Studio, exports, and how it works in
+            Quick answers about Shots, exports, and how it works in
             your browser.
           </p>
         </div>
@@ -217,7 +217,7 @@ export function FAQ({
                 Ready to create?
               </h3>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                Join thousands of creators making beautiful images.
+                The editor and image tools are included in every plan.
               </p>
             </div>
             <Link

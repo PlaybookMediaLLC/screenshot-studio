@@ -14,7 +14,7 @@ function Cite({ children }: { children: ReactNode }) {
   )
 }
 
-/** The release form with its signed webhook receipt. */
+/** The release form with its signed webhook confirmation. */
 export function IntakeMock() {
   return (
     <Window meta="Acme Billing" title="New release">
@@ -52,10 +52,10 @@ export function IntakeMock() {
   )
 }
 
-/** A launch spec with citations and an open question. */
+/** A launch brief with citations and an open question. */
 export function SpecMock() {
   return (
-    <Window meta="v2 · draft" title="Launch spec">
+    <Window meta="v2 · draft" title="Launch brief">
       <div className="divide-y divide-white/[0.06] text-[13px]">
         <div className="p-4">
           <p className="text-[#858585]">Problem</p>
@@ -168,7 +168,7 @@ export function VisualsMock() {
       <div className="p-3">
         <CreativeMock className="aspect-[16/10]" />
         <div className="mt-3 flex flex-wrap gap-1.5 text-[11.5px]">
-          {['Legible', 'On brand', 'Matches spec'].map((check) => (
+          {['Legible', 'On brand', 'Matches brief'].map((check) => (
             <span
               className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] py-1 pl-1 pr-2.5 text-white/75"
               key={check}
@@ -212,7 +212,7 @@ const REVIEW = ['X · Teaser', 'LinkedIn · Teaser', 'X · Launch day', 'Product
 /** The review queue with a revision diff and batch approval. */
 export function ReviewMock() {
   return (
-    <Window meta="7 posts" title="Review">
+    <Window meta="6 posts" title="Review">
       <ul className="divide-y divide-white/[0.06] text-[13px]">
         {REVIEW.map((post) => (
           <li className="flex items-center justify-between px-4 py-2.5" key={post}>
@@ -227,7 +227,7 @@ export function ReviewMock() {
       </div>
       <div className="flex gap-2 p-3">
         <span className="flex-1 rounded-full bg-white py-2 text-center text-[13px] font-medium text-black">
-          Approve all 7
+          Approve all 6
         </span>
         <span className="rounded-full border border-white/15 px-4 py-2 text-[13px] text-white/70">
           Apply revision
@@ -244,28 +244,28 @@ const STEPS: { title: string; body: string; mock: ReactNode }[] = [
     mock: <IntakeMock />,
   },
   {
-    title: 'Check a cited brief',
-    body: `The spec drafts ${SPEC_SECTIONS.length} sections, from problem and audience to proof and limitations. Every claim cites the brief or a source. A claim with no source is removed and becomes a question for you. Nothing is invented to fill a gap.`,
+    title: 'Check the launch brief',
+    body: `Launch intelligence writes a launch brief with ${SPEC_SECTIONS.length} sections, from problem and audience to proof and limitations. Every claim cites your release or a source. A claim with no source is removed and becomes a question for you.`,
     mock: <SpecMock />,
   },
   {
-    title: 'Approve a plan, not a pile of posts',
-    body: 'Each channel gets a role and a cadence. Each angle maps to a messaging pillar. Each asset names the screen to capture, the device, and the focus. The timeline runs teaser, launch day, follow-up.',
+    title: 'Approve the plan first',
+    body: 'Each channel gets a role and a cadence, and each angle maps to a messaging pillar. Every visual names the screen to capture, the device, and the focus. The timeline runs teaser, launch day, then follow-up.',
     mock: <PlanMock />,
   },
   {
     title: 'Get visuals from your real product',
-    body: 'The visuals agent captures your product pages, frames them in the editor, and applies your brand kit. Every render is critiqued for legibility, brand, and fit with the spec before it moves on.',
+    body: 'The AI captures your product pages, frames them in the editor, and applies your brand kit. Each visual is checked for legibility, brand, and fit with the launch brief before it moves on.',
     mock: <VisualsMock />,
   },
   {
-    title: 'Get copy that cites its claims',
-    body: 'Channel-native posts for X, LinkedIn, Instagram, Product Hunt, your changelog, and email. Each post lists the spec claims it relies on. Posts over the limit, full of hype, or linking somewhere unknown are rejected and rewritten.',
+    title: 'Get posts that cite their claims',
+    body: 'Posts written for X, LinkedIn, Instagram, Product Hunt, your changelog, and email. Each post lists the claims from the launch brief it relies on. A post that runs long, uses hype words, or links somewhere unknown fails the copy checks and is rewritten.',
     mock: <CopyMock />,
   },
   {
-    title: 'Approve in one click. Revise in one more',
-    body: 'Approve all seven posts at once or pick three. Ask for a revision on a post, a design, the plan, or a spec section and get a diff with its knock-on updates. Nothing changes until you apply it, and every decision teaches the next run your taste.',
+    title: 'Approve in one click, or ask for changes',
+    body: 'Approve all six posts at once, or pick three. Ask for a revision on a post, a visual, the plan, or a section of the launch brief. You get a diff that shows what else it would update. Nothing changes until you apply it, and each decision teaches the next launch your taste.',
     mock: <ReviewMock />,
   },
 ]
@@ -275,10 +275,10 @@ export function WorkflowSection() {
   return (
     <Section id="workflow">
       <SectionIntro
-        body="Screenshot Studio runs the launch the way a good team would: understand the change, agree on a plan, make the assets, check the work, then ship it. You approve each stage."
+        body="Shots works the way a good team would: understand the change, agree on a plan, make the visuals, check the work, then publish. You approve each stage."
         label="Workflow"
-        lead="One release in."
-        trail="A reviewed launch out."
+        lead="From release to scheduled posts"
+        trail="in six steps you can check."
       >
         <div className="mt-10">
           <ArrowLink href="/product/launch-intelligence">Explore launch intelligence</ArrowLink>

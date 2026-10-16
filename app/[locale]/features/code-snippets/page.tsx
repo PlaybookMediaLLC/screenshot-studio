@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ColorsIcon, Download04Icon, Link01Icon, SourceCodeIcon } from "hugeicons-react";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION, WindowDots } from "@/components/tools/ui";
+import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";
 import { OG_DEFAULTS, SITE_URL } from "@/lib/seo/metadata";
 import { PRODUCT_FACTS } from "@/lib/seo/product-facts";
 import { gradientColors } from "@/lib/constants/gradient-colors";
@@ -10,9 +11,9 @@ import { gradientColors } from "@/lib/constants/gradient-colors";
 const PAGE_URL = `${SITE_URL}/features/code-snippets`;
 
 export const metadata: Metadata = {
-  title: "Code to Image Generator: Free",
+  title: "Code to Image Generator",
   description:
-    "Free code to image tool for READMEs, docs, and social posts: pick a syntax theme, gradient or transparent background, line numbers, and window frame, then export a crisp PNG. No signup.",
+    "Code to image tool for READMEs, docs, and social posts: pick a syntax theme, gradient or transparent background, line numbers, and window frame, then export a PNG. Included in every Shots plan.",
   keywords: [
     "code to image",
     "code screenshots for readme",
@@ -22,20 +23,18 @@ export const metadata: Metadata = {
     "ray.so alternative",
     "carbon alternative",
     "carbon.now.sh alternative",
-    "free carbon alternative",
-    "free ray.so alternative",
     "syntax highlighting screenshot",
     "beautiful code screenshots",
-    "code image generator free",
+    "code image generator",
     "share code as image",
     "code snippet to image",
     "programming screenshot tool",
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Code to Image Generator - Screenshot Studio",
+    title: "Code to Image Generator - Shots",
     description:
-      "Turn code into beautiful, shareable images. Themes, gradients, line numbers, and window frames. Free, no signup.",
+      "Turn code into shareable images. Themes, gradients, line numbers, and window frames. Included in every Shots plan.",
     url: PAGE_URL,
   },
   alternates: {
@@ -89,14 +88,14 @@ const steps = [
 
 const faqs = [
   {
-    question: "Is the code to image generator free?",
+    question: "Which plans include the code to image generator?",
     answer:
-      "Yes. It is completely free, with no signup, no watermark, and no paid tier.",
+      "Every plan. It is included in every Shots plan, with no watermark.",
   },
   {
     question: "How is this different from Ray.so or Carbon?",
     answer:
-      "It covers the same core workflow, themes, gradients, line numbers, and a window frame, built into Screenshot Studio's own editor, with shareable links and no account required.",
+      "It covers the same core workflow, themes, gradients, line numbers, and a window frame, built into Shots' own editor, with shareable links.",
   },
   {
     question: "How do I add a code screenshot to a GitHub README?",
@@ -132,18 +131,18 @@ const jsonLd = {
     {
       "@type": "SoftwareApplication",
       "@id": `${PAGE_URL}#software`,
-      name: "Screenshot Studio - Code to Image",
+      name: "Shots - Code to Image",
       applicationCategory: "DesignApplication",
       operatingSystem: "Web Browser",
       description:
-        "Free online tool that turns code into beautiful, shareable images with syntax themes, gradient backgrounds, and a window frame.",
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        "Online tool that turns code into shareable images with syntax themes, gradient backgrounds, and a window frame.",
+      offers: PRO_PLAN_OFFER,
       featureList: [
         `${PRODUCT_FACTS.codeThemes} syntax highlighting themes`,
         "Gradient, image, and pattern backgrounds plus transparent export",
         "Line numbers and macOS window frame",
         "Shareable links and 2x or 4x PNG export",
-        "No signup required",
+        "Included in every Shots plan",
       ],
     },
     {
@@ -185,7 +184,7 @@ function CodePreview() {
           <span className="text-fuchsia-400">const</span>{" "}
           <span className="text-sky-300">studio</span>{" "}
           <span className="text-white/50">=</span>{" "}
-          <span className="text-amber-300">&quot;free&quot;</span>
+          <span className="text-amber-300">&quot;open source&quot;</span>
         </div>
         <div className="text-emerald-300">{"// export to PNG"}</div>
         <div className="text-white/60">render(studio)</div>
@@ -198,15 +197,15 @@ export default function CodeSnippetsFeaturePage() {
   return (
     <FeaturePage
       name="Code Images"
-      title="Turn Code Into Beautiful Images"
-      intro="Pick a theme, a gradient background, line numbers, and a window frame, then export a crisp PNG or share a link. A free Ray.so and Carbon alternative."
+      title="Turn code into images"
+      intro="Pick a theme, a gradient background, line numbers, and a window frame, then export a PNG or share a link. A Ray.so and Carbon alternative."
       ctaHref="/code"
       ctaLabel="Create a Code Image"
       previewGradient={gradientColors.store_graphite}
       preview={<CodePreview />}
       capabilities={capabilities}
       steps={steps}
-      alternativesIntro="Carbon and Ray.so are established code screenshot tools with more syntax themes. Screenshot Studio matches the core workflow for free and adds gradient backgrounds, a transparent export, and a full screenshot and mockup editor for everything else."
+      alternativesIntro="Carbon and Ray.so are established code screenshot tools with more syntax themes. Shots matches the core workflow and adds gradient backgrounds, a transparent export, and a full screenshot and mockup editor for everything else."
       alternativeSlugs={["carbon", "ray-so"]}
       guideLinks={[
         { href: "/guides/best-code-to-image-tools", label: "Best code to image tools" },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { imageProxyRequestSchema } from '@/lib/api/schemas'
 import { apiError } from '@/lib/api/errors'
+import { requirePaidAccess } from '@/lib/api/require-account'
 
 const ALLOWED_DOMAINS = ['pbs.twimg.com', 'abs.twimg.com', 'ton.twitter.com', 'video.twimg.com']
 
@@ -21,6 +22,9 @@ function isAllowedUrl(url: URL): boolean {
 // proxy's SSRF boundary remains reviewable as one path.
 // eslint-disable-next-line max-lines-per-function
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const denied = await requirePaidAccess(request)
+  if (denied) return denied
+
   const url = getUrl(request)
   if (!url) {
     return apiError(

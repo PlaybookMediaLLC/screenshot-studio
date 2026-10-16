@@ -277,7 +277,7 @@ test('X OAuth start binds its one-use callback to the active workspace', async (
     )
 
     await page.goto(`/integrations/social/x?oauth_token=${state}&oauth_verifier=test-verifier`)
-    await expect(page.getByText('x connected to Screenshot Studio Backend.')).toBeVisible()
+    await expect(page.getByText('x connected to Shots.')).toBeVisible()
 
     await expectOAuthConnection(organizationId, integrationId, state, 'x')
 

@@ -21,7 +21,12 @@ func TestMonthlyQuotaPeriods(t *testing.T) {
 }
 
 func TestPlanQuotasCoverEveryPlan(t *testing.T) {
-	for _, plan := range []string{"free", "pro", "business", "enterprise"} {
+	for name, limit := range planQuotas["free"] {
+		if limit != 0 {
+			t.Fatalf("unsubscribed workspace has %d %s", limit, name)
+		}
+	}
+	for _, plan := range []string{"pro", "business", "enterprise"} {
 		for name := range planQuotas["free"] {
 			if planQuotas[plan][name] <= 0 {
 				t.Fatalf("%s has no %s allowance", plan, name)
@@ -29,7 +34,7 @@ func TestPlanQuotasCoverEveryPlan(t *testing.T) {
 		}
 	}
 	// docs/rfcs/035: AI credits sized for a 75% gross margin at half use.
-	want := map[string]int{"free": 250, "pro": 3_600, "business": 13_200, "enterprise": 54_000}
+	want := map[string]int{"free": 0, "pro": 3_600, "business": 13_200, "enterprise": 54_000}
 	for plan, credits := range want {
 		if planQuotas[plan][QuotaAICredits] != credits {
 			t.Fatalf("%s AI credits=%d want %d", plan, planQuotas[plan][QuotaAICredits], credits)

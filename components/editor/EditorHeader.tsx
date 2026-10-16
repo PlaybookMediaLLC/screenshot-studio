@@ -3,7 +3,6 @@
 import * as React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { NewTwitterIcon } from 'hugeicons-react'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -186,14 +185,14 @@ export function EditorHeader() {
           >
             <Image
               src="/logo-mark.png"
-              alt="Screenshot Studio"
+              alt="Shots"
               width={32}
               height={32}
               className="h-8 w-8"
               priority
             />
             <span className="hidden sm:inline font-semibold text-foreground text-sm tracking-tight leading-none">
-              Screenshot Studio
+              Shots
             </span>
           </Link>
 
@@ -530,14 +529,6 @@ export function EditorHeader() {
           <AccountMenu />
           {!isMobile ? <FeedbackWidget /> : null}
           {!isMobile ? <GitHubStarButton compact /> : null}
-          <a
-            href="https://x.com/code_kartik"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center w-9 h-9 rounded-md text-muted-foreground transition-[color,filter] duration-150 hover:text-foreground "
-          >
-            <NewTwitterIcon className="h-[18px] w-[18px]" />
-          </a>
         </div>
       </header>
 

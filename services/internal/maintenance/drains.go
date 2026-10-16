@@ -100,7 +100,7 @@ func (d *DrainSender) send(ctx context.Context, endpoint, provider, encrypted st
 	default:
 		mac := hmac.New(sha256.New, []byte(secret))
 		mac.Write(body)
-		req.Header.Set("x-screenshot-studio-signature", hex.EncodeToString(mac.Sum(nil)))
+		req.Header.Set("x-shots-signature", hex.EncodeToString(mac.Sum(nil)))
 	}
 	response, err := d.HTTP.Do(req)
 	if err != nil {

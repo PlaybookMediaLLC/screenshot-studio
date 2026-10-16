@@ -6,7 +6,7 @@ import { Footer } from "@/components/landing/Footer";
 export const metadata: Metadata = {
   title: "Terms & Conditions",
   description:
-    "Terms and Conditions for using Screenshot Studio, the free, open-source screenshot beautifier.",
+    "Terms and Conditions for using Shots, the launch platform with an open-source screenshot editor.",
   alternates: {
     canonical: "/terms",
   },
@@ -43,7 +43,7 @@ export default function TermsPage() {
               1. Acceptance of Terms
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              By accessing and using Screenshot Studio (&quot;the Service&quot;),
+              By accessing and using Shots (&quot;the Service&quot;),
               you agree to be bound by these Terms and Conditions. If you do not
               agree to these terms, please do not use the Service.
             </p>
@@ -57,9 +57,10 @@ export default function TermsPage() {
               2. Description of Service
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              Screenshot Studio is a free, browser-based screenshot editing tool
-              that allows users to beautify screenshots with backgrounds,
-              frames, effects, and more. Editing happens in your browser, and images
+              Shots is a launch platform that includes a browser-based
+              screenshot editor for adding backgrounds, frames, effects, and
+              more to screenshots. Using the editor and tools requires a
+              Shots account with an active paid plan. Editing happens in your browser, and images
               you import are not uploaded to edit them. Exporting sends the
               finished image to our compression endpoint, which returns it
               without storing it, and capturing a screenshot from a URL sends
@@ -107,9 +108,9 @@ export default function TermsPage() {
               4. Intellectual Property
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              The images you create with Screenshot Studio belong to you. We
+              The images you create with Shots belong to you. We
               claim no ownership or rights over content you produce using the
-              tool. The Screenshot Studio software itself is open source and
+              tool. The Shots software itself is open source and
               licensed under the terms specified in our{" "}
               <Link
                 href="https://github.com/PlaybookMediaLLC/screenshot-studio"
@@ -131,8 +132,8 @@ export default function TermsPage() {
               5. Advertising and Third-Party Services
             </h2>
             <p className="mb-3 leading-relaxed text-muted-foreground">
-              The Service is free to use and is supported by ads served by
-              Google AdSense. Ads are provided by third parties, and we are not
+              The screenshot editor is included in every plan, and content pages
+              are supported by ads served by Google AdSense. Ads are provided by third parties, and we are not
               responsible for the products or services they promote. You agree
               not to click ads artificially, use automated tools to generate ad
               impressions or clicks, or encourage others to do so.
@@ -188,7 +189,7 @@ export default function TermsPage() {
               8. Limitation of Liability
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              In no event shall Screenshot Studio or its creator be liable for
+              In no event shall Shots or its creator be liable for
               any indirect, incidental, special, consequential, or punitive
               damages arising out of or related to your use of the Service.
             </p>
@@ -226,7 +227,7 @@ export default function TermsPage() {
         </div>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

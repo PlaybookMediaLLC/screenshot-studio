@@ -4,7 +4,7 @@ import { join, relative } from 'node:path'
 import test from 'node:test'
 
 /**
- * The root layout's title template appends "| Screenshot Studio", so a page
+ * The root layout's title template appends "| Shots", so a page
  * title that already ends with the brand renders it twice in the browser tab.
  * Pages that need the full string set `title: { absolute: ... }` instead.
  */
@@ -20,7 +20,7 @@ function pageFiles(directory: string): string[] {
 }
 
 function brandedTitles(source: string): string[] {
-  return [...source.matchAll(/title:\s*(['`])([^'`]*\| Screenshot Studio)\1/g)].map(
+  return [...source.matchAll(/title:\s*(['`])([^'`]*\| Shots)\1/g)].map(
     (match) => match[2]
   )
 }
@@ -36,9 +36,9 @@ test('page titles do not repeat the brand the layout template adds', () => {
 
 test('the title scan detects a doubled brand and allows absolute titles', () => {
   assert.deepEqual(
-    brandedTitles("export const metadata = { title: 'Assets | Screenshot Studio' }"),
-    ['Assets | Screenshot Studio']
+    brandedTitles("export const metadata = { title: 'Assets | Shots' }"),
+    ['Assets | Shots']
   )
-  assert.deepEqual(brandedTitles("{ title: { absolute: 'Campaign | Screenshot Studio' } }"), [])
+  assert.deepEqual(brandedTitles("{ title: { absolute: 'Campaign | Shots' } }"), [])
   assert.deepEqual(brandedTitles("{ title: 'Assets' }"), [])
 })

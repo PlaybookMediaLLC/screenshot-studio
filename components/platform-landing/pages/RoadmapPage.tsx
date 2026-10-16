@@ -1,11 +1,9 @@
 import { cn } from '@/lib/utils'
-import { MarketingShell, PageHero, PullQuote } from '../blocks'
-import { GITHUB_URL } from '../LandingNav'
+import { MarketingShell, PageHero } from '../blocks'
+import { RoadmapTimeline } from '../diagrams/RoadmapTimeline'
 import { MONO, MUTED, Section, SectionIntro } from '../primitives'
 
-const DOC = (file: string) => `${GITHUB_URL}/blob/main/docs/${file}`
-
-type Item = { title: string; body: string; ref: string; href: string }
+type Item = { title: string; body: string }
 
 const COLUMNS: { name: string; tone: string; note: string; items: Item[] }[] = [
   {
@@ -15,58 +13,43 @@ const COLUMNS: { name: string; tone: string; note: string; items: Item[] }[] = [
     items: [
       {
         title: 'Launch intelligence',
-        body: 'Cited spec, plan, visuals and copy, review and revise. Early access.',
-        ref: 'Docs',
-        href: DOC('launch-intelligence.md'),
+        body: 'Cited launch brief, plan, visuals and posts, review and revise. Early access.',
       },
       {
         title: 'Approval workflow',
-        body: 'Server-side states, batch approval, six roles.',
-        ref: 'RFC 019',
-        href: DOC('rfcs/019-approval-workflow.md'),
+        body: 'Approval enforced on the server, batch approval, and six roles.',
       },
       {
-        title: 'Publishing abstraction',
-        body: 'Durable scheduling with receipts behind one provider seam.',
-        ref: 'RFC 020',
-        href: DOC('rfcs/020-postiz-publishing.md'),
+        title: 'Scheduled publishing',
+        body: 'Scheduling that survives restarts, with confirmation from each network.',
       },
       {
-        title: 'Campaign objects',
-        body: 'Campaigns, angles, and posts as database objects.',
-        ref: 'RFC 014',
-        href: DOC('rfcs/014-structured-marketing-objects.md'),
+        title: 'Structured launches',
+        body: 'Launches, angles, and posts saved as records you can edit one at a time.',
       },
       {
-        title: 'Brand and product surfaces',
-        body: 'Brand profile and kits, and the map from features to screens.',
-        ref: 'RFC 011, 013',
-        href: DOC('rfcs/011-brand-profile.md'),
+        title: 'Brand and product pages',
+        body: 'Brand profile and kits, and a map from features to product pages.',
       },
       {
-        title: 'Tenancy, auth, and enterprise',
-        body: 'Organizations, roles, SSO, SCIM, audit logs, and SIEM drains.',
-        ref: 'RFC 002, 003',
-        href: DOC('rfcs/003-better-auth-enterprise-audit.md'),
+        title: 'Workspaces, sign-in, and enterprise',
+        body: 'Workspaces, roles, SSO, SCIM user provisioning, audit logs, and audit log export.',
       },
       {
         title: 'Release intake',
-        body: 'Signed webhooks and the release and asset pipeline.',
-        ref: 'RFC 005, 006',
-        href: DOC('rfcs/005-repository-webhook-scheduler-integrations.md'),
+        body: 'The release form, signed webhooks, and asset uploads.',
       },
-    ],
-  },
-  {
-    name: 'Now',
-    tone: 'text-white',
-    note: 'Being built',
-    items: [
       {
         title: 'REST API and reference',
-        body: 'A first-class REST API with an interactive Scalar reference.',
-        ref: 'RFC 034',
-        href: DOC('rfcs/034-rest-api-scalar-reference.md'),
+        body: 'The REST API at /api/v1, with OpenAPI at /openapi.json and an interactive reference at /api-reference.',
+      },
+      {
+        title: 'Billing and credits',
+        body: 'Stripe billing for Pro and Business, monthly AI credits, and extra credit packs.',
+      },
+      {
+        title: 'GitHub App',
+        body: 'Connect a repository. Merges are held for the next published release, and production deploys capture fresh screenshots.',
       },
     ],
   },
@@ -77,39 +60,27 @@ const COLUMNS: { name: string; tone: string; note: string; items: Item[] }[] = [
     items: [
       {
         title: 'Programmable creative engine',
-        body: 'The editor as domain services, so the UI, the API, and the agent render the same way.',
-        ref: 'RFC 010',
-        href: DOC('rfcs/010-programmable-creative-engine.md'),
+        body: 'The editor run as a service, so the app, the API, and the AI produce identical visuals.',
       },
       {
         title: 'Paste a URL, get a profile',
-        body: 'Product intelligence and a background onboarding agent with ideal customer profiles.',
-        ref: 'RFC 012, 032',
-        href: DOC('rfcs/032-background-onboarding-agent.md'),
+        body: 'Shots reads your site in the background and drafts a product profile with your ideal customers.',
       },
       {
-        title: 'The launch recipe',
-        body: 'A deterministic, resumable feature-launch pipeline.',
-        ref: 'RFC 015',
-        href: DOC('rfcs/015-feature-launch-recipe.md'),
+        title: 'Step-by-step feature launches',
+        body: 'A feature launch that runs as fixed steps and can resume where it stopped.',
       },
       {
-        title: 'Typed marketing tools',
-        body: 'About ten domain tools for an agent with no infrastructure access.',
-        ref: 'RFC 016',
-        href: DOC('rfcs/016-ai-sdk-marketing-tools.md'),
+        title: 'Safe marketing tools for the AI',
+        body: 'About ten narrow tools the AI can use, with no access to servers or databases.',
       },
       {
-        title: 'Conversation and workspace',
-        body: 'One sentence to a draft campaign, in a workspace that works without chat.',
-        ref: 'RFC 017, 018',
-        href: DOC('rfcs/018-campaign-workspace.md'),
+        title: 'Chat and the workspace',
+        body: 'Type one sentence to get a draft launch. Everything chat can do also works without it.',
       },
       {
-        title: 'Three core workflows',
-        body: 'Launch something, ship a feature, stay visible, and seven posts at onboarding.',
-        ref: 'RFC 021',
-        href: DOC('rfcs/021-core-workflows.md'),
+        title: 'Four core workflows',
+        body: 'Launch a product, ship a feature, stay visible every week, and get a first week of posts when you sign up.',
       },
     ],
   },
@@ -120,62 +91,44 @@ const COLUMNS: { name: string; tone: string; note: string; items: Item[] }[] = [
     items: [
       {
         title: 'Changes become launches',
-        body: 'Merged pull requests suggest campaigns. Deploys capture fresh screens.',
-        ref: 'RFC 022, 023',
-        href: DOC('rfcs/022-github-integration.md'),
+        body: 'Merged pull requests worth announcing become suggested launches.',
       },
       {
         title: 'Demo videos',
         body: 'Captioned demos from captured product flows.',
-        ref: 'RFC 024',
-        href: DOC('rfcs/024-demo-video-generation.md'),
       },
       {
         title: 'Pillars and the weekly plan',
         body: 'Content pillars and a weekly plan approved in one action.',
-        ref: 'RFC 025, 029',
-        href: DOC('rfcs/029-recurring-campaign-generation.md'),
       },
       {
         title: 'Research, analytics, feedback',
         body: 'Cited research, post performance, and plans weighted by what worked.',
-        ref: 'RFC 026, 027, 028',
-        href: DOC('rfcs/028-feedback-driven-generation.md'),
       },
       {
         title: 'Policies and autonomy',
-        body: 'Approval policies, then Manual, Copilot, and Autopilot modes.',
-        ref: 'RFC 030, 031',
-        href: DOC('rfcs/031-autonomy-modes.md'),
+        body: 'Approval rules, then Manual, Copilot, and Autopilot modes.',
       },
     ],
   },
 ]
 
-const GENERATIONS = [
-  ['V1', 'Screenshot Studio plus AI creative generation'],
-  ['V2', 'URL to campaign'],
-  ['V3', 'Product changes to campaigns, automatically'],
-  ['V4', 'Campaign, publish, performance, next campaign'],
-  ['V5', 'Marketing intelligence across GitHub, website, and analytics'],
-] as const
-
-/** /roadmap: shipped, now, next, and later, each linked to its RFC. */
+/** /roadmap: shipped, next, and later. */
 export function RoadmapPage() {
   return (
     <MarketingShell finale={{ lead: 'Help decide', trail: 'what ships next.' }}>
       <PageHero
-        body="The plan is written down and public. Primitives first, then recipes, then the agent. Autonomy comes last, and only as far as your approval policies allow. Every item links to the document behind it."
+        body="Shipped work is marked shipped. Everything else is marked next or later. More automation comes last, and only as far as your approval rules allow."
         eyebrow={{ label: 'Roadmap' }}
-        lead="Today you bring the release."
+        lead="Our roadmap, in public:"
         location="roadmap_hero"
         primary={{ href: '/design-partners', label: 'Become a design partner' }}
         secondary={{ href: '/changelog', label: 'Read the changelog' }}
-        trail="Next, your product brings it."
+        trail="what works today and what we are building next."
       />
 
       <Section>
-        <div className="grid gap-px overflow-hidden border border-[#212121] bg-[#212121] md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-px overflow-hidden border border-[#212121] bg-[#212121] md:grid-cols-3">
           {COLUMNS.map((column) => (
             <div className="bg-[#090909] p-6" key={column.name}>
               <p className={cn(MONO, 'text-[12px] uppercase tracking-[0.08em]', column.tone)}>
@@ -185,22 +138,12 @@ export function RoadmapPage() {
               <ul className="mt-8 space-y-3">
                 {column.items.map((item) => (
                   <li key={item.title}>
-                    <a
-                      className="group block bg-[#111] p-4 transition-colors hover:bg-[#161616]"
-                      href={item.href}
-                      rel="noopener noreferrer"
-                      target="_blank"
-                    >
-                      <span className="flex items-baseline justify-between gap-3">
-                        <span className="text-[15px] text-white">{item.title}</span>
-                        <span className={cn(MONO, 'shrink-0 text-[10.5px]', MUTED)}>
-                          {item.ref}
-                        </span>
-                      </span>
+                    <div className="bg-[#111] p-4">
+                      <span className="text-[15px] text-white">{item.title}</span>
                       <span className={cn('mt-1.5 block text-[13.5px] leading-[1.5]', MUTED)}>
                         {item.body}
                       </span>
-                    </a>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -211,34 +154,23 @@ export function RoadmapPage() {
 
       <Section>
         <SectionIntro
-          body="The product grows in generations. Each one expands the same object model instead of starting over."
+          body="Each version adds to the same workspace and the same launch records, so nothing you made has to start over."
           label="Generations"
-          lead="Five generations."
-          trail="One object model."
+          lead="Five versions of Shots,"
+          trail="each built on the one before."
         />
-        <ol className="mt-24 grid gap-4 md:grid-cols-5">
-          {GENERATIONS.map(([version, title]) => (
-            <li className="bg-[#111] p-6" key={version}>
-              <span className={cn(MONO, 'text-[13px] text-white')}>{version}</span>
-              <p className={cn('mt-8 text-[15px] leading-[1.5]', MUTED)}>{title}</p>
-            </li>
-          ))}
-        </ol>
+        <div className="mt-24">
+          <RoadmapTimeline />
+        </div>
       </Section>
 
       <Section>
         <SectionIntro
-          body="Two gaps stand between today and the full launch workflow, and both are written down: billing with usage quotas, and capturing pages behind a login."
+          body="Billing with plan limits has shipped. The gap left between today and the full launch workflow is capturing logged-in pages. Until then, point Shots at a public staging or demo page."
           label="Open gaps"
-          lead="What we have not solved"
-          trail="is on the page too."
+          lead="One known gap:"
+          trail="Shots can't capture pages behind a login yet."
         />
-        <div className="mt-24">
-          <PullQuote
-            quote="When a founder can paste a SaaS URL, get seven good posts with real product screenshots, approve them, and schedule them, we have a product founders can pay for."
-            source="RFC 009, the critical path"
-          />
-        </div>
       </Section>
     </MarketingShell>
   )

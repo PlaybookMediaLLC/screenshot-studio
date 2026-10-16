@@ -9,9 +9,9 @@ import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 import { TOOLS } from "@/lib/seo/tools";
 
 export const metadata: Metadata = {
-  title: { absolute: "About Screenshot Studio: Free Open-Source Screenshot Editor" },
+  title: { absolute: "About Shots" },
   description:
-    "About Screenshot Studio, the free, open-source browser tool that transforms plain screenshots into professional graphics.",
+    "About Shots, the launch platform that turns every release into polished, ready-to-publish content.",
   alternates: {
     canonical: "/about",
   },
@@ -28,32 +28,32 @@ const INTER =
 
 const offerings = [
   {
-    title: `${atLeast(PRODUCT_FACTS.backgrounds)} Backgrounds`,
+    title: `${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds`,
     description:
-      "Gradient backgrounds, solid colors, and patterns to make your screenshots pop.",
+      "Gradient backgrounds, solid colors, and patterns.",
   },
   {
-    title: "Browser and Device Mockups",
+    title: "Browser and device mockups",
     description:
       "Safari and Chrome browser frames, window frames, and iPhone, MacBook, and Apple Watch mockups.",
   },
   {
-    title: "3D Effects & Animations",
+    title: "3D effects & animations",
     description:
       "Perspective transforms, shadows, and animation timelines with video export.",
   },
   {
-    title: "Tweet, Code, and App Store Editors",
+    title: "Tweet, code, and App Store editors",
     description:
       "Turn posts and code snippets into shareable images, and lay out App Store screenshots.",
   },
   {
-    title: `${TOOLS.length} Image Tools`,
+    title: `${TOOLS.length} image tools`,
     description:
       "Compress, convert, resize, crop, and rotate images in your browser, without uploading them.",
   },
   {
-    title: "Background Remover",
+    title: "Background remover",
     description:
       "An AI model that runs on your device and returns a full-resolution transparent PNG.",
   },
@@ -71,16 +71,16 @@ export default function AboutPage() {
           className="mb-6 text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl"
           style={{ fontFamily: INTER }}
         >
-          About Screenshot Studio
+          About Shots
         </h1>
 
         <div className="space-y-8">
           <section>
             <p className="text-lg leading-relaxed text-muted-foreground">
-              Screenshot Studio is a free, open-source screenshot editor built
-              for developers, designers, and marketers who want their images to
-              look professional, without paying for expensive tools or signing
-              up for yet another account.
+              Shots is a launch platform. It reads a software release, writes a
+              cited launch brief, designs on-brand visuals, and drafts posts,
+              and nothing ships until a person approves. Every plan includes an
+              open-source screenshot editor with no watermark.
             </p>
           </section>
 
@@ -89,15 +89,15 @@ export default function AboutPage() {
               className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              Why We Built This
+              Why we built this
             </h2>
             <p className="leading-relaxed text-muted-foreground">
               Every time you share a screenshot on social media, in
               documentation, or on a landing page, presentation matters. But
-              existing tools either cost too much, require signups, add
-              watermarks, or upload your images to their servers. We wanted
-              something better: a tool that runs entirely in your browser,
-              respects your privacy, and is completely free to use.
+              existing tools either cost too much, add watermarks, or upload
+              your images to their servers just to edit them. We wanted an
+              editor that runs in your browser and keeps your images on your
+              device.
             </p>
           </section>
 
@@ -106,7 +106,7 @@ export default function AboutPage() {
               className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              What We Offer
+              What we offer
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {offerings.map((item) => (
@@ -127,7 +127,7 @@ export default function AboutPage() {
               className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              How We Write Guides and Comparisons
+              How we write guides and comparisons
             </h2>
             <p className="mb-3 leading-relaxed text-muted-foreground">
               The site publishes {guides.length} guides and {comparisons.length}{" "}
@@ -147,7 +147,7 @@ export default function AboutPage() {
               </li>
               <li>
                 When another tool is the better choice for a job, we say so,
-                and we list Screenshot Studio&apos;s own limitations next to its
+                and we list Shots&apos; own limitations next to its
                 strengths.
               </li>
               <li>
@@ -169,10 +169,10 @@ export default function AboutPage() {
               className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              How We Keep It Current
+              How we keep it current
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              Screenshot Studio ships regularly, and every release is written up
+              Shots ships regularly, and every release is written up
               in the{" "}
               <Link href="/changelog" className={linkClassName}>
                 changelog
@@ -189,11 +189,12 @@ export default function AboutPage() {
               className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              How the Site Is Funded
+              How the site is funded
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              There is no paid plan, no watermark, and no account. The site is
-              supported by ads from Google AdSense shown on content pages. Ads
+              The editor and image tools are included in every plan, with no
+              watermark. Paid plans (Pro, Business, and Enterprise) fund the
+              platform, and Google AdSense ads run on content pages. Ads
               never affect what we recommend in guides or comparisons. The{" "}
               <Link href="/privacy-policy" className={linkClassName}>
                 privacy policy
@@ -208,10 +209,10 @@ export default function AboutPage() {
               className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              Open Source
+              Open source
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              Screenshot Studio is fully open source. You can view, contribute
+              Shots is fully open source. You can view, contribute
               to, or fork the project on{" "}
               <Link
                 href="https://github.com/PlaybookMediaLLC/screenshot-studio"
@@ -230,27 +231,18 @@ export default function AboutPage() {
               className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              Built By
+              Built by
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              Created and maintained by{" "}
+              Built and maintained by Playbook Media, with contributions from the
+              open-source community on GitHub. You can reach the team at{" "}
               <Link
-                href="https://x.com/code_kartik"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="mailto:team@playbookmedia.io"
                 className={linkClassName}
               >
-                Kartik Labhshetwar
+                team@playbookmedia.io
               </Link>
-              , an independent developer, with contributions from the
-              open-source community on GitHub. You can reach Kartik at{" "}
-              <Link
-                href="mailto:kartik.labhshetwar@gmail.com"
-                className={linkClassName}
-              >
-                kartik.labhshetwar@gmail.com
-              </Link>
-              . If you find Screenshot Studio useful, consider starring the repo
+              . If you find Shots useful, consider starring the repo
               or sharing it with others.
             </p>
           </section>

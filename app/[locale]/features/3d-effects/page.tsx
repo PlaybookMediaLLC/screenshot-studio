@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CubeIcon, IdeaIcon, Layers01Icon, RotateClockwiseIcon } from "hugeicons-react";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION } from "@/components/tools/ui";
+import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";
 import { OG_DEFAULTS, SITE_URL } from "@/lib/seo/metadata";
 import { PRODUCT_FACTS } from "@/lib/seo/product-facts";
 import { gradientColors } from "@/lib/constants/gradient-colors";
@@ -10,32 +11,32 @@ import { gradientColors } from "@/lib/constants/gradient-colors";
 const PAGE_URL = `${SITE_URL}/features/3d-effects`;
 
 export const metadata: Metadata = {
-  title: "Make 3D Perspective Screenshots Online, Free",
+  title: "Make 3D Perspective Screenshots Online",
   description:
-    "Make a 3D perspective screenshot online: upload an image, pick one of 40 tilt presets or set X, Y, and Z rotation, then export a PNG. Free, no signup, no watermark.",
+    "Make a 3D perspective screenshot online: upload an image, pick one of 40 tilt presets or set X, Y, and Z rotation, then export a PNG. Included in every Shots plan. No watermark.",
   keywords: [
     "3d perspective screenshot online",
     "how to make 3d perspective screenshots",
     "3d screenshot maker",
     "tilt screenshot online",
-    "free online 3d mockup generator",
+    "online 3d mockup generator",
     "3d screenshot effects",
     "perspective screenshot",
     "screenshot tilt effect",
     "3d rotation effect",
-    "free 3d effects",
+    "3d effects",
     "isometric screenshot maker",
     "hero image 3d effect",
     "pika style alternative",
     "shots.so alternative",
     "screely alternative",
-    "free pika.style alternative",
+    "pika.style alternative",
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Make 3D Perspective Screenshots Online, Free",
+    title: "Make 3D Perspective Screenshots Online",
     description:
-      "Tilt any screenshot into 3D perspective in your browser. 40 presets, X, Y, and Z rotation, depth shadows. Free, no signup.",
+      "Tilt any screenshot into 3D perspective in your browser. 40 presets, X, Y, and Z rotation, depth shadows. Included in every Shots plan.",
     url: PAGE_URL,
   },
   alternates: {
@@ -74,7 +75,7 @@ const steps = [
   {
     title: "Add your screenshot",
     description:
-      "Drag in a PNG, JPG, or WebP, or paste from your clipboard. Nothing to install, no account needed.",
+      "Drag in a PNG, JPG, or WebP, or paste from your clipboard. Nothing to install.",
   },
   {
     title: "Pick a 3D preset",
@@ -91,11 +92,11 @@ const faqs = [
   {
     question: "How do I make a 3D perspective screenshot online?",
     answer:
-      "Open Screenshot Studio in your browser, add your screenshot, pick a 3D preset in the Transforms panel, adjust the X, Y, and Z rotation if you want a different angle, then export a PNG. It takes under a minute and needs no signup.",
+      "Open Shots in your browser, add your screenshot, pick a 3D preset in the Transforms panel, adjust the X, Y, and Z rotation if you want a different angle, then export a PNG. It takes under a minute.",
   },
   {
-    question: "Is the 3D screenshot tool free?",
-    answer: `Yes. Every 3D preset and control is free, with unlimited exports at up to ${PRODUCT_FACTS.maxExportScale}x resolution and no watermark.`,
+    question: "Which plans include the 3D screenshot tool?",
+    answer: `Every plan. Every 3D preset and control is included, with unlimited exports at up to ${PRODUCT_FACTS.maxExportScale}x resolution and no watermark.`,
   },
   {
     question: "Can I put a tilted screenshot inside an iPhone or MacBook mockup?",
@@ -110,7 +111,7 @@ const faqs = [
   {
     question: "Do I need Photoshop or 3D software?",
     answer:
-      "No. Screenshot Studio applies perspective transforms in the browser, so you get a tilted product shot without Photoshop, Blender, or a desktop app.",
+      "No. Shots applies perspective transforms in the browser, so you get a tilted product shot without Photoshop, Blender, or a desktop app.",
   },
 ];
 
@@ -126,12 +127,12 @@ const jsonLd = {
     {
       "@type": "SoftwareApplication",
       "@id": `${PAGE_URL}#software`,
-      name: "Screenshot Studio - 3D Effects",
+      name: "Shots - 3D Effects",
       applicationCategory: "DesignApplication",
       operatingSystem: "Web Browser",
       description:
-        "Free online tool to add 3D perspective, rotation, and depth effects to screenshots.",
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        "Online tool to add 3D perspective, rotation, and depth effects to screenshots.",
+      offers: PRO_PLAN_OFFER,
       featureList: [
         "40 3D transform presets",
         "Perspective and X, Y, Z rotation",
@@ -145,7 +146,7 @@ const jsonLd = {
       "@id": `${PAGE_URL}#howto`,
       name: "How to make a 3D perspective screenshot online",
       totalTime: "PT1M",
-      tool: { "@type": "HowToTool", name: "Screenshot Studio (web browser)" },
+      tool: { "@type": "HowToTool", name: "Shots (web browser)" },
       step: steps.map((step, index) => ({
         "@type": "HowToStep",
         position: index + 1,
@@ -200,15 +201,15 @@ export default function ThreeDEffectsPage() {
   return (
     <FeaturePage
       name="3D Effects"
-      title="Free 3D Perspective Screenshot Maker"
-      intro="Open Screenshot Studio, add your image, pick from 40 3D tilt presets across Popular, Dramatic, Perspective, Zoom, and Float, or set your own X, Y, and Z rotation, then export a PNG. Free, in your browser, no watermark."
+      title="3D perspective screenshot maker"
+      intro="Open Shots, add your image, pick from 40 3D tilt presets across Popular, Dramatic, Perspective, Zoom, and Float, or set your own X, Y, and Z rotation, then export a PNG. In your browser, no watermark."
       ctaHref="/editor"
-      ctaLabel="Add 3D Effects Free"
+      ctaLabel="Add 3D Effects"
       previewGradient={gradientColors.store_midnight}
       preview={<TiltPreview />}
       capabilities={capabilities}
       steps={steps}
-      alternativesIntro="Pika Style puts tilt behind its Pro plan and Screely has no 3D effects at all. Screenshot Studio includes the full perspective transform library for free."
+      alternativesIntro="Pika Style puts tilt behind its Pro plan and Screely has no 3D effects at all. Shots includes the full perspective transform library on every plan."
       alternativeSlugs={["pika-style", "shots-so", "screely"]}
       guideLinks={[
         {

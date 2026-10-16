@@ -5,51 +5,51 @@ import {
   LinkCards,
   MarketingShell,
   PageHero,
-  PullQuote,
   RowTable,
   TileGrid,
 } from '../blocks'
 import { PipelineCanvas } from '../PipelineCanvas'
 import { MONO, MUTED, Section, SectionIntro, Window } from '../primitives'
+import { LaunchAnatomy } from '../diagrams/LaunchAnatomy'
 
 const OBJECTS = [
   {
     name: 'Release',
     holds:
-      'The brief: title, why it matters, description, audience, and up to twenty source links.',
+      'What you send: title, why it matters, description, audience, and up to twenty source links.',
     who: 'Creators, API keys, webhooks',
   },
   {
-    name: 'ReleaseSpec',
+    name: 'Launch brief',
     holds:
-      'The cited launch spec. Every AI draft, human edit, or applied revision is a new version.',
-    who: 'AI drafts, people edit and approve one version',
+      'The cited launch brief. Every AI draft, teammate edit, or applied revision saves a new version.',
+    who: 'The AI drafts. Teammates edit and approve one version',
   },
   {
-    name: 'CampaignPlan',
+    name: 'Plan',
     holds:
-      'Channels, angles, assets with capture hints, and the timeline. Versioned like the spec.',
-    who: 'AI drafts, people approve',
+      'Channels, angles, visuals with capture hints, and the timeline. Versioned like the launch brief.',
+    who: 'The AI drafts. Teammates approve',
   },
   {
-    name: 'CampaignPost',
+    name: 'Post',
     holds:
-      'Copy, channel, the claims it relies on, and the spec and plan versions it was written against.',
-    who: 'AI drafts, creators edit, approvers decide',
+      'Copy, channel, the claims it relies on, and the launch brief and plan versions it was written against.',
+    who: 'The AI drafts, creators edit, approvers decide',
   },
   {
-    name: 'Design',
-    holds: 'An editor document with its plan asset, variant label, and critique.',
-    who: 'The visuals agent, anyone in the editor',
+    name: 'Visual',
+    holds: 'An editor file with its place in the plan, a variant label, and its check results.',
+    who: 'The AI, or anyone in the editor',
   },
   {
-    name: 'ScheduledPost',
-    holds: 'Destination, time, delivery state, and the provider receipt.',
+    name: 'Scheduled post',
+    holds: 'Destination, time, delivery state, and the confirmation from the network.',
     who: 'Publishers, then the scheduler',
   },
   {
-    name: 'AuditLog',
-    holds: 'Every decision with its actor, request ID, and outcome.',
+    name: 'Audit log',
+    holds: 'Every decision with its teammate, request ID, and outcome.',
     who: 'Append-only. Nobody edits it',
   },
 ]
@@ -59,7 +59,7 @@ export function ProductPage() {
   return (
     <MarketingShell>
       <PageHero
-        body="Six parts in one workspace. Each works on its own. Together they turn a release into a reviewed, scheduled launch, with a record of every decision along the way."
+        body="Send Shots a release. You get a cited launch brief, a plan, on-brand visuals, and posts for six channels, ready for your approval. Six parts do the work, and each one also works on its own."
         eyebrow={{ label: 'Product' }}
         lead="Everything between the merge"
         location="product_hero"
@@ -68,7 +68,7 @@ export function ProductPage() {
         <HeroStage>
           <Window
             className="w-full"
-            meta={<span className={cn(MONO, 'text-[11.5px]')}>launch run · illustrative</span>}
+            meta={<span className={cn(MONO, 'text-[11.5px]')}>example launch</span>}
             title="Acme · Recurring invoices"
           >
             <div className="lg:p-3">
@@ -80,10 +80,10 @@ export function ProductPage() {
 
       <Section>
         <SectionIntro
-          body="Start with the part you need. Release intake brings the work in, launch intelligence thinks it through, the creative engine makes it visible, approvals keep a person in charge, publishing delivers it, and guardrails hold the whole thing to the truth."
+          body="Release intake brings the work in. Launch intelligence writes the launch brief and the drafts. The creative engine makes the visuals, and approvals keep a teammate in charge. Publishing delivers the posts, and guardrails keep the AI to what your sources say."
           label="The parts"
-          lead="Six parts."
-          trail="One workspace."
+          lead="Start with the part you need"
+          trail="and add the rest when you are ready."
         />
         <div className="mt-24">
           <LinkCards
@@ -101,15 +101,16 @@ export function ProductPage() {
 
       <Section>
         <SectionIntro
-          body="Campaigns are database objects, not chat transcripts. Change one hook, regenerate one image, or approve three posts without replaying a conversation. Every generated piece records the versions it came from."
-          label="Object model"
-          lead="Structured objects."
-          trail="Not chat output."
+          body="Change one hook, regenerate one image, or approve three posts without starting over. Every generated piece records the versions it came from."
+          label="What is saved"
+          lead="Every launch is saved as records,"
+          trail="so you can change one piece at a time."
         />
-        <div className="mt-24">
+        <div className="mt-24 space-y-12">
+          <LaunchAnatomy />
           <RowTable
-            caption="Campaign objects"
-            head={['Object', 'What it holds', 'Who changes it']}
+            caption="Launch records"
+            head={['Record', 'What it holds', 'Who changes it']}
             monoLabels
             rows={OBJECTS.map((object) => ({
               label: object.name,
@@ -121,36 +122,32 @@ export function ProductPage() {
 
       <Section>
         <SectionIntro
-          body="The platform was built in a deliberate order. Primitives first, so every capability works without a model. Recipes next, so a failure names its step. The agent last, so it chooses among proven capabilities instead of improvising them."
+          body="Every feature works without the AI. When a step fails, it tells you which step. The AI then chooses from features that already work."
           label="Build order"
-          lead="Built inside out."
-          trail="Agents come last."
+          lead="We built the manual tools first,"
+          trail="then step-by-step workflows, then the AI."
         >
           <div className="mt-10">
             <ArrowLink href="/principles">Read the principles</ArrowLink>
           </div>
         </SectionIntro>
         <div className="mt-24 space-y-4">
-          <PullQuote
-            quote="If we reverse this order and start with the agent, we debug hallucinated workflows instead of building a product."
-            source="RFC 009, the marketing platform thesis"
-          />
           <TileGrid
             items={[
               {
-                snippet: 'primitives',
-                title: 'Deterministic primitives',
-                body: 'The editor, brand kits, product surfaces, and campaign objects work on their own, through the UI and the API.',
+                snippet: '1 · manual tools',
+                title: 'Manual tools',
+                body: 'The editor, brand kits, product pages, and launch records work on their own, in the app and through the API.',
               },
               {
-                snippet: 'recipes',
-                title: 'Named, versioned recipes',
-                body: 'Control flow is code. Models fill in text at fixed points with schema-checked output, and every step can be retried.',
+                snippet: '2 · workflows',
+                title: 'Step-by-step workflows',
+                body: 'Each workflow runs fixed steps. The AI fills in text at set points, the output is checked, and any step can be retried.',
               },
               {
-                snippet: 'agent',
-                title: 'An agent on top',
-                body: 'The model decides what to do. The application decides how it is done safely, inside one workspace, without approval rights.',
+                snippet: '3 · the AI',
+                title: 'The AI on top',
+                body: 'The AI picks what to do. Shots decides how it runs safely: inside one workspace, with no approval rights.',
               },
             ]}
           />
@@ -158,7 +155,11 @@ export function ProductPage() {
       </Section>
 
       <Section>
-        <SectionIntro label="Where to next" lead="See it in use." trail="Or see who it is for." />
+        <SectionIntro
+          label="Where to next"
+          lead="See Shots on a real launch,"
+          trail="or read the page for your team."
+        />
         <div className="mt-24 space-y-4">
           <LinkCards
             paths={[

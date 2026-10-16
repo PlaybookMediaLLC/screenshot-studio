@@ -1,7 +1,9 @@
-# Screenshot Studio - Free Online Screenshot Editor
+# Shots - Launch Platform and Screenshot Editor
 
 ## About
-Screenshot Studio is an open-source, browser-based screenshot editor and workspace platform that transforms plain screenshots into professional-quality graphics. Editing runs in your browser: imported images are not uploaded merely to edit them, and export compression round-trips the finished image through the server without storing it. A signed-in workspace is required; editor exports have no watermark.
+Shots is an open-source launch platform. It reads a software release, writes a cited launch brief, designs on-brand visuals, and drafts posts, and nothing ships until a person approves. Launch intelligence is in early access for design partners.
+
+Shots also includes a screenshot editor in every plan, with no watermark, plus browser-based image tools. Editing runs in your browser: imported images are not uploaded merely to edit them, saved designs are stored in your workspace, and export compression round-trips the finished image through the server without storing it. Every plan is paid, and a signed-in workspace is required for the editor and every tool.
 
 ## Core Features
 - **100+ Backgrounds** — Gradients, mesh, radiant, paper textures, patterns, solid colors
@@ -14,53 +16,56 @@ Screenshot Studio is an open-source, browser-based screenshot editor and workspa
 - **Tweet Import** — Convert tweets to images by URL
 - **Code Snippets** — Syntax-highlighted code to image
 - **High-Res Export** — PNG, JPEG, WebP up to 5x resolution
-- **Templates & Presets** — One-click professional styling
+- **Templates & Presets** — One-click styling presets
 
 ## Pages
-- Start (choose a tool): https://www.screenshot-studio.com/
-- Screenshot Editor: https://www.screenshot-studio.com/editor
-- Landing: https://www.screenshot-studio.com/landing
-- Free Screenshot Editor: https://www.screenshot-studio.com/free-screenshot-editor
-- Mockup Generator: https://www.screenshot-studio.com/mockup-generator
-- Code to Image: https://www.screenshot-studio.com/code
-- Features: https://www.screenshot-studio.com/features
-- Screenshot Beautifier: https://www.screenshot-studio.com/features/screenshot-beautifier
-- Social Media Graphics: https://www.screenshot-studio.com/features/social-media-graphics
-- Animation Maker: https://www.screenshot-studio.com/features/animation-maker
-- 3D Effects: https://www.screenshot-studio.com/features/3d-effects
-- Browser Mockups: https://www.screenshot-studio.com/features/browser-mockups
-- For Developers: https://www.screenshot-studio.com/for/developers
-- For Marketers: https://www.screenshot-studio.com/for/marketers
-- For Designers: https://www.screenshot-studio.com/for/designers
-- vs Pika Style: https://www.screenshot-studio.com/compare/pika-style
-- vs Shots.so: https://www.screenshot-studio.com/compare/shots-so
-- vs Snagit: https://www.screenshot-studio.com/compare/snagit
-- Guides: https://www.screenshot-studio.com/guides
-- Best Free Screenshot Mockup Generators: https://www.screenshot-studio.com/guides/best-free-screenshot-mockup-generators
-- Best Free Screenshot Editors With No Watermark: https://www.screenshot-studio.com/guides/best-free-screenshot-editors-no-watermark
-- Best Code to Image Tools: https://www.screenshot-studio.com/guides/best-code-to-image-tools
-- Best Free Shots.so Alternatives: https://www.screenshot-studio.com/guides/best-free-shots-so-alternatives
-- API Documentation: https://www.screenshot-studio.com/docs
-- API Authentication: https://www.screenshot-studio.com/docs/authentication
-- Developer Portal: https://www.screenshot-studio.com/developers
-- Changelog: https://www.screenshot-studio.com/changelog
-- About: https://www.screenshot-studio.com/about
-- Contact: https://www.screenshot-studio.com/contact
-- Privacy Policy: https://www.screenshot-studio.com/privacy-policy
-- Terms: https://www.screenshot-studio.com/terms
+- Screenshot Editor (sign-in required): https://shots.playbookmedia.io/
+- Editor alias (redirects to /): https://shots.playbookmedia.io/editor
+- Landing: https://shots.playbookmedia.io/landing
+- Pricing: https://shots.playbookmedia.io/pricing
+- Design partners: https://shots.playbookmedia.io/design-partners
+- Screenshot Editor Online: https://shots.playbookmedia.io/free-screenshot-editor
+- Mockup Generator: https://shots.playbookmedia.io/mockup-generator
+- Code to Image: https://shots.playbookmedia.io/code
+- Features: https://shots.playbookmedia.io/features
+- Screenshot Beautifier: https://shots.playbookmedia.io/features/screenshot-beautifier
+- Social Media Graphics: https://shots.playbookmedia.io/features/social-media-graphics
+- Animation Maker: https://shots.playbookmedia.io/features/animation-maker
+- 3D Effects: https://shots.playbookmedia.io/features/3d-effects
+- Browser Mockups: https://shots.playbookmedia.io/features/browser-mockups
+- For Developers: https://shots.playbookmedia.io/for/developers
+- For Marketers: https://shots.playbookmedia.io/for/marketers
+- For Designers: https://shots.playbookmedia.io/for/designers
+- vs Pika Style: https://shots.playbookmedia.io/compare/pika-style
+- vs Shots.so: https://shots.playbookmedia.io/compare/shots-so
+- vs Snagit: https://shots.playbookmedia.io/compare/snagit
+- Guides: https://shots.playbookmedia.io/guides
+- Best Screenshot Mockup Generators, Free and Paid: https://shots.playbookmedia.io/guides/best-free-screenshot-mockup-generators
+- Best Screenshot Editors With No Watermark, Free and Paid: https://shots.playbookmedia.io/guides/best-free-screenshot-editors-no-watermark
+- Best Code to Image Tools: https://shots.playbookmedia.io/guides/best-code-to-image-tools
+- Best Shots.so Alternatives, Free and Paid: https://shots.playbookmedia.io/guides/best-free-shots-so-alternatives
+- API Documentation: https://shots.playbookmedia.io/docs
+- API Authentication: https://shots.playbookmedia.io/docs/authentication
+- Developer Portal: https://shots.playbookmedia.io/developers
+- Changelog: https://shots.playbookmedia.io/changelog
+- About: https://shots.playbookmedia.io/about
+- Contact: https://shots.playbookmedia.io/contact
+- Privacy Policy: https://shots.playbookmedia.io/privacy-policy
+- Terms: https://shots.playbookmedia.io/terms
 
 ## Developer Resources
-- API documentation: https://www.screenshot-studio.com/docs
-- Developer portal: https://www.screenshot-studio.com/developers
-- Interactive API reference: https://www.screenshot-studio.com/api-reference
-- OpenAPI 3.1 specification: https://www.screenshot-studio.com/openapi.json
-- Authentication and rate limits: https://www.screenshot-studio.com/docs/authentication
-- Agent index: https://www.screenshot-studio.com/llms.txt
-- Full agent reference: https://www.screenshot-studio.com/llms-full.txt
-- Sitemap: https://www.screenshot-studio.com/sitemap.xml
+- API documentation: https://shots.playbookmedia.io/docs
+- Developer portal: https://shots.playbookmedia.io/developers
+- Interactive API reference: https://shots.playbookmedia.io/api-reference
+- OpenAPI 3.1 specification: https://shots.playbookmedia.io/openapi.json
+- Authentication and rate limits: https://shots.playbookmedia.io/docs/authentication
+- Agent index: https://shots.playbookmedia.io/llms.txt
+- Full agent reference: https://shots.playbookmedia.io/llms-full.txt
+- Sitemap: https://shots.playbookmedia.io/sitemap.xml
 
-Editor utility endpoints such as `/api/screenshot` are anonymous and use per-IP
-limits. Workspace-scoped `/api/v1` operations require an organization key in
+Editor utility endpoints such as `/api/screenshot` require a signed-in session
+or a workspace API key with the artifact:read scope in `X-API-Key`, and per-IP limits apply on
+top. Create a workspace API key in Settings → Developer API (/workspace/developers). Workspace-scoped `/api/v1` operations require an organization key in
 `X-API-Key` or an authorized signed-in session. Every page also serves Markdown
 to clients that send `Accept: text/markdown`. No official CLI tool and no MCP
 server are published yet.
@@ -80,6 +85,7 @@ Available in 8 languages: English, Spanish (/es), French (/fr), German (/de), Ja
 - next-intl for internationalization
 
 ## Use Cases
+- Launch briefs, visuals, and approved posts for each software release
 - Social media graphics (Twitter/X, Instagram, LinkedIn, Product Hunt)
 - SaaS product screenshots for landing pages and documentation
 - Developer portfolio and project showcase images
@@ -87,17 +93,16 @@ Available in 8 languages: English, Spanish (/es), French (/fr), German (/de), Ja
 - Animated slideshows and video content
 
 ## Target Audience
-Developers, designers, marketers, indie hackers, content creators, and anyone who needs professional visuals without design skills.
+Software teams that ship releases, plus developers, designers, and marketers who need product visuals.
 
 ## Pricing
-A free workspace plan is available, and some workspace capabilities require a higher plan. A signed-in workspace is required. Editor exports have no watermark.
+Plans: Pro ($199/mo, or $169/mo billed annually), Business ($699/mo, or $594/mo billed annually), and Enterprise (from $3,000/mo, billed annually). There is no free plan. A signed-in workspace is required on every plan. The screenshot editor and image tools are included in every plan, and exports have no watermark. Details: https://shots.playbookmedia.io/pricing
 
 ## Contact
-- Website: https://www.screenshot-studio.com
-- Twitter/X: https://x.com/screenshotstdio
+- Website: https://shots.playbookmedia.io
 - GitHub: https://github.com/PlaybookMediaLLC/screenshot-studio
-- Email: kartik.labhshetwar@gmail.com
+- Email: team@playbookmedia.io
 
 ## LLMs.txt
-For structured markdown documentation, visit: https://www.screenshot-studio.com/llms.txt
-For the full detailed version: https://www.screenshot-studio.com/llms-full.txt
+For structured markdown documentation, visit: https://shots.playbookmedia.io/llms.txt
+For the full detailed version: https://shots.playbookmedia.io/llms-full.txt

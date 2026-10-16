@@ -31,8 +31,9 @@ const (
 // planQuotas mirrors lib/billing/plans.ts. The allowances hold a 75% gross
 // margin at half use (docs/rfcs/035-pricing-and-unit-economics.md).
 var planQuotas = map[string]map[string]int{
-	"free": {QuotaAPIWriteMinute: 30, QuotaJobsConcurrent: 1,
-		QuotaAICredits: 250, QuotaPosts: 10, QuotaEmails: 100},
+	// "free" means no subscription: every allowance is zero.
+	"free": {QuotaAPIWriteMinute: 0, QuotaJobsConcurrent: 0,
+		QuotaAICredits: 0, QuotaPosts: 0, QuotaEmails: 0},
 	"pro": {QuotaAPIWriteMinute: 300, QuotaJobsConcurrent: 5,
 		QuotaAICredits: 3_600, QuotaPosts: 120, QuotaEmails: 5_000},
 	"business": {QuotaAPIWriteMinute: 1_500, QuotaJobsConcurrent: 25,

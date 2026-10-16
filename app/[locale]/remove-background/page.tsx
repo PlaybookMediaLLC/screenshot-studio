@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 export const metadata: Metadata = {
   title: 'Remove Background from Image: Free',
   description:
-    'Remove an image background in your browser and download a transparent PNG. Runs on your device with WebGPU. Free, no signup, no watermark.',
+    'Remove an image background in your browser and download a transparent PNG. Runs on your device with WebGPU. Included in every plan. No watermark.',
   keywords: [
     'remove background',
     'remove background from image',
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     ...OG_DEFAULTS,
     title: 'Remove Background from Image: Free',
     description:
-      'Remove an image background on your device and download a transparent PNG. Free, no signup, no watermark.',
+      'Remove an image background on your device and download a transparent PNG. Included in every plan. No watermark.',
     url: '/remove-background',
   },
   alternates: {
@@ -72,7 +72,7 @@ const faqs = [
   {
     question: 'Is it free, and is there a watermark?',
     answer:
-      'It is completely free with no signup, no daily limit, and no watermark. The output keeps the full resolution of your original image.',
+      'It is included in every Shots plan, with no daily limit and no watermark. The output keeps the full resolution of your original image.',
   },
 ];
 
@@ -125,7 +125,7 @@ const jsonLd = {
     {
       '@type': 'SoftwareApplication',
       '@id': `${PAGE_URL}#application`,
-      name: 'Screenshot Studio - Remove Background',
+      name: 'Shots - Remove Background',
       url: PAGE_URL,
       applicationCategory: 'DesignApplication',
       applicationSubCategory: 'Background Remover',
@@ -146,7 +146,7 @@ const jsonLd = {
         'WebGPU acceleration with WebAssembly fallback',
         'Transparent PNG at original resolution',
         'Before and after comparison slider',
-        'No upload, no signup, no watermark',
+        'No upload, no watermark',
       ],
     },
     {
@@ -191,7 +191,7 @@ export default function RemoveBackgroundPage() {
         <ToolHero
           name="Remove Background"
           title="Remove Background from Image"
-          intro="Drop in a photo and get a transparent PNG back in seconds. The AI model runs on your own device, so your image is never uploaded. No signup, no watermark."
+          intro="Drop in a photo and get a transparent PNG back. The AI model runs on your own device, so your image is never uploaded. Included in every plan. No watermark."
         />
 
         <div className="mt-10 sm:mt-12">

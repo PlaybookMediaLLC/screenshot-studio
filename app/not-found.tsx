@@ -13,7 +13,7 @@ const RECOVERY_LINKS = [
 export const metadata: Metadata = {
   title: "404. Page not found",
   description:
-    "This page does not exist. Go back, or open the Screenshot Studio editor.",
+    "This page does not exist. Go back, or open the Shots editor.",
   robots: { index: false, follow: true },
   alternates: { canonical: null },
 };

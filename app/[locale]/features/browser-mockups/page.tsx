@@ -3,24 +3,25 @@ import Link from "next/link";
 import { BrowserIcon, ComputerIcon, Settings01Icon, Sun01Icon } from "hugeicons-react";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION, WindowDots } from "@/components/tools/ui";
+import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";
 import { OG_DEFAULTS, SITE_URL } from "@/lib/seo/metadata";
 import { gradientColors } from "@/lib/constants/gradient-colors";
 
 const PAGE_URL = `${SITE_URL}/features/browser-mockups`;
 
 export const metadata: Metadata = {
-  title: "Free Browser Mockup Generator",
+  title: "Browser Mockup Generator",
   description:
-    "Free browser mockup generator. Add Safari and Chrome frames to screenshots with light and dark modes, custom URL bar, and 3D perspective. No signup required.",
+    "Browser mockup generator. Add Safari and Chrome frames to screenshots with light and dark modes, custom URL bar, and 3D perspective. Included in every Shots plan.",
   keywords: [
     "browser mockup generator",
     "safari browser mockup",
     "chrome browser mockup",
     "browser frame screenshot",
-    "free browser mockup tool",
+    "browser mockup tool",
     "safari window mockup",
     "chrome window mockup",
-    "browser mockup online free",
+    "browser mockup online",
     "screenshot browser frame",
     "mac browser mockup",
     "website mockup generator",
@@ -33,9 +34,9 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Free Browser Mockup Generator - Safari & Chrome Frames",
+    title: "Browser Mockup Generator - Safari & Chrome Frames",
     description:
-      "Add realistic Safari and Chrome browser frames to screenshots. Light and dark modes, custom URL. Free, no signup.",
+      "Add realistic Safari and Chrome browser frames to screenshots. Light and dark modes, custom URL. Included in every Shots plan.",
     url: PAGE_URL,
   },
   alternates: {
@@ -90,9 +91,9 @@ const steps = [
 
 const faqs = [
   {
-    question: "Is the browser mockup generator free?",
+    question: "Which plans include the browser mockup generator?",
     answer:
-      "Yes. Safari and Chrome frames, both light and dark, are free with no signup and no watermark.",
+      "Every plan. Safari and Chrome frames, both light and dark, are included in every Shots plan, and exports have no watermark.",
   },
   {
     question: "Which browsers can I add a frame for?",
@@ -129,19 +130,19 @@ const jsonLd = {
     {
       "@type": "SoftwareApplication",
       "@id": `${PAGE_URL}#software`,
-      name: "Screenshot Studio - Browser Mockup Generator",
+      name: "Shots - Browser Mockup Generator",
       applicationCategory: "DesignApplication",
       operatingSystem: "Web Browser",
       description:
-        "Free online tool to add Safari and Chrome browser frames to screenshots with light/dark modes and custom URL.",
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        "Online tool to add Safari and Chrome browser frames to screenshots with light/dark modes and custom URL.",
+      offers: PRO_PLAN_OFFER,
       featureList: [
         "Safari browser frame (light & dark)",
         "Chrome browser frame (light & dark)",
         "Custom URL display",
         "Adjustable header size",
         "3D perspective support",
-        "No signup required",
+        "Included in every Shots plan",
       ],
     },
     {
@@ -192,15 +193,15 @@ export default function BrowserMockupsPage() {
   return (
     <FeaturePage
       name="Browser Mockups"
-      title="Free Browser Mockup Generator"
-      intro="Add realistic Safari and Chrome browser frames to your screenshots. Light and dark modes, custom URL, adjustable header size, free with no signup."
+      title="Browser mockup generator"
+      intro="Add realistic Safari and Chrome browser frames to your screenshots. Light and dark modes, custom URL, adjustable header size, included in every Shots plan."
       ctaHref="/editor"
       ctaLabel="Add Browser Frame"
       previewGradient={gradientColors.store_ocean}
       preview={<BrowserPreview />}
       capabilities={capabilities}
       steps={steps}
-      alternativesIntro="Screely only adds a macOS or Windows window frame, with no device mockups or 3D effects. Screenshot Studio adds Safari and Chrome browser frames alongside device mockups, 3D tilt, and animation, all free."
+      alternativesIntro="Screely only adds a macOS or Windows window frame, with no device mockups or 3D effects. Shots adds Safari and Chrome browser frames alongside device mockups, 3D tilt, and animation, all in one editor."
       alternativeSlugs={["screely", "shots-so", "pika-style"]}
       guideLinks={[
         {

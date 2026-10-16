@@ -10,7 +10,7 @@ import { PRODUCT_FACTS } from "@/lib/seo/product-facts";
 export const metadata: Metadata = {
   title: 'Beautiful Code Screenshots for READMEs',
   description:
-    `Turn code into a crisp PNG for your GitHub README, docs, or social posts. ${PRODUCT_FACTS.codeThemes} themes, gradient backgrounds, transparent export at 2x or 4x. Free, no signup, no watermark.`,
+    `Turn code into a crisp PNG for your GitHub README, docs, or social posts. ${PRODUCT_FACTS.codeThemes} themes, gradient backgrounds, transparent export at 2x or 4x. Included in every plan. No watermark.`,
   keywords: [
     'code to image',
     'code screenshots for readme',
@@ -30,9 +30,9 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: 'Code to Image: Beautiful Screenshots',
+    title: 'Code to Image Generator',
     description:
-      `Turn code into beautiful, shareable images. ${PRODUCT_FACTS.codeThemes} themes, gradients, images, and window frames. Free, no signup.`,
+      `Turn code into shareable images. ${PRODUCT_FACTS.codeThemes} themes, gradients, images, and window frames. Included in every plan.`,
     url: '/code',
   },
   alternates: {
@@ -58,7 +58,7 @@ const faqs = [
   {
     question: 'How do I make a beautiful code screenshot for a README?',
     answer:
-      'Paste the snippet into Screenshot Studio, pick a syntax theme, turn the background off for a transparent PNG or keep a gradient, export at 2x, commit the file to your repository, and embed it in README.md with a relative image path and alt text.',
+      'Paste the snippet into Shots, pick a syntax theme, turn the background off for a transparent PNG or keep a gradient, export at 2x, commit the file to your repository, and embed it in README.md with a relative image path and alt text.',
   },
   {
     question: 'Should I use a code image or a fenced code block in my README?',
@@ -73,12 +73,12 @@ const faqs = [
   {
     question: 'Is this code to image tool free?',
     answer:
-      'Yes. Every theme, background, and export option is free, with no signup and no watermark.',
+      'Yes. Every theme, background, and export option is included in every Shots plan, with no watermark.',
   },
   {
     question: 'How many syntax themes are included?',
     answer:
-      '14 color themes (Midnight, Candy, Sunset, and more), each pairable with its own gradient, one of Screenshot Studio\'s gradient and image backgrounds, or a simple pattern.',
+      '14 color themes (Midnight, Candy, Sunset, and more), each pairable with its own gradient, one of Shots\' gradient and image backgrounds, or a simple pattern.',
   },
   {
     question: 'Can I export a transparent background?',
@@ -97,11 +97,11 @@ const faqJsonLd = {
   '@graph': [
     {
       '@type': 'SoftwareApplication',
-      name: 'Screenshot Studio - Code to Image',
+      name: 'Shots - Code to Image',
       applicationCategory: 'DesignApplication',
       operatingSystem: 'Web Browser',
       description:
-        'Free tool that turns code into a beautiful, shareable image with syntax themes, gradient backgrounds, and window styles.',
+        'Free tool that turns code into a shareable image with syntax themes, gradient backgrounds, and window styles.',
       offers: {
         '@type': 'Offer',
         price: '0',
@@ -143,12 +143,12 @@ export default function CodeImagePage() {
               className="text-4xl font-semibold tracking-[-0.035em] text-foreground sm:text-5xl"
               style={{ fontFamily: INTER }}
             >
-              Code to Image Generator
+              Code to image generator
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Paste a snippet, pick a theme and background, and export a crisp
-              PNG in seconds. No signup, no watermark, everything runs in your
-              browser.
+              Paste a snippet, pick a theme and background, and export a PNG.
+              Included in every plan, no watermark, and everything runs in
+              your browser.
             </p>
           </header>
 

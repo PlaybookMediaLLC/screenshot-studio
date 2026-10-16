@@ -288,7 +288,7 @@ test("uniqueFilename keeps batch zip entries from overwriting each other", () =>
 test("batchArchiveName is a safe zip name", () => {
   assert.equal(
     batchArchiveName("compress-image"),
-    "screenshot-studio-compress-image.zip"
+    "shots-compress-image.zip"
   );
 });
 

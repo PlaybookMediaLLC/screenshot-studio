@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { affectedUrls } from "../scripts/indexnow";
 
-const SITE = "https://www.screenshot-studio.com";
+const SITE = "https://shots.playbookmedia.io";
 const SITEMAP = [
   "/",
   "/guides",

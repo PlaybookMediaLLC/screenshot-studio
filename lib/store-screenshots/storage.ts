@@ -4,7 +4,7 @@ import type { StoreProject } from "./types";
 const DB_NAME = "screenshotstudio-store-projects";
 const STORE_NAME = "projects";
 const ACTIVE_PROJECT_KEY = "active-store-project";
-export const STORE_PROJECT_HINT_COOKIE = "screenshot-studio-store-active";
+export const STORE_PROJECT_HINT_COOKIE = "shots-store-active";
 
 function updateStoreProjectHint(active: boolean): void {
   if (typeof document === "undefined") return;

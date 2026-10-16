@@ -125,7 +125,7 @@ export function CtaBand({
         {label}
       </Link>
       <p className="mt-4 text-xs text-muted-foreground/70">
-        Free forever · No signup · No watermark
+        Included in every plan · No watermark
       </p>
     </section>
   );

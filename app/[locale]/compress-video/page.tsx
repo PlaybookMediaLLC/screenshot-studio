@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 export const metadata: Metadata = {
   title: 'Compress Video Online: Free, No Upload',
   description:
-    'Reduce video file size in your browser. Pick a quality level or a target size in MB, and download an MP4. Free, no signup, no watermark, no upload.',
+    'Reduce video file size in your browser. Pick a quality level or a target size in MB, and download an MP4. Included in every plan. No watermark, no upload.',
   keywords: [
     'compress video',
     'video compressor',
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     ...OG_DEFAULTS,
     title: 'Compress Video Online: Free, No Upload',
     description:
-      'Make videos smaller on your device, by quality level or to a target size in MB. Free, no signup, no watermark.',
+      'Make videos smaller on your device, by quality level or to a target size in MB. Included in every plan. No watermark.',
     url: '/compress-video',
   },
   alternates: {
@@ -73,7 +73,7 @@ const faqs = [
   {
     question: 'Is it free, and is there a watermark?',
     answer:
-      'It is completely free with no signup, no daily limit, and no watermark. Screenshot Studio is open source under the Apache 2.0 licence.',
+      'It is included in every Shots plan, with no daily limit and no watermark. Shots is open source under the Apache 2.0 licence.',
   },
 ];
 
@@ -124,7 +124,7 @@ const jsonLd = {
     {
       '@type': 'SoftwareApplication',
       '@id': `${PAGE_URL}#application`,
-      name: 'Screenshot Studio: Compress Video',
+      name: 'Shots: Compress Video',
       url: PAGE_URL,
       applicationCategory: 'MultimediaApplication',
       applicationSubCategory: 'Video Compressor',
@@ -146,7 +146,7 @@ const jsonLd = {
         'Downscale to 1080p, 720p, or 480p',
         'Keep, shrink, or remove the audio',
         'MP4 output with H.264 and AAC',
-        'No upload, no signup, no watermark',
+        'No upload, no watermark',
       ],
     },
     {
@@ -191,7 +191,7 @@ export default function CompressVideoPage() {
         <ToolHero
           name="Compress Video"
           title="Compress Video"
-          intro="Make a video smaller without sending it anywhere. Pick a quality level or type the size you need, like 25 MB, and download an MP4 that plays everywhere. No signup, no watermark."
+          intro="Make a video smaller without sending it anywhere. Pick a quality level or type the size you need, like 25 MB, and download an MP4 that plays everywhere. Included in every plan. No watermark."
           parent={{ href: TOOLS_HUB_PATH, label: 'Tools' }}
         />
 

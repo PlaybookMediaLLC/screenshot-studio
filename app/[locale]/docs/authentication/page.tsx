@@ -6,20 +6,20 @@ import { OG_DEFAULTS } from "@/lib/seo/metadata";
 import { INTER, codeBlockClassName, linkClassName } from "@/lib/seo/docs-shared";
 
 export const metadata: Metadata = {
-  title: "Screenshot Studio API Authentication",
+  title: "Shots API Authentication",
   description:
-    "Authentication for Screenshot Studio anonymous utility endpoints and workspace-scoped /api/v1 tenant operations.",
+    "Authentication for Shots editor utility endpoints and workspace-scoped /api/v1 tenant operations: signed-in sessions and workspace API keys.",
   keywords: [
-    "Screenshot Studio API authentication",
-    "Screenshot Studio API key",
+    "Shots API authentication",
+    "Shots API key",
     "screenshot API rate limit",
-    "screenshot API no auth",
+    "screenshot API key",
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Screenshot Studio API Authentication",
+    title: "Shots API Authentication",
     description:
-      "Anonymous editor utilities, workspace API keys, signed-in sessions, and rate-limit semantics.",
+      "Workspace API keys, signed-in sessions, and rate-limit semantics for editor utilities and tenant endpoints.",
     url: "/docs/authentication",
   },
   alternates: {
@@ -60,31 +60,38 @@ export default function AuthenticationPage() {
           className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl"
           style={{ fontFamily: INTER }}
         >
-          Screenshot Studio API Authentication
+          Shots API Authentication
         </h1>
         <p className="mb-12 text-lg leading-relaxed text-muted-foreground">
-          Screenshot Studio has two API surfaces. Editor utility endpoints such
-          as <code>/api/screenshot</code> are anonymous and shaped by per-IP
-          limits. Versioned <code>/api/v1</code> tenant endpoints require a
-          workspace API key with the declared scope or a signed-in user session
-          with the matching permission.
+          Shots has two API surfaces. Editor utility endpoints such
+          as <code>/api/screenshot</code> require a signed-in session or a
+          workspace API key with the artifact:read scope, and per-IP limits apply on top.
+          Versioned <code>/api/v1</code> tenant endpoints require a workspace
+          API key with the declared scope or a signed-in user session with the
+          matching permission. Create a workspace API key in Settings →
+          Developer API (<code>/workspace/developers</code>).
         </p>
 
         <div className="space-y-10">
-          <section id="no-credentials">
+          <section id="utility-credentials">
             <h2
               className="mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              Anonymous utility endpoints
+              Editor utility endpoints
             </h2>
             <p className="mb-4 leading-relaxed text-muted-foreground">
-              The utility endpoints listed below do not require credentials.
-              An <code>Authorization</code> header does not grant tenant access
-              to them. A complete capture request looks like this:
+              The utility endpoints listed below accept a signed-in session,
+              which is how the editor calls them, or a workspace API key with
+              the artifact:read scope in <code>X-API-Key</code>. A request with neither
+              returns 401 with code <code>unauthorized</code>. There is no free
+              plan: a workspace without an active plan gets 403 with code{" "}
+              <code>workspace_feature_not_entitled</code>. A complete
+              capture request looks like this:
             </p>
             <pre className={codeBlockClassName}>
-              <code>{`curl -X POST https://www.screenshot-studio.com/api/screenshot \\
+              <code>{`curl -X POST https://shots.playbookmedia.io/api/screenshot \\
+  -H "X-API-Key: $SHOTS_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"url":"https://example.com"}'`}</code>
             </pre>
@@ -105,8 +112,8 @@ export default function AuthenticationPage() {
               feature, and quota where the operation requires them.
             </p>
             <pre className={codeBlockClassName}>
-              <code>{`curl https://www.screenshot-studio.com/api/v1/releases \\
-  -H "X-API-Key: $SCREENSHOT_STUDIO_API_KEY"`}</code>
+              <code>{`curl https://shots.playbookmedia.io/api/v1/releases \\
+  -H "X-API-Key: $SHOTS_API_KEY"`}</code>
             </pre>
           </section>
 
@@ -171,7 +178,7 @@ export default function AuthenticationPage() {
   "message": "Rate limit exceeded. Please try again later.",
   "hint": "Wait 42 seconds, then retry. This endpoint allows 20 requests per minute per IP address.",
   "status": 429,
-  "documentation": "https://www.screenshot-studio.com/docs#errors",
+  "documentation": "https://shots.playbookmedia.io/docs#errors",
   "retryAfter": 42
 }`}</code>
             </pre>

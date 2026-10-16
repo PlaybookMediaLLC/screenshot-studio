@@ -130,5 +130,5 @@ export async function saveExportToWorkspace(input: SaveToWorkspaceInput): Promis
 export function buildExportFileName(contentType: string, now = new Date()): string {
   const extension = contentType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'png'
   const stamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19)
-  return `screenshot-studio-${stamp}.${extension}`
+  return `shots-${stamp}.${extension}`
 }

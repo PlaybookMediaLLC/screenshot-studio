@@ -102,7 +102,7 @@ export const deleteAssetContract = defineContract({
     description:
       'Queues deletion of an uploaded asset that is not in use. Requires the `asset:write` scope and the asset deletion workspace entitlement (Pro or higher by default).',
     extensions: {
-      'x-screenshot-studio-entitlement': {
+      'x-shots-entitlement': {
         feature: 'asset:delete',
         minimumPlan: 'pro',
         quota: 'api:write:minute',

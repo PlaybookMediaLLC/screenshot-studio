@@ -19,7 +19,7 @@ interface TestimonialProps {
 }
 
 export function Testimonial({
-  quote = "Screenshot Studio has completely transformed how I create content. What used to take me hours in Photoshop now takes minutes. It's honestly magical.",
+  quote = "Shots has completely transformed how I create content. What used to take me hours in Photoshop now takes minutes. It's honestly magical.",
   author = "Sarah Chen",
   title = "Content Creator",
   company = "@sarahcreates",

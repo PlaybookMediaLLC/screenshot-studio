@@ -13,14 +13,14 @@ const copy = {
     button: 'Reset password',
     heading: 'Reset your password',
     ignore: 'If you did not request this, ignore this email and your password will not change.',
-    preview: 'Reset your Screenshot Studio password',
+    preview: 'Reset your Shots password',
   },
   'verify-email': {
-    body: 'Confirm this address to finish setting up your Screenshot Studio account.',
+    body: 'Confirm this address to finish setting up your Shots account.',
     button: 'Verify email',
     heading: 'Verify your email',
     ignore: 'If you did not create an account, you can safely ignore this email.',
-    preview: 'Verify your Screenshot Studio email',
+    preview: 'Verify your Shots email',
   },
 } as const
 

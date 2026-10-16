@@ -12,7 +12,7 @@ meter, at a 75% gross margin when a workspace uses half its allowance.
 
 | Plan       | Monthly     | Billed annually | Included each month                                                                    |
 | ---------- | ----------- | --------------- | -------------------------------------------------------------------------------------- |
-| Free       | $0          | $0              | Editor and tools, release intake, approvals, 250 AI credits                            |
+| Free       | $0          | $0              | Editor and tools, release intake, approvals, 500 AI credits                            |
 | Pro        | $199        | $169/mo         | 3,600 AI credits (about 8 launches), 120 posts, 5,000 emails                           |
 | Business   | $699        | $594/mo         | 13,200 AI credits (about 30 launches), 480 posts, 25,000 emails                        |
 | Enterprise | from $3,000 | annual only     | 54,000 AI credits (about 125 launches), 2,400 posts, 100,000 emails, SSO, SCIM, drains |

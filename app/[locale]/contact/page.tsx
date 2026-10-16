@@ -2,12 +2,12 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
-import { GithubIcon, NewTwitterIcon, Mail01Icon } from "hugeicons-react";
+import { GithubIcon, Mail01Icon } from "hugeicons-react";
 
 export const metadata: Metadata = {
   title: "Contact Us",
   description:
-    "Get in touch with the Screenshot Studio team. Report bugs, suggest features, or just say hi.",
+    "Get in touch with the Shots team. Report bugs, suggest features, or just say hi.",
   alternates: {
     canonical: "/contact",
   },
@@ -30,7 +30,7 @@ const contacts = [
     href: "https://github.com/PlaybookMediaLLC/screenshot-studio/issues",
     external: true,
     icon: GithubIcon,
-    title: "Report a Bug",
+    title: "Report a bug",
     description:
       "Found something broken? Open an issue on GitHub and we'll look into it.",
   },
@@ -38,20 +38,12 @@ const contacts = [
     href: "https://github.com/PlaybookMediaLLC/screenshot-studio/issues/new?labels=enhancement",
     external: true,
     icon: GithubIcon,
-    title: "Request a Feature",
+    title: "Request a feature",
     description:
-      "Have an idea to make Screenshot Studio better? We'd love to hear it.",
+      "Have an idea to make Shots better? We'd love to hear it.",
   },
   {
-    href: "https://x.com/screenshotstdio",
-    external: true,
-    icon: NewTwitterIcon,
-    title: "Twitter / X",
-    description:
-      "Follow @screenshotstdio for release notes, tips, and product updates.",
-  },
-  {
-    href: "mailto:kartik.labhshetwar@gmail.com",
+    href: "mailto:team@playbookmedia.io",
     external: false,
     icon: Mail01Icon,
     title: "Email",
@@ -70,7 +62,7 @@ export default function ContactPage() {
           className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl"
           style={{ fontFamily: INTER }}
         >
-          Contact Us
+          Contact us
         </h1>
         <p className="mb-12 text-lg text-muted-foreground">
           Have a question, found a bug, or want to suggest a feature? Here are
@@ -110,7 +102,7 @@ export default function ContactPage() {
             className="mb-2 text-lg font-semibold tracking-[-0.02em] text-foreground"
             style={{ fontFamily: INTER }}
           >
-            Before You Reach Out
+            Before you reach out
           </h2>
           <p className="mb-3 leading-relaxed text-muted-foreground">
             Many questions are already answered on the{" "}
@@ -125,9 +117,8 @@ export default function ContactPage() {
             <Link href="/changelog" className={linkClassName}>
               changelog
             </Link>
-            . Screenshot Studio is free, needs no account, and processes your
-            images in the browser, so there is nothing to cancel and no
-            subscription to manage.
+            . The editor and image tools are included in every plan. For
+            questions about Pro, Business, or Enterprise plans, email us.
           </p>
           <p className="leading-relaxed text-muted-foreground">
             When reporting a bug, include your browser and operating system,
@@ -145,7 +136,7 @@ export default function ContactPage() {
             Contributing
           </h2>
           <p className="leading-relaxed text-muted-foreground">
-            Screenshot Studio is open source. If you&apos;re a developer and
+            Shots is open source. If you&apos;re a developer and
             want to contribute, check out the{" "}
             <Link
               href="https://github.com/PlaybookMediaLLC/screenshot-studio"
@@ -161,7 +152,7 @@ export default function ContactPage() {
         </section>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

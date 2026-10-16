@@ -53,7 +53,7 @@ test('a shell bootstraps from the stable API and never receives secrets', async 
   expect(body.organizations).toEqual([expect.objectContaining({ id: organizationId })])
   expect(body.membership.role).toBe('owner')
   expect(body.membership.permissions).toContain('member:invite')
-  expect(body.entitlements.plan).toBe('free')
+  expect(body.entitlements.plan).toBe('pro')
   expect(body.capabilities).toMatchObject({ browserAutomation: false, publishing: false })
   for (const forbidden of ['secretReference', 'externalCustomerId', 'token', 'password']) {
     expect(raw).not.toContain(forbidden)

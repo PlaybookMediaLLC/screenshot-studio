@@ -21,7 +21,7 @@ test('export file names are safe for object storage keys', () => {
   // in shells, downloads, and some storage browsers, so they are
   // normalized rather than passed through.
   assert.doesNotMatch(name, /[:]/)
-  assert.match(name, /^screenshot-studio-[\w-]+\.png$/)
+  assert.match(name, /^shots-[\w-]+\.png$/)
 })
 
 test('successive exports do not collide within the same second', () => {

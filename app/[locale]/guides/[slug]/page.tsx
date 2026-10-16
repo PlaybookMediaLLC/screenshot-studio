@@ -23,7 +23,7 @@ import {
   type HowToGuide,
   type RoundupGuide,
 } from "@/lib/seo/guides";
-import { PERSON_ID } from "@/lib/seo/json-ld";
+import { ORGANIZATION_ID } from "@/lib/seo/json-ld";
 import { OG_DEFAULTS, SITE_URL } from "@/lib/seo/metadata";
 
 const PROSE = "text-[17px] leading-[1.75] text-foreground/85";
@@ -101,7 +101,7 @@ function VisitLink({ tool }: { tool: GuideTool }): React.JSX.Element {
   if (tool.url.startsWith("/")) {
     return (
       <Link href={tool.url} className={className}>
-        Try it free
+        Try it
         <ArrowRight01Icon aria-hidden="true" className="size-3.5" />
       </Link>
     );
@@ -327,7 +327,7 @@ export default async function GuidePage({ params }: PageProps) {
         description: guide.metaDescription,
         datePublished: updated,
         dateModified: updated,
-        author: { "@id": PERSON_ID },
+        author: { "@id": ORGANIZATION_ID },
         publisher: { "@id": `${SITE_URL}/#organization` },
         image: absoluteUrl(cover),
         mainEntityOfPage: pageUrl,
@@ -394,13 +394,7 @@ export default async function GuidePage({ params }: PageProps) {
               <p className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
                 <span className="max-sm:w-full">
                   By{" "}
-                  <Link
-                    href="/about"
-                    className="text-foreground underline-offset-4 hover:underline"
-                  >
-                    Kartik Labhshetwar
-                  </Link>
-                  , maker of Screenshot Studio
+                  the Shots team
                 </span>
                 <span aria-hidden="true" className="max-sm:hidden">
                   ·
@@ -438,7 +432,7 @@ export default async function GuidePage({ params }: PageProps) {
                   </p>
                   {isRoundup ? (
                     <p className="mt-4 border-t border-border pt-4 text-sm leading-relaxed text-muted-foreground">
-                      Screenshot Studio is our product. Every other tool is
+                      Shots is our product. Every other tool is
                       listed on its merits, with details checked against the
                       vendor&apos;s own site.
                     </p>
@@ -476,15 +470,15 @@ export default async function GuidePage({ params }: PageProps) {
           </section>
 
           <CtaBand
-            title="Try Screenshot Studio free"
-            description="Edit, annotate, and polish screenshots in your browser. No signup, no download, no watermark."
+            title="Try Shots"
+            description="Edit, annotate, and polish screenshots in your browser. No download, no watermark."
             href={isRoundup ? "/editor" : guide.cta.href}
-            label={isRoundup ? "Open Free Editor" : guide.cta.label}
+            label={isRoundup ? "Open the Editor" : guide.cta.label}
           />
         </div>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

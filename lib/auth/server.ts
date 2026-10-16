@@ -102,7 +102,7 @@ export const auth = betterAuth({
     }),
     twoFactor({
       accountLockout: { durationSeconds: 900, maxFailedAttempts: 10 },
-      issuer: 'Screenshot Studio',
+      issuer: 'Shots',
       trustDeviceMaxAge: 30 * 24 * 60 * 60,
     }),
     sso({

@@ -29,7 +29,7 @@ export async function sendVerificationEmail(input: {
 
   await sendAuthEmail({
     html,
-    subject: 'Verify your Screenshot Studio email',
+    subject: 'Verify your Shots email',
     text,
     to: input.to,
   })
@@ -45,7 +45,7 @@ export async function sendPasswordResetEmail(input: {
 
   await sendAuthEmail({
     html,
-    subject: 'Reset your Screenshot Studio password',
+    subject: 'Reset your Shots password',
     text,
     to: input.to,
   })
@@ -67,7 +67,7 @@ export async function sendInvitationEmail(input: {
 
   await sendAuthEmail({
     html,
-    subject: `Join ${input.organizationName} on Screenshot Studio`,
+    subject: `Join ${input.organizationName} on Shots`,
     text,
     to: input.to,
   })

@@ -6,29 +6,24 @@ import { cn } from '@/lib/utils'
 import { MUTED } from './primitives'
 import { useHydratedReducedMotion } from './useHydratedReducedMotion'
 
-/** Design commitments quoted from the platform's README and RFCs, in place of testimonials. */
+/** Design commitments behind the platform, in place of testimonials. */
 const PRINCIPLES = [
   {
     name: 'Safe tools',
-    source: 'README, the marketing tools',
-    quote: 'The model decides what to do. The application decides how it is done safely.',
+    quote: 'The AI suggests what to do. Shots decides how it runs safely.',
   },
   {
-    name: 'Human approval',
-    source: 'RFC 019, campaign approval',
+    name: 'Teammate approval',
+    quote: 'Approval is enforced on the server. No button, API key, or AI action can skip it.',
+  },
+  {
+    name: 'Structured launches',
     quote:
-      'Approval is a server-side state machine. It is not a UI convention, not a boolean flag, and not something a tool call can skip.',
+      'Every launch is saved as records you can edit one piece at a time. Chat is one way to change them.',
   },
   {
-    name: 'Structured campaigns',
-    source: 'RFC 014, marketing objects',
-    quote: 'The database is the source of truth for a campaign. A conversation is an input method.',
-  },
-  {
-    name: 'Recipes first',
-    source: 'RFC 015, the launch recipe',
-    quote:
-      'An agent that fails produces an unclear failure. A recipe that fails names its failing step.',
+    name: 'Fixed steps',
+    quote: 'Each launch runs as fixed steps. When one fails, you see which step and can retry it.',
   },
 ] as const
 
@@ -68,7 +63,7 @@ export function Principles() {
         >
           {principle.quote}
         </motion.blockquote>
-        <figcaption className={cn('mt-8 text-sm', MUTED)}>{principle.source}</figcaption>
+        <figcaption className={cn('mt-8 text-sm', MUTED)}>Our principles</figcaption>
       </figure>
       <div className="mx-auto mt-16 grid max-w-[1024px] grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-4">
         {PRINCIPLES.map((item, index) => (

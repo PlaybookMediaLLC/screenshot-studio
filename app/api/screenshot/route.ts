@@ -18,6 +18,7 @@ import {
   getScreenshotFailure,
 } from '@/lib/screenshot-service'
 import { isBlankImage } from '@/lib/screenshot-blank'
+import { requirePaidAccess } from '@/lib/api/require-account'
 
 export const maxDuration = 60
 
@@ -181,9 +182,12 @@ function screenshotFailureResponse(error: unknown): NextResponse {
   )
 }
 
-// Keep fail-closed rate limiting ahead of request parsing, SSRF validation,
+// Keep the account check and fail-closed rate limiting ahead of request parsing, SSRF validation,
 // cache access, and capture so no unthrottled work can cross the public boundary.
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const denied = await requirePaidAccess(request)
+  if (denied) return denied
+
   const rateLimitResponse = await getRateLimitResponse(request)
   if (rateLimitResponse) {
     return rateLimitResponse

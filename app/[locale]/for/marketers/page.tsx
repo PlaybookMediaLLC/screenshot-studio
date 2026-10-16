@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
+import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";
 import {
   Megaphone01Icon,
   Share01Icon,
@@ -15,7 +16,7 @@ import {
 export const metadata: Metadata = {
   title: "Screenshot Editor for Marketers",
   description:
-    "Create scroll-stopping product screenshots and mockups for landing pages, social media, and ads. Backgrounds, 3D effects, animations. Free, no design skills.",
+    "Create product screenshots and mockups for landing pages, social media, and ads. Backgrounds, 3D effects, animations. No design skills needed.",
   keywords: [
     "screenshot editor for marketers",
     "product screenshot tool",
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Screenshot Editor for Marketers",
     description:
-      "Create professional product screenshots for campaigns, landing pages, and social media. Free, no signup.",
+      "Create product screenshots for campaigns, landing pages, and social media. Included in every Shots plan.",
     url: "/for/marketers",
   },
   alternates: {
@@ -61,37 +62,37 @@ const INTER =
 const useCases = [
   {
     icon: Megaphone01Icon,
-    title: "Landing Page Hero Images",
+    title: "Landing page hero images",
     description:
-      "Turn raw product screenshots into polished hero images that convert. Add gradient backgrounds, shadows, and 3D perspective to showcase your product at its best.",
+      "Turn raw product screenshots into hero images. Add gradient backgrounds, shadows, and 3D perspective.",
   },
   {
     icon: Share01Icon,
-    title: "Social Media Campaigns",
+    title: "Social media campaigns",
     description:
       "Create consistent, branded graphics for Twitter, LinkedIn, and Instagram. Perfect dimensions for every platform, optimized for engagement.",
   },
   {
     icon: ChartIncreaseIcon,
-    title: "Ad Creatives",
+    title: "Ad creatives",
     description:
-      "Build ad images that stop the scroll. Beautified product screenshots with eye-catching backgrounds and angles outperform generic stock photos.",
+      "Build ad images from product screenshots, with backgrounds and angles instead of stock photos.",
   },
   {
     icon: Presentation01Icon,
-    title: "Pitch Decks & Proposals",
+    title: "Pitch decks & proposals",
     description:
-      "Impress investors and clients with professional product mockups. 3D perspective and device frames add credibility to any presentation.",
+      "Make product mockups for investor and client decks, with 3D perspective and device frames.",
   },
   {
     icon: ChartHistogramIcon,
-    title: "Product Announcements",
+    title: "Product announcements",
     description:
-      "Launch new features with stunning visuals. Animated screenshots grab attention and clearly demonstrate what your product does.",
+      "Announce new features with animated screenshots that show what the feature does.",
   },
   {
     icon: Image01Icon,
-    title: "Email Marketing",
+    title: "Email marketing",
     description:
       "Create clean product images for newsletters and drip campaigns. High-res exports that look sharp on any device.",
   },
@@ -99,24 +100,24 @@ const useCases = [
 
 const benefits = [
   {
-    title: "No Design Skills Required",
+    title: "No design skills required",
     description:
       "One-click presets handle the design work. Just upload a screenshot, pick a style, and export. Your whole team can create on-brand visuals.",
   },
   {
-    title: "Consistent Brand Assets",
+    title: "Consistent brand assets",
     description:
       "Use the same backgrounds, shadows, and styling across all your marketing materials. Build recognition with visual consistency.",
   },
   {
-    title: "Faster Than Figma or Canva",
+    title: "Faster than Figma or Canva",
     description:
-      "Purpose-built for screenshots, not general design. What takes 15 minutes in Figma takes 30 seconds here. No learning curve.",
+      "Built for screenshots, so presets replace the layout work you would do by hand in Figma.",
   },
   {
-    title: "Animated Content That Converts",
+    title: "Animated product demos",
     description:
-      "Create animated product demos with zoom and pan effects. Export as video or GIF for social media posts that outperform static images.",
+      "Create animated product demos with zoom and pan effects. Export as video or GIF for social media posts.",
   },
 ];
 
@@ -138,35 +139,31 @@ export default function ForMarketersPage() {
             "@type": "ListItem",
             position: 1,
             name: "Home",
-            item: "https://www.screenshot-studio.com",
+            item: "https://shots.playbookmedia.io",
           },
           {
             "@type": "ListItem",
             position: 2,
             name: "For Marketers",
-            item: "https://www.screenshot-studio.com/for/marketers",
+            item: "https://shots.playbookmedia.io/for/marketers",
           },
         ],
       },
       {
         "@type": "SoftwareApplication",
-        name: "Screenshot Studio for Marketers",
+        name: "Shots for Marketers",
         applicationCategory: "DesignApplication",
         operatingSystem: "Web Browser",
         description:
-          "Free screenshot editor for marketers. Create professional product screenshots for landing pages, social media, and ad creatives without design skills.",
-        offers: {
-          "@type": "Offer",
-          price: "0",
-          priceCurrency: "USD",
-        },
+          "Screenshot editor for marketers. Create product screenshots for landing pages, social media, and ad creatives without design skills.",
+        offers: PRO_PLAN_OFFER,
         featureList: [
           "Product screenshot beautification",
           "Social media graphics",
           "Ad creative generation",
           "3D product mockups",
           "Animated demo videos",
-          "No signup required",
+          "Included in every Shots plan",
         ],
       },
     ],
@@ -193,10 +190,10 @@ export default function ForMarketersPage() {
               className="mb-6 text-4xl font-semibold tracking-[-0.04em] text-foreground md:text-6xl"
               style={{ fontFamily: INTER }}
             >
-              Screenshot Editor for Marketers
+              Screenshot editor for marketers
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground md:text-xl">
-              Create scroll-stopping product visuals for landing pages, social
+              Create product visuals for landing pages, social
               media, and ad creatives. No design skills needed, no Figma
               required.
             </p>
@@ -218,7 +215,7 @@ export default function ForMarketersPage() {
                 className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
                 style={{ fontFamily: INTER }}
               >
-                How Marketers Use Screenshot Studio
+                How marketers use Shots
               </h2>
               <p className="mx-auto max-w-2xl text-muted-foreground">
                 From landing page heroes to social campaigns, create visuals
@@ -256,7 +253,7 @@ export default function ForMarketersPage() {
                 className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
                 style={{ fontFamily: INTER }}
               >
-                Why Marketing Teams Choose Screenshot Studio
+                Why marketing teams choose Shots
               </h2>
             </div>
 
@@ -282,7 +279,7 @@ export default function ForMarketersPage() {
               className="mb-8 text-center text-2xl font-semibold tracking-[-0.03em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              Explore Features
+              Explore features
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {featureLinks.map((link) => (
@@ -311,10 +308,10 @@ export default function ForMarketersPage() {
               className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
               style={{ fontFamily: INTER }}
             >
-              Create Marketing Visuals in Seconds
+              Create marketing visuals from screenshots
             </h2>
             <p className="mb-8 text-lg text-muted-foreground">
-              Free forever. No signup. No watermarks.
+              Included in every Shots plan. No watermarks.
             </p>
             <Link href="/editor" className={ctaClassName}>
               Open Editor
@@ -323,7 +320,7 @@ export default function ForMarketersPage() {
         </section>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

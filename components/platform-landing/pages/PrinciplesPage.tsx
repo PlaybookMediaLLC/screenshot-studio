@@ -1,126 +1,96 @@
 import { cn } from '@/lib/utils'
 import { LinkCards, MarketingShell, PageHero } from '../blocks'
-import { GITHUB_URL } from '../LandingNav'
 import { MONO, MUTED, Section, SectionIntro } from '../primitives'
-
-const RFC = (file: string) => `${GITHUB_URL}/blob/main/docs/${file}`
 
 const PRINCIPLES = [
   {
-    title: 'Freeze the promise',
-    quote: 'Do not promise "AI runs your entire marketing department."',
-    body: 'The promise is narrower and better: give us what you shipped, and we turn it into polished, ready-to-publish content. Everything else has to earn its way in.',
-    source: 'RFC 009',
-    href: RFC('rfcs/009-marketing-platform-thesis.md'),
+    title: 'Keep the promise narrow',
+    rule: 'Give us what you shipped, and we turn it into content ready to publish.',
+    body: "Shots doesn't claim to run your whole marketing department. Every new feature has to serve that one promise.",
   },
   {
-    title: 'Build inside out',
-    quote:
-      'If we reverse this order and start with the agent, we debug hallucinated workflows instead of building a product.',
-    body: 'Deterministic primitives first, then recipes, then an agent, then autonomy. Each layer calls only what the layer below has proven.',
-    source: 'RFC 009',
-    href: RFC('rfcs/009-marketing-platform-thesis.md'),
+    title: 'Build the manual tools first',
+    rule: 'Manual tools first, then step-by-step workflows, then the AI.',
+    body: 'Each layer uses only what the layer below already does reliably. Starting with the AI would mean debugging workflows it made up.',
   },
   {
-    title: 'Recipes before agents',
-    quote: 'A recipe that fails names its failing step.',
-    body: 'Control flow is code. Models fill in text at fixed points with validated output, so a bad run points at one step instead of a shrug.',
-    source: 'RFC 015',
-    href: RFC('rfcs/015-feature-launch-recipe.md'),
+    title: 'Fixed steps before the AI',
+    rule: 'When a workflow fails, it tells you which step failed.',
+    body: 'The order of steps is written in code. The AI fills in text at set points, and its output is checked.',
   },
   {
-    title: 'Objects, not transcripts',
-    quote: 'We do not store campaigns as conversation.messages[]. That is a trap.',
-    body: 'A campaign is a database object. Chat is one way to change it, along with a form, an API call, or a scheduled job.',
-    source: 'RFC 014',
-    href: RFC('rfcs/014-structured-marketing-objects.md'),
+    title: 'Records over chat history',
+    rule: 'A launch is saved as records, so you can change one piece without redoing the rest.',
+    body: 'Chat is one way to change a launch. A form, an API call, or a scheduled job can change it too.',
   },
   {
-    title: 'The workspace over chat',
-    quote: 'AI manipulates the workspace. The workspace is not merely the output of AI.',
-    body: 'Every action available through chat is available without it. The copilot is an accelerant, not the product.',
-    source: 'RFC 018',
-    href: RFC('rfcs/018-campaign-workspace.md'),
+    title: 'The workspace comes first',
+    rule: 'Everything you can do in chat, you can also do in the workspace.',
+    body: 'The AI edits the same workspace you do, and you can do all of its work by hand.',
   },
   {
-    title: 'Approval is structure',
-    quote: 'Approval is the human gate the whole platform rests on.',
-    body: 'Approval is a server-side state machine that no tool call can skip and no API key can pass.',
-    source: 'RFC 019',
-    href: RFC('rfcs/019-approval-workflow.md'),
+    title: 'Approval is enforced',
+    rule: "Every post needs a teammate's approval, checked on the server.",
+    body: 'No AI action can skip approval, and no API key can give it.',
   },
   {
     title: 'Safe tools',
-    quote: 'The model decides what to do. The application decides how it is done safely.',
-    body: 'Agents get domain capabilities, not infrastructure. No SQL, no arbitrary HTTP, no credentials, and no way to name another workspace.',
-    source: 'RFC 016',
-    href: RFC('rfcs/016-ai-sdk-marketing-tools.md'),
+    rule: 'The AI suggests what to do. Shots decides how it runs safely.',
+    body: "The AI gets marketing tools. It can't query the database, make arbitrary web requests, hold credentials, or name another workspace.",
   },
   {
     title: 'Cite or ask',
-    quote:
-      'A claim citing a source that does not exist, or citing nothing, is removed and turned into an open question.',
-    body: 'A launch that invents a benchmark costs more than a launch that asks one question.',
-    source: 'Launch intelligence',
-    href: RFC('launch-intelligence.md'),
+    rule: 'A claim that cites nothing, or a missing source, is removed and becomes an open question.',
+    body: 'Asking you one question costs less than a launch that invents a benchmark.',
   },
   {
-    title: 'Manual beats scraped',
-    quote: 'A user-typed description always wins over extracted content.',
-    body: 'Automation fills empty fields. It never overwrites what a person wrote.',
-    source: 'RFC 032',
-    href: RFC('rfcs/032-background-onboarding-agent.md'),
+    title: 'What you type wins',
+    rule: 'A description you typed always wins over text Shots extracted.',
+    body: 'Automation fills empty fields. It never overwrites what you wrote.',
   },
   {
-    title: 'Degrade into something useful',
-    quote: 'The floor is that a founder always reaches a workspace with something to act on.',
-    body: 'Copy without a creative beats nothing. A form beats a spinner. Partial results are kept and labeled.',
-    source: 'RFC 021',
-    href: RFC('rfcs/021-core-workflows.md'),
+    title: 'Always leave something useful',
+    rule: 'If a step fails, you still reach a workspace with something to act on.',
+    body: 'Posts without a visual are kept. Partial results are saved and labeled.',
   },
   {
     title: 'Late beats twice',
-    quote: 'Duplicate announcements to customers are worse than late ones.',
-    body: 'When delivery is uncertain, a person decides. Nothing is blindly sent again.',
-    source: 'Customer email and release broadcast',
-    href: RFC('email-and-broadcast.md'),
+    rule: 'A duplicate post or email is worse than a late one.',
+    body: 'When delivery is uncertain, a teammate decides. Shots does not resend on its own.',
   },
   {
-    title: 'Autonomy is earned',
-    quote: 'The progression Manual → Copilot → Autopilot replaces any jump directly into autonomy.',
-    body: 'Users choose their level. A mode never widens what a role is allowed to do.',
-    source: 'RFC 031',
-    href: RFC('rfcs/031-autonomy-modes.md'),
+    title: 'Automation is earned',
+    rule: 'You move from Manual to Copilot to Autopilot one step at a time.',
+    body: 'You choose the level. A mode never gives a role more permissions.',
   },
   {
-    title: 'Measure the return',
-    quote: 'Return rate is the one that matters.',
-    body: 'A team that runs one launch and never comes back received a demo, not a product.',
-    source: 'RFC 021',
-    href: RFC('rfcs/021-core-workflows.md'),
+    title: 'Measure whether teams come back',
+    rule: 'The number that matters is how many teams return for their next launch.',
+    body: "If a team runs one launch and leaves, Shots hasn't done its job.",
   },
 ]
 
-/** /principles: the decisions behind the platform, quoted from its RFCs. */
+/** /principles: the decisions behind the platform, and the reasons for them. */
 export function PrinciplesPage() {
   return (
-    <MarketingShell finale={{ lead: 'Built on purpose.', trail: 'Written down in public.' }}>
+    <MarketingShell
+      finale={{ lead: 'Try Shots on your next release', trail: 'and hold us to these rules.' }}
+    >
       <PageHero
-        body="Every part of Screenshot Studio was argued out in a written RFC before it was built. These are the decisions that shape the product, quoted from the documents that made them."
+        body="We argued out each part of Shots in writing before building it. These are the decisions that shape the product."
         eyebrow={{ label: 'Principles' }}
-        lead="Every decision,"
+        lead="The rules we build Shots by,"
         location="principles_hero"
-        primary={{ href: `${GITHUB_URL}/tree/main/docs/rfcs`, label: 'Read the RFCs' }}
+        primary={{ href: '/sign-up', label: 'Get started' }}
         secondary={{ href: '/roadmap', label: 'See the roadmap' }}
-        trail="written down first."
+        trail="decided before we wrote the code."
       />
 
       <Section>
         <SectionIntro
-          body="Thirteen commitments. Each links to the document it comes from."
           label="Principles"
-          lead="How we build it."
-          trail="And why."
+          lead={`${PRINCIPLES.length} rules every release is held to,`}
+          trail="each with the reason behind it."
         />
         <ol className="mt-24 border-t border-[#212121]">
           {PRINCIPLES.map((principle, index) => (
@@ -139,31 +109,20 @@ export function PrinciplesPage() {
                   {principle.body}
                 </p>
               </div>
-              <figure>
-                <blockquote className="text-balance text-[22px] leading-[1.4] tracking-[-0.015em] text-white/90">
-                  “{principle.quote}”
-                </blockquote>
-                <figcaption className="mt-4">
-                  <a
-                    className={cn(
-                      'text-sm underline-offset-4 hover:text-white hover:underline',
-                      MUTED
-                    )}
-                    href={principle.href}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    {principle.source}
-                  </a>
-                </figcaption>
-              </figure>
+              <p className="text-balance text-[22px] leading-[1.4] tracking-[-0.015em] text-white/90">
+                {principle.rule}
+              </p>
             </li>
           ))}
         </ol>
       </Section>
 
       <Section>
-        <SectionIntro label="Related" lead="See the result." trail="Or what comes next." />
+        <SectionIntro
+          label="Related"
+          lead="See these rules in the product,"
+          trail="on the roadmap, and in the guardrails."
+        />
         <div className="mt-24">
           <LinkCards paths={['/product', '/roadmap', '/product/guardrails']} />
         </div>

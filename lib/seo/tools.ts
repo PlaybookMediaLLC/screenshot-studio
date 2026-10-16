@@ -60,9 +60,9 @@ const PRIVACY_FAQ: ToolFaq = {
 };
 
 const FREE_FAQ: ToolFaq = {
-  question: "Is it free, and is there a watermark?",
+  question: "Which plans include it, and is there a watermark?",
   answer:
-    "It is completely free with no signup, no account, no daily limit, and no watermark. Screenshot Studio is open source under the Apache 2.0 licence.",
+    "Every plan. It is included in Pro, Business, and Enterprise, with no daily limit and no watermark. Shots is open source under the Apache 2.0 licence.",
 };
 
 const BATCH_FAQ: ToolFaq = {
@@ -77,9 +77,9 @@ export const TOOLS: ToolDefinition[] = [
     engine: "compress",
     name: "Compress Image",
     h1: "Compress Image",
-    title: "Compress Image Online: Free, No Upload",
+    title: "Compress Image Online: No Upload",
     description:
-      "Shrink JPG, PNG, and WebP files in your browser. Batch compression with a live size preview. Free, no signup, no watermark, no upload.",
+      "Shrink JPG, PNG, and WebP files in your browser. Batch compression with a live size preview. No watermark, no upload.",
     keywords: [
       "compress image",
       "compress image online",
@@ -89,7 +89,6 @@ export const TOOLS: ToolDefinition[] = [
       "compress png",
       "compress webp",
       "shrink image size",
-      "image compressor free",
       "batch image compression",
       "compress image without losing quality",
       "iloveimg alternative",
@@ -142,7 +141,7 @@ export const TOOLS: ToolDefinition[] = [
     h1: "Convert Image Format",
     title: "Convert Image Online: PNG, JPG, WebP",
     description:
-      "Convert between PNG, JPG, WebP, and AVIF in your browser. Batch conversion, quality control, no upload. Free, no signup, no watermark.",
+      "Convert between PNG, JPG, WebP, and AVIF in your browser. Batch conversion, quality control, no upload, no watermark.",
     keywords: [
       "convert image",
       "image converter",
@@ -151,7 +150,6 @@ export const TOOLS: ToolDefinition[] = [
       "jpg to png",
       "convert to webp",
       "image format converter online",
-      "free image converter",
       "batch image converter",
       "convert image without uploading",
     ],
@@ -203,7 +201,7 @@ export const TOOLS: ToolDefinition[] = [
     h1: "Resize Image",
     title: "Resize Image Online: Pixels or Percent",
     description:
-      "Resize images by pixel size or percentage with the aspect ratio locked. Batch resize in your browser. Free, no signup, no upload.",
+      "Resize images by pixel size or percentage with the aspect ratio locked. Batch resize in your browser. No upload.",
     keywords: [
       "resize image",
       "resize image online",
@@ -214,7 +212,6 @@ export const TOOLS: ToolDefinition[] = [
       "resize image by percentage",
       "resize image in pixels",
       "scale image online",
-      "free image resizer",
     ],
     intro:
       "Set an exact width and height, or scale by a percentage, and resize one image or a hundred. The aspect ratio stays locked unless you unlock it, and images are downscaled in steps so text stays sharp.",
@@ -266,9 +263,9 @@ export const TOOLS: ToolDefinition[] = [
     engine: "crop",
     name: "Crop Image",
     h1: "Crop Image",
-    title: "Crop Image Online: Free Ratio Presets",
+    title: "Crop Image Online: Ratio Presets",
     description:
-      "Crop an image by dragging a selection or typing exact pixels. Social media ratio presets included. Free, in your browser, no upload.",
+      "Crop an image by dragging a selection or typing exact pixels. Social media ratio presets included. In your browser, no upload.",
     keywords: [
       "crop image",
       "crop image online",
@@ -277,7 +274,6 @@ export const TOOLS: ToolDefinition[] = [
       "crop picture online",
       "crop image to square",
       "crop image to 16:9",
-      "free image cropper",
       "crop screenshot",
       "crop image without uploading",
     ],
@@ -331,9 +327,9 @@ export const TOOLS: ToolDefinition[] = [
     engine: "rotate",
     name: "Rotate Image",
     h1: "Rotate and Flip Image",
-    title: "Rotate Image Online: Turn and Flip, Free",
+    title: "Rotate Image Online: Turn and Flip",
     description:
-      "Rotate images 90, 180, or 270 degrees and flip them horizontally or vertically. Batch rotate in your browser. Free, no upload.",
+      "Rotate images 90, 180, or 270 degrees and flip them horizontally or vertically. Batch rotate in your browser. No upload.",
     keywords: [
       "rotate image",
       "rotate image online",
@@ -343,7 +339,7 @@ export const TOOLS: ToolDefinition[] = [
       "rotate image 90 degrees",
       "flip image horizontally",
       "batch rotate images",
-      "free image rotator",
+      "image rotator",
       "turn image sideways",
     ],
     intro:
@@ -674,12 +670,11 @@ for (const page of CONVERSION_PAGES) {
     preset: { targetFormat: to, sourceLabel: from },
     name: `${from} to ${toLabel}`,
     h1: `Convert ${from} to ${toLabel}`,
-    title: `${from} to ${toLabel} Converter: Free, No Upload`,
-    description: `Convert ${from} to ${toLabel} in your browser. Batch conversion with quality control, no signup, no watermark, and nothing uploaded.`,
+    title: `${from} to ${toLabel} Converter: No Upload`,
+    description: `Convert ${from} to ${toLabel} in your browser. Batch conversion with quality control, no watermark, and nothing uploaded.`,
     keywords: [
       ...keywords,
       `${from.toLowerCase()} to ${toLabel.toLowerCase()} online`,
-      `free ${from.toLowerCase()} to ${toLabel.toLowerCase()}`,
       `batch ${from.toLowerCase()} to ${toLabel.toLowerCase()}`,
       "convert image without uploading",
     ],
@@ -689,7 +684,7 @@ for (const page of CONVERSION_PAGES) {
       "Batch conversion with a single zip download",
       "Quality control for the output file size",
       "Runs fully in the browser, no upload",
-      "Free, no signup, no watermark",
+      "No watermark",
     ],
     faqs: [
       {

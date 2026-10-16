@@ -66,7 +66,7 @@ For dynamic paths, declare a `params` schema such as `z.object({ exampleId: z.st
 - Gate commercial capabilities by named feature, not a client-supplied plan or scattered `if (plan === ...)` checks. Define plan defaults and contract overrides in `lib/billing/plans.ts`.
 - Put update and delete entitlement checks in the shared access boundary before request parsing or domain execution. Compatibility routes must use the same gate so callers cannot bypass pricing through an older path.
 - Enforce destructive feature checks again in the owning domain service so tRPC, jobs, support tooling, and future transports cannot bypass the route declaration.
-- Add `x-screenshot-studio-entitlement` to OpenAPI with the feature, minimum default plan, and quota. Declare standardized `403` and `429` schemas.
+- Add `x-shots-entitlement` to OpenAPI with the feature, minimum default plan, and quota. Declare standardized `403` and `429` schemas.
 - Reject unknown mutation fields unless the owning RFC explicitly permits them.
 - Accept `Idempotency-Key` for retriable durable mutations.
 - Return only safe product data. Never return secrets, cookies, raw API keys, provider tokens, internal storage keys, or permanent object URLs.

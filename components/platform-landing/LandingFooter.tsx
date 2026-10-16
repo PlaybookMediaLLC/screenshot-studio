@@ -47,7 +47,6 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: '/about', label: 'About' },
       { href: '/contact', label: 'Contact' },
       { href: GITHUB_URL, label: 'GitHub' },
-      { href: 'https://x.com/screenshotstdio', label: 'X' },
       { href: '/privacy-policy', label: 'Privacy' },
       { href: '/terms', label: 'Terms' },
     ],
@@ -63,7 +62,7 @@ export function LandingFooter() {
           <div className="flex flex-col justify-between gap-10">
             <Link className="flex items-center gap-3" href="/landing">
               <Image alt="" className="size-9" height={36} src="/logo-mark.png" width={36} />
-              <span className="text-2xl tracking-[-0.03em] text-white">Screenshot Studio</span>
+              <span className="text-2xl tracking-[-0.03em] text-white">Shots</span>
             </Link>
             <div className="space-y-6">
               <Link
@@ -74,8 +73,7 @@ export function LandingFooter() {
                 <ArrowUpRight01Icon aria-hidden="true" className="size-4" />
               </Link>
               <p className={cn('text-[15px]', MUTED)}>
-                © {new Date().getFullYear()} Screenshot Studio. Built on the open-source editor by
-                Kartik Labhshetwar.
+                © {new Date().getFullYear()} Shots. All rights reserved.
               </p>
             </div>
           </div>
@@ -107,7 +105,7 @@ export function LandingFooter() {
         aria-hidden="true"
         className="select-none whitespace-nowrap bg-gradient-to-b from-white/[0.14] to-transparent bg-clip-text pb-2 text-center text-[13.5vw] leading-[0.8] tracking-[-0.06em] text-transparent"
       >
-        Screenshot Studio
+        Shots
       </p>
     </footer>
   )

@@ -42,7 +42,7 @@ const RESOURCE_LINKS = [
   { href: '/developers', label: 'Developer portal' },
   { href: '/api-reference', label: 'Interactive API reference' },
   { href: '/changelog', label: 'Changelog' },
-  { href: '/about', label: 'About Screenshot Studio' },
+  { href: '/about', label: 'About Shots' },
   { href: '/contact', label: 'Contact' },
   { href: '/openapi.json', label: 'OpenAPI specification' },
   { href: '/llms.txt', label: 'llms.txt' },
@@ -78,13 +78,14 @@ export function AgentSummary() {
         Online Screenshot Editor and Mockup Maker
       </h1>
       <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-        Screenshot Studio is an open-source screenshot editor that runs entirely in your browser.
+        Shots is an open-source screenshot editor that runs entirely in your browser.
         Drop in a screenshot and turn it into a professional graphic: add a gradient background,
         wrap it in a Safari or Chrome browser mockup, tune the padding, corner radius, and shadow,
         tilt it in 3D, then export {EXPORT_FORMATS_SENTENCE}. Editing runs on your device and
         imported images are not uploaded merely to edit them; export compression sends the finished
         image to the server, which returns it without storing it. A signed-in workspace is required.
-        A free plan is available, some workspace capabilities require a higher plan, and editor
+        Every workspace needs a paid plan (Pro, Business, or Enterprise). The editor and image tools
+        are included in every plan, some workspace capabilities require a higher plan, and editor
         exports have no watermark.
       </p>
 
@@ -117,7 +118,7 @@ export function AgentSummary() {
           <h2 className={headingClass}>Standalone editors</h2>
           <LinkList
             items={[
-              { href: '/free-screenshot-editor', label: 'Free screenshot editor' },
+              { href: '/free-screenshot-editor', label: 'Screenshot editor online' },
               { href: '/code', label: 'Code to image' },
               { href: '/tweet', label: 'Tweet to image' },
               { href: '/remove-background', label: 'Background remover' },

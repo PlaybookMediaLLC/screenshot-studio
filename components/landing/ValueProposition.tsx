@@ -10,9 +10,9 @@ interface ValuePropositionProps {
 
 const features = [
   {
-    title: "Beautiful Backgrounds",
+    title: "Backgrounds",
     description:
-      `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solid colors, images, blur, and noise effects. Make any screenshot look stunning.`,
+      `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solid colors, images, blur, and noise effects.`,
     icon: (
       <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
         <rect x="2" y="2" width="16" height="16" rx="3" />
@@ -22,7 +22,7 @@ const features = [
     ),
   },
   {
-    title: "Device Frames",
+    title: "Device frames",
     description:
       "macOS, Windows, Arc browser frames and Polaroid borders with customizable width and opacity.",
     icon: (
@@ -36,7 +36,7 @@ const features = [
     ),
   },
   {
-    title: "3D Transforms",
+    title: "3D transforms",
     description:
       "30+ perspective presets. Add depth and dimension with realistic rotation and tilt.",
     icon: (
@@ -48,7 +48,7 @@ const features = [
     ),
   },
   {
-    title: "Draw & Markup",
+    title: "Draw & markup",
     description:
       "Arrows, shapes, blur regions, and text overlays. Annotate and highlight what matters.",
     icon: (
@@ -58,7 +58,7 @@ const features = [
     ),
   },
   {
-    title: "Animations & Video",
+    title: "Animations & video",
     description:
       "20+ animation presets with timeline editor. Export as MP4, WebM, or GIF.",
     icon: (
@@ -68,9 +68,9 @@ const features = [
     ),
   },
   {
-    title: "Tweet & Code Snippets",
+    title: "Tweet & code snippets",
     description:
-      `Import tweets by URL. Generate beautiful code snippet images with ${PRODUCT_FACTS.codeThemes} themes.`,
+      `Import tweets by URL. Turn code into images with ${PRODUCT_FACTS.codeThemes} themes.`,
     icon: (
       <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path d="M7 7l-4 3 4 3" />
@@ -80,7 +80,7 @@ const features = [
     ),
   },
   {
-    title: "High-Res Export",
+    title: "High-res export",
     description:
       "PNG or JPG up to 5x resolution. Fully in-browser, no server processing.",
     icon: (
@@ -91,7 +91,7 @@ const features = [
     ),
   },
   {
-    title: "Custom Presets",
+    title: "Custom presets",
     description:
       "Save and reuse your own canvas configurations. One-click to apply any saved style.",
     icon: (

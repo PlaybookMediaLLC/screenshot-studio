@@ -509,7 +509,7 @@ export function EditorPreview(): React.JSX.Element {
                   aria-hidden
                 />
                 <span className="truncate text-[13px] font-semibold tracking-tight text-foreground">
-                  Screenshot Studio
+                  Shots
                 </span>
               </div>
 

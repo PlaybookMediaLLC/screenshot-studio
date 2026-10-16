@@ -11,37 +11,39 @@ const STEPS = [
     body: 'A GitHub release fires your webhook, or someone fills in the release form with the pull request and changelog links.',
   },
   {
-    title: 'The spec drafts itself',
-    body: 'Problem, audience, what changed, capabilities, proof, and limitations, each claim citing the pull request, the changelog, or the brief.',
+    title: 'Launch intelligence writes the launch brief',
+    body: 'Problem, audience, what changed, capabilities, proof, and limitations. Each claim cites the pull request, the changelog, or your release.',
   },
   {
     title: 'You answer what it could not',
-    body: 'Gaps show up as open questions instead of invented claims. Your answers join the trusted brief.',
+    body: 'Gaps show up as open questions for you. Your answers become part of the release, which the AI trusts.',
   },
   {
     title: 'You approve a plan',
     body: 'Channels, angles, and the assets to capture, split into teaser, launch day, and follow-up.',
   },
   {
-    title: 'Visuals and copy arrive together',
+    title: 'Visuals and posts arrive together',
     body: 'Real screenshots framed on brand, and posts for every channel that cite their claims and fit their limits.',
   },
   {
     title: 'Approve all, then schedule',
-    body: 'Approve every post in one click, or fix the one that is off. A publisher schedules the approved posts.',
+    body: 'Approve every post in one click, or fix the one that is off. Then a publisher schedules the approved posts.',
   },
 ]
 
 /** /use-cases/feature-launches: announcing a shipped feature the day it ships. */
 export function FeatureLaunchesPage() {
   return (
-    <MarketingShell finale={{ lead: 'Ship it Tuesday.', trail: 'Announce it Tuesday.' }}>
+    <MarketingShell
+      finale={{ lead: 'Connect GitHub once', trail: 'and every release arrives ready to launch.' }}
+    >
       <PageHero
-        body="A feature is not launched until people hear about it. Send the release from GitHub or describe it in a sentence, and get a cited brief, real screenshots, and posts for every channel the same day."
+        body="Send the release from GitHub or describe it in a sentence. The same day, you get a cited launch brief, real screenshots, and posts for every channel."
         eyebrow={{ href: '/use-cases', label: 'Feature launches', parent: 'Use cases' }}
-        lead="Ship the feature."
+        lead="Announce a feature"
         location="feature_launches_hero"
-        trail="Say so the same day."
+        trail="on the day it ships."
       >
         <HeroStage>
           <div className="grid w-full max-w-[960px] gap-4 md:grid-cols-2">
@@ -70,10 +72,10 @@ export function FeatureLaunchesPage() {
 
       <Section>
         <SectionIntro
-          body="Six steps from merge to scheduled posts. Two of them are decisions only you can make."
+          body="You answer open questions, approve the plan, and approve the posts. The AI drafts everything else."
           label="Walkthrough"
-          lead="From merge"
-          trail="to scheduled posts."
+          lead="Six steps from merge to schedule,"
+          trail="and three of them need your decision."
         />
         <ol className="mt-24 grid gap-px overflow-hidden border border-[#212121] bg-[#212121] md:grid-cols-2 lg:grid-cols-3">
           {STEPS.map((step, index) => (
@@ -94,22 +96,22 @@ export function FeatureLaunchesPage() {
 
       <Section>
         <SectionIntro
-          body="Everything a feature announcement needs, built to the same spec, so the X post and the changelog never disagree."
+          body="The X post and the changelog come from the same launch brief, so they agree."
           label="What you get"
-          lead="One release."
-          trail="The whole kit."
+          lead="Everything you need to announce a feature,"
+          trail="written from one launch brief."
         />
         <div className="mt-24">
           <TileGrid
             items={[
               {
-                snippet: 'spec · cited',
+                snippet: 'launch brief · cited',
                 title: 'A launch brief',
-                body: 'The cited spec doubles as the internal brief for support and sales.',
+                body: 'Share it with support and sales so they know exactly what shipped.',
               },
               {
                 snippet: ASSET_FORMATS.join(' · '),
-                title: 'Assets in every format',
+                title: 'Visuals in every format',
                 body: 'A hero, a feature shot, a social card, and a story, from your real product.',
               },
               {
@@ -141,7 +143,7 @@ export function FeatureLaunchesPage() {
         items={[
           {
             q: 'What if nobody wrote release notes?',
-            a: 'Link the pull request. The spec reads its title, description, and the release page, and asks you about anything it cannot support.',
+            a: 'Link the pull request. Shots reads its title, description, and the release page, and asks you about anything it cannot support.',
           },
           {
             q: 'Can I launch a small fix too?',
@@ -149,13 +151,17 @@ export function FeatureLaunchesPage() {
           },
           {
             q: 'What if the screenshot shows the wrong screen?',
-            a: 'Each asset in the plan names the page to capture. Edit the plan, or revise that one design, and leave the rest alone.',
+            a: 'Each visual in the plan names the page to capture. Edit the plan, or revise that one visual, and leave the rest alone.',
           },
         ]}
       />
 
       <Section>
-        <SectionIntro label="Related" lead="Keep reading." trail="Every part connects." />
+        <SectionIntro
+          label="Related"
+          lead="Next, see how a bigger launch is planned"
+          trail="or how releases get into Shots."
+        />
         <div className="mt-24">
           <LinkCards
             paths={[

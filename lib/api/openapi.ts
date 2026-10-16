@@ -12,16 +12,18 @@ const errorResponse = (description: string) => ({
   },
 })
 
+/** Editor utilities need a paid workspace: a signed-in session, or an API key with artifact:read. */
+const ACCOUNT_SECURITY = [{ workspaceSession: [] }, { workspaceApiKey: [] }]
 export const openApiSpec = {
   openapi: '3.1.0',
   info: {
-    title: 'Screenshot Studio API',
+    title: 'Shots API',
     version: '1.0.0',
-    summary: 'Public HTTP API for Screenshot Studio.',
+    summary: 'Public HTTP API for Shots.',
     description:
-      'Screenshot Studio exposes anonymous editor utilities for screenshot capture, export compression, tweet resolution, and approved media proxying. Workspace-scoped `/api/v1` operations require an organization API key with the declared scope. Shell operations under `/api/v1` (bootstrap, organizations, membership) describe the signed-in user and require a session; they refuse API keys. Every error response uses the same JSON envelope with a stable `code` and a human-readable `hint`.',
+      'Shots exposes editor utilities for screenshot capture, export compression, tweet resolution, and approved media proxying; they require a signed-in session or a workspace API key with the `artifact:read` scope, on a workspace with an active paid plan. Workspace-scoped `/api/v1` operations require an organization API key with the declared scope. Shell operations under `/api/v1` (bootstrap, organizations, membership) describe the signed-in user and require a session; they refuse API keys. Every error response uses the same JSON envelope with a stable `code` and a human-readable `hint`.',
     contact: {
-      name: 'Screenshot Studio',
+      name: 'Shots',
       url: `${BASE_URL}/contact`,
     },
     license: {
@@ -32,7 +34,7 @@ export const openApiSpec = {
   },
   servers: [{ url: BASE_URL, description: 'Production' }],
   externalDocs: {
-    description: 'Interactive Screenshot Studio API reference',
+    description: 'Interactive Shots API reference',
     url: `${BASE_URL}/api-reference`,
   },
   security: [],
@@ -69,6 +71,7 @@ export const openApiSpec = {
         description:
           'Renders the page at the given URL and returns the screenshot as a base64-encoded PNG. Results are cached per URL, device type, and color scheme; set `forceRefresh` to bypass the cache. Limited to 20 requests per minute per IP address.',
         tags: ['Screenshots'],
+        security: ACCOUNT_SECURITY,
         requestBody: {
           required: true,
           content: {
@@ -78,6 +81,10 @@ export const openApiSpec = {
           },
         },
         responses: {
+          '401': errorResponse('No signed-in session or workspace API key.'),
+          '403': errorResponse(
+            'The workspace has no active paid plan, or the key lacks artifact:read.'
+          ),
           '200': {
             description: 'Screenshot captured or served from cache.',
             content: {
@@ -135,6 +142,7 @@ export const openApiSpec = {
         description:
           'Accepts a raw image as multipart form data and returns an optimized image in the requested format. JPEG uses the MozJPEG encoder, WebP uses libwebp, and PNG uses adaptive filtering. The response body is the image bytes, not JSON.',
         tags: ['Images'],
+        security: ACCOUNT_SECURITY,
         requestBody: {
           required: true,
           content: {
@@ -145,6 +153,10 @@ export const openApiSpec = {
           },
         },
         responses: {
+          '401': errorResponse('No signed-in session or workspace API key.'),
+          '403': errorResponse(
+            'The workspace has no active paid plan, or the key lacks artifact:read.'
+          ),
           '200': {
             description: 'Optimized image bytes.',
             content: {
@@ -174,6 +186,7 @@ export const openApiSpec = {
         description:
           'Returns the public tweet payload used to render a tweet as an image. The `id` is the numeric status ID from the tweet URL.',
         tags: ['Social'],
+        security: ACCOUNT_SECURITY,
         parameters: [
           {
             name: 'id',
@@ -184,6 +197,10 @@ export const openApiSpec = {
           },
         ],
         responses: {
+          '401': errorResponse('No signed-in session or workspace API key.'),
+          '403': errorResponse(
+            'The workspace has no active paid plan, or the key lacks artifact:read.'
+          ),
           '200': {
             description: 'Tweet payload.',
             content: {
@@ -204,6 +221,7 @@ export const openApiSpec = {
         description:
           'Streams a Twitter-hosted image through this origin so it can be drawn onto a canvas without tainting it. Only pbs.twimg.com, abs.twimg.com, ton.twitter.com, and video.twimg.com are allowed.',
         tags: ['Images'],
+        security: ACCOUNT_SECURITY,
         parameters: [
           {
             name: 'url',
@@ -214,6 +232,7 @@ export const openApiSpec = {
           },
         ],
         responses: {
+          '401': errorResponse('No signed-in session or workspace API key.'),
           '200': {
             description: 'Image bytes.',
             content: {
@@ -221,7 +240,9 @@ export const openApiSpec = {
             },
           },
           '400': errorResponse('The `url` query parameter is missing.'),
-          '403': errorResponse('The host is not on the allowlist.'),
+          '403': errorResponse(
+            'The host is not on the allowlist, the workspace has no active paid plan, or the key lacks artifact:read.'
+          ),
           '502': errorResponse('The upstream host refused the request.'),
           '500': errorResponse('The image could not be fetched.'),
         },
@@ -232,8 +253,7 @@ export const openApiSpec = {
       get: {
         operationId: 'getOpenApiSpec',
         summary: 'Fetch this OpenAPI specification',
-        description:
-          'Returns the OpenAPI 3.1 document describing every public Screenshot Studio operation.',
+        description: 'Returns the OpenAPI 3.1 document describing every public Shots operation.',
         tags: ['Discovery'],
         responses: {
           '200': {
@@ -250,7 +270,7 @@ export const openApiSpec = {
         operationId: 'getLlmsTxt',
         summary: 'Fetch the llms.txt site overview',
         description:
-          'Returns a Markdown overview of Screenshot Studio: features, pages, pricing, and contact details.',
+          'Returns a Markdown overview of Shots: features, pages, pricing, and contact details.',
         tags: ['Discovery'],
         responses: {
           '200': {

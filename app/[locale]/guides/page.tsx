@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: `${TITLE} - Screenshot Studio`,
+    title: `${TITLE} - Shots`,
     description: DESCRIPTION,
     url: "/guides",
   },
@@ -113,7 +113,7 @@ export default function GuidesHubPage() {
               <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
                 Practical how-tos for editing, annotating, and presenting
                 screenshots, plus honest roundups of the tools people compare,
-                including where Screenshot Studio falls short.
+                including where Shots falls short.
               </p>
             </div>
             <nav aria-label="Guide topics" className="flex flex-wrap gap-2">
@@ -227,14 +227,14 @@ export default function GuidesHubPage() {
 
           <CtaBand
             title="Ready to edit a screenshot?"
-            description="Paste a screenshot into the editor and follow along. Every feature is free, with no account and no watermark."
+            description="Paste a screenshot into the editor and follow along. The editor and image tools are included in every plan, with no watermark."
             href="/editor"
-            label="Open Free Editor"
+            label="Open the Editor"
           />
         </div>
       </main>
 
-      <Footer brandName="Screenshot Studio" />
+      <Footer brandName="Shots" />
     </div>
   );
 }

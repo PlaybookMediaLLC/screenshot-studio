@@ -7,7 +7,7 @@ import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
 
 /**
  * Shared guard for the campaign pages: signed in, in an operational
- * workspace, and inside the campaign workflow rollout. Outside the rollout
+ * workspace with a paid plan, and inside the campaign workflow rollout. Outside the rollout
  * the pages do not exist.
  */
 export async function requireCampaignPageAccess(locale: string) {
@@ -18,6 +18,7 @@ export async function requireCampaignPageAccess(locale: string) {
     redirect(getLocalizedPath(locale, '/onboarding'))
   }
   if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
+  if (!access.hasPaidPlan) redirect(getLocalizedPath(locale, '/pricing?subscribe=required'))
   if (!access.campaignWorkflowEnabled) notFound()
   // Tenant reads run as the signed-in session, scoped to the active workspace.
   const tenant: TenantContext = {

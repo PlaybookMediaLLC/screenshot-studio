@@ -10,6 +10,7 @@ import {
   type WorkspaceQuota,
 } from '@/lib/billing/plans'
 import { cn } from '@/lib/utils'
+import type { z } from 'zod'
 import { Mark, RowTable } from './blocks'
 import { CheckoutButton } from './CheckoutButton'
 import { CtaLink } from './CtaLink'
@@ -19,35 +20,37 @@ const PLAN = workspacePlanSchema.enum
 const QUOTA = workspaceQuotaSchema.enum
 
 /**
+ * The plans a customer can buy. `free` stays in the schema as the internal
+ * "no subscription" state, so it is excluded from everything shown.
+ */
+const displayedPlanSchema = workspacePlanSchema.exclude([PLAN.free])
+type DisplayedPlan = z.infer<typeof displayedPlanSchema>
+const DISPLAYED_PLANS = displayedPlanSchema.options
+
+/**
  * The price shown on each plan card. Derived in docs/rfcs/035: a 75% gross
  * margin at half of each plan's allowance, with annual billing 15% off.
  * Change a price here and every card and table updates.
  */
-export const PLAN_PRICES: Record<WorkspacePlan, { price: string; note: string }> = {
-  free: { price: '$0', note: 'free forever' },
+export const PLAN_PRICES: Record<DisplayedPlan, { price: string; note: string }> = {
   pro: { price: '$199', note: 'per month, or $169 billed annually' },
   business: { price: '$699', note: 'per month, or $594 billed annually' },
   enterprise: { price: 'From $3,000', note: 'per month, billed annually' },
 }
 
 const PLAN_COPY: Record<
-  WorkspacePlan,
+  DisplayedPlan,
   { name: string; tagline: string; cta: { href: string; label: string } }
 > = {
-  free: {
-    name: 'Free',
-    tagline: 'The editor, the API, and your first launches',
-    cta: { href: '/sign-up', label: 'Get started' },
-  },
   pro: {
     name: 'Pro',
     tagline: 'For teams that ship every week',
-    cta: { href: '/contact', label: 'Upgrade to Pro' },
+    cta: { href: '/contact', label: 'Choose Pro' },
   },
   business: {
     name: 'Business',
     tagline: 'For teams with many products and channels',
-    cta: { href: '/contact', label: 'Upgrade to Business' },
+    cta: { href: '/contact', label: 'Choose Business' },
   },
   enterprise: {
     name: 'Enterprise',
@@ -77,17 +80,17 @@ const QUOTA_ORDER: WorkspaceQuota[] = [
 /** Plan features read from the entitlement code, so the cards cannot drift from enforcement. */
 const CODE_FEATURES: { feature: WorkspaceFeature; label: string }[] = [
   { feature: 'release:create', label: 'Release intake: form, API, webhooks' },
-  { feature: 'asset:create', label: 'Save designs to the workspace' },
-  { feature: 'asset:update', label: 'Edit and delete saved assets' },
+  { feature: 'asset:create', label: 'Save visuals to the workspace' },
+  { feature: 'asset:update', label: 'Edit and delete saved visuals' },
   { feature: 'enterprise:sso', label: 'SAML and OIDC single sign-on' },
-  { feature: 'enterprise:scim', label: 'SCIM provisioning' },
-  { feature: 'enterprise:audit-drain', label: 'Signed audit drains to your SIEM' },
+  { feature: 'enterprise:scim', label: 'SCIM user provisioning' },
+  { feature: 'enterprise:audit-drain', label: 'Signed audit log export to your SIEM' },
 ]
 
 /** Capabilities every workspace has, whatever the plan. */
 const EVERY_PLAN = [
   'Editor, image tools, and video export',
-  'Six roles and server-side approval',
+  'Six roles and approval on every post',
   'Append-only audit log, 90 days',
 ]
 
@@ -113,7 +116,7 @@ export function formatQuota(plan: WorkspacePlan, quota: WorkspaceQuota): string 
   return quota === QUOTA['storage:bytes'] ? formatBytes(value) : value.toLocaleString('en-US')
 }
 
-function featuresFor(plan: WorkspacePlan, previous: WorkspacePlan | null): string[] {
+function featuresFor(plan: DisplayedPlan, previous: DisplayedPlan | null): string[] {
   const fromCode = CODE_FEATURES.filter(
     ({ feature }) =>
       hasWorkspaceFeature(plan, feature) &&
@@ -126,10 +129,10 @@ function featuresFor(plan: WorkspacePlan, previous: WorkspacePlan | null): strin
 
 /** Polar-style plan columns: price, limits, and what each plan adds. */
 export function PlanCards({ location }: { location: string }) {
-  const plans = workspacePlanSchema.options
+  const plans = DISPLAYED_PLANS
   return (
     <div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {plans.map((plan, index) => {
           const copy = PLAN_COPY[plan]
           const previous = index === 0 ? null : plans[index - 1]
@@ -177,9 +180,7 @@ export function PlanCards({ location }: { location: string }) {
                   href={copy.cta.href}
                   label={copy.cta.label}
                   location={`${location}_${plan}`}
-                  tone={
-                    plan === PLAN.free ? ctaToneSchema.enum.primary : ctaToneSchema.enum.secondary
-                  }
+                  tone={ctaToneSchema.enum.secondary}
                 />
               )}
               <dl className="mt-8 space-y-2.5 border-t border-[#212121] pt-6 text-[15px]">
@@ -232,9 +233,9 @@ export function PlanCards({ location }: { location: string }) {
         />
       </div>
       <p className={cn('mt-6 max-w-[760px] text-[15px] leading-[1.6]', MUTED)}>
-        Launch intelligence is in early access for design partners on any plan. One AI credit is one
-        cent of model cost: every model call is charged what it costs, a launch uses about 430, and
-        a workspace out of credits is refused before the next call.
+        Launch intelligence is in early access for design partners on any plan. One credit is one
+        cent of AI cost. A launch uses about 430 credits ($4.30). At zero, Shots stops before the
+        next AI call.
       </p>
     </div>
   )
@@ -242,7 +243,7 @@ export function PlanCards({ location }: { location: string }) {
 
 /** Every limit and feature side by side, read from the entitlement code. */
 export function PlanComparison() {
-  const plans = workspacePlanSchema.options
+  const plans = DISPLAYED_PLANS
   return (
     <RowTable
       caption="Plan comparison"

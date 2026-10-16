@@ -114,7 +114,7 @@ export async function completeSocialOAuth(
   if (!connected.success) return connectionFailed(providerName)
   if (providerName !== 'instagram') {
     await completion.onConnected?.(state, connected.data.id)
-    return new Response(`${providerName} connected to Screenshot Studio Backend.`, {
+    return new Response(`${providerName} connected to Shots.`, {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     })
   }
@@ -174,7 +174,7 @@ export async function selectInstagramAccount(
     return new Response('Social connection is not configured.', { status: 503 })
   await selection.selectPage(choice)
   await selection.onSelected?.(choice.state, choice.integrationId)
-  return new Response('Instagram connected to Screenshot Studio Backend.', {
+  return new Response('Instagram connected to Shots.', {
     headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   })
 }

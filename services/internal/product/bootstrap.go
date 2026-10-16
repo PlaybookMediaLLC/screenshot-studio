@@ -16,7 +16,7 @@ import (
 
 var bootstrapFeatures = []string{
 	"asset:create", "asset:read", "asset:update", "asset:delete", "release:create", "source-app:create",
-	"enterprise:audit-drain", "enterprise:sso", "enterprise:scim", "campaign:workflow",
+	"workspace:use", "enterprise:audit-drain", "enterprise:sso", "enterprise:scim", "campaign:workflow",
 }
 
 type BootstrapSnapshot struct {
@@ -153,9 +153,10 @@ func evaluateBootstrapEntitlement(entitlement *ent.WorkspaceEntitlement, now tim
 	for _, feature := range bootstrapFeatures {
 		allowed := false
 		switch feature {
-		case "asset:create", "asset:read", "release:create", "source-app:create":
-			allowed = true
-		case "asset:update", "asset:delete":
+		// There is no free plan: "free" is a workspace without a subscription,
+		// and it gets nothing until it pays.
+		case "asset:create", "asset:read", "asset:update", "asset:delete",
+			"release:create", "source-app:create", "workspace:use":
 			allowed = plan != "free"
 		case "enterprise:audit-drain", "enterprise:sso", "enterprise:scim":
 			allowed = plan == "enterprise"

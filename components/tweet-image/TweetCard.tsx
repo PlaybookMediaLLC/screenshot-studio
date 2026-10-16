@@ -259,8 +259,8 @@ export function TweetCard({ tweet, theme }: { tweet: TweetData; theme: TweetThem
 export const SAMPLE_TWEET: TweetData = {
   text: 'Paste a link to any post on X and it turns into a clean image like this one. Pick light or dark, add a background, and export a PNG ready for slides, docs, or a thread.',
   user: {
-    name: 'Screenshot Studio',
-    screen_name: 'screenshotstdio',
+    name: 'Shots',
+    screen_name: 'shots',
     profile_image_url_https: '/logo-mark.png',
     verified: false,
     is_blue_verified: true,

@@ -37,10 +37,10 @@ test('sender defaults to a verified domain and accepts display-name form', () =>
   clearEmailEnvironment()
   // The default must sit on a domain verified with the provider, or every
   // send is rejected at delivery time rather than at configuration time.
-  assert.match(getAuthEmailSender(), /@oppulence\.app>?$/)
+  assert.match(getAuthEmailSender(), /@playbookmedia\.io>?$/)
 
-  process.env.AUTH_EMAIL_FROM = 'Screenshot Studio <hello@oppulence.app>'
-  assert.equal(getAuthEmailSender(), 'Screenshot Studio <hello@oppulence.app>')
+  process.env.AUTH_EMAIL_FROM = 'Shots <hello@oppulence.app>'
+  assert.equal(getAuthEmailSender(), 'Shots <hello@oppulence.app>')
 
   process.env.AUTH_EMAIL_FROM = 'hello@oppulence.app'
   assert.equal(getAuthEmailSender(), 'hello@oppulence.app')

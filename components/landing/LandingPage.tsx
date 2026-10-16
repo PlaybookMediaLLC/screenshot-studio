@@ -45,7 +45,7 @@ export function LandingPage({
   ctaLabel = "Start Creating",
   ctaHref = "/",
   howItWorks,
-  brandName = "Screenshot Studio",
+  brandName = "Shots",
   videoTestimonials,
   videoTestimonialsTitle,
 }: LandingPageProps) {

@@ -40,7 +40,7 @@ outbound email. Two transports are supported:
   `text`, so a self-hosted deployment can route mail through its own service.
 
 `AUTH_EMAIL_FROM` sets the sender and defaults to
-`Screenshot Studio <noreply@oppulence.app>`. The address must belong to a
+`Shots <noreply@playbookmedia.io>`. The address must belong to a
 domain verified with the provider; an unverified sender is rejected at send
 time rather than at startup. Both a bare address and the
 `Name <address>` header form are accepted.

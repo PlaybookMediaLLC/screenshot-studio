@@ -27,7 +27,7 @@ function VideoTestimonialCard({
   if (endTime) embedUrl.searchParams.set("end", endTime.toString());
   embedUrl.searchParams.set("rel", "0");
 
-  const videoTitle = title || "Screenshot Studio testimonial";
+  const videoTitle = title || "Shots testimonial";
 
   return (
     <article className="flex flex-col gap-3">

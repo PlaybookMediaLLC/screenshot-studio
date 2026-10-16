@@ -34,13 +34,15 @@ const guideRows = guides
   )
   .join("\n");
 
-export const llmsTxt = `# Screenshot Studio
+export const llmsTxt = `# Shots
 
-> Open-source browser-based screenshot editor and workspace platform. Transform plain screenshots into professional graphics with backgrounds, browser mockups, 3D effects, animations, and video export. A signed-in workspace is required; exports have no watermark.
+> Shots is an open-source launch platform. It reads a software release, writes a cited launch brief, designs on-brand visuals, and drafts posts, and nothing ships until a person approves. It also includes a screenshot editor and browser-based image tools in every plan. Every plan is paid, and a signed-in workspace with an active subscription is required for everything; exports have no watermark.
 
 ## Overview
 
-Screenshot Studio is a client-side image editor: imported images are not uploaded to edit them, and only export compression round-trips the finished image through the server without storing it. It is the best free alternative to Pika Style, Shots.so, and CleanShot X.
+The launch platform turns a release (typed in, sent through the API, or delivered by a GitHub, GitLab, or custom webhook) into a launch brief where every claim cites a source, a campaign plan, visuals rendered with the workspace brand kit, and channel copy. Every post needs a human approval before it can be scheduled. Launch intelligence is in early access for design partners: ${BASE_URL}/design-partners.
+
+The screenshot editor is included in every plan, with no watermark. Editing runs in the browser: imported images are not uploaded to edit them, saved designs are stored in the workspace, and export compression round-trips the finished image through the server without storing it. It is an open-source alternative to Pika Style, Shots.so (a separate product), and CleanShot X.
 
 ## Key Features
 
@@ -55,22 +57,24 @@ Screenshot Studio is a client-side image editor: imported images are not uploade
 - On-device AI background remover with full-resolution transparent PNG output (${BASE_URL}/remove-background)
 - In-browser video compressor with quality levels or a target size in MB, MP4 output (${BASE_URL}/compress-video)
 - High-resolution export up to ${PRODUCT_FACTS.maxExportScale}x scale (PNG, JPEG, WebP)
-- One-click professional styling presets
+- One-click styling presets
 - Aspect ratio presets for every social platform
 
 ## Standalone Image Tools
 
-Single-purpose utilities that run entirely in the browser (Canvas plus Web Workers) and do not call any API. Batch input is supported; several results download as one zip.
+Single-purpose utilities that run entirely in the browser (Canvas plus Web Workers) and do not call any API. They need a signed-in Shots workspace and are included in every plan. Batch input is supported; several results download as one zip.
 
 ${primaryToolLines}
 - Converters: ${converterLinks}
 
 ## Pages
 
-- Start (choose a tool): ${BASE_URL}/
-- Screenshot Editor: ${BASE_URL}/editor
+- Screenshot Editor (sign-in required): ${BASE_URL}/
+- Editor alias (redirects to /): ${BASE_URL}/editor
 - Product overview: ${BASE_URL}/landing
-- Free Screenshot Editor: ${BASE_URL}/free-screenshot-editor
+- Pricing: ${BASE_URL}/pricing
+- Design partners (launch intelligence early access): ${BASE_URL}/design-partners
+- Screenshot Editor Online: ${BASE_URL}/free-screenshot-editor
 - App Store Screenshot Maker: ${BASE_URL}/store-screenshots
 - Code to Image: ${BASE_URL}/code
 - Mockup Generator: ${BASE_URL}/mockup-generator
@@ -109,7 +113,7 @@ ${primaryToolLines}
 - robots.txt: ${BASE_URL}/robots.txt
 - Source code: https://github.com/PlaybookMediaLLC/screenshot-studio
 
-The editor utility endpoints under paths such as \`/api/screenshot\` are anonymous and shaped by per-IP limits. Workspace-scoped \`/api/v1\` operations require an organization key in \`X-API-Key\` or an authorized signed-in session. Every error is JSON with a stable \`code\`, a \`message\`, and a \`hint\`. Any page also serves Markdown when the request sends \`Accept: text/markdown\`.
+The editor utility endpoints under paths such as \`/api/screenshot\` require a signed-in session or a workspace API key with the artifact:read scope in \`X-API-Key\`, and per-IP limits apply on top. Create a workspace API key in Settings → Developer API (/workspace/developers). Workspace-scoped \`/api/v1\` operations require an organization key in \`X-API-Key\` or an authorized signed-in session. Every error is JSON with a stable \`code\`, a \`message\`, and a \`hint\`. Any page also serves Markdown when the request sends \`Accept: text/markdown\`.
 
 No official CLI tool and no MCP server are published yet. Use the HTTP API described at ${BASE_URL}/docs.
 
@@ -127,7 +131,7 @@ ${guideLines}
 
 ## Pricing
 
-A free workspace plan is available, and some workspace capabilities require a higher plan. A signed-in workspace is required. Editor exports have no watermark.
+Plans: Pro ($199/mo, or $169/mo billed annually), Business ($699/mo, or $594/mo billed annually), and Enterprise (from $3,000/mo, billed annually). There is no free plan. A signed-in workspace is required on every plan. The screenshot editor and image tools are included in every plan, and exports have no watermark. Launch intelligence is in early access for design partners. Details: ${BASE_URL}/pricing
 
 ## Technology
 
@@ -135,6 +139,7 @@ Next.js 16, React 19, TypeScript, HTML Canvas, Tailwind CSS, Zustand, FFmpeg WAS
 
 ## Use Cases
 
+- Launch briefs, visuals, and approved posts for each software release
 - Social media graphics (Twitter/X, Instagram, LinkedIn, Product Hunt)
 - SaaS product screenshots for landing pages and documentation
 - Developer portfolio and project showcase images
@@ -143,29 +148,30 @@ Next.js 16, React 19, TypeScript, HTML Canvas, Tailwind CSS, Zustand, FFmpeg WAS
 
 ## Target Audience
 
-Developers, designers, marketers, indie hackers, content creators, and anyone who needs professional visuals without design skills.
+Software teams that ship releases, plus developers, designers, and marketers who need product visuals.
 
 ## Contact
 
 - Website: ${BASE_URL}
-- Twitter/X: https://x.com/screenshotstdio
 - GitHub: https://github.com/PlaybookMediaLLC/screenshot-studio
-- Email: kartik.labhshetwar@gmail.com
+- Email: team@playbookmedia.io
 
 ## Full Documentation
 
 For the complete, detailed version of this document, see: ${BASE_URL}/llms-full.txt
 `;
 
-export const llmsFullTxt = `# Screenshot Studio - Complete Reference
+export const llmsFullTxt = `# Shots - Complete Reference
 
-> Open-source browser-based screenshot editor and workspace platform. Transform plain screenshots into professional graphics with backgrounds, browser mockups, 3D effects, animations, and video export. A signed-in workspace is required; exports have no watermark.
+> Shots is an open-source launch platform. It reads a software release, writes a cited launch brief, designs on-brand visuals, and drafts posts, and nothing ships until a person approves. It also includes a screenshot editor and browser-based image tools in every plan. Every plan is paid, and a signed-in workspace with an active subscription is required for everything; exports have no watermark.
 
-## What is Screenshot Studio?
+## What is Shots?
 
-Screenshot Studio is a free, browser-based screenshot editor that transforms plain screenshots into professional-quality graphics. Editing runs in the browser, so imported images are not uploaded to edit them; export compression round-trips the finished image through the server without storing it. It is open source and available at https://github.com/PlaybookMediaLLC/screenshot-studio.
+Shots is a paid launch platform; there is no free plan. A release, typed in, sent through the API, or delivered by a GitHub, GitLab, or custom webhook, becomes a launch brief where every claim cites a source, a campaign plan, visuals rendered with the workspace brand kit, and channel copy for X, LinkedIn, Instagram, Product Hunt, the changelog, and email. Every post needs a human approval before it can be scheduled. Launch intelligence is in early access for design partners (${BASE_URL}/design-partners).
 
-Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanShot X, Screenshot Studio is used by developers, marketers, and designers to create polished images for social media, landing pages, documentation, and presentations.
+Shots also includes a browser-based screenshot editor in every plan, with no watermark. Editing runs in the browser, so imported images are not uploaded to edit them; saved designs are stored in the workspace, and export compression round-trips the finished image through the server without storing it. It is open source and available at https://github.com/PlaybookMediaLLC/screenshot-studio.
+
+The editor is an open-source alternative to Pika Style, Shots.so (a separate product), and CleanShot X for images on social media, landing pages, documentation, and presentations.
 
 ## Complete Feature List
 
@@ -204,7 +210,7 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 - Crop: drag or type, with 1:1, 16:9, 4:3, 3:2, and 9:16 presets
 - Rotate and flip: 90, 180, 270 degrees plus mirroring
 - Batch input for every tool except crop, downloaded as a zip
-- All of it runs in the browser and calls no API
+- All of it runs in the browser and calls no API; a signed-in Shots account is required
 
 ### Image Editing
 - Resize and scale
@@ -246,7 +252,7 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 - Scale: 1x, 2x, 3x, 4x, 5x
 
 ### Templates & Presets
-- One-click professional styling presets
+- One-click styling presets
 - Aspect ratio presets: Auto, 1:1, 4:3, 16:9, 9:16, 4:5, 2:3, 3:2, 21:9
 - Social platform presets (Twitter, Instagram, LinkedIn, etc.)
 
@@ -255,17 +261,19 @@ Built as a free alternative to paid tools like Pika Style, Shots.so, and CleanSh
 ### Core
 | Page | URL | Description |
 |------|-----|-------------|
-| Start | ${BASE_URL}/ | Choose the screenshot editor, code images, App Store screenshots, or image tools |
-| Screenshot Editor | ${BASE_URL}/editor | Main canvas editor for creating designs |
-| Landing | ${BASE_URL}/landing | Product landing page with overview |
-| Free Screenshot Editor | ${BASE_URL}/free-screenshot-editor | SEO landing page for free editor |
+| Screenshot Editor | ${BASE_URL}/ | Main canvas editor for signed-in workspaces (redirects to sign-in) |
+| Editor alias | ${BASE_URL}/editor | Redirects to / |
+| Landing | ${BASE_URL}/landing | Launch platform overview |
+| Pricing | ${BASE_URL}/pricing | Pro, Business, and Enterprise plans |
+| Design Partners | ${BASE_URL}/design-partners | Early access to launch intelligence |
+| Screenshot Editor Online | ${BASE_URL}/free-screenshot-editor | SEO landing page for the screenshot editor |
 | Mockup Generator | ${BASE_URL}/mockup-generator | iPhone, MacBook, and Apple Watch mockups with 3D angles and multi-device layouts |
 | Image Tools Hub | ${BASE_URL}/tools | Index of the standalone image utilities |
 | Remove Background | ${BASE_URL}/remove-background | On-device AI background remover that exports a transparent PNG |
 | Compress Video | ${BASE_URL}/compress-video | FFmpeg WebAssembly video compressor: quality levels or a target size in MB, MP4 output |
 
 ### Image Tools
-Standalone, single-purpose utilities. Each decodes, processes, and re-encodes the image locally with Canvas and a Web Worker, and calls no API. Batch input downloads as one zip.
+Standalone, single-purpose utilities for signed-in workspaces. Each decodes, processes, and re-encodes the image locally with Canvas and a Web Worker, and calls no API. Batch input downloads as one zip.
 
 | Page | URL | Description |
 |------|-----|-------------|
@@ -321,7 +329,7 @@ ${guideRows}
 
 ## Internationalization
 
-Screenshot Studio is available in 8 languages with subpath routing:
+Shots is available in 8 languages with subpath routing:
 
 | Language | Prefix | Example |
 |----------|--------|---------|
@@ -354,7 +362,7 @@ Locale detection: URL path > cookie > Accept-Language header > default (English)
 
 ### Authentication
 
-The editor utility endpoints need no API key, token, or account. Access is shaped by per-IP limits: \`POST /api/screenshot\` allows 20 requests per minute per IP and answers 429 with \`Retry-After\` and \`X-RateLimit-*\` headers. Workspace-scoped \`/api/v1\` operations require an organization key in \`X-API-Key\` or an authorized signed-in session, plus the declared permission, scope, feature, and quota checks.
+The editor utility endpoints require a signed-in session or a workspace API key with the artifact:read scope in \`X-API-Key\`; a request with neither returns 401 with code \`unauthorized\`. A workspace without an active paid plan gets 403 with code \`workspace_feature_not_entitled\`; there is no free plan. Create a workspace API key in Settings → Developer API (/workspace/developers). Per-IP limits apply on top: \`POST /api/screenshot\` allows 20 requests per minute per IP and answers 429 with \`Retry-After\` and \`X-RateLimit-*\` headers. Workspace-scoped \`/api/v1\` operations require an organization key in \`X-API-Key\` or an authorized signed-in session, plus the declared permission, scope, feature, and quota checks.
 
 ### Endpoints
 
@@ -412,7 +420,13 @@ No official CLI tool and no MCP server are published yet. Agents should use the 
 
 ## Pricing
 
-A free workspace plan is available, and some workspace capabilities require a higher plan. A signed-in workspace is required. Editor exports have no watermark.
+| Plan | Price |
+|------|-------|
+| Pro | $199/mo, or $169/mo billed annually |
+| Business | $699/mo, or $594/mo billed annually |
+| Enterprise | From $3,000/mo, billed annually. Contact team@playbookmedia.io |
+
+There is no free plan. A signed-in workspace is required on every plan. The screenshot editor and image tools are included in every plan, and exports have no watermark. Launch intelligence is in early access for design partners. Details: ${BASE_URL}/pricing
 
 ## Privacy
 
@@ -420,19 +434,19 @@ Editing and preview rendering happen in the browser, and imported images are not
 
 ## Use Cases
 
-1. **Social Media Graphics**: Create eye-catching images for Twitter/X, Instagram, LinkedIn, and Product Hunt launches
-2. **SaaS Screenshots**: Beautify product screenshots for landing pages, documentation, and app stores
-3. **Developer Portfolios**: Showcase projects with professional-looking screenshots
-4. **Marketing Materials**: Create graphics for presentations, pitch decks, and ads
-5. **Documentation**: Add polished screenshots to docs and READMEs
-6. **Animated Content**: Create animated slideshows and export as video
+1. **Release Launches**: Turn a release into a cited launch brief, on-brand visuals, and posts that a person approves before they ship
+2. **Social Media Graphics**: Create images for Twitter/X, Instagram, LinkedIn, and Product Hunt launches
+3. **SaaS Screenshots**: Style product screenshots for landing pages, documentation, and app stores
+4. **Developer Portfolios**: Show projects with framed screenshots
+5. **Marketing Materials**: Create graphics for presentations, pitch decks, and ads
+6. **Documentation**: Add framed screenshots to docs and READMEs
+7. **Animated Content**: Create animated slideshows and export as video
 
 ## Contact & Links
 
 - **Website**: ${BASE_URL}
 - **GitHub**: https://github.com/PlaybookMediaLLC/screenshot-studio
-- **Twitter/X**: https://x.com/screenshotstdio
-- **Email**: kartik.labhshetwar@gmail.com
+- **Email**: team@playbookmedia.io
 - **Bug Reports**: https://github.com/PlaybookMediaLLC/screenshot-studio/issues
 - **Feature Requests**: https://github.com/PlaybookMediaLLC/screenshot-studio/issues/new?labels=enhancement
 `;

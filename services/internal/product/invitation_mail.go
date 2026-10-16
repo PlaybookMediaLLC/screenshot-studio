@@ -43,15 +43,15 @@ func (EnvInvitationMailer) SendInvitation(ctx context.Context, message Invitatio
 	acceptURL.RawQuery = url.Values{"invitationId": {message.InvitationID}}.Encode()
 	from := strings.TrimSpace(os.Getenv("AUTH_EMAIL_FROM"))
 	if from == "" {
-		from = "Screenshot Studio <noreply@oppulence.app>"
+		from = "Shots <noreply@playbookmedia.io>"
 	}
 	if _, err := mail.ParseAddress(from); err != nil {
 		return fmt.Errorf("invalid AUTH_EMAIL_FROM: %w", err)
 	}
-	subject := "Join " + message.OrganizationName + " on Screenshot Studio"
-	text := fmt.Sprintf("%s invited you to the %s workspace on Screenshot Studio. Accept the invitation: %s",
+	subject := "Join " + message.OrganizationName + " on Shots"
+	text := fmt.Sprintf("%s invited you to the %s workspace on Shots. Accept the invitation: %s",
 		message.InviterName, message.OrganizationName, acceptURL.String())
-	htmlBody := fmt.Sprintf("<p>%s invited you to join %s on Screenshot Studio.</p><p><a href=\"%s\">Accept invitation</a></p><p>%s</p>",
+	htmlBody := fmt.Sprintf("<p>%s invited you to join %s on Shots.</p><p><a href=\"%s\">Accept invitation</a></p><p>%s</p>",
 		html.EscapeString(message.InviterName), html.EscapeString(message.OrganizationName),
 		html.EscapeString(acceptURL.String()), html.EscapeString(acceptURL.String()))
 	endpoint := strings.TrimSpace(os.Getenv("AUTH_EMAIL_WEBHOOK_URL"))

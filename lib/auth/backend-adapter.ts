@@ -110,7 +110,7 @@ const storeAdapter: CustomAdapter = {
 export const backendAuthAdapter = createAdapterFactory({
   config: {
     adapterId: 'screenshot-studio-backend',
-    adapterName: 'Screenshot Studio backend',
+    adapterName: 'Shots backend',
     supportsBooleans: true,
     supportsDates: false,
     supportsJSON: false,

@@ -1,5 +1,9 @@
 import { z } from 'zod'
 
+/**
+ * Workspace plans. There is no free plan: `free` is the state of a workspace
+ * without a subscription, and it has no features and no allowances.
+ */
 export const workspacePlanSchema = z.enum(['free', 'pro', 'business', 'enterprise'])
 export type WorkspacePlan = z.infer<typeof workspacePlanSchema>
 
@@ -30,6 +34,8 @@ export const workspaceFeatureSchema = z.enum([
   'asset:delete',
   'release:create',
   'source-app:create',
+  // Using the product at all: the editor, the tools, and the API.
+  'workspace:use',
   'enterprise:audit-drain',
   'enterprise:sso',
   'enterprise:scim',
@@ -59,7 +65,7 @@ export const featureOverrideSchema = z
   .default({})
 
 const planFeatures = {
-  free: ['asset:create', 'asset:read', 'release:create', 'source-app:create'],
+  free: [],
   pro: [
     'asset:create',
     'asset:read',
@@ -67,6 +73,7 @@ const planFeatures = {
     'asset:delete',
     'release:create',
     'source-app:create',
+    'workspace:use',
   ],
   business: [
     'asset:create',
@@ -75,6 +82,7 @@ const planFeatures = {
     'asset:delete',
     'release:create',
     'source-app:create',
+    'workspace:use',
   ],
   enterprise: [
     'asset:create',
@@ -83,6 +91,7 @@ const planFeatures = {
     'asset:delete',
     'release:create',
     'source-app:create',
+    'workspace:use',
     'enterprise:audit-drain',
     'enterprise:sso',
     'enterprise:scim',
@@ -90,12 +99,13 @@ const planFeatures = {
 } as const satisfies Record<WorkspacePlan, readonly WorkspaceFeature[]>
 
 const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
-  'asset:create': 'free',
-  'asset:read': 'free',
+  'asset:create': 'pro',
+  'asset:read': 'pro',
   'asset:update': 'pro',
   'asset:delete': 'pro',
-  'release:create': 'free',
-  'source-app:create': 'free',
+  'release:create': 'pro',
+  'source-app:create': 'pro',
+  'workspace:use': 'pro',
   'enterprise:audit-drain': 'enterprise',
   'enterprise:sso': 'enterprise',
   'enterprise:scim': 'enterprise',
@@ -105,12 +115,12 @@ const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
 /** Mirrors `planQuotas` in services/internal/product/quota.go. */
 const planQuotas = {
   free: {
-    'ai:credits:monthly': 250,
-    'api:write:minute': 30,
-    'emails:monthly': 100,
-    'jobs:concurrent': 1,
-    'posts:monthly': 10,
-    'storage:bytes': 250 * 1024 * 1024,
+    'ai:credits:monthly': 0,
+    'api:write:minute': 0,
+    'emails:monthly': 0,
+    'jobs:concurrent': 0,
+    'posts:monthly': 0,
+    'storage:bytes': 0,
   },
   pro: {
     'ai:credits:monthly': 3_600,

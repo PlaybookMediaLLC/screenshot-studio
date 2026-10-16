@@ -45,7 +45,7 @@ test('announcement mail carries the unsubscribe link and postal address', async 
       benefitStatement: 'Exports are twice as fast.',
       bodyMarkdown: 'We rebuilt the export pipeline.',
       postalAddress: 'Playbook Media LLC, 1 Main St, Newark, NJ',
-      productName: 'Screenshot Studio',
+      productName: 'Shots',
       title: 'Faster exports',
       unsubscribeUrl: 'https://shots.oppulence.io/unsubscribe?token=xyz',
     })
@@ -63,7 +63,7 @@ test('tenant-supplied release bodies cannot inject markup', async () => {
     ReleaseAnnouncementEmail({
       benefitStatement: 'Safe',
       bodyMarkdown: '<script>alert(1)</script>\n\nSecond paragraph',
-      productName: 'Screenshot Studio',
+      productName: 'Shots',
       title: 'Escaping',
       unsubscribeUrl: 'https://shots.oppulence.io/unsubscribe?token=xyz',
     })

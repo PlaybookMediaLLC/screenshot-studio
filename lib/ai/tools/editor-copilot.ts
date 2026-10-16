@@ -2,8 +2,8 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { designCatalogSections } from '@/lib/design/catalog'
 import { describeDesignCatalog } from '@/lib/design/catalog-sections'
-import { designEditSchema } from '@/lib/design/document'
 import { variantCountSchema } from '@/lib/ai/variants'
+import { designEditSchema } from '@/lib/design/document'
 import type { ToolCapability } from './executor'
 
 /**
@@ -27,6 +27,7 @@ export const editorCopilotCapabilities = {
   applyChanges: { effect: 'draft', maxCallsPerRun: 4, permission: 'artifact:edit' },
   inspectCanvas: { effect: 'read', maxCallsPerRun: 4, permission: 'artifact:read' },
   listDesignOptions: { effect: 'read', maxCallsPerRun: 4, permission: 'workspace:read' },
+  showVariants: { effect: 'read', maxCallsPerRun: 1, permission: 'artifact:edit' },
   undoLastChange: { effect: 'draft', maxCallsPerRun: 4, permission: 'artifact:edit' },
 } as const satisfies Record<string, ToolCapability>
 

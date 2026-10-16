@@ -1,13 +1,23 @@
 import 'server-only'
 
-import type { BackendCampaignStatus } from 'screenshot-studio-backend-sdk'
+import {
+  type BackendCampaignPost,
+  type BackendCampaignStatus,
+  BackendSDKError,
+  prohibitedTermMatches,
+} from 'screenshot-studio-backend-sdk'
 import { backendSDK, orNull, withDates } from '@/lib/backend/sdk'
 import { linkPreviewAgentSchema } from '@/lib/api/contracts/link-preview'
 import type { OrganizationAccess, TenantContext } from '@/lib/auth/access'
 import { readLinkPreview } from '@/lib/link-preview/fetch'
 import { postLinkProblems } from '@/lib/link-preview/gate'
+import { type PostEditResult, type PostSnapshot, postFields } from '@/lib/launch/post-edit'
 import type { CampaignApprovalDecision } from './campaign-status'
-import type { CampaignCreateInput, CampaignPostScheduleInput } from './schemas'
+import type {
+  CampaignCreateInput,
+  CampaignPostScheduleInput,
+  CampaignPostUpdateInput,
+} from './schemas'
 
 export class CampaignError extends Error {
   constructor(
@@ -104,4 +114,40 @@ export async function approveCampaignDesign(
   designId: string
 ) {
   return backendSDK(context).approveCampaignDesign(campaignId, designId)
+}
+
+function postSnapshot(
+  post: Pick<BackendCampaignPost, 'callToAction' | 'copy' | 'status' | 'title'>
+): PostSnapshot {
+  return { ...postFields(post), status: post.status }
+}
+
+/**
+ * A person's edit to a post's copy, call to action, or title. The backend
+ * applies the revision rules: an approved post returns to draft, a live post
+ * cannot change. Copy with a prohibited term comes back as its matches, and
+ * an edit made against copy that changed since comes back with the current
+ * post, so the author decides which version to keep.
+ */
+export async function updateCampaignPost(
+  context: TenantContext,
+  campaignId: string,
+  postId: string,
+  input: CampaignPostUpdateInput
+): Promise<PostEditResult> {
+  try {
+    const post = await backendSDK(context).updateCampaignPost(campaignId, postId, input)
+    return { outcome: 'saved', post: postSnapshot(post) }
+  } catch (error) {
+    const matches = prohibitedTermMatches(error)
+    if (matches) return { matches, outcome: 'prohibited' }
+    if (!(error instanceof BackendSDKError) || error.status !== 409) throw error
+    // Other conflicts (a live or published post) keep their message; only
+    // copy that moved on is a stale edit.
+    const current = (await getCampaign(context, campaignId))?.posts.find(
+      (entry) => entry.id === postId
+    )
+    if (!current || current.copy === input.expectedCopy) throw error
+    return { outcome: 'stale', post: postSnapshot(current) }
+  }
 }

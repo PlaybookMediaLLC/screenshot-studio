@@ -78,12 +78,25 @@ export const brandKitCreateSchema = z.object({
   publish: z.boolean().default(false),
 })
 
+/** How a prohibited term matches: `word` between word boundaries, `phrase` anywhere. */
+export const prohibitedTermMatchModeSchema = z.enum(['word', 'phrase'])
+
+/** A prohibited term: an object with the reason shown on a block, or a legacy bare string. */
+export const prohibitedTermInputSchema = z.union([
+  z.string().trim().min(1).max(100),
+  z.object({
+    matchMode: prohibitedTermMatchModeSchema.default('word'),
+    reason: z.string().trim().max(300).optional(),
+    term: z.string().trim().min(1).max(100),
+  }),
+])
+
 export const brandProfileUpsertSchema = z.object({
   audience: z.string().trim().min(1).max(1_000),
   ctaConventions: z.string().trim().max(1_000).optional(),
   preferredStyles: z.array(z.string().trim().min(1).max(100)).max(50).default([]),
   productDescription: z.string().trim().min(1).max(2_000),
-  prohibitedTerms: z.array(z.string().trim().min(1).max(100)).max(200).default([]),
+  prohibitedTerms: z.array(prohibitedTermInputSchema).max(200).default([]),
   socialHandles: z.record(z.string(), z.string().trim().max(160)).default({}),
   tagline: z.string().trim().max(200).optional(),
   tone: z.string().trim().min(1).max(500),
@@ -192,6 +205,22 @@ export const campaignPostScheduleSchema = z.object({
     .optional(),
   /** Schedule even though a link in the post would preview badly. */
   skipLinkCheck: z.boolean().default(false),
+})
+
+/**
+ * A hand edit to a post. `expectedCopy` is the copy the edit was made
+ * against; the backend refuses the edit if the post changed since. An empty
+ * call to action or title clears it.
+ */
+export const campaignPostUpdateSchema = z.object({
+  callToAction: z.string().max(300).optional(),
+  copy: z
+    .string()
+    .max(10_000)
+    .refine((value) => value.trim() !== '', 'The post needs copy.')
+    .optional(),
+  expectedCopy: z.string().max(10_000),
+  title: z.string().max(200).optional(),
 })
 
 const releaseFields = {
@@ -448,6 +477,10 @@ export type BrandProfileUpsertInput = z.infer<typeof brandProfileUpsertSchema>
 export type CampaignApprovalInput = z.infer<typeof campaignApprovalSchema>
 export type CampaignCreateInput = z.infer<typeof campaignCreateSchema>
 export type CampaignPostScheduleInput = z.infer<typeof campaignPostScheduleSchema>
+/** A hand edit to a post's copy, call to action, or title. */
+export type CampaignPostUpdateInput = z.infer<typeof campaignPostUpdateSchema>
+/** How a prohibited term matches. */
+export type ProhibitedTermMatchMode = z.infer<typeof prohibitedTermMatchModeSchema>
 export type CampaignTransitionInput = z.infer<typeof campaignTransitionSchema>
 export type ProductSurfaceCreateInput = z.infer<typeof productSurfaceCreateSchema>
 export type ProductSurfaceUpdateInput = z.infer<typeof productSurfaceUpdateSchema>

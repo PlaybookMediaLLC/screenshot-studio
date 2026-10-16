@@ -212,6 +212,47 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
         .first()
     ).toBeVisible()
 
+    // ---------------------------------------------------------- hand edit
+    // Editing an approved post autosaves and sends it back to draft.
+    const editedCopy = `${revised.copy} Edited by hand.`
+    await page.getByRole('tab', { name: /LinkedIn/ }).click()
+    await page
+      .getByRole('article')
+      .filter({ hasText: revised.copy.slice(0, 40) })
+      .getByRole('button', { name: 'Edit', exact: true })
+      .click()
+    const editor = page
+      .getByRole('article')
+      .filter({ has: page.getByRole('button', { name: 'Done editing' }) })
+    await expect(editor.getByText(/^Editing sends this post back to draft\./)).toBeVisible()
+    await editor.getByLabel('Copy', { exact: true }).fill(editedCopy)
+    await expect(editor.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible()
+    await expect(editor.getByText('Draft', { exact: true })).toBeVisible()
+    const postRow = () =>
+      queryRow<{ copy: string; status: string }>(
+        database,
+        'SELECT copy, status FROM campaign_post WHERE id = $1',
+        [target.id]
+      )
+    expect(await postRow()).toEqual({ copy: editedCopy, status: 'DRAFT' })
+
+    // A prohibited term is refused with the brand's reason, and nothing saves.
+    const brand = await trpcMutation(page, 'brandProfile.upsert', {
+      audience: 'Finance leads',
+      productDescription: 'Invoicing for small teams',
+      prohibitedTerms: [{ matchMode: 'word', reason: 'A competitor name', term: 'Zorblax' }],
+      tone: 'Plain',
+    })
+    expect(brand.status, JSON.stringify(brand.body)).toBe(200)
+    await editor.getByLabel('Copy', { exact: true }).fill(`${editedCopy} Better than Zorblax.`)
+    await expect(editor.getByRole('alert').filter({ hasText: '“Zorblax”' })).toContainText(
+      'A competitor name'
+    )
+    expect((await postRow())?.copy).toBe(editedCopy)
+    await editor.getByLabel('Copy', { exact: true }).fill(editedCopy)
+    await editor.getByRole('button', { name: 'Done editing' }).click()
+    await expect(page.getByRole('button', { name: 'Done editing' })).toHaveCount(0)
+
     // Production made product shots (no renderer in e2e), so the approvable
     // design is one rendered from the A1 shot.
     const shot = await queryRow<{ assetId: string; organizationId: string }>(

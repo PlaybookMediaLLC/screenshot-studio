@@ -12,6 +12,8 @@ import { designRouter } from './routers/design'
 import { editorAiRouter } from './routers/editor-ai'
 import { githubRouter } from './routers/github'
 import { launchRouter } from './routers/launch'
+import { onboardingRouter } from './routers/onboarding'
+import { productProfileRouter } from './routers/product-profile'
 import { productSurfaceRouter } from './routers/product-surface'
 import { channelConnectionRouter, scheduledPostRouter } from './routers/publishing'
 import { releaseRouter } from './routers/release'
@@ -33,6 +35,8 @@ export const appRouter = router({
   editorAi: editorAiRouter,
   github: githubRouter,
   launch: launchRouter,
+  onboarding: onboardingRouter,
+  productProfile: productProfileRouter,
   productSurface: productSurfaceRouter,
   release: releaseRouter,
   scheduledPost: scheduledPostRouter,

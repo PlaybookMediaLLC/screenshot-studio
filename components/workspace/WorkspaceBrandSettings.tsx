@@ -7,8 +7,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { fontFamilies } from '@/lib/constants/fonts'
-import { contrastRatio, prohibitedTermList } from '@/lib/launch/brand'
-import { BRAND_LOGO_MAX_BYTES, brandLogoContentTypeSchema } from '@/lib/tenant/schemas'
+import {
+  contrastRatio,
+  type ProhibitedTermEntry,
+  prohibitedTermEntries,
+  prohibitedTermsForSave,
+} from '@/lib/launch/brand'
+import {
+  BRAND_LOGO_MAX_BYTES,
+  brandLogoContentTypeSchema,
+  prohibitedTermMatchModeSchema,
+  type ProhibitedTermMatchMode,
+} from '@/lib/tenant/schemas'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { saveExportToWorkspace } from '@/lib/workspace/save-export'
 import { getErrorMessage } from './settings-client'
@@ -258,6 +268,7 @@ function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [terms, setTerms] = useState<ProhibitedTermEntry[]>([])
   const inputClassName = 'h-10 rounded-lg md:w-72'
   const textareaClassName = 'min-h-24 rounded-lg'
 
@@ -266,7 +277,10 @@ function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
     if (!canManage) return
     trpcClient.brandProfile.get
       .query()
-      .then((result) => setProfile(result.brandProfile))
+      .then((result) => {
+        setProfile(result.brandProfile)
+        setTerms(prohibitedTermEntries(result.brandProfile?.prohibitedTerms))
+      })
       .catch((requestError) => setError(getErrorMessage(requestError)))
   }, [canManage, trpcClient])
 
@@ -293,7 +307,7 @@ function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
         ctaConventions: text('ctaConventions') || undefined,
         preferredStyles: list('preferredStyles'),
         productDescription: text('productDescription'),
-        prohibitedTerms: list('prohibitedTerms'),
+        prohibitedTerms: prohibitedTermsForSave(terms),
         socialHandles,
         tagline: text('tagline') || undefined,
         tone: text('tone'),
@@ -372,19 +386,11 @@ function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
               />
             </Row>
             <Row
-              description={
-                <span id="brand-voice-never-hint">Comma-separated words and phrases.</span>
-              }
-              label={<label htmlFor="brand-voice-never">Never use</label>}
+              description="Copy that uses one of these is refused, and the author sees your reason."
+              label="Never use"
+              layout="stacked"
             >
-              <Input
-                aria-describedby="brand-voice-never-hint"
-                className={inputClassName}
-                defaultValue={prohibitedTermList(profile?.prohibitedTerms).join(', ')}
-                id="brand-voice-never"
-                name="prohibitedTerms"
-                placeholder="cheap, guaranteed"
-              />
+              <ProhibitedTermsEditor onChange={setTerms} value={terms} />
             </Row>
             <Row
               description={<span id="brand-voice-styles-hint">Comma-separated.</span>}
@@ -438,6 +444,88 @@ function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
         </fieldset>
       </form>
     </Section>
+  )
+}
+
+const MATCH_MODES: Record<ProhibitedTermMatchMode, string> = {
+  phrase: 'Anywhere, even inside a word',
+  word: 'As a whole word',
+}
+
+/** One row per prohibited term: the term, why it is off brand, and how it matches. */
+function ProhibitedTermsEditor({
+  onChange,
+  value,
+}: {
+  onChange: (terms: ProhibitedTermEntry[]) => void
+  value: ProhibitedTermEntry[]
+}) {
+  const update = (index: number, change: Partial<ProhibitedTermEntry>) =>
+    onChange(value.map((entry, at) => (at === index ? { ...entry, ...change } : entry)))
+  return (
+    <div className="flex w-full flex-col gap-3">
+      {value.length === 0 ? (
+        <p className="text-sm text-neutral-500">No prohibited terms.</p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {value.map((entry, index) => (
+            // Rows have no identity of their own; editing never reorders them.
+            <li className="grid gap-2 md:grid-cols-[1fr_1.5fr_auto_auto]" key={index}>
+              <Input
+                aria-label={`Term ${index + 1}`}
+                className="h-10 rounded-lg"
+                maxLength={100}
+                onChange={(event) => update(index, { term: event.target.value })}
+                placeholder="guaranteed"
+                value={entry.term}
+              />
+              <Input
+                aria-label={`Reason for term ${index + 1}`}
+                className="h-10 rounded-lg"
+                maxLength={300}
+                onChange={(event) => update(index, { reason: event.target.value })}
+                placeholder="Why it is off brand (optional)"
+                value={entry.reason}
+              />
+              <select
+                aria-label={`How term ${index + 1} matches`}
+                className="h-10 rounded-lg bg-white/[0.03] px-3 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none"
+                onChange={(event) =>
+                  update(index, {
+                    matchMode: prohibitedTermMatchModeSchema.parse(event.target.value),
+                  })
+                }
+                value={entry.matchMode}
+              >
+                {prohibitedTermMatchModeSchema.options.map((mode) => (
+                  <option key={mode} value={mode}>
+                    {MATCH_MODES[mode]}
+                  </option>
+                ))}
+              </select>
+              <Button
+                aria-label={`Remove term ${index + 1}`}
+                className="h-10 rounded-lg"
+                onClick={() => onChange(value.filter((_, at) => at !== index))}
+                type="button"
+                variant="ghost"
+              >
+                Remove
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Button
+        className="self-start rounded-lg"
+        onClick={() => onChange([...value, { matchMode: 'word', reason: '', term: '' }])}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        Add term
+      </Button>
+    </div>
   )
 }
 

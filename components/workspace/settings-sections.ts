@@ -8,10 +8,12 @@ export type SettingId =
   | 'channels'
   | 'general'
   | 'members'
+  | 'product'
   | 'profile'
   | 'roles'
   | 'security'
   | 'sso'
+  | 'surfaces'
 
 export type SettingSection = {
   description: string
@@ -75,6 +77,18 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     id: 'brand',
     slug: 'brand-kit',
     title: 'Brand kit',
+  },
+  {
+    description: 'What your product is, who it is for, and what campaigns can claim.',
+    id: 'product',
+    slug: 'product',
+    title: 'Product',
+  },
+  {
+    description: 'The product pages campaigns screenshot, and how fresh each capture is.',
+    id: 'surfaces',
+    slug: 'product-pages',
+    title: 'Product pages',
   },
   {
     description: 'Social accounts that approved posts publish to.',

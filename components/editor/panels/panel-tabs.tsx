@@ -24,6 +24,7 @@ import {
   TextSection,
   TransformsGallery,
 } from '../sections'
+import { AiBackgroundSection } from '../ai/AiBackgroundSection'
 import { BrandSection } from '../brand/BrandSection'
 import { PresetLibrarySection } from '../presets/PresetLibrarySection'
 import { RedactSection } from '../redaction/RedactSection'
@@ -79,6 +80,7 @@ export const COMPOSE_TABS: readonly PanelTabDefinition<ComposeTab>[] = [
     content: () => (
       <div className="space-y-1">
         <BackgroundSection />
+        <AiBackgroundSection />
         <BackgroundEffectsSection />
       </div>
     ),

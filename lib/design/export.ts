@@ -5,6 +5,8 @@ import { useDeviceUIStore } from '@/lib/store/device-ui'
 import {
   audioClipSchema,
   captionItemSchema,
+  captionStyleSchema,
+  DEFAULT_CAPTION_STYLE,
   hasMotionContent,
   keyframeTrackSchema,
   scrollMotionSchema,
@@ -74,7 +76,10 @@ function portableMotion(motion: TimelineMotion, keepLocalSources: boolean) {
     audio: validItems({ element: audioClipSchema }, motion.audio).filter(
       (clip) => keepLocalSources || !LOCAL.test(clip.src)
     ),
-    captions: { ...motion.captions, items: validItems({ element: captionItemSchema }, motion.captions.items) },
+    captions: {
+      items: validItems({ element: captionItemSchema }, motion.captions.items),
+      style: captionStyleSchema.safeParse(motion.captions.style).data ?? DEFAULT_CAPTION_STYLE,
+    },
     layerTracks: validItems({ element: keyframeTrackSchema }, motion.layerTracks),
     reveals: validItems({ element: textRevealSchema }, motion.reveals),
     scrolls: validItems({ element: scrollMotionSchema }, motion.scrolls),

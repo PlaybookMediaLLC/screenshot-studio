@@ -1,6 +1,7 @@
 import { useImageStore } from "@/lib/store";
 import { usePlaybackStore } from "@/lib/store/playback";
 import { exportSlideFrameAsCanvas } from "./export-slideFrame";
+import { hasMotionContent } from "@/lib/animation/motion-schema";
 
 function wait(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -248,7 +249,7 @@ export async function streamAnimationToEncoder(
   const { timeline, slides, slideshow, setActiveSlide } = store;
   const { duration, tracks } = timeline;
 
-  if (tracks.length === 0 && slides.length <= 1) {
+  if (tracks.length === 0 && slides.length <= 1 && !hasMotionContent(store.motion)) {
     throw new Error("No animation tracks to render");
   }
 

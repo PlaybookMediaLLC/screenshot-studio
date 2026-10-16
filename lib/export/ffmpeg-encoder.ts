@@ -14,6 +14,7 @@
 
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { toBlobURL } from '@ffmpeg/util';
+import { audioBufferToWav } from './audio-track';
 
 export type FFmpegFormat = 'mp4' | 'webm' | 'gif';
 export type FFmpegQuality = 'high' | 'medium' | 'low';
@@ -24,6 +25,11 @@ export interface FFmpegEncoderOptions {
   fps: number;
   format?: FFmpegFormat;
   quality?: FFmpegQuality;
+  /**
+   * The mixed audio track, muxed as AAC (MP4) or Opus (WebM). GIF has no
+   * audio; callers must not pass audio for a GIF.
+   */
+  audio?: AudioBuffer | null;
   onProgress?: (progress: number) => void;
   onLog?: (message: string) => void;
 }
@@ -34,6 +40,9 @@ const QUALITY_CRF: Record<FFmpegQuality, number> = {
   medium: 23,  // Good quality, reasonable size
   low: 28,     // Smaller file, some quality loss
 };
+
+/** The audio track's file in FFmpeg's virtual filesystem. */
+const AUDIO_FILE = 'audio.wav';
 
 // Singleton FFmpeg instance
 let ffmpegInstance: FFmpeg | null = null;
@@ -194,6 +203,7 @@ export class FFmpegVideoEncoder {
       ...options,
       format: options.format ?? 'mp4',
       quality: options.quality ?? 'high',
+      audio: options.audio ?? null,
       onProgress: options.onProgress ?? (() => {}),
       onLog: options.onLog ?? (() => {}),
     };
@@ -282,8 +292,16 @@ export class FFmpegVideoEncoder {
       throw new Error('FFmpeg not initialized');
     }
 
-    const { fps, format, quality, width, height, onProgress } = this.options;
+    const { fps, format, quality, width, height, onProgress, audio } = this.options;
     const crf = QUALITY_CRF[quality];
+    if (audio && format === 'gif') {
+      throw new Error('GIF cannot carry audio. Export MP4 or WebM to keep the sound.');
+    }
+
+    // The audio track as WAV; FFmpeg encodes it for the container and maps it beside the video.
+    if (audio) await this.ffmpeg.writeFile(AUDIO_FILE, audioBufferToWav(audio));
+    const audioInput = audio ? ['-i', AUDIO_FILE] : [];
+    const audioOutput = (codec: string[]) => (audio ? ['-map', '0:v:0', '-map', '1:a:0', ...codec] : []);
 
     // Build FFmpeg command based on format
     let outputFile: string;
@@ -313,10 +331,12 @@ export class FFmpegVideoEncoder {
       outputFile = 'output.mp4';
       ffmpegArgs = [
         ...inputArgs,
+        ...audioInput,
         '-c:v', 'libx264',
         '-preset', 'ultrafast',
         '-crf', String(crf),
         '-pix_fmt', 'yuv420p',
+        ...audioOutput(['-c:a', 'aac', '-b:a', '192k']),
         '-movflags', '+faststart',
         '-y',
         outputFile,
@@ -332,6 +352,7 @@ export class FFmpegVideoEncoder {
       const tileColumns = Math.min(4, Math.max(0, Math.floor(Math.log2(width / 256))));
       ffmpegArgs = [
         ...inputArgs,
+        ...audioInput,
         '-c:v', 'libvpx-vp9',
         '-crf', String(crf + 10),
         '-b:v', '0',
@@ -341,6 +362,7 @@ export class FFmpegVideoEncoder {
         '-row-mt', '1',
         '-tile-columns', String(tileColumns),
         '-threads', String(threads),
+        ...audioOutput(['-c:a', 'libopus', '-b:a', '160k']),
         '-y',
         outputFile,
       ];
@@ -364,7 +386,10 @@ export class FFmpegVideoEncoder {
 
     try {
       // Run FFmpeg
-      await this.ffmpeg.exec(ffmpegArgs);
+      const exitCode = await this.ffmpeg.exec(ffmpegArgs);
+      if (exitCode !== 0 && audio) {
+        throw new Error('FFmpeg could not mux the audio track, so the video was not exported.');
+      }
 
       // Read output file
       const data = await this.ffmpeg.readFile(outputFile);
@@ -432,6 +457,7 @@ export class FFmpegVideoEncoder {
         }
       }
 
+      deleteOps.push(this.ffmpeg.deleteFile(AUDIO_FILE).catch(() => {}));
       deleteOps.push(this.ffmpeg.deleteFile('output.mp4').catch(() => {}));
       deleteOps.push(this.ffmpeg.deleteFile('output.webm').catch(() => {}));
       deleteOps.push(this.ffmpeg.deleteFile('output.gif').catch(() => {}));

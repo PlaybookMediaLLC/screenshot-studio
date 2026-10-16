@@ -23,6 +23,7 @@ import {
 import { isFFmpegLoaded } from "@/lib/export/ffmpeg-encoder";
 import { useExportProgress } from "@/hooks/useExportProgress";
 import { isMp4Supported, type VideoFormat, type VideoQuality } from "@/lib/export/video-encoder";
+import { hasMotionContent } from "@/lib/animation/motion-schema";
 
 type ExportMode = "slideshow" | "animation";
 
@@ -125,7 +126,8 @@ export function ExportSlideshowDialog({
   const [quality, setQuality] = useState<VideoQuality>("high");
   const [mp4Supported, setMp4Supported] = useState(true);
 
-  const hasAnimation = timeline.tracks.length > 0 || animationClips.length > 0;
+  const hasMotion = useImageStore((state) => hasMotionContent(state.motion));
+  const hasAnimation = timeline.tracks.length > 0 || animationClips.length > 0 || hasMotion;
   const hasSlides = slides.length > 1;
   const [exportMode, setExportMode] = useState<ExportMode>("animation");
 

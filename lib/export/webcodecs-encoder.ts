@@ -10,6 +10,7 @@
 
 import { Muxer as Mp4Muxer, ArrayBufferTarget as Mp4ArrayBufferTarget } from 'mp4-muxer';
 import { Muxer as WebmMuxer, ArrayBufferTarget as WebmArrayBufferTarget } from 'webm-muxer';
+import { encodeAudioBuffer } from './audio-track';
 
 export type WebCodecsContainer = 'mp4' | 'webm';
 
@@ -19,6 +20,12 @@ export interface WebCodecsEncoderOptions {
   fps: number;
   bitrate?: number; // bits per second, default 10Mbps
   container?: WebCodecsContainer; // default 'mp4'
+  /**
+   * The mixed audio track, exactly the video's length. It is encoded as AAC
+   * (MP4) or Opus (WebM) when the video is finalized; check
+   * `isAudioEncodingSupported` first, as an unsupported codec fails the export.
+   */
+  audio?: AudioBuffer | null;
   onProgress?: (progress: number) => void;
 }
 
@@ -159,6 +166,7 @@ export class WebCodecsVideoEncoder {
       ...options,
       bitrate: options.bitrate ?? 10_000_000, // 10 Mbps default
       container: options.container ?? 'mp4',
+      audio: options.audio ?? null,
       onProgress: options.onProgress ?? (() => {}),
     };
   }
@@ -169,7 +177,7 @@ export class WebCodecsVideoEncoder {
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
-    const { width, height, fps, bitrate, container } = this.options;
+    const { width, height, fps, bitrate, container, audio } = this.options;
 
     // Ensure dimensions are even (required for H.264/VP9)
     this.evenWidth = width % 2 === 0 ? width : width + 1;
@@ -222,6 +230,9 @@ export class WebCodecsVideoEncoder {
           height: this.evenHeight,
           frameRate: fps,
         },
+        ...(audio
+          ? { audio: { codec: 'A_OPUS', numberOfChannels: audio.numberOfChannels, sampleRate: audio.sampleRate } }
+          : {}),
       });
     } else {
       this.muxer = new Mp4Muxer({
@@ -231,6 +242,13 @@ export class WebCodecsVideoEncoder {
           width: this.evenWidth,
           height: this.evenHeight,
         },
+        ...(audio
+          ? {
+              audio: { codec: 'aac', numberOfChannels: audio.numberOfChannels, sampleRate: audio.sampleRate },
+              // An AAC encoder may stamp its first packet after 0; both tracks start at 0.
+              firstTimestampBehavior: 'offset',
+            }
+          : {}),
         fastStart: 'in-memory',
       });
     }
@@ -350,6 +368,13 @@ export class WebCodecsVideoEncoder {
 
     // Flush remaining frames
     await this.encoder.flush();
+
+    // The audio track, timed from 0 like the frames.
+    const { audio, container } = this.options;
+    if (audio) {
+      const muxer = this.muxer;
+      await encodeAudioBuffer(audio, container, (chunk, meta) => muxer.addAudioChunk(chunk, meta));
+    }
 
     // Finalize the muxer
     this.muxer.finalize();

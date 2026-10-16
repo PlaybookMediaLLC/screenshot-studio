@@ -20,9 +20,7 @@ function pageFiles(directory: string): string[] {
 }
 
 function brandedTitles(source: string): string[] {
-  return [...source.matchAll(/title:\s*(['`])([^'`]*\| Shots)\1/g)].map(
-    (match) => match[2]
-  )
+  return [...source.matchAll(/title:\s*(['`])([^'`]*\| Shots)\1/g)].map((match) => match[2])
 }
 
 test('page titles do not repeat the brand the layout template adds', () => {
@@ -35,10 +33,9 @@ test('page titles do not repeat the brand the layout template adds', () => {
 })
 
 test('the title scan detects a doubled brand and allows absolute titles', () => {
-  assert.deepEqual(
-    brandedTitles("export const metadata = { title: 'Assets | Shots' }"),
-    ['Assets | Shots']
-  )
+  assert.deepEqual(brandedTitles("export const metadata = { title: 'Assets | Shots' }"), [
+    'Assets | Shots',
+  ])
   assert.deepEqual(brandedTitles("{ title: { absolute: 'Campaign | Shots' } }"), [])
   assert.deepEqual(brandedTitles("{ title: 'Assets' }"), [])
 })

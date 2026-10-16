@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
+import { Pool } from 'pg'
 import { z } from 'zod'
 
 type SessionClient = { cookie: string }
@@ -203,11 +204,36 @@ async function assertApiKeyIsolation(
   assertStatus(revokedResponse, 403)
 }
 
+/**
+ * There is no free plan, so each fixture workspace gets Pro directly in the
+ * local database, the same way the e2e framework does.
+ */
+async function grantProPlan(organizationIds: string[]): Promise<void> {
+  const connection = process.env.HOST_DATABASE_URL
+  assert(connection, 'HOST_DATABASE_URL is required to give the fixture workspaces a plan.')
+  const url = new URL(connection)
+  url.searchParams.delete('schema')
+  const database = new Pool({ connectionString: url.toString() })
+  try {
+    for (const organizationId of organizationIds) {
+      await database.query(
+        `INSERT INTO workspace_entitlement ("organizationId", plan, status, "updatedAt")
+         VALUES ($1, 'pro', 'active', now())
+         ON CONFLICT ("organizationId") DO UPDATE SET plan = 'pro', status = 'active', "updatedAt" = now()`,
+        [organizationId]
+      )
+    }
+  } finally {
+    await database.end()
+  }
+}
+
 async function main(): Promise<void> {
   const clientA = await createSession('a')
   const clientB = await createSession('b')
   const organizationA = await createOrganization(clientA, 'a')
   const organizationB = await createOrganization(clientB, 'b')
+  await grantProPlan([organizationA, organizationB])
   const releaseA = await createRelease(clientA, 'a')
   const releaseB = await createRelease(clientB, 'b')
   const assetA = await createPendingAsset(clientA)

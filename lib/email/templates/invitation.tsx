@@ -24,8 +24,8 @@ export function InvitationEmail({
     <EmailLayout preview={`Join ${organizationName} on Shots`}>
       <Text style={emailStyles.heading}>Join {organizationName}</Text>
       <Text style={emailStyles.paragraph}>
-        {inviterName} invited you to the {organizationName} workspace on Shots, where
-        your team turns releases into launch-ready screenshots, posts, and video.
+        {inviterName} invited you to the {organizationName} workspace on Shots, where your team
+        turns releases into launch-ready screenshots, posts, and video.
       </Text>
       <Section style={{ margin: '24px 0' }}>
         <Button href={acceptUrl} style={emailStyles.button}>

@@ -13,5 +13,7 @@ export function canonicalRedirect(url: URL, host: string | null): URL | null {
   const target = new URL(url)
   target.protocol = 'https:'
   target.host = CANONICAL_HOST
+  // Behind the load balancer the request URL carries the app's internal port.
+  target.port = ''
   return target
 }

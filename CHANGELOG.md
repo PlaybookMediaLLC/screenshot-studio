@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.21.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.21.1...v1.21.2) (2026-10-16)
+
+
+### Bug Fixes
+
+* **deploy:** skip only images older than production, not commits behind main ([#110](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/110)) ([af2c081](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/af2c081979acff398ccf2d2abfadeaabd48373bb))
+
 ## [1.21.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.21.0...v1.21.1) (2026-10-16)
 
 

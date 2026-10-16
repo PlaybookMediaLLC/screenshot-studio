@@ -31,6 +31,7 @@ import {
   type TextReveal,
 } from '../lib/animation/motion-schema'
 import { createElement } from '../lib/editor/elements/schema'
+import { useImageStore } from '../lib/store'
 
 const close = (actual: number, expected: number, tolerance = 1e-4, message?: string) =>
   assert.ok(
@@ -363,4 +364,20 @@ test('track values hold at the ends of a single keyframe', () => {
   const keyframes = [{ easing: 'linear' as const, id: 'k', time: 500, value: 0.3 }]
   assert.equal(trackValueAt(keyframes, 0), 0.3)
   assert.equal(trackValueAt(keyframes, 900), 0.3)
+})
+
+test('motion edits are undoable steps that grow the timeline to fit', () => {
+  useImageStore.getState().clearImage()
+  useImageStore.temporal.getState().clear()
+  const before = useImageStore.getState().timeline.duration
+  useImageStore
+    .getState()
+    .updateMotion((motion) =>
+      addCaption(motion, { end: before + 2000, id: 'c', start: 500, text: 'Hi' })
+    )
+  assert.equal(useImageStore.getState().motion.captions.items.length, 1)
+  assert.equal(useImageStore.getState().timeline.duration, before + 2000, 'the timeline holds it')
+  useImageStore.temporal.getState().undo()
+  assert.equal(useImageStore.getState().motion.captions.items.length, 0)
+  assert.equal(useImageStore.getState().timeline.duration, before)
 })

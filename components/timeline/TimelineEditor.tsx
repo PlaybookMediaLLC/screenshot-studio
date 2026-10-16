@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { TIMELINE_HEIGHT } from '@/lib/constants/editor-layout';
 import { VideoReplayIcon, Image01Icon, Cancel01Icon, Add01Icon } from 'hugeicons-react';
 import type { AnimationClip } from '@/types/animation';
+import { useEditorPanels } from '@/lib/store/editor-panels';
 
 const TRACK_LABEL_WIDTH = 120;
 const PIXELS_PER_SECOND = 105;
@@ -561,7 +562,7 @@ function SlideDurationHandle({
 
 /* ─── Main Timeline Editor ───────────────────────────────────── */
 export function TimelineEditor() {
-  const { timeline, uploadedImageUrl, slides, showTimeline, setActiveRightPanelTab, toggleTimeline } = useImageStore();
+  const { timeline, uploadedImageUrl, slides, showTimeline, toggleTimeline } = useImageStore();
   const playhead = usePlaybackStore((state) => state.playhead);
   const [viewportWidth, setViewportWidth] = React.useState(0);
   const [lockedPixelsPerSecond, setLockedPixelsPerSecond] = React.useState<number | null>(null);
@@ -602,7 +603,7 @@ export function TimelineEditor() {
   const totalTrackHeight = 25 + 49 + 57;
 
   const handleAddAnimation = () => {
-    setActiveRightPanelTab('animate');
+    useEditorPanels.getState().showTab('motion');
   };
 
   const handleClose = () => {

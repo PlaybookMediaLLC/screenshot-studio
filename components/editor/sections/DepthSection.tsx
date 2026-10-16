@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
+import { useEditorPanels } from '@/lib/store/editor-panels';
 import type { ImageOverlay, ImageOverlayTilt, ImageShadow } from '@/lib/store';
 import { SectionWrapper } from './SectionWrapper';
 import { cn } from '@/lib/utils';
@@ -84,7 +85,7 @@ export function DepthSection() {
     annotations,
     blurRegions,
     selectedOverlayId,
-    setSelectedOverlayId,
+    isMainImageSelected,
     setIsMainImageSelected,
     addImageOverlay,
     updateImageOverlay,
@@ -97,8 +98,22 @@ export function DepthSection() {
     removeBlurRegion,
   } = useImageStore();
 
-  const [selectedOtherLayerId, setSelectedOtherLayerId] = React.useState<string | null>(null);
-  const selectedLayerId = selectedOverlayId ?? selectedOtherLayerId;
+  // Selection is the editor's own, so the inspector shows whatever is picked here.
+  const selectedTextId = useImageStore((state) => state.selectedTextId);
+  const selectedAnnotationId = useImageStore((state) => state.selectedAnnotationId);
+  const selectedBlurId = useImageStore((state) => state.selectedBlurId);
+  const selectedLayerId = selectedOverlayId ?? selectedTextId ?? selectedAnnotationId ?? selectedBlurId;
+  const selectLayer = (layer: LayerItem | null) => {
+    const state = useImageStore.getState();
+    state.setSelectedOverlayId(layer?.type === 'image-overlay' ? layer.id : null);
+    state.setSelectedTextId(layer?.type === 'text-overlay' ? layer.id : null);
+    state.setSelectedAnnotationId(layer?.type === 'annotation' ? layer.id : null);
+    state.setSelectedBlurId(layer?.type === 'blur' ? layer.id : null);
+    if (layer) {
+      state.setIsMainImageSelected(false);
+      useEditorPanels.getState().showTab('edit');
+    }
+  };
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Build unified layer list (bottom to top: image overlays order, then text, then annotations, then blur)
@@ -228,9 +243,7 @@ export function DepthSection() {
         removeBlurRegion(layer.id);
         break;
     }
-    if (selectedLayerId === layer.id) {
-      setSelectedOtherLayerId(null);
-    }
+    if (selectedLayerId === layer.id) selectLayer(null);
   };
 
   // Get icon for layer type
@@ -246,11 +259,6 @@ export function DepthSection() {
         return <BlurIcon size={14} />;
     }
   };
-
-  // Selected image overlay (for editing controls)
-  const selectedOverlay = selectedLayerId
-    ? imageOverlays.find((o) => o.id === selectedLayerId) ?? null
-    : null;
 
   const activeAssets = LOCAL_OBJECTS;
 
@@ -298,12 +306,7 @@ export function DepthSection() {
                         event.currentTarget.click();
                       }
                     }}
-                    onClick={() => {
-                      const nextId = isSelected ? null : layer.id;
-                      setSelectedOtherLayerId(isImageOverlay ? null : nextId);
-                      setSelectedOverlayId(isImageOverlay ? nextId : null);
-                      setIsMainImageSelected(false);
-                    }}
+                    onClick={() => selectLayer(isSelected ? null : layer)}
                     className={cn(
                       'flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150 group',
                       isSelected
@@ -428,8 +431,18 @@ export function DepthSection() {
               );
             })}
             {uploadedImageUrl && (
-              <div
-                className="flex items-center gap-2.5 px-2.5 py-2 rounded-md"
+              <button
+                type="button"
+                className={cn(
+                  'flex w-full items-center gap-2.5 px-2.5 py-2 rounded-md text-left transition-colors',
+                  isMainImageSelected ? 'bg-foreground/[0.06]' : 'hover:bg-foreground/[0.04]'
+                )}
+                aria-pressed={isMainImageSelected}
+                onClick={() => {
+                  selectLayer(null);
+                  setIsMainImageSelected(true);
+                  useEditorPanels.getState().showTab('edit');
+                }}
                 title="Main image"
               >
                 <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 overflow-hidden bg-foreground/[0.06] border border-foreground/10">
@@ -444,26 +457,13 @@ export function DepthSection() {
                   <p className="text-xs font-medium text-foreground truncate">
                     {imageName || 'Main image'}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">Main image · edit in the Edit tab</p>
+                  <p className="text-[10px] text-muted-foreground">Screenshot · properties in Edit</p>
                 </div>
-              </div>
+              </button>
             )}
           </div>
         )}
       </SectionWrapper>
-
-      {selectedOverlay && (
-        <SectionWrapper title="Properties" defaultOpen={true}>
-          <OverlayProperties
-            overlay={selectedOverlay}
-            onUpdate={(updates) => updateImageOverlay(selectedOverlay.id, updates)}
-            onRemove={() => {
-              removeImageOverlay(selectedOverlay.id);
-              setSelectedOtherLayerId(null);
-            }}
-          />
-        </SectionWrapper>
-      )}
 
       <SectionWrapper title="3D Objects" defaultOpen={layers.length === 0}>
         <div className="space-y-3">
@@ -515,7 +515,8 @@ export function DepthSection() {
 
 // ── Overlay properties sub-component ─────────────────────────────────────────
 
-function OverlayProperties({
+/** Properties of one sticker layer: size, rotation, flip, depth, tilt, shadow. */
+export function OverlayProperties({
   overlay,
   onUpdate,
   onRemove,

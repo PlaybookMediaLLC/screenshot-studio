@@ -2,6 +2,7 @@
 
 import { create } from 'zustand'
 import { resetPlayback, usePlaybackStore } from './playback'
+import { NEUTRAL_IMAGE_FILTERS } from '@/lib/editor/image-adjustments'
 import { shallow } from 'zustand/shallow'
 import { temporal } from 'zundo'
 import { GradientKey } from '@/lib/constants/gradient-colors'
@@ -397,11 +398,7 @@ export interface ImageState {
   removeBlurRegion: (id: string) => void
   clearBlurRegions: () => void
 
-  // UI State
-  activeRightPanelTab: 'settings' | 'edit' | 'background' | 'transforms' | 'animate' | 'depth'
-  setActiveRightPanelTab: (
-    tab: 'settings' | 'edit' | 'background' | 'transforms' | 'animate' | 'depth'
-  ) => void
+  // UI State (panel tabs live in useEditorPanels)
   reorderImageOverlay: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void
   showTemplates: boolean
   setShowTemplates: (show: boolean) => void
@@ -427,11 +424,17 @@ export interface ImageState {
   toggleGrid: () => void
   setRulerInterval: (interval: number) => void
 
-  // Layer Selection State
+  // Layer Selection State: session-only, never in undo history
   selectedOverlayId: string | null
   isMainImageSelected: boolean
+  selectedTextId: string | null
+  selectedBlurId: string | null
   setSelectedOverlayId: (id: string | null) => void
   setIsMainImageSelected: (selected: boolean) => void
+  /** Select a text layer; selecting one clears the image and sticker selection. */
+  setSelectedTextId: (id: string | null) => void
+  /** Select a redaction region. */
+  setSelectedBlurId: (id: string | null) => void
 }
 
 export const useImageStore = create<ImageState>()(
@@ -503,16 +506,7 @@ export const useImageStore = create<ImageState>()(
         translateY: 0,
         scale: 1,
       },
-      imageFilters: {
-        brightness: 100,
-        contrast: 100,
-        grayscale: 0,
-        blur: 0,
-        hueRotate: 0,
-        invert: 0,
-        saturate: 100,
-        sepia: 0,
-      },
+      imageFilters: { ...NEUTRAL_IMAGE_FILTERS },
       imagePlacement: { ...DEFAULT_IMAGE_PLACEMENT },
       canvasPadding: DEFAULT_CANVAS_PADDING,
       pattern: { ...DEFAULT_BACKGROUND_PATTERN },
@@ -610,16 +604,7 @@ export const useImageStore = create<ImageState>()(
             scale: 1,
           },
           // Reset filters
-          imageFilters: {
-            brightness: 100,
-            contrast: 100,
-            grayscale: 0,
-            blur: 0,
-            hueRotate: 0,
-            invert: 0,
-            saturate: 100,
-            sepia: 0,
-          },
+          imageFilters: { ...NEUTRAL_IMAGE_FILTERS },
           imagePlacement: { ...DEFAULT_IMAGE_PLACEMENT },
           pattern: { ...DEFAULT_BACKGROUND_PATTERN },
           // Clear overlays
@@ -697,16 +682,7 @@ export const useImageStore = create<ImageState>()(
             scale: 1,
           },
           // Reset filters
-          imageFilters: {
-            brightness: 100,
-            contrast: 100,
-            grayscale: 0,
-            blur: 0,
-            hueRotate: 0,
-            invert: 0,
-            saturate: 100,
-            sepia: 0,
-          },
+          imageFilters: { ...NEUTRAL_IMAGE_FILTERS },
           imagePlacement: { ...DEFAULT_IMAGE_PLACEMENT },
           pattern: { ...DEFAULT_BACKGROUND_PATTERN },
           // Clear overlays
@@ -1332,16 +1308,7 @@ export const useImageStore = create<ImageState>()(
 
       resetImageFilters: () => {
         set({
-          imageFilters: {
-            brightness: 100,
-            contrast: 100,
-            grayscale: 0,
-            blur: 0,
-            hueRotate: 0,
-            invert: 0,
-            saturate: 100,
-            sepia: 0,
-          },
+          imageFilters: { ...NEUTRAL_IMAGE_FILTERS },
         })
       },
 
@@ -1399,16 +1366,7 @@ export const useImageStore = create<ImageState>()(
             translateY: 0,
             scale: 1,
           },
-          imageFilters: {
-            brightness: 100,
-            contrast: 100,
-            grayscale: 0,
-            blur: 0,
-            hueRotate: 0,
-            invert: 0,
-            saturate: 100,
-            sepia: 0,
-          },
+          imageFilters: { ...NEUTRAL_IMAGE_FILTERS },
           imagePlacement: { ...DEFAULT_IMAGE_PLACEMENT },
           canvasPadding: DEFAULT_CANVAS_PADDING,
           pattern: { ...DEFAULT_BACKGROUND_PATTERN },
@@ -1814,10 +1772,6 @@ export const useImageStore = create<ImageState>()(
       clearBlurRegions: () => set({ blurRegions: [] }),
 
       // UI State
-      activeRightPanelTab: 'edit',
-      setActiveRightPanelTab: (tab) => {
-        set({ activeRightPanelTab: tab })
-      },
       showTemplates: false,
       setShowTemplates: (show) => {
         set({ showTemplates: show })
@@ -1892,6 +1846,14 @@ export const useImageStore = create<ImageState>()(
 
       selectedOverlayId: null,
       isMainImageSelected: false,
+      selectedTextId: null,
+      selectedBlurId: null,
+      setSelectedTextId: (id) =>
+        set(() => ({
+          selectedTextId: id,
+          ...(id ? { isMainImageSelected: false, selectedAnnotationId: null, selectedOverlayId: null } : {}),
+        })),
+      setSelectedBlurId: (id) => set({ selectedBlurId: id }),
       setSelectedOverlayId: (id: string | null) =>
         set((state) => ({
           selectedOverlayId: id,
@@ -1908,6 +1870,10 @@ export const useImageStore = create<ImageState>()(
       partialize: ({
         selectedOverlayId: _overlay,
         isMainImageSelected: _main,
+        selectedTextId: _text,
+        selectedBlurId: _blur,
+        selectedAnnotationId: _annotation,
+        activeAnnotationTool: _tool,
         canvasDimensions: _dimensions,
         ...state
       }) => state,
@@ -1935,6 +1901,12 @@ useImageStore.subscribe((state) => {
   }
   if (state.isMainImageSelected && !state.uploadedImageUrl) {
     state.setIsMainImageSelected(false)
+  }
+  if (state.selectedTextId && !state.textOverlays.some((text) => text.id === state.selectedTextId)) {
+    state.setSelectedTextId(null)
+  }
+  if (state.selectedBlurId && !state.blurRegions.some((region) => region.id === state.selectedBlurId)) {
+    state.setSelectedBlurId(null)
   }
 })
 

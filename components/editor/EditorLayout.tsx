@@ -2,8 +2,7 @@
 
 import * as React from 'react'
 import dynamic from 'next/dynamic'
-import { LeftEditPanel } from './LeftEditPanel'
-import { RightSettingsPanel } from './RightSettingsPanel'
+import { ComposePanel, InspectorPanel } from './panels/EditorPanel'
 import { EditorContent } from './EditorContent'
 import { EditorCanvas } from '@/components/canvas/EditorCanvas'
 import { EditorPlatformLayer } from '@/components/editor-ai/EditorPlatformLayer'
@@ -30,8 +29,8 @@ const TimelineEditor = dynamic(
   { ssr: false }
 )
 
-const UnifiedRightPanel = dynamic(
-  () => import('./unified-right-panel').then((module) => module.UnifiedRightPanel),
+const MobilePanel = dynamic(
+  () => import('./panels/EditorPanel').then((module) => module.MobilePanel),
   { ssr: false }
 )
 
@@ -168,7 +167,7 @@ function EditorMain() {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <div className="hidden lg:contents">
-            <LeftEditPanel />
+            <ComposePanel />
           </div>
 
           <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
@@ -208,7 +207,7 @@ function EditorMain() {
           </div>
 
           <div className="hidden lg:contents">
-            <RightSettingsPanel />
+            <InspectorPanel />
           </div>
 
           {isMobile && (
@@ -219,7 +218,7 @@ function EditorMain() {
                 className="h-full w-full max-w-[min(100%,460px)] gap-0 overflow-hidden p-0 sm:max-w-[min(100%,460px)]"
               >
                 <SheetTitle className="sr-only">Editor settings</SheetTitle>
-                <UnifiedRightPanel onClose={() => handleMobileSheetOpenChange(false)} />
+                <MobilePanel onClose={() => handleMobileSheetOpenChange(false)} />
               </SheetContent>
             </Sheet>
           )}

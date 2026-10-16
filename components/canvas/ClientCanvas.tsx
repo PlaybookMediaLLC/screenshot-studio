@@ -123,9 +123,11 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     null
   );
 
-  const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
+  const selectedTextId = useImageStore((state) => state.selectedTextId);
+  const setSelectedTextId = useImageStore((state) => state.setSelectedTextId);
   const [isDraggingMainImage, setIsDraggingMainImage] = useState(false);
-  const [selectedBlurId, setSelectedBlurId] = useState<string | null>(null);
+  const selectedBlurId = useImageStore((state) => state.selectedBlurId);
+  const setSelectedBlurId = useImageStore((state) => state.setSelectedBlurId);
 
   // 3D transform drag state — differentiates click (select) from drag (move)
   const [is3DDragging, setIs3DDragging] = useState(false);
@@ -152,7 +154,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setIsMainImageSelected(true);
     setSelectedOverlayId(null);
     setSelectedTextId(null);
-  }, [setIsMainImageSelected, setSelectedOverlayId]);
+  }, [setIsMainImageSelected, setSelectedOverlayId, setSelectedTextId]);
 
   useEffect(() => {
     if (!is3DPointerDown) return;
@@ -239,7 +241,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, true);
     };
-  }, [setSelectedAnnotationId, setSelectedDeviceId, setSelectedOverlayId, setIsMainImageSelected]);
+  }, [setSelectedAnnotationId, setSelectedDeviceId, setSelectedOverlayId, setIsMainImageSelected, setSelectedBlurId, setSelectedTextId]);
 
   useEffect(() => {
     if (!selectedDeviceId) return;
@@ -248,7 +250,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setSelectedTextId(null);
     setSelectedBlurId(null);
     setSelectedAnnotationId(null);
-  }, [selectedDeviceId, setSelectedAnnotationId, setSelectedOverlayId, setIsMainImageSelected]);
+  }, [selectedDeviceId, setSelectedAnnotationId, setSelectedOverlayId, setIsMainImageSelected, setSelectedBlurId, setSelectedTextId]);
 
   // Panel selection must clear the same competing selections as a canvas click.
   useEffect(() => {
@@ -257,7 +259,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setSelectedBlurId(null);
     setSelectedAnnotationId(null);
     setSelectedDeviceId(null);
-  }, [selectedOverlayId, isMainImageSelected, setSelectedAnnotationId, setSelectedDeviceId]);
+  }, [selectedOverlayId, isMainImageSelected, setSelectedAnnotationId, setSelectedDeviceId, setSelectedBlurId, setSelectedTextId]);
 
   // Selection shortcuts; history lives in the always-mounted editor header.
   useEffect(() => {
@@ -299,7 +301,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [editorMode, isMainImageSelected, removeImageOverlay, removeMockup, selectedDeviceId, selectedOverlayId, selectedTextId, setSelectedDeviceId, setSelectedOverlayId, setIsMainImageSelected, setSelectedAnnotationId, setEditingScreenDeviceId]);
+  }, [editorMode, isMainImageSelected, removeImageOverlay, removeMockup, selectedDeviceId, selectedOverlayId, selectedTextId, setSelectedDeviceId, setSelectedOverlayId, setIsMainImageSelected, setSelectedAnnotationId, setEditingScreenDeviceId, setSelectedBlurId, setSelectedTextId]);
 
   // Get selected overlay for toolbar positioning
   const selectedOverlay = selectedOverlayId

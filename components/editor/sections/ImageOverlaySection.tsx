@@ -6,6 +6,7 @@ import { SectionWrapper } from './SectionWrapper';
 import { getR2ImageUrl } from '@/lib/r2';
 import { isOverlayPath } from '@/lib/r2-overlays';
 import { ArrowRight01Icon, LayersLogoIcon, Image01Icon } from 'hugeicons-react';
+import { useEditorPanels } from '@/lib/store/editor-panels';
 
 function getThumbSrc(overlay: { src: string; isCustom?: boolean }) {
   const isR2 =
@@ -17,7 +18,7 @@ function getThumbSrc(overlay: { src: string; isCustom?: boolean }) {
 }
 
 export function ImageOverlaySection() {
-  const { uploadedImageUrl, imageOverlays, textOverlays, annotations, blurRegions, setActiveRightPanelTab, addImageOverlay } =
+  const { uploadedImageUrl, imageOverlays, textOverlays, annotations, blurRegions, addImageOverlay } =
     useImageStore();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -71,7 +72,7 @@ export function ImageOverlaySection() {
         </button>
 
         <button
-          onClick={() => setActiveRightPanelTab('depth')}
+          onClick={() => useEditorPanels.getState().showTab('layers')}
           className="w-full flex items-center gap-3 px-3 py-3 rounded-md bg-foreground/[0.04] border border-foreground/10 hover:bg-foreground/[0.06] hover:border-foreground/20 transition-all duration-150 group"
         >
         <div className="relative w-10 h-10 shrink-0">

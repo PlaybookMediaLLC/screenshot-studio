@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
+import { useEditorPanels } from '@/lib/store/editor-panels';
 import { useImageStore } from '@/lib/store';
 import { Delete02Icon, ViewIcon, ViewOffSlashIcon, Add01Icon, TextIcon } from 'hugeicons-react';
 import { fontFamilies, getAvailableFontWeights, getFontCSS } from '@/lib/constants/fonts';
@@ -26,7 +27,19 @@ const WEIGHT_LABELS: Record<string, string> = {
   '900': 'Black',
 };
 
-export const TextOverlayControls = () => {
+/** Text layers and the selected one's properties, together. */
+export const TextOverlayControls = () => (
+  <div className="space-y-3">
+    <TextLayerList />
+    <TextProperties />
+  </div>
+);
+
+/**
+ * Add text, and the list of text layers. Selection is the editor's own, so
+ * picking a layer here or on the canvas shows the same properties.
+ */
+export const TextLayerList = () => {
   const {
     textOverlays,
     addTextOverlay,
@@ -34,22 +47,12 @@ export const TextOverlayControls = () => {
     removeTextOverlay,
     clearTextOverlays,
   } = useImageStore();
-
-  const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null);
-  const editInputRef = useRef<HTMLTextAreaElement>(null);
-
-  const selectedOverlay = textOverlays.find((o) => o.id === selectedOverlayId);
-
-  // Auto-focus textarea when selecting an overlay
-  useEffect(() => {
-    if (selectedOverlay && editInputRef.current) {
-      editInputRef.current.focus();
-      editInputRef.current.select();
-    }
-  }, [selectedOverlay]);
+  const selectedOverlayId = useImageStore((state) => state.selectedTextId);
+  const setSelectedOverlayId = useImageStore((state) => state.setSelectedTextId);
 
   const handleAddText = () => {
     setSelectedOverlayId(addTextOverlay());
+    useEditorPanels.getState().showTab('edit');
   };
 
   return (
@@ -134,9 +137,29 @@ export const TextOverlayControls = () => {
         </div>
       )}
 
-      {/* Selected overlay editor */}
+    </div>
+  );
+};
+
+/** Properties of the selected text layer, or nothing when no text is selected. */
+export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) => {
+  const { textOverlays, updateTextOverlay } = useImageStore();
+  const selectedOverlayId = useImageStore((state) => state.selectedTextId);
+  const editInputRef = useRef<HTMLTextAreaElement>(null);
+  const selectedOverlay = textOverlays.find((o) => o.id === selectedOverlayId);
+
+  // Focus the content box for new text, not when the selection came from the canvas.
+  useEffect(() => {
+    if (autoFocus && selectedOverlayId && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [autoFocus, selectedOverlayId]);
+
+  return (
+    <>
       {selectedOverlay && (
-        <div className="space-y-4 pt-3 border-t border-border/30">
+        <div className="space-y-4">
 
           {/* Text content */}
           <div className="space-y-1.5">
@@ -368,6 +391,6 @@ export const TextOverlayControls = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };

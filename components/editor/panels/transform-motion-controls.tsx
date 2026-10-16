@@ -1,16 +1,10 @@
 'use client';
 
 import * as React from 'react';
+import { Delete02Icon, Add01Icon } from 'hugeicons-react';
 import {
-  RotateSquareIcon,
-  VideoReplayIcon,
-  Delete02Icon,
-  Add01Icon,
-} from 'hugeicons-react';
-import {
-  TransformsGallery,
   SectionWrapper,
-} from './sections';
+} from '../sections';
 import { cn } from '@/lib/utils';
 import { selectScreenshot, useImageStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -29,13 +23,6 @@ function useCanvasAspectRatio(): string {
   if (!ar) return '4 / 3';
   return `${ar.width} / ${ar.height}`;
 }
-
-type RightTabType = 'transforms' | 'animate';
-
-const rightTabs: { id: RightTabType; icon: React.ReactNode; label: string }[] = [
-  { id: 'transforms', icon: <RotateSquareIcon size={14} />, label: '3D' },
-  { id: 'animate', icon: <VideoReplayIcon size={14} />, label: 'Motion' },
-];
 
 type ControlMode = 'zoom' | 'tilt';
 
@@ -272,7 +259,8 @@ function TransformPreview({ mode }: { mode: ControlMode }) {
   );
 }
 
-function PerspectiveSliders() {
+/** Part of the inspector's 3D or Motion tab. */
+export function PerspectiveSliders() {
   const { perspective3D, setPerspective3D } = useImageStore();
 
   return (
@@ -370,7 +358,8 @@ function ZoomSlider() {
   );
 }
 
-function TransformControls() {
+/** Part of the inspector's 3D or Motion tab. */
+export function TransformControls() {
   const perspective3D = useImageStore((s) => s.perspective3D);
   const setPerspective3D = useImageStore((s) => s.setPerspective3D);
   const [controlMode, setControlMode] = React.useState<ControlMode>('zoom');
@@ -419,7 +408,8 @@ const ANIM_PRESET_BY_CATEGORY = ANIMATION_PRESETS.reduce(
   {} as Record<string, AnimationPreset[]>
 );
 
-function AnimationControls() {
+/** Part of the inspector's 3D or Motion tab. */
+export function AnimationControls() {
   const {
     uploadedImageUrl,
     backgroundConfig,
@@ -561,78 +551,6 @@ function AnimationControls() {
           </p>
         </div>
       )}
-    </div>
-  );
-}
-
-// ─── Main Panel ─────────────────────────────────────────────────────────────
-
-export function RightSettingsPanel() {
-  const { activeRightPanelTab } = useImageStore();
-  const [activeTab, setActiveTab] = React.useState<RightTabType>('transforms');
-
-  // Sync with store — when timeline or other components set the right panel tab to animate/transforms
-  React.useEffect(() => {
-    if (activeRightPanelTab === 'animate' || activeRightPanelTab === 'transforms') {
-      setActiveTab(activeRightPanelTab);
-    }
-  }, [activeRightPanelTab]);
-
-  const [contentKey, setContentKey] = React.useState<RightTabType>(activeTab);
-  const [transitioning, setTransitioning] = React.useState(false);
-
-  React.useEffect(() => {
-    if (activeTab !== contentKey) {
-      setTransitioning(true);
-      const timeout = setTimeout(() => {
-        setContentKey(activeTab);
-        setTransitioning(false);
-      }, 150);
-      return () => clearTimeout(timeout);
-    }
-  }, [activeTab, contentKey]);
-
-  return (
-    <div className="w-[260px] h-full bg-background flex flex-col overflow-hidden border-l border-foreground/10 shrink-0">
-      <div className="px-3 py-2.5 border-b border-foreground/10 shrink-0">
-        <SegmentedControl
-          value={activeTab}
-          onChange={(id) => setActiveTab(id as RightTabType)}
-          options={rightTabs.map((tab) => ({
-            id: tab.id,
-            label: tab.label,
-            icon: tab.icon,
-            ariaLabel: tab.label,
-          }))}
-        />
-      </div>
-
-      <div className="flex-1 overflow-y-auto scrollbar-hide">
-        <div
-          className="p-4 transition-all duration-150 ease-out"
-          style={{
-            opacity: transitioning ? 0 : 1,
-            transform: transitioning ? 'translateY(4px)' : 'translateY(0)',
-          }}
-        >
-          {contentKey === 'transforms' && (
-            <div className="space-y-1">
-              <TransformControls />
-
-              <div className="flex items-center gap-2 py-3 px-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Layout Presets
-                </span>
-              </div>
-
-              <TransformsGallery />
-              <PerspectiveSliders />
-            </div>
-          )}
-
-          {contentKey === 'animate' && <AnimationControls />}
-        </div>
-      </div>
     </div>
   );
 }

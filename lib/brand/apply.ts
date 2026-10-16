@@ -177,6 +177,8 @@ function assignments(
     const frame = kit.frame
     list.push({
       get: (doc) => ({
+        browserHeaderSize: doc.image.browserHeaderSize,
+        chrome: doc.image.chrome,
         frame: doc.image.frame,
         mode: doc.mode,
         radius: doc.image.radius,
@@ -186,7 +188,14 @@ function assignments(
       set: (doc, next) => {
         const value = next as typeof frame
         doc.mode = value.mode
-        doc.image = { ...doc.image, frame: value.frame, radius: value.radius, shadow: value.shadow }
+        doc.image = {
+          ...doc.image,
+          browserHeaderSize: value.browserHeaderSize,
+          chrome: value.chrome,
+          frame: value.frame,
+          radius: value.radius,
+          shadow: value.shadow,
+        }
       },
       value: frame,
     })

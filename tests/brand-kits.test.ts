@@ -198,3 +198,25 @@ test('logos are picked by tone', () => {
     LOGO_DARK
   )
 })
+
+test('a frame default carries the browser chrome along with the frame', () => {
+  const framed = readBrandKit(
+    stored(
+      brandKitDefinition({
+        colors: { background: '#0b1020', foreground: '#f8fafc' },
+        frame: {
+          chrome: { address: 'acme.com', appearance: 'dark', browser: 'firefox' },
+          frame: { type: 'browser' },
+          mode: 'browser',
+          radius: 14,
+        },
+      })
+    )
+  )!
+  const { document } = applyBrandKit(design(), framed, ['frame'])
+  assert.equal(document.mode, 'browser')
+  assert.equal(document.image.frame?.type, 'browser')
+  assert.equal(document.image.chrome?.browser, 'firefox')
+  assert.equal(document.image.chrome?.address, 'acme.com')
+  assert.equal(document.image.radius, 14)
+})

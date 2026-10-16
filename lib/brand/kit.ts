@@ -47,8 +47,13 @@ export type BrandLogo = z.infer<typeof brandLogoSchema>
 
 const imageShape = designDocumentSchema.shape.image.shape
 
-/** The frame designs start from: the frame mode and the screenshot's frame, corners, and shadow. */
+/**
+ * The frame designs start from: the frame mode and the screenshot's frame,
+ * browser or window chrome, corners, and shadow.
+ */
 export const brandFrameSchema = z.object({
+  browserHeaderSize: imageShape.browserHeaderSize,
+  chrome: imageShape.chrome,
   frame: imageShape.frame,
   mode: designDocumentSchema.shape.mode,
   radius: imageShape.radius,

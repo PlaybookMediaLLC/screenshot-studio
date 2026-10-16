@@ -180,6 +180,8 @@ export function BrandKitDialog({
   function designFrame(): BrandFrame {
     const document = exportDesignDocument({ keepLocalSources: true })
     return {
+      browserHeaderSize: document.image.browserHeaderSize,
+      chrome: document.image.chrome,
       frame: document.image.frame,
       mode: document.mode,
       radius: document.image.radius,

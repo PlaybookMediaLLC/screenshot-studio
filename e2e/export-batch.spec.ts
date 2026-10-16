@@ -301,7 +301,19 @@ test('the editor exports PNG, JPEG, WebP, SVG, PDF, and a multi-size ZIP with ex
   await page.getByRole('switch', { name: 'Transparent background' }).click()
   download = await exportDownload(page, 'Export as WebP')
   expect(download.suggestedFilename()).toBe('dashboard-1920x1440.webp')
-  expect(webpSize(await bytesOf(download))).toEqual(CANVAS)
+  const webp = await bytesOf(download)
+  expect(webpSize(webp)).toEqual(CANVAS)
+  // Without its background the canvas corner is see-through; the screenshot is opaque.
+  const alpha = await page.evaluate(async (base64) => {
+    const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0))
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/webp' }))
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+    const context = canvas.getContext('2d')!
+    context.drawImage(bitmap, 0, 0)
+    const at = (x: number, y: number) => context.getImageData(x, y, 1, 1).data[3]
+    return { centre: at(bitmap.width / 2, bitmap.height / 2), corner: at(2, 2) }
+  }, webp.toString('base64'))
+  expect(alpha).toEqual({ centre: 255, corner: 0 })
 
   await openSave(page)
   await pickFormat(page, 'SVG')

@@ -7,7 +7,6 @@ import {
   Megaphone01Icon,
   Menu01Icon,
   PaintBoardIcon,
-  SidebarLeftIcon,
   SlidersHorizontalIcon,
   UnfoldMoreIcon,
 } from 'hugeicons-react'
@@ -16,13 +15,20 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { type ComponentType, useState } from 'react'
 import { AccountMenu } from '@/components/auth/AccountMenu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useHydratedSession } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
 import { SETTINGS_SECTIONS, settingsHref } from '@/components/workspace/settings-sections'
 import { workspaceInitials } from '@/lib/workspace/initials'
-import { PLATFORM_SIDEBAR_COOKIE, surface } from './shell-config'
+import { surface } from './shell-config'
 
 type IconComponent = ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
 type SubItem = { href: string; label: string }
@@ -152,6 +158,37 @@ function NavLink({
       link
     )
   }
+  if (children) {
+    // The rail has no room for sub-links, so they open beside it.
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            aria-label={label}
+            className={cn(
+              'grid size-8 cursor-pointer place-items-center rounded-lg border transition-colors',
+              active
+                ? cn(surface.panel, surface.border, 'text-white shadow-xs')
+                : 'border-transparent text-neutral-500 hover:text-neutral-200 data-[state=open]:text-neutral-200'
+            )}
+            type="button"
+          >
+            <Icon className="shrink-0" size={16} strokeWidth={1.8} />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-52" side="right" sideOffset={10}>
+          <DropdownMenuLabel className="text-xs text-muted-foreground">{label}</DropdownMenuLabel>
+          {children.map((child) => (
+            <DropdownMenuItem asChild key={child.href}>
+              <Link href={child.href} onClick={onNavigate}>
+                {child.label}
+              </Link>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+  }
   return (
     <Tooltip>
       <TooltipTrigger asChild>{link}</TooltipTrigger>
@@ -170,7 +207,7 @@ function Navigation({
   onNavigate?: () => void
 }) {
   return (
-    <nav aria-label="Workspace" className="grid gap-6">
+    <nav aria-label="Workspace" className={cn('grid', collapsed ? 'gap-3' : 'gap-6')}>
       {NAV_GROUPS.map((group, index) => (
         <div className="grid gap-0.5" key={index}>
           {group.label && !collapsed ? (
@@ -238,63 +275,35 @@ function Brand({ collapsed }: { collapsed: boolean }) {
 
 export interface PlatformSidebarProps {
   campaignsEnabled: boolean
-  defaultCollapsed: boolean
   organizationName?: string
   variant: 'editor' | 'page'
 }
 
+/**
+ * Desktop: a fixed icon rail that never expands; labels show as tooltips and
+ * Settings opens its sections beside the rail. Mobile: a full drawer.
+ */
 export function PlatformSidebar({
   campaignsEnabled,
-  defaultCollapsed,
   organizationName = 'Workspace',
   variant,
 }: PlatformSidebarProps) {
-  // The editor brings its own logo, account menu, and mobile chrome.
+  // The editor header holds the account menu and the mobile chrome.
   const isPage = variant === 'page'
-  const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const [mobileOpen, setMobileOpen] = useState(false)
-
-  function toggle() {
-    const next = !collapsed
-    setCollapsed(next)
-    document.cookie = `${PLATFORM_SIDEBAR_COOKIE}=${next ? 'collapsed' : 'expanded'}; path=/; max-age=31536000; samesite=lax`
-  }
-
-  const toggleLabel = collapsed ? 'Expand sidebar' : 'Collapse sidebar'
 
   return (
     <>
       <aside
         className={cn(
-          'sticky top-0 hidden h-screen shrink-0 flex-col py-3 transition-[width] duration-200 ease-out md:flex',
-          surface.base,
-          collapsed ? 'w-[60px] items-center px-2' : 'w-60 px-3'
+          'sticky top-0 hidden h-screen w-14 shrink-0 flex-col items-center border-r border-white/[0.04] py-3 md:flex',
+          surface.base
         )}
       >
-        <div
-          className={cn(
-            'flex h-8 items-center justify-between gap-2 px-2',
-            collapsed && 'h-auto flex-col gap-3 px-0'
-          )}
-        >
-          {isPage ? <Brand collapsed={collapsed} /> : <span />}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                aria-label={toggleLabel}
-                className="grid size-7 shrink-0 place-items-center rounded-md text-neutral-500 transition-colors hover:bg-white/[0.04] hover:text-neutral-200"
-                onClick={toggle}
-                type="button"
-              >
-                <SidebarLeftIcon size={16} strokeWidth={1.8} />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">{toggleLabel}</TooltipContent>
-          </Tooltip>
-        </div>
+        <Brand collapsed />
 
-        <div className="mt-6 flex-1">
-          <Navigation campaignsEnabled={campaignsEnabled} collapsed={collapsed} />
+        <div className="mt-5 flex-1">
+          <Navigation campaignsEnabled={campaignsEnabled} collapsed />
         </div>
 
         {isPage ? (
@@ -302,12 +311,11 @@ export function PlatformSidebar({
           // sits on the switcher and swallows clicks.
           <div
             className={cn(
-              'w-full border-t border-white/[0.06] pt-2',
-              collapsed && 'flex justify-center',
+              'flex w-full justify-center border-t border-white/[0.06] pt-2',
               process.env.NODE_ENV === 'development' && 'mb-12'
             )}
           >
-            <WorkspaceSwitcher collapsed={collapsed} organizationName={organizationName} />
+            <WorkspaceSwitcher collapsed organizationName={organizationName} />
           </div>
         ) : null}
       </aside>

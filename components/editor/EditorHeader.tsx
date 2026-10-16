@@ -13,8 +13,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Download04Icon,
   Copy01Icon,
@@ -31,6 +38,7 @@ import {
   RulerIcon,
   FileZipIcon,
   KeyboardIcon,
+  MoreHorizontalIcon,
 } from 'hugeicons-react'
 import { useEditorStore, useImageStore } from '@/lib/store'
 import { useExport } from '@/hooks/useExport'
@@ -51,6 +59,43 @@ import { FeedbackWidget } from '@/components/FeedbackWidget'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { hasVisibleMockups, shouldRenderSourceImage } from '@/lib/device-mockups/layouts'
+
+/** A quiet square toolbar button with a tooltip; `active` marks a toggled tool. */
+function ToolButton({
+  active = false,
+  children,
+  className,
+  label,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean; label: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          aria-label={label}
+          aria-pressed={props['aria-pressed']}
+          className={cn(
+            'grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg text-muted-foreground',
+            'transition-[color,background-color,transform] duration-150 hover:bg-foreground/[0.06] hover:text-foreground active:scale-95',
+            'disabled:pointer-events-none disabled:opacity-35',
+            active && 'bg-foreground/[0.08] text-foreground',
+            className
+          )}
+          type="button"
+          {...props}
+        >
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+/** A hairline between toolbar groups. */
+function ToolDivider() {
+  return <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-foreground/[0.08]" />
+}
 
 export function EditorHeader() {
   const isMobile = useIsMobile()
@@ -80,6 +125,7 @@ export function EditorHeader() {
   const [exportOpen, setExportOpen] = React.useState(false)
   const [exportSlideshowOpen, setExportSlideshowOpen] = React.useState(false)
   const [exportError, setExportError] = React.useState<string | null>(null)
+  const [resetOpen, setResetOpen] = React.useState(false)
 
   const currentAspectRatio = aspectRatios.find((ar) => ar.id === selectedAspectRatio)
   const hasImage =
@@ -173,114 +219,76 @@ export function EditorHeader() {
     <>
       <header
         className={cn(
-          'h-16 bg-background border-b border-foreground/10 grid grid-cols-[1fr_auto_1fr] items-center shrink-0',
-          isMobile ? 'gap-1 px-2' : 'gap-3 px-4'
+          'grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-foreground/[0.06] bg-background',
+          isMobile ? 'px-2' : 'px-3'
         )}
       >
-        <div className="flex items-center h-8 justify-self-start min-w-0">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 h-8 hover:opacity-80 transition-opacity shrink-0"
-          >
-            <Image
-              src="/logo-mark.png"
-              alt="Shots"
-              width={32}
-              height={32}
-              className="h-8 w-8"
-              priority
-            />
-            <span className="hidden sm:inline font-semibold text-foreground text-sm tracking-tight leading-none">
-              Shots
-            </span>
-          </Link>
-
-          {!isMobile ? (
-            <>
-              <div className="mx-2.5 h-4 w-px shrink-0 bg-foreground/10" aria-hidden />
-              <button
-                type="button"
-                onClick={() => setShowTemplates(!showTemplates)}
-                aria-expanded={showTemplates}
-                aria-label="Templates"
-                className={cn(
-                  'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2',
-                  'text-sm font-medium leading-none transition-colors duration-150',
-                  showTemplates
-                    ? 'text-foreground hover:text-foreground/70'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <MagicWand01Icon size={14} className="shrink-0" />
-                <span>Templates</span>
-              </button>
-            </>
+        <div className="flex min-w-0 items-center gap-1 justify-self-start">
+          {/* On desktop the logo lives in the sidebar rail. */}
+          {isMobile ? (
+            <Link
+              aria-label="Shots"
+              className="grid size-8 shrink-0 place-items-center rounded-lg transition-opacity hover:opacity-80"
+              href="/"
+            >
+              <Image
+                alt=""
+                className="size-6 rounded-md"
+                height={24}
+                priority
+                src="/logo-mark.png"
+                width={24}
+              />
+            </Link>
           ) : null}
+          <button
+            aria-expanded={showTemplates}
+            aria-label="Templates"
+            className={cn(
+              'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium',
+              'transition-colors duration-150',
+              showTemplates
+                ? 'bg-foreground/[0.08] text-foreground'
+                : 'text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground'
+            )}
+            onClick={() => setShowTemplates(!showTemplates)}
+            type="button"
+          >
+            <MagicWand01Icon className="shrink-0" size={15} />
+            {!isMobile ? <span>Templates</span> : null}
+          </button>
         </div>
 
-        <div
-          className={cn(
-            'flex items-center justify-center justify-self-center',
-            isMobile ? 'gap-1' : 'gap-2.5'
-          )}
-        >
+        {/* One floating toolbar: history, guides, and canvas size. */}
+        <div className="flex items-center justify-self-center rounded-xl border border-foreground/[0.06] bg-foreground/[0.03] p-0.5">
           {showHistoryControls ? (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={handleUndo}
-                disabled={!canUndo}
-                className={cn(
-                  'flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer',
-                  'text-muted-foreground transition-all duration-150',
-                  canUndo
-                    ? 'hover:text-foreground active:scale-95'
-                    : 'opacity-40 cursor-not-allowed'
-                )}
-                title="Undo (Cmd+Z)"
-              >
-                <ArrowTurnBackwardIcon size={16} />
-              </button>
-              <button
-                onClick={handleRedo}
-                disabled={!canRedo}
-                className={cn(
-                  'flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer',
-                  'text-muted-foreground transition-all duration-150',
-                  canRedo
-                    ? 'hover:text-foreground active:scale-95'
-                    : 'opacity-40 cursor-not-allowed'
-                )}
-                title="Redo (Cmd+Shift+Z)"
-              >
-                <ArrowTurnForwardIcon size={16} />
-              </button>
-            </div>
+            <>
+              <ToolButton disabled={!canUndo} label="Undo (⌘Z)" onClick={handleUndo}>
+                <ArrowTurnBackwardIcon size={15} />
+              </ToolButton>
+              <ToolButton disabled={!canRedo} label="Redo (⌘⇧Z)" onClick={handleRedo}>
+                <ArrowTurnForwardIcon size={15} />
+              </ToolButton>
+              <ToolDivider />
+            </>
           ) : null}
 
           {hasImage && !isMobile ? (
-            <div className="w-px h-4 bg-foreground/10 shrink-0" aria-hidden />
-          ) : null}
-
-          {hasImage && !isMobile ? (
-            <div className="flex items-center gap-1">
-              <button
+            <>
+              <ToolButton
+                active={showRulers}
+                aria-pressed={showRulers}
+                label="Toggle rulers"
                 onClick={toggleRulers}
-                className={cn(
-                  'flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer transition-all duration-150 active:scale-95',
-                  showRulers
-                    ? 'bg-muted text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-                title="Toggle rulers"
               >
                 <RulerIcon size={15} />
-              </button>
+              </ToolButton>
               {showRulers ? (
                 <select
-                  value={rulerInterval}
+                  className="h-7 shrink-0 cursor-pointer rounded-md border-0 bg-transparent px-1 text-[11px] text-muted-foreground outline-none hover:text-foreground"
                   onChange={(e) => setRulerInterval(Number(e.target.value))}
-                  className="h-8 px-1.5 text-[11px] rounded-md bg-muted text-foreground border-0 outline-none cursor-pointer shrink-0"
                   title="Ruler interval"
+                  value={rulerInterval}
                 >
                   <option value={25}>25px</option>
                   <option value={50}>50px</option>
@@ -288,247 +296,225 @@ export function EditorHeader() {
                   <option value={200}>200px</option>
                 </select>
               ) : null}
-              <button
+              <ToolButton
+                active={showGrid}
+                aria-pressed={showGrid}
+                label="Toggle grid"
                 onClick={toggleGrid}
-                className={cn(
-                  'flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer transition-all duration-150 active:scale-95',
-                  showGrid
-                    ? 'bg-muted text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-                title="Toggle grid"
               >
                 <GridIcon size={15} />
-              </button>
-            </div>
-          ) : null}
-
-          {hasImage && !isMobile ? (
-            <div className="w-px h-4 bg-foreground/10 shrink-0" aria-hidden />
-          ) : null}
-
-          <div className="flex items-center gap-1">
-            <Popover open={aspectRatioOpen} onOpenChange={setAspectRatioOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    'h-8 gap-1.5 rounded-md text-muted-foreground hover:text-foreground shrink-0',
-                    isMobile ? 'px-1.5' : 'px-2.5'
-                  )}
-                >
-                  <AspectRatioIcon size={15} />
-                  <span className="text-xs leading-none">
-                    {currentAspectRatio
-                      ? `${currentAspectRatio.width}:${currentAspectRatio.height}`
-                      : 'Auto'}
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="p-0 w-[420px]"
-                align="center"
-                sideOffset={8}
-                collisionPadding={16}
-              >
-                <AspectRatioPicker onSelect={() => setAspectRatioOpen(false)} />
-              </PopoverContent>
-            </Popover>
-
-            {slides.length > 0 && !isMobile ? (
-              <label className="cursor-pointer inline-flex shrink-0">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files?.length) {
-                      useImageStore.getState().addImages(Array.from(e.target.files))
-                    }
-                  }}
-                />
-                <span className="h-8 inline-flex items-center justify-center gap-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted text-xs leading-none transition-all font-medium px-2.5">
-                  <Add01Icon size={14} />
-                  <span>Add Slide</span>
-                </span>
-              </label>
-            ) : null}
-          </div>
-
-          <div className="w-px h-4 bg-foreground/10 shrink-0" aria-hidden />
-
-          <div className={cn('flex items-center', isMobile ? 'gap-1' : 'gap-1.5')}>
-            <Button
-              onClick={() => copyImage()}
-              disabled={!hasContent || isExporting || isCopying}
-              variant="ghost"
-              size="sm"
-              aria-label="Copy"
-              className={cn(
-                'h-8 gap-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-transparent dark:hover:bg-transparent text-xs leading-none shrink-0',
-                isMobile ? 'px-1.5' : 'px-2.5'
-              )}
-            >
-              <Copy01Icon size={15} />
-              {!isMobile ? <span>Copy</span> : null}
-            </Button>
-
-            <Popover open={exportOpen} onOpenChange={isExporting ? undefined : setExportOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  disabled={!hasContent}
-                  size="sm"
-                  aria-label="Save"
-                  className={cn(
-                    'h-8 gap-1.5 rounded-md text-xs font-medium leading-none shrink-0',
-                    isMobile ? 'px-2' : 'px-3'
-                  )}
-                >
-                  <Download04Icon size={15} />
-                  {!isMobile ? <span>Save</span> : null}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-[340px] p-0"
-                align="center"
-                sideOffset={8}
-                collisionPadding={16}
-                onPointerDownOutside={isExporting ? (e) => e.preventDefault() : undefined}
-              >
-                {isExporting ? (
-                  <div className="p-5">
-                    <p className="text-sm font-medium text-foreground mb-1">Exporting...</p>
-                    <p className="text-xs text-muted-foreground mb-4">Rendering your creation</p>
-                    <ImageExportProgressView progress={progress} format={exportSettings.format} />
-                  </div>
-                ) : (
-                  <div className="p-4 space-y-4">
-                    <FormatSelector format={exportSettings.format} onFormatChange={updateFormat} />
-                    <QualityPresetSelector
-                      qualityPreset={exportSettings.qualityPreset}
-                      format={exportSettings.format}
-                      onQualityPresetChange={updateQualityPreset}
-                    />
-                    <ScaleSlider scale={exportSettings.scale} onScaleChange={updateScale} />
-
-                    {exportError && (
-                      <div className="text-xs text-destructive bg-destructive/10 p-2.5 rounded-md border border-destructive/20">
-                        {exportError}
-                      </div>
-                    )}
-
-                    <Button
-                      onClick={handleExport}
-                      disabled={isExporting}
-                      className="w-full h-10 text-sm font-semibold rounded-md transition-all"
-                    >
-                      <Download01Icon size={16} className="mr-2" />
-                      Export as {formatLabel}
-                    </Button>
-
-                    <SaveToWorkspaceButton createExport={renderExportBlob} disabled={isExporting} />
-
-                    {slides.length > 1 && (
-                      <Button
-                        onClick={handleExportAll}
-                        disabled={isExporting || isBatchExporting}
-                        variant="outline"
-                        className="w-full h-10 text-sm font-semibold rounded-md transition-all"
-                      >
-                        <FileZipIcon size={16} className="mr-2" />
-                        Export All ({slides.length})
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </PopoverContent>
-            </Popover>
-
-            {hasImage && showVideoExport && !isMobile ? (
-              <Button
-                onClick={() => setExportSlideshowOpen(true)}
-                size="sm"
-                className="h-8 gap-1.5 rounded-md text-xs font-medium leading-none px-3 shrink-0"
-              >
-                <Video01Icon size={14} />
-                <span>Export Video</span>
-              </Button>
-            ) : null}
-          </div>
-
-          {(hasContent || uploadedImageUrl) && !isMobile ? (
-            <>
-              <div className="w-px h-4 bg-foreground/10 shrink-0" aria-hidden />
-              <div className="flex items-center gap-1">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <button
-                      type="button"
-                      className={cn(
-                        'inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2.5',
-                        'text-xs font-medium leading-none text-muted-foreground transition-[color,background-color,transform] duration-150',
-                        'hover:bg-muted hover:text-foreground active:scale-[0.98]'
-                      )}
-                      aria-label="Start over"
-                      title="Reset the design and animation"
-                    >
-                      <RefreshIcon size={14} />
-                      <span>Start over</span>
-                    </button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className="sm:max-w-[420px]">
-                    <AlertDialogHeader>
-                      <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-destructive/10 text-destructive sm:mx-0">
-                        <RefreshIcon aria-hidden="true" size={18} />
-                      </div>
-                      <AlertDialogTitle>Start over?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This resets the current design, overlays, and animation. Your uploaded media
-                        stays, and you can undo this action.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={resetCanvasSettings}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/30"
-                      >
-                        Start over
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                {hasContent ? (
-                  <Button
-                    onClick={clearImage}
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 gap-1.5 px-2.5 text-xs leading-none text-muted-foreground hover:text-destructive hover:bg-transparent dark:hover:bg-transparent shrink-0"
-                  >
-                    <Delete02Icon size={14} />
-                    <span>Remove</span>
-                  </Button>
-                ) : null}
-              </div>
+              </ToolButton>
+              <ToolDivider />
             </>
+          ) : null}
+
+          <Popover onOpenChange={setAspectRatioOpen} open={aspectRatioOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className={cn(
+                  'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg text-muted-foreground',
+                  'transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground',
+                  isMobile ? 'px-2' : 'px-2.5'
+                )}
+                type="button"
+              >
+                <AspectRatioIcon size={15} />
+                <span className="font-mono text-xs leading-none tabular-nums">
+                  {currentAspectRatio
+                    ? `${currentAspectRatio.width}:${currentAspectRatio.height}`
+                    : 'Auto'}
+                </span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="center"
+              className="w-[420px] p-0"
+              collisionPadding={16}
+              sideOffset={10}
+            >
+              <AspectRatioPicker onSelect={() => setAspectRatioOpen(false)} />
+            </PopoverContent>
+          </Popover>
+
+          {slides.length > 0 && !isMobile ? (
+            <label className="inline-flex shrink-0 cursor-pointer">
+              <input
+                accept="image/*"
+                className="hidden"
+                multiple
+                onChange={(e) => {
+                  if (e.target.files?.length) {
+                    useImageStore.getState().addImages(Array.from(e.target.files))
+                  }
+                }}
+                type="file"
+              />
+              <span className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium leading-none text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground">
+                <Add01Icon size={14} />
+                <span>Add Slide</span>
+              </span>
+            </label>
           ) : null}
         </div>
 
         <div className="flex items-center gap-1 justify-self-end">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Keyboard shortcuts"
-            onClick={() => setShortcutsOpen(true)}
+          {hasContent && !isMobile ? (
+            <ToolButton className="hover:text-destructive" label="Remove" onClick={clearImage}>
+              <Delete02Icon size={15} />
+            </ToolButton>
+          ) : null}
+          <ToolButton
+            disabled={!hasContent || isExporting || isCopying}
+            label="Copy"
+            onClick={() => copyImage()}
           >
-            <KeyboardIcon size={16} />
-          </Button>
-          <AccountMenu />
+            <Copy01Icon size={15} />
+          </ToolButton>
+
+          {hasImage && showVideoExport && !isMobile ? (
+            <button
+              className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-foreground/[0.08] px-3 text-[13px] font-medium text-foreground transition-colors hover:bg-foreground/[0.06]"
+              onClick={() => setExportSlideshowOpen(true)}
+              type="button"
+            >
+              <Video01Icon size={14} />
+              <span>Export Video</span>
+            </button>
+          ) : null}
+
+          <Popover onOpenChange={isExporting ? undefined : setExportOpen} open={exportOpen}>
+            <PopoverTrigger asChild>
+              <button
+                aria-label="Save"
+                className={cn(
+                  'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-foreground text-[13px] font-medium text-background',
+                  'transition-[opacity,transform] duration-150 hover:opacity-90 active:scale-[0.98]',
+                  'disabled:pointer-events-none disabled:opacity-35',
+                  isMobile ? 'px-2' : 'px-3'
+                )}
+                disabled={!hasContent}
+                type="button"
+              >
+                <Download04Icon size={15} />
+                {!isMobile ? <span>Save</span> : null}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              className="w-[340px] p-0"
+              collisionPadding={16}
+              onPointerDownOutside={isExporting ? (e) => e.preventDefault() : undefined}
+              sideOffset={10}
+            >
+              {isExporting ? (
+                <div className="p-5">
+                  <p className="mb-1 text-sm font-medium text-foreground">Exporting...</p>
+                  <p className="mb-4 text-xs text-muted-foreground">Rendering your creation</p>
+                  <ImageExportProgressView format={exportSettings.format} progress={progress} />
+                </div>
+              ) : (
+                <div className="space-y-4 p-4">
+                  <FormatSelector format={exportSettings.format} onFormatChange={updateFormat} />
+                  <QualityPresetSelector
+                    format={exportSettings.format}
+                    onQualityPresetChange={updateQualityPreset}
+                    qualityPreset={exportSettings.qualityPreset}
+                  />
+                  <ScaleSlider onScaleChange={updateScale} scale={exportSettings.scale} />
+
+                  {exportError && (
+                    <div className="rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-xs text-destructive">
+                      {exportError}
+                    </div>
+                  )}
+
+                  <Button
+                    className="h-10 w-full rounded-md text-sm font-semibold transition-all"
+                    disabled={isExporting}
+                    onClick={handleExport}
+                  >
+                    <Download01Icon className="mr-2" size={16} />
+                    Export as {formatLabel}
+                  </Button>
+
+                  <SaveToWorkspaceButton createExport={renderExportBlob} disabled={isExporting} />
+
+                  {slides.length > 1 && (
+                    <Button
+                      className="h-10 w-full rounded-md text-sm font-semibold transition-all"
+                      disabled={isExporting || isBatchExporting}
+                      onClick={handleExportAll}
+                      variant="outline"
+                    >
+                      <FileZipIcon className="mr-2" size={16} />
+                      Export All ({slides.length})
+                    </Button>
+                  )}
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    aria-label="More"
+                    className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground data-[state=open]:bg-foreground/[0.08] data-[state=open]:text-foreground"
+                    type="button"
+                  >
+                    <MoreHorizontalIcon size={16} />
+                  </button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">More</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="end" className="w-52" sideOffset={8}>
+              <DropdownMenuItem onSelect={() => setShortcutsOpen(true)}>
+                <KeyboardIcon size={15} />
+                Keyboard shortcuts
+              </DropdownMenuItem>
+              {hasContent || uploadedImageUrl ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => setResetOpen(true)} variant="destructive">
+                    <RefreshIcon size={15} />
+                    Start over
+                  </DropdownMenuItem>
+                </>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {!isMobile ? <FeedbackWidget /> : null}
+          <AccountMenu />
         </div>
       </header>
+
+      <AlertDialog onOpenChange={setResetOpen} open={resetOpen}>
+        <AlertDialogContent className="sm:max-w-[420px]">
+          <AlertDialogHeader>
+            <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-destructive/10 text-destructive sm:mx-0">
+              <RefreshIcon aria-hidden="true" size={18} />
+            </div>
+            <AlertDialogTitle>Start over?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This resets the current design, overlays, and animation. Your uploaded media stays,
+              and you can undo this action.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/30"
+              onClick={resetCanvasSettings}
+            >
+              Start over
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 

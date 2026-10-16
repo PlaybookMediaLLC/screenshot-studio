@@ -67,6 +67,18 @@ class UpdateWebImageTest(unittest.TestCase):
         again = module.update_web_image(result, tag, {**base, **stripe})
         self.assertEqual(len(again["services"][0]["envs"]), len({item["key"] for item in again["services"][0]["envs"]}))
 
+    def test_keeps_live_only_secrets_and_requires_the_rest(self):
+        tag = "web-" + "b" * 40
+        cdp = {"PLATFORM_RENDER_CDP_URL": "wss://render.example/devtools", "PLATFORM_RENDER_CDP_TOKEN": "cdp-token"}
+        self.base["spec"]["services"][0]["envs"].append(
+            {"key": "GITHUB_APP_WEBHOOK_SECRET", "value": "EV[live]", "type": "SECRET"})
+        result = module.update_web_image(self.base, tag, {"REDIS_URL": "runtime-redis", **cdp})
+        envs = {item["key"]: item["value"] for item in result["services"][0]["envs"]}
+        self.assertEqual(envs["GITHUB_APP_WEBHOOK_SECRET"], "EV[live]")
+        # Any other secret with a live value still has to come from Infisical.
+        with self.assertRaisesRegex(ValueError, "Missing Infisical secret: REDIS_URL"):
+            module.update_web_image(self.base, tag, cdp)
+
     def test_rejects_unexpected_topology_and_missing_secret(self):
         tag = "web-" + "b" * 40
         with self.assertRaisesRegex(ValueError, "Missing Infisical"):

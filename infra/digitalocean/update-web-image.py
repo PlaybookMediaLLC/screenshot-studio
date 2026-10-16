@@ -17,6 +17,9 @@ SERVICES = {"web", "storage", "screenshot-studio-backend"}
 RETIRED_SERVICES = {"design-renderer"}
 RETIRED_WEB_KEYS = {"PLATFORM_RENDER_SERVICE_URL", "PLATFORM_RENDER_SERVICE_SECRET"}
 JOBS = {"platform-migrate", "postiz-migrate"}
+# Set on the app directly rather than in Infisical (the GitHub App and source
+# webhooks behind release intake). Deploys keep their encrypted values as they are.
+LIVE_ONLY_SECRETS = ("GITHUB_APP_WEBHOOK_SECRET", "SOURCE_WEBHOOK_SIGNING_KEY")
 # Self-serve billing (docs/rfcs/035). Each key joins the web once it is in Infisical,
 # so a deploy before Stripe is wired keeps checkout on the contact page.
 STRIPE_SECRET_KEYS = ("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET")
@@ -76,9 +79,10 @@ def update_web_image(base, tag, secrets=None):
         for item in web_envs:
             if item.get("type") != "SECRET":
                 continue
-            if not secrets.get(item["key"]):
+            if secrets.get(item["key"]):
+                item["value"] = secrets[item["key"]]
+            elif not (item["key"] in LIVE_ONLY_SECRETS and item.get("value")):
                 raise ValueError(f"Missing Infisical secret: {item['key']}")
-            item["value"] = secrets[item["key"]]
     return spec
 
 

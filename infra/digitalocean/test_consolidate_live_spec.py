@@ -121,6 +121,17 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "DATABASE_URL"):
             cutover.consolidate(self.base, self.digest, {})
 
+    def test_keeps_a_live_secret_that_is_not_in_infisical(self):
+        envs = [{"key": "TENANT_GITHUB_APP_PRIVATE_KEY", "value": "EV[live]", "type": "SECRET"},
+                {"key": "TENANT_REDIS_URL", "value": "EV[old]", "type": "SECRET"}]
+        cutover.refresh_secrets(envs, {"REDIS_URL": "fresh"})
+        self.assertEqual([item["value"] for item in envs], ["EV[live]", "fresh"])
+        # Every other secret must come from Infisical, even with a live value.
+        with self.assertRaisesRegex(ValueError, "Missing Infisical secret: REDIS_URL"):
+            cutover.refresh_secrets(envs, {})
+        with self.assertRaisesRegex(ValueError, "Missing Infisical secret: GITHUB_APP_CLIENT_SECRET"):
+            cutover.refresh_secrets([{"key": "TENANT_GITHUB_APP_CLIENT_SECRET", "value": "", "type": "SECRET"}], {})
+
     def test_web_reaches_backend_and_go_owns_migrations(self):
         secrets = {key: "infisical-" + key for key in
                    "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}

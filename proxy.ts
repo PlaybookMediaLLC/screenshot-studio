@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import createMiddleware from 'next-intl/middleware'
 import { routing } from './i18n/routing'
+import { canonicalRedirect } from './lib/canonical-host'
 import { isUnacceptable, prefersMarkdown } from './lib/agents/accept'
 import { renderNotAcceptableMarkdown } from './lib/agents/site-content'
 
@@ -36,6 +37,12 @@ function isStandaloneLocaleRewrite(request: NextRequest): boolean {
 }
 
 export function proxy(request: NextRequest): Response {
+  const moved = canonicalRedirect(
+    request.nextUrl,
+    request.headers.get('x-forwarded-host') ?? request.headers.get('host')
+  )
+  if (moved) return NextResponse.redirect(moved, 308)
+
   // Next standalone currently re-enters Proxy for internal rewrites. next-intl
   // marks its first pass with this header, so let that internal default-locale
   // path reach the app instead of canonicalizing it back into a 307 loop.

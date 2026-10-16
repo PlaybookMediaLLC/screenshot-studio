@@ -4,6 +4,8 @@ export interface TerminalObservation {
   readonly outcome: UsageOutcome
   readonly usage?: unknown
   readonly finishReason?: unknown
+  /** The finish part's provider metadata, e.g. OpenRouter's reported cost. */
+  readonly providerMetadata?: unknown
 }
 
 interface StreamPart {
@@ -11,6 +13,7 @@ interface StreamPart {
   readonly usage?: unknown
   readonly finishReason?: unknown
   readonly error?: unknown
+  readonly providerMetadata?: unknown
 }
 
 interface StreamTapState {
@@ -73,6 +76,7 @@ const reportPart = (state: StreamTapState, part: StreamPart): void => {
       outcome: 'finish',
       usage: state.latestUsage,
       finishReason: part.finishReason,
+      providerMetadata: part.providerMetadata,
     })
   } else if (part.type === 'error') {
     state.report({ outcome: errorOutcome(part.error), usage: state.latestUsage })

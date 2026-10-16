@@ -198,7 +198,7 @@ procedures refuse to run.
 The campaign pages drive the launch pipeline (`docs/launch-intelligence.md`);
 "Produce campaign" on a campaign's Assets page uses the tools below, briefed
 with the approved spec and plan. `campaign.generate` (permission
-`release:create`, one unit of the `generation:monthly` quota per run) runs the
+`release:create`, charged `ai:credits:monthly` for its model calls) runs the
 campaign studio agent (`lib/ai/agents/campaign-studio.ts`) from the release
 brief alone, for API callers, in the caller's tenant context. Its tools are
 built per run around one workspace and one campaign:
@@ -315,8 +315,8 @@ as the campaign agent:
   `undoLastChange`) have no server `execute`, so each call returns to the
   browser. There it runs through the editor's own store actions
   (`applyDesignChanges`), and the result goes back with a canvas snapshot so
-  the model checks its work. Each change is one undo step. The route counts one
-  `generation:monthly` unit per user request, caps tool round trips per
+  the model checks its work. Each change is one undo step. The route charges
+  `ai:credits:monthly` for each round trip's model calls, caps round trips per
   request, accepts only user/assistant/tool messages, and drops all but the
   newest snapshot to bound cost.
 - **Scoped commands.** ⌘K opens the copilot on the selected text, device,

@@ -3,6 +3,26 @@ import { z } from 'zod'
 export const workspacePlanSchema = z.enum(['free', 'pro', 'business', 'enterprise'])
 export type WorkspacePlan = z.infer<typeof workspacePlanSchema>
 
+/** Plans a workspace can buy without talking to sales. */
+export const checkoutPlanSchema = workspacePlanSchema.extract(['pro', 'business'])
+
+/** How often a self-serve plan is billed. */
+export const billingIntervalSchema = z.enum(['monthly', 'annual'])
+
+/** One-time AI credit packs a workspace can buy on any plan. */
+export const creditPackSchema = z.enum(['launch'])
+
+/**
+ * What each pack adds and costs. Pack credits are spent after the monthly
+ * allowance and do not expire (docs/rfcs/035-pricing-and-unit-economics.md).
+ */
+export const CREDIT_PACKS: Record<
+  z.infer<typeof creditPackSchema>,
+  { credits: number; price: string }
+> = {
+  launch: { credits: 500, price: '$29' },
+}
+
 export const workspaceFeatureSchema = z.enum([
   'asset:create',
   'asset:read',
@@ -19,10 +39,17 @@ export const workspaceFeatureSchema = z.enum([
 ])
 export type WorkspaceFeature = z.infer<typeof workspaceFeatureSchema>
 
+/**
+ * Metered workspace quotas. The monthly ones reset at the start of each UTC
+ * calendar month and are metered in the Go backend's Redis store. One AI
+ * credit is $0.01 of model spend at list price (docs/rfcs/035).
+ */
 export const workspaceQuotaSchema = z.enum([
   'api:write:minute',
   'storage:bytes',
-  'generation:monthly',
+  'ai:credits:monthly',
+  'posts:monthly',
+  'emails:monthly',
   'jobs:concurrent',
 ])
 export type WorkspaceQuota = z.infer<typeof workspaceQuotaSchema>
@@ -75,29 +102,38 @@ const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
   'campaign:workflow': 'enterprise',
 }
 
+/** Mirrors `planQuotas` in services/internal/product/quota.go. */
 const planQuotas = {
   free: {
+    'ai:credits:monthly': 250,
     'api:write:minute': 30,
-    'generation:monthly': 250,
+    'emails:monthly': 100,
     'jobs:concurrent': 1,
+    'posts:monthly': 10,
     'storage:bytes': 250 * 1024 * 1024,
   },
   pro: {
+    'ai:credits:monthly': 3_600,
     'api:write:minute': 300,
-    'generation:monthly': 5_000,
+    'emails:monthly': 5_000,
     'jobs:concurrent': 5,
+    'posts:monthly': 120,
     'storage:bytes': 25 * 1024 * 1024 * 1024,
   },
   business: {
+    'ai:credits:monthly': 13_200,
     'api:write:minute': 1_500,
-    'generation:monthly': 25_000,
+    'emails:monthly': 25_000,
     'jobs:concurrent': 25,
+    'posts:monthly': 480,
     'storage:bytes': 250 * 1024 * 1024 * 1024,
   },
   enterprise: {
+    'ai:credits:monthly': 54_000,
     'api:write:minute': 10_000,
-    'generation:monthly': 250_000,
+    'emails:monthly': 100_000,
     'jobs:concurrent': 250,
+    'posts:monthly': 2_400,
     'storage:bytes': 5 * 1024 * 1024 * 1024 * 1024,
   },
 } as const satisfies Record<WorkspacePlan, Record<WorkspaceQuota, number>>

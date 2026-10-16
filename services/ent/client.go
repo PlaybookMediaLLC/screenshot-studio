@@ -59,6 +59,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacecreditgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
@@ -157,6 +158,8 @@ type Client struct {
 	SupportAccessGrant *SupportAccessGrantClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// WorkspaceCreditGrant is the client for interacting with the WorkspaceCreditGrant builders.
+	WorkspaceCreditGrant *WorkspaceCreditGrantClient
 	// WorkspaceDeletion is the client for interacting with the WorkspaceDeletion builders.
 	WorkspaceDeletion *WorkspaceDeletionClient
 	// WorkspaceEntitlement is the client for interacting with the WorkspaceEntitlement builders.
@@ -218,6 +221,7 @@ func (c *Client) init() {
 	c.SourceApp = NewSourceAppClient(c.config)
 	c.SupportAccessGrant = NewSupportAccessGrantClient(c.config)
 	c.User = NewUserClient(c.config)
+	c.WorkspaceCreditGrant = NewWorkspaceCreditGrantClient(c.config)
 	c.WorkspaceDeletion = NewWorkspaceDeletionClient(c.config)
 	c.WorkspaceEntitlement = NewWorkspaceEntitlementClient(c.config)
 	c.WorkspaceSettings = NewWorkspaceSettingsClient(c.config)
@@ -357,6 +361,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		SourceApp:                      NewSourceAppClient(cfg),
 		SupportAccessGrant:             NewSupportAccessGrantClient(cfg),
 		User:                           NewUserClient(cfg),
+		WorkspaceCreditGrant:           NewWorkspaceCreditGrantClient(cfg),
 		WorkspaceDeletion:              NewWorkspaceDeletionClient(cfg),
 		WorkspaceEntitlement:           NewWorkspaceEntitlementClient(cfg),
 		WorkspaceSettings:              NewWorkspaceSettingsClient(cfg),
@@ -423,6 +428,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		SourceApp:                      NewSourceAppClient(cfg),
 		SupportAccessGrant:             NewSupportAccessGrantClient(cfg),
 		User:                           NewUserClient(cfg),
+		WorkspaceCreditGrant:           NewWorkspaceCreditGrantClient(cfg),
 		WorkspaceDeletion:              NewWorkspaceDeletionClient(cfg),
 		WorkspaceEntitlement:           NewWorkspaceEntitlementClient(cfg),
 		WorkspaceSettings:              NewWorkspaceSettingsClient(cfg),
@@ -466,7 +472,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.ProductSurface, c.PublicationAttempt, c.Release, c.ReleaseDocument,
 		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session,
 		c.SocialOAuthStart, c.SourceApp, c.SupportAccessGrant, c.User,
-		c.WorkspaceDeletion, c.WorkspaceEntitlement, c.WorkspaceSettings,
+		c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
+		c.WorkspaceSettings,
 	} {
 		n.Use(hooks...)
 	}
@@ -487,7 +494,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.ProductSurface, c.PublicationAttempt, c.Release, c.ReleaseDocument,
 		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session,
 		c.SocialOAuthStart, c.SourceApp, c.SupportAccessGrant, c.User,
-		c.WorkspaceDeletion, c.WorkspaceEntitlement, c.WorkspaceSettings,
+		c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
+		c.WorkspaceSettings,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -584,6 +592,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SupportAccessGrant.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
+	case *WorkspaceCreditGrantMutation:
+		return c.WorkspaceCreditGrant.mutate(ctx, m)
 	case *WorkspaceDeletionMutation:
 		return c.WorkspaceDeletion.mutate(ctx, m)
 	case *WorkspaceEntitlementMutation:
@@ -6575,6 +6585,139 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 	}
 }
 
+// WorkspaceCreditGrantClient is a client for the WorkspaceCreditGrant schema.
+type WorkspaceCreditGrantClient struct {
+	config
+}
+
+// NewWorkspaceCreditGrantClient returns a client for the WorkspaceCreditGrant from the given config.
+func NewWorkspaceCreditGrantClient(c config) *WorkspaceCreditGrantClient {
+	return &WorkspaceCreditGrantClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `workspacecreditgrant.Hooks(f(g(h())))`.
+func (c *WorkspaceCreditGrantClient) Use(hooks ...Hook) {
+	c.hooks.WorkspaceCreditGrant = append(c.hooks.WorkspaceCreditGrant, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `workspacecreditgrant.Intercept(f(g(h())))`.
+func (c *WorkspaceCreditGrantClient) Intercept(interceptors ...Interceptor) {
+	c.inters.WorkspaceCreditGrant = append(c.inters.WorkspaceCreditGrant, interceptors...)
+}
+
+// Create returns a builder for creating a WorkspaceCreditGrant entity.
+func (c *WorkspaceCreditGrantClient) Create() *WorkspaceCreditGrantCreate {
+	mutation := newWorkspaceCreditGrantMutation(c.config, OpCreate)
+	return &WorkspaceCreditGrantCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of WorkspaceCreditGrant entities.
+func (c *WorkspaceCreditGrantClient) CreateBulk(builders ...*WorkspaceCreditGrantCreate) *WorkspaceCreditGrantCreateBulk {
+	return &WorkspaceCreditGrantCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WorkspaceCreditGrantClient) MapCreateBulk(slice any, setFunc func(*WorkspaceCreditGrantCreate, int)) *WorkspaceCreditGrantCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WorkspaceCreditGrantCreateBulk{err: fmt.Errorf("calling to WorkspaceCreditGrantClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WorkspaceCreditGrantCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WorkspaceCreditGrantCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for WorkspaceCreditGrant.
+func (c *WorkspaceCreditGrantClient) Update() *WorkspaceCreditGrantUpdate {
+	mutation := newWorkspaceCreditGrantMutation(c.config, OpUpdate)
+	return &WorkspaceCreditGrantUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WorkspaceCreditGrantClient) UpdateOne(_m *WorkspaceCreditGrant) *WorkspaceCreditGrantUpdateOne {
+	mutation := newWorkspaceCreditGrantMutation(c.config, OpUpdateOne, withWorkspaceCreditGrant(_m))
+	return &WorkspaceCreditGrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WorkspaceCreditGrantClient) UpdateOneID(id string) *WorkspaceCreditGrantUpdateOne {
+	mutation := newWorkspaceCreditGrantMutation(c.config, OpUpdateOne, withWorkspaceCreditGrantID(id))
+	return &WorkspaceCreditGrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for WorkspaceCreditGrant.
+func (c *WorkspaceCreditGrantClient) Delete() *WorkspaceCreditGrantDelete {
+	mutation := newWorkspaceCreditGrantMutation(c.config, OpDelete)
+	return &WorkspaceCreditGrantDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WorkspaceCreditGrantClient) DeleteOne(_m *WorkspaceCreditGrant) *WorkspaceCreditGrantDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WorkspaceCreditGrantClient) DeleteOneID(id string) *WorkspaceCreditGrantDeleteOne {
+	builder := c.Delete().Where(workspacecreditgrant.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WorkspaceCreditGrantDeleteOne{builder}
+}
+
+// Query returns a query builder for WorkspaceCreditGrant.
+func (c *WorkspaceCreditGrantClient) Query() *WorkspaceCreditGrantQuery {
+	return &WorkspaceCreditGrantQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWorkspaceCreditGrant},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a WorkspaceCreditGrant entity by its id.
+func (c *WorkspaceCreditGrantClient) Get(ctx context.Context, id string) (*WorkspaceCreditGrant, error) {
+	return c.Query().Where(workspacecreditgrant.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WorkspaceCreditGrantClient) GetX(ctx context.Context, id string) *WorkspaceCreditGrant {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *WorkspaceCreditGrantClient) Hooks() []Hook {
+	return c.hooks.WorkspaceCreditGrant
+}
+
+// Interceptors returns the client interceptors.
+func (c *WorkspaceCreditGrantClient) Interceptors() []Interceptor {
+	return c.inters.WorkspaceCreditGrant
+}
+
+func (c *WorkspaceCreditGrantClient) mutate(ctx context.Context, m *WorkspaceCreditGrantMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WorkspaceCreditGrantCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WorkspaceCreditGrantUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WorkspaceCreditGrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WorkspaceCreditGrantDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown WorkspaceCreditGrant mutation op: %q", m.Op())
+	}
+}
+
 // WorkspaceDeletionClient is a client for the WorkspaceDeletion schema.
 type WorkspaceDeletionClient struct {
 	config
@@ -6986,8 +7129,8 @@ type (
 		OrganizationEnterpriseSettings, OutboxEvent, PostizTenantBinding,
 		ProductSurface, PublicationAttempt, Release, ReleaseDocument, ReleaseSpec,
 		ScheduledPost, ScreenshotCache, Session, SocialOAuthStart, SourceApp,
-		SupportAccessGrant, User, WorkspaceDeletion, WorkspaceEntitlement,
-		WorkspaceSettings []ent.Hook
+		SupportAccessGrant, User, WorkspaceCreditGrant, WorkspaceDeletion,
+		WorkspaceEntitlement, WorkspaceSettings []ent.Hook
 	}
 	inters struct {
 		Apikey, Approval, Asset, AudienceSubscriber, AuditDrain, AuditDrainDelivery,
@@ -6999,7 +7142,7 @@ type (
 		OrganizationEnterpriseSettings, OutboxEvent, PostizTenantBinding,
 		ProductSurface, PublicationAttempt, Release, ReleaseDocument, ReleaseSpec,
 		ScheduledPost, ScreenshotCache, Session, SocialOAuthStart, SourceApp,
-		SupportAccessGrant, User, WorkspaceDeletion, WorkspaceEntitlement,
-		WorkspaceSettings []ent.Interceptor
+		SupportAccessGrant, User, WorkspaceCreditGrant, WorkspaceDeletion,
+		WorkspaceEntitlement, WorkspaceSettings []ent.Interceptor
 	}
 )

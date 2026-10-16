@@ -1,6 +1,7 @@
 # Deployment
 
-Production runs on DigitalOcean App Platform at `shots.oppulence.io`. The
+Production runs on DigitalOcean App Platform at `shots.playbookmedia.io`
+(`shots.oppulence.io` redirects there; see `lib/canonical-host.ts`). The
 [DigitalOcean deployment guide](digitalocean-deployment.md) documents the live
 components, secrets, migration jobs, health checks, and release procedure.
 

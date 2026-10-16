@@ -56,6 +56,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacecreditgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
@@ -163,6 +164,7 @@ func checkColumn(t, c string) error {
 			sourceapp.Table:                      sourceapp.ValidColumn,
 			supportaccessgrant.Table:             supportaccessgrant.ValidColumn,
 			user.Table:                           user.ValidColumn,
+			workspacecreditgrant.Table:           workspacecreditgrant.ValidColumn,
 			workspacedeletion.Table:              workspacedeletion.ValidColumn,
 			workspaceentitlement.Table:           workspaceentitlement.ValidColumn,
 			workspacesettings.Table:              workspacesettings.ValidColumn,

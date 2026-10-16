@@ -36,6 +36,13 @@ func (f *platformControlsFake) SyncWorkspaceEntitlement(_ context.Context, input
 	return &product.EntitlementSyncResult{Version: input.ExpectedVersion + 1}, nil
 }
 
+func (f *platformControlsFake) GrantWorkspaceCredits(_ context.Context, input product.CreditGrantInput) (*product.CreditGrantResult, error) {
+	if input.Credits <= 0 {
+		return nil, product.ErrInvalidInput
+	}
+	return &product.CreditGrantResult{Balance: input.Credits}, nil
+}
+
 func TestOutboxReplayAndBillingSyncAreServiceOnly(t *testing.T) {
 	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", &platformControlsFake{})
 	post := func(path, token, body string) *httptest.ResponseRecorder {
@@ -60,6 +67,16 @@ func TestOutboxReplayAndBillingSyncAreServiceOnly(t *testing.T) {
 	}
 	if response := post("/v1/internal/billing/entitlements", "secret", billing); response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"version":3`) {
 		t.Fatalf("billing sync %d %s", response.Code, response.Body.String())
+	}
+	grant := `{"credits":500,"organizationId":"org-1","provider":"stripe","reference":"cs_1"}`
+	if code := post("/v1/internal/billing/credit-grants", "wrong", grant).Code; code != http.StatusUnauthorized {
+		t.Fatalf("unsigned credit grant status %d", code)
+	}
+	if response := post("/v1/internal/billing/credit-grants", "secret", grant); response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"balance":500`) {
+		t.Fatalf("credit grant %d %s", response.Code, response.Body.String())
+	}
+	if code := post("/v1/internal/billing/credit-grants", "secret", `{"credits":0}`).Code; code != http.StatusBadRequest {
+		t.Fatalf("empty credit grant status %d", code)
 	}
 }
 

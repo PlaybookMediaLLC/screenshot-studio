@@ -1,29 +1,29 @@
-import { Metadata } from 'next'
-import { LandingPage } from '@/components/landing/LandingPage'
-import { PRODUCT_FACTS, atLeast } from '@/lib/seo/product-facts'
+import type { Metadata } from 'next'
+import { PlatformLanding } from '@/components/platform-landing/PlatformLanding'
+import { OG_DEFAULTS } from '@/lib/seo/metadata'
+
+const DESCRIPTION =
+  'Turn every release into a launch campaign. Screenshot Studio writes a cited launch brief, designs on-brand visuals from your real product, and drafts posts for X, LinkedIn, Instagram, Product Hunt, your changelog, and email. Nothing goes out until you approve it.'
 
 export const metadata: Metadata = {
-  title: 'Free Screenshot Beautifier & Mockup Tool',
-  description:
-    'Transform plain screenshots into professional graphics with Screenshot Studio. Create on-brand browser mockups, 3D effects, animations, and video exports with your team.',
+  title: 'Turn Every Release into a Launch Campaign',
+  description: DESCRIPTION,
   keywords: [
-    'screenshot beautifier',
-    'screenshot mockup maker',
-    'beautify screenshots online',
-    'screenshot background editor',
-    'image presentation tool',
-    'pika style alternative',
-    'shots.so alternative',
-    'browser window mockup',
-    'safari browser mockup generator',
-    'chrome browser frame generator',
-    'screenshot wrapper online',
-    'tweet to screenshot',
-    'code snippet to image',
+    'product launch platform',
+    'release announcement tool',
+    'launch campaign generator',
+    'changelog to social posts',
+    'feature announcement',
+    'AI launch copy with citations',
+    'product marketing for developers',
+    'GitHub release to social media',
+    'screenshot editor',
+    'browser mockup generator',
   ],
   openGraph: {
-    title: 'Screenshot Studio - Free Screenshot Beautifier & Mockup Tool',
-    description: `Transform screenshots into professional graphics. ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, browser mockups, 3D effects, animations, and video export. Free workspace plan available.`,
+    ...OG_DEFAULTS,
+    title: 'Screenshot Studio: Turn every release into a launch',
+    description: DESCRIPTION,
     url: '/landing',
   },
   alternates: {
@@ -31,50 +31,6 @@ export const metadata: Metadata = {
   },
 }
 
-// How It Works - 3 steps
-const howItWorks = [
-  {
-    step: 1,
-    title: 'Drop Your Image',
-    description: 'Drag any screenshot or photo into the editor to get started.',
-  },
-  {
-    step: 2,
-    title: 'Style It',
-    description: 'Add backgrounds, shadows, frames, and text in a few clicks.',
-  },
-  {
-    step: 3,
-    title: 'Export',
-    description: 'Download a polished image ready to share in seconds.',
-  },
-]
-
-// Video testimonials
-const videoTestimonials = [
-  {
-    videoId: 'NAS4BEP2KtA',
-    startTime: 3562,
-    endTime: 3768,
-  },
-  {
-    videoId: '29S4pv64Tbg',
-    startTime: 222,
-  },
-]
-
 export default function LandingPageRoute() {
-  return (
-    <LandingPage
-      heroTitle="Beautiful images. Zero effort."
-      heroSubtitle="Screenshots, ready to ship."
-      heroDescription="The browser editor that makes your screenshots, tweets, and code look professional. Browser mockups, 3D effects, and more."
-      ctaLabel="Create workspace"
-      ctaHref="/sign-up"
-      howItWorks={howItWorks}
-      videoTestimonials={videoTestimonials}
-      videoTestimonialsTitle="Creators Love Screenshot Studio"
-      brandName="Screenshot Studio"
-    />
-  )
+  return <PlatformLanding />
 }

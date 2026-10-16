@@ -112,6 +112,16 @@ func (c *Configuration) ScheduleCampaignPost(ctx context.Context, actor Actor, c
 	if !eligible {
 		return nil, publishing.ErrNotEligible
 	}
+	refund, err := c.ChargeMonthlyQuota(ctx, actor.OrganizationID, QuotaPosts, 1)
+	if err != nil {
+		return nil, err
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			refund()
+		}
+	}()
 	scheduled, err := tx.ScheduledPost.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
 		SetVariantID(*post.CreativeVariantID).SetChannelConnectionID(input.ChannelConnectionID).
 		SetScheduledFor(scheduledAt).SetStatus(scheduledpost.StatusSCHEDULED).
@@ -152,6 +162,7 @@ func (c *Configuration) ScheduleCampaignPost(ctx context.Context, actor Actor, c
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+	committed = true
 	result.ScheduledPost = scheduled.Unwrap()
 	return result, nil
 }

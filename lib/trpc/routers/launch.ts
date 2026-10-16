@@ -9,6 +9,7 @@ import { draftCampaignPlan } from '@/lib/ai/launch/plan'
 import { produceCampaign } from '@/lib/ai/launch/produce'
 import { proposeCampaignRevision } from '@/lib/ai/launch/revise'
 import { draftReleaseSpec } from '@/lib/ai/launch/spec'
+import { withAiCredits } from '@/lib/ai/metering'
 import { LAUNCH_AI_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
 import type { OrganizationAccess } from '@/lib/auth/access'
 import { backendSDK } from '@/lib/backend/sdk'
@@ -52,7 +53,8 @@ import { organizationProcedure } from '../procedures'
 /**
  * The launch pipeline API: cited release specs, campaign plans, production,
  * and AI revisions (docs/launch-intelligence.md). AI actions check that AI is
- * configured, rate-limit per workspace, and spend one generation unit each.
+ * configured, rate-limit per workspace, and are charged AI credits for what
+ * their model calls cost.
  */
 
 const campaignInput = z.object({ campaignId: z.string().cuid() })
@@ -71,7 +73,8 @@ async function allowAiAction(access: OrganizationAccess): Promise<void> {
       message: 'Too many AI requests. Wait a minute and try again.',
     })
   }
-  await consumeWorkspaceQuota(access, 'generation:monthly')
+  // Refuse to start when no credits are left; the run is charged as it goes.
+  await consumeWorkspaceQuota(access, 'ai:credits:monthly', 0)
 }
 
 async function releaseIdFor(access: OrganizationAccess, campaignId: string): Promise<string> {
@@ -301,12 +304,15 @@ export const launchRouter = router({
               const render = await renderDesignForTenant(ctx.access, getRenderer, design)
               rendered += 1
               // Every render is reviewed, including the ones a reviewer asked for.
-              const critique = await reviewRevisedRender({
-                campaignId: result.revision.campaignId,
-                imageBytes: await render.readBytes(),
-                tenant: ctx.access,
-                texts: design.document.texts.map((text) => text.text),
-              }).catch(() => null)
+              const imageBytes = await render.readBytes()
+              const critique = await withAiCredits(ctx.access, () =>
+                reviewRevisedRender({
+                  campaignId: result.revision.campaignId,
+                  imageBytes,
+                  tenant: ctx.access,
+                  texts: design.document.texts.map((text) => text.text),
+                })
+              ).catch(() => null)
               if (critique) {
                 await backendSDK(ctx.access).setLaunchDesignCritique(design.id, critique)
               }

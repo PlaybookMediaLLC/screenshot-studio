@@ -9,10 +9,12 @@
 import type { LanguageModelMiddleware } from 'ai'
 import type { ModelRole } from '../catalog'
 import { createLoggingMiddleware, type ModelLogger } from './logging'
+import { createMeterMiddleware, type ModelCallMeter } from './meter'
 import { createSettingsMiddleware } from './settings'
 import { createUsageMiddleware, type UsageObserver } from './usage'
 
 export { type Clock, createLoggingMiddleware, type ModelLogger } from './logging'
+export { createMeterMiddleware, type ModelCallMeter } from './meter'
 export { createSettingsMiddleware, MAX_OUTPUT_TOKENS } from './settings'
 export {
   createUsageMiddleware,
@@ -30,6 +32,8 @@ export type ModelMiddlewareOptions = {
   onUsage?: UsageObserver
   /** Logger for per-call structured lines. Defaults to structured stdout. */
   logger?: ModelLogger
+  /** Charges each call to a workspace's AI credits. Admission runs before the call. */
+  meter?: ModelCallMeter
 }
 
 /**
@@ -50,6 +54,10 @@ export function createModelMiddleware(
   options: ModelMiddlewareOptions = {}
 ): LanguageModelMiddleware[] {
   const middleware: LanguageModelMiddleware[] = [createSettingsMiddleware(role)]
+
+  if (options.meter) {
+    middleware.push(createMeterMiddleware(modelId, options.meter))
+  }
 
   if (options.onUsage) {
     middleware.push(createUsageMiddleware(role, modelId, options.onUsage))

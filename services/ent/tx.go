@@ -100,6 +100,8 @@ type Tx struct {
 	SupportAccessGrant *SupportAccessGrantClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// WorkspaceCreditGrant is the client for interacting with the WorkspaceCreditGrant builders.
+	WorkspaceCreditGrant *WorkspaceCreditGrantClient
 	// WorkspaceDeletion is the client for interacting with the WorkspaceDeletion builders.
 	WorkspaceDeletion *WorkspaceDeletionClient
 	// WorkspaceEntitlement is the client for interacting with the WorkspaceEntitlement builders.
@@ -281,6 +283,7 @@ func (tx *Tx) init() {
 	tx.SourceApp = NewSourceAppClient(tx.config)
 	tx.SupportAccessGrant = NewSupportAccessGrantClient(tx.config)
 	tx.User = NewUserClient(tx.config)
+	tx.WorkspaceCreditGrant = NewWorkspaceCreditGrantClient(tx.config)
 	tx.WorkspaceDeletion = NewWorkspaceDeletionClient(tx.config)
 	tx.WorkspaceEntitlement = NewWorkspaceEntitlementClient(tx.config)
 	tx.WorkspaceSettings = NewWorkspaceSettingsClient(tx.config)

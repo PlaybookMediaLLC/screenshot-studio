@@ -300,7 +300,7 @@ Rendering is metered. It requires a new `creative:render` workspace feature,
 which does not exist yet: `workspaceFeatureSchema` in `lib/billing/plans.ts`
 currently enumerates asset, release, source-app, and enterprise features only.
 Adding it is a prerequisite of this RFC, not an assumption of it. Rendering then
-consumes the existing `generation:monthly` quota from the entitlement model in
+consumes the existing `ai:credits:monthly` quota from the entitlement model in
 RFC 034. Video consumes more quota than images, proportional to rendered frames.
 
 ## Failure behavior

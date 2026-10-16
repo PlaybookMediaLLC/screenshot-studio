@@ -13,6 +13,7 @@ export type WorkspaceSettingsProps = {
     slug: string
     workspaceDeletion?: { requestedByUserId: string; scheduledFor: Date; status: string } | null
     workspaceSettings?: {
+      aiAgentEnabled: boolean
       defaultPublishTime: string
       description: string | null
       locale: string

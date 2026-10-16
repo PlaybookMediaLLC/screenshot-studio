@@ -57,13 +57,21 @@ import { organizationProcedure } from '../procedures'
 
 const campaignInput = z.object({ campaignId: z.string().cuid() })
 
-/** Refuses an AI action when AI is not configured, the workspace is rate limited, or out of credits. */
+/**
+ * Refuses an AI action when AI is not configured, the workspace turned AI
+ * off, the workspace is rate limited, or out of credits.
+ */
 export async function allowAiAction(access: OrganizationAccess): Promise<void> {
   if (!isCampaignStudioConfigured()) {
     throw new TRPCError({
       code: 'SERVICE_UNAVAILABLE',
       message: 'AI is not configured. Set OPENROUTER_API_KEY.',
     })
+  }
+  const { workspace } = await backendSDK(access).getWorkspace()
+  // No settings row is the default: on.
+  if (workspace?.workspaceSettings?.aiAgentEnabled === false) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'AI is turned off for this workspace.' })
   }
   const limit = await checkRateLimit(`launch-ai:${access.organizationId}`, LAUNCH_AI_RATE_LIMIT)
   if (!limit.allowed) {

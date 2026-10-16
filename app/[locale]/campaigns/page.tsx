@@ -1,9 +1,11 @@
 import { Calendar03Icon, Megaphone01Icon, Rocket01Icon } from 'hugeicons-react'
 import type { Metadata } from 'next'
+import { ShipInput } from '@/components/campaign-copilot/CopilotLaunchers'
 import { CampaignList } from '@/components/campaigns/CampaignList'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { Page, Pill } from '@/components/platform-ui'
+import { backendSDK } from '@/lib/backend/sdk'
 import { listCampaigns } from '@/lib/tenant/campaigns'
 import { requireCampaignPageAccess } from './page-access'
 
@@ -91,7 +93,10 @@ function CampaignWorkflows() {
 export default async function CampaignsPage({ params }: CampaignsPageProps) {
   const { locale } = await params
   const access = await requireCampaignPageAccess(locale)
-  const campaigns = await listCampaigns(access.tenant)
+  const [campaigns, bootstrap] = await Promise.all([
+    listCampaigns(access.tenant),
+    backendSDK(access.tenant).getBootstrap(),
+  ])
 
   return (
     <PlatformShell campaignsEnabled organizationName={access.organization.name}>
@@ -100,6 +105,7 @@ export default async function CampaignsPage({ params }: CampaignsPageProps) {
         description="Each campaign starts from a release brief and keeps its context as you build it out."
         title="Campaigns"
       >
+        <ShipInput aiEnabled={bootstrap.capabilities.aiAgent} />
         {campaigns.length === 0 ? (
           <CampaignWorkflows />
         ) : (

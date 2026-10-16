@@ -63,6 +63,28 @@ function failureMessage(error: unknown): string {
   return 'The AI step failed. Try again in a moment.'
 }
 
+/**
+ * Heartbeats a running run until the returned function is called, and aborts
+ * `abort` once the backend reports the run cancelled or expired.
+ */
+export function keepRunAlive(
+  tenant: TenantContext,
+  runId: string,
+  abort: AbortController
+): () => void {
+  const backend = backendSDK(tenant)
+  const heartbeat = setInterval(() => {
+    backend
+      .heartbeatLaunchRun(runId)
+      .then(({ running }) => {
+        if (!running) abort.abort()
+      })
+      // A missed beat is retried on the next tick; the lease outlasts several.
+      .catch(() => undefined)
+  }, HEARTBEAT_MS)
+  return () => clearInterval(heartbeat)
+}
+
 export async function startLaunchRun(
   tenant: TenantContext,
   input: {
@@ -83,15 +105,7 @@ export async function startLaunchRun(
   const run = withDates(await backend.startLaunchRun(input.campaignId, input.kind))
   after(async () => {
     const abort = new AbortController()
-    const heartbeat = setInterval(() => {
-      backend
-        .heartbeatLaunchRun(run.id)
-        .then(({ running }) => {
-          if (!running) abort.abort()
-        })
-        // A missed beat is retried on the next tick; the lease outlasts several.
-        .catch(() => undefined)
-    }, HEARTBEAT_MS)
+    const stopHeartbeat = keepRunAlive(tenant, run.id, abort)
     try {
       const result = await withAiCredits(tenant, () => input.work(abort.signal, run.id))
       await backend.finishLaunchRun(run.id, {
@@ -110,7 +124,7 @@ export async function startLaunchRun(
         .finishLaunchRun(run.id, { error: failureMessage(error), status: 'FAILED' })
         .catch(() => undefined)
     } finally {
-      clearInterval(heartbeat)
+      stopHeartbeat()
     }
   })
   return view(run)

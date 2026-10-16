@@ -11,6 +11,7 @@ import {
   type SpecSource,
 } from '@/lib/launch/spec-schema'
 import type { ActiveBrand } from '@/lib/launch/store'
+import type { StoredProductProfile } from '@/lib/tenant/product-profile'
 
 /** Registered product and release URLs the agents may capture, in priority order. */
 export function captureUrlsFor(urls: Array<string | null | undefined>): string[] {
@@ -67,6 +68,29 @@ export function formatBrandVoice(brand: ActiveBrand): string | null {
     line('Preferred styles', Array.isArray(profile.preferredStyles) ? profile.preferredStyles : []),
     line('Social handles', handles),
     '</brand_voice>',
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
+/** The confirmed product profile: what the product is, for whom, and what it can claim. */
+export function formatProductProfile(profile: StoredProductProfile | null): string | null {
+  if (!profile) return null
+  return [
+    '<product_profile>',
+    line('Name', profile.name),
+    line('URL', profile.url),
+    line('Summary', profile.summary),
+    line('Problem', profile.problem),
+    line('Audience', profile.audience),
+    line('Capabilities', profile.capabilities),
+    line(
+      'Proof points',
+      profile.proofPoints.map((point) => point.claim)
+    ),
+    line('Pricing', profile.pricingNote),
+    line('Alternatives', profile.competitors),
+    '</product_profile>',
   ]
     .filter(Boolean)
     .join('\n')

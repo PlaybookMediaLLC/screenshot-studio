@@ -8,6 +8,8 @@ import { WorkspaceDeveloperSettings } from './WorkspaceDeveloperSettings'
 import { WorkspaceGeneralSettings } from './WorkspaceGeneralSettings'
 import { WorkspaceIdentitySettings } from './WorkspaceIdentitySettings'
 import { WorkspaceMembersSettings } from './WorkspaceMembersSettings'
+import { WorkspaceProductProfile } from './WorkspaceProductProfile'
+import { WorkspaceProductSurfaces } from './WorkspaceProductSurfaces'
 import { WorkspaceRolesSettings } from './WorkspaceRolesSettings'
 import { WorkspaceSecuritySettings } from './WorkspaceSecuritySettings'
 import { hasPermission } from '@/lib/auth/permissions'
@@ -60,6 +62,7 @@ function getDetailContent({
         currentUserId={userId}
       />
     ),
+    product: <WorkspaceProductProfile canManage={hasPermission(role, 'brand:manage')} />,
     profile: <ProfileForm email={email} name={name} />,
     roles: <WorkspaceRolesSettings />,
     security: <WorkspaceSecuritySettings twoFactorEnabled={twoFactorEnabled} />,
@@ -70,6 +73,7 @@ function getDetailContent({
         organizationId={organization.id}
       />
     ),
+    surfaces: <WorkspaceProductSurfaces canManage={hasPermission(role, 'brand:manage')} />,
   }
 }
 

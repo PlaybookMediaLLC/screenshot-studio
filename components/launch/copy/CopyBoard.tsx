@@ -3,7 +3,7 @@
 import type { BackendCampaignPost } from 'screenshot-studio-backend-sdk'
 import type { CampaignPostStatus } from '@/lib/tenant/campaign-status'
 import * as Tabs from '@radix-ui/react-tabs'
-import { Copy01Icon } from 'hugeicons-react'
+import { Copy01Icon, Edit02Icon } from 'hugeicons-react'
 import { useRouter } from 'next/navigation'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'
@@ -12,6 +12,7 @@ import { Pill, type PillTone } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
 import { getErrorMessage } from '@/components/workspace/settings-client'
 import { CHANNEL_RULES } from '@/lib/launch/guards'
+import { postEditBlock } from '@/lib/launch/post-edit'
 import { connectionsForChannel } from '@/lib/launch/schedule'
 import type { LaunchChannel } from '@/lib/launch/spec-schema'
 import {
@@ -21,6 +22,7 @@ import {
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
 import { PostLinkCheck } from '@/components/link-preview/PostLinkCheck'
+import { LengthCounter, PostEditor } from './PostEditor'
 import { CancelScheduleButton, ScheduleDialog, type ScheduleVisual } from './ScheduleDialog'
 
 export type CopyPost = {
@@ -389,8 +391,11 @@ function PostCard({
   selected: boolean
 }) {
   const status = POST_STATUS[post.status]
-  // Counted the way the copy guard counts it: copy plus call to action, as posted.
-  const length = [post.copy, post.callToAction].filter(Boolean).join(' ').length
+  const [editing, setEditing] = useState(false)
+  const editBlock = postEditBlock(
+    post.status,
+    post.scheduledPostStatus !== null && DEAD_DELIVERY.includes(post.scheduledPostStatus)
+  )
   const limit = Object.hasOwn(CHANNEL_RULES, post.channel)
     ? CHANNEL_RULES[post.channel as LaunchChannel].bodyMax
     : null
@@ -415,31 +420,37 @@ function PostCard({
             <Pill tone={status.tone}>{status.label}</Pill>
           </span>
         </div>
-        {post.title ? (
-          <h3 className="text-base font-medium text-balance text-white">{post.title}</h3>
-        ) : null}
-        <p className="text-sm leading-6 whitespace-pre-wrap text-neutral-200">{post.copy}</p>
-        <PostLinkCheck text={post.copy} />
-        {post.callToAction || limit ? (
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            {post.callToAction ? (
-              <p className="text-sm text-neutral-200">
-                <span className="mr-2 text-xs font-medium text-neutral-500">Call to action</span>
-                {post.callToAction}
-              </p>
+        {editing ? (
+          <PostEditor
+            campaignId={permissions.campaignId}
+            limit={limit}
+            onDone={() => setEditing(false)}
+            post={post}
+          />
+        ) : (
+          <>
+            {post.title ? (
+              <h3 className="text-base font-medium text-balance text-white">{post.title}</h3>
             ) : null}
-            {limit ? (
-              <p
-                className={cn(
-                  'ml-auto text-xs tabular-nums',
-                  length > limit ? 'text-red-300' : 'text-neutral-500'
-                )}
-              >
-                {length} / {limit} characters
-              </p>
+            <p className="text-sm leading-6 whitespace-pre-wrap text-neutral-200">{post.copy}</p>
+            <PostLinkCheck text={post.copy} />
+            {post.callToAction || limit ? (
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                {post.callToAction ? (
+                  <p className="text-sm text-neutral-200">
+                    <span className="mr-2 text-xs font-medium text-neutral-500">
+                      Call to action
+                    </span>
+                    {post.callToAction}
+                  </p>
+                ) : null}
+                {limit ? (
+                  <LengthCounter callToAction={post.callToAction} copy={post.copy} limit={limit} />
+                ) : null}
+              </div>
             ) : null}
-          </div>
-        ) : null}
+          </>
+        )}
         {post.approval || post.scheduledAt ? (
           <div className="flex flex-col gap-1 text-xs text-neutral-500">
             {post.approval ? (
@@ -489,6 +500,22 @@ function PostCard({
       <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] px-5 py-3 [&>div]:basis-full [&>form]:basis-full">
         <ReviewActions permissions={permissions} post={post} />
         <ScheduleActions channelLabel={channelLabel} permissions={permissions} post={post} />
+        {permissions.canEdit && !editing ? (
+          editBlock ? (
+            <span className="text-xs text-neutral-500">{editBlock}</span>
+          ) : (
+            <Button
+              className="h-8 gap-1.5 rounded-lg text-xs"
+              onClick={() => setEditing(true)}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <Edit02Icon size={14} />
+              Edit
+            </Button>
+          )
+        ) : null}
         <CopyTextButton post={post} />
         {permissions.canEdit ? (
           <RevisePanel

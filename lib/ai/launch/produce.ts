@@ -18,14 +18,14 @@ import {
   LaunchError,
   loadLaunchCampaign,
   loadPreferenceExamples,
-  releaseSourceUrls,
 } from '@/lib/launch/store'
 import { models, normalizeTokenUsage } from '../models'
 import { type CampaignStudioRecord, createCampaignStudioTools } from '../tools/campaign-studio'
 import { createDesignStudioTools } from '../tools/design-studio'
-import { captureUrlsFor, formatBrandKit, formatPlanForStages, formatSpecForStages } from './context'
+import { formatBrandKit, formatPlanForStages, formatSpecForStages } from './context'
 import { writeLaunchCopy } from './copy'
 import { critiqueRender } from './critique'
+import { planCaptureUrls } from './plan'
 import { VISUALS_FALLBACK_INSTRUCTIONS, VISUALS_INSTRUCTIONS } from './prompts'
 
 /**
@@ -48,7 +48,7 @@ export async function produceCampaign(
   ])
   if (!spec) throw new LaunchError('Draft the spec first.', 409)
   if (!plan) throw new LaunchError('Plan the campaign first.', 409)
-  const captureUrls = captureUrlsFor([campaign.productSurface?.url, ...releaseSourceUrls(campaign)])
+  const captureUrls = await planCaptureUrls(tenant, campaign, spec.content)
   if (captureUrls.length === 0) {
     throw new LaunchError('Connect a public product URL before producing visuals.', 409)
   }

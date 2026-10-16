@@ -11,11 +11,13 @@ import {
   scheduleCampaignPost,
   transitionCampaign,
   transitionCampaignPosts,
+  updateCampaignPost,
 } from '@/lib/tenant/campaigns'
 import {
   campaignApprovalSchema,
   campaignCreateSchema,
   campaignPostScheduleSchema,
+  campaignPostUpdateSchema,
   campaignTransitionSchema,
 } from '@/lib/tenant/schemas'
 import { isCampaignStudioConfigured, runCampaignStudio } from '@/lib/ai/agents/campaign-studio'
@@ -88,6 +90,18 @@ export const campaignRouter = router({
     .mutation(async ({ ctx, input }) => {
       await approveCampaignDesign(ctx.access, input.campaignId, input.designId)
       return { approved: true }
+    }),
+  /** A hand edit to a post; stale copy and prohibited terms come back as outcomes. */
+  updatePost: organizationProcedure('release:create')
+    .input(
+      campaignPostUpdateSchema.extend({
+        campaignId: z.string().cuid(),
+        postId: z.string().cuid(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { campaignId, postId, ...edit } = input
+      return updateCampaignPost(ctx.access, campaignId, postId, edit)
     }),
   schedulePost: organizationProcedure('publish:manage')
     .input(

@@ -4,9 +4,11 @@ import {
   brandDesignChanges,
   brandFontId,
   parseBrandKit,
+  prohibitedTermEntries,
   prohibitedTermList,
+  prohibitedTermsForSave,
 } from '@/lib/launch/brand'
-import { brandKitDefinitionSchema } from '@/lib/tenant/schemas'
+import { brandKitDefinitionSchema, brandProfileUpsertSchema } from '@/lib/tenant/schemas'
 
 const logoAssetId = '4b0e7c1a-2f3d-4e5f-8a9b-0c1d2e3f4a5b'
 
@@ -86,4 +88,51 @@ test('prohibited terms read as strings from either stored shape', () => {
     ['cheap', 'guaranteed']
   )
   assert.deepEqual(prohibitedTermList(undefined), [])
+})
+
+test('prohibited terms read as editor entries; legacy strings are word terms', () => {
+  assert.deepEqual(
+    prohibitedTermEntries([
+      'cheap',
+      { matchMode: 'phrase', reason: 'Legal', term: 'guarantee' },
+      { matchMode: 'regex', term: 'odd' },
+      { reason: 7, term: 'free' },
+      { term: ' ' },
+    ]),
+    [
+      { matchMode: 'word', reason: '', term: 'cheap' },
+      { matchMode: 'phrase', reason: 'Legal', term: 'guarantee' },
+      { matchMode: 'word', reason: '', term: 'odd' },
+      { matchMode: 'word', reason: '', term: 'free' },
+    ]
+  )
+})
+
+test('edited terms save trimmed, without blank rows, empty reasons, or repeats', () => {
+  const terms = prohibitedTermsForSave([
+    { matchMode: 'word', reason: '  ', term: ' cheap ' },
+    { matchMode: 'word', reason: 'dup', term: 'Cheap' },
+    { matchMode: 'phrase', reason: ' Legal ', term: 'cheap' },
+    { matchMode: 'word', reason: 'no term', term: '   ' },
+  ])
+  assert.deepEqual(terms, [
+    { matchMode: 'word', term: 'cheap' },
+    { matchMode: 'phrase', reason: 'Legal', term: 'cheap' },
+  ])
+  const profile = brandProfileUpsertSchema.parse({
+    audience: 'Founders',
+    productDescription: 'Invoicing',
+    prohibitedTerms: [...terms, 'legacy'],
+    tone: 'Plain',
+  })
+  assert.deepEqual(profile.prohibitedTerms, [...terms, 'legacy'])
+  assert.equal(
+    brandProfileUpsertSchema.safeParse({
+      audience: 'Founders',
+      productDescription: 'Invoicing',
+      prohibitedTerms: [{ matchMode: 'regex', term: 'x' }],
+      tone: 'Plain',
+    }).success,
+    false
+  )
 })

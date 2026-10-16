@@ -5,11 +5,12 @@ import { cn } from '@/lib/utils'
 
 export type OnboardingStep = { description: string; title: string }
 
-/** The onboarding steps, in order: account, workspace, plan. */
+/** The onboarding steps, in order: account, workspace, plan, product. */
 export const ONBOARDING_STEPS: OnboardingStep[] = [
   { description: 'Your sign-in details.', title: 'Create your account' },
   { description: "Your team's shared home.", title: 'Create your workspace' },
   { description: 'Pick how often you ship.', title: 'Choose a plan' },
+  { description: 'Your first seven posts.', title: 'Your product' },
 ]
 
 /**

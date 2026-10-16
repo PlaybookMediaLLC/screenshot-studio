@@ -13,9 +13,11 @@ import {
   type StoredPlan,
   type StoredSpec,
 } from '@/lib/launch/store'
+import { getProductProfile } from '@/lib/tenant/product-profile'
 import {
   formatBrandVoice,
   formatPlanForStages,
+  formatProductProfile,
   formatSpecForStages,
   prohibitedTermsOf,
 } from './context'
@@ -72,9 +74,11 @@ export async function writeLaunchCopy(
   }
 ) {
   const context = copyGuardContext(input.campaign, input.spec, input.brand)
+  const product = await getProductProfile(tenant).catch(() => null)
   const shared = [
     formatSpecForStages(input.spec.content, input.spec.version),
     formatPlanForStages(input.plan.content, input.plan.version),
+    formatProductProfile(product),
     formatBrandVoice(input.brand),
     `Links may only use these hosts: ${[...context.allowedHosts].join(', ') || 'none (do not include links)'}.`,
     formatTeamPreferences(input.examples),

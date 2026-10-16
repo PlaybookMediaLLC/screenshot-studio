@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.23.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.22.0...v1.23.0) (2026-10-16)
+
+
+### Features
+
+* **link-preview:** add the link preview workspace ([#114](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/114)) ([91d90bf](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/91d90bfb57c6d9433a8e11084c3a1f6039dac2ee))
+
 ## [1.22.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.21.3...v1.22.0) (2026-10-16)
 
 

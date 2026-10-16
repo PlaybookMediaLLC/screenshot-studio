@@ -1,6 +1,8 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useMemo } from 'react';
+import { fitFontSize, textFillCss } from '@/lib/typography/text-style';
+import { measureLine, useFontsVersion } from '@/lib/typography/measure';
 import { getFontCSS } from '@/lib/constants/fonts';
 import type { TextOverlay } from '@/lib/store';
 import { canvasOf, collectSnapLines, endSnapDrag, snapDrag } from '@/lib/editor/snap-dom';
@@ -51,10 +53,27 @@ function DraggableText({
   const textX = (overlay.position.x / 100) * canvasW;
   const textY = (overlay.position.y / 100) * canvasH;
 
-  // Build text shadow CSS
-  const textShadow = overlay.textShadow?.enabled
+  // Build text shadow CSS. A gradient fill makes the glyphs transparent, so
+  // its shadow is a drop-shadow of the painted text instead of text-shadow.
+  const shadow = overlay.textShadow?.enabled
     ? `${overlay.textShadow.offsetX}px ${overlay.textShadow.offsetY}px ${overlay.textShadow.blur}px ${overlay.textShadow.color}`
     : undefined;
+  const gradient = overlay.fill?.kind === 'gradient';
+  const fontVersion = useFontsVersion();
+  const fontCss = getFontCSS(overlay.fontFamily);
+  const boxWidth = overlay.maxWidth ? overlay.maxWidth * canvasW : undefined;
+  // Shrink-to-fit is measured with the browser's own text metrics, again once fonts load.
+  const fontSize = useMemo(
+    () =>
+      overlay.fit === 'shrink' && boxWidth
+        ? fitFontSize(overlay.text.split('\n'), overlay.fontSize, boxWidth, (line) =>
+            measureLine(line, { family: fontCss, letterSpacing: overlay.letterSpacing, size: overlay.fontSize, weight: overlay.fontWeight })
+          )
+        : overlay.fontSize,
+    // fontVersion re-measures after a web font finishes loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [boxWidth, fontCss, fontVersion, overlay.fit, overlay.fontSize, overlay.fontWeight, overlay.letterSpacing, overlay.text]
+  );
 
   if (!overlay.isVisible) return null;
 
@@ -103,15 +122,19 @@ function DraggableText({
         left: `${textX}px`,
         top: `${textY}px`,
         transform: 'translate(-50%, -50%)',
-        fontSize: `${overlay.fontSize}px`,
+        fontSize: `${fontSize}px`,
         fontWeight: overlay.fontWeight.includes('bold') ? 'bold' : overlay.fontWeight === 'italic' ? 'normal' : overlay.fontWeight,
         fontStyle: overlay.fontWeight.includes('italic') ? 'italic' : 'normal',
-        fontFamily: getFontCSS(overlay.fontFamily),
-        color: overlay.color,
+        fontFamily: fontCss,
+        ...textFillCss(overlay.fill, overlay.color),
         opacity: overlay.opacity,
-        textShadow,
-        whiteSpace: 'pre',
-        lineHeight: 1.2,
+        textShadow: gradient ? undefined : shadow,
+        filter: gradient && shadow ? `drop-shadow(${shadow})` : undefined,
+        whiteSpace: overlay.fit === 'wrap' && boxWidth ? 'pre-wrap' : 'pre',
+        width: overlay.fit === 'wrap' ? boxWidth : undefined,
+        textAlign: overlay.align ?? 'center',
+        letterSpacing: overlay.letterSpacing ? `${overlay.letterSpacing}em` : undefined,
+        lineHeight: overlay.lineHeight ?? 1.2,
         touchAction: 'none',
         cursor: isDragging ? 'grabbing' : 'grab',
         userSelect: 'none',

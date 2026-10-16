@@ -10,6 +10,7 @@ import type { DesignDocument } from '@/lib/design/document'
 import { nextPaint, STAGE_ELEMENT_ID, waitForStageImages } from '@/lib/render/capture'
 import { useImageStore } from '@/lib/store'
 import { usePlaybackStore } from '@/lib/store/playback'
+import { loadTextFonts } from '@/lib/typography/load-text-fonts'
 
 type StageRendererProps = {
   document: DesignDocument
@@ -61,6 +62,8 @@ export function StageRenderer({ document, sources = {}, time = 0, onReady }: Sta
     if (!canvasReady || !backgroundReady || !layoutApplied) return
     let cancelled = false
     void (async () => {
+      // Web fonts load from stylesheets added while the stage mounted.
+      await loadTextFonts(useImageStore.getState().textOverlays)
       await window.document.fonts.ready
       // Layers placed in the layout phase paint, then their images load.
       await nextPaint()

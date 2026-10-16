@@ -4,7 +4,9 @@ import { useRef, useEffect } from 'react';
 import { useEditorPanels } from '@/lib/store/editor-panels';
 import { useImageStore } from '@/lib/store';
 import { Delete02Icon, ViewIcon, ViewOffSlashIcon, Add01Icon, TextIcon } from 'hugeicons-react';
-import { fontFamilies, getAvailableFontWeights, getFontCSS } from '@/lib/constants/fonts';
+import { getAvailableFontWeights } from '@/lib/constants/fonts';
+import { FontPicker } from '@/components/editor/typography/FontPicker';
+import { TextStyleFields } from '@/components/editor/typography/TextStyleFields';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
 
@@ -212,25 +214,16 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
             <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Typography</label>
 
             {/* Font family */}
-            <select
-              aria-label="Font family"
+            <FontPicker
               value={selectedOverlay.fontFamily}
-              onChange={(e) => {
-                const fontFamily = e.target.value;
+              onChange={(fontFamily) => {
                 const weights = getAvailableFontWeights(fontFamily);
                 const newWeight = weights.includes(selectedOverlay.fontWeight)
                   ? selectedOverlay.fontWeight
-                  : weights[0] || 'normal';
+                  : weights.includes('bold') ? 'bold' : weights[0] || 'normal';
                 updateTextOverlay(selectedOverlay.id, { fontFamily, fontWeight: newWeight });
               }}
-              className="w-full h-9 px-2.5 text-xs rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-            >
-              {fontFamilies.map((font) => (
-                <option key={font.id} value={font.id} style={{ fontFamily: getFontCSS(font.id) }}>
-                  {font.name}
-                </option>
-              ))}
-            </select>
+            />
 
             {/* Weight */}
             <select
@@ -255,6 +248,8 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
               valueDisplay={`${selectedOverlay.fontSize}px`}
             />
           </div>
+
+          <TextStyleFields text={selectedOverlay} />
 
           {/* Opacity */}
           <Slider

@@ -3,6 +3,7 @@
 import { create } from 'zustand'
 import { resetPlayback, usePlaybackStore } from './playback'
 import { NEUTRAL_IMAGE_FILTERS } from '@/lib/editor/image-adjustments'
+import type { TextAlign, TextFill, TextFit, TextRole } from '@/lib/typography/text-style'
 import { createElementsSlice, type ElementsSlice } from './elements-slice'
 import { shallow } from 'zustand/shallow'
 import { temporal } from 'zundo'
@@ -67,12 +68,24 @@ export interface TextOverlay {
   position: { x: number; y: number }
   fontSize: number
   fontWeight: string
+  /** A font id from the catalog, or `google:<Family>` for Google Fonts. */
   fontFamily: string
   color: string
   opacity: number
   isVisible: boolean
   orientation: 'horizontal' | 'vertical'
   textShadow: TextShadow
+  /** Solid uses `color`; a gradient clips to the glyphs. */
+  fill?: TextFill
+  align?: TextAlign
+  /** Text box width as a fraction of the canvas width; with `fit` it shrinks or wraps. */
+  maxWidth?: number
+  fit?: TextFit
+  /** Letter spacing in em. */
+  letterSpacing?: number
+  lineHeight?: number
+  /** The part this layer plays in a typography template. */
+  role?: TextRole
 }
 
 export interface ImageOverlayTilt {

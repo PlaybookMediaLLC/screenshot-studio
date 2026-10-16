@@ -15,6 +15,7 @@ import { ElementLayer } from "./elements/ElementLayer";
 import { imageFilterCss } from "@/lib/editor/image-adjustments";
 import { toCanvasShadow } from "./utils/shadow-utils";
 import { useImageMotion } from "@/lib/animation/use-image-motion";
+import { useTextFontLoader } from "@/lib/typography/load-text-fonts";
 import { CanvasStageShell } from "./CanvasStageShell";
 import { Perspective3DOverlay } from "./overlays/Perspective3DOverlay";
 import { useOverlayImages } from "./hooks/useImageLoading";
@@ -50,6 +51,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   const canvasPadding = useImageStore((state) => state.canvasPadding);
   const imageShadow = useImageStore((state) => state.imageShadow);
   const shadow = useMemo(() => toCanvasShadow(imageShadow), [imageShadow]);
+  useTextFontLoader();
   // Drawn values at the playhead; the document keeps its own.
   const { perspective3D, imageOpacity } = useImageMotion();
 

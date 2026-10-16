@@ -25,6 +25,7 @@ import {
   TransformsGallery,
 } from '../sections'
 import { RedactSection } from '../redaction/RedactSection'
+import { TypographySection } from '../typography/TypographySection'
 import { FrameSection } from './FrameSection'
 import { SelectionInspector } from './SelectionInspector'
 import { PerspectiveSliders, TransformControls } from './transform-motion-controls'
@@ -51,6 +52,7 @@ export const COMPOSE_TABS: readonly PanelTabDefinition<ComposeTab>[] = [
         <QuickTemplatesSection />
         <ScreenshotDesignSection />
         <TextSection />
+        <TypographySection />
         <ElementsSection />
         <ImageOverlaySection />
         <AnnotateSection />

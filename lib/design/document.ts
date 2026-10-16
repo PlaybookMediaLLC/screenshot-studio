@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import { canvasElementSchema } from '@/lib/editor/elements/schema'
+import { isGoogleFontId } from '@/lib/typography/google-fonts'
+import { textAlignSchema, textFillSchema, textFitSchema, textRoleSchema } from '@/lib/typography/text-style'
 import { designCatalog, frameTypes, isKnownBackground } from './catalog'
 
 /**
@@ -293,7 +295,20 @@ export const designDocumentSchema = z.object({
       z.object({
         ...layerIdentity,
         color: color.default('#ffffff'),
-        fontFamily: enumOf(fontIds).default('inter'),
+        /** A catalog font id, or `google:<Family>` for a Google Fonts family. */
+        fontFamily: z
+          .string()
+          .max(80)
+          .refine((id) => fontIds.includes(id) || isGoogleFontId(id), 'Use a font id from the catalog or google:<Family>.')
+          .default('inter'),
+        align: textAlignSchema.optional(),
+        fill: textFillSchema.optional(),
+        fit: textFitSchema.optional(),
+        letterSpacing: z.number().min(-0.2).max(1).optional(),
+        lineHeight: z.number().min(0.6).max(3).optional(),
+        /** Text box width as a fraction of the canvas width. */
+        maxWidth: z.number().min(0.05).max(1.5).optional(),
+        role: textRoleSchema.optional(),
         /** Fraction of the canvas width; 0.05 is a large headline. */
         fontSize: z.number().min(0.005).max(0.3),
         fontWeight: z.string().max(10).default('bold'),

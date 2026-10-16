@@ -82,7 +82,6 @@ interface LayerItem {
 
 export function DepthSection() {
   const {
-    uploadedImageUrl,
     imageName,
     imageOverlays,
     textOverlays,
@@ -300,14 +299,14 @@ export function DepthSection() {
         title="Layers"
         defaultOpen={true}
         action={
-          layers.length + (uploadedImageUrl ? 1 : 0) > 0 ? (
+          layers.length + (mainImageUrl ? 1 : 0) > 0 ? (
             <span className="text-[10px] tabular-nums text-muted-foreground">
-              {layers.length + (uploadedImageUrl ? 1 : 0)}
+              {layers.length + (mainImageUrl ? 1 : 0)}
             </span>
           ) : undefined
         }
       >
-        {layers.length === 0 && !uploadedImageUrl ? (
+        {layers.length === 0 && !mainImageUrl ? (
           <div className="flex flex-col items-center gap-2 py-6 text-center">
             <LayersLogoIcon size={28} className="text-muted-foreground/50" />
             <p className="text-xs text-muted-foreground">

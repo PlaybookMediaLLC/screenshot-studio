@@ -20,8 +20,7 @@ import { ALLOWED_IMAGE_TYPES } from '@/lib/constants'
 import { MAX_DEVICE_MOCKUPS } from '@/lib/constants/mockups'
 import { clearEditorSelection, selectScreen } from '@/lib/editor/selection'
 import { replaceScreenImage } from '@/lib/frames/commands'
-import { screenFrameKind } from '@/lib/frames/geometry'
-import { FRAME_KIND_LABELS, screenLabel } from '@/lib/frames/labels'
+import { contentLabel, frameLabel } from '@/lib/frames/labels'
 import { useImageStore } from '@/lib/store'
 import { useDeviceUIStore } from '@/lib/store/device-ui'
 import { useEditorPanels } from '@/lib/store/editor-panels'
@@ -53,14 +52,14 @@ export function ScreenInspector({ id }: { id: string }) {
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
           <p className="min-w-0 truncate text-xs font-medium text-foreground">
-            {screenLabel(screen)}
+            {contentLabel(screen)}
           </p>
           <button
             className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
             onClick={() => useEditorPanels.getState().showTab('frame')}
             type="button"
           >
-            {FRAME_KIND_LABELS[screenFrameKind(screen)]} · Change
+            {frameLabel(screen)} · Change
           </button>
         </div>
 

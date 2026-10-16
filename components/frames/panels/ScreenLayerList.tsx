@@ -5,7 +5,7 @@ import { DragDropVerticalIcon, ViewIcon, ViewOffSlashIcon } from 'hugeicons-reac
 import { SectionWrapper } from '@/components/editor/sections/SectionWrapper'
 import { selectScreen } from '@/lib/editor/selection'
 import { isScreenScene, moveScreen } from '@/lib/frames/commands'
-import { screenLabel } from '@/lib/frames/labels'
+import { contentLabel, frameLabel, screenLabel } from '@/lib/frames/labels'
 import { useImageStore } from '@/lib/store'
 import { useDeviceUIStore } from '@/lib/store/device-ui'
 import { useEditorPanels } from '@/lib/store/editor-panels'
@@ -116,8 +116,13 @@ export function ScreenLayerList() {
                     '</>'
                   )}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-xs text-foreground/85">
-                  {screenLabel(mockup)}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs text-foreground/85">
+                    {contentLabel(mockup)}
+                  </span>
+                  <span className="block truncate text-[10px] text-muted-foreground">
+                    {frameLabel(mockup)}
+                  </span>
                 </span>
                 <button
                   aria-label={mockup.isVisible ? 'Hide screen' : 'Show screen'}

@@ -36,14 +36,26 @@ export const FRAME_KIND_LABELS: Record<FrameKind, string> = {
   window: 'Window',
 }
 
-/** What a screen is, for the layer list and the inspector: "Code in macOS Terminal". */
+/** What holds a screen, in a word or two: "Chrome", "macOS Terminal", "iPad Pro 13-inch". */
+export function frameLabel(mockup: Pick<Mockup, 'definitionId' | 'frame'>): string {
+  const kind = screenFrameKind(mockup)
+  const chrome = mockup.frame?.chrome
+  if (kind === 'device') return getMockupDefinition(mockup.definitionId)?.name ?? 'Device'
+  if (kind === 'browser') return BROWSER_LABELS[chrome?.browser ?? 'chrome']
+  if (kind === 'window') return WINDOW_LABELS[chrome?.window ?? 'macos']
+  return FRAME_KIND_LABELS.none
+}
+
+/** What a screen shows: its file name, or "Code" or "Screenshot". */
+export function contentLabel(mockup: Pick<Mockup, 'screen'>): string {
+  if (mockup.screen.code) return 'Code'
+  return mockup.screen.name?.trim() || 'Screenshot'
+}
+
+/** What a screen is, for the Frame panel: "Code in macOS Terminal". */
 export function screenLabel(mockup: Pick<Mockup, 'definitionId' | 'frame' | 'screen'>): string {
   const content = mockup.screen.code ? 'Code' : 'Screenshot'
   const kind = screenFrameKind(mockup)
-  const chrome = mockup.frame?.chrome
-  if (kind === 'device')
-    return `${content} on ${getMockupDefinition(mockup.definitionId)?.name ?? 'a device'}`
-  if (kind === 'browser') return `${content} in ${BROWSER_LABELS[chrome?.browser ?? 'chrome']}`
-  if (kind === 'window') return `${content} in ${WINDOW_LABELS[chrome?.window ?? 'macos']}`
-  return content
+  if (kind === 'none') return content
+  return `${content} ${kind === 'device' ? 'on' : 'in'} ${frameLabel(mockup)}`
 }

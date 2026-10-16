@@ -3,7 +3,7 @@
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { createDeviceScreen, createMockup } from '@/lib/device-mockups/layouts'
 import type { DeviceLayoutId } from '@/types/mockup'
-import { useEditorStore, useImageStore } from '@/lib/store'
+import { useImageStore } from '@/lib/store'
 import {
   type DesignChanges,
   type DesignDocument,
@@ -90,7 +90,6 @@ function inHistory(mode: DesignHistoryMode, write: () => void) {
 /** Phase 1 for whichever sections `changes` carries; untouched sections stay as they are. */
 function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
   const image = useImageStore.getState()
-  const editor = useEditorStore.getState()
 
   if (changes.image?.src) image.setUploadedImageUrl(resolve(changes.image.src), 'design')
   const mainSrc = useImageStore.getState().uploadedImageUrl
@@ -103,7 +102,7 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
   if (changes.canvas?.aspectRatio) {
     useImageStore.setState({ selectedAspectRatio: changes.canvas.aspectRatio })
   }
-  if (changes.canvas?.padding !== undefined) editor.setCanvas({ padding: changes.canvas.padding })
+  if (changes.canvas?.padding !== undefined) image.setCanvasPadding(changes.canvas.padding)
 
   if (changes.background) {
     const { blur, noise, opacity, radius, type, value } = changes.background
@@ -118,7 +117,7 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
       ...(radius !== undefined ? { backgroundBorderRadius: radius } : {}),
     })
   }
-  if (changes.pattern) editor.setPattern(changes.pattern)
+  if (changes.pattern) image.setPattern(changes.pattern)
 
   const imageChanges = changes.image ?? {}
   const { frame, shadow } = imageChanges
@@ -157,7 +156,9 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
       imageFilters: { ...state.imageFilters, ...imageChanges.filters },
     }))
   }
-  if (imageChanges.rotation !== undefined) editor.setScreenshot({ rotation: imageChanges.rotation })
+  if (imageChanges.rotation !== undefined) {
+    image.setImagePlacement({ rotation: imageChanges.rotation })
+  }
 
   if (changes.devices?.mockups.length) {
     useImageStore.setState({
@@ -184,10 +185,7 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
 
   if (changes.animation) {
     useImageStore.getState().applyAnimationPreset(changes.animation.presetId)
-    useImageStore.setState((state) => ({
-      showTimeline: false,
-      timeline: { ...state.timeline, isPlaying: false, playhead: 0 },
-    }))
+    useImageStore.setState({ showTimeline: false })
   }
 }
 
@@ -195,7 +193,7 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
 function writeLayout(changes: DesignSections, resolve: ResolveDesignSource, canvas: CanvasSize) {
   const { canvasH, canvasW } = canvas
   if (changes.image?.offset) {
-    useEditorStore.getState().setScreenshot({
+    useImageStore.getState().setImagePlacement({
       offsetX: changes.image.offset.x * canvasW,
       offsetY: changes.image.offset.y * canvasH,
     })
@@ -289,7 +287,6 @@ export function applyDesignDocument(
     const mainSrc = document.image.src ? resolve(document.image.src) : null
     const keepImage = !mainSrc ? useImageStore.getState().uploadedImageUrl : null
     useImageStore.getState().clearImage()
-    useEditorStore.getState().setScreenshot({ offsetX: 0, offsetY: 0, rotation: 0 })
     if (keepImage) useImageStore.getState().setUploadedImageUrl(keepImage, 'design')
     writeSections(document, resolve)
   })

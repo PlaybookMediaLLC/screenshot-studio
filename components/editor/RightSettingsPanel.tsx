@@ -12,7 +12,8 @@ import {
   SectionWrapper,
 } from './sections';
 import { cn } from '@/lib/utils';
-import { useImageStore, useEditorStore } from '@/lib/store';
+import { selectScreenshot, useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { ANIMATION_PRESETS, CATEGORY_LABELS } from '@/lib/animation/presets';
 import type { AnimationPreset } from '@/types/animation';
 import { Slider } from '@/components/ui/slider';
@@ -57,7 +58,8 @@ function TransformPreview({ mode }: { mode: ControlMode }) {
     imageScale,
     canvasDimensions,
   } = useImageStore();
-  const { screenshot, setScreenshot } = useEditorStore();
+  const screenshot = useImageStore(useShallow(selectScreenshot));
+  const setScreenshot = useImageStore((state) => state.setImagePlacement);
   const cssAspectRatio = useCanvasAspectRatio();
 
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -431,7 +433,7 @@ function AnimationControls() {
     timeline,
   } = useImageStore();
 
-  const { screenshot } = useEditorStore();
+  const screenshot = useImageStore(useShallow(selectScreenshot));
   const cssAspectRatio = useCanvasAspectRatio();
   const previewImageUrl = uploadedImageUrl || screenshot?.src || null;
   const firstCategory = Object.keys(ANIM_PRESET_BY_CATEGORY)[0];

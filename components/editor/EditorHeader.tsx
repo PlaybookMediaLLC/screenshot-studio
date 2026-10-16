@@ -40,7 +40,8 @@ import {
   KeyboardIcon,
   MoreHorizontalIcon,
 } from 'hugeicons-react'
-import { useEditorStore, useImageStore } from '@/lib/store'
+import { selectScreenshot, useImageStore } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import { useExport } from '@/hooks/useExport'
 import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts'
 import { KeyboardShortcutsDialog } from '@/components/canvas/dialogs/KeyboardShortcutsDialog'
@@ -100,7 +101,7 @@ function ToolDivider() {
 export function EditorHeader() {
   const isMobile = useIsMobile()
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false)
-  const { screenshot } = useEditorStore()
+  const screenshot = useImageStore(useShallow(selectScreenshot))
   const {
     selectedAspectRatio,
     slides,

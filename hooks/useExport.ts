@@ -12,7 +12,8 @@ import {
   getExportPreferences,
   saveExportedImage,
 } from '@/lib/export-storage'
-import { useImageStore, useEditorStore } from '@/lib/store'
+import { selectScreenshot, useImageStore } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import { getCanvasContainer } from '@/components/canvas/ClientCanvas'
 import {
   trackExportStart,
@@ -116,7 +117,7 @@ export function useExport(selectedAspectRatio: string) {
     perspective3D,
   } = useImageStore()
   const backgroundOpacity = backgroundConfig?.opacity !== undefined ? backgroundConfig.opacity : 1
-  const { screenshot } = useEditorStore()
+  const screenshot = useImageStore(useShallow(selectScreenshot))
 
   // Load preferences on mount
   useEffect(() => {

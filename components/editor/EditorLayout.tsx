@@ -6,7 +6,6 @@ import { LeftEditPanel } from './LeftEditPanel'
 import { RightSettingsPanel } from './RightSettingsPanel'
 import { EditorContent } from './EditorContent'
 import { EditorCanvas } from '@/components/canvas/EditorCanvas'
-import { EditorStoreSync } from '@/components/canvas/EditorStoreSync'
 import { EditorPlatformLayer } from '@/components/editor-ai/EditorPlatformLayer'
 import { EditorHeader } from './EditorHeader'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -14,6 +13,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Settings02Icon, Upload01Icon, VideoReplayIcon } from 'hugeicons-react'
 import { useAutosaveDraft } from '@/hooks/useAutosaveDraft'
+import { useHistoryGestures } from '@/lib/editor/history-gestures'
 import { MobileBanner } from './MobileBanner'
 import { useImageStore } from '@/lib/store'
 import { trackEditorOpen } from '@/lib/analytics'
@@ -125,6 +125,7 @@ function EditorMain() {
 
   // enable autosave
   useAutosaveDraft()
+  useHistoryGestures()
 
   const hasSourceContent =
     (!!uploadedImageUrl || slides.length > 0) && shouldRenderSourceImage(editorMode, mockups)
@@ -144,7 +145,6 @@ function EditorMain() {
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden overscroll-contain">
-      <EditorStoreSync />
       <EditorPlatformLayer />
 
       <MobileBanner />

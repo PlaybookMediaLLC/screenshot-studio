@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import { useEditorStore, useImageStore } from "@/lib/store";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
+import { selectScreenshot, useImageStore } from "@/lib/store";
 import { generatePattern } from "@/lib/patterns";
 import { useResponsiveCanvasDimensions } from "@/hooks/useAspectRatioDimensions";
 import { generateNoiseTexture } from "@/lib/export/export-utils";
@@ -9,6 +10,8 @@ import { MockupSceneRenderer } from "@/components/mockups/MockupRenderer";
 import { useDeviceUIStore } from "@/lib/store/device-ui";
 import { shouldIgnoreEditorShortcut } from "@/lib/editor-shortcuts";
 import { calculateCanvasDimensions } from "./utils/canvas-dimensions";
+import { toCanvasShadow } from "./utils/shadow-utils";
+import { useImageMotion } from "@/lib/animation/use-image-motion";
 import { CanvasStageShell } from "./CanvasStageShell";
 import { Perspective3DOverlay } from "./overlays/Perspective3DOverlay";
 import { useOverlayImages } from "./hooks/useImageLoading";
@@ -16,7 +19,6 @@ import {
   HTMLCanvasRenderer,
   HTMLBackgroundLayer,
   HTMLPatternLayer,
-  HTMLNoiseLayer,
   HTMLMainImageLayer,
   HTMLTextOverlayLayer,
   HTMLImageOverlayLayer,
@@ -37,15 +39,14 @@ let globalCanvasContainer: HTMLDivElement | null = null;
 function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
-  const {
-    screenshot,
-    setScreenshot,
-    shadow,
-    pattern: patternStyle,
-    frame: editorFrame,
-    canvas,
-    noise,
-  } = useEditorStore();
+  const screenshot = useImageStore(useShallow(selectScreenshot));
+  const setImagePlacement = useImageStore((state) => state.setImagePlacement);
+  const patternStyle = useImageStore((state) => state.pattern);
+  const canvasPadding = useImageStore((state) => state.canvasPadding);
+  const imageShadow = useImageStore((state) => state.imageShadow);
+  const shadow = useMemo(() => toCanvasShadow(imageShadow), [imageShadow]);
+  // Drawn values at the playhead; the document keeps its own.
+  const { perspective3D, imageOpacity } = useImageMotion();
 
   const {
     backgroundConfig,
@@ -53,8 +54,6 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     backgroundBorderRadius,
     backgroundBlur,
     backgroundNoise,
-    perspective3D,
-    imageOpacity,
     imageFilters,
     textOverlays,
     imageOverlays,
@@ -95,9 +94,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   const backOverlays = imageOverlays.filter((o) => o.layer === 'back');
   const frontOverlays = imageOverlays.filter((o) => o.layer !== 'back');
 
-  // Build frame from imageBorder directly (editorStore sync may be stale)
   const frame = {
-    ...editorFrame,
     enabled: imageBorder.enabled,
     type: imageBorder.type,
     width: imageBorder.width,
@@ -122,7 +119,6 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   const [patternImage, setPatternImage] = useState<HTMLCanvasElement | null>(
     null
   );
-  const [noiseImage, setNoiseImage] = useState<HTMLImageElement | null>(null);
   const [noiseTexture, setNoiseTexture] = useState<HTMLCanvasElement | null>(
     null
   );
@@ -379,25 +375,12 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     patternStyle.blur,
   ]);
 
-  useEffect(() => {
-    if (!noise.enabled || noise.type === "none") {
-      setNoiseImage(null);
-      return;
-    }
-
-    const img = new window.Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => setNoiseImage(img);
-    img.onerror = () => setNoiseImage(null);
-    img.src = `/${noise.type}.jpg`;
-  }, [noise.enabled, noise.type]);
-
   const dimensions = calculateCanvasDimensions(
     image,
     containerWidth,
     containerHeight,
     viewportSize,
-    canvas,
+    { padding: canvasPadding },
     screenshot,
     frame,
     browserHeaderSize
@@ -508,13 +491,6 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           patternOpacity={patternStyle.opacity}
         />
 
-        <HTMLNoiseLayer
-          noiseImage={noiseImage}
-          width={canvasW}
-          height={canvasH}
-          noiseOpacity={noise.opacity}
-        />
-
         {hasSourceImage ? <Perspective3DOverlay
           has3DTransform={has3DTransform}
           perspective3D={perspective3D}
@@ -600,7 +576,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
               setIsMainImageSelected={setIsMainImageSelected}
               setSelectedOverlayId={setSelectedOverlayId}
               setSelectedTextId={setSelectedTextId}
-              setScreenshot={setScreenshot}
+              setScreenshot={setImagePlacement}
               onDragStateChange={setIsDraggingMainImage}
             />
           </>
@@ -686,12 +662,12 @@ export default function ClientCanvas({
 }: ClientCanvasProps) {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [loadError, setLoadError] = useState(false);
-  const { screenshot, setScreenshot } = useEditorStore();
-  const { uploadedImageUrl, editorMode, mockups, textOverlays } = useImageStore();
-  const hasText = textOverlays.length > 0;
+  const uploadedImageUrl = useImageStore((state) => state.uploadedImageUrl);
+  const editorMode = useImageStore((state) => state.editorMode);
+  const mockups = useImageStore((state) => state.mockups);
+  const hasText = useImageStore((state) => state.textOverlays.length > 0);
   const hasDeviceScene = editorMode === "device" && hasVisibleMockups(mockups);
-  const hasSourceImage = !!screenshot.src
-    && !!uploadedImageUrl
+  const hasSourceImage = !!uploadedImageUrl
     && shouldRenderSourceImage(editorMode, mockups);
 
   // Load primary image from screenshot.src
@@ -706,11 +682,16 @@ export default function ClientCanvas({
     const img = new window.Image();
     img.crossOrigin = "anonymous";
 
+    // An image that never loads is dropped so the upload state shows again.
+    const dropBrokenImage = () => {
+      setLoadError(true);
+      if (hasSourceImage) useImageStore.getState().setUploadedImageUrl(null, null);
+    };
+
     const timeoutId = setTimeout(() => {
       if (!img.complete) {
         console.warn("Image load timeout");
-        setLoadError(true);
-        setScreenshot({ src: null });
+        dropBrokenImage();
       }
     }, 10000);
 
@@ -722,18 +703,17 @@ export default function ClientCanvas({
     img.onerror = () => {
       clearTimeout(timeoutId);
       console.warn("Image load error");
-      setLoadError(true);
-      setScreenshot({ src: null });
+      dropBrokenImage();
     };
 
-    img.src = hasSourceImage && screenshot.src
-      ? screenshot.src
+    img.src = hasSourceImage && uploadedImageUrl
+      ? uploadedImageUrl
       : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='1200'/%3E";
 
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [hasDeviceScene, hasSourceImage, hasText, screenshot.src, setScreenshot]);
+  }, [hasDeviceScene, hasSourceImage, hasText, uploadedImageUrl]);
 
   useEffect(() => {
     if (image) {

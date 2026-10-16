@@ -8,7 +8,8 @@ import { toast } from 'sonner';
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils';
 import { exportElement, type ExportOptions } from '@/lib/export/export-service';
 import { switchToSlideAndWait } from '@/lib/render-slideFrame';
-import { useImageStore, useEditorStore } from '@/lib/store';
+import { selectScreenshot, useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { getCanvasContainer } from '@/components/canvas/ClientCanvas';
 import { trackExportStart, trackExportComplete, trackExportError } from '@/lib/analytics';
 import type { ExportSettings } from '@/hooks/useExport';
@@ -28,7 +29,7 @@ export function useBatchExport(selectedAspectRatio: string, exportSettings: Expo
 
   const { backgroundConfig, backgroundBorderRadius, backgroundBlur, backgroundNoise, textOverlays, imageOverlays, perspective3D } = useImageStore();
   const backgroundOpacity = backgroundConfig?.opacity !== undefined ? backgroundConfig.opacity : 1;
-  const { screenshot } = useEditorStore();
+  const screenshot = useImageStore(useShallow(selectScreenshot));
 
   const exportAllSlides = useCallback(async (): Promise<void> => {
     const { slides, activeSlideId, setActiveSlide } = useImageStore.getState();

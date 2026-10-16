@@ -1,6 +1,5 @@
 "use client";
 
-import { useEditorStore } from "@/lib/store";
 import { useImageStore } from "@/lib/store";
 import { CleanUploadState } from "@/components/controls/CleanUploadState";
 import { useLayoutEffect, useState } from "react";
@@ -23,7 +22,6 @@ import { useBackgroundImageReady } from "@/hooks/useBackgroundImageReady";
 
 export function EditorCanvas() {
   const isMobile = useIsMobile();
-  const { screenshot } = useEditorStore();
   const {
     slides,
     setActiveSlide,
@@ -42,9 +40,7 @@ export function EditorCanvas() {
   } = useImageStore();
   const backgroundReady = useBackgroundImageReady(backgroundConfig);
 
-  // Check both stores - imageStore is the source of truth (tracked by undo/redo)
   const hasImage = !!uploadedImageUrl
-    && !!screenshot.src
     && shouldRenderSourceImage(editorMode, mockups);
   const hasDeviceScene = editorMode === "device" && hasVisibleMockups(mockups);
   const hasRenderableContent = hasImage || hasDeviceScene || textOverlays.length > 0;
@@ -77,7 +73,7 @@ export function EditorCanvas() {
 
     setCanvasReady(false);
     loadStartedAtRef.current = Date.now();
-  }, [hasRenderableContent, screenshot.src, uploadedImageUrl]);
+  }, [hasRenderableContent, uploadedImageUrl]);
 
   React.useEffect(() => {
     return () => {

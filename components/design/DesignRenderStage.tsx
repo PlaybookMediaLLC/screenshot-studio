@@ -3,13 +3,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { CanvasStageShell } from '@/components/canvas/CanvasStageShell'
 import ClientCanvas, { getCanvasContainer } from '@/components/canvas/ClientCanvas'
-import { EditorStoreSync } from '@/components/canvas/EditorStoreSync'
 import { useBackgroundImageReady } from '@/hooks/useBackgroundImageReady'
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { applyDesignDocument, applyDesignLayout, waitForSettledCanvas } from '@/lib/design/apply'
 import type { DesignDocument } from '@/lib/design/document'
 import { exportElement } from '@/lib/export/export-service'
-import { useEditorStore, useImageStore } from '@/lib/store'
+import { useImageStore } from '@/lib/store'
 
 declare global {
   interface Window {
@@ -102,8 +101,8 @@ export function DesignRenderStage({ document, output, sources }: DesignRenderSta
           image.textOverlays,
           image.imageOverlays,
           image.perspective3D,
-          useEditorStore.getState().screenshot.src || undefined,
-          useEditorStore.getState().screenshot.radius,
+          image.uploadedImageUrl || undefined,
+          image.borderRadius,
           image.backgroundBlur,
           image.backgroundNoise,
           image.backgroundConfig.opacity ?? 1
@@ -125,7 +124,6 @@ export function DesignRenderStage({ document, output, sources }: DesignRenderSta
   return (
     <main className="flex min-h-screen items-center justify-center bg-transparent p-6">
       <style>{`*, *::before, *::after { transition: none !important; animation: none !important; }`}</style>
-      <EditorStoreSync />
       {applied ? (
         <CanvasStageShell className="shrink-0 overflow-hidden" id="image-render-card">
           <div className="absolute inset-0">

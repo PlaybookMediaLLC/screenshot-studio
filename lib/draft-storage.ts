@@ -1,6 +1,6 @@
 // Draft storage using IndexedDB with connection pooling
 
-import { EditorState, ImageState, OmitFunctions } from './store';
+import type { BackgroundPattern, ImageState, OmitFunctions } from './store';
 
 const DB_NAME = 'screenshotstudio-db';
 const DB_VERSION = 1;
@@ -17,7 +17,15 @@ export type PersistedImageState = OmitFunctions<ImageState> & {
 
 export interface DraftStorage {
   id: string;
-  editorState: OmitFunctions<EditorState>;
+  /**
+   * Drafts saved before the editor had one store kept the main image's
+   * placement, the canvas padding, and the pattern here. Read-only.
+   */
+  editorState?: {
+    screenshot?: { offsetX?: number; offsetY?: number; rotation?: number };
+    canvas?: { padding?: number };
+    pattern?: BackgroundPattern;
+  };
   imageState: PersistedImageState;
   timestamp: number;
 }
@@ -106,10 +114,7 @@ function getDB(): Promise<IDBDatabase> {
 
 // ── CRUD Operations ──────────────────────────────────────────────────────────
 
-export async function saveDraft(
-  editorState: OmitFunctions<EditorState>,
-  imageState: PersistedImageState,
-): Promise<SaveDraftResult> {
+export async function saveDraft(imageState: PersistedImageState): Promise<SaveDraftResult> {
   let db: IDBDatabase;
   try {
     db = await getDB();
@@ -119,7 +124,6 @@ export async function saveDraft(
 
   const draft: DraftStorage = {
     id: DRAFT_KEY,
-    editorState,
     imageState,
     timestamp: Date.now(),
   };
@@ -220,7 +224,7 @@ export async function migrateFromLocalStorage(): Promise<void> {
     const oldData = localStorage.getItem('stage-draft');
     if (oldData) {
       const draft = JSON.parse(oldData) as DraftStorage;
-      await saveDraft(draft.editorState, draft.imageState);
+      await saveDraft(draft.imageState);
       localStorage.removeItem('stage-draft');
     }
   } catch {
@@ -322,7 +326,7 @@ export async function autoCleanIndexedDB(): Promise<{
 function validateDraftIntegrity(draft: DraftStorage): boolean {
   try {
     if (!draft.id || !draft.timestamp) return false;
-    if (!draft.editorState || !draft.imageState) return false;
+    if (!draft.imageState) return false;
     if (isNaN(draft.timestamp) || draft.timestamp < 0) return false;
 
     const imageUrl = draft.imageState.uploadedImageUrl;

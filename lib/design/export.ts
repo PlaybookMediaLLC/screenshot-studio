@@ -1,6 +1,6 @@
 'use client'
 
-import { useEditorStore, useImageStore } from '@/lib/store'
+import { useImageStore } from '@/lib/store'
 import { useDeviceUIStore } from '@/lib/store/device-ui'
 import { DESIGN_DOCUMENT_VERSION, type DesignDocument, designDocumentSchema } from './document'
 
@@ -40,7 +40,6 @@ function validItems<T>(
 
 export function exportDesignDocument(): DesignDocument {
   const image = useImageStore.getState()
-  const editor = useEditorStore.getState()
   const canvasW = image.canvasDimensions?.canvasW ?? 1920
   const canvasH = image.canvasDimensions?.canvasH ?? 1080
 
@@ -69,7 +68,7 @@ export function exportDesignDocument(): DesignDocument {
     }),
     canvas: valid(shape.canvas, {
       aspectRatio: image.selectedAspectRatio,
-      padding: clamp(editor.canvas.padding, 0, 200),
+      padding: clamp(image.canvasPadding, 0, 200),
     }),
     devices:
       image.mockups.length > 0
@@ -97,8 +96,8 @@ export function exportDesignDocument(): DesignDocument {
       }),
       filters: image.imageFilters,
       offset: {
-        x: clamp(editor.screenshot.offsetX / canvasW, -0.5, 0.5),
-        y: clamp(editor.screenshot.offsetY / canvasH, -0.5, 0.5),
+        x: clamp(image.imagePlacement.offsetX / canvasW, -0.5, 0.5),
+        y: clamp(image.imagePlacement.offsetY / canvasH, -0.5, 0.5),
       },
       opacity: image.imageOpacity,
       perspective: {
@@ -111,7 +110,7 @@ export function exportDesignDocument(): DesignDocument {
         translateY: clamp(image.perspective3D.translateY, -30, 30),
       },
       radius: clamp(image.borderRadius, 0, 100),
-      rotation: clamp(editor.screenshot.rotation, -180, 180),
+      rotation: clamp(image.imagePlacement.rotation, -180, 180),
       scale: clamp(image.imageScale, 10, 200),
       shadow: { preset: image.shadowPreset },
       src: null,
@@ -135,7 +134,7 @@ export function exportDesignDocument(): DesignDocument {
           src: overlay.src,
         }))
     ),
-    pattern: editor.pattern.enabled ? valid(shape.pattern, editor.pattern) : undefined,
+    pattern: image.pattern.enabled ? valid(shape.pattern, image.pattern) : undefined,
     redactions: validItems(
       shape.redactions.unwrap(),
       image.blurRegions

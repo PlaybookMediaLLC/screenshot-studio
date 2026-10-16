@@ -3,7 +3,7 @@
 import { getCanvasContainer } from '@/components/canvas/ClientCanvas'
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { exportElementAsCanvas } from '@/lib/export/export-service'
-import { useEditorStore, useImageStore } from '@/lib/store'
+import { useImageStore } from '@/lib/store'
 
 /**
  * A small JPEG of the canvas, for the model to see what it changed. Uses the
@@ -28,7 +28,7 @@ export async function captureCanvasSnapshot(maxWidth = 1024): Promise<string | n
       getCanvasContainer(),
       image.backgroundBorderRadius,
       image.perspective3D,
-      useEditorStore.getState().screenshot.src || undefined
+      image.uploadedImageUrl || undefined
     )
     return canvas.toDataURL('image/jpeg', 0.72).split(',')[1] ?? null
   } catch {

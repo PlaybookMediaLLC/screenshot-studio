@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  useEditorStore,
+  DEFAULT_IMAGE_PLACEMENT,
   useImageStore,
   OmitFunctions,
-  EditorState,
   ImageState,
 } from "@/lib/store";
 import { toast } from "sonner";
@@ -82,7 +81,6 @@ function toPersistedImageState(state: ImageState): OmitFunctions<ImageState> {
   return {
     ...(persisted as OmitFunctions<ImageState>),
     ...IDLE_SESSION_STATE,
-    timeline: { ...state.timeline, isPlaying: false, playhead: 0 },
   };
 }
 
@@ -98,6 +96,12 @@ function fingerprintReplacer(_key: string, value: unknown) {
   return value;
 }
 
+/** A saved timeline without the playback position older drafts stored in it. */
+function withoutPlayback(timeline: ImageState["timeline"] & { playhead?: unknown; isPlaying?: unknown }) {
+  const { playhead: _playhead, isPlaying: _isPlaying, ...rest } = timeline;
+  return rest;
+}
+
 /** Drop undefined keys so an older draft falls back to store defaults instead of
  * overwriting them with undefined. */
 function definedOnly<T extends object>(obj: T): Partial<T> {
@@ -109,7 +113,6 @@ function definedOnly<T extends object>(obj: T): Partial<T> {
 }
 
 export function useAutosaveDraft() {
-  const editorStore = useEditorStore();
   const imageStore = useImageStore();
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
   const hasLoadedRef = useRef(false);
@@ -183,9 +186,8 @@ export function useAutosaveDraft() {
                 }
               : {}),
             ...IDLE_SESSION_STATE,
-            ...(timeline
-              ? { timeline: { ...timeline, isPlaying: false, playhead: 0 } }
-              : {}),
+            // Drafts from before the playback store carried the playhead here.
+            ...(timeline ? { timeline: withoutPlayback(timeline) } : {}),
             // Drafts written before browserUrl existed fall back to the frame title.
             ...(browserUrl !== undefined
               ? { browserUrl }
@@ -195,28 +197,21 @@ export function useAutosaveDraft() {
           });
         }
 
-        // Then restore editor state
-        if (draft.editorState?.screenshot) {
-          editorStore.setScreenshot(draft.editorState.screenshot);
+        // Drafts from before the single store kept these fields separately.
+        const legacy = draft.editorState;
+        if (legacy && !img?.imagePlacement) {
+          useImageStore.setState({
+            imagePlacement: {
+              offsetX: legacy.screenshot?.offsetX ?? DEFAULT_IMAGE_PLACEMENT.offsetX,
+              offsetY: legacy.screenshot?.offsetY ?? DEFAULT_IMAGE_PLACEMENT.offsetY,
+              rotation: legacy.screenshot?.rotation ?? DEFAULT_IMAGE_PLACEMENT.rotation,
+            },
+            ...(legacy.canvas?.padding !== undefined ? { canvasPadding: legacy.canvas.padding } : {}),
+            ...(legacy.pattern ? { pattern: legacy.pattern } : {}),
+          });
         }
-        if (draft.editorState?.background) {
-          editorStore.setBackground(draft.editorState.background);
-        }
-        if (draft.editorState?.shadow) {
-          editorStore.setShadow(draft.editorState.shadow);
-        }
-        if (draft.editorState?.pattern) {
-          editorStore.setPattern(draft.editorState.pattern);
-        }
-        if (draft.editorState?.frame) {
-          editorStore.setFrame(draft.editorState.frame);
-        }
-        if (draft.editorState?.canvas) {
-          editorStore.setCanvas(draft.editorState.canvas);
-        }
-        if (draft.editorState?.noise) {
-          editorStore.setNoise(draft.editorState.noise);
-        }
+        // Restoring the draft is where this session starts, not an undoable step.
+        useImageStore.temporal.getState().clear();
 
         setLastSaved(new Date(draft.timestamp));
         hasLoadedRef.current = true;
@@ -227,7 +222,7 @@ export function useAutosaveDraft() {
     };
 
     loadDraft();
-  }, [editorStore, imageStore]);
+  }, [imageStore]);
 
   // Auto-save on state changes
   useEffect(() => {
@@ -242,29 +237,13 @@ export function useAutosaveDraft() {
 
       saveTimeoutRef.current = setTimeout(async () => {
         try {
-          const {
-            screenshot,
-            background,
-            shadow,
-            pattern,
-            frame,
-            canvas,
-            noise,
-          } = editorStore;
-
           const persistedImage = toPersistedImageState(useImageStore.getState());
 
           // The dirty check covers everything that actually gets persisted, so
           // editing any feature — including ones added later — marks the draft
           // dirty. Previously it tracked a hand-picked subset, so changes to
           // untracked state were skipped as "nothing changed".
-          const snapshot = JSON.stringify(
-            {
-              e: { screenshot, background, shadow, pattern, frame, canvas, noise },
-              i: persistedImage,
-            },
-            fingerprintReplacer
-          );
+          const snapshot = JSON.stringify(persistedImage, fingerprintReplacer);
 
           if (snapshot === lastSnapshotRef.current) {
             return; // Nothing changed — skip save
@@ -274,15 +253,7 @@ export function useAutosaveDraft() {
 
           // Inline every blob-backed source as a data URL — blob: references are
           // dead on the next page load.
-          const processedScreenshotSrc = screenshot.src
-            ? await toPersistableSrc(screenshot.src)
-            : screenshot.src;
-
-          // Prefer the store's own value over the editor screenshot: with slides,
-          // uploadedImageUrl tracks the *active* slide, so aliasing it to
-          // screenshot.src would restore a deck pointing at the wrong image.
-          const rawUploadedImageUrl =
-            persistedImage.uploadedImageUrl ?? screenshot.src;
+          const rawUploadedImageUrl = persistedImage.uploadedImageUrl;
           const processedUploadedImageUrl = rawUploadedImageUrl
             ? await toPersistableSrc(rawUploadedImageUrl)
             : null;
@@ -354,19 +325,6 @@ export function useAutosaveDraft() {
             ? await processMockups(persistedImage.deviceLayoutSnapshot)
             : persistedImage.deviceLayoutSnapshot;
 
-          const editorState: OmitFunctions<EditorState> = {
-            screenshot: {
-              ...screenshot,
-              src: processedScreenshotSrc,
-            },
-            background,
-            shadow,
-            pattern,
-            frame,
-            canvas,
-            noise,
-          };
-
           // Spread the derived state, then override only the fields whose blob
           // sources had to be inlined above.
           const imageState: PersistedImageState = {
@@ -380,7 +338,7 @@ export function useAutosaveDraft() {
             deviceScreenAssets,
           };
 
-          const result = await saveDraft(editorState, imageState);
+          const result = await saveDraft(imageState);
 
           if (!result.ok) {
             // Leave lastSnapshotRef untouched so the next change retries this
@@ -414,11 +372,11 @@ export function useAutosaveDraft() {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  // Both stores are consumed without a selector, so their identity changes on
+  // The store is consumed without a selector, so its identity changes on
   // any state update — that is enough to re-run this effect for every field.
   // The previous hand-listed dependency array had the same drift problem as the
   // hand-listed snapshot: new state was simply not watched.
-  }, [editorStore, imageStore]);
+  }, [imageStore]);
 
   // Warn before closing if saving
   useEffect(() => {
@@ -439,16 +397,6 @@ export function useAutosaveDraft() {
     try {
       await deleteDraft();
       imageStore.resetSlideshow();
-      // Clear all stores
-      editorStore.setScreenshot({
-        src: null,
-        scale: 1,
-        offsetX: 0,
-        offsetY: 0,
-        rotation: 0,
-        radius: 10,
-      });
-
       imageStore.clearImage();
       imageStore.clearTextOverlays();
       imageStore.clearImageOverlays();

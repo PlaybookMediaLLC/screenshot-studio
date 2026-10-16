@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useImageStore, useEditorStore } from '@/lib/store';
+import { selectScreenshot, useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 import { getBackgroundCSS } from '@/lib/constants/backgrounds';
 import { aspectRatios } from '@/lib/constants/aspect-ratios';
@@ -115,7 +116,7 @@ export function TransformsGallery() {
     imageShadow,
   } = useImageStore();
 
-  const { screenshot } = useEditorStore();
+  const screenshot = useImageStore(useShallow(selectScreenshot));
 
   const selectedAspectRatio = useImageStore((s) => s.selectedAspectRatio);
   const ar = aspectRatios.find((a) => a.id === selectedAspectRatio);

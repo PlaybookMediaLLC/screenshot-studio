@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useImageStore } from '@/lib/store';
-import { useEditorStore } from '@/lib/store';
+import { selectScreenshot, useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { SectionWrapper } from './SectionWrapper';
 import { cn } from '@/lib/utils';
 
@@ -55,7 +55,8 @@ function PositionIcon({ x, y }: { x: number; y: number }) {
 
 export function ImagePositionSection() {
   const { canvasDimensions } = useImageStore();
-  const { screenshot, setScreenshot } = useEditorStore();
+  const screenshot = useImageStore(useShallow(selectScreenshot));
+  const setScreenshot = useImageStore((state) => state.setImagePlacement);
 
   const [activePosition, setActivePosition] =
     React.useState<PositionKey | null>('mc');

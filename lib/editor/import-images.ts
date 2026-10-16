@@ -1,7 +1,7 @@
 'use client'
 
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from '@/lib/constants'
-import { useImageStore } from '@/lib/store'
+import { useImageStore, withHistoryStep } from '@/lib/store'
 import { isTemplateDemoMedia } from '@/lib/templates/demo-media'
 
 /**
@@ -62,6 +62,12 @@ export function importImages(files: readonly File[]): ImageImportResult {
   const target = planImageImport(state)
   if (accepted.length === 0) return { imported: 0, rejected, target }
 
+  withHistoryStep(() => writeImport(target, accepted))
+  return { imported: target === 'template-media' ? 1 : accepted.length, rejected, target }
+}
+
+function writeImport(target: ImageImportTarget, accepted: readonly File[]) {
+  const state = useImageStore.getState()
   if (target === 'main') {
     state.addImages([...accepted])
   } else if (target === 'template-media') {
@@ -86,7 +92,6 @@ export function importImages(files: readonly File[]): ImageImportResult {
       })
     })
   }
-  return { imported: target === 'template-media' ? 1 : accepted.length, rejected, target }
 }
 
 /**

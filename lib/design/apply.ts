@@ -3,7 +3,7 @@
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { createDeviceScreen, createMockup } from '@/lib/device-mockups/layouts'
 import type { DeviceLayoutId } from '@/types/mockup'
-import { useImageStore } from '@/lib/store'
+import { beginHistoryStep, endHistoryStep, useImageStore } from '@/lib/store'
 import {
   type DesignChanges,
   type DesignDocument,
@@ -51,24 +51,6 @@ const frameStylePreset = {
 
 function newId(prefix: string, index: number): string {
   return `${prefix}-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`
-}
-
-/**
- * Collapse every history entry recorded since `start` into one, so a whole
- * AI edit (or a chosen variation) undoes with a single ⌘Z. Call
- * `beginHistoryStep` before the writes and `endHistoryStep` after; this works
- * across awaits as long as the user does not edit in between.
- */
-export function beginHistoryStep(): number {
-  return useImageStore.temporal.getState().pastStates.length
-}
-
-export function endHistoryStep(start: number) {
-  useImageStore.temporal.setState((history) =>
-    history.pastStates.length > start + 1
-      ? { pastStates: history.pastStates.slice(0, start + 1) }
-      : history
-  )
 }
 
 function inHistory(mode: DesignHistoryMode, write: () => void) {

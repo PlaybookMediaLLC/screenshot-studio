@@ -282,6 +282,8 @@ export interface ImageState {
   replaceTemplateMedia: (url: string, name: string, mockupId?: string) => void
   setImage: (file: File) => void
   clearImage: () => void
+  /** Remove the screenshot (and its slides) but keep the design around it. */
+  removeMainImage: () => void
   setGradient: (gradient: GradientKey) => void
   setBorderRadius: (radius: number) => void
   setBackgroundBorderRadius: (radius: number) => void
@@ -699,6 +701,19 @@ export const useImageStore = create<ImageState>()(
           timeline: { ...DEFAULT_TIMELINE_STATE },
           animationClips: [],
           showTimeline: false,
+        })
+      },
+
+      removeMainImage: () => {
+        set({
+          activeSlideId: null,
+          imageName: null,
+          isMainImageSelected: false,
+          isPreviewing: false,
+          previewIndex: 0,
+          previewStartedAt: null,
+          slides: [],
+          uploadedImageUrl: null,
         })
       },
 
@@ -1923,3 +1938,33 @@ export function selectScreenshot(state: ImageState) {
 }
 
 export type ScreenshotView = ReturnType<typeof selectScreenshot>
+
+/**
+ * Collapse every history entry recorded since `start` into one, so a whole
+ * AI edit (or a chosen variation) undoes with a single ⌘Z. Call
+ * `beginHistoryStep` before the writes and `endHistoryStep` after; this works
+ * across awaits as long as the user does not edit in between.
+ */
+export function beginHistoryStep(): number {
+  return useImageStore.temporal.getState().pastStates.length
+}
+
+/** Close a step opened by {@link beginHistoryStep}. */
+export function endHistoryStep(start: number) {
+  useImageStore.temporal.setState((history) =>
+    history.pastStates.length > start + 1
+      ? { pastStates: history.pastStates.slice(0, start + 1) }
+      : history
+  )
+}
+
+
+/** Run synchronous writes as one undo step. */
+export function withHistoryStep<T>(write: () => T): T {
+  const start = beginHistoryStep()
+  try {
+    return write()
+  } finally {
+    endHistoryStep(start)
+  }
+}

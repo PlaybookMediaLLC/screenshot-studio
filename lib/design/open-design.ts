@@ -2,14 +2,12 @@
 
 import type { TRPCClient } from '@trpc/client'
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
-import { useImageStore } from '@/lib/store'
+import { beginHistoryStep, endHistoryStep, useImageStore } from '@/lib/store'
 import type { AppRouter } from '@/lib/trpc/router'
 import {
   applyDesignDocument,
   applyDesignLayout,
-  beginHistoryStep,
   type DesignHistoryMode,
-  endHistoryStep,
   waitForSettledCanvas,
 } from './apply'
 import { getDesignAssetIds } from './document'

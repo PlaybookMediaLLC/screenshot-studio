@@ -7,6 +7,7 @@ import { type ImageFilters, useImageStore } from '@/lib/store';
 import { SafariToolbar, ChromeToolbar } from '../frames/BrowserToolbar';
 import { CanvasObjectTopControls } from './CanvasObjectTopControls';
 import { imageFilterCss } from '@/lib/editor/image-adjustments';
+import { removeScreenshot } from '@/lib/editor/remove-screenshot'
 
 export interface FrameConfig {
   enabled: boolean;
@@ -291,7 +292,7 @@ export function HTMLMainImageLayer({
     if (onRemoveImage) {
       onRemoveImage();
     } else {
-      useImageStore.getState().clearImage();
+      removeScreenshot();
     }
   }, [onRemoveImage]);
 

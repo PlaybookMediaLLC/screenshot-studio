@@ -32,6 +32,7 @@ import {
   hasVisibleMockups,
   shouldRenderSourceImage,
 } from "@/lib/device-mockups/layouts";
+import { removeScreenshot } from '@/lib/editor/remove-screenshot'
 
 // Reference to the HTML canvas container for export
 let globalCanvasContainer: HTMLDivElement | null = null;
@@ -282,8 +283,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           setSelectedTextId(null);
         } else if (isMainImageSelected) {
           e.preventDefault();
-          useImageStore.getState().clearImage();
-          setIsMainImageSelected(false);
+          removeScreenshot();
         }
       }
 

@@ -60,6 +60,7 @@ import { FeedbackWidget } from '@/components/FeedbackWidget'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { hasVisibleMockups, shouldRenderSourceImage } from '@/lib/device-mockups/layouts'
+import { removeScreenshot } from '@/lib/editor/remove-screenshot'
 
 /** A quiet square toolbar button with a tooltip; `active` marks a toggled tool. */
 function ToolButton({
@@ -109,7 +110,6 @@ export function EditorHeader() {
     textOverlays,
     editorMode,
     mockups,
-    clearImage,
     timeline,
     animationClips,
     resetCanvasSettings,
@@ -360,7 +360,7 @@ export function EditorHeader() {
 
         <div className="flex items-center gap-1 justify-self-end">
           {hasContent && !isMobile ? (
-            <ToolButton className="hover:text-destructive" label="Remove" onClick={clearImage}>
+            <ToolButton className="hover:text-destructive" label="Remove" onClick={removeScreenshot}>
               <Delete02Icon size={15} />
             </ToolButton>
           ) : null}
@@ -501,8 +501,8 @@ export function EditorHeader() {
             </div>
             <AlertDialogTitle>Start over?</AlertDialogTitle>
             <AlertDialogDescription>
-              This resets the current design, overlays, and animation. Your uploaded media stays,
-              and you can undo this action.
+              This resets the design: background, frame, text, stickers, markup, devices, and
+              animation. Your screenshots stay, and you can undo it with ⌘Z.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

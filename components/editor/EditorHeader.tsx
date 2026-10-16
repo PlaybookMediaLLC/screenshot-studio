@@ -57,6 +57,7 @@ import { FormatSelector, QualityPresetSelector, ScaleSlider } from '@/components
 import { cn } from '@/lib/utils'
 import { SaveToWorkspaceButton } from '@/components/workspace/SaveToWorkspaceButton'
 import { ProjectMenu } from '@/components/projects/ProjectMenu'
+import { ShareButton } from './share/ShareButton'
 import { FeedbackWidget } from '@/components/FeedbackWidget'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -384,6 +385,8 @@ export function EditorHeader() {
               <span>Export Video</span>
             </button>
           ) : null}
+
+          <ShareButton compact={isMobile} disabled={!hasContent} render={renderExportBlob} />
 
           <Popover onOpenChange={isExporting ? undefined : setExportOpen} open={exportOpen}>
             <PopoverTrigger asChild>

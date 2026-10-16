@@ -134,7 +134,12 @@ export function applyLayoutToMockups(
       ?? getDefaultDefinition(slot.family ?? "phone").id;
     const family = getMockupDefinition(definitionId)?.family;
     const mockup = existing
-      ? { ...existing, definitionId }
+      ? {
+          ...existing,
+          definitionId,
+          // A layout that names its devices shows each screen on that device.
+          ...(slot.definitionId && existing.frame ? { frame: { ...existing.frame, kind: "device" as const } } : {}),
+        }
       : createMockup(definitionId, { ...fallbackScreen, offset: { ...fallbackScreen.offset } }, index);
 
     return {

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.1.0...v2.2.0) (2026-10-16)
+
+
+### Features
+
+* complete the Phase 0 backend and the paywall experience ([#127](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/127)) ([68450d7](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/68450d73bd90f45f70918a2cc6607de0150a03d8))
+
 ## [2.1.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.0.1...v2.1.0) (2026-10-16)
 
 

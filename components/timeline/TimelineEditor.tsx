@@ -127,12 +127,12 @@ function PlayheadTicker({
 
   return (
     <div
-      className="absolute top-0 z-30 cursor-ew-resize pointer-events-auto"
+      className="absolute top-0 z-30 cursor-ew-resize pointer-events-none"
       style={{ left: position, height, transform: 'translateX(-50%)' }}
       onMouseDown={() => setIsDragging(true)}
     >
       <div className="relative flex flex-col items-center h-full">
-        <div className="flex min-w-[32px] shrink-0 items-center justify-center rounded-md bg-primary px-1.5 py-0.5 text-primary-foreground shadow-sm">
+        <div className="pointer-events-auto flex min-w-[32px] shrink-0 items-center justify-center rounded-md bg-primary px-1.5 py-0.5 text-primary-foreground shadow-sm">
           <span className="text-[9px] font-semibold tabular-nums leading-none">{timeLabel}</span>
         </div>
         <div className="w-px flex-1 bg-primary" />

@@ -24,6 +24,7 @@ import {
   autoCleanIndexedDB,
 } from "@/lib/draft-storage";
 import type { PersistedImageState } from "@/lib/draft-storage";
+import { markDraftRestored } from "@/lib/projects/draft-ready";
 
 const AUTOSAVE_DELAY = 1000;
 
@@ -221,7 +222,7 @@ export function useAutosaveDraft() {
       }
     };
 
-    loadDraft();
+    void loadDraft().finally(markDraftRestored);
   }, [imageStore]);
 
   // Auto-save on state changes

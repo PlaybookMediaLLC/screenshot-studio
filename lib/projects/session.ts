@@ -3,17 +3,18 @@
 import { type TRPCClient, TRPCClientError } from '@trpc/client'
 import { z } from 'zod'
 import { create } from 'zustand'
-import { type DesignDocument, getLocalDesignSources, mapDesignSources } from '@/lib/design/document'
+import type { DesignDocument } from '@/lib/design/document'
 import { exportDesignDocument } from '@/lib/design/export'
 import { applyStoredDocument } from '@/lib/design/open-design'
+import {
+  rememberUploadedSources,
+  uploadDesignSources,
+  withUploadedSources,
+} from '@/lib/design/upload-sources'
 import { hashString } from '@/lib/render/preview-cache'
 import { type ImageState, useImageStore } from '@/lib/store'
 import type { AppRouter } from '@/lib/trpc/router'
-import {
-  buildExportFileName,
-  saveExportToWorkspace,
-  WorkspaceSaveError,
-} from '@/lib/workspace/save-export'
+import { WorkspaceSaveError } from '@/lib/workspace/save-export'
 import { draftRestored } from './draft-ready'
 import { projectIdSchema, type ProjectSaveStatus } from './schema'
 
@@ -93,8 +94,6 @@ const SESSION_KEYS = new Set<keyof ImageState>([
 export const useProjectSession = create<ProjectSession>(() => CLOSED)
 
 let client: Client | null = null
-/** Local (`blob:`/`data:`) image → its uploaded `asset:<id>`, so each uploads once. */
-const uploads = new Map<string, string>()
 /** The last document the server holds for the open project, by content. */
 let savedKey: string | null = null
 /** Edits since the project opened; a save is clean when none landed during it. */
@@ -145,37 +144,16 @@ function documentKey(document: DesignDocument): string {
   return hashString(JSON.stringify(document))
 }
 
-/** The document with every local image uploaded and referenced as `asset:<id>`. */
-async function storedDocument(trpcClient: Client, document: DesignDocument) {
-  const local = getLocalDesignSources(document)
-  // ponytail: uploads are remembered for this page only; after a reload, recovered
-  // local images upload again. Key by content hash if that duplication matters.
-  for (const ref of local) {
-    if (uploads.has(ref)) continue
-    const blob = await (await fetch(ref)).blob()
-    const { assetId } = await saveExportToWorkspace({
-      blob,
-      fileName: buildExportFileName(blob.type),
-      trpcClient,
-    })
-    uploads.set(ref, `asset:${assetId}`)
-  }
-  return local.length ? mapDesignSources(document, (ref) => uploads.get(ref) ?? ref) : document
-}
-
 /**
  * The editor's design with images it already uploaded referenced by asset id,
  * for comparing with a stored version. Nothing is uploaded.
  */
 export function currentProjectDocument(): DesignDocument {
-  const document = exportDesignDocument({ keepLocalSources: true })
-  return getLocalDesignSources(document).length
-    ? mapDesignSources(document, (ref) => uploads.get(ref) ?? ref)
-    : document
+  return withUploadedSources(exportDesignDocument({ keepLocalSources: true }))
 }
 
 function editorDocument(trpcClient: Client) {
-  return storedDocument(trpcClient, exportDesignDocument({ keepLocalSources: true }))
+  return uploadDesignSources(trpcClient, exportDesignDocument({ keepLocalSources: true }))
 }
 
 function scheduleSave(): void {
@@ -248,7 +226,7 @@ async function load(trpcClient: Client, document: DesignDocument, history: 'clea
   applying = true
   try {
     const sources = await applyStoredDocument(trpcClient, document, history, { replace: true })
-    for (const [ref, url] of Object.entries(sources)) uploads.set(url, ref)
+    rememberUploadedSources(sources)
     // The editor's own reading of what it loaded, so only real edits save.
     return documentKey(await editorDocument(trpcClient))
   } finally {

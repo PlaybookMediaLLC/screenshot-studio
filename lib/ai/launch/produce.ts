@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { generateText, stepCountIs } from 'ai'
-import type { TenantContext } from '@/lib/auth/access'
+import type { OrganizationAccess } from '@/lib/auth/access'
 import { backendSDK } from '@/lib/backend/sdk'
 import {
   createDesignRenderer,
@@ -22,6 +22,7 @@ import {
 import { models, normalizeTokenUsage } from '../models'
 import { type CampaignStudioRecord, createCampaignStudioTools } from '../tools/campaign-studio'
 import { createDesignStudioTools } from '../tools/design-studio'
+import { createToolRun, flushToolRun, isRunStopped } from '../tools/executor'
 import { formatBrandKit, formatPlanForStages, formatSpecForStages } from './context'
 import { writeLaunchCopy } from './copy'
 import { critiqueRender } from './critique'
@@ -33,12 +34,13 @@ import { VISUALS_FALLBACK_INSTRUCTIONS, VISUALS_INSTRUCTIONS } from './prompts'
  * editor and self-reviewed, or product shots when the renderer is down) and
  * channel copy, side by side. Works from the approved spec and plan when they
  * exist, else the latest drafts. Whatever finished is kept if the other half
- * fails.
+ * fails. Tools act with the caller's role; `runId` is the launch run their
+ * calls are audited against.
  */
 export async function produceCampaign(
-  tenant: TenantContext,
+  tenant: OrganizationAccess,
   campaignId: string,
-  signal?: AbortSignal
+  { runId, signal }: { runId?: string; signal?: AbortSignal } = {}
 ) {
   const campaign = await loadLaunchCampaign(tenant, campaignId)
   if (!campaign.release) throw new LaunchError('Link a release brief first.', 409)
@@ -59,10 +61,17 @@ export async function produceCampaign(
   signal?.throwIfAborted()
 
   const record: CampaignStudioRecord = { assets: [], savedPosts: 0 }
+  const run = createToolRun({
+    access: tenant,
+    audit: (event) => backendSDK(tenant).appendAuditEvent(event),
+    launchRunId: runId,
+    signal,
+  })
   const scope = {
     allowedUrls: captureUrls as [string, ...string[]],
     campaignId,
     planVersion: plan.version,
+    run,
     tenant,
   }
   const budget = productionBudget(plan.content)
@@ -77,8 +86,8 @@ export async function produceCampaign(
         createProductShot: baseTools.createProductShot,
         ...createDesignStudioTools(scope, record, getRenderer, {
           brand: brand.kit,
-          critique: ({ previewJpegBase64, texts }) =>
-            critiqueRender({ brand: brand.kit, claims, previewJpegBase64, texts }),
+          critique: ({ previewJpegBase64, signal: abortSignal, texts }) =>
+            critiqueRender({ abortSignal, brand: brand.kit, claims, previewJpegBase64, texts }),
           limits: budget,
         }),
       }
@@ -108,11 +117,15 @@ export async function produceCampaign(
       abortSignal: signal,
       model: models.languageModel('drafting'),
       prompt,
-      stopWhen: stepCountIs(designMode ? budget.steps : Math.ceil(budget.steps / 2)),
+      stopWhen: [
+        stepCountIs(designMode ? budget.steps : Math.ceil(budget.steps / 2)),
+        isRunStopped(run),
+      ],
       system: designMode ? VISUALS_INSTRUCTIONS : VISUALS_FALLBACK_INSTRUCTIONS,
       tools,
     }).finally(async () => {
       if (renderer) await (await renderer).close().catch(() => undefined)
+      await flushToolRun(run)
     }),
     writeLaunchCopy(tenant, { brand, campaign, examples, plan, signal, spec }),
   ])

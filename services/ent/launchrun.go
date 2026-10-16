@@ -20,7 +20,7 @@ type LaunchRun struct {
 	// OrganizationID holds the value of the "organization_id" field.
 	OrganizationID string `json:"organization_id,omitempty"`
 	// CampaignID holds the value of the "campaign_id" field.
-	CampaignID string `json:"campaign_id,omitempty"`
+	CampaignID *string `json:"campaign_id,omitempty"`
 	// Kind holds the value of the "kind" field.
 	Kind string `json:"kind,omitempty"`
 	// Status holds the value of the "status" field.
@@ -38,7 +38,15 @@ type LaunchRun struct {
 	// HeartbeatAt holds the value of the "heartbeat_at" field.
 	HeartbeatAt *time.Time `json:"heartbeat_at,omitempty"`
 	// FinishedAt holds the value of the "finished_at" field.
-	FinishedAt   *time.Time `json:"finished_at,omitempty"`
+	FinishedAt *time.Time `json:"finished_at,omitempty"`
+	// StepCount holds the value of the "step_count" field.
+	StepCount int `json:"step_count,omitempty"`
+	// TokensIn holds the value of the "tokens_in" field.
+	TokensIn int `json:"tokens_in,omitempty"`
+	// TokensOut holds the value of the "tokens_out" field.
+	TokensOut int `json:"tokens_out,omitempty"`
+	// CostCents holds the value of the "cost_cents" field.
+	CostCents    int `json:"cost_cents,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -47,6 +55,8 @@ func (*LaunchRun) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case launchrun.FieldStepCount, launchrun.FieldTokensIn, launchrun.FieldTokensOut, launchrun.FieldCostCents:
+			values[i] = new(sql.NullInt64)
 		case launchrun.FieldID, launchrun.FieldOrganizationID, launchrun.FieldCampaignID, launchrun.FieldKind, launchrun.FieldStatus, launchrun.FieldResultID, launchrun.FieldSummary, launchrun.FieldError, launchrun.FieldCreatedByUserID:
 			values[i] = new(sql.NullString)
 		case launchrun.FieldStartedAt, launchrun.FieldHeartbeatAt, launchrun.FieldFinishedAt:
@@ -82,7 +92,8 @@ func (_m *LaunchRun) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field campaign_id", values[i])
 			} else if value.Valid {
-				_m.CampaignID = value.String
+				_m.CampaignID = new(string)
+				*_m.CampaignID = value.String
 			}
 		case launchrun.FieldKind:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -144,6 +155,30 @@ func (_m *LaunchRun) assignValues(columns []string, values []any) error {
 				_m.FinishedAt = new(time.Time)
 				*_m.FinishedAt = value.Time
 			}
+		case launchrun.FieldStepCount:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field step_count", values[i])
+			} else if value.Valid {
+				_m.StepCount = int(value.Int64)
+			}
+		case launchrun.FieldTokensIn:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field tokens_in", values[i])
+			} else if value.Valid {
+				_m.TokensIn = int(value.Int64)
+			}
+		case launchrun.FieldTokensOut:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field tokens_out", values[i])
+			} else if value.Valid {
+				_m.TokensOut = int(value.Int64)
+			}
+		case launchrun.FieldCostCents:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field cost_cents", values[i])
+			} else if value.Valid {
+				_m.CostCents = int(value.Int64)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -183,8 +218,10 @@ func (_m *LaunchRun) String() string {
 	builder.WriteString("organization_id=")
 	builder.WriteString(_m.OrganizationID)
 	builder.WriteString(", ")
-	builder.WriteString("campaign_id=")
-	builder.WriteString(_m.CampaignID)
+	if v := _m.CampaignID; v != nil {
+		builder.WriteString("campaign_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("kind=")
 	builder.WriteString(_m.Kind)
@@ -224,6 +261,18 @@ func (_m *LaunchRun) String() string {
 		builder.WriteString("finished_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("step_count=")
+	builder.WriteString(fmt.Sprintf("%v", _m.StepCount))
+	builder.WriteString(", ")
+	builder.WriteString("tokens_in=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TokensIn))
+	builder.WriteString(", ")
+	builder.WriteString("tokens_out=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TokensOut))
+	builder.WriteString(", ")
+	builder.WriteString("cost_cents=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CostCents))
 	builder.WriteByte(')')
 	return builder.String()
 }

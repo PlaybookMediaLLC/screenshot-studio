@@ -32,6 +32,8 @@ export type RenderCritique = z.infer<typeof critiqueSchema> & {
 }
 
 export async function critiqueRender(input: {
+  /** Stops the review when the render call times out or the run is cancelled. */
+  abortSignal?: AbortSignal
   brand: BrandKitValues | null
   /** Spec claims the visual may draw on. */
   claims: string[]
@@ -47,6 +49,7 @@ export async function critiqueRender(input: {
   ].join('\n\n')
   try {
     const run = await runSubmitStage({
+      abortSignal: input.abortSignal,
       description: 'Submit the review of the rendered visual.',
       maxSteps: 3,
       messages: [

@@ -36,6 +36,14 @@ const (
 	FieldHeartbeatAt = "heartbeatAt"
 	// FieldFinishedAt holds the string denoting the finished_at field in the database.
 	FieldFinishedAt = "finishedAt"
+	// FieldStepCount holds the string denoting the step_count field in the database.
+	FieldStepCount = "stepCount"
+	// FieldTokensIn holds the string denoting the tokens_in field in the database.
+	FieldTokensIn = "tokensIn"
+	// FieldTokensOut holds the string denoting the tokens_out field in the database.
+	FieldTokensOut = "tokensOut"
+	// FieldCostCents holds the string denoting the cost_cents field in the database.
+	FieldCostCents = "costCents"
 	// Table holds the table name of the launchrun in the database.
 	Table = "launch_run"
 )
@@ -54,6 +62,10 @@ var Columns = []string{
 	FieldStartedAt,
 	FieldHeartbeatAt,
 	FieldFinishedAt,
+	FieldStepCount,
+	FieldTokensIn,
+	FieldTokensOut,
+	FieldCostCents,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -69,6 +81,14 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultStartedAt holds the default value on creation for the "started_at" field.
 	DefaultStartedAt func() time.Time
+	// DefaultStepCount holds the default value on creation for the "step_count" field.
+	DefaultStepCount int
+	// DefaultTokensIn holds the default value on creation for the "tokens_in" field.
+	DefaultTokensIn int
+	// DefaultTokensOut holds the default value on creation for the "tokens_out" field.
+	DefaultTokensOut int
+	// DefaultCostCents holds the default value on creation for the "cost_cents" field.
+	DefaultCostCents int
 )
 
 // Status defines the type for the "status" enum field.
@@ -79,9 +99,11 @@ const DefaultStatus = StatusRUNNING
 
 // Status values.
 const (
-	StatusRUNNING   Status = "RUNNING"
-	StatusSUCCEEDED Status = "SUCCEEDED"
-	StatusFAILED    Status = "FAILED"
+	StatusRUNNING          Status = "RUNNING"
+	StatusSUCCEEDED        Status = "SUCCEEDED"
+	StatusFAILED           Status = "FAILED"
+	StatusCANCELLED        Status = "CANCELLED"
+	StatusBUDGET_EXHAUSTED Status = "BUDGET_EXHAUSTED"
 )
 
 func (s Status) String() string {
@@ -91,7 +113,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusRUNNING, StatusSUCCEEDED, StatusFAILED:
+	case StatusRUNNING, StatusSUCCEEDED, StatusFAILED, StatusCANCELLED, StatusBUDGET_EXHAUSTED:
 		return nil
 	default:
 		return fmt.Errorf("launchrun: invalid enum value for status field: %q", s)
@@ -159,4 +181,24 @@ func ByHeartbeatAt(opts ...sql.OrderTermOption) OrderOption {
 // ByFinishedAt orders the results by the finished_at field.
 func ByFinishedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFinishedAt, opts...).ToFunc()
+}
+
+// ByStepCount orders the results by the step_count field.
+func ByStepCount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStepCount, opts...).ToFunc()
+}
+
+// ByTokensIn orders the results by the tokens_in field.
+func ByTokensIn(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTokensIn, opts...).ToFunc()
+}
+
+// ByTokensOut orders the results by the tokens_out field.
+func ByTokensOut(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTokensOut, opts...).ToFunc()
+}
+
+// ByCostCents orders the results by the cost_cents field.
+func ByCostCents(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCostCents, opts...).ToFunc()
 }

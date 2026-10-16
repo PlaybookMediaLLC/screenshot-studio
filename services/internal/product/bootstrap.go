@@ -44,6 +44,8 @@ type BootstrapSnapshot struct {
 		Status   string          `json:"status"`
 	} `json:"entitlements"`
 	Capabilities struct {
+		// AIAgent is the workspace's AI kill switch (on unless an admin turned it off).
+		AIAgent           bool `json:"aiAgent"`
 		BrowserAutomation bool `json:"browserAutomation"`
 		EngineeringAgent  bool `json:"engineeringAgent"`
 		Publishing        bool `json:"publishing"`
@@ -130,6 +132,7 @@ func (c *Configuration) Bootstrap(ctx context.Context, actor Actor) (*BootstrapS
 	}
 	result.Entitlements.Plan, result.Entitlements.Status, result.Entitlements.Features = evaluateBootstrapEntitlement(entitlement, time.Now().UTC())
 	result.Capabilities.Publishing = channels > 0
+	result.Capabilities.AIAgent = org.WorkspaceSettings == nil || org.WorkspaceSettings.AiAgentEnabled
 	result.Counters.Approvals, result.Counters.Attention = approvals, attention
 	return result, nil
 }

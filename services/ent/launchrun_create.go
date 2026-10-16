@@ -32,6 +32,14 @@ func (_c *LaunchRunCreate) SetCampaignID(v string) *LaunchRunCreate {
 	return _c
 }
 
+// SetNillableCampaignID sets the "campaign_id" field if the given value is not nil.
+func (_c *LaunchRunCreate) SetNillableCampaignID(v *string) *LaunchRunCreate {
+	if v != nil {
+		_c.SetCampaignID(*v)
+	}
+	return _c
+}
+
 // SetKind sets the "kind" field.
 func (_c *LaunchRunCreate) SetKind(v string) *LaunchRunCreate {
 	_c.mutation.SetKind(v)
@@ -150,6 +158,62 @@ func (_c *LaunchRunCreate) SetNillableFinishedAt(v *time.Time) *LaunchRunCreate 
 	return _c
 }
 
+// SetStepCount sets the "step_count" field.
+func (_c *LaunchRunCreate) SetStepCount(v int) *LaunchRunCreate {
+	_c.mutation.SetStepCount(v)
+	return _c
+}
+
+// SetNillableStepCount sets the "step_count" field if the given value is not nil.
+func (_c *LaunchRunCreate) SetNillableStepCount(v *int) *LaunchRunCreate {
+	if v != nil {
+		_c.SetStepCount(*v)
+	}
+	return _c
+}
+
+// SetTokensIn sets the "tokens_in" field.
+func (_c *LaunchRunCreate) SetTokensIn(v int) *LaunchRunCreate {
+	_c.mutation.SetTokensIn(v)
+	return _c
+}
+
+// SetNillableTokensIn sets the "tokens_in" field if the given value is not nil.
+func (_c *LaunchRunCreate) SetNillableTokensIn(v *int) *LaunchRunCreate {
+	if v != nil {
+		_c.SetTokensIn(*v)
+	}
+	return _c
+}
+
+// SetTokensOut sets the "tokens_out" field.
+func (_c *LaunchRunCreate) SetTokensOut(v int) *LaunchRunCreate {
+	_c.mutation.SetTokensOut(v)
+	return _c
+}
+
+// SetNillableTokensOut sets the "tokens_out" field if the given value is not nil.
+func (_c *LaunchRunCreate) SetNillableTokensOut(v *int) *LaunchRunCreate {
+	if v != nil {
+		_c.SetTokensOut(*v)
+	}
+	return _c
+}
+
+// SetCostCents sets the "cost_cents" field.
+func (_c *LaunchRunCreate) SetCostCents(v int) *LaunchRunCreate {
+	_c.mutation.SetCostCents(v)
+	return _c
+}
+
+// SetNillableCostCents sets the "cost_cents" field if the given value is not nil.
+func (_c *LaunchRunCreate) SetNillableCostCents(v *int) *LaunchRunCreate {
+	if v != nil {
+		_c.SetCostCents(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *LaunchRunCreate) SetID(v string) *LaunchRunCreate {
 	_c.mutation.SetID(v)
@@ -199,15 +263,28 @@ func (_c *LaunchRunCreate) defaults() {
 		v := launchrun.DefaultStartedAt()
 		_c.mutation.SetStartedAt(v)
 	}
+	if _, ok := _c.mutation.StepCount(); !ok {
+		v := launchrun.DefaultStepCount
+		_c.mutation.SetStepCount(v)
+	}
+	if _, ok := _c.mutation.TokensIn(); !ok {
+		v := launchrun.DefaultTokensIn
+		_c.mutation.SetTokensIn(v)
+	}
+	if _, ok := _c.mutation.TokensOut(); !ok {
+		v := launchrun.DefaultTokensOut
+		_c.mutation.SetTokensOut(v)
+	}
+	if _, ok := _c.mutation.CostCents(); !ok {
+		v := launchrun.DefaultCostCents
+		_c.mutation.SetCostCents(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *LaunchRunCreate) check() error {
 	if _, ok := _c.mutation.OrganizationID(); !ok {
 		return &ValidationError{Name: "organization_id", err: errors.New(`ent: missing required field "LaunchRun.organization_id"`)}
-	}
-	if _, ok := _c.mutation.CampaignID(); !ok {
-		return &ValidationError{Name: "campaign_id", err: errors.New(`ent: missing required field "LaunchRun.campaign_id"`)}
 	}
 	if _, ok := _c.mutation.Kind(); !ok {
 		return &ValidationError{Name: "kind", err: errors.New(`ent: missing required field "LaunchRun.kind"`)}
@@ -222,6 +299,18 @@ func (_c *LaunchRunCreate) check() error {
 	}
 	if _, ok := _c.mutation.StartedAt(); !ok {
 		return &ValidationError{Name: "started_at", err: errors.New(`ent: missing required field "LaunchRun.started_at"`)}
+	}
+	if _, ok := _c.mutation.StepCount(); !ok {
+		return &ValidationError{Name: "step_count", err: errors.New(`ent: missing required field "LaunchRun.step_count"`)}
+	}
+	if _, ok := _c.mutation.TokensIn(); !ok {
+		return &ValidationError{Name: "tokens_in", err: errors.New(`ent: missing required field "LaunchRun.tokens_in"`)}
+	}
+	if _, ok := _c.mutation.TokensOut(); !ok {
+		return &ValidationError{Name: "tokens_out", err: errors.New(`ent: missing required field "LaunchRun.tokens_out"`)}
+	}
+	if _, ok := _c.mutation.CostCents(); !ok {
+		return &ValidationError{Name: "cost_cents", err: errors.New(`ent: missing required field "LaunchRun.cost_cents"`)}
 	}
 	return nil
 }
@@ -264,7 +353,7 @@ func (_c *LaunchRunCreate) createSpec() (*LaunchRun, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := _c.mutation.CampaignID(); ok {
 		_spec.SetField(launchrun.FieldCampaignID, field.TypeString, value)
-		_node.CampaignID = value
+		_node.CampaignID = &value
 	}
 	if value, ok := _c.mutation.Kind(); ok {
 		_spec.SetField(launchrun.FieldKind, field.TypeString, value)
@@ -301,6 +390,22 @@ func (_c *LaunchRunCreate) createSpec() (*LaunchRun, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.FinishedAt(); ok {
 		_spec.SetField(launchrun.FieldFinishedAt, field.TypeTime, value)
 		_node.FinishedAt = &value
+	}
+	if value, ok := _c.mutation.StepCount(); ok {
+		_spec.SetField(launchrun.FieldStepCount, field.TypeInt, value)
+		_node.StepCount = value
+	}
+	if value, ok := _c.mutation.TokensIn(); ok {
+		_spec.SetField(launchrun.FieldTokensIn, field.TypeInt, value)
+		_node.TokensIn = value
+	}
+	if value, ok := _c.mutation.TokensOut(); ok {
+		_spec.SetField(launchrun.FieldTokensOut, field.TypeInt, value)
+		_node.TokensOut = value
+	}
+	if value, ok := _c.mutation.CostCents(); ok {
+		_spec.SetField(launchrun.FieldCostCents, field.TypeInt, value)
+		_node.CostCents = value
 	}
 	return _node, _spec
 }

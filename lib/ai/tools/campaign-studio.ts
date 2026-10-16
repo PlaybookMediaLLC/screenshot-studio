@@ -1,6 +1,5 @@
 import 'server-only'
 
-import { tool } from 'ai'
 import sharp from 'sharp'
 import { z } from 'zod'
 import { SCREENSHOT_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
@@ -18,6 +17,7 @@ import {
   productShotFormats,
   productShotMockups,
 } from '../images/product-shot'
+import { defineTool, type ToolRun } from './executor'
 
 /**
  * Tools the campaign studio agent uses to turn a release brief into launch
@@ -33,6 +33,8 @@ export const campaignChannels = ['x', 'linkedin', 'instagram', 'threads', 'blues
 
 const MAX_CAPTURES = 6
 const MAX_PRODUCT_SHOTS = 4
+/** Copy is saved once; the spare calls let the model fix a rejected save. */
+const MAX_COPY_SAVES = 3
 
 export type CampaignStudioScope = {
   /** Product and release URLs the agent may capture, already validated. */
@@ -40,6 +42,8 @@ export type CampaignStudioScope = {
   campaignId: string
   /** Plan version being produced, recorded on everything the run makes. */
   planVersion?: number
+  /** The run the tools belong to: its role, call caps, and audit trail. */
+  run: ToolRun
   tenant: TenantContext
 }
 
@@ -74,16 +78,12 @@ export function createCampaignStudioTools(
   /** Per-run budgets; the launch pipeline sizes them to the plan. */
   limits: { captures?: number; productShots?: number } = {}
 ) {
-  const maxCaptures = limits.captures ?? MAX_CAPTURES
-  const maxProductShots = limits.productShots ?? MAX_PRODUCT_SHOTS
-  let captures = 0
-  let productShots = 0
-
-  const captureProductPage = tool({
+  const captureProductPage = defineTool(scope.run, {
     description:
       'Capture a real screenshot of one of the product pages registered for this release. ' +
       'Use device "mobile" for phone mockups and "desktop" for laptop mockups. Returns an assetId ' +
       'to pass to createProductShot.',
+    effect: 'external',
     inputSchema: z.object({
       colorScheme: z.enum(['light', 'dark']).default('light'),
       device: z.enum(['desktop', 'mobile']),
@@ -94,12 +94,14 @@ export function createCampaignStudioTools(
           'A registered URL, optionally with a #section from the capture list to show that part of the page.'
         ),
     }),
+    maxCallsPerRun: limits.captures ?? MAX_CAPTURES,
+    name: 'captureProductPage',
+    permission: 'release:create',
+    timeoutMs: 90_000,
     execute: async ({ colorScheme, device, url }) => {
       if (!isRegisteredCaptureUrl(url, scope.allowedUrls)) {
         return failure(`Capture one of the registered URLs: ${scope.allowedUrls.join(', ')}.`)
       }
-      if (captures >= maxCaptures) return failure(`At most ${maxCaptures} captures per run.`)
-      captures += 1
       const limit = await checkRateLimit(
         `campaign-studio:${scope.tenant.organizationId}`,
         SCREENSHOT_RATE_LIMIT
@@ -138,11 +140,12 @@ export function createCampaignStudioTools(
     },
   })
 
-  const createProductShot = tool({
+  const createProductShot = defineTool(scope.run, {
     description:
       'Composite a captured screenshot into a device mockup on a gradient background with a short ' +
       'headline. Phone mockups need a mobile capture; laptop mockups need a desktop capture. ' +
       'Headlines should be under 50 characters; subheadlines under 90.',
+    effect: 'draft',
     inputSchema: z.object({
       background: z.object({
         from: z.string().regex(/^#[0-9a-f]{6}$/i),
@@ -165,10 +168,11 @@ export function createCampaignStudioTools(
         .optional(),
       variantLabel: z.enum(['A', 'B']).optional().describe('A or B for an A/B pair.'),
     }),
+    maxCallsPerRun: limits.productShots ?? MAX_PRODUCT_SHOTS,
+    name: 'createProductShot',
+    permission: 'artifact:edit',
+    timeoutMs: 60_000,
     execute: async (input) => {
-      if (productShots >= maxProductShots) {
-        return failure(`At most ${maxProductShots} product shots per run.`)
-      }
       const link = await orNull(
         backendSDK(scope.tenant).getCampaignAsset(scope.campaignId, input.captureAssetId)
       )
@@ -182,7 +186,6 @@ export function createCampaignStudioTools(
           `A ${family} mockup needs a ${family === 'phone' ? 'mobile' : 'desktop'} capture.`
         )
       }
-      productShots += 1
       const screenshot = await readTenantObject({
         assetId: link.asset.id,
         tenant: scope.tenant,
@@ -206,11 +209,12 @@ export function createCampaignStudioTools(
     },
   })
 
-  const saveCampaignCopy = tool({
+  const saveCampaignCopy = defineTool(scope.run, {
     description:
       'Save the launch copy to the campaign: 2-4 content angles and one post per channel per ' +
       'angle where it fits. Call this once, after the product shots exist. Posts are saved as drafts ' +
       'for human review.',
+    effect: 'draft',
     inputSchema: z.object({
       angles: z
         .array(
@@ -233,6 +237,10 @@ export function createCampaignStudioTools(
         .min(1)
         .max(16),
     }),
+    maxCallsPerRun: MAX_COPY_SAVES,
+    name: 'saveCampaignCopy',
+    permission: 'release:create',
+    timeoutMs: 30_000,
     execute: async ({ angles, posts }) => {
       if (record.savedPosts > 0) return failure('Copy was already saved for this run.')
       if (posts.some((post) => post.angleIndex >= angles.length)) {

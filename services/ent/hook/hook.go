@@ -261,6 +261,30 @@ func (f ContentAngleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentAngleMutation", m)
 }
 
+// The ConversationFunc type is an adapter to allow the use of ordinary
+// function as Conversation mutator.
+type ConversationFunc func(context.Context, *ent.ConversationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ConversationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ConversationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ConversationMutation", m)
+}
+
+// The ConversationMessageFunc type is an adapter to allow the use of ordinary
+// function as ConversationMessage mutator.
+type ConversationMessageFunc func(context.Context, *ent.ConversationMessageMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ConversationMessageFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ConversationMessageMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ConversationMessageMutation", m)
+}
+
 // The CreativeTemplateFunc type is an adapter to allow the use of ordinary
 // function as CreativeTemplate mutator.
 type CreativeTemplateFunc func(context.Context, *ent.CreativeTemplateMutation) (ent.Value, error)
@@ -367,6 +391,18 @@ func (f LaunchRunFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, e
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LaunchRunMutation", m)
+}
+
+// The LaunchRunStepFunc type is an adapter to allow the use of ordinary
+// function as LaunchRunStep mutator.
+type LaunchRunStepFunc func(context.Context, *ent.LaunchRunStepMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LaunchRunStepFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.LaunchRunStepMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LaunchRunStepMutation", m)
 }
 
 // The MemberFunc type is an adapter to allow the use of ordinary

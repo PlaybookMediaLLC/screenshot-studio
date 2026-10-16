@@ -176,6 +176,90 @@ func (_u *LaunchRunUpdate) ClearFinishedAt() *LaunchRunUpdate {
 	return _u
 }
 
+// SetStepCount sets the "step_count" field.
+func (_u *LaunchRunUpdate) SetStepCount(v int) *LaunchRunUpdate {
+	_u.mutation.ResetStepCount()
+	_u.mutation.SetStepCount(v)
+	return _u
+}
+
+// SetNillableStepCount sets the "step_count" field if the given value is not nil.
+func (_u *LaunchRunUpdate) SetNillableStepCount(v *int) *LaunchRunUpdate {
+	if v != nil {
+		_u.SetStepCount(*v)
+	}
+	return _u
+}
+
+// AddStepCount adds value to the "step_count" field.
+func (_u *LaunchRunUpdate) AddStepCount(v int) *LaunchRunUpdate {
+	_u.mutation.AddStepCount(v)
+	return _u
+}
+
+// SetTokensIn sets the "tokens_in" field.
+func (_u *LaunchRunUpdate) SetTokensIn(v int) *LaunchRunUpdate {
+	_u.mutation.ResetTokensIn()
+	_u.mutation.SetTokensIn(v)
+	return _u
+}
+
+// SetNillableTokensIn sets the "tokens_in" field if the given value is not nil.
+func (_u *LaunchRunUpdate) SetNillableTokensIn(v *int) *LaunchRunUpdate {
+	if v != nil {
+		_u.SetTokensIn(*v)
+	}
+	return _u
+}
+
+// AddTokensIn adds value to the "tokens_in" field.
+func (_u *LaunchRunUpdate) AddTokensIn(v int) *LaunchRunUpdate {
+	_u.mutation.AddTokensIn(v)
+	return _u
+}
+
+// SetTokensOut sets the "tokens_out" field.
+func (_u *LaunchRunUpdate) SetTokensOut(v int) *LaunchRunUpdate {
+	_u.mutation.ResetTokensOut()
+	_u.mutation.SetTokensOut(v)
+	return _u
+}
+
+// SetNillableTokensOut sets the "tokens_out" field if the given value is not nil.
+func (_u *LaunchRunUpdate) SetNillableTokensOut(v *int) *LaunchRunUpdate {
+	if v != nil {
+		_u.SetTokensOut(*v)
+	}
+	return _u
+}
+
+// AddTokensOut adds value to the "tokens_out" field.
+func (_u *LaunchRunUpdate) AddTokensOut(v int) *LaunchRunUpdate {
+	_u.mutation.AddTokensOut(v)
+	return _u
+}
+
+// SetCostCents sets the "cost_cents" field.
+func (_u *LaunchRunUpdate) SetCostCents(v int) *LaunchRunUpdate {
+	_u.mutation.ResetCostCents()
+	_u.mutation.SetCostCents(v)
+	return _u
+}
+
+// SetNillableCostCents sets the "cost_cents" field if the given value is not nil.
+func (_u *LaunchRunUpdate) SetNillableCostCents(v *int) *LaunchRunUpdate {
+	if v != nil {
+		_u.SetCostCents(*v)
+	}
+	return _u
+}
+
+// AddCostCents adds value to the "cost_cents" field.
+func (_u *LaunchRunUpdate) AddCostCents(v int) *LaunchRunUpdate {
+	_u.mutation.AddCostCents(v)
+	return _u
+}
+
 // Mutation returns the LaunchRunMutation object of the builder.
 func (_u *LaunchRunUpdate) Mutation() *LaunchRunMutation {
 	return _u.mutation
@@ -230,6 +314,9 @@ func (_u *LaunchRunUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
+	if _u.mutation.CampaignIDCleared() {
+		_spec.ClearField(launchrun.FieldCampaignID, field.TypeString)
+	}
 	if value, ok := _u.mutation.Kind(); ok {
 		_spec.SetField(launchrun.FieldKind, field.TypeString, value)
 	}
@@ -271,6 +358,30 @@ func (_u *LaunchRunUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.FinishedAtCleared() {
 		_spec.ClearField(launchrun.FieldFinishedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.StepCount(); ok {
+		_spec.SetField(launchrun.FieldStepCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedStepCount(); ok {
+		_spec.AddField(launchrun.FieldStepCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.TokensIn(); ok {
+		_spec.SetField(launchrun.FieldTokensIn, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedTokensIn(); ok {
+		_spec.AddField(launchrun.FieldTokensIn, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.TokensOut(); ok {
+		_spec.SetField(launchrun.FieldTokensOut, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedTokensOut(); ok {
+		_spec.AddField(launchrun.FieldTokensOut, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.CostCents(); ok {
+		_spec.SetField(launchrun.FieldCostCents, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedCostCents(); ok {
+		_spec.AddField(launchrun.FieldCostCents, field.TypeInt, value)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -440,6 +551,90 @@ func (_u *LaunchRunUpdateOne) ClearFinishedAt() *LaunchRunUpdateOne {
 	return _u
 }
 
+// SetStepCount sets the "step_count" field.
+func (_u *LaunchRunUpdateOne) SetStepCount(v int) *LaunchRunUpdateOne {
+	_u.mutation.ResetStepCount()
+	_u.mutation.SetStepCount(v)
+	return _u
+}
+
+// SetNillableStepCount sets the "step_count" field if the given value is not nil.
+func (_u *LaunchRunUpdateOne) SetNillableStepCount(v *int) *LaunchRunUpdateOne {
+	if v != nil {
+		_u.SetStepCount(*v)
+	}
+	return _u
+}
+
+// AddStepCount adds value to the "step_count" field.
+func (_u *LaunchRunUpdateOne) AddStepCount(v int) *LaunchRunUpdateOne {
+	_u.mutation.AddStepCount(v)
+	return _u
+}
+
+// SetTokensIn sets the "tokens_in" field.
+func (_u *LaunchRunUpdateOne) SetTokensIn(v int) *LaunchRunUpdateOne {
+	_u.mutation.ResetTokensIn()
+	_u.mutation.SetTokensIn(v)
+	return _u
+}
+
+// SetNillableTokensIn sets the "tokens_in" field if the given value is not nil.
+func (_u *LaunchRunUpdateOne) SetNillableTokensIn(v *int) *LaunchRunUpdateOne {
+	if v != nil {
+		_u.SetTokensIn(*v)
+	}
+	return _u
+}
+
+// AddTokensIn adds value to the "tokens_in" field.
+func (_u *LaunchRunUpdateOne) AddTokensIn(v int) *LaunchRunUpdateOne {
+	_u.mutation.AddTokensIn(v)
+	return _u
+}
+
+// SetTokensOut sets the "tokens_out" field.
+func (_u *LaunchRunUpdateOne) SetTokensOut(v int) *LaunchRunUpdateOne {
+	_u.mutation.ResetTokensOut()
+	_u.mutation.SetTokensOut(v)
+	return _u
+}
+
+// SetNillableTokensOut sets the "tokens_out" field if the given value is not nil.
+func (_u *LaunchRunUpdateOne) SetNillableTokensOut(v *int) *LaunchRunUpdateOne {
+	if v != nil {
+		_u.SetTokensOut(*v)
+	}
+	return _u
+}
+
+// AddTokensOut adds value to the "tokens_out" field.
+func (_u *LaunchRunUpdateOne) AddTokensOut(v int) *LaunchRunUpdateOne {
+	_u.mutation.AddTokensOut(v)
+	return _u
+}
+
+// SetCostCents sets the "cost_cents" field.
+func (_u *LaunchRunUpdateOne) SetCostCents(v int) *LaunchRunUpdateOne {
+	_u.mutation.ResetCostCents()
+	_u.mutation.SetCostCents(v)
+	return _u
+}
+
+// SetNillableCostCents sets the "cost_cents" field if the given value is not nil.
+func (_u *LaunchRunUpdateOne) SetNillableCostCents(v *int) *LaunchRunUpdateOne {
+	if v != nil {
+		_u.SetCostCents(*v)
+	}
+	return _u
+}
+
+// AddCostCents adds value to the "cost_cents" field.
+func (_u *LaunchRunUpdateOne) AddCostCents(v int) *LaunchRunUpdateOne {
+	_u.mutation.AddCostCents(v)
+	return _u
+}
+
 // Mutation returns the LaunchRunMutation object of the builder.
 func (_u *LaunchRunUpdateOne) Mutation() *LaunchRunMutation {
 	return _u.mutation
@@ -524,6 +719,9 @@ func (_u *LaunchRunUpdateOne) sqlSave(ctx context.Context) (_node *LaunchRun, er
 			}
 		}
 	}
+	if _u.mutation.CampaignIDCleared() {
+		_spec.ClearField(launchrun.FieldCampaignID, field.TypeString)
+	}
 	if value, ok := _u.mutation.Kind(); ok {
 		_spec.SetField(launchrun.FieldKind, field.TypeString, value)
 	}
@@ -565,6 +763,30 @@ func (_u *LaunchRunUpdateOne) sqlSave(ctx context.Context) (_node *LaunchRun, er
 	}
 	if _u.mutation.FinishedAtCleared() {
 		_spec.ClearField(launchrun.FieldFinishedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.StepCount(); ok {
+		_spec.SetField(launchrun.FieldStepCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedStepCount(); ok {
+		_spec.AddField(launchrun.FieldStepCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.TokensIn(); ok {
+		_spec.SetField(launchrun.FieldTokensIn, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedTokensIn(); ok {
+		_spec.AddField(launchrun.FieldTokensIn, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.TokensOut(); ok {
+		_spec.SetField(launchrun.FieldTokensOut, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedTokensOut(); ok {
+		_spec.AddField(launchrun.FieldTokensOut, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.CostCents(); ok {
+		_spec.SetField(launchrun.FieldCostCents, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedCostCents(); ok {
+		_spec.AddField(launchrun.FieldCostCents, field.TypeInt, value)
 	}
 	_node = &LaunchRun{config: _u.config}
 	_spec.Assign = _node.assignValues

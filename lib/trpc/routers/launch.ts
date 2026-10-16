@@ -250,8 +250,8 @@ export const launchRouter = router({
       const run = await startLaunchRun(ctx.access, {
         campaignId: input.campaignId,
         kind: 'produce',
-        work: async (signal) => {
-          const result = await produceCampaign(ctx.access, input.campaignId, signal)
+        work: async (signal, runId) => {
+          const result = await produceCampaign(ctx.access, input.campaignId, { runId, signal })
           return {
             summary:
               `${result.assetCount} visual${result.assetCount === 1 ? '' : 's'} and ${result.postCount} post${result.postCount === 1 ? '' : 's'}${result.designMode ? '' : ' (product shots: the editor renderer was unavailable)'}. ${result.summary}`.trim(),

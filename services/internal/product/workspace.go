@@ -244,6 +244,8 @@ func (n *NullableString) UnmarshalJSON(data []byte) error {
 }
 
 type UpdateWorkspaceInput struct {
+	// AIAgentEnabled is the AI kill switch; changing it is audited.
+	AIAgentEnabled     *bool          `json:"aiAgentEnabled"`
 	DefaultPublishTime *string        `json:"defaultPublishTime"`
 	Description        NullableString `json:"description"`
 	Locale             *string        `json:"locale"`
@@ -292,6 +294,10 @@ func (c *Configuration) UpdateWorkspace(ctx context.Context, actor Actor, input 
 		}
 	}
 	settingsUpdate := tx.WorkspaceSettings.UpdateOneID(org.ID)
+	aiAgentChanged := input.AIAgentEnabled != nil && *input.AIAgentEnabled != settings.AiAgentEnabled
+	if input.AIAgentEnabled != nil {
+		settingsUpdate.SetAiAgentEnabled(*input.AIAgentEnabled)
+	}
 	if input.DefaultPublishTime != nil {
 		settingsUpdate.SetDefaultPublishTime(*input.DefaultPublishTime)
 	}
@@ -314,6 +320,15 @@ func (c *Configuration) UpdateWorkspace(ctx context.Context, actor Actor, input 
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.workspace_updated", "organization", org.ID); err != nil {
 		return nil, err
+	}
+	if aiAgentChanged {
+		action := "product.workspace_ai_agent_disabled"
+		if *input.AIAgentEnabled {
+			action = "product.workspace_ai_agent_enabled"
+		}
+		if err := appendConfigurationAudit(ctx, tx, actor, action, "organization", org.ID); err != nil {
+			return nil, err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err

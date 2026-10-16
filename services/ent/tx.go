@@ -54,6 +54,10 @@ type Tx struct {
 	CommunicationRecipient *CommunicationRecipientClient
 	// ContentAngle is the client for interacting with the ContentAngle builders.
 	ContentAngle *ContentAngleClient
+	// Conversation is the client for interacting with the Conversation builders.
+	Conversation *ConversationClient
+	// ConversationMessage is the client for interacting with the ConversationMessage builders.
+	ConversationMessage *ConversationMessageClient
 	// CreativeTemplate is the client for interacting with the CreativeTemplate builders.
 	CreativeTemplate *CreativeTemplateClient
 	// CreativeVariant is the client for interacting with the CreativeVariant builders.
@@ -72,6 +76,8 @@ type Tx struct {
 	Invitation *InvitationClient
 	// LaunchRun is the client for interacting with the LaunchRun builders.
 	LaunchRun *LaunchRunClient
+	// LaunchRunStep is the client for interacting with the LaunchRunStep builders.
+	LaunchRunStep *LaunchRunStepClient
 	// Member is the client for interacting with the Member builders.
 	Member *MemberClient
 	// Organization is the client for interacting with the Organization builders.
@@ -274,6 +280,8 @@ func (tx *Tx) init() {
 	tx.CommunicationAttempt = NewCommunicationAttemptClient(tx.config)
 	tx.CommunicationRecipient = NewCommunicationRecipientClient(tx.config)
 	tx.ContentAngle = NewContentAngleClient(tx.config)
+	tx.Conversation = NewConversationClient(tx.config)
+	tx.ConversationMessage = NewConversationMessageClient(tx.config)
 	tx.CreativeTemplate = NewCreativeTemplateClient(tx.config)
 	tx.CreativeVariant = NewCreativeVariantClient(tx.config)
 	tx.CustomerCommunication = NewCustomerCommunicationClient(tx.config)
@@ -283,6 +291,7 @@ func (tx *Tx) init() {
 	tx.GitHubInstallation = NewGitHubInstallationClient(tx.config)
 	tx.Invitation = NewInvitationClient(tx.config)
 	tx.LaunchRun = NewLaunchRunClient(tx.config)
+	tx.LaunchRunStep = NewLaunchRunStepClient(tx.config)
 	tx.Member = NewMemberClient(tx.config)
 	tx.Organization = NewOrganizationClient(tx.config)
 	tx.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(tx.config)

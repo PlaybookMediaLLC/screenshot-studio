@@ -18,6 +18,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasespec"
@@ -1213,7 +1214,9 @@ func (c *Configuration) GetLaunchPreferences(ctx context.Context, actor Actor) (
 // ---------------------------------------------------------------- runs --
 
 type LaunchRunRecord struct {
-	CampaignID string     `json:"campaignId"`
+	// CampaignID is null for an agent run that has no campaign yet.
+	CampaignID *string    `json:"campaignId"`
+	CostCents  int        `json:"costCents"`
 	Error      *string    `json:"error"`
 	FinishedAt *time.Time `json:"finishedAt"`
 	// HeartbeatAt is the last time the worker reported it was alive.
@@ -1223,19 +1226,29 @@ type LaunchRunRecord struct {
 	ResultID    *string    `json:"resultId"`
 	StartedAt   time.Time  `json:"startedAt"`
 	Status      string     `json:"status"`
+	StepCount   int        `json:"stepCount"`
 	Summary     *string    `json:"summary"`
+	TokensIn    int        `json:"tokensIn"`
+	TokensOut   int        `json:"tokensOut"`
 }
 
 func launchRunRecord(row *ent.LaunchRun) LaunchRunRecord {
-	return LaunchRunRecord{CampaignID: row.CampaignID, Error: row.Error, FinishedAt: row.FinishedAt, HeartbeatAt: row.HeartbeatAt, ID: row.ID,
-		Kind: row.Kind, ResultID: row.ResultID, StartedAt: row.StartedAt, Status: string(row.Status), Summary: row.Summary}
+	return LaunchRunRecord{CampaignID: row.CampaignID, CostCents: row.CostCents, Error: row.Error, FinishedAt: row.FinishedAt,
+		HeartbeatAt: row.HeartbeatAt, ID: row.ID, Kind: row.Kind, ResultID: row.ResultID, StartedAt: row.StartedAt,
+		Status: string(row.Status), StepCount: row.StepCount, Summary: row.Summary, TokensIn: row.TokensIn, TokensOut: row.TokensOut}
 }
 
+// FinishLaunchRunInput ends a run. The counters are an agent run's totals;
+// an omitted counter is left as it is.
 type FinishLaunchRunInput struct {
-	Error    *string `json:"error"`
-	ResultID *string `json:"resultId"`
-	Status   string  `json:"status"`
-	Summary  *string `json:"summary"`
+	CostCents *int    `json:"costCents"`
+	Error     *string `json:"error"`
+	ResultID  *string `json:"resultId"`
+	Status    string  `json:"status"`
+	StepCount *int    `json:"stepCount"`
+	Summary   *string `json:"summary"`
+	TokensIn  *int    `json:"tokensIn"`
+	TokensOut *int    `json:"tokensOut"`
 }
 
 // StartLaunchRun records a background AI run. One run of each kind per
@@ -1247,23 +1260,31 @@ func (c *Configuration) StartLaunchRun(ctx context.Context, actor Actor, campaig
 	if !slices.Contains(launchRunKinds, kind) {
 		return nil, ErrInvalidInput
 	}
+	return c.startLaunchRun(ctx, actor, &campaignID, kind)
+}
+
+// startLaunchRun records a run once the caller authorized it. A run without
+// a campaign holds no slot.
+func (c *Configuration) startLaunchRun(ctx context.Context, actor Actor, campaignID *string, kind string) (*LaunchRunRecord, error) {
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
-	exists, err := tx.Campaign.Query().Where(campaign.ID(campaignID), campaign.OrganizationID(actor.OrganizationID)).Exist(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, launchNotFound("Campaign")
-	}
 	now := time.Now().UTC()
-	if kind != "revision" {
+	if campaignID != nil {
+		exists, err := tx.Campaign.Query().Where(campaign.ID(*campaignID), campaign.OrganizationID(actor.OrganizationID)).Exist(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if !exists {
+			return nil, launchNotFound("Campaign")
+		}
+	}
+	if campaignID != nil && kind != "revision" {
 		// A dead run gives up its slot here; the partial unique index on
 		// running runs then admits exactly one of concurrent starts.
-		if _, err := tx.LaunchRun.Update().Where(launchrun.CampaignID(campaignID), launchrun.Kind(kind),
+		if _, err := tx.LaunchRun.Update().Where(launchrun.CampaignID(*campaignID), launchrun.Kind(kind),
 			launchrun.OrganizationID(actor.OrganizationID), launchrun.StatusEQ(launchrun.StatusRUNNING),
 			launchrun.Or(launchrun.HeartbeatAtLT(now.Add(-launchRunHeartbeatStaleAfter)),
 				launchrun.And(launchrun.HeartbeatAtIsNil(), launchrun.StartedAtLT(now.Add(-launchRunStaleAfter))))).
@@ -1271,7 +1292,7 @@ func (c *Configuration) StartLaunchRun(ctx context.Context, actor Actor, campaig
 			return nil, err
 		}
 	}
-	row, err := tx.LaunchRun.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetCampaignID(campaignID).
+	row, err := tx.LaunchRun.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetNillableCampaignID(campaignID).
 		SetKind(kind).SetNillableCreatedByUserID(launchUserID(actor)).SetStartedAt(now).Save(ctx)
 	if ent.IsConstraintError(err) {
 		return nil, errLaunchRunActive
@@ -1290,15 +1311,23 @@ func (c *Configuration) FinishLaunchRun(ctx context.Context, actor Actor, id str
 	if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
 		return err
 	}
+	// CANCELLED is set only by CancelLaunchRun.
 	status := launchrun.Status(input.Status)
-	if status != launchrun.StatusSUCCEEDED && status != launchrun.StatusFAILED {
+	if status != launchrun.StatusSUCCEEDED && status != launchrun.StatusFAILED && status != launchrun.StatusBUDGET_EXHAUSTED {
 		return ErrInvalidInput
+	}
+	for _, counter := range []*int{input.CostCents, input.StepCount, input.TokensIn, input.TokensOut} {
+		if counter != nil && *counter < 0 {
+			return ErrInvalidInput
+		}
 	}
 	// Only a running run finishes; a cancelled or expired one stays as it is.
 	count, err := c.client.LaunchRun.Update().Where(launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID),
 		launchrun.StatusEQ(launchrun.StatusRUNNING)).
 		SetStatus(status).SetFinishedAt(time.Now().UTC()).SetNillableResultID(input.ResultID).
-		SetNillableSummary(input.Summary).SetNillableError(input.Error).Save(ctx)
+		SetNillableSummary(input.Summary).SetNillableError(input.Error).
+		SetNillableCostCents(input.CostCents).SetNillableStepCount(input.StepCount).
+		SetNillableTokensIn(input.TokensIn).SetNillableTokensOut(input.TokensOut).Save(ctx)
 	if err != nil {
 		return err
 	}
@@ -1325,15 +1354,22 @@ func (c *Configuration) HeartbeatLaunchRun(ctx context.Context, actor Actor, id 
 	return true, nil
 }
 
-// CancelLaunchRun fails a running run and reports whether it did. The worker
-// sees it on its next heartbeat and stops.
+// CancelLaunchRun stops a running run and reports whether it did. The worker
+// sees it on its next heartbeat and stops. An agent run ends CANCELLED; a
+// pipeline run ends FAILED with "Cancelled.", which is what the web released
+// with SDK 0.1.13 renders.
 func (c *Configuration) CancelLaunchRun(ctx context.Context, actor Actor, id string) (bool, error) {
 	if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
 		return false, err
 	}
-	count, err := c.client.LaunchRun.Update().Where(launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID),
-		launchrun.StatusEQ(launchrun.StatusRUNNING)).SetStatus(launchrun.StatusFAILED).
-		SetFinishedAt(time.Now().UTC()).SetError("Cancelled.").Save(ctx)
+	now := time.Now().UTC()
+	running := []predicate.LaunchRun{launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID), launchrun.StatusEQ(launchrun.StatusRUNNING)}
+	count, err := c.client.LaunchRun.Update().Where(append(running, launchrun.KindIn(agentRunKinds...))...).
+		SetStatus(launchrun.StatusCANCELLED).SetFinishedAt(now).SetError("Cancelled.").Save(ctx)
+	if err == nil && count == 0 {
+		count, err = c.client.LaunchRun.Update().Where(append(running, launchrun.KindNotIn(agentRunKinds...))...).
+			SetStatus(launchrun.StatusFAILED).SetFinishedAt(now).SetError("Cancelled.").Save(ctx)
+	}
 	if err != nil {
 		return false, err
 	}

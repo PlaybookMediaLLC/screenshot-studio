@@ -33,6 +33,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversationmessage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/customercommunication"
@@ -42,6 +44,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrunstep"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
@@ -148,6 +151,8 @@ func checkColumn(t, c string) error {
 			communicationattempt.Table:           communicationattempt.ValidColumn,
 			communicationrecipient.Table:         communicationrecipient.ValidColumn,
 			contentangle.Table:                   contentangle.ValidColumn,
+			conversation.Table:                   conversation.ValidColumn,
+			conversationmessage.Table:            conversationmessage.ValidColumn,
 			creativetemplate.Table:               creativetemplate.ValidColumn,
 			creativevariant.Table:                creativevariant.ValidColumn,
 			customercommunication.Table:          customercommunication.ValidColumn,
@@ -157,6 +162,7 @@ func checkColumn(t, c string) error {
 			githubinstallation.Table:             githubinstallation.ValidColumn,
 			invitation.Table:                     invitation.ValidColumn,
 			launchrun.Table:                      launchrun.ValidColumn,
+			launchrunstep.Table:                  launchrunstep.ValidColumn,
 			member.Table:                         member.ValidColumn,
 			organization.Table:                   organization.ValidColumn,
 			organizationenterprisesettings.Table: organizationenterprisesettings.ValidColumn,

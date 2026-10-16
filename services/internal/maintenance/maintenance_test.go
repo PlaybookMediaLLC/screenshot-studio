@@ -187,6 +187,13 @@ func TestWorkspaceCleanupKeepsAuditAndOtherTenants(t *testing.T) {
 	exec(t, s.DB, `INSERT INTO design(id,"organizationId",name,document,"updatedAt") VALUES('design-a','a','test','{}',now()),('design-b','b','test','{}',now())`)
 	exec(t, s.DB, `INSERT INTO workspace_deletion(id,"organizationId","requestedByUserId","scheduledFor","updatedAt") VALUES('due','a','user',now()-interval '1 day',now()),('future','b','user',now()+interval '14 days',now())`)
 	exec(t, s.DB, `INSERT INTO audit_log(id,"organizationId","requestId","actorType",action,"entityType") VALUES('evidence','a','r','SERVICE','test','test')`)
+	for _, org := range []string{"a", "b"} {
+		exec(t, s.DB, `INSERT INTO launch_run(id,"organizationId",kind) VALUES($1,$2,'agent')`, "run-"+org, org)
+		exec(t, s.DB, `INSERT INTO launch_run_step(id,"organizationId","runId","index",kind,status) VALUES($1,$2,$3,0,'model','SUCCEEDED')`, "step-"+org, org, "run-"+org)
+		exec(t, s.DB, `INSERT INTO conversation(id,"organizationId",title) VALUES($1,$2,'Launch')`, "conversation-"+org, org)
+		exec(t, s.DB, `INSERT INTO conversation_message(id,"organizationId","conversationId",role,kind,content,"launchRunId") VALUES($1,$2,$3,'user','text','Market it',$4)`,
+			"message-"+org, org, "conversation-"+org, "run-"+org)
+	}
 	if n := run(t, s, "workspace-cleanup"); n != 1 {
 		t.Fatalf("purged %d", n)
 	}
@@ -194,6 +201,10 @@ func TestWorkspaceCleanupKeepsAuditAndOtherTenants(t *testing.T) {
 	expect(t, s.DB, 1, `SELECT count(*) FROM audit_log WHERE id='evidence'`)
 	expect(t, s.DB, 0, `SELECT count(*) FROM design WHERE "organizationId"='a'`)
 	expect(t, s.DB, 1, `SELECT count(*) FROM design WHERE "organizationId"='b'`)
+	for _, table := range []string{"launch_run", "launch_run_step", "conversation", "conversation_message"} {
+		expect(t, s.DB, 0, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='a'`)
+		expect(t, s.DB, 1, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='b'`)
+	}
 	if len(o.deleted) != 1 || o.deleted[0] != "org/a/asset-a" {
 		t.Fatalf("deleted: %v", o.deleted)
 	}

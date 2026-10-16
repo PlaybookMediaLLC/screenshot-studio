@@ -76,6 +76,20 @@ func (_c *WorkspaceSettingsCreate) SetNillableDefaultPublishTime(v *string) *Wor
 	return _c
 }
 
+// SetAiAgentEnabled sets the "ai_agent_enabled" field.
+func (_c *WorkspaceSettingsCreate) SetAiAgentEnabled(v bool) *WorkspaceSettingsCreate {
+	_c.mutation.SetAiAgentEnabled(v)
+	return _c
+}
+
+// SetNillableAiAgentEnabled sets the "ai_agent_enabled" field if the given value is not nil.
+func (_c *WorkspaceSettingsCreate) SetNillableAiAgentEnabled(v *bool) *WorkspaceSettingsCreate {
+	if v != nil {
+		_c.SetAiAgentEnabled(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *WorkspaceSettingsCreate) SetCreatedAt(v time.Time) *WorkspaceSettingsCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -157,6 +171,10 @@ func (_c *WorkspaceSettingsCreate) defaults() {
 		v := workspacesettings.DefaultDefaultPublishTime
 		_c.mutation.SetDefaultPublishTime(v)
 	}
+	if _, ok := _c.mutation.AiAgentEnabled(); !ok {
+		v := workspacesettings.DefaultAiAgentEnabled
+		_c.mutation.SetAiAgentEnabled(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := workspacesettings.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -177,6 +195,9 @@ func (_c *WorkspaceSettingsCreate) check() error {
 	}
 	if _, ok := _c.mutation.DefaultPublishTime(); !ok {
 		return &ValidationError{Name: "default_publish_time", err: errors.New(`ent: missing required field "WorkspaceSettings.default_publish_time"`)}
+	}
+	if _, ok := _c.mutation.AiAgentEnabled(); !ok {
+		return &ValidationError{Name: "ai_agent_enabled", err: errors.New(`ent: missing required field "WorkspaceSettings.ai_agent_enabled"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "WorkspaceSettings.created_at"`)}
@@ -234,6 +255,10 @@ func (_c *WorkspaceSettingsCreate) createSpec() (*WorkspaceSettings, *sqlgraph.C
 	if value, ok := _c.mutation.DefaultPublishTime(); ok {
 		_spec.SetField(workspacesettings.FieldDefaultPublishTime, field.TypeString, value)
 		_node.DefaultPublishTime = value
+	}
+	if value, ok := _c.mutation.AiAgentEnabled(); ok {
+		_spec.SetField(workspacesettings.FieldAiAgentEnabled, field.TypeBool, value)
+		_node.AiAgentEnabled = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(workspacesettings.FieldCreatedAt, field.TypeTime, value)

@@ -423,7 +423,7 @@ func workspaceSettingsResponse(settings *ent.WorkspaceSettings) any {
 	return map[string]any{
 		"organizationId": settings.ID, "description": settings.Description,
 		"locale": settings.Locale, "timeZone": settings.TimeZone,
-		"defaultPublishTime": settings.DefaultPublishTime,
-		"createdAt":          settings.CreatedAt, "updatedAt": settings.UpdatedAt,
+		"defaultPublishTime": settings.DefaultPublishTime, "aiAgentEnabled": settings.AiAgentEnabled,
+		"createdAt": settings.CreatedAt, "updatedAt": settings.UpdatedAt,
 	}
 }

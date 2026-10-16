@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.0.0...v2.0.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* require a paid plan on every tenant API call, and put the RFC plan in the README ([#122](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/122)) ([d2482e6](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/d2482e60949d03a4574d44192af27917ff0d6c48))
+
 ## [2.0.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.23.0...v2.0.0) (2026-10-16)
 
 

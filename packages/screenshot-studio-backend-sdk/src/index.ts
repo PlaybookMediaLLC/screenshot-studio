@@ -1137,6 +1137,21 @@ export class ScreenshotStudioBackendSDK {
     return this.request<BrandKit>('v1/brand-kits', { body: input, method: 'POST' })
   }
 
+  /** Rename every version of the brand kit `id` belongs to. */
+  async renameBrandKit(id: string, name: string) {
+    return this.request<BrandKit>(`v1/brand-kits/${encodeURIComponent(id)}`, {
+      body: { name },
+      method: 'PATCH',
+    })
+  }
+
+  /** Archive every version of the brand kit `id` belongs to. */
+  async archiveBrandKit(id: string) {
+    return this.request<{ archived: true }>(`v1/brand-kits/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+  }
+
   async getBrandProfile() {
     return this.request<{ brandProfile: BrandProfile | null }>('v1/brand-profile')
   }
@@ -1461,6 +1476,21 @@ export class ScreenshotStudioBackendSDK {
     return this.request<BackendCreativeTemplate>('v1/creative-templates', {
       body: input,
       method: 'POST',
+    })
+  }
+
+  /** Rename every version of the template `id` belongs to. */
+  async renameCreativeTemplate(id: string, name: string) {
+    return this.request<BackendCreativeTemplate>(`v1/creative-templates/${encodeURIComponent(id)}`, {
+      body: { name },
+      method: 'PATCH',
+    })
+  }
+
+  /** Archive every version of the template `id` belongs to. */
+  async archiveCreativeTemplate(id: string) {
+    return this.request<{ archived: true }>(`v1/creative-templates/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
     })
   }
 

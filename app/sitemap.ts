@@ -45,6 +45,7 @@ const STATIC_PATHS = [
 ];
 
 function lastModifiedFor(path: string): string {
+  if (path === "/free-screenshot-editor") return "2026-10-16";
   const guide = path.startsWith("/guides/")
     ? getGuide(path.slice("/guides/".length))
     : undefined;

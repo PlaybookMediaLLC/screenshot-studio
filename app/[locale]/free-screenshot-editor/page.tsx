@@ -4,12 +4,9 @@ import {
   ArrowRight01Icon,
   BlurIcon,
   ColorsIcon,
-  CubeIcon,
   Download04Icon,
   Layers01Icon,
-  MagicWand01Icon,
   TextFontIcon,
-  Video01Icon,
 } from "hugeicons-react";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
@@ -17,43 +14,25 @@ import { CARD_CLASS, INTER } from "@/components/tools/ui";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
 import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 
+const DESCRIPTION =
+  "Edit screenshots online for free. Add text, annotate with arrows, blur details, and download PNG, JPG, or WebP. No app install, signup, or watermark.";
+
 export const metadata: Metadata = {
   title: "Free Screenshot Editor Online",
-  description:
-    "Free online screenshot editor: blur private details, add arrows and text, then add backgrounds, device mockups, and 3D. Works in any browser. No signup, no watermark.",
+  description: DESCRIPTION,
   keywords: [
+    "screenshot editor",
     "screenshot editor online free",
     "free screenshot editor",
     "online screenshot editor",
-    "screenshot beautifier free",
-    "edit screenshots online",
-    "free screenshot tool",
-    "screenshot background editor",
-    "beautify screenshots online free",
-    "screenshot editor no signup",
-    "free image editor for screenshots",
-    "pika style alternative free",
-    "shots.so alternative free",
-    "screenshot mockup generator free",
-    "browser mockup tool online",
-    "screenshot wrapper no watermark",
-    "best screenshot editor online",
+    "edit screenshot online free",
     "screenshot editor without watermark",
-    "screenshot editor online free without watermark",
-    "screenshot editor no download",
-    "uizard screenshot editor alternative",
-    "add gradient background to screenshot",
-    "screenshot shadow and border editor",
-    "blur screenshot online",
-    "annotate screenshot online free",
-    "redact screenshot online",
-    "screenshot editor for chromebook",
+    "screenshot text editor",
   ],
   openGraph: {
     ...OG_DEFAULTS,
     title: "Free Screenshot Editor Online - Screenshot Studio",
-    description:
-      `Beautify screenshots instantly with ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, 3D effects, and animations. Free, no signup required.`,
+    description: DESCRIPTION,
     url: "/free-screenshot-editor",
   },
   alternates: {
@@ -67,171 +46,122 @@ const ctaClassName =
 const secondaryCtaClassName =
   "inline-flex items-center justify-center rounded-md px-6 py-2.5 text-base font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:scale-[0.99]";
 
-const cardSurface = CARD_CLASS;
-
-
 const capabilities = [
   {
-    icon: BlurIcon,
-    title: "Blur & Annotate",
+    icon: TextFontIcon,
+    title: "Add text to a screenshot",
     description:
-      "Blur emails, names, and API keys, and draw arrows, lines, rectangles, and circles to point out what matters.",
+      `Add a caption or label, choose from ${atLeast(PRODUCT_FACTS.fonts)} fonts, and adjust its size and color. Move each text layer to the part of the screenshot it explains.`,
+  },
+  {
+    icon: ArrowRight01Icon,
+    title: "Annotate with arrows and shapes",
+    description:
+      "Point to a button with an arrow, draw a box around an error, or circle a detail. Choose a color and line width for each annotation.",
+  },
+  {
+    icon: BlurIcon,
+    title: "Blur or pixelate details",
+    description:
+      "Draw a blur region over a name, email address, or other detail. Switch between blur and mosaic and adjust the strength before exporting.",
   },
   {
     icon: ColorsIcon,
-    title: `${atLeast(PRODUCT_FACTS.backgrounds)} Backgrounds`,
+    title: "Change the background",
     description:
-      "Gradients, solid colors, mesh backgrounds, and custom uploads. Make any screenshot pop with a professional backdrop.",
-  },
-  {
-    icon: MagicWand01Icon,
-    title: "Shadows & Effects",
-    description:
-      "Realistic drop shadows with customizable blur, spread, offset, and color. Add depth in one click.",
+      `Choose from ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds or use your own image. Adjust padding, rounded corners, and shadows, or export with a transparent background.`,
   },
   {
     icon: Layers01Icon,
-    title: "Device Mockups & Frames",
+    title: "Add a browser or device frame",
     description:
       "Put screenshots in iPhone, MacBook, and Apple Watch mockups, or Safari, Chrome, macOS, Windows, and Arc frames.",
   },
   {
-    icon: CubeIcon,
-    title: "3D Perspective",
-    description:
-      "Tilt, rotate, and scale with real-time 3D transforms. Create eye-catching angles for presentations.",
-  },
-  {
-    icon: Video01Icon,
-    title: "Animation & Video Export",
-    description:
-      `Add keyframe animations with ${atLeast(PRODUCT_FACTS.animationPresets)} presets and export as MP4, WebM, or GIF. Bring static screenshots to life.`,
-  },
-  {
-    icon: TextFontIcon,
-    title: "Text & Overlays",
-    description:
-      `Add captions, labels, and annotations with ${atLeast(PRODUCT_FACTS.fonts)} fonts. Layer stickers and arrows for tutorials.`,
-  },
-  {
     icon: Download04Icon,
-    title: "High-Res Export",
+    title: "Download without a watermark",
     description:
-      "Export PNG, JPEG, or WebP at up to 5x resolution. Retina-ready images for any platform.",
+      `Save as PNG, JPEG, or WebP at up to ${PRODUCT_FACTS.maxExportScale}x resolution. PNG keeps text sharp and supports transparency. Every export is free, with no watermark.`,
   },
 ] as const;
 
 const howItWorks = [
   {
     step: "1",
-    title: "Upload Your Screenshot",
-    desc: "Drag and drop any image or paste from clipboard. Supports PNG, JPG, WebP, and more.",
+    title: "Open the editor and add an image",
+    desc: "Choose a PNG, JPG, or WebP screenshot from your device. On a computer, you can also drag it onto the editor or paste it with Ctrl+V or Cmd+V.",
   },
   {
     step: "2",
-    title: "Style It",
-    desc: "Choose a background, add shadows, apply 3D transforms, or pick a one-click preset.",
+    title: "Add text, arrows, or blur",
+    desc: "In Image mode, open Design. Use Add Text for labels and Draw & Markup for arrows, shapes, or blur. On a phone, tap Edit design to find these controls.",
   },
   {
     step: "3",
-    title: "Export & Share",
-    desc: "Download as high-res PNG/JPG or export animations as MP4, WebM, or GIF.",
-  },
-];
-
-const useCases = [
-  {
-    title: "SaaS Product Marketing",
-    description:
-      "Turn raw product screenshots into polished hero images for landing pages, pitch decks, and ad creatives.",
-  },
-  {
-    title: "Social Media Posts",
-    description:
-      "Create scroll-stopping Twitter, LinkedIn, and Instagram posts from app screenshots in seconds.",
-  },
-  {
-    title: "Developer Portfolios",
-    description:
-      "Showcase your projects with professional screenshots that highlight your best work.",
-  },
-  {
-    title: "Documentation & Tutorials",
-    description:
-      "Annotate and beautify screenshots for help docs, blog posts, and step-by-step guides.",
-  },
-  {
-    title: "App Store Listings",
-    description:
-      "Generate beautiful preview images that increase downloads and conversion rates.",
-  },
-  {
-    title: "Client Presentations",
-    description:
-      "Impress clients with polished mockups instead of raw screenshots in proposals and reports.",
+    title: "Save your edited screenshot",
+    desc: "Open Save in the top bar, choose PNG, JPEG, or WebP and your resolution, then export. Your original file stays unchanged; the download is a separate image.",
   },
 ];
 
 const faqs = [
   {
-    q: "Is this screenshot editor really free?",
-    a: "Yes, Screenshot Studio is 100% free with no hidden costs, premium tiers, or watermarks. Every feature is available to everyone. Unlimited exports, full resolution, no restrictions.",
+    q: "Is this screenshot editor free without a watermark?",
+    a: "Yes. Text, annotations, blur, backgrounds, and image exports are free. There is no signup, paid tier, or watermark on your downloaded screenshot.",
   },
   {
-    q: "Do I need to install anything?",
-    a: "No. Screenshot Studio runs entirely in your browser. There is nothing to download or install. Just open the editor and start editing your screenshots immediately.",
+    q: "How do I add text to a screenshot?",
+    a: `Open your screenshot in Image mode and choose Design, then Add Text. Type a caption or label, choose from ${atLeast(PRODUCT_FACTS.fonts)} fonts, set its size and color, and drag it into place. You can add multiple text layers and edit them separately.`,
   },
   {
-    q: "Do I need to create an account?",
-    a: "No signup required. Your privacy matters. We don't collect personal data or require registration. Just open the editor and start creating.",
+    q: "Can I edit text that is already in a screenshot?",
+    a: "Existing screenshot text is part of the image, not an editable text layer. Screenshot Studio lets you add new text and edit those labels, but it does not recognize or automatically replace the original words. To correct text in the source, change it in the original app and take another screenshot.",
   },
   {
-    q: "What image formats are supported?",
-    a: "You can upload PNG, JPG, WebP, and most common image formats. Export as high-resolution PNG (with transparency), JPEG, or WebP. For animations, export as MP4, WebM, or GIF.",
+    q: "Can I edit a screenshot on my phone?",
+    a: "Yes. Open the editor in your mobile browser and tap to upload an image from Photos or Files. Tap Edit design, choose Image mode and Design, then use Add Text or Draw & Markup. Close the panel to work on the canvas and tap Save to download. A larger screen gives you more room for precise edits.",
   },
   {
-    q: "Can I blur or redact sensitive information in a screenshot?",
-    a: "Yes. Pick Blur in the Annotate panel and drag over emails, API keys, or names. The blur is part of the exported image. For anything truly secret, crop the area out instead, since a light blur on short text can sometimes be guessed.",
+    q: "How do I blur part of a screenshot?",
+    a: "In Design, open Draw & Markup, choose Blur, and drag over the area you want to obscure. Choose blur or mosaic and adjust its strength. Check the exported image before sharing. For secrets such as passwords or API keys, remove the area with the crop tool instead: light blur on short text can sometimes be guessed.",
   },
   {
-    q: "Does it work on Linux and Chromebook?",
-    a: "Yes. It runs in any modern browser, including Chrome on ChromeOS and Chrome or Firefox on Linux. Nothing is installed, so it also works on work laptops where you cannot install software.",
+    q: "Do I need to download an app or create an account?",
+    a: "No. The editor runs in your browser on Windows, Mac, Linux, Chromebook, and mobile devices. Open it, add a screenshot, and start editing without installing software or creating an account.",
   },
   {
-    q: "Can I use this for commercial projects?",
-    a: "Absolutely. There are no usage restrictions on images you create. Use them for SaaS marketing, social media, client work, app stores, or any other purpose.",
+    q: "What image formats can I open and save?",
+    a: "Open PNG, JPG, or WebP screenshots and export PNG, JPEG, or WebP. Choose PNG for screenshots with small text or a transparent background, and JPEG or WebP when file size matters more. Exporting creates a new file and leaves your original unchanged.",
   },
   {
-    q: "How does it compare to Canva or Figma?",
-    a: "Screenshot Studio is purpose-built for screenshot beautification. Unlike general-purpose editors, it offers one-click presets, 3D perspective transforms, animation timelines, and video export, all optimized for the screenshot-to-social-media workflow.",
+    q: "Is my screenshot uploaded for editing?",
+    a: "Imported images are edited in your browser, and drafts are stored in your browser on this device. Export compression sends the finished image to the server without storing it. Capturing a website from a URL also needs the server. The privacy policy explains these requests.",
   },
 ];
 
-
 const featureLinks = [
   {
-    href: "/mockup-generator",
-    label: "Mockup Generator",
+    href: "/guides/how-to-edit-screenshot-online",
+    label: "How to edit a screenshot",
   },
   {
-    href: "/guides/best-free-screenshot-editors-no-watermark",
-    label: "Best Free Editors, No Watermark",
+    href: "/guides/how-to-add-text-to-screenshot",
+    label: "Add text to a screenshot",
   },
   {
-    href: "/features/screenshot-beautifier",
-    label: "Screenshot Beautifier",
+    href: "/guides/how-to-annotate-screenshot",
+    label: "Annotate with arrows and shapes",
   },
   {
-    href: "/features/animation-maker",
-    label: "Animation Maker",
+    href: "/guides/how-to-blur-screenshot",
+    label: "Blur part of a screenshot",
   },
   {
-    href: "/features/3d-effects",
-    label: "3D Effects",
+    href: "/crop-image",
+    label: "Crop a screenshot",
   },
   {
-    href: "/features/social-media-graphics",
-    label: "Social Media Graphics",
+    href: "/resize-image",
+    label: "Resize a screenshot",
   },
 ] as const;
 
@@ -259,8 +189,7 @@ export default function FreeScreenshotEditorPage() {
       {
         "@type": "SoftwareApplication",
         name: "Screenshot Studio - Free Screenshot Editor Online",
-        description:
-          "Free screenshot editor online. Beautify screenshots with backgrounds, shadows, 3D effects, animations, and video export. No signup required.",
+        description: DESCRIPTION,
         url: "https://www.screenshot-studio.com/free-screenshot-editor",
         applicationCategory: "DesignApplication",
         applicationSubCategory: "Screenshot Editor",
@@ -271,16 +200,18 @@ export default function FreeScreenshotEditorPage() {
           priceCurrency: "USD",
         },
         featureList: [
+          "Add and edit text overlays",
+          "Annotate with arrows, lines, and shapes",
+          "Blur or pixelate selected regions",
           `${atLeast(PRODUCT_FACTS.backgrounds)} gradient backgrounds`,
           "Custom shadow effects",
           "3D perspective transforms",
-          "Blur and annotation tools (arrows, lines, shapes)",
           "iPhone, MacBook, and Apple Watch mockups",
           "Browser and window frames (Safari, Chrome, macOS, Windows, Arc)",
           "Text and image overlays",
           `${atLeast(PRODUCT_FACTS.animationPresets)} animation presets`,
           "Video export (MP4, WebM, GIF)",
-          "High-res export up to 5x",
+          `High-res export up to ${PRODUCT_FACTS.maxExportScale}x`,
           "No signup required",
           "No watermarks",
         ],
@@ -308,7 +239,7 @@ export default function FreeScreenshotEditorPage() {
       <Navigation />
 
       <main className="flex-1">
-        <section className="px-6 pb-20 pt-32">
+        <section className="px-6 pb-12 pt-24 sm:pb-20 sm:pt-32">
           <div className="mx-auto max-w-4xl text-center">
             <span className="mb-6 inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <span>100% Free</span>
@@ -324,18 +255,16 @@ export default function FreeScreenshotEditorPage() {
               Free Screenshot Editor Online
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground md:text-xl">
-              Blur private details, draw arrows and boxes, then add
-              backgrounds, device mockups, shadows, and 3D effects and export
-              as an image or video. It runs in your browser on Mac, Windows,
-              Linux, and Chromebook, with no signup, no download, and no
-              watermark.
+              Edit a screenshot online for free: add text, draw arrows and
+              boxes, or blur details before sharing. Choose a background
+              and download a PNG, JPG, or WebP with no watermark.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link href="/editor" className={ctaClassName}>
-                Open Free Editor
+                Edit a screenshot
               </Link>
-              <Link href="/features" className={secondaryCtaClassName}>
-                See All Features
+              <Link href="#how-to-edit" className={secondaryCtaClassName}>
+                How to edit a screenshot
               </Link>
             </div>
           </div>
@@ -348,24 +277,19 @@ export default function FreeScreenshotEditorPage() {
                 className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
                 style={{ fontFamily: INTER }}
               >
-                Everything You Need to Edit Screenshots
+                Text, annotations, and backgrounds in one editor
               </h2>
               <p className="mx-auto max-w-2xl text-muted-foreground">
-                A complete screenshot editor that runs in your browser. No
-                bloated software, no learning curve. Just powerful tools that
-                work.
+                Start with a screenshot you already have. Add the context
+                someone needs to understand it, then save a separate copy.
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {capabilities.map((cap, index) => (
+              {capabilities.map((cap) => (
                 <div
                   key={cap.title}
-                  className={`flex gap-4 p-6 ${cardSurface} ${
-                    index === capabilities.length - 1
-                      ? "md:col-span-2 md:max-w-md md:justify-self-center lg:col-span-1 lg:col-start-2 lg:max-w-none lg:justify-self-stretch"
-                      : ""
-                  }`}
+                  className={`flex gap-4 p-6 ${CARD_CLASS}`}
                 >
                   <cap.icon
                     className="size-6 shrink-0 text-foreground"
@@ -383,23 +307,23 @@ export default function FreeScreenshotEditorPage() {
           </div>
         </section>
 
-        <section className="px-6 py-20">
+        <section id="how-to-edit" className="scroll-mt-20 px-6 py-20">
           <div className="mx-auto max-w-4xl">
             <div className="mb-16 text-center">
               <h2
                 className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
                 style={{ fontFamily: INTER }}
               >
-                3 Steps to Professional Screenshots
+                How to edit a screenshot online
               </h2>
               <p className="text-muted-foreground">
-                No learning curve. No tutorials needed.
+                Three steps, from the image on your device to a finished download.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+            <ol className="grid grid-cols-1 gap-8 md:grid-cols-3">
               {howItWorks.map((item) => (
-                <div key={item.step} className="text-center">
+                <li key={item.step} className="text-center">
                   <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-md bg-primary text-base font-semibold text-primary-foreground">
                     {item.step}
                   </div>
@@ -407,35 +331,9 @@ export default function FreeScreenshotEditorPage() {
                     {item.title}
                   </h3>
                   <p className="text-sm text-muted-foreground">{item.desc}</p>
-                </div>
+                </li>
               ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="border-y border-border px-6 py-20">
-          <div className="mx-auto max-w-6xl">
-            <div className="mb-16 text-center">
-              <h2
-                className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
-                style={{ fontFamily: INTER }}
-              >
-                Built for Every Use Case
-              </h2>
-              <p className="mx-auto max-w-2xl text-muted-foreground">
-                Whether you are a developer, marketer, designer, or content
-                creator, Screenshot Studio has you covered.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {useCases.map((uc) => (
-                <div key={uc.title} className={`p-6 ${cardSurface}`}>
-                  <h3 className="mb-2 font-semibold text-foreground">{uc.title}</h3>
-                  <p className="text-sm text-muted-foreground">{uc.description}</p>
-                </div>
-              ))}
-            </div>
+            </ol>
           </div>
         </section>
 
@@ -475,7 +373,7 @@ export default function FreeScreenshotEditorPage() {
               className="mb-8 text-center text-2xl font-semibold tracking-[-0.03em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              Explore More Features
+              Guides for your next screenshot edit
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {featureLinks.map((link) => (
@@ -492,6 +390,12 @@ export default function FreeScreenshotEditorPage() {
                 </Link>
               ))}
             </div>
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              For presentation effects, try the{" "}
+              <Link href="/mockup-generator" className="underline underline-offset-4">mockup generator</Link>
+              {" "}or{" "}
+              <Link href="/features/animation-maker" className="underline underline-offset-4">screenshot animation maker</Link>.
+            </p>
           </div>
         </section>
 

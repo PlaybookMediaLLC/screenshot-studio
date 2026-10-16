@@ -58,7 +58,14 @@ export const AGENT_PAGES: AgentPage[] = [
     path: "/free-screenshot-editor",
     title: "Free Screenshot Editor Online - Screenshot Studio",
     summary:
-      "Free browser-based screenshot editor with no signup and no watermark. Covers the full editing workflow from upload to export.",
+      "Edit screenshots online for free: add text, annotate with arrows and shapes, blur or pixelate details, and save PNG, JPEG, or WebP with no watermark or signup.",
+    points: [
+      "Open /editor and choose a PNG, JPG, or WebP, or paste an image with Ctrl+V or Cmd+V on a computer.",
+      "In Image mode, choose Design, then Add Text or Draw & Markup. On mobile, tap Edit design to find these controls.",
+      "Text overlays add new captions and labels; existing words in the screenshot are pixels and cannot be automatically replaced.",
+      "Open Save to choose your format and resolution, then export a new file without changing the original.",
+      "Imported images are edited in the browser. Export compression sends the finished image to the server without storing it.",
+    ],
   },
   {
     path: "/code",

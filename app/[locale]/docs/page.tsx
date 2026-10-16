@@ -13,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: "Shots API Documentation",
   description:
-    "Shots API documentation: anonymous editor utilities, authenticated tenant endpoints, rate limits, errors, and the OpenAPI 3.1 specification.",
+    "Shots API documentation: editor utilities, workspace tenant endpoints, authentication, rate limits, errors, and the OpenAPI 3.1 specification.",
   keywords: [
     "Shots API",
     "Shots API docs",
@@ -50,6 +50,7 @@ const ENDPOINTS: Endpoint[] = [
     description:
       "Renders the page at the given URL and returns the screenshot as a base64-encoded PNG. Results are cached per URL, device type, and color scheme.",
     request: `curl -X POST https://shots.playbookmedia.io/api/screenshot \\
+  -H "X-API-Key: $SHOTS_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "url": "https://example.com",
@@ -73,6 +74,7 @@ const ENDPOINTS: Endpoint[] = [
     description:
       "Recompresses an image with Sharp and returns the optimized bytes. JPEG uses MozJPEG, WebP uses libwebp, PNG uses adaptive filtering. The response body is the image itself, not JSON.",
     request: `curl -X POST https://shots.playbookmedia.io/api/export \\
+  -H "X-API-Key: $SHOTS_API_KEY" \\
   -F "image=@shot.png" \\
   -F "format=webp" \\
   -F "qualityPreset=high" \\
@@ -88,7 +90,8 @@ content-type: image/webp
     path: "/api/tweet/{id}",
     description:
       "Returns the public tweet payload used to render a tweet as an image. The id is the numeric status ID from the tweet URL.",
-    request: `curl https://shots.playbookmedia.io/api/tweet/1234567890123456789`,
+    request: `curl https://shots.playbookmedia.io/api/tweet/1234567890123456789 \\
+  -H "X-API-Key: $SHOTS_API_KEY"`,
     response: `{
   "data": {
     "id_str": "1234567890123456789",
@@ -104,6 +107,7 @@ content-type: image/webp
     description:
       "Streams a Twitter-hosted image through this origin so it can be drawn onto a canvas without tainting it. Only pbs.twimg.com, abs.twimg.com, ton.twitter.com, and video.twimg.com are allowed.",
     request: `curl "https://shots.playbookmedia.io/api/image-proxy?url=https://pbs.twimg.com/media/EXAMPLE.jpg" \\
+  -H "X-API-Key: $SHOTS_API_KEY" \\
   -o media.jpg`,
     response: `HTTP/2 200
 content-type: image/jpeg
@@ -127,6 +131,11 @@ const ERROR_CODES = [
     code: "unsupported_value",
     status: "400",
     meaning: "A field was set to a value outside its allowed enum.",
+  },
+  {
+    code: "unauthorized",
+    status: "401",
+    meaning: "No signed-in session or workspace API key was sent.",
   },
   {
     code: "forbidden_domain",
@@ -179,7 +188,7 @@ const RESOURCES = [
   {
     href: "/docs/authentication",
     label: "Authentication and rate limits",
-    detail: "Utility endpoints are anonymous; /api/v1 tenant endpoints require workspace access.",
+    detail: "Every endpoint takes a signed-in session or a workspace API key in X-API-Key.",
   },
   {
     href: "/developers",
@@ -206,8 +215,9 @@ export default function DocsPage() {
           Shots API Documentation
         </h1>
         <p className="mb-12 text-lg leading-relaxed text-muted-foreground">
-          Shots exposes anonymous editor utilities for capture,
-          export compression, tweet resolution, and approved media proxying. It
+          Shots exposes editor utilities for capture, export compression,
+          tweet resolution, and approved media proxying. Each one requires a
+          signed-in session or a workspace API key in <code>X-API-Key</code>. It
           also exposes authenticated <code>/api/v1</code> tenant operations for
           workspace automation. Every failing request uses the shared JSON error
           envelope. The machine-readable contract lives at{" "}
@@ -226,10 +236,13 @@ export default function DocsPage() {
               Quickstart
             </h2>
             <p className="mb-4 leading-relaxed text-muted-foreground">
-              Capture a page and write the PNG to disk in one command.
+              Create a workspace API key in Settings → Developer API
+              (<code>/workspace/developers</code>), then capture a page and
+              write the PNG to disk in one command.
             </p>
             <pre className={codeBlockClassName}>
               <code>{`curl -s -X POST https://shots.playbookmedia.io/api/screenshot \\
+  -H "X-API-Key: $SHOTS_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"url":"https://example.com"}' \\
   | jq -r .screenshot | base64 -d > shot.png`}</code>

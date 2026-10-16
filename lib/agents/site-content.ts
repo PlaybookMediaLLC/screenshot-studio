@@ -23,9 +23,9 @@ export interface AgentPage {
 export const AGENT_PAGES: AgentPage[] = [
   {
     path: '/',
-    title: 'Shots - Free Screenshot Editor & Mockup Maker',
+    title: 'Shots - Screenshot Editor & Mockup Maker',
     summary:
-      'The signed-in Shots editor. Drop in a screenshot and add gradient backgrounds, browser mockups, shadows, 3D perspective, and animation, then export a PNG, JPEG, WebP, MP4, WebM, or GIF. Editing runs client side, so imported images are not uploaded merely to edit them; export compression sends the finished image to the server, which returns it without storing it. A free workspace plan is available, some capabilities require a higher plan, and editor exports have no watermark.',
+      'The signed-in Shots editor. Drop in a screenshot and add gradient backgrounds, browser mockups, shadows, 3D perspective, and animation, then export a PNG, JPEG, WebP, MP4, WebM, or GIF. Editing runs client side, so imported images are not uploaded merely to edit them; export compression sends the finished image to the server, which returns it without storing it. The editor is included in every paid plan, some capabilities require a higher plan, and editor exports have no watermark.',
     points: [
       `${atLeast(PRODUCT_FACTS.backgrounds)} gradient, mesh, and solid backgrounds`,
       'Safari, Chrome, and Arc browser mockups in light and dark',
@@ -39,7 +39,7 @@ export const AGENT_PAGES: AgentPage[] = [
     path: '/landing',
     title: 'Shots - Turn Every Release into a Launch',
     summary:
-      'Product landing page for the Shots platform. A release (typed in, sent through the REST API with an X-API-Key, or delivered by a signed GitHub, GitLab, or custom webhook) becomes a cited launch spec, a campaign plan, on-brand visuals from the real product, and channel copy for X, LinkedIn, Instagram, Product Hunt, the changelog, and email. Every post needs a human approval before it can be scheduled. Launch intelligence is in early access; the open-source editor stays on a free workspace plan.',
+      'Product landing page for the Shots platform. A release (typed in, sent through the REST API with an X-API-Key, or delivered by a signed GitHub, GitLab, or custom webhook) becomes a cited launch spec, a campaign plan, on-brand visuals from the real product, and channel copy for X, LinkedIn, Instagram, Product Hunt, the changelog, and email. Every post needs a human approval before it can be scheduled. Launch intelligence is in early access; the open-source editor is included in every plan.',
     points: [
       'Launch spec: every claim cites the brief or a source; uncited claims become open questions',
       'Campaign plan: channels, angles, assets with capture hints, and a teaser, launch day, and follow-up timeline',
@@ -52,15 +52,15 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: '/free-screenshot-editor',
-    title: 'Free Screenshot Editor Online - Shots',
+    title: 'Screenshot Editor Online - Shots',
     summary:
-      'Browser-based screenshot editor for signed-in workspaces, with a free plan and no export watermark. Covers the full editing workflow from upload to export.',
+      'Browser-based screenshot editor for signed-in workspaces, included in every plan, with no export watermark. Covers the full editing workflow from upload to export.',
   },
   {
     path: '/code',
-    title: 'Code to Image: Beautiful Screenshots - Shots',
+    title: 'Code to Image: Code Screenshots - Shots',
     summary:
-      'A focused code to image editor. Paste code, pick a syntax theme and gradient background, toggle line numbers and a window frame, then export a PNG or copy a shareable link. Rendering happens in the browser, so code is not sent to a server to create the image. Available to signed-in workspaces, with a free plan and no export watermark.',
+      'A focused code to image editor. Paste code, pick a syntax theme and gradient background, toggle line numbers and a window frame, then export a PNG or copy a shareable link. Rendering happens in the browser, so code is not sent to a server to create the image. Included in every plan for signed-in workspaces, with no export watermark.',
     points: [
       `${PRODUCT_FACTS.codeThemes} syntax highlighting themes and ${PRODUCT_FACTS.codeLanguages} languages, with auto-detect`,
       '11 gradient backgrounds plus a transparent option',
@@ -73,7 +73,7 @@ export const AGENT_PAGES: AgentPage[] = [
     path: '/tweet',
     title: 'Tweet to Image: Turn Posts on X into Images - Shots',
     summary:
-      'A focused tweet to image editor. Paste a link to a public post on X, pick a light or dark card and a gradient or transparent background, then export a PNG or copy it to the clipboard. Available to signed-in workspaces, with a free plan and no export watermark.',
+      'A focused tweet to image editor. Paste a link to a public post on X, pick a light or dark card and a gradient or transparent background, then export a PNG or copy it to the clipboard. Included in every plan for signed-in workspaces, with no export watermark.',
     points: [
       'Loads any public post from an x.com or twitter.com link',
       'Light and dark card styles with up to four photos',
@@ -83,9 +83,9 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: '/remove-background',
-    title: 'Remove Background from Image: Free - Shots',
+    title: 'Remove Background from Image - Shots',
     summary:
-      'A standalone background remover for signed-in workspaces. Drop in a PNG, JPG, WebP, or AVIF image and download a transparent PNG at the original resolution. The BiRefNet-lite model runs on the device with WebGPU, falling back to WebAssembly; the weights download once from Hugging Face and are cached, and the image itself is never uploaded. A free plan is available and exports have no watermark.',
+      'A standalone background remover for signed-in workspaces. Drop in a PNG, JPG, WebP, or AVIF image and download a transparent PNG at the original resolution. The BiRefNet-lite model runs on the device with WebGPU, falling back to WebAssembly; the weights download once from Hugging Face and are cached, and the image itself is never uploaded. Included in every plan, and exports have no watermark.',
     points: [
       'On-device AI background removal, no image upload',
       'WebGPU acceleration with an automatic WebAssembly fallback',
@@ -96,9 +96,9 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: "/compress-video",
-    title: "Compress Video Online: Free, No Upload - Shots",
+    title: "Compress Video Online: No Upload - Shots",
     summary:
-      "A standalone video compressor. Drop in an MP4, MOV, WebM, or MKV file up to 1 GB, choose a quality level or a target size in MB, and download an MP4 with H.264 video and AAC audio. FFmpeg compiled to WebAssembly does the work inside the browser tab; the engine downloads once from a public CDN and is cached, and the video itself is not uploaded. No watermark.",
+      "A standalone video compressor. Drop in an MP4, MOV, WebM, or MKV file up to 1 GB, choose a quality level or a target size in MB, and download an MP4 with H.264 video and AAC audio. FFmpeg compiled to WebAssembly does the work inside the browser tab; the engine downloads once from a public CDN and is cached, and the video itself is not uploaded. Included in every plan for signed-in workspaces, with no export watermark.",
     points: [
       "Four quality levels, from visually identical to smallest file",
       "Target size mode that works out the bitrate to fit a limit such as 10 or 25 MB",
@@ -109,9 +109,9 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: TOOLS_HUB_PATH,
-    title: 'Free Online Image Tools - Shots',
+    title: 'Online Image Tools - Shots',
     summary:
-      'Index of the standalone image utilities for signed-in workspaces: compress, convert, resize, crop, and rotate, plus six direct format converters. Every tool decodes, processes, and encodes in the browser using Canvas and Web Workers, so images are never uploaded. Batch input is supported and multiple results download as one zip. A free plan is available and exports have no watermark.',
+      'Index of the standalone image utilities for signed-in workspaces: compress, convert, resize, crop, and rotate, plus six direct format converters. Every tool decodes, processes, and encodes in the browser using Canvas and Web Workers, so images are never uploaded. Batch input is supported and multiple results download as one zip. Included in every plan, and exports have no watermark.',
     points: [
       'Compress: four levels, live before and after file sizes',
       'Convert: PNG, JPG, and WebP in every direction',
@@ -157,9 +157,9 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: '/features/code-snippets',
-    title: 'Code to Image Generator: Free - Shots',
+    title: 'Code to Image Generator - Shots',
     summary:
-      'Marketing overview of the code to image tool: syntax themes, gradient backgrounds, line numbers, window frame, and shareable links, positioned as a free ray.so and carbon.now.sh alternative.',
+      'Marketing overview of the code to image tool: syntax themes, gradient backgrounds, line numbers, window frame, and shareable links, positioned as an open-source ray.so and carbon.now.sh alternative.',
   },
   {
     path: '/for/developers',
@@ -181,7 +181,7 @@ export const AGENT_PAGES: AgentPage[] = [
     path: '/docs',
     title: 'Shots API Documentation',
     summary:
-      'HTTP API reference for anonymous editor utilities and authenticated /api/v1 tenant operations, including schemas, rate limits, and error codes. The machine-readable contract is published at /openapi.json.',
+      'HTTP API reference for editor utilities and /api/v1 tenant operations, both authenticated by a signed-in session or workspace API key, including schemas, rate limits, and error codes. The machine-readable contract is published at /openapi.json.',
     points: [
       'POST /api/screenshot - capture a live URL as a base64 PNG',
       'POST /api/export - recompress an image as PNG, JPEG, or WebP',
@@ -195,13 +195,14 @@ export const AGENT_PAGES: AgentPage[] = [
     path: '/docs/authentication',
     title: 'Shots API Authentication',
     summary:
-      'Editor utility endpoints are anonymous and shaped by per-IP limits. Workspace-scoped /api/v1 operations require an X-API-Key organization key or an authorized signed-in session.',
+      'Editor utility endpoints require a signed-in session or a workspace API key with the artifact:read scope in X-API-Key, and per-IP limits apply on top. Workspace-scoped /api/v1 operations require an X-API-Key organization key or an authorized signed-in session.',
     points: [
-      'No credential is required for the editor utility endpoints',
+      'Editor utility endpoints return 401 unauthorized without a session or X-API-Key workspace key',
+      'Create a workspace API key in Settings → Developer API (/workspace/developers).',
       'Tenant /api/v1 operations enforce workspace permission, API-key scope, plan feature, and quota checks',
       'POST /api/screenshot is limited to 20 requests per minute per IP',
       'Rate-limited responses return HTTP 429 with Retry-After and X-RateLimit-* headers',
-      'Only maintenance endpoints are credentialed, and they are not part of the public surface',
+      'Cache-maintenance endpoints use a maintainer secret and are not part of the public surface',
     ],
   },
   {
@@ -295,7 +296,7 @@ ${claimsNote(comparison)}`,
 
 function workspaceAwareSummary(value: string): string {
   return value
-    .replace(/free,\s*no signup/gi, 'available with a free workspace plan')
+    .replace(/free,\s*no signup/gi, 'included in every plan')
     .replace(/no signup(?:\s+(?:needed|required))?/gi, 'a signed-in workspace is required')
 }
 
@@ -316,7 +317,7 @@ for (const tool of TOOLS) {
   AGENT_PAGES.push({
     path: tool.slug,
     title: `${tool.title} - Shots`,
-    summary: `${tool.intro} Runs entirely in the browser: the image is decoded, processed, and re-encoded locally and never uploaded. Available to signed-in workspaces with a free plan and no export watermark.`,
+    summary: `${tool.intro} Runs entirely in the browser: the image is decoded, processed, and re-encoded locally and never uploaded. Included in every plan for signed-in workspaces, with no export watermark.`,
     points: tool.features,
     sections: [...(tool.sections ?? []), renderFaqSection(tool.faqs)],
   })

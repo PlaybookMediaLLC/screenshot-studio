@@ -150,6 +150,7 @@ func TestWorkerEnrichesReleasesBackfillsAndCaptures(t *testing.T) {
 	reader := fakeReader{fakeGitHub: fakeGitHub{}, base: server.URL, released: released}
 	objects := &recordingAssetObjects{}
 	repo := NewConfiguration(db.Client).WithGitHubApp(reader).WithObjectStore(objects).WithCapturer(fakeCapturer{shot: shot})
+	subscribe(t, ctx, repo, org, "pro")
 	repo.imageHost = func(host string) bool { return host == local.Hostname() }
 	repo.web = server.Client()
 	owner := Actor{OrganizationID: org, UserID: user, SessionID: session}

@@ -21,15 +21,16 @@ import {
 } from '../blocks'
 import { MONO, MUTED, Section, SectionIntro, Window } from '../primitives'
 import { DeliveryLog } from '../sections'
+import { PublishingStates } from '../diagrams/PublishingStates'
 
 const STATES = [
   ['DRAFT', 'Not scheduled yet.'],
-  ['SCHEDULED', 'Waiting for its time. One durable workflow owns the timer and the cancel signal.'],
+  ['SCHEDULED', 'Waiting for its time. One workflow holds the timer and the cancel signal.'],
   ['PROCESSING', 'Claimed by exactly one worker, which checks eligibility again before sending.'],
-  ['PUBLISHED', 'The network returned a receipt, stored with the provider post ID.'],
+  ['PUBLISHED', "The network confirmed it. The confirmation is saved with the network's post ID."],
   ['FAILED', 'A definite failure, such as an expired credential. Nothing was published.'],
   ['CANCELLED', 'Cancelled by a publisher, or no longer eligible at send time. No network call.'],
-  ['UNKNOWN_DELIVERY', 'The outcome is uncertain. Held for a person, never blindly sent again.'],
+  ['UNKNOWN_DELIVERY', 'The outcome is uncertain. A teammate decides whether to send it again.'],
 ] as const
 
 const CHANNELS: { name: string; icon: typeof Mail01Icon; status: Availability; body: string }[] = [
@@ -55,7 +56,7 @@ const CHANNELS: { name: string; icon: typeof Mail01Icon; status: Availability; b
     name: 'Release email',
     icon: Mail01Icon,
     status: 'Early access',
-    body: 'Announcements to consenting subscribers, delivered through Resend.',
+    body: 'Release emails to subscribers who opted in, delivered through Resend.',
   },
   {
     name: 'Buffer and Post Bridge',
@@ -67,13 +68,13 @@ const CHANNELS: { name: string; icon: typeof Mail01Icon; status: Availability; b
     name: 'Post analytics',
     icon: WorkflowSquare01Icon,
     status: 'Planned',
-    body: 'Performance snapshots at the same post age, feeding the next campaign.',
+    body: 'Performance snapshots at the same post age, feeding the next launch.',
   },
 ]
 
 function EmailWindow() {
   return (
-    <Window meta="announcement" title="Release email">
+    <Window meta="consented audience" title="Release email">
       <div className="space-y-3 p-4 text-[13px]">
         <div className="flex justify-between gap-4">
           <span className="text-[#858585]">Subject</span>
@@ -95,13 +96,18 @@ function EmailWindow() {
 /** /product/publishing: delivery states, guarantees, channels, and release email. */
 export function PublishingPage() {
   return (
-    <MarketingShell finale={{ lead: 'Scheduled once.', trail: 'Published exactly once.' }}>
+    <MarketingShell
+      finale={{
+        lead: 'Connect your channels during early access',
+        trail: 'and schedule your first approved post.',
+      }}
+    >
       <PageHero
-        body="Publishing runs on durable workflows. Each post is checked again when it is due, retried safely when a network pushes back, and marked published only when the network confirms it. Social channels are in early access."
+        body="Pick a time and Shots publishes the post once. Each post is checked again when it is due and retried safely if a network pushes back. It counts as published only when the network confirms it. Social channels are in early access."
         eyebrow={{ href: '/product', label: 'Publishing', parent: 'Product' }}
-        lead="Approved posts go out"
+        lead="Approved posts publish on schedule,"
         location="publishing_hero"
-        trail="once, with a receipt."
+        trail="and each network confirms delivery."
       >
         <HeroStage variant={2}>
           <DeliveryLog />
@@ -110,12 +116,13 @@ export function PublishingPage() {
 
       <Section>
         <SectionIntro
-          body="A scheduled post has seven states and a clear owner for each transition. Published means confirmed. Anything ambiguous goes to a person."
+          body="Each state has a clear owner. Published means the network confirmed it. Anything uncertain goes to a teammate."
           label="Lifecycle"
-          lead="Seven states."
-          trail="No guessing."
+          lead="A scheduled post is always in one of seven states,"
+          trail="and you can see which one."
         />
-        <div className="mt-24">
+        <div className="mt-24 space-y-12">
+          <PublishingStates />
           <RowTable
             caption="Scheduled post states"
             head={['State', 'Meaning']}
@@ -127,10 +134,10 @@ export function PublishingPage() {
 
       <Section>
         <SectionIntro
-          body="Duplicate posts are worse than late ones. Every rule below exists to make sure a post goes out once, or not at all."
+          body="A duplicate post looks worse than a late one. Every rule below exists to prevent duplicates."
           label="Guarantees"
-          lead="Exactly once,"
-          trail="in practice."
+          lead="A post goes out once"
+          trail="or not at all."
         />
         <div className="mt-24">
           <TileGrid
@@ -138,12 +145,12 @@ export function PublishingPage() {
               {
                 snippet: 'post_<id> · one workflow',
                 title: 'Survives restarts',
-                body: 'Each scheduled post is one durable workflow that owns its timer, its cancel signal, and its retries. A deploy or a crash does not lose it.',
+                body: "Each scheduled post has its own workflow that holds its timer, cancel signal, and retries. A deploy or a crash doesn't lose it.",
               },
               {
                 snippet: 'schedule × 2 → 1 post',
-                title: 'Duplicates converge',
-                body: 'Scheduling the same post twice converges on one delivery. The hourly recovery loop reuses the same workflow IDs, so it cannot start a second one.',
+                title: 'No double posts',
+                body: "Scheduling the same post twice still sends it once. The hourly recovery check reuses the same workflow IDs, so it can't start a second one.",
               },
               {
                 snippet: '429 · 500 → retry → 1',
@@ -153,17 +160,17 @@ export function PublishingPage() {
               {
                 snippet: 'approval · asset · workspace · destination',
                 title: 'Checked at send time',
-                body: 'When a post is due, the worker reloads its approval, asset revision, workspace status, and destination. Private media is signed only then, retries included.',
+                body: 'When a post is due, Shots reloads its approval, visual, workspace status, and destination. Private media gets a signed link only then, retries included.',
               },
               {
                 snippet: 'CANCELLED · no request',
                 title: 'Cancel means cancel',
-                body: 'A cancelled post makes no network request. A creative archived after approval cancels the post instead of publishing it.',
+                body: 'A cancelled post makes no network request. Archiving a visual after approval cancels its post.',
               },
               {
-                snippet: 'state + audit + outbox',
+                snippet: 'state + audit + event',
                 title: 'Nothing lost in between',
-                body: 'Each state change commits together with its audit entry and outbox event. The outbox drains every minute, and a dead-lettered event can be replayed.',
+                body: 'Each state change is saved together with its audit entry and a queued event. Queued events are sent every minute, and any that fail can be replayed.',
               },
             ]}
           />
@@ -172,10 +179,10 @@ export function PublishingPage() {
 
       <Section>
         <SectionIntro
-          body="The application owns scheduling, state, idempotency, retries, and recovery. A provider owns only the final network call, behind one narrow seam."
+          body="Shots handles scheduling, state, retries, and recovery. Each network only receives the final call."
           label="Channels"
-          lead="Where launches land."
-          trail="And what is next."
+          lead="X, LinkedIn, Instagram, and email today,"
+          trail="with more destinations planned."
         />
         <ul className="mt-24 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {CHANNELS.map(({ body, icon: Icon, name, status }) => (
@@ -190,27 +197,27 @@ export function PublishingPage() {
           ))}
         </ul>
         <p className={cn('mt-8 max-w-[760px] text-[15px] leading-[1.6]', MUTED)}>
-          Connecting a social channel requires two-factor authentication. During early access each
-          workspace is bound to its publishing organization with our help.
+          Connecting a social channel requires two-factor authentication. During early access, we
+          connect each workspace to its publishing account with you.
         </p>
       </Section>
 
       <Section>
         <SectionIntro
-          body="Announcing a release by email is a product capability, not an afterthought. It gets the same durability as social posts, plus consent rules built for bulk sending."
+          body="Release email is built for bulk sending to subscribers who opted in."
           label="Release email"
-          lead="To people who asked."
-          trail="Once each."
+          lead="Release email has consent rules built in"
+          trail="and the same delivery guarantees as posts."
         />
         <div className="mt-24">
           <SplitFeature
-            body="Recipients are resolved at send time, so an unsubscribe between scheduling and delivery is honored. Consent is per organization: leaving one company's announcements never silences another's."
+            body="Recipients are looked up at send time, so an unsubscribe between scheduling and sending is honored. Consent is per workspace: unsubscribing from one company's emails doesn't affect another's."
             bullets={[
-              'Only approved release documents can be announced',
-              'An empty audience is refused, not silently accepted',
+              'Only approved releases can be emailed',
+              'An empty audience is refused',
               'One-click unsubscribe for Gmail and Yahoo, plus a footer link',
               'Bounces and complaints are suppressed separately from unsubscribes',
-              'Delivery is exactly once per address, enforced by the database',
+              'Each address gets the email exactly once, enforced by the database',
               'Sends go out in paced batches of 100',
             ]}
             index={0}
@@ -237,17 +244,21 @@ export function PublishingPage() {
           },
           {
             q: 'What happens if a network is down?',
-            a: 'Rate limits and server errors are retried. A definite failure becomes FAILED. An uncertain outcome becomes UNKNOWN_DELIVERY and waits for a person, so you never get a surprise duplicate.',
+            a: "Rate limits and server errors are retried. A definite failure becomes FAILED. An uncertain outcome becomes UNKNOWN_DELIVERY and waits for a teammate, so you don't get a surprise duplicate.",
           },
           {
             q: 'Is email marketing included?',
-            a: 'Release announcements are. Drip sequences and newsletters are not part of the platform.',
+            a: 'Release emails are. Drip sequences and newsletters are not part of Shots.',
           },
         ]}
       />
 
       <Section>
-        <SectionIntro label="Related" lead="Keep reading." trail="Every part connects." />
+        <SectionIntro
+          label="Related"
+          lead="Read how posts get approved,"
+          trail="how release email works, and where Shots connects."
+        />
         <div className="mt-24">
           <LinkCards
             paths={['/product/approvals', '/use-cases/changelog-and-email', '/integrations']}

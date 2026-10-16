@@ -21,8 +21,8 @@ type FeatureDecision struct {
 }
 
 var minimumFeaturePlan = map[string]string{
-	"asset:create": "free", "asset:read": "free", "asset:update": "pro", "asset:delete": "pro",
-	"release:create": "free", "source-app:create": "free", "enterprise:audit-drain": "enterprise",
+	"asset:create": "pro", "asset:read": "pro", "asset:update": "pro", "asset:delete": "pro",
+	"release:create": "pro", "source-app:create": "pro", "workspace:use": "pro", "enterprise:audit-drain": "enterprise",
 	"enterprise:sso": "enterprise", "enterprise:scim": "enterprise", "campaign:workflow": "enterprise",
 }
 

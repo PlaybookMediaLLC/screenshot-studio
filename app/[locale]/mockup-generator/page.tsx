@@ -12,11 +12,11 @@ import {
 import type { DeviceFamily } from "@/types/mockup";
 
 export const metadata: Metadata = {
-  title: "Free Online Mockup Generator for Screenshots",
+  title: "Online Mockup Generator for Screenshots",
   description:
-    "Free online mockup generator: put a screenshot in an iPhone 17 Pro, MacBook Pro, Apple Watch, or Safari and Chrome frame, arrange up to 6 devices, and export a PNG. No signup, no watermark.",
+    "Online mockup generator: put a screenshot in an iPhone 17 Pro, MacBook Pro, Apple Watch, or Safari and Chrome frame, arrange up to 6 devices, and export a PNG. Included in every plan. No watermark.",
   keywords: [
-    "free online mockup generator",
+    "online mockup generator",
     "free mockup generator no watermark",
     "screenshot mockup generator",
     "device mockup generator",
@@ -30,9 +30,9 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Free Online Mockup Generator for Screenshots",
+    title: "Online Mockup Generator for Screenshots",
     description:
-      "Put screenshots in iPhone, MacBook, Apple Watch, and browser mockups. Free, no signup, no watermark.",
+      "Put screenshots in iPhone, MacBook, Apple Watch, and browser mockups. Included in every plan. No watermark.",
     url: "/mockup-generator",
   },
   alternates: {
@@ -74,7 +74,7 @@ const howToSteps = [
   {
     title: "Open the editor and add your screenshot",
     description:
-      "Drag in a PNG, JPG, or WebP, or paste from your clipboard. Nothing to install and no account.",
+      "Drag in a PNG, JPG, or WebP, or paste from your clipboard. Nothing to install.",
   },
   {
     title: "Pick a device",
@@ -101,7 +101,7 @@ const faqs = [
   {
     question: "Is this mockup generator really free?",
     answer:
-      "Yes. Every device, frame, background, and export size is free. There is no signup, no watermark, and no paid tier.",
+      "Yes. Every device, frame, background, and export size is included in every Shots plan, on every plan, with no watermark.",
   },
   {
     question: "Which devices can I put my screenshot in?",
@@ -166,7 +166,7 @@ export default function MockupGeneratorPage() {
         operatingSystem: "Web Browser",
         url: "https://shots.playbookmedia.io/mockup-generator",
         description:
-          "Free online mockup generator that places screenshots in iPhone, MacBook, Apple Watch, and browser frames. No signup, no watermark.",
+          "Online mockup generator that places screenshots in iPhone, MacBook, Apple Watch, and browser frames. Included in every plan. No watermark.",
         offers: {
           "@type": "Offer",
           price: "0",
@@ -178,7 +178,7 @@ export default function MockupGeneratorPage() {
           `Up to ${MAX_DEVICE_MOCKUPS} devices per scene`,
           `${DEVICE_LAYOUTS.length} layout presets`,
           "PNG, JPEG, and WebP export up to 5x",
-          "No signup and no watermark",
+          "Included in every plan, no watermark",
         ],
       },
       {
@@ -224,23 +224,24 @@ export default function MockupGeneratorPage() {
               className="mb-6 text-4xl font-semibold tracking-[-0.03em] text-foreground md:text-6xl"
               style={{ fontFamily: INTER }}
             >
-              Free Online Mockup Generator for Screenshots
+              Online mockup generator for screenshots
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground md:text-xl">
-              Shots is a free online mockup generator. Drop a
+              Shots is an online mockup generator. Drop a
               screenshot into an iPhone 17 Pro, MacBook Pro, Apple Watch, or a
               Safari or Chrome frame, arrange up to {MAX_DEVICE_MOCKUPS} devices
               in one scene, and export a PNG at up to 5x. It runs in your
-              browser, with no signup and no watermark.
+              browser, with no watermark. Sign up free to use the editor and
+              tools.
             </p>
             <div className="flex flex-col items-center">
               <Link href="/editor" className={ctaClassName}>
                 Make a Mockup
               </Link>
               <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground/70">
-                <span>100% Free</span>
+                <span>Every plan</span>
                 <span className="h-3 w-px bg-border" aria-hidden />
-                <span>No Signup</span>
+                <span>Open source</span>
                 <span className="h-3 w-px bg-border" aria-hidden />
                 <span>No Watermark</span>
               </p>
@@ -254,7 +255,7 @@ export default function MockupGeneratorPage() {
               className="mb-4 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              Device Mockups and Frames Included
+              Device mockups and frames included
             </h2>
             <p className="mx-auto mb-12 max-w-2xl text-center text-muted-foreground">
               {MOCKUP_DEFINITIONS.length} device mockups plus browser, window,
@@ -284,7 +285,7 @@ export default function MockupGeneratorPage() {
               className="mb-4 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              Multi-Device Layouts
+              Multi-device layouts
             </h2>
             <p className="mx-auto mb-12 max-w-2xl text-center text-muted-foreground">
               Start from a layout, then move, resize, or rotate any device.
@@ -310,7 +311,7 @@ export default function MockupGeneratorPage() {
               className="mb-12 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              How to Make a Mockup From a Screenshot
+              How to make a mockup from a screenshot
             </h2>
             <ol className="space-y-8">
               {howToSteps.map((item, index) => (
@@ -336,7 +337,7 @@ export default function MockupGeneratorPage() {
               className="mb-12 text-center text-3xl font-semibold tracking-[-0.03em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              Frequently Asked Questions
+              Frequently asked questions
             </h2>
             <div className="space-y-4">
               {faqs.map((faq) => (
@@ -367,7 +368,7 @@ export default function MockupGeneratorPage() {
               className="mb-8 text-center text-2xl font-semibold tracking-[-0.03em] text-foreground"
               style={{ fontFamily: INTER }}
             >
-              Explore More Features
+              Explore more features
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {relatedLinks.map((link) => (

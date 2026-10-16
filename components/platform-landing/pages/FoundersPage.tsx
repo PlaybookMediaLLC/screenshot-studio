@@ -9,7 +9,7 @@ import {
   StatRows,
   TileGrid,
 } from '../blocks'
-import { formatQuota } from '../pricing'
+import { formatQuota, PLAN_PRICES } from '../pricing'
 import { Check, CONTAINER, MUTED, Section, SectionIntro } from '../primitives'
 import { CopyMock, IntakeMock, ReviewMock } from '../WorkflowSection'
 
@@ -30,13 +30,15 @@ const AFTER = [
 /** /solutions/founders: marketing that keeps up with a small team's release cadence. */
 export function FoundersPage() {
   return (
-    <MarketingShell finale={{ lead: 'You shipped it.', trail: 'Now say so.' }}>
+    <MarketingShell
+      finale={{ lead: 'Create your Shots workspace', trail: 'and send your next release.' }}
+    >
       <PageHero
-        body="You build the product, review the pull requests, and answer the support email. The launch post waits for a free afternoon that never comes. Shots drafts it from the release you already wrote."
+        body="You build the product and answer support email, so the launch post waits for a free afternoon that never comes. Send Shots the release and review a draft instead."
         eyebrow={{ href: '/use-cases', label: 'Founders', parent: 'Solutions' }}
-        lead="You are the engineer, the PM,"
+        lead="You already wrote the release notes."
         location="founders_hero"
-        trail="and the marketing team."
+        trail="Shots turns them into launch posts."
       >
         <HeroStage>
           <div className="grid w-full max-w-[880px] gap-4 md:grid-cols-2">
@@ -78,10 +80,10 @@ export function FoundersPage() {
 
       <Section>
         <SectionIntro
-          body="Nothing about the workflow assumes a marketing department. One person can hold every role, and the defaults are built for that."
+          body="The workflow doesn't assume a marketing department. One person can hold every role, and the defaults are set up for that."
           label="Built for one"
-          lead="A team of one"
-          trail="is a team."
+          lead="Works for one person"
+          trail="holding every role."
         />
         <div className="mt-24">
           <TileGrid
@@ -97,9 +99,9 @@ export function FoundersPage() {
                 body: 'Send the release from the same pipeline that deploys it, with an idempotency key so a retried build creates one release.',
               },
               {
-                snippet: 'Apache 2.0 · free',
-                title: 'The editor is free',
-                body: 'The screenshot editor and its tools cost nothing, on a free workspace, with no watermark.',
+                snippet: 'Apache 2.0 · no watermark',
+                title: 'The editor comes with it',
+                body: 'The editor and image tools are included in every plan, with no watermark.',
               },
             ]}
           />
@@ -108,17 +110,17 @@ export function FoundersPage() {
 
       <Section>
         <SectionIntro
-          body="Your judgment is the expensive part, so the workflow asks for it only where it matters: answering open questions, approving the plan, and approving the posts."
+          body="Your judgment is the expensive part, so Shots asks for it in three places: answering open questions, approving the plan, and approving the posts."
           label="Your time"
-          lead="Three decisions."
-          trail="Everything else is drafted."
+          lead="You make three decisions per launch."
+          trail="The AI drafts the rest."
         />
         <div className="mt-24">
           <SplitFeature
-            body="Read seven posts, fix the one that is off, and approve the rest in one click. Ask for a revision in plain words and apply it from a diff."
+            body="Read six posts, fix the one that is off, and approve the rest in one click. Ask for a revision in plain words and apply it from a diff."
             index={0}
             link={{ href: '/use-cases/feature-launches', label: 'See a feature launch' }}
-            title="Review in minutes, not an afternoon"
+            title="Review a launch in minutes"
           >
             <ReviewMock />
           </SplitFeature>
@@ -128,20 +130,24 @@ export function FoundersPage() {
       <section className={cn(CONTAINER, 'pb-24 sm:pb-32')}>
         <div className="grid gap-12 border-t border-[#212121] pt-24 sm:pt-32 lg:grid-cols-2 lg:gap-24">
           <p className="text-balance text-[24px] leading-[1.3] tracking-[-0.015em] text-white sm:text-[30px]">
-            Start on the free plan.{' '}
-            <span className={MUTED}>It is enough to run real launches and see if this fits.</span>
+            Start on Pro with the editor, release intake, and the API.{' '}
+            <span className={MUTED}>
+              Launch intelligence is in early access for design partners. Pro includes{' '}
+              {formatQuota('pro', 'ai:credits:monthly')} AI credits a month, and a launch uses about
+              430.
+            </span>
           </p>
           <StatRows
             stats={[
               {
-                value: formatQuota('free', 'ai:credits:monthly'),
-                label: 'AI credits a month on Free',
+                value: formatQuota('pro', 'ai:credits:monthly'),
+                label: 'AI credits a month on Pro',
               },
               {
-                value: formatQuota('free', 'api:write:minute'),
-                label: 'API writes a minute on Free',
+                value: formatQuota('pro', 'api:write:minute'),
+                label: 'API writes a minute on Pro',
               },
-              { value: '$0', label: 'for the editor, forever' },
+              { value: PLAN_PRICES.pro.price, label: `Pro, ${PLAN_PRICES.pro.note}` },
             ]}
           />
         </div>
@@ -151,21 +157,25 @@ export function FoundersPage() {
         items={[
           {
             q: 'I am not a marketer. Will the copy sound like me?',
-            a: 'It learns from what you approve and what you send back. Your edits and notes become examples for the next run.',
+            a: 'It learns from what you approve and what you send back. Your edits and notes become examples for the next launch.',
           },
           {
             q: 'Do I need a brand kit first?',
-            a: 'No. Generation works without one. Add your colors and fonts when you want every design on brand.',
+            a: 'No. Shots works without one. Add your colors and fonts when you want every visual on brand.',
           },
           {
             q: 'What does it cost?',
-            a: 'The free plan covers the editor and real launches. Launch intelligence is in early access for design partners.',
+            a: `Pro is ${PLAN_PRICES.pro.price} a month and covers the editor, release intake, and the API, with ${formatQuota('pro', 'ai:credits:monthly')} AI credits. There is no free plan. Launch intelligence is in early access for design partners on any plan.`,
           },
         ]}
       />
 
       <Section>
-        <SectionIntro label="Related" lead="Keep reading." trail="Every part connects." />
+        <SectionIntro
+          label="Related"
+          lead="Compare plans, apply for early access,"
+          trail="or walk through a feature launch."
+        />
         <div className="mt-24">
           <LinkCards paths={['/pricing', '/design-partners', '/use-cases/feature-launches']} />
         </div>

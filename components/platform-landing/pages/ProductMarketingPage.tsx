@@ -21,16 +21,21 @@ const TEAM: { role: OrganizationRole; who: string }[] = [
   { role: 'viewer', who: 'Sales, support, and leadership' },
 ]
 
-/** /solutions/product-marketing: a cited source of truth, approvals, and an audit trail. */
+/** /solutions/product-marketing: a cited launch brief, approvals, and an audit trail. */
 export function ProductMarketingPage() {
   return (
-    <MarketingShell finale={{ lead: 'One source of truth.', trail: 'Every launch.' }}>
+    <MarketingShell
+      finale={{
+        lead: 'Invite your writers and approvers',
+        trail: 'and run your next launch in Shots.',
+      }}
+    >
       <PageHero
-        body="Engineering ships, and you find out from the changelog. Shots turns each release into a cited brief your whole team can trust, a plan you approve, and assets and copy built to both."
+        body="Engineering ships, and you find out from the changelog. Shots turns each release into a cited launch brief your whole team can trust. You approve a plan, and the visuals and posts are built to both."
         eyebrow={{ href: '/use-cases', label: 'Product marketing', parent: 'Solutions' }}
-        lead="From brief to launch kit"
+        lead="Know what engineering shipped"
         location="product_marketing_hero"
-        trail="without the scramble."
+        trail="before you write a word."
       >
         <HeroStage variant={1}>
           <div className="grid w-full max-w-[880px] gap-4 md:grid-cols-2">
@@ -42,10 +47,10 @@ export function ProductMarketingPage() {
 
       <Section>
         <SectionIntro
-          body="Every claim in the spec cites the pull request, the changelog, or the brief. Gaps are questions for you, not guesses. Approve one version and every asset is built to it."
-          label="Source of truth"
-          lead="A brief that cites"
-          trail="what engineering shipped."
+          body="Every claim cites the pull request, the changelog, or the release. Gaps come back to you as questions. Approve one version and every visual and post is built to it."
+          label="Launch brief"
+          lead="One launch brief per release,"
+          trail="with every claim tied to a source."
         />
         <div className="mt-24">
           <TileGrid
@@ -53,17 +58,17 @@ export function ProductMarketingPage() {
               {
                 snippet: 'messaging · pillars',
                 title: 'Positioning, written down',
-                body: 'Messaging pillars, positioning against alternatives, and calls to action live in the spec, not in someone’s head.',
+                body: 'Messaging pillars, positioning against alternatives, and calls to action live in the launch brief, where the whole team can read them.',
               },
               {
                 snippet: 'v3 approved · v4 draft',
-                title: 'Versions, not overwrites',
-                body: 'Every AI draft, human edit, and applied revision is a new version. You always know which one the posts were written to.',
+                title: 'Every version kept',
+                body: 'Every AI draft, teammate edit, and applied revision is a new version. You always know which one the posts were written to.',
               },
               {
                 snippet: 'beforeAfter · limitations',
                 title: 'Honest by structure',
-                body: 'Limitations are a section of the spec, so the launch never promises what the release does not do.',
+                body: "Limitations have their own section in the launch brief, so the launch can't promise what the release doesn't do.",
               },
             ]}
           />
@@ -72,14 +77,14 @@ export function ProductMarketingPage() {
 
       <Section>
         <SectionIntro
-          body="Separate the people who write from the people who sign off and the people who press go. Each role sees everything and can do only its part."
+          body="Separate the people who write from the people who sign off and the people who press publish. Each role can read everything and change only its part."
           label="Team"
-          lead="The right person"
-          trail="at each step."
+          lead="Writers, approvers, and publishers"
+          trail="each get their own role."
         />
         <div className="mt-24">
           <RowTable
-            caption="Launch team roles"
+            caption="Team roles"
             head={['Role', 'Who', 'Edit drafts', 'Approve', 'Schedule']}
             monoLabels
             rows={TEAM.map(({ role, who }) => ({
@@ -97,17 +102,17 @@ export function ProductMarketingPage() {
 
       <Section>
         <SectionIntro
-          body="Brand stays consistent because nobody chooses it per asset. Feedback compounds because every note you leave teaches the next run."
+          body="Nobody picks brand colors for each visual, so the brand stays consistent. Every note you leave teaches the next launch."
           label="Quality"
-          lead="On brand by default."
-          trail="Better every launch."
+          lead="Your brand kit applies to every visual,"
+          trail="and each review improves the next launch."
         />
         <div className="mt-24 space-y-24">
           <SplitFeature
-            body="The brand kit is applied to every design the agents make: the gradient, the accent, the text color, and the nearest font."
+            body="The brand kit is applied to every visual the AI makes: the gradient, the accent, the text color, and the nearest font."
             index={0}
             link={{ href: '/product/creative-engine', label: 'See the creative engine' }}
-            title="Brand applied, not requested"
+            title="Brand applied automatically"
           >
             <BrandWidget />
           </SplitFeature>
@@ -125,22 +130,26 @@ export function ProductMarketingPage() {
       <FaqBlock
         items={[
           {
-            q: 'Can sales and support see the brief?',
-            a: 'Yes. Give them the viewer role. They can read every spec, plan, and post and change nothing.',
+            q: 'Can sales and support see the launch brief?',
+            a: 'Yes. Give them the viewer role. They can read every launch brief, plan, and post, and change nothing.',
           },
           {
             q: 'Who approved what, and when?',
-            a: 'Every decision is in the audit log with the person, the time, and how many posts it covered.',
+            a: 'Every decision is in the audit log with the teammate, the time, and how many posts it covered.',
           },
           {
             q: 'Does it replace our editorial calendar?',
-            a: 'For launches, the plan and schedule cover it. A cross-campaign weekly calendar is on the roadmap.',
+            a: 'For launches, the plan and schedule cover it. A weekly calendar across launches is on the roadmap.',
           },
         ]}
       />
 
       <Section>
-        <SectionIntro label="Related" lead="Keep reading." trail="Every part connects." />
+        <SectionIntro
+          label="Related"
+          lead="Read how approval works,"
+          trail="how a product launch is planned, and what Enterprise adds."
+        />
         <div className="mt-24">
           <LinkCards paths={['/product/approvals', '/use-cases/product-launches', '/enterprise']} />
         </div>

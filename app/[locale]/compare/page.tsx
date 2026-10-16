@@ -64,7 +64,7 @@ export default function CompareHubPage() {
             parent={null}
             name="Compare"
             title="How Shots Compares"
-            intro="Honest, feature-by-feature breakdowns against the tools people weigh Shots against. Each page lists what the alternative costs, where it is genuinely stronger, and where Shots does more for free."
+            intro="Honest, feature-by-feature breakdowns against the tools people weigh Shots against. Each page lists what the alternative costs, where it is genuinely stronger, and where Shots does more."
           />
 
           <section>
@@ -109,9 +109,9 @@ export default function CompareHubPage() {
 
           <CtaBand
             title="Rather just try it?"
-            description="Open the editor and drop in a screenshot. Every feature is free, with no account and no watermark."
+            description="Open the editor and drop in a screenshot. The editor and image tools are included in every plan, with no watermark."
             href="/editor"
-            label="Open Free Editor"
+            label="Open the Editor"
           />
         </div>
       </main>

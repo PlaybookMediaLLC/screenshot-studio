@@ -7,6 +7,7 @@
  */
 
 import type { Metadata } from "next";
+import { PRO_PLAN_OFFER } from "./json-ld";
 import { OG_DEFAULTS, SITE_URL } from "./metadata";
 import { TOOLS_HUB_PATH, getRelatedTools, type ToolDefinition } from "./tools";
 
@@ -48,12 +49,7 @@ export function buildToolJsonLd(tool: ToolDefinition) {
         applicationSubCategory: "Image Editor",
         operatingSystem: "Any (Web Browser)",
         description: tool.description,
-        isAccessibleForFree: true,
-        offers: {
-          "@type": "Offer",
-          price: "0",
-          priceCurrency: "USD",
-        },
+        offers: PRO_PLAN_OFFER,
         featureList: tool.features,
         publisher: {
           "@id": `${SITE_URL}/#organization`,
@@ -110,9 +106,9 @@ export function buildToolsHubJsonLd(
         "@type": "CollectionPage",
         "@id": `${SITE_URL}${TOOLS_HUB_PATH}#page`,
         url: `${SITE_URL}${TOOLS_HUB_PATH}`,
-        name: "Free Online Image Tools",
+        name: "Online Image Tools",
         description:
-          "Compress, convert, resize, crop, and rotate images, remove a background, or compress a video, in your browser. Free, no signup, nothing uploaded.",
+          "Compress, convert, resize, crop, and rotate images, remove a background, or compress a video, in your browser. Included in every plan, nothing uploaded.",
         isPartOf: { "@id": `${SITE_URL}/#website` },
       },
       {

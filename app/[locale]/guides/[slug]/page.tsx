@@ -101,7 +101,7 @@ function VisitLink({ tool }: { tool: GuideTool }): React.JSX.Element {
   if (tool.url.startsWith("/")) {
     return (
       <Link href={tool.url} className={className}>
-        Try it free
+        Try it
         <ArrowRight01Icon aria-hidden="true" className="size-3.5" />
       </Link>
     );
@@ -470,10 +470,10 @@ export default async function GuidePage({ params }: PageProps) {
           </section>
 
           <CtaBand
-            title="Try Shots free"
-            description="Edit, annotate, and polish screenshots in your browser. No signup, no download, no watermark."
+            title="Try Shots"
+            description="Edit, annotate, and polish screenshots in your browser. No download, no watermark."
             href={isRoundup ? "/editor" : guide.cta.href}
-            label={isRoundup ? "Open Free Editor" : guide.cta.label}
+            label={isRoundup ? "Open the Editor" : guide.cta.label}
           />
         </div>
       </main>

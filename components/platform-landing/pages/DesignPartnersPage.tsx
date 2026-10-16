@@ -40,7 +40,7 @@ function PartnerWindow() {
         {[
           ['Launch intelligence', 'enabled'],
           ['Channels', 'connected with you'],
-          ['Plan', 'priced together'],
+          ['Plan', 'any plan'],
           ['Line to the team', 'direct'],
         ].map(([label, value]) => (
           <div className="flex items-center justify-between gap-4 px-4 py-3" key={label}>
@@ -56,15 +56,17 @@ function PartnerWindow() {
 /** /design-partners: the early access program for launch intelligence. */
 export function DesignPartnersPage() {
   return (
-    <MarketingShell finale={{ lead: 'Shape what ships.', trail: 'Use it first.' }}>
+    <MarketingShell
+      finale={{ lead: 'Have a release coming up?', trail: 'Run it through Shots with us.' }}
+    >
       <PageHero
-        body="Launch intelligence is in early access. Design partners run real releases through it, talk directly to the people building it, and decide what it does next."
+        body="Launch intelligence is the AI that turns a release into a cited launch brief, visuals, and posts. It is in early access. Design partners use it on real releases and help decide what it does next."
         eyebrow={{ label: 'Design partners' }}
-        lead="Shape the launch platform."
+        lead="Run your next real release"
         location="design_partners_hero"
         primary={{ href: '/contact', label: 'Apply now' }}
         secondary={{ href: '/roadmap', label: 'See the roadmap' }}
-        trail="Use it before anyone else."
+        trail="through launch intelligence, with our help."
       >
         <HeroStage>
           <PartnerWindow />
@@ -73,10 +75,10 @@ export function DesignPartnersPage() {
 
       <Section>
         <SectionIntro
-          body="Early access is a working relationship, not a waitlist."
+          body="You work with us directly. We set things up with you and read every note you send."
           label="What you get"
-          lead="The platform now."
-          trail="A say in what is next."
+          lead="Early access and hands-on setup,"
+          trail="plus a vote on the roadmap."
         />
         <div className="mt-24">
           <TileGrid
@@ -85,7 +87,7 @@ export function DesignPartnersPage() {
               {
                 snippet: 'campaign:workflow · on',
                 title: 'Launch intelligence on your workspace',
-                body: 'Cited specs, plans, visuals, copy, and AI revisions on your real releases.',
+                body: 'Cited launch briefs, plans, visuals, posts, and AI revisions on your real releases.',
               },
               {
                 snippet: 'channels · with you',
@@ -95,12 +97,12 @@ export function DesignPartnersPage() {
               {
                 snippet: 'roadmap · your input',
                 title: 'Influence on the roadmap',
-                body: 'URL onboarding, GitHub change detection, the weekly plan: you help decide the order and the details.',
+                body: 'URL onboarding, the weekly plan, and demo videos: you help decide the order and the details.',
               },
               {
                 snippet: 'pricing · together',
-                title: 'A rate agreed with you',
-                body: 'Design partners agree their plan and rate with us during the program, while the published plans settle.',
+                title: 'Pricing agreed up front',
+                body: 'Launch intelligence works on any plan. We agree your plan and rate with you when you join.',
               },
             ]}
           />
@@ -109,10 +111,10 @@ export function DesignPartnersPage() {
 
       <Section>
         <SectionIntro
-          body="We measure whether launches go out with minor edits and whether teams come back for the next release. We need your honesty to get both right."
+          body="Design partners help most when they run real launches and tell us exactly what they rewrote."
           label="What we ask"
-          lead="Real releases."
-          trail="Honest feedback."
+          lead="Real releases"
+          trail="and a plain account of what you changed."
         />
         <div className="mt-24 grid gap-4 lg:grid-cols-2">
           <ul className="space-y-px bg-[#111] p-2">
@@ -123,15 +125,16 @@ export function DesignPartnersPage() {
               </li>
             ))}
           </ul>
-          <PullQuote
-            quote="A founder who runs onboarding once and never comes back received a demo, not a product."
-            source="Measurement"
-          />
+          <PullQuote quote="We judge success by two things: launches that go out with minor edits, and teams that come back for the next release." />
         </div>
       </Section>
 
       <Section>
-        <SectionIntro label="How it works" lead="Four steps." trail="One real release." />
+        <SectionIntro
+          label="How it works"
+          lead="Apply, talk, switch it on,"
+          trail="then launch a real release together."
+        />
         <ol className="mt-24 grid gap-px overflow-hidden border border-[#212121] bg-[#212121] md:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((step, index) => (
             <li className="bg-[#090909] p-8" key={step.title}>
@@ -149,11 +152,11 @@ export function DesignPartnersPage() {
         items={[
           {
             q: 'Does it cost anything?',
-            a: 'Your plan is agreed with you during the program. The editor and the free plan stay free.',
+            a: 'Yes. Design partners subscribe to a paid plan like every customer, and we agree which plan with you when you join. The editor and image tools are included in every plan.',
           },
           {
             q: 'What if it is not a fit?',
-            a: 'Say so. Your workspace and everything in it stays yours, on the free plan.',
+            a: 'Say so. Your workspace and everything in it stays yours.',
           },
           {
             q: 'Can we self-host as a design partner?',
@@ -163,7 +166,11 @@ export function DesignPartnersPage() {
       />
 
       <Section>
-        <SectionIntro label="Related" lead="Keep reading." trail="Every part connects." />
+        <SectionIntro
+          label="Related"
+          lead="See what you would be testing:"
+          trail="launch intelligence, the roadmap, and our principles."
+        />
         <div className="mt-24">
           <LinkCards paths={['/product/launch-intelligence', '/roadmap', '/principles']} />
         </div>

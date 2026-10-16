@@ -6,7 +6,7 @@ import { Footer } from "@/components/landing/Footer";
 export const metadata: Metadata = {
   title: "Terms & Conditions",
   description:
-    "Terms and Conditions for using Shots, the free, open-source screenshot beautifier.",
+    "Terms and Conditions for using Shots, the launch platform with an open-source screenshot editor.",
   alternates: {
     canonical: "/terms",
   },
@@ -57,9 +57,10 @@ export default function TermsPage() {
               2. Description of Service
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              Shots is a free, browser-based screenshot editing tool
-              that allows users to beautify screenshots with backgrounds,
-              frames, effects, and more. Editing happens in your browser, and images
+              Shots is a launch platform that includes a browser-based
+              screenshot editor for adding backgrounds, frames, effects, and
+              more to screenshots. Using the editor and tools requires a
+              Shots account with an active paid plan. Editing happens in your browser, and images
               you import are not uploaded to edit them. Exporting sends the
               finished image to our compression endpoint, which returns it
               without storing it, and capturing a screenshot from a URL sends
@@ -131,8 +132,8 @@ export default function TermsPage() {
               5. Advertising and Third-Party Services
             </h2>
             <p className="mb-3 leading-relaxed text-muted-foreground">
-              The Service is free to use and is supported by ads served by
-              Google AdSense. Ads are provided by third parties, and we are not
+              The screenshot editor is included in every plan, and content pages
+              are supported by ads served by Google AdSense. Ads are provided by third parties, and we are not
               responsible for the products or services they promote. You agree
               not to click ads artificially, use automated tools to generate ad
               impressions or clicks, or encourage others to do so.

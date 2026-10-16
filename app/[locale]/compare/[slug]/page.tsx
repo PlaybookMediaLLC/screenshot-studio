@@ -22,6 +22,7 @@ import {
   type ComparisonData,
 } from "@/lib/seo/comparisons";
 import { guides } from "@/lib/seo/guides";
+import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";
 import { OG_DEFAULTS, SITE_URL } from "@/lib/seo/metadata";
 import { PRODUCT_FACTS } from "@/lib/seo/product-facts";
 import { cn } from "@/lib/utils";
@@ -99,7 +100,7 @@ function SideCard({
         </h2>
         {featured ? (
           <span className="rounded-full bg-foreground/[0.06] px-2.5 py-1 text-xs font-medium text-foreground ring-1 ring-border">
-            Free forever
+            Open source
           </span>
         ) : null}
       </div>
@@ -148,7 +149,7 @@ export default async function ComparisonPage({ params }: PageProps) {
 
   const otherComparisons = comparisons.filter((c) => c.slug !== slug);
   const relatedGuides = relatedGuidesFor(data);
-  const cta = data.cta ?? { href: "/editor", label: "Try Shots Free" };
+  const cta = data.cta ?? { href: "/editor", label: "Try Shots" };
   const pageUrl = `${SITE_URL}/compare/${data.slug}`;
 
   const structuredData = {
@@ -180,7 +181,7 @@ export default async function ComparisonPage({ params }: PageProps) {
           name: "Shots",
           applicationCategory: "DesignApplication",
           operatingSystem: "Any (Web Browser)",
-          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+          offers: PRO_PLAN_OFFER,
         },
       },
     ],
@@ -230,7 +231,7 @@ export default async function ComparisonPage({ params }: PageProps) {
             <SideCard
               featured
               name="Shots"
-              pricing={`Free, open source (${PRODUCT_FACTS.license}), runs in any browser`}
+              pricing={`From $199/mo, open source (${PRODUCT_FACTS.license}), runs in any browser`}
               heading="Where it wins"
               points={data.studioAdvantages}
             />
@@ -342,11 +343,11 @@ export default async function ComparisonPage({ params }: PageProps) {
             title="Try it on your own screenshot"
             description={
               data.cta
-                ? "No signup. No uploads. No watermarks. See the result in seconds."
-                : "No signup, no download, and no watermark. Open the editor and compare for yourself."
+                ? "No uploads and no watermarks. Edits run in your browser."
+                : "No download and no watermark. Open the editor and compare for yourself."
             }
             href={cta.href}
-            label={data.cta ? cta.label : "Open Free Editor"}
+            label={data.cta ? cta.label : "Open the Editor"}
           />
         </div>
       </main>

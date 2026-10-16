@@ -266,7 +266,7 @@ function Board({ step }: { step: number }) {
         </div>
       </CanvasNode>
 
-      <CanvasNode node={NODE.spec} status={s(NODE.spec)} tag="Agent" title="Launch spec">
+      <CanvasNode node={NODE.spec} status={s(NODE.spec)} tag="AI" title="Launch brief">
         <Row label="Sections">11</Row>
         <Row label="Claims cited" mono>
           14 / 14
@@ -283,9 +283,9 @@ function Board({ step }: { step: number }) {
         </div>
       </CanvasNode>
 
-      <CanvasNode node={NODE.plan} status={s(NODE.plan)} tag="Agent" title="Campaign plan">
+      <CanvasNode node={NODE.plan} status={s(NODE.plan)} tag="AI" title="Campaign plan">
         <Row label="Angles">3</Row>
-        <Row label="Channels">5</Row>
+        <Row label="Channels">6</Row>
         <div className="mt-auto grid grid-cols-3" style={{ gap: u(4) }}>
           {['Teaser', 'Launch', 'Follow-up'].map((phase, index) => (
             <div
@@ -302,7 +302,7 @@ function Board({ step }: { step: number }) {
         </div>
       </CanvasNode>
 
-      <CanvasNode node={NODE.visuals} status={s(NODE.visuals)} tag="Agent" title="Visuals">
+      <CanvasNode node={NODE.visuals} status={s(NODE.visuals)} tag="AI" title="Visuals">
         <div className="grid grid-cols-2" style={{ gap: u(6) }}>
           <Thumb tone="linear-gradient(135deg,#2a2a2a,#8a8a8a)" />
           <Thumb tone="linear-gradient(135deg,#d9d9d9,#6d6d6d)" />
@@ -310,37 +310,39 @@ function Board({ step }: { step: number }) {
           <Thumb tone="linear-gradient(135deg,#9a9a9a,#e8e8e8)" />
         </div>
         <Row label="Brand kit">Acme v3</Row>
-        <Row label="Critique" mono>
+        <Row label="Checks" mono>
           4 / 4 pass
         </Row>
       </CanvasNode>
 
-      <CanvasNode node={NODE.copy} status={s(NODE.copy)} tag="Agent" title="Copy">
+      <CanvasNode node={NODE.copy} status={s(NODE.copy)} tag="AI" title="Posts">
         <Row label="X" mono>
           241 / 280
         </Row>
         <Row label="LinkedIn" mono>
           1,104
         </Row>
+        <Row label="Instagram" mono>
+          412 / 2,200
+        </Row>
         <Row label="Product Hunt" mono>
           248 / 260
         </Row>
-        <Row label="Changelog">entry</Row>
-        <Row label="Email">subject + body</Row>
+        <Row label="Changelog, email">entry + email</Row>
         <div className="mt-auto flex items-center text-emerald-300/90" style={{ gap: u(6) }}>
           <span className="rounded-full bg-emerald-400" style={{ height: u(6), width: u(6) }} />
-          Guards passed · claims cited
+          Copy checks passed · claims cited
         </div>
       </CanvasNode>
 
       <CanvasNode node={NODE.review} status={s(NODE.review)} tag="Human" title="Review">
         <span className="text-white" style={{ fontSize: u(15) }}>
-          7 posts ready
+          6 posts ready
         </span>
         <span className="text-white/45">
           {s(NODE.review) === STATUS.done
             ? 'Approved by you, 1 audit entry'
-            : 'Nothing ships until you approve'}
+            : 'Waiting for your approval'}
         </span>
         <div className="mt-auto flex" style={{ gap: u(6) }}>
           <span
@@ -352,7 +354,7 @@ function Board({ step }: { step: number }) {
             )}
             style={{ borderRadius: u(999), fontSize: u(12), padding: `${u(7)} 0` }}
           >
-            Approve all 7
+            Approve all 6
           </span>
           <span
             className="border border-white/15 text-center text-white/60"
@@ -374,7 +376,7 @@ function Board({ step }: { step: number }) {
           Instagram
         </Row>
         <span className={cn(MONO, 'mt-auto text-white/40')} style={{ fontSize: u(10.5) }}>
-          published = receipt confirmed
+          published = network confirmed
         </span>
       </CanvasNode>
     </div>
@@ -383,26 +385,26 @@ function Board({ step }: { step: number }) {
 
 const MOBILE_STEPS: { node: PipelineNode; tag: string; title: string; detail: string }[] = [
   { node: NODE.release, tag: 'Trigger', title: 'Release', detail: 'Recurring invoices · PR #452' },
-  { node: NODE.spec, tag: 'Agent', title: 'Launch spec', detail: '14 of 14 claims cited' },
-  { node: NODE.plan, tag: 'Agent', title: 'Campaign plan', detail: '3 angles · 5 channels' },
+  { node: NODE.spec, tag: 'AI', title: 'Launch brief', detail: '14 of 14 claims cited' },
+  { node: NODE.plan, tag: 'AI', title: 'Campaign plan', detail: '3 angles · 6 channels' },
   {
     node: NODE.visuals,
-    tag: 'Agent',
+    tag: 'AI',
     title: 'Visuals',
-    detail: '4 on-brand assets · critique passed',
+    detail: '4 on-brand visuals · checks passed',
   },
   {
     node: NODE.copy,
-    tag: 'Agent',
-    title: 'Copy',
-    detail: 'X, LinkedIn, Product Hunt, changelog, email',
+    tag: 'AI',
+    title: 'Posts',
+    detail: 'X, LinkedIn, Instagram, Product Hunt, changelog, email',
   },
-  { node: NODE.review, tag: 'Human', title: 'Review', detail: 'Approve all 7 posts in one click' },
+  { node: NODE.review, tag: 'Human', title: 'Review', detail: 'Approve all 6 posts in one click' },
   {
     node: NODE.publish,
     tag: 'Scheduler',
     title: 'Schedule',
-    detail: 'Published once, with a receipt',
+    detail: 'Published once, with confirmation',
   },
 ]
 
@@ -442,7 +444,7 @@ export function PipelineCanvas() {
   const step = useRunStep()
   return (
     <div
-      aria-label="A release moving through spec, plan, visuals, copy, review, and schedule"
+      aria-label="A release moving through launch brief, plan, visuals, posts, review, and schedule"
       role="img"
     >
       <Board step={step} />

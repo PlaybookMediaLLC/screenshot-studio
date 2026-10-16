@@ -87,7 +87,7 @@ export default function PrivacyPolicyPage() {
           <Section title="Overview">
             <p className="mb-3 leading-relaxed text-muted-foreground">
               Shots combines a browser-based image editor with a workspace platform. An
-              account and workspace membership are required to use the editor. We store the
+              account and workspace membership are required to use the editor and tools. We store the
               identity, session, membership, and workspace data needed to provide that service.
             </p>
             <p className="leading-relaxed text-muted-foreground">
@@ -186,7 +186,7 @@ export default function PrivacyPolicyPage() {
 
           <Section id="advertising" title="Advertising">
             <p className="mb-3 leading-relaxed text-muted-foreground">
-              Shots is free because it shows ads served by Google AdSense on content
+              Shots shows ads served by Google AdSense on content
               pages such as guides, comparisons, and tool pages. The images you edit are never
               shared with Google or any ad partner.
             </p>
@@ -316,7 +316,8 @@ export default function PrivacyPolicyPage() {
           <Section title="Data Retention">
             <ul className="list-inside list-disc space-y-2 text-muted-foreground">
               <li>
-                Images you edit: never stored on our servers. Export compression happens in memory
+                Images you edit: not stored on our servers unless you save them to your workspace.
+                Export compression happens in memory
                 and is discarded immediately.
               </li>
               <li>

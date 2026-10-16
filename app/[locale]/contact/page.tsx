@@ -30,7 +30,7 @@ const contacts = [
     href: "https://github.com/PlaybookMediaLLC/screenshot-studio/issues",
     external: true,
     icon: GithubIcon,
-    title: "Report a Bug",
+    title: "Report a bug",
     description:
       "Found something broken? Open an issue on GitHub and we'll look into it.",
   },
@@ -38,7 +38,7 @@ const contacts = [
     href: "https://github.com/PlaybookMediaLLC/screenshot-studio/issues/new?labels=enhancement",
     external: true,
     icon: GithubIcon,
-    title: "Request a Feature",
+    title: "Request a feature",
     description:
       "Have an idea to make Shots better? We'd love to hear it.",
   },
@@ -62,7 +62,7 @@ export default function ContactPage() {
           className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl"
           style={{ fontFamily: INTER }}
         >
-          Contact Us
+          Contact us
         </h1>
         <p className="mb-12 text-lg text-muted-foreground">
           Have a question, found a bug, or want to suggest a feature? Here are
@@ -102,7 +102,7 @@ export default function ContactPage() {
             className="mb-2 text-lg font-semibold tracking-[-0.02em] text-foreground"
             style={{ fontFamily: INTER }}
           >
-            Before You Reach Out
+            Before you reach out
           </h2>
           <p className="mb-3 leading-relaxed text-muted-foreground">
             Many questions are already answered on the{" "}
@@ -117,9 +117,8 @@ export default function ContactPage() {
             <Link href="/changelog" className={linkClassName}>
               changelog
             </Link>
-            . Shots is free, needs no account, and processes your
-            images in the browser, so there is nothing to cancel and no
-            subscription to manage.
+            . The editor and image tools are included in every plan. For
+            questions about Pro, Business, or Enterprise plans, email us.
           </p>
           <p className="leading-relaxed text-muted-foreground">
             When reporting a bug, include your browser and operating system,

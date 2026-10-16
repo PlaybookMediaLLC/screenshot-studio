@@ -84,7 +84,8 @@ export function AgentSummary() {
         tilt it in 3D, then export {EXPORT_FORMATS_SENTENCE}. Editing runs on your device and
         imported images are not uploaded merely to edit them; export compression sends the finished
         image to the server, which returns it without storing it. A signed-in workspace is required.
-        A free plan is available, some workspace capabilities require a higher plan, and editor
+        Every workspace needs a paid plan (Pro, Business, or Enterprise). The editor and image tools
+        are included in every plan, some workspace capabilities require a higher plan, and editor
         exports have no watermark.
       </p>
 
@@ -117,7 +118,7 @@ export function AgentSummary() {
           <h2 className={headingClass}>Standalone editors</h2>
           <LinkList
             items={[
-              { href: '/free-screenshot-editor', label: 'Free screenshot editor' },
+              { href: '/free-screenshot-editor', label: 'Screenshot editor online' },
               { href: '/code', label: 'Code to image' },
               { href: '/tweet', label: 'Tweet to image' },
               { href: '/remove-background', label: 'Background remover' },

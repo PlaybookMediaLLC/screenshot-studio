@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MagicWand01Icon, PlayIcon, SparklesIcon, Video01Icon } from "hugeicons-react";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION } from "@/components/tools/ui";
+import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";
 import { OG_DEFAULTS, SITE_URL } from "@/lib/seo/metadata";
 import { PRODUCT_FACTS, VIDEO_FORMATS_SENTENCE, atLeast } from "@/lib/seo/product-facts";
 import { gradientColors } from "@/lib/constants/gradient-colors";
@@ -10,9 +11,9 @@ import { gradientColors } from "@/lib/constants/gradient-colors";
 const PAGE_URL = `${SITE_URL}/features/animation-maker`;
 
 export const metadata: Metadata = {
-  title: "Free Screenshot Animation Maker",
+  title: "Screenshot Animation Maker",
   description:
-    "Create stunning animations from screenshots. Build slideshows with zoom, pan, and fade effects. Export to video or GIF. Free browser-based animation tool.",
+    "Create animations from screenshots. Build slideshows with zoom, pan, and fade effects. Export to video or GIF. Browser-based animation tool, included in every Shots plan.",
   keywords: [
     "animation maker",
     "screenshot animation",
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
     "zoom animation",
     "pan animation",
     "ken burns effect",
-    "free animation tool",
+    "animation tool",
     "animated screenshot maker",
     "product demo animation",
     "screenshot gif maker",
@@ -30,9 +31,9 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Free Animation Maker - Create Animated Screenshots & Slideshows",
+    title: "Animation Maker - Create Animated Screenshots & Slideshows",
     description:
-      "Create stunning animations from screenshots. Zoom, pan, and fade effects with video export.",
+      "Create animations from screenshots. Zoom, pan, and fade effects with video export.",
     url: PAGE_URL,
   },
   alternates: {
@@ -84,9 +85,9 @@ const steps = [
 
 const faqs = [
   {
-    question: "Is the screenshot animation maker free?",
+    question: "Which plans include the screenshot animation maker?",
     answer:
-      "Yes. Every animation preset, the timeline editor, and video export are free, with no signup and no watermark.",
+      "Every plan. Every animation preset, the timeline editor, and video export are included in every Shots plan, and exports have no watermark.",
   },
   {
     question: "What video formats can I export?",
@@ -124,8 +125,8 @@ const jsonLd = {
       applicationCategory: "MultimediaApplication",
       operatingSystem: "Web Browser",
       description:
-        "Free online tool to create animated screenshots and slideshows with zoom, pan, and fade effects.",
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        "Online tool to create animated screenshots and slideshows with zoom, pan, and fade effects.",
+      offers: PRO_PLAN_OFFER,
       featureList: [
         `${atLeast(PRODUCT_FACTS.animationPresets)} animation presets`,
         "Keyframe timeline editor",
@@ -182,10 +183,10 @@ export default function AnimationMakerPage() {
   return (
     <FeaturePage
       name="Animation Maker"
-      title="Free Screenshot Animation Maker"
-      intro="Bring your screenshots to life with zoom, pan, and fade animations, or build a slideshow from several screenshots. Export to video or GIF, free with no signup."
+      title="Screenshot animation maker"
+      intro="Bring your screenshots to life with zoom, pan, and fade animations, or build a slideshow from several screenshots. Export to video or GIF, included in every Shots plan."
       ctaHref="/editor"
-      ctaLabel="Create Animation Free"
+      ctaLabel="Create an Animation"
       previewGradient={gradientColors.cyan_blue_purple}
       preview={<AnimationPreview />}
       capabilities={capabilities}

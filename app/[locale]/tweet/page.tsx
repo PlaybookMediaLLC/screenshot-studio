@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 export const metadata: Metadata = {
   title: 'Tweet to Image: Turn Posts on X into Images',
   description:
-    'Paste a link to a post on X and download it as a clean PNG. Light or dark card, gradient or transparent background, export at 2x or 4x. Free, no signup, no watermark.',
+    'Paste a link to a post on X and download it as a clean PNG. Light or dark card, gradient or transparent background, export at 2x or 4x. Included in every plan. No watermark.',
   keywords: [
     'tweet to image',
     'tweet screenshot',
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     ...OG_DEFAULTS,
     title: 'Tweet to Image: Clean Screenshots of Posts on X',
     description:
-      'Paste a post link from X, pick light or dark, add a background, and export a PNG. Free, no signup.',
+      'Paste a post link from X, pick light or dark, add a background, and export a PNG. Included in every plan.',
     url: '/tweet',
   },
   alternates: {
@@ -69,7 +69,7 @@ const faqs = [
   {
     question: 'Is it free?',
     answer:
-      'Yes. Every card style, background, and export size is free, with no signup and no watermark.',
+      'Yes. Every card style, background, and export size is included in every Shots plan, with no watermark.',
   },
 ];
 
@@ -124,12 +124,12 @@ export default function TweetImagePage() {
               className="text-4xl font-semibold tracking-[-0.035em] text-foreground sm:text-5xl"
               style={{ fontFamily: INTER }}
             >
-              Tweet to Image Generator
+              Tweet to image generator
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
               Paste a link to any public post on X and get a clean image of it,
-              ready for slides, docs, newsletters, or another thread. No signup,
-              no watermark.
+              ready for slides, docs, newsletters, or another thread. Free with
+              a Shots account, no watermark.
             </p>
           </header>
 

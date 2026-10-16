@@ -35,9 +35,10 @@ export function ProductOverview(): React.JSX.Element {
             </h2>
             <div className="mt-6 max-w-2xl space-y-2 text-[15px] leading-normal text-muted-foreground md:text-base">
               <p>
-                Shots is a free, open-source screenshot editor that
-                runs entirely in your browser. It turns raw captures into images
-                you can publish. No signup, no watermarks, nothing to install.
+                Shots is a launch platform with an open-source screenshot
+                editor that runs in your browser. It turns raw captures into
+                images you can publish. No watermarks, nothing to install. The
+                editor and image tools are included in every plan.
               </p>
               <p>
                 Drop in a screenshot, tweet, or code snippet. Add a Safari or

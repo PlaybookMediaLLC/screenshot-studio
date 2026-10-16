@@ -419,22 +419,22 @@ export function AvailabilityPill({ status }: { status: Availability }) {
   )
 }
 
-/** A centered pull quote with its source, for principle citations. */
-export function PullQuote({ quote, source }: { quote: string; source: string }) {
+/** A centered pull quote, with an optional caption, for product rules. */
+export function PullQuote({ quote, source }: { quote: string; source?: string }) {
   return (
     <figure className="bg-[#111] px-6 py-16 text-center sm:px-16 sm:py-20">
       <blockquote className="mx-auto max-w-[760px] text-balance text-[24px] leading-[1.35] tracking-[-0.02em] text-white sm:text-[30px]">
         {quote}
       </blockquote>
-      <figcaption className={cn('mt-8 text-sm', MUTED)}>{source}</figcaption>
+      {source ? <figcaption className={cn('mt-8 text-sm', MUTED)}>{source}</figcaption> : null}
     </figure>
   )
 }
 
 /** Closing call to action over a faded stage, after sim.ai's finale. */
 export function FinalCta({
-  lead = 'Your next release',
-  trail = 'is your next launch.',
+  lead = 'Shipping something this week?',
+  trail = 'Have its launch ready for review the same day.',
 }: {
   lead?: string
   trail?: string

@@ -32,7 +32,7 @@ test('markdown route uses the rewritten URL cache key and ignores spoofed routin
 
 test('Next 16 proxy owns content negotiation and preserves cache separation', () => {
   const proxySource = source('proxy.ts')
-  assert.match(proxySource, /export function proxy\(/)
+  assert.match(proxySource, /export async function proxy\(/)
   assert.match(proxySource, /prefersMarkdown\(accept\)/)
   assert.match(proxySource, /url\.pathname = `\/api\/md\$\{request\.nextUrl\.pathname/)
   assert.doesNotMatch(proxySource, /searchParams\.set\(['"]path['"]/)

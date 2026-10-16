@@ -27,6 +27,7 @@ import {
 import { MONO, MUTED, Section, SectionIntro, Window } from '../primitives'
 import { BrandWidget, BrowserWidget, TimelineWidget } from '../sections'
 import { CreativeMock } from '../WorkflowSection'
+import { CreativeEngineStrip } from '../diagrams/CreativeEngineStrip'
 
 const CONTROLS = [
   ['Frame', 'Safari · dark'],
@@ -49,7 +50,7 @@ const TOOLS = [
 
 function DesignWindow() {
   return (
-    <Window className="w-full max-w-[900px]" meta="A1 · hero · 16:9" title="Design">
+    <Window className="w-full max-w-[900px]" meta="A1 · hero · 16:9" title="Visual">
       <div className="grid gap-3 p-3 md:grid-cols-[1.6fr_1fr]">
         <CreativeMock className="aspect-[16/10]" />
         <dl className="divide-y divide-white/[0.06] rounded-lg bg-black/30 text-[13px]">
@@ -69,7 +70,7 @@ function CaptureWindow() {
   return (
     <Window meta="capture" title="captureProductPage">
       <div className={cn(MONO, 'space-y-2 p-4 text-[12px] leading-[1.6]')}>
-        <p className="text-white/50">surface</p>
+        <p className="text-white/50">product page</p>
         <p className="text-white/85">Invoices · production · app.acme.com/invoices</p>
         <p className="pt-2 text-white/50">checks</p>
         <p className="text-emerald-300">public address · ssrf ok</p>
@@ -85,10 +86,10 @@ function RenderWindow() {
   return (
     <Window meta="headless Chromium" title="Render">
       <div className={cn(MONO, 'space-y-2 p-4 text-[12px] leading-[1.6]')}>
-        <p className="text-white/50">design</p>
+        <p className="text-white/50">visual</p>
         <p className="text-white/85">A1 hero · variant A</p>
         <p className="pt-2 text-white/50">page token</p>
-        <p className="text-white/85">HMAC · one design · 5 min</p>
+        <p className="text-white/85">HMAC · one visual · 5 min</p>
         <p className="pt-2 text-white/50">result</p>
         <p className="text-emerald-300">PNG saved to workspace</p>
       </div>
@@ -99,14 +100,19 @@ function RenderWindow() {
 /** /product/creative-engine: the editor as the platform renderer. */
 export function CreativeEnginePage() {
   return (
-    <MarketingShell finale={{ lead: 'Real screenshots.', trail: 'On brand, every time.' }}>
+    <MarketingShell
+      finale={{
+        lead: 'Try the editor on your own screenshots,',
+        trail: 'included in every plan.',
+      }}
+    >
       <PageHero
-        body="The open-source screenshot editor does the rendering. Agents capture your live product, frame it, apply your brand, and save an editor design rather than a flat image. Open any of it and change it by hand."
+        body="The open-source screenshot editor makes every visual. The AI captures your live product, frames it, applies your brand, and saves the result as layers in the editor. Open any of it and change it by hand."
         eyebrow={{ href: '/product', label: 'Creative engine', parent: 'Product' }}
-        lead="The editor is the renderer."
+        lead="Every visual is built in the Shots editor,"
         location="creative_engine_hero"
         secondary={{ href: '/free-screenshot-editor', label: 'Open the editor' }}
-        trail="Every asset stays editable."
+        trail="so you can open it and change anything."
       >
         <HeroStage variant={1}>
           <DesignWindow />
@@ -116,9 +122,9 @@ export function CreativeEnginePage() {
       <section className="mx-auto w-full max-w-[1280px] px-6 py-24 sm:px-10 sm:py-32">
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-24">
           <p className="text-balance text-[24px] leading-[1.3] tracking-[-0.015em] text-white sm:text-[30px]">
-            The same editor founders use for free.{' '}
+            The same editor founders use, included in every plan.{' '}
             <span className={MUTED}>
-              Now it renders for the platform too, so the agent and the person share one canvas.
+              Shots uses it to make launch visuals too, so you and the AI edit the same file.
             </span>
           </p>
           <StatRows
@@ -136,18 +142,19 @@ export function CreativeEnginePage() {
 
       <Section>
         <SectionIntro
-          body="From a live page to an approved asset in four steps, each one a tool with a narrow job and a check at the end."
+          body="Capture, frame, brand, render, and edit. Each step has one narrow job and a check at the end."
           label="Pipeline"
-          lead="Capture, compose,"
-          trail="render, edit."
+          lead="Five steps from a live page"
+          trail="to a visual you can edit."
         />
         <div className="mt-24 space-y-24">
+          <CreativeEngineStrip />
           <SplitFeature
-            body="The capture tool photographs the product surface and the release source links, nothing else. Every address is checked, and near-blank captures are rejected."
+            body="Shots captures your product pages and the release's source links, and nothing else. Every address is checked, and near-blank captures are rejected."
             bullets={[
-              'Product surfaces carry a name, a URL, and an environment',
+              'Product pages carry a name, a URL, and an environment',
               'Production, staging, demo, or development',
-              'Captures are stored as workspace assets',
+              'Captures are saved to your workspace',
               'Pages behind a login are not supported yet',
             ]}
             index={0}
@@ -156,7 +163,7 @@ export function CreativeEnginePage() {
             <CaptureWindow />
           </SplitFeature>
           <SplitFeature
-            body="A product shot places the capture in a device or browser frame with a headline. Every frame, background, and font from the editor is available to the agent."
+            body="Shots places the capture in a device or browser frame with a headline. The AI can use every frame, background, and font in the editor."
             bullets={[FRAMES_SENTENCE]}
             index={1}
             title="Compose it in a frame"
@@ -164,22 +171,22 @@ export function CreativeEnginePage() {
             <BrowserWidget />
           </SplitFeature>
           <SplitFeature
-            body="The brand kit is applied to every design: a gradient from the brand background to the accent, the brand text color, and the nearest font in the catalog. Nobody picks a hex code twice."
+            body="Your brand kit is applied to every visual: a gradient from the brand background to the accent, the brand text color, and the nearest font in the catalog. Nobody picks a hex code twice."
             index={2}
-            link={{ href: '/product/launch-intelligence', label: 'How designs get critiqued' }}
+            link={{ href: '/product/launch-intelligence', label: 'How visuals get checked' }}
             title="Apply the brand"
           >
             <BrandWidget />
           </SplitFeature>
           <SplitFeature
-            body={`Designs render in headless Chromium. The render browser holds no customer credentials, and each page carries a token for one design that expires in five minutes. Renders are limited to ${DESIGN_RENDER_RATE_LIMIT.maxRequests} a minute per workspace, and cache hits do not count.`}
+            body={`Visuals render in headless Chromium. The render browser holds no customer credentials. Each page carries a token for one visual that expires in five minutes. Rendering is limited to ${DESIGN_RENDER_RATE_LIMIT.maxRequests} a minute per workspace, and cached visuals do not count.`}
             index={3}
             title="Render without credentials"
           >
             <RenderWindow />
           </SplitFeature>
           <SplitFeature
-            body="Every design opens in the editor. Change anything, save it back to the workspace, or download it. Saved assets can be reopened, edited, and saved again as PNG, JPEG, or WebP."
+            body="Every visual opens in the editor. Change anything, then save it back to the workspace or download it. Saved visuals can be reopened, edited, and saved again as PNG, JPEG, or WebP."
             index={4}
             title="Edit by hand, any time"
           >
@@ -190,10 +197,10 @@ export function CreativeEnginePage() {
 
       <Section>
         <SectionIntro
-          body={`Everything the editor can do, the platform can render: ${EXPORT_FORMATS_SENTENCE} export, motion, and mockups.`}
+          body={`Everything the editor can do, Shots can render: ${EXPORT_FORMATS_SENTENCE} export, motion, and mockups.`}
           label="Editor"
-          lead="Everything in the editor."
-          trail="Available to every design."
+          lead="The AI can use every editor feature,"
+          trail="from device frames to motion."
         />
         <div className="mt-24">
           <TileGrid
@@ -236,10 +243,10 @@ export function CreativeEnginePage() {
       <Section>
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-8">
           <div>
-            <p className="text-[26px] tracking-[-0.02em] text-white sm:text-[30px]">Free tools</p>
+            <p className="text-[26px] tracking-[-0.02em] text-white sm:text-[30px]">Image tools</p>
             <p className={cn('mt-4 max-w-[480px] text-lg leading-[1.55]', MUTED)}>
-              The creative engine also powers focused tools that run in your browser on a free
-              workspace.
+              The same engine powers focused tools that run in your browser, included in every
+              plan.
             </p>
           </div>
           <ul className="grid grid-cols-2 gap-px overflow-hidden border border-[#212121] bg-[#212121]">
@@ -261,19 +268,19 @@ export function CreativeEnginePage() {
         items={[
           {
             q: 'Are generated visuals flat images?',
-            a: 'No. Each one is an editor design with its frame, background, headline, and capture as separate layers. Open it and move anything.',
+            a: 'No. Each one is an editor file with its frame, background, headline, and capture as separate layers. Open it and move anything.',
           },
           {
             q: 'Which pages can it capture?',
-            a: 'Public pages: your product surfaces and the source links on a release. Pages behind a login are not supported yet.',
+            a: 'Public pages: your product pages and the source links on a release. Pages behind a login are not supported yet.',
           },
           {
-            q: 'Can I use the editor without the platform?',
-            a: `Yes. The editor is ${PRODUCT_FACTS.license} licensed and available on a free workspace with no watermark.`,
+            q: 'Can I use just the editor?',
+            a: `Yes. The editor is ${PRODUCT_FACTS.license} licensed, included in every plan, and adds no watermark.`,
           },
           {
-            q: 'Where do renders run?',
-            a: 'In headless Chromium on a remote browser service. The browser never receives your credentials, only a short-lived token for the one design it renders.',
+            q: 'Where are visuals rendered?',
+            a: 'In headless Chromium on a remote browser service. That browser never receives your credentials, only a short-lived token for the one visual it renders.',
           },
         ]}
       />

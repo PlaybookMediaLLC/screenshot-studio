@@ -321,7 +321,7 @@ test("agent-facing API copy distinguishes utility and tenant authentication", ()
     ).flatMap((page) => [page.summary, ...(page.points ?? [])]),
   ].join("\n");
 
-  assert.match(apiCopy, /utility endpoints[\s\S]*anonymous/i);
+  assert.match(apiCopy, /utility endpoints[\s\S]*(X-API-Key|signed-in session)/i);
   assert.match(apiCopy, /\/api\/v1[\s\S]*(X-API-Key|signed-in session)/i);
-  assert.doesNotMatch(apiCopy, /every (?:API )?endpoint is anonymous/i);
+  assert.doesNotMatch(apiCopy, /anonymous|no API key|no credential/i);
 });

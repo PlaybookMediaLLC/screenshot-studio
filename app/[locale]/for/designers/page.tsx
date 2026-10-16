@@ -16,7 +16,7 @@ import {
 export const metadata: Metadata = {
   title: "Mockup & Screenshot Tool for Designers",
   description:
-    "Free mockup tool for UI/UX designers. Create app mockups, UI mockups, and portfolio screenshots with backgrounds, browser frames, and 3D effects. No signup.",
+    "Mockup tool for UI/UX designers. Create app mockups, UI mockups, and portfolio screenshots with backgrounds, browser frames, and 3D effects. Included in every Shots plan.",
   keywords: [
     "screenshot tool for designers",
     "UI mockup creator",
@@ -37,22 +37,18 @@ export const metadata: Metadata = {
     "goodmockups alternative",
     "mockup me alternative",
     "mockup generator",
-    "free mockup generator",
-    "mockup generator free",
     "mockup online generator",
     "mockup online editor",
-    "mockup editor online free",
+    "mockup editor online",
     "mockup design online",
-    "mockup free online",
-    "free online mockup generator no watermark",
-    "free mockup generator without watermark",
+    "online mockup generator no watermark",
+    "mockup generator without watermark",
     "app mockup generator",
     "website mockup generator",
-    "free website mockup generator",
     "website mockup generator from url",
     "laptop mockup generator",
     "product mockup generator",
-    "free online 3d mockup generator",
+    "online 3d mockup generator",
     "best mockup generator",
     "best online mockup generator",
     "mockup app",
@@ -61,7 +57,7 @@ export const metadata: Metadata = {
     ...OG_DEFAULTS,
     title: "Mockup & Screenshot Tool for Designers",
     description:
-      "Create app mockups, UI mockups, and portfolio screenshots with backgrounds, browser frames, and 3D effects. Free, no signup.",
+      "Create app mockups, UI mockups, and portfolio screenshots with backgrounds, browser frames, and 3D effects. Included in every Shots plan.",
     url: "/for/designers",
   },
   alternates: {
@@ -84,49 +80,49 @@ const INTER =
 const useCases = [
   {
     icon: PaintBoardIcon,
-    title: "Portfolio Presentations",
+    title: "Portfolio presentations",
     description:
-      "Showcase your UI designs with professional mockups and beautiful presentations",
+      "Present your UI designs in device and browser mockups",
   },
   {
     icon: ColorsIcon,
-    title: "Client Presentations",
+    title: "Client presentations",
     description:
       "Create polished mockups for client reviews and design presentations",
   },
   {
     icon: PenTool01Icon,
-    title: "Design Systems",
+    title: "Design systems",
     description:
       "Document your design systems with clear, consistent visual examples",
   },
   {
     icon: SmartPhone01Icon,
-    title: "App Store Assets",
+    title: "App Store assets",
     description:
-      "Generate stunning screenshots for App Store and Play Store listings",
+      "Make screenshots for App Store and Play Store listings",
   },
 ];
 
 const features = [
   {
     icon: Layers01Icon,
-    title: "Advanced Layering",
+    title: "Advanced layering",
     description: "Full control over layers, shadows, and visual hierarchy",
   },
   {
     icon: EyeIcon,
-    title: "Precise Controls",
-    description: "Pixel-perfect adjustments for professional results",
+    title: "Precise controls",
+    description: "Pixel-level control over position, scale, and rotation",
   },
   {
     icon: ColorsIcon,
-    title: "Color Palettes",
-    description: "Beautiful gradients and solid colors for any brand",
+    title: "Color palettes",
+    description: "Gradients and solid colors to match any brand",
   },
   {
     icon: SparklesIcon,
-    title: "Export Options",
+    title: "Export options",
     description: "High-resolution exports in multiple formats",
   },
 ];
@@ -149,7 +145,7 @@ export default function ForDesignersPage() {
               className="mb-6 text-5xl font-semibold tracking-[-0.04em] text-foreground md:text-6xl"
               style={{ fontFamily: INTER }}
             >
-              Design Tools That Match Your Standards
+              Design tools that match your standards
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-xl leading-relaxed text-muted-foreground">
               Create portfolio-worthy screenshots and mockups with the precision
@@ -157,7 +153,7 @@ export default function ForDesignersPage() {
             </p>
             <div className="mb-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link href="/editor" className={ctaClassName}>
-                Start Designing Free
+                Start Designing
               </Link>
               <Link href="/features" className={secondaryCtaClassName}>
                 See All Features
@@ -174,7 +170,7 @@ export default function ForDesignersPage() {
               className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
               style={{ fontFamily: INTER }}
             >
-              Perfect for Every Design Workflow
+              Perfect for every design workflow
             </h2>
             <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
               From client presentations to portfolio pieces, we&apos;ve got you
@@ -208,7 +204,7 @@ export default function ForDesignersPage() {
               className="mb-4 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
               style={{ fontFamily: INTER }}
             >
-              Features Designers Love
+              Features designers love
             </h2>
           </div>
 
@@ -240,7 +236,7 @@ export default function ForDesignersPage() {
               className="mb-6 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
               style={{ fontFamily: INTER }}
             >
-              A Mockup Tool Built for UI and UX Work
+              A mockup tool built for UI and UX work
             </h2>
             <div className="space-y-4 text-lg leading-relaxed text-muted-foreground">
               <p>
@@ -258,8 +254,9 @@ export default function ForDesignersPage() {
                 LinkedIn.
               </p>
               <p>
-                Shots is free and open source, so you can use it for
-                client work without licenses, watermarks, or accounts.
+                Shots is open source and the editor is included in every
+                plan, so you can use it for client work without extra licenses
+                or watermarks.
               </p>
             </div>
           </div>
@@ -273,13 +270,13 @@ export default function ForDesignersPage() {
               className="mb-6 text-3xl font-semibold tracking-[-0.03em] text-foreground md:text-4xl"
               style={{ fontFamily: INTER }}
             >
-              Ready to Elevate Your Design Presentations?
+              Ready to present your designs?
             </h2>
             <p className="mb-8 text-xl text-muted-foreground">
-              Join thousands of designers creating stunning visual content
+              The editor and image tools are included in every plan.
             </p>
             <Link href="/editor" className={ctaClassName}>
-              Start Creating Free
+              Start Creating
             </Link>
           </div>
         </div>

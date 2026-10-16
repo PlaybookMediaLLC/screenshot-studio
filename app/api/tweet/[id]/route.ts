@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTweet } from 'react-tweet/api'
 import { apiError } from '@/lib/api/errors'
+import { requirePaidAccess } from '@/lib/api/require-account'
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
+  const denied = await requirePaidAccess(request)
+  if (denied) return denied
+
   const { id } = await params
 
   try {

@@ -75,7 +75,7 @@ export default function AudienceHubPage() {
         <section className="px-6 pt-28 pb-12">
           <div className="mx-auto max-w-5xl">
             <h1 className="mb-3 text-3xl font-semibold tracking-[-0.02em] text-foreground sm:text-4xl">
-              Who Shots Is For
+              Who Shots is for
             </h1>
             <p className="max-w-2xl text-base text-muted-foreground">
               The same browser-based editor, framed around three jobs people

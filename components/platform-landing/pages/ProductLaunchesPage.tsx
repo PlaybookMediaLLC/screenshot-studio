@@ -23,11 +23,11 @@ import { ReviewMock } from '../WorkflowSection'
 const PHASES = [
   {
     phase: PLAN_PHASE_LABELS.teaser,
-    body: 'Build interest before the day. The plan picks the channels and the angle that hint without spoiling.',
+    body: "Build interest before the day. The plan picks channels and an angle that hint at what's coming.",
   },
   {
     phase: PLAN_PHASE_LABELS.launch,
-    body: 'The main event: the listing, the announcement, the changelog, and the email, all on one day and one message.',
+    body: 'The main event: the listing, the social posts, the changelog, and the release email, all on one day with one message.',
   },
   {
     phase: PLAN_PHASE_LABELS.follow_up,
@@ -39,13 +39,15 @@ const PHASES = [
 export function ProductLaunchesPage() {
   const ph = CHANNEL_RULES.product_hunt
   return (
-    <MarketingShell finale={{ lead: 'Launch day,', trail: 'planned like a release.' }}>
+    <MarketingShell
+      finale={{ lead: 'Plan your next launch week', trail: 'from a single release.' }}
+    >
       <PageHero
-        body="A product launch is a week of coordinated posts, not one tweet. Shots plans it as a timeline, makes the assets in every format, and holds everything for one review before it goes out."
+        body="A product launch is a week of coordinated posts. Shots plans it as a timeline, makes the visuals in every format, and holds everything for one review before it goes out."
         eyebrow={{ href: '/use-cases', label: 'Product launches', parent: 'Use cases' }}
-        lead="A launch plan,"
+        lead="Plan a product launch as one timeline:"
         location="product_launches_hero"
-        trail="not a launch scramble."
+        trail="teaser, launch day, and follow-up."
       >
         <HeroStage variant={1}>
           <WeekMock />
@@ -54,10 +56,10 @@ export function ProductLaunchesPage() {
 
       <Section>
         <SectionIntro
-          body="Every campaign plan splits into three phases. Each post knows which phase it belongs to and which spec and plan versions it was written against."
+          body="Each post also records the launch brief and plan versions it was written against."
           label="Timeline"
-          lead="Teaser, launch day,"
-          trail="follow-up."
+          lead="Every plan has three phases,"
+          trail="and each post knows which one it belongs to."
         />
         <div className="mt-24">
           <TileGrid
@@ -72,17 +74,17 @@ export function ProductLaunchesPage() {
 
       <Section>
         <SectionIntro
-          body="The listing is the one post you cannot edit after the day starts. It is drafted inside Product Hunt's limits and cites the spec like everything else."
+          body="You can't edit the listing once launch day starts. Shots drafts it inside Product Hunt's limits and cites the launch brief like every other post."
           label="Product Hunt"
-          lead="A listing that fits,"
-          trail="the first time."
+          lead="Your Product Hunt listing"
+          trail="fits the limits on the first draft."
         />
         <div className="mt-24">
           <SplitFeature
-            body={`Tagline up to ${ph.title.max} characters, description up to ${ph.bodyMax}, and no hashtags. Over-limit drafts are rewritten with the measured overflow before you see them.`}
+            body={`Tagline up to ${ph.title.max} characters, description up to ${ph.bodyMax}, and no hashtags. Over-limit drafts are rewritten before you see them.`}
             bullets={[
-              'Drafted from the approved spec and plan',
-              'Hype words and your prohibited terms rejected',
+              'Drafted from the approved launch brief and plan',
+              'Hype words and your banned terms fail the copy checks',
               'Links limited to the product and its sources',
             ]}
             index={0}
@@ -100,10 +102,10 @@ export function ProductLaunchesPage() {
 
       <Section>
         <SectionIntro
-          body="Every limit the copy agent writes to, read from the same rules that reject over-limit posts."
+          body="The AI writes to these limits, and the same rules reject any post that runs over."
           label="Every channel"
-          lead="Written to fit."
-          trail="Checked before saving."
+          lead={`Limits for all ${LAUNCH_CHANNELS.length} channels,`}
+          trail="checked before any post is saved."
         />
         <div className="mt-24">
           <RowTable
@@ -128,15 +130,15 @@ export function ProductLaunchesPage() {
         <SectionIntro
           body="A launch has more than one person on it. Creators shape the posts, an approver signs off on the whole week, and a publisher schedules it."
           label="Review"
-          lead="One review"
-          trail="for the whole week."
+          lead="Review the whole launch week"
+          trail="in one sitting."
         />
         <div className="mt-24">
           <SplitFeature
-            body="Approve every post at once, approve three and send one back with a note, or ask for a revision and apply it from a diff. Whatever you approve stays as approved."
+            body="Approve every post at once, approve three and send one back with a note, or ask for a revision and apply it from a diff. Approved posts stay as you approved them."
             index={1}
             link={{ href: '/product/approvals', label: 'How approval works' }}
-            title="Approve the launch, not each tweet"
+            title="Approve the whole launch at once"
           >
             <ReviewMock />
           </SplitFeature>
@@ -147,7 +149,7 @@ export function ProductLaunchesPage() {
         items={[
           {
             q: 'Can I launch something that is not live yet?',
-            a: 'Yes. Describe it in the brief and link what exists. Captures need a public page, so screenshots of unreleased screens need a public staging or demo surface.',
+            a: 'Yes. Describe it in the release and link what exists. Captures need a public page, so screenshots of unreleased screens need a public staging or demo page.',
           },
           {
             q: 'Can I change the dates?',
@@ -161,7 +163,11 @@ export function ProductLaunchesPage() {
       />
 
       <Section>
-        <SectionIntro label="Related" lead="Keep reading." trail="Every part connects." />
+        <SectionIntro
+          label="Related"
+          lead="See a smaller feature launch,"
+          trail="how visuals are made, and how posts are published."
+        />
         <div className="mt-24">
           <LinkCards
             paths={[

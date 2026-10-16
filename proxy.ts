@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import createMiddleware from 'next-intl/middleware'
 import { routing } from './i18n/routing'
 import { canonicalRedirect } from './lib/canonical-host'
+import { getPageAccess } from './lib/auth/page-access'
+import { productPageRedirect } from './lib/auth/sign-in-gate'
 import { isUnacceptable, prefersMarkdown } from './lib/agents/accept'
 import { renderNotAcceptableMarkdown } from './lib/agents/site-content'
 
@@ -36,7 +38,7 @@ function isStandaloneLocaleRewrite(request: NextRequest): boolean {
   )
 }
 
-export function proxy(request: NextRequest): Response {
+export async function proxy(request: NextRequest): Promise<Response> {
   const moved = canonicalRedirect(
     request.nextUrl,
     request.headers.get('x-forwarded-host') ?? request.headers.get('host')
@@ -71,6 +73,12 @@ export function proxy(request: NextRequest): Response {
       },
     })
   }
+
+  const gate =
+    request.method === 'GET' || request.method === 'HEAD'
+      ? await productPageRedirect(request, getPageAccess)
+      : null
+  if (gate) return NextResponse.redirect(gate, 307)
 
   const response = handleI18nRouting(request)
   appendVaryAccept(response.headers)

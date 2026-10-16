@@ -18,6 +18,22 @@ const BASE_URL = "https://shots.playbookmedia.io";
 
 export const ORGANIZATION_ID = `${BASE_URL}/#organization`;
 
+/**
+ * Offer for SoftwareApplication JSON-LD. Shots has no free plan, so every
+ * app schema quotes the entry plan: Pro at $199 per month.
+ */
+export const PRO_PLAN_OFFER = {
+  "@type": "Offer",
+  price: "199",
+  priceCurrency: "USD",
+  priceSpecification: {
+    "@type": "UnitPriceSpecification",
+    price: "199",
+    priceCurrency: "USD",
+    billingDuration: "P1M",
+  },
+} as const;
+
 export function getOrganizationSchema() {
   return {
     "@type": "Organization",
@@ -57,7 +73,7 @@ export function getOrganizationSchema() {
       },
     ],
     description:
-      "Free, open-source screenshot editor with backgrounds, browser mockups, 3D effects, animations, and video export.",
+      "Open-source launch platform: Shots reads a software release, writes a cited launch brief, designs on-brand visuals, and drafts posts, and nothing ships until a person approves. Every plan includes a screenshot editor with backgrounds, browser mockups, 3D effects, animations, and video export.",
   };
 }
 
@@ -88,11 +104,7 @@ export function getSoftwareApplicationSchema() {
       name: "Shots API Documentation",
       url: `${BASE_URL}/docs`,
     },
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "USD",
-    },
+    offers: PRO_PLAN_OFFER,
     softwareVersion: LATEST_VERSION,
     dateModified: LAST_UPDATED_ISO,
     releaseNotes: `${BASE_URL}/changelog`,
@@ -110,7 +122,7 @@ export function getSoftwareApplicationSchema() {
       `Text and image overlays with ${PRODUCT_FACTS.fonts} Google Fonts`,
       `${PRODUCT_FACTS.codeThemes} code-snippet themes`,
       `High-res ${IMAGE_EXPORT_FORMATS.join("/")} export up to ${PRODUCT_FACTS.maxExportScale}x scale`,
-      "No signup required",
+      "Editor and image tools included in every plan",
       "No watermarks",
       `Open source (${PRODUCT_FACTS.license})`,
     ],

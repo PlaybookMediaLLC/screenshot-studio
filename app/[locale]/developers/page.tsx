@@ -55,7 +55,7 @@ const RESOURCES = [
   {
     href: "/docs/authentication",
     label: "Authentication and rate limits",
-    detail: "Anonymous utilities, tenant API keys, signed-in sessions, and rate limits.",
+    detail: "Workspace API keys, signed-in sessions, and rate limits for every endpoint.",
   },
   {
     href: "/llms.txt",
@@ -78,8 +78,9 @@ const QUICKSTART = [
   {
     id: "capture",
     title: "1. Capture a live page",
-    body: "This anonymous utility accepts a URL and returns a base64 PNG.",
+    body: "This utility accepts a URL and returns a base64 PNG. Send a workspace API key in X-API-Key.",
     code: `curl -s -X POST https://shots.playbookmedia.io/api/screenshot \\
+  -H "X-API-Key: $SHOTS_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"url":"https://example.com","deviceType":"desktop"}' \\
   | jq -r .screenshot | base64 -d > shot.png`,
@@ -89,6 +90,7 @@ const QUICKSTART = [
     title: "2. Optimize the export",
     body: "Send the image back through Sharp to recompress it as WebP.",
     code: `curl -s -X POST https://shots.playbookmedia.io/api/export \\
+  -H "X-API-Key: $SHOTS_API_KEY" \\
   -F "image=@shot.png" \\
   -F "format=webp" \\
   -F "qualityPreset=high" \\
@@ -123,8 +125,8 @@ export default function DevelopersPage() {
         </h1>
         <p className="mb-12 text-lg leading-relaxed text-muted-foreground">
           Shots is an open-source screenshot editor and workspace
-          platform with anonymous utility endpoints and an authenticated tenant
-          REST API. Scalar provides an interactive reference, the contract is
+          platform with editor utility endpoints and a tenant REST API, both
+          authenticated by a signed-in session or a workspace API key. Scalar provides an interactive reference, the contract is
           published as OpenAPI 3.1, and the application is Apache 2.0 on GitHub.
         </p>
 
@@ -162,10 +164,13 @@ export default function DevelopersPage() {
               API keys
             </h2>
             <p className="leading-relaxed text-muted-foreground">
-              Utility endpoints such as <code>/api/screenshot</code> are
-              anonymous and governed by per-IP limits. Workspace-scoped
-              <code>/api/v1</code> operations require an organization key in
-              <code>X-API-Key</code> or an authorized signed-in session. Details
+              Create a workspace API key in Settings → Developer API
+              (<code>/workspace/developers</code>). Utility endpoints such as{" "}
+              <code>/api/screenshot</code> accept a key with the artifact:read scope in{" "}
+              <code>X-API-Key</code> or a signed-in session, and per-IP limits
+              apply on top. Workspace-scoped <code>/api/v1</code> operations
+              require a key with the declared scope or an authorized signed-in
+              session. Details
               are in{" "}
               <Link href="/docs/authentication" className={linkClassName}>
                 authentication and rate limits
@@ -206,8 +211,8 @@ export default function DevelopersPage() {
               Sandbox
             </h2>
             <p className="mb-4 leading-relaxed text-muted-foreground">
-              There is no separate sandbox host. Use anonymous utility endpoints
-              only with disposable public inputs. Tenant API calls can read or
+              There is no separate sandbox host. Send utility endpoints only
+              disposable public inputs. Tenant API calls can read or
               mutate workspace data and may consume plan quotas, so use a test
               workspace or run the full stack locally:
             </p>

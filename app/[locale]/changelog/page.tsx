@@ -171,7 +171,7 @@ export default function ChangelogPage() {
 
           <div className="border-t border-border pt-8 text-center">
             <p className="mb-4 text-sm text-muted-foreground">
-              All features are free. No signup required.
+              The editor and image tools are included in every plan.
             </p>
             <Link href="/" className={ctaClassName}>
               Get Started

@@ -14,10 +14,9 @@ import {
 /**
  * Saves the current export into the signed-in user's workspace.
  *
- * The editor works without an account, so this is additive rather than a
- * gate: signed-out users keep downloading exports as before, and the
- * control explains what signing in would add instead of blocking the
- * work already in progress.
+ * The editor requires sign-in, so the session is normally present. Saving
+ * is additive to downloading: exports still download as before, and this
+ * control adds a copy to the workspace.
  */
 
 export interface SaveToWorkspaceButtonProps {
@@ -34,9 +33,8 @@ export function SaveToWorkspaceButton({ createExport, disabled }: SaveToWorkspac
   const { data: session, isPending } = useHydratedSession()
   const [state, setState] = React.useState<SaveState>('idle')
 
-  // Signing in is a separate flow with its own call to action. Rendering
-  // a disabled control here would imply the editor needs an account,
-  // which it does not.
+  // Render nothing while the session loads or if it has lapsed; the
+  // sign-in gate in front of the editor owns that flow.
   if (isPending || !session) {
     return null
   }

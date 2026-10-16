@@ -3,6 +3,7 @@ import { expect, type Page } from '@playwright/test'
 import { z } from 'zod'
 import { getE2EUrl } from './auth'
 import type { E2EIdentity } from './flow'
+import { grantWorkspacePlan } from './services'
 import { getTotpCode } from './totp'
 
 /** Publishing setup shared by the scheduling flows and the social gate. */
@@ -116,7 +117,8 @@ export async function createPublishingWorkspace(identity: E2EIdentity, page: Pag
     slug: identity.workspaceName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
   })
   expect(workspace.status).toBe(200)
-  await getActiveOrganizationId(page)
+  // There is no free plan; publishing needs an active subscription.
+  await grantWorkspacePlan(await getActiveOrganizationId(page), 'pro')
 }
 
 export async function enablePublishingTwoFactor(page: Page, password: string): Promise<void> {

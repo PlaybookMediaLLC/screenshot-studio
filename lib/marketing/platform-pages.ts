@@ -66,206 +66,205 @@ const G = navGroupSchema.enum
 /** The registry itself, in menu order within each group. */
 export const PLATFORM_PAGES: Record<PlatformPagePath, PlatformPage> = {
   [P['/product']]: {
-    title: 'Product: Release to Launch in One Workspace',
+    title: 'Product: from release to launch in one workspace',
     description:
-      'The Shots platform: release intake, launch intelligence, the creative engine, approvals, publishing, and guardrails, in one workspace.',
+      'Shots turns a release into a cited launch brief, on-brand visuals, and posts for six channels. A teammate approves every post before it publishes.',
     label: 'Overview',
-    blurb: 'Every part, one workspace',
+    blurb: 'How the parts fit together',
     group: G.product,
     summary:
       'Overview of the Shots platform. Six parts turn a release into a reviewed, scheduled launch: release intake, launch intelligence, the creative engine, approvals, publishing, and guardrails.',
   },
   [P['/product/launch-intelligence']]: {
-    title: 'Launch Intelligence: Cited Specs, Plans, and Posts',
+    title: 'Launch intelligence: cited launch briefs, plans, and posts',
     description:
-      'Launch intelligence turns a release into a cited launch spec, a campaign plan, on-brand visuals, and channel copy. Every claim cites a source. You approve each stage.',
+      'Launch intelligence turns a release into a launch brief where every claim cites a source. It then plans the launch and drafts visuals and posts, and you approve each stage.',
     label: 'Launch intelligence',
-    blurb: 'Cited spec, plan, visuals, and copy',
+    blurb: 'Cited launch brief, plan, visuals, and posts',
     group: G.product,
     summary:
-      'Launch intelligence reads a release and its sources, drafts a cited launch spec, plans the campaign, produces on-brand visuals and channel copy, and proposes revisions a reviewer applies or discards. Claims without a source become open questions.',
+      'Launch intelligence reads a release and its sources, drafts a cited launch brief, plans the launch, produces on-brand visuals and channel posts, and proposes revisions a reviewer applies or discards. Claims without a source become open questions.',
     points: [
-      'Eleven spec sections, each claim citing the brief or a numbered source',
-      'Plans with channel roles, angles, asset capture hints, and a teaser, launch day, and follow-up timeline',
-      'Copy checked against channel limits, hype terms, prohibited terms, unknown links, and uncited claims',
+      'Eleven launch brief sections, each claim citing the release or a numbered source',
+      'Plans with channel roles, angles, visual capture hints, and a teaser, launch day, and follow-up timeline',
+      'Copy checks for channel limits, hype terms, banned terms, unknown links, and uncited claims',
       'Revisions arrive as proposals with word diffs; nothing changes until applied',
-      'Team preferences retrieved from the workspace history at generation time',
+      'Team preferences looked up from the workspace history each time the AI writes',
     ],
   },
   [P['/product/creative-engine']]: {
-    title: 'Creative Engine: Real Screenshots, Framed on Brand',
+    title: 'Creative engine: real screenshots, framed on brand',
     description:
-      'The open-source screenshot editor is the platform renderer. Captures of your live product are framed, branded, and rendered as editor designs you can change by hand.',
+      'The open-source Shots editor makes every launch visual. It captures your live product, frames it on brand, and saves layers you can edit by hand.',
     label: 'Creative engine',
-    blurb: 'The editor renders every asset',
+    blurb: 'The editor makes every visual',
     group: G.product,
     summary:
-      'The creative engine is the Shots editor used as a renderer. Agents capture the product surface and source pages, compose them in device and browser frames with the brand kit, and save editor designs that open for manual changes.',
+      'The creative engine is the Shots editor used to make launch visuals. The AI captures product pages and source pages, frames them in device and browser mockups with the brand kit, and saves editor files that open for manual changes.',
   },
   [P['/product/approvals']]: {
-    title: 'Approvals: A Server-Side Gate for Every Post',
+    title: 'Approvals: a teammate signs off on every post',
     description:
-      'Approval is a server-side state machine with six fixed roles. API keys and agents can draft, never approve. Batch approval is one transaction and one audit entry.',
+      "Every post needs a signed-in teammate's approval, enforced on the server with six fixed roles. API keys and the AI can draft but can't approve, and you can approve a whole launch in one click.",
     label: 'Approvals',
-    blurb: 'Nothing ships without a person',
+    blurb: 'Nothing ships without a teammate',
     group: G.product,
     summary:
-      'Campaign posts move through DRAFT, READY_FOR_REVIEW, APPROVED or NEEDS_CHANGES or REJECTED, then SCHEDULED and PUBLISHED. Only signed-in members with the release:approve permission can approve. Batch approval is atomic and audited once.',
+      'Launch posts move through DRAFT, READY_FOR_REVIEW, APPROVED or NEEDS_CHANGES or REJECTED, then SCHEDULED and PUBLISHED. Only signed-in teammates with the release:approve permission can approve, and a solo founder can approve their own posts. Batch approval is atomic and audited once.',
   },
   [P['/product/publishing']]: {
-    title: 'Publishing: Scheduled Once, Published Exactly Once',
+    title: 'Publishing: scheduled posts that go out once',
     description:
-      'Approved posts run on durable workflows, are re-checked at send time, and are marked published only with a network receipt. Consented release email with one-click unsubscribe.',
+      'Approved posts are checked again at send time and marked published only when the network confirms them. Release emails go to subscribers who opted in, with one-click unsubscribe.',
     label: 'Publishing',
-    blurb: 'Durable, receipted delivery',
+    blurb: 'Scheduled, confirmed delivery',
     group: G.product,
     summary:
-      'Publishing schedules approved posts on durable Temporal workflows. Each post is re-checked at send time, retried safely on rate limits, and marked published only with a confirmed receipt. Uncertain deliveries are held for a person. Social channels are in early access.',
+      'Publishing schedules approved posts on Temporal workflows that survive restarts. Each post is checked again at send time, retried safely on rate limits, and marked published only when the network confirms it. Uncertain deliveries are held for a teammate. Social channels are in early access.',
   },
   [P['/product/release-intake']]: {
-    title: 'Release Intake: REST API, Webhooks, and the Release Form',
+    title: 'Release intake: REST API, webhooks, and the release form',
     description:
-      'Send releases from CI, a deploy hook, or a signed GitHub, GitLab, or custom webhook. Scoped API keys, idempotency keys, an OpenAPI 3.1 spec, and a stable error envelope.',
+      'Send releases from CI, a deploy hook, or a signed GitHub, GitLab, or custom webhook. Scoped API keys and idempotency keys keep retries safe, and the API ships an OpenAPI 3.1 spec.',
     label: 'Release intake',
     blurb: 'API, webhooks, and the form',
     group: G.developers,
     summary:
-      'Releases enter through the release form, POST /api/v1/releases with an X-API-Key and an Idempotency-Key, or signed GitHub, GitLab, and generic webhooks to /api/webhooks/source/{sourceAppId}. Keys carry one of five scopes and cannot approve or publish.',
+      'Releases enter through the release form, the GitHub App, POST /api/v1/releases with an X-API-Key and an Idempotency-Key, or signed GitHub, GitLab, and generic webhooks to /api/webhooks/source/{sourceAppId}. Keys carry one of five scopes and cannot approve or publish.',
   },
   [P['/product/guardrails']]: {
-    title: 'Guardrails: How Untrusted Sources Stay Evidence',
+    title: 'Guardrails: how sources stay evidence',
     description:
-      'Prompt-injection defense, SSRF-safe fetching, enforced citations, copy guards, side-effect-free reading stages, and audited, metered AI actions.',
+      "A web page can't take over the AI. Shots cleans and labels every source, fetches public addresses only, enforces citations, and runs copy checks on every post.",
     label: 'Guardrails',
-    blurb: 'Sources are evidence, not orders',
+    blurb: 'How sources stay evidence',
     group: G.product,
     summary:
-      'Release sources are sanitized, fenced as untrusted, and flagged for instruction-like text before a model reads them. Fetching is SSRF-safe, citations are checked after generation, copy is guarded, and every AI action is metered and audited.',
+      'Release sources are cleaned, labeled as untrusted, and flagged for instruction-like text before the AI reads them. Fetching reaches public addresses only, citations are checked after generation, copy checks run on every post, and every AI action is metered and audited.',
   },
   [P['/use-cases']]: {
-    title: 'Use Cases: Launches, Features, Changelogs, and Email',
+    title: 'Use cases: launches, features, changelogs, and email',
     description:
-      'What teams use Shots for: feature launches, product launches, and release notes that reach the changelog and the inbox.',
+      'Teams use Shots to announce shipped features, plan product launches, and turn release notes into a changelog entry and a release email.',
     label: 'All use cases',
     blurb: 'What teams launch with it',
     group: G.solutions,
     summary:
-      'Use cases for Shots: announcing a shipped feature, planning a product launch across teaser, launch day, and follow-up, and turning release notes into a changelog entry and a consented email.',
+      'Use cases for Shots: announcing a shipped feature, planning a product launch across teaser, launch day, and follow-up, and turning release notes into a changelog entry and a release email.',
   },
   [P['/use-cases/feature-launches']]: {
-    title: 'Feature Launches: Announce What You Shipped the Same Day',
+    title: 'Feature launches: announce what you shipped the same day',
     description:
-      'Turn a merged feature into a cited brief, real screenshots, and posts for X, LinkedIn, Instagram, Product Hunt, your changelog, and email, approved in one click.',
+      'Turn a merged feature into a cited launch brief, real screenshots, and posts for X, LinkedIn, Instagram, Product Hunt, your changelog, and email. Approve them all in one click.',
     label: 'Feature launches',
     blurb: 'Ship it, then say so',
     group: G.solutions,
     summary:
-      'Feature launches with Shots: describe the release or send it from GitHub, review the cited spec, approve a plan, and approve channel posts with real product screenshots in one batch.',
+      'Feature launches with Shots: describe the release or send it from GitHub, review the cited launch brief, approve a plan, and approve channel posts with real product screenshots in one batch.',
   },
   [P['/use-cases/product-launches']]: {
-    title: 'Product Launches: Teaser, Launch Day, and Follow-Up',
+    title: 'Product launches: teaser, launch day, and follow-up',
     description:
-      'Plan a product launch as a timeline: teaser, launch day, and follow-up, with assets in every format and Product Hunt copy inside its limits.',
+      'Plan a product launch as a timeline with a teaser, launch day, and follow-up. Shots makes visuals in every format and keeps Product Hunt copy inside its limits.',
     label: 'Product launches',
-    blurb: 'A launch plan, not a scramble',
+    blurb: 'Plan the whole launch week',
     group: G.solutions,
     summary:
-      'Product launches with Shots: a campaign plan split into teaser, launch day, and follow-up, hero and feature assets in 16:9, 1:1, 4:5, and 9:16, and channel copy checked against each channel limit.',
+      'Product launches with Shots: a plan split into teaser, launch day, and follow-up, hero and feature visuals in 16:9, 1:1, 4:5, and 9:16, and channel copy checked against each channel limit.',
   },
   [P['/use-cases/changelog-and-email']]: {
-    title: 'Changelog and Email: Release Notes People Read',
+    title: 'Changelog and email: release notes people read',
     description:
-      'Turn every release into a changelog entry and a release email, sent only to consenting subscribers, with one-click unsubscribe and exactly one delivery per address.',
+      'Turn every release into a changelog entry and a release email. The email goes only to subscribers who opted in, with one-click unsubscribe and one delivery per address.',
     label: 'Changelog and email',
     blurb: 'Release notes that land',
     group: G.solutions,
     summary:
-      'Shots drafts a changelog entry and an email announcement for each release. Release email goes only to consenting subscribers, honors per-organization unsubscribe and suppression, and delivers exactly once per address.',
+      'Shots drafts a changelog entry and a release email for each release. Release email goes only to subscribers who opted in, honors per-workspace unsubscribe and suppression, and delivers exactly once per address.',
   },
   [P['/solutions/founders']]: {
-    title: 'For Founders: Marketing That Ships When You Do',
+    title: 'For founders: marketing that ships when you do',
     description:
-      'You build the product, review the PRs, and write the announcement. Shots drafts the launch from your release so marketing stops waiting for a free afternoon.',
+      "You build the product and review the pull requests. Shots drafts the launch from your release, so marketing doesn't wait for a free afternoon.",
     label: 'Founders',
     blurb: 'For teams of one to ten',
     group: G.solutions,
     summary:
-      'Shots for founders: the release you already wrote becomes a cited brief, real screenshots, and channel posts. Self-approval is allowed, the editor is free, and nothing publishes without you.',
+      'Shots for founders: the release you already wrote becomes a cited launch brief, real screenshots, and channel posts. You can approve your own posts, the editor is included in every plan, and nothing publishes without you.',
   },
   [P['/solutions/product-marketing']]: {
-    title: 'For Product Marketing: From Brief to Launch Kit',
+    title: 'For product marketing: one cited launch brief per release',
     description:
-      'A cited spec as the single source of truth, plans you approve, creators, approvers, and publishers with separate permissions, and revisions you can diff.',
+      'Shots gives product marketing a cited launch brief for every release and plans you approve. Writers, approvers, and publishers get separate roles, and every revision shows a diff.',
     label: 'Product marketing',
-    blurb: 'One source of truth per launch',
+    blurb: 'A cited launch brief per release',
     group: G.solutions,
     summary:
-      'Shots for product marketing teams: a versioned, cited launch spec, approved campaign plans, separate creator, approver, and publisher roles, brand kits on every design, and an audit trail of every decision.',
+      'Shots for product marketing teams: a versioned, cited launch brief, approved launch plans, separate creator, approver, and publisher roles, brand kits on every visual, and an audit trail of every decision.',
   },
   [P['/solutions/developer-tools']]: {
-    title: 'For Developer Tools: Launches Your Users Trust',
+    title: 'For developer tools: launches your users can check',
     description:
-      'For teams whose users read code: releases from CI or GitHub webhooks, claims that cite the pull request, code images, and machine-readable docs.',
+      'For teams whose users read code. Releases arrive from CI or GitHub webhooks, claims cite the pull request, and the docs come in formats AI tools can read.',
     label: 'Developer tools',
     blurb: 'For products developers use',
     group: G.solutions,
     summary:
-      'Shots for developer tool companies: releases from CI or GitHub and GitLab webhooks, specs that cite the pull request, code-to-image rendering, changelog copy, and llms.txt and Markdown pages for agents.',
+      'Shots for developer tool companies: releases from CI or GitHub and GitLab webhooks, launch briefs that cite the pull request, code-to-image rendering, changelog copy, and llms.txt and Markdown pages for AI tools.',
   },
   [P['/integrations']]: {
-    title: 'Integrations: GitHub, GitLab, Social, Email, and SIEM',
+    title: 'Integrations: GitHub, GitLab, social, email, and SIEM',
     description:
-      'Where Shots connects: GitHub and GitLab release webhooks, the REST API, X, LinkedIn, and Instagram, release email, SSO providers, and Splunk and Datadog audit drains.',
+      'Shots takes releases from GitHub, GitLab, and the REST API. It publishes to X, LinkedIn, Instagram, and email, and exports audit logs to Splunk and Datadog.',
     label: 'Integrations',
     blurb: 'Where it connects',
     group: G.developers,
     summary:
-      'Shots integrations, each marked available, early access, or planned: release intake from GitHub, GitLab, generic webhooks, and the REST API; publishing to X, LinkedIn, and Instagram; release email; Google, GitHub, and Microsoft sign-in with SAML and OIDC SSO; and Splunk, Datadog, and HTTPS audit drains.',
+      'Shots integrations, each marked available, early access, or planned: release intake from the GitHub App, GitHub and GitLab webhooks, generic webhooks, and the REST API; publishing to X, LinkedIn, and Instagram; release email; Google, GitHub, and Microsoft sign-in with SAML and OIDC SSO; and audit log export to Splunk, Datadog, and any HTTPS endpoint.',
   },
   [P['/security']]: {
-    title: 'Security: Every Control, Written Down',
+    title: 'Security: every control, written down',
     description:
-      'How Shots protects your workspace: SSO and SCIM, six roles, an append-only audit log, SIEM drains, tenant isolation, private storage, AI safeguards, and the providers we run on.',
+      'How Shots protects your workspace, from SSO and six fixed roles to an append-only audit log and private storage. The page also covers AI safeguards and the providers we run on.',
     label: 'Security',
     blurb: 'Controls, data, and providers',
     group: G.company,
     summary:
-      'Security at Shots: Better Auth organizations with six roles, SAML and OIDC SSO, SCIM, TOTP two-factor, an append-only audit log with hashed IPs, signed SIEM drains, 90-day default retention with legal hold, organization-scoped private storage, and AI inputs treated as untrusted. Hosting is in the United States.',
+      'Security at Shots: Better Auth organizations with six roles, SAML and OIDC SSO, SCIM user provisioning, TOTP two-factor, an append-only audit log with hashed IPs, signed audit log export to SIEM tools, 90-day default retention with legal hold, private storage for each workspace, and AI inputs treated as untrusted. Hosting is in the United States.',
   },
   [P['/enterprise']]: {
-    title: 'Enterprise: SSO, SCIM, Audit Drains, and Legal Hold',
+    title: 'Enterprise: SSO, SCIM, audit log export, and legal hold',
     description:
-      'Shots Enterprise: SAML and OIDC SSO, SCIM provisioning, Splunk and Datadog audit drains, extended retention, legal hold, enterprise quotas, and self-hosting.',
+      'Shots Enterprise adds SAML and OIDC single sign-on, SCIM user provisioning, and audit log export to Splunk and Datadog. It also adds longer retention, legal hold, the highest limits, and self-hosting.',
     label: 'Enterprise',
     blurb: 'For security reviews',
     group: G.company,
     summary:
-      'Shots Enterprise adds SAML and OIDC SSO, SCIM provisioning, signed audit drains to Splunk, Datadog, or any HTTPS endpoint, longer audit retention, legal hold, and the highest workspace quotas. The platform can also be self-hosted with Docker and Helm.',
+      'Shots Enterprise adds SAML and OIDC SSO, SCIM user provisioning, signed audit log export to Splunk, Datadog, or any HTTPS endpoint, longer audit retention, legal hold, and the highest workspace quotas. The platform can also be self-hosted with Docker and Helm.',
   },
   [P['/pricing']]: {
-    title: 'Pricing: Free, Pro, Business, and Enterprise',
+    title: 'Pricing: Pro, Business, and Enterprise',
     description:
-      'Shots plans and limits: AI credits, scheduled posts, and release emails per month, API writes per minute, concurrent jobs, and storage, from a free workspace to Enterprise.',
+      'Shots has three paid plans: Pro, Business, and Enterprise. Each plan sets monthly AI credits, scheduled posts, and release emails, plus API writes per minute, concurrent jobs, and storage.',
     label: 'Pricing',
     blurb: 'Plans and limits',
     group: null,
     summary:
-      'Shots workspace plans: Free ($0), Pro ($199 a month, or $169 billed annually), Business ($699 a month, or $594 billed annually), and Enterprise (from $3,000 a month, billed annually), with monthly generation, API write, concurrent job, and storage limits. The editor is free. Launch intelligence is in early access for design partners.',
+      'Shots workspace plans: Pro ($199 a month, or $169 billed annually), Business ($699 a month, or $594 billed annually), and Enterprise (from $3,000 a month, billed annually), with monthly AI credit, API write, concurrent job, and storage limits. There is no free plan. The editor and image tools are included in every plan. Launch intelligence is in early access for design partners.',
   },
   [P['/roadmap']]: {
-    title: 'Roadmap: What Ships Now and What Comes Next',
+    title: 'Roadmap: what ships now and what comes next',
     description:
-      'The public Shots roadmap, from shipped primitives to URL onboarding, GitHub change detection, demo videos, the weekly plan, and autonomy modes.',
+      'The public Shots roadmap shows what has shipped and what comes next, from URL onboarding to demo videos, the weekly plan, and automation modes.',
     label: 'Roadmap',
-    blurb: 'Shipped, now, next, later',
+    blurb: 'Shipped, next, and later',
     group: G.company,
-    summary:
-      'The Shots roadmap, grouped as shipped, in progress, next, and later.',
+    summary: 'The Shots roadmap, grouped as shipped, next, and later.',
   },
   [P['/design-partners']]: {
-    title: 'Design Partners: Shape the Launch Platform',
+    title: 'Design partners: shape the launch platform',
     description:
-      'Join the Shots design partner program: early access to launch intelligence, a direct line to the team, and a say in what ships next.',
+      'Join the Shots design partner program. You get early access to launch intelligence, a direct line to the team, and a say in what ships next.',
     label: 'Design partners',
     blurb: 'Early access program',
     group: G.company,
@@ -273,14 +272,14 @@ export const PLATFORM_PAGES: Record<PlatformPagePath, PlatformPage> = {
       'The Shots design partner program gives teams that ship every week early access to launch intelligence and a direct line to the builders, in exchange for real releases and honest feedback.',
   },
   [P['/principles']]: {
-    title: 'Principles: How Shots Is Built',
+    title: 'Principles: how Shots is built',
     description:
-      'The decisions behind the platform: primitives before agents, recipes before autonomy, the workspace over chat, structural approval, and cite or ask.',
+      'The rules behind Shots: manual tools before the AI, fixed steps before automation, the workspace over chat, enforced approval, and cite or ask.',
     label: 'Principles',
     blurb: 'How we build it',
     group: G.company,
     summary:
-      'The design principles behind Shots: freeze the promise, build inside-out, recipes before agents, the workspace over chat, approval as structure, cite or ask, and degrade into something useful.',
+      'The design principles behind Shots: keep the promise narrow, build the manual tools first, fixed steps before the AI, the workspace over chat, enforced approval, cite or ask, and always leave something useful.',
   },
 }
 

@@ -44,10 +44,10 @@ export const comparisons: ComparisonData[] = [
     competitorName: "Pika Style",
     competitorUrl: "https://pika.style",
     tagline:
-      "Shots includes 3D tilt, animations, and video export for free, where Pika Style puts tilt and background images on its Pro plan.",
-    metaTitle: "Shots vs Pika Style: Free Alternative",
+      "Shots includes 3D tilt, animations, and video export in every plan, where Pika Style puts tilt and background images on its Pro plan.",
+    metaTitle: "Shots vs Pika Style: Pika Style Alternative",
     metaDescription:
-      `Compare Shots vs Pika Style. Both beautify screenshots; Shots includes 3D tilt, animations, video export, and ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds for free. No signup needed.`,
+      `Compare Shots vs Pika Style. Both beautify screenshots; Shots includes 3D tilt, animations, video export, and ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds in every plan, with no watermark.`,
     keywords: [
       "pika style alternative",
       "pika style vs shots",
@@ -65,31 +65,29 @@ export const comparisons: ComparisonData[] = [
       "Animation and video export not listed",
     ],
     studioAdvantages: [
-      `${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds included free`,
+      `${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds in every plan`,
       `Full animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets`,
-      "3D perspective transforms, free",
+      "3D perspective transforms in every plan",
       "Video export (MP4, WebM, GIF)",
       "No watermarks ever",
-      "No signup required",
       "Open source",
     ],
     features: [
-      { name: "Price", studio: "Free forever", competitor: "Free plan, Pro $13/mo" },
+      { name: "Price", studio: "From $199/mo", competitor: "Free plan, Pro $13/mo" },
       { name: "Backgrounds", studio: `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solids, images`, competitor: "Gradients free, images on Pro" },
       { name: "Device Frames", studio: "iPhone, MacBook, Apple Watch, Safari, Chrome, Arc", competitor: "iPhone, iPad, Pixel, MacBook, browser" },
       { name: "3D Effects", studio: "Full perspective transforms", competitor: "Tilt on Pro" },
       { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets, keyframe editor`, competitor: "Not listed" },
       { name: "Video Export", studio: "MP4, WebM, GIF", competitor: "Not listed" },
       { name: "Export Resolution", studio: "Up to 5x scale", competitor: "Up to 4K on Pro" },
-      { name: "Signup Required", studio: "No", competitor: "For paid features" },
       { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "No" },
     ],
     verdict:
-      "Pika Style has a larger template library and more device models, including iPad and Pixel. Shots is the stronger choice if you want 3D tilt, animation, and video export without paying, since Pika Style puts tilt and background images on its $13/mo Pro plan.",
+      "Pika Style has a larger template library and more device models, including iPad and Pixel. Shots is the stronger choice if you want 3D tilt, animation, and video export in one open-source editor, alongside launch features, while Pika Style puts tilt and background images on its $13/mo Pro plan.",
     faqs: [
       {
         q: "Is Shots a good Pika Style alternative?",
-        a: `Yes. Shots covers Pika Style's core features (backgrounds, shadows, device and browser frames) and includes 3D tilt, an animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets, and video export in MP4, WebM, or GIF for free, with no signup. Pika Style offers more templates and device models, with tilt and background images on its Pro plan.`,
+        a: `Yes. Shots covers Pika Style's core features (backgrounds, shadows, device and browser frames) and includes 3D tilt, an animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets, and video export in MP4, WebM, or GIF in every plan. Pika Style offers more templates and device models, with tilt and background images on its Pro plan.`,
       },
       {
         q: "Does Pika Style offer animation or video export?",
@@ -97,7 +95,7 @@ export const comparisons: ComparisonData[] = [
       },
       {
         q: "Which tool has more backgrounds?",
-        a: `Shots includes ${atLeast(PRODUCT_FACTS.backgrounds)} gradient, solid, mesh, and image backgrounds for free. Pika Style includes gradients on the free plan and puts background images on Pro.`,
+        a: `Shots includes ${atLeast(PRODUCT_FACTS.backgrounds)} gradient, solid, mesh, and image backgrounds in every plan. Pika Style includes gradients on its free plan and puts background images on Pro.`,
       },
     ],
   },
@@ -106,10 +104,10 @@ export const comparisons: ComparisonData[] = [
     competitorName: "Shots.so",
     competitorUrl: "https://shots.so",
     tagline:
-      "Shots.so is a polished mockup and animation tool with free and paid plans. Shots does the same core jobs with every feature free, no account, and open source code.",
-    metaTitle: "Shots vs Shots.so: Free Alternative",
+      "Shots.so is a separate product from Shots: a closed-source mockup and animation tool with Free, Basic, and Pro plans. Shots, an open-source launch platform, includes every editor feature in every plan.",
+    metaTitle: "Shots vs Shots.so: Shots.so Alternative",
     metaDescription:
-      `Compare Shots vs Shots.so. Both make device mockups, 3D shots, and animations; Shots is free with no tiers, open source, and adds a code image editor and ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds. No signup.`,
+      `Compare Shots vs Shots.so, two separate products. Both make device mockups, 3D shots, and animations; Shots includes every editor feature in every plan, is open source, and adds a code image editor and ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds.`,
     keywords: [
       "shots.so alternative",
       "shots so alternative free",
@@ -126,8 +124,8 @@ export const comparisons: ComparisonData[] = [
       "No dedicated code to image editor",
     ],
     studioAdvantages: [
-      "Every feature free, no tiers",
-      "No account needed",
+      "Every editor feature in every plan",
+      "No watermark on any plan",
       "Open source (Apache 2.0)",
       `Animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets and keyframes`,
       "Video export in MP4, WebM, GIF",
@@ -135,30 +133,29 @@ export const comparisons: ComparisonData[] = [
       "Blur tool for redacting sensitive details",
     ],
     features: [
-      { name: "Price", studio: "Free forever", competitor: "Free, Basic, and Pro plans" },
+      { name: "Price", studio: "From $199/mo", competitor: "Free, Basic, and Pro plans" },
       { name: "Device Frames", studio: "iPhone, MacBook, Apple Watch, Safari, Chrome, Arc", competitor: "iPhone, Android, iPad, desktop, and more" },
       { name: "3D Effects", studio: "Perspective tilt & rotation", competitor: "3D shapes and shadow overlays" },
       { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets, keyframes`, competitor: "Animation presets" },
       { name: "Video Export", studio: "MP4, WebM, GIF", competitor: "Animated video export" },
       { name: "Code Snippets", studio: "Code to image editor", competitor: "Not available" },
       { name: "Export Resolution", studio: "Up to 5x scale", competitor: "Varies by plan" },
-      { name: "Signup Required", studio: "No", competitor: "For paid plans" },
       { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "No" },
     ],
     verdict:
-      "Shots.so is a polished mockup and animation tool with a wider range of device models, including Android and iPad. Shots covers the same core jobs with every feature free, no account, and open source code, and adds a code image editor and a blur tool for redaction.",
+      "Shots.so has a wider range of device models, including Android and iPad. Shots covers the same core jobs in every plan, with open source code, and adds a code image editor and a blur tool for redaction.",
     faqs: [
       {
         q: "Is Shots better than Shots.so?",
-        a: `It depends on what you need. Shots.so has more device models, including Android phones and iPads. Shots gives you everything for free with no account: iPhone, MacBook, and Apple Watch mockups, 3D perspective, an animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets, video export in MP4, WebM, or GIF, a code to image editor, and blur for redacting. It is also open source.`,
+        a: `It depends on what you need. Shots.so has more device models, including Android phones and iPads. Shots includes every editor feature in every plan: iPhone, MacBook, and Apple Watch mockups, 3D perspective, an animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets, video export in MP4, WebM, or GIF, a code to image editor, and blur for redacting. It is also open source.`,
       },
       {
         q: "Does Shots.so have animation features?",
-        a: `Yes. Shots.so has animation presets for short product videos. Shots also animates screenshots, with a keyframe timeline and ${atLeast(PRODUCT_FACTS.animationPresets)} presets, and exports MP4, WebM, or GIF for free.`,
+        a: `Yes. Shots.so has animation presets for short product videos. Shots also animates screenshots, with a keyframe timeline and ${atLeast(PRODUCT_FACTS.animationPresets)} presets, and exports MP4, WebM, or GIF.`,
       },
       {
         q: "Can I switch from Shots.so to Shots?",
-        a: "Yes, the switch is instant. Shots requires no account or installation. Just open the editor, drag in your screenshot, and start editing with all features available immediately.",
+        a: "Yes. Open the Shots editor and drop in your screenshot. There is nothing to install, and every editor feature is included in every plan.",
       },
     ],
   },
@@ -169,10 +166,10 @@ export const comparisons: ComparisonData[] = [
     competitorName: "Snagit",
     competitorUrl: "https://www.techsmith.com/snagit",
     tagline:
-      "A free, browser-based alternative to Snagit for screenshot beautification and sharing.",
-    metaTitle: "Shots vs Snagit: Free In-Browser",
+      "A browser-based alternative to Snagit for screenshot beautification and sharing.",
+    metaTitle: "Shots vs Snagit: In-Browser Alternative",
     metaDescription:
-      "Compare Shots vs Snagit. Shots is free and runs in your browser with gradient backgrounds, 3D effects, animations, and video export. No download required.",
+      "Compare Shots vs Snagit. Shots runs in your browser with gradient backgrounds, 3D effects, animations, and video export. No download required.",
     keywords: [
       "snagit alternative free",
       "snagit alternative",
@@ -192,7 +189,7 @@ export const comparisons: ComparisonData[] = [
       "Heavy application (200MB+)",
     ],
     studioAdvantages: [
-      "Free, runs in any browser",
+      "Runs in any browser",
       "No installation needed",
       `${atLeast(PRODUCT_FACTS.backgrounds)} styled backgrounds`,
       "3D perspective effects",
@@ -201,7 +198,7 @@ export const comparisons: ComparisonData[] = [
       "Works on any OS including Chromebook",
     ],
     features: [
-      { name: "Price", studio: "Free forever", competitor: "~$63 one-time" },
+      { name: "Price", studio: "From $199/mo", competitor: "~$63 one-time" },
       { name: "Platform", studio: "Any browser (web app)", competitor: "Windows, Mac desktop" },
       { name: "Installation", studio: "None required", competitor: "Desktop app download" },
       { name: "Screen Capture", studio: "Via browser or OS tools", competitor: "Built-in capture" },
@@ -214,15 +211,15 @@ export const comparisons: ComparisonData[] = [
       { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "No" },
     ],
     verdict:
-      "Snagit excels at screen capture and annotation for enterprise teams. Shots is the better pick for beautifying screenshots with backgrounds, 3D effects, and animations, and it costs nothing.",
+      "Snagit excels at screen capture and annotation for enterprise teams. Shots is the better pick for beautifying screenshots with backgrounds, 3D effects, and animations, and it adds launch features on top of the editor.",
     faqs: [
       {
         q: "Can Shots replace Snagit?",
         a: "For screenshot beautification, yes. Shots offers gradient backgrounds, 3D effects, device frames, and animation that Snagit does not. Snagit has built-in screen capture and enterprise features like scrolling capture, which Shots handles through browser/OS screenshot tools instead.",
       },
       {
-        q: "Is Shots really free compared to Snagit's price?",
-        a: "Yes. Shots is 100% free with no hidden costs, subscriptions, or feature locks. Snagit costs approximately $63 as a one-time purchase plus upgrade fees for major versions.",
+        q: "How does Shots pricing compare to Snagit's?",
+        a: "Shots plans start at $199/mo and include the editor with no watermark, plus the launch platform. Snagit costs approximately $63 as a one-time purchase plus upgrade fees for major versions, and covers screen capture rather than launch work.",
       },
       {
         q: "Does Shots work on Chromebooks?",
@@ -237,11 +234,11 @@ export const comparisons: ComparisonData[] = [
     competitorName: "CleanShot X",
     competitorUrl: "https://cleanshot.com",
     tagline:
-      "A free, cross-platform alternative to CleanShot X that runs in your browser.",
+      "A cross-platform alternative to CleanShot X that runs in your browser.",
     metaTitle:
-      "Shots vs CleanShot X: Free Alternative",
+      "Shots vs CleanShot X: Cross-Platform Alternative",
     metaDescription:
-      "Compare Shots vs CleanShot X. Shots is free, cross-platform, and adds gradient backgrounds, 3D effects, animations, and video export. No macOS required.",
+      "Compare Shots vs CleanShot X. Shots is cross-platform and adds gradient backgrounds, 3D effects, animations, and video export. No macOS required.",
     keywords: [
       "cleanshot x alternative",
       "cleanshot alternative free",
@@ -261,7 +258,7 @@ export const comparisons: ComparisonData[] = [
       "No 3D perspective transforms",
     ],
     studioAdvantages: [
-      "Free, works on any OS",
+      "Works on any OS",
       "Runs in browser (no install)",
       `${atLeast(PRODUCT_FACTS.backgrounds)} gradient backgrounds`,
       "3D perspective effects",
@@ -270,7 +267,7 @@ export const comparisons: ComparisonData[] = [
       "Open source",
     ],
     features: [
-      { name: "Price", studio: "Free forever", competitor: "$29+ one-time" },
+      { name: "Price", studio: "From $199/mo", competitor: "$29+ one-time" },
       { name: "Platform", studio: "Any browser", competitor: "macOS only" },
       { name: "Screen Capture", studio: "Via browser/OS tools", competitor: "Built-in (excellent)" },
       { name: "Background Styling", studio: `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, images`, competitor: "Basic solid backgrounds" },
@@ -278,12 +275,12 @@ export const comparisons: ComparisonData[] = [
       { name: "3D Effects", studio: "Full perspective transforms", competitor: "Not available" },
       { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets, keyframes`, competitor: "Not available" },
       { name: "Video Export", studio: "MP4, WebM, GIF", competitor: "Screen recording" },
-      { name: "Cloud Storage", studio: "Local (privacy-first)", competitor: "CleanShot Cloud" },
+      { name: "Cloud Storage", studio: "Designs saved to your workspace", competitor: "CleanShot Cloud" },
       { name: "Annotations", studio: "Text, arrows, overlays", competitor: "Text, arrows, shapes, blur" },
       { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "No" },
     ],
     verdict:
-      "CleanShot X is the best macOS screen capture tool. Shots is the better choice for screenshot beautification with backgrounds, 3D effects, and animations, and works on any platform for free.",
+      "CleanShot X is the best macOS screen capture tool. Shots is the better choice for screenshot beautification with backgrounds, 3D effects, and animations, and works on any platform.",
     faqs: [
       {
         q: "Is Shots a good CleanShot X alternative?",
@@ -304,10 +301,10 @@ export const comparisons: ComparisonData[] = [
     competitorName: "Screely",
     competitorUrl: "https://screely.app",
     tagline:
-      "More backgrounds, effects, and export options than Screely, all free.",
-    metaTitle: "Shots vs Screely: More Features, Free",
+      "More backgrounds, effects, and export options than Screely, with no watermark.",
+    metaTitle: "Shots vs Screely: More Features",
     metaDescription:
-      `Compare Shots vs Screely. Both are free screenshot editors, but Shots adds 3D effects, animations, video export, device frames, and ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds.`,
+      `Compare Shots vs Screely. Both are screenshot editors, but Shots adds 3D effects, animations, video export, device frames, and ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds.`,
     keywords: [
       "screely alternative",
       "screely vs shots",
@@ -335,7 +332,7 @@ export const comparisons: ComparisonData[] = [
       "High-res export up to 5x",
     ],
     features: [
-      { name: "Price", studio: "Free forever", competitor: "Free" },
+      { name: "Price", studio: "From $199/mo", competitor: "Free" },
       { name: "Backgrounds", studio: `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solids, images`, competitor: "Solid colors" },
       { name: "Device Frames", studio: "iPhone, MacBook, Apple Watch, Safari, Chrome, Arc", competitor: "macOS and Windows windows" },
       { name: "Shadows", studio: "Blur, spread, offset, color", competitor: "Basic drop shadow" },
@@ -347,11 +344,11 @@ export const comparisons: ComparisonData[] = [
       { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "No" },
     ],
     verdict:
-      `Screely is a simple tool for adding a window frame to screenshots. Shots does everything Screely does and much more: ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, 3D effects, animations, video export, and device frames.`,
+      `Screely is a simple tool for adding a window frame to screenshots. Shots does what Screely does and adds ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, 3D effects, animations, video export, and device frames.`,
     faqs: [
       {
         q: "How does Shots compare to Screely?",
-        a: `Shots covers Screely's screenshot styling and adds much more: ${atLeast(PRODUCT_FACTS.backgrounds)} gradient backgrounds, multiple device frames (macOS, Windows, Arc), 3D perspective transforms, animation timeline, video export, text overlays, and high-res export up to 5x.`,
+        a: `Shots covers Screely's screenshot styling and adds ${atLeast(PRODUCT_FACTS.backgrounds)} gradient backgrounds, multiple device frames (macOS, Windows, Arc), 3D perspective transforms, animation timeline, video export, text overlays, and high-res export up to 5x.`,
       },
       {
         q: "Is Screely or Shots better for developers?",
@@ -365,9 +362,9 @@ export const comparisons: ComparisonData[] = [
     competitorUrl: "https://carbon.now.sh",
     tagline:
       "Carbon has more syntax themes and SVG export. Shots adds gradient and pattern backgrounds, transparent PNGs, and a full screenshot and mockup editor for everything else.",
-    metaTitle: "Shots vs Carbon: Free Code to Image",
+    metaTitle: "Shots vs Carbon: Code to Image",
     metaDescription:
-      "Compare Shots vs Carbon for code screenshots. Carbon has more themes and SVG export; Shots adds gradient backgrounds, then browser mockups, 3D effects, and video in its main editor. Free, no signup.",
+      "Compare Shots vs Carbon for code screenshots. Carbon has more themes and SVG export; Shots adds gradient backgrounds, then browser mockups, 3D effects, and video in its main editor. No watermark.",
     keywords: [
       "carbon alternative",
       "carbon.now.sh alternative",
@@ -391,11 +388,11 @@ export const comparisons: ComparisonData[] = [
       "Shareable links that reopen your exact design",
       "Open the PNG in the main editor for browser frames, 3D, and animation",
       "Video export (MP4, WebM, GIF) from the main editor",
-      "No signup, no watermarks",
+      "No watermarks",
       "Open source",
     ],
     features: [
-      { name: "Price", studio: "Free forever", competitor: "Free" },
+      { name: "Price", studio: "From $199/mo", competitor: "Free" },
       { name: "Syntax Themes", studio: `${PRODUCT_FACTS.codeThemes}`, competitor: "29" },
       { name: "Backgrounds", studio: "Theme gradients, gradient presets, images, patterns", competitor: "Any color or your own image" },
       { name: "Screenshot Editing", studio: "Full editor", competitor: "Not available" },
@@ -404,7 +401,6 @@ export const comparisons: ComparisonData[] = [
       { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets in the main editor`, competitor: "Not available" },
       { name: "Video Export", studio: "MP4, WebM, GIF from the main editor", competitor: "Not available" },
       { name: "Image Export", studio: "PNG at 2x or 4x", competitor: "PNG, SVG" },
-      { name: "Signup Required", studio: "No", competitor: "No" },
       { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "Yes (MIT)" },
     ],
     verdict:
@@ -412,7 +408,7 @@ export const comparisons: ComparisonData[] = [
     faqs: [
       {
         q: "Is Shots a good Carbon alternative?",
-        a: `Yes, for most uses. Shots makes code images with ${PRODUCT_FACTS.codeThemes} syntax themes, line numbers, a macOS title bar, gradient and image backgrounds, and transparent export. Carbon has more themes (29) and SVG export. Shots' main editor adds browser mockups, 3D transforms, animations, and video export. Both are free with no signup.`,
+        a: `Yes, for most uses. Shots makes code images with ${PRODUCT_FACTS.codeThemes} syntax themes, line numbers, a macOS title bar, gradient and image backgrounds, and transparent export. Carbon has more themes (29) and SVG export. Shots' main editor adds browser mockups, 3D transforms, animations, and video export. Carbon is free; Shots plans start at $199/mo and include launch features.`,
       },
       {
         q: "Can I export code images as video?",
@@ -426,9 +422,9 @@ export const comparisons: ComparisonData[] = [
     competitorUrl: "https://ray.so",
     tagline:
       "Ray.so has more themes. Shots adds image and pattern backgrounds plus a full screenshot and mockup editor for frames, 3D, and video.",
-    metaTitle: "Shots vs Ray.so: Free Code Images",
+    metaTitle: "Shots vs Ray.so: Code Images",
     metaDescription:
-      "Compare Shots vs Ray.so for code screenshots. Ray.so has more themes; Shots adds image and pattern backgrounds, then browser mockups, 3D effects, animations, and video in its main editor. Free, no signup.",
+      "Compare Shots vs Ray.so for code screenshots. Ray.so has more themes; Shots adds image and pattern backgrounds, then browser mockups, 3D effects, animations, and video in its main editor. No watermark.",
     keywords: [
       "ray.so alternative",
       "ray so alternative",
@@ -452,11 +448,11 @@ export const comparisons: ComparisonData[] = [
       "Browser frames and device mockups in the main editor",
       "3D perspective transforms and animations in the main editor",
       "Video export (MP4, WebM, GIF)",
-      "No signup, no watermarks",
+      "No watermarks",
       "Open source",
     ],
     features: [
-      { name: "Price", studio: "Free forever", competitor: "Free" },
+      { name: "Price", studio: "From $199/mo", competitor: "Free" },
       { name: "Syntax Themes", studio: `${PRODUCT_FACTS.codeThemes}`, competitor: "About 20" },
       { name: "Backgrounds", studio: "Theme gradients, gradient presets, images, patterns", competitor: "Theme gradients" },
       { name: "Screenshot Editing", studio: "Full editor", competitor: "Not available" },
@@ -465,15 +461,14 @@ export const comparisons: ComparisonData[] = [
       { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets in the main editor`, competitor: "Not available" },
       { name: "Video Export", studio: "MP4, WebM, GIF from the main editor", competitor: "Not available" },
       { name: "Image Export", studio: "PNG at 2x or 4x", competitor: "PNG, SVG" },
-      { name: "Signup Required", studio: "No", competitor: "No" },
       { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "Yes (MIT)" },
     ],
     verdict:
-      "Ray.so is fast and pretty for a quick code snippet and has more themes. Shots covers the same job and, through its main editor, adds frames, 3D effects, animations, and video export, all free.",
+      "Ray.so is fast and pretty for a quick code snippet and has more themes. Shots covers the same job and, through its main editor, adds frames, 3D effects, animations, and video export.",
     faqs: [
       {
         q: "Is Shots a good Ray.so alternative?",
-        a: `Yes. Shots produces clean code images with ${PRODUCT_FACTS.codeThemes} themes, gradient, image, and pattern backgrounds, and transparent export, and its main editor adds browser mockups, 3D perspective, animations, and video export. It is free, open source, and needs no signup.`,
+        a: `Yes. Shots produces clean code images with ${PRODUCT_FACTS.codeThemes} themes, gradient, image, and pattern backgrounds, and transparent export, and its main editor adds browser mockups, 3D perspective, animations, and video export. It is open source and included in every Shots plan.`,
       },
       {
         q: "Does Ray.so support browser mockups or animations?",
@@ -488,10 +483,10 @@ export const comparisons: ComparisonData[] = [
     competitorName: "Xnapper",
     competitorUrl: "https://xnapper.com",
     tagline:
-      "Shots gives you Xnapper-style beautified screenshots in the browser, on any OS, with 3D effects, animations, and video export at no cost.",
-    metaTitle: "Shots vs Xnapper: Free Online",
+      "Shots gives you Xnapper-style beautified screenshots in the browser, on any OS, with 3D effects, animations, and video export.",
+    metaTitle: "Shots vs Xnapper: Online Alternative",
     metaDescription:
-      `Compare Shots vs Xnapper. Xnapper is a paid macOS app; Shots runs free in any browser with ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, browser mockups, 3D effects, animations, and video export.`,
+      `Compare Shots vs Xnapper. Xnapper is a macOS app; Shots runs in any browser with ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, browser mockups, 3D effects, animations, and video export.`,
     keywords: [
       "xnapper alternative",
       "xnapper free alternative",
@@ -511,15 +506,14 @@ export const comparisons: ComparisonData[] = [
     ],
     studioAdvantages: [
       "Runs in any browser on macOS, Windows, and Linux",
-      "Free forever, no license",
       `${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds and browser mockups`,
       "3D perspective transforms",
       "Animation timeline and video export",
-      "No signup, no watermarks",
+      "No watermarks",
       "Open source",
     ],
     features: [
-      { name: "Price", studio: "Free forever", competitor: "$29.99+ one-time" },
+      { name: "Price", studio: "From $199/mo", competitor: "$29.99+ one-time" },
       { name: "Platform", studio: "Any browser", competitor: "macOS app" },
       { name: "Backgrounds", studio: `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solids, images`, competitor: "Gradients and wallpapers" },
       { name: "Device Frames", studio: "Safari, Chrome, Arc, Polaroid, macOS window", competitor: "macOS window" },
@@ -528,15 +522,14 @@ export const comparisons: ComparisonData[] = [
       { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets, keyframe editor`, competitor: "Not available" },
       { name: "Video Export", studio: "MP4, WebM, GIF", competitor: "Not available" },
       { name: "Export Resolution", studio: "Up to 5x scale", competitor: "Retina" },
-      { name: "Signup Required", studio: "No", competitor: "License key" },
       { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "No" },
     ],
     verdict:
-      "Xnapper is a good native macOS capture tool if you want to pay for it. Shots delivers the same beautified result for free in the browser, on any OS, and adds 3D, animation, and video export.",
+      "Xnapper is a good native macOS capture tool. Shots delivers the same beautified result in the browser, on any OS, and adds 3D, animation, and video export.",
     faqs: [
       {
-        q: "Is there a free alternative to Xnapper?",
-        a: "Yes. Shots is a free, open-source alternative to Xnapper that runs in your browser. It adds backgrounds, shadows, browser mockups, 3D effects, and animations to any screenshot with no signup and no watermark.",
+        q: "Is there a browser-based alternative to Xnapper?",
+        a: "Yes. Shots is an open-source alternative to Xnapper that runs in your browser. It adds backgrounds, shadows, browser mockups, 3D effects, and animations to any screenshot, with no watermark, and the editor is included in every Shots plan.",
       },
       {
         q: "Does Xnapper work on Windows?",
@@ -549,10 +542,10 @@ export const comparisons: ComparisonData[] = [
     competitorName: "remove.bg",
     competitorUrl: "https://www.remove.bg",
     tagline:
-      "Shots removes backgrounds on your own device and gives you the full-resolution PNG for free, with no upload and no credits.",
-    metaTitle: "Shots vs remove.bg: Free, No Upload",
+      "Shots removes backgrounds on your own device and gives you the full-resolution PNG, with no upload and no credits.",
+    metaTitle: "Shots vs remove.bg: No Upload",
     metaDescription:
-      "Shots vs remove.bg: remove backgrounds on your device and download full-resolution transparent PNGs free. No upload, no credits, no signup.",
+      "Shots vs remove.bg: remove backgrounds on your device and download full-resolution transparent PNGs. No upload and no credits.",
     keywords: [
       "remove.bg alternative",
       "remove bg alternative free",
@@ -571,16 +564,16 @@ export const comparisons: ComparisonData[] = [
       "Standalone site is being migrated into Canva",
     ],
     studioAdvantages: [
-      "Full-resolution transparent PNG for free",
+      "Full-resolution transparent PNG, no credits",
       "Runs on your device, the image is never uploaded",
       "Works offline once the model is cached",
-      "No credits, signup, or watermark",
+      "No credits or watermark",
       "Crisp and soft edge styles with a comparison slider",
       "Open source",
     ],
     features: [
-      { name: "Price", studio: "Free forever", competitor: "Free previews, credits for HD" },
-      { name: "Free Output Resolution", studio: "Original resolution", competitor: "Up to 0.25 MP preview" },
+      { name: "Price", studio: "From $199/mo", competitor: "Free previews, credits for HD" },
+      { name: "Output Resolution", studio: "Original resolution", competitor: "Up to 0.25 MP preview (free)" },
       { name: "Maximum Resolution", studio: "Original image, up to 50 MB file", competitor: "Up to 50 MP with credits" },
       { name: "Where Processing Happens", studio: "On your device", competitor: "remove.bg servers" },
       { name: "Image Upload", studio: "Never", competitor: "Required" },
@@ -590,11 +583,11 @@ export const comparisons: ComparisonData[] = [
       { name: "Open Source", studio: "Yes (Apache 2.0)", competitor: "No" },
     ],
     verdict:
-      "remove.bg is a mature service with apps, an API, and server-side models that handle difficult hair detail well, but free downloads are low-resolution previews. Shots is the better fit when you want full-resolution cutouts for free, or when a photo should never leave your device.",
+      "remove.bg is a mature service with apps, an API, and server-side models that handle difficult hair detail well, but free downloads are low-resolution previews. Shots is the better fit when you want full-resolution cutouts without per-image credits, or when a photo should never leave your device.",
     faqs: [
       {
         q: "Is Shots a good remove.bg alternative?",
-        a: "Yes, for everyday cutouts. Shots removes backgrounds with an AI model that runs in your browser and returns a transparent PNG at the original resolution for free. remove.bg's free downloads are previews of up to 0.25 megapixels, and high-resolution downloads use credits.",
+        a: "Yes, for everyday cutouts. Shots removes backgrounds with an AI model that runs in your browser and returns a transparent PNG at the original resolution, with no credits. remove.bg's free downloads are previews of up to 0.25 megapixels, and high-resolution downloads use credits.",
       },
       {
         q: "Does Shots upload my image?",
@@ -605,7 +598,7 @@ export const comparisons: ComparisonData[] = [
         a: "When you need an API or its apps, or the best possible detail on hard cases like fine hair against a busy background. Its server-side models are not limited by what a browser can run.",
       },
     ],
-    cta: { href: "/remove-background", label: "Remove a Background Free" },
+    cta: { href: "/remove-background", label: "Remove a Background" },
   },
 ];
 

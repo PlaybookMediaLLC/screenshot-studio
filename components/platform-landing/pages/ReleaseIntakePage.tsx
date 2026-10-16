@@ -7,6 +7,7 @@ import { CodeTabs } from '../CodeTabs'
 import { FaqBlock, LinkCards, MarketingShell, PageHero, RowTable, TileGrid } from '../blocks'
 import { MONO, MUTED, Section, SectionIntro, Stage, Window } from '../primitives'
 import { formatQuota } from '../pricing'
+import { ReleaseIntakeFlow } from '../diagrams/ReleaseIntakeFlow'
 
 const SCOPE_NOTES: Record<ApiKeyScope, string> = {
   'release:create': 'Create releases, the input to every launch.',
@@ -26,7 +27,7 @@ const FIELDS = [
   ['description', 'What changed, in plain text. Up to 10,000 characters.'],
   ['audience', 'Who should hear about it. Up to 1,000 characters.'],
   ['sourceUrls', 'Up to 20 public http(s) links: the pull request, changelog, and docs.'],
-  ['productSurfaceId', 'Optional. The product screen this release changes.'],
+  ['productSurfaceId', 'Optional. The product page this release changes.'],
 ] as const
 
 const ENDPOINTS = [
@@ -75,15 +76,17 @@ const ERROR_EXAMPLE = JSON.stringify(
 /** /product/release-intake: the form, the REST API, signed webhooks, keys, and conventions. */
 export function ReleaseIntakePage() {
   return (
-    <MarketingShell finale={{ lead: 'Releases in.', trail: 'Launches out.' }}>
+    <MarketingShell
+      finale={{ lead: 'Create an API key', trail: 'and send a release from your next deploy.' }}
+    >
       <PageHero
-        body="Type a release into the form, send it from CI with an API key, or let GitHub, GitLab, or your own pipeline deliver it through a signed webhook. Every path lands in the same release, ready for launch intelligence."
+        body="Type a release into the form, send it from CI with an API key, or let GitHub, GitLab, or your own pipeline send it through a signed webhook. Every path creates the same release, ready for launch intelligence."
         eyebrow={{ href: '/product', label: 'Release intake', parent: 'Product' }}
-        lead="Releases in."
+        lead="Get releases into Shots"
         location="release_intake_hero"
         primary={{ href: '/api-reference', label: 'API reference' }}
         secondary={{ href: '/sign-up', label: 'Get an API key' }}
-        trail="From anywhere you ship."
+        trail="from wherever you ship."
       >
         <Stage className="px-4 py-12 sm:px-12 sm:py-20" variant={3}>
           <div className="w-full min-w-0 max-w-[760px]">
@@ -94,23 +97,24 @@ export function ReleaseIntakePage() {
 
       <Section>
         <SectionIntro
-          body="Pick the path that fits how you ship. All three create the same release object, scoped to your workspace."
+          body="All three create the same release in your workspace."
           label="Three ways in"
-          lead="A form, an API,"
-          trail="or a webhook."
+          lead="Pick the path that fits how you ship:"
+          trail="the form, the REST API, or a webhook."
         />
-        <div className="mt-24">
+        <div className="mt-24 space-y-12">
+          <ReleaseIntakeFlow />
           <TileGrid
             items={[
               {
                 icon: Edit02Icon,
                 title: 'The release form',
-                body: 'Name the release, say why it matters, and paste the links. Best when a person is writing the brief.',
+                body: 'Name the release, say why it matters, and paste the links. Best when a teammate writes it.',
               },
               {
                 icon: CommandLineIcon,
                 title: 'The REST API',
-                body: 'POST /api/v1/releases with an organization API key from CI or a deploy script. Retries are safe with an idempotency key.',
+                body: 'POST /api/v1/releases with a workspace API key from CI or a deploy script. Retries are safe with an idempotency key.',
               },
               {
                 icon: WebhookIcon,
@@ -124,10 +128,10 @@ export function ReleaseIntakePage() {
 
       <Section>
         <SectionIntro
-          body="A release is a brief, not a campaign. Editing it later never rewrites the campaigns built from it."
+          body="A release is what you send, and a launch is built from it. Editing the release later doesn't rewrite launches already built from it."
           label="The release"
-          lead="Six fields."
-          trail="Two are enough."
+          lead="A release has six fields,"
+          trail="and two are enough to start."
         />
         <div className="mt-24">
           <RowTable
@@ -141,10 +145,10 @@ export function ReleaseIntakePage() {
 
       <Section>
         <SectionIntro
-          body="Signatures are checked over the exact body bytes before anything is parsed. Redeliveries are deduplicated, so a retried webhook creates one release."
+          body="Signatures are checked over the exact body bytes before anything is parsed. The table shows the header each sender signs with and the one that guards against replays."
           label="Webhooks"
-          lead="Signed or refused."
-          trail="Deduplicated by default."
+          lead="Unsigned webhooks are refused,"
+          trail="and a redelivery never creates a second release."
         />
         <div className="mt-24">
           <RowTable
@@ -161,17 +165,17 @@ export function ReleaseIntakePage() {
           />
         </div>
         <p className={cn('mt-8 max-w-[760px] text-[15px] leading-[1.6]', MUTED)}>
-          A release that arrives by webhook or API key has no author on your team, so launch
-          intelligence fences its brief as untrusted and shows it to the reviewer with the sources.
+          A release that arrives by webhook or API key has no author on your team. The AI treats its
+          text as untrusted and shows it to the reviewer with the sources.
         </p>
       </Section>
 
       <Section>
         <SectionIntro
-          body={`Organization API keys carry one of ${apiKeyScopes.length} scopes. They are hashed at rest, shown once, and revoked on the next request. No key can manage members, SSO, SCIM, audit drains, retention, or publishing, and no key can approve.`}
+          body={`Workspace API keys carry one of ${apiKeyScopes.length} scopes. They are hashed at rest and shown once, and a revoked key stops working on the next request. No key can manage teammates, SSO, SCIM, audit log export, retention, or publishing.`}
           label="API keys"
-          lead="Narrow keys."
-          trail="Nothing to approve with."
+          lead="API keys can create releases"
+          trail="but can't approve or publish."
         />
         <div className="mt-24 grid gap-16 lg:grid-cols-[1fr_1.2fr]">
           <RowTable
@@ -203,10 +207,10 @@ export function ReleaseIntakePage() {
 
       <Section>
         <SectionIntro
-          body="The public spec is generated from the same Zod contracts the routes validate with, and tests keep the two from drifting."
+          body="The public OpenAPI spec is generated from the same Zod contracts the routes validate with, and tests keep the two in sync."
           label="Conventions"
-          lead="Predictable by design."
-          trail="Boring on purpose."
+          lead="The API follows the same rules everywhere:"
+          trail="safe retries, request IDs, and one error format."
         />
         <div className="mt-24 grid gap-4 lg:grid-cols-2">
           <TileGrid
@@ -215,7 +219,7 @@ export function ReleaseIntakePage() {
               {
                 snippet: 'Idempotency-Key',
                 title: 'Safe retries',
-                body: 'Up to 128 characters. Longer keys are rejected, never truncated. A replay returns 200 with the first result.',
+                body: 'Up to 128 characters. Longer keys are rejected, not cut short. A replay returns 200 with the first result.',
               },
               {
                 snippet: 'X-Request-Id',
@@ -225,11 +229,11 @@ export function ReleaseIntakePage() {
               {
                 snippet: '/openapi.json',
                 title: 'OpenAPI 3.1',
-                body: 'Also at /.well-known/openapi.json, with a live Scalar reference at /api-reference.',
+                body: 'Also at /.well-known/openapi.json, with an interactive reference at /api-reference.',
               },
               {
                 snippet: 'Accept: text/markdown',
-                title: 'Agent friendly',
+                title: 'Readable by AI tools',
                 body: 'llms.txt, llms-full.txt, and Markdown versions of supported pages.',
               },
             ]}
@@ -251,8 +255,8 @@ export function ReleaseIntakePage() {
         <SectionIntro
           body="API writes are limited per workspace by plan. Reads are not counted."
           label="Rate limits"
-          lead="Writes per minute,"
-          trail="by plan."
+          lead="API write limits"
+          trail="for each plan."
         />
         <div className="mt-24">
           <RowTable
@@ -284,18 +288,22 @@ export function ReleaseIntakePage() {
             a: 'Not yet. Outbound release and delivery events are planned. Today, poll the release list or watch the workspace.',
           },
           {
-            q: 'Can the API create campaigns or approve posts?',
-            a: 'Campaign endpoints are planned. Approving will never be possible from an API key.',
+            q: 'Can the API create launches or approve posts?',
+            a: 'Launch endpoints are planned. An API key will never be able to approve.',
           },
           {
             q: 'Is there a GitHub App?',
-            a: 'Not yet. Today a repository webhook pointed at your source app does the job. A GitHub App with merged-PR detection is planned.',
+            a: 'Yes. Connect a repository, and merges are held for the next published release, which arrives with its notes and linked pull requests. A repository webhook pointed at your source app also works.',
           },
         ]}
       />
 
       <Section>
-        <SectionIntro label="Related" lead="Keep reading." trail="Every part connects." />
+        <SectionIntro
+          label="Related"
+          lead="See every integration,"
+          trail="what the AI does with a release, and Shots for developer tools."
+        />
         <div className="mt-24">
           <LinkCards
             paths={['/integrations', '/product/launch-intelligence', '/solutions/developer-tools']}

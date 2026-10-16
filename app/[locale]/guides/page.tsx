@@ -227,9 +227,9 @@ export default function GuidesHubPage() {
 
           <CtaBand
             title="Ready to edit a screenshot?"
-            description="Paste a screenshot into the editor and follow along. Every feature is free, with no account and no watermark."
+            description="Paste a screenshot into the editor and follow along. The editor and image tools are included in every plan, with no watermark."
             href="/editor"
-            label="Open Free Editor"
+            label="Open the Editor"
           />
         </div>
       </main>

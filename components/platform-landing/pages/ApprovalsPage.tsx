@@ -16,7 +16,10 @@ import {
   RowTable,
   TileGrid,
 } from '../blocks'
-import { Check, MONO, MUTED, Section, SectionIntro, Window } from '../primitives'
+import { MONO, MUTED, Section, SectionIntro } from '../primitives'
+import { ApprovalFlow } from '../diagrams/ApprovalFlow'
+import { ApprovalGates } from '../diagrams/ApprovalGates'
+import { AutonomyLadder } from '../diagrams/AutonomyLadder'
 
 const DECISION_LABELS: Record<CampaignApprovalDecision, string> = {
   submit: 'Submit for review',
@@ -29,13 +32,13 @@ const DECISIONS: CampaignApprovalDecision[] = ['submit', 'approve', 'reject', 'r
 
 /** Permissions worth showing a buyer, in reading order. */
 const PERMISSION_ROWS: { permission: Permission; label: string }[] = [
-  { permission: 'artifact:read', label: 'Read campaigns and assets' },
+  { permission: 'artifact:read', label: 'Read launches and visuals' },
   { permission: 'release:create', label: 'Create releases and submit posts' },
-  { permission: 'artifact:edit', label: 'Edit drafts and designs' },
+  { permission: 'artifact:edit', label: 'Edit drafts and visuals' },
   { permission: 'release:approve', label: 'Approve, reject, request changes' },
   { permission: 'publish:manage', label: 'Schedule and cancel posts' },
   { permission: 'brand:manage', label: 'Manage brand and product' },
-  { permission: 'member:invite', label: 'Invite members' },
+  { permission: 'member:invite', label: 'Invite teammates' },
   { permission: 'audit:read', label: 'Read the audit log' },
   { permission: 'identity:manage', label: 'Configure SSO and SCIM' },
   { permission: 'workspace:delete', label: 'Delete the workspace' },
@@ -44,126 +47,38 @@ const PERMISSION_ROWS: { permission: Permission; label: string }[] = [
 const rolesWith = (permission: Permission) =>
   organizationRoles.filter((role) => hasPermission(role, permission)).join(', ')
 
-const SCHEDULE_CHECKS = [
-  'The post belongs to your workspace',
-  'The post is approved',
-  'A creative is attached',
-  'The copy is within the length limit',
-  'The destination channel is active and yours',
-  'The creative itself is approved',
-]
-
 const AUDIT_EVENTS = [
   ['product.campaign_created', 'A campaign and its post count'],
   ['product.campaign_post_status_changed', 'A decision and how many posts it covered'],
   ['product.campaign_post_scheduled', 'The campaign and the scheduled post'],
-  ['post.scheduled', 'The destination and the creative'],
+  ['post.scheduled', 'The destination and the visual'],
   ['post.cancelled', 'Who cancelled it'],
   ['post.published', 'The provider post ID'],
-  ['post.publish_recovery_required', 'The failure code, for a person to resolve'],
+  ['post.publish_recovery_required', 'The failure code, for a teammate to resolve'],
 ] as const
-
-function State({ id, tone }: { id: string; tone?: 'good' | 'warn' }) {
-  return (
-    <span
-      className={cn(
-        MONO,
-        'inline-flex h-9 shrink-0 items-center rounded-lg border px-3 text-[11.5px]',
-        tone === 'good' && 'border-white bg-white text-black',
-        tone === 'warn' && 'border-amber-300/60 bg-[#161616] text-white',
-        !tone && 'border-white/20 bg-[#161616] text-white/90'
-      )}
-    >
-      {id}
-    </span>
-  )
-}
-
-function Arrow({ label }: { label: string }) {
-  return (
-    <span className="flex min-w-[64px] flex-1 flex-col items-center gap-1 px-1">
-      <span className={cn(MONO, 'whitespace-nowrap text-[10px] text-white/45')}>{label}</span>
-      <span className="relative h-px w-full bg-white/35 after:absolute after:-right-px after:-top-[3px] after:border-y-[3.5px] after:border-l-[6px] after:border-y-transparent after:border-l-white/50" />
-    </span>
-  )
-}
-
-/** The campaign post state machine as a flow: the happy path, then the two review exits. */
-function StateDiagram() {
-  return (
-    <Window
-      className="w-full max-w-[1040px]"
-      meta="lib/tenant/campaign-status.ts"
-      title="Post states"
-    >
-      <div className="overflow-x-auto p-6">
-        <div className="min-w-[860px] space-y-5">
-          <div className="flex items-center">
-            <State id="DRAFT" />
-            <Arrow label="submit" />
-            <State id="READY_FOR_REVIEW" />
-            <Arrow label="approve" />
-            <State id="APPROVED" tone="good" />
-            <Arrow label="schedule" />
-            <State id="SCHEDULED" />
-            <Arrow label="worker + receipt" />
-            <State id="PUBLISHED" tone="good" />
-          </div>
-          {[
-            {
-              label: 'request changes',
-              id: 'NEEDS_CHANGES',
-              note: 'edit, then submit again',
-              tone: 'warn' as const,
-            },
-            { label: 'reject', id: 'REJECTED', note: 'final', tone: undefined },
-          ].map((exit) => (
-            <div className="flex items-center" key={exit.id}>
-              <span className="invisible" aria-hidden="true">
-                <State id="DRAFT" />
-              </span>
-              <span className="invisible flex min-w-[64px] flex-1" aria-hidden="true" />
-              <span className={cn(MONO, 'w-[150px] shrink-0 pl-4 text-[10px] text-white/40')}>
-                ↳ from review
-              </span>
-              <Arrow label={exit.label} />
-              <span className="w-[130px] shrink-0">
-                <State id={exit.id} tone={exit.tone} />
-              </span>
-              <span className={cn(MONO, 'ml-4 w-[180px] shrink-0 text-[11px] text-white/45')}>
-                {exit.note}
-              </span>
-              <span className="flex-[2]" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </Window>
-  )
-}
 
 /** /product/approvals: the state machine, roles, batch semantics, scheduling gate, and audit. */
 export function ApprovalsPage() {
   return (
-    <MarketingShell finale={{ lead: 'Agents draft.', trail: 'People decide.' }}>
+    <MarketingShell finale={{ lead: 'Invite your team', trail: 'and choose who approves.' }}>
       <PageHero
-        body="Approval is a state machine on the server. The browser, the API, and every agent go through the same transitions. Machines can draft. Only signed-in members move posts to review, and only members with approval rights can approve."
+        body="Every post waits for approval before it can be scheduled. Working alone? You can approve your own posts. Teams can give writing, approving, and publishing to different people. The server enforces these rules for the browser, the API, and the AI."
         eyebrow={{ href: '/product', label: 'Approvals', parent: 'Product' }}
-        lead="Nothing ships"
+        lead="You decide what goes out."
         location="approvals_hero"
-        trail="until someone says so."
+        trail="Approve your own posts, or require a second teammate."
       >
         <HeroStage variant={2}>
-          <StateDiagram />
+          <ApprovalFlow />
         </HeroStage>
       </PageHero>
 
       <Section>
         <SectionIntro
-          body="This table is generated from the transition map the server enforces. Every decision needs a signed-in member. A decision applied outside its starting states is refused, and there is no force transition or administrative override."
+          body="This table comes straight from the rules the server enforces. Every decision needs a signed-in teammate. A decision made from the wrong starting state is refused, and no admin override exists."
           label="Transitions"
-          lead="One table."
-          trail="Every caller."
+          lead="Four decisions move a post,"
+          trail="and the server checks each one."
         />
         <div className="mt-24">
           <RowTable
@@ -189,18 +104,15 @@ export function ApprovalsPage() {
       </Section>
 
       <div className="mx-auto w-full max-w-[1280px] px-6 sm:px-10">
-        <PullQuote
-          quote="Approval is the human gate the whole platform rests on."
-          source="Campaign approval"
-        />
+        <PullQuote quote="Every approval records the teammate who gave it. An API key can create a release, but it cannot approve a post." />
       </div>
 
       <Section>
         <SectionIntro
-          body="Six fixed roles. Approving and publishing are separate permissions, so an approver can sign off without publishing rights and a publisher can schedule without approval rights. A solo founder holds every role and can approve their own work."
+          body="There are six fixed roles. An approver can sign off without publishing rights, and a publisher can schedule without approval rights. A solo founder holds every role and can approve their own posts."
           label="Roles"
-          lead="Separate the decision"
-          trail="from the delivery."
+          lead="Approving and publishing"
+          trail="are separate permissions."
         />
         <div className="mt-24">
           <RowTable
@@ -218,10 +130,10 @@ export function ApprovalsPage() {
 
       <Section>
         <SectionIntro
-          body="Batch approval is the primary action, not an optimization. Approving seven posts is one click, one transaction, and one audit entry."
+          body="Approving six posts takes one click and writes one audit entry."
           label="Batch"
-          lead="Approve all seven."
-          trail="Or exactly three."
+          lead="Approve every post in one click,"
+          trail="or pick exactly the ones you want."
         />
         <div className="mt-24">
           <TileGrid
@@ -230,7 +142,7 @@ export function ApprovalsPage() {
               {
                 snippet: 'postIds: omitted',
                 title: 'Every eligible post',
-                body: 'Leave the list out and the decision applies to every post in the campaign that can take it. That is the Approve all button.',
+                body: 'Leave the list out and the decision applies to every post in the launch that can take it. That is the Approve all button.',
               },
               {
                 snippet: 'postIds: [a, b, c]',
@@ -240,12 +152,12 @@ export function ApprovalsPage() {
               {
                 snippet: '409 · nothing eligible',
                 title: 'No silent success',
-                body: 'A double-clicked Approve reports a clear conflict instead of pretending a second approval happened.',
+                body: 'Click Approve twice and the second click returns a clear conflict error.',
               },
               {
                 snippet: 'one winner, one 409',
                 title: 'Concurrent reviewers',
-                body: 'Two approvers acting at once produce one success and one conflict. No row is locked while someone thinks.',
+                body: 'Two approvers acting at once get one success and one conflict. Nothing is locked while a reviewer reads.',
               },
             ]}
           />
@@ -254,38 +166,22 @@ export function ApprovalsPage() {
 
       <Section>
         <SectionIntro
-          body="Approval and scheduling are separate gates. Scheduling checks the post again, and the delivery worker checks the creative a third time just before it calls the network."
+          body="Approval and scheduling are separate steps. Scheduling checks the post again. Right before sending, Shots checks the visual a third time."
           label="Scheduling"
-          lead="Approved is not enough."
-          trail="Six checks to schedule."
+          lead="Six checks run before a post is scheduled,"
+          trail="and the visual is checked again at send time."
         />
-        <div className="mt-24 grid gap-4 lg:grid-cols-2">
-          <ul className="space-y-px bg-[#111] p-2">
-            {SCHEDULE_CHECKS.map((check, index) => (
-              <li className="flex items-center gap-4 px-4 py-4" key={check}>
-                <span className={cn(MONO, 'w-5 text-[12px]', MUTED)}>{index + 1}</span>
-                <Check />
-                <span className="text-[16px] text-white">{check}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-col justify-between bg-[#111] p-8 sm:p-12">
-            <p className="text-balance text-[24px] leading-[1.35] tracking-[-0.02em] text-white sm:text-[28px]">
-              A creative archived after approval never publishes.{' '}
-              <span className={MUTED}>
-                The worker cancels the post and writes the cancellation to the audit log.
-              </span>
-            </p>
-          </div>
+        <div className="mt-24">
+          <ApprovalGates />
         </div>
       </Section>
 
       <Section>
         <SectionIntro
-          body="Every transition writes to the audit log inside the same transaction, so a state change and its record commit or roll back together. Entries carry the actor, the request ID, and the outcome."
+          body="Every decision is saved together with its audit entry, so neither can exist without the other. Entries carry the teammate, the request ID, and the outcome."
           label="Audit"
-          lead="Who decided what,"
-          trail="on which version."
+          lead="The audit log shows who decided what"
+          trail="and on which version."
         />
         <div className="mt-24">
           <RowTable
@@ -299,20 +195,23 @@ export function ApprovalsPage() {
 
       <Section>
         <SectionIntro
-          body="Policy-based automatic approval and the Copilot and Autopilot modes are designed and written down, not shipped. The default stays the same: everything needs a person."
+          body="Approval rules and the Copilot and Autopilot modes are designed and written down. None of them ship today, so every post still needs a teammate."
           label="What is next"
-          lead="Policies later."
-          trail="People first."
+          lead="Automatic approval rules are planned"
+          trail="and stay off until you turn them on."
         />
-        <div className="mt-24 grid gap-4 md:grid-cols-2">
+        <div className="mt-24">
+          <AutonomyLadder />
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
           {[
             {
-              title: 'Approval policies',
-              body: 'Rules a workspace writes for what may publish automatically, such as educational posts, while announcements, metrics, pricing, and competitor mentions always need review.',
+              title: 'Approval rules',
+              body: 'Rules your workspace writes for what may publish automatically, such as educational posts. Announcements, metrics, pricing, and competitor mentions always need review.',
             },
             {
               title: 'Autonomy modes',
-              body: 'Manual, Copilot, and Autopilot. A mode gates triggers and automatic approval. It never widens what a role may do.',
+              body: 'Manual, Copilot, and Autopilot. A mode controls what starts on its own and what is approved automatically. It never gives a role more permissions.',
             },
           ].map((item) => (
             <div className="bg-[#111] p-8 sm:p-10" key={item.title}>
@@ -332,25 +231,29 @@ export function ApprovalsPage() {
           },
           {
             q: 'Can an API key or the AI approve anything?',
-            a: 'No. Approval resolves the deciding user from a signed-in session. A principal without a user identity is refused.',
+            a: 'No. Approval requires a signed-in teammate. A request from an API key or the AI has no teammate behind it, so it is refused.',
           },
           {
-            q: 'Does typing “approve them” in chat approve anything?',
-            a: 'No. Approval is a button in the workspace backed by your session, so the record always shows a person.',
+            q: 'Does typing "approve them" in chat approve anything?',
+            a: 'No. Approval is a button in the workspace tied to your login, so the record always shows a teammate.',
           },
           {
             q: 'What happens to a post that needs changes?',
-            a: 'It moves to NEEDS_CHANGES with the reviewer’s note. Edit it, or revise it with AI, then submit it again.',
+            a: "It moves to NEEDS_CHANGES with the reviewer's note. Edit it, or revise it with AI, then submit it again.",
           },
           {
             q: 'Do release emails need approval too?',
-            a: 'Yes. Only approved release documents can be announced, and announcing needs the publishing permission.',
+            a: 'Yes. Shots sends a release email only for an approved release, and sending needs the publishing permission.',
           },
         ]}
       />
 
       <Section>
-        <SectionIntro label="Related" lead="Keep reading." trail="Every part connects." />
+        <SectionIntro
+          label="Related"
+          lead="Next: how approved posts get published,"
+          trail="plus security controls and team roles."
+        />
         <div className="mt-24">
           <LinkCards paths={['/product/publishing', '/security', '/solutions/product-marketing']} />
         </div>

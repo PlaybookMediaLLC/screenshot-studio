@@ -4,6 +4,7 @@ import { isInvalidRequest } from '@/lib/api/request'
 import { exportRequestSchema, type ExportRequest } from '@/lib/api/schemas'
 import { QUALITY_PRESETS } from '@/lib/export/types'
 import { apiError, methodNotAllowed } from '@/lib/api/errors'
+import { requirePaidAccess } from '@/lib/api/require-account'
 
 type ExportResult = {
   buffer: Buffer
@@ -62,6 +63,9 @@ function invalidContentTypeResponse(request: NextRequest): NextResponse | null {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const denied = await requirePaidAccess(request)
+  if (denied) return denied
+
   const contentTypeResponse = invalidContentTypeResponse(request)
   if (contentTypeResponse) return contentTypeResponse
 

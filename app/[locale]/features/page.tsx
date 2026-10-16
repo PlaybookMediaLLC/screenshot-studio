@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 
 const TITLE = "Features: Screenshot & Mockup Tools";
 const DESCRIPTION =
-  "All Shots features: screenshot beautifier, browser and device mockups, social media graphics, animations, 3D effects, and code images. Free, no signup.";
+  "All Shots features: screenshot beautifier, browser and device mockups, social media graphics, animations, 3D effects, and code images. Included in every plan.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   keywords: [
     "screenshot editor features",
     "image editing tools",
-    "free design tools",
+    "design tools",
     "screenshot beautifier",
     "social media graphics",
     "animation maker",
@@ -39,17 +39,16 @@ export const metadata: Metadata = {
     "browser frame mockup",
     "app mockup generator",
     "ui mockup generator",
-    "mockup generator free",
-    "free mockup generator no watermark",
+    "online mockup generator",
+    "mockup generator no watermark",
     "shots.so alternative",
     "pika.style alternative",
-    "free shots.so alternative",
   ],
   openGraph: {
     ...OG_DEFAULTS,
     title: "Features - Shots",
     description:
-      "All tools and capabilities in one free editor. Beautify, animate, and transform screenshots.",
+      "All tools and capabilities in one editor. Beautify, animate, and transform screenshots.",
     url: "/features",
   },
   alternates: {
@@ -87,15 +86,15 @@ function IconBadge({ icon: Icon }: { icon: typeof MagicWand01Icon }) {
 const FEATURES = [
   {
     href: "/features/screenshot-beautifier",
-    title: "Screenshot Beautifier",
+    title: "Screenshot beautifier",
     description:
-      "Add backgrounds, shadows, and rounded corners to turn plain screenshots into professional visuals.",
+      "Add backgrounds, shadows, and rounded corners to turn plain screenshots into finished visuals.",
     icon: MagicWand01Icon,
     gradient: gradientColors.vibrant_orange_pink,
   },
   {
     href: "/features/social-media-graphics",
-    title: "Social Media Graphics",
+    title: "Social media graphics",
     description:
       "Perfectly sized graphics for Twitter, LinkedIn, and Instagram. No design skills needed.",
     icon: Share08Icon,
@@ -103,7 +102,7 @@ const FEATURES = [
   },
   {
     href: "/features/animation-maker",
-    title: "Animation Maker",
+    title: "Animation maker",
     description:
       "Bring screenshots to life with zoom, pan, and fade animations. Export as video or GIF.",
     icon: Video01Icon,
@@ -111,7 +110,7 @@ const FEATURES = [
   },
   {
     href: "/features/3d-effects",
-    title: "3D Effects",
+    title: "3D effects",
     description:
       "Add 3D perspective, rotation, and depth to flat screenshots with a real-time preview.",
     icon: CubeIcon,
@@ -119,7 +118,7 @@ const FEATURES = [
   },
   {
     href: "/features/browser-mockups",
-    title: "Browser Mockups",
+    title: "Browser mockups",
     description:
       "Add realistic Safari and Chrome browser frames to screenshots, in light and dark mode.",
     icon: BrowserIcon,
@@ -127,7 +126,7 @@ const FEATURES = [
   },
   {
     href: "/mockup-generator",
-    title: "Device Mockup Generator",
+    title: "Device mockup generator",
     description:
       "Put screenshots on iPhone, MacBook, and Apple Watch mockups, including 3D angles and multi-device layouts.",
     icon: SmartPhone01Icon,
@@ -135,7 +134,7 @@ const FEATURES = [
   },
   {
     href: "/features/code-snippets",
-    title: "Code Images",
+    title: "Code images",
     description:
       "Turn code into shareable images with syntax themes, gradient backgrounds, and a window frame.",
     icon: SourceCodeIcon,
@@ -143,7 +142,7 @@ const FEATURES = [
   },
   {
     href: "/remove-background",
-    title: "Background Remover",
+    title: "Background remover",
     description:
       "Remove image backgrounds with on-device AI. Full-resolution transparent PNG, nothing uploaded.",
     icon: EraserAutoIcon,
@@ -178,7 +177,7 @@ export default function FeaturesPage() {
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
               Everything you need to turn a screenshot into a finished visual.
-              100% free, no signup, no watermark.
+              Included in every plan, with no watermark.
             </p>
           </header>
 
@@ -219,10 +218,10 @@ export default function FeaturesPage() {
             <SectionTitle>Mockups for every screen</SectionTitle>
             <div className="mt-4 max-w-3xl space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>
-                Shots is a free mockup maker that runs entirely in
+                Shots is a mockup maker that runs entirely in
                 your browser. Drop in a screenshot of an app, website, or UI
-                design and turn it into a polished mockup in seconds. No
-                account, no watermark, and nothing to install.
+                design and turn it into a mockup. Included in every plan,
+                no watermark, and nothing to install.
               </p>
               <p>
                 Wrap any screen in a Safari or Chrome browser frame, place it
@@ -240,8 +239,8 @@ export default function FeaturesPage() {
                   Pika Style
                 </Link>
                 , you will feel at home here. Shots covers the
-                same backgrounds, browser frames, and animation workflow for
-                free, with no signup and no watermark. See the full{" "}
+                same backgrounds, browser frames, and animation workflow,
+                included in every plan, with no watermark. See the full{" "}
                 <Link
                   href="/guides/best-free-shots-so-alternatives"
                   className="text-foreground underline underline-offset-4"

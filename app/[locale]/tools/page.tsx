@@ -21,15 +21,15 @@ import {
 import { cn } from "@/lib/utils";
 
 const DESCRIPTION =
-  "Compress, convert, resize, crop, and rotate images, remove a background, or compress a video, right in your browser. Batch processing, no signup, no watermark, and nothing is uploaded.";
+  "Compress, convert, resize, crop, and rotate images, remove a background, or compress a video, right in your browser. Batch processing, no watermark, and nothing is uploaded. Included in every Shots plan.";
 
 export const metadata: Metadata = {
-  title: "Free Online Image Tools: No Upload",
+  title: "Online Image Tools: No Upload",
   description: DESCRIPTION,
   keywords: [
     "image tools",
     "online image tools",
-    "free image editor tools",
+    "image editor tools",
     "compress image",
     "convert image",
     "resize image",
@@ -44,9 +44,9 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Free Online Image Tools: No Upload",
+    title: "Online Image Tools: No Upload",
     description:
-      "Free image tools that run entirely in your browser. Batch processing, background removal, no signup, no watermark, no upload.",
+      "Image tools that run entirely in your browser. Batch processing, background removal, no watermark, no upload.",
     url: TOOLS_HUB_PATH,
   },
   alternates: {
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
 const REMOVE_BACKGROUND = { name: "Remove Background", slug: "/remove-background" };
 const COMPRESS_VIDEO = { name: "Compress Video", slug: "/compress-video" };
 
-const PROMISES = ["Nothing is uploaded", "Batch processing", "No signup or watermark", "Open source"];
+const PROMISES = ["Nothing is uploaded", "Batch processing", "No watermark", "Open source"];
 
 const PREVIEW_SHADOW = "shadow-[0_20px_40px_-16px_rgba(0,0,0,0.6)]";
 const MOTION = "duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none";
@@ -321,7 +321,7 @@ export default function ToolsHubPage() {
               className="text-4xl font-semibold tracking-[-0.035em] text-foreground sm:text-5xl"
               style={{ fontFamily: INTER }}
             >
-              Free online image tools
+              Online image tools
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
               Pick what you need to do. Every tool runs in your browser, so your

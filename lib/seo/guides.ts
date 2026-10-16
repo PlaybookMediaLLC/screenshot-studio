@@ -65,7 +65,7 @@ export interface HowToGuide extends GuideBase {
 
 export type Guide = RoundupGuide | HowToGuide;
 
-const STUDIO_LICENSE = `Free, open source (${PRODUCT_FACTS.license})`;
+const STUDIO_LICENSE = `From $199/mo, editor in every plan; open source (${PRODUCT_FACTS.license})`;
 
 const DEVICESHOTS: GuideTool = {
   name: "DeviceShots",
@@ -139,9 +139,9 @@ const roundupGuides: RoundupGuide[] = [
   {
     kind: "roundup",
     slug: "best-free-screenshot-mockup-generators",
-    title: "Best Free Screenshot Mockup Generators (2026)",
+    title: "Best Screenshot Mockup Generators, Free and Paid (2026)",
     metaDescription:
-      "The best free online mockup generators for screenshots in 2026: Shots, DeviceShots, SnapMock, MockUPhone, Shots.so, Pika Style, and Mockuuups Studio, compared on devices, 3D, video, and watermarks.",
+      "The best online mockup generators for screenshots in 2026, free and paid: Shots, DeviceShots, SnapMock, MockUPhone, Shots.so, Pika Style, and Mockuuups Studio, compared on devices, 3D, video, and watermarks.",
     keywords: [
       "best free mockup generator",
       "free online mockup generator for screenshots",
@@ -152,17 +152,17 @@ const roundupGuides: RoundupGuide[] = [
       "mockup generator no watermark",
     ],
     answer:
-      "The best free mockup generators for screenshots in 2026 are Shots (3D angles, multi-device layouts, and video export), DeviceShots (76 device frames), SnapMock (perspective presets), and MockUPhone (open source, with Android and Samsung models). Shots, DeviceShots, and SnapMock need no account and add no watermark. Shots.so and Pika Style offer more templates but keep some features on paid plans.",
+      "The best free mockup generators for screenshots in 2026 are DeviceShots (76 device frames), SnapMock (perspective presets), and MockUPhone (open source, with Android and Samsung models). DeviceShots and SnapMock add no watermark and need no account. For 3D angles, multi-device layouts, and video export, Shots includes its mockup generator in every plan, from $199/mo, with no watermark. Shots.so and Pika Style offer more templates but keep some features on paid plans.",
     criteria:
-      "We compared what each tool gives you for free: device range, 3D or perspective, animation and video export, export resolution, and whether free exports carry a watermark or need an account.",
+      "We compared device range, 3D or perspective, animation and video export, export resolution, and whether free exports carry a watermark or need an account.",
     tools: [
       {
         name: "Shots",
         url: "/mockup-generator",
-        bestFor: "3D angles, multi-device layouts, and video, free",
+        bestFor: "3D angles, multi-device layouts, and video",
         price: STUDIO_LICENSE,
         platform: "Browser",
-        summary: `${PRODUCT_FACTS.deviceMockups} iPhone, MacBook, and Apple Watch mockups, some at 3D angles, plus Safari and Chrome browser frames and Arc, macOS, and Windows window frames. Place up to ${MAX_DEVICE_MOCKUPS} devices in one layout, add 3D perspective, and export ${IMAGE_FORMATS_SENTENCE} up to ${PRODUCT_FACTS.maxExportScale}x or animate to ${VIDEO_FORMATS_SENTENCE}. No signup, no watermark.`,
+        summary: `${PRODUCT_FACTS.deviceMockups} iPhone, MacBook, and Apple Watch mockups, some at 3D angles, plus Safari and Chrome browser frames and Arc, macOS, and Windows window frames. Place up to ${MAX_DEVICE_MOCKUPS} devices in one layout, add 3D perspective, and export ${IMAGE_FORMATS_SENTENCE} up to ${PRODUCT_FACTS.maxExportScale}x or animate to ${VIDEO_FORMATS_SENTENCE}. Included in every plan, no watermark.`,
         limitations:
           "No iPad or Android devices yet, and fewer device models than DeviceShots or Shots.so.",
       },
@@ -186,19 +186,19 @@ const roundupGuides: RoundupGuide[] = [
     faqs: [
       {
         q: "What is the best free mockup generator for screenshots?",
-        a: "Shots, DeviceShots, and SnapMock are the strongest free picks with no account and no watermark. Choose Shots for 3D angles, multi-device layouts, and video export, DeviceShots for the largest device catalog, and SnapMock for quick perspective presets.",
+        a: "DeviceShots and SnapMock are the strongest free picks, with no watermark and no account: DeviceShots for the largest device catalog, and SnapMock for quick perspective presets. For 3D angles, multi-device layouts, and video export, Shots includes them in every plan, from $199/mo, with no watermark.",
       },
       {
         q: "Which mockup generators add a watermark on the free plan?",
-        a: "BrandBird's free plan and Screenhance's free plan (3 exports a month) add a watermark, and Mockuuups Studio's free tier requires attribution. Shots, DeviceShots, SnapMock, and Screely state that free exports have no watermark.",
+        a: "BrandBird's free plan and Screenhance's free plan (3 exports a month) add a watermark, and Mockuuups Studio's free tier requires attribution. DeviceShots, SnapMock, and Screely state that free exports have no watermark, and Shots adds no watermark on any plan.",
       },
       {
         q: "Can I make a 3D device mockup for free?",
-        a: "Yes. Shots includes 3D perspective and angled iPhone and MacBook mockups for free, and SnapMock has free isometric and tilted presets. Pika Style puts tilt on its Pro plan.",
+        a: "Yes. SnapMock has free isometric and tilted presets. Shots includes 3D perspective and angled iPhone and MacBook mockups in every plan, and Pika Style puts tilt on its Pro plan.",
       },
       {
-        q: "Which free mockup generator exports video?",
-        a: `Shots exports animated mockups as ${VIDEO_FORMATS_SENTENCE} for free. Shots.so has animation presets, and Screenhance exports GIF and WebM with clean MP4 on its Pro plan.`,
+        q: "Which mockup generators export video?",
+        a: `Shots exports animated mockups as ${VIDEO_FORMATS_SENTENCE} in every plan. Shots.so has animation presets, and Screenhance exports GIF and WebM with clean MP4 on its Pro plan.`,
       },
       {
         q: "Do mockup generators upload my screenshot?",
@@ -209,9 +209,9 @@ const roundupGuides: RoundupGuide[] = [
   {
     kind: "roundup",
     slug: "best-free-screenshot-editors-no-watermark",
-    title: "Best Free Screenshot Editors With No Watermark (2026)",
+    title: "Best Screenshot Editors With No Watermark, Free and Paid (2026)",
     metaDescription:
-      "Free screenshot editors that never add a watermark: Shots, ShareX, Flameshot, Greenshot, Screenshot Editor, Guidejar, Photopea, and the tools built into Windows and macOS.",
+      "Screenshot editors that never add a watermark, free and paid: Shots, ShareX, Flameshot, Greenshot, Screenshot Editor, Guidejar, Photopea, and the tools built into Windows and macOS.",
     keywords: [
       "free screenshot editor no watermark",
       "best free screenshot editor",
@@ -223,9 +223,9 @@ const roundupGuides: RoundupGuide[] = [
       "free screenshot annotation tool",
     ],
     answer:
-      "The best free screenshot editors with no watermark are Shots (in the browser, with blur, arrows, backgrounds, and mockups), ShareX (capture and annotation on Windows), Flameshot (Windows, macOS, and Linux), and Greenshot (free on Windows). For quick blur and redaction in a browser tab, Screenshot Editor and Guidejar are also free, with no watermark and no account.",
+      "The best free screenshot editors with no watermark are ShareX (capture and annotation on Windows), Flameshot (Windows, macOS, and Linux), and Greenshot (free on Windows). For quick blur and redaction in a browser tab, Screenshot Editor and Guidejar are also free, with no watermark and no account. Shots adds backgrounds and mockups to blur and arrows in any browser, with no watermark, and is included in every Shots plan.",
     criteria:
-      "We kept tools that export without a watermark on the free plan, then compared platform, built-in screen capture, annotation and redaction tools, and account requirements.",
+      "We kept tools that export without a watermark, on their free plan or, for Shots, on every plan, then compared platform, built-in screen capture, annotation and redaction tools, and account requirements.",
     tools: [
       {
         name: "Shots",
@@ -233,7 +233,7 @@ const roundupGuides: RoundupGuide[] = [
         bestFor: "Redacting and polishing screenshots in any browser",
         price: STUDIO_LICENSE,
         platform: "Browser on Mac, Windows, Linux, and Chromebook",
-        summary: `Blur private details, add arrows, shapes, and text, then place the screenshot on one of ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, in a device or browser mockup, or at a 3D angle. Exports ${IMAGE_FORMATS_SENTENCE} up to ${PRODUCT_FACTS.maxExportScale}x, or animate to ${VIDEO_FORMATS_SENTENCE}. No signup, no watermark.`,
+        summary: `Blur private details, add arrows, shapes, and text, then place the screenshot on one of ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, in a device or browser mockup, or at a 3D angle. Exports ${IMAGE_FORMATS_SENTENCE} up to ${PRODUCT_FACTS.maxExportScale}x, or animate to ${VIDEO_FORMATS_SENTENCE}. Included in every Shots plan, no watermark.`,
         limitations:
           "No screen capture: take the screenshot with your OS or another tool, then paste or drop it in.",
       },
@@ -322,15 +322,15 @@ const roundupGuides: RoundupGuide[] = [
     faqs: [
       {
         q: "What is the best free screenshot editor with no watermark?",
-        a: "It depends on where you work. Shots is the best pick in a browser on any OS, with blur, arrows, backgrounds, and mockups. ShareX is the most complete on Windows, and Flameshot covers Windows, macOS, and Linux.",
+        a: "It depends on where you work. ShareX is the most complete free option on Windows, and Flameshot covers Windows, macOS, and Linux. In a browser, Screenshot Editor and Guidejar are free; Shots covers more, with blur, arrows, backgrounds, and mockups, and is included in every Shots plan.",
       },
       {
-        q: "Which free screenshot editor can blur sensitive information?",
+        q: "Which screenshot editors can blur sensitive information?",
         a: "Shots, ShareX, Flameshot, Screenshot Editor, and Guidejar all include a blur tool. ShareX, Flameshot, and Screenshot Editor can also pixelate, and Screenshot Editor has opaque redaction.",
       },
       {
         q: "Is there a free screenshot editor for Chromebook or Linux?",
-        a: "Yes. Browser-based editors such as Shots, Screenshot Editor, Guidejar, and Photopea work on a Chromebook. On Linux, Flameshot is a native option, and the browser tools work too.",
+        a: "Yes. Free browser-based editors such as Screenshot Editor, Guidejar, and Photopea work on a Chromebook, and so does Shots on any Shots plan. On Linux, Flameshot is a native option, and the browser tools work too.",
       },
       {
         q: "Do built-in tools like Snipping Tool add a watermark?",
@@ -378,7 +378,7 @@ const roundupGuides: RoundupGuide[] = [
         price: "Free, open source (MIT)",
         platform: "Browser, plus a Raycast extension",
         summary:
-          "Made by Raycast: paste code, pick a theme, background, and padding, and export an image in seconds.",
+          "Made by Raycast: paste code, pick a theme, background, and padding, and export an image.",
         limitations: "Static image export only.",
       },
       {
@@ -437,7 +437,7 @@ const roundupGuides: RoundupGuide[] = [
       },
       {
         q: "Can I turn a code snippet into a video?",
-        a: `Yes. Snappify animates code, with watermarked video on its free plan. In Shots, export the code image, open it in the main editor, add an animation preset, and export ${VIDEO_FORMATS_SENTENCE} for free.`,
+        a: `Yes. Snappify animates code, with watermarked video on its free plan. In Shots, export the code image, open it in the main editor, add an animation preset, and export ${VIDEO_FORMATS_SENTENCE}.`,
       },
       {
         q: "Should I use an image or a code block in my README?",
@@ -448,9 +448,9 @@ const roundupGuides: RoundupGuide[] = [
   {
     kind: "roundup",
     slug: "best-free-shots-so-alternatives",
-    title: "Best Free Shots.so Alternatives (2026)",
+    title: "Best Shots.so Alternatives, Free and Paid (2026)",
     metaDescription:
-      "Free alternatives to Shots.so for screenshot mockups: Shots, DeviceShots, SnapMock, Pika Style, Screely, MockUPhone, and BrandBird, compared on devices, 3D, video, and watermarks.",
+      "Alternatives to Shots.so for screenshot mockups, free and paid: Shots, DeviceShots, SnapMock, Pika Style, Screely, MockUPhone, and BrandBird, compared on devices, 3D, video, and watermarks.",
     keywords: [
       "shots.so alternative",
       "best free alternatives to shots.so",
@@ -460,17 +460,17 @@ const roundupGuides: RoundupGuide[] = [
       "free mockup generator",
     ],
     answer:
-      "The best free Shots.so alternatives are Shots (3D, animation, and video export, free and open source), DeviceShots (76 device frames with no account or watermark), and SnapMock (free perspective presets). Pika Style is closest in template variety but puts tilt on Pro, and Screely is the simplest choice for window frames. Shots.so still has more device models than most, including Android phones and iPads.",
+      "Shots.so is a separate product from Shots. The best free Shots.so alternatives are DeviceShots (76 device frames with no account or watermark) and SnapMock (free perspective presets). Pika Style is closest in template variety but puts tilt on Pro, and Screely is the simplest choice for window frames. For 3D, animation, and video export in an open-source editor, Shots includes them in every plan, from $199/mo. Shots.so still has more device models than most, including Android phones and iPads.",
     criteria:
-      "Each pick covers Shots.so's core job, putting a screenshot in a device or window frame on a background, and we noted what each one does for free.",
+      "Each pick covers Shots.so's core job, putting a screenshot in a device or window frame on a background, and we noted what each one includes on its free or entry plan.",
     tools: [
       {
         name: "Shots",
         url: "/compare/shots-so",
-        bestFor: "Shots.so-style 3D and animation, free",
+        bestFor: "Shots.so-style 3D and animation, open source",
         price: STUDIO_LICENSE,
         platform: "Browser",
-        summary: `iPhone, MacBook, and Apple Watch mockups, 3D perspective, a keyframe animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets, and ${VIDEO_FORMATS_SENTENCE} export, plus a code to image editor and a blur tool. No account and no watermark.`,
+        summary: `iPhone, MacBook, and Apple Watch mockups, 3D perspective, a keyframe animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets, and ${VIDEO_FORMATS_SENTENCE} export, plus a code to image editor and a blur tool. Included in every plan, no watermark.`,
         limitations: "Fewer device models: no Android phones or iPads yet.",
       },
       DEVICESHOTS,
@@ -492,7 +492,7 @@ const roundupGuides: RoundupGuide[] = [
     faqs: [
       {
         q: "What is the best free alternative to Shots.so?",
-        a: "Shots is the closest free match if you use Shots.so for 3D and animated mockups: it includes 3D perspective, an animation timeline, and video export with no account and no watermark, and it is open source. If you mainly need more device models, DeviceShots has 76 frames for free.",
+        a: "For free, DeviceShots has 76 device frames and SnapMock has perspective presets. If you use Shots.so for 3D and animated mockups, Shots is the closest match: it includes 3D perspective, an animation timeline, and video export in every plan with no watermark, and it is open source.",
       },
       {
         q: "Is Shots.so free?",
@@ -511,9 +511,9 @@ const roundupGuides: RoundupGuide[] = [
   {
     kind: "roundup",
     slug: "best-free-screely-alternatives",
-    title: "Best Free Screely Alternatives (2026)",
+    title: "Best Screely Alternatives, Free and Paid (2026)",
     metaDescription:
-      "Free alternatives to Screely for framing screenshots: Shots, DeviceShots, SnapMock, Shots.so, Pika Style, MockUPhone, and BrandBird, compared on frames, 3D, and video.",
+      "Alternatives to Screely for framing screenshots, free and paid: Shots, DeviceShots, SnapMock, Shots.so, Pika Style, MockUPhone, and BrandBird, compared on frames, 3D, and video.",
     keywords: [
       "screely alternative",
       "screely alternatives",
@@ -523,9 +523,9 @@ const roundupGuides: RoundupGuide[] = [
       "free screenshot mockup tool",
     ],
     answer:
-      "Screely is a free, simple way to put a screenshot in a macOS or Windows window on a background. If you need more, Shots adds device mockups, 3D perspective, annotation, blur, and video export for free; DeviceShots has the biggest free device catalog; and SnapMock adds free perspective presets. Screely is still the quickest option for a plain window frame, and it exports PDF, which most alternatives do not.",
+      "Screely is a free, simple way to put a screenshot in a macOS or Windows window on a background. If you need more for free, DeviceShots has the biggest free device catalog and SnapMock adds free perspective presets. Shots adds device mockups, 3D perspective, annotation, blur, and video export, included in every Shots plan. Screely is still the quickest option for a plain window frame, and it exports PDF, which most alternatives do not.",
     criteria:
-      "Each pick does Screely's core job, framing a screenshot on a background for free, and adds at least one thing Screely does not: device frames, 3D, annotation, or video.",
+      "Each pick does Screely's core job, framing a screenshot on a background, and adds at least one thing Screely does not: device frames, 3D, annotation, or video.",
     tools: [
       {
         name: "Shots",
@@ -533,7 +533,7 @@ const roundupGuides: RoundupGuide[] = [
         bestFor: "Window frames plus devices, 3D, and video",
         price: STUDIO_LICENSE,
         platform: "Browser",
-        summary: `Safari and Chrome window frames in light and dark with an editable URL bar, iPhone, MacBook, and Apple Watch mockups, 3D perspective, arrows, text, and blur, plus a keyframe animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets. Exports ${IMAGE_FORMATS_SENTENCE} images and MP4 or WebM video, with no account and no watermark.`,
+        summary: `Safari and Chrome window frames in light and dark with an editable URL bar, iPhone, MacBook, and Apple Watch mockups, 3D perspective, arrows, text, and blur, plus a keyframe animation timeline with ${atLeast(PRODUCT_FACTS.animationPresets)} presets. Exports ${IMAGE_FORMATS_SENTENCE} images and MP4 or WebM video, included in every Shots plan, with no watermark.`,
         limitations: "No PDF export and no browser extension for capturing tabs.",
       },
       DEVICESHOTS,
@@ -546,7 +546,7 @@ const roundupGuides: RoundupGuide[] = [
     faqs: [
       {
         q: "What is the best free alternative to Screely?",
-        a: "Shots is the closest free upgrade: it keeps Screely's window frames and backgrounds and adds device mockups, 3D, annotation, blur, and video export, with no account and no watermark. For the largest set of free device frames, try DeviceShots.",
+        a: "For a free option with the largest set of device frames, try DeviceShots. Shots is the closest upgrade: it keeps Screely's window frames and backgrounds and adds device mockups, 3D, annotation, blur, and video export, included in every Shots plan with no watermark.",
       },
       {
         q: "Is Screely free?",

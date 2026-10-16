@@ -23,7 +23,7 @@ const IPHONE_PROFILE = STORE_OUTPUT_PROFILES[0];
 export const metadata: Metadata = {
   title: "App Store Screenshot Maker",
   description:
-    "Build a coordinated App Store screenshot set in your browser. Six layout templates, editable headings, device frames, and 1320x2868 export. Free, no signup.",
+    "Build a coordinated App Store screenshot set in your browser. Six layout templates, editable headings, device frames, and 1320x2868 export. Included in every plan.",
   keywords: [
     "app store screenshot maker",
     "app store screenshot generator",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     ...OG_DEFAULTS,
     title: "App Store Screenshot Maker - Shots",
     description:
-      "Build a coordinated App Store screenshot set in your browser. Templates, headings, device frames, and 1320x2868 export. Free, no signup.",
+      "Build a coordinated App Store screenshot set in your browser. Templates, headings, device frames, and 1320x2868 export. Included in every plan.",
     url: "/store-screenshots",
   },
   alternates: {
@@ -67,7 +67,7 @@ const faqs = [
   {
     question: "Do I need to sign up or pay?",
     answer:
-      "No. The App Store screenshot maker is free, needs no account, and adds no watermark to your exports.",
+      "You need a free Shots account. The App Store screenshot maker is free on every plan and adds no watermark to your exports.",
   },
 ];
 
@@ -81,7 +81,7 @@ export default async function StoreScreenshotsPage(): Promise<React.JSX.Element>
 
       <section className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8">
         <h1 className="text-2xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">
-          App Store Screenshot Maker
+          App Store screenshot maker
         </h1>
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
           Turn raw app screens into a coordinated App Store listing set. Pick a

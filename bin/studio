@@ -434,6 +434,13 @@ dev_login() {
       "$app/api/trpc/workspace.create" || echo "Dev login: could not create its workspace." >&2
   fi
   rm -f "$jar"
+  # There is no free plan, so the local workspace gets Pro to stay usable.
+  # Production entitlements come only from Stripe.
+  compose exec -T postgres psql --quiet --username=postgres --dbname=screenshot_studio --command \
+    "INSERT INTO workspace_entitlement (\"organizationId\", plan, status, \"createdAt\", \"updatedAt\")
+     SELECT id, 'pro', 'active', now(), now() FROM organization WHERE slug = 'playbook-dev'
+     ON CONFLICT (\"organizationId\") DO NOTHING" >/dev/null ||
+    echo "Dev login: could not give Playbook Dev a plan." >&2
   echo "Dev login: $email (password: STUDIO_DEV_PASSWORD in .local/dev.env)"
 }
 

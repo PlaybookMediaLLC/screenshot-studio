@@ -23,7 +23,7 @@ const CHANNEL_ICONS: Record<LaunchChannel, typeof Mail01Icon> = {
 
 /**
  * A drafted post for one channel, with its length measured against the real
- * channel limit and the spec claims it cites.
+ * channel limit and the launch brief claims it cites.
  */
 export function PostCard({
   body,
@@ -80,7 +80,11 @@ const WEEK = [
 /** A launch week laid out as teaser, launch day, and follow-up. */
 export function WeekMock() {
   return (
-    <Window className="w-full max-w-[880px]" meta="7 posts approved" title="Launch week">
+    <Window
+      className="w-full max-w-[880px]"
+      meta={`${WEEK.flatMap((day) => day.posts).length} posts approved`}
+      title="Launch week"
+    >
       <div className="grid grid-cols-5 gap-px overflow-hidden rounded-xl bg-white/[0.06] text-[12px]">
         {WEEK.map(({ day, phase, posts }) => (
           <div className="min-h-[200px] bg-[#121212] p-3" key={day}>
@@ -106,7 +110,7 @@ export function WeekMock() {
   )
 }
 
-/** A changelog entry as the copy agent drafts it. */
+/** A changelog entry as the AI drafts it. */
 export function ChangelogMock() {
   return (
     <Window className="w-full" meta="changelog" title="Changelog entry">

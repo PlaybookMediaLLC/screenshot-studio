@@ -21,6 +21,7 @@ export default async function AssetsPage({ params }: AssetsPageProps) {
     redirect(getLocalizedPath(locale, '/onboarding'))
   }
   if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
+  if (!access.hasPaidPlan) redirect(getLocalizedPath(locale, '/pricing?subscribe=required'))
 
   return (
     <PlatformShell

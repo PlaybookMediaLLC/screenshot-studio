@@ -6,15 +6,15 @@ import { MUTED, Section, SectionIntro } from '../primitives'
 const NEXT = [
   {
     title: 'Launch from a URL',
-    body: 'Paste your product URL, review a profile in seconds, and get your first seven posts on a calendar, built from your actual application.',
+    body: 'You will paste your product URL, review the profile Shots drafts, and get a first week of posts on a calendar, built from your actual product.',
   },
   {
     title: 'Keep your product visible',
-    body: 'A weekly plan from your recent changes and history, with no hook repeated from the last thirty days. One approval for the week.',
+    body: 'Shots will build a weekly plan from your recent changes and history, with no hook repeated from the last thirty days. You will approve the week in one step.',
   },
   {
     title: 'Changes become launches',
-    body: 'A merged pull request worth announcing becomes a suggested campaign. Never an automatic post.',
+    body: 'A merged pull request worth announcing will become a suggested launch for you to review.',
   },
 ]
 
@@ -36,10 +36,10 @@ export function UseCasesPage() {
 
       <Section>
         <SectionIntro
-          body="Each one starts from a release and ends with posts a person approved."
+          body="Each one starts from a release and ends with posts a teammate approved."
           label="Today"
-          lead="Three launches."
-          trail="One workflow."
+          lead="Three kinds of launch you can run today,"
+          trail="each starting from one release."
         />
         <div className="mt-24">
           <LinkCards
@@ -54,10 +54,10 @@ export function UseCasesPage() {
 
       <Section>
         <SectionIntro
-          body="These are designed and written down in the public roadmap. They build on the same objects and the same approval gate."
+          body="These are written down in the public roadmap and do not ship today. When they do, they will use the same approval rules."
           label="Next"
-          lead="From your release"
-          trail="to your whole week."
+          lead="Planned: launches from a URL,"
+          trail="a weekly plan, and merged pull requests."
         />
         <ul className="mt-24 grid gap-4 md:grid-cols-3">
           {NEXT.map((item) => (
@@ -71,7 +71,11 @@ export function UseCasesPage() {
       </Section>
 
       <Section>
-        <SectionIntro label="By team" lead="Who it is for." trail="Pick your seat." />
+        <SectionIntro
+          label="By team"
+          lead="Read the page for your team:"
+          trail="founders, product marketing, or developer tools."
+        />
         <div className="mt-24">
           <LinkCards
             paths={[

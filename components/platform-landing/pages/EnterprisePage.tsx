@@ -24,7 +24,7 @@ import { CONTAINER, MONO, MUTED, Section, SectionIntro, Window } from '../primit
 
 function DrainWindow() {
   return (
-    <Window className="w-full max-w-[560px]" meta="Enterprise" title="Audit drain">
+    <Window className="w-full max-w-[560px]" meta="Enterprise" title="Audit log export">
       <dl className="divide-y divide-white/[0.06] text-[13px]">
         {[
           ['Destination', 'Splunk HEC'],
@@ -72,20 +72,18 @@ export function EnterprisePage() {
   const included = [
     hasWorkspaceFeature('enterprise', 'enterprise:sso') && 'SSO',
     hasWorkspaceFeature('enterprise', 'enterprise:scim') && 'SCIM',
-    hasWorkspaceFeature('enterprise', 'enterprise:audit-drain') && 'audit drains',
+    hasWorkspaceFeature('enterprise', 'enterprise:audit-drain') && 'audit log export',
   ].filter(Boolean)
   return (
-    <MarketingShell
-      finale={{ lead: 'Bring your identity provider.', trail: 'Keep your audit trail.' }}
-    >
+    <MarketingShell finale={{ lead: 'Talk to sales', trail: 'about SSO, SCIM, and self-hosting.' }}>
       <PageHero
-        body={`Enterprise adds ${included.join(', ')}, longer audit retention, legal hold, and the highest limits on every quota. Or run the whole platform in your own cloud.`}
+        body={`Enterprise adds ${included.join(', ')}, longer audit retention, legal hold, and the highest limits on every quota. You can also run the whole platform in your own cloud.`}
         eyebrow={{ label: 'Enterprise' }}
-        lead="Launch at scale,"
+        lead="Run launches inside your company's controls,"
         location="enterprise_hero"
         primary={{ href: '/contact', label: 'Contact sales' }}
         secondary={{ href: '/security', label: 'Security overview' }}
-        trail="inside your controls."
+        trail="with your identity provider and your retention rules."
       >
         <HeroStage variant={3}>
           <DrainWindow />
@@ -94,10 +92,10 @@ export function EnterprisePage() {
 
       <Section>
         <SectionIntro
-          body="Your identity provider decides who gets in. Your SIEM sees everything that happens. Your retention policy decides how long it stays."
+          body="Your identity provider decides who gets in. Your security log tool (SIEM) receives every audit event. Your retention policy decides how long history stays."
           label="Controls"
-          lead="The answers a security review"
-          trail="asks for."
+          lead="The controls your IT team will ask about,"
+          trail="included on Enterprise."
         />
         <div className="mt-24">
           <ControlGrid
@@ -110,7 +108,7 @@ export function EnterprisePage() {
               {
                 icon: UserGroupIcon,
                 title: 'SCIM',
-                body: 'Provision and deprovision members automatically. Tokens are scoped to one organization and hashed.',
+                body: 'SCIM user provisioning adds and removes teammates automatically. Tokens are scoped to one workspace and hashed.',
               },
               {
                 icon: FingerPrintIcon,
@@ -119,7 +117,7 @@ export function EnterprisePage() {
               },
               {
                 icon: Database01Icon,
-                title: 'Audit drains',
+                title: 'Audit log export',
                 body: 'Signed CloudEvents to any HTTPS endpoint, or presets for Splunk HEC and Datadog.',
               },
               {
@@ -139,10 +137,10 @@ export function EnterprisePage() {
 
       <Section>
         <SectionIntro
-          body="Identity setup is a privileged action, so it asks for proof. Members who arrive through SSO or SCIM start as viewers until someone grants more."
+          body="Identity setup is a privileged action, so it asks for proof. Teammates who arrive through SSO or SCIM start with read-only access."
           label="Identity"
-          lead="Least privilege"
-          trail="from the first login."
+          lead="New teammates start as viewers"
+          trail="until someone grants them more."
         />
         <div className="mt-24 space-y-24">
           <SplitFeature
@@ -150,7 +148,7 @@ export function EnterprisePage() {
             bullets={[
               'Google, Microsoft, and GitHub sign-in also available',
               'SCIM deactivation removes access',
-              'Six fixed roles, assigned per organization',
+              'Six fixed roles, assigned per workspace',
             ]}
             index={0}
             title="Your directory, your rules"
@@ -158,10 +156,10 @@ export function EnterprisePage() {
             <SsoWindow />
           </SplitFeature>
           <SplitFeature
-            body="Every audit event is delivered to your SIEM as it happens. Drain secrets are encrypted at rest with AES-256-GCM and never shown back. Private addresses and redirects are refused."
+            body="Every audit event is sent to your security log tool as it happens. Export secrets are encrypted at rest with AES-256-GCM and never shown back. Private addresses and redirects are refused."
             index={1}
             link={{ href: '/security', label: 'Read the security overview' }}
-            title="Everything in your SIEM"
+            title="Every audit event in your SIEM"
           >
             <DrainWindow />
           </SplitFeature>
@@ -195,10 +193,10 @@ export function EnterprisePage() {
 
       <Section>
         <SectionIntro
-          body="Use the hosted platform, or run it yourself. The code is open source either way."
+          body="The code is open source either way."
           label="Deployment"
-          lead="Hosted,"
-          trail="or in your cloud."
+          lead="Use our hosted platform"
+          trail="or run it in your own cloud."
         />
         <div className="mt-24">
           <TileGrid
@@ -207,7 +205,7 @@ export function EnterprisePage() {
               {
                 snippet: 'hosted · United States',
                 title: 'Hosted',
-                body: 'We run it on DigitalOcean in New York, with durable workflows on Temporal Cloud and private storage on Cloudflare R2.',
+                body: 'We run it on DigitalOcean in New York, with scheduled workflows on Temporal Cloud and private storage on Cloudflare R2.',
               },
               {
                 snippet: 'helm install',
@@ -241,7 +239,11 @@ export function EnterprisePage() {
       />
 
       <Section>
-        <SectionIntro label="Related" lead="Keep reading." trail="Every part connects." />
+        <SectionIntro
+          label="Related"
+          lead="Read the full security overview,"
+          trail="compare plan prices, or see how approvals work."
+        />
         <div className="mt-24">
           <LinkCards paths={['/security', '/pricing', '/product/approvals']} />
         </div>

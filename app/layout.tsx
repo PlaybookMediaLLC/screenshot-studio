@@ -274,16 +274,15 @@ export const metadata: Metadata = {
     // bing: "your-bing-verification",
   },
   description:
-    'Free screenshot editor and mockup maker. Add gradient backgrounds, browser frames, shadows, 3D effects, and animations to screenshots in seconds. No signup.',
+    'Shots turns every release into a cited launch brief, on-brand visuals, and posts you approve. Every plan includes a screenshot editor.',
   keywords: [
     // Primary keywords
-    'screenshot editor online free',
-    'free screenshot editor',
+    'screenshot editor online',
     'online screenshot editor',
     'screenshot beautifier',
     'screenshot editor',
     'shots',
-    'free image editor',
+    'image editor',
     'online image editor',
     // Competitor & alternative keywords
     'pika style alternative',
@@ -306,29 +305,24 @@ export const metadata: Metadata = {
     'appshots alternative',
     'goodmockups alternative',
     'mockup me alternative',
-    'screenshot editor online free',
     'best screenshot editor online',
     'screenshot editor without watermark',
-    'screenshot editor online free without watermark',
+    'screenshot editor online without watermark',
     'screenshot editor no download',
     'uizard screenshot editor alternative',
     'mockup generator',
-    'free mockup generator',
-    'mockup generator free',
     'mockup online generator',
     'mockup online editor',
-    'mockup editor online free',
+    'mockup editor online',
     'mockup design online',
-    'mockup free online',
-    'free online mockup generator no watermark',
-    'free mockup generator without watermark',
+    'online mockup generator no watermark',
+    'mockup generator without watermark',
     'app mockup generator',
     'website mockup generator',
-    'free website mockup generator',
     'website mockup generator from url',
     'laptop mockup generator',
     'product mockup generator',
-    'free online 3d mockup generator',
+    'online 3d mockup generator',
     'best mockup generator',
     'best online mockup generator',
     'mockup app',
@@ -348,13 +342,13 @@ export const metadata: Metadata = {
     'Instagram post creator',
     'LinkedIn banner maker',
     // Long-tail keywords
-    'free design tool no signup',
+    'product launch platform',
     'beautify screenshots online',
     'add background to screenshot',
     'screenshot to video converter',
     'screenshot padding and shadow tool',
     'screenshot border radius editor',
-    'free online screenshot beautifier',
+    'online screenshot beautifier',
     'image presentation maker',
   ],
   authors: [{ name: 'Shots', url: SITE_URL }],
@@ -369,8 +363,8 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: '/',
     siteName: 'Shots',
-    title: 'Shots - Free Screenshot Editor Online',
-    description: `Screenshot editor online: create stunning social media graphics in seconds. ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, animations, 3D effects, and video export. Free workspace plan available.`,
+    title: 'Shots - Screenshot Editor Online',
+    description: `Shots turns every release into a cited launch brief, on-brand visuals, and posts you approve. Every plan includes a screenshot editor with ${atLeast(PRODUCT_FACTS.backgrounds)} backgrounds, 3D effects, and video export.`,
     images: [
       {
         url: `${SITE_URL}/og.jpg`,
@@ -382,9 +376,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Shots - Free Screenshot Editor Online',
+    title: 'Shots - Screenshot Editor Online',
     description:
-      'Free screenshot editor online — transform screenshots into stunning graphics. Animations, 3D effects, video export. No signup.',
+      'Shots turns every release into a cited launch brief, on-brand visuals, and posts you approve. Every plan includes a screenshot editor.',
     images: [`${SITE_URL}/og.jpg`],
   },
   robots: {
@@ -431,7 +425,7 @@ export default async function RootLayout({
   const rootJsonLd = getRootJsonLd()
 
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`dark ${fontVariables}`}>
       <meta name="msvalidate.01" content="A3B8CB50BBD78710971A13FA3EE1E544" />
       <link rel="alternate" type="text/markdown" href="/llms.txt" title="LLMs.txt" />
       <link
@@ -440,7 +434,7 @@ export default async function RootLayout({
         href="/llms-full.txt"
         title="LLMs Full Documentation"
       />
-      <body className={`${fontVariables} antialiased`}>
+      <body className="antialiased">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(rootJsonLd) }}

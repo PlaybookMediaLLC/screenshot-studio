@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next'
+import { needsSignIn } from '@/lib/auth/sign-in-gate'
 import { platformPagePathSchema } from '@/lib/marketing/platform-pages'
 import { SITE_URL } from '@/lib/seo/metadata'
 import { LAST_UPDATED_ISO } from '@/lib/seo/changelog'
@@ -62,7 +63,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...guides.map((guide) => `/guides/${guide.slug}`),
   ]
 
-  return paths.map((path) => ({
+  // Pages behind sign-in redirect crawlers, so they stay out of the sitemap.
+  return paths.filter((path) => !needsSignIn(path)).map((path) => ({
     url: `${SITE_URL}${path}`,
     lastModified: lastModifiedFor(path),
   }))

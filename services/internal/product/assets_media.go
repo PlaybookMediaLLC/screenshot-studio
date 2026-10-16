@@ -133,7 +133,7 @@ func (c *Configuration) SignAssetUpload(ctx context.Context, actor Actor, input 
 	if err != nil {
 		return nil, err
 	}
-	limits := map[string]int64{"free": 250 << 20, "pro": 25 << 30, "business": 250 << 30, "enterprise": 5 << 40}
+	limits := map[string]int64{"free": 0, "pro": 25 << 30, "business": 250 << 30, "enterprise": 5 << 40}
 	if int64(used)+int64(input.Bytes) > limits[plan] {
 		return nil, ErrStorageQuota
 	}
@@ -326,7 +326,7 @@ func (c *Configuration) StoreGeneratedAsset(ctx context.Context, actor Actor, in
 	if err != nil {
 		return nil, err
 	}
-	limits := map[string]int64{"free": 250 << 20, "pro": 25 << 30, "business": 250 << 30, "enterprise": 5 << 40}
+	limits := map[string]int64{"free": 0, "pro": 25 << 30, "business": 250 << 30, "enterprise": 5 << 40}
 	if int64(used)+int64(len(input.Body)) > limits[plan] {
 		return nil, ErrStorageQuota
 	}

@@ -49,7 +49,7 @@ export function FinalCTA({
         </div>
 
         <p className="mt-8 text-sm text-muted-foreground/60">
-          Free forever · No signup required
+          Editor included in every plan · No watermark
         </p>
       </div>
     </section>

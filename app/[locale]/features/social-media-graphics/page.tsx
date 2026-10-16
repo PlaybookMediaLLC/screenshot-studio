@@ -3,6 +3,7 @@ import Link from "next/link";
 import { InstagramIcon, Linkedin01Icon, NewTwitterIcon, Share08Icon } from "hugeicons-react";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION } from "@/components/tools/ui";
+import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";
 import { OG_DEFAULTS, SITE_URL } from "@/lib/seo/metadata";
 import { PRODUCT_FACTS } from "@/lib/seo/product-facts";
 import { gradientColors } from "@/lib/constants/gradient-colors";
@@ -10,30 +11,29 @@ import { gradientColors } from "@/lib/constants/gradient-colors";
 const PAGE_URL = `${SITE_URL}/features/social-media-graphics`;
 
 export const metadata: Metadata = {
-  title: "Free Social Media Graphics Maker",
+  title: "Social Media Graphics Maker",
   description:
-    "Create social media graphics for Twitter, LinkedIn, and Instagram. Turn screenshots into shareable posts with perfect dimensions. Free, no signup.",
+    "Create social media graphics for Twitter, LinkedIn, and Instagram. Turn screenshots into shareable posts with perfect dimensions. Included in every Shots plan.",
   keywords: [
     "social media graphics maker",
     "twitter card generator",
     "linkedin post maker",
     "instagram post creator",
     "social media image editor",
-    "free graphics maker",
+    "graphics maker",
     "twitter post image maker",
-    "og image generator free",
+    "og image generator",
     "social media screenshot tool",
     "product hunt screenshot maker",
     "social media mockup generator",
     "shots.so alternative",
     "pika.style alternative",
-    "free shots.so alternative",
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Free Social Media Graphics Maker - Create Stunning Posts",
+    title: "Social Media Graphics Maker",
     description:
-      "Create professional social media graphics. Perfect dimensions for every platform. Free, no signup.",
+      "Create social media graphics at the right size for every platform. Included in every Shots plan.",
     url: PAGE_URL,
   },
   alternates: {
@@ -45,12 +45,12 @@ const capabilities = [
   {
     icon: NewTwitterIcon,
     title: "Twitter / X (1200 x 675)",
-    description: "Eye-catching Twitter cards and post images that drive engagement.",
+    description: "Twitter cards and post images sized for the feed.",
   },
   {
     icon: Linkedin01Icon,
     title: "LinkedIn (1200 x 627)",
-    description: "Professional graphics for LinkedIn posts that establish authority.",
+    description: "Graphics sized for LinkedIn posts.",
   },
   {
     icon: InstagramIcon,
@@ -83,9 +83,9 @@ const steps = [
 
 const faqs = [
   {
-    question: "Is the social media graphics maker free?",
+    question: "Which plans include the social media graphics maker?",
     answer:
-      "Yes. Every platform preset, background, and export is free, with no signup and no watermark.",
+      "Every plan. Every platform preset, background, and export is included in every Shots plan, with no watermark.",
   },
   {
     question: "What sizes are available for Twitter, LinkedIn, and Instagram?",
@@ -126,15 +126,15 @@ const jsonLd = {
       applicationCategory: "DesignApplication",
       operatingSystem: "Web Browser",
       description:
-        "Free online tool to create social media graphics for Twitter, LinkedIn, and Instagram from screenshots.",
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        "Online tool to create social media graphics for Twitter, LinkedIn, and Instagram from screenshots.",
+      offers: PRO_PLAN_OFFER,
       featureList: [
         "Twitter/X card size (1200x675)",
         "LinkedIn post size (1200x627)",
         "Instagram post size (1080x1080)",
         "Custom dimensions for any platform",
         `Export up to ${PRODUCT_FACTS.maxExportScale}x resolution`,
-        "No signup required",
+        "Included in every Shots plan",
       ],
     },
     {
@@ -191,15 +191,15 @@ export default function SocialMediaGraphicsPage() {
   return (
     <FeaturePage
       name="Social Media Graphics"
-      title="Free Social Media Graphics Maker"
-      intro="Create stunning graphics for Twitter, LinkedIn, and Instagram in seconds. Turn screenshots into shareable content with the right dimensions for every platform, free with no signup."
+      title="Social media graphics maker"
+      intro="Create graphics for Twitter, LinkedIn, and Instagram. Turn screenshots into shareable content with the right dimensions for every platform, included in every Shots plan."
       ctaHref="/editor"
-      ctaLabel="Create Graphics Free"
+      ctaLabel="Create Graphics"
       previewGradient={gradientColors.pink_purple_blue}
       preview={<SocialPreview />}
       capabilities={capabilities}
       steps={steps}
-      alternativesIntro="Shots.so and Pika Style both make shareable social graphics from screenshots. Shots covers the same platform sizes and backgrounds for free, with an animation timeline and 3D tilt on top."
+      alternativesIntro="Shots.so and Pika Style both make shareable social graphics from screenshots. Shots covers the same platform sizes and backgrounds, with an animation timeline and 3D tilt on top."
       alternativeSlugs={["shots-so", "pika-style"]}
       guideLinks={[
         { href: "/guides/best-free-shots-so-alternatives", label: "Best free Shots.so alternatives" },

@@ -12,6 +12,7 @@ import {
   TileGrid,
 } from '../blocks'
 import { MONO, Section, SectionIntro, Window } from '../primitives'
+import { GuardrailsFlow } from '../diagrams/GuardrailsFlow'
 
 /** A source that tries its luck, run through the real detector and fence at build time. */
 const SAMPLE_TEXT =
@@ -41,19 +42,24 @@ const ADDRESSES = [
 /** /product/guardrails: how untrusted sources stay evidence, with live examples from the code. */
 export function GuardrailsPage() {
   return (
-    <MarketingShell finale={{ lead: 'Sources are evidence.', trail: 'Never instructions.' }}>
+    <MarketingShell
+      finale={{
+        lead: 'Bring your security questions',
+        trail: 'and we will walk through the code with you.',
+      }}
+    >
       <PageHero
-        body="Release notes, pull requests, and web pages can carry instructions aimed at an AI. Every source is cleaned, fenced, and flagged before a model reads it, every output is checked before it is saved, and no stage that reads sources can take an action."
+        body="Release notes, pull requests, and web pages can hide instructions aimed at an AI. Shots cleans every source and labels it as untrusted before the AI reads it. Every output is checked before it is saved, and steps that read sources can't take actions."
         eyebrow={{ href: '/product', label: 'Guardrails', parent: 'Product' }}
-        lead="Built for untrusted input."
+        lead="A web page can't take over the AI."
         location="guardrails_hero"
         primary={{ href: '/security', label: 'Security overview' }}
         secondary={{ href: '/contact', label: 'Talk to us' }}
-        trail="Because the internet is."
+        trail="Every source is cleaned, labeled, and checked."
       >
         <HeroStage variant={3}>
           <div className="grid w-full max-w-[960px] gap-4 lg:grid-cols-[1.3fr_1fr]">
-            <Window meta="fenceSource()" title="What the model sees">
+            <Window meta="fenceSource()" title="What the AI sees">
               <pre
                 className={cn(
                   MONO,
@@ -84,28 +90,29 @@ export function GuardrailsPage() {
 
       <Section>
         <SectionIntro
-          body="Fetched text is data. Before a model reads it, the platform strips what a person cannot see, flags what reads like orders, and wraps each source in a fence its contents cannot close."
+          body="Fetched text is treated as data. Before the AI reads it, Shots removes what a person can't see and flags what reads like orders. Then it wraps each source in a label its contents can't break out of."
           label="Sanitize"
-          lead="Clean it, flag it,"
-          trail="fence it."
+          lead="Hidden text is removed"
+          trail="and suspicious instructions are flagged for you."
         />
-        <div className="mt-24">
+        <div className="mt-24 space-y-12">
+          <GuardrailsFlow />
           <TileGrid
             items={[
               {
                 snippet: '<script> <style> <!-- -->',
                 title: 'Hidden content removed',
-                body: 'Scripts, styles, comments, hidden elements, and zero-width characters are stripped, so a reader and the model see the same text.',
+                body: 'Scripts, styles, comments, hidden elements, and zero-width characters are stripped, so you and the AI see the same text.',
               },
               {
                 snippet: 'ignore previous instructions',
                 title: 'Orders flagged',
-                body: 'Text that tries to reassign the model, announce new instructions, ask for secrets, or hide something from the reviewer is flagged and shown to you.',
+                body: 'Text that tries to give the AI a new role, announce new instructions, ask for secrets, or hide something from the reviewer is flagged and shown to you.',
               },
               {
                 snippet: '<source trust="untrusted">',
-                title: 'Fences that hold',
-                body: 'Each source is wrapped as untrusted data. Markup inside it that could close the fence or open a trusted block is defused.',
+                title: 'Labels that hold',
+                body: 'Each source is wrapped and marked as untrusted. Markup inside it that could close the wrapper or open a trusted block is defused.',
               },
             ]}
           />
@@ -114,10 +121,10 @@ export function GuardrailsPage() {
 
       <Section>
         <SectionIntro
-          body="A source link cannot reach anything private. Every hop is checked before it is requested, and the connection uses the address that was checked, so a name cannot pass the check and then resolve somewhere else."
+          body="Every hop is checked before it is requested. The connection then uses the exact address that was checked, so a domain can't pass the check and switch to a private address. This guards against SSRF and DNS rebinding."
           label="Fetching"
-          lead="Public addresses only."
-          trail="Every hop, checked."
+          lead="Source links can reach public pages only,"
+          trail="and every redirect is checked again."
         />
         <div className="mt-24 grid gap-16 lg:grid-cols-2">
           <ul className="space-y-4 text-[17px] text-white/85">
@@ -125,7 +132,7 @@ export function GuardrailsPage() {
               'http and https only, with no credentials in the URL',
               'Default web ports only',
               'Every resolved address must be public',
-              'DNS is pinned between the check and the request',
+              'The checked address is the one connected to (DNS pinning)',
               'Redirects are followed by hand and checked again',
               'Responses are capped in size and time and must be text',
             ].map((rule) => (
@@ -149,10 +156,10 @@ export function GuardrailsPage() {
 
       <Section>
         <SectionIntro
-          body="Models write. Deterministic code decides what is kept. Anything that fails is sent back with the reason, and anything that still fails is never saved."
+          body="The AI writes, and plain code decides what is kept. Anything that fails goes back with the reason. Anything that still fails is discarded."
           label="Checks"
-          lead="Checked after generation."
-          trail="Not trusted to the prompt."
+          lead="Code checks every output"
+          trail="after the AI writes it."
         />
         <div className="mt-24">
           <TileGrid
@@ -161,22 +168,22 @@ export function GuardrailsPage() {
               {
                 snippet: 'proofPoints.2 → openQuestions.0',
                 title: 'Citations enforced',
-                body: 'A claim that cites nothing, or cites a source that does not exist, is removed from the spec and turned into an open question for you.',
+                body: 'A claim that cites nothing, or cites a missing source, is removed from the launch brief and turned into an open question for you.',
               },
               {
                 snippet: 'x: 291 > 280 · rewrite',
-                title: 'Copy guards',
-                body: 'Channel limits, hype words, your prohibited terms, links outside the product and its sources, email addresses, and claims the spec does not contain.',
+                title: 'Copy checks',
+                body: 'Channel limits, hype words, your banned terms, links outside the product and its sources, email addresses, and claims the launch brief does not contain.',
               },
               {
                 snippet: 'critique: legibility · brand · spec',
-                title: 'Visual critique',
-                body: 'Every render is reviewed against the spec, the brand kit, and legibility before the visuals agent may move on.',
+                title: 'Visual checks',
+                body: 'Every visual is checked against the launch brief, the brand kit, and legibility before the AI may move on.',
               },
               {
                 snippet: 'proposal → apply',
                 title: 'Revisions are proposals',
-                body: 'AI revisions never edit in place. You see a word diff and choose what to apply.',
+                body: 'AI revisions arrive as proposals. You see a word diff and choose what to apply.',
               },
             ]}
           />
@@ -185,38 +192,38 @@ export function GuardrailsPage() {
 
       <Section>
         <SectionIntro
-          body="The model decides what to do. The application decides how it is done safely. The agent is untrusted code inside a workspace it cannot name, holding no credentials and no approval rights."
+          body="The AI suggests what to do, and Shots decides how it runs safely. Shots treats the AI as untrusted code that can't name another workspace."
           label="Boundaries"
-          lead="An agent with limits"
-          trail="it cannot talk its way past."
+          lead="The AI works inside one workspace"
+          trail="with no credentials and no approval rights."
         />
         <div className="mt-24">
           <TileGrid
             items={[
               {
                 snippet: 'workspace: session',
-                title: 'Tenancy from the session',
-                body: 'The workspace comes from the signed-in principal that started the run, never from model output, a crawled page, or a URL.',
+                title: 'Workspace from your login',
+                body: "Your login decides which workspace a launch writes to. Model output, a crawled page, or a URL can't change it.",
               },
               {
                 snippet: 'tools: []',
-                title: 'Readers cannot act',
-                body: 'Stages that read sources have no side-effect tools. A successful injection can only produce wrong text a person is about to review.',
+                title: "Readers can't act",
+                body: 'Steps that read sources have no tools that take actions. A successful injection can only produce wrong text, and a teammate reviews it before anything goes out.',
               },
               {
                 snippet: 'capture: registered URLs',
                 title: 'Narrow tools',
-                body: 'Capture reaches only the product surface and the release source links. No tool browses freely or runs arbitrary code.',
+                body: "Capture reaches only your product pages and the release's source links. No tool browses freely or runs arbitrary code.",
               },
               {
                 snippet: 'approve: session only',
                 title: 'No approval rights',
-                body: 'Agents and API keys can draft. Approval needs a signed-in member with the right role.',
+                body: 'The AI and API keys can draft. Approval needs a signed-in teammate with the right role.',
               },
               {
                 snippet: 'ai:credits:monthly',
                 title: 'Metered',
-                body: 'Each model call is charged what it costs, one credit per cent, and calls stop when the monthly credits run out.',
+                body: 'Each AI call is charged at cost, one credit per cent. Calls stop when the monthly credits run out.',
               },
               {
                 snippet: 'audit: model · tokens',
@@ -232,11 +239,11 @@ export function GuardrailsPage() {
         items={[
           {
             q: 'What if a flagged source is still useful?',
-            a: 'It stays in the spec as evidence. The flag tells the model the text is suspect and tells you why, so you can judge the claims that cite it.',
+            a: 'It stays in the launch brief as evidence. The flag tells the AI the text is suspect and tells you why, so you can judge the claims that cite it.',
           },
           {
-            q: 'Can a web page change which workspace a run writes to?',
-            a: 'No. The workspace is fixed when the run starts and is never read from model output or fetched content.',
+            q: 'Can a web page change which workspace a launch writes to?',
+            a: "No. The workspace is set from your login when the launch starts. Model output and fetched pages can't change it.",
           },
           {
             q: 'Is my content used to train models?',
@@ -244,13 +251,17 @@ export function GuardrailsPage() {
           },
           {
             q: 'How is this tested?',
-            a: 'A deterministic scripted model runs the whole pipeline in end-to-end tests, and unit tests cover sanitizing, citation checks, and copy guards.',
+            a: 'End-to-end tests run the whole launch with a scripted stand-in model. Unit tests cover cleaning, citation checks, and copy checks.',
           },
         ]}
       />
 
       <Section>
-        <SectionIntro label="Related" lead="Keep reading." trail="Every part connects." />
+        <SectionIntro
+          label="Related"
+          lead="See the security controls behind this,"
+          trail="the full launch intelligence workflow, and our principles."
+        />
         <div className="mt-24">
           <LinkCards paths={['/security', '/product/launch-intelligence', '/principles']} />
         </div>

@@ -8,6 +8,7 @@ import {
 } from "hugeicons-react";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION, WindowDots } from "@/components/tools/ui";
+import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";
 import { OG_DEFAULTS, SITE_URL } from "@/lib/seo/metadata";
 import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
 import { gradientColors } from "@/lib/constants/gradient-colors";
@@ -15,21 +16,20 @@ import { gradientColors } from "@/lib/constants/gradient-colors";
 const PAGE_URL = `${SITE_URL}/features/screenshot-beautifier`;
 
 export const metadata: Metadata = {
-  title: "Free Screenshot Beautifier Online",
+  title: "Screenshot Beautifier Online",
   description:
-    "Free screenshot beautifier: add gradient backgrounds, browser frames, shadows, rounded corners, and padding to turn plain screenshots into mockups. No signup.",
+    "Screenshot beautifier: add gradient backgrounds, browser frames, shadows, rounded corners, and padding to turn plain screenshots into mockups. Included in every Shots plan.",
   keywords: [
     "screenshot beautifier",
-    "screenshot editor online free",
+    "screenshot editor online",
     "beautify screenshots",
-    "free screenshot editor",
+    "screenshot editor",
     "screenshot mockup",
     "screenshot background",
     "screenshot shadows",
     "online screenshot beautifier",
     "shots.so alternative",
     "pika.style alternative",
-    "free shots.so alternative",
     "screely alternative",
     "xnapper alternative",
     "cleanshot x alternative",
@@ -40,9 +40,9 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...OG_DEFAULTS,
-    title: "Free Screenshot Beautifier - Make Screenshots Look Professional",
+    title: "Screenshot Beautifier - Make Screenshots Look Professional",
     description:
-      "Transform plain screenshots into stunning visuals. Add backgrounds, shadows, and export in high resolution. Free, no signup.",
+      "Add backgrounds, shadows, and frames to plain screenshots and export in high resolution. Included in every Shots plan.",
     url: PAGE_URL,
   },
   alternates: {
@@ -59,7 +59,7 @@ const capabilities = [
   },
   {
     icon: MagicWand01Icon,
-    title: "Professional shadows",
+    title: "Shadows",
     description:
       "Add realistic shadows with customizable blur, spread, and opacity for depth.",
   },
@@ -94,9 +94,9 @@ const steps = [
 
 const faqs = [
   {
-    question: "Is the screenshot beautifier really free?",
+    question: "Which plans include the screenshot beautifier?",
     answer:
-      "Yes. Every background, shadow, frame, and export option on this page is free with no signup, watermark, or export limit.",
+      "Every plan. Every background, shadow, frame, and export option on this page is included in every Shots plan, with no watermark or export limit.",
   },
   {
     question: "What image formats can I upload and export?",
@@ -116,7 +116,7 @@ const faqs = [
   {
     question: "Do I need to create an account?",
     answer:
-      "No. Open the editor, drop in your screenshot, and export. Nothing is uploaded to a server unless you choose to save it.",
+      "Yes. Sign up, create a workspace, and subscribe to a plan to use the editor and tools. Your screenshot is edited in the browser and is only uploaded if you save it to your workspace.",
   },
 ];
 
@@ -137,15 +137,15 @@ const jsonLd = {
       applicationCategory: "DesignApplication",
       operatingSystem: "Web Browser",
       description:
-        "Free online tool to beautify screenshots with backgrounds, shadows, frames, and professional styling.",
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        "Online tool to beautify screenshots with backgrounds, shadows, frames, and padding.",
+      offers: PRO_PLAN_OFFER,
       featureList: [
         `${atLeast(PRODUCT_FACTS.backgrounds)} gradient backgrounds`,
         "Custom shadows",
         "Rounded corners and padding",
         "Browser and device frames",
         `Export up to ${PRODUCT_FACTS.maxExportScale}x resolution`,
-        "No signup required",
+        "Included in every Shots plan",
       ],
     },
     {
@@ -200,15 +200,15 @@ export default function ScreenshotBeautifierPage() {
   return (
     <FeaturePage
       name="Screenshot Beautifier"
-      title="Free Screenshot Beautifier"
-      intro="Transform plain screenshots into professional-looking visuals in seconds. Add backgrounds, shadows, frames, and export in high resolution, free with no signup."
+      title="Screenshot beautifier"
+      intro="Turn plain screenshots into finished visuals. Add backgrounds, shadows, frames, and export in high resolution, included in every Shots plan."
       ctaHref="/editor"
       ctaLabel="Beautify Your Screenshot"
       previewGradient={gradientColors.vibrant_orange_pink}
       preview={<BeautifierPreview />}
       capabilities={capabilities}
       steps={steps}
-      alternativesIntro="Shots covers the same backgrounds, shadows, and frames as these beautifier tools, and adds a free animation timeline and 3D tilt with no paywall."
+      alternativesIntro="Shots covers the same backgrounds, shadows, and frames as these beautifier tools, and adds an animation timeline and 3D tilt on every plan."
       alternativeSlugs={[
         "shots-so",
         "pika-style",

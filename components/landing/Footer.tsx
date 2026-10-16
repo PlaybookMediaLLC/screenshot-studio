@@ -13,7 +13,7 @@ const GITHUB_URL = "https://github.com/PlaybookMediaLLC/screenshot-studio";
 
 const navCol1 = [
   { href: "/editor", label: "Screenshot Editor" },
-  { href: "/free-screenshot-editor", label: "Free editor" },
+  { href: "/free-screenshot-editor", label: "Screenshot editor online" },
   { href: "/store-screenshots", label: "App store screenshots" },
   { href: "/code", label: "Code to image" },
   { href: "/tweet", label: "Tweet to image" },
@@ -93,19 +93,6 @@ export function Footer({ brandName = "Shots" }: FooterProps) {
                 {brandName}
               </span>
             </Link>
-            <p
-              className="max-w-xs text-[22px] font-semibold leading-[1.2] tracking-[-0.03em] text-foreground sm:text-[26px] sm:leading-[1.15]"
-              style={{
-                fontFamily:
-                  'Inter, "Inter Fallback", Arial, Helvetica, sans-serif',
-              }}
-            >
-              Free and open source.
-              <br />
-              Screenshot mockups
-              <br />
-              you can ship.
-            </p>
           </div>
 
           <div className="grid h-full w-full grid-cols-2 gap-2 sm:grid-cols-3 md:max-w-xl md:justify-self-end">

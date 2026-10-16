@@ -26,6 +26,14 @@ services:
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
       NODE_ENV: development
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      # Slack, Notion, and Figma delivery (docs/integrations.md). Unset providers show as not set up.
+      INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:-}
+      SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}
+      SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET:-}
+      NOTION_CLIENT_ID: ${NOTION_CLIENT_ID:-}
+      NOTION_CLIENT_SECRET: ${NOTION_CLIENT_SECRET:-}
+      FIGMA_CLIENT_ID: ${FIGMA_CLIENT_ID:-}
+      FIGMA_CLIENT_SECRET: ${FIGMA_CLIENT_SECRET:-}
       PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}
       # Set by bin/studio for e2e runs: a deterministic stand-in model (lib/ai/models/scripted.ts).
       PLATFORM_AI_SCRIPTED: ${PLATFORM_AI_SCRIPTED:-}

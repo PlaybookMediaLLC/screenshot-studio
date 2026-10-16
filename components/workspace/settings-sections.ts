@@ -6,10 +6,12 @@ export type SettingId =
   | 'billing'
   | 'brand'
   | 'general'
+  | 'integrations'
   | 'members'
   | 'profile'
   | 'roles'
   | 'security'
+  | 'sharing'
   | 'sso'
 
 export type SettingSection = {
@@ -74,6 +76,18 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     id: 'brand',
     slug: 'brand-kit',
     title: 'Brand kit',
+  },
+  {
+    description: 'Slack, Notion, and Figma connections for delivering published designs.',
+    id: 'integrations',
+    slug: 'integrations',
+    title: 'Integrations',
+  },
+  {
+    description: 'Every design published at a link: copy, restrict, or revoke.',
+    id: 'sharing',
+    slug: 'shared-links',
+    title: 'Shared links',
   },
   {
     description: 'Scoped keys for release webhooks and content automation.',

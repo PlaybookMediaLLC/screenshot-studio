@@ -6,9 +6,11 @@ import { WorkspaceBrandSettings } from './WorkspaceBrandSettings'
 import { WorkspaceDeveloperSettings } from './WorkspaceDeveloperSettings'
 import { WorkspaceGeneralSettings } from './WorkspaceGeneralSettings'
 import { WorkspaceIdentitySettings } from './WorkspaceIdentitySettings'
+import { WorkspaceIntegrations } from './WorkspaceIntegrations'
 import { WorkspaceMembersSettings } from './WorkspaceMembersSettings'
 import { WorkspaceRolesSettings } from './WorkspaceRolesSettings'
 import { WorkspaceSecuritySettings } from './WorkspaceSecuritySettings'
+import { WorkspaceSharedLinks } from './WorkspaceSharedLinks'
 import { hasPermission } from '@/lib/auth/permissions'
 import type { WorkspaceSettingsProps } from './WorkspaceSettings'
 import type { SettingId } from './settings-sections'
@@ -49,6 +51,7 @@ function getDetailContent({
         organization={organization}
       />
     ),
+    integrations: <WorkspaceIntegrations canManage={canManage} />,
     members: (
       <WorkspaceMembersSettings
         canInvite={hasPermission(role, 'member:invite')}
@@ -61,6 +64,7 @@ function getDetailContent({
     profile: <ProfileForm email={email} name={name} />,
     roles: <WorkspaceRolesSettings />,
     security: <WorkspaceSecuritySettings twoFactorEnabled={twoFactorEnabled} />,
+    sharing: <WorkspaceSharedLinks canEdit={hasPermission(role, 'artifact:edit')} />,
     sso: (
       <WorkspaceIdentitySettings
         canManage={canManage}

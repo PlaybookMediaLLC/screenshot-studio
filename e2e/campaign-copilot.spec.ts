@@ -38,7 +38,9 @@ test('one sentence becomes a drafted campaign with inspectable steps that surviv
   await page.getByRole('button', { name: 'Draft a campaign' }).click()
 
   const panel = page.getByRole('dialog')
-  await expect(panel.getByText('We just shipped recurring invoices. Market it.')).toBeVisible()
+  await expect(
+    panel.locator('p', { hasText: 'We just shipped recurring invoices. Market it.' })
+  ).toBeVisible()
   await expect(panel.getByText('Find the product pages')).toBeVisible({ timeout: 60_000 })
   await expect(panel.getByRole('link', { name: 'Open campaign' })).toBeVisible({
     timeout: RUN_TIMEOUT,
@@ -57,7 +59,9 @@ test('one sentence becomes a drafted campaign with inspectable steps that surviv
   await page.reload()
   await page.getByRole('button', { name: 'Ask Shots' }).click()
   const reopened = page.getByRole('dialog')
-  await expect(reopened.getByText('We just shipped recurring invoices. Market it.')).toBeVisible()
+  await expect(
+    reopened.locator('p', { hasText: 'We just shipped recurring invoices. Market it.' })
+  ).toBeVisible()
   await expect(reopened.getByText(/I created the campaign/)).toBeVisible()
   await expect(reopened.getByText('Create the campaign')).toBeVisible()
   await expect(reopened.getByText('Draft the spec, plan, and posts')).toBeVisible()

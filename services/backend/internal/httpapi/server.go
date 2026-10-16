@@ -16,6 +16,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
@@ -82,6 +83,17 @@ type ConfigurationStore interface {
 	UpdateAuditRetention(context.Context, product.Actor, product.AuditRetention, product.AuditRequest) (*product.AuditRetention, error)
 	GetWebhookSource(context.Context, string) (*product.WebhookSource, error)
 	IngestSourceRelease(context.Context, product.Actor, product.IngestSourceReleaseInput) (*product.SourceReleaseIngest, error)
+	CollectSourceChange(context.Context, product.Actor, product.CollectSourceChangeInput) (*product.SourceChangeCollect, error)
+	IngestDeployment(context.Context, product.Actor, product.IngestDeploymentInput) (*product.DeploymentIngest, error)
+	StartGitHubInstall(context.Context, product.Actor) (string, error)
+	CompleteGitHubInstall(context.Context, product.Actor, string, string, int64) (*product.GitHubInstallationLink, error)
+	ListGitHubInstallations(context.Context, string) ([]product.GitHubInstallationLink, error)
+	UnlinkGitHubInstallation(context.Context, product.Actor, string) error
+	GitHubRepositories(context.Context, product.Actor, string) ([]githubapp.Repository, error)
+	GitHubSources(context.Context, int64, string) ([]*product.WebhookSource, error)
+	RecordGitHubInstallation(context.Context, githubapp.Installation) error
+	SetGitHubInstallationStatus(context.Context, int64, product.GitHubInstallationStatus) (int, error)
+	RemoveGitHubRepositories(context.Context, int64, []string) (int, error)
 	ReplayOutboxEvent(context.Context, string) error
 	SyncWorkspaceEntitlement(context.Context, product.EntitlementSyncInput) (*product.EntitlementSyncResult, error)
 	GetWorkspaceEntitlement(context.Context, product.Actor) (*product.WorkspaceEntitlementRecord, error)
@@ -114,6 +126,7 @@ type ConfigurationStore interface {
 	GetBrandProfile(context.Context, string) (*ent.BrandProfile, error)
 	UpsertBrandProfile(context.Context, product.Actor, product.UpsertBrandProfileInput) (*ent.BrandProfile, error)
 	CreateSourceApp(context.Context, product.Actor, product.CreateSourceAppInput) (*ent.SourceApp, error)
+	UpdateSourceApp(context.Context, product.Actor, string, product.UpdateSourceAppInput) (*ent.SourceApp, error)
 	ListProductSurfaces(context.Context, string) ([]*ent.ProductSurface, error)
 	CreateProductSurface(context.Context, product.Actor, product.CreateProductSurfaceInput) (*ent.ProductSurface, error)
 	UpdateProductSurface(context.Context, product.Actor, string, product.UpdateProductSurfaceInput) (*ent.ProductSurface, error)
@@ -206,6 +219,7 @@ func NewWithConfiguration(store Store, scheduler WorkflowScheduler, verifier Des
 		s.registerCampaignAssets(mux)
 		s.registerLaunch(mux)
 		s.registerPlatformControls(mux)
+		s.registerGitHub(mux)
 		s.registerAnnouncements(mux)
 		s.registerScreenshots(mux)
 		s.registerRender(mux)
@@ -581,6 +595,8 @@ func writeStoreError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusTooManyRequests, err.Error())
 	case errors.Is(err, product.ErrObjectMissing):
 		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, product.ErrGitHubUnavailable):
+		writeError(w, http.StatusServiceUnavailable, "GitHub is unavailable")
 	case errors.Is(err, product.ErrStorageUnavailable):
 		writeError(w, http.StatusServiceUnavailable, "media storage is unavailable")
 	default:

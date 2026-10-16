@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 )
 
 const (
@@ -26,6 +27,12 @@ const (
 	FieldAudience = "audience"
 	// FieldSourceUrls holds the string denoting the source_urls field in the database.
 	FieldSourceUrls = "sourceUrls"
+	// FieldNotes holds the string denoting the notes field in the database.
+	FieldNotes = "notes"
+	// FieldFeatures holds the string denoting the features field in the database.
+	FieldFeatures = "features"
+	// FieldScreenshotAssetIds holds the string denoting the screenshot_asset_ids field in the database.
+	FieldScreenshotAssetIds = "screenshotAssetIds"
 	// FieldProductSurfaceID holds the string denoting the product_surface_id field in the database.
 	FieldProductSurfaceID = "productSurfaceId"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -49,6 +56,9 @@ var Columns = []string{
 	FieldDescription,
 	FieldAudience,
 	FieldSourceUrls,
+	FieldNotes,
+	FieldFeatures,
+	FieldScreenshotAssetIds,
 	FieldProductSurfaceID,
 	FieldStatus,
 	FieldCreatedByUserID,
@@ -69,6 +79,10 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultSourceUrls holds the default value on creation for the "source_urls" field.
 	DefaultSourceUrls []string
+	// DefaultFeatures holds the default value on creation for the "features" field.
+	DefaultFeatures []releasenotes.Feature
+	// DefaultScreenshotAssetIds holds the default value on creation for the "screenshot_asset_ids" field.
+	DefaultScreenshotAssetIds []string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -136,6 +150,11 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByAudience orders the results by the audience field.
 func ByAudience(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAudience, opts...).ToFunc()
+}
+
+// ByNotes orders the results by the notes field.
+func ByNotes(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNotes, opts...).ToFunc()
 }
 
 // ByProductSurfaceID orders the results by the product_surface_id field.

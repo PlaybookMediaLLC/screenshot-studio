@@ -30,7 +30,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/customercommunication"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
@@ -49,11 +52,14 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacegithubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -348,6 +354,22 @@ func init() {
 	customercommunication.DefaultUpdatedAt = customercommunicationDescUpdatedAt.Default.(func() time.Time)
 	// customercommunication.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	customercommunication.UpdateDefaultUpdatedAt = customercommunicationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	deploymenteventFields := schema.DeploymentEvent{}.Fields()
+	_ = deploymenteventFields
+	// deploymenteventDescAssetIds is the schema descriptor for asset_ids field.
+	deploymenteventDescAssetIds := deploymenteventFields[9].Descriptor()
+	// deploymentevent.DefaultAssetIds holds the default value on creation for the asset_ids field.
+	deploymentevent.DefaultAssetIds = deploymenteventDescAssetIds.Default.([]string)
+	// deploymenteventDescCreatedAt is the schema descriptor for created_at field.
+	deploymenteventDescCreatedAt := deploymenteventFields[10].Descriptor()
+	// deploymentevent.DefaultCreatedAt holds the default value on creation for the created_at field.
+	deploymentevent.DefaultCreatedAt = deploymenteventDescCreatedAt.Default.(func() time.Time)
+	// deploymenteventDescUpdatedAt is the schema descriptor for updated_at field.
+	deploymenteventDescUpdatedAt := deploymenteventFields[11].Descriptor()
+	// deploymentevent.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	deploymentevent.DefaultUpdatedAt = deploymenteventDescUpdatedAt.Default.(func() time.Time)
+	// deploymentevent.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	deploymentevent.UpdateDefaultUpdatedAt = deploymenteventDescUpdatedAt.UpdateDefault.(func() time.Time)
 	designFields := schema.Design{}.Fields()
 	_ = designFields
 	// designDescCreatedAt is the schema descriptor for created_at field.
@@ -360,6 +382,28 @@ func init() {
 	design.DefaultUpdatedAt = designDescUpdatedAt.Default.(func() time.Time)
 	// design.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	design.UpdateDefaultUpdatedAt = designDescUpdatedAt.UpdateDefault.(func() time.Time)
+	githubinstallstartFields := schema.GitHubInstallStart{}.Fields()
+	_ = githubinstallstartFields
+	// githubinstallstartDescCreatedAt is the schema descriptor for created_at field.
+	githubinstallstartDescCreatedAt := githubinstallstartFields[6].Descriptor()
+	// githubinstallstart.DefaultCreatedAt holds the default value on creation for the created_at field.
+	githubinstallstart.DefaultCreatedAt = githubinstallstartDescCreatedAt.Default.(func() time.Time)
+	githubinstallationFields := schema.GitHubInstallation{}.Fields()
+	_ = githubinstallationFields
+	// githubinstallationDescRepositorySelection is the schema descriptor for repository_selection field.
+	githubinstallationDescRepositorySelection := githubinstallationFields[4].Descriptor()
+	// githubinstallation.DefaultRepositorySelection holds the default value on creation for the repository_selection field.
+	githubinstallation.DefaultRepositorySelection = githubinstallationDescRepositorySelection.Default.(string)
+	// githubinstallationDescCreatedAt is the schema descriptor for created_at field.
+	githubinstallationDescCreatedAt := githubinstallationFields[6].Descriptor()
+	// githubinstallation.DefaultCreatedAt holds the default value on creation for the created_at field.
+	githubinstallation.DefaultCreatedAt = githubinstallationDescCreatedAt.Default.(func() time.Time)
+	// githubinstallationDescUpdatedAt is the schema descriptor for updated_at field.
+	githubinstallationDescUpdatedAt := githubinstallationFields[7].Descriptor()
+	// githubinstallation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	githubinstallation.DefaultUpdatedAt = githubinstallationDescUpdatedAt.Default.(func() time.Time)
+	// githubinstallation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	githubinstallation.UpdateDefaultUpdatedAt = githubinstallationDescUpdatedAt.UpdateDefault.(func() time.Time)
 	invitationFields := schema.Invitation{}.Fields()
 	_ = invitationFields
 	// invitationDescStatus is the schema descriptor for status field.
@@ -456,12 +500,20 @@ func init() {
 	releaseDescSourceUrls := releaseFields[6].Descriptor()
 	// release.DefaultSourceUrls holds the default value on creation for the source_urls field.
 	release.DefaultSourceUrls = releaseDescSourceUrls.Default.([]string)
+	// releaseDescFeatures is the schema descriptor for features field.
+	releaseDescFeatures := releaseFields[8].Descriptor()
+	// release.DefaultFeatures holds the default value on creation for the features field.
+	release.DefaultFeatures = releaseDescFeatures.Default.([]releasenotes.Feature)
+	// releaseDescScreenshotAssetIds is the schema descriptor for screenshot_asset_ids field.
+	releaseDescScreenshotAssetIds := releaseFields[9].Descriptor()
+	// release.DefaultScreenshotAssetIds holds the default value on creation for the screenshot_asset_ids field.
+	release.DefaultScreenshotAssetIds = releaseDescScreenshotAssetIds.Default.([]string)
 	// releaseDescCreatedAt is the schema descriptor for created_at field.
-	releaseDescCreatedAt := releaseFields[10].Descriptor()
+	releaseDescCreatedAt := releaseFields[13].Descriptor()
 	// release.DefaultCreatedAt holds the default value on creation for the created_at field.
 	release.DefaultCreatedAt = releaseDescCreatedAt.Default.(func() time.Time)
 	// releaseDescUpdatedAt is the schema descriptor for updated_at field.
-	releaseDescUpdatedAt := releaseFields[11].Descriptor()
+	releaseDescUpdatedAt := releaseFields[14].Descriptor()
 	// release.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	release.DefaultUpdatedAt = releaseDescUpdatedAt.Default.(func() time.Time)
 	// release.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -540,16 +592,56 @@ func init() {
 	sourceappDescProvider := sourceappFields[3].Descriptor()
 	// sourceapp.DefaultProvider holds the default value on creation for the provider field.
 	sourceapp.DefaultProvider = sourceappDescProvider.Default.(string)
+	// sourceappDescIgnoreBotPullRequests is the schema descriptor for ignore_bot_pull_requests field.
+	sourceappDescIgnoreBotPullRequests := sourceappFields[8].Descriptor()
+	// sourceapp.DefaultIgnoreBotPullRequests holds the default value on creation for the ignore_bot_pull_requests field.
+	sourceapp.DefaultIgnoreBotPullRequests = sourceappDescIgnoreBotPullRequests.Default.(bool)
+	// sourceappDescIgnoredPullRequestAuthors is the schema descriptor for ignored_pull_request_authors field.
+	sourceappDescIgnoredPullRequestAuthors := sourceappFields[9].Descriptor()
+	// sourceapp.DefaultIgnoredPullRequestAuthors holds the default value on creation for the ignored_pull_request_authors field.
+	sourceapp.DefaultIgnoredPullRequestAuthors = sourceappDescIgnoredPullRequestAuthors.Default.([]string)
+	// sourceappDescSkipPrereleases is the schema descriptor for skip_prereleases field.
+	sourceappDescSkipPrereleases := sourceappFields[10].Descriptor()
+	// sourceapp.DefaultSkipPrereleases holds the default value on creation for the skip_prereleases field.
+	sourceapp.DefaultSkipPrereleases = sourceappDescSkipPrereleases.Default.(bool)
 	// sourceappDescCreatedAt is the schema descriptor for created_at field.
-	sourceappDescCreatedAt := sourceappFields[8].Descriptor()
+	sourceappDescCreatedAt := sourceappFields[13].Descriptor()
 	// sourceapp.DefaultCreatedAt holds the default value on creation for the created_at field.
 	sourceapp.DefaultCreatedAt = sourceappDescCreatedAt.Default.(func() time.Time)
 	// sourceappDescUpdatedAt is the schema descriptor for updated_at field.
-	sourceappDescUpdatedAt := sourceappFields[9].Descriptor()
+	sourceappDescUpdatedAt := sourceappFields[14].Descriptor()
 	// sourceapp.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	sourceapp.DefaultUpdatedAt = sourceappDescUpdatedAt.Default.(func() time.Time)
 	// sourceapp.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	sourceapp.UpdateDefaultUpdatedAt = sourceappDescUpdatedAt.UpdateDefault.(func() time.Time)
+	sourcechangeFields := schema.SourceChange{}.Fields()
+	_ = sourcechangeFields
+	// sourcechangeDescBody is the schema descriptor for body field.
+	sourcechangeDescBody := sourcechangeFields[6].Descriptor()
+	// sourcechange.DefaultBody holds the default value on creation for the body field.
+	sourcechange.DefaultBody = sourcechangeDescBody.Default.(string)
+	// sourcechangeDescLabels is the schema descriptor for labels field.
+	sourcechangeDescLabels := sourcechangeFields[9].Descriptor()
+	// sourcechange.DefaultLabels holds the default value on creation for the labels field.
+	sourcechange.DefaultLabels = sourcechangeDescLabels.Default.([]string)
+	// sourcechangeDescFiles is the schema descriptor for files field.
+	sourcechangeDescFiles := sourcechangeFields[10].Descriptor()
+	// sourcechange.DefaultFiles holds the default value on creation for the files field.
+	sourcechange.DefaultFiles = sourcechangeDescFiles.Default.([]string)
+	// sourcechangeDescImageUrls is the schema descriptor for image_urls field.
+	sourcechangeDescImageUrls := sourcechangeFields[11].Descriptor()
+	// sourcechange.DefaultImageUrls holds the default value on creation for the image_urls field.
+	sourcechange.DefaultImageUrls = sourcechangeDescImageUrls.Default.([]string)
+	// sourcechangeDescCreatedAt is the schema descriptor for created_at field.
+	sourcechangeDescCreatedAt := sourcechangeFields[14].Descriptor()
+	// sourcechange.DefaultCreatedAt holds the default value on creation for the created_at field.
+	sourcechange.DefaultCreatedAt = sourcechangeDescCreatedAt.Default.(func() time.Time)
+	// sourcechangeDescUpdatedAt is the schema descriptor for updated_at field.
+	sourcechangeDescUpdatedAt := sourcechangeFields[15].Descriptor()
+	// sourcechange.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	sourcechange.DefaultUpdatedAt = sourcechangeDescUpdatedAt.Default.(func() time.Time)
+	// sourcechange.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	sourcechange.UpdateDefaultUpdatedAt = sourcechangeDescUpdatedAt.UpdateDefault.(func() time.Time)
 	supportaccessgrantFields := schema.SupportAccessGrant{}.Fields()
 	_ = supportaccessgrantFields
 	// supportaccessgrantDescScope is the schema descriptor for scope field.
@@ -608,6 +700,12 @@ func init() {
 	workspaceentitlement.DefaultUpdatedAt = workspaceentitlementDescUpdatedAt.Default.(func() time.Time)
 	// workspaceentitlement.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	workspaceentitlement.UpdateDefaultUpdatedAt = workspaceentitlementDescUpdatedAt.UpdateDefault.(func() time.Time)
+	workspacegithubinstallationFields := schema.WorkspaceGitHubInstallation{}.Fields()
+	_ = workspacegithubinstallationFields
+	// workspacegithubinstallationDescCreatedAt is the schema descriptor for created_at field.
+	workspacegithubinstallationDescCreatedAt := workspacegithubinstallationFields[4].Descriptor()
+	// workspacegithubinstallation.DefaultCreatedAt holds the default value on creation for the created_at field.
+	workspacegithubinstallation.DefaultCreatedAt = workspacegithubinstallationDescCreatedAt.Default.(func() time.Time)
 	workspacesettingsFields := schema.WorkspaceSettings{}.Fields()
 	_ = workspacesettingsFields
 	// workspacesettingsDescLocale is the schema descriptor for locale field.

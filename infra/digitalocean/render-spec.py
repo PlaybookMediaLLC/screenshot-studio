@@ -85,6 +85,7 @@ def render(base, secrets, *, branch="main"):
     web_keys = ["BETTER_AUTH_SECRET", "AUDIT_IP_HASH_SECRET",
                 "AUDIT_DRAIN_ENCRYPTION_KEY", "REDIS_URL", "PLATFORM_RENDER_CDP_TOKEN"]
     optional_web_keys = ["RESEND_API_KEY", "AUTH_EMAIL_WEBHOOK_URL", "CLEANUP_SECRET",
+                         "SOURCE_WEBHOOK_SIGNING_KEY",
                          "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID",
                          "GITHUB_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET",
                          "OPENROUTER_API_KEY"]

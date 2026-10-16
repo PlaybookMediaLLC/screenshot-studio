@@ -39,6 +39,8 @@ export async function draftReleaseSpec(
       audience: release.audience,
       benefitStatement: release.benefitStatement,
       description: release.description,
+      features: release.features,
+      notes: release.notes,
       // Releases from a webhook or an API key have no author on the team.
       origin: release.createdByUserId ? 'member' : 'integration',
       productName: campaign.productSurface?.name ?? null,

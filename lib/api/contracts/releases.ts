@@ -7,6 +7,24 @@ import { releaseCreateSchema, releaseListQuerySchema } from '@/lib/tenant/schema
 /** Lifecycle states of a release. */
 export const releaseStatusSchema = z.enum(['DRAFT', 'READY', 'ARCHIVED', 'CANCELLED'])
 
+/** What a release's features are, for announcing: features and improvements are news. */
+export const releaseFeatureKindSchema = z.enum([
+  'feature',
+  'improvement',
+  'fix',
+  'internal',
+  'other',
+])
+
+/** One line of a release, read from its notes or a merged pull request. */
+export const releaseFeatureSchema = z.object({
+  author: z.string().optional(),
+  kind: releaseFeatureKindSchema,
+  number: z.number().int().optional(),
+  title: z.string(),
+  url: z.string().optional(),
+})
+
 /** A release as listed and created. */
 export const releaseSummarySchema = z.object({
   id: z.string(),
@@ -38,6 +56,8 @@ export const listReleasesContract = defineContract({
         releaseSummarySchema.extend({
           benefitStatement: z.string(),
           createdAt: timestampSchema,
+          features: z.array(releaseFeatureSchema).optional(),
+          screenshotAssetIds: z.array(z.string()).optional(),
           updatedAt: timestampSchema,
         })
       )

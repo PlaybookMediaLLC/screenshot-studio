@@ -297,6 +297,18 @@ func (f CustomerCommunicationFunc) Mutate(ctx context.Context, m ent.Mutation) (
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CustomerCommunicationMutation", m)
 }
 
+// The DeploymentEventFunc type is an adapter to allow the use of ordinary
+// function as DeploymentEvent mutator.
+type DeploymentEventFunc func(context.Context, *ent.DeploymentEventMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f DeploymentEventFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.DeploymentEventMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DeploymentEventMutation", m)
+}
+
 // The DesignFunc type is an adapter to allow the use of ordinary
 // function as Design mutator.
 type DesignFunc func(context.Context, *ent.DesignMutation) (ent.Value, error)
@@ -307,6 +319,30 @@ func (f DesignFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DesignMutation", m)
+}
+
+// The GitHubInstallStartFunc type is an adapter to allow the use of ordinary
+// function as GitHubInstallStart mutator.
+type GitHubInstallStartFunc func(context.Context, *ent.GitHubInstallStartMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GitHubInstallStartFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GitHubInstallStartMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GitHubInstallStartMutation", m)
+}
+
+// The GitHubInstallationFunc type is an adapter to allow the use of ordinary
+// function as GitHubInstallation mutator.
+type GitHubInstallationFunc func(context.Context, *ent.GitHubInstallationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GitHubInstallationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GitHubInstallationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GitHubInstallationMutation", m)
 }
 
 // The InvitationFunc type is an adapter to allow the use of ordinary
@@ -513,6 +549,18 @@ func (f SourceAppFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, e
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SourceAppMutation", m)
 }
 
+// The SourceChangeFunc type is an adapter to allow the use of ordinary
+// function as SourceChange mutator.
+type SourceChangeFunc func(context.Context, *ent.SourceChangeMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SourceChangeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SourceChangeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SourceChangeMutation", m)
+}
+
 // The SupportAccessGrantFunc type is an adapter to allow the use of ordinary
 // function as SupportAccessGrant mutator.
 type SupportAccessGrantFunc func(context.Context, *ent.SupportAccessGrantMutation) (ent.Value, error)
@@ -559,6 +607,18 @@ func (f WorkspaceEntitlementFunc) Mutate(ctx context.Context, m ent.Mutation) (e
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WorkspaceEntitlementMutation", m)
+}
+
+// The WorkspaceGitHubInstallationFunc type is an adapter to allow the use of ordinary
+// function as WorkspaceGitHubInstallation mutator.
+type WorkspaceGitHubInstallationFunc func(context.Context, *ent.WorkspaceGitHubInstallationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WorkspaceGitHubInstallationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.WorkspaceGitHubInstallationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WorkspaceGitHubInstallationMutation", m)
 }
 
 // The WorkspaceSettingsFunc type is an adapter to allow the use of ordinary

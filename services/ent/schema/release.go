@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 )
 
 // Release is the canonical product brief in the shared public schema.
@@ -26,6 +27,10 @@ func (Release) Fields() []ent.Field {
 		field.String("description").StorageKey("description").Optional().Nillable(),
 		field.String("audience").StorageKey("audience").Optional().Nillable(),
 		field.JSON("source_urls", []string{}).StorageKey("sourceUrls").Default([]string{}),
+		// The full release notes a source sent, cleaned; the brief keeps their opening.
+		field.String("notes").StorageKey("notes").Optional().Nillable(),
+		field.JSON("features", []releasenotes.Feature{}).StorageKey("features").Default([]releasenotes.Feature{}),
+		field.JSON("screenshot_asset_ids", []string{}).StorageKey("screenshotAssetIds").Default([]string{}),
 		field.String("product_surface_id").StorageKey("productSurfaceId").Optional().Nillable(),
 		field.Enum("status").StorageKey("status").Values("DRAFT", "READY", "ARCHIVED", "CANCELLED").Default("DRAFT"),
 		field.String("created_by_user_id").StorageKey("createdByUserId").Optional().Nillable(),

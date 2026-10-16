@@ -13,10 +13,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/capture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/config"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/maintenance"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/media"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalmaintenance"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
@@ -113,7 +116,19 @@ func main() {
 			os.Exit(1)
 		}
 		defer retention.Close()
-		jobs := &maintenance.Store{DB: db.SQL, RetentionDB: retention.SQL, Objects: tenantObjects,
+		events := product.NewConfiguration(db.Client).WithCapturer(capture.FromEnvironment())
+		if objectStore != nil {
+			events.WithObjectStore(objectStore)
+		}
+		github, err := githubapp.FromEnvironment()
+		if err != nil {
+			slog.Error("invalid GitHub App configuration", "error", err)
+			os.Exit(1)
+		}
+		if github != nil {
+			events.WithGitHubApp(github)
+		}
+		jobs := &maintenance.Store{DB: db.SQL, RetentionDB: retention.SQL, Objects: tenantObjects, Events: events,
 			Drains: maintenance.NewDrainSender(cfg.AuditDrainEncryptionKey),
 			Mail:   &maintenance.Mailer{APIKey: cfg.ResendAPIKey, From: cfg.EmailFrom, BaseURL: cfg.AuthBaseURL, SigningSecret: cfg.AuthSecret, PostalAddress: cfg.CompanyPostalAddress},
 		}

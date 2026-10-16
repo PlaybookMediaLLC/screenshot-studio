@@ -312,3 +312,24 @@ pipeline exists to raise it.
 - Complex in-app interaction scripting beyond navigation to a surface URL.
 - Authenticated capture, which needs its own RFC and blocks the useful half of
   this one.
+
+## As built (2026-10-16)
+
+The first slice, behind the GitHub App's `Deployments: read` permission or a
+repository webhook subscribed to `deployment_status`:
+
+- Intake: `deployment_status` with state `success` and environment
+  `production` (or GitHub's `production_environment` flag) becomes a
+  `deployment_event`, once per GitHub deployment, with its https URL.
+- Targets: only the workspace's `production` product surfaces on the deployed
+  host are captured (at most ten), never a URL from the payload; another host
+  is skipped as `deployment_host_rejected`, a missing URL as
+  `deployment_url_missing`.
+- Readiness: the first surface must answer; until it does, the outbox retries
+  each minute, which is the readiness window.
+- Capture: through the same Microlink-compatible API as the web
+  (`SCREENSHOT_API_URL`), downloading only from that API's host or Microlink's
+  CDN. Each capture is a workspace asset added to the surface's screenshots
+  and recorded on the event, which ends `CAPTURED`, `SKIPPED`, or `FAILED`.
+- Not yet: two consecutive healthy checks, SHA verification, stability
+  controls, authenticated capture, and before-and-after pairs.

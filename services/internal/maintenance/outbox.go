@@ -38,6 +38,8 @@ func (s *Store) Outbox(ctx context.Context) (int, error) {
 			if failure == nil {
 				failure = s.Objects.Delete(ctx, org, key)
 			}
+		case s.Events != nil && productEvent(kind):
+			_, failure = s.Events.HandleOutboxEvent(ctx, id, org, kind, resource)
 		default:
 			var eligible bool
 			if aggregate == "asset" && kind == "asset.uploaded" {
@@ -76,4 +78,13 @@ func (s *Store) Outbox(ctx context.Context) (int, error) {
 		}
 	}
 	return count, nil
+}
+
+// productEvent reports whether the product handles an event's side effect.
+func productEvent(kind string) bool {
+	switch kind {
+	case "source_change.collected", "release.ingested", "source_app.connected", "deployment.succeeded":
+		return true
+	}
+	return false
 }

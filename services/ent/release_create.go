@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 )
 
 // ReleaseCreate is the builder for creating a Release entity.
@@ -69,6 +70,32 @@ func (_c *ReleaseCreate) SetNillableAudience(v *string) *ReleaseCreate {
 // SetSourceUrls sets the "source_urls" field.
 func (_c *ReleaseCreate) SetSourceUrls(v []string) *ReleaseCreate {
 	_c.mutation.SetSourceUrls(v)
+	return _c
+}
+
+// SetNotes sets the "notes" field.
+func (_c *ReleaseCreate) SetNotes(v string) *ReleaseCreate {
+	_c.mutation.SetNotes(v)
+	return _c
+}
+
+// SetNillableNotes sets the "notes" field if the given value is not nil.
+func (_c *ReleaseCreate) SetNillableNotes(v *string) *ReleaseCreate {
+	if v != nil {
+		_c.SetNotes(*v)
+	}
+	return _c
+}
+
+// SetFeatures sets the "features" field.
+func (_c *ReleaseCreate) SetFeatures(v []releasenotes.Feature) *ReleaseCreate {
+	_c.mutation.SetFeatures(v)
+	return _c
+}
+
+// SetScreenshotAssetIds sets the "screenshot_asset_ids" field.
+func (_c *ReleaseCreate) SetScreenshotAssetIds(v []string) *ReleaseCreate {
+	_c.mutation.SetScreenshotAssetIds(v)
 	return _c
 }
 
@@ -187,6 +214,14 @@ func (_c *ReleaseCreate) defaults() {
 		v := release.DefaultSourceUrls
 		_c.mutation.SetSourceUrls(v)
 	}
+	if _, ok := _c.mutation.Features(); !ok {
+		v := release.DefaultFeatures
+		_c.mutation.SetFeatures(v)
+	}
+	if _, ok := _c.mutation.ScreenshotAssetIds(); !ok {
+		v := release.DefaultScreenshotAssetIds
+		_c.mutation.SetScreenshotAssetIds(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := release.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -214,6 +249,12 @@ func (_c *ReleaseCreate) check() error {
 	}
 	if _, ok := _c.mutation.SourceUrls(); !ok {
 		return &ValidationError{Name: "source_urls", err: errors.New(`ent: missing required field "Release.source_urls"`)}
+	}
+	if _, ok := _c.mutation.Features(); !ok {
+		return &ValidationError{Name: "features", err: errors.New(`ent: missing required field "Release.features"`)}
+	}
+	if _, ok := _c.mutation.ScreenshotAssetIds(); !ok {
+		return &ValidationError{Name: "screenshot_asset_ids", err: errors.New(`ent: missing required field "Release.screenshot_asset_ids"`)}
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Release.status"`)}
@@ -287,6 +328,18 @@ func (_c *ReleaseCreate) createSpec() (*Release, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.SourceUrls(); ok {
 		_spec.SetField(release.FieldSourceUrls, field.TypeJSON, value)
 		_node.SourceUrls = value
+	}
+	if value, ok := _c.mutation.Notes(); ok {
+		_spec.SetField(release.FieldNotes, field.TypeString, value)
+		_node.Notes = &value
+	}
+	if value, ok := _c.mutation.Features(); ok {
+		_spec.SetField(release.FieldFeatures, field.TypeJSON, value)
+		_node.Features = value
+	}
+	if value, ok := _c.mutation.ScreenshotAssetIds(); ok {
+		_spec.SetField(release.FieldScreenshotAssetIds, field.TypeJSON, value)
+		_node.ScreenshotAssetIds = value
 	}
 	if value, ok := _c.mutation.ProductSurfaceID(); ok {
 		_spec.SetField(release.FieldProductSurfaceID, field.TypeString, value)

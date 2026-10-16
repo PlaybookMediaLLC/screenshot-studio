@@ -31,6 +31,9 @@ export type ReleaseBrief = {
   audience: string | null
   benefitStatement: string
   description: string | null
+  /** What a source said in full: its release notes and the features read from them. */
+  features?: Array<{ kind: string; number?: number; title: string }>
+  notes?: string | null
   /** Who wrote the release fields; an integration's are untrusted. Defaults to member. */
   origin?: 'integration' | 'member'
   productName: string | null
@@ -171,6 +174,20 @@ async function mapLimit<T, R>(
   return results
 }
 
+/** The stored notes and the features read from them, as one untrusted source. */
+function notesText(brief: ReleaseBrief): string {
+  const features = (brief.features ?? [])
+    .filter((feature) => feature.kind !== 'internal')
+    .map(
+      (feature) =>
+        `- [${feature.kind}] ${feature.title}${feature.number ? ` (#${feature.number})` : ''}`
+    )
+  const notes = stripInvisible(brief.notes ?? '').trim()
+  return [notes, features.length ? `Features:\n${features.join('\n')}` : '']
+    .filter(Boolean)
+    .join('\n\n')
+}
+
 function releaseText(brief: ReleaseBrief): string {
   return stripInvisible(
     [brief.title, brief.benefitStatement, brief.description, brief.audience]
@@ -219,8 +236,12 @@ export async function collectReleaseSources(
   fetcher: TextFetcher = defaultFetcher,
   now: () => Date = () => new Date()
 ): Promise<CollectedSources> {
+  const notes = notesText(brief)
   const urls: string[] = []
   for (const url of [...brief.sourceUrls, brief.productUrl]) {
+    // Stored notes already say what the GitHub page would, and a private
+    // repository's page cannot be read without credentials.
+    if (notes && url && githubApi(url)) continue
     if (url && !urls.includes(url) && urls.length < MAX_SOURCES) urls.push(url)
   }
   const read = await mapLimit(urls, 4, (url) => readSource(url, fetcher))
@@ -241,6 +262,25 @@ export async function collectReleaseSources(
       url,
     }
   })
+  const notesFlags = notes
+    ? detectInjection(notes).map((flag) => `${flag.reason}: “${flag.snippet}”`)
+    : []
+  const notesSource: SpecSource | null = notes
+    ? {
+        excerpt: clampText(notes, EXCERPT_CHARS),
+        fetchedAt,
+        flagged: notesFlags.length > 0,
+        flags: notesFlags,
+        id: 'notes',
+        kind: 'release',
+        sections: [],
+        status: notes.trim().length < MIN_USEFUL_CHARS ? 'empty' : 'ok',
+        statusReason: '',
+        title: 'Release notes from the source',
+        url: brief.sourceUrls[0] ?? '',
+      }
+    : null
+  if (notesSource) sources.push(notesSource)
   const flags = briefFlags(brief)
   const briefSource: SpecSource | null =
     brief.origin === 'integration'
@@ -265,7 +305,10 @@ export async function collectReleaseSources(
             flagged: source.flagged,
             id: source.id,
             kind: source.kind,
-            text: clampText(read[index]!.text, PROMPT_CHARS_PER_SOURCE),
+            text: clampText(
+              source === notesSource ? (notes ?? '') : read[index]!.text,
+              PROMPT_CHARS_PER_SOURCE
+            ),
             title: source.title,
             url: source.url,
           })

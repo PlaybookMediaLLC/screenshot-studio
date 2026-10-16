@@ -39,7 +39,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/customercommunication"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
@@ -57,10 +60,12 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacegithubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
 )
 
@@ -117,8 +122,14 @@ type Client struct {
 	CreativeVariant *CreativeVariantClient
 	// CustomerCommunication is the client for interacting with the CustomerCommunication builders.
 	CustomerCommunication *CustomerCommunicationClient
+	// DeploymentEvent is the client for interacting with the DeploymentEvent builders.
+	DeploymentEvent *DeploymentEventClient
 	// Design is the client for interacting with the Design builders.
 	Design *DesignClient
+	// GitHubInstallStart is the client for interacting with the GitHubInstallStart builders.
+	GitHubInstallStart *GitHubInstallStartClient
+	// GitHubInstallation is the client for interacting with the GitHubInstallation builders.
+	GitHubInstallation *GitHubInstallationClient
 	// Invitation is the client for interacting with the Invitation builders.
 	Invitation *InvitationClient
 	// LaunchRun is the client for interacting with the LaunchRun builders.
@@ -153,6 +164,8 @@ type Client struct {
 	SocialOAuthStart *SocialOAuthStartClient
 	// SourceApp is the client for interacting with the SourceApp builders.
 	SourceApp *SourceAppClient
+	// SourceChange is the client for interacting with the SourceChange builders.
+	SourceChange *SourceChangeClient
 	// SupportAccessGrant is the client for interacting with the SupportAccessGrant builders.
 	SupportAccessGrant *SupportAccessGrantClient
 	// User is the client for interacting with the User builders.
@@ -161,6 +174,8 @@ type Client struct {
 	WorkspaceDeletion *WorkspaceDeletionClient
 	// WorkspaceEntitlement is the client for interacting with the WorkspaceEntitlement builders.
 	WorkspaceEntitlement *WorkspaceEntitlementClient
+	// WorkspaceGitHubInstallation is the client for interacting with the WorkspaceGitHubInstallation builders.
+	WorkspaceGitHubInstallation *WorkspaceGitHubInstallationClient
 	// WorkspaceSettings is the client for interacting with the WorkspaceSettings builders.
 	WorkspaceSettings *WorkspaceSettingsClient
 }
@@ -198,7 +213,10 @@ func (c *Client) init() {
 	c.CreativeTemplate = NewCreativeTemplateClient(c.config)
 	c.CreativeVariant = NewCreativeVariantClient(c.config)
 	c.CustomerCommunication = NewCustomerCommunicationClient(c.config)
+	c.DeploymentEvent = NewDeploymentEventClient(c.config)
 	c.Design = NewDesignClient(c.config)
+	c.GitHubInstallStart = NewGitHubInstallStartClient(c.config)
+	c.GitHubInstallation = NewGitHubInstallationClient(c.config)
 	c.Invitation = NewInvitationClient(c.config)
 	c.LaunchRun = NewLaunchRunClient(c.config)
 	c.Member = NewMemberClient(c.config)
@@ -216,10 +234,12 @@ func (c *Client) init() {
 	c.Session = NewSessionClient(c.config)
 	c.SocialOAuthStart = NewSocialOAuthStartClient(c.config)
 	c.SourceApp = NewSourceAppClient(c.config)
+	c.SourceChange = NewSourceChangeClient(c.config)
 	c.SupportAccessGrant = NewSupportAccessGrantClient(c.config)
 	c.User = NewUserClient(c.config)
 	c.WorkspaceDeletion = NewWorkspaceDeletionClient(c.config)
 	c.WorkspaceEntitlement = NewWorkspaceEntitlementClient(c.config)
+	c.WorkspaceGitHubInstallation = NewWorkspaceGitHubInstallationClient(c.config)
 	c.WorkspaceSettings = NewWorkspaceSettingsClient(c.config)
 }
 
@@ -337,7 +357,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		CreativeTemplate:               NewCreativeTemplateClient(cfg),
 		CreativeVariant:                NewCreativeVariantClient(cfg),
 		CustomerCommunication:          NewCustomerCommunicationClient(cfg),
+		DeploymentEvent:                NewDeploymentEventClient(cfg),
 		Design:                         NewDesignClient(cfg),
+		GitHubInstallStart:             NewGitHubInstallStartClient(cfg),
+		GitHubInstallation:             NewGitHubInstallationClient(cfg),
 		Invitation:                     NewInvitationClient(cfg),
 		LaunchRun:                      NewLaunchRunClient(cfg),
 		Member:                         NewMemberClient(cfg),
@@ -355,10 +378,12 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Session:                        NewSessionClient(cfg),
 		SocialOAuthStart:               NewSocialOAuthStartClient(cfg),
 		SourceApp:                      NewSourceAppClient(cfg),
+		SourceChange:                   NewSourceChangeClient(cfg),
 		SupportAccessGrant:             NewSupportAccessGrantClient(cfg),
 		User:                           NewUserClient(cfg),
 		WorkspaceDeletion:              NewWorkspaceDeletionClient(cfg),
 		WorkspaceEntitlement:           NewWorkspaceEntitlementClient(cfg),
+		WorkspaceGitHubInstallation:    NewWorkspaceGitHubInstallationClient(cfg),
 		WorkspaceSettings:              NewWorkspaceSettingsClient(cfg),
 	}, nil
 }
@@ -403,7 +428,10 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		CreativeTemplate:               NewCreativeTemplateClient(cfg),
 		CreativeVariant:                NewCreativeVariantClient(cfg),
 		CustomerCommunication:          NewCustomerCommunicationClient(cfg),
+		DeploymentEvent:                NewDeploymentEventClient(cfg),
 		Design:                         NewDesignClient(cfg),
+		GitHubInstallStart:             NewGitHubInstallStartClient(cfg),
+		GitHubInstallation:             NewGitHubInstallationClient(cfg),
 		Invitation:                     NewInvitationClient(cfg),
 		LaunchRun:                      NewLaunchRunClient(cfg),
 		Member:                         NewMemberClient(cfg),
@@ -421,10 +449,12 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Session:                        NewSessionClient(cfg),
 		SocialOAuthStart:               NewSocialOAuthStartClient(cfg),
 		SourceApp:                      NewSourceAppClient(cfg),
+		SourceChange:                   NewSourceChangeClient(cfg),
 		SupportAccessGrant:             NewSupportAccessGrantClient(cfg),
 		User:                           NewUserClient(cfg),
 		WorkspaceDeletion:              NewWorkspaceDeletionClient(cfg),
 		WorkspaceEntitlement:           NewWorkspaceEntitlementClient(cfg),
+		WorkspaceGitHubInstallation:    NewWorkspaceGitHubInstallationClient(cfg),
 		WorkspaceSettings:              NewWorkspaceSettingsClient(cfg),
 	}, nil
 }
@@ -461,12 +491,14 @@ func (c *Client) Use(hooks ...Hook) {
 		c.CampaignAsset, c.CampaignPlan, c.CampaignPost, c.CampaignRevision,
 		c.ChannelConnection, c.CommunicationAttempt, c.CommunicationRecipient,
 		c.ContentAngle, c.CreativeTemplate, c.CreativeVariant, c.CustomerCommunication,
-		c.Design, c.Invitation, c.LaunchRun, c.Member, c.Organization,
+		c.DeploymentEvent, c.Design, c.GitHubInstallStart, c.GitHubInstallation,
+		c.Invitation, c.LaunchRun, c.Member, c.Organization,
 		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PostizTenantBinding,
 		c.ProductSurface, c.PublicationAttempt, c.Release, c.ReleaseDocument,
 		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session,
-		c.SocialOAuthStart, c.SourceApp, c.SupportAccessGrant, c.User,
-		c.WorkspaceDeletion, c.WorkspaceEntitlement, c.WorkspaceSettings,
+		c.SocialOAuthStart, c.SourceApp, c.SourceChange, c.SupportAccessGrant, c.User,
+		c.WorkspaceDeletion, c.WorkspaceEntitlement, c.WorkspaceGitHubInstallation,
+		c.WorkspaceSettings,
 	} {
 		n.Use(hooks...)
 	}
@@ -482,12 +514,14 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.CampaignAsset, c.CampaignPlan, c.CampaignPost, c.CampaignRevision,
 		c.ChannelConnection, c.CommunicationAttempt, c.CommunicationRecipient,
 		c.ContentAngle, c.CreativeTemplate, c.CreativeVariant, c.CustomerCommunication,
-		c.Design, c.Invitation, c.LaunchRun, c.Member, c.Organization,
+		c.DeploymentEvent, c.Design, c.GitHubInstallStart, c.GitHubInstallation,
+		c.Invitation, c.LaunchRun, c.Member, c.Organization,
 		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PostizTenantBinding,
 		c.ProductSurface, c.PublicationAttempt, c.Release, c.ReleaseDocument,
 		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session,
-		c.SocialOAuthStart, c.SourceApp, c.SupportAccessGrant, c.User,
-		c.WorkspaceDeletion, c.WorkspaceEntitlement, c.WorkspaceSettings,
+		c.SocialOAuthStart, c.SourceApp, c.SourceChange, c.SupportAccessGrant, c.User,
+		c.WorkspaceDeletion, c.WorkspaceEntitlement, c.WorkspaceGitHubInstallation,
+		c.WorkspaceSettings,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -544,8 +578,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.CreativeVariant.mutate(ctx, m)
 	case *CustomerCommunicationMutation:
 		return c.CustomerCommunication.mutate(ctx, m)
+	case *DeploymentEventMutation:
+		return c.DeploymentEvent.mutate(ctx, m)
 	case *DesignMutation:
 		return c.Design.mutate(ctx, m)
+	case *GitHubInstallStartMutation:
+		return c.GitHubInstallStart.mutate(ctx, m)
+	case *GitHubInstallationMutation:
+		return c.GitHubInstallation.mutate(ctx, m)
 	case *InvitationMutation:
 		return c.Invitation.mutate(ctx, m)
 	case *LaunchRunMutation:
@@ -580,6 +620,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SocialOAuthStart.mutate(ctx, m)
 	case *SourceAppMutation:
 		return c.SourceApp.mutate(ctx, m)
+	case *SourceChangeMutation:
+		return c.SourceChange.mutate(ctx, m)
 	case *SupportAccessGrantMutation:
 		return c.SupportAccessGrant.mutate(ctx, m)
 	case *UserMutation:
@@ -588,6 +630,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.WorkspaceDeletion.mutate(ctx, m)
 	case *WorkspaceEntitlementMutation:
 		return c.WorkspaceEntitlement.mutate(ctx, m)
+	case *WorkspaceGitHubInstallationMutation:
+		return c.WorkspaceGitHubInstallation.mutate(ctx, m)
 	case *WorkspaceSettingsMutation:
 		return c.WorkspaceSettings.mutate(ctx, m)
 	default:
@@ -3867,6 +3911,139 @@ func (c *CustomerCommunicationClient) mutate(ctx context.Context, m *CustomerCom
 	}
 }
 
+// DeploymentEventClient is a client for the DeploymentEvent schema.
+type DeploymentEventClient struct {
+	config
+}
+
+// NewDeploymentEventClient returns a client for the DeploymentEvent from the given config.
+func NewDeploymentEventClient(c config) *DeploymentEventClient {
+	return &DeploymentEventClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `deploymentevent.Hooks(f(g(h())))`.
+func (c *DeploymentEventClient) Use(hooks ...Hook) {
+	c.hooks.DeploymentEvent = append(c.hooks.DeploymentEvent, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `deploymentevent.Intercept(f(g(h())))`.
+func (c *DeploymentEventClient) Intercept(interceptors ...Interceptor) {
+	c.inters.DeploymentEvent = append(c.inters.DeploymentEvent, interceptors...)
+}
+
+// Create returns a builder for creating a DeploymentEvent entity.
+func (c *DeploymentEventClient) Create() *DeploymentEventCreate {
+	mutation := newDeploymentEventMutation(c.config, OpCreate)
+	return &DeploymentEventCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of DeploymentEvent entities.
+func (c *DeploymentEventClient) CreateBulk(builders ...*DeploymentEventCreate) *DeploymentEventCreateBulk {
+	return &DeploymentEventCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *DeploymentEventClient) MapCreateBulk(slice any, setFunc func(*DeploymentEventCreate, int)) *DeploymentEventCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &DeploymentEventCreateBulk{err: fmt.Errorf("calling to DeploymentEventClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*DeploymentEventCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &DeploymentEventCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for DeploymentEvent.
+func (c *DeploymentEventClient) Update() *DeploymentEventUpdate {
+	mutation := newDeploymentEventMutation(c.config, OpUpdate)
+	return &DeploymentEventUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *DeploymentEventClient) UpdateOne(_m *DeploymentEvent) *DeploymentEventUpdateOne {
+	mutation := newDeploymentEventMutation(c.config, OpUpdateOne, withDeploymentEvent(_m))
+	return &DeploymentEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *DeploymentEventClient) UpdateOneID(id string) *DeploymentEventUpdateOne {
+	mutation := newDeploymentEventMutation(c.config, OpUpdateOne, withDeploymentEventID(id))
+	return &DeploymentEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for DeploymentEvent.
+func (c *DeploymentEventClient) Delete() *DeploymentEventDelete {
+	mutation := newDeploymentEventMutation(c.config, OpDelete)
+	return &DeploymentEventDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *DeploymentEventClient) DeleteOne(_m *DeploymentEvent) *DeploymentEventDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *DeploymentEventClient) DeleteOneID(id string) *DeploymentEventDeleteOne {
+	builder := c.Delete().Where(deploymentevent.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &DeploymentEventDeleteOne{builder}
+}
+
+// Query returns a query builder for DeploymentEvent.
+func (c *DeploymentEventClient) Query() *DeploymentEventQuery {
+	return &DeploymentEventQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeDeploymentEvent},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a DeploymentEvent entity by its id.
+func (c *DeploymentEventClient) Get(ctx context.Context, id string) (*DeploymentEvent, error) {
+	return c.Query().Where(deploymentevent.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *DeploymentEventClient) GetX(ctx context.Context, id string) *DeploymentEvent {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *DeploymentEventClient) Hooks() []Hook {
+	return c.hooks.DeploymentEvent
+}
+
+// Interceptors returns the client interceptors.
+func (c *DeploymentEventClient) Interceptors() []Interceptor {
+	return c.inters.DeploymentEvent
+}
+
+func (c *DeploymentEventClient) mutate(ctx context.Context, m *DeploymentEventMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&DeploymentEventCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&DeploymentEventUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&DeploymentEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&DeploymentEventDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown DeploymentEvent mutation op: %q", m.Op())
+	}
+}
+
 // DesignClient is a client for the Design schema.
 type DesignClient struct {
 	config
@@ -3997,6 +4174,272 @@ func (c *DesignClient) mutate(ctx context.Context, m *DesignMutation) (Value, er
 		return (&DesignDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Design mutation op: %q", m.Op())
+	}
+}
+
+// GitHubInstallStartClient is a client for the GitHubInstallStart schema.
+type GitHubInstallStartClient struct {
+	config
+}
+
+// NewGitHubInstallStartClient returns a client for the GitHubInstallStart from the given config.
+func NewGitHubInstallStartClient(c config) *GitHubInstallStartClient {
+	return &GitHubInstallStartClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `githubinstallstart.Hooks(f(g(h())))`.
+func (c *GitHubInstallStartClient) Use(hooks ...Hook) {
+	c.hooks.GitHubInstallStart = append(c.hooks.GitHubInstallStart, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `githubinstallstart.Intercept(f(g(h())))`.
+func (c *GitHubInstallStartClient) Intercept(interceptors ...Interceptor) {
+	c.inters.GitHubInstallStart = append(c.inters.GitHubInstallStart, interceptors...)
+}
+
+// Create returns a builder for creating a GitHubInstallStart entity.
+func (c *GitHubInstallStartClient) Create() *GitHubInstallStartCreate {
+	mutation := newGitHubInstallStartMutation(c.config, OpCreate)
+	return &GitHubInstallStartCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of GitHubInstallStart entities.
+func (c *GitHubInstallStartClient) CreateBulk(builders ...*GitHubInstallStartCreate) *GitHubInstallStartCreateBulk {
+	return &GitHubInstallStartCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *GitHubInstallStartClient) MapCreateBulk(slice any, setFunc func(*GitHubInstallStartCreate, int)) *GitHubInstallStartCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &GitHubInstallStartCreateBulk{err: fmt.Errorf("calling to GitHubInstallStartClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*GitHubInstallStartCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &GitHubInstallStartCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for GitHubInstallStart.
+func (c *GitHubInstallStartClient) Update() *GitHubInstallStartUpdate {
+	mutation := newGitHubInstallStartMutation(c.config, OpUpdate)
+	return &GitHubInstallStartUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *GitHubInstallStartClient) UpdateOne(_m *GitHubInstallStart) *GitHubInstallStartUpdateOne {
+	mutation := newGitHubInstallStartMutation(c.config, OpUpdateOne, withGitHubInstallStart(_m))
+	return &GitHubInstallStartUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *GitHubInstallStartClient) UpdateOneID(id string) *GitHubInstallStartUpdateOne {
+	mutation := newGitHubInstallStartMutation(c.config, OpUpdateOne, withGitHubInstallStartID(id))
+	return &GitHubInstallStartUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for GitHubInstallStart.
+func (c *GitHubInstallStartClient) Delete() *GitHubInstallStartDelete {
+	mutation := newGitHubInstallStartMutation(c.config, OpDelete)
+	return &GitHubInstallStartDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *GitHubInstallStartClient) DeleteOne(_m *GitHubInstallStart) *GitHubInstallStartDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *GitHubInstallStartClient) DeleteOneID(id string) *GitHubInstallStartDeleteOne {
+	builder := c.Delete().Where(githubinstallstart.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &GitHubInstallStartDeleteOne{builder}
+}
+
+// Query returns a query builder for GitHubInstallStart.
+func (c *GitHubInstallStartClient) Query() *GitHubInstallStartQuery {
+	return &GitHubInstallStartQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeGitHubInstallStart},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a GitHubInstallStart entity by its id.
+func (c *GitHubInstallStartClient) Get(ctx context.Context, id string) (*GitHubInstallStart, error) {
+	return c.Query().Where(githubinstallstart.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *GitHubInstallStartClient) GetX(ctx context.Context, id string) *GitHubInstallStart {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *GitHubInstallStartClient) Hooks() []Hook {
+	return c.hooks.GitHubInstallStart
+}
+
+// Interceptors returns the client interceptors.
+func (c *GitHubInstallStartClient) Interceptors() []Interceptor {
+	return c.inters.GitHubInstallStart
+}
+
+func (c *GitHubInstallStartClient) mutate(ctx context.Context, m *GitHubInstallStartMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GitHubInstallStartCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GitHubInstallStartUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GitHubInstallStartUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GitHubInstallStartDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown GitHubInstallStart mutation op: %q", m.Op())
+	}
+}
+
+// GitHubInstallationClient is a client for the GitHubInstallation schema.
+type GitHubInstallationClient struct {
+	config
+}
+
+// NewGitHubInstallationClient returns a client for the GitHubInstallation from the given config.
+func NewGitHubInstallationClient(c config) *GitHubInstallationClient {
+	return &GitHubInstallationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `githubinstallation.Hooks(f(g(h())))`.
+func (c *GitHubInstallationClient) Use(hooks ...Hook) {
+	c.hooks.GitHubInstallation = append(c.hooks.GitHubInstallation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `githubinstallation.Intercept(f(g(h())))`.
+func (c *GitHubInstallationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.GitHubInstallation = append(c.inters.GitHubInstallation, interceptors...)
+}
+
+// Create returns a builder for creating a GitHubInstallation entity.
+func (c *GitHubInstallationClient) Create() *GitHubInstallationCreate {
+	mutation := newGitHubInstallationMutation(c.config, OpCreate)
+	return &GitHubInstallationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of GitHubInstallation entities.
+func (c *GitHubInstallationClient) CreateBulk(builders ...*GitHubInstallationCreate) *GitHubInstallationCreateBulk {
+	return &GitHubInstallationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *GitHubInstallationClient) MapCreateBulk(slice any, setFunc func(*GitHubInstallationCreate, int)) *GitHubInstallationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &GitHubInstallationCreateBulk{err: fmt.Errorf("calling to GitHubInstallationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*GitHubInstallationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &GitHubInstallationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for GitHubInstallation.
+func (c *GitHubInstallationClient) Update() *GitHubInstallationUpdate {
+	mutation := newGitHubInstallationMutation(c.config, OpUpdate)
+	return &GitHubInstallationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *GitHubInstallationClient) UpdateOne(_m *GitHubInstallation) *GitHubInstallationUpdateOne {
+	mutation := newGitHubInstallationMutation(c.config, OpUpdateOne, withGitHubInstallation(_m))
+	return &GitHubInstallationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *GitHubInstallationClient) UpdateOneID(id string) *GitHubInstallationUpdateOne {
+	mutation := newGitHubInstallationMutation(c.config, OpUpdateOne, withGitHubInstallationID(id))
+	return &GitHubInstallationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for GitHubInstallation.
+func (c *GitHubInstallationClient) Delete() *GitHubInstallationDelete {
+	mutation := newGitHubInstallationMutation(c.config, OpDelete)
+	return &GitHubInstallationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *GitHubInstallationClient) DeleteOne(_m *GitHubInstallation) *GitHubInstallationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *GitHubInstallationClient) DeleteOneID(id string) *GitHubInstallationDeleteOne {
+	builder := c.Delete().Where(githubinstallation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &GitHubInstallationDeleteOne{builder}
+}
+
+// Query returns a query builder for GitHubInstallation.
+func (c *GitHubInstallationClient) Query() *GitHubInstallationQuery {
+	return &GitHubInstallationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeGitHubInstallation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a GitHubInstallation entity by its id.
+func (c *GitHubInstallationClient) Get(ctx context.Context, id string) (*GitHubInstallation, error) {
+	return c.Query().Where(githubinstallation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *GitHubInstallationClient) GetX(ctx context.Context, id string) *GitHubInstallation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *GitHubInstallationClient) Hooks() []Hook {
+	return c.hooks.GitHubInstallation
+}
+
+// Interceptors returns the client interceptors.
+func (c *GitHubInstallationClient) Interceptors() []Interceptor {
+	return c.inters.GitHubInstallation
+}
+
+func (c *GitHubInstallationClient) mutate(ctx context.Context, m *GitHubInstallationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GitHubInstallationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GitHubInstallationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GitHubInstallationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GitHubInstallationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown GitHubInstallation mutation op: %q", m.Op())
 	}
 }
 
@@ -6309,6 +6752,139 @@ func (c *SourceAppClient) mutate(ctx context.Context, m *SourceAppMutation) (Val
 	}
 }
 
+// SourceChangeClient is a client for the SourceChange schema.
+type SourceChangeClient struct {
+	config
+}
+
+// NewSourceChangeClient returns a client for the SourceChange from the given config.
+func NewSourceChangeClient(c config) *SourceChangeClient {
+	return &SourceChangeClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `sourcechange.Hooks(f(g(h())))`.
+func (c *SourceChangeClient) Use(hooks ...Hook) {
+	c.hooks.SourceChange = append(c.hooks.SourceChange, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `sourcechange.Intercept(f(g(h())))`.
+func (c *SourceChangeClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SourceChange = append(c.inters.SourceChange, interceptors...)
+}
+
+// Create returns a builder for creating a SourceChange entity.
+func (c *SourceChangeClient) Create() *SourceChangeCreate {
+	mutation := newSourceChangeMutation(c.config, OpCreate)
+	return &SourceChangeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SourceChange entities.
+func (c *SourceChangeClient) CreateBulk(builders ...*SourceChangeCreate) *SourceChangeCreateBulk {
+	return &SourceChangeCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SourceChangeClient) MapCreateBulk(slice any, setFunc func(*SourceChangeCreate, int)) *SourceChangeCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SourceChangeCreateBulk{err: fmt.Errorf("calling to SourceChangeClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SourceChangeCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SourceChangeCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SourceChange.
+func (c *SourceChangeClient) Update() *SourceChangeUpdate {
+	mutation := newSourceChangeMutation(c.config, OpUpdate)
+	return &SourceChangeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SourceChangeClient) UpdateOne(_m *SourceChange) *SourceChangeUpdateOne {
+	mutation := newSourceChangeMutation(c.config, OpUpdateOne, withSourceChange(_m))
+	return &SourceChangeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SourceChangeClient) UpdateOneID(id string) *SourceChangeUpdateOne {
+	mutation := newSourceChangeMutation(c.config, OpUpdateOne, withSourceChangeID(id))
+	return &SourceChangeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SourceChange.
+func (c *SourceChangeClient) Delete() *SourceChangeDelete {
+	mutation := newSourceChangeMutation(c.config, OpDelete)
+	return &SourceChangeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SourceChangeClient) DeleteOne(_m *SourceChange) *SourceChangeDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SourceChangeClient) DeleteOneID(id string) *SourceChangeDeleteOne {
+	builder := c.Delete().Where(sourcechange.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SourceChangeDeleteOne{builder}
+}
+
+// Query returns a query builder for SourceChange.
+func (c *SourceChangeClient) Query() *SourceChangeQuery {
+	return &SourceChangeQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSourceChange},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SourceChange entity by its id.
+func (c *SourceChangeClient) Get(ctx context.Context, id string) (*SourceChange, error) {
+	return c.Query().Where(sourcechange.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SourceChangeClient) GetX(ctx context.Context, id string) *SourceChange {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *SourceChangeClient) Hooks() []Hook {
+	return c.hooks.SourceChange
+}
+
+// Interceptors returns the client interceptors.
+func (c *SourceChangeClient) Interceptors() []Interceptor {
+	return c.inters.SourceChange
+}
+
+func (c *SourceChangeClient) mutate(ctx context.Context, m *SourceChangeMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SourceChangeCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SourceChangeUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SourceChangeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SourceChangeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown SourceChange mutation op: %q", m.Op())
+	}
+}
+
 // SupportAccessGrantClient is a client for the SupportAccessGrant schema.
 type SupportAccessGrantClient struct {
 	config
@@ -6841,6 +7417,139 @@ func (c *WorkspaceEntitlementClient) mutate(ctx context.Context, m *WorkspaceEnt
 	}
 }
 
+// WorkspaceGitHubInstallationClient is a client for the WorkspaceGitHubInstallation schema.
+type WorkspaceGitHubInstallationClient struct {
+	config
+}
+
+// NewWorkspaceGitHubInstallationClient returns a client for the WorkspaceGitHubInstallation from the given config.
+func NewWorkspaceGitHubInstallationClient(c config) *WorkspaceGitHubInstallationClient {
+	return &WorkspaceGitHubInstallationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `workspacegithubinstallation.Hooks(f(g(h())))`.
+func (c *WorkspaceGitHubInstallationClient) Use(hooks ...Hook) {
+	c.hooks.WorkspaceGitHubInstallation = append(c.hooks.WorkspaceGitHubInstallation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `workspacegithubinstallation.Intercept(f(g(h())))`.
+func (c *WorkspaceGitHubInstallationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.WorkspaceGitHubInstallation = append(c.inters.WorkspaceGitHubInstallation, interceptors...)
+}
+
+// Create returns a builder for creating a WorkspaceGitHubInstallation entity.
+func (c *WorkspaceGitHubInstallationClient) Create() *WorkspaceGitHubInstallationCreate {
+	mutation := newWorkspaceGitHubInstallationMutation(c.config, OpCreate)
+	return &WorkspaceGitHubInstallationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of WorkspaceGitHubInstallation entities.
+func (c *WorkspaceGitHubInstallationClient) CreateBulk(builders ...*WorkspaceGitHubInstallationCreate) *WorkspaceGitHubInstallationCreateBulk {
+	return &WorkspaceGitHubInstallationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WorkspaceGitHubInstallationClient) MapCreateBulk(slice any, setFunc func(*WorkspaceGitHubInstallationCreate, int)) *WorkspaceGitHubInstallationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WorkspaceGitHubInstallationCreateBulk{err: fmt.Errorf("calling to WorkspaceGitHubInstallationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WorkspaceGitHubInstallationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WorkspaceGitHubInstallationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for WorkspaceGitHubInstallation.
+func (c *WorkspaceGitHubInstallationClient) Update() *WorkspaceGitHubInstallationUpdate {
+	mutation := newWorkspaceGitHubInstallationMutation(c.config, OpUpdate)
+	return &WorkspaceGitHubInstallationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WorkspaceGitHubInstallationClient) UpdateOne(_m *WorkspaceGitHubInstallation) *WorkspaceGitHubInstallationUpdateOne {
+	mutation := newWorkspaceGitHubInstallationMutation(c.config, OpUpdateOne, withWorkspaceGitHubInstallation(_m))
+	return &WorkspaceGitHubInstallationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WorkspaceGitHubInstallationClient) UpdateOneID(id string) *WorkspaceGitHubInstallationUpdateOne {
+	mutation := newWorkspaceGitHubInstallationMutation(c.config, OpUpdateOne, withWorkspaceGitHubInstallationID(id))
+	return &WorkspaceGitHubInstallationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for WorkspaceGitHubInstallation.
+func (c *WorkspaceGitHubInstallationClient) Delete() *WorkspaceGitHubInstallationDelete {
+	mutation := newWorkspaceGitHubInstallationMutation(c.config, OpDelete)
+	return &WorkspaceGitHubInstallationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WorkspaceGitHubInstallationClient) DeleteOne(_m *WorkspaceGitHubInstallation) *WorkspaceGitHubInstallationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WorkspaceGitHubInstallationClient) DeleteOneID(id string) *WorkspaceGitHubInstallationDeleteOne {
+	builder := c.Delete().Where(workspacegithubinstallation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WorkspaceGitHubInstallationDeleteOne{builder}
+}
+
+// Query returns a query builder for WorkspaceGitHubInstallation.
+func (c *WorkspaceGitHubInstallationClient) Query() *WorkspaceGitHubInstallationQuery {
+	return &WorkspaceGitHubInstallationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWorkspaceGitHubInstallation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a WorkspaceGitHubInstallation entity by its id.
+func (c *WorkspaceGitHubInstallationClient) Get(ctx context.Context, id string) (*WorkspaceGitHubInstallation, error) {
+	return c.Query().Where(workspacegithubinstallation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WorkspaceGitHubInstallationClient) GetX(ctx context.Context, id string) *WorkspaceGitHubInstallation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *WorkspaceGitHubInstallationClient) Hooks() []Hook {
+	return c.hooks.WorkspaceGitHubInstallation
+}
+
+// Interceptors returns the client interceptors.
+func (c *WorkspaceGitHubInstallationClient) Interceptors() []Interceptor {
+	return c.inters.WorkspaceGitHubInstallation
+}
+
+func (c *WorkspaceGitHubInstallationClient) mutate(ctx context.Context, m *WorkspaceGitHubInstallationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WorkspaceGitHubInstallationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WorkspaceGitHubInstallationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WorkspaceGitHubInstallationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WorkspaceGitHubInstallationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown WorkspaceGitHubInstallation mutation op: %q", m.Op())
+	}
+}
+
 // WorkspaceSettingsClient is a client for the WorkspaceSettings schema.
 type WorkspaceSettingsClient struct {
 	config
@@ -6982,12 +7691,13 @@ type (
 		BrandProfile, Campaign, CampaignAsset, CampaignPlan, CampaignPost,
 		CampaignRevision, ChannelConnection, CommunicationAttempt,
 		CommunicationRecipient, ContentAngle, CreativeTemplate, CreativeVariant,
-		CustomerCommunication, Design, Invitation, LaunchRun, Member, Organization,
+		CustomerCommunication, DeploymentEvent, Design, GitHubInstallStart,
+		GitHubInstallation, Invitation, LaunchRun, Member, Organization,
 		OrganizationEnterpriseSettings, OutboxEvent, PostizTenantBinding,
 		ProductSurface, PublicationAttempt, Release, ReleaseDocument, ReleaseSpec,
 		ScheduledPost, ScreenshotCache, Session, SocialOAuthStart, SourceApp,
-		SupportAccessGrant, User, WorkspaceDeletion, WorkspaceEntitlement,
-		WorkspaceSettings []ent.Hook
+		SourceChange, SupportAccessGrant, User, WorkspaceDeletion,
+		WorkspaceEntitlement, WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
 	}
 	inters struct {
 		Apikey, Approval, Asset, AudienceSubscriber, AuditDrain, AuditDrainDelivery,
@@ -6995,11 +7705,13 @@ type (
 		BrandProfile, Campaign, CampaignAsset, CampaignPlan, CampaignPost,
 		CampaignRevision, ChannelConnection, CommunicationAttempt,
 		CommunicationRecipient, ContentAngle, CreativeTemplate, CreativeVariant,
-		CustomerCommunication, Design, Invitation, LaunchRun, Member, Organization,
+		CustomerCommunication, DeploymentEvent, Design, GitHubInstallStart,
+		GitHubInstallation, Invitation, LaunchRun, Member, Organization,
 		OrganizationEnterpriseSettings, OutboxEvent, PostizTenantBinding,
 		ProductSurface, PublicationAttempt, Release, ReleaseDocument, ReleaseSpec,
 		ScheduledPost, ScreenshotCache, Session, SocialOAuthStart, SourceApp,
-		SupportAccessGrant, User, WorkspaceDeletion, WorkspaceEntitlement,
+		SourceChange, SupportAccessGrant, User, WorkspaceDeletion,
+		WorkspaceEntitlement, WorkspaceGitHubInstallation,
 		WorkspaceSettings []ent.Interceptor
 	}
 )

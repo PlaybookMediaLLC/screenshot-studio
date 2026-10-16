@@ -12,6 +12,7 @@ import {
   brandProfileUpsertSchema,
   sourceAppCreateSchema,
 } from '@/lib/tenant/schemas'
+import { getSourceWebhookSetup } from '@/lib/tenant/webhooks'
 import { router } from '../init'
 import { organizationProcedure, tenantProcedure } from '../procedures'
 
@@ -46,6 +47,6 @@ export const sourceAppRouter = router({
     .input(sourceAppCreateSchema)
     .mutation(async ({ ctx, input }) => {
       const sourceApp = await createSourceApp(ctx.tenant, input)
-      return { sourceApp }
+      return { sourceApp, webhook: getSourceWebhookSetup(sourceApp) }
     }),
 })

@@ -126,14 +126,39 @@ func TestAuditControlsAndSourceWebhooks(t *testing.T) {
 		t.Fatalf("deliveries outlived their drain: %d", n)
 	}
 
-	secret := "SOURCE_SECRET"
-	source, err := repo.CreateSourceApp(ctx, owner, CreateSourceAppInput{AllowedHosts: []string{"https://api.github.com"}, Name: "GitHub", Provider: "github", SecretReference: &secret})
+	secret, branch, repoID := "SOURCE_SECRET", "develop", "repo-"+org
+	source, err := repo.CreateSourceApp(ctx, owner, CreateSourceAppInput{AllowedHosts: []string{"https://api.github.com"}, Branch: &branch, ExternalID: &repoID, Name: "GitHub", Provider: "github", SecretReference: &secret})
 	if err != nil {
 		t.Fatal(err)
 	}
 	found, err := repo.GetWebhookSource(ctx, source.ID)
-	if err != nil || found.OrganizationID != org || found.Provider != "github" || found.SecretReference == nil || *found.SecretReference != secret {
+	if err != nil || found.OrganizationID != org || found.Provider != "github" || found.SecretReference == nil || *found.SecretReference != secret ||
+		found.Branch == nil || *found.Branch != branch || found.ExternalID == nil || *found.ExternalID != repoID ||
+		!found.IgnoreBotPullRequests || found.SkipPrereleases || found.IgnoredPullRequestAuthors == nil || len(found.IgnoredPullRequestAuthors) != 0 {
 		t.Fatalf("webhook source=%+v err=%v", found, err)
+	}
+	off, on, authors := false, true, []string{"Snyk-Bot"}
+	rules := UpdateSourceAppInput{ClearBranch: true, IgnoreBotPullRequests: &off, IgnoredPullRequestAuthors: &authors, SkipPrereleases: &on}
+	if _, err := repo.UpdateSourceApp(ctx, Actor{OrganizationID: other, UserID: userID, SessionID: sessionID}, source.ID, rules); !errors.Is(err, publishing.ErrNotFound) {
+		t.Fatalf("foreign workspace updated the source: %v", err)
+	}
+	if _, err := repo.UpdateSourceApp(ctx, owner, source.ID, rules); err != nil {
+		t.Fatal(err)
+	}
+	found, err = repo.GetWebhookSource(ctx, source.ID)
+	if err != nil || found.Branch != nil || found.IgnoreBotPullRequests || !found.SkipPrereleases ||
+		len(found.IgnoredPullRequestAuthors) != 1 || found.IgnoredPullRequestAuthors[0] != "Snyk-Bot" || *found.ExternalID != repoID {
+		t.Fatalf("updated webhook source=%+v err=%v", found, err)
+	}
+	if n := count(`SELECT count(*) FROM audit_log WHERE "organizationId"=$1 AND action='product.source_app_updated' AND "entityId"=$2`, org, source.ID); n != 1 {
+		t.Fatalf("source update audits=%d", n)
+	}
+	// A partial update leaves every other rule as it was.
+	if _, err := repo.UpdateSourceApp(ctx, owner, source.ID, UpdateSourceAppInput{Branch: &branch}); err != nil {
+		t.Fatal(err)
+	}
+	if found, err = repo.GetWebhookSource(ctx, source.ID); err != nil || found.Branch == nil || *found.Branch != branch || !found.SkipPrereleases || found.IgnoreBotPullRequests {
+		t.Fatalf("partial update source=%+v err=%v", found, err)
 	}
 	webhook := Actor{OrganizationID: org, Kind: "webhook", Display: source.ID, RequestID: "delivery-1"}
 	release := IngestSourceReleaseInput{BenefitStatement: "Faster exports.", EventID: "delivery-1", SourceAppID: source.ID, Title: "v2"}
@@ -150,6 +175,15 @@ func TestAuditControlsAndSourceWebhooks(t *testing.T) {
 	replay, err := repo.IngestSourceRelease(ctx, webhook, release)
 	if err != nil || replay.Created || replay.ReleaseID != first.ReleaseID {
 		t.Fatalf("replay=%+v err=%v", replay, err)
+	}
+	// Postgres text cannot hold NUL: it is invalid input, not a failed insert.
+	for _, nul := range []IngestSourceReleaseInput{
+		{BenefitStatement: "Faster exports.", EventID: "nul-title", SourceAppID: source.ID, Title: "v\x002"},
+		{BenefitStatement: "Faster\x00 exports.", EventID: "nul-benefit", SourceAppID: source.ID, Title: "v2"},
+	} {
+		if _, err := repo.IngestSourceRelease(ctx, webhook, nul); !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("NUL release %q err=%v", nul.EventID, err)
+		}
 	}
 	if n := count(`SELECT count(*) FROM outbox_event WHERE "organizationId"=$1 AND type='release.ingested' AND "aggregateId"=$2 AND payload->>'sourceAppId'=$3`, org, first.ReleaseID, source.ID); n != 1 {
 		t.Fatalf("ingest outbox events=%d", n)

@@ -17,13 +17,14 @@ import {
   listOrganizationMembersContract,
   listOrganizationsContract,
 } from '@/lib/api/contracts/shell'
-import { createSourceAppContract } from '@/lib/api/contracts/source-apps'
+import { createSourceAppContract, updateSourceAppContract } from '@/lib/api/contracts/source-apps'
 
 /** Every contract in the public OpenAPI spec, in the order the spec lists them. */
 export const documentedContracts = [
   listReleasesContract,
   createReleaseContract,
   createSourceAppContract,
+  updateSourceAppContract,
   createAssetUploadUrlContract,
   completeAssetUploadContract,
   createAssetDownloadUrlContract,

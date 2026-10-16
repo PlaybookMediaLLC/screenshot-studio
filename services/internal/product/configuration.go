@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"net/http"
 	"strings"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
@@ -9,6 +10,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandkit"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/lucsky/cuid"
@@ -50,6 +52,12 @@ type Configuration struct {
 	invitations InvitationMailer
 	objects     AssetObjectStore
 	quota       QuotaCounter
+	github      GitHubApp
+	capture     Capturer
+	// imageHost admits the hosts screenshots may be downloaded from; GitHub's by default.
+	imageHost func(string) bool
+	// web replaces the HTTP client for image downloads and readiness probes in tests.
+	web *http.Client
 }
 
 func NewConfiguration(client *ent.Client) *Configuration {
@@ -228,23 +236,58 @@ func (c *Configuration) UpsertBrandProfile(ctx context.Context, actor Actor, inp
 }
 
 type CreateSourceAppInput struct {
-	AllowedHosts    []string `json:"allowedHosts"`
-	ExternalID      *string  `json:"externalId"`
-	Name            string   `json:"name"`
-	Provider        string   `json:"provider"`
-	SecretReference *string  `json:"secretReference"`
+	AllowedHosts []string `json:"allowedHosts"`
+	Branch       *string  `json:"branch"`
+	ExternalID   *string  `json:"externalId"`
+	// GitHubConnectionID is the workspace's link to the GitHub App installation
+	// that delivers this repository's events; ExternalID is the repository ID.
+	GitHubConnectionID        *string  `json:"githubConnectionId"`
+	IgnoreBotPullRequests     *bool    `json:"ignoreBotPullRequests"`
+	IgnoredPullRequestAuthors []string `json:"ignoredPullRequestAuthors"`
+	Name                      string   `json:"name"`
+	Provider                  string   `json:"provider"`
+	SecretReference           *string  `json:"secretReference"`
+	SkipPrereleases           *bool    `json:"skipPrereleases"`
+}
+
+// UpdateSourceAppInput changes the rules that decide which deliveries become
+// releases. A nil field is left unchanged; ClearBranch returns the source to
+// following the repository's default branch.
+type UpdateSourceAppInput struct {
+	Branch                    *string
+	ClearBranch               bool
+	IgnoreBotPullRequests     *bool
+	IgnoredPullRequestAuthors *[]string
+	SkipPrereleases           *bool
 }
 
 func (c *Configuration) CreateSourceApp(ctx context.Context, actor Actor, input CreateSourceAppInput) (*ent.SourceApp, error) {
+	var installationRowID *string
+	if input.GitHubConnectionID != nil {
+		// The App's own secret signs its deliveries; a connected source names none.
+		if input.Provider != "github" || input.ExternalID == nil || input.SecretReference != nil {
+			return nil, ErrInvalidInput
+		}
+		row, err := c.linkedInstallation(ctx, actor.OrganizationID, *input.GitHubConnectionID)
+		if err != nil {
+			return nil, err
+		}
+		if err := c.checkGitHubSource(ctx, actor.OrganizationID, row.ID, *input.ExternalID); err != nil {
+			return nil, err
+		}
+		installationRowID = &row.ID
+	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
-	created, err := tx.SourceApp.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
+	created, err := tx.SourceApp.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetNillableGithubInstallationID(installationRowID).
 		SetName(input.Name).SetProvider(input.Provider).SetNillableExternalID(input.ExternalID).
 		SetNillableSecretReference(input.SecretReference).SetAllowedHosts(input.AllowedHosts).
-		SetStatus("ACTIVE").Save(ctx)
+		SetNillableBranch(input.Branch).SetNillableIgnoreBotPullRequests(input.IgnoreBotPullRequests).
+		SetIgnoredPullRequestAuthors(nonNilStrings(input.IgnoredPullRequestAuthors)).
+		SetNillableSkipPrereleases(input.SkipPrereleases).SetStatus("ACTIVE").Save(ctx)
 	if ent.IsConstraintError(err) {
 		return nil, publishing.ErrConflict
 	}
@@ -254,10 +297,67 @@ func (c *Configuration) CreateSourceApp(ctx context.Context, actor Actor, input 
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.source_app_created", "source_app", created.ID); err != nil {
 		return nil, err
 	}
+	// A connected repository is backfilled with its recent releases and merges.
+	if installationRowID != nil {
+		if _, err := tx.OutboxEvent.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
+			SetType("source_app.connected").SetAggregateType("source_app").SetAggregateID(created.ID).
+			SetPayload(map[string]any{"sourceAppId": created.ID}).SetIdempotencyKey("connected:" + created.ID).Save(ctx); err != nil {
+			return nil, err
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 	return created.Unwrap(), nil
+}
+
+// UpdateSourceApp changes a workspace source's webhook rules.
+func (c *Configuration) UpdateSourceApp(ctx context.Context, actor Actor, sourceAppID string, input UpdateSourceAppInput) (*ent.SourceApp, error) {
+	tx, err := c.client.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	current, err := tx.SourceApp.Query().Where(sourceapp.ID(sourceAppID), sourceapp.OrganizationID(actor.OrganizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, publishing.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	update := tx.SourceApp.UpdateOneID(current.ID)
+	if input.ClearBranch {
+		update.ClearBranch()
+	} else if input.Branch != nil {
+		update.SetBranch(*input.Branch)
+	}
+	if input.IgnoreBotPullRequests != nil {
+		update.SetIgnoreBotPullRequests(*input.IgnoreBotPullRequests)
+	}
+	if input.IgnoredPullRequestAuthors != nil {
+		update.SetIgnoredPullRequestAuthors(nonNilStrings(*input.IgnoredPullRequestAuthors))
+	}
+	if input.SkipPrereleases != nil {
+		update.SetSkipPrereleases(*input.SkipPrereleases)
+	}
+	changed, err := update.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := appendConfigurationAudit(ctx, tx, actor, "product.source_app_updated", "source_app", changed.ID); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return changed.Unwrap(), nil
+}
+
+func nonNilStrings(values []string) []string {
+	if values == nil {
+		return []string{}
+	}
+	return values
 }
 
 type CreateProductSurfaceInput struct {

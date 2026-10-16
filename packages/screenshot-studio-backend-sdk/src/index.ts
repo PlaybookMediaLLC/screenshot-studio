@@ -161,6 +161,10 @@ export type SourceApp = {
   name: string
   provider: string
   externalId: string | null
+  branch: string | null
+  ignoreBotPullRequests: boolean
+  ignoredPullRequestAuthors: string[]
+  skipPrereleases: boolean
   secretReference: string | null
   allowedHosts: string[]
   status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'
@@ -273,6 +277,8 @@ export type BackendReleaseSummary = {
 
 export type BackendReleaseListItem = BackendReleaseSummary & {
   benefitStatement: string
+  features?: ReleaseFeature[]
+  screenshotAssetIds?: string[]
   createdAt: string
   updatedAt: string
 }
@@ -574,10 +580,24 @@ function auditRequestHeaders(audit?: BackendAuditRequest): Record<string, string
 }
 
 export type BackendWebhookSource = {
+  branch: string | null
+  externalId: string | null
+  githubInstallationId?: string | null
   id: string
+  ignoreBotPullRequests: boolean
+  ignoredPullRequestAuthors: string[]
   organizationId: string
   provider: string
   secretReference: string | null
+  skipPrereleases: boolean
+}
+
+/** The rules a source update may change; a `null` branch follows the repository default. */
+export type SourceAppRulesUpdate = {
+  branch?: string | null
+  ignoreBotPullRequests?: boolean
+  ignoredPullRequestAuthors?: string[]
+  skipPrereleases?: boolean
 }
 
 export type BackendSourceReleaseInput = {
@@ -585,9 +605,65 @@ export type BackendSourceReleaseInput = {
   benefitStatement: string
   description?: string
   eventId: string
+  /** The release notes in full; the backend reads features and linked PRs from them. */
+  notes?: string
+  repositoryId?: string
+  /** owner/repo, to recognise the repository's own PR links in the notes. */
+  repositoryName?: string
   sourceAppId: string
   sourceUrls?: string[]
   title: string
+}
+
+/** A pull request merged into a source's branch, held for its next release. */
+export type BackendSourceChangeInput = {
+  authorLogin?: string
+  body: string
+  eventId: string
+  labels: string[]
+  mergedAt: string
+  number: number
+  repositoryId: string
+  sourceAppId: string
+  title: string
+  url: string
+}
+
+/** A deployment GitHub reports as live in production. */
+export type BackendDeploymentInput = {
+  environment: string
+  eventId: string
+  externalId: string
+  sha?: string
+  sourceAppId: string
+  url?: string
+}
+
+/** A workspace's link to an installation of the platform's GitHub App. */
+export type GitHubConnection = {
+  accountLogin: string
+  accountType: string
+  createdAt: string
+  id: string
+  installationId: number
+  repositorySelection: string
+  status: 'ACTIVE' | 'SUSPENDED' | 'DELETED'
+}
+
+/** A repository an installation can read. */
+export type GitHubRepository = {
+  defaultBranch: string
+  fullName: string
+  id: number
+  private: boolean
+}
+
+/** An installation as GitHub's lifecycle events report it. */
+export type GitHubInstallationRecord = {
+  accountLogin: string
+  accountType: string
+  repositorySelection: string
+  suspended: boolean
 }
 
 /** A billing provider event whose HMAC the web facade already verified. */
@@ -626,10 +702,21 @@ export type BackendLaunchCampaign = {
     benefitStatement: string
     createdByUserId: string | null
     description: string | null
+    features?: ReleaseFeature[]
     id: string
+    notes?: string | null
     sourceUrls: string[]
     title: string
   } | null
+}
+
+/** One line of a release, read from its notes or a merged pull request. */
+export type ReleaseFeature = {
+  author?: string
+  kind: 'feature' | 'improvement' | 'fix' | 'internal' | 'other'
+  number?: number
+  title: string
+  url?: string
 }
 
 export type BackendLaunchSpec = {
@@ -1011,12 +1098,24 @@ export class ScreenshotStudioBackendSDK {
 
   async createSourceApp(input: {
     allowedHosts: string[]
+    branch?: string
     externalId?: string
+    githubConnectionId?: string
+    ignoreBotPullRequests?: boolean
+    ignoredPullRequestAuthors?: string[]
     name: string
     provider: string
     secretReference?: string
+    skipPrereleases?: boolean
   }) {
     return this.request<SourceApp>('v1/source-apps', { body: input, method: 'POST' })
+  }
+
+  async updateSourceApp(sourceAppId: string, input: SourceAppRulesUpdate) {
+    return this.request<SourceApp>(`v1/source-apps/${encodeURIComponent(sourceAppId)}`, {
+      body: input,
+      method: 'PATCH',
+    })
   }
 
   async listProductSurfaces() {
@@ -1437,6 +1536,83 @@ export class ScreenshotStudioBackendSDK {
       body: input,
       method: 'POST',
     })
+  }
+
+  async collectSourceChange(input: BackendSourceChangeInput) {
+    return this.request<{ changeId: string; created: boolean }>('v1/source-changes', {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async ingestDeployment(input: BackendDeploymentInput) {
+    return this.request<{ created: boolean; deploymentId: string }>('v1/source-deployments', {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  /** Begins connecting a GitHub App installation; the state is single-use. */
+  async startGitHubConnection() {
+    return this.request<{ state: string }>('v1/github/connections/start', { method: 'POST' })
+  }
+
+  async completeGitHubConnection(input: { code: string; installationId: number; state: string }) {
+    return this.request<GitHubConnection>('v1/github/connections/complete', {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async listGitHubConnections() {
+    return this.request<{ connections: GitHubConnection[] }>('v1/github/connections')
+  }
+
+  async deleteGitHubConnection(connectionId: string) {
+    return this.request<{ deleted: true }>(
+      `v1/github/connections/${encodeURIComponent(connectionId)}`,
+      { method: 'DELETE' }
+    )
+  }
+
+  async listGitHubRepositories(connectionId: string) {
+    return this.request<{ repositories: GitHubRepository[] }>(
+      `v1/github/connections/${encodeURIComponent(connectionId)}/repositories`
+    )
+  }
+
+  /** Facade-only: every workspace's source for a repository an installation delivers. */
+  async getGitHubSources(installationId: number, repositoryId: number) {
+    return this.request<{ sources: BackendWebhookSource[] }>(
+      `v1/internal/github/installations/${installationId}/repositories/${repositoryId}/sources`
+    )
+  }
+
+  /** Facade-only: records an installation from GitHub's lifecycle events. */
+  async recordGitHubInstallation(installationId: number, input: GitHubInstallationRecord) {
+    return this.request<{ recorded: true }>(`v1/internal/github/installations/${installationId}`, {
+      body: input,
+      method: 'PUT',
+    })
+  }
+
+  /** Facade-only: records a suspension, resumption, or removal. */
+  async setGitHubInstallationStatus(
+    installationId: number,
+    status: 'ACTIVE' | 'SUSPENDED' | 'DELETED'
+  ) {
+    return this.request<{ archived: number }>(
+      `v1/internal/github/installations/${installationId}/status`,
+      { body: { status }, method: 'POST' }
+    )
+  }
+
+  /** Facade-only: archives sources for repositories an installation lost. */
+  async removeGitHubRepositories(installationId: number, repositoryIds: string[]) {
+    return this.request<{ archived: number }>(
+      `v1/internal/github/installations/${installationId}/removed-repositories`,
+      { body: { repositoryIds }, method: 'POST' }
+    )
   }
 
   /** Facade-only: returns a dead-lettered outbox event to the queue. */

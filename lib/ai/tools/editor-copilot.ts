@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { designCatalogSections } from '@/lib/design/catalog'
 import { describeDesignCatalog } from '@/lib/design/catalog-sections'
 import { designEditSchema } from '@/lib/design/document'
+import { variantCountSchema } from '@/lib/ai/variants'
 
 /**
  * Tools for the in-editor copilot.
@@ -13,7 +14,7 @@ import { designEditSchema } from '@/lib/design/document'
  * The catalog lookup runs on the server.
  */
 
-export const editorClientToolNames = ['inspectCanvas', 'applyChanges', 'undoLastChange'] as const
+export const editorClientToolNames = ['inspectCanvas', 'applyChanges', 'undoLastChange', 'showVariants'] as const
 export type EditorClientToolName = (typeof editorClientToolNames)[number]
 
 export function createEditorCopilotTools() {
@@ -35,6 +36,15 @@ export function createEditorCopilotTools() {
         'overlays, animation.',
       execute: async ({ section }) => ({ options: describeDesignCatalog(section), section }),
       inputSchema: z.object({ section: z.enum(designCatalogSections) }),
+    }),
+    showVariants: tool({
+      description:
+        'Show the user several complete versions of the design side by side to pick from. Use it ' +
+        'when they ask for versions, variants, options, or alternatives. It does not change the design.',
+      inputSchema: z.object({
+        count: variantCountSchema.describe('How many versions, 2 to 6.'),
+        instruction: z.string().max(300).optional().describe('What the versions should explore, in the user’s words.'),
+      }),
     }),
     undoLastChange: tool({
       description: 'Undo the most recent change, yours or the user’s. Returns a snapshot.',

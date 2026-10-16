@@ -2,7 +2,6 @@ import 'server-only'
 
 import { generateText, stepCountIs, tool } from 'ai'
 import { z } from 'zod'
-import type { TenantContext } from '@/lib/auth/access'
 import { describeWholeCatalog } from '@/lib/design/catalog-sections'
 import {
   type DesignChanges,
@@ -11,22 +10,13 @@ import {
   designChangesSchema,
   patchDesignDocument,
 } from '@/lib/design/document'
-import { renderDesignForTenant } from '@/lib/design/render-design'
-import { createDesignRenderer, type DesignRenderer } from '@/lib/design/renderer'
-import { createTenantDownloadUrl } from '@/lib/storage/client'
-import { createDesign } from '@/lib/tenant/designs'
 import { models } from '../models'
-
-/** Previews in flight at once; the render service queues anything beyond its own limit. */
-const PREVIEW_CONCURRENCY = 3
-import {
-  EDITOR_CRITIC_INSTRUCTIONS,
-  EDITOR_DIRECTIONS_INSTRUCTIONS,
-} from '../prompts/editor-copilot'
+import { EDITOR_CRITIC_INSTRUCTIONS, EDITOR_VARIANTS_INSTRUCTIONS } from '../prompts/editor-copilot'
+import { distinctnessProblem } from '../variants'
 
 /**
  * One-shot editor assistants: the critic (one-click improvement chips) and
- * the directions explorer (rendered variations to choose from).
+ * the variants generator (complete versions to compare).
  *
  * Proposals arrive as tool calls rather than structured output. The change
  * schema is far richer than the optional-field limits providers put on
@@ -110,92 +100,58 @@ export async function critiqueDesign(document: DesignDocument, snapshotJpegBase6
   return suggestions
 }
 
-export async function exploreDesignDirections(
-  tenant: TenantContext,
+/** One proposed version: its name, why it differs, and the changes that make it from the current design. */
+export type Variant = Proposal
+
+/**
+ * Propose `count` complete versions of a design for the user to compare.
+ * Each must change the composition, not only its colours (unless asked),
+ * and differ from the others; a proposal that does not is sent back to the
+ * model with the reason. The browser patches its own copy of the design with
+ * each version's changes and renders it, so local images never leave it.
+ */
+export async function proposeVariants(
   document: DesignDocument,
-  options: { count: number; direction?: string }
-) {
-  const proposals: Proposal[] = []
+  options: { count: number; instruction?: string }
+): Promise<Variant[]> {
+  const variants: Variant[] = []
   await generateText({
     messages: [
       {
-        content: `${designContext(document)}\n\nPropose ${options.count} variations.${
-          options.direction ? ` The user wants: ${options.direction}` : ''
+        content: `${designContext(document)}\n\nPropose ${options.count} versions.${
+          options.instruction ? ` The user asked: ${options.instruction}` : ''
         }`,
         role: 'user',
       },
     ],
     model: models.languageModel('deep'),
-    stopWhen: stepCountIs(6),
-    system: `${EDITOR_DIRECTIONS_INSTRUCTIONS}\n\nCall proposeDirection once per variation, then stop.`,
+    stopWhen: stepCountIs(options.count + 4),
+    system: `${EDITOR_VARIANTS_INSTRUCTIONS}\n\nCall proposeVariant once per version, then stop.`,
     tools: {
-      proposeDirection: proposalTool(
-        'Propose one variation with the exact changes that produce it.',
-        document,
-        options.count,
-        proposals
-      ),
+      proposeVariant: tool({
+        description: 'Propose one complete version with the exact changes that produce it.',
+        execute: async (input: { changes: unknown; reason: string; title: string }) => {
+          if (variants.length >= options.count) return { error: 'Enough versions already.', ok: false }
+          const changes = applicable(document, input.changes)
+          if (!changes) {
+            return { error: 'Those changes do not produce a valid design. Check option ids and units.', ok: false }
+          }
+          const problem = distinctnessProblem(
+            changes,
+            variants.map((variant) => variant.changes),
+            options.instruction
+          )
+          if (problem) return { error: problem, ok: false }
+          variants.push({ changes, reason: input.reason, title: input.title })
+          return { ok: true, remaining: options.count - variants.length }
+        },
+        inputSchema: z.object({
+          changes: designChangesSchema,
+          reason: z.string().max(200).describe('One sentence on what makes this version different.'),
+          title: z.string().max(60).describe('A short name for the version.'),
+        }),
+      }),
     },
   })
-
-  const base = await createDesign(tenant, { document, name: 'Editor design' })
-  // Started on the first cache miss, so a fully cached batch never opens a browser.
-  const lazy: { renderer: Promise<DesignRenderer> | null } = { renderer: null }
-  const getRenderer = () => (lazy.renderer ??= createDesignRenderer())
-  try {
-    // Previews only: a 1x JPEG renders faster and loads faster than the 2x
-    // PNG export, and choosing a direction loads the design, not the image.
-    const rendered = await mapWithConcurrency(proposals, PREVIEW_CONCURRENCY, async (proposal) => {
-      const design = await createDesign(tenant, {
-        document: patchDesignDocument(document, proposal.changes),
-        name: proposal.title,
-        parentDesignId: base.id,
-      })
-      try {
-        const preview = await renderDesignForTenant(tenant, getRenderer, design, {
-          format: 'jpeg',
-          scale: 1,
-        })
-        return {
-          designId: design.id,
-          name: proposal.title,
-          previewUrl: await createTenantDownloadUrl({
-            assetId: preview.asset.id,
-            tenant,
-          }).catch(() => null),
-          rationale: proposal.reason,
-        }
-      } catch (error) {
-        console.error('Direction render failed.', {
-          designId: design.id,
-          reason: error instanceof Error ? error.message : 'unknown',
-        })
-        return null
-      }
-    })
-    return {
-      baseDesignId: base.id,
-      directions: rendered.filter((direction) => direction !== null),
-    }
-  } finally {
-    if (lazy.renderer) await (await lazy.renderer).close().catch(() => undefined)
-  }
-}
-
-/** Run `work` over `items` with at most `limit` in flight, keeping input order. */
-async function mapWithConcurrency<T, R>(
-  items: readonly T[],
-  limit: number,
-  work: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results = new Array<R>(items.length)
-  let next = 0
-  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) {
-      const index = next++
-      results[index] = await work(items[index]!)
-    }
-  })
-  await Promise.all(runners)
-  return results
+  return variants
 }

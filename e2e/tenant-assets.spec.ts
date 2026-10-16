@@ -157,16 +157,15 @@ test('an uploaded asset stays private to its workspace through completion and do
     signed,
   })
 
-  // Deleting an asset is a paid capability (RFC 034: `asset:delete` needs Pro
-  // or an explicit contract override), and workspaces start on `free`. Assert
-  // the rejection first so the gate is covered, then grant the plan the way
-  // billing would, so the rest of the deletion lifecycle can be exercised at
-  // all. Ownership resolves before the plan check, so this 403 proves the
-  // caller owns the asset rather than leaking that some other workspace does.
+  // There is no free plan: a workspace without a subscription can't touch its
+  // assets. Drop the plan to assert the gate, then restore it the way billing
+  // would so the deletion lifecycle can be exercised. Ownership resolves
+  // before the plan check, so this 403 proves the caller owns the asset.
+  await grantWorkspacePlan(organizationId, 'free')
   expect(
     await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
   ).toMatchObject({
-    body: { code: 'workspace_feature_not_entitled', feature: 'asset:delete' },
+    body: { code: 'workspace_feature_not_entitled' },
     status: 403,
   })
   await grantWorkspacePlan(organizationId, 'pro')

@@ -1,13 +1,12 @@
 'use client'
 
-import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { CheckoutButton } from '@/components/platform-landing/CheckoutButton'
+import { CtaLink } from '@/components/platform-landing/CtaLink'
 import { checkoutPathSchema } from '@/components/platform-landing/primitives'
 import { Group, Pill, type PillTone, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
 import { checkoutPlanSchema } from '@/lib/billing/plans'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from './settings-client'
@@ -97,19 +96,21 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
                 {summary.paid && status ? <Pill tone={status.tone}>{status.label}</Pill> : null}
               </div>
             </Row>
-            <Row
-              description={`Your plan includes ${summary.monthlyCredits.toLocaleString('en-US')} AI credits a month. One credit is one cent of AI cost.`}
-              label="AI credits left"
-              layout="inline"
-            >
-              <span className="text-sm font-medium text-white tabular-nums">
-                {summary.creditsLeft.toLocaleString('en-US')}
-                <span className="text-neutral-500">
-                  {' '}
-                  / {summary.monthlyCredits.toLocaleString('en-US')}
+            {summary.paid ? (
+              <Row
+                description={`Your plan includes ${summary.monthlyCredits.toLocaleString('en-US')} AI credits a month. One credit is one cent of AI cost.`}
+                label="AI credits left"
+                layout="inline"
+              >
+                <span className="text-sm font-medium text-white tabular-nums">
+                  {summary.creditsLeft.toLocaleString('en-US')}
+                  <span className="text-neutral-500">
+                    {' '}
+                    / {summary.monthlyCredits.toLocaleString('en-US')}
+                  </span>
                 </span>
-              </span>
-            </Row>
+              </Row>
+            ) : null}
             {canManage ? (
               <Row layout="inline">
                 <div className="flex flex-wrap items-start gap-3">
@@ -134,9 +135,11 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
                       />
                     </>
                   ) : (
-                    <Button asChild className="rounded-lg" size="sm">
-                      <Link href="/pricing">Choose a plan</Link>
-                    </Button>
+                    <CtaLink
+                      href="/pricing"
+                      label="Choose a plan"
+                      location="workspace_billing_choose"
+                    />
                   )}
                 </div>
               </Row>

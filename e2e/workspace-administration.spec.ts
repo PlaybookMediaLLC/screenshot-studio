@@ -9,7 +9,7 @@ import {
 } from './framework/auth'
 import { browserRequest, requestJson } from './framework/browser'
 import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabase, queryRow } from './framework/services'
+import { createE2EDatabase, grantWorkspacePlan, queryRow } from './framework/services'
 import { trpcMutation } from './framework/trpc'
 
 const apiKeySchema = z.object({ apiKey: z.object({ key: z.string().min(1) }) })
@@ -103,7 +103,7 @@ test('an MFA-protected owner can schedule and restore workspace deletion', async
   await signUpAndCreateWorkspace(identity, page)
   const organizationId = await getActiveOrganizationId(page)
   const recoveryWorkspaceName = `${identity.workspaceName} recovery`
-  workspaceCreateResponseSchema.parse(
+  const recovery = workspaceCreateResponseSchema.parse(
     (
       await trpcMutation(page, 'workspace.create', {
         name: recoveryWorkspaceName,
@@ -111,6 +111,8 @@ test('an MFA-protected owner can schedule and restore workspace deletion', async
       })
     ).body
   )
+  // There is no free plan; the second workspace needs one to open the editor.
+  await grantWorkspacePlan(recovery.organization.id, 'pro')
   expect((await trpcMutation(page, 'workspace.setActive', { organizationId })).status).toBe(200)
   expect(
     (

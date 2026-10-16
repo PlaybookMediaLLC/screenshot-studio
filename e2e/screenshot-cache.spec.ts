@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { HeadObjectCommand } from '@aws-sdk/client-s3'
 import { z } from 'zod'
 import { requestJson } from './framework/browser'
+import { signUpAndCreateWorkspace } from './framework/auth'
 import { configureE2EFlow, expect, test } from './framework/flow'
 import { getMaintenanceHeaders } from './framework/maintenance'
 import {
@@ -17,7 +18,12 @@ const screenshotSchema = z.object({
   url: z.string().url(),
 })
 
-configureE2EFlow()
+// The screenshot API needs a paid workspace; the fixture gives it Pro.
+configureE2EFlow({
+  beforeEach: async ({ identity, page }) => {
+    await signUpAndCreateWorkspace(identity, page)
+  },
+})
 
 async function getCacheRecord(url: string) {
   const database = createE2EDatabase()

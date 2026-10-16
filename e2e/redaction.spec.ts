@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import type { Page } from '@playwright/test'
 import { createWorker } from 'tesseract.js'
@@ -53,7 +54,8 @@ async function dropSensitiveScreenshot(page: Page) {
 }
 
 async function ocr(file: string): Promise<string> {
-  const worker = await createWorker('eng')
+  // Cache the language data outside the repository.
+  const worker = await createWorker('eng', 1, { cachePath: tmpdir() })
   try {
     return (await worker.recognize(file)).data.text
   } finally {

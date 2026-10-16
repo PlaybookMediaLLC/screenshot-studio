@@ -4,16 +4,13 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import Moveable from 'react-moveable'
 import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts'
 import type { CanvasElement, ElementOf } from '@/lib/editor/elements/schema'
-import { canvasSnapLines } from '@/lib/editor/snapping'
 import { useImageStore } from '@/lib/store'
-import { useCanvasGuides } from '@/lib/store/canvas-guides'
+import { useMoveableSnapping } from '../use-moveable-snapping'
 import { fallbackImageRect, useCanvasGeometry } from './canvas-geometry'
 import { calloutSourceRect, type ElementBox, ElementContent } from './element-renderers'
 
 /** Elements that keep a square box when resized. */
 const KEEP_RATIO = new Set<CanvasElement['type']>(['badge', 'cursor'])
-/** Layers every element snaps to, besides other elements and the canvas. */
-const SNAP_TARGETS = '[data-main-image-layer], [data-overlay-id], [data-text-overlay-id], [data-device-id], [data-element-id]'
 
 function boxOf(element: CanvasElement, width: number, height: number): ElementBox {
   const w = element.width * width
@@ -135,20 +132,11 @@ export function ElementLayer({ zIndex }: { zIndex: number }) {
   const updateElement = useImageStore((state) => state.updateElement)
   const removeElement = useImageStore((state) => state.removeElement)
   const geometry = useCanvasGeometry()
-  const guides = useCanvasGuides()
   const [target, setTarget] = useState<HTMLDivElement | null>(null)
-  const [snapTargets, setSnapTargets] = useState<HTMLElement[]>([])
+  const snapping = useMoveableSnapping(target, elements.length)
   const moveableRef = useRef<Moveable | null>(null)
   const selected = elements.find((element) => element.id === selectedId) ?? null
   const { canvasH, canvasW } = geometry
-
-  useEffect(() => {
-    if (!target) return
-    const canvas = target.closest('[data-html-canvas="true"]')
-    setSnapTargets(
-      Array.from(canvas?.querySelectorAll<HTMLElement>(SNAP_TARGETS) ?? []).filter((node) => node !== target)
-    )
-  }, [target, elements.length])
 
   useEffect(() => {
     moveableRef.current?.updateRect()
@@ -195,8 +183,6 @@ export function ElementLayer({ zIndex }: { zIndex: number }) {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [canvasH, canvasW, removeElement, selected, updateElement])
 
-  const lines = canvasSnapLines(canvasW, canvasH, guides.showThirds)
-
   return (
     <div
       data-element-layer="true"
@@ -238,9 +224,7 @@ export function ElementLayer({ zIndex }: { zIndex: number }) {
         <Moveable
           draggable
           edge={false}
-          elementGuidelines={guides.snapping && guides.snapToObjects ? snapTargets : []}
-          horizontalGuidelines={guides.snapping && guides.snapToCanvas ? lines.horizontal : []}
-          isDisplaySnapDigit={false}
+          {...snapping}
           keepRatio={KEEP_RATIO.has(selected.type)}
           onDrag={({ left, target: node, top }) => {
             node.style.left = `${left}px`
@@ -271,14 +255,10 @@ export function ElementLayer({ zIndex }: { zIndex: number }) {
           resizable
           rotatable
           rotationPosition="top"
-          snapDirections={{ bottom: true, center: true, left: true, middle: true, right: true, top: true }}
-          snappable={guides.snapping}
-          snapThreshold={guides.snapTolerance}
           target={target}
           throttleDrag={0}
           throttleResize={0}
           throttleRotate={0}
-          verticalGuidelines={guides.snapping && guides.snapToCanvas ? lines.vertical : []}
         />
       ) : null}
     </div>

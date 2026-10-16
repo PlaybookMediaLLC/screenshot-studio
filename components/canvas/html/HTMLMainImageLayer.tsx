@@ -7,6 +7,7 @@ import { type ImageFilters, useImageStore } from '@/lib/store';
 import { SafariToolbar, ChromeToolbar } from '../frames/BrowserToolbar';
 import { CanvasObjectTopControls } from './CanvasObjectTopControls';
 import { imageFilterCss } from '@/lib/editor/image-adjustments';
+import { canvasOf, collectSnapLines, endSnapDrag, snapDrag } from '@/lib/editor/snap-dom';
 import { removeScreenshot } from '@/lib/editor/remove-screenshot'
 
 export interface FrameConfig {
@@ -50,8 +51,6 @@ interface HTMLMainImageLayerProps {
   onDragStateChange?: (isDragging: boolean) => void;
   onRemoveImage?: () => void;
 }
-
-const SNAP_THRESHOLD = 6;
 
 function buildDropShadowFilter(shadow: ShadowConfig): string | undefined {
   if (!shadow.enabled) return undefined;
@@ -165,22 +164,28 @@ export function HTMLMainImageLayer({
     };
   }, []);
 
-  // Handle drag move with snap-to-center
+  // Drag, snapping the framed screenshot's edges and centre like every layer.
   useEffect(() => {
     if (!isDragging) return;
+    const canvas = canvasOf(containerRef.current);
+    const lines = canvas ? collectSnapLines(canvas, containerRef.current) : null;
+    const width = framedW * screenshot.scale;
+    const height = framedH * screenshot.scale;
 
     const handleMouseMove = (e: MouseEvent) => {
-      let newOffsetX = e.clientX - dragStart.x;
-      let newOffsetY = e.clientY - dragStart.y;
-
-      // Snap to center when close
-      if (Math.abs(newOffsetX) < SNAP_THRESHOLD) newOffsetX = 0;
-      if (Math.abs(newOffsetY) < SNAP_THRESHOLD) newOffsetY = 0;
-
-      setScreenshot({ offsetX: newOffsetX, offsetY: newOffsetY });
+      const offsetX = e.clientX - dragStart.x;
+      const offsetY = e.clientY - dragStart.y;
+      const { dx, dy } = lines
+        ? snapDrag(
+            { height, width, x: canvasW / 2 + offsetX - width / 2, y: canvasH / 2 + offsetY - height / 2 },
+            lines
+          )
+        : { dx: 0, dy: 0 };
+      setScreenshot({ offsetX: offsetX + dx, offsetY: offsetY + dy });
     };
 
     const handleMouseUp = () => {
+      endSnapDrag();
       setIsDragging(false);
       onDragStateChange?.(false);
     };
@@ -192,7 +197,7 @@ export function HTMLMainImageLayer({
       window.removeEventListener('pointermove', handleMouseMove);
       window.removeEventListener('pointerup', handleMouseUp);
     };
-  }, [isDragging, dragStart, setScreenshot, onDragStateChange]);
+  }, [isDragging, dragStart, setScreenshot, onDragStateChange, canvasW, canvasH, framedW, framedH, screenshot.scale]);
 
   // Handle resize move
   useEffect(() => {

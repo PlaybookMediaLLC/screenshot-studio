@@ -4,6 +4,7 @@ import * as React from 'react'
 import { Slider } from '@/components/ui/slider'
 import { useImageStore } from '@/lib/store'
 import { ExportPresetsSection, SectionWrapper } from '../sections'
+import { GuidesSection } from './GuidesSection'
 
 /** The canvas itself: corner radius, the space around the screenshot, and its size. */
 export function CanvasSection() {
@@ -36,6 +37,7 @@ export function CanvasSection() {
           />
         </div>
       </SectionWrapper>
+      <GuidesSection />
       <ExportPresetsSection />
     </>
   )

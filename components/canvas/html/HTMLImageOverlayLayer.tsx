@@ -16,6 +16,7 @@ import {
   LayerSendToBackIcon,
   LayerBringToFrontIcon,
 } from 'hugeicons-react';
+import { useMoveableSnapping } from '../use-moveable-snapping';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -213,6 +214,7 @@ export function HTMLImageOverlayLayer({
   const [selectedEl, setSelectedEl] = useState<HTMLDivElement | null>(null);
   const [interacting, setInteracting] = useState(false);
   const moveableRef = useRef<Moveable | null>(null);
+  const snapping = useMoveableSnapping(selectedEl, imageOverlays.length);
 
   const handleSelect = useCallback(
     (id: string) => {
@@ -275,6 +277,7 @@ export function HTMLImageOverlayLayer({
           <Moveable
             ref={moveableRef}
             target={selectedEl}
+            {...snapping}
             draggable={true}
             resizable={true}
             rotatable={true}

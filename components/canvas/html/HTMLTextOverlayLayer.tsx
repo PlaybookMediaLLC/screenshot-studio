@@ -3,6 +3,8 @@
 import { useRef, useState, useCallback } from 'react';
 import { getFontCSS } from '@/lib/constants/fonts';
 import type { TextOverlay } from '@/lib/store';
+import { canvasOf, collectSnapLines, endSnapDrag, snapDrag } from '@/lib/editor/snap-dom';
+import type { SnapLines } from '@/lib/editor/snapping';
 
 export function getDraggedTextPosition(
   start: TextOverlay['position'], deltaX: number, deltaY: number, width: number, height: number,
@@ -42,7 +44,7 @@ function DraggableText({
   onSelect,
   onUpdate,
 }: DraggableTextProps) {
-  const drag = useRef<{ x: number; y: number; position: TextOverlay["position"] } | null>(null);
+  const drag = useRef<{ x: number; y: number; position: TextOverlay["position"]; lines: SnapLines | null } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   // Convert percentage position to pixels
@@ -65,24 +67,37 @@ function DraggableText({
         event.preventDefault();
         event.stopPropagation();
         event.currentTarget.setPointerCapture(event.pointerId);
-        drag.current = { x: event.clientX, y: event.clientY, position: overlay.position };
+        const canvas = canvasOf(event.currentTarget);
+        drag.current = {
+          x: event.clientX,
+          y: event.clientY,
+          position: overlay.position,
+          lines: canvas ? collectSnapLines(canvas, event.currentTarget) : null,
+        };
         setIsDragging(true);
         onSelect();
       }}
       onPointerMove={(event) => {
         if (!drag.current) return;
         const bounds = event.currentTarget.parentElement!.getBoundingClientRect();
-        onUpdate({ position: getDraggedTextPosition(
-          drag.current.position,
-          event.clientX - drag.current.x,
-          event.clientY - drag.current.y,
-          bounds.width,
-          bounds.height,
-        ) });
+        const own = event.currentTarget.getBoundingClientRect();
+        let deltaX = event.clientX - drag.current.x;
+        let deltaY = event.clientY - drag.current.y;
+        if (drag.current.lines) {
+          const centerX = (drag.current.position.x / 100) * bounds.width + deltaX;
+          const centerY = (drag.current.position.y / 100) * bounds.height + deltaY;
+          const snap = snapDrag(
+            { height: own.height, width: own.width, x: centerX - own.width / 2, y: centerY - own.height / 2 },
+            drag.current.lines
+          );
+          deltaX += snap.dx;
+          deltaY += snap.dy;
+        }
+        onUpdate({ position: getDraggedTextPosition(drag.current.position, deltaX, deltaY, bounds.width, bounds.height) });
       }}
-      onPointerUp={() => { drag.current = null; setIsDragging(false); }}
-      onPointerCancel={() => { drag.current = null; setIsDragging(false); }}
-      onLostPointerCapture={() => { drag.current = null; setIsDragging(false); }}
+      onPointerUp={() => { drag.current = null; setIsDragging(false); endSnapDrag(); }}
+      onPointerCancel={() => { drag.current = null; setIsDragging(false); endSnapDrag(); }}
+      onLostPointerCapture={() => { drag.current = null; setIsDragging(false); endSnapDrag(); }}
       style={{
         position: 'absolute',
         left: `${textX}px`,

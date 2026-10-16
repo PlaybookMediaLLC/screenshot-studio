@@ -31,6 +31,7 @@ import {
   HTMLGridLayer,
 } from "./html";
 import { CanvasRulers } from "./CanvasRulers";
+import { CanvasGuidesLayer } from "./html/CanvasGuidesLayer";
 import {
   hasVisibleMockups,
   shouldRenderSourceImage,
@@ -129,7 +130,6 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
 
   const selectedTextId = useImageStore((state) => state.selectedTextId);
   const setSelectedTextId = useImageStore((state) => state.setSelectedTextId);
-  const [isDraggingMainImage, setIsDraggingMainImage] = useState(false);
   const selectedBlurId = useImageStore((state) => state.selectedBlurId);
   const setSelectedBlurId = useImageStore((state) => state.setSelectedBlurId);
 
@@ -567,13 +567,6 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
 
         {hasSourceImage && !has3DTransform && (
           <>
-            <SnapAlignmentGuides
-              canvasW={canvasW}
-              canvasH={canvasH}
-              offsetX={screenshot.offsetX}
-              offsetY={screenshot.offsetY}
-              isDragging={isDraggingMainImage}
-            />
             <HTMLMainImageLayer
               image={image}
               canvasW={canvasW}
@@ -596,7 +589,6 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
               setSelectedOverlayId={setSelectedOverlayId}
               setSelectedTextId={setSelectedTextId}
               setScreenshot={setImagePlacement}
-              onDragStateChange={setIsDraggingMainImage}
             />
           </>
         )}
@@ -665,6 +657,8 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
 
 
         {showGrid && <HTMLGridLayer canvasW={canvasW} canvasH={canvasH} />}
+        <CanvasGuidesLayer canvasW={canvasW} canvasH={canvasH} />
+        <SnapAlignmentGuides />
       </HTMLCanvasRenderer>
     </div>
   );

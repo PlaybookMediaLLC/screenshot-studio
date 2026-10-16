@@ -11,6 +11,7 @@ import { useImageStore } from "@/lib/store";
 import type { Mockup } from "@/types/mockup";
 import { useImageMotion } from "@/lib/animation/use-image-motion";
 import { imageFilterCss } from "@/lib/editor/image-adjustments";
+import { useMoveableSnapping } from "@/components/canvas/use-moveable-snapping";
 
 interface MockupRendererProps {
   mockup: Mockup;
@@ -39,6 +40,7 @@ function MockupRenderer({ mockup, canvasWidth, canvasHeight, zIndex }: MockupRen
   const [isRotating, setIsRotating] = useState(false);
 
   const isSelected = selectedDeviceId === mockup.id;
+  const snapping = useMoveableSnapping(isSelected ? targetElement : null, mockup.id);
   const isEditingScreen = editingScreenDeviceId === mockup.id;
   const width = mockup.size * canvasWidth;
   const height = definition ? width / definition.aspectRatio : width;
@@ -299,6 +301,7 @@ function MockupRenderer({ mockup, canvasWidth, canvasHeight, zIndex }: MockupRen
         <Moveable
           ref={moveableRef}
           target={targetElement}
+          {...snapping}
           draggable
           resizable
           keepRatio

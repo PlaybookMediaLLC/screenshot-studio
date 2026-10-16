@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  DEFAULT_EXPORT_SETTINGS,
+  frameRateFor,
+  loadExportSettings,
+  withCurrentCanvas,
+} from '@/lib/export/export-settings'
+import {
   extensionFor,
   FORMAT_INFO,
   formatForMimeType,
@@ -148,4 +154,36 @@ test('batch files sit in one folder per size, numbered in import order', () => {
     batchEntryPath({ format: 'pdf', index: 2, name: 'c.png', target: og, total: 3 }),
     '3-c.pdf'
   )
+})
+
+test('stored export settings are read field by field, and bad values fall back', () => {
+  const storage = (value: string | null) => ({ getItem: () => value })
+  assert.deepEqual(loadExportSettings(storage(null)), DEFAULT_EXPORT_SETTINGS)
+  assert.deepEqual(loadExportSettings(storage('{not json')), DEFAULT_EXPORT_SETTINGS)
+  const loaded = loadExportSettings(
+    storage(
+      JSON.stringify({
+        format: 'tiff',
+        gifWidth: 123,
+        quality: 'low',
+        scale: 9,
+        targets: [{ id: '../x' }],
+      })
+    )
+  )
+  assert.equal(loaded.format, DEFAULT_EXPORT_SETTINGS.format)
+  assert.equal(loaded.quality, 'low')
+  assert.equal(loaded.scale, DEFAULT_EXPORT_SETTINGS.scale)
+  assert.equal(loaded.gifWidth, DEFAULT_EXPORT_SETTINGS.gifWidth)
+  assert.deepEqual(
+    loaded.targets.map((target) => target.id),
+    ['canvas']
+  )
+  const story = getSizePreset('instagram-story')!
+  assert.deepEqual(withCurrentCanvas([canvasTarget(1, 1), story], { height: 1080, width: 1920 }), [
+    canvasTarget(1920, 1080),
+    story,
+  ])
+  assert.equal(frameRateFor('gif', 60), 15)
+  assert.equal(frameRateFor('mp4', 24), 24)
 })

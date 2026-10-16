@@ -3,7 +3,6 @@
 import * as React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,12 +30,10 @@ import {
   Delete02Icon,
   ArrowTurnBackwardIcon,
   ArrowTurnForwardIcon,
-  Download01Icon,
   RefreshIcon,
   MagicWand01Icon,
   GridIcon,
   RulerIcon,
-  FileZipIcon,
   KeyboardIcon,
   MoreHorizontalIcon,
 } from 'hugeicons-react'
@@ -45,17 +42,13 @@ import { useShallow } from 'zustand/react/shallow'
 import { useExport } from '@/hooks/useExport'
 import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts'
 import { KeyboardShortcutsDialog } from '@/components/canvas/dialogs/KeyboardShortcutsDialog'
-import { useBatchExport } from '@/hooks/useBatchExport'
 import { aspectRatios } from '@/lib/constants/aspect-ratios'
 import { AspectRatioPicker } from '@/components/aspect-ratio/aspect-ratio-picker'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { CopyProgressDialog } from '@/components/canvas/dialogs/CopyProgressDialog'
-import { BatchExportProgressDialog } from '@/components/canvas/dialogs/BatchExportProgressDialog'
 import { ExportSlideshowDialog } from '@/lib/export-slideshow-dialog'
-import { ImageExportProgressView } from '@/components/canvas/dialogs/ImageProgressView'
-import { FormatSelector, QualityPresetSelector, ScaleSlider } from '@/components/export'
+import { ExportPanel } from '@/components/export/ExportPanel'
 import { cn } from '@/lib/utils'
-import { SaveToWorkspaceButton } from '@/components/workspace/SaveToWorkspaceButton'
 import { ProjectMenu } from '@/components/projects/ProjectMenu'
 import { FeedbackWidget } from '@/components/FeedbackWidget'
 import { AccountMenu } from '@/components/auth/AccountMenu'
@@ -126,7 +119,7 @@ export function EditorHeader() {
   const [aspectRatioOpen, setAspectRatioOpen] = React.useState(false)
   const [exportOpen, setExportOpen] = React.useState(false)
   const [exportSlideshowOpen, setExportSlideshowOpen] = React.useState(false)
-  const [exportError, setExportError] = React.useState<string | null>(null)
+  const [exportBusy, setExportBusy] = React.useState(false)
   const [resetOpen, setResetOpen] = React.useState(false)
 
   const currentAspectRatio = aspectRatios.find((ar) => ar.id === selectedAspectRatio)
@@ -180,42 +173,7 @@ export function EditorHeader() {
   const showVideoExport =
     slides.length > 0 || timeline.tracks.length > 0 || animationClips.length > 0
 
-  const {
-    copyImage,
-    isExporting,
-    isCopying,
-    progress,
-    copyProgress,
-    settings: exportSettings,
-    exportImage,
-    renderExportBlob,
-    updateScale,
-    updateFormat,
-    updateQualityPreset,
-  } = useExport(selectedAspectRatio)
-
-  const { isBatchExporting, batchProgress, exportAllSlides } = useBatchExport(
-    selectedAspectRatio,
-    exportSettings
-  )
-
-  const handleExport = async () => {
-    setExportError(null)
-    try {
-      await exportImage()
-      setExportOpen(false)
-    } catch (err) {
-      setExportError(err instanceof Error ? err.message : 'Export failed. Please try again.')
-    }
-  }
-
-  const handleExportAll = async () => {
-    setExportOpen(false)
-    await exportAllSlides()
-  }
-
-  const formatLabel =
-    exportSettings.format === 'jpeg' ? 'JPEG' : exportSettings.format === 'webp' ? 'WebP' : 'PNG'
+  const { copyImage, isCopying, copyProgress } = useExport(selectedAspectRatio)
 
   return (
     <>
@@ -367,7 +325,7 @@ export function EditorHeader() {
             </ToolButton>
           ) : null}
           <ToolButton
-            disabled={!hasContent || isExporting || isCopying}
+            disabled={!hasContent || exportBusy || isCopying}
             label="Copy"
             onClick={() => copyImage()}
           >
@@ -385,7 +343,7 @@ export function EditorHeader() {
             </button>
           ) : null}
 
-          <Popover onOpenChange={isExporting ? undefined : setExportOpen} open={exportOpen}>
+          <Popover onOpenChange={exportBusy ? undefined : setExportOpen} open={exportOpen}>
             <PopoverTrigger asChild>
               <button
                 aria-label="Save"
@@ -406,55 +364,10 @@ export function EditorHeader() {
               align="end"
               className="w-[340px] p-0"
               collisionPadding={16}
-              onPointerDownOutside={isExporting ? (e) => e.preventDefault() : undefined}
+              onPointerDownOutside={exportBusy ? (e) => e.preventDefault() : undefined}
               sideOffset={10}
             >
-              {isExporting ? (
-                <div className="p-5">
-                  <p className="mb-1 text-sm font-medium text-foreground">Exporting...</p>
-                  <p className="mb-4 text-xs text-muted-foreground">Rendering your creation</p>
-                  <ImageExportProgressView format={exportSettings.format} progress={progress} />
-                </div>
-              ) : (
-                <div className="space-y-4 p-4">
-                  <FormatSelector format={exportSettings.format} onFormatChange={updateFormat} />
-                  <QualityPresetSelector
-                    format={exportSettings.format}
-                    onQualityPresetChange={updateQualityPreset}
-                    qualityPreset={exportSettings.qualityPreset}
-                  />
-                  <ScaleSlider onScaleChange={updateScale} scale={exportSettings.scale} />
-
-                  {exportError && (
-                    <div className="rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-xs text-destructive">
-                      {exportError}
-                    </div>
-                  )}
-
-                  <Button
-                    className="h-10 w-full rounded-md text-sm font-semibold transition-all"
-                    disabled={isExporting}
-                    onClick={handleExport}
-                  >
-                    <Download01Icon className="mr-2" size={16} />
-                    Export as {formatLabel}
-                  </Button>
-
-                  <SaveToWorkspaceButton createExport={renderExportBlob} disabled={isExporting} />
-
-                  {slides.length > 1 && (
-                    <Button
-                      className="h-10 w-full rounded-md text-sm font-semibold transition-all"
-                      disabled={isExporting || isBatchExporting}
-                      onClick={handleExportAll}
-                      variant="outline"
-                    >
-                      <FileZipIcon className="mr-2" size={16} />
-                      Export All ({slides.length})
-                    </Button>
-                  )}
-                </div>
-              )}
+              <ExportPanel onBusyChange={setExportBusy} onExported={() => setExportOpen(false)} />
             </PopoverContent>
           </Popover>
 
@@ -522,12 +435,6 @@ export function EditorHeader() {
       <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 
       <CopyProgressDialog open={isCopying} progress={copyProgress} />
-
-      <BatchExportProgressDialog
-        open={isBatchExporting}
-        batchProgress={batchProgress}
-        format={exportSettings.format}
-      />
 
       <ExportSlideshowDialog open={exportSlideshowOpen} onOpenChange={setExportSlideshowOpen} />
     </>

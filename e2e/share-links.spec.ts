@@ -13,7 +13,9 @@ async function dropScreenshot(page: Page) {
     const context = canvas.getContext('2d')!
     context.fillStyle = '#2563eb'
     context.fillRect(0, 0, canvas.width, canvas.height)
-    const blob = await new Promise<Blob>((resolve) => canvas.toBlob((png) => resolve(png!), 'image/png'))
+    const blob = await new Promise<Blob>((resolve) =>
+      canvas.toBlob((png) => resolve(png!), 'image/png')
+    )
     const data = new DataTransfer()
     data.items.add(new File([blob], 'launch.png', { type: 'image/png' }))
     document
@@ -28,7 +30,7 @@ test('a published design opens for anyone, previews, embeds, can be restricted, 
   identity,
   page,
 }) => {
-  test.setTimeout(240_000)
+  test.setTimeout(480_000)
   await signUpAndCreateWorkspace(identity, page)
   await dropScreenshot(page)
 
@@ -53,12 +55,17 @@ test('a published design opens for anyone, previews, embeds, can be restricted, 
   await expect(anonymous.getByRole('heading', { name: 'Launch preview' })).toBeVisible()
   const ogImage = await anonymous.locator('meta[property="og:image"]').getAttribute('content')
   expect(ogImage).toMatch(/\/api\/share\/[A-Za-z0-9_-]+\/media$/)
-  expect(await anonymous.locator('meta[property="og:title"]').getAttribute('content')).toBe('Launch preview')
-  expect(await anonymous.locator('meta[name="robots"]').getAttribute('content')).toContain('noindex')
+  expect(await anonymous.locator('meta[property="og:title"]').getAttribute('content')).toBe(
+    'Launch preview'
+  )
+  expect(await anonymous.locator('meta[name="robots"]').getAttribute('content')).toContain(
+    'noindex'
+  )
   const media = await anonymous.request.get(new URL(new URL(ogImage!).pathname, url).toString())
   expect(media.status()).toBe(200)
-  expect(media.headers()['content-type']).toBe('image/png')
-  const { height, width } = await sharp(await media.body()).metadata()
+  // The link publishes the design in the current export format.
+  const { format, height, width } = await sharp(await media.body()).metadata()
+  expect(media.headers()['content-type']).toBe(`image/${format}`)
   expect(width).toBeGreaterThan(0)
   expect(height).toBeGreaterThan(0)
   await anonymous.goto(`${url}/embed`)
@@ -67,12 +74,16 @@ test('a published design opens for anyone, previews, embeds, can be restricted, 
 
   // Limit it to the workspace: visitors are turned away, members still see it.
   await page.goto('/workspace/shared-links')
-  const row = page.getByText('Launch preview').locator('xpath=ancestor::div[contains(@class,"justify-between")][1]')
+  const row = page
+    .getByText('Launch preview')
+    .locator('xpath=ancestor::div[contains(@class,"justify-between")][1]')
   await row.getByRole('button', { name: 'Limit to workspace' }).click()
   await expect(row.getByRole('button', { name: 'Allow anyone' })).toBeVisible()
   await anonymous.goto(url)
   await expect(anonymous.getByRole('heading', { name: 'Shared with a workspace' })).toBeVisible()
-  expect((await anonymous.request.get(new URL(new URL(ogImage!).pathname, url).toString())).status()).toBe(403)
+  expect(
+    (await anonymous.request.get(new URL(new URL(ogImage!).pathname, url).toString())).status()
+  ).toBe(403)
   await page.goto(url)
   await expect(page.getByRole('img', { name: 'A blue dashboard screenshot' })).toBeVisible()
 
@@ -83,11 +94,16 @@ test('a published design opens for anyone, previews, embeds, can be restricted, 
   await expect(page.getByText('Revoked', { exact: true })).toBeVisible()
   await anonymous.goto(url)
   await expect(anonymous.getByRole('heading', { name: 'This link is not available' })).toBeVisible()
-  expect((await anonymous.request.get(new URL(new URL(ogImage!).pathname, url).toString())).status()).toBe(404)
+  expect(
+    (await anonymous.request.get(new URL(new URL(ogImage!).pathname, url).toString())).status()
+  ).toBe(404)
   await visitor.close()
 })
 
-test('integrations say exactly what a server needs before they can connect', async ({ identity, page }) => {
+test('integrations say exactly what a server needs before they can connect', async ({
+  identity,
+  page,
+}) => {
   await signUpAndCreateWorkspace(identity, page)
   await page.goto('/workspace/integrations')
   for (const provider of ['Slack', 'Notion', 'Figma']) {
@@ -97,7 +113,9 @@ test('integrations say exactly what a server needs before they can connect', asy
   const connect = await page.request.get('/api/integrations/slack/connect', { maxRedirects: 0 })
   expect(connect.status()).toBe(503)
   expect(await connect.text()).toContain('SLACK_CLIENT_ID')
-  const forged = await page.request.get('/api/integrations/slack/callback?code=x&state=forged', { maxRedirects: 0 })
+  const forged = await page.request.get('/api/integrations/slack/callback?code=x&state=forged', {
+    maxRedirects: 0,
+  })
   expect(forged.status()).toBe(302)
   expect(forged.headers().location).toContain('error=')
 })

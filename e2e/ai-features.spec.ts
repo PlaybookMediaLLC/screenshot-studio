@@ -21,7 +21,9 @@ async function dropScreenshot(page: Page) {
     context.fillRect(0, 0, 1200, 400)
     context.fillStyle = '#f8fafc'
     context.fillRect(0, 400, 1200, 400)
-    const blob = await new Promise<Blob>((resolve) => canvas.toBlob((png) => resolve(png!), 'image/png'))
+    const blob = await new Promise<Blob>((resolve) =>
+      canvas.toBlob((png) => resolve(png!), 'image/png')
+    )
     const data = new DataTransfer()
     data.items.add(new File([blob], 'app.png', { type: 'image/png' }))
     document
@@ -59,7 +61,9 @@ test('copilot versions compare before applying; captions and alt text are writte
   await panel.getByLabel('Ask the copilot').fill('Give me four versions of this design')
   await panel.getByLabel('Ask the copilot').press('Enter')
   const versions = panel.getByRole('list', { name: 'Versions' })
-  await expect(versions.getByRole('button', { name: /^Inspect / })).toHaveCount(4, { timeout: 90_000 })
+  await expect(versions.getByRole('button', { name: /^Inspect / })).toHaveCount(4, {
+    timeout: 90_000,
+  })
   await expect(versions.getByText('Original')).toBeVisible()
   await expect(page.getByText('4:3', { exact: true }).first()).toBeVisible()
 
@@ -86,7 +90,9 @@ test('copilot versions compare before applying; captions and alt text are writte
   await x.blur()
   await panel.getByRole('button', { name: 'Close' }).click()
   await page.getByRole('button', { exact: true, name: 'Share' }).click()
-  await expect(page.getByRole('dialog', { name: 'Share design' }).getByLabel('Alt text')).toHaveValue(/product screenshot/)
+  await expect(
+    page.getByRole('dialog', { name: 'Share design' }).getByLabel('Alt text')
+  ).toHaveValue(/product screenshot/)
   await page.keyboard.press('Escape')
 })
 
@@ -99,7 +105,11 @@ test('an AI background in the screenshot palette applies as an image background 
   await dropScreenshot(page)
   const before = await exportCorner(page)
 
-  await page.getByRole('radio', { name: 'BG' }).or(page.getByRole('tab', { name: 'BG' })).first().click()
+  await page
+    .getByRole('radio', { name: 'BG' })
+    .or(page.getByRole('tab', { name: 'BG' }))
+    .first()
+    .click()
   await page.getByRole('button', { name: 'AI background' }).click()
   await page.getByLabel('Describe the background').fill('Warm glow behind the product')
   await page.getByRole('radio', { name: 'From screenshot' }).click()

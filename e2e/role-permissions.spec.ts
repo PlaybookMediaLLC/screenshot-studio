@@ -84,7 +84,10 @@ async function assertRolePermissions(
       browserRequest(page, `/api/audit-logs?organizationId=${organizationId}`),
       trpcQuery(page, 'brandKit.list'),
       trpcMutation(page, 'brandKit.create', {
-        definition: { colors: { background: '#ffffff', foreground: '#111111' } },
+        definition: {
+          colors: { accent: '#6d5dfc', background: '#ffffff', text: '#111111' },
+          typography: { headingFamily: 'inter' },
+        },
         name: `Role ${role} kit`,
         publish: true,
       }),

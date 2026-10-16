@@ -74,6 +74,11 @@ func Name(v string) predicate.ProductSurface {
 	return predicate.ProductSurface(sql.FieldEQ(FieldName, v))
 }
 
+// Slug applies equality check predicate on the "slug" field. It's identical to SlugEQ.
+func Slug(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldEQ(FieldSlug, v))
+}
+
 // URL applies equality check predicate on the "url" field. It's identical to URLEQ.
 func URL(v string) predicate.ProductSurface {
 	return predicate.ProductSurface(sql.FieldEQ(FieldURL, v))
@@ -87,6 +92,16 @@ func Environment(v string) predicate.ProductSurface {
 // Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
 func Description(v string) predicate.ProductSurface {
 	return predicate.ProductSurface(sql.FieldEQ(FieldDescription, v))
+}
+
+// LastCapturedAt applies equality check predicate on the "last_captured_at" field. It's identical to LastCapturedAtEQ.
+func LastCapturedAt(v time.Time) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldEQ(FieldLastCapturedAt, v))
+}
+
+// LastCaptureFailureCode applies equality check predicate on the "last_capture_failure_code" field. It's identical to LastCaptureFailureCodeEQ.
+func LastCaptureFailureCode(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldEQ(FieldLastCaptureFailureCode, v))
 }
 
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
@@ -227,6 +242,71 @@ func NameEqualFold(v string) predicate.ProductSurface {
 // NameContainsFold applies the ContainsFold predicate on the "name" field.
 func NameContainsFold(v string) predicate.ProductSurface {
 	return predicate.ProductSurface(sql.FieldContainsFold(FieldName, v))
+}
+
+// SlugEQ applies the EQ predicate on the "slug" field.
+func SlugEQ(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldEQ(FieldSlug, v))
+}
+
+// SlugNEQ applies the NEQ predicate on the "slug" field.
+func SlugNEQ(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldNEQ(FieldSlug, v))
+}
+
+// SlugIn applies the In predicate on the "slug" field.
+func SlugIn(vs ...string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldIn(FieldSlug, vs...))
+}
+
+// SlugNotIn applies the NotIn predicate on the "slug" field.
+func SlugNotIn(vs ...string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldNotIn(FieldSlug, vs...))
+}
+
+// SlugGT applies the GT predicate on the "slug" field.
+func SlugGT(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldGT(FieldSlug, v))
+}
+
+// SlugGTE applies the GTE predicate on the "slug" field.
+func SlugGTE(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldGTE(FieldSlug, v))
+}
+
+// SlugLT applies the LT predicate on the "slug" field.
+func SlugLT(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldLT(FieldSlug, v))
+}
+
+// SlugLTE applies the LTE predicate on the "slug" field.
+func SlugLTE(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldLTE(FieldSlug, v))
+}
+
+// SlugContains applies the Contains predicate on the "slug" field.
+func SlugContains(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldContains(FieldSlug, v))
+}
+
+// SlugHasPrefix applies the HasPrefix predicate on the "slug" field.
+func SlugHasPrefix(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldHasPrefix(FieldSlug, v))
+}
+
+// SlugHasSuffix applies the HasSuffix predicate on the "slug" field.
+func SlugHasSuffix(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldHasSuffix(FieldSlug, v))
+}
+
+// SlugEqualFold applies the EqualFold predicate on the "slug" field.
+func SlugEqualFold(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldEqualFold(FieldSlug, v))
+}
+
+// SlugContainsFold applies the ContainsFold predicate on the "slug" field.
+func SlugContainsFold(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldContainsFold(FieldSlug, v))
 }
 
 // URLEQ applies the EQ predicate on the "url" field.
@@ -432,6 +512,131 @@ func DescriptionEqualFold(v string) predicate.ProductSurface {
 // DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
 func DescriptionContainsFold(v string) predicate.ProductSurface {
 	return predicate.ProductSurface(sql.FieldContainsFold(FieldDescription, v))
+}
+
+// LastCapturedAtEQ applies the EQ predicate on the "last_captured_at" field.
+func LastCapturedAtEQ(v time.Time) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldEQ(FieldLastCapturedAt, v))
+}
+
+// LastCapturedAtNEQ applies the NEQ predicate on the "last_captured_at" field.
+func LastCapturedAtNEQ(v time.Time) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldNEQ(FieldLastCapturedAt, v))
+}
+
+// LastCapturedAtIn applies the In predicate on the "last_captured_at" field.
+func LastCapturedAtIn(vs ...time.Time) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldIn(FieldLastCapturedAt, vs...))
+}
+
+// LastCapturedAtNotIn applies the NotIn predicate on the "last_captured_at" field.
+func LastCapturedAtNotIn(vs ...time.Time) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldNotIn(FieldLastCapturedAt, vs...))
+}
+
+// LastCapturedAtGT applies the GT predicate on the "last_captured_at" field.
+func LastCapturedAtGT(v time.Time) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldGT(FieldLastCapturedAt, v))
+}
+
+// LastCapturedAtGTE applies the GTE predicate on the "last_captured_at" field.
+func LastCapturedAtGTE(v time.Time) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldGTE(FieldLastCapturedAt, v))
+}
+
+// LastCapturedAtLT applies the LT predicate on the "last_captured_at" field.
+func LastCapturedAtLT(v time.Time) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldLT(FieldLastCapturedAt, v))
+}
+
+// LastCapturedAtLTE applies the LTE predicate on the "last_captured_at" field.
+func LastCapturedAtLTE(v time.Time) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldLTE(FieldLastCapturedAt, v))
+}
+
+// LastCapturedAtIsNil applies the IsNil predicate on the "last_captured_at" field.
+func LastCapturedAtIsNil() predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldIsNull(FieldLastCapturedAt))
+}
+
+// LastCapturedAtNotNil applies the NotNil predicate on the "last_captured_at" field.
+func LastCapturedAtNotNil() predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldNotNull(FieldLastCapturedAt))
+}
+
+// LastCaptureFailureCodeEQ applies the EQ predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeEQ(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldEQ(FieldLastCaptureFailureCode, v))
+}
+
+// LastCaptureFailureCodeNEQ applies the NEQ predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeNEQ(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldNEQ(FieldLastCaptureFailureCode, v))
+}
+
+// LastCaptureFailureCodeIn applies the In predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeIn(vs ...string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldIn(FieldLastCaptureFailureCode, vs...))
+}
+
+// LastCaptureFailureCodeNotIn applies the NotIn predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeNotIn(vs ...string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldNotIn(FieldLastCaptureFailureCode, vs...))
+}
+
+// LastCaptureFailureCodeGT applies the GT predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeGT(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldGT(FieldLastCaptureFailureCode, v))
+}
+
+// LastCaptureFailureCodeGTE applies the GTE predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeGTE(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldGTE(FieldLastCaptureFailureCode, v))
+}
+
+// LastCaptureFailureCodeLT applies the LT predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeLT(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldLT(FieldLastCaptureFailureCode, v))
+}
+
+// LastCaptureFailureCodeLTE applies the LTE predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeLTE(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldLTE(FieldLastCaptureFailureCode, v))
+}
+
+// LastCaptureFailureCodeContains applies the Contains predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeContains(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldContains(FieldLastCaptureFailureCode, v))
+}
+
+// LastCaptureFailureCodeHasPrefix applies the HasPrefix predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeHasPrefix(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldHasPrefix(FieldLastCaptureFailureCode, v))
+}
+
+// LastCaptureFailureCodeHasSuffix applies the HasSuffix predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeHasSuffix(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldHasSuffix(FieldLastCaptureFailureCode, v))
+}
+
+// LastCaptureFailureCodeIsNil applies the IsNil predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeIsNil() predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldIsNull(FieldLastCaptureFailureCode))
+}
+
+// LastCaptureFailureCodeNotNil applies the NotNil predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeNotNil() predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldNotNull(FieldLastCaptureFailureCode))
+}
+
+// LastCaptureFailureCodeEqualFold applies the EqualFold predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeEqualFold(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldEqualFold(FieldLastCaptureFailureCode, v))
+}
+
+// LastCaptureFailureCodeContainsFold applies the ContainsFold predicate on the "last_capture_failure_code" field.
+func LastCaptureFailureCodeContainsFold(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldContainsFold(FieldLastCaptureFailureCode, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

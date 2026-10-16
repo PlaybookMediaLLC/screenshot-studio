@@ -2,10 +2,11 @@ package product
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"strings"
 	"time"
-	"unicode/utf8"
+	"unicode/utf16"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaign"
@@ -32,6 +33,27 @@ var campaignChannelPlatforms = map[string][]string{
 	"x":         {"x"},
 	"linkedin":  {"linkedin"},
 	"instagram": {"instagram", "instagram-standalone"},
+}
+
+// campaignChannelLimits mirrors bodyMax in CHANNEL_RULES (lib/launch/guards.ts):
+// the copy plus the call to action, as posted. Other channels keep 3000.
+var campaignChannelLimits = map[string]int{"x": 280, "linkedin": 3000, "instagram": 2200}
+
+func campaignChannelLimit(channel string) int {
+	if limit, ok := campaignChannelLimits[channel]; ok {
+		return limit
+	}
+	return 3000
+}
+
+// campaignPostLength counts like the web: copy and call to action joined by a
+// space, in UTF-16 code units (JavaScript's String.length).
+func campaignPostLength(text, callToAction string) int {
+	body := text
+	if callToAction != "" {
+		body += " " + callToAction
+	}
+	return len(utf16.Encode([]rune(body)))
 }
 
 type ScheduleCampaignPostResult struct {
@@ -113,9 +135,16 @@ func (c *Configuration) ScheduleCampaignPost(ctx context.Context, actor Actor, c
 			return &ScheduleCampaignPostResult{Post: scheduledCampaignPostItem(post, scheduled), ScheduledPost: scheduled}, nil
 		}
 	}
-	if (prior == nil && post.Status != campaignpost.StatusAPPROVED) ||
-		utf8.RuneCountInString(post.Copy) > 3000 || strings.TrimSpace(post.Copy) == "" {
+	if (prior == nil && post.Status != campaignpost.StatusAPPROVED) || strings.TrimSpace(post.Copy) == "" {
 		return nil, publishing.ErrConflict
+	}
+	if length, limit := campaignPostLength(post.Copy, optionalText(post.CallToAction)), campaignChannelLimit(post.Channel); length > limit {
+		return nil, conflict(fmt.Sprintf("This %s post is %d characters with the call to action; the limit is %d.", post.Channel, length, limit))
+	}
+	// The term list may have changed since the copy was approved.
+	if err := requireAllowedCopy(ctx, tx.BrandProfile, actor.OrganizationID,
+		optionalText(post.Title), post.Copy, optionalText(post.CallToAction)); err != nil {
+		return nil, err
 	}
 	variantID := post.CreativeVariantID
 	if input.CreativeVariantID != nil {

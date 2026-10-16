@@ -5,14 +5,17 @@ export type SettingId =
   | 'audit'
   | 'billing'
   | 'brand'
+  | 'channels'
   | 'general'
   | 'integrations'
   | 'members'
+  | 'product'
   | 'profile'
   | 'roles'
   | 'security'
   | 'sharing'
   | 'sso'
+  | 'surfaces'
 
 export type SettingSection = {
   description: string
@@ -88,6 +91,24 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     id: 'sharing',
     slug: 'shared-links',
     title: 'Shared links',
+  },
+  {
+    description: 'What your product is, who it is for, and what campaigns can claim.',
+    id: 'product',
+    slug: 'product',
+    title: 'Product',
+  },
+  {
+    description: 'The product pages campaigns screenshot, and how fresh each capture is.',
+    id: 'surfaces',
+    slug: 'product-pages',
+    title: 'Product pages',
+  },
+  {
+    description: 'Social accounts that approved posts publish to.',
+    id: 'channels',
+    slug: 'channels',
+    title: 'Channels',
   },
   {
     description: 'Scoped keys for release webhooks and content automation.',

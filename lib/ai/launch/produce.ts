@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { generateText, stepCountIs } from 'ai'
-import type { TenantContext } from '@/lib/auth/access'
+import type { OrganizationAccess } from '@/lib/auth/access'
 import { backendSDK } from '@/lib/backend/sdk'
 import {
   createDesignRenderer,
@@ -18,14 +18,15 @@ import {
   LaunchError,
   loadLaunchCampaign,
   loadPreferenceExamples,
-  releaseSourceUrls,
 } from '@/lib/launch/store'
 import { models, normalizeTokenUsage } from '../models'
 import { type CampaignStudioRecord, createCampaignStudioTools } from '../tools/campaign-studio'
 import { createDesignStudioTools } from '../tools/design-studio'
-import { captureUrlsFor, formatBrandKit, formatPlanForStages, formatSpecForStages } from './context'
+import { createToolRun, flushToolRun, isRunStopped } from '../tools/executor'
+import { formatBrandKit, formatPlanForStages, formatSpecForStages } from './context'
 import { writeLaunchCopy } from './copy'
 import { critiqueRender } from './critique'
+import { planCaptureUrls } from './plan'
 import { VISUALS_FALLBACK_INSTRUCTIONS, VISUALS_INSTRUCTIONS } from './prompts'
 
 /**
@@ -33,9 +34,14 @@ import { VISUALS_FALLBACK_INSTRUCTIONS, VISUALS_INSTRUCTIONS } from './prompts'
  * editor and self-reviewed, or product shots when the renderer is down) and
  * channel copy, side by side. Works from the approved spec and plan when they
  * exist, else the latest drafts. Whatever finished is kept if the other half
- * fails.
+ * fails. Tools act with the caller's role; `runId` is the launch run their
+ * calls are audited against.
  */
-export async function produceCampaign(tenant: TenantContext, campaignId: string) {
+export async function produceCampaign(
+  tenant: OrganizationAccess,
+  campaignId: string,
+  { runId, signal }: { runId?: string; signal?: AbortSignal } = {}
+) {
   const campaign = await loadLaunchCampaign(tenant, campaignId)
   if (!campaign.release) throw new LaunchError('Link a release brief first.', 409)
   const [spec, plan] = await Promise.all([
@@ -44,7 +50,7 @@ export async function produceCampaign(tenant: TenantContext, campaignId: string)
   ])
   if (!spec) throw new LaunchError('Draft the spec first.', 409)
   if (!plan) throw new LaunchError('Plan the campaign first.', 409)
-  const captureUrls = captureUrlsFor([campaign.productSurface?.url, ...releaseSourceUrls(campaign)])
+  const captureUrls = await planCaptureUrls(tenant, campaign, spec.content)
   if (captureUrls.length === 0) {
     throw new LaunchError('Connect a public product URL before producing visuals.', 409)
   }
@@ -52,12 +58,20 @@ export async function produceCampaign(tenant: TenantContext, campaignId: string)
     getActiveBrand(tenant),
     loadPreferenceExamples(tenant),
   ])
+  signal?.throwIfAborted()
 
   const record: CampaignStudioRecord = { assets: [], savedPosts: 0 }
+  const run = createToolRun({
+    access: tenant,
+    audit: (event) => backendSDK(tenant).appendAuditEvent(event),
+    launchRunId: runId,
+    signal,
+  })
   const scope = {
     allowedUrls: captureUrls as [string, ...string[]],
     campaignId,
     planVersion: plan.version,
+    run,
     tenant,
   }
   const budget = productionBudget(plan.content)
@@ -72,8 +86,8 @@ export async function produceCampaign(tenant: TenantContext, campaignId: string)
         createProductShot: baseTools.createProductShot,
         ...createDesignStudioTools(scope, record, getRenderer, {
           brand: brand.kit,
-          critique: ({ previewJpegBase64, texts }) =>
-            critiqueRender({ brand: brand.kit, claims, previewJpegBase64, texts }),
+          critique: ({ previewJpegBase64, signal: abortSignal, texts }) =>
+            critiqueRender({ abortSignal, brand: brand.kit, claims, previewJpegBase64, texts }),
           limits: budget,
         }),
       }
@@ -100,21 +114,27 @@ export async function produceCampaign(tenant: TenantContext, campaignId: string)
   // The visuals agent drafts on Sonnet: its long tool loop is most of a launch's cost.
   const [visualsRun, copyRun] = await Promise.allSettled([
     generateText({
+      abortSignal: signal,
       model: models.languageModel('drafting'),
       prompt,
-      stopWhen: stepCountIs(designMode ? budget.steps : Math.ceil(budget.steps / 2)),
+      stopWhen: [
+        stepCountIs(designMode ? budget.steps : Math.ceil(budget.steps / 2)),
+        isRunStopped(run),
+      ],
       system: designMode ? VISUALS_INSTRUCTIONS : VISUALS_FALLBACK_INSTRUCTIONS,
       tools,
     }).finally(async () => {
       if (renderer) await (await renderer).close().catch(() => undefined)
+      await flushToolRun(run)
     }),
-    writeLaunchCopy(tenant, { brand, campaign, examples, plan, spec }),
+    writeLaunchCopy(tenant, { brand, campaign, examples, plan, signal, spec }),
   ])
   if (visualsRun.status === 'rejected') throw visualsRun.reason
   if (copyRun.status === 'rejected') throw copyRun.reason
   const visuals = visualsRun.value
   const copy = copyRun.value
   const usage = normalizeTokenUsage(visuals.totalUsage)
+  signal?.throwIfAborted()
   await backendSDK(tenant).appendAuditEvent({
     action: 'product.campaign_produced',
     entityId: campaignId,

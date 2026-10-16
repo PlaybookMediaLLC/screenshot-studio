@@ -26,6 +26,8 @@ export type StageResult<T> = {
 }
 
 export async function runSubmitStage<T>(input: {
+  /** Stops the model loop, e.g. when the launch run is cancelled. */
+  abortSignal?: AbortSignal
   description: string
   extraTools?: ToolSet
   maxSteps?: number
@@ -53,6 +55,7 @@ export async function runSubmitStage<T>(input: {
     inputSchema: input.schema,
   })
   const common = {
+    abortSignal: input.abortSignal,
     model: models.languageModel(input.role),
     stopWhen: [stepCountIs(input.maxSteps ?? 5), () => accepted !== null],
     system: input.system,

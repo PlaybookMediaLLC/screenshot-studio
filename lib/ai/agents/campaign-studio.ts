@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { generateText, stepCountIs } from 'ai'
-import type { TenantContext } from '@/lib/auth/access'
+import type { OrganizationAccess } from '@/lib/auth/access'
 import { backendSDK } from '@/lib/backend/sdk'
 import { assertPublicCaptureUrl } from '@/lib/screenshot-service'
 import {
@@ -19,6 +19,7 @@ import {
 } from '../prompts/campaign-studio'
 import { type CampaignStudioRecord, createCampaignStudioTools } from '../tools/campaign-studio'
 import { createDesignStudioTools } from '../tools/design-studio'
+import { createToolRun, flushToolRun, isRunStopped } from '../tools/executor'
 
 const MAX_STEPS = 14
 /** Design runs explore templates and variants, so they get more steps. */
@@ -46,9 +47,14 @@ function getCaptureUrls(urls: Array<string | null | undefined>): string[] {
 /**
  * Generate a launch kit for one campaign: product captures, composited
  * product shots, and draft posts, all attached to the campaign for review.
- * Runs inside the caller's tenant context, and every write is audited.
+ * Runs inside the caller's tenant context with the caller's role, every tool
+ * call and write is audited, and the run stops when `signal` aborts.
  */
-export async function runCampaignStudio(tenant: TenantContext, campaignId: string) {
+export async function runCampaignStudio(
+  tenant: OrganizationAccess,
+  campaignId: string,
+  signal?: AbortSignal
+) {
   const campaign = await getCampaign(tenant, campaignId)
   if (!campaign) throw new CampaignError('Campaign not found.', 404)
   if (!campaign.release) {
@@ -62,9 +68,15 @@ export async function runCampaignStudio(tenant: TenantContext, campaignId: strin
 
   const record: CampaignStudioRecord = { assets: [], savedPosts: 0 }
   const modelId = models.modelId('deep')
+  const run = createToolRun({
+    access: tenant,
+    audit: (event) => backendSDK(tenant).appendAuditEvent(event),
+    signal,
+  })
   const scope = {
     allowedUrls: captureUrls as [string, ...string[]],
     campaignId: campaign.id,
+    run,
     tenant,
   }
   const baseTools = createCampaignStudioTools(scope, record)
@@ -85,6 +97,7 @@ export async function runCampaignStudio(tenant: TenantContext, campaignId: strin
     : baseTools
 
   const result = await generateText({
+    abortSignal: signal,
     model: models.languageModel('deep'),
     prompt: formatCampaignStudioBrief({
       audience: campaign.release.audience ?? campaign.audience,
@@ -96,11 +109,12 @@ export async function runCampaignStudio(tenant: TenantContext, campaignId: strin
       sourceUrls,
       title: campaign.release.title,
     }),
-    stopWhen: stepCountIs(designMode ? MAX_DESIGN_STEPS : MAX_STEPS),
+    stopWhen: [stepCountIs(designMode ? MAX_DESIGN_STEPS : MAX_STEPS), isRunStopped(run)],
     system: designMode ? DESIGN_STUDIO_INSTRUCTIONS : CAMPAIGN_STUDIO_INSTRUCTIONS,
     tools,
   }).finally(async () => {
     if (renderer) await (await renderer).close().catch(() => undefined)
+    await flushToolRun(run)
   })
 
   const usage = normalizeTokenUsage(result.totalUsage)

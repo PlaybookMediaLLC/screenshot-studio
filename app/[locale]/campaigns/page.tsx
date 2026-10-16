@@ -1,9 +1,9 @@
-import { Megaphone01Icon } from 'hugeicons-react'
+import { Calendar03Icon, Megaphone01Icon, Rocket01Icon } from 'hugeicons-react'
 import type { Metadata } from 'next'
 import { CampaignList } from '@/components/campaigns/CampaignList'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
-import { EmptyState, Page } from '@/components/platform-ui'
+import { Page, Pill } from '@/components/platform-ui'
 import { listCampaigns } from '@/lib/tenant/campaigns'
 import { requireCampaignPageAccess } from './page-access'
 
@@ -11,6 +11,81 @@ export const metadata: Metadata = { title: 'Campaigns' }
 
 type CampaignsPageProps = {
   params: Promise<{ locale: string }>
+}
+
+/** The three RFC 021 workflows; a workflow without an href is planned, not offered yet. */
+const WORKFLOWS = [
+  {
+    description: 'Paste your product URL. We learn it, then draft seven launch posts to approve.',
+    href: '/onboarding/product',
+    icon: Rocket01Icon,
+    label: 'Start the launch',
+    primary: true,
+    title: 'Launch your product',
+  },
+  {
+    description: 'Pick a release you shipped and build a campaign around that one feature.',
+    href: '/campaigns/new',
+    icon: Megaphone01Icon,
+    label: 'Choose a release',
+    primary: false,
+    title: 'Announce a feature',
+  },
+  {
+    description: 'A weekly batch of fresh posts from what your product already does.',
+    href: null,
+    icon: Calendar03Icon,
+    label: null,
+    primary: false,
+    title: 'Stay visible',
+  },
+] as const
+
+/** No campaigns yet: the three ways to start one, as the primary actions. */
+function CampaignWorkflows() {
+  return (
+    <section
+      aria-labelledby="campaign-workflows-title"
+      className="flex flex-col gap-6 rounded-2xl bg-white/[0.02] px-6 py-10 ring-1 ring-white/[0.06] md:px-10 md:py-14"
+    >
+      <div className="text-center">
+        <h2 className="text-lg font-medium text-white" id="campaign-workflows-title">
+          Start your first campaign
+        </h2>
+        <p className="mt-1 text-sm text-neutral-500">
+          Each one ends with posts you review and approve before anything publishes.
+        </p>
+      </div>
+      <ul className="grid gap-3 md:grid-cols-3">
+        {WORKFLOWS.map((workflow) => (
+          <li
+            aria-disabled={workflow.href === null || undefined}
+            className="flex flex-col gap-4 rounded-xl bg-white/[0.015] p-5 ring-1 ring-white/[0.08] aria-disabled:opacity-60"
+            key={workflow.title}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <workflow.icon className="text-neutral-400" size={22} strokeWidth={1.6} />
+              {workflow.href === null ? <Pill>Planned</Pill> : null}
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-white">{workflow.title}</h3>
+              <p className="mt-1 text-sm text-neutral-500">{workflow.description}</p>
+            </div>
+            {workflow.href ? (
+              <ButtonLink
+                className="self-start rounded-lg"
+                href={workflow.href}
+                size="sm"
+                variant={workflow.primary ? 'default' : 'outline'}
+              >
+                {workflow.label}
+              </ButtonLink>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
 }
 
 export default async function CampaignsPage({ params }: CampaignsPageProps) {
@@ -26,16 +101,7 @@ export default async function CampaignsPage({ params }: CampaignsPageProps) {
         title="Campaigns"
       >
         {campaigns.length === 0 ? (
-          <EmptyState
-            action={
-              <ButtonLink href="/campaigns/new" variant="outline">
-                Create a campaign
-              </ButtonLink>
-            }
-            description="Tell us what you shipped and we will keep a campaign draft for it."
-            icon={Megaphone01Icon}
-            title="No campaigns yet"
-          />
+          <CampaignWorkflows />
         ) : (
           <CampaignList
             campaigns={campaigns.map((campaign) => ({

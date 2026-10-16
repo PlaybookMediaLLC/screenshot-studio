@@ -17,6 +17,7 @@ export function AccountMenu({
   children,
   side = 'bottom',
   triggerClassName,
+  workspaceName,
 }: {
   align?: 'center' | 'end' | 'start'
   /** Custom trigger content, e.g. the sidebar's workspace row; defaults to an avatar. */
@@ -24,6 +25,8 @@ export function AccountMenu({
   /** Where the menu opens; the sidebar opens it upward or to the right. */
   side?: 'bottom' | 'right' | 'top'
   triggerClassName?: string
+  /** The active workspace, shown in the menu so it is named even when the trigger is a badge. */
+  workspaceName?: string
 } = {}) {
   const trpcClient = useTRPCClient()
   const [isSigningOut, setIsSigningOut] = useState(false)
@@ -113,6 +116,11 @@ export function AccountMenu({
         <div className="border-b px-2 py-2.5">
           <p className="truncate text-sm font-medium">{name}</p>
           <p className="truncate text-xs text-muted-foreground">{session.user.email}</p>
+          {workspaceName ? (
+            <p className="mt-1.5 truncate text-xs text-muted-foreground">
+              Workspace: <span className="text-foreground">{workspaceName}</span>
+            </p>
+          ) : null}
         </div>
         {canSwitchWorkspace ? (
           <div className="grid gap-1 border-b py-2">

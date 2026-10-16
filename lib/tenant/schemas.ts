@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { brandKitEditorSchema } from '@/lib/brand/editor-definition'
+import { fontFamilies } from '@/lib/constants/fonts'
 import { assetClassifications } from './object-key'
 
 const contentTypeSchema = z
@@ -39,18 +41,68 @@ export const assetUploadSchema = z.object({
   sha256: sha256Schema.optional(),
 })
 
+const hexColorSchema = z
+  .string()
+  .trim()
+  .regex(/^#[0-9a-f]{6}$/i, 'Use a #RRGGBB hex color.')
+
+/** Brand fonts are editor catalog ids, never URLs or family names (RFC 011). */
+const brandFontSchema = z.enum(fontFamilies.map((font) => font.id))
+
+/** Image types a brand logo may be uploaded as. */
+export const brandLogoContentTypeSchema = z.enum(['image/png', 'image/webp', 'image/jpeg'])
+
+/** Largest brand logo upload, in bytes (RFC 011 asset processing). */
+export const BRAND_LOGO_MAX_BYTES = 5 * 1024 * 1024
+
+/**
+ * A brand kit definition, schema version 1. Field names match the Go
+ * validator. Legacy `colors.foreground` is accepted and saved as `text`.
+ */
+export const brandKitDefinitionSchema = z.object({
+  colors: z.preprocess(
+    (value) => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return value
+      const { foreground, ...colors } = value as Record<string, unknown>
+      return { text: foreground, ...colors }
+    },
+    z.object({ accent: hexColorSchema, background: hexColorSchema, text: hexColorSchema })
+  ),
+  /** The editor's extensions: more colours and logos, Google Fonts, background and frame defaults. */
+  editor: brandKitEditorSchema.optional(),
+  logo: z.object({ primaryAssetId: assetIdSchema }).optional(),
+  schemaVersion: z.literal(1).default(1),
+  typography: z.object({
+    bodyFamily: brandFontSchema.optional(),
+    headingFamily: brandFontSchema,
+  }),
+})
+
 export const brandKitCreateSchema = z.object({
-  definition: z.record(z.string(), z.json()),
+  definition: brandKitDefinitionSchema,
   name: z.string().trim().min(1).max(100),
   publish: z.boolean().default(false),
 })
+
+/** How a prohibited term matches: `word` between word boundaries, `phrase` anywhere. */
+export const prohibitedTermMatchModeSchema = z.enum(['word', 'phrase'])
+
+/** A prohibited term: an object with the reason shown on a block, or a legacy bare string. */
+export const prohibitedTermInputSchema = z.union([
+  z.string().trim().min(1).max(100),
+  z.object({
+    matchMode: prohibitedTermMatchModeSchema.default('word'),
+    reason: z.string().trim().max(300).optional(),
+    term: z.string().trim().min(1).max(100),
+  }),
+])
 
 export const brandProfileUpsertSchema = z.object({
   audience: z.string().trim().min(1).max(1_000),
   ctaConventions: z.string().trim().max(1_000).optional(),
   preferredStyles: z.array(z.string().trim().min(1).max(100)).max(50).default([]),
   productDescription: z.string().trim().min(1).max(2_000),
-  prohibitedTerms: z.array(z.string().trim().min(1).max(100)).max(200).default([]),
+  prohibitedTerms: z.array(prohibitedTermInputSchema).max(200).default([]),
   socialHandles: z.record(z.string(), z.string().trim().max(160)).default({}),
   tagline: z.string().trim().max(200).optional(),
   tone: z.string().trim().min(1).max(500),
@@ -149,6 +201,8 @@ export const campaignTransitionSchema = z.object({
 
 export const campaignPostScheduleSchema = z.object({
   channelConnectionId: z.string().cuid(),
+  /** The approved visual to publish with the post. */
+  creativeVariantId: z.string().cuid().optional(),
   scheduledAt: z.coerce
     .date()
     .refine((value) => value.getTime() > Date.now(), {
@@ -157,6 +211,22 @@ export const campaignPostScheduleSchema = z.object({
     .optional(),
   /** Schedule even though a link in the post would preview badly. */
   skipLinkCheck: z.boolean().default(false),
+})
+
+/**
+ * A hand edit to a post. `expectedCopy` is the copy the edit was made
+ * against; the backend refuses the edit if the post changed since. An empty
+ * call to action or title clears it.
+ */
+export const campaignPostUpdateSchema = z.object({
+  callToAction: z.string().max(300).optional(),
+  copy: z
+    .string()
+    .max(10_000)
+    .refine((value) => value.trim() !== '', 'The post needs copy.')
+    .optional(),
+  expectedCopy: z.string().max(10_000),
+  title: z.string().max(200).optional(),
 })
 
 const releaseFields = {
@@ -422,6 +492,10 @@ export type BrandProfileUpsertInput = z.infer<typeof brandProfileUpsertSchema>
 export type CampaignApprovalInput = z.infer<typeof campaignApprovalSchema>
 export type CampaignCreateInput = z.infer<typeof campaignCreateSchema>
 export type CampaignPostScheduleInput = z.infer<typeof campaignPostScheduleSchema>
+/** A hand edit to a post's copy, call to action, or title. */
+export type CampaignPostUpdateInput = z.infer<typeof campaignPostUpdateSchema>
+/** How a prohibited term matches. */
+export type ProhibitedTermMatchMode = z.infer<typeof prohibitedTermMatchModeSchema>
 export type CampaignTransitionInput = z.infer<typeof campaignTransitionSchema>
 export type ProductSurfaceCreateInput = z.infer<typeof productSurfaceCreateSchema>
 export type ProductSurfaceUpdateInput = z.infer<typeof productSurfaceUpdateSchema>

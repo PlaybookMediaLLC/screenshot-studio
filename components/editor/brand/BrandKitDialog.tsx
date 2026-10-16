@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label'
 import {
   type BrandFrame,
   type BrandKit,
-  type BrandKitDefinitionInput,
+  type BrandKitDraft,
   type BrandLogo,
   fontName,
   type LogoTone,
@@ -199,7 +199,7 @@ export function BrandKitDialog({
     setPending(true)
     setError(null)
     try {
-      const input: BrandKitDefinitionInput = {
+      const input: BrandKitDraft = {
         background:
           background === 'saved'
             ? kit?.background

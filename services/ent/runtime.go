@@ -27,6 +27,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversationmessage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/customercommunication"
@@ -37,11 +39,13 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrunstep"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/projectversion"
@@ -58,12 +62,14 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacecreditgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacegithubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/profile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 )
 
@@ -323,6 +329,24 @@ func init() {
 	contentangle.DefaultUpdatedAt = contentangleDescUpdatedAt.Default.(func() time.Time)
 	// contentangle.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	contentangle.UpdateDefaultUpdatedAt = contentangleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	conversationFields := schema.Conversation{}.Fields()
+	_ = conversationFields
+	// conversationDescCreatedAt is the schema descriptor for created_at field.
+	conversationDescCreatedAt := conversationFields[6].Descriptor()
+	// conversation.DefaultCreatedAt holds the default value on creation for the created_at field.
+	conversation.DefaultCreatedAt = conversationDescCreatedAt.Default.(func() time.Time)
+	// conversationDescUpdatedAt is the schema descriptor for updated_at field.
+	conversationDescUpdatedAt := conversationFields[7].Descriptor()
+	// conversation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	conversation.DefaultUpdatedAt = conversationDescUpdatedAt.Default.(func() time.Time)
+	// conversation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	conversation.UpdateDefaultUpdatedAt = conversationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	conversationmessageFields := schema.ConversationMessage{}.Fields()
+	_ = conversationmessageFields
+	// conversationmessageDescCreatedAt is the schema descriptor for created_at field.
+	conversationmessageDescCreatedAt := conversationmessageFields[9].Descriptor()
+	// conversationmessage.DefaultCreatedAt holds the default value on creation for the created_at field.
+	conversationmessage.DefaultCreatedAt = conversationmessageDescCreatedAt.Default.(func() time.Time)
 	creativetemplateFields := schema.CreativeTemplate{}.Fields()
 	_ = creativetemplateFields
 	// creativetemplateDescCreatedAt is the schema descriptor for created_at field.
@@ -441,6 +465,40 @@ func init() {
 	launchrunDescStartedAt := launchrunFields[9].Descriptor()
 	// launchrun.DefaultStartedAt holds the default value on creation for the started_at field.
 	launchrun.DefaultStartedAt = launchrunDescStartedAt.Default.(func() time.Time)
+	// launchrunDescStepCount is the schema descriptor for step_count field.
+	launchrunDescStepCount := launchrunFields[12].Descriptor()
+	// launchrun.DefaultStepCount holds the default value on creation for the step_count field.
+	launchrun.DefaultStepCount = launchrunDescStepCount.Default.(int)
+	// launchrunDescTokensIn is the schema descriptor for tokens_in field.
+	launchrunDescTokensIn := launchrunFields[13].Descriptor()
+	// launchrun.DefaultTokensIn holds the default value on creation for the tokens_in field.
+	launchrun.DefaultTokensIn = launchrunDescTokensIn.Default.(int)
+	// launchrunDescTokensOut is the schema descriptor for tokens_out field.
+	launchrunDescTokensOut := launchrunFields[14].Descriptor()
+	// launchrun.DefaultTokensOut holds the default value on creation for the tokens_out field.
+	launchrun.DefaultTokensOut = launchrunDescTokensOut.Default.(int)
+	// launchrunDescCostCents is the schema descriptor for cost_cents field.
+	launchrunDescCostCents := launchrunFields[15].Descriptor()
+	// launchrun.DefaultCostCents holds the default value on creation for the cost_cents field.
+	launchrun.DefaultCostCents = launchrunDescCostCents.Default.(int)
+	launchrunstepFields := schema.LaunchRunStep{}.Fields()
+	_ = launchrunstepFields
+	// launchrunstepDescTokensIn is the schema descriptor for tokens_in field.
+	launchrunstepDescTokensIn := launchrunstepFields[11].Descriptor()
+	// launchrunstep.DefaultTokensIn holds the default value on creation for the tokens_in field.
+	launchrunstep.DefaultTokensIn = launchrunstepDescTokensIn.Default.(int)
+	// launchrunstepDescTokensOut is the schema descriptor for tokens_out field.
+	launchrunstepDescTokensOut := launchrunstepFields[12].Descriptor()
+	// launchrunstep.DefaultTokensOut holds the default value on creation for the tokens_out field.
+	launchrunstep.DefaultTokensOut = launchrunstepDescTokensOut.Default.(int)
+	// launchrunstepDescDurationMs is the schema descriptor for duration_ms field.
+	launchrunstepDescDurationMs := launchrunstepFields[13].Descriptor()
+	// launchrunstep.DefaultDurationMs holds the default value on creation for the duration_ms field.
+	launchrunstep.DefaultDurationMs = launchrunstepDescDurationMs.Default.(int)
+	// launchrunstepDescCreatedAt is the schema descriptor for created_at field.
+	launchrunstepDescCreatedAt := launchrunstepFields[14].Descriptor()
+	// launchrunstep.DefaultCreatedAt holds the default value on creation for the created_at field.
+	launchrunstep.DefaultCreatedAt = launchrunstepDescCreatedAt.Default.(func() time.Time)
 	memberFields := schema.Member{}.Fields()
 	_ = memberFields
 	// memberDescRole is the schema descriptor for role field.
@@ -489,18 +547,62 @@ func init() {
 	postiztenantbindingDescCreatedAt := postiztenantbindingFields[3].Descriptor()
 	// postiztenantbinding.DefaultCreatedAt holds the default value on creation for the created_at field.
 	postiztenantbinding.DefaultCreatedAt = postiztenantbindingDescCreatedAt.Default.(func() time.Time)
+	productprofileFields := schema.ProductProfile{}.Fields()
+	_ = productprofileFields
+	// productprofileDescSummary is the schema descriptor for summary field.
+	productprofileDescSummary := productprofileFields[4].Descriptor()
+	// productprofile.DefaultSummary holds the default value on creation for the summary field.
+	productprofile.DefaultSummary = productprofileDescSummary.Default.(string)
+	// productprofileDescProblem is the schema descriptor for problem field.
+	productprofileDescProblem := productprofileFields[5].Descriptor()
+	// productprofile.DefaultProblem holds the default value on creation for the problem field.
+	productprofile.DefaultProblem = productprofileDescProblem.Default.(string)
+	// productprofileDescAudience is the schema descriptor for audience field.
+	productprofileDescAudience := productprofileFields[6].Descriptor()
+	// productprofile.DefaultAudience holds the default value on creation for the audience field.
+	productprofile.DefaultAudience = productprofileDescAudience.Default.(string)
+	// productprofileDescCapabilities is the schema descriptor for capabilities field.
+	productprofileDescCapabilities := productprofileFields[7].Descriptor()
+	// productprofile.DefaultCapabilities holds the default value on creation for the capabilities field.
+	productprofile.DefaultCapabilities = productprofileDescCapabilities.Default.([]string)
+	// productprofileDescProofPoints is the schema descriptor for proof_points field.
+	productprofileDescProofPoints := productprofileFields[8].Descriptor()
+	// productprofile.DefaultProofPoints holds the default value on creation for the proof_points field.
+	productprofile.DefaultProofPoints = productprofileDescProofPoints.Default.([]profile.ProofPoint)
+	// productprofileDescPricingNote is the schema descriptor for pricing_note field.
+	productprofileDescPricingNote := productprofileFields[9].Descriptor()
+	// productprofile.DefaultPricingNote holds the default value on creation for the pricing_note field.
+	productprofile.DefaultPricingNote = productprofileDescPricingNote.Default.(string)
+	// productprofileDescCompetitors is the schema descriptor for competitors field.
+	productprofileDescCompetitors := productprofileFields[10].Descriptor()
+	// productprofile.DefaultCompetitors holds the default value on creation for the competitors field.
+	productprofile.DefaultCompetitors = productprofileDescCompetitors.Default.([]string)
+	// productprofileDescProvenance is the schema descriptor for provenance field.
+	productprofileDescProvenance := productprofileFields[11].Descriptor()
+	// productprofile.DefaultProvenance holds the default value on creation for the provenance field.
+	productprofile.DefaultProvenance = productprofileDescProvenance.Default.(map[string]profile.FieldProvenance)
+	// productprofileDescCreatedAt is the schema descriptor for created_at field.
+	productprofileDescCreatedAt := productprofileFields[12].Descriptor()
+	// productprofile.DefaultCreatedAt holds the default value on creation for the created_at field.
+	productprofile.DefaultCreatedAt = productprofileDescCreatedAt.Default.(func() time.Time)
+	// productprofileDescUpdatedAt is the schema descriptor for updated_at field.
+	productprofileDescUpdatedAt := productprofileFields[13].Descriptor()
+	// productprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	productprofile.DefaultUpdatedAt = productprofileDescUpdatedAt.Default.(func() time.Time)
+	// productprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	productprofile.UpdateDefaultUpdatedAt = productprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
 	productsurfaceFields := schema.ProductSurface{}.Fields()
 	_ = productsurfaceFields
 	// productsurfaceDescEnvironment is the schema descriptor for environment field.
-	productsurfaceDescEnvironment := productsurfaceFields[4].Descriptor()
+	productsurfaceDescEnvironment := productsurfaceFields[5].Descriptor()
 	// productsurface.DefaultEnvironment holds the default value on creation for the environment field.
 	productsurface.DefaultEnvironment = productsurfaceDescEnvironment.Default.(string)
 	// productsurfaceDescCreatedAt is the schema descriptor for created_at field.
-	productsurfaceDescCreatedAt := productsurfaceFields[8].Descriptor()
+	productsurfaceDescCreatedAt := productsurfaceFields[11].Descriptor()
 	// productsurface.DefaultCreatedAt holds the default value on creation for the created_at field.
 	productsurface.DefaultCreatedAt = productsurfaceDescCreatedAt.Default.(func() time.Time)
 	// productsurfaceDescUpdatedAt is the schema descriptor for updated_at field.
-	productsurfaceDescUpdatedAt := productsurfaceFields[9].Descriptor()
+	productsurfaceDescUpdatedAt := productsurfaceFields[12].Descriptor()
 	// productsurface.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	productsurface.DefaultUpdatedAt = productsurfaceDescUpdatedAt.Default.(func() time.Time)
 	// productsurface.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -703,6 +805,12 @@ func init() {
 	supportaccessgrantDescScope := supportaccessgrantFields[3].Descriptor()
 	// supportaccessgrant.DefaultScope holds the default value on creation for the scope field.
 	supportaccessgrant.DefaultScope = supportaccessgrantDescScope.Default.(string)
+	surfacecaptureFields := schema.SurfaceCapture{}.Fields()
+	_ = surfacecaptureFields
+	// surfacecaptureDescCapturedAt is the schema descriptor for captured_at field.
+	surfacecaptureDescCapturedAt := surfacecaptureFields[6].Descriptor()
+	// surfacecapture.DefaultCapturedAt holds the default value on creation for the captured_at field.
+	surfacecapture.DefaultCapturedAt = surfacecaptureDescCapturedAt.Default.(func() time.Time)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescEmailVerified is the schema descriptor for email_verified field.
@@ -781,12 +889,16 @@ func init() {
 	workspacesettingsDescDefaultPublishTime := workspacesettingsFields[4].Descriptor()
 	// workspacesettings.DefaultDefaultPublishTime holds the default value on creation for the default_publish_time field.
 	workspacesettings.DefaultDefaultPublishTime = workspacesettingsDescDefaultPublishTime.Default.(string)
+	// workspacesettingsDescAiAgentEnabled is the schema descriptor for ai_agent_enabled field.
+	workspacesettingsDescAiAgentEnabled := workspacesettingsFields[5].Descriptor()
+	// workspacesettings.DefaultAiAgentEnabled holds the default value on creation for the ai_agent_enabled field.
+	workspacesettings.DefaultAiAgentEnabled = workspacesettingsDescAiAgentEnabled.Default.(bool)
 	// workspacesettingsDescCreatedAt is the schema descriptor for created_at field.
-	workspacesettingsDescCreatedAt := workspacesettingsFields[5].Descriptor()
+	workspacesettingsDescCreatedAt := workspacesettingsFields[6].Descriptor()
 	// workspacesettings.DefaultCreatedAt holds the default value on creation for the created_at field.
 	workspacesettings.DefaultCreatedAt = workspacesettingsDescCreatedAt.Default.(func() time.Time)
 	// workspacesettingsDescUpdatedAt is the schema descriptor for updated_at field.
-	workspacesettingsDescUpdatedAt := workspacesettingsFields[6].Descriptor()
+	workspacesettingsDescUpdatedAt := workspacesettingsFields[7].Descriptor()
 	// workspacesettings.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	workspacesettings.DefaultUpdatedAt = workspacesettingsDescUpdatedAt.Default.(func() time.Time)
 	// workspacesettings.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

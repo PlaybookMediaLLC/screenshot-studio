@@ -78,7 +78,11 @@ test('a role downgrade denies privileged actions and member removal revokes the 
     expect(
       (
         await trpcMutation(memberPage, 'brandKit.create', {
-          definition: {},
+          definition: {
+            colors: { accent: '#7047eb', background: '#ffffff', text: '#111111' },
+            schemaVersion: 1,
+            typography: { headingFamily: 'inter' },
+          },
           name: 'Denied after downgrade',
           publish: false,
         })

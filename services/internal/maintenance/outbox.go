@@ -83,7 +83,8 @@ func (s *Store) Outbox(ctx context.Context) (int, error) {
 // productEvent reports whether the product handles an event's side effect.
 func productEvent(kind string) bool {
 	switch kind {
-	case "source_change.collected", "release.ingested", "source_app.connected", "deployment.succeeded":
+	case "source_change.collected", "release.ingested", "source_app.connected", "deployment.succeeded",
+		"campaign_posts.submitted", "campaign_posts.decided":
 		return true
 	}
 	return false

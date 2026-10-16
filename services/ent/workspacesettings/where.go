@@ -84,6 +84,11 @@ func DefaultPublishTime(v string) predicate.WorkspaceSettings {
 	return predicate.WorkspaceSettings(sql.FieldEQ(FieldDefaultPublishTime, v))
 }
 
+// AiAgentEnabled applies equality check predicate on the "ai_agent_enabled" field. It's identical to AiAgentEnabledEQ.
+func AiAgentEnabled(v bool) predicate.WorkspaceSettings {
+	return predicate.WorkspaceSettings(sql.FieldEQ(FieldAiAgentEnabled, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.WorkspaceSettings {
 	return predicate.WorkspaceSettings(sql.FieldEQ(FieldCreatedAt, v))
@@ -362,6 +367,16 @@ func DefaultPublishTimeEqualFold(v string) predicate.WorkspaceSettings {
 // DefaultPublishTimeContainsFold applies the ContainsFold predicate on the "default_publish_time" field.
 func DefaultPublishTimeContainsFold(v string) predicate.WorkspaceSettings {
 	return predicate.WorkspaceSettings(sql.FieldContainsFold(FieldDefaultPublishTime, v))
+}
+
+// AiAgentEnabledEQ applies the EQ predicate on the "ai_agent_enabled" field.
+func AiAgentEnabledEQ(v bool) predicate.WorkspaceSettings {
+	return predicate.WorkspaceSettings(sql.FieldEQ(FieldAiAgentEnabled, v))
+}
+
+// AiAgentEnabledNEQ applies the NEQ predicate on the "ai_agent_enabled" field.
+func AiAgentEnabledNEQ(v bool) predicate.WorkspaceSettings {
+	return predicate.WorkspaceSettings(sql.FieldNEQ(FieldAiAgentEnabled, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

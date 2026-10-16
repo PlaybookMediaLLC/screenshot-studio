@@ -1,8 +1,9 @@
 'use client'
 
+import type { BackendCampaignPost } from 'screenshot-studio-backend-sdk'
 import type { CampaignPostStatus } from '@/lib/tenant/campaign-status'
 import * as Tabs from '@radix-ui/react-tabs'
-import { Copy01Icon } from 'hugeicons-react'
+import { Copy01Icon, Edit02Icon } from 'hugeicons-react'
 import { useRouter } from 'next/navigation'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'
@@ -11,6 +12,9 @@ import { Pill, type PillTone } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
 import { getErrorMessage } from '@/components/workspace/settings-client'
 import { CHANNEL_RULES } from '@/lib/launch/guards'
+import { postEditBlock } from '@/lib/launch/post-edit'
+import { connectionsForChannel } from '@/lib/launch/schedule'
+import type { LaunchChannel } from '@/lib/launch/spec-schema'
 import {
   type CampaignApprovalDecision,
   canTransitionCampaignPost,
@@ -18,24 +22,38 @@ import {
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
 import { PostLinkCheck } from '@/components/link-preview/PostLinkCheck'
+import { LengthCounter, PostEditor } from './PostEditor'
+import { CancelScheduleButton, ScheduleDialog, type ScheduleVisual } from './ScheduleDialog'
 
 export type CopyPost = {
   /** "G1 · Upgrade with one command", from the plan. */
   angle: string | null
+  /** Who approved the post and when; `by` is null once the approver left the workspace. */
+  approval: { at: string; by: string | null } | null
   callToAction: string | null
   channel: string
   /** Spec claims the post relies on; `current` is false once the working spec says something else there. */
   claims: { current: boolean; ref: string; text: string }[]
   copy: string
+  /** The visual already attached to the post, from an earlier schedule. */
+  creativeVariantId: string | null
   /** Written for an earlier plan version than the one the campaign works from now. */
   fromEarlierPlan: boolean
   id: string
   /** "Teaser", "Launch day", or "Follow-up". */
   phase: string | null
   reviewNote: string | null
+  scheduledAt: string | null
+  scheduledPostId: string | null
+  /** Delivery state of the scheduled post; CANCELLED or FAILED can be rescheduled. */
+  scheduledPostStatus: ScheduledPostStatus | null
   status: CampaignPostStatus
   title: string | null
+  /** Approved visuals the post can publish with, best match first. */
+  visuals: ScheduleVisual[]
 }
+
+type ScheduledPostStatus = NonNullable<BackendCampaignPost['scheduledPostStatus']>
 
 export type CopyChannel = { label: string; role: string | null; value: string }
 
@@ -44,6 +62,32 @@ type Permissions = {
   campaignId: string
   canApprove: boolean
   canEdit: boolean
+  /** publish:manage: schedule, reschedule, and cancel posts. */
+  canSchedule: boolean
+}
+
+const DELIVERY: Record<ScheduledPostStatus, string> = {
+  CANCELLED: 'Cancelled',
+  DRAFT: 'Queued',
+  FAILED: 'Failed to publish',
+  PROCESSING: 'Publishing now',
+  PUBLISHED: 'Published',
+  SCHEDULED: 'Queued',
+  UNKNOWN_DELIVERY: 'Delivery unknown; check the channel',
+}
+
+/** Scheduled posts still waiting to publish; only these can be cancelled. */
+const LIVE_DELIVERY: readonly ScheduledPostStatus[] = ['DRAFT', 'SCHEDULED']
+/** Scheduled posts that never reached the channel; these can be scheduled again. */
+const DEAD_DELIVERY: readonly ScheduledPostStatus[] = ['CANCELLED', 'FAILED']
+
+/** A timestamp in the reader's time zone; the server renders UTC, so hydration may differ. */
+function LocalTime({ value }: { value: string }) {
+  return (
+    <time dateTime={value} suppressHydrationWarning>
+      {new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+    </time>
+  )
 }
 
 const POST_STATUS: Record<CampaignPostStatus, { label: string; tone: PillTone }> = {
@@ -246,15 +290,129 @@ function SubmitAll({ permissions, posts }: { permissions: Permissions; posts: Co
   )
 }
 
-function PostCard({ permissions, post }: { permissions: Permissions; post: CopyPost }) {
+/** Approves the given posts in one decision; the server re-checks each one is in review. */
+function ApprovePosts({
+  label,
+  onDone,
+  permissions,
+  postIds,
+}: {
+  label: string
+  onDone?: () => void
+  permissions: Permissions
+  postIds: string[]
+}) {
+  const trpcClient = useTRPCClient()
+  const router = useRouter()
+  const [busy, setBusy] = useState(false)
+  if (!permissions.canApprove || postIds.length === 0) return null
+
+  async function approve() {
+    setBusy(true)
+    try {
+      await trpcClient.campaign.decideApproval.mutate({
+        campaignId: permissions.campaignId,
+        decision: 'approve',
+        postIds,
+      })
+      toast.success(`${postIds.length} ${postIds.length === 1 ? 'post' : 'posts'} approved`)
+      onDone?.()
+      router.refresh()
+    } catch (requestError) {
+      toast.error('The posts could not be approved', {
+        description: getErrorMessage(requestError),
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Button
+      className="rounded-lg"
+      disabled={busy}
+      onClick={() => void approve()}
+      size="sm"
+      type="button"
+    >
+      {busy ? 'Approving…' : label}
+    </Button>
+  )
+}
+
+/** Schedule, reschedule, or cancel, depending on where the post is in publishing. */
+function ScheduleActions({
+  channelLabel,
+  permissions,
+  post,
+}: {
+  channelLabel: string
+  permissions: Permissions
+  post: CopyPost
+}) {
+  if (!permissions.canSchedule) return null
+  const live =
+    post.status === 'SCHEDULED' &&
+    post.scheduledPostId !== null &&
+    post.scheduledPostStatus !== null &&
+    LIVE_DELIVERY.includes(post.scheduledPostStatus)
+  if (live && post.scheduledPostId) {
+    return <CancelScheduleButton scheduledPostId={post.scheduledPostId} />
+  }
+  const reschedule =
+    post.status === 'SCHEDULED' &&
+    post.scheduledPostStatus !== null &&
+    DEAD_DELIVERY.includes(post.scheduledPostStatus)
+  if (post.status !== 'APPROVED' && !reschedule) return null
+  if (connectionsForChannel(post.channel, []) === null) {
+    return <span className="text-xs text-neutral-500">Can&apos;t be scheduled yet</span>
+  }
+  return (
+    <ScheduleDialog
+      campaignId={permissions.campaignId}
+      channelLabel={channelLabel}
+      post={post}
+      reschedule={reschedule}
+    />
+  )
+}
+
+function PostCard({
+  channelLabel,
+  onSelect,
+  permissions,
+  post,
+  selected,
+}: {
+  channelLabel: string
+  onSelect: (selected: boolean) => void
+  permissions: Permissions
+  post: CopyPost
+  selected: boolean
+}) {
   const status = POST_STATUS[post.status]
-  // Counted the way the copy guard counts it: copy plus call to action, as posted.
-  const length = [post.copy, post.callToAction].filter(Boolean).join(' ').length
-  const limit = post.channel === 'x' ? CHANNEL_RULES.x.bodyMax : null
+  const [editing, setEditing] = useState(false)
+  const editBlock = postEditBlock(
+    post.status,
+    post.scheduledPostStatus !== null && DEAD_DELIVERY.includes(post.scheduledPostStatus)
+  )
+  const limit = Object.hasOwn(CHANNEL_RULES, post.channel)
+    ? CHANNEL_RULES[post.channel as LaunchChannel].bodyMax
+    : null
+  const selectable = permissions.canApprove && post.status === 'READY_FOR_REVIEW'
   return (
     <article className="flex flex-col rounded-2xl bg-white/[0.015] ring-1 ring-white/[0.08]">
       <div className="flex flex-col gap-4 p-5">
         <div className="flex flex-wrap items-center gap-1.5">
+          {selectable ? (
+            <input
+              aria-label={`Select ${post.title ?? `${channelLabel} post`} for approval`}
+              checked={selected}
+              className="mr-1 size-4 accent-white"
+              onChange={(event) => onSelect(event.target.checked)}
+              type="checkbox"
+            />
+          ) : null}
           {post.phase ? <Pill>{post.phase}</Pill> : null}
           {post.angle ? <Pill tone="blue">{post.angle}</Pill> : null}
           {post.fromEarlierPlan ? <Pill>From an earlier plan</Pill> : null}
@@ -262,27 +420,49 @@ function PostCard({ permissions, post }: { permissions: Permissions; post: CopyP
             <Pill tone={status.tone}>{status.label}</Pill>
           </span>
         </div>
-        {post.title ? (
-          <h3 className="text-base font-medium text-balance text-white">{post.title}</h3>
-        ) : null}
-        <p className="text-sm leading-6 whitespace-pre-wrap text-neutral-200">{post.copy}</p>
-        <PostLinkCheck text={post.copy} />
-        {post.callToAction || limit ? (
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            {post.callToAction ? (
-              <p className="text-sm text-neutral-200">
-                <span className="mr-2 text-xs font-medium text-neutral-500">Call to action</span>
-                {post.callToAction}
+        {editing ? (
+          <PostEditor
+            campaignId={permissions.campaignId}
+            limit={limit}
+            onDone={() => setEditing(false)}
+            post={post}
+          />
+        ) : (
+          <>
+            {post.title ? (
+              <h3 className="text-base font-medium text-balance text-white">{post.title}</h3>
+            ) : null}
+            <p className="text-sm leading-6 whitespace-pre-wrap text-neutral-200">{post.copy}</p>
+            <PostLinkCheck text={post.copy} />
+            {post.callToAction || limit ? (
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                {post.callToAction ? (
+                  <p className="text-sm text-neutral-200">
+                    <span className="mr-2 text-xs font-medium text-neutral-500">
+                      Call to action
+                    </span>
+                    {post.callToAction}
+                  </p>
+                ) : null}
+                {limit ? (
+                  <LengthCounter callToAction={post.callToAction} copy={post.copy} limit={limit} />
+                ) : null}
+              </div>
+            ) : null}
+          </>
+        )}
+        {post.approval || post.scheduledAt ? (
+          <div className="flex flex-col gap-1 text-xs text-neutral-500">
+            {post.approval ? (
+              <p>
+                Approved{post.approval.by ? ` by ${post.approval.by}` : ''} ·{' '}
+                <LocalTime value={post.approval.at} />
               </p>
             ) : null}
-            {limit ? (
-              <p
-                className={cn(
-                  'ml-auto text-xs tabular-nums',
-                  length > limit ? 'text-red-300' : 'text-neutral-500'
-                )}
-              >
-                {length} / {limit} characters
+            {post.status === 'SCHEDULED' && post.scheduledAt ? (
+              <p>
+                Scheduled for <LocalTime value={post.scheduledAt} />
+                {post.scheduledPostStatus ? ` · ${DELIVERY[post.scheduledPostStatus]}` : ''}
               </p>
             ) : null}
           </div>
@@ -319,6 +499,23 @@ function PostCard({ permissions, post }: { permissions: Permissions; post: CopyP
       {/* Open forms and panels are divs and forms, and take the full row. */}
       <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] px-5 py-3 [&>div]:basis-full [&>form]:basis-full">
         <ReviewActions permissions={permissions} post={post} />
+        <ScheduleActions channelLabel={channelLabel} permissions={permissions} post={post} />
+        {permissions.canEdit && !editing ? (
+          editBlock ? (
+            <span className="text-xs text-neutral-500">{editBlock}</span>
+          ) : (
+            <Button
+              className="h-8 gap-1.5 rounded-lg text-xs"
+              onClick={() => setEditing(true)}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <Edit02Icon size={14} />
+              Edit
+            </Button>
+          )
+        ) : null}
         <CopyTextButton post={post} />
         {permissions.canEdit ? (
           <RevisePanel
@@ -348,6 +545,10 @@ export function CopyBoard({
 }) {
   const initial =
     channels.find((channel) => posts.some((post) => post.channel === channel.value)) ?? channels[0]
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
+  const inReview = posts.filter((post) => post.status === 'READY_FOR_REVIEW').map((post) => post.id)
+  // A post that left review since it was ticked is no longer selectable.
+  const selectedIds = inReview.filter((id) => selected.has(id))
   return (
     <Tabs.Root className="flex flex-col gap-5" defaultValue={initial?.value}>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -368,7 +569,23 @@ export function CopyBoard({
             </Tabs.Trigger>
           ))}
         </Tabs.List>
-        <SubmitAll permissions={permissions} posts={posts} />
+        <div className="flex flex-wrap items-center gap-2">
+          <SubmitAll permissions={permissions} posts={posts} />
+          {selectedIds.length > 0 ? (
+            <ApprovePosts
+              label={`Approve ${selectedIds.length} selected`}
+              onDone={() => setSelected(new Set())}
+              permissions={permissions}
+              postIds={selectedIds}
+            />
+          ) : (
+            <ApprovePosts
+              label={`Approve all ${inReview.length}`}
+              permissions={permissions}
+              postIds={inReview}
+            />
+          )}
+        </div>
       </div>
       {channels.map((channel) => {
         const channelPosts = posts.filter((post) => post.channel === channel.value)
@@ -386,7 +603,21 @@ export function CopyBoard({
               </p>
             ) : (
               channelPosts.map((post) => (
-                <PostCard key={post.id} permissions={permissions} post={post} />
+                <PostCard
+                  channelLabel={channel.label}
+                  key={post.id}
+                  onSelect={(checked) =>
+                    setSelected((current) => {
+                      const next = new Set(current)
+                      if (checked) next.add(post.id)
+                      else next.delete(post.id)
+                      return next
+                    })
+                  }
+                  permissions={permissions}
+                  post={post}
+                  selected={selected.has(post.id)}
+                />
               ))
             )}
           </Tabs.Content>

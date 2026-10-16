@@ -24,11 +24,37 @@ test('an owner can persist workspace, profile, and active brand-kit settings', a
 
   await openWorkspaceSetting(page, 'Brand kit')
   await page.getByLabel('Brand kit name').fill('Launch system')
-  await page.getByLabel('Primary typeface').fill('Inter')
+  await page.getByLabel('Primary typeface').selectOption('inter')
   await page.getByRole('button', { name: 'Publish brand kit' }).click()
   await expect(page.getByText('Launch system')).toBeVisible()
   await expect(page.getByText('v1 · active')).toBeVisible()
 
+  // Prohibited terms carry the reason an author sees when copy is refused.
+  await page.getByLabel('Product description').fill('Invoicing for small teams')
+  await page.getByLabel('Audience').fill('Finance leads')
+  await page.getByLabel('Tone').fill('Plain and specific')
+  await page.getByRole('button', { name: 'Add term' }).click()
+  await page.getByLabel('Term 1', { exact: true }).fill('guaranteed')
+  await page.getByLabel('Reason for term 1').fill('Legal does not allow promises')
+  await page.getByLabel('How term 1 matches').selectOption('phrase')
+  await page.getByRole('button', { name: 'Save brand voice' }).click()
+  await expect(page.getByText('Brand voice saved.')).toBeVisible()
+
   await page.reload()
-  await expect(page.locator('aside').getByText(workspaceName, { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Term 1', { exact: true })).toHaveValue('guaranteed')
+  await expect(page.getByLabel('Reason for term 1')).toHaveValue('Legal does not allow promises')
+  await expect(page.getByLabel('How term 1 matches')).toHaveValue('phrase')
+
+  await openWorkspaceSetting(page, 'Product pages')
+  await page.getByLabel('Name', { exact: true }).fill('Billing')
+  await page.getByLabel('URL', { exact: true }).fill('https://example.com/billing')
+  await page.getByLabel('Feature tags').fill('invoices, approvals')
+  await page.getByRole('button', { name: 'Add page' }).click()
+  await expect(page.getByRole('heading', { name: 'Billing', level: 3 })).toBeVisible()
+  await expect(page.getByText('Never captured')).toBeVisible()
+  await expect(page.getByText('approvals', { exact: true })).toBeVisible()
+
+  // The sidebar is an icon rail; the workspace name shows in the account menu.
+  await page.getByRole('button', { name: 'Open account menu' }).click()
+  await expect(page.getByText(`Workspace: ${workspaceName}`, { exact: true })).toBeVisible()
 })

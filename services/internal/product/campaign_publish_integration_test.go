@@ -196,6 +196,9 @@ func TestCampaignPublishing(t *testing.T) {
 		return tx.Commit()
 	}
 	expect(edit(linkedin, "Ship faster"), publishing.ErrConflict, "live scheduled post edited")
+	manual := "Ship even faster"
+	_, err = repo.UpdateCampaignPost(ctx, owner, campaignA, linkedin, UpdateCampaignPostInput{ExpectedCopy: &first.Post.Copy, Copy: &manual})
+	expect(err, publishing.ErrConflict, "live scheduled post edited by hand")
 	expect(edit(published, "Shipped"), publishing.ErrConflict, "published post edited")
 
 	// Cancel, then schedule again under a new idempotency key.

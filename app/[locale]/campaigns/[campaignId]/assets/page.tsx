@@ -51,6 +51,7 @@ export default async function CampaignAssetsPage({ params }: CampaignAssetsPageP
   const [visuals, captures] = await Promise.all([
     Promise.all([
       ...designs.map(async (design): Promise<BoardVisual> => ({
+        approvedVariant: design.approvedVariant,
         caption: design.renderedAsset
           ? (captionByAsset.get(design.renderedAsset.id) ?? null)
           : null,
@@ -68,11 +69,13 @@ export default async function CampaignAssetsPage({ params }: CampaignAssetsPageP
         },
         name: design.name,
         planAssetKey: design.planAssetKey,
+        renderedAssetId: design.renderedAsset?.id ?? null,
         variantLabel: design.variantLabel,
       })),
       ...campaign.assets
         .filter((link) => link.kind === 'product-shot')
         .map(async (link): Promise<BoardVisual> => ({
+          approvedVariant: null,
           caption: link.caption,
           createdAt: link.createdAt.getTime(),
           critique: null,
@@ -88,6 +91,7 @@ export default async function CampaignAssetsPage({ params }: CampaignAssetsPageP
           },
           name: 'Product shot',
           planAssetKey: link.planAssetKey,
+          renderedAssetId: null,
           variantLabel: link.variantLabel,
         })),
     ]),
@@ -125,7 +129,12 @@ export default async function CampaignAssetsPage({ params }: CampaignAssetsPageP
       ) : null}
       <AssetBoard
         captures={captures}
-        options={{ aiConfigured, campaignId: campaign.id, canEdit }}
+        options={{
+          aiConfigured,
+          campaignId: campaign.id,
+          canApprove: hasPermission(access.role, 'release:approve'),
+          canEdit,
+        }}
         plan={plan?.content ?? null}
         planCreatedAt={plan?.createdAt.getTime() ?? null}
         visuals={visuals}

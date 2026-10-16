@@ -33,6 +33,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversationmessage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/customercommunication"
@@ -43,11 +45,13 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrunstep"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/projectversion"
@@ -63,6 +67,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacecreditgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
@@ -150,6 +155,8 @@ func checkColumn(t, c string) error {
 			communicationattempt.Table:           communicationattempt.ValidColumn,
 			communicationrecipient.Table:         communicationrecipient.ValidColumn,
 			contentangle.Table:                   contentangle.ValidColumn,
+			conversation.Table:                   conversation.ValidColumn,
+			conversationmessage.Table:            conversationmessage.ValidColumn,
 			creativetemplate.Table:               creativetemplate.ValidColumn,
 			creativevariant.Table:                creativevariant.ValidColumn,
 			customercommunication.Table:          customercommunication.ValidColumn,
@@ -160,11 +167,13 @@ func checkColumn(t, c string) error {
 			integrationconnection.Table:          integrationconnection.ValidColumn,
 			invitation.Table:                     invitation.ValidColumn,
 			launchrun.Table:                      launchrun.ValidColumn,
+			launchrunstep.Table:                  launchrunstep.ValidColumn,
 			member.Table:                         member.ValidColumn,
 			organization.Table:                   organization.ValidColumn,
 			organizationenterprisesettings.Table: organizationenterprisesettings.ValidColumn,
 			outboxevent.Table:                    outboxevent.ValidColumn,
 			postiztenantbinding.Table:            postiztenantbinding.ValidColumn,
+			productprofile.Table:                 productprofile.ValidColumn,
 			productsurface.Table:                 productsurface.ValidColumn,
 			project.Table:                        project.ValidColumn,
 			projectversion.Table:                 projectversion.ValidColumn,
@@ -180,6 +189,7 @@ func checkColumn(t, c string) error {
 			sourceapp.Table:                      sourceapp.ValidColumn,
 			sourcechange.Table:                   sourcechange.ValidColumn,
 			supportaccessgrant.Table:             supportaccessgrant.ValidColumn,
+			surfacecapture.Table:                 surfacecapture.ValidColumn,
 			user.Table:                           user.ValidColumn,
 			workspacecreditgrant.Table:           workspacecreditgrant.ValidColumn,
 			workspacedeletion.Table:              workspacedeletion.ValidColumn,

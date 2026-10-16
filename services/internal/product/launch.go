@@ -18,6 +18,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasespec"
@@ -567,6 +568,13 @@ func (c *Configuration) SaveLaunchPosts(ctx context.Context, actor Actor, campai
 	if !exists {
 		return nil, launchNotFound("Campaign")
 	}
+	texts := make([]string, 0, 3*len(input.Posts))
+	for _, post := range input.Posts {
+		texts = append(texts, post.Title, post.Copy, post.CallToAction)
+	}
+	if err := requireAllowedCopy(ctx, tx.BrandProfile, actor.OrganizationID, texts...); err != nil {
+		return nil, err
+	}
 	position := 0
 	last, err := tx.ContentAngle.Query().Where(contentangle.CampaignID(campaignID)).Order(ent.Desc(contentangle.FieldPosition)).First(ctx)
 	if err != nil && !ent.IsNotFound(err) {
@@ -865,50 +873,14 @@ func applyLaunchChange(ctx context.Context, tx *ent.Tx, actor Actor, revision *e
 			Copy         string           `json:"copy"`
 			Title        string           `json:"title"`
 		}
-		if json.Unmarshal(change.After, &after) != nil || strings.TrimSpace(after.Copy) == "" {
+		if json.Unmarshal(change.After, &after) != nil {
 			return "", nil, ErrInvalidInput
 		}
 		if after.Claims == nil {
 			after.Claims = []map[string]any{}
 		}
-		update := tx.CampaignPost.UpdateOneID(post.ID).SetCopy(after.Copy).SetClaims(after.Claims)
-		// Approved copy never changes in place: an edit sends it back to
-		// draft, and a post that may be live cannot be edited.
-		switch post.Status {
-		case campaignpost.StatusPUBLISHED:
-			return "", nil, conflict("This post is published and can no longer be edited.")
-		case campaignpost.StatusSCHEDULED:
-			if post.ScheduledPostID != nil {
-				dead, err := tx.ScheduledPost.Query().Where(scheduledpost.ID(*post.ScheduledPostID),
-					scheduledpost.OrganizationID(organizationID),
-					scheduledpost.StatusIn(scheduledpost.StatusCANCELLED, scheduledpost.StatusFAILED)).Exist(ctx)
-				if err != nil {
-					return "", nil, err
-				}
-				if !dead {
-					return "", nil, conflict("Cancel the scheduled post first.")
-				}
-			}
-			update.SetStatus(campaignpost.StatusDRAFT).ClearScheduledPostID().ClearScheduledAt().
-				ClearApprovedAt().ClearApprovedByUserID()
-		case campaignpost.StatusAPPROVED:
-			update.SetStatus(campaignpost.StatusDRAFT).ClearApprovedAt().ClearApprovedByUserID()
-		}
-		if after.CallToAction == "" {
-			update.ClearCallToAction()
-		} else {
-			update.SetCallToAction(after.CallToAction)
-		}
-		if after.Title == "" {
-			update.ClearTitle()
-		} else {
-			update.SetTitle(after.Title)
-		}
-		// Revised copy goes back through review.
-		if post.Status == campaignpost.StatusNEEDS_CHANGES || post.Status == campaignpost.StatusREJECTED {
-			update.SetStatus(campaignpost.StatusDRAFT)
-		}
-		return "", nil, update.Exec(ctx)
+		return "", nil, revisePost(ctx, tx, post, before.Copy, errLaunchStale, postRevision{CallToAction: &after.CallToAction,
+			Claims: after.Claims, Copy: &after.Copy, Title: &after.Title})
 	case "spec_section":
 		spec, err := tx.ReleaseSpec.Query().Where(releasespec.ID(change.TargetID), releasespec.OrganizationID(organizationID)).Only(ctx)
 		if ent.IsNotFound(err) {
@@ -1014,6 +986,85 @@ func applyLaunchChange(ctx context.Context, tx *ent.Tx, actor Actor, revision *e
 		return row.ID, nil, nil
 	}
 	return "", nil, ErrInvalidInput
+}
+
+// postRevision is an edit to a post. A nil field is unchanged; an empty call
+// to action or title clears it.
+type postRevision struct {
+	CallToAction *string
+	Claims       []map[string]any
+	Copy         *string
+	Title        *string
+}
+
+// revisePost edits a post's copy under the review rules. expectedCopy is the
+// copy the edit was made against; a mismatch returns stale. Approved copy
+// never changes in place: an edit sends it back to draft and clears the
+// approval, and a post that may be live cannot be edited. The result must
+// pass the brand's prohibited terms.
+func revisePost(ctx context.Context, tx *ent.Tx, post *ent.CampaignPost, expectedCopy string, stale error, edit postRevision) error {
+	if post.Copy != expectedCopy {
+		return stale
+	}
+	copyText, title, callToAction := post.Copy, optionalText(post.Title), optionalText(post.CallToAction)
+	if edit.Copy != nil {
+		copyText = *edit.Copy
+	}
+	if edit.Title != nil {
+		title = *edit.Title
+	}
+	if edit.CallToAction != nil {
+		callToAction = *edit.CallToAction
+	}
+	if strings.TrimSpace(copyText) == "" {
+		return ErrInvalidInput
+	}
+	if err := requireAllowedCopy(ctx, tx.BrandProfile, post.OrganizationID, title, copyText, callToAction); err != nil {
+		return err
+	}
+	update := tx.CampaignPost.UpdateOneID(post.ID).Where(campaignpost.Copy(expectedCopy)).SetCopy(copyText)
+	if edit.Claims != nil {
+		update.SetClaims(edit.Claims)
+	}
+	switch post.Status {
+	case campaignpost.StatusPUBLISHED:
+		return conflict("This post is published and can no longer be edited.")
+	case campaignpost.StatusSCHEDULED:
+		if post.ScheduledPostID != nil {
+			dead, err := tx.ScheduledPost.Query().Where(scheduledpost.ID(*post.ScheduledPostID),
+				scheduledpost.OrganizationID(post.OrganizationID),
+				scheduledpost.StatusIn(scheduledpost.StatusCANCELLED, scheduledpost.StatusFAILED)).Exist(ctx)
+			if err != nil {
+				return err
+			}
+			if !dead {
+				return conflict("Cancel the scheduled post first.")
+			}
+		}
+		update.SetStatus(campaignpost.StatusDRAFT).ClearScheduledPostID().ClearScheduledAt().
+			ClearApprovedAt().ClearApprovedByUserID()
+	case campaignpost.StatusAPPROVED:
+		update.SetStatus(campaignpost.StatusDRAFT).ClearApprovedAt().ClearApprovedByUserID()
+	case campaignpost.StatusNEEDS_CHANGES, campaignpost.StatusREJECTED:
+		// Revised copy goes back through review.
+		update.SetStatus(campaignpost.StatusDRAFT)
+	}
+	if callToAction == "" {
+		update.ClearCallToAction()
+	} else {
+		update.SetCallToAction(callToAction)
+	}
+	if title == "" {
+		update.ClearTitle()
+	} else {
+		update.SetTitle(title)
+	}
+	err := update.Exec(ctx)
+	if ent.IsNotFound(err) {
+		// The copy changed between the read and the write.
+		return stale
+	}
+	return err
 }
 
 // moveLaunchPosts moves posts to a revised spec version when their claims
@@ -1163,7 +1214,9 @@ func (c *Configuration) GetLaunchPreferences(ctx context.Context, actor Actor) (
 // ---------------------------------------------------------------- runs --
 
 type LaunchRunRecord struct {
-	CampaignID string     `json:"campaignId"`
+	// CampaignID is null for an agent run that has no campaign yet.
+	CampaignID *string    `json:"campaignId"`
+	CostCents  int        `json:"costCents"`
 	Error      *string    `json:"error"`
 	FinishedAt *time.Time `json:"finishedAt"`
 	// HeartbeatAt is the last time the worker reported it was alive.
@@ -1173,19 +1226,29 @@ type LaunchRunRecord struct {
 	ResultID    *string    `json:"resultId"`
 	StartedAt   time.Time  `json:"startedAt"`
 	Status      string     `json:"status"`
+	StepCount   int        `json:"stepCount"`
 	Summary     *string    `json:"summary"`
+	TokensIn    int        `json:"tokensIn"`
+	TokensOut   int        `json:"tokensOut"`
 }
 
 func launchRunRecord(row *ent.LaunchRun) LaunchRunRecord {
-	return LaunchRunRecord{CampaignID: row.CampaignID, Error: row.Error, FinishedAt: row.FinishedAt, HeartbeatAt: row.HeartbeatAt, ID: row.ID,
-		Kind: row.Kind, ResultID: row.ResultID, StartedAt: row.StartedAt, Status: string(row.Status), Summary: row.Summary}
+	return LaunchRunRecord{CampaignID: row.CampaignID, CostCents: row.CostCents, Error: row.Error, FinishedAt: row.FinishedAt,
+		HeartbeatAt: row.HeartbeatAt, ID: row.ID, Kind: row.Kind, ResultID: row.ResultID, StartedAt: row.StartedAt,
+		Status: string(row.Status), StepCount: row.StepCount, Summary: row.Summary, TokensIn: row.TokensIn, TokensOut: row.TokensOut}
 }
 
+// FinishLaunchRunInput ends a run. The counters are an agent run's totals;
+// an omitted counter is left as it is.
 type FinishLaunchRunInput struct {
-	Error    *string `json:"error"`
-	ResultID *string `json:"resultId"`
-	Status   string  `json:"status"`
-	Summary  *string `json:"summary"`
+	CostCents *int    `json:"costCents"`
+	Error     *string `json:"error"`
+	ResultID  *string `json:"resultId"`
+	Status    string  `json:"status"`
+	StepCount *int    `json:"stepCount"`
+	Summary   *string `json:"summary"`
+	TokensIn  *int    `json:"tokensIn"`
+	TokensOut *int    `json:"tokensOut"`
 }
 
 // StartLaunchRun records a background AI run. One run of each kind per
@@ -1197,23 +1260,31 @@ func (c *Configuration) StartLaunchRun(ctx context.Context, actor Actor, campaig
 	if !slices.Contains(launchRunKinds, kind) {
 		return nil, ErrInvalidInput
 	}
+	return c.startLaunchRun(ctx, actor, &campaignID, kind)
+}
+
+// startLaunchRun records a run once the caller authorized it. A run without
+// a campaign holds no slot.
+func (c *Configuration) startLaunchRun(ctx context.Context, actor Actor, campaignID *string, kind string) (*LaunchRunRecord, error) {
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
-	exists, err := tx.Campaign.Query().Where(campaign.ID(campaignID), campaign.OrganizationID(actor.OrganizationID)).Exist(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, launchNotFound("Campaign")
-	}
 	now := time.Now().UTC()
-	if kind != "revision" {
+	if campaignID != nil {
+		exists, err := tx.Campaign.Query().Where(campaign.ID(*campaignID), campaign.OrganizationID(actor.OrganizationID)).Exist(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if !exists {
+			return nil, launchNotFound("Campaign")
+		}
+	}
+	if campaignID != nil && kind != "revision" {
 		// A dead run gives up its slot here; the partial unique index on
 		// running runs then admits exactly one of concurrent starts.
-		if _, err := tx.LaunchRun.Update().Where(launchrun.CampaignID(campaignID), launchrun.Kind(kind),
+		if _, err := tx.LaunchRun.Update().Where(launchrun.CampaignID(*campaignID), launchrun.Kind(kind),
 			launchrun.OrganizationID(actor.OrganizationID), launchrun.StatusEQ(launchrun.StatusRUNNING),
 			launchrun.Or(launchrun.HeartbeatAtLT(now.Add(-launchRunHeartbeatStaleAfter)),
 				launchrun.And(launchrun.HeartbeatAtIsNil(), launchrun.StartedAtLT(now.Add(-launchRunStaleAfter))))).
@@ -1221,7 +1292,7 @@ func (c *Configuration) StartLaunchRun(ctx context.Context, actor Actor, campaig
 			return nil, err
 		}
 	}
-	row, err := tx.LaunchRun.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetCampaignID(campaignID).
+	row, err := tx.LaunchRun.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetNillableCampaignID(campaignID).
 		SetKind(kind).SetNillableCreatedByUserID(launchUserID(actor)).SetStartedAt(now).Save(ctx)
 	if ent.IsConstraintError(err) {
 		return nil, errLaunchRunActive
@@ -1240,15 +1311,23 @@ func (c *Configuration) FinishLaunchRun(ctx context.Context, actor Actor, id str
 	if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
 		return err
 	}
+	// CANCELLED is set only by CancelLaunchRun.
 	status := launchrun.Status(input.Status)
-	if status != launchrun.StatusSUCCEEDED && status != launchrun.StatusFAILED {
+	if status != launchrun.StatusSUCCEEDED && status != launchrun.StatusFAILED && status != launchrun.StatusBUDGET_EXHAUSTED {
 		return ErrInvalidInput
+	}
+	for _, counter := range []*int{input.CostCents, input.StepCount, input.TokensIn, input.TokensOut} {
+		if counter != nil && *counter < 0 {
+			return ErrInvalidInput
+		}
 	}
 	// Only a running run finishes; a cancelled or expired one stays as it is.
 	count, err := c.client.LaunchRun.Update().Where(launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID),
 		launchrun.StatusEQ(launchrun.StatusRUNNING)).
 		SetStatus(status).SetFinishedAt(time.Now().UTC()).SetNillableResultID(input.ResultID).
-		SetNillableSummary(input.Summary).SetNillableError(input.Error).Save(ctx)
+		SetNillableSummary(input.Summary).SetNillableError(input.Error).
+		SetNillableCostCents(input.CostCents).SetNillableStepCount(input.StepCount).
+		SetNillableTokensIn(input.TokensIn).SetNillableTokensOut(input.TokensOut).Save(ctx)
 	if err != nil {
 		return err
 	}
@@ -1275,15 +1354,22 @@ func (c *Configuration) HeartbeatLaunchRun(ctx context.Context, actor Actor, id 
 	return true, nil
 }
 
-// CancelLaunchRun fails a running run and reports whether it did. The worker
-// sees it on its next heartbeat and stops.
+// CancelLaunchRun stops a running run and reports whether it did. The worker
+// sees it on its next heartbeat and stops. An agent run ends CANCELLED; a
+// pipeline run ends FAILED with "Cancelled.", which is what the web released
+// with SDK 0.1.13 renders.
 func (c *Configuration) CancelLaunchRun(ctx context.Context, actor Actor, id string) (bool, error) {
 	if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
 		return false, err
 	}
-	count, err := c.client.LaunchRun.Update().Where(launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID),
-		launchrun.StatusEQ(launchrun.StatusRUNNING)).SetStatus(launchrun.StatusFAILED).
-		SetFinishedAt(time.Now().UTC()).SetError("Cancelled.").Save(ctx)
+	now := time.Now().UTC()
+	running := []predicate.LaunchRun{launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID), launchrun.StatusEQ(launchrun.StatusRUNNING)}
+	count, err := c.client.LaunchRun.Update().Where(append(running, launchrun.KindIn(agentRunKinds...))...).
+		SetStatus(launchrun.StatusCANCELLED).SetFinishedAt(now).SetError("Cancelled.").Save(ctx)
+	if err == nil && count == 0 {
+		count, err = c.client.LaunchRun.Update().Where(append(running, launchrun.KindNotIn(agentRunKinds...))...).
+			SetStatus(launchrun.StatusFAILED).SetFinishedAt(now).SetError("Cancelled.").Save(ctx)
+	}
 	if err != nil {
 		return false, err
 	}

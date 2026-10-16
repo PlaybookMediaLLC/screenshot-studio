@@ -8,6 +8,8 @@ import (
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
 )
 
 // BrandKit maps the canonical product table. The backend is its sole writer.
@@ -47,7 +49,8 @@ func (BrandProfile) Fields() []ent.Field {
 		field.String("tone").StorageKey("tone"),
 		field.String("tagline").StorageKey("tagline").Optional().Nillable(),
 		field.String("cta_conventions").StorageKey("ctaConventions").Optional().Nillable(),
-		field.JSON("prohibited_terms", []string{}).StorageKey("prohibitedTerms"),
+		// Structured terms; a legacy bare string decodes as a word-mode term.
+		field.JSON("prohibited_terms", []brand.ProhibitedTerm{}).StorageKey("prohibitedTerms"),
 		field.JSON("preferred_styles", []string{}).StorageKey("preferredStyles"),
 		field.JSON("social_handles", map[string]string{}).StorageKey("socialHandles"),
 		field.Time("created_at").StorageKey("createdAt").Default(time.Now).Immutable(),

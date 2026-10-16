@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -45,12 +46,17 @@ func (s *Server) registerConfiguration(mux *http.ServeMux) {
 	mux.Handle("POST /v1/brand-kits", s.authenticateProduct(http.HandlerFunc(s.createBrandKit)))
 	mux.Handle("GET /v1/brand-profile", s.authenticateProduct(http.HandlerFunc(s.getBrandProfile)))
 	mux.Handle("POST /v1/brand-profile", s.authenticateProduct(http.HandlerFunc(s.upsertBrandProfile)))
+	mux.Handle("GET /v1/product-profile", s.authenticateProduct(http.HandlerFunc(s.getProductProfile)))
+	mux.Handle("POST /v1/product-profile", s.authenticateProduct(http.HandlerFunc(s.upsertProductProfile)))
 	mux.Handle("POST /v1/source-apps", s.authenticateProduct(http.HandlerFunc(s.createSourceApp)))
 	mux.Handle("PATCH /v1/source-apps/{id}", s.authenticateProduct(http.HandlerFunc(s.updateSourceApp)))
 	mux.Handle("GET /v1/product-surfaces", s.authenticateProduct(http.HandlerFunc(s.listProductSurfaces)))
 	mux.Handle("POST /v1/product-surfaces", s.authenticateProduct(http.HandlerFunc(s.createProductSurface)))
 	mux.Handle("PATCH /v1/product-surfaces/{id}", s.authenticateProduct(http.HandlerFunc(s.updateProductSurface)))
 	mux.Handle("DELETE /v1/product-surfaces/{id}", s.authenticateProduct(http.HandlerFunc(s.deleteProductSurface)))
+	mux.Handle("GET /v1/product-surfaces/match", s.authenticateProduct(http.HandlerFunc(s.findProductSurfaces)))
+	mux.Handle("GET /v1/product-surfaces/{id}/captures", s.authenticateProduct(http.HandlerFunc(s.listSurfaceCaptures)))
+	mux.Handle("POST /v1/product-surfaces/{id}/captures", s.authenticateProduct(http.HandlerFunc(s.recordSurfaceCapture)))
 }
 
 func (s *Server) configurationActor(w http.ResponseWriter, r *http.Request) (product.Actor, bool) {
@@ -101,6 +107,7 @@ func (s *Server) createBrandKit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	input.Name = strings.TrimSpace(input.Name)
+	// The definition itself is validated by the product layer.
 	if input.Name == "" || utf8.RuneCountInString(input.Name) > 100 || input.Definition == nil {
 		writeError(w, http.StatusBadRequest, "name and definition are required")
 		return
@@ -148,13 +155,14 @@ func (s *Server) upsertBrandProfile(w http.ResponseWriter, r *http.Request) {
 	if input.Audience == "" || utf8.RuneCountInString(input.Audience) > 1000 ||
 		input.ProductDescription == "" || utf8.RuneCountInString(input.ProductDescription) > 2000 ||
 		input.Tone == "" || utf8.RuneCountInString(input.Tone) > 500 ||
-		len(input.PreferredStyles) > 50 || len(input.ProhibitedTerms) > 200 ||
+		len(input.PreferredStyles) > 50 ||
 		(input.Tagline != nil && utf8.RuneCountInString(*input.Tagline) > 200) ||
 		(input.CtaConventions != nil && utf8.RuneCountInString(*input.CtaConventions) > 1000) {
 		writeError(w, http.StatusBadRequest, "invalid brand profile")
 		return
 	}
-	for _, value := range append(input.PreferredStyles, input.ProhibitedTerms...) {
+	// Prohibited terms are normalized and bounded in the product layer.
+	for _, value := range input.PreferredStyles {
 		if strings.TrimSpace(value) == "" || utf8.RuneCountInString(value) > 100 {
 			writeError(w, http.StatusBadRequest, "invalid brand profile term")
 			return
@@ -162,9 +170,6 @@ func (s *Server) upsertBrandProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	if input.PreferredStyles == nil {
 		input.PreferredStyles = []string{}
-	}
-	if input.ProhibitedTerms == nil {
-		input.ProhibitedTerms = []string{}
 	}
 	if input.SocialHandles == nil {
 		input.SocialHandles = map[string]string{}
@@ -181,6 +186,30 @@ func (s *Server) upsertBrandProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, brandProfileResponse(profile))
+}
+
+func (s *Server) getProductProfile(w http.ResponseWriter, r *http.Request) {
+	profile, err := s.configuration.GetProductProfile(r.Context(), workspaceActor(r))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"productProfile": profile})
+}
+
+// upsertProductProfile validates and applies the change in the product layer.
+func (s *Server) upsertProductProfile(w http.ResponseWriter, r *http.Request) {
+	var input product.UpsertProductProfileInput
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	profile, err := s.configuration.UpsertProductProfile(r.Context(), workspaceActor(r), input)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, profile)
 }
 
 func (s *Server) createSourceApp(w http.ResponseWriter, r *http.Request) {
@@ -452,9 +481,72 @@ func validSurfaceAssets(values []string) bool {
 
 func productSurfaceResponse(v *ent.ProductSurface) map[string]any {
 	return map[string]any{
-		"id": v.ID, "organizationId": v.OrganizationID, "name": v.Name, "url": v.URL,
+		"id": v.ID, "organizationId": v.OrganizationID, "name": v.Name, "slug": v.Slug, "url": v.URL,
 		"environment": v.Environment, "description": v.Description,
 		"featureTags": v.FeatureTags, "screenshotAssetIds": v.ScreenshotAssetIds,
+		"lastCapturedAt": v.LastCapturedAt, "lastCaptureFailureCode": v.LastCaptureFailureCode,
 		"createdAt": v.CreatedAt, "updatedAt": v.UpdatedAt,
 	}
+}
+
+// findProductSurfaces ranks surfaces for ?feature= and repeated ?tag=.
+func (s *Server) findProductSurfaces(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	input := product.FindSurfacesInput{Feature: strings.TrimSpace(query.Get("feature")), Tags: query["tag"]}
+	if raw := query.Get("limit"); raw != "" {
+		limit, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid limit")
+			return
+		}
+		input.Limit = limit
+	}
+	if utf8.RuneCountInString(input.Feature) > 500 || !validSurfaceTags(input.Tags) {
+		writeError(w, http.StatusBadRequest, "invalid surface lookup")
+		return
+	}
+	matches, err := s.configuration.FindSurfacesForFeature(r.Context(), workspaceActor(r), input)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	items := make([]any, 0, len(matches))
+	for _, match := range matches {
+		items = append(items, map[string]any{"surface": productSurfaceResponse(match.Surface), "reason": match.Reason,
+			"score": match.Score, "currentCaptureAssetId": match.CurrentCaptureAssetID})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"matches": items})
+}
+
+func (s *Server) listSurfaceCaptures(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if !resourceIDPattern.MatchString(id) {
+		writeError(w, http.StatusBadRequest, "invalid product surface ID")
+		return
+	}
+	captures, err := s.configuration.ListSurfaceCaptures(r.Context(), workspaceActor(r), id)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"captures": captures})
+}
+
+func (s *Server) recordSurfaceCapture(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if !resourceIDPattern.MatchString(id) {
+		writeError(w, http.StatusBadRequest, "invalid product surface ID")
+		return
+	}
+	var input product.RecordSurfaceCaptureInput
+	if err := decodeJSON(r, &input); err != nil || !validSurfaceAssets([]string{input.AssetID}) {
+		writeError(w, http.StatusBadRequest, "invalid surface capture")
+		return
+	}
+	capture, err := s.configuration.RecordSurfaceCapture(r.Context(), workspaceActor(r), id, input)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, capture)
 }

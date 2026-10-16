@@ -100,7 +100,7 @@ func newShareToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(buffer), nil
 }
 
-func optionalText(value *string, limit int) (*string, bool) {
+func limitedText(value *string, limit int) (*string, bool) {
 	if value == nil {
 		return nil, true
 	}
@@ -152,8 +152,8 @@ func (c *Configuration) CreateShareLink(ctx context.Context, actor Actor, input 
 		return nil, err
 	}
 	input.Title = strings.TrimSpace(input.Title)
-	description, okDescription := optionalText(input.Description, shareDescriptionLimit)
-	altText, okAlt := optionalText(input.AltText, shareAltTextLimit)
+	description, okDescription := limitedText(input.Description, shareDescriptionLimit)
+	altText, okAlt := limitedText(input.AltText, shareAltTextLimit)
 	if input.Title == "" || utf8.RuneCountInString(input.Title) > shareTitleLimit || !okDescription || !okAlt ||
 		!validShareAccess(input.Access) || !validShareExpiry(input.ExpiresAt) {
 		return nil, ErrInvalidInput
@@ -245,8 +245,8 @@ func (c *Configuration) UpdateShareLink(ctx context.Context, actor Actor, id str
 	if err := c.authorizeRoles(ctx, actor, shareEditRoles...); err != nil {
 		return nil, err
 	}
-	description, okDescription := optionalText(input.Description, shareDescriptionLimit)
-	altText, okAlt := optionalText(input.AltText, shareAltTextLimit)
+	description, okDescription := limitedText(input.Description, shareDescriptionLimit)
+	altText, okAlt := limitedText(input.AltText, shareAltTextLimit)
 	if !okDescription || !okAlt || (input.Access != nil && !validShareAccess(*input.Access)) ||
 		!validShareExpiry(input.ExpiresAt) || (input.ClearExpiry && input.ExpiresAt != nil) {
 		return nil, ErrInvalidInput

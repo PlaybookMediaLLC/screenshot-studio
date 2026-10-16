@@ -3,9 +3,12 @@ import 'server-only'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import {
+  captureProductSurface,
   createProductSurface,
   deleteProductSurface,
+  findSurfacesForFeature,
   listProductSurfaces,
+  listSurfaceCaptures,
   updateProductSurface,
 } from '@/lib/tenant/product-surfaces'
 import { productSurfaceCreateSchema, productSurfaceUpdateSchema } from '@/lib/tenant/schemas'
@@ -20,6 +23,44 @@ export const productSurfaceRouter = router({
     const productSurfaces = await listProductSurfaces(ctx.access)
     return { productSurfaces }
   }),
+  /** A surface's capture history, newest first; the current capture has no `supersededAt`. */
+  captures: organizationProcedure('artifact:read')
+    .input(z.object({ surfaceId: surfaceIdSchema }))
+    .query(async ({ ctx, input }) => {
+      const captures = await listSurfaceCaptures(ctx.access, input.surfaceId)
+      if (!captures) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Product surface not found.' })
+      }
+      return { captures }
+    }),
+  /** Surfaces for a feature, ranked with no model; a `fallback` match is not the feature's screen. */
+  match: organizationProcedure('artifact:read')
+    .input(
+      z.object({
+        feature: z.string().trim().min(1).max(200),
+        limit: z.number().int().min(1).max(20).optional(),
+        tags: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => ({
+      matches: await findSurfacesForFeature(ctx.access, input),
+    })),
+  /** Screenshot the surface's page now and make it the current capture. */
+  capture: organizationProcedure('brand:manage')
+    .input(z.object({ surfaceId: surfaceIdSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const result = await captureProductSurface(ctx.access, input.surfaceId)
+      if (!result) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Product surface not found.' })
+      }
+      if ('failure' in result) {
+        throw new TRPCError({
+          code: result.failure.status === 429 ? 'TOO_MANY_REQUESTS' : 'BAD_REQUEST',
+          message: result.failure.message,
+        })
+      }
+      return { capture: result.capture }
+    }),
   create: organizationProcedure('brand:manage')
     .input(productSurfaceCreateSchema)
     .mutation(async ({ ctx, input }) => {

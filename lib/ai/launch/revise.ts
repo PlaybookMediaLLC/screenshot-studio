@@ -121,7 +121,13 @@ function sourcesFor(spec: StoredSpec): string {
 
 export async function proposeCampaignRevision(
   tenant: TenantContext,
-  input: { campaignId: string; comment: string; target: RevisionTargetInput }
+  input: {
+    campaignId: string
+    comment: string
+    /** Stops the model when the launch run is cancelled. */
+    signal?: AbortSignal
+    target: RevisionTargetInput
+  }
 ): Promise<StoredRevision> {
   const campaign = await loadLaunchCampaign(tenant, input.campaignId)
   const release = campaign.release
@@ -149,6 +155,7 @@ export async function proposeCampaignRevision(
     const guard = copyGuardContext(campaign, spec, brand)
     const before = postBefore(post)
     const run = await runSubmitStage({
+      abortSignal: input.signal,
       description: 'Propose the revised post.',
       prompt: [
         formatSpecForStages(spec.content, spec.version),
@@ -227,6 +234,7 @@ export async function proposeCampaignRevision(
       summary: summarySchema,
     })
     const run = await runSubmitStage({
+      abortSignal: input.signal,
       description:
         'Propose the revised spec section, plus updates for dependent posts that would otherwise contradict it.',
       maxSteps: 6,
@@ -334,6 +342,7 @@ export async function proposeCampaignRevision(
       }
     }
     const run = await runSubmitStage({
+      abortSignal: input.signal,
       description: 'Propose the design changes.',
       messages: [{ content, role: 'user' } as ModelMessage],
       role: 'deep',
@@ -386,6 +395,7 @@ export async function proposeCampaignRevision(
       ...releaseSourceUrls(campaign),
     ])
     const run = await runSubmitStage({
+      abortSignal: input.signal,
       description: 'Propose the revised campaign plan.',
       maxSteps: 6,
       prompt: [

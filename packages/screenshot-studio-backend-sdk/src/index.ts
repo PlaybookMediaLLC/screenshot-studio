@@ -140,6 +140,43 @@ export type BrandKit = {
   updatedAt: string
 }
 
+/**
+ * How a prohibited term matches, after NFKC normalization and case folding:
+ * `word` only between word boundaries, `phrase` anywhere, even inside a word.
+ */
+export type ProhibitedTermMatchMode = 'word' | 'phrase'
+
+/** A term the workspace never publishes, and the reason shown when copy is blocked. */
+export type ProhibitedTerm = {
+  matchMode: ProhibitedTermMatchMode
+  reason?: string
+  term: string
+}
+
+/** A prohibited term as written: a bare string is the legacy form, a word-mode term. */
+export type ProhibitedTermInput =
+  string | { matchMode?: ProhibitedTermMatchMode; reason?: string; term: string }
+
+/** A prohibited term found in copy the backend refused. */
+export type ProhibitedTermMatch = ProhibitedTerm
+
+/**
+ * The prohibited terms a refused write used: a 409 whose `code` is
+ * `brand_prohibited_terms`. Null for any other error.
+ */
+export function prohibitedTermMatches(error: unknown): ProhibitedTermMatch[] | null {
+  if (
+    !(error instanceof BackendSDKError) ||
+    error.status !== 409 ||
+    error.details.code !== 'brand_prohibited_terms'
+  ) {
+    return null
+  }
+  return Array.isArray(error.details.matches)
+    ? (error.details.matches as ProhibitedTermMatch[])
+    : []
+}
+
 export type BrandProfile = {
   id: string
   organizationId: string
@@ -148,7 +185,7 @@ export type BrandProfile = {
   tone: string
   tagline: string | null
   ctaConventions: string | null
-  prohibitedTerms: string[]
+  prohibitedTerms: ProhibitedTerm[]
   preferredStyles: string[]
   socialHandles: Record<string, string>
   createdAt: string
@@ -176,13 +213,121 @@ export type ProductSurface = {
   id: string
   organizationId: string
   name: string
+  /** Stable and URL-safe, unique per workspace; set from the name at creation. */
+  slug: string
   url: string
   environment: 'production' | 'staging' | 'demo' | 'development'
   description: string | null
   featureTags: string[]
+  /** The newest capture assets, at most 50; `listSurfaceCaptures` is the record. */
   screenshotAssetIds: string[]
+  lastCapturedAt: string | null
+  /** Why the newest capture attempt failed, such as `capture_failed`. */
+  lastCaptureFailureCode: string | null
   createdAt: string
   updatedAt: string
+}
+
+/** Where a surface capture came from. */
+export type SurfaceCaptureSource = 'deployment' | 'agent' | 'release' | 'manual'
+
+/** One screenshot of a surface. The current capture has no `supersededAt`. */
+export type SurfaceCapture = {
+  assetId: string
+  capturedAt: string
+  id: string
+  source: SurfaceCaptureSource
+  /** The deployment event, release, or run that produced it. */
+  sourceId: string | null
+  supersededAt: string | null
+  surfaceId: string
+}
+
+/** Why a surface matched a feature, strongest first. */
+export type SurfaceMatchReason = 'tag' | 'name' | 'token_overlap' | 'fallback'
+
+/**
+ * A surface for a feature. Score is 100 for a tag, 90 for a slug or name,
+ * 10-70 by token overlap, and 0 for the fallback: the homepage, returned when
+ * nothing matched, which a caller should not present as the feature's screen.
+ */
+export type SurfaceMatch = {
+  currentCaptureAssetId: string | null
+  reason: SurfaceMatchReason
+  score: number
+  surface: ProductSurface
+}
+
+/** A claim about the product and the page it came from. */
+export type ProductProofPoint = { claim: string; sourceUrl?: string }
+
+/** Where a product profile field's value came from. An edited field is locked. */
+export type ProductProfileProvenance = {
+  editedByUser: boolean
+  source: 'manual' | 'automated'
+  updatedAt: string
+  url?: string
+}
+
+/** A product profile field name. */
+export type ProductProfileField =
+  | 'name'
+  | 'url'
+  | 'summary'
+  | 'problem'
+  | 'audience'
+  | 'capabilities'
+  | 'proofPoints'
+  | 'pricingNote'
+  | 'competitors'
+
+/** The workspace's product memory, one per workspace. */
+export type ProductProfile = {
+  audience: string
+  capabilities: string[]
+  competitors: string[]
+  createdAt: string
+  id: string
+  name: string
+  pricingNote: string
+  problem: string
+  proofPoints: ProductProofPoint[]
+  provenance: Partial<Record<ProductProfileField, ProductProfileProvenance>>
+  summary: string
+  updatedAt: string
+  url: string
+}
+
+/**
+ * A product profile change: only the fields given change. A manual change
+ * (the default) locks each changed field; an automated one skips locked
+ * fields. `unlockFields` lets automated changes update those fields again.
+ */
+export type UpsertProductProfileInput = {
+  audience?: string
+  capabilities?: string[]
+  competitors?: string[]
+  name?: string
+  pricingNote?: string
+  problem?: string
+  proofPoints?: ProductProofPoint[]
+  source?: 'manual' | 'automated'
+  /** The page each automated value came from. */
+  sourceUrls?: Partial<Record<ProductProfileField, string>>
+  summary?: string
+  unlockFields?: ProductProfileField[]
+  url?: string
+}
+
+/**
+ * A hand edit to a post, made against `expectedCopy`; other copy is a 409.
+ * An empty `callToAction` or `title` clears it.
+ */
+export type UpdateCampaignPostInput = {
+  callToAction?: string
+  copy?: string
+  expectedCopy: string
+  title?: string
 }
 
 export type CreateProductSurfaceInput = {
@@ -202,6 +347,8 @@ export type WorkspaceSettings = {
   locale: string
   timeZone: string
   defaultPublishTime: string
+  /** The workspace AI agent kill switch; on unless an owner or admin turned it off. */
+  aiAgentEnabled: boolean
   createdAt: string
   updatedAt: string
 }
@@ -223,6 +370,8 @@ export type BackendBootstrapSnapshot = {
   settings: Pick<WorkspaceSettings, 'locale' | 'timeZone' | 'defaultPublishTime'> | null
   entitlements: { features: Record<string, boolean>; plan: string; status: string }
   capabilities: {
+    /** Whether AI agent runs are allowed in this workspace (the kill switch). */
+    aiAgent: boolean
     browserAutomation: boolean
     engineeringAgent: boolean
     publishing: boolean
@@ -876,6 +1025,117 @@ export type BackendLaunchRun = {
   summary: string | null
 }
 
+/** Every launch run status. Pipeline runs only reach RUNNING, SUCCEEDED, and FAILED. */
+export type BackendLaunchRunStatus =
+  | 'BUDGET_EXHAUSTED'
+  | 'CANCELLED'
+  | 'FAILED'
+  | 'RUNNING'
+  | 'SUCCEEDED'
+
+/** An agent or conversation run (RFC 016). It may have no campaign. */
+export type BackendAgentRun = Omit<BackendLaunchRun, 'campaignId' | 'kind' | 'status'> & {
+  campaignId: string | null
+  costCents: number
+  kind: 'agent' | 'conversation'
+  status: BackendLaunchRunStatus
+  stepCount: number
+  tokensIn: number
+  tokensOut: number
+}
+
+/** A step outcome; DENIED is a tool call refused by authorization. */
+export type BackendLaunchRunStepStatus = 'DENIED' | 'FAILED' | 'SUCCEEDED'
+
+/** What a tool call does, from its capability record. */
+export type BackendToolEffect = 'approval-request' | 'external' | 'read' | 'render' | 'write'
+
+/**
+ * One step a worker appends. `index` is the worker's step number: re-sending
+ * a recorded index answers 409, so a resumed worker never duplicates a step.
+ * Summaries are redacted by the caller; the backend also blanks
+ * credential-like keys and caps each at 16 KiB.
+ */
+export type BackendLaunchRunStepInput = {
+  durationMs?: number
+  effect?: BackendToolEffect | null
+  errorCode?: string | null
+  index: number
+  inputSummary?: unknown
+  kind: 'model' | 'tool'
+  outputSummary?: unknown
+  status: BackendLaunchRunStepStatus
+  tokensIn?: number
+  tokensOut?: number
+  /** Required for a tool step, absent for a model step. */
+  toolName?: string | null
+}
+
+/** A persisted step of a run's trace. */
+export type BackendLaunchRunStep = {
+  createdAt: string
+  durationMs: number
+  effect: BackendToolEffect | null
+  errorCode: string | null
+  id: string
+  index: number
+  inputSummary: unknown
+  kind: 'model' | 'tool'
+  outputSummary: unknown
+  runId: string
+  status: BackendLaunchRunStepStatus
+  tokensIn: number
+  tokensOut: number
+  toolName: string | null
+}
+
+/** A workspace-visible conversation (RFC 017), without its messages. */
+export type BackendConversation = {
+  campaignId: string | null
+  createdAt: string
+  createdByUserId: string | null
+  id: string
+  status: 'ACTIVE' | 'ARCHIVED'
+  title: string
+  updatedAt: string
+}
+
+export type BackendConversationMessageRole = 'assistant' | 'tool' | 'user'
+export type BackendConversationMessageKind = 'clarification' | 'text' | 'tool'
+
+export type BackendConversationMessage = {
+  content: string
+  conversationId: string
+  createdAt: string
+  id: string
+  kind: BackendConversationMessageKind
+  launchRunId: string | null
+  metadata: unknown
+  role: BackendConversationMessageRole
+  toolName: string | null
+}
+
+/**
+ * A message to append. Any member sends a plain user text message; any
+ * other role or kind needs owner, admin, or creator. Content is at most
+ * 20,000 characters.
+ */
+export type BackendConversationMessageInput = {
+  content: string
+  kind: BackendConversationMessageKind
+  launchRunId?: string | null
+  metadata?: unknown
+  role: BackendConversationMessageRole
+  toolName?: string | null
+}
+
+/** A conversation change for its author or an owner or admin; `campaignId: null` unlinks. */
+export type BackendConversationUpdate = {
+  campaignId?: string | null
+  status?: 'ACTIVE' | 'ARCHIVED'
+  title?: string
+}
+
 /** A new spec or plan version. Metadata is flat and lands in the audit entry. */
 export type BackendLaunchVersionInput = {
   changeSummary: string
@@ -980,6 +1240,8 @@ export type ListedWorkspace = {
 }
 
 export type UpdateWorkspaceInput = {
+  /** Turns AI agent runs on or off. Owner or admin only; audited. */
+  aiAgentEnabled?: boolean
   defaultPublishTime?: string
   description?: string | null
   locale?: string
@@ -1215,12 +1477,22 @@ export class ScreenshotStudioBackendSDK {
     ctaConventions?: string
     preferredStyles: string[]
     productDescription: string
-    prohibitedTerms: string[]
+    prohibitedTerms: ProhibitedTermInput[]
     socialHandles: Record<string, string>
     tagline?: string
     tone: string
   }) {
     return this.request<BrandProfile>('v1/brand-profile', { body: input, method: 'POST' })
+  }
+
+  /** The workspace's product profile, or null before one is saved. */
+  async getProductProfile() {
+    return this.request<{ productProfile: ProductProfile | null }>('v1/product-profile')
+  }
+
+  /** Creates or changes the product profile; owner or admin only. */
+  async upsertProductProfile(input: UpsertProductProfileInput) {
+    return this.request<ProductProfile>('v1/product-profile', { body: input, method: 'POST' })
   }
 
   async createSourceApp(input: {
@@ -1264,6 +1536,36 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ deleted: true }>(`v1/product-surfaces/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     })
+  }
+
+  /** Ranks surfaces for a feature with no model involved; see `SurfaceMatch`. */
+  async findSurfacesForFeature(input: { feature: string; limit?: number; tags?: string[] }) {
+    const query = new URLSearchParams({ feature: input.feature })
+    for (const tag of input.tags ?? []) query.append('tag', tag)
+    if (input.limit !== undefined) query.set('limit', String(input.limit))
+    return this.request<{ matches: SurfaceMatch[] }>(`v1/product-surfaces/match?${query}`)
+  }
+
+  /** A surface's 50 newest captures, current first. */
+  async listSurfaceCaptures(surfaceId: string) {
+    return this.request<{ captures: SurfaceCapture[] }>(
+      `v1/product-surfaces/${encodeURIComponent(surfaceId)}/captures`
+    )
+  }
+
+  /** Makes an uploaded image the surface's current capture, superseding the last. */
+  async recordSurfaceCapture(
+    surfaceId: string,
+    input: {
+      assetId: string
+      source: Exclude<SurfaceCaptureSource, 'deployment'>
+      sourceId?: string
+    }
+  ) {
+    return this.request<SurfaceCapture>(
+      `v1/product-surfaces/${encodeURIComponent(surfaceId)}/captures`,
+      { body: input, method: 'POST' }
+    )
   }
 
   async createWorkspace(input: { name: string; slug: string }) {
@@ -1398,6 +1700,26 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ postIds: string[]; status: string }>(
       `v1/campaigns/${encodeURIComponent(id)}/posts/decide`,
       { body: input, method: 'POST' }
+    )
+  }
+
+  /**
+   * Moves draft or needs-changes posts to review, every eligible post when
+   * `postIds` is omitted. Unlike `decideCampaignPosts`, an API key with the
+   * release:create scope may call it; nothing but a person approves.
+   */
+  async submitCampaignPosts(campaignId: string, postIds?: readonly string[]) {
+    return this.request<{ postIds: string[]; status: string }>(
+      `v1/campaigns/${encodeURIComponent(campaignId)}/posts/submit`,
+      { body: postIds === undefined ? {} : { postIds }, method: 'POST' }
+    )
+  }
+
+  /** Edits a post's copy, call to action, or title; see `UpdateCampaignPostInput`. */
+  async updateCampaignPost(campaignId: string, postId: string, input: UpdateCampaignPostInput) {
+    return this.request<BackendCampaignPost>(
+      `v1/campaigns/${encodeURIComponent(campaignId)}/posts/${encodeURIComponent(postId)}`,
+      { body: input, method: 'PATCH' }
     )
   }
 
@@ -2099,13 +2421,18 @@ export class ScreenshotStudioBackendSDK {
     return this.request<BackendLaunchRun>(`v1/launch/runs/${encodeURIComponent(runId)}`)
   }
 
+  /** Ends a running run. The counters are an agent run's totals; omitted ones are kept. */
   async finishLaunchRun(
     runId: string,
     input: {
+      costCents?: number
       error?: string
       resultId?: string | null
-      status: 'FAILED' | 'SUCCEEDED'
+      status: 'BUDGET_EXHAUSTED' | 'FAILED' | 'SUCCEEDED'
+      stepCount?: number
       summary?: string | null
+      tokensIn?: number
+      tokensOut?: number
     }
   ) {
     return this.request<{ updated: true }>(`v1/launch/runs/${encodeURIComponent(runId)}/finish`, {
@@ -2122,10 +2449,76 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
+  /** Agent runs end CANCELLED; pipeline runs end FAILED with "Cancelled.". */
   async cancelLaunchRun(runId: string) {
     return this.request<{ cancelled: boolean }>(
       `v1/launch/runs/${encodeURIComponent(runId)}/cancel`,
       { method: 'POST' }
+    )
+  }
+
+  /**
+   * Starts an agent or conversation run, optionally about a campaign. Needs
+   * owner, admin, or creator; answers 403 when the workspace turned AI off.
+   */
+  async startAgentRun(input: { campaignId?: string | null; kind: 'agent' | 'conversation' }) {
+    return this.request<BackendAgentRun>('v1/launch/runs', { body: input, method: 'POST' })
+  }
+
+  async getAgentRun(runId: string) {
+    return this.request<BackendAgentRun>(`v1/launch/runs/${encodeURIComponent(runId)}`)
+  }
+
+  async appendLaunchRunStep(runId: string, input: BackendLaunchRunStepInput) {
+    return this.request<BackendLaunchRunStep>(
+      `v1/launch/runs/${encodeURIComponent(runId)}/steps`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  /** A run's trace in step order, up to 500 steps. */
+  async listLaunchRunSteps(runId: string) {
+    return this.request<{ steps: BackendLaunchRunStep[] }>(
+      `v1/launch/runs/${encodeURIComponent(runId)}/steps`
+    )
+  }
+
+  /** Any member starts a conversation; an empty title becomes "New conversation". */
+  async createConversation(input: { campaignId?: string | null; title?: string }) {
+    return this.request<BackendConversation>('v1/conversations', { body: input, method: 'POST' })
+  }
+
+  /** Most recently active first; status defaults to ACTIVE, limit to 20 (at most 100). */
+  async listConversations(
+    options: { campaignId?: string; limit?: number; status?: 'ACTIVE' | 'ARCHIVED' } = {}
+  ) {
+    const parameters = new URLSearchParams()
+    if (options.campaignId) parameters.set('campaignId', options.campaignId)
+    if (options.limit !== undefined) parameters.set('limit', String(options.limit))
+    if (options.status) parameters.set('status', options.status)
+    return this.request<{ conversations: BackendConversation[] }>(`v1/conversations?${parameters}`)
+  }
+
+  /** A conversation with its 200 newest messages, oldest first. */
+  async getConversation(conversationId: string) {
+    return this.request<{
+      conversation: BackendConversation
+      messages: BackendConversationMessage[]
+    }>(`v1/conversations/${encodeURIComponent(conversationId)}`)
+  }
+
+  /** Answers 409 for an archived conversation. */
+  async appendConversationMessage(conversationId: string, input: BackendConversationMessageInput) {
+    return this.request<BackendConversationMessage>(
+      `v1/conversations/${encodeURIComponent(conversationId)}/messages`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  async updateConversation(conversationId: string, input: BackendConversationUpdate) {
+    return this.request<BackendConversation>(
+      `v1/conversations/${encodeURIComponent(conversationId)}`,
+      { body: input, method: 'PATCH' }
     )
   }
 

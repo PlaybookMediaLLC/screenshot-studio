@@ -4,17 +4,20 @@ import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { campaignPostTransitions } from '@/lib/tenant/campaign-status'
 import {
+  approveCampaignDesign,
   createCampaign,
   getCampaign,
   listCampaigns,
   scheduleCampaignPost,
   transitionCampaign,
   transitionCampaignPosts,
+  updateCampaignPost,
 } from '@/lib/tenant/campaigns'
 import {
   campaignApprovalSchema,
   campaignCreateSchema,
   campaignPostScheduleSchema,
+  campaignPostUpdateSchema,
   campaignTransitionSchema,
 } from '@/lib/tenant/schemas'
 import { isCampaignStudioConfigured, runCampaignStudio } from '@/lib/ai/agents/campaign-studio'
@@ -51,14 +54,16 @@ export const campaignRouter = router({
    */
   generate: organizationProcedure('release:create')
     .input(z.object({ campaignId: z.string().cuid() }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input, signal }) => {
       if (!isCampaignStudioConfigured()) {
         throw new TRPCError({
           code: 'SERVICE_UNAVAILABLE',
           message: 'AI generation is not configured. Set OPENROUTER_API_KEY.',
         })
       }
-      return withAiCredits(ctx.access, () => runCampaignStudio(ctx.access, input.campaignId))
+      return withAiCredits(ctx.access, () =>
+        runCampaignStudio(ctx.access, input.campaignId, signal)
+      )
     }),
   /** The transition table decides the permission; artifact:read only gates membership. */
   transition: organizationProcedure('artifact:read')
@@ -80,6 +85,25 @@ export const campaignRouter = router({
         input.postIds,
         input.note
       )
+    }),
+  /** Approve a design's current render so its posts can be scheduled with it. */
+  approveDesign: organizationProcedure('release:approve')
+    .input(campaignIdSchema.extend({ designId: z.string().cuid() }))
+    .mutation(async ({ ctx, input }) => {
+      await approveCampaignDesign(ctx.access, input.campaignId, input.designId)
+      return { approved: true }
+    }),
+  /** A hand edit to a post; stale copy and prohibited terms come back as outcomes. */
+  updatePost: organizationProcedure('release:create')
+    .input(
+      campaignPostUpdateSchema.extend({
+        campaignId: z.string().cuid(),
+        postId: z.string().cuid(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { campaignId, postId, ...edit } = input
+      return updateCampaignPost(ctx.access, campaignId, postId, edit)
     }),
   schedulePost: organizationProcedure('publish:manage')
     .input(

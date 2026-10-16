@@ -69,6 +69,12 @@ type CommunicationRecipient func(*sql.Selector)
 // ContentAngle is the predicate function for contentangle builders.
 type ContentAngle func(*sql.Selector)
 
+// Conversation is the predicate function for conversation builders.
+type Conversation func(*sql.Selector)
+
+// ConversationMessage is the predicate function for conversationmessage builders.
+type ConversationMessage func(*sql.Selector)
+
 // CreativeTemplate is the predicate function for creativetemplate builders.
 type CreativeTemplate func(*sql.Selector)
 
@@ -99,6 +105,9 @@ type Invitation func(*sql.Selector)
 // LaunchRun is the predicate function for launchrun builders.
 type LaunchRun func(*sql.Selector)
 
+// LaunchRunStep is the predicate function for launchrunstep builders.
+type LaunchRunStep func(*sql.Selector)
+
 // Member is the predicate function for member builders.
 type Member func(*sql.Selector)
 
@@ -113,6 +122,9 @@ type OutboxEvent func(*sql.Selector)
 
 // PostizTenantBinding is the predicate function for postiztenantbinding builders.
 type PostizTenantBinding func(*sql.Selector)
+
+// ProductProfile is the predicate function for productprofile builders.
+type ProductProfile func(*sql.Selector)
 
 // ProductSurface is the predicate function for productsurface builders.
 type ProductSurface func(*sql.Selector)
@@ -158,6 +170,9 @@ type SourceChange func(*sql.Selector)
 
 // SupportAccessGrant is the predicate function for supportaccessgrant builders.
 type SupportAccessGrant func(*sql.Selector)
+
+// SurfaceCapture is the predicate function for surfacecapture builders.
+type SurfaceCapture func(*sql.Selector)
 
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

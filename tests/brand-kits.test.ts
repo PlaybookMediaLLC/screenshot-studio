@@ -108,13 +108,46 @@ test('older kits (colours and a typeface name) still read', () => {
   assert.equal(fontIdForName('"Inter", sans-serif'), 'inter')
 })
 
-test('a stored definition keeps the primary font name for older readers', () => {
+test('a stored definition is the canonical RFC 011 kit plus the editor block', () => {
   const definition = brandKitDefinition({
-    colors: { background: '#ffffff', foreground: '#111111' },
-    fonts: { primary: 'google:Plus Jakarta Sans' },
+    colors: { accent: '#6D5DFC', background: '#fff', foreground: '#111111', palette: ['#abc'] },
+    fonts: { primary: 'google:Plus Jakarta Sans', secondary: 'inter' },
+    logos: [{ id: 'l1', name: 'Light', src: LOGO_LIGHT, tone: 'light' }],
   })
-  assert.equal(definition.typography.fontFamily, 'Plus Jakarta Sans')
-  assert.throws(() => brandKitDefinition({ colors: { background: 'red', foreground: '#111111' } }))
+  // Every reader understands the canonical part: hex colours, catalog fonts, a primary logo.
+  assert.deepEqual(definition.colors, { accent: '#6d5dfc', background: '#ffffff', text: '#111111' })
+  assert.equal(definition.typography.bodyFamily, 'inter')
+  assert.ok(definition.typography.headingFamily, 'a Google font falls back to a catalog font')
+  assert.equal(definition.logo?.primaryAssetId, LOGO_LIGHT.slice('asset:'.length))
+  assert.equal(definition.schemaVersion, 1)
+  // The editor block keeps the rest, and the kit reads back as edited.
+  assert.equal(definition.editor?.fonts.heading, 'google:Plus Jakarta Sans')
+  assert.deepEqual(definition.editor?.palette, ['#aabbcc'])
+  const read = readBrandKit(stored(JSON.parse(JSON.stringify(definition))))!
+  assert.equal(read.primaryFont, 'google:Plus Jakarta Sans')
+  assert.equal(read.secondaryFont, 'inter')
+  assert.equal(read.colors.foreground, '#111111')
+  assert.equal(read.logos[0]?.tone, 'light')
+  assert.throws(() =>
+    brandKitDefinition({
+      colors: { accent: '#000000', background: 'red', foreground: '#111111' },
+      fonts: { primary: 'inter' },
+    })
+  )
+})
+
+test('a kit made in workspace settings (canonical only) reads with its logo', () => {
+  const kit = readBrandKit(
+    stored({
+      colors: { accent: '#7047eb', background: '#ffffff', text: '#0f172a' },
+      logo: { primaryAssetId: LOGO_DARK.slice('asset:'.length) },
+      schemaVersion: 1,
+      typography: { headingFamily: 'montserrat' },
+    })
+  )!
+  assert.equal(kit.primaryFont, 'montserrat')
+  assert.equal(kit.colors.foreground, '#0f172a')
+  assert.deepEqual(kit.logos, [{ id: 'primary', name: 'Logo', src: LOGO_DARK, tone: 'any' }])
 })
 
 test('the library shows the latest active version of each kit', () => {
@@ -203,7 +236,8 @@ test('a frame default carries the browser chrome along with the frame', () => {
   const framed = readBrandKit(
     stored(
       brandKitDefinition({
-        colors: { background: '#0b1020', foreground: '#f8fafc' },
+        colors: { accent: '#6d5dfc', background: '#0b1020', foreground: '#f8fafc' },
+        fonts: { primary: 'inter' },
         frame: {
           chrome: { address: 'acme.com', appearance: 'dark', browser: 'firefox' },
           frame: { type: 'browser' },

@@ -650,6 +650,61 @@ var (
 			},
 		},
 	}
+	// ConversationColumns holds the columns for the "conversation" table.
+	ConversationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "campaignId", Type: field.TypeString, Nullable: true},
+		{Name: "title", Type: field.TypeString},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"ACTIVE", "ARCHIVED"}, Default: "ACTIVE"},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ConversationTable holds the schema information for the "conversation" table.
+	ConversationTable = &schema.Table{
+		Name:       "conversation",
+		Columns:    ConversationColumns,
+		PrimaryKey: []*schema.Column{ConversationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "conversation_organizationId_updatedAt",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationColumns[1], ConversationColumns[7]},
+			},
+			{
+				Name:    "conversation_organizationId_campaignId_updatedAt",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationColumns[1], ConversationColumns[3], ConversationColumns[7]},
+			},
+		},
+	}
+	// ConversationMessageColumns holds the columns for the "conversation_message" table.
+	ConversationMessageColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "conversationId", Type: field.TypeString},
+		{Name: "role", Type: field.TypeEnum, Enums: []string{"user", "assistant", "tool"}},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"text", "clarification", "tool"}},
+		{Name: "content", Type: field.TypeString},
+		{Name: "launchRunId", Type: field.TypeString, Nullable: true},
+		{Name: "toolName", Type: field.TypeString, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// ConversationMessageTable holds the schema information for the "conversation_message" table.
+	ConversationMessageTable = &schema.Table{
+		Name:       "conversation_message",
+		Columns:    ConversationMessageColumns,
+		PrimaryKey: []*schema.Column{ConversationMessageColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "conversationmessage_organizationId_conversationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationMessageColumns[1], ConversationMessageColumns[2], ConversationMessageColumns[9]},
+			},
+		},
+	}
 	// CreativeTemplateColumns holds the columns for the "creative_template" table.
 	CreativeTemplateColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -943,9 +998,9 @@ var (
 	LaunchRunColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "organizationId", Type: field.TypeString},
-		{Name: "campaignId", Type: field.TypeString},
+		{Name: "campaignId", Type: field.TypeString, Nullable: true},
 		{Name: "kind", Type: field.TypeString},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"RUNNING", "SUCCEEDED", "FAILED"}, Default: "RUNNING"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"RUNNING", "SUCCEEDED", "FAILED", "CANCELLED", "BUDGET_EXHAUSTED"}, Default: "RUNNING"},
 		{Name: "resultId", Type: field.TypeString, Nullable: true},
 		{Name: "summary", Type: field.TypeString, Nullable: true},
 		{Name: "error", Type: field.TypeString, Nullable: true},
@@ -953,6 +1008,10 @@ var (
 		{Name: "startedAt", Type: field.TypeTime},
 		{Name: "heartbeatAt", Type: field.TypeTime, Nullable: true},
 		{Name: "finishedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "stepCount", Type: field.TypeInt, Default: 0},
+		{Name: "tokensIn", Type: field.TypeInt, Default: 0},
+		{Name: "tokensOut", Type: field.TypeInt, Default: 0},
+		{Name: "costCents", Type: field.TypeInt, Default: 0},
 	}
 	// LaunchRunTable holds the schema information for the "launch_run" table.
 	LaunchRunTable = &schema.Table{
@@ -964,6 +1023,47 @@ var (
 				Name:    "launchrun_organizationId_campaignId_startedAt",
 				Unique:  false,
 				Columns: []*schema.Column{LaunchRunColumns[1], LaunchRunColumns[2], LaunchRunColumns[9]},
+			},
+			{
+				Name:    "launchrun_organizationId_kind_startedAt",
+				Unique:  false,
+				Columns: []*schema.Column{LaunchRunColumns[1], LaunchRunColumns[3], LaunchRunColumns[9]},
+			},
+		},
+	}
+	// LaunchRunStepColumns holds the columns for the "launch_run_step" table.
+	LaunchRunStepColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "runId", Type: field.TypeString},
+		{Name: "index", Type: field.TypeInt},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"model", "tool"}},
+		{Name: "toolName", Type: field.TypeString, Nullable: true},
+		{Name: "effect", Type: field.TypeEnum, Nullable: true, Enums: []string{"read", "write", "render", "external", "approval-request"}},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"SUCCEEDED", "FAILED", "DENIED"}},
+		{Name: "errorCode", Type: field.TypeString, Nullable: true},
+		{Name: "inputSummary", Type: field.TypeJSON, Nullable: true},
+		{Name: "outputSummary", Type: field.TypeJSON, Nullable: true},
+		{Name: "tokensIn", Type: field.TypeInt, Default: 0},
+		{Name: "tokensOut", Type: field.TypeInt, Default: 0},
+		{Name: "durationMs", Type: field.TypeInt, Default: 0},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// LaunchRunStepTable holds the schema information for the "launch_run_step" table.
+	LaunchRunStepTable = &schema.Table{
+		Name:       "launch_run_step",
+		Columns:    LaunchRunStepColumns,
+		PrimaryKey: []*schema.Column{LaunchRunStepColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "launchrunstep_runId_index",
+				Unique:  true,
+				Columns: []*schema.Column{LaunchRunStepColumns[2], LaunchRunStepColumns[3]},
+			},
+			{
+				Name:    "launchrunstep_organizationId_runId",
+				Unique:  false,
+				Columns: []*schema.Column{LaunchRunStepColumns[1], LaunchRunStepColumns[2]},
 			},
 		},
 	}
@@ -1092,16 +1192,49 @@ var (
 			},
 		},
 	}
+	// ProductProfileColumns holds the columns for the "product_profile" table.
+	ProductProfileColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "url", Type: field.TypeString},
+		{Name: "summary", Type: field.TypeString, Default: ""},
+		{Name: "problem", Type: field.TypeString, Default: ""},
+		{Name: "audience", Type: field.TypeString, Default: ""},
+		{Name: "capabilities", Type: field.TypeJSON},
+		{Name: "proofPoints", Type: field.TypeJSON},
+		{Name: "pricingNote", Type: field.TypeString, Default: ""},
+		{Name: "competitors", Type: field.TypeJSON},
+		{Name: "provenance", Type: field.TypeJSON},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ProductProfileTable holds the schema information for the "product_profile" table.
+	ProductProfileTable = &schema.Table{
+		Name:       "product_profile",
+		Columns:    ProductProfileColumns,
+		PrimaryKey: []*schema.Column{ProductProfileColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "productprofile_organizationId",
+				Unique:  true,
+				Columns: []*schema.Column{ProductProfileColumns[1]},
+			},
+		},
+	}
 	// ProductSurfaceColumns holds the columns for the "product_surface" table.
 	ProductSurfaceColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "organizationId", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
+		{Name: "slug", Type: field.TypeString},
 		{Name: "url", Type: field.TypeString},
 		{Name: "environment", Type: field.TypeString, Default: "production"},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "featureTags", Type: field.TypeJSON},
 		{Name: "screenshotAssetIds", Type: field.TypeJSON},
+		{Name: "lastCapturedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "lastCaptureFailureCode", Type: field.TypeString, Nullable: true},
 		{Name: "createdAt", Type: field.TypeTime},
 		{Name: "updatedAt", Type: field.TypeTime},
 	}
@@ -1117,9 +1250,14 @@ var (
 				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[2]},
 			},
 			{
+				Name:    "productsurface_organizationId_slug",
+				Unique:  true,
+				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[3]},
+			},
+			{
 				Name:    "productsurface_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[8]},
+				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[11]},
 			},
 		},
 	}
@@ -1588,6 +1726,35 @@ var (
 			},
 		},
 	}
+	// SurfaceCaptureColumns holds the columns for the "surface_capture" table.
+	SurfaceCaptureColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "surfaceId", Type: field.TypeString},
+		{Name: "assetId", Type: field.TypeString},
+		{Name: "source", Type: field.TypeEnum, Enums: []string{"deployment", "agent", "release", "manual"}},
+		{Name: "sourceId", Type: field.TypeString, Nullable: true},
+		{Name: "capturedAt", Type: field.TypeTime},
+		{Name: "supersededAt", Type: field.TypeTime, Nullable: true},
+	}
+	// SurfaceCaptureTable holds the schema information for the "surface_capture" table.
+	SurfaceCaptureTable = &schema.Table{
+		Name:       "surface_capture",
+		Columns:    SurfaceCaptureColumns,
+		PrimaryKey: []*schema.Column{SurfaceCaptureColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "surfacecapture_surfaceId_capturedAt",
+				Unique:  false,
+				Columns: []*schema.Column{SurfaceCaptureColumns[2], SurfaceCaptureColumns[6]},
+			},
+			{
+				Name:    "surfacecapture_organizationId_capturedAt",
+				Unique:  false,
+				Columns: []*schema.Column{SurfaceCaptureColumns[1], SurfaceCaptureColumns[6]},
+			},
+		},
+	}
 	// UserColumns holds the columns for the "user" table.
 	UserColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1719,6 +1886,7 @@ var (
 		{Name: "locale", Type: field.TypeString, Default: "en"},
 		{Name: "timeZone", Type: field.TypeString, Default: "UTC"},
 		{Name: "defaultPublishTime", Type: field.TypeString, Default: "09:00"},
+		{Name: "aiAgentEnabled", Type: field.TypeBool, Default: true},
 		{Name: "createdAt", Type: field.TypeTime},
 		{Name: "updatedAt", Type: field.TypeTime},
 	}
@@ -1751,6 +1919,8 @@ var (
 		CommunicationAttemptTable,
 		CommunicationRecipientTable,
 		ContentAngleTable,
+		ConversationTable,
+		ConversationMessageTable,
 		CreativeTemplateTable,
 		CreativeVariantTable,
 		CustomerCommunicationTable,
@@ -1761,11 +1931,13 @@ var (
 		IntegrationConnectionTable,
 		InvitationTable,
 		LaunchRunTable,
+		LaunchRunStepTable,
 		MemberTable,
 		OrganizationTable,
 		OrganizationEnterpriseSettingsTable,
 		OutboxEventTable,
 		PostizTenantBindingTable,
+		ProductProfileTable,
 		ProductSurfaceTable,
 		ProjectTable,
 		ProjectVersionTable,
@@ -1781,6 +1953,7 @@ var (
 		SourceAppTable,
 		SourceChangeTable,
 		SupportAccessGrantTable,
+		SurfaceCaptureTable,
 		UserTable,
 		WorkspaceCreditGrantTable,
 		WorkspaceDeletionTable,
@@ -1855,6 +2028,12 @@ func init() {
 	ContentAngleTable.Annotation = &entsql.Annotation{
 		Table: "content_angle",
 	}
+	ConversationTable.Annotation = &entsql.Annotation{
+		Table: "conversation",
+	}
+	ConversationMessageTable.Annotation = &entsql.Annotation{
+		Table: "conversation_message",
+	}
 	CreativeTemplateTable.Annotation = &entsql.Annotation{
 		Table: "creative_template",
 	}
@@ -1886,6 +2065,9 @@ func init() {
 	LaunchRunTable.Annotation = &entsql.Annotation{
 		Table: "launch_run",
 	}
+	LaunchRunStepTable.Annotation = &entsql.Annotation{
+		Table: "launch_run_step",
+	}
 	MemberTable.Annotation = &entsql.Annotation{
 		Table: "member",
 	}
@@ -1900,6 +2082,9 @@ func init() {
 	}
 	PostizTenantBindingTable.Annotation = &entsql.Annotation{
 		Table: "postiz_tenant_binding",
+	}
+	ProductProfileTable.Annotation = &entsql.Annotation{
+		Table: "product_profile",
 	}
 	ProductSurfaceTable.Annotation = &entsql.Annotation{
 		Table: "product_surface",
@@ -1947,6 +2132,9 @@ func init() {
 	}
 	SupportAccessGrantTable.Annotation = &entsql.Annotation{
 		Table: "support_access_grant",
+	}
+	SurfaceCaptureTable.Annotation = &entsql.Annotation{
+		Table: "surface_capture",
 	}
 	UserTable.Annotation = &entsql.Annotation{
 		Table: "user",

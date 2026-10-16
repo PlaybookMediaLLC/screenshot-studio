@@ -90,6 +90,20 @@ func (_u *WorkspaceSettingsUpdate) SetNillableDefaultPublishTime(v *string) *Wor
 	return _u
 }
 
+// SetAiAgentEnabled sets the "ai_agent_enabled" field.
+func (_u *WorkspaceSettingsUpdate) SetAiAgentEnabled(v bool) *WorkspaceSettingsUpdate {
+	_u.mutation.SetAiAgentEnabled(v)
+	return _u
+}
+
+// SetNillableAiAgentEnabled sets the "ai_agent_enabled" field if the given value is not nil.
+func (_u *WorkspaceSettingsUpdate) SetNillableAiAgentEnabled(v *bool) *WorkspaceSettingsUpdate {
+	if v != nil {
+		_u.SetAiAgentEnabled(*v)
+	}
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *WorkspaceSettingsUpdate) SetUpdatedAt(v time.Time) *WorkspaceSettingsUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -160,6 +174,9 @@ func (_u *WorkspaceSettingsUpdate) sqlSave(ctx context.Context) (_node int, err 
 	}
 	if value, ok := _u.mutation.DefaultPublishTime(); ok {
 		_spec.SetField(workspacesettings.FieldDefaultPublishTime, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.AiAgentEnabled(); ok {
+		_spec.SetField(workspacesettings.FieldAiAgentEnabled, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(workspacesettings.FieldUpdatedAt, field.TypeTime, value)
@@ -242,6 +259,20 @@ func (_u *WorkspaceSettingsUpdateOne) SetDefaultPublishTime(v string) *Workspace
 func (_u *WorkspaceSettingsUpdateOne) SetNillableDefaultPublishTime(v *string) *WorkspaceSettingsUpdateOne {
 	if v != nil {
 		_u.SetDefaultPublishTime(*v)
+	}
+	return _u
+}
+
+// SetAiAgentEnabled sets the "ai_agent_enabled" field.
+func (_u *WorkspaceSettingsUpdateOne) SetAiAgentEnabled(v bool) *WorkspaceSettingsUpdateOne {
+	_u.mutation.SetAiAgentEnabled(v)
+	return _u
+}
+
+// SetNillableAiAgentEnabled sets the "ai_agent_enabled" field if the given value is not nil.
+func (_u *WorkspaceSettingsUpdateOne) SetNillableAiAgentEnabled(v *bool) *WorkspaceSettingsUpdateOne {
+	if v != nil {
+		_u.SetAiAgentEnabled(*v)
 	}
 	return _u
 }
@@ -346,6 +377,9 @@ func (_u *WorkspaceSettingsUpdateOne) sqlSave(ctx context.Context) (_node *Works
 	}
 	if value, ok := _u.mutation.DefaultPublishTime(); ok {
 		_spec.SetField(workspacesettings.FieldDefaultPublishTime, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.AiAgentEnabled(); ok {
+		_spec.SetField(workspacesettings.FieldAiAgentEnabled, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(workspacesettings.FieldUpdatedAt, field.TypeTime, value)

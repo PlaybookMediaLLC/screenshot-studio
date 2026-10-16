@@ -4,14 +4,13 @@ import type { TRPCClient } from '@trpc/client'
 import { create } from 'zustand'
 import { exportDesignDocument } from '@/lib/design/export'
 import { applyStoredDocument } from '@/lib/design/open-design'
-import { toJsonObject } from '@/lib/presets/preset'
 import { useImageStore } from '@/lib/store'
 import type { AppRouter } from '@/lib/trpc/router'
 import { applyBrandKit, type BrandCategory } from './apply'
 import {
   type BrandKit,
   brandKitDefinition,
-  type BrandKitDefinitionInput,
+  type BrandKitDraft,
   brandKitLibrary,
   storedBrandKitSchema,
 } from './kit'
@@ -59,7 +58,7 @@ export async function loadBrandKits(trpcClient: Client): Promise<BrandKit[]> {
 export async function saveBrandKit(
   trpcClient: Client,
   name: string,
-  input: BrandKitDefinitionInput,
+  input: BrandKitDraft,
   previous?: BrandKit
 ) {
   const taken = useBrandKits
@@ -69,7 +68,7 @@ export async function saveBrandKit(
   if (previous && previous.name !== name)
     await trpcClient.brandKit.rename.mutate({ id: previous.id, name })
   const { brandKit } = await trpcClient.brandKit.create.mutate({
-    definition: toJsonObject(brandKitDefinition(input)),
+    definition: brandKitDefinition(input),
     name,
     publish: true,
   })

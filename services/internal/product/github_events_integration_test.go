@@ -287,6 +287,18 @@ func TestWorkerEnrichesReleasesBackfillsAndCaptures(t *testing.T) {
 	if refreshed, _ := db.Client.ProductSurface.Get(ctx, surface.ID); len(refreshed.ScreenshotAssetIds) != 1 || refreshed.ScreenshotAssetIds[0] != captured.AssetIds[0] {
 		t.Fatalf("surface screenshots=%v", refreshed.ScreenshotAssetIds)
 	}
+	// The capture is a row; a second deployment supersedes it and keeps it.
+	again, _ := db.Client.DeploymentEvent.Get(ctx, deploy("4", &live))
+	captures, err := repo.ListSurfaceCaptures(ctx, owner, surface.ID)
+	if err != nil || len(captures) != 2 || captures[0].AssetID != again.AssetIds[0] || captures[0].SupersededAt != nil ||
+		captures[1].AssetID != captured.AssetIds[0] || captures[1].SupersededAt == nil || captures[0].Source != "deployment" ||
+		*captures[0].SourceID != again.ID {
+		t.Fatalf("captures=%+v err=%v", captures, err)
+	}
+	if refreshed, _ := db.Client.ProductSurface.Get(ctx, surface.ID); refreshed.LastCapturedAt == nil || refreshed.LastCaptureFailureCode != nil ||
+		len(refreshed.ScreenshotAssetIds) != 2 {
+		t.Fatalf("surface after captures=%+v", refreshed)
+	}
 	elsewhere := "https://elsewhere.example"
 	if row, _ := db.Client.DeploymentEvent.Get(ctx, deploy("2", &elsewhere)); row.Status != deploymentevent.StatusSKIPPED || *row.FailureCode != "deployment_host_rejected" {
 		t.Fatalf("an unregistered host was captured: %+v", row)

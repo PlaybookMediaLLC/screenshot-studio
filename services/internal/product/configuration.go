@@ -12,6 +12,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/lucsky/cuid"
 )
@@ -50,6 +51,7 @@ type Configuration struct {
 	authStore   *authstore.Store
 	auth        *publishing.Repository
 	invitations InvitationMailer
+	reviews     ReviewMailer
 	objects     AssetObjectStore
 	quota       QuotaCounter
 	meter       MonthlyMeter
@@ -62,7 +64,8 @@ type Configuration struct {
 }
 
 func NewConfiguration(client *ent.Client) *Configuration {
-	return &Configuration{client: client, auth: publishing.NewRepository(client), invitations: EnvInvitationMailer{}}
+	return &Configuration{client: client, auth: publishing.NewRepository(client), invitations: EnvInvitationMailer{},
+		reviews: EnvReviewMailer{}}
 }
 
 func (c *Configuration) WithInvitationMailer(mailer InvitationMailer) *Configuration {
@@ -136,6 +139,23 @@ func (c *Configuration) ListBrandKits(ctx context.Context, organizationID string
 }
 
 func (c *Configuration) CreateBrandKit(ctx context.Context, actor Actor, input CreateBrandKitInput) (*ent.BrandKit, error) {
+	definition, logoAssetID, err := normalizeBrandKitDefinition(input.Definition)
+	if err != nil {
+		return nil, err
+	}
+	editorAssets, err := brandKitEditorAssets(definition)
+	if err != nil {
+		return nil, err
+	}
+	for _, assetID := range append(editorAssets, logoAssetID) {
+		if assetID == "" {
+			continue
+		}
+		if err := requireBrandLogo(ctx, c.client.Asset, actor.OrganizationID, assetID); err != nil {
+			return nil, err
+		}
+	}
+	input.Definition = definition
 	for attempt := 0; attempt < 3; attempt++ {
 		tx, err := c.client.Tx(ctx)
 		if err != nil {
@@ -187,17 +207,23 @@ func (c *Configuration) GetBrandProfile(ctx context.Context, organizationID stri
 }
 
 type UpsertBrandProfileInput struct {
-	Audience           string            `json:"audience"`
-	CtaConventions     *string           `json:"ctaConventions"`
-	PreferredStyles    []string          `json:"preferredStyles"`
-	ProductDescription string            `json:"productDescription"`
-	ProhibitedTerms    []string          `json:"prohibitedTerms"`
-	SocialHandles      map[string]string `json:"socialHandles"`
-	Tagline            *string           `json:"tagline"`
-	Tone               string            `json:"tone"`
+	Audience           string   `json:"audience"`
+	CtaConventions     *string  `json:"ctaConventions"`
+	PreferredStyles    []string `json:"preferredStyles"`
+	ProductDescription string   `json:"productDescription"`
+	// ProhibitedTerms takes objects or, from older clients, bare strings.
+	ProhibitedTerms []brand.ProhibitedTerm `json:"prohibitedTerms"`
+	SocialHandles   map[string]string      `json:"socialHandles"`
+	Tagline         *string                `json:"tagline"`
+	Tone            string                 `json:"tone"`
 }
 
 func (c *Configuration) UpsertBrandProfile(ctx context.Context, actor Actor, input UpsertBrandProfileInput) (*ent.BrandProfile, error) {
+	terms, err := brand.NormalizeTerms(input.ProhibitedTerms)
+	if err != nil {
+		return nil, invalid("Each prohibited term needs 1 to 100 characters, a reason of at most 300, and a match mode of word or phrase.")
+	}
+	input.ProhibitedTerms = terms
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
@@ -403,8 +429,12 @@ func (c *Configuration) CreateProductSurface(ctx context.Context, actor Actor, i
 		return nil, err
 	}
 	defer tx.Rollback()
+	slug, err := freeSurfaceSlug(ctx, tx, actor.OrganizationID, input.Name)
+	if err != nil {
+		return nil, err
+	}
 	created, err := tx.ProductSurface.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
-		SetName(input.Name).SetURL(input.URL).SetEnvironment(input.Environment).
+		SetName(input.Name).SetSlug(slug).SetURL(input.URL).SetEnvironment(input.Environment).
 		SetNillableDescription(input.Description).SetFeatureTags(input.FeatureTags).
 		SetScreenshotAssetIds(input.ScreenshotAssetIDs).Save(ctx)
 	if ent.IsConstraintError(err) {

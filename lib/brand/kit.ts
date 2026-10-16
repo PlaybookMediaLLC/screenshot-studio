@@ -1,94 +1,58 @@
 import { z } from 'zod'
 import { fontFamilies } from '@/lib/constants/fonts'
-import { designDocumentSchema, isDesignSource } from '@/lib/design/document'
 import { brandFontId } from '@/lib/launch/brand'
+import { brandKitDefinitionSchema } from '@/lib/tenant/schemas'
 import { GOOGLE_FONT_PREFIX, googleFontId, isGoogleFontId } from '@/lib/typography/google-fonts'
+import {
+  type BrandFrame,
+  type BrandKitEditor,
+  brandKitEditorSchema,
+  type BrandLogo,
+  editorFontIdSchema,
+} from './editor-definition'
+
+export { type BrandFrame, type BrandLogo, type LogoTone } from './editor-definition'
 
 /**
- * Brand kits: a workspace's colours, fonts, logos, and default background
- * and frame. Kits are stored by the backend as versioned JSON definitions;
- * this is the editor's reading of them. Older kits (colours and a typeface
- * name only) read as kits with no logos or defaults.
+ * Brand kits as the editor uses them: colours, headline and body fonts,
+ * logos, and the background and frame designs start from.
+ *
+ * A stored definition is the canonical schema-version-1 kit (RFC 011:
+ * colours, catalog fonts, a primary logo), which every reader understands,
+ * plus the editor's `editor` block for the rest. Kits saved before RFC 011
+ * (colours.foreground and a free-text typeface) still read.
  */
 
-const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i
-const hex = z
+const color = z
   .string()
   .trim()
-  .regex(HEX, 'Use a hex colour like #6d5dfc.')
+  .regex(/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i)
   .transform((value) => value.toLowerCase())
 
-/** An editor font id: a catalog font or `google:<Family>`. */
-const fontId = z
-  .string()
-  .max(80)
-  .refine(
-    (id) => fontFamilies.some((font) => font.id === id) || isGoogleFontId(id),
-    'Unknown font.'
-  )
-
-/** Which logo a design should use on a light or dark background. */
-export const logoToneSchema = z.enum(['any', 'light', 'dark'])
-/** A logo tone. */
-export type LogoTone = z.infer<typeof logoToneSchema>
-
-/** A logo stored in the workspace's assets. */
-export const brandLogoSchema = z.object({
-  id: z.string().min(1).max(40),
-  name: z.string().trim().min(1).max(100),
-  src: z
-    .string()
-    .max(200)
-    .refine((src) => src.startsWith('asset:') && isDesignSource(src), 'Upload the logo first.'),
-  tone: logoToneSchema.default('any'),
-})
-/** A brand logo. */
-export type BrandLogo = z.infer<typeof brandLogoSchema>
-
-const imageShape = designDocumentSchema.shape.image.shape
-
-/**
- * The frame designs start from: the frame mode and the screenshot's frame,
- * browser or window chrome, corners, and shadow.
- */
-export const brandFrameSchema = z.object({
-  browserHeaderSize: imageShape.browserHeaderSize,
-  chrome: imageShape.chrome,
-  frame: imageShape.frame,
-  mode: designDocumentSchema.shape.mode,
-  radius: imageShape.radius,
-  shadow: imageShape.shadow,
-})
-/** A brand frame default. */
-export type BrandFrame = z.infer<typeof brandFrameSchema>
-
-/** A stored brand kit definition, as the editor writes it. */
-export const brandKitDefinitionSchema = z.object({
-  background: designDocumentSchema.shape.background,
+/** What the editor reads from a stored definition; unknown or invalid parts are left out. */
+const storedDefinitionSchema = z.object({
   colors: z.object({
-    accent: hex.optional(),
-    background: hex,
-    foreground: hex,
-    /** More brand colours for pickers. */
-    palette: z.array(hex).max(12).default([]),
-    secondary: hex.optional(),
+    accent: color.optional().catch(undefined),
+    background: color,
+    foreground: color.optional().catch(undefined),
+    text: color.optional().catch(undefined),
   }),
-  /** Editor font ids. `typography.fontFamily` keeps the primary's name for older readers. */
-  fonts: z.object({ primary: fontId.optional(), secondary: fontId.optional() }).default({}),
-  frame: brandFrameSchema.optional(),
-  logos: z.array(brandLogoSchema).max(6).default([]),
-  typography: z.object({ fontFamily: z.string().trim().max(80).optional() }).default({}),
+  editor: brandKitEditorSchema.optional().catch(undefined),
+  logo: z.object({ primaryAssetId: z.uuid() }).optional().catch(undefined),
+  typography: z
+    .object({
+      bodyFamily: z.string().optional(),
+      fontFamily: z.string().optional(),
+      headingFamily: z.string().optional(),
+    })
+    .default({}),
 })
-/** A brand kit definition. */
-export type BrandKitDefinition = z.infer<typeof brandKitDefinitionSchema>
-/** A brand kit definition as written (defaults optional). */
-export type BrandKitDefinitionInput = z.input<typeof brandKitDefinitionSchema>
 
 /** A brand kit ready to apply: the latest version of one name. */
 export type BrandKit = {
   accent: string
-  background: BrandKitDefinition['background']
-  colors: BrandKitDefinition['colors']
+  background: BrandKitEditor['background']
+  colors: { background: string; foreground: string; palette: string[]; secondary?: string }
   frame: BrandFrame | undefined
   id: string
   logos: BrandLogo[]
@@ -127,22 +91,40 @@ export function fontName(id: string): string {
   return fontFamilies.find((font) => font.id === id)?.name ?? id
 }
 
+/** The catalog font a font id stands for in the canonical definition. */
+export function catalogFont(id: string): string {
+  if (fontFamilies.some((font) => font.id === id)) return id
+  return brandFontId(fontName(id)) ?? 'inter'
+}
+
 /** Read one stored kit; null when its definition has no usable colours. */
 export function readBrandKit(stored: StoredBrandKit): BrandKit | null {
-  const parsed = brandKitDefinitionSchema.safeParse(stored.definition)
+  const parsed = storedDefinitionSchema.safeParse(stored.definition)
   if (!parsed.success) return null
-  const { background, colors, fonts, frame, logos, typography } = parsed.data
-  const primaryFont = fonts.primary ?? fontIdForName(typography.fontFamily)
+  const { colors, editor, logo, typography } = parsed.data
+  const foreground = colors.text ?? colors.foreground
+  if (!foreground) return null
+  const primaryFont =
+    editor?.fonts.heading ?? fontIdForName(typography.headingFamily ?? typography.fontFamily)
+  const logos =
+    editor?.logos.length || !logo
+      ? (editor?.logos ?? [])
+      : [{ id: 'primary', name: 'Logo', src: `asset:${logo.primaryAssetId}`, tone: 'any' as const }]
   return {
     accent: colors.accent ?? colors.background,
-    background,
-    colors,
-    frame,
+    background: editor?.background,
+    colors: {
+      background: colors.background,
+      foreground,
+      palette: editor?.palette ?? [],
+      secondary: editor?.secondary,
+    },
+    frame: editor?.frame,
     id: stored.id,
     logos,
     name: stored.name,
     primaryFont,
-    secondaryFont: fonts.secondary ?? primaryFont,
+    secondaryFont: editor?.fonts.body ?? fontIdForName(typography.bodyFamily) ?? primaryFont,
     version: stored.version,
   }
 }
@@ -161,12 +143,61 @@ export function brandKitLibrary(stored: readonly StoredBrandKit[]): BrandKit[] {
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
-/** The definition to store for a kit edited in the editor. */
-export function brandKitDefinition(input: BrandKitDefinitionInput): BrandKitDefinition {
-  const definition = brandKitDefinitionSchema.parse(input)
-  const primary = definition.fonts.primary
-  return {
-    ...definition,
-    typography: { fontFamily: primary ? fontName(primary) : definition.typography.fontFamily },
-  }
+/** A kit as edited in the editor. */
+export const brandKitDraftSchema = z.object({
+  background: brandKitEditorSchema.shape.background,
+  colors: z.object({
+    accent: z.string(),
+    background: z.string(),
+    foreground: z.string(),
+    palette: z.array(z.string()).default([]),
+    secondary: z.string().optional(),
+  }),
+  fonts: z.object({ primary: editorFontIdSchema, secondary: editorFontIdSchema.optional() }),
+  frame: brandKitEditorSchema.shape.frame,
+  logos: brandKitEditorSchema.shape.logos,
+})
+/** A kit as edited in the editor. */
+export type BrandKitDraft = z.input<typeof brandKitDraftSchema>
+
+/** A full #rrggbb colour (the canonical definition takes no shorthand). */
+function fullHex(value: string): string {
+  const hexValue = value.trim().toLowerCase()
+  return /^#[0-9a-f]{3}$/.test(hexValue)
+    ? `#${[...hexValue.slice(1)].map((char) => char + char).join('')}`
+    : hexValue
+}
+
+/**
+ * The definition to store for a kit edited in the editor: the canonical
+ * colours, catalog fonts (the nearest catalog font for a Google font), and
+ * primary logo, plus the editor block with everything else.
+ */
+export function brandKitDefinition(
+  draft: BrandKitDraft
+): z.output<typeof brandKitDefinitionSchema> {
+  const kit = brandKitDraftSchema.parse(draft)
+  const primaryLogo = kit.logos.find((logo) => logo.tone === 'any') ?? kit.logos[0]
+  const editor = brandKitEditorSchema.parse({
+    background: kit.background,
+    fonts: { body: kit.fonts.secondary, heading: kit.fonts.primary },
+    frame: kit.frame,
+    logos: kit.logos,
+    palette: kit.colors.palette.map(fullHex),
+    secondary: kit.colors.secondary ? fullHex(kit.colors.secondary) : undefined,
+  })
+  return brandKitDefinitionSchema.parse({
+    colors: {
+      accent: fullHex(kit.colors.accent),
+      background: fullHex(kit.colors.background),
+      text: fullHex(kit.colors.foreground),
+    },
+    editor,
+    ...(primaryLogo ? { logo: { primaryAssetId: primaryLogo.src.slice('asset:'.length) } } : {}),
+    schemaVersion: 1,
+    typography: {
+      headingFamily: catalogFont(kit.fonts.primary),
+      ...(kit.fonts.secondary ? { bodyFamily: catalogFont(kit.fonts.secondary) } : {}),
+    },
+  })
 }

@@ -41,3 +41,26 @@ func TestInvitationMailerDeliversAcceptLinkThroughWebhook(t *testing.T) {
 		t.Fatalf("incomplete invitation email: %#v", delivered)
 	}
 }
+
+func TestReviewMailerIsANoOpUntilConfiguredThenUsesTheWebhook(t *testing.T) {
+	t.Setenv("RESEND_API_KEY", "")
+	t.Setenv("AUTH_EMAIL_WEBHOOK_URL", "")
+	message := ReviewNotification{ActorName: "Ada", CampaignName: "Launch", CampaignURL: "https://shots.example.test/campaigns/c1/copy",
+		Decision: "request_changes", Email: "author@example.test", Note: "<b>Shorter</b>", PostCount: 2}
+	if err := (EnvReviewMailer{}).SendReviewNotification(context.Background(), message); err != nil {
+		t.Fatalf("unconfigured mailer failed: %v", err)
+	}
+	var delivered struct{ To, Subject, Text, HTML string }
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&delivered)
+	}))
+	defer server.Close()
+	t.Setenv("AUTH_EMAIL_WEBHOOK_URL", server.URL)
+	if err := (EnvReviewMailer{}).SendReviewNotification(context.Background(), message); err != nil {
+		t.Fatal(err)
+	}
+	if delivered.To != "author@example.test" || delivered.Subject != "Changes requested in Launch" ||
+		!strings.Contains(delivered.Text, "Ada asked for changes to 2 posts") || !strings.Contains(delivered.HTML, "&lt;b&gt;Shorter") {
+		t.Fatalf("review email=%+v", delivered)
+	}
+}

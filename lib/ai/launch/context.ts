@@ -2,7 +2,7 @@ import 'server-only'
 
 import { assertPublicCaptureUrl } from '@/lib/screenshot-service'
 import type { BrandKitValues } from '@/lib/launch/brand'
-import { brandFontId } from '@/lib/launch/brand'
+import { brandFontId, prohibitedTermList } from '@/lib/launch/brand'
 import { defuseMarkup } from '@/lib/launch/sanitize'
 import {
   type CampaignPlanContent,
@@ -11,6 +11,7 @@ import {
   type SpecSource,
 } from '@/lib/launch/spec-schema'
 import type { ActiveBrand } from '@/lib/launch/store'
+import type { StoredProductProfile } from '@/lib/tenant/product-profile'
 
 /** Registered product and release URLs the agents may capture, in priority order. */
 export function captureUrlsFor(urls: Array<string | null | undefined>): string[] {
@@ -63,7 +64,7 @@ export function formatBrandVoice(brand: ActiveBrand): string | null {
     line('Tone', profile.tone),
     line('Tagline', profile.tagline),
     line('Call-to-action conventions', profile.ctaConventions),
-    line('Never use', Array.isArray(profile.prohibitedTerms) ? profile.prohibitedTerms : []),
+    line('Never use', prohibitedTermList(profile.prohibitedTerms)),
     line('Preferred styles', Array.isArray(profile.preferredStyles) ? profile.preferredStyles : []),
     line('Social handles', handles),
     '</brand_voice>',
@@ -72,11 +73,31 @@ export function formatBrandVoice(brand: ActiveBrand): string | null {
     .join('\n')
 }
 
+/** The confirmed product profile: what the product is, for whom, and what it can claim. */
+export function formatProductProfile(profile: StoredProductProfile | null): string | null {
+  if (!profile) return null
+  return [
+    '<product_profile>',
+    line('Name', profile.name),
+    line('URL', profile.url),
+    line('Summary', profile.summary),
+    line('Problem', profile.problem),
+    line('Audience', profile.audience),
+    line('Capabilities', profile.capabilities),
+    line(
+      'Proof points',
+      profile.proofPoints.map((point) => point.claim)
+    ),
+    line('Pricing', profile.pricingNote),
+    line('Alternatives', profile.competitors),
+    '</product_profile>',
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
 export function prohibitedTermsOf(brand: ActiveBrand): string[] {
-  const terms = brand.profile?.prohibitedTerms
-  return Array.isArray(terms)
-    ? terms.filter((term): term is string => typeof term === 'string')
-    : []
+  return prohibitedTermList(brand.profile?.prohibitedTerms)
 }
 
 /** The spec as the downstream stages see it: claims with refs, plus open questions as unknowns. */

@@ -237,6 +237,7 @@ function WorkspaceSwitcher({
   const { data: session } = useHydratedSession()
   return (
     <AccountMenu
+      workspaceName={organizationName}
       align={collapsed ? 'end' : 'start'}
       side={collapsed ? 'right' : 'top'}
       triggerClassName={cn(

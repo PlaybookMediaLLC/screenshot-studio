@@ -114,6 +114,26 @@ func FinishedAt(v time.Time) predicate.LaunchRun {
 	return predicate.LaunchRun(sql.FieldEQ(FieldFinishedAt, v))
 }
 
+// StepCount applies equality check predicate on the "step_count" field. It's identical to StepCountEQ.
+func StepCount(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldEQ(FieldStepCount, v))
+}
+
+// TokensIn applies equality check predicate on the "tokens_in" field. It's identical to TokensInEQ.
+func TokensIn(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldEQ(FieldTokensIn, v))
+}
+
+// TokensOut applies equality check predicate on the "tokens_out" field. It's identical to TokensOutEQ.
+func TokensOut(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldEQ(FieldTokensOut, v))
+}
+
+// CostCents applies equality check predicate on the "cost_cents" field. It's identical to CostCentsEQ.
+func CostCents(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldEQ(FieldCostCents, v))
+}
+
 // OrganizationIDEQ applies the EQ predicate on the "organization_id" field.
 func OrganizationIDEQ(v string) predicate.LaunchRun {
 	return predicate.LaunchRun(sql.FieldEQ(FieldOrganizationID, v))
@@ -232,6 +252,16 @@ func CampaignIDHasPrefix(v string) predicate.LaunchRun {
 // CampaignIDHasSuffix applies the HasSuffix predicate on the "campaign_id" field.
 func CampaignIDHasSuffix(v string) predicate.LaunchRun {
 	return predicate.LaunchRun(sql.FieldHasSuffix(FieldCampaignID, v))
+}
+
+// CampaignIDIsNil applies the IsNil predicate on the "campaign_id" field.
+func CampaignIDIsNil() predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldIsNull(FieldCampaignID))
+}
+
+// CampaignIDNotNil applies the NotNil predicate on the "campaign_id" field.
+func CampaignIDNotNil() predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldNotNull(FieldCampaignID))
 }
 
 // CampaignIDEqualFold applies the EqualFold predicate on the "campaign_id" field.
@@ -767,6 +797,166 @@ func FinishedAtIsNil() predicate.LaunchRun {
 // FinishedAtNotNil applies the NotNil predicate on the "finished_at" field.
 func FinishedAtNotNil() predicate.LaunchRun {
 	return predicate.LaunchRun(sql.FieldNotNull(FieldFinishedAt))
+}
+
+// StepCountEQ applies the EQ predicate on the "step_count" field.
+func StepCountEQ(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldEQ(FieldStepCount, v))
+}
+
+// StepCountNEQ applies the NEQ predicate on the "step_count" field.
+func StepCountNEQ(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldNEQ(FieldStepCount, v))
+}
+
+// StepCountIn applies the In predicate on the "step_count" field.
+func StepCountIn(vs ...int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldIn(FieldStepCount, vs...))
+}
+
+// StepCountNotIn applies the NotIn predicate on the "step_count" field.
+func StepCountNotIn(vs ...int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldNotIn(FieldStepCount, vs...))
+}
+
+// StepCountGT applies the GT predicate on the "step_count" field.
+func StepCountGT(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldGT(FieldStepCount, v))
+}
+
+// StepCountGTE applies the GTE predicate on the "step_count" field.
+func StepCountGTE(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldGTE(FieldStepCount, v))
+}
+
+// StepCountLT applies the LT predicate on the "step_count" field.
+func StepCountLT(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldLT(FieldStepCount, v))
+}
+
+// StepCountLTE applies the LTE predicate on the "step_count" field.
+func StepCountLTE(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldLTE(FieldStepCount, v))
+}
+
+// TokensInEQ applies the EQ predicate on the "tokens_in" field.
+func TokensInEQ(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldEQ(FieldTokensIn, v))
+}
+
+// TokensInNEQ applies the NEQ predicate on the "tokens_in" field.
+func TokensInNEQ(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldNEQ(FieldTokensIn, v))
+}
+
+// TokensInIn applies the In predicate on the "tokens_in" field.
+func TokensInIn(vs ...int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldIn(FieldTokensIn, vs...))
+}
+
+// TokensInNotIn applies the NotIn predicate on the "tokens_in" field.
+func TokensInNotIn(vs ...int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldNotIn(FieldTokensIn, vs...))
+}
+
+// TokensInGT applies the GT predicate on the "tokens_in" field.
+func TokensInGT(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldGT(FieldTokensIn, v))
+}
+
+// TokensInGTE applies the GTE predicate on the "tokens_in" field.
+func TokensInGTE(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldGTE(FieldTokensIn, v))
+}
+
+// TokensInLT applies the LT predicate on the "tokens_in" field.
+func TokensInLT(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldLT(FieldTokensIn, v))
+}
+
+// TokensInLTE applies the LTE predicate on the "tokens_in" field.
+func TokensInLTE(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldLTE(FieldTokensIn, v))
+}
+
+// TokensOutEQ applies the EQ predicate on the "tokens_out" field.
+func TokensOutEQ(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldEQ(FieldTokensOut, v))
+}
+
+// TokensOutNEQ applies the NEQ predicate on the "tokens_out" field.
+func TokensOutNEQ(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldNEQ(FieldTokensOut, v))
+}
+
+// TokensOutIn applies the In predicate on the "tokens_out" field.
+func TokensOutIn(vs ...int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldIn(FieldTokensOut, vs...))
+}
+
+// TokensOutNotIn applies the NotIn predicate on the "tokens_out" field.
+func TokensOutNotIn(vs ...int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldNotIn(FieldTokensOut, vs...))
+}
+
+// TokensOutGT applies the GT predicate on the "tokens_out" field.
+func TokensOutGT(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldGT(FieldTokensOut, v))
+}
+
+// TokensOutGTE applies the GTE predicate on the "tokens_out" field.
+func TokensOutGTE(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldGTE(FieldTokensOut, v))
+}
+
+// TokensOutLT applies the LT predicate on the "tokens_out" field.
+func TokensOutLT(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldLT(FieldTokensOut, v))
+}
+
+// TokensOutLTE applies the LTE predicate on the "tokens_out" field.
+func TokensOutLTE(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldLTE(FieldTokensOut, v))
+}
+
+// CostCentsEQ applies the EQ predicate on the "cost_cents" field.
+func CostCentsEQ(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldEQ(FieldCostCents, v))
+}
+
+// CostCentsNEQ applies the NEQ predicate on the "cost_cents" field.
+func CostCentsNEQ(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldNEQ(FieldCostCents, v))
+}
+
+// CostCentsIn applies the In predicate on the "cost_cents" field.
+func CostCentsIn(vs ...int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldIn(FieldCostCents, vs...))
+}
+
+// CostCentsNotIn applies the NotIn predicate on the "cost_cents" field.
+func CostCentsNotIn(vs ...int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldNotIn(FieldCostCents, vs...))
+}
+
+// CostCentsGT applies the GT predicate on the "cost_cents" field.
+func CostCentsGT(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldGT(FieldCostCents, v))
+}
+
+// CostCentsGTE applies the GTE predicate on the "cost_cents" field.
+func CostCentsGTE(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldGTE(FieldCostCents, v))
+}
+
+// CostCentsLT applies the LT predicate on the "cost_cents" field.
+func CostCentsLT(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldLT(FieldCostCents, v))
+}
+
+// CostCentsLTE applies the LTE predicate on the "cost_cents" field.
+func CostCentsLTE(v int) predicate.LaunchRun {
+	return predicate.LaunchRun(sql.FieldLTE(FieldCostCents, v))
 }
 
 // And groups predicates with the AND operator between them.

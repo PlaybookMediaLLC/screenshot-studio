@@ -21,6 +21,8 @@ const (
 	FieldTimeZone = "timeZone"
 	// FieldDefaultPublishTime holds the string denoting the default_publish_time field in the database.
 	FieldDefaultPublishTime = "defaultPublishTime"
+	// FieldAiAgentEnabled holds the string denoting the ai_agent_enabled field in the database.
+	FieldAiAgentEnabled = "aiAgentEnabled"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "createdAt"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -36,6 +38,7 @@ var Columns = []string{
 	FieldLocale,
 	FieldTimeZone,
 	FieldDefaultPublishTime,
+	FieldAiAgentEnabled,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -57,6 +60,8 @@ var (
 	DefaultTimeZone string
 	// DefaultDefaultPublishTime holds the default value on creation for the "default_publish_time" field.
 	DefaultDefaultPublishTime string
+	// DefaultAiAgentEnabled holds the default value on creation for the "ai_agent_enabled" field.
+	DefaultAiAgentEnabled bool
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -91,6 +96,11 @@ func ByTimeZone(opts ...sql.OrderTermOption) OrderOption {
 // ByDefaultPublishTime orders the results by the default_publish_time field.
 func ByDefaultPublishTime(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDefaultPublishTime, opts...).ToFunc()
+}
+
+// ByAiAgentEnabled orders the results by the ai_agent_enabled field.
+func ByAiAgentEnabled(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAiAgentEnabled, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import { ProfileForm } from '@/components/auth/ProfileForm'
+import { ChannelConnections } from './ChannelConnections'
 import { WorkspaceAuditSettings } from './WorkspaceAuditSettings'
 import { WorkspaceBilling } from './WorkspaceBilling'
 import { WorkspaceBrandSettings } from './WorkspaceBrandSettings'
@@ -8,6 +9,8 @@ import { WorkspaceGeneralSettings } from './WorkspaceGeneralSettings'
 import { WorkspaceIdentitySettings } from './WorkspaceIdentitySettings'
 import { WorkspaceIntegrations } from './WorkspaceIntegrations'
 import { WorkspaceMembersSettings } from './WorkspaceMembersSettings'
+import { WorkspaceProductProfile } from './WorkspaceProductProfile'
+import { WorkspaceProductSurfaces } from './WorkspaceProductSurfaces'
 import { WorkspaceRolesSettings } from './WorkspaceRolesSettings'
 import { WorkspaceSecuritySettings } from './WorkspaceSecuritySettings'
 import { WorkspaceSharedLinks } from './WorkspaceSharedLinks'
@@ -44,6 +47,7 @@ function getDetailContent({
     ),
     billing: <WorkspaceBilling canManage={canManage} />,
     brand: <WorkspaceBrandSettings canManage={canManage} />,
+    channels: <ChannelConnections canManage={hasPermission(role, 'publish:manage')} />,
     general: (
       <WorkspaceGeneralSettings
         canDelete={hasPermission(role, 'workspace:delete')}
@@ -61,6 +65,7 @@ function getDetailContent({
         currentUserId={userId}
       />
     ),
+    product: <WorkspaceProductProfile canManage={hasPermission(role, 'brand:manage')} />,
     profile: <ProfileForm email={email} name={name} />,
     roles: <WorkspaceRolesSettings />,
     security: <WorkspaceSecuritySettings twoFactorEnabled={twoFactorEnabled} />,
@@ -72,6 +77,7 @@ function getDetailContent({
         organizationId={organization.id}
       />
     ),
+    surfaces: <WorkspaceProductSurfaces canManage={hasPermission(role, 'brand:manage')} />,
   }
 }
 

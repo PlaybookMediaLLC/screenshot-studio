@@ -1,51 +1,20 @@
-import { expect, type Page } from '@playwright/test'
+import { expect } from '@playwright/test'
 import { getE2EUrl } from './framework/auth'
 import { configureE2EFlow, test } from './framework/flow'
 import { startHttpMockServer } from './framework/http-server'
 import { createE2EDatabase, queryRow } from './framework/services'
 import {
+  bindTestGoOrganization,
   connectionSchema,
   createApprovedVariant,
   createPublishingWorkspace,
   createScheduledPost,
+  e2eSecretReference,
   enablePublishingTwoFactor,
-  getActiveOrganizationId,
   scheduledPostSchema,
   trpcMutation,
+  unbindTestGoOrganization,
 } from './framework/publishing'
-
-const e2eSecretReference = 'POSTIZ_API_KEY_E2E'
-async function bindTestGoOrganization(page: Page): Promise<string> {
-  const organizationId = await getActiveOrganizationId(page)
-  const goOrganizationId = `go-${organizationId}`
-  const database = createE2EDatabase()
-  try {
-    await database.query('DELETE FROM postiz_tenant_binding WHERE "secretReference" = $1', [
-      e2eSecretReference,
-    ])
-    await database.query(
-      `INSERT INTO postiz_tenant_binding ("organizationId", "goOrganizationId", "secretReference")
-       VALUES ($1, $2, $3)`,
-      [organizationId, goOrganizationId, e2eSecretReference]
-    )
-  } finally {
-    await database.end()
-  }
-  return organizationId
-}
-
-async function unbindTestGoOrganization(organizationId: string | null): Promise<void> {
-  if (!organizationId) return
-  const database = createE2EDatabase()
-  try {
-    await database.query(
-      'DELETE FROM postiz_tenant_binding WHERE "organizationId" = $1 AND "secretReference" = $2',
-      [organizationId, e2eSecretReference]
-    )
-  } finally {
-    await database.end()
-  }
-}
 
 async function expectOAuthConnection(
   organizationId: string | null,
@@ -277,7 +246,8 @@ test('X OAuth start binds its one-use callback to the active workspace', async (
     )
 
     await page.goto(`/integrations/social/x?oauth_token=${state}&oauth_verifier=test-verifier`)
-    await expect(page.getByText('x connected to Shots.')).toBeVisible()
+    await expect(page).toHaveURL(/\/workspace\/channels\?connected=x$/)
+    await expect(page.getByText('X is connected.')).toBeVisible()
 
     await expectOAuthConnection(organizationId, integrationId, state, 'x')
 
@@ -334,8 +304,9 @@ test('LinkedIn OAuth callback connects through the SDK and rejects replay', asyn
     )
 
     const callbackURL = getE2EUrl(`/integrations/social/linkedin?code=test-code&state=${state}`)
-    const callback = await page.context().request.get(callbackURL)
-    expect(callback.status(), await callback.text()).toBe(200)
+    const callback = await page.context().request.get(callbackURL, { maxRedirects: 0 })
+    expect(callback.status(), await callback.text()).toBe(303)
+    expect(callback.headers().location).toBe('/workspace/channels?connected=linkedin')
     await expectOAuthConnection(organizationId, integrationId, state, 'linkedin')
 
     const callsBeforeReplay = backend.calls.length
@@ -407,8 +378,10 @@ test('Instagram with Facebook Login registers the selected Page once', async ({
     const selection = await page.context().request.post(callbackURL, {
       form: { choice: choice as string },
       headers: { origin: new URL(getE2EUrl('/')).origin },
+      maxRedirects: 0,
     })
-    expect(selection.status()).toBe(200)
+    expect(selection.status()).toBe(303)
+    expect(selection.headers().location).toBe('/workspace/channels?connected=instagram')
 
     await expectOAuthConnection(organizationId, integrationId, state, 'instagram')
 
@@ -468,8 +441,9 @@ test('Instagram Login registers its destination after a one-use callback', async
     const callbackURL = getE2EUrl(
       `/integrations/social/instagram-standalone?code=test-code&state=${state}`
     )
-    const callback = await page.context().request.get(callbackURL)
-    expect(callback.status()).toBe(200)
+    const callback = await page.context().request.get(callbackURL, { maxRedirects: 0 })
+    expect(callback.status()).toBe(303)
+    expect(callback.headers().location).toBe('/workspace/channels?connected=instagram-standalone')
     await expectOAuthConnection(organizationId, integrationId, state, 'instagram-standalone')
     const callsBeforeReplay = backend.calls.length
     expect((await page.context().request.get(callbackURL)).status()).toBe(403)

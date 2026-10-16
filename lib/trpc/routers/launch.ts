@@ -3,9 +3,8 @@ import 'server-only'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { isCampaignStudioConfigured } from '@/lib/ai/agents/campaign-studio'
-import { captureUrlsFor } from '@/lib/ai/launch/context'
 import { reviewRevisedRender } from '@/lib/ai/launch/critique'
-import { draftCampaignPlan } from '@/lib/ai/launch/plan'
+import { draftCampaignPlan, planCaptureUrls } from '@/lib/ai/launch/plan'
 import { produceCampaign } from '@/lib/ai/launch/produce'
 import { proposeCampaignRevision } from '@/lib/ai/launch/revise'
 import { draftReleaseSpec } from '@/lib/ai/launch/spec'
@@ -26,7 +25,7 @@ import {
   SPEC_SECTIONS,
   validatePlanReferences,
 } from '@/lib/launch/spec-schema'
-import { getLaunchRun, latestLaunchRuns, startLaunchRun } from '@/lib/launch/runs'
+import { cancelLaunchRun, getLaunchRun, latestLaunchRuns, startLaunchRun } from '@/lib/launch/runs'
 import {
   applyRevision,
   approvePlan,
@@ -40,7 +39,6 @@ import {
   LaunchError,
   listRevisions,
   loadLaunchCampaign,
-  releaseSourceUrls,
   savePlanVersion,
   saveSpecVersion,
 } from '@/lib/launch/store'
@@ -59,7 +57,8 @@ import { organizationProcedure } from '../procedures'
 
 const campaignInput = z.object({ campaignId: z.string().cuid() })
 
-async function allowAiAction(access: OrganizationAccess): Promise<void> {
+/** Refuses an AI action when AI is not configured, the workspace is rate limited, or out of credits. */
+export async function allowAiAction(access: OrganizationAccess): Promise<void> {
   if (!isCampaignStudioConfigured()) {
     throw new TRPCError({
       code: 'SERVICE_UNAVAILABLE',
@@ -122,6 +121,11 @@ export const launchRouter = router({
       run: await getLaunchRun(ctx.access, input.runId),
     })),
 
+  /** Cancel a running spec, plan, produce, or revision run. */
+  cancelRun: organizationProcedure('release:create')
+    .input(z.object({ runId: z.string().cuid() }))
+    .mutation(async ({ ctx, input }) => cancelLaunchRun(ctx.access, input.runId)),
+
   spec: router({
     generate: organizationProcedure('release:create')
       .input(campaignInput)
@@ -130,8 +134,8 @@ export const launchRouter = router({
         const run = await startLaunchRun(ctx.access, {
           campaignId: input.campaignId,
           kind: 'spec',
-          work: async () => {
-            const spec = await draftReleaseSpec(ctx.access, input.campaignId)
+          work: async (signal) => {
+            const spec = await draftReleaseSpec(ctx.access, input.campaignId, { signal })
             return { resultId: spec.id, summary: spec.changeSummary }
           },
         })
@@ -179,15 +183,18 @@ export const launchRouter = router({
   }),
 
   plan: router({
+    /** `timelineItems` fixes the post count on the schedulable channels (onboarding). */
     generate: organizationProcedure('release:create')
-      .input(campaignInput)
+      .input(campaignInput.extend({ timelineItems: z.number().int().min(1).max(24).optional() }))
       .mutation(async ({ ctx, input }) => {
         await allowAiAction(ctx.access)
         const run = await startLaunchRun(ctx.access, {
           campaignId: input.campaignId,
           kind: 'plan',
-          work: async () => {
-            const plan = await draftCampaignPlan(ctx.access, input.campaignId)
+          work: async (signal) => {
+            const plan = await draftCampaignPlan(ctx.access, input.campaignId, signal, {
+              timelineItems: input.timelineItems,
+            })
             return { resultId: plan.id, summary: plan.changeSummary }
           },
         })
@@ -217,10 +224,7 @@ export const launchRouter = router({
             ? await getWorkingSpec(ctx.access, campaign.release.id)
             : null
         if (!spec) throw new LaunchError('Draft the spec first.', 409)
-        const captureUrls = captureUrlsFor([
-          campaign.productSurface?.url,
-          ...releaseSourceUrls(campaign),
-        ])
+        const captureUrls = await planCaptureUrls(ctx.access, campaign, spec.content)
         const issues = validatePlanReferences(input.content, spec.content, captureUrls)
         if (issues.length > 0) throw new LaunchError(issues.slice(0, 3).join(' '), 400)
         return {
@@ -246,8 +250,8 @@ export const launchRouter = router({
       const run = await startLaunchRun(ctx.access, {
         campaignId: input.campaignId,
         kind: 'produce',
-        work: async () => {
-          const result = await produceCampaign(ctx.access, input.campaignId)
+        work: async (signal, runId) => {
+          const result = await produceCampaign(ctx.access, input.campaignId, { runId, signal })
           return {
             summary:
               `${result.assetCount} visual${result.assetCount === 1 ? '' : 's'} and ${result.postCount} post${result.postCount === 1 ? '' : 's'}${result.designMode ? '' : ' (product shots: the editor renderer was unavailable)'}. ${result.summary}`.trim(),
@@ -271,8 +275,8 @@ export const launchRouter = router({
         const run = await startLaunchRun(ctx.access, {
           campaignId: input.campaignId,
           kind: 'revision',
-          work: async () => {
-            const revision = await proposeCampaignRevision(ctx.access, input)
+          work: async (signal) => {
+            const revision = await proposeCampaignRevision(ctx.access, { ...input, signal })
             return { resultId: revision.id, summary: revision.proposal.summary }
           },
         })

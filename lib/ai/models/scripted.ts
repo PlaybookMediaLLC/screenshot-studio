@@ -224,7 +224,35 @@ function captureUrls(text: string): string[] {
   return block.split('\n').filter((line) => /^https?:\/\//.test(line))
 }
 
+/** The fixed post count and channels a plan prompt asks for, if any (see planTargetLine). */
+function planTarget(text: string): { channels: string[]; count: number } | null {
+  const match = text.match(
+    /Plan exactly (\d+) timeline items, one post each, using only these channels: ([a-z_, ]+)\./
+  )
+  if (!match) return null
+  return {
+    channels: match[2]!.split(',').map((channel) => channel.trim()),
+    count: Number(match[1]),
+  }
+}
+
+/** A week of posts on the target channels in turn: a teaser, launch day, then follow-ups. */
+function targetTimeline(target: { channels: string[]; count: number }) {
+  return Array.from({ length: target.count }, (_, index) => {
+    const day = index === 0 ? -1 : index <= target.channels.length ? 0 : index
+    return {
+      angleKey: index % 2 === 0 ? 'G1' : 'G2',
+      assetKeys: [index % 2 === 0 ? 'A1' : 'A2'],
+      channel: target.channels[index % target.channels.length]!,
+      day,
+      note: day < 0 ? 'Teaser' : day === 0 ? '' : 'Follow-up',
+      phase: day < 0 ? 'teaser' : day === 0 ? 'launch' : 'follow_up',
+    }
+  })
+}
+
 function scriptPlan(text: string) {
+  const target = planTarget(text)
   const claims = parseClaims(text)
   const pick = (prefix: string) => claims.find((claim) => claim.ref.startsWith(prefix))
   const pillar = pick('messaging.pillars') ?? claims[0]!
@@ -273,7 +301,13 @@ function scriptPlan(text: string) {
         variants: 1,
       },
     ],
-    channels: [
+    channels: (target
+      ? target.channels.map((channel) => ({
+          cadence: 'Across the launch week',
+          channel,
+          role: 'Reach the people the product is for',
+        }))
+      : null) ?? [
       {
         cadence: 'A teaser, launch day, and one follow-up',
         channel: 'x',
@@ -290,7 +324,7 @@ function scriptPlan(text: string) {
     ],
     summary:
       'Lead with the outcome on launch day across every channel, then follow up with how it works.',
-    timeline: [
+    timeline: (target ? targetTimeline(target) : null) ?? [
       { angleKey: 'G1', assetKeys: ['A2'], channel: 'x', day: -2, note: 'Teaser', phase: 'teaser' },
       { angleKey: 'G1', assetKeys: ['A1'], channel: 'x', day: 0, note: '', phase: 'launch' },
       { angleKey: 'G1', assetKeys: ['A1'], channel: 'linkedin', day: 0, note: '', phase: 'launch' },
@@ -336,60 +370,66 @@ function scriptCopy(text: string) {
   const claimFor = (ref: string) => claims.find((claim) => claim.ref === ref) ?? claims[0]!
   const requested = text.match(/Write the ([a-z_]+) posts:/)?.[1]
   const channels = plan.channels.filter(({ channel }) => !requested || channel === requested)
+  // One post per timeline item, as the prompt asks; angles take turns so posts differ.
   const posts = channels.flatMap(({ channel }) =>
-    plan.angles.slice(0, 2).map((angle) => {
-      const claim = claimFor(angle.specRefs[0]!)
-      const fact = claim.text.replace(/^[^:]{1,80}:\s*/, '')
-      const base = {
-        angleKey: angle.key,
-        claims: [{ ref: claim.ref, text: clip(claim.text, 300) }],
-        phase: 'launch',
-      }
-      switch (channel) {
-        case 'x':
-          return {
-            ...base,
-            callToAction: 'Try it today.',
-            channel,
-            copy: clip(`${angle.title}: ${fact}`, 240),
-            title: '',
-          }
-        case 'linkedin':
-          return {
-            ...base,
-            callToAction: 'Try it today.',
-            channel,
-            copy: `${angle.hook}\n\n${fact}\n\nIt is available now.`,
-            title: '',
-          }
-        case 'product_hunt':
-          return {
-            ...base,
-            callToAction: '',
-            channel,
-            copy: clip(fact, 250),
-            title: clip(angle.title, 60),
-          }
-        case 'changelog':
-          return {
-            ...base,
-            callToAction: '',
-            channel,
-            copy: `- ${fact}`,
-            title: clip(angle.title, 100),
-          }
-        case 'email':
-          return {
-            ...base,
-            callToAction: 'Try it today.',
-            channel,
-            copy: `Hi there,\n\n${angle.hook}\n\n${fact}`,
-            title: clip(`New: ${angle.title}`, 90),
-          }
-        default:
-          return { ...base, callToAction: '', channel, copy: clip(fact, 2_000), title: '' }
-      }
-    })
+    plan.timeline
+      .filter((item) => item.channel === channel)
+      .map((item, index) => {
+        const angle = plan.angles[index % plan.angles.length]!
+        // Past the first round of angles, the day keeps repeated posts distinct.
+        const lead = index < plan.angles.length ? '' : `Day ${item.day}: `
+        const claim = claimFor(angle.specRefs[0]!)
+        const fact = claim.text.replace(/^[^:]{1,80}:\s*/, '')
+        const base = {
+          angleKey: angle.key,
+          claims: [{ ref: claim.ref, text: clip(claim.text, 300) }],
+          phase: item.phase,
+        }
+        switch (channel) {
+          case 'x':
+            return {
+              ...base,
+              callToAction: 'Try it today.',
+              channel,
+              copy: clip(`${lead}${angle.title}: ${fact}`, 240),
+              title: '',
+            }
+          case 'linkedin':
+            return {
+              ...base,
+              callToAction: 'Try it today.',
+              channel,
+              copy: `${lead}${angle.hook}\n\n${fact}\n\nIt is available now.`,
+              title: '',
+            }
+          case 'product_hunt':
+            return {
+              ...base,
+              callToAction: '',
+              channel,
+              copy: clip(fact, 250),
+              title: clip(angle.title, 60),
+            }
+          case 'changelog':
+            return {
+              ...base,
+              callToAction: '',
+              channel,
+              copy: `- ${fact}`,
+              title: clip(angle.title, 100),
+            }
+          case 'email':
+            return {
+              ...base,
+              callToAction: 'Try it today.',
+              channel,
+              copy: `Hi there,\n\n${angle.hook}\n\n${fact}`,
+              title: clip(`New: ${angle.title}`, 90),
+            }
+          default:
+            return { ...base, callToAction: '', channel, copy: clip(fact, 2_000), title: '' }
+        }
+      })
   )
   return { posts }
 }
@@ -510,6 +550,25 @@ function scriptVisuals(text: string, results: ToolResult[], calls: ToolCall[]): 
   )
 }
 
+// ------------------------------------------------------------- marketing --
+
+/**
+ * The marketing agent's script: read the product and brand, then submit the
+ * posts the prompt lists (a `Post ids: a, b` line) for review, then stop.
+ */
+function scriptApproval(text: string, names: string[], calls: ToolCall[]): ToolCall[] | null {
+  const reads = ['getProduct', 'getBrand'].filter((name) => names.includes(name))
+  if (reads.length > 0 && !calls.some((call) => reads.includes(call.toolName))) {
+    return reads.map((toolName) => ({ input: {}, toolName }))
+  }
+  if (calls.some((call) => call.toolName === 'requestApproval')) return null
+  const postIds = (text.match(/^Post ids: (.+)$/m)?.[1] ?? '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean)
+  return postIds.length > 0 ? [{ input: { postIds }, toolName: 'requestApproval' }] : null
+}
+
 /** Three link preview copy options that pass the length checks, built from the page's title. */
 function scriptLinkCopy(text: string) {
   const name = (text.match(/^- title: (.+)$/m)?.[1] ?? 'This page').replace(/\s+/g, ' ').trim()
@@ -528,6 +587,65 @@ function scriptLinkCopy(text: string) {
       ),
       title: clip(`${short}: ${lead}`.padEnd(30, '.'), 60),
     })),
+  }
+}
+
+// -------------------------------------------------------- product profile --
+
+/**
+ * A product profile from the onboarding read: the homepage's title as the
+ * name, its first lines as the summary, list items with a colon as
+ * capabilities, the pricing page's first line, and lines with a number as
+ * proof points. Every value cites its readable, unflagged source.
+ */
+function scriptProductProfile(text: string) {
+  const productUrl = field(text, 'Product URL')
+  const sentence = field(text, "In the founder's words")
+  const citable = (text.match(/You may cite: ([^\n]+?)\.\n/)?.[1] ?? '')
+    .split(',')
+    .map((value) => value.trim())
+  const pattern =
+    /<source id="(S\d+)"[^>]*?flagged="(true|false)" url="([^"]*)" title="([^"]*)">\n([\s\S]*?)\n<\/source>/g
+  const sources = [...text.matchAll(pattern)]
+    .map((match) => ({
+      flagged: match[2] === 'true',
+      id: match[1]!,
+      text: match[5]!,
+      title: match[4]!,
+      url: match[3]!,
+    }))
+    .filter((source) => !source.flagged && citable.includes(source.id))
+  const home = sources.find((source) => source.url === productUrl) ?? sources[0]
+  const lines = (source: (typeof sources)[number]) =>
+    facts({ flagged: false, id: source.id, text: source.text })
+  const cite = (source: (typeof sources)[number] | undefined, value: string, max: number) =>
+    source && value ? { source: source.id, text: clip(value, max) } : { source: 'brief', text: '' }
+  const homeLines = home ? lines(home) : []
+  const pricing = sources.find((source) => /\/(pricing|plans)\b/.test(source.url))
+  const name = (home?.title.split(/\s[|–—-]\s/)[0] ?? '').trim()
+  return {
+    audience: { source: 'brief', text: '' },
+    capabilities: sources
+      .flatMap((source) =>
+        lines(source)
+          .filter((line) => line.includes(':'))
+          .map((line) => cite(source, line, 300))
+      )
+      .slice(0, 6),
+    competitors: [],
+    name: cite(home, name || productUrl.replace(/^https?:\/\//, ''), 160),
+    pricingNote: pricing ? cite(pricing, lines(pricing)[0] ?? '', 500) : cite(undefined, '', 0),
+    problem: cite(home, homeLines[1] ?? '', 2_000),
+    proofPoints: sources
+      .flatMap((source) =>
+        lines(source)
+          .filter((line) => /\d/.test(line) && !line.includes(':'))
+          .map((line) => cite(source, line, 500))
+      )
+      .slice(0, 3),
+    summary: sentence
+      ? { source: 'brief', text: clip(sentence, 2_000) }
+      : cite(home, homeLines[0] ?? '', 2_000),
   }
 }
 
@@ -613,6 +731,7 @@ const SUBMIT_TOOLS = [
   'submitCritique',
   'submitLinkCopy',
   'submitCaptions',
+  'submitProductProfile',
 ] as const
 
 export function createScriptedModel(modelId: string): LanguageModelV4 {
@@ -639,7 +758,9 @@ export function createScriptedModel(modelId: string): LanguageModelV4 {
                     ? scriptLinkCopy(text)
                     : submit === 'submitCaptions'
                       ? scriptCaptions(text)
-                      : scriptRevision(text, toolProperties(options, 'proposeRevision'))
+                      : submit === 'submitProductProfile'
+                        ? scriptProductProfile(text)
+                        : scriptRevision(text, toolProperties(options, 'proposeRevision'))
         return respond(toolCalls([{ input, toolName: submit }]))
       }
       if (names.includes('showVariants') && !results.some((result) => result.toolName === 'showVariants')) {
@@ -662,6 +783,11 @@ export function createScriptedModel(modelId: string): LanguageModelV4 {
         return respond([
           { text: 'Captured the product and made the planned product shots.', type: 'text' },
         ])
+      }
+      if (names.includes('requestApproval')) {
+        const next = scriptApproval(text, names, calls)
+        if (next) return respond(toolCalls(next))
+        return respond([{ text: 'Submitted the posts for review.', type: 'text' }])
       }
       return respond([{ text: 'Done.', type: 'text' }])
     },

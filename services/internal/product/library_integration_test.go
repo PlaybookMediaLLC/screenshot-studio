@@ -90,11 +90,15 @@ func TestLibraryRenameAndArchive(t *testing.T) {
 		}
 	}
 
-	kit, err := repo.CreateBrandKit(ctx, actor, CreateBrandKitInput{Name: "Acme", Definition: definition, Publish: true})
+	kitDefinition := map[string]any{
+		"colors":     map[string]any{"accent": "#6d5dfc", "background": "#ffffff", "text": "#111111"},
+		"typography": map[string]any{"headingFamily": "inter"},
+	}
+	kit, err := repo.CreateBrandKit(ctx, actor, CreateBrandKitInput{Name: "Acme", Definition: kitDefinition, Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repo.CreateBrandKit(ctx, actor, CreateBrandKitInput{Name: "Acme", Definition: definition, Publish: true}); err != nil {
+	if _, err := repo.CreateBrandKit(ctx, actor, CreateBrandKitInput{Name: "Acme", Definition: kitDefinition, Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	if renamed, err := repo.RenameBrandKit(ctx, actor, kit.ID, "Acme 2026"); err != nil || renamed.Version != 2 || renamed.Name != "Acme 2026" {

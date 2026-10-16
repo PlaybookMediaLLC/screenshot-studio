@@ -81,6 +81,14 @@ type ConfigurationStore interface {
 	CancelLaunchRun(context.Context, product.Actor, string) (bool, error)
 	GetLaunchRun(context.Context, product.Actor, string) (*product.LaunchRunRecord, error)
 	ListLaunchRuns(context.Context, product.Actor, string) ([]product.LaunchRunRecord, error)
+	StartAgentRun(context.Context, product.Actor, product.StartAgentRunInput) (*product.LaunchRunRecord, error)
+	AppendLaunchRunStep(context.Context, product.Actor, string, product.LaunchRunStepInput) (*product.LaunchRunStepRecord, error)
+	ListLaunchRunSteps(context.Context, product.Actor, string) ([]product.LaunchRunStepRecord, error)
+	CreateConversation(context.Context, product.Actor, product.CreateConversationInput) (*product.ConversationRecord, error)
+	ListConversations(context.Context, product.Actor, product.ListConversationsInput) ([]product.ConversationRecord, error)
+	GetConversation(context.Context, product.Actor, string) (*product.ConversationDetail, error)
+	AppendConversationMessage(context.Context, product.Actor, string, product.AppendConversationMessageInput) (*product.ConversationMessageRecord, error)
+	UpdateConversation(context.Context, product.Actor, string, product.UpdateConversationInput) (*product.ConversationRecord, error)
 	ListAuditDrains(context.Context, product.Actor) ([]product.AuditDrainRecord, error)
 	CreateAuditDrain(context.Context, product.Actor, product.CreateAuditDrainInput, product.AuditRequest) (*product.AuditDrainRecord, error)
 	DeleteAuditDrain(context.Context, product.Actor, string, product.AuditRequest) error
@@ -131,12 +139,17 @@ type ConfigurationStore interface {
 	CreateBrandKit(context.Context, product.Actor, product.CreateBrandKitInput) (*ent.BrandKit, error)
 	GetBrandProfile(context.Context, string) (*ent.BrandProfile, error)
 	UpsertBrandProfile(context.Context, product.Actor, product.UpsertBrandProfileInput) (*ent.BrandProfile, error)
+	GetProductProfile(context.Context, product.Actor) (*product.ProductProfileRecord, error)
+	UpsertProductProfile(context.Context, product.Actor, product.UpsertProductProfileInput) (*product.ProductProfileRecord, error)
 	CreateSourceApp(context.Context, product.Actor, product.CreateSourceAppInput) (*ent.SourceApp, error)
 	UpdateSourceApp(context.Context, product.Actor, string, product.UpdateSourceAppInput) (*ent.SourceApp, error)
 	ListProductSurfaces(context.Context, string) ([]*ent.ProductSurface, error)
 	CreateProductSurface(context.Context, product.Actor, product.CreateProductSurfaceInput) (*ent.ProductSurface, error)
 	UpdateProductSurface(context.Context, product.Actor, string, product.UpdateProductSurfaceInput) (*ent.ProductSurface, error)
 	DeleteProductSurface(context.Context, product.Actor, string) error
+	FindSurfacesForFeature(context.Context, product.Actor, product.FindSurfacesInput) ([]product.SurfaceMatch, error)
+	ListSurfaceCaptures(context.Context, product.Actor, string) ([]product.SurfaceCaptureRecord, error)
+	RecordSurfaceCapture(context.Context, product.Actor, string, product.RecordSurfaceCaptureInput) (*product.SurfaceCaptureRecord, error)
 	CreateWorkspace(context.Context, product.Actor, product.CreateWorkspaceInput) (*product.Workspace, error)
 	ListWorkspaces(context.Context, product.Actor) ([]product.ListedWorkspace, error)
 	SetActiveWorkspace(context.Context, product.Actor, string) error
@@ -177,6 +190,7 @@ type ConfigurationStore interface {
 	TransitionCampaign(context.Context, product.Actor, string, string) (*product.CampaignTransition, error)
 	TransitionCampaignPosts(context.Context, product.Actor, string, product.CampaignPostDecision) (*product.CampaignPostTransition, error)
 	ScheduleCampaignPost(context.Context, product.Actor, string, string, product.ScheduleCampaignPostInput) (*product.ScheduleCampaignPostResult, error)
+	UpdateCampaignPost(context.Context, product.Actor, string, string, product.UpdateCampaignPostInput) (*product.CampaignPostItem, error)
 	CreateDesign(context.Context, product.Actor, product.CreateDesignInput) (*product.DesignRecord, error)
 	GetDesign(context.Context, product.Actor, string) (*product.DesignRecord, error)
 	UpdateDesignDocument(context.Context, product.Actor, string, map[string]any) error
@@ -226,6 +240,7 @@ func NewWithConfiguration(store Store, scheduler WorkflowScheduler, verifier Des
 		s.registerInternal(mux)
 		s.registerCampaignAssets(mux)
 		s.registerLaunch(mux)
+		s.registerConversations(mux)
 		s.registerPlatformControls(mux)
 		s.registerGitHub(mux)
 		s.registerAnnouncements(mux)
@@ -606,7 +621,12 @@ func writeQuotaExceeded(w http.ResponseWriter, exceeded *product.QuotaExceededEr
 func writeStoreError(w http.ResponseWriter, err error) {
 	var notEntitled *product.FeatureNotEntitledError
 	var exceeded *product.QuotaExceededError
+	var prohibited *product.ProhibitedTermsError
 	switch {
+	case errors.As(err, &prohibited):
+		writeJSON(w, http.StatusConflict, map[string]any{
+			"code": "brand_prohibited_terms", "error": err.Error(), "matches": prohibited.Matches,
+		})
 	case errors.As(err, &notEntitled):
 		writeJSON(w, http.StatusForbidden, map[string]string{
 			"code": "workspace_feature_not_entitled", "currentPlan": notEntitled.CurrentPlan,

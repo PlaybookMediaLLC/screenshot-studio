@@ -5,6 +5,7 @@ import { ONBOARDING_STEPS, OnboardingShell } from '@/components/auth/OnboardingS
 import { SignOutButton } from '@/components/auth/SignOutButton'
 import { PlanCards } from '@/components/platform-landing/pricing'
 import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
+import { pageTenant, pathAfterPlan } from '@/lib/onboarding/next-step'
 
 export const metadata: Metadata = { title: 'Choose a plan' }
 
@@ -12,7 +13,7 @@ type OnboardingPlanPageProps = {
   params: Promise<{ locale: string }>
 }
 
-/** The last onboarding step: a new workspace picks a plan before it can use Shots. */
+/** A new workspace picks a plan before it can use Shots; the product step follows. */
 export default async function OnboardingPlanPage({ params }: OnboardingPlanPageProps) {
   const [{ locale }, requestHeaders] = await Promise.all([params, headers()])
   const access = await getPageAccess(requestHeaders)
@@ -22,7 +23,10 @@ export default async function OnboardingPlanPage({ params }: OnboardingPlanPageP
     )
   }
   if (!access.hasOrganization) redirect(getLocalizedPath(locale, '/onboarding'))
-  if (access.hasPaidPlan) redirect(getLocalizedPath(locale, '/'))
+  if (access.hasPaidPlan) {
+    const tenant = pageTenant(access, requestHeaders)
+    redirect(getLocalizedPath(locale, tenant ? await pathAfterPlan(tenant) : '/'))
+  }
   return (
     <OnboardingShell
       current={2}

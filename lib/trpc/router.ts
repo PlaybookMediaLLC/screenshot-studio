@@ -7,6 +7,7 @@ import { assetRouter } from './routers/asset'
 import { billingRouter } from './routers/billing'
 import { campaignRouter } from './routers/campaign'
 import { brandKitRouter, brandProfileRouter, sourceAppRouter } from './routers/configuration'
+import { conversationRouter } from './routers/conversation'
 import { creativeTemplateRouter, creativeVariantRouter } from './routers/creative'
 import { designRouter } from './routers/design'
 import { editorAiRouter } from './routers/editor-ai'
@@ -29,6 +30,7 @@ export const appRouter = router({
   brandProfile: brandProfileRouter,
   campaign: campaignRouter,
   channelConnection: channelConnectionRouter,
+  conversation: conversationRouter,
   creativeTemplate: creativeTemplateRouter,
   creativeVariant: creativeVariantRouter,
   design: designRouter,

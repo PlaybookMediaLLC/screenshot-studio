@@ -37,6 +37,8 @@ const logoSchema = z
   .refine((value) => new URL(value).protocol === 'https:', 'Use an HTTPS logo URL.')
 
 export const workspaceUpdateSchema = z.object({
+  /** The AI kill switch; the backend lets only owners and admins change it. */
+  aiAgentEnabled: z.boolean().optional(),
   defaultPublishTime: z
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use HH:MM in 24-hour time.')

@@ -7,10 +7,14 @@ import {
   type ToolResultPart,
   type ToolSet,
 } from 'ai'
-import type { BackendAuditEvent } from 'screenshot-studio-backend-sdk'
+import type {
+  BackendAuditEvent,
+  BackendLaunchRunStepInput,
+  BackendToolEffect,
+} from 'screenshot-studio-backend-sdk'
 import { z } from 'zod'
 import type { OrganizationAccess } from '@/lib/auth/access'
-import { sanitizeAuditMetadata } from '@/lib/audit/metadata'
+import { type AuditMetadata, sanitizeAuditMetadata } from '@/lib/audit/metadata'
 import { hasPermission, type Permission } from '@/lib/auth/permissions'
 
 /**
@@ -19,8 +23,9 @@ import { hasPermission, type Permission } from '@/lib/auth/permissions'
  * Every agent tool is declared with a capability record: what it does to the
  * workspace, the permission it needs, how often a run may call it, and how
  * long one call may take. The executor enforces each field on every call,
- * returns failures to the model as results rather than throws, and audits
- * each call. Pure: the audit sink is passed in, so it runs in tests.
+ * returns failures to the model as results rather than throws, audits
+ * each call, and, given a step sink, records each call as a trace step.
+ * Pure: the sinks are passed in, so it runs in tests.
  */
 
 /** What a tool does to the workspace. */
@@ -69,10 +74,17 @@ export type ToolRun = {
   readonly entityType: ToolRunEntity
   /** The previous call's name and input, and how many times in a row it was made. */
   last: { key: string; repeats: number } | null
-  /** Audit writes still in flight; {@link flushToolRun} waits for them. */
+  /** Audit and step writes still in flight; {@link flushToolRun} waits for them. */
   readonly pending: Set<Promise<unknown>>
+  /** Appends one trace step; absent when the run keeps no trace. */
+  readonly recordStep?: (step: BackendLaunchRunStepInput) => Promise<unknown>
   readonly runId: string
   readonly signal?: AbortSignal
+  /**
+   * The next trace step's index, from 0. A caller that records its own steps
+   * on the same run (model steps) takes indexes from here too.
+   */
+  stepIndex: number
   /** Set when the run must stop; {@link isRunStopped} ends the model loop. */
   stopReason: ToolErrorCode | null
 }
@@ -86,6 +98,8 @@ export function createToolRun(input: {
   /** Writes one audit event; failures are swallowed. */
   audit: (event: BackendAuditEvent) => Promise<unknown>
   launchRunId?: string
+  /** Appends one trace step per tool call; failures are swallowed. */
+  recordStep?: (step: BackendLaunchRunStepInput) => Promise<unknown>
   signal?: AbortSignal
 }): ToolRun {
   return {
@@ -95,8 +109,10 @@ export function createToolRun(input: {
     entityType: input.launchRunId ? 'launch_run' : 'agent_run',
     last: null,
     pending: new Set(),
+    recordStep: input.recordStep,
     runId: input.launchRunId ?? randomUUID(),
     signal: input.signal,
+    stepIndex: 0,
     stopReason: null,
   }
 }
@@ -106,7 +122,7 @@ export function isRunStopped<TOOLS extends ToolSet>(run: ToolRun): StopCondition
   return () => run.stopReason !== null
 }
 
-/** Waits for the run's audit writes. Call when the run ends. */
+/** Waits for the run's audit and step writes. Call when the run ends. */
 export async function flushToolRun(run: ToolRun): Promise<void> {
   await Promise.allSettled([...run.pending])
 }
@@ -177,38 +193,108 @@ function withSignal<T>(signal: AbortSignal, execute: () => Promise<T> | T): Prom
   })
 }
 
-function audit(
+/** The trace effect for each executor effect; the trace has no draft or mutate. */
+const STEP_EFFECTS: Record<ToolEffect, BackendToolEffect> = {
+  draft: 'write',
+  external: 'external',
+  mutate: 'write',
+  read: 'read',
+}
+
+/** Longest string a step summary keeps. */
+const SUMMARY_STRING_MAX = 200
+/** Most fields a step summary keeps. */
+const SUMMARY_FIELDS_MAX = 24
+/** Far under the backend's 16 KiB cap per summary. */
+const SUMMARY_BYTES_MAX = 8 << 10
+/** A data URL, or a long unbroken run of base64: image or file bytes. */
+const binaryText = /^data:|^[A-Za-z0-9+/_-]{80,}={0,2}$/
+
+function summaryField(value: unknown): AuditMetadata[string] {
+  if (typeof value === 'number' || typeof value === 'boolean') return value
+  if (typeof value === 'string') {
+    if (binaryText.test(value)) return `[${value.length} characters omitted]`
+    return value.length > SUMMARY_STRING_MAX ? `${value.slice(0, SUMMARY_STRING_MAX)}…` : value
+  }
+  if (Array.isArray(value)) return `[${value.length} items]`
+  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return '[binary omitted]'
+  return value && typeof value === 'object' ? '[object]' : null
+}
+
+/**
+ * A tool input or output as a trace summary: top-level fields only, nested
+ * values described, strings cut short, binary omitted, credential-like keys
+ * redacted, and the whole capped.
+ */
+function summarize(value: unknown): AuditMetadata {
+  const fields: Array<[string, unknown]> =
+    value && typeof value === 'object' && !Array.isArray(value) && !ArrayBuffer.isView(value)
+      ? Object.entries(value).slice(0, SUMMARY_FIELDS_MAX)
+      : [['value', value]]
+  const summary = sanitizeAuditMetadata(
+    Object.fromEntries(fields.map(([key, entry]) => [key.slice(0, 64), summaryField(entry)]))
+  )
+  return Buffer.byteLength(JSON.stringify(summary)) > SUMMARY_BYTES_MAX
+    ? { omitted: 'too large' }
+    : summary
+}
+
+/** Runs a fire-and-forget write; {@link flushToolRun} waits for it and it never throws. */
+function track(run: ToolRun, tool: string, what: string, write: () => Promise<unknown>) {
+  const pending = Promise.resolve()
+    .then(write)
+    .catch((error: unknown) => {
+      console.error(`Agent tool ${what} failed.`, {
+        reason: error instanceof Error ? error.message : 'unknown',
+        tool,
+      })
+    })
+  run.pending.add(pending)
+  void pending.finally(() => run.pending.delete(pending))
+}
+
+/** Audits one call and, when the run keeps a trace, appends its step. */
+function record(
   run: ToolRun,
   spec: Pick<ToolSpec<unknown, unknown>, 'effect' | 'name'>,
   started: number,
+  input: unknown,
   result: unknown
 ) {
   const code = isFailure(result) ? (result.code ?? 'REJECTED') : null
+  const status = code === 'DENIED' ? 'DENIED' : code ? 'FAILED' : 'SUCCEEDED'
+  const durationMs = Date.now() - started
   // ponytail: one write per call, not batched; the SDK has no batch append.
-  const write = Promise.resolve()
-    .then(() =>
-      run.audit({
-        action: 'product.agent_tool_called',
-        entityId: run.runId,
-        entityType: run.entityType,
-        // Never inputs or outputs: they can carry customer content.
-        metadata: sanitizeAuditMetadata({
-          durationMs: Date.now() - started,
-          effect: spec.effect,
-          errorCode: code,
-          tool: spec.name,
-        }),
-        outcome: code === 'DENIED' ? 'DENIED' : code ? 'FAILED' : 'SUCCEEDED',
-      })
-    )
-    .catch((error: unknown) => {
-      console.error('Agent tool audit failed.', {
-        reason: error instanceof Error ? error.message : 'unknown',
+  track(run, spec.name, 'audit', () =>
+    run.audit({
+      action: 'product.agent_tool_called',
+      entityId: run.runId,
+      entityType: run.entityType,
+      // Never inputs or outputs: they can carry customer content.
+      metadata: sanitizeAuditMetadata({
+        durationMs,
+        effect: spec.effect,
+        errorCode: code,
         tool: spec.name,
-      })
+      }),
+      outcome: status,
     })
-  run.pending.add(write)
-  void write.finally(() => run.pending.delete(write))
+  )
+  const { recordStep } = run
+  if (!recordStep) return
+  const step: BackendLaunchRunStepInput = {
+    durationMs,
+    effect: STEP_EFFECTS[spec.effect],
+    // The backend takes lowercase codes.
+    errorCode: code?.toLowerCase() ?? null,
+    index: run.stepIndex++,
+    inputSummary: summarize(input),
+    kind: 'tool',
+    outputSummary: summarize(result),
+    status,
+    toolName: spec.name,
+  }
+  track(run, spec.name, 'step', () => recordStep(step))
 }
 
 async function call<INPUT, OUTPUT>(
@@ -262,7 +348,8 @@ async function call<INPUT, OUTPUT>(
  * Declare an agent tool for one run. The returned AI SDK tool checks the
  * run's role against `permission`, enforces `maxCallsPerRun`, the loop
  * limit, and `timeoutMs`, returns every failure as a {@link ToolFailure},
- * and appends one `product.agent_tool_called` audit event per call.
+ * and appends one `product.agent_tool_called` audit event per call, plus one
+ * trace step when the run has `recordStep`.
  */
 export function defineTool<INPUT, OUTPUT>(
   run: ToolRun,
@@ -271,7 +358,7 @@ export function defineTool<INPUT, OUTPUT>(
   const execute: DefinedTool<INPUT, OUTPUT>['execute'] = async (input, options) => {
     const started = Date.now()
     const result = await call(run, spec, input, options.abortSignal)
-    audit(run, spec, started, result)
+    record(run, spec, started, input, result)
     return result
   }
   // What `tool()` builds; its inference cannot see through a generic wrapper, so it is asserted.

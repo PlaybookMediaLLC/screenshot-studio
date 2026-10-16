@@ -19,7 +19,27 @@ import { getProductProfile, type StoredProductProfile } from '@/lib/tenant/produ
 const MAX_SOURCE_PAGES = 4
 
 /** Release fields are plain text: markup characters are dropped, not escaped. */
-const plain = (value: string, max: number) => value.replace(/[<>]/g, '').trim().slice(0, max)
+export const plain = (value: string, max: number) => value.replace(/[<>]/g, '').trim().slice(0, max)
+
+/** The product surface for the profile's URL, created on first use. */
+export async function ensureProductSurface(
+  access: OrganizationAccess,
+  profile: StoredProductProfile
+) {
+  const backend = backendSDK(access)
+  const { productSurfaces } = await backend.listProductSurfaces()
+  return (
+    productSurfaces.find((candidate) => candidate.url === profile.url) ??
+    (await backend.createProductSurface({
+      description: plain(profile.summary, 1_000) || undefined,
+      environment: 'production',
+      featureTags: [],
+      name: profile.name,
+      screenshotAssetIds: [],
+      url: profile.url,
+    }))
+  )
+}
 
 function briefDescription(profile: StoredProductProfile): string {
   return [
@@ -49,17 +69,7 @@ export async function startFirstCampaign(
     ...new Set(pages.filter((page) => new URL(page).origin === origin && page !== profile.url)),
   ].slice(0, MAX_SOURCE_PAGES)
 
-  const { productSurfaces } = await backend.listProductSurfaces()
-  const surface =
-    productSurfaces.find((candidate) => candidate.url === profile.url) ??
-    (await backend.createProductSurface({
-      description: plain(profile.summary, 1_000) || undefined,
-      environment: 'production',
-      featureTags: [],
-      name: profile.name,
-      screenshotAssetIds: [],
-      url: profile.url,
-    }))
+  const surface = await ensureProductSurface(access, profile)
   const name = plain(`${profile.name} launch`, 160)
   const summary = plain(profile.summary || profile.problem, 500)
   const description = plain(briefDescription(profile), 10_000)

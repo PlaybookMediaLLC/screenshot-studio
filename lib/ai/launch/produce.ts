@@ -35,7 +35,7 @@ import { VISUALS_FALLBACK_INSTRUCTIONS, VISUALS_INSTRUCTIONS } from './prompts'
  * channel copy, side by side. Works from the approved spec and plan when they
  * exist, else the latest drafts. Whatever finished is kept if the other half
  * fails. Tools act with the caller's role; `runId` is the launch run their
- * calls are audited against.
+ * calls are audited against and traced on, one step per call.
  */
 export async function produceCampaign(
   tenant: OrganizationAccess,
@@ -65,6 +65,7 @@ export async function produceCampaign(
     access: tenant,
     audit: (event) => backendSDK(tenant).appendAuditEvent(event),
     launchRunId: runId,
+    recordStep: runId ? (step) => backendSDK(tenant).appendLaunchRunStep(runId, step) : undefined,
     signal,
   })
   const scope = {

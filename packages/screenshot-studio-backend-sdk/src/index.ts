@@ -1024,8 +1024,9 @@ export type BackendConversationMessage = {
 
 /**
  * A message to append. Any member sends a plain user text message; any
- * other role or kind needs owner, admin, or creator. Content is at most
- * 20,000 characters.
+ * other role or kind needs owner, admin, or creator, or the conversation's
+ * author citing (`launchRunId`) a conversation run they started. Content is
+ * at most 20,000 characters.
  */
 export type BackendConversationMessageInput = {
   content: string
@@ -2171,8 +2172,11 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /**
-   * Starts an agent or conversation run, optionally about a campaign. Needs
-   * owner, admin, or creator; answers 403 when the workspace turned AI off.
+   * Starts an agent or conversation run, optionally about a campaign. Any
+   * member starts a conversation run; an agent run needs owner, admin, or
+   * creator. Answers 403 when the workspace turned AI off. The member who
+   * started a conversation run may append its steps, heartbeat, finish, and
+   * cancel it.
    */
   async startAgentRun(input: { campaignId?: string | null; kind: 'agent' | 'conversation' }) {
     return this.request<BackendAgentRun>('v1/launch/runs', { body: input, method: 'POST' })

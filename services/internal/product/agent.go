@@ -3,14 +3,17 @@ package product
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"regexp"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrunstep"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/lucsky/cuid"
 )
 
@@ -64,11 +67,18 @@ type StartAgentRunInput struct {
 	Kind       string  `json:"kind"`
 }
 
-// StartAgentRun records an agent run. It needs a role that can create
-// releases and the workspace's AI switch on. With a campaign, one run of the
-// kind per campaign at a time; without one, no slot is held.
+// StartAgentRun records an agent run. Any member may start a conversation
+// run; an agent run needs a role that can create releases. Both need the
+// workspace's AI switch on. With a campaign, one run of the kind per campaign
+// at a time; without one, no slot is held.
 func (c *Configuration) StartAgentRun(ctx context.Context, actor Actor, input StartAgentRunInput) (*LaunchRunRecord, error) {
-	if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
+	var err error
+	if input.Kind == "conversation" {
+		err = c.AuthorizeRead(ctx, actor)
+	} else {
+		err = c.authorizeRoles(ctx, actor, launchEditRoles...)
+	}
+	if err != nil {
 		return nil, err
 	}
 	if !slices.Contains(agentRunKinds, input.Kind) {
@@ -78,6 +88,28 @@ func (c *Configuration) StartAgentRun(ctx context.Context, actor Actor, input St
 		return nil, err
 	}
 	return c.startLaunchRun(ctx, actor, input.CampaignID, input.Kind)
+}
+
+// authorizeLaunchRun lets an owner, admin, or creator act on any run of the
+// workspace, and any other member on a conversation run they started. It
+// reports whether the caller acts only as that run's starter.
+func (c *Configuration) authorizeLaunchRun(ctx context.Context, actor Actor, runID string) (bool, error) {
+	err := c.authorizeRoles(ctx, actor, launchEditRoles...)
+	if !errors.Is(err, publishing.ErrForbidden) || !actor.IsSession() {
+		return false, err
+	}
+	if readErr := c.AuthorizeRead(ctx, actor); readErr != nil {
+		return false, readErr
+	}
+	own, queryErr := c.client.LaunchRun.Query().Where(launchrun.ID(runID), launchrun.OrganizationID(actor.OrganizationID),
+		launchrun.Kind("conversation"), launchrun.CreatedByUserID(actor.UserID)).Exist(ctx)
+	if queryErr != nil {
+		return false, queryErr
+	}
+	if !own {
+		return false, err
+	}
+	return true, nil
 }
 
 // LaunchRunStepInput is one step a worker appends. Index is the worker's
@@ -135,9 +167,9 @@ func nullJSON(value json.RawMessage) json.RawMessage {
 }
 
 // AppendLaunchRunStep records one step of a run of this workspace. The
-// caller needs the same roles as finishing or heartbeating the run.
+// caller needs the same rights as finishing or heartbeating the run.
 func (c *Configuration) AppendLaunchRunStep(ctx context.Context, actor Actor, runID string, input LaunchRunStepInput) (*LaunchRunStepRecord, error) {
-	if err := c.authorizeRoles(ctx, actor, launchEditRoles...); err != nil {
+	if _, err := c.authorizeLaunchRun(ctx, actor, runID); err != nil {
 		return nil, err
 	}
 	kind, status := launchrunstep.Kind(input.Kind), launchrunstep.Status(input.Status)

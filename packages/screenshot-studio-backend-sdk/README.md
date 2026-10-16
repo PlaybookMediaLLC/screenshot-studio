@@ -25,6 +25,9 @@ changes the SDK without a new version, and publishes the new version when the
 change reaches `main`. Then pin the app to it: `npm install
 screenshot-studio-backend-sdk@<version> --save-exact` and `bun install`.
 
-The workflow authenticates with npm trusted publishing. On npmjs.com, the
-package's trusted publisher is GitHub Actions, `PlaybookMediaLLC/screenshot-studio`,
-workflow `publish-sdk.yml`.
+The workflow authenticates with npm trusted publishing, and only from `main`:
+its publish job runs in the `npm` GitHub environment, which deploys from
+`main` alone, and npm trusts only that environment. On npmjs.com, the
+package's trusted publisher is GitHub Actions,
+`PlaybookMediaLLC/screenshot-studio`, workflow `publish-sdk.yml`, environment
+`npm`. Do not add an npm token as a repository secret: any branch could read it.

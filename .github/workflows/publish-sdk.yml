@@ -1,10 +1,11 @@
 name: Publish SDK
 
 # Publishes packages/screenshot-studio-backend-sdk to npm when main carries a
-# version npm does not have. Pull requests run the same build and fail when
-# the SDK changed but its version did not, which would otherwise never
-# publish. npm trusted publishing (OIDC) authenticates, so no npm token is
-# stored; an NPM_TOKEN secret is used only if one is set.
+# version npm does not have. Pull requests run the check alone, which fails
+# when the SDK changed but its version did not (that change would never
+# publish). npm trusted publishing (OIDC) authenticates; no npm token is
+# stored. Only the publish job can ask for one, through the npm environment,
+# which deploys from main alone, and npm trusts only that environment.
 on:
   push:
     branches: [main]
@@ -19,16 +20,17 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: publish-sdk-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  publish:
+  check:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      publish: ${{ steps.version.outputs.publish }}
     defaults:
       run:
         working-directory: packages/screenshot-studio-backend-sdk
@@ -37,9 +39,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
-      # Trusted publishing needs npm 11.5.1 or later.
-      - run: npm install --global npm@11
       # The app's TypeScript, without installing the app: its lockfile may
       # already pin the version this run is about to publish.
       - name: Build
@@ -67,9 +66,30 @@ jobs:
           fi
           echo "$name@$version is already on npm with these contents."
           echo "publish=false" >> "$GITHUB_OUTPUT"
-      - name: Publish
-        if: steps.version.outputs.publish == 'true' && github.event_name != 'pull_request'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        # The build ran above; prepack would look for tsc on the PATH.
-        run: npm publish --access public --ignore-scripts
+
+  publish:
+    needs: check
+    if: needs.check.outputs.publish == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: packages/screenshot-studio-backend-sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or later.
+      - run: npm install --global npm@11
+      - name: Build
+        run: |
+          typescript="$(node -p "require('../../package.json').devDependencies.typescript")"
+          npx --yes --package "typescript@$typescript" tsc -p tsconfig.json
+      # The build ran above; prepack would look for tsc on the PATH.
+      - run: npm publish --access public --ignore-scripts

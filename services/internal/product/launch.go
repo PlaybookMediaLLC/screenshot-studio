@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"encoding/json"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 	"slices"
 	"strings"
 	"time"
@@ -92,13 +93,16 @@ func validLaunchOrigin(origin string) bool {
 // ------------------------------------------------------------- context --
 
 type LaunchRelease struct {
-	Audience         *string  `json:"audience"`
-	BenefitStatement string   `json:"benefitStatement"`
-	CreatedByUserID  *string  `json:"createdByUserId"`
-	Description      *string  `json:"description"`
-	ID               string   `json:"id"`
-	SourceURLs       []string `json:"sourceUrls"`
-	Title            string   `json:"title"`
+	Audience         *string `json:"audience"`
+	BenefitStatement string  `json:"benefitStatement"`
+	CreatedByUserID  *string `json:"createdByUserId"`
+	Description      *string `json:"description"`
+	// Features and Notes are what a source said about the release in full.
+	Features   []releasenotes.Feature `json:"features"`
+	Notes      *string                `json:"notes"`
+	ID         string                 `json:"id"`
+	SourceURLs []string               `json:"sourceUrls"`
+	Title      string                 `json:"title"`
 }
 
 // LaunchCampaign is what the AI stages read about a campaign.
@@ -143,7 +147,7 @@ func (c *Configuration) GetLaunchCampaign(ctx context.Context, actor Actor, id s
 				urls = []string{}
 			}
 			result.Release = &LaunchRelease{Audience: linked.Audience, BenefitStatement: linked.BenefitStatement,
-				CreatedByUserID: linked.CreatedByUserID, Description: linked.Description, ID: linked.ID,
+				CreatedByUserID: linked.CreatedByUserID, Description: linked.Description, Features: linked.Features, ID: linked.ID, Notes: linked.Notes,
 				SourceURLs: urls, Title: linked.Title}
 		}
 	}

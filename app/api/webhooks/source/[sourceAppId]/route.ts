@@ -2,10 +2,11 @@ import { z } from 'zod'
 import { ingestSourceWebhookContract } from '@/lib/api/contracts/webhooks'
 import { type Authenticate, route } from '@/lib/api/route'
 import { AuthorizationError } from '@/lib/auth/access'
+import { sourceProviderSchema } from '@/lib/tenant/schemas'
 import {
-  getWebhookReleaseInput,
+  getWebhookIntent,
   getWebhookSource,
-  ingestSourceRelease,
+  ingestWebhookIntent,
   verifyWebhookRequest,
 } from '@/lib/tenant/webhooks'
 
@@ -33,8 +34,14 @@ const webhookHeaderSetSchema = z.object({
   timestamp: z.array(webhookHeaderSchema),
 })
 
-/** Providers with their own header conventions; anything else uses the GitHub-style set. */
-const webhookProviderSchema = z.enum(['gitlab'])
+// Each provider reads only its own headers, so a request cannot borrow another
+// provider's weaker rule (GitHub's lack of a timestamp) to replay a body.
+const githubHeaders = webhookHeaderSetSchema.parse({
+  event: ['x-github-event'],
+  eventId: ['x-github-delivery'],
+  signature: ['x-hub-signature-256'],
+  timestamp: [],
+})
 
 const gitlabHeaders = webhookHeaderSetSchema.parse({
   event: ['x-gitlab-event'],
@@ -43,10 +50,10 @@ const gitlabHeaders = webhookHeaderSetSchema.parse({
   timestamp: ['webhook-timestamp'],
 })
 
-const defaultHeaders = webhookHeaderSetSchema.parse({
-  event: ['x-github-event'],
-  eventId: ['x-github-delivery', 'x-screenshot-studio-event-id'],
-  signature: ['x-hub-signature-256', 'x-screenshot-studio-signature'],
+const genericHeaders = webhookHeaderSetSchema.parse({
+  event: [],
+  eventId: ['x-screenshot-studio-event-id'],
+  signature: ['x-screenshot-studio-signature'],
   timestamp: ['x-screenshot-studio-timestamp'],
 })
 
@@ -57,7 +64,8 @@ const webhookAccessSchema = z.object({
 })
 
 function headersFor(provider: string): z.infer<typeof webhookHeaderSetSchema> {
-  return provider === webhookProviderSchema.enum.gitlab ? gitlabHeaders : defaultHeaders
+  if (provider === sourceProviderSchema.enum.github) return githubHeaders
+  return provider === sourceProviderSchema.enum.gitlab ? gitlabHeaders : genericHeaders
 }
 
 function firstHeader(headers: Headers, names: readonly string[]): string | null {
@@ -96,18 +104,24 @@ const webhookSignatureAccess: Authenticate<z.infer<typeof webhookAccessSchema>> 
   return webhookAccessSchema.parse({ eventId, source })
 }
 
-/** Turn a verified release event into a release; a redelivery answers 200. */
+/**
+ * Record what a verified delivery ships: a release, a merged PR held for the
+ * next release, or a production deployment. A redelivery answers 200, and an
+ * event that ships nothing answers 202.
+ */
 export const POST = route(ingestSourceWebhookContract, {
   auth: webhookSignatureAccess,
-  handler: async ({ access: { eventId, source }, body, request }) =>
-    ingestSourceRelease({
-      eventId,
-      release: getWebhookReleaseInput(
-        source.provider,
-        firstHeader(request.headers, headersFor(source.provider).event),
-        body
-      ),
+  handler: async ({ access: { eventId, source }, body, request }) => {
+    const intent = getWebhookIntent({
+      body,
+      contentType: request.headers.get('content-type'),
+      deliveryId: eventId,
+      eventName: firstHeader(request.headers, headersFor(source.provider).event),
       source,
-    }),
-  status: (result) => (result.created ? 201 : 200),
+    })
+    return intent
+      ? ingestWebhookIntent({ deliveryId: eventId, intent, source })
+      : { ignored: true as const }
+  },
+  status: (result) => ('ignored' in result ? 202 : result.created ? 201 : 200),
 })

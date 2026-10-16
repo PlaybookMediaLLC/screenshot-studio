@@ -89,6 +89,26 @@ func SecretReference(v string) predicate.SourceApp {
 	return predicate.SourceApp(sql.FieldEQ(FieldSecretReference, v))
 }
 
+// Branch applies equality check predicate on the "branch" field. It's identical to BranchEQ.
+func Branch(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEQ(FieldBranch, v))
+}
+
+// IgnoreBotPullRequests applies equality check predicate on the "ignore_bot_pull_requests" field. It's identical to IgnoreBotPullRequestsEQ.
+func IgnoreBotPullRequests(v bool) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEQ(FieldIgnoreBotPullRequests, v))
+}
+
+// SkipPrereleases applies equality check predicate on the "skip_prereleases" field. It's identical to SkipPrereleasesEQ.
+func SkipPrereleases(v bool) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEQ(FieldSkipPrereleases, v))
+}
+
+// GithubInstallationID applies equality check predicate on the "github_installation_id" field. It's identical to GithubInstallationIDEQ.
+func GithubInstallationID(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEQ(FieldGithubInstallationID, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.SourceApp {
 	return predicate.SourceApp(sql.FieldEQ(FieldCreatedAt, v))
@@ -442,6 +462,176 @@ func SecretReferenceEqualFold(v string) predicate.SourceApp {
 // SecretReferenceContainsFold applies the ContainsFold predicate on the "secret_reference" field.
 func SecretReferenceContainsFold(v string) predicate.SourceApp {
 	return predicate.SourceApp(sql.FieldContainsFold(FieldSecretReference, v))
+}
+
+// BranchEQ applies the EQ predicate on the "branch" field.
+func BranchEQ(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEQ(FieldBranch, v))
+}
+
+// BranchNEQ applies the NEQ predicate on the "branch" field.
+func BranchNEQ(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldNEQ(FieldBranch, v))
+}
+
+// BranchIn applies the In predicate on the "branch" field.
+func BranchIn(vs ...string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldIn(FieldBranch, vs...))
+}
+
+// BranchNotIn applies the NotIn predicate on the "branch" field.
+func BranchNotIn(vs ...string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldNotIn(FieldBranch, vs...))
+}
+
+// BranchGT applies the GT predicate on the "branch" field.
+func BranchGT(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldGT(FieldBranch, v))
+}
+
+// BranchGTE applies the GTE predicate on the "branch" field.
+func BranchGTE(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldGTE(FieldBranch, v))
+}
+
+// BranchLT applies the LT predicate on the "branch" field.
+func BranchLT(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldLT(FieldBranch, v))
+}
+
+// BranchLTE applies the LTE predicate on the "branch" field.
+func BranchLTE(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldLTE(FieldBranch, v))
+}
+
+// BranchContains applies the Contains predicate on the "branch" field.
+func BranchContains(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldContains(FieldBranch, v))
+}
+
+// BranchHasPrefix applies the HasPrefix predicate on the "branch" field.
+func BranchHasPrefix(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldHasPrefix(FieldBranch, v))
+}
+
+// BranchHasSuffix applies the HasSuffix predicate on the "branch" field.
+func BranchHasSuffix(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldHasSuffix(FieldBranch, v))
+}
+
+// BranchIsNil applies the IsNil predicate on the "branch" field.
+func BranchIsNil() predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldIsNull(FieldBranch))
+}
+
+// BranchNotNil applies the NotNil predicate on the "branch" field.
+func BranchNotNil() predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldNotNull(FieldBranch))
+}
+
+// BranchEqualFold applies the EqualFold predicate on the "branch" field.
+func BranchEqualFold(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEqualFold(FieldBranch, v))
+}
+
+// BranchContainsFold applies the ContainsFold predicate on the "branch" field.
+func BranchContainsFold(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldContainsFold(FieldBranch, v))
+}
+
+// IgnoreBotPullRequestsEQ applies the EQ predicate on the "ignore_bot_pull_requests" field.
+func IgnoreBotPullRequestsEQ(v bool) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEQ(FieldIgnoreBotPullRequests, v))
+}
+
+// IgnoreBotPullRequestsNEQ applies the NEQ predicate on the "ignore_bot_pull_requests" field.
+func IgnoreBotPullRequestsNEQ(v bool) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldNEQ(FieldIgnoreBotPullRequests, v))
+}
+
+// SkipPrereleasesEQ applies the EQ predicate on the "skip_prereleases" field.
+func SkipPrereleasesEQ(v bool) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEQ(FieldSkipPrereleases, v))
+}
+
+// SkipPrereleasesNEQ applies the NEQ predicate on the "skip_prereleases" field.
+func SkipPrereleasesNEQ(v bool) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldNEQ(FieldSkipPrereleases, v))
+}
+
+// GithubInstallationIDEQ applies the EQ predicate on the "github_installation_id" field.
+func GithubInstallationIDEQ(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEQ(FieldGithubInstallationID, v))
+}
+
+// GithubInstallationIDNEQ applies the NEQ predicate on the "github_installation_id" field.
+func GithubInstallationIDNEQ(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldNEQ(FieldGithubInstallationID, v))
+}
+
+// GithubInstallationIDIn applies the In predicate on the "github_installation_id" field.
+func GithubInstallationIDIn(vs ...string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldIn(FieldGithubInstallationID, vs...))
+}
+
+// GithubInstallationIDNotIn applies the NotIn predicate on the "github_installation_id" field.
+func GithubInstallationIDNotIn(vs ...string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldNotIn(FieldGithubInstallationID, vs...))
+}
+
+// GithubInstallationIDGT applies the GT predicate on the "github_installation_id" field.
+func GithubInstallationIDGT(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldGT(FieldGithubInstallationID, v))
+}
+
+// GithubInstallationIDGTE applies the GTE predicate on the "github_installation_id" field.
+func GithubInstallationIDGTE(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldGTE(FieldGithubInstallationID, v))
+}
+
+// GithubInstallationIDLT applies the LT predicate on the "github_installation_id" field.
+func GithubInstallationIDLT(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldLT(FieldGithubInstallationID, v))
+}
+
+// GithubInstallationIDLTE applies the LTE predicate on the "github_installation_id" field.
+func GithubInstallationIDLTE(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldLTE(FieldGithubInstallationID, v))
+}
+
+// GithubInstallationIDContains applies the Contains predicate on the "github_installation_id" field.
+func GithubInstallationIDContains(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldContains(FieldGithubInstallationID, v))
+}
+
+// GithubInstallationIDHasPrefix applies the HasPrefix predicate on the "github_installation_id" field.
+func GithubInstallationIDHasPrefix(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldHasPrefix(FieldGithubInstallationID, v))
+}
+
+// GithubInstallationIDHasSuffix applies the HasSuffix predicate on the "github_installation_id" field.
+func GithubInstallationIDHasSuffix(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldHasSuffix(FieldGithubInstallationID, v))
+}
+
+// GithubInstallationIDIsNil applies the IsNil predicate on the "github_installation_id" field.
+func GithubInstallationIDIsNil() predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldIsNull(FieldGithubInstallationID))
+}
+
+// GithubInstallationIDNotNil applies the NotNil predicate on the "github_installation_id" field.
+func GithubInstallationIDNotNil() predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldNotNull(FieldGithubInstallationID))
+}
+
+// GithubInstallationIDEqualFold applies the EqualFold predicate on the "github_installation_id" field.
+func GithubInstallationIDEqualFold(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEqualFold(FieldGithubInstallationID, v))
+}
+
+// GithubInstallationIDContainsFold applies the ContainsFold predicate on the "github_installation_id" field.
+func GithubInstallationIDContainsFold(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldContainsFold(FieldGithubInstallationID, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.

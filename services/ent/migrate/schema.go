@@ -753,6 +753,39 @@ var (
 			},
 		},
 	}
+	// DeploymentEventColumns holds the columns for the "deployment_event" table.
+	DeploymentEventColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "sourceAppId", Type: field.TypeString},
+		{Name: "externalId", Type: field.TypeString},
+		{Name: "environment", Type: field.TypeString},
+		{Name: "url", Type: field.TypeString, Nullable: true},
+		{Name: "sha", Type: field.TypeString, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"RECEIVED", "CAPTURED", "SKIPPED", "FAILED"}, Default: "RECEIVED"},
+		{Name: "failureCode", Type: field.TypeString, Nullable: true},
+		{Name: "assetIds", Type: field.TypeJSON},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// DeploymentEventTable holds the schema information for the "deployment_event" table.
+	DeploymentEventTable = &schema.Table{
+		Name:       "deployment_event",
+		Columns:    DeploymentEventColumns,
+		PrimaryKey: []*schema.Column{DeploymentEventColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "deploymentevent_sourceAppId_externalId",
+				Unique:  true,
+				Columns: []*schema.Column{DeploymentEventColumns[2], DeploymentEventColumns[3]},
+			},
+			{
+				Name:    "deploymentevent_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{DeploymentEventColumns[1], DeploymentEventColumns[10]},
+			},
+		},
+	}
 	// DesignColumns holds the columns for the "design" table.
 	DesignColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -787,6 +820,53 @@ var (
 				Name:    "design_organizationId_renderKey",
 				Unique:  false,
 				Columns: []*schema.Column{DesignColumns[1], DesignColumns[8]},
+			},
+		},
+	}
+	// GithubInstallStartColumns holds the columns for the "github_install_start" table.
+	GithubInstallStartColumns = []*schema.Column{
+		{Name: "state", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "userId", Type: field.TypeString},
+		{Name: "sessionId", Type: field.TypeString},
+		{Name: "expiresAt", Type: field.TypeTime},
+		{Name: "installationIds", Type: field.TypeJSON, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// GithubInstallStartTable holds the schema information for the "github_install_start" table.
+	GithubInstallStartTable = &schema.Table{
+		Name:       "github_install_start",
+		Columns:    GithubInstallStartColumns,
+		PrimaryKey: []*schema.Column{GithubInstallStartColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "githubinstallstart_expiresAt",
+				Unique:  false,
+				Columns: []*schema.Column{GithubInstallStartColumns[4]},
+			},
+		},
+	}
+	// GithubInstallationColumns holds the columns for the "github_installation" table.
+	GithubInstallationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "installationId", Type: field.TypeInt64},
+		{Name: "accountLogin", Type: field.TypeString},
+		{Name: "accountType", Type: field.TypeString},
+		{Name: "repositorySelection", Type: field.TypeString, Default: "selected"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"ACTIVE", "SUSPENDED", "DELETED"}, Default: "ACTIVE"},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// GithubInstallationTable holds the schema information for the "github_installation" table.
+	GithubInstallationTable = &schema.Table{
+		Name:       "github_installation",
+		Columns:    GithubInstallationColumns,
+		PrimaryKey: []*schema.Column{GithubInstallationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "githubinstallation_installationId",
+				Unique:  true,
+				Columns: []*schema.Column{GithubInstallationColumns[1]},
 			},
 		},
 	}
@@ -1054,6 +1134,9 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "audience", Type: field.TypeString, Nullable: true},
 		{Name: "sourceUrls", Type: field.TypeJSON},
+		{Name: "notes", Type: field.TypeString, Nullable: true},
+		{Name: "features", Type: field.TypeJSON},
+		{Name: "screenshotAssetIds", Type: field.TypeJSON},
 		{Name: "productSurfaceId", Type: field.TypeString, Nullable: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "READY", "ARCHIVED", "CANCELLED"}, Default: "DRAFT"},
 		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
@@ -1069,17 +1152,17 @@ var (
 			{
 				Name:    "release_organizationId_status_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ReleaseColumns[1], ReleaseColumns[8], ReleaseColumns[11]},
+				Columns: []*schema.Column{ReleaseColumns[1], ReleaseColumns[11], ReleaseColumns[14]},
 			},
 			{
 				Name:    "release_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{ReleaseColumns[1], ReleaseColumns[10]},
+				Columns: []*schema.Column{ReleaseColumns[1], ReleaseColumns[13]},
 			},
 			{
 				Name:    "release_organizationId_productSurfaceId",
 				Unique:  false,
-				Columns: []*schema.Column{ReleaseColumns[1], ReleaseColumns[7]},
+				Columns: []*schema.Column{ReleaseColumns[1], ReleaseColumns[10]},
 			},
 		},
 	}
@@ -1280,6 +1363,11 @@ var (
 		{Name: "externalId", Type: field.TypeString, Nullable: true},
 		{Name: "secretReference", Type: field.TypeString, Nullable: true},
 		{Name: "allowedHosts", Type: field.TypeJSON},
+		{Name: "branch", Type: field.TypeString, Nullable: true},
+		{Name: "ignoreBotPullRequests", Type: field.TypeBool, Default: true},
+		{Name: "ignoredPullRequestAuthors", Type: field.TypeJSON},
+		{Name: "skipPrereleases", Type: field.TypeBool, Default: false},
+		{Name: "githubInstallationId", Type: field.TypeString, Nullable: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "ACTIVE", "ARCHIVED"}, Default: "DRAFT"},
 		{Name: "createdAt", Type: field.TypeTime},
 		{Name: "updatedAt", Type: field.TypeTime},
@@ -1296,14 +1384,56 @@ var (
 				Columns: []*schema.Column{SourceAppColumns[1], SourceAppColumns[2]},
 			},
 			{
-				Name:    "sourceapp_provider_externalId",
+				Name:    "sourceapp_organizationId_provider_externalId",
 				Unique:  true,
+				Columns: []*schema.Column{SourceAppColumns[1], SourceAppColumns[3], SourceAppColumns[4]},
+			},
+			{
+				Name:    "sourceapp_provider_externalId",
+				Unique:  false,
 				Columns: []*schema.Column{SourceAppColumns[3], SourceAppColumns[4]},
 			},
 			{
 				Name:    "sourceapp_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{SourceAppColumns[1], SourceAppColumns[8]},
+				Columns: []*schema.Column{SourceAppColumns[1], SourceAppColumns[13]},
+			},
+		},
+	}
+	// SourceChangeColumns holds the columns for the "source_change" table.
+	SourceChangeColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "sourceAppId", Type: field.TypeString},
+		{Name: "repositoryId", Type: field.TypeString},
+		{Name: "number", Type: field.TypeInt},
+		{Name: "title", Type: field.TypeString},
+		{Name: "body", Type: field.TypeString, Default: ""},
+		{Name: "url", Type: field.TypeString},
+		{Name: "authorLogin", Type: field.TypeString, Nullable: true},
+		{Name: "labels", Type: field.TypeJSON},
+		{Name: "files", Type: field.TypeJSON},
+		{Name: "imageUrls", Type: field.TypeJSON},
+		{Name: "mergedAt", Type: field.TypeTime},
+		{Name: "releaseId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// SourceChangeTable holds the schema information for the "source_change" table.
+	SourceChangeTable = &schema.Table{
+		Name:       "source_change",
+		Columns:    SourceChangeColumns,
+		PrimaryKey: []*schema.Column{SourceChangeColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "sourcechange_sourceAppId_repositoryId_number",
+				Unique:  true,
+				Columns: []*schema.Column{SourceChangeColumns[2], SourceChangeColumns[3], SourceChangeColumns[4]},
+			},
+			{
+				Name:    "sourcechange_organizationId_sourceAppId_releaseId",
+				Unique:  false,
+				Columns: []*schema.Column{SourceChangeColumns[1], SourceChangeColumns[2], SourceChangeColumns[13]},
 			},
 		},
 	}
@@ -1438,6 +1568,27 @@ var (
 		Columns:    WorkspaceEntitlementColumns,
 		PrimaryKey: []*schema.Column{WorkspaceEntitlementColumns[0]},
 	}
+	// WorkspaceGithubInstallationColumns holds the columns for the "workspace_github_installation" table.
+	WorkspaceGithubInstallationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "githubInstallationId", Type: field.TypeString},
+		{Name: "connectedByUserId", Type: field.TypeString},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// WorkspaceGithubInstallationTable holds the schema information for the "workspace_github_installation" table.
+	WorkspaceGithubInstallationTable = &schema.Table{
+		Name:       "workspace_github_installation",
+		Columns:    WorkspaceGithubInstallationColumns,
+		PrimaryKey: []*schema.Column{WorkspaceGithubInstallationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "workspacegithubinstallation_organizationId_githubInstallationId",
+				Unique:  true,
+				Columns: []*schema.Column{WorkspaceGithubInstallationColumns[1], WorkspaceGithubInstallationColumns[2]},
+			},
+		},
+	}
 	// WorkspaceSettingsColumns holds the columns for the "workspace_settings" table.
 	WorkspaceSettingsColumns = []*schema.Column{
 		{Name: "organizationId", Type: field.TypeString},
@@ -1480,7 +1631,10 @@ var (
 		CreativeTemplateTable,
 		CreativeVariantTable,
 		CustomerCommunicationTable,
+		DeploymentEventTable,
 		DesignTable,
+		GithubInstallStartTable,
+		GithubInstallationTable,
 		InvitationTable,
 		LaunchRunTable,
 		MemberTable,
@@ -1498,11 +1652,13 @@ var (
 		SessionTable,
 		SocialOauthStartTable,
 		SourceAppTable,
+		SourceChangeTable,
 		SupportAccessGrantTable,
 		UserTable,
 		WorkspaceCreditGrantTable,
 		WorkspaceDeletionTable,
 		WorkspaceEntitlementTable,
+		WorkspaceGithubInstallationTable,
 		WorkspaceSettingsTable,
 	}
 )
@@ -1582,8 +1738,17 @@ func init() {
 	CustomerCommunicationTable.Annotation = &entsql.Annotation{
 		Table: "customer_communication",
 	}
+	DeploymentEventTable.Annotation = &entsql.Annotation{
+		Table: "deployment_event",
+	}
 	DesignTable.Annotation = &entsql.Annotation{
 		Table: "design",
+	}
+	GithubInstallStartTable.Annotation = &entsql.Annotation{
+		Table: "github_install_start",
+	}
+	GithubInstallationTable.Annotation = &entsql.Annotation{
+		Table: "github_installation",
 	}
 	InvitationTable.Annotation = &entsql.Annotation{
 		Table: "invitation",
@@ -1638,6 +1803,9 @@ func init() {
 	SourceAppTable.Annotation = &entsql.Annotation{
 		Table: "source_app",
 	}
+	SourceChangeTable.Annotation = &entsql.Annotation{
+		Table: "source_change",
+	}
 	SupportAccessGrantTable.Annotation = &entsql.Annotation{
 		Table: "support_access_grant",
 	}
@@ -1652,6 +1820,9 @@ func init() {
 	}
 	WorkspaceEntitlementTable.Annotation = &entsql.Annotation{
 		Table: "workspace_entitlement",
+	}
+	WorkspaceGithubInstallationTable.Annotation = &entsql.Annotation{
+		Table: "workspace_github_installation",
 	}
 	WorkspaceSettingsTable.Annotation = &entsql.Annotation{
 		Table: "workspace_settings",

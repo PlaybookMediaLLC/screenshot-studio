@@ -89,6 +89,11 @@ func Audience(v string) predicate.Release {
 	return predicate.Release(sql.FieldEQ(FieldAudience, v))
 }
 
+// Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
+func Notes(v string) predicate.Release {
+	return predicate.Release(sql.FieldEQ(FieldNotes, v))
+}
+
 // ProductSurfaceID applies equality check predicate on the "product_surface_id" field. It's identical to ProductSurfaceIDEQ.
 func ProductSurfaceID(v string) predicate.Release {
 	return predicate.Release(sql.FieldEQ(FieldProductSurfaceID, v))
@@ -452,6 +457,81 @@ func AudienceEqualFold(v string) predicate.Release {
 // AudienceContainsFold applies the ContainsFold predicate on the "audience" field.
 func AudienceContainsFold(v string) predicate.Release {
 	return predicate.Release(sql.FieldContainsFold(FieldAudience, v))
+}
+
+// NotesEQ applies the EQ predicate on the "notes" field.
+func NotesEQ(v string) predicate.Release {
+	return predicate.Release(sql.FieldEQ(FieldNotes, v))
+}
+
+// NotesNEQ applies the NEQ predicate on the "notes" field.
+func NotesNEQ(v string) predicate.Release {
+	return predicate.Release(sql.FieldNEQ(FieldNotes, v))
+}
+
+// NotesIn applies the In predicate on the "notes" field.
+func NotesIn(vs ...string) predicate.Release {
+	return predicate.Release(sql.FieldIn(FieldNotes, vs...))
+}
+
+// NotesNotIn applies the NotIn predicate on the "notes" field.
+func NotesNotIn(vs ...string) predicate.Release {
+	return predicate.Release(sql.FieldNotIn(FieldNotes, vs...))
+}
+
+// NotesGT applies the GT predicate on the "notes" field.
+func NotesGT(v string) predicate.Release {
+	return predicate.Release(sql.FieldGT(FieldNotes, v))
+}
+
+// NotesGTE applies the GTE predicate on the "notes" field.
+func NotesGTE(v string) predicate.Release {
+	return predicate.Release(sql.FieldGTE(FieldNotes, v))
+}
+
+// NotesLT applies the LT predicate on the "notes" field.
+func NotesLT(v string) predicate.Release {
+	return predicate.Release(sql.FieldLT(FieldNotes, v))
+}
+
+// NotesLTE applies the LTE predicate on the "notes" field.
+func NotesLTE(v string) predicate.Release {
+	return predicate.Release(sql.FieldLTE(FieldNotes, v))
+}
+
+// NotesContains applies the Contains predicate on the "notes" field.
+func NotesContains(v string) predicate.Release {
+	return predicate.Release(sql.FieldContains(FieldNotes, v))
+}
+
+// NotesHasPrefix applies the HasPrefix predicate on the "notes" field.
+func NotesHasPrefix(v string) predicate.Release {
+	return predicate.Release(sql.FieldHasPrefix(FieldNotes, v))
+}
+
+// NotesHasSuffix applies the HasSuffix predicate on the "notes" field.
+func NotesHasSuffix(v string) predicate.Release {
+	return predicate.Release(sql.FieldHasSuffix(FieldNotes, v))
+}
+
+// NotesIsNil applies the IsNil predicate on the "notes" field.
+func NotesIsNil() predicate.Release {
+	return predicate.Release(sql.FieldIsNull(FieldNotes))
+}
+
+// NotesNotNil applies the NotNil predicate on the "notes" field.
+func NotesNotNil() predicate.Release {
+	return predicate.Release(sql.FieldNotNull(FieldNotes))
+}
+
+// NotesEqualFold applies the EqualFold predicate on the "notes" field.
+func NotesEqualFold(v string) predicate.Release {
+	return predicate.Release(sql.FieldEqualFold(FieldNotes, v))
+}
+
+// NotesContainsFold applies the ContainsFold predicate on the "notes" field.
+func NotesContainsFold(v string) predicate.Release {
+	return predicate.Release(sql.FieldContainsFold(FieldNotes, v))
 }
 
 // ProductSurfaceIDEQ applies the EQ predicate on the "product_surface_id" field.

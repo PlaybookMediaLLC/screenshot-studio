@@ -17,13 +17,23 @@ import {
 } from '@/components/ui/select'
 import { apiKeyScopes, type ApiKeyScope } from '@/lib/auth/api-key-scopes'
 import { useTRPCClient } from '@/lib/trpc/react'
+import { GitHubConnections } from './GitHubConnections'
 import { getErrorMessage } from './settings-client'
+
+const sourceProviderSchema = z.enum(['generic', 'github', 'gitlab'])
 
 const sourceSchema = z.object({
   allowedHost: z.string().url(),
+  branch: z.string().trim().max(255),
   name: z.string().trim().min(2).max(100),
-  provider: z.enum(['generic', 'github', 'gitlab']),
+  provider: sourceProviderSchema,
 })
+
+/** A just-created source: where its provider sends deliveries, shown once. */
+type NewSource = {
+  provider: z.infer<typeof sourceProviderSchema>
+  webhook: { secret: string | null; url: string }
+}
 
 type WorkspaceDeveloperSettingsProps = { canManage: boolean }
 type ApiKey = {
@@ -41,6 +51,7 @@ export function WorkspaceDeveloperSettings({ canManage }: WorkspaceDeveloperSett
   const [error, setError] = useState<string | null>(null)
   const [keys, setKeys] = useState<ApiKey[]>([])
   const [newKey, setNewKey] = useState<string | null>(null)
+  const [newSource, setNewSource] = useState<NewSource | null>(null)
   const [pendingId, setPendingId] = useState<string | null>(null)
 
   const loadKeys = useCallback(async (): Promise<void> => {
@@ -104,11 +115,13 @@ export function WorkspaceDeveloperSettings({ canManage }: WorkspaceDeveloperSett
     }
     setPendingId('create-source')
     try {
-      await trpcClient.sourceApp.create.mutate({
+      const result = await trpcClient.sourceApp.create.mutate({
         allowedHosts: [input.data.allowedHost],
+        ...(input.data.branch ? { branch: input.data.branch } : {}),
         name: input.data.name,
         provider: input.data.provider,
       })
+      setNewSource({ provider: input.data.provider, webhook: result.webhook })
       form.reset()
     } catch (requestError) {
       setError(getErrorMessage(requestError))
@@ -138,11 +151,15 @@ export function WorkspaceDeveloperSettings({ canManage }: WorkspaceDeveloperSett
           ) : null}
         </Group>
       </Section>
+      {canManage ? <GitHubConnections /> : null}
       {canManage ? (
         <Section
           description="Allow a Git provider or release tool to send content to this workspace."
           title="Inbound release source"
         >
+          {newSource ? (
+            <NewSourceNotice onDismiss={() => setNewSource(null)} source={newSource} />
+          ) : null}
           <Group>
             <Row>
               <SourceForm isSubmitting={pendingId === 'create-source'} onSubmit={createSource} />
@@ -178,6 +195,62 @@ function NewKeyNotice({ apiKey, onDismiss }: { apiKey: string; onDismiss: () => 
         <Button className="rounded-lg" onClick={() => void copyKey()} size="sm" type="button">
           Copy key
         </Button>
+        <Button onClick={onDismiss} size="sm" type="button" variant="ghost">
+          Done
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function SetupValue({ id, label, value }: { id: string; label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className={fieldLabel} htmlFor={id}>
+        {label}
+      </label>
+      <div className="flex gap-2">
+        <Input className="h-9 rounded-lg font-mono text-xs" id={id} readOnly value={value} />
+        <Button
+          aria-label={`Copy ${label.toLowerCase()}`}
+          className="rounded-lg"
+          onClick={() => void navigator.clipboard.writeText(value)}
+          size="sm"
+          type="button"
+        >
+          Copy
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function NewSourceNotice({ onDismiss, source }: { onDismiss: () => void; source: NewSource }) {
+  const { secret, url } = source.webhook
+  return (
+    <div className="mb-4 flex flex-col gap-3 rounded-2xl bg-emerald-500/5 p-5 ring-1 ring-emerald-500/20">
+      <p className="text-sm font-medium text-white">
+        Add this webhook to your repository.{secret ? ' The secret cannot be shown again.' : ''}
+      </p>
+      <SetupValue id="source-webhook-url" label="Payload URL" value={url} />
+      {secret ? (
+        <SetupValue id="source-webhook-secret" label="Secret" value={secret} />
+      ) : (
+        <p className="text-sm text-neutral-400">
+          {source.provider === 'gitlab'
+            ? 'GitLab generates its own signing token. Ask an operator to configure it for this source.'
+            : 'This server cannot sign webhooks yet. Ask an operator to set SOURCE_WEBHOOK_SIGNING_KEY.'}
+        </p>
+      )}
+      {source.provider === 'github' && secret ? (
+        <p className="text-sm text-neutral-400">
+          In GitHub, open the repository’s Settings, then Webhooks, then Add webhook. Paste the
+          payload URL and secret, choose “Let me select individual events”, and select Pull requests
+          and Releases. Merges into the branch you chose, and published releases, become releases
+          here.
+        </p>
+      ) : null}
+      <div className="flex">
         <Button onClick={onDismiss} size="sm" type="button" variant="ghost">
           Done
         </Button>
@@ -324,6 +397,17 @@ function SourceForm({
             </SelectContent>
           </Select>
         </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className={fieldLabel} htmlFor="source-branch">
+          Branch
+        </label>
+        <Input
+          className="h-10 rounded-lg"
+          id="source-branch"
+          name="branch"
+          placeholder="Leave empty to follow the default branch"
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={fieldLabel} htmlFor="source-allowed-host">

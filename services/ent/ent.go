@@ -36,7 +36,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/customercommunication"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
@@ -54,11 +57,13 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacecreditgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacegithubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
 )
 
@@ -144,7 +149,10 @@ func checkColumn(t, c string) error {
 			creativetemplate.Table:               creativetemplate.ValidColumn,
 			creativevariant.Table:                creativevariant.ValidColumn,
 			customercommunication.Table:          customercommunication.ValidColumn,
+			deploymentevent.Table:                deploymentevent.ValidColumn,
 			design.Table:                         design.ValidColumn,
+			githubinstallstart.Table:             githubinstallstart.ValidColumn,
+			githubinstallation.Table:             githubinstallation.ValidColumn,
 			invitation.Table:                     invitation.ValidColumn,
 			launchrun.Table:                      launchrun.ValidColumn,
 			member.Table:                         member.ValidColumn,
@@ -162,11 +170,13 @@ func checkColumn(t, c string) error {
 			session.Table:                        session.ValidColumn,
 			socialoauthstart.Table:               socialoauthstart.ValidColumn,
 			sourceapp.Table:                      sourceapp.ValidColumn,
+			sourcechange.Table:                   sourcechange.ValidColumn,
 			supportaccessgrant.Table:             supportaccessgrant.ValidColumn,
 			user.Table:                           user.ValidColumn,
 			workspacecreditgrant.Table:           workspacecreditgrant.ValidColumn,
 			workspacedeletion.Table:              workspacedeletion.ValidColumn,
 			workspaceentitlement.Table:           workspaceentitlement.ValidColumn,
+			workspacegithubinstallation.Table:    workspacegithubinstallation.ValidColumn,
 			workspacesettings.Table:              workspacesettings.ValidColumn,
 		})
 	})

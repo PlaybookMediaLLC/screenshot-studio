@@ -109,6 +109,86 @@ func (_u *SourceAppUpdate) AppendAllowedHosts(v []string) *SourceAppUpdate {
 	return _u
 }
 
+// SetBranch sets the "branch" field.
+func (_u *SourceAppUpdate) SetBranch(v string) *SourceAppUpdate {
+	_u.mutation.SetBranch(v)
+	return _u
+}
+
+// SetNillableBranch sets the "branch" field if the given value is not nil.
+func (_u *SourceAppUpdate) SetNillableBranch(v *string) *SourceAppUpdate {
+	if v != nil {
+		_u.SetBranch(*v)
+	}
+	return _u
+}
+
+// ClearBranch clears the value of the "branch" field.
+func (_u *SourceAppUpdate) ClearBranch() *SourceAppUpdate {
+	_u.mutation.ClearBranch()
+	return _u
+}
+
+// SetIgnoreBotPullRequests sets the "ignore_bot_pull_requests" field.
+func (_u *SourceAppUpdate) SetIgnoreBotPullRequests(v bool) *SourceAppUpdate {
+	_u.mutation.SetIgnoreBotPullRequests(v)
+	return _u
+}
+
+// SetNillableIgnoreBotPullRequests sets the "ignore_bot_pull_requests" field if the given value is not nil.
+func (_u *SourceAppUpdate) SetNillableIgnoreBotPullRequests(v *bool) *SourceAppUpdate {
+	if v != nil {
+		_u.SetIgnoreBotPullRequests(*v)
+	}
+	return _u
+}
+
+// SetIgnoredPullRequestAuthors sets the "ignored_pull_request_authors" field.
+func (_u *SourceAppUpdate) SetIgnoredPullRequestAuthors(v []string) *SourceAppUpdate {
+	_u.mutation.SetIgnoredPullRequestAuthors(v)
+	return _u
+}
+
+// AppendIgnoredPullRequestAuthors appends value to the "ignored_pull_request_authors" field.
+func (_u *SourceAppUpdate) AppendIgnoredPullRequestAuthors(v []string) *SourceAppUpdate {
+	_u.mutation.AppendIgnoredPullRequestAuthors(v)
+	return _u
+}
+
+// SetSkipPrereleases sets the "skip_prereleases" field.
+func (_u *SourceAppUpdate) SetSkipPrereleases(v bool) *SourceAppUpdate {
+	_u.mutation.SetSkipPrereleases(v)
+	return _u
+}
+
+// SetNillableSkipPrereleases sets the "skip_prereleases" field if the given value is not nil.
+func (_u *SourceAppUpdate) SetNillableSkipPrereleases(v *bool) *SourceAppUpdate {
+	if v != nil {
+		_u.SetSkipPrereleases(*v)
+	}
+	return _u
+}
+
+// SetGithubInstallationID sets the "github_installation_id" field.
+func (_u *SourceAppUpdate) SetGithubInstallationID(v string) *SourceAppUpdate {
+	_u.mutation.SetGithubInstallationID(v)
+	return _u
+}
+
+// SetNillableGithubInstallationID sets the "github_installation_id" field if the given value is not nil.
+func (_u *SourceAppUpdate) SetNillableGithubInstallationID(v *string) *SourceAppUpdate {
+	if v != nil {
+		_u.SetGithubInstallationID(*v)
+	}
+	return _u
+}
+
+// ClearGithubInstallationID clears the value of the "github_installation_id" field.
+func (_u *SourceAppUpdate) ClearGithubInstallationID() *SourceAppUpdate {
+	_u.mutation.ClearGithubInstallationID()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *SourceAppUpdate) SetStatus(v sourceapp.Status) *SourceAppUpdate {
 	_u.mutation.SetStatus(v)
@@ -218,6 +298,32 @@ func (_u *SourceAppUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			sqljson.Append(u, sourceapp.FieldAllowedHosts, value)
 		})
 	}
+	if value, ok := _u.mutation.Branch(); ok {
+		_spec.SetField(sourceapp.FieldBranch, field.TypeString, value)
+	}
+	if _u.mutation.BranchCleared() {
+		_spec.ClearField(sourceapp.FieldBranch, field.TypeString)
+	}
+	if value, ok := _u.mutation.IgnoreBotPullRequests(); ok {
+		_spec.SetField(sourceapp.FieldIgnoreBotPullRequests, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.IgnoredPullRequestAuthors(); ok {
+		_spec.SetField(sourceapp.FieldIgnoredPullRequestAuthors, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedIgnoredPullRequestAuthors(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, sourceapp.FieldIgnoredPullRequestAuthors, value)
+		})
+	}
+	if value, ok := _u.mutation.SkipPrereleases(); ok {
+		_spec.SetField(sourceapp.FieldSkipPrereleases, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.GithubInstallationID(); ok {
+		_spec.SetField(sourceapp.FieldGithubInstallationID, field.TypeString, value)
+	}
+	if _u.mutation.GithubInstallationIDCleared() {
+		_spec.ClearField(sourceapp.FieldGithubInstallationID, field.TypeString)
+	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(sourceapp.FieldStatus, field.TypeEnum, value)
 	}
@@ -321,6 +427,86 @@ func (_u *SourceAppUpdateOne) SetAllowedHosts(v []string) *SourceAppUpdateOne {
 // AppendAllowedHosts appends value to the "allowed_hosts" field.
 func (_u *SourceAppUpdateOne) AppendAllowedHosts(v []string) *SourceAppUpdateOne {
 	_u.mutation.AppendAllowedHosts(v)
+	return _u
+}
+
+// SetBranch sets the "branch" field.
+func (_u *SourceAppUpdateOne) SetBranch(v string) *SourceAppUpdateOne {
+	_u.mutation.SetBranch(v)
+	return _u
+}
+
+// SetNillableBranch sets the "branch" field if the given value is not nil.
+func (_u *SourceAppUpdateOne) SetNillableBranch(v *string) *SourceAppUpdateOne {
+	if v != nil {
+		_u.SetBranch(*v)
+	}
+	return _u
+}
+
+// ClearBranch clears the value of the "branch" field.
+func (_u *SourceAppUpdateOne) ClearBranch() *SourceAppUpdateOne {
+	_u.mutation.ClearBranch()
+	return _u
+}
+
+// SetIgnoreBotPullRequests sets the "ignore_bot_pull_requests" field.
+func (_u *SourceAppUpdateOne) SetIgnoreBotPullRequests(v bool) *SourceAppUpdateOne {
+	_u.mutation.SetIgnoreBotPullRequests(v)
+	return _u
+}
+
+// SetNillableIgnoreBotPullRequests sets the "ignore_bot_pull_requests" field if the given value is not nil.
+func (_u *SourceAppUpdateOne) SetNillableIgnoreBotPullRequests(v *bool) *SourceAppUpdateOne {
+	if v != nil {
+		_u.SetIgnoreBotPullRequests(*v)
+	}
+	return _u
+}
+
+// SetIgnoredPullRequestAuthors sets the "ignored_pull_request_authors" field.
+func (_u *SourceAppUpdateOne) SetIgnoredPullRequestAuthors(v []string) *SourceAppUpdateOne {
+	_u.mutation.SetIgnoredPullRequestAuthors(v)
+	return _u
+}
+
+// AppendIgnoredPullRequestAuthors appends value to the "ignored_pull_request_authors" field.
+func (_u *SourceAppUpdateOne) AppendIgnoredPullRequestAuthors(v []string) *SourceAppUpdateOne {
+	_u.mutation.AppendIgnoredPullRequestAuthors(v)
+	return _u
+}
+
+// SetSkipPrereleases sets the "skip_prereleases" field.
+func (_u *SourceAppUpdateOne) SetSkipPrereleases(v bool) *SourceAppUpdateOne {
+	_u.mutation.SetSkipPrereleases(v)
+	return _u
+}
+
+// SetNillableSkipPrereleases sets the "skip_prereleases" field if the given value is not nil.
+func (_u *SourceAppUpdateOne) SetNillableSkipPrereleases(v *bool) *SourceAppUpdateOne {
+	if v != nil {
+		_u.SetSkipPrereleases(*v)
+	}
+	return _u
+}
+
+// SetGithubInstallationID sets the "github_installation_id" field.
+func (_u *SourceAppUpdateOne) SetGithubInstallationID(v string) *SourceAppUpdateOne {
+	_u.mutation.SetGithubInstallationID(v)
+	return _u
+}
+
+// SetNillableGithubInstallationID sets the "github_installation_id" field if the given value is not nil.
+func (_u *SourceAppUpdateOne) SetNillableGithubInstallationID(v *string) *SourceAppUpdateOne {
+	if v != nil {
+		_u.SetGithubInstallationID(*v)
+	}
+	return _u
+}
+
+// ClearGithubInstallationID clears the value of the "github_installation_id" field.
+func (_u *SourceAppUpdateOne) ClearGithubInstallationID() *SourceAppUpdateOne {
+	_u.mutation.ClearGithubInstallationID()
 	return _u
 }
 
@@ -462,6 +648,32 @@ func (_u *SourceAppUpdateOne) sqlSave(ctx context.Context) (_node *SourceApp, er
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, sourceapp.FieldAllowedHosts, value)
 		})
+	}
+	if value, ok := _u.mutation.Branch(); ok {
+		_spec.SetField(sourceapp.FieldBranch, field.TypeString, value)
+	}
+	if _u.mutation.BranchCleared() {
+		_spec.ClearField(sourceapp.FieldBranch, field.TypeString)
+	}
+	if value, ok := _u.mutation.IgnoreBotPullRequests(); ok {
+		_spec.SetField(sourceapp.FieldIgnoreBotPullRequests, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.IgnoredPullRequestAuthors(); ok {
+		_spec.SetField(sourceapp.FieldIgnoredPullRequestAuthors, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedIgnoredPullRequestAuthors(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, sourceapp.FieldIgnoredPullRequestAuthors, value)
+		})
+	}
+	if value, ok := _u.mutation.SkipPrereleases(); ok {
+		_spec.SetField(sourceapp.FieldSkipPrereleases, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.GithubInstallationID(); ok {
+		_spec.SetField(sourceapp.FieldGithubInstallationID, field.TypeString, value)
+	}
+	if _u.mutation.GithubInstallationIDCleared() {
+		_spec.ClearField(sourceapp.FieldGithubInstallationID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(sourceapp.FieldStatus, field.TypeEnum, value)

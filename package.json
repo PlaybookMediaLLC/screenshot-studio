@@ -101,7 +101,7 @@
     "react-tweet": "^3.3.0",
     "redis": "6.2.1",
     "resend": "^6.20.0",
-    "screenshot-studio-backend-sdk": "0.1.10",
+    "screenshot-studio-backend-sdk": "0.1.11",
     "server-only": "0.0.1",
     "sharp": "^0.34.5",
     "sonner": "^2.0.7",

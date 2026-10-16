@@ -35,6 +35,25 @@ function truncate(text: string, max = 80): string {
   return text.length > max ? `${text.slice(0, max)}…` : text
 }
 
+/** What a source's release carries: "2 features · 1 fix · 3 screenshots". */
+function releaseContents(release: {
+  features?: Array<{ kind: string }>
+  screenshotAssetIds?: string[]
+}): string {
+  const count = (kinds: string[]) =>
+    (release.features ?? []).filter((feature) => kinds.includes(feature.kind)).length
+  const parts: Array<[number, string]> = [
+    [count(['feature', 'improvement']), 'feature'],
+    [count(['fix']), 'fix'],
+    [count(['other']), 'change'],
+    [release.screenshotAssetIds?.length ?? 0, 'screenshot'],
+  ]
+  return parts
+    .filter(([n]) => n > 0)
+    .map(([n, noun]) => `${n} ${noun}${n === 1 ? '' : noun === 'fix' ? 'es' : 's'}`)
+    .join(' · ')
+}
+
 const SECTIONS: Section[] = [
   {
     empty: 'Releases arrive through the API or a repository webhook.',
@@ -43,7 +62,9 @@ const SECTIONS: Section[] = [
       const { releases } = await trpc.release.list.query()
       return releases.map((release) => ({
         id: release.id,
-        meta: `Updated ${formatDate(release.updatedAt)}`,
+        meta: [`Updated ${formatDate(release.updatedAt)}`, releaseContents(release)]
+          .filter(Boolean)
+          .join(' · '),
         status: release.status,
         title: release.title,
       }))

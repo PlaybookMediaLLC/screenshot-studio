@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 	"net/url"
 	"regexp"
 	"slices"
@@ -75,11 +76,14 @@ type ReleaseCreation struct {
 type ReleaseListItem struct {
 	BenefitStatement string    `json:"benefitStatement"`
 	CreatedAt        time.Time `json:"createdAt"`
-	ID               string    `json:"id"`
-	ProductSurfaceID *string   `json:"productSurfaceId"`
-	Status           string    `json:"status"`
-	Title            string    `json:"title"`
-	UpdatedAt        time.Time `json:"updatedAt"`
+	// Features and ScreenshotAssetIDs are what a source's release shipped and showed.
+	Features           []releasenotes.Feature `json:"features"`
+	ID                 string                 `json:"id"`
+	ScreenshotAssetIDs []string               `json:"screenshotAssetIds"`
+	ProductSurfaceID   *string                `json:"productSurfaceId"`
+	Status             string                 `json:"status"`
+	Title              string                 `json:"title"`
+	UpdatedAt          time.Time              `json:"updatedAt"`
 }
 
 type ReleaseSurface struct {
@@ -109,13 +113,21 @@ func releaseSummary(row *ent.Release) ReleaseSummary {
 }
 
 func releaseListItem(row *ent.Release) ReleaseListItem {
-	return ReleaseListItem{BenefitStatement: row.BenefitStatement, CreatedAt: row.CreatedAt,
-		ID: row.ID, ProductSurfaceID: row.ProductSurfaceID, Status: string(row.Status),
+	features, screenshots := row.Features, row.ScreenshotAssetIds
+	if features == nil {
+		features = []releasenotes.Feature{}
+	}
+	if screenshots == nil {
+		screenshots = []string{}
+	}
+	return ReleaseListItem{BenefitStatement: row.BenefitStatement, CreatedAt: row.CreatedAt, Features: features,
+		ID: row.ID, ProductSurfaceID: row.ProductSurfaceID, ScreenshotAssetIDs: screenshots, Status: string(row.Status),
 		Title: row.Title, UpdatedAt: row.UpdatedAt}
 }
 
+// Postgres text cannot hold NUL; letting one through fails the insert as a 5xx.
 func validReleaseText(value string, max int) bool {
-	return utf8.RuneCountInString(value) <= max && !releaseMarkup.MatchString(value)
+	return utf8.RuneCountInString(value) <= max && !releaseMarkup.MatchString(value) && !strings.ContainsRune(value, 0)
 }
 
 func validReleaseURLs(values []string) bool {
@@ -136,6 +148,7 @@ func validReleaseURLs(values []string) bool {
 
 func validReleaseBrief(title, benefit string, audience, description *string, urls []string) bool {
 	if title == "" || utf8.RuneCountInString(title) > 160 || utf8.RuneCountInString(benefit) > 500 ||
+		strings.ContainsRune(title+benefit, 0) ||
 		(strings.TrimSpace(benefit) == "" && len(urls) == 0) || !validReleaseURLs(urls) {
 		return false
 	}

@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 )
 
 // ReleaseUpdate is the builder for updating Release entities.
@@ -106,6 +107,50 @@ func (_u *ReleaseUpdate) SetSourceUrls(v []string) *ReleaseUpdate {
 // AppendSourceUrls appends value to the "source_urls" field.
 func (_u *ReleaseUpdate) AppendSourceUrls(v []string) *ReleaseUpdate {
 	_u.mutation.AppendSourceUrls(v)
+	return _u
+}
+
+// SetNotes sets the "notes" field.
+func (_u *ReleaseUpdate) SetNotes(v string) *ReleaseUpdate {
+	_u.mutation.SetNotes(v)
+	return _u
+}
+
+// SetNillableNotes sets the "notes" field if the given value is not nil.
+func (_u *ReleaseUpdate) SetNillableNotes(v *string) *ReleaseUpdate {
+	if v != nil {
+		_u.SetNotes(*v)
+	}
+	return _u
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (_u *ReleaseUpdate) ClearNotes() *ReleaseUpdate {
+	_u.mutation.ClearNotes()
+	return _u
+}
+
+// SetFeatures sets the "features" field.
+func (_u *ReleaseUpdate) SetFeatures(v []releasenotes.Feature) *ReleaseUpdate {
+	_u.mutation.SetFeatures(v)
+	return _u
+}
+
+// AppendFeatures appends value to the "features" field.
+func (_u *ReleaseUpdate) AppendFeatures(v []releasenotes.Feature) *ReleaseUpdate {
+	_u.mutation.AppendFeatures(v)
+	return _u
+}
+
+// SetScreenshotAssetIds sets the "screenshot_asset_ids" field.
+func (_u *ReleaseUpdate) SetScreenshotAssetIds(v []string) *ReleaseUpdate {
+	_u.mutation.SetScreenshotAssetIds(v)
+	return _u
+}
+
+// AppendScreenshotAssetIds appends value to the "screenshot_asset_ids" field.
+func (_u *ReleaseUpdate) AppendScreenshotAssetIds(v []string) *ReleaseUpdate {
+	_u.mutation.AppendScreenshotAssetIds(v)
 	return _u
 }
 
@@ -258,6 +303,28 @@ func (_u *ReleaseUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			sqljson.Append(u, release.FieldSourceUrls, value)
 		})
 	}
+	if value, ok := _u.mutation.Notes(); ok {
+		_spec.SetField(release.FieldNotes, field.TypeString, value)
+	}
+	if _u.mutation.NotesCleared() {
+		_spec.ClearField(release.FieldNotes, field.TypeString)
+	}
+	if value, ok := _u.mutation.Features(); ok {
+		_spec.SetField(release.FieldFeatures, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedFeatures(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, release.FieldFeatures, value)
+		})
+	}
+	if value, ok := _u.mutation.ScreenshotAssetIds(); ok {
+		_spec.SetField(release.FieldScreenshotAssetIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedScreenshotAssetIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, release.FieldScreenshotAssetIds, value)
+		})
+	}
 	if value, ok := _u.mutation.ProductSurfaceID(); ok {
 		_spec.SetField(release.FieldProductSurfaceID, field.TypeString, value)
 	}
@@ -373,6 +440,50 @@ func (_u *ReleaseUpdateOne) SetSourceUrls(v []string) *ReleaseUpdateOne {
 // AppendSourceUrls appends value to the "source_urls" field.
 func (_u *ReleaseUpdateOne) AppendSourceUrls(v []string) *ReleaseUpdateOne {
 	_u.mutation.AppendSourceUrls(v)
+	return _u
+}
+
+// SetNotes sets the "notes" field.
+func (_u *ReleaseUpdateOne) SetNotes(v string) *ReleaseUpdateOne {
+	_u.mutation.SetNotes(v)
+	return _u
+}
+
+// SetNillableNotes sets the "notes" field if the given value is not nil.
+func (_u *ReleaseUpdateOne) SetNillableNotes(v *string) *ReleaseUpdateOne {
+	if v != nil {
+		_u.SetNotes(*v)
+	}
+	return _u
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (_u *ReleaseUpdateOne) ClearNotes() *ReleaseUpdateOne {
+	_u.mutation.ClearNotes()
+	return _u
+}
+
+// SetFeatures sets the "features" field.
+func (_u *ReleaseUpdateOne) SetFeatures(v []releasenotes.Feature) *ReleaseUpdateOne {
+	_u.mutation.SetFeatures(v)
+	return _u
+}
+
+// AppendFeatures appends value to the "features" field.
+func (_u *ReleaseUpdateOne) AppendFeatures(v []releasenotes.Feature) *ReleaseUpdateOne {
+	_u.mutation.AppendFeatures(v)
+	return _u
+}
+
+// SetScreenshotAssetIds sets the "screenshot_asset_ids" field.
+func (_u *ReleaseUpdateOne) SetScreenshotAssetIds(v []string) *ReleaseUpdateOne {
+	_u.mutation.SetScreenshotAssetIds(v)
+	return _u
+}
+
+// AppendScreenshotAssetIds appends value to the "screenshot_asset_ids" field.
+func (_u *ReleaseUpdateOne) AppendScreenshotAssetIds(v []string) *ReleaseUpdateOne {
+	_u.mutation.AppendScreenshotAssetIds(v)
 	return _u
 }
 
@@ -553,6 +664,28 @@ func (_u *ReleaseUpdateOne) sqlSave(ctx context.Context) (_node *Release, err er
 	if value, ok := _u.mutation.AppendedSourceUrls(); ok {
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, release.FieldSourceUrls, value)
+		})
+	}
+	if value, ok := _u.mutation.Notes(); ok {
+		_spec.SetField(release.FieldNotes, field.TypeString, value)
+	}
+	if _u.mutation.NotesCleared() {
+		_spec.ClearField(release.FieldNotes, field.TypeString)
+	}
+	if value, ok := _u.mutation.Features(); ok {
+		_spec.SetField(release.FieldFeatures, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedFeatures(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, release.FieldFeatures, value)
+		})
+	}
+	if value, ok := _u.mutation.ScreenshotAssetIds(); ok {
+		_spec.SetField(release.FieldScreenshotAssetIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedScreenshotAssetIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, release.FieldScreenshotAssetIds, value)
 		})
 	}
 	if value, ok := _u.mutation.ProductSurfaceID(); ok {

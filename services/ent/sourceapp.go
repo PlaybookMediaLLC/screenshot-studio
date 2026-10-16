@@ -30,6 +30,16 @@ type SourceApp struct {
 	SecretReference *string `json:"-"`
 	// AllowedHosts holds the value of the "allowed_hosts" field.
 	AllowedHosts []string `json:"allowed_hosts,omitempty"`
+	// Branch holds the value of the "branch" field.
+	Branch *string `json:"branch,omitempty"`
+	// IgnoreBotPullRequests holds the value of the "ignore_bot_pull_requests" field.
+	IgnoreBotPullRequests bool `json:"ignore_bot_pull_requests,omitempty"`
+	// IgnoredPullRequestAuthors holds the value of the "ignored_pull_request_authors" field.
+	IgnoredPullRequestAuthors []string `json:"ignored_pull_request_authors,omitempty"`
+	// SkipPrereleases holds the value of the "skip_prereleases" field.
+	SkipPrereleases bool `json:"skip_prereleases,omitempty"`
+	// GithubInstallationID holds the value of the "github_installation_id" field.
+	GithubInstallationID *string `json:"github_installation_id,omitempty"`
 	// Status holds the value of the "status" field.
 	Status sourceapp.Status `json:"status,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -44,9 +54,11 @@ func (*SourceApp) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case sourceapp.FieldAllowedHosts:
+		case sourceapp.FieldAllowedHosts, sourceapp.FieldIgnoredPullRequestAuthors:
 			values[i] = new([]byte)
-		case sourceapp.FieldID, sourceapp.FieldOrganizationID, sourceapp.FieldName, sourceapp.FieldProvider, sourceapp.FieldExternalID, sourceapp.FieldSecretReference, sourceapp.FieldStatus:
+		case sourceapp.FieldIgnoreBotPullRequests, sourceapp.FieldSkipPrereleases:
+			values[i] = new(sql.NullBool)
+		case sourceapp.FieldID, sourceapp.FieldOrganizationID, sourceapp.FieldName, sourceapp.FieldProvider, sourceapp.FieldExternalID, sourceapp.FieldSecretReference, sourceapp.FieldBranch, sourceapp.FieldGithubInstallationID, sourceapp.FieldStatus:
 			values[i] = new(sql.NullString)
 		case sourceapp.FieldCreatedAt, sourceapp.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -110,6 +122,40 @@ func (_m *SourceApp) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &_m.AllowedHosts); err != nil {
 					return fmt.Errorf("unmarshal field allowed_hosts: %w", err)
 				}
+			}
+		case sourceapp.FieldBranch:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field branch", values[i])
+			} else if value.Valid {
+				_m.Branch = new(string)
+				*_m.Branch = value.String
+			}
+		case sourceapp.FieldIgnoreBotPullRequests:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field ignore_bot_pull_requests", values[i])
+			} else if value.Valid {
+				_m.IgnoreBotPullRequests = value.Bool
+			}
+		case sourceapp.FieldIgnoredPullRequestAuthors:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field ignored_pull_request_authors", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.IgnoredPullRequestAuthors); err != nil {
+					return fmt.Errorf("unmarshal field ignored_pull_request_authors: %w", err)
+				}
+			}
+		case sourceapp.FieldSkipPrereleases:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field skip_prereleases", values[i])
+			} else if value.Valid {
+				_m.SkipPrereleases = value.Bool
+			}
+		case sourceapp.FieldGithubInstallationID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field github_installation_id", values[i])
+			} else if value.Valid {
+				_m.GithubInstallationID = new(string)
+				*_m.GithubInstallationID = value.String
 			}
 		case sourceapp.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -183,6 +229,25 @@ func (_m *SourceApp) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("allowed_hosts=")
 	builder.WriteString(fmt.Sprintf("%v", _m.AllowedHosts))
+	builder.WriteString(", ")
+	if v := _m.Branch; v != nil {
+		builder.WriteString("branch=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("ignore_bot_pull_requests=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IgnoreBotPullRequests))
+	builder.WriteString(", ")
+	builder.WriteString("ignored_pull_request_authors=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IgnoredPullRequestAuthors))
+	builder.WriteString(", ")
+	builder.WriteString("skip_prereleases=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SkipPrereleases))
+	builder.WriteString(", ")
+	if v := _m.GithubInstallationID; v != nil {
+		builder.WriteString("github_installation_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))

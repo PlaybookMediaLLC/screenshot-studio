@@ -190,22 +190,111 @@ export const releaseListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
 })
 
-export const sourceAppCreateSchema = z.object({
-  allowedHosts: z.array(z.string().url()).min(1).max(50),
-  externalId: z.string().trim().min(1).max(160).optional(),
-  name: z.string().trim().min(1).max(100),
-  provider: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .regex(/^[a-z0-9_-]+$/)
-    .max(64)
-    .default('generic'),
-  secretReference: z
-    .string()
-    .regex(/^[A-Z][A-Z0-9_]{0,127}$/)
-    .optional(),
+/** Source providers whose webhooks have their own conventions; any other slug is generic. */
+export const sourceProviderSchema = z.enum(['github', 'gitlab'])
+
+/**
+ * The branch whose merges become releases, as GitHub reports it in
+ * `pull_request.base.ref`. A full ref or a character Git forbids could never
+ * match a delivery, so it is refused rather than silently matching nothing.
+ */
+export const sourceBranchSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(255)
+  .regex(/^(?!refs\/)[^\s~^:?*[\\]+$/, 'Use a branch name such as main, not a ref.')
+
+/** A GitHub login, or an App bot login such as `dependabot[bot]`. */
+export const pullRequestAuthorSchema = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z0-9][A-Za-z0-9-]{0,38}(\[bot\])?$/, 'Use a GitHub login such as octocat.')
+
+/**
+ * The rules that decide which deliveries become releases. Omitted on create,
+ * a source follows the default branch, ignores bot-authored pull requests,
+ * and keeps pre-releases.
+ */
+const sourceRuleFields = {
+  branch: sourceBranchSchema,
+  /** Ignore pull requests opened by a GitHub App bot (Dependabot, Renovate). */
+  ignoreBotPullRequests: z.boolean(),
+  /** Further pull request authors to ignore, matched case-insensitively. */
+  ignoredPullRequestAuthors: z.array(pullRequestAuthorSchema).max(100),
+  /** Skip GitHub releases marked as pre-releases. */
+  skipPrereleases: z.boolean(),
+}
+
+export const sourceAppCreateSchema = z
+  .object({
+    allowedHosts: z.array(z.string().url()).min(1).max(50),
+    branch: sourceRuleFields.branch.optional(),
+    externalId: z.string().trim().min(1).max(160).optional(),
+    // The workspace's GitHub App connection that delivers this repository's events.
+    githubConnectionId: z
+      .string()
+      .regex(/^[a-z0-9]{10,32}$/)
+      .optional(),
+    ignoreBotPullRequests: sourceRuleFields.ignoreBotPullRequests.optional(),
+    ignoredPullRequestAuthors: sourceRuleFields.ignoredPullRequestAuthors.optional(),
+    name: z.string().trim().min(1).max(100),
+    provider: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(/^[a-z0-9_-]+$/)
+      .max(64)
+      .default('generic'),
+    secretReference: z
+      .string()
+      .regex(/^[A-Z][A-Z0-9_]{0,127}$/)
+      .optional(),
+    skipPrereleases: sourceRuleFields.skipPrereleases.optional(),
+  })
+  // Deliveries are matched on the immutable repository ID; a name never matches.
+  .refine(
+    (input) =>
+      input.provider !== sourceProviderSchema.enum.github ||
+      input.externalId === undefined ||
+      /^\d+$/.test(input.externalId),
+    { message: 'A GitHub externalId is the numeric repository ID.', path: ['externalId'] }
+  )
+  // A connected repository is named by ID, signed by the App, and needs no secret.
+  .refine(
+    (input) =>
+      input.githubConnectionId === undefined ||
+      (input.provider === sourceProviderSchema.enum.github &&
+        input.externalId !== undefined &&
+        input.secretReference === undefined),
+    {
+      message: 'A connected GitHub source names a repository ID and no secret.',
+      path: ['githubConnectionId'],
+    }
+  )
+
+/**
+ * Where a source's provider sends deliveries and the secret to sign them with.
+ * The secret is shown once, when the source is created, and is `null` when an
+ * operator manages it, for GitLab (which generates its own), or when the
+ * server has no signing key.
+ */
+export const sourceWebhookSetupSchema = z.object({
+  secret: z.string().nullable(),
+  url: z.string().url(),
 })
+
+/** One of {@link sourceWebhookSetupSchema}. */
+export type SourceWebhookSetup = z.infer<typeof sourceWebhookSetupSchema>
+
+/** Changes a source's rules; a `null` branch returns it to the repository default. */
+export const sourceAppUpdateSchema = z
+  .object({ ...sourceRuleFields, branch: sourceRuleFields.branch.nullable() })
+  .partial()
+  .refine(
+    (input) => Object.values(input).some((value) => value !== undefined),
+    'Change at least one rule.'
+  )
 
 const postizSecretReferenceSchema = z
   .string()
@@ -330,3 +419,4 @@ export type ReleaseCreateInput = z.infer<typeof releaseCreateSchema>
 export type ReleaseUpdateInput = z.infer<typeof releaseUpdateSchema>
 export type ScheduledPostCreateInput = z.infer<typeof scheduledPostCreateSchema>
 export type SourceAppCreateInput = z.infer<typeof sourceAppCreateSchema>
+export type SourceAppUpdateInput = z.infer<typeof sourceAppUpdateSchema>

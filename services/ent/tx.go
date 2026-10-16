@@ -60,8 +60,14 @@ type Tx struct {
 	CreativeVariant *CreativeVariantClient
 	// CustomerCommunication is the client for interacting with the CustomerCommunication builders.
 	CustomerCommunication *CustomerCommunicationClient
+	// DeploymentEvent is the client for interacting with the DeploymentEvent builders.
+	DeploymentEvent *DeploymentEventClient
 	// Design is the client for interacting with the Design builders.
 	Design *DesignClient
+	// GitHubInstallStart is the client for interacting with the GitHubInstallStart builders.
+	GitHubInstallStart *GitHubInstallStartClient
+	// GitHubInstallation is the client for interacting with the GitHubInstallation builders.
+	GitHubInstallation *GitHubInstallationClient
 	// Invitation is the client for interacting with the Invitation builders.
 	Invitation *InvitationClient
 	// LaunchRun is the client for interacting with the LaunchRun builders.
@@ -96,6 +102,8 @@ type Tx struct {
 	SocialOAuthStart *SocialOAuthStartClient
 	// SourceApp is the client for interacting with the SourceApp builders.
 	SourceApp *SourceAppClient
+	// SourceChange is the client for interacting with the SourceChange builders.
+	SourceChange *SourceChangeClient
 	// SupportAccessGrant is the client for interacting with the SupportAccessGrant builders.
 	SupportAccessGrant *SupportAccessGrantClient
 	// User is the client for interacting with the User builders.
@@ -106,6 +114,8 @@ type Tx struct {
 	WorkspaceDeletion *WorkspaceDeletionClient
 	// WorkspaceEntitlement is the client for interacting with the WorkspaceEntitlement builders.
 	WorkspaceEntitlement *WorkspaceEntitlementClient
+	// WorkspaceGitHubInstallation is the client for interacting with the WorkspaceGitHubInstallation builders.
+	WorkspaceGitHubInstallation *WorkspaceGitHubInstallationClient
 	// WorkspaceSettings is the client for interacting with the WorkspaceSettings builders.
 	WorkspaceSettings *WorkspaceSettingsClient
 
@@ -263,7 +273,10 @@ func (tx *Tx) init() {
 	tx.CreativeTemplate = NewCreativeTemplateClient(tx.config)
 	tx.CreativeVariant = NewCreativeVariantClient(tx.config)
 	tx.CustomerCommunication = NewCustomerCommunicationClient(tx.config)
+	tx.DeploymentEvent = NewDeploymentEventClient(tx.config)
 	tx.Design = NewDesignClient(tx.config)
+	tx.GitHubInstallStart = NewGitHubInstallStartClient(tx.config)
+	tx.GitHubInstallation = NewGitHubInstallationClient(tx.config)
 	tx.Invitation = NewInvitationClient(tx.config)
 	tx.LaunchRun = NewLaunchRunClient(tx.config)
 	tx.Member = NewMemberClient(tx.config)
@@ -281,11 +294,13 @@ func (tx *Tx) init() {
 	tx.Session = NewSessionClient(tx.config)
 	tx.SocialOAuthStart = NewSocialOAuthStartClient(tx.config)
 	tx.SourceApp = NewSourceAppClient(tx.config)
+	tx.SourceChange = NewSourceChangeClient(tx.config)
 	tx.SupportAccessGrant = NewSupportAccessGrantClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 	tx.WorkspaceCreditGrant = NewWorkspaceCreditGrantClient(tx.config)
 	tx.WorkspaceDeletion = NewWorkspaceDeletionClient(tx.config)
 	tx.WorkspaceEntitlement = NewWorkspaceEntitlementClient(tx.config)
+	tx.WorkspaceGitHubInstallation = NewWorkspaceGitHubInstallationClient(tx.config)
 	tx.WorkspaceSettings = NewWorkspaceSettingsClient(tx.config)
 }
 

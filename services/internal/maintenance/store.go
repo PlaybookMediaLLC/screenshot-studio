@@ -16,12 +16,21 @@ import (
 type ObjectDeleter interface {
 	Delete(context.Context, string, string) error
 }
+
+// ProductEvents does the side effects of product events that take more than
+// SQL: GitHub reads, screenshots, and captures. It reports false for an event
+// it does not own.
+type ProductEvents interface {
+	HandleOutboxEvent(ctx context.Context, eventID, organizationID, eventType, aggregateID string) (bool, error)
+}
+
 type Store struct {
 	DB          *sql.DB
 	RetentionDB *sql.DB
 	Objects     ObjectDeleter
 	Drains      *DrainSender
 	Mail        *Mailer
+	Events      ProductEvents
 }
 
 // Serialize a job across replicas and manual invocations, including activity

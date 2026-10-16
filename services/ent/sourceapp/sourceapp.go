@@ -26,6 +26,16 @@ const (
 	FieldSecretReference = "secretReference"
 	// FieldAllowedHosts holds the string denoting the allowed_hosts field in the database.
 	FieldAllowedHosts = "allowedHosts"
+	// FieldBranch holds the string denoting the branch field in the database.
+	FieldBranch = "branch"
+	// FieldIgnoreBotPullRequests holds the string denoting the ignore_bot_pull_requests field in the database.
+	FieldIgnoreBotPullRequests = "ignoreBotPullRequests"
+	// FieldIgnoredPullRequestAuthors holds the string denoting the ignored_pull_request_authors field in the database.
+	FieldIgnoredPullRequestAuthors = "ignoredPullRequestAuthors"
+	// FieldSkipPrereleases holds the string denoting the skip_prereleases field in the database.
+	FieldSkipPrereleases = "skipPrereleases"
+	// FieldGithubInstallationID holds the string denoting the github_installation_id field in the database.
+	FieldGithubInstallationID = "githubInstallationId"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -45,6 +55,11 @@ var Columns = []string{
 	FieldExternalID,
 	FieldSecretReference,
 	FieldAllowedHosts,
+	FieldBranch,
+	FieldIgnoreBotPullRequests,
+	FieldIgnoredPullRequestAuthors,
+	FieldSkipPrereleases,
+	FieldGithubInstallationID,
 	FieldStatus,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -63,6 +78,12 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultProvider holds the default value on creation for the "provider" field.
 	DefaultProvider string
+	// DefaultIgnoreBotPullRequests holds the default value on creation for the "ignore_bot_pull_requests" field.
+	DefaultIgnoreBotPullRequests bool
+	// DefaultIgnoredPullRequestAuthors holds the default value on creation for the "ignored_pull_request_authors" field.
+	DefaultIgnoredPullRequestAuthors []string
+	// DefaultSkipPrereleases holds the default value on creation for the "skip_prereleases" field.
+	DefaultSkipPrereleases bool
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -129,6 +150,26 @@ func ByExternalID(opts ...sql.OrderTermOption) OrderOption {
 // BySecretReference orders the results by the secret_reference field.
 func BySecretReference(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSecretReference, opts...).ToFunc()
+}
+
+// ByBranch orders the results by the branch field.
+func ByBranch(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBranch, opts...).ToFunc()
+}
+
+// ByIgnoreBotPullRequests orders the results by the ignore_bot_pull_requests field.
+func ByIgnoreBotPullRequests(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIgnoreBotPullRequests, opts...).ToFunc()
+}
+
+// BySkipPrereleases orders the results by the skip_prereleases field.
+func BySkipPrereleases(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSkipPrereleases, opts...).ToFunc()
+}
+
+// ByGithubInstallationID orders the results by the github_installation_id field.
+func ByGithubInstallationID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldGithubInstallationID, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

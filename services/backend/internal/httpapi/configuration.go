@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -15,12 +16,37 @@ import (
 var sourceProviderPattern = regexp.MustCompile(`^[a-z0-9_-]+$`)
 var secretReferencePattern = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,127}$`)
 
+// A branch name as GitHub reports it in pull_request.base.ref; a full ref or
+// a character Git forbids would never match a delivery.
+var sourceBranchPattern = regexp.MustCompile(`^[^\s~^:?*\[\\]+$`)
+
+// A GitHub login, or an App bot login such as dependabot[bot].
+var pullRequestAuthorPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9-]{0,38}(\[bot\])?$`)
+
+func validSourceBranch(branch *string) bool {
+	return branch == nil || (sourceBranchPattern.MatchString(*branch) && !strings.HasPrefix(*branch, "refs/") &&
+		utf8.RuneCountInString(*branch) <= 255)
+}
+
+func validPullRequestAuthors(authors []string) bool {
+	if len(authors) > 100 {
+		return false
+	}
+	for _, author := range authors {
+		if !pullRequestAuthorPattern.MatchString(author) {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *Server) registerConfiguration(mux *http.ServeMux) {
 	mux.Handle("GET /v1/brand-kits", s.authenticateProduct(http.HandlerFunc(s.listBrandKits)))
 	mux.Handle("POST /v1/brand-kits", s.authenticateProduct(http.HandlerFunc(s.createBrandKit)))
 	mux.Handle("GET /v1/brand-profile", s.authenticateProduct(http.HandlerFunc(s.getBrandProfile)))
 	mux.Handle("POST /v1/brand-profile", s.authenticateProduct(http.HandlerFunc(s.upsertBrandProfile)))
 	mux.Handle("POST /v1/source-apps", s.authenticateProduct(http.HandlerFunc(s.createSourceApp)))
+	mux.Handle("PATCH /v1/source-apps/{id}", s.authenticateProduct(http.HandlerFunc(s.updateSourceApp)))
 	mux.Handle("GET /v1/product-surfaces", s.authenticateProduct(http.HandlerFunc(s.listProductSurfaces)))
 	mux.Handle("POST /v1/product-surfaces", s.authenticateProduct(http.HandlerFunc(s.createProductSurface)))
 	mux.Handle("PATCH /v1/product-surfaces/{id}", s.authenticateProduct(http.HandlerFunc(s.updateProductSurface)))
@@ -174,6 +200,8 @@ func (s *Server) createSourceApp(w http.ResponseWriter, r *http.Request) {
 		len(input.Provider) > 64 || !sourceProviderPattern.MatchString(input.Provider) ||
 		len(input.AllowedHosts) < 1 || len(input.AllowedHosts) > 50 ||
 		(input.ExternalID != nil && (strings.TrimSpace(*input.ExternalID) == "" || utf8.RuneCountInString(*input.ExternalID) > 160)) ||
+		!validSourceBranch(input.Branch) || !validPullRequestAuthors(input.IgnoredPullRequestAuthors) ||
+		(input.GitHubConnectionID != nil && !resourceIDPattern.MatchString(*input.GitHubConnectionID)) ||
 		(input.SecretReference != nil && !secretReferencePattern.MatchString(*input.SecretReference)) {
 		writeError(w, http.StatusBadRequest, "invalid source app")
 		return
@@ -191,6 +219,54 @@ func (s *Server) createSourceApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, sourceAppResponse(created))
+}
+
+func (s *Server) updateSourceApp(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.configurationActor(w, r)
+	if !ok {
+		return
+	}
+	id := r.PathValue("id")
+	if !resourceIDPattern.MatchString(id) {
+		writeError(w, http.StatusBadRequest, "invalid source app ID")
+		return
+	}
+	// Branch is raw so an explicit null (follow the default branch) differs from absent.
+	var body struct {
+		Branch                    json.RawMessage `json:"branch"`
+		IgnoreBotPullRequests     *bool           `json:"ignoreBotPullRequests"`
+		IgnoredPullRequestAuthors *[]string       `json:"ignoredPullRequestAuthors"`
+		SkipPrereleases           *bool           `json:"skipPrereleases"`
+	}
+	if err := decodeJSON(r, &body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	input := product.UpdateSourceAppInput{IgnoreBotPullRequests: body.IgnoreBotPullRequests,
+		IgnoredPullRequestAuthors: body.IgnoredPullRequestAuthors, SkipPrereleases: body.SkipPrereleases}
+	switch {
+	case len(body.Branch) == 0:
+	case string(body.Branch) == "null":
+		input.ClearBranch = true
+	default:
+		if err := json.Unmarshal(body.Branch, &input.Branch); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid source app")
+			return
+		}
+	}
+	unchanged := len(body.Branch) == 0 && input.IgnoreBotPullRequests == nil &&
+		input.IgnoredPullRequestAuthors == nil && input.SkipPrereleases == nil
+	if unchanged || !validSourceBranch(input.Branch) ||
+		(input.IgnoredPullRequestAuthors != nil && !validPullRequestAuthors(*input.IgnoredPullRequestAuthors)) {
+		writeError(w, http.StatusBadRequest, "invalid source app")
+		return
+	}
+	updated, err := s.configuration.UpdateSourceApp(r.Context(), actor, id, input)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, sourceAppResponse(updated))
 }
 
 func brandKitResponse(v *ent.BrandKit) map[string]any {
@@ -214,9 +290,10 @@ func brandProfileResponse(v *ent.BrandProfile) map[string]any {
 func sourceAppResponse(v *ent.SourceApp) map[string]any {
 	return map[string]any{
 		"id": v.ID, "organizationId": v.OrganizationID, "name": v.Name,
-		"provider": v.Provider, "externalId": v.ExternalID,
-		"secretReference": v.SecretReference, "allowedHosts": v.AllowedHosts,
-		"status": v.Status, "createdAt": v.CreatedAt, "updatedAt": v.UpdatedAt,
+		"provider": v.Provider, "externalId": v.ExternalID, "branch": v.Branch,
+		"ignoreBotPullRequests": v.IgnoreBotPullRequests, "skipPrereleases": v.SkipPrereleases,
+		"ignoredPullRequestAuthors": v.IgnoredPullRequestAuthors, "allowedHosts": v.AllowedHosts,
+		"secretReference": v.SecretReference, "status": v.Status, "createdAt": v.CreatedAt, "updatedAt": v.UpdatedAt,
 	}
 }
 

@@ -1,0 +1,4 @@
+ALTER TABLE "source_app" ADD COLUMN IF NOT EXISTS "branch" TEXT;
+ALTER TABLE "source_app" ADD COLUMN IF NOT EXISTS "ignoreBotPullRequests" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "source_app" ADD COLUMN IF NOT EXISTS "ignoredPullRequestAuthors" JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE "source_app" ADD COLUMN IF NOT EXISTS "skipPrereleases" BOOLEAN NOT NULL DEFAULT false;

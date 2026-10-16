@@ -223,9 +223,20 @@ The customer sends an event in this minimum shape:
 }
 ```
 
-The request includes `X-Screenshot-Source-Timestamp` and an HMAC-SHA-256
-signature over timestamp plus raw body. Reject missing, expired, invalid, or
-replayed signatures. Deduplicate `id` per source for at least 30 days.
+The request carries three headers:
+
+```text
+X-Screenshot-Studio-Event-Id: <unique event id>
+X-Screenshot-Studio-Timestamp: 2026-08-13T15:04:05Z
+X-Screenshot-Studio-Signature: v1=<hex HMAC-SHA-256 of "<event id>.<timestamp>.<raw body>">
+```
+
+The signature binds the event ID and timestamp to the exact body, so a
+captured request cannot be replayed under a new ID or a fresh time. Reject
+missing, expired (more than five minutes either side), invalid, or replayed
+signatures; a replay of the same ID returns the release it already created.
+Deduplicate the ID per source permanently. A body-only signature is not
+accepted.
 
 The first generic source supports a published release only. Do not accept
 arbitrary HTML, files, credentials, or a request that directly names a social

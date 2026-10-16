@@ -2,7 +2,7 @@
 
 **Status:** Proposed
 **Date:** 2026-08-17
-**Revised:** 2026-08-26
+**Revised:** 2026-10-15
 **Depends on:** RFC 005 and RFC 021
 **Owners:** Engineering
 
@@ -68,20 +68,32 @@ with signature verification.
 
 Requested permissions, minimum viable:
 
-| Permission              | Level | Why                                        |
-| ----------------------- | ----- | ------------------------------------------ |
-| Metadata                | Read  | Required baseline                          |
-| Pull requests           | Read  | Titles, bodies, labels, changed file paths |
-| Contents                | None  | We never read source code                  |
-| Releases                | Read  | Release notes as a stronger signal         |
+| Permission    | Level | Why                                                          |
+| ------------- | ----- | ------------------------------------------------------------ |
+| Metadata      | Read  | Required baseline                                            |
+| Pull requests | Read  | Titles, bodies, labels, changed file paths, signed images    |
+| Contents      | Read  | Required for `release` events and release reads              |
+| Deployments   | Read  | `deployment_status` events for production captures (RFC 023) |
 
-Subscribed events: `pull_request` (closed), `release` (published), and
-`installation` lifecycle events.
+GitHub has no separate releases permission: the `release` event and every
+release endpoint sit under `Contents: read`. Because merges feed the next
+published release, the App needs it.
 
-Requesting no `contents` access is a deliberate product decision, not only a
-security one. "We never read your source code" is a sentence worth being able
-to say to a founder evaluating the integration, and it is enforced by the
-permission rather than by policy.
+Subscribed events: `pull_request` (closed), `release` (published), and the
+`installation` and `installation_repositories` lifecycle events, which GitHub
+delivers to every App.
+
+Merges arrive as `pull_request` with `action: closed` and `merged: true`, not
+as `push`. A `push` subscription requires `Contents: read`, which this App
+does not request. The consequence is a product promise: the integration
+tracks merged pull requests, not every commit to a branch. A direct push to
+the watched branch produces nothing.
+
+"We never read your source code" is therefore a policy, not a permission:
+the App could read file contents, and the platform never calls a contents
+endpoint. It reads release notes, PR titles, bodies, labels, and changed file
+paths only. A team that wants the guarantee enforced by permission can use a
+hand-made repository webhook, which needs no App permissions.
 
 ### Installation mapping
 
@@ -99,16 +111,78 @@ GitHubInstallation {
 }
 ```
 
-- One installation maps to exactly one workspace. A second workspace claiming
-  the same installation is refused.
+- Several workspaces may link one installation; each picks its own
+  repositories, and a repository may be watched by several workspaces (once
+  each). An App delivery fans out to every linked workspace's active source
+  for that repository, each under its own rules.
 - Mapping is established through an authenticated OAuth callback carrying a
   signed state value bound to the session and the workspace. A webhook alone
   never creates a mapping, because a webhook is unauthenticated with respect to
-  our workspaces.
+  our workspaces. The handshake is specified below.
 - `installation.deleted` and `suspend` mark the record and stop processing
   without deleting history.
 - Repository selection changes update the allowlist; events from unselected
   repositories are dropped.
+
+### Connection handshake
+
+GitHub runs two separate redirects, and only one of them proves anything:
+
+- The installation **setup URL** receives an `installation_id`. GitHub
+  documents that this value can be spoofed.
+- The **user authorization callback** receives a single-use `code`. Enabling
+  "Request user authorization during installation" sends the user here instead
+  of the setup URL, and GitHub guarantees only the `code`.
+
+The sequence:
+
+1. A workspace administrator clicks Connect GitHub. We create a pending
+   connection row: workspace, user, single-use `state`, short expiry. The
+   social OAuth start (`social_oauth_start`) is the pattern to follow.
+2. The browser goes to `github.com/apps/<slug>/installations/new`. The user
+   picks the account and repositories on GitHub.
+3. GitHub redirects back. We check `state` against the session and treat any
+   `installation_id` on the URL as a hint only.
+4. We exchange the `code` for a user access token, then call
+   `GET /user/installations` and
+   `GET /user/installations/{installation_id}/repositories`. The installation
+   is claimed only if the user can see it, and only for repositories the user
+   can see.
+5. The user picks a watched branch per repository and the source activates.
+
+### Repository sources and branches
+
+Each watched repository is a `source_app` row: `provider: github`,
+`externalId` set to the immutable repository ID (never the name, which changes
+on rename or transfer), and a nullable `branch`. A null `branch` follows the
+repository's current `default_branch` from the event payload, so a renamed
+default branch keeps working. A set `branch` is matched exactly against
+`pull_request.base.ref`. GitHub cannot filter deliveries by branch; the
+filter runs on our side.
+
+The App lists repositories with `Metadata: read`, but listing branches needs
+`Contents: read`. The branch is therefore a text field defaulting to the
+repository's default branch, not a picker.
+
+**Decided (2026-10-16): one installation, many workspaces.** Uniqueness is
+`(organizationId, provider, externalId)`, and `workspace_github_installation`
+links workspaces to installations.
+
+### Lifecycle
+
+| Event                               | Behavior                                                   |
+| ----------------------------------- | ---------------------------------------------------------- |
+| `installation.created`              | Record the installation; never claim a workspace from it   |
+| `installation.deleted`              | Archive every source on the installation; keep history     |
+| `installation.suspend`              | Stop processing; events are acknowledged and dropped       |
+| `installation.unsuspend`            | Re-verify repository access before resuming                |
+| `installation_repositories.added`   | Refresh the repositories offered in settings               |
+| `installation_repositories.removed` | Archive the affected sources immediately                   |
+| Repository renamed or transferred   | Keyed on repository ID; refresh the name, re-verify access |
+
+Without `installation_repositories.removed`, a workspace keeps showing a
+repository as connected after GitHub access is gone, which is a correctness
+and security bug rather than a settings detail.
 
 ## Webhook handling
 
@@ -116,21 +190,41 @@ The route is one of the raw-body exceptions to tRPC described in RFC 007.
 
 1. Read the raw body and verify `X-Hub-Signature-256` with HMAC-SHA256 in
    constant time. Invalid signatures return `401` with no detail.
-2. Reject deliveries whose timestamp is older than 5 minutes.
-3. Store `X-GitHub-Delivery` and drop duplicates. GitHub retries, and retries
-   must not produce two suggestions.
-4. Resolve the installation to a workspace. Unknown installations are recorded
-   and dropped.
-5. Enqueue an outbox event and return `202` within the delivery timeout.
-6. Process asynchronously.
+2. Resolve the installation to a workspace and the repository to an active
+   source. Unknown installations are recorded and dropped.
+3. Acknowledge events that ship nothing with `202`: `ping`, unmerged or
+   off-branch pull requests, release actions other than `published`. A `4xx`
+   would show as a failed delivery in the customer's GitHub settings.
+4. Persist the event in one Postgres transaction before answering `2xx`. A
+   failed write answers `5xx`, so the customer sees a failed delivery they
+   can redeliver.
+5. Process asynchronously once classification exists.
 
-Returning quickly and processing later is required: classification calls a
-model, and holding a webhook connection open for it guarantees delivery
-failures and retries.
+GitHub sends no timestamp header, so the five-minute freshness window from
+the earlier revision cannot be implemented. GitHub also never redelivers on
+its own; recovery is a manual or API redelivery, which keeps the original
+`X-GitHub-Delivery`.
 
-Replay is defended by delivery-ID deduplication plus the timestamp window, and
-by idempotent downstream processing keyed on `(repositoryId, prNumber,
-mergeCommitSha)`.
+Idempotency has two layers, both enforced by Postgres unique indexes:
+
+| Layer          | Key                                       | Purpose                                         |
+| -------------- | ----------------------------------------- | ----------------------------------------------- |
+| Business event | `source:<id>:pr:<repositoryId>:<number>`  | One release per merged pull request             |
+| Business event | `source:<id>:release:<repositoryId>:<id>` | One release per published GitHub release        |
+| Delivery       | `github:<X-GitHub-Delivery>`              | Receipt, processing, and retry tracking (async) |
+
+The business key carries the defense. The signature covers the body but not
+the delivery header, so a captured delivery replayed with a new delivery ID
+must still be a no-op, and it is: the key comes from the signed body. The
+delivery table becomes necessary when processing goes asynchronous (step 5),
+because only then can an event be acknowledged and not yet processed. Until
+then ingestion is synchronous: the release, its outbox event, and the audit
+row commit together before the response, and a failed delivery left nothing
+behind, so its redelivery reprocesses cleanly.
+
+The route returns well inside GitHub's 10-second budget while ingestion is one
+transaction. Classification calls a model, so it must run behind the outbox,
+never on the webhook connection.
 
 ## Change worthiness
 
@@ -140,16 +234,16 @@ Classification is two-stage, cheap first.
 
 Dropped before any model call:
 
-| Condition                                     | Reason                     |
-| --------------------------------------------- | -------------------------- |
-| PR closed without merging                     | Nothing shipped            |
-| Base branch is not a release branch           | Not in production          |
-| Author is a known bot                         | Dependency noise           |
+| Condition                                                   | Reason                    |
+| ----------------------------------------------------------- | ------------------------- |
+| PR closed without merging                                   | Nothing shipped           |
+| Base branch is not a release branch                         | Not in production         |
+| Author is a known bot                                       | Dependency noise          |
 | Title matches chore, docs, test, ci, refactor, build, style | Conventional non-features |
-| Every changed path is internal                | Tests, CI, config, docs    |
-| Labeled `internal`, `no-marketing`, `chore`   | Explicit opt-out           |
-| Fewer than a minimum number of changed files  | Trivial                    |
-| Repository not in the allowlist               | Out of scope               |
+| Every changed path is internal                              | Tests, CI, config, docs   |
+| Labeled `internal`, `no-marketing`, `chore`                 | Explicit opt-out          |
+| Fewer than a minimum number of changed files                | Trivial                   |
+| Repository not in the allowlist                             | Out of scope              |
 
 Path classification uses a default rule set plus workspace overrides, so a team
 whose UI lives in an unusual directory can correct it once.
@@ -176,11 +270,11 @@ Never file contents.
 
 Thresholds:
 
-| Confidence  | Action                                             |
-| ----------- | -------------------------------------------------- |
-| ≥ 0.75      | Create a suggestion                                |
-| 0.5 – 0.75  | Create a low-confidence suggestion, visually muted |
-| < 0.5       | Record the decision, create nothing                |
+| Confidence | Action                                             |
+| ---------- | -------------------------------------------------- |
+| ≥ 0.75     | Create a suggestion                                |
+| 0.5 – 0.75 | Create a low-confidence suggestion, visually muted |
+| < 0.5      | Record the decision, create nothing                |
 
 Every decision is recorded either way, so the filter is tunable against real
 data and a founder can ask why a PR produced nothing.
@@ -227,12 +321,12 @@ Behavior:
 Active repositories merge many PRs. Without limits, this becomes a notification
 firehose.
 
-| Limit                            | Default        |
-| -------------------------------- | -------------- |
-| Suggestions per workspace per day| 3              |
-| Suggestions per workspace per week| 10            |
-| Classification calls per hour    | Plan-scoped    |
-| Grouping window for related PRs  | 24 hours       |
+| Limit                              | Default     |
+| ---------------------------------- | ----------- |
+| Suggestions per workspace per day  | 3           |
+| Suggestions per workspace per week | 10          |
+| Classification calls per hour      | Plan-scoped |
+| Grouping window for related PRs    | 24 hours    |
 
 At the cap, further qualifying changes accumulate into a digest suggestion
 naming several changes rather than being dropped. A weekly digest of five
@@ -273,14 +367,14 @@ integration is usable immediately and backfill completes in the background.
 
 ## Authorization
 
-| Operation             | Permission           |
-| --------------------- | -------------------- |
-| Connect GitHub        | `workspace:update`   |
-| Disconnect            | `workspace:update`   |
-| View suggestions      | `workspace:read`     |
-| Accept a suggestion   | `release:create`     |
-| Dismiss a suggestion  | `release:create`     |
-| Edit path rules       | `workspace:update`   |
+| Operation            | Permission         |
+| -------------------- | ------------------ |
+| Connect GitHub       | `workspace:update` |
+| Disconnect           | `workspace:update` |
+| View suggestions     | `workspace:read`   |
+| Accept a suggestion  | `release:create`   |
+| Dismiss a suggestion | `release:create`   |
+| Edit path rules      | `workspace:update` |
 
 Webhook processing runs as a service principal scoped to the resolved
 workspace. It can create suggestions and update product context. It cannot
@@ -288,16 +382,16 @@ create campaigns, approve, or publish.
 
 ## Failure behavior
 
-| Failure                        | Behavior                                        |
-| ------------------------------ | ----------------------------------------------- |
-| Invalid signature              | `401`, no processing, security event            |
-| Duplicate delivery             | `202`, no processing                            |
-| Unknown installation           | Recorded and dropped                            |
-| Workspace suspended            | Event stored, processing deferred               |
-| Classification fails           | Retried twice, then recorded with no suggestion |
-| Model outage                   | Events queue; drained on recovery               |
-| Rate limited                   | Backoff; webhook processing continues           |
-| Installation revoked mid-run   | Processing stops; history retained              |
+| Failure                      | Behavior                                        |
+| ---------------------------- | ----------------------------------------------- |
+| Invalid signature            | `401`, no processing, security event            |
+| Duplicate delivery           | `202`, no processing                            |
+| Unknown installation         | Recorded and dropped                            |
+| Workspace suspended          | Event stored, processing deferred               |
+| Classification fails         | Retried twice, then recorded with no suggestion |
+| Model outage                 | Events queue; drained on recovery               |
+| Rate limited                 | Backoff; webhook processing continues           |
+| Installation revoked mid-run | Processing stops; history retained              |
 
 No GitHub failure ever affects campaign creation, approval, or publishing. The
 integration is a suggestion source, and it must be able to be entirely down
@@ -339,8 +433,48 @@ noise.
 
 ## Rollout
 
-1. Ship the GitHub App, installation mapping, and webhook verification with
-   storage only. Classify nothing.
+0. **Shipped:** the per-source webhook route (`/api/webhooks/source/{id}`)
+   handles `ping`, merged pull requests filtered by `source_app.branch` and
+   `externalId`, and release `published` only. A repository webhook configured
+   by hand creates one draft release per merged PR. The parser
+   (`githubPullRequestEventSchema` in `lib/tenant/webhook-security.ts`) is the
+   normalization layer the App webhook reuses; neither route owns release
+   logic. Until the suggestion pipeline exists, a merge creates a draft
+   release, not a `ChangeSuggestion`. Edge behavior verified end to end:
+   - A hand-made repository hook defaults to the `form` content type, which
+     wraps the JSON in a `payload` field. Both encodings are accepted.
+   - Only the shipped action is parsed in full, so a label change, edit, or
+     push never fails on its payload shape; a malformed merge still answers
+     `400` so the failure is visible in the delivery log.
+   - PR and release text from GitHub is third-party input: HTML comments
+     (PR templates), invisible and control characters (NUL fails a Postgres
+     insert on every redelivery) are removed, and titles and notes are cut to
+     fit rather than rejected.
+   - A GitLab source creates a release only for `Release Hook` with action
+     `create`. Any other answer would count toward the four consecutive
+     failures after which GitLab disables the hook.
+   - Each source carries rules, set on create and changed with
+     `PATCH /api/v1/source-apps/{sourceAppId}` (`source:write`):
+     `ignoreBotPullRequests` (default on) drops PRs whose author is a GitHub
+     App bot (`type: Bot` or a `[bot]` login); `ignoredPullRequestAuthors`
+     drops listed logins case-insensitively, with or without the bot filter;
+     `skipPrereleases` (default off) drops pre-releases. The filter reads the
+     author, not who merged, so a merge bot landing a person's PR is kept.
+   - Setup without an operator: creating a source (Developer API settings,
+     or the API without `secretReference`) returns its webhook URL and a
+     secret, shown once. The secret is derived from `SOURCE_WEBHOOK_SIGNING_KEY`
+     and the source ID, so no secret is stored. Rotating the key re-keys every
+     such source; a single lost secret means a new source. GitLab generates
+     its own signing token, so GitLab sources still need an operator-managed
+     `secretReference`.
+   - Verified against real GitHub on a disposable repository: 81 deliveries
+     across a JSON hook and a default-`form` hook, merge, squash, and rebase
+     merges, a real Dependabot PR, drafts, pre-releases, and edits, with no
+     failed delivery. GitHub's captured request replayed byte for byte, or
+     under a forged delivery ID, returned the existing release.
+1. Ship the GitHub App, the connection handshake, the lifecycle events, and
+   one App-level route (`/api/webhooks/github`, one secret) sharing the
+   Phase 0 parser. Classify nothing.
 2. Run deterministic filters in shadow mode on real repositories; measure how
    many events survive.
 3. Add classification in shadow mode; measure precision against founder
@@ -357,3 +491,47 @@ detector is that founders disable the integration and do not re-enable it.
 - Automatic screenshot capture from deployments. RFC 023 covers that.
 - Automatic publishing.
 - GitLab and Bitbucket, which reuse the same suggestion model later.
+
+## As built (2026-10-16)
+
+- **Merges feed the next release.** A merged PR into the watched branch is a
+  `source_change`, held until the source's next published release, which
+  takes every held change as a feature. No release is created per merge.
+- **Full notes.** A release stores its notes in full (cleaned, 50,000
+  characters); `releasenotes` parses GitHub's generated notes, section
+  headings, and conventional prefixes into features (feature, improvement,
+  fix, internal, other) and the PRs they name. The drafter reads the stored
+  notes as a fenced source instead of fetching the GitHub page, so private
+  repositories work.
+- **Connection.** Settings → Connect GitHub → `/integrations/github/start`
+  (single-use state) → GitHub install → `/integrations/github/setup` → GitHub
+  authorization → `/integrations/github/callback` → the backend exchanges the
+  code and checks `GET /user/installations` before linking. GitHub secrets
+  (App key, client secret) live in the backend; the web holds the slug,
+  client ID, and webhook secret.
+- **Linking an existing installation.** When the App is already installed on
+  the account, GitHub sends `installations/new` to the installation's settings
+  page, drops the `state`, and offers nothing to submit. So a second workspace
+  uses Link existing installation instead: GitHub authorization alone, with
+  installation `0` in the state. The backend links the one reachable
+  installation the workspace has not linked; with several it answers 409 with
+  the choices, keeps their verified IDs on the single-use grant, and accepts
+  only one of those IDs (no new code) from `/integrations/github/choose`.
+- **App webhook.** `/api/webhooks/github` verifies the App secret, keeps
+  installations current (`installation`, `installation_repositories`), and
+  fans repository events out per workspace. A webhook never links a workspace.
+- **Worker.** Outbox events run in the Go worker: `source_change.collected`
+  records changed file paths; `release.ingested` stores screenshots from the
+  release and its PRs (GitHub image hosts only, signed URLs read through the
+  App at download time); `source_app.connected` backfills the last five
+  releases and the merges since; `deployment.succeeded` is RFC 023.
+- **Found against real GitHub.** GitHub lists releases by their commit's
+  date, not by when they were published, so backfill scans a page and takes
+  the five most recently published (pre-releases dropped first when the
+  source skips them). In a private repository, an image stored in the
+  repository renders in `body_html` as an unsigned `blob?raw=true` or
+  `raw.githubusercontent.com` URL that 404s anonymously; the worker reads
+  those from `raw.githubusercontent.com` with the installation token, only
+  for the source's own repository, never following a redirect with it.
+- **Not built:** model classification, suggestions, volume caps, and digests
+  remain as specified above.

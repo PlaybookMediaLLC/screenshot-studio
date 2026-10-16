@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 )
 
 // Release is the model entity for the Release schema.
@@ -30,6 +31,12 @@ type Release struct {
 	Audience *string `json:"audience,omitempty"`
 	// SourceUrls holds the value of the "source_urls" field.
 	SourceUrls []string `json:"source_urls,omitempty"`
+	// Notes holds the value of the "notes" field.
+	Notes *string `json:"notes,omitempty"`
+	// Features holds the value of the "features" field.
+	Features []releasenotes.Feature `json:"features,omitempty"`
+	// ScreenshotAssetIds holds the value of the "screenshot_asset_ids" field.
+	ScreenshotAssetIds []string `json:"screenshot_asset_ids,omitempty"`
 	// ProductSurfaceID holds the value of the "product_surface_id" field.
 	ProductSurfaceID *string `json:"product_surface_id,omitempty"`
 	// Status holds the value of the "status" field.
@@ -48,9 +55,9 @@ func (*Release) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case release.FieldSourceUrls:
+		case release.FieldSourceUrls, release.FieldFeatures, release.FieldScreenshotAssetIds:
 			values[i] = new([]byte)
-		case release.FieldID, release.FieldOrganizationID, release.FieldTitle, release.FieldBenefitStatement, release.FieldDescription, release.FieldAudience, release.FieldProductSurfaceID, release.FieldStatus, release.FieldCreatedByUserID:
+		case release.FieldID, release.FieldOrganizationID, release.FieldTitle, release.FieldBenefitStatement, release.FieldDescription, release.FieldAudience, release.FieldNotes, release.FieldProductSurfaceID, release.FieldStatus, release.FieldCreatedByUserID:
 			values[i] = new(sql.NullString)
 		case release.FieldCreatedAt, release.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -113,6 +120,29 @@ func (_m *Release) assignValues(columns []string, values []any) error {
 			} else if value != nil && len(*value) > 0 {
 				if err := json.Unmarshal(*value, &_m.SourceUrls); err != nil {
 					return fmt.Errorf("unmarshal field source_urls: %w", err)
+				}
+			}
+		case release.FieldNotes:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field notes", values[i])
+			} else if value.Valid {
+				_m.Notes = new(string)
+				*_m.Notes = value.String
+			}
+		case release.FieldFeatures:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field features", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Features); err != nil {
+					return fmt.Errorf("unmarshal field features: %w", err)
+				}
+			}
+		case release.FieldScreenshotAssetIds:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field screenshot_asset_ids", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.ScreenshotAssetIds); err != nil {
+					return fmt.Errorf("unmarshal field screenshot_asset_ids: %w", err)
 				}
 			}
 		case release.FieldProductSurfaceID:
@@ -204,6 +234,17 @@ func (_m *Release) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("source_urls=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SourceUrls))
+	builder.WriteString(", ")
+	if v := _m.Notes; v != nil {
+		builder.WriteString("notes=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("features=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Features))
+	builder.WriteString(", ")
+	builder.WriteString("screenshot_asset_ids=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ScreenshotAssetIds))
 	builder.WriteString(", ")
 	if v := _m.ProductSurfaceID; v != nil {
 		builder.WriteString("product_surface_id=")

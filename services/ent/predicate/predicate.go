@@ -78,8 +78,17 @@ type CreativeVariant func(*sql.Selector)
 // CustomerCommunication is the predicate function for customercommunication builders.
 type CustomerCommunication func(*sql.Selector)
 
+// DeploymentEvent is the predicate function for deploymentevent builders.
+type DeploymentEvent func(*sql.Selector)
+
 // Design is the predicate function for design builders.
 type Design func(*sql.Selector)
+
+// GitHubInstallStart is the predicate function for githubinstallstart builders.
+type GitHubInstallStart func(*sql.Selector)
+
+// GitHubInstallation is the predicate function for githubinstallation builders.
+type GitHubInstallation func(*sql.Selector)
 
 // Invitation is the predicate function for invitation builders.
 type Invitation func(*sql.Selector)
@@ -132,6 +141,9 @@ type SocialOAuthStart func(*sql.Selector)
 // SourceApp is the predicate function for sourceapp builders.
 type SourceApp func(*sql.Selector)
 
+// SourceChange is the predicate function for sourcechange builders.
+type SourceChange func(*sql.Selector)
+
 // SupportAccessGrant is the predicate function for supportaccessgrant builders.
 type SupportAccessGrant func(*sql.Selector)
 
@@ -146,6 +158,9 @@ type WorkspaceDeletion func(*sql.Selector)
 
 // WorkspaceEntitlement is the predicate function for workspaceentitlement builders.
 type WorkspaceEntitlement func(*sql.Selector)
+
+// WorkspaceGitHubInstallation is the predicate function for workspacegithubinstallation builders.
+type WorkspaceGitHubInstallation func(*sql.Selector)
 
 // WorkspaceSettings is the predicate function for workspacesettings builders.
 type WorkspaceSettings func(*sql.Selector)

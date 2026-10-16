@@ -1,0 +1,253 @@
+'use client'
+
+import { useSearchParams } from 'next/navigation'
+import { type FormEvent, useCallback, useEffect, useState } from 'react'
+import { Group, Pill, Row, Section } from '@/components/platform-ui'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { githubChoiceStateSchema, githubChoicesParamSchema } from '@/lib/tenant/github-choices'
+import { useTRPCClient } from '@/lib/trpc/react'
+import { getErrorMessage } from './settings-client'
+
+type Connection = {
+  accountLogin: string
+  accountType: string
+  id: string
+  status: 'ACTIVE' | 'DELETED' | 'SUSPENDED'
+}
+
+type Repository = { defaultBranch: string; fullName: string; id: number; private: boolean }
+
+/** What a return trip from GitHub tells the admin, keyed by the `github` search parameter. */
+const OUTCOMES: Record<string, string> = {
+  choose: 'Your GitHub account can reach several installations. Pick the one to link.',
+  connected: 'GitHub is connected. Choose a repository to watch.',
+  failed: 'GitHub could not be connected. Start again from this page.',
+  none: 'No other installation of the GitHub App is available to link. Install it on an account first.',
+  requested: 'An owner of the GitHub organization must approve the install first.',
+  unavailable: 'This server has no GitHub App configured.',
+}
+
+const selectClass =
+  'h-10 w-full rounded-lg border border-white/10 bg-transparent px-3 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-white/20'
+
+/**
+ * Connect GitHub App installations and pick repositories to watch. Merges into
+ * a watched branch wait for the next published release, which arrives with
+ * its notes, features, and screenshots.
+ */
+export function GitHubConnections() {
+  const trpcClient = useTRPCClient()
+  const searchParams = useSearchParams()
+  const outcome = searchParams.get('github')
+  const choices = githubChoicesParamSchema.safeParse(searchParams.get('choices') ?? '')
+  const choiceState = githubChoiceStateSchema.safeParse(searchParams.get('state') ?? '')
+  const [state, setState] = useState<{ configured: boolean; connections: Connection[] } | null>(
+    null
+  )
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(async (): Promise<void> => {
+    try {
+      setState(await trpcClient.github.connections.query())
+    } catch (requestError) {
+      setError(getErrorMessage(requestError))
+    }
+  }, [trpcClient])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  async function disconnect(connectionId: string): Promise<void> {
+    setError(null)
+    try {
+      await trpcClient.github.disconnect.mutate({ connectionId })
+      await load()
+    } catch (requestError) {
+      setError(getErrorMessage(requestError))
+    }
+  }
+
+  return (
+    <Section
+      description="Watch repositories: merges into a branch wait for your next GitHub release, which arrives with its notes, features, and screenshots."
+      title="GitHub"
+    >
+      {outcome && OUTCOMES[outcome] ? (
+        <Alert className="mb-4">
+          <AlertDescription>{OUTCOMES[outcome]}</AlertDescription>
+        </Alert>
+      ) : null}
+      <Group>
+        {state === null ? (
+          <Row>
+            <p className="text-sm text-neutral-500">Loading GitHub connections…</p>
+          </Row>
+        ) : !state.configured ? (
+          <Row>
+            <p className="text-sm text-neutral-500">{OUTCOMES.unavailable}</p>
+          </Row>
+        ) : (
+          <>
+            {state.connections.map((connection) => (
+              <ConnectionRow
+                connection={connection}
+                key={connection.id}
+                onDisconnect={() => void disconnect(connection.id)}
+              />
+            ))}
+            {outcome === 'choose' && choices.success && choiceState.success ? (
+              <Row label="Choose the GitHub account to link">
+                <div className="flex flex-wrap gap-2">
+                  {choices.data.map((choice) => (
+                    <Button
+                      asChild
+                      className="rounded-lg"
+                      key={choice.id}
+                      size="sm"
+                      variant="outline"
+                    >
+                      <a
+                        href={`/integrations/github/choose?${new URLSearchParams({
+                          installation_id: String(choice.id),
+                          state: choiceState.data,
+                        })}`}
+                      >
+                        Link {choice.accountLogin}
+                      </a>
+                    </Button>
+                  ))}
+                </div>
+              </Row>
+            ) : null}
+            <Row
+              description="Install the GitHub App on the repositories you want to watch, or link an installation you already have."
+              label="Connect a GitHub account or organization"
+              layout="inline"
+            >
+              <div className="flex flex-wrap gap-2">
+                <Button asChild className="rounded-lg" size="sm">
+                  <a href="/integrations/github/start">Connect GitHub</a>
+                </Button>
+                <Button asChild className="rounded-lg" size="sm" variant="outline">
+                  <a href="/integrations/github/start?existing=1">Link existing installation</a>
+                </Button>
+              </div>
+            </Row>
+          </>
+        )}
+      </Group>
+      {error ? (
+        <Alert className="mt-4" variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+    </Section>
+  )
+}
+
+function ConnectionRow({
+  connection,
+  onDisconnect,
+}: {
+  connection: Connection
+  onDisconnect: () => void
+}) {
+  const trpcClient = useTRPCClient()
+  const [repositories, setRepositories] = useState<Repository[] | null>(null)
+  const [selected, setSelected] = useState('')
+  const [branch, setBranch] = useState('')
+  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const repository = repositories?.find((candidate) => String(candidate.id) === selected)
+
+  async function loadRepositories(): Promise<void> {
+    setError(null)
+    try {
+      const result = await trpcClient.github.repositories.query({ connectionId: connection.id })
+      setRepositories(result.repositories)
+    } catch (requestError) {
+      setError(getErrorMessage(requestError))
+    }
+  }
+
+  async function watch(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
+    if (!repository) return
+    setBusy(true)
+    setError(null)
+    try {
+      await trpcClient.sourceApp.create.mutate({
+        allowedHosts: ['https://api.github.com'],
+        ...(branch.trim() ? { branch: branch.trim() } : {}),
+        externalId: String(repository.id),
+        githubConnectionId: connection.id,
+        name: repository.fullName,
+        provider: 'github',
+      })
+      setMessage(
+        `Watching ${repository.fullName} on ${branch.trim() || repository.defaultBranch}. Its recent releases and merges are being imported.`
+      )
+      setSelected('')
+      setBranch('')
+    } catch (requestError) {
+      setError(getErrorMessage(requestError))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Row>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-white">{connection.accountLogin}</span>
+          <Pill tone={connection.status === 'ACTIVE' ? 'green' : 'yellow'}>
+            {connection.status.toLowerCase()}
+          </Pill>
+        </div>
+        <Button onClick={onDisconnect} size="sm" type="button" variant="ghost">
+          Disconnect {connection.accountLogin}
+        </Button>
+      </div>
+      {connection.status !== 'ACTIVE' ? null : repositories === null ? (
+        <div>
+          <Button onClick={() => void loadRepositories()} size="sm" type="button" variant="outline">
+            Choose a repository
+          </Button>
+        </div>
+      ) : (
+        <form className="grid gap-3 sm:grid-cols-[1fr_12rem_auto]" onSubmit={watch}>
+          <select
+            aria-label="Repository"
+            className={selectClass}
+            onChange={(event) => setSelected(event.target.value)}
+            value={selected}
+          >
+            <option value="">Select a repository</option>
+            {repositories.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.fullName}
+              </option>
+            ))}
+          </select>
+          <Input
+            aria-label="Branch to watch"
+            className="h-10 rounded-lg"
+            onChange={(event) => setBranch(event.target.value)}
+            placeholder={repository ? repository.defaultBranch : 'Default branch'}
+            value={branch}
+          />
+          <Button className="rounded-lg" disabled={!repository || busy} type="submit">
+            {busy ? 'Watching…' : 'Watch'}
+          </Button>
+        </form>
+      )}
+      {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
+      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+    </Row>
+  )
+}

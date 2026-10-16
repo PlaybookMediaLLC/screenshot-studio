@@ -15,6 +15,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/config"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/media"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
@@ -62,6 +63,14 @@ func main() {
 		os.Exit(1)
 	}
 	configuration := product.NewConfiguration(db.Client).WithObjectStore(objects).WithAuthStore(authstore.New(db.SQL))
+	github, err := githubapp.FromEnvironment()
+	if err != nil {
+		slog.Error("invalid GitHub App configuration", "error", err)
+		os.Exit(1)
+	}
+	if github != nil {
+		configuration.WithGitHubApp(github)
+	}
 	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
 		counter, err := quota.NewRedisCounter(redisURL)
 		if err != nil {

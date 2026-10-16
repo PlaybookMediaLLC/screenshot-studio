@@ -80,6 +80,68 @@ func (_c *SourceAppCreate) SetAllowedHosts(v []string) *SourceAppCreate {
 	return _c
 }
 
+// SetBranch sets the "branch" field.
+func (_c *SourceAppCreate) SetBranch(v string) *SourceAppCreate {
+	_c.mutation.SetBranch(v)
+	return _c
+}
+
+// SetNillableBranch sets the "branch" field if the given value is not nil.
+func (_c *SourceAppCreate) SetNillableBranch(v *string) *SourceAppCreate {
+	if v != nil {
+		_c.SetBranch(*v)
+	}
+	return _c
+}
+
+// SetIgnoreBotPullRequests sets the "ignore_bot_pull_requests" field.
+func (_c *SourceAppCreate) SetIgnoreBotPullRequests(v bool) *SourceAppCreate {
+	_c.mutation.SetIgnoreBotPullRequests(v)
+	return _c
+}
+
+// SetNillableIgnoreBotPullRequests sets the "ignore_bot_pull_requests" field if the given value is not nil.
+func (_c *SourceAppCreate) SetNillableIgnoreBotPullRequests(v *bool) *SourceAppCreate {
+	if v != nil {
+		_c.SetIgnoreBotPullRequests(*v)
+	}
+	return _c
+}
+
+// SetIgnoredPullRequestAuthors sets the "ignored_pull_request_authors" field.
+func (_c *SourceAppCreate) SetIgnoredPullRequestAuthors(v []string) *SourceAppCreate {
+	_c.mutation.SetIgnoredPullRequestAuthors(v)
+	return _c
+}
+
+// SetSkipPrereleases sets the "skip_prereleases" field.
+func (_c *SourceAppCreate) SetSkipPrereleases(v bool) *SourceAppCreate {
+	_c.mutation.SetSkipPrereleases(v)
+	return _c
+}
+
+// SetNillableSkipPrereleases sets the "skip_prereleases" field if the given value is not nil.
+func (_c *SourceAppCreate) SetNillableSkipPrereleases(v *bool) *SourceAppCreate {
+	if v != nil {
+		_c.SetSkipPrereleases(*v)
+	}
+	return _c
+}
+
+// SetGithubInstallationID sets the "github_installation_id" field.
+func (_c *SourceAppCreate) SetGithubInstallationID(v string) *SourceAppCreate {
+	_c.mutation.SetGithubInstallationID(v)
+	return _c
+}
+
+// SetNillableGithubInstallationID sets the "github_installation_id" field if the given value is not nil.
+func (_c *SourceAppCreate) SetNillableGithubInstallationID(v *string) *SourceAppCreate {
+	if v != nil {
+		_c.SetGithubInstallationID(*v)
+	}
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *SourceAppCreate) SetStatus(v sourceapp.Status) *SourceAppCreate {
 	_c.mutation.SetStatus(v)
@@ -167,6 +229,18 @@ func (_c *SourceAppCreate) defaults() {
 		v := sourceapp.DefaultProvider
 		_c.mutation.SetProvider(v)
 	}
+	if _, ok := _c.mutation.IgnoreBotPullRequests(); !ok {
+		v := sourceapp.DefaultIgnoreBotPullRequests
+		_c.mutation.SetIgnoreBotPullRequests(v)
+	}
+	if _, ok := _c.mutation.IgnoredPullRequestAuthors(); !ok {
+		v := sourceapp.DefaultIgnoredPullRequestAuthors
+		_c.mutation.SetIgnoredPullRequestAuthors(v)
+	}
+	if _, ok := _c.mutation.SkipPrereleases(); !ok {
+		v := sourceapp.DefaultSkipPrereleases
+		_c.mutation.SetSkipPrereleases(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := sourceapp.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -194,6 +268,15 @@ func (_c *SourceAppCreate) check() error {
 	}
 	if _, ok := _c.mutation.AllowedHosts(); !ok {
 		return &ValidationError{Name: "allowed_hosts", err: errors.New(`ent: missing required field "SourceApp.allowed_hosts"`)}
+	}
+	if _, ok := _c.mutation.IgnoreBotPullRequests(); !ok {
+		return &ValidationError{Name: "ignore_bot_pull_requests", err: errors.New(`ent: missing required field "SourceApp.ignore_bot_pull_requests"`)}
+	}
+	if _, ok := _c.mutation.IgnoredPullRequestAuthors(); !ok {
+		return &ValidationError{Name: "ignored_pull_request_authors", err: errors.New(`ent: missing required field "SourceApp.ignored_pull_request_authors"`)}
+	}
+	if _, ok := _c.mutation.SkipPrereleases(); !ok {
+		return &ValidationError{Name: "skip_prereleases", err: errors.New(`ent: missing required field "SourceApp.skip_prereleases"`)}
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "SourceApp.status"`)}
@@ -267,6 +350,26 @@ func (_c *SourceAppCreate) createSpec() (*SourceApp, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.AllowedHosts(); ok {
 		_spec.SetField(sourceapp.FieldAllowedHosts, field.TypeJSON, value)
 		_node.AllowedHosts = value
+	}
+	if value, ok := _c.mutation.Branch(); ok {
+		_spec.SetField(sourceapp.FieldBranch, field.TypeString, value)
+		_node.Branch = &value
+	}
+	if value, ok := _c.mutation.IgnoreBotPullRequests(); ok {
+		_spec.SetField(sourceapp.FieldIgnoreBotPullRequests, field.TypeBool, value)
+		_node.IgnoreBotPullRequests = value
+	}
+	if value, ok := _c.mutation.IgnoredPullRequestAuthors(); ok {
+		_spec.SetField(sourceapp.FieldIgnoredPullRequestAuthors, field.TypeJSON, value)
+		_node.IgnoredPullRequestAuthors = value
+	}
+	if value, ok := _c.mutation.SkipPrereleases(); ok {
+		_spec.SetField(sourceapp.FieldSkipPrereleases, field.TypeBool, value)
+		_node.SkipPrereleases = value
+	}
+	if value, ok := _c.mutation.GithubInstallationID(); ok {
+		_spec.SetField(sourceapp.FieldGithubInstallationID, field.TypeString, value)
+		_node.GithubInstallationID = &value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(sourceapp.FieldStatus, field.TypeEnum, value)

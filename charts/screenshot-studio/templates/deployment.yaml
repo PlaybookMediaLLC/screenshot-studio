@@ -109,6 +109,12 @@ spec:
                   name: {{ . }}
                   key: AUDIT_IP_HASH_SECRET
                   optional: true
+            - name: SOURCE_WEBHOOK_SIGNING_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: SOURCE_WEBHOOK_SIGNING_KEY
+                  optional: true
             - name: AUDIT_DRAIN_ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:

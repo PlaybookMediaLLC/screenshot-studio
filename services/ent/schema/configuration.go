@@ -73,6 +73,16 @@ func (SourceApp) Fields() []ent.Field {
 		field.String("external_id").StorageKey("externalId").Optional().Nillable(),
 		field.String("secret_reference").StorageKey("secretReference").Optional().Nillable().Sensitive(),
 		field.JSON("allowed_hosts", []string{}).StorageKey("allowedHosts"),
+		// Merges into this branch become releases; nil follows the repository's default branch.
+		field.String("branch").StorageKey("branch").Optional().Nillable(),
+		// Pull requests opened by a bot account (Dependabot, Renovate) are not releases.
+		field.Bool("ignore_bot_pull_requests").StorageKey("ignoreBotPullRequests").Default(true),
+		// Further pull request author logins to ignore, matched case-insensitively.
+		field.JSON("ignored_pull_request_authors", []string{}).StorageKey("ignoredPullRequestAuthors").Default([]string{}),
+		// A GitHub pre-release is published like any release; skipped only when asked.
+		field.Bool("skip_prereleases").StorageKey("skipPrereleases").Default(false),
+		// The GitHub App installation that delivers this source's events; nil for a hand-made webhook.
+		field.String("github_installation_id").StorageKey("githubInstallationId").Optional().Nillable(),
 		field.Enum("status").StorageKey("status").Values("DRAFT", "ACTIVE", "ARCHIVED").Default("DRAFT"),
 		field.Time("created_at").StorageKey("createdAt").Default(time.Now).Immutable(),
 		field.Time("updated_at").StorageKey("updatedAt").Default(time.Now).UpdateDefault(time.Now),
@@ -81,7 +91,8 @@ func (SourceApp) Fields() []ent.Field {
 func (SourceApp) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("organization_id", "name").Unique(),
-		index.Fields("provider", "external_id").Unique(),
+		index.Fields("organization_id", "provider", "external_id").Unique(),
+		index.Fields("provider", "external_id"),
 		index.Fields("organization_id", "created_at"),
 	}
 }

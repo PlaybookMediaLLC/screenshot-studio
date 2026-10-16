@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
@@ -198,6 +199,23 @@ func (f *fakeConfiguration) GetBrandProfile(context.Context, string) (*ent.Brand
 func (f *fakeConfiguration) UpsertBrandProfile(_ context.Context, actor product.Actor, input product.UpsertBrandProfileInput) (*ent.BrandProfile, error) {
 	return &ent.BrandProfile{ID: "profile-1", OrganizationID: actor.OrganizationID, Audience: input.Audience, ProductDescription: input.ProductDescription, Tone: input.Tone}, nil
 }
+func (f *fakeConfiguration) UpdateSourceApp(_ context.Context, actor product.Actor, id string, input product.UpdateSourceAppInput) (*ent.SourceApp, error) {
+	if id != "source00001" {
+		return nil, publishing.ErrNotFound
+	}
+	updated := &ent.SourceApp{ID: id, OrganizationID: actor.OrganizationID, IgnoredPullRequestAuthors: []string{}}
+	if !input.ClearBranch {
+		updated.Branch = input.Branch
+	}
+	if input.IgnoreBotPullRequests != nil {
+		updated.IgnoreBotPullRequests = *input.IgnoreBotPullRequests
+	}
+	if input.IgnoredPullRequestAuthors != nil {
+		updated.IgnoredPullRequestAuthors = *input.IgnoredPullRequestAuthors
+	}
+	return updated, nil
+}
+
 func (f *fakeConfiguration) CreateSourceApp(_ context.Context, actor product.Actor, input product.CreateSourceAppInput) (*ent.SourceApp, error) {
 	return &ent.SourceApp{ID: "source-1", OrganizationID: actor.OrganizationID, Name: input.Name, Provider: input.Provider, AllowedHosts: input.AllowedHosts}, nil
 }
@@ -341,6 +359,52 @@ func TestConfigurationRoutesPreserveProductShape(t *testing.T) {
 	if badSource.Code != http.StatusBadRequest {
 		t.Fatalf("unsafe source URL status=%d body=%s", badSource.Code, badSource.Body)
 	}
+	// Branch length counts characters, as the web schema does: 255 multi-byte runes fit.
+	for branch, want := range map[string]int{
+		`"main"`: http.StatusCreated, `"` + strings.Repeat("枝", 255) + `"`: http.StatusCreated,
+		`"` + strings.Repeat("枝", 256) + `"`: http.StatusBadRequest, `" "`: http.StatusBadRequest,
+	} {
+		got := configurationRequest(handler, http.MethodPost, "/v1/source-apps", `{"name":"Source","provider":"github","allowedHosts":["https://api.github.com"],"branch":`+branch+`}`)
+		if got.Code != want {
+			t.Fatalf("branch %.20s status=%d want=%d body=%s", branch, got.Code, want, got.Body)
+		}
+	}
+	tooMany := `"` + strings.Repeat(`a","`, 100) + `a"`
+	for field, want := range map[string]int{
+		`"branch":"refs/heads/main"`: http.StatusBadRequest, `"branch":"my branch"`: http.StatusBadRequest,
+		`"branch":"release/2026.10"`:                                 http.StatusCreated,
+		`"ignoredPullRequestAuthors":["dependabot[bot]","Snyk-Bot"]`: http.StatusCreated,
+		`"ignoredPullRequestAuthors":["bad login!"]`:                 http.StatusBadRequest,
+		`"ignoredPullRequestAuthors":[` + tooMany + `]`:              http.StatusBadRequest,
+		`"ignoreBotPullRequests":false,"skipPrereleases":true`:       http.StatusCreated,
+	} {
+		got := configurationRequest(handler, http.MethodPost, "/v1/source-apps", `{"name":"Source","provider":"github","allowedHosts":["https://api.github.com"],`+field+`}`)
+		if got.Code != want {
+			t.Fatalf("create %.40s status=%d want=%d body=%s", field, got.Code, want, got.Body)
+		}
+	}
+	for _, c := range []struct {
+		path, body string
+		want       int
+		has        string
+	}{
+		{"/v1/source-apps/source00001", `{"branch":null}`, http.StatusOK, `"branch":null`},
+		{"/v1/source-apps/source00001", `{"branch":"develop"}`, http.StatusOK, `"branch":"develop"`},
+		{"/v1/source-apps/source00001", `{"ignoreBotPullRequests":false}`, http.StatusOK, `"ignoreBotPullRequests":false`},
+		{"/v1/source-apps/source00001", `{"ignoredPullRequestAuthors":[]}`, http.StatusOK, `"ignoredPullRequestAuthors":[]`},
+		{"/v1/source-apps/source00001", `{}`, http.StatusBadRequest, ""},
+		{"/v1/source-apps/source00001", `{"branch":"refs/heads/main"}`, http.StatusBadRequest, ""},
+		{"/v1/source-apps/source00001", `{"branch":7}`, http.StatusBadRequest, ""},
+		{"/v1/source-apps/source00001", `{"ignoredPullRequestAuthors":["no spaces allowed"]}`, http.StatusBadRequest, ""},
+		{"/v1/source-apps/source00001", `{"provider":"gitlab"}`, http.StatusBadRequest, ""},
+		{"/v1/source-apps/source99999", `{"branch":"main"}`, http.StatusNotFound, ""},
+		{"/v1/source-apps/x", `{"branch":"main"}`, http.StatusBadRequest, ""},
+	} {
+		got := configurationRequest(handler, http.MethodPatch, c.path, c.body)
+		if got.Code != c.want || !strings.Contains(got.Body.String(), c.has) {
+			t.Fatalf("update %s %s status=%d want=%d body=%s", c.path, c.body, got.Code, c.want, got.Body)
+		}
+	}
 }
 
 func TestWorkspaceRoutesRequireSessionAndRecheckUpdates(t *testing.T) {
@@ -373,5 +437,24 @@ func TestWorkspaceRoutesRequireSessionAndRecheckUpdates(t *testing.T) {
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusUnauthorized {
 		t.Fatalf("missing service token status=%d", response.Code)
+	}
+}
+
+type choosingConfiguration struct{ fakeConfiguration }
+
+func (choosingConfiguration) CompleteGitHubInstall(context.Context, product.Actor, string, string, int64) (*product.GitHubInstallationLink, error) {
+	return nil, &product.GitHubChoiceRequiredError{Choices: []githubapp.Installation{{ID: 7, AccountLogin: "acme", AccountType: "Organization"}}}
+}
+
+func TestGitHubCompletionAsksForAChoice(t *testing.T) {
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", &choosingConfiguration{})
+	response := configurationRequest(handler, http.MethodPost, "/v1/github/connections/complete", `{"code":"c","installationId":0,"state":"s"}`)
+	var body struct {
+		Choices []githubapp.Installation `json:"choices"`
+		Code    string                   `json:"code"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil || response.Code != http.StatusConflict ||
+		body.Code != "github_installation_choice_required" || len(body.Choices) != 1 || body.Choices[0].AccountLogin != "acme" {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
 }

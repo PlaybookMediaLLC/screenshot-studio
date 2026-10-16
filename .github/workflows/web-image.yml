@@ -141,14 +141,18 @@ jobs:
           set -euo pipefail
           umask 077
           test -n "$APP_ID"
-          head_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
-          if test "$head_sha" != "$GITHUB_SHA"; then
-            echo "Skipped: main is at $head_sha, whose own run deploys it." >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
           work="$(mktemp -d)"
           trap 'rm -rf "$work"' EXIT
           doctl apps get "$APP_ID" -o json > "$work/before.json"
+          # Skip only when production already runs a newer commit; commits that
+          # touch no web path never run this workflow.
+          live="$(jq -r '.[0].spec.services[] | select(.name == "web") | .image.tag // ""' "$work/before.json")"
+          live_sha="${live#web-}"
+          if test -n "$live_sha" && test "$live_sha" != "$GITHUB_SHA" &&
+            test "$(gh api "repos/$GITHUB_REPOSITORY/compare/$GITHUB_SHA...$live_sha" --jq .status 2>/dev/null)" = ahead; then
+            echo "Skipped: production already runs $live, which is newer." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           python3 infra/digitalocean/update-web-image.py \
             --base "$work/before.json" --tag "web-$GITHUB_SHA" \
             --from-infisical-env --output "$work/spec.json"

@@ -25,6 +25,13 @@ const SUPPORTED_CONTENT_TYPES = new Set([
   'image/webp',
   'video/mp4',
   'video/webm',
+  // Audio for design timelines.
+  'audio/aac',
+  'audio/mp4',
+  'audio/mpeg',
+  'audio/ogg',
+  'audio/wav',
+  'audio/webm',
 ])
 
 /** Mirrors the server-side ceiling so oversized files fail before upload. */

@@ -96,7 +96,9 @@ func validAssetUpload(input AssetUploadInput) bool {
 		return false
 	}
 	switch input.ContentType {
-	case "image/gif", "image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm":
+	case "image/gif", "image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm",
+		// Audio for design timelines (music, voice-over).
+		"audio/aac", "audio/mp4", "audio/mpeg", "audio/ogg", "audio/wav", "audio/webm":
 		return true
 	default:
 		return false

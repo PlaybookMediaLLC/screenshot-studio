@@ -4,7 +4,10 @@ import { assetClassifications } from './object-key'
 const contentTypeSchema = z
   .string()
   .trim()
-  .regex(/^(image\/(gif|jpeg|png|webp)|video\/(mp4|webm))$/, 'Unsupported media type.')
+  .regex(
+    /^(image\/(gif|jpeg|png|webp)|video\/(mp4|webm)|audio\/(aac|mp4|mpeg|ogg|wav|webm))$/,
+    'Unsupported media type.'
+  )
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/i, 'SHA-256 must be hexadecimal.')
 const assetIdSchema = z.string().uuid()

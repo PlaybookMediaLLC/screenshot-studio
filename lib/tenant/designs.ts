@@ -2,7 +2,7 @@ import 'server-only'
 
 import { backendSDK, orNull, withDates } from '@/lib/backend/sdk'
 import type { TenantContext } from '@/lib/auth/access'
-import { type DesignDocument, designDocumentSchema } from '@/lib/design/document'
+import { type DesignDocument, parseDesignDocument } from '@/lib/design/document'
 
 export class DesignError extends Error {
   constructor(
@@ -33,7 +33,7 @@ export async function createDesign(
     variantLabel?: string
   }
 ) {
-  const document = designDocumentSchema.parse(input.document)
+  const document = parseDesignDocument(input.document)
   const design = withDates(
     await backendSDK(context).createDesign({
       ...input,
@@ -46,7 +46,7 @@ export async function createDesign(
 
 export async function getDesign(context: TenantContext, designId: string) {
   const design = withDates(await orNull(backendSDK(context).getDesign(designId)))
-  return design ? { ...design, document: designDocumentSchema.parse(design.document) } : null
+  return design ? { ...design, document: parseDesignDocument(design.document) } : null
 }
 
 export async function updateDesignDocument(

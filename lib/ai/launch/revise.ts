@@ -9,7 +9,7 @@ import { backendSDK } from '@/lib/backend/sdk'
 import {
   definedChanges,
   designChangesSchema,
-  designDocumentSchema,
+  parseDesignDocument,
   patchDesignDocument,
 } from '@/lib/design/document'
 import { findCitationIssues } from '@/lib/launch/citations'
@@ -299,7 +299,7 @@ export async function proposeCampaignRevision(
       (entry) => entry.id === target.designId
     )
     if (!design) throw new LaunchError('Design not found.', 404)
-    const document = designDocumentSchema.parse(design.document)
+    const document = parseDesignDocument(design.document)
     const spec = await getWorkingSpec(tenant, release.id)
     const content: ModelMessage['content'] = [
       {

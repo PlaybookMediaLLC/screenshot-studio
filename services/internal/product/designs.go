@@ -20,7 +20,8 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-var designBuiltinPath = regexp.MustCompile(`^/[\w./-]+$`)
+// Built-in media: an app path, or a media-library path such as backgrounds/x.webp.
+var designBuiltinPath = regexp.MustCompile(`^/[\w./-]+$|^[\w-]+(/[\w.-]+)+$`)
 
 type CreateDesignInput struct {
 	CampaignID     *string        `json:"campaignId"`
@@ -96,8 +97,48 @@ func designSource(value any, ids map[string]bool) bool {
 	return designBuiltinPath.MatchString(ref) && !strings.Contains(ref, "..")
 }
 
+// designDocumentVersions are the design document versions the backend stores.
+var designDocumentVersions = map[float64]bool{1: true, 2: true}
+
+var designAssetRef = regexp.MustCompile(`^asset:[0-9a-fA-F-]{36}$`)
+
+// collectDesignAssetIDs adds every asset reference anywhere in a document
+// value: sections such as slides and timelines may hold images too.
+func collectDesignAssetIDs(value any, ids map[string]bool) bool {
+	switch typed := value.(type) {
+	case string:
+		if strings.HasPrefix(typed, "blob:") {
+			return false
+		}
+		if designAssetRef.MatchString(typed) {
+			id := strings.TrimPrefix(typed, "asset:")
+			if _, err := uuid.Parse(id); err != nil {
+				return false
+			}
+			ids[id] = true
+		}
+	case []any:
+		for _, item := range typed {
+			if !collectDesignAssetIDs(item, ids) {
+				return false
+			}
+		}
+	case map[string]any:
+		for _, item := range typed {
+			if !collectDesignAssetIDs(item, ids) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func designAssetIDs(document map[string]any) ([]string, error) {
-	if document == nil || (document["version"] != float64(1) && document["version"] != 1) {
+	version, _ := document["version"].(float64)
+	if intVersion, ok := document["version"].(int); ok {
+		version = float64(intVersion)
+	}
+	if document == nil || !designDocumentVersions[version] {
 		return nil, ErrInvalidInput
 	}
 	image, ok := document["image"].(map[string]any)
@@ -113,17 +154,20 @@ func designAssetIDs(document map[string]any) ([]string, error) {
 			return nil, ErrInvalidInput
 		}
 	}
-	if devices, ok := document["devices"].(map[string]any); ok {
-		if mockups, ok := devices["mockups"].([]any); ok {
-			for _, value := range mockups {
-				mockup, ok := value.(map[string]any)
-				if !ok {
-					return nil, ErrInvalidInput
-				}
-				screen, ok := mockup["screen"].(map[string]any)
-				if ok && !designSource(screen["src"], ids) {
-					return nil, ErrInvalidInput
-				}
+	for _, path := range [][2]string{{"devices", "mockups"}, {"slides", "items"}} {
+		section, _ := document[path[0]].(map[string]any)
+		items, _ := section[path[1]].([]any)
+		for _, value := range items {
+			item, ok := value.(map[string]any)
+			if !ok {
+				return nil, ErrInvalidInput
+			}
+			src := item["src"]
+			if screen, ok := item["screen"].(map[string]any); ok {
+				src = screen["src"]
+			}
+			if !designSource(src, ids) {
+				return nil, ErrInvalidInput
 			}
 		}
 	}
@@ -134,6 +178,10 @@ func designAssetIDs(document map[string]any) ([]string, error) {
 				return nil, ErrInvalidInput
 			}
 		}
+	}
+	// Later sections may hold images too; every asset reference is checked.
+	if !collectDesignAssetIDs(document, ids) {
+		return nil, ErrInvalidInput
 	}
 	result := make([]string, 0, len(ids))
 	for id := range ids {

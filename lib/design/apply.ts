@@ -13,6 +13,7 @@ import {
 } from './document'
 import { exportDesignDocument } from './export'
 import { resolveEditorTemplate } from './templates'
+import { resetPlayback } from '@/lib/store/playback'
 
 /**
  * Write designs and design changes into the editor stores.
@@ -91,7 +92,9 @@ function inHistory(mode: DesignHistoryMode, write: () => void) {
 function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
   const image = useImageStore.getState()
 
-  if (changes.image?.src) image.setUploadedImageUrl(resolve(changes.image.src), 'design')
+  if (changes.image?.src) {
+    image.setUploadedImageUrl(resolve(changes.image.src), changes.image.name ?? 'design')
+  }
   const mainSrc = useImageStore.getState().uploadedImageUrl
 
   const template = resolveEditorTemplate(changes.template)
@@ -99,7 +102,9 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
     image.applyVisualPreset(template.preset, { clearAnimation: true, scene: template.scene })
   }
 
-  if (changes.canvas?.aspectRatio) {
+  if (changes.canvas?.aspectRatio === 'custom' && changes.canvas.size) {
+    useImageStore.setState({ customDimensions: { ...changes.canvas.size }, selectedAspectRatio: 'custom' })
+  } else if (changes.canvas?.aspectRatio && changes.canvas.aspectRatio !== 'custom') {
     useImageStore.setState({ selectedAspectRatio: changes.canvas.aspectRatio })
   }
   if (changes.canvas?.padding !== undefined) image.setCanvasPadding(changes.canvas.padding)
@@ -111,7 +116,7 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
       backgroundConfig: {
         opacity,
         type,
-        value: value.startsWith('asset:') ? resolve(value) : value,
+        value: type === 'image' ? resolve(value) : value,
       },
       backgroundNoise: noise,
       ...(radius !== undefined ? { backgroundBorderRadius: radius } : {}),
@@ -162,16 +167,25 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
 
   if (changes.devices?.mockups.length) {
     useImageStore.setState({
-      activeDeviceLayoutId: null,
+      activeDeviceLayoutId: (changes.devices.layoutId as DeviceLayoutId | undefined) ?? null,
       deviceLayoutSnapshot: null,
       mockups: changes.devices.mockups.map((device, index) => {
+        const custom = Boolean(device.screen.src)
         const screenSrc = device.screen.src ? resolve(device.screen.src) : mainSrc
+        const screen = createDeviceScreen(screenSrc, device.screen.name ?? 'design', custom)
         return {
-          ...createMockup(device.definitionId, createDeviceScreen(screenSrc, 'design'), index),
+          ...createMockup(device.definitionId, screen, index),
+          ...(device.id ? { id: device.id } : {}),
+          isVisible: device.visible ?? true,
           opacity: device.opacity,
           position: { ...device.position },
           rotation: device.rotation,
-          screen: { ...createDeviceScreen(screenSrc, 'design'), fit: device.screen.fit },
+          screen: {
+            ...screen,
+            fit: device.screen.fit,
+            offset: device.screen.offset ? { ...device.screen.offset } : screen.offset,
+            scale: device.screen.scale ?? screen.scale,
+          },
           size: device.size,
         }
       }),
@@ -183,9 +197,27 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
   }
   if (changes.mode) useImageStore.setState({ editorMode: changes.mode })
 
-  if (changes.animation) {
+  if (changes.timeline) {
+    const { clips, duration, isLooping, tracks } = changes.timeline
+    useImageStore.setState((state) => ({
+      animationClips: clips.map((clip) => ({ ...clip })),
+      timeline: { ...state.timeline, duration, isLooping, tracks: structuredClone(tracks) },
+    }))
+    resetPlayback()
+  } else if (changes.animation) {
     useImageStore.getState().applyAnimationPreset(changes.animation.presetId)
     useImageStore.setState({ showTimeline: false })
+  }
+
+  if (changes.slides) {
+    const { activeId, animation, defaultDuration, enabled, items } = changes.slides
+    const slides = items.map((slide) => ({ ...slide, src: resolve(slide.src) }))
+    const active = slides.find((slide) => slide.id === activeId) ?? slides[0]
+    useImageStore.setState({
+      activeSlideId: active?.id ?? null,
+      slides,
+      slideshow: { animation, defaultDuration, enabled },
+    })
   }
 }
 
@@ -202,9 +234,12 @@ function writeLayout(changes: DesignSections, resolve: ResolveDesignSource, canv
     ...(changes.annotations
       ? {
           annotations: changes.annotations.map((shape, index) => ({
+            ...(shape.control
+              ? { cx: shape.control.x * canvasW, cy: shape.control.y * canvasH }
+              : {}),
             fillColor: shape.fillColor,
-            id: newId('annotation', index),
-            isVisible: true,
+            id: shape.id ?? newId('annotation', index),
+            isVisible: shape.visible ?? true,
             opacity: shape.opacity,
             strokeColor: shape.strokeColor,
             strokeWidth: shape.strokeWidth,
@@ -220,8 +255,8 @@ function writeLayout(changes: DesignSections, resolve: ResolveDesignSource, canv
       ? {
           blurRegions: changes.redactions.map((region, index) => ({
             blurAmount: region.amount,
-            id: newId('blur', index),
-            isVisible: true,
+            id: region.id ?? newId('blur', index),
+            isVisible: region.visible ?? true,
             position: { x: region.position.x * canvasW, y: region.position.y * canvasH },
             size: { height: region.size.height * canvasH, width: region.size.width * canvasW },
             style: region.style,
@@ -230,23 +265,31 @@ function writeLayout(changes: DesignSections, resolve: ResolveDesignSource, canv
       : {}),
     ...(changes.overlays
       ? {
-          // Template light/shadow overlays belong to the template, not the list.
+          // Template light/shadow overlays belong to the template, not the list,
+          // unless the document carries them itself (a lossless export does).
           imageOverlays: [
-            ...state.imageOverlays.filter((overlay) =>
-              overlay.id.startsWith(TEMPLATE_SHADOW_PREFIX)
-            ),
+            ...(changes.overlays.some((overlay) => overlay.role === 'template-light')
+              ? []
+              : state.imageOverlays.filter((overlay) => overlay.id.startsWith(TEMPLATE_SHADOW_PREFIX))),
             ...changes.overlays.map((overlay, index) => ({
+              ...(overlay.blur !== undefined ? { blur: overlay.blur } : {}),
+              ...(overlay.radius !== undefined ? { radius: overlay.radius } : {}),
+              ...(overlay.shadow ? { shadow: overlay.shadow } : {}),
+              ...(overlay.tilt ? { tilt: { ...overlay.tilt } } : {}),
               flipX: overlay.flipX,
               flipY: overlay.flipY,
-              id: newId('overlay', index),
-              isCustom: overlay.src.startsWith('asset:'),
-              isVisible: true,
+              id:
+                overlay.role === 'template-light'
+                  ? newId(TEMPLATE_SHADOW_PREFIX.slice(0, -1), index)
+                  : (overlay.id ?? newId('overlay', index)),
+              isCustom: overlay.src.startsWith('asset:') || /^(blob|data):/.test(overlay.src),
+              isVisible: overlay.visible ?? true,
               layer: overlay.layer,
               opacity: overlay.opacity,
               position: { x: overlay.position.x * canvasW, y: overlay.position.y * canvasH },
               rotation: overlay.rotation,
               size: overlay.size * canvasW,
-              src: overlay.src.startsWith('asset:') ? resolve(overlay.src) : overlay.src,
+              src: resolve(overlay.src),
             })),
           ],
         }
@@ -258,8 +301,8 @@ function writeLayout(changes: DesignSections, resolve: ResolveDesignSource, canv
             fontFamily: text.fontFamily,
             fontSize: Math.round(text.fontSize * canvasW),
             fontWeight: text.fontWeight,
-            id: newId('text', index),
-            isVisible: true,
+            id: text.id ?? newId('text', index),
+            isVisible: text.visible ?? true,
             opacity: text.opacity,
             orientation: text.orientation,
             position: { ...text.position },

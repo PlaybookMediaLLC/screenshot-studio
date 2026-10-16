@@ -13,7 +13,7 @@ import {
   type DesignChanges,
   type DesignDocument,
   definedChanges,
-  designDocumentSchema,
+  parseDesignDocument,
   patchDesignDocument,
 } from '@/lib/design/document'
 import { type BrandKitValues, parseBrandKit } from './brand'
@@ -359,7 +359,7 @@ export async function applyRevision(
       const design = await orNull(backend.getDesign(change.targetId))
       if (!design) throw new LaunchError('Design not found.', 404)
       designDocuments[design.id] = patchDesignDocument(
-        designDocumentSchema.parse(design.document),
+        parseDesignDocument(design.document),
         definedChanges((change.after as { changes: DesignChanges }).changes)
       )
     }

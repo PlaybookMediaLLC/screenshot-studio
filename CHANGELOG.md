@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.3.0...v2.4.0) (2026-10-16)
+
+
+### Features
+
+* paste a URL, get seven launch posts ([#131](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/131)) ([0e4c5fc](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/0e4c5fc5309abd31eecf7b8881e969a0af72b40a))
+
 ## [2.3.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.2.0...v2.3.0) (2026-10-16)
 
 

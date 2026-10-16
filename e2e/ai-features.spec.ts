@@ -76,6 +76,8 @@ test('copilot versions compare before applying; captions and alt text are writte
   await versions.getByRole('button', { name: 'Inspect Tilted square' }).click()
   await inspect.getByRole('button', { name: 'Apply this version' }).click()
   await expect(page.getByText('1:1', { exact: true }).first()).toBeVisible()
+  // Shortcuts are ignored inside dialogs: undo once the inspector has fully closed.
+  await expect(page.locator('[role="dialog"]')).toHaveCount(0)
   await page.keyboard.press('ControlOrMeta+z')
   await expect(page.getByText('4:3', { exact: true }).first()).toBeVisible()
 
@@ -105,11 +107,7 @@ test('an AI background in the screenshot palette applies as an image background 
   await dropScreenshot(page)
   const before = await exportCorner(page)
 
-  await page
-    .getByRole('radio', { name: 'BG' })
-    .or(page.getByRole('tab', { name: 'BG' }))
-    .first()
-    .click()
+  await page.getByRole('button', { exact: true, name: 'BG' }).click()
   await page.getByRole('button', { name: 'AI background' }).click()
   await page.getByLabel('Describe the background').fill('Warm glow behind the product')
   await page.getByRole('radio', { name: 'From screenshot' }).click()

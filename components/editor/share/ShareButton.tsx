@@ -1,23 +1,28 @@
 'use client'
 
-import * as React from 'react'
 import { Share08Icon } from 'hugeicons-react'
 import { useHydratedSession } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
 import { ShareDialog } from './ShareDialog'
 
-/** The editor's Share button: publish the design at a link (signed-in workspaces only). */
+/**
+ * The editor's Share button: publish the design at a link (signed-in
+ * workspaces only). Controlled, so the export menu's Embed entry opens it too.
+ */
 export function ShareButton({
   compact = false,
   disabled,
+  onOpenChange: setOpen,
+  open,
   render,
 }: {
   compact?: boolean
   disabled: boolean
+  onOpenChange: (open: boolean) => void
+  open: boolean
   render: () => Promise<Blob>
 }) {
   const { data: session, isPending } = useHydratedSession()
-  const [open, setOpen] = React.useState(false)
   if (isPending || !session) return null
   return (
     <>

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.4.0...v2.5.0) (2026-10-16)
+
+
+### Features
+
+* agent tool runtime, run traces, and conversations (Phase 2A) ([#133](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/133)) ([39025b5](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/39025b5bae97869091719f4840080f19c39b25cf))
+
 ## [2.4.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.3.0...v2.4.0) (2026-10-16)
 
 

@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight01Icon } from "hugeicons-react";
+import {
+  ArrowRight01Icon,
+  ArrowShrinkIcon,
+  CropIcon,
+  EraserIcon,
+  Image02Icon,
+  RepeatIcon,
+} from "hugeicons-react";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { CODE_THEME_SOURCES } from "@/components/code-image/code-themes-data";
 import { gradientColors } from "@/lib/constants/gradient-colors";
 import { SectionTitle } from "@/components/tools/ToolLayout";
-import { CARD_CLASS } from "@/components/tools/ui";
+import { CARD_CLASS, WindowDots } from "@/components/tools/ui";
 import { CHANGELOG } from "@/lib/seo/changelog";
 import { HOW_TO_UPDATED, formatGuideDate, guideShortTitle, guides } from "@/lib/seo/guides";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
@@ -74,36 +81,31 @@ const CODE_LINES: [string, string | undefined][][] = [
 
 const STORE_HEADLINES = ["Plan your week", "Stay on track", "Share progress"];
 
-function WindowDots(): React.JSX.Element {
-  return (
-    <div className="flex gap-1.5">
-      <span className="size-2 rounded-full bg-[#ff5f57]" />
-      <span className="size-2 rounded-full bg-[#febc2e]" />
-      <span className="size-2 rounded-full bg-[#28c840]" />
-    </div>
-  );
-}
-
 function ScreenshotPreview(): React.JSX.Element {
   return (
     <div
-      className="flex h-full items-center justify-center [perspective:1200px]"
+      className="relative flex h-full items-center justify-center px-8 py-10 [perspective:1200px]"
       style={{ background: gradientColors.orange_pink_dark }}
     >
-      <div className="w-[70%] max-w-[300px] overflow-hidden rounded-lg bg-white shadow-[0_30px_60px_-20px_rgba(0,0,0,0.55)] transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] [transform:rotateX(12deg)_rotateY(-18deg)_rotateZ(3deg)] group-hover:[transform:none] motion-reduce:transition-none">
+      <div className="w-full max-w-[350px] scale-[0.78] overflow-hidden rounded-lg bg-[#fffdf8] shadow-[0_30px_60px_-20px_rgba(0,0,0,0.55)] transition-transform duration-500 ease-out [transform:rotateX(8deg)_rotateY(-12deg)_rotateZ(-3deg)] sm:scale-[0.78] md:scale-90 lg:scale-100 motion-safe:group-hover:[transform:rotateX(0deg)_rotateY(0deg)_rotateZ(0deg)] motion-reduce:transition-none">
         <div className="flex items-center gap-3 border-b border-black/[0.06] bg-neutral-100 px-3 py-2">
           <WindowDots />
-          <span className="h-3 flex-1 rounded bg-black/[0.06]" />
+          <span className="flex-1 rounded bg-black/[0.04] py-0.5 text-center text-[8px] text-neutral-500">
+            your-next-idea.design
+          </span>
         </div>
-        <div className="space-y-2 p-4">
-          <div className="h-2 w-12 rounded-full bg-neutral-300" />
-          <div className="h-3 w-4/5 rounded bg-neutral-800" />
-          <div className="h-3 w-1/2 rounded bg-neutral-800" />
-          <div className="h-4 w-16 rounded bg-neutral-900" />
-          <div className="grid grid-cols-3 gap-2 pt-1">
-            <div className="aspect-video rounded bg-neutral-100" />
-            <div className="aspect-video rounded bg-neutral-100" />
-            <div className="aspect-video rounded bg-neutral-100" />
+        <div className="p-4 sm:p-6">
+          <div className="flex items-center justify-between text-[8px] font-medium text-neutral-500">
+            <span className="tracking-[0.18em] text-neutral-900">STUDIO NOTES</span>
+            <span>Ideas / Work / About</span>
+          </div>
+          <p className="mt-4 text-[clamp(16px,4.5vw,30px)] font-semibold leading-[1.05] tracking-[-0.05em] text-neutral-900">
+            Small ideas.<br />Beautiful beginnings.
+          </p>
+          <div className="mt-4 flex items-end gap-2">
+            <div className="h-9 flex-1 rounded bg-[#f1bda0] sm:h-12" />
+            <div className="h-12 flex-1 rounded bg-[#c2c9ad] sm:h-16" />
+            <div className="h-7 flex-1 rounded bg-[#ddd5eb] sm:h-10" />
           </div>
         </div>
       </div>
@@ -114,12 +116,12 @@ function ScreenshotPreview(): React.JSX.Element {
 function CodePreview(): React.JSX.Element {
   return (
     <div
-      className="flex h-full items-center justify-center p-6"
+      className="flex h-full items-center justify-center px-3"
       style={{
         background: `linear-gradient(140deg, ${CODE_THEME.from}, ${CODE_THEME.to})`,
       }}
     >
-      <div className="rounded-lg bg-black/75 p-4 pr-6 shadow-[0_24px_48px_-16px_rgba(0,0,0,0.6)] ring-1 ring-white/10 transition-transform duration-500 ease-out group-hover:-translate-y-1 motion-reduce:transition-none">
+      <div className="shrink-0 scale-[0.3] rounded-lg bg-black/75 p-4 pr-6 shadow-[0_24px_48px_-16px_rgba(0,0,0,0.6)] ring-1 ring-white/10 transition-transform duration-300 ease-out sm:scale-[0.58] md:scale-[0.72] lg:scale-100 motion-safe:group-hover:-translate-y-1 motion-reduce:transition-none">
         <WindowDots />
         <pre className="mt-3 font-[family-name:var(--font-geist-mono)] text-[11px] leading-[18px]">
           {CODE_LINES.map((line, lineIndex) => (
@@ -146,11 +148,11 @@ function CodePreview(): React.JSX.Element {
 function TweetPreview(): React.JSX.Element {
   return (
     <div
-      className="flex h-full items-center justify-center p-6"
+      className="flex h-full items-center justify-center px-3"
       style={{ background: "linear-gradient(140deg, #8ec5fc, #4f46e5)" }}
     >
       <div
-        className="w-[78%] max-w-[300px] rounded-xl bg-white p-4 shadow-[0_24px_48px_-16px_rgba(0,0,0,0.45)] transition-transform duration-500 ease-out group-hover:-translate-y-1 motion-reduce:transition-none"
+        className="w-[280px] shrink-0 scale-[0.3] rounded-xl bg-white p-4 shadow-[0_24px_48px_-16px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out sm:scale-[0.55] md:scale-[0.7] lg:scale-[0.9] motion-safe:group-hover:-translate-y-1 motion-reduce:transition-none"
         style={{ fontFamily: INTER }}
       >
         <div className="flex items-center gap-2.5">
@@ -180,17 +182,17 @@ function TweetPreview(): React.JSX.Element {
 function StorePreview(): React.JSX.Element {
   return (
     <div
-      className="flex h-full items-end justify-center gap-3 overflow-hidden px-6"
+      className="flex h-full items-center justify-center gap-2 overflow-hidden px-3 sm:items-end sm:gap-3 sm:pt-6"
       style={{ background: gradientColors.store_raycast }}
     >
       {STORE_HEADLINES.map((headline, index) => (
         <div
           key={headline}
           className={cn(
-            "-mb-6 flex w-[72px] flex-col items-center gap-2 transition-transform duration-500 ease-out motion-reduce:transition-none",
+            "-mb-6 flex w-[54px] shrink-0 flex-col items-center gap-2 transition-transform duration-300 ease-out sm:w-[64px] lg:w-[72px] motion-reduce:transition-none",
             index === 1
-              ? "-translate-y-3 group-hover:-translate-y-5"
-              : "group-hover:-translate-y-1",
+              ? "-translate-y-3 motion-safe:group-hover:-translate-y-5"
+              : "motion-safe:group-hover:-translate-y-1",
           )}
         >
           <p className="text-center text-[9px] font-semibold leading-tight text-white">
@@ -212,91 +214,36 @@ function StorePreview(): React.JSX.Element {
   );
 }
 
-function FileChip({
-  name,
-  size,
-  sizeClassName,
-}: {
-  name: string;
-  size: string;
-  sizeClassName: string;
-}): React.JSX.Element {
-  return (
-    <div className="flex items-center gap-2.5 rounded-lg bg-white p-2 pr-3.5 shadow-[0_16px_32px_-12px_rgba(0,0,0,0.5)]">
-      <div
-        className="size-9 shrink-0 rounded-md"
-        style={{ background: gradientColors.peach_pink_purple }}
-      />
-      <div className="text-[11px] leading-4">
-        <p className="font-medium text-neutral-900">{name}</p>
-        <p className={sizeClassName}>{size}</p>
-      </div>
-    </div>
-  );
-}
-
-function ImageToolsPreview(): React.JSX.Element {
-  return (
-    <div
-      className="flex h-full items-center justify-center gap-2 px-4"
-      style={{ background: gradientColors.store_ocean }}
-    >
-      <FileChip name="photo.png" size="2.4 MB" sizeClassName="text-neutral-500" />
-      <ArrowRight01Icon
-        size={18}
-        className="shrink-0 text-white transition-transform duration-500 ease-out group-hover:translate-x-0.5 motion-reduce:transition-none"
-        aria-hidden="true"
-      />
-      <FileChip
-        name="photo.webp"
-        size="380 KB"
-        sizeClassName="font-medium text-emerald-600"
-      />
-    </div>
-  );
-}
-
 const CHOICES = [
   {
-    href: "/editor",
-    title: "Edit a screenshot",
-    description:
-      "Add a background, a browser or device frame, and shadows. Save it as an image or a video.",
-    action: "Open editor",
-    preview: <ScreenshotPreview />,
-  },
-  {
     href: "/code",
-    title: "Turn code into an image",
-    description:
-      "Paste your code, pick a color theme, and download a clean image to share.",
-    action: "Open editor",
+    title: "Code to image",
+    description: "Give your next snippet a theme worth sharing.",
+    action: "Create a code image",
     preview: <CodePreview />,
   },
   {
     href: "/tweet",
-    title: "Turn a post into an image",
-    description:
-      "Paste a link to a post on X, pick light or dark, and download a clean image.",
-    action: "Open editor",
+    title: "Post to image",
+    description: "Turn a link from X into a clean, shareable card.",
+    action: "Create a post image",
     preview: <TweetPreview />,
   },
   {
     href: "/store-screenshots",
-    title: "Make App Store screenshots",
-    description:
-      "Put your app screens in phone frames with short headlines, sized for the App Store.",
-    action: "Open editor",
+    title: "App Store screenshots",
+    description: "Phone frames and layouts for your app.",
+    action: "Design your listing",
     preview: <StorePreview />,
   },
-  {
-    href: TOOLS_HUB_PATH,
-    title: "Quick image fixes",
-    description:
-      "Make images smaller, change the format, resize, crop, or remove the background.",
-    action: "See all tools",
-    preview: <ImageToolsPreview />,
-  },
+];
+
+const QUICK_TOOLS = [
+  { href: "/compress-image", label: "Compress", icon: ArrowShrinkIcon },
+  { href: "/convert-image", label: "Convert", icon: RepeatIcon },
+  { href: "/resize-image", label: "Resize", icon: Image02Icon },
+  { href: "/crop-image", label: "Crop", icon: CropIcon },
+  { href: "/remove-background", label: "Remove background", icon: EraserIcon },
 ];
 
 const IMAGE_HANDLING = [
@@ -324,66 +271,137 @@ export default function StartPage() {
     <div className="flex min-h-screen flex-col bg-background">
       <Navigation />
 
-      <main className="flex-1 px-6 pb-20 pt-16 sm:pt-20">
-        <div className="mx-auto max-w-5xl">
-          <div className="text-center">
-            <h1
-              className="text-4xl font-semibold tracking-[-0.035em] text-foreground sm:text-5xl"
-              style={{ fontFamily: INTER }}
-            >
-              What do you want to make?
-            </h1>
-            <p className="mt-3 text-base text-muted-foreground sm:text-lg">
-              Pick one to get started. Everything is free and works right in
-              your browser.
-            </p>
-          </div>
-
-          <div className="mt-12 grid gap-4 sm:grid-cols-2">
-            {CHOICES.map((choice) => (
-              <Link
-                key={choice.href}
-                href={choice.href}
-                className="group flex flex-col overflow-hidden rounded-2xl first:sm:col-span-2 bg-card ring-1 ring-inset ring-border shadow-[var(--card-highlight-shadow)] transition-shadow duration-200 hover:ring-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/70"
+      <main className="flex-1 px-4 pb-20 pt-8 sm:px-6 sm:pt-10">
+        <div className="mx-auto max-w-6xl">
+          <section aria-labelledby="create-heading">
+            <div className="text-center">
+              <h1
+                id="create-heading"
+                className="text-[32px] font-semibold leading-[1.15] tracking-[-0.035em] text-foreground sm:text-5xl"
+                style={{ fontFamily: INTER }}
               >
-                <div
-                  aria-hidden="true"
-                  className="m-2 mb-0 h-48 overflow-hidden rounded-xl sm:h-56"
-                >
-                  {choice.preview}
-                </div>
-                <div className="flex flex-1 flex-col p-5 pt-4">
-                  <h2
-                    className="text-lg font-semibold tracking-[-0.02em] text-foreground"
-                    style={{ fontFamily: INTER }}
-                  >
-                    {choice.title}
-                  </h2>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                    {choice.description}
-                  </p>
-                  <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-foreground">
-                    {choice.action}
-                    <ArrowRight01Icon
-                      size={16}
-                      className="transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none"
-                      aria-hidden="true"
-                    />
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
+                What will you create?
+              </h1>
+              <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground sm:max-w-none sm:text-base">
+                Pick a starting point. Free, no signup, no watermarks.
+              </p>
+            </div>
 
-          <p className="mt-10 text-center text-sm text-muted-foreground">
-            New to Screenshot Studio?{" "}
             <Link
-              href="/landing"
-              className="text-foreground underline underline-offset-4"
+              href="/editor"
+              aria-labelledby="screenshot-title screenshot-action"
+              className={cn(
+                CARD_CLASS,
+                "group mt-7 grid overflow-hidden p-2 transition-shadow duration-200 hover:ring-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/70 sm:mt-8 md:grid-cols-2 motion-reduce:transition-none",
+              )}
             >
-              See how it works
+              <div
+                aria-hidden="true"
+                className="h-48 overflow-hidden rounded-xl sm:h-56 md:order-2 md:h-72"
+              >
+                <ScreenshotPreview />
+              </div>
+              <div className="flex flex-col items-start justify-center px-4 py-5 sm:p-6 lg:p-8">
+                <h2
+                  id="screenshot-title"
+                  className="text-2xl font-semibold leading-tight tracking-[-0.035em] text-foreground sm:text-3xl lg:text-[34px]"
+                  style={{ fontFamily: INTER }}
+                >
+                  Edit a screenshot
+                </h2>
+                <p className="mt-3 max-w-sm text-sm leading-relaxed text-foreground/70">
+                  Add backgrounds, frames, and shadows. Export a polished image
+                  or bring it to life with video.
+                </p>
+                <span
+                  id="screenshot-action"
+                  className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity group-hover:opacity-85 sm:w-auto motion-reduce:transition-none"
+                >
+                  Open screenshot editor
+                  <ArrowRight01Icon
+                    size={17}
+                    aria-hidden="true"
+                    className="transition-transform duration-200 motion-safe:group-hover:translate-x-1 motion-reduce:transition-none"
+                  />
+                </span>
+              </div>
             </Link>
-          </p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-3 sm:gap-4">
+              {CHOICES.map((choice) => (
+                <Link
+                  key={choice.href}
+                  href={choice.href}
+                  className={cn(
+                    CARD_CLASS,
+                    "group grid min-w-0 grid-cols-[32%_1fr] overflow-hidden p-2 transition-shadow duration-200 hover:ring-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/70 sm:flex sm:flex-col motion-reduce:transition-none",
+                  )}
+                >
+                  <div
+                    aria-hidden="true"
+                    className="h-32 overflow-hidden rounded-lg sm:h-36 sm:rounded-xl lg:h-40"
+                  >
+                    {choice.preview}
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col justify-center px-3 py-2 sm:px-3 sm:pb-3 sm:pt-4 lg:px-4">
+                    <h2
+                      className="text-base font-semibold leading-tight tracking-[-0.02em] text-foreground lg:text-lg"
+                      style={{ fontFamily: INTER }}
+                    >
+                      {choice.title}
+                    </h2>
+                    <p className="mt-1.5 text-xs leading-relaxed text-foreground/70 sm:text-sm">
+                      {choice.description}
+                    </p>
+                    <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-foreground sm:mt-auto sm:pt-4">
+                      {choice.action}
+                      <ArrowRight01Icon
+                        size={16}
+                        className="shrink-0 transition-transform duration-200 motion-safe:group-hover:translate-x-1 motion-reduce:transition-none"
+                        aria-hidden="true"
+                      />
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-border p-4 sm:mt-8 sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                <h2 className="text-sm font-semibold text-foreground">
+                  Just need a quick image fix?
+                </h2>
+                <Link
+                  href={TOOLS_HUB_PATH}
+                  className="inline-flex min-h-11 items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+                >
+                  All image tools <ArrowRight01Icon size={14} aria-hidden="true" />
+                </Link>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {QUICK_TOOLS.map(({ href, label, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="inline-flex min-h-11 flex-auto items-center justify-center gap-2 rounded-lg bg-muted px-3 text-xs font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:text-sm motion-reduce:transition-none"
+                  >
+                    <Icon size={17} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <p className="mt-6 text-center text-xs text-muted-foreground sm:text-sm">
+              A little inspiration?{" "}
+              <Link
+                href="/landing"
+                className="text-foreground underline underline-offset-4"
+              >
+                See how it works
+              </Link>
+            </p>
+          </section>
 
           <div className="mx-auto mt-24 flex max-w-3xl flex-col gap-20">
             <section>

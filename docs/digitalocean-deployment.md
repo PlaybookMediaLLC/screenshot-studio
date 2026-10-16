@@ -9,7 +9,10 @@ test-destination canaries as described in
 
 Production is `screenshot-studio-production` in DigitalOcean's `nyc` region,
 app ID `c525b0ba-b92a-4174-ae91-4ab4d7c92fd2`, at
-<https://shots.oppulence.io>. The local `doctl` context is `solomonai-cluster`.
+<https://shots.playbookmedia.io>. The retired `shots.oppulence.io` stays on the
+app as an alias: its pages redirect, and its API routes still answer for
+webhooks configured with the old host. The local `doctl` context is
+`solomonai-cluster`.
 
 | Component | Source | Readiness | Exposure |
 | --- | --- | --- | --- |

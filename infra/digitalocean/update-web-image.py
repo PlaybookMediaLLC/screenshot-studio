@@ -17,6 +17,11 @@ SERVICES = {"web", "storage", "screenshot-studio-backend"}
 RETIRED_SERVICES = {"design-renderer"}
 RETIRED_WEB_KEYS = {"PLATFORM_RENDER_SERVICE_URL", "PLATFORM_RENDER_SERVICE_SECRET"}
 JOBS = {"platform-migrate", "postiz-migrate"}
+# Self-serve billing (docs/rfcs/035). Each key joins the web once it is in Infisical,
+# so a deploy before Stripe is wired keeps checkout on the contact page.
+STRIPE_SECRET_KEYS = ("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET")
+STRIPE_PRICE_KEYS = ("STRIPE_PRICE_PRO_MONTHLY", "STRIPE_PRICE_PRO_ANNUAL", "STRIPE_PRICE_BUSINESS_MONTHLY",
+                     "STRIPE_PRICE_BUSINESS_ANNUAL", "STRIPE_PRICE_EXTRA_LAUNCH")
 # The web reaches data and storage only through the backend (same list as render-spec.py).
 WEB_DATABASE_KEYS = {"DATABASE_URL", "DIRECT_URL", "MIGRATION_DATABASE_URL", "AUDIT_RETENTION_DATABASE_URL",
                      "STORAGE_SERVICE_KEY", "STORAGE_API_URL", "STORAGE_PROXY_URL", "STORAGE_BUCKET",
@@ -56,6 +61,10 @@ def update_web_image(base, tag, secrets=None):
                       "type": "GENERAL", "scope": "RUN_TIME"},
                      # Filled from Infisical with the other secrets below.
                      {"key": "PLATFORM_RENDER_CDP_TOKEN", "value": "", "type": "SECRET", "scope": "RUN_TIME"}]
+        for key in (key for key in STRIPE_SECRET_KEYS + STRIPE_PRICE_KEYS if secrets.get(key)):
+            web_envs[:] = [item for item in web_envs if item["key"] != key]
+            web_envs.append({"key": key, "value": secrets[key], "scope": "RUN_TIME",
+                             "type": "SECRET" if key in STRIPE_SECRET_KEYS else "GENERAL"})
     source = next((item for item in web_envs if item["key"] == "CLIENT_IP_SOURCE"), None)
     if source is None:
         web_envs.append({"key": "CLIENT_IP_SOURCE", "value": "digitalocean",

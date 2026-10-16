@@ -51,6 +51,22 @@ class UpdateWebImageTest(unittest.TestCase):
         self.assertEqual(result["domains"], self.base["spec"]["domains"])
         self.assertEqual(self.base["spec"]["services"][0]["image"]["digest"], "sha256:" + "a" * 64)
 
+    def test_adds_stripe_billing_once_infisical_has_it(self):
+        tag = "web-" + "b" * 40
+        base = {"REDIS_URL": "runtime-redis", "PLATFORM_RENDER_CDP_URL": "wss://render.example/devtools",
+                "PLATFORM_RENDER_CDP_TOKEN": "cdp-token"}
+        without = module.update_web_image(self.base, tag, base)
+        self.assertFalse({item["key"] for item in without["services"][0]["envs"]} & set(module.STRIPE_PRICE_KEYS))
+        stripe = {"STRIPE_SECRET_KEY": "sk", "STRIPE_WEBHOOK_SECRET": "whsec", "STRIPE_PRICE_PRO_MONTHLY": "price_pro"}
+        result = module.update_web_image(self.base, tag, {**base, **stripe})
+        envs = {item["key"]: item for item in result["services"][0]["envs"]}
+        self.assertEqual((envs["STRIPE_SECRET_KEY"]["type"], envs["STRIPE_SECRET_KEY"]["value"]), ("SECRET", "sk"))
+        self.assertEqual((envs["STRIPE_WEBHOOK_SECRET"]["type"], envs["STRIPE_WEBHOOK_SECRET"]["value"]), ("SECRET", "whsec"))
+        self.assertEqual((envs["STRIPE_PRICE_PRO_MONTHLY"]["type"], envs["STRIPE_PRICE_PRO_MONTHLY"]["value"]),
+                         ("GENERAL", "price_pro"))
+        again = module.update_web_image(result, tag, {**base, **stripe})
+        self.assertEqual(len(again["services"][0]["envs"]), len({item["key"] for item in again["services"][0]["envs"]}))
+
     def test_rejects_unexpected_topology_and_missing_secret(self):
         tag = "web-" + "b" * 40
         with self.assertRaisesRegex(ValueError, "Missing Infisical"):

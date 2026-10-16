@@ -84,6 +84,7 @@ type ConfigurationStore interface {
 	IngestSourceRelease(context.Context, product.Actor, product.IngestSourceReleaseInput) (*product.SourceReleaseIngest, error)
 	ReplayOutboxEvent(context.Context, string) error
 	SyncWorkspaceEntitlement(context.Context, product.EntitlementSyncInput) (*product.EntitlementSyncResult, error)
+	GrantWorkspaceCredits(context.Context, product.CreditGrantInput) (*product.CreditGrantResult, error)
 	GetWorkspaceEntitlement(context.Context, product.Actor) (*product.WorkspaceEntitlementRecord, error)
 	ListAnnouncements(context.Context, product.Actor, int) ([]product.AnnouncementListItem, error)
 	GetAudienceReach(context.Context, product.Actor) (int, error)
@@ -147,6 +148,7 @@ type ConfigurationStore interface {
 	ReadAsset(context.Context, product.Actor, string) ([]byte, string, error)
 	StoreGeneratedAsset(context.Context, product.Actor, product.GeneratedAssetInput) (*product.GeneratedAssetRecord, error)
 	ConsumeWorkspaceQuota(context.Context, product.Actor, string, int) (int, error)
+	ChargeMonthlyQuota(context.Context, string, string, int) (func(), error)
 	ListReleases(context.Context, product.Actor, int) ([]product.ReleaseListItem, error)
 	GetRelease(context.Context, product.Actor, string) (*product.ReleaseDetail, error)
 	CreateRelease(context.Context, product.Actor, product.CreateReleaseInput) (*product.ReleaseCreation, error)
@@ -435,13 +437,27 @@ func (s *Server) createScheduledPost(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "scheduledFor must be in the future")
 		return
 	}
+	refund := func() {}
+	if s.configuration != nil {
+		charged, err := s.configuration.ChargeMonthlyQuota(r.Context(), actor.Organization, product.QuotaPosts, 1)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		refund = charged
+	}
 	result, err := s.store.CreateScheduledPost(r.Context(), actor, publishing.CreateScheduledPostInput{
 		Caption: input.Caption, ChannelConnectionID: input.ChannelConnectionID,
 		IdempotencyKey: input.IdempotencyKey, ScheduledFor: input.ScheduledFor, VariantID: input.VariantID,
 	})
 	if err != nil {
+		refund()
 		writeStoreError(w, err)
 		return
+	}
+	if !result.Created {
+		// An idempotent replay was already counted when it was created.
+		refund()
 	}
 	if result.Post.Status == scheduledpost.StatusSCHEDULED {
 		if err := s.scheduler.Start(r.Context(), temporalpublishing.ScheduleInput{
@@ -555,8 +571,18 @@ func decodeJSON(r *http.Request, target any) error {
 	return nil
 }
 
+// writeQuotaExceeded tells a client which quota ran out, its limit, and
+// when it resets, so a 429 can be explained instead of retried blindly.
+func writeQuotaExceeded(w http.ResponseWriter, exceeded *product.QuotaExceededError) {
+	writeJSON(w, http.StatusTooManyRequests, map[string]any{
+		"error": exceeded.Error(), "limit": exceeded.Limit, "quota": exceeded.Quota,
+		"resetAt": exceeded.ResetAt.UnixMilli(),
+	})
+}
+
 func writeStoreError(w http.ResponseWriter, err error) {
 	var notEntitled *product.FeatureNotEntitledError
+	var exceeded *product.QuotaExceededError
 	switch {
 	case errors.As(err, &notEntitled):
 		writeJSON(w, http.StatusForbidden, map[string]string{
@@ -577,6 +603,8 @@ func writeStoreError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusTooManyRequests, err.Error())
 	case errors.Is(err, product.ErrStorageQuota):
 		writeError(w, http.StatusTooManyRequests, err.Error())
+	case errors.As(err, &exceeded):
+		writeQuotaExceeded(w, exceeded)
 	case errors.Is(err, product.ErrQuotaExceeded):
 		writeError(w, http.StatusTooManyRequests, err.Error())
 	case errors.Is(err, product.ErrObjectMissing):

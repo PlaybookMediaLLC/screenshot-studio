@@ -3,6 +3,7 @@ import 'server-only'
 import { after } from 'next/server'
 import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import type { TenantContext } from '@/lib/auth/access'
+import { withAiCredits } from '@/lib/ai/metering'
 import { backendSDK, withDates } from '@/lib/backend/sdk'
 import { LaunchError } from './store'
 
@@ -74,7 +75,7 @@ export async function startLaunchRun(
   const run = withDates(await backend.startLaunchRun(input.campaignId, input.kind))
   after(async () => {
     try {
-      const result = await input.work()
+      const result = await withAiCredits(tenant, input.work)
       await backend.finishLaunchRun(run.id, {
         resultId: result.resultId ?? null,
         status: 'SUCCEEDED',

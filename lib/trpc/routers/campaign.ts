@@ -18,8 +18,8 @@ import {
   campaignTransitionSchema,
 } from '@/lib/tenant/schemas'
 import { isCampaignStudioConfigured, runCampaignStudio } from '@/lib/ai/agents/campaign-studio'
+import { withAiCredits } from '@/lib/ai/metering'
 import { requireActiveOrganizationPermission } from '@/lib/auth/access'
-import { consumeWorkspaceQuota } from '@/lib/tenant/entitlements'
 import { router, publicProcedure } from '../init'
 import { organizationProcedure } from '../procedures'
 
@@ -47,7 +47,7 @@ export const campaignRouter = router({
     }),
   /**
    * Run the campaign studio agent: capture the product, composite product
-   * shots, and draft posts. Counts against the monthly generation quota.
+   * shots, and draft posts. Charged to the workspace's AI credits.
    */
   generate: organizationProcedure('release:create')
     .input(z.object({ campaignId: z.string().cuid() }))
@@ -58,8 +58,7 @@ export const campaignRouter = router({
           message: 'AI generation is not configured. Set OPENROUTER_API_KEY.',
         })
       }
-      await consumeWorkspaceQuota(ctx.access, 'generation:monthly')
-      return runCampaignStudio(ctx.access, input.campaignId)
+      return withAiCredits(ctx.access, () => runCampaignStudio(ctx.access, input.campaignId))
     }),
   /** The transition table decides the permission; artifact:read only gates membership. */
   transition: organizationProcedure('artifact:read')

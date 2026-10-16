@@ -50,6 +50,7 @@ type Configuration struct {
 	invitations InvitationMailer
 	objects     AssetObjectStore
 	quota       QuotaCounter
+	meter       MonthlyMeter
 }
 
 func NewConfiguration(client *ent.Client) *Configuration {

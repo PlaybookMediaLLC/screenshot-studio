@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next'
+import { platformPagePathSchema } from '@/lib/marketing/platform-pages'
 import { SITE_URL } from '@/lib/seo/metadata'
 import { LAST_UPDATED_ISO } from '@/lib/seo/changelog'
 import { CLAIMS_CHECKED, getAllComparisonSlugs } from '@/lib/seo/comparisons'
@@ -55,6 +56,7 @@ function lastModifiedFor(path: string): string {
 export default function sitemap(): MetadataRoute.Sitemap {
   const paths = [
     ...STATIC_PATHS,
+    ...platformPagePathSchema.options,
     ...TOOLS.map((tool) => tool.slug),
     ...getAllComparisonSlugs().map((slug) => `/compare/${slug}`),
     ...guides.map((guide) => `/guides/${guide.slug}`),

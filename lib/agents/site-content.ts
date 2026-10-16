@@ -1,3 +1,4 @@
+import { platformAgentPages } from '@/lib/marketing/platform-pages'
 import { claimsNote, comparisons, type ComparisonData } from '@/lib/seo/comparisons'
 import { SITE_URL } from '@/lib/seo/metadata'
 import { atLeast, PRODUCT_FACTS } from '@/lib/seo/product-facts'
@@ -36,9 +37,18 @@ export const AGENT_PAGES: AgentPage[] = [
   },
   {
     path: '/landing',
-    title: 'Screenshot Studio - Product Overview',
+    title: 'Screenshot Studio - Turn Every Release into a Launch',
     summary:
-      'Product landing page: what Screenshot Studio does, who it is for, and how it compares to paid screenshot beautifiers.',
+      'Product landing page for the Screenshot Studio platform. A release (typed in, sent through the REST API with an X-API-Key, or delivered by a signed GitHub, GitLab, or custom webhook) becomes a cited launch spec, a campaign plan, on-brand visuals from the real product, and channel copy for X, LinkedIn, Instagram, Product Hunt, the changelog, and email. Every post needs a human approval before it can be scheduled. Launch intelligence is in early access; the open-source editor stays on a free workspace plan.',
+    points: [
+      'Launch spec: every claim cites the brief or a source; uncited claims become open questions',
+      'Campaign plan: channels, angles, assets with capture hints, and a teaser, launch day, and follow-up timeline',
+      'Visuals rendered by the editor with the workspace brand kit and critiqued before use',
+      'Copy checked for channel limits, hype terms, unknown links, and uncited claims',
+      'Server-side approval with six roles; API keys and agents cannot approve',
+      'Durable scheduling: published only with a network receipt, uncertain deliveries held for a person',
+      'SSO (SAML, OIDC), SCIM, append-only audit log, SIEM drains, and self-hosting with Docker and Helm',
+    ],
   },
   {
     path: '/free-screenshot-editor',
@@ -311,6 +321,8 @@ for (const tool of TOOLS) {
     sections: [...(tool.sections ?? []), renderFaqSection(tool.faqs)],
   })
 }
+
+AGENT_PAGES.push(...platformAgentPages())
 
 export const AGENT_RESOURCES = [
   { name: 'Interactive API reference', url: `${BASE_URL}/api-reference` },

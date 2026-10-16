@@ -7,6 +7,7 @@
  */
 
 import { customProvider, type LanguageModel, wrapLanguageModel } from 'ai'
+import { aiCreditMeter } from '@/lib/ai/metering'
 import { MODEL_ROLES, type ModelRole } from './catalog'
 import { type EnvSource, resolveModelIds } from './env'
 import { createModelMiddleware, type ModelMiddlewareOptions } from './middleware'
@@ -98,6 +99,7 @@ export function createModelRegistry(options: ModelRegistryOptions = {}): ModelRe
  * The process-wide model registry.
  *
  * Resolved once from `process.env` at import time, matching how the raw
- * provider calls it replaces behaved.
+ * provider calls it replaces behaved. Every call is charged to the AI credits
+ * of the workspace whose action is running (see lib/ai/metering/meter.ts).
  */
-export const models: ModelRegistry = createModelRegistry()
+export const models: ModelRegistry = createModelRegistry({ meter: aiCreditMeter })

@@ -72,9 +72,9 @@ Register these redirect URIs with each provider, replacing the host with the
 deployment's public URL:
 
 ```text
-https://shots.oppulence.io/api/auth/callback/google
-https://shots.oppulence.io/api/auth/callback/github
-https://shots.oppulence.io/api/auth/callback/microsoft
+https://shots.playbookmedia.io/api/auth/callback/google
+https://shots.playbookmedia.io/api/auth/callback/github
+https://shots.playbookmedia.io/api/auth/callback/microsoft
 ```
 
 Set `BETTER_AUTH_API_KEY`, and optionally `BETTER_AUTH_API_URL` and

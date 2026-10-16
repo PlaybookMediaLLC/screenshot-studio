@@ -9,23 +9,22 @@ import (
 
 func (s *Server) consumeWorkspaceQuota(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Amount int    `json:"amount"`
+		// Amount defaults to 1 when absent; an explicit 0 reads the quota.
+		Amount *int   `json:"amount"`
 		Quota  string `json:"quota"`
 	}
 	if err := decodeJSON(r, &input); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid quota request")
 		return
 	}
-	if input.Amount == 0 {
-		input.Amount = 1
+	amount := 1
+	if input.Amount != nil {
+		amount = *input.Amount
 	}
-	remaining, err := s.configuration.ConsumeWorkspaceQuota(r.Context(), workspaceActor(r), input.Quota, input.Amount)
+	remaining, err := s.configuration.ConsumeWorkspaceQuota(r.Context(), workspaceActor(r), input.Quota, amount)
 	var exceeded *product.QuotaExceededError
 	if errors.As(err, &exceeded) {
-		writeJSON(w, http.StatusTooManyRequests, map[string]any{
-			"error": exceeded.Error(), "limit": exceeded.Limit, "quota": exceeded.Quota,
-			"resetAt": exceeded.ResetAt.UnixMilli(),
-		})
+		writeQuotaExceeded(w, exceeded)
 		return
 	}
 	if err != nil {

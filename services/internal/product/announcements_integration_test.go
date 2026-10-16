@@ -56,7 +56,9 @@ func TestAnnouncementsAndAudience(t *testing.T) {
 	exec(`INSERT INTO release_document (id,"organizationId","releaseId",revision,"frontMatter","bodyMarkdown",status,"updatedAt") VALUES ($1,$2,$3,2,'{}','Body','APPROVED',now()),($4,$2,$3,3,'{}','Body','DRAFT',now())`,
 		approved, org, "release"+id, draft)
 
-	repo := NewConfiguration(db.Client)
+	meter := &recordingMonthlyMeter{}
+	repo := NewConfiguration(db.Client).WithMonthlyMeter(meter)
+	emails := monthlyMeterKey(QuotaEmails, org, time.Now())
 	session := Actor{OrganizationID: org, UserID: owner, SessionID: "session_" + owner, RequestID: "req_" + id}
 	creatorSession := Actor{OrganizationID: org, UserID: creator, SessionID: "session_" + creator}
 	service := Actor{OrganizationID: org, Kind: "service", Display: "b@example.test"}
@@ -138,9 +140,13 @@ func TestAnnouncementsAndAudience(t *testing.T) {
 	if err != nil || !first.Created || first.Announcement.Status != "SCHEDULED" || first.Announcement.Channel != "EMAIL" {
 		t.Fatalf("schedule=%+v err=%v", first, err)
 	}
+	charged := meter.used[emails]
 	replay, err := schedule(session, approved, "launch")
 	if err != nil || replay.Created || replay.Announcement.ID != first.Announcement.ID {
 		t.Fatalf("replay=%+v err=%v", replay, err)
+	}
+	if meter.used[emails] != charged {
+		t.Fatalf("a replayed schedule charged emails again: %d then %d", charged, meter.used[emails])
 	}
 	var due bool
 	if err := db.SQL.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM customer_communication WHERE id=$1 AND channel='EMAIL' AND status='SCHEDULED' AND "scheduledFor"<=now())`, first.Announcement.ID).Scan(&due); err != nil || !due {

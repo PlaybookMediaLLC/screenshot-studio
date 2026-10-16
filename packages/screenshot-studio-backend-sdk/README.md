@@ -1,20 +1,23 @@
 # Screenshot Studio backend SDK
 
-Typed TypeScript client for the Go backend's publishing and social OAuth APIs.
-Build with `npm run build` in this directory. The package exports JavaScript and
-type declarations from `dist`; `npm pack --dry-run` verifies the release
-artifact. The Next.js server imports `screenshot-studio-backend-sdk` through
-`lib/tenant/publishing-backend.ts`; UI calls remain on same-origin tRPC routes.
+Typed TypeScript client for the Go backend's APIs: workspaces, assets,
+designs, projects, presets, brand kits, share links, integrations, publishing,
+and social OAuth. Build with `npm run build` in this directory. The package
+exports JavaScript and type declarations from `dist`; `npm pack --dry-run`
+verifies the release artifact.
+
+The app compiles this package from source: `tsconfig.json` maps
+`screenshot-studio-backend-sdk` to `src/index.ts`, so a backend endpoint and its
+client ship in one pull request. The Next.js server reaches it through
+`lib/backend/sdk.ts`; UI calls remain on same-origin tRPC routes.
 
 Instantiate only in a trusted server process. The client sends a private
 `PUBLISHING_SERVICE_TOKEN` and the current session ID. The Go API validates
 that session and its workspace role from the shared database before each
 operation. Never put the service token in browser code or `NEXT_PUBLIC_*` env.
 
-The package's current methods list, create, and cancel scheduled posts; list
-and create channel connections; and begin, verify, remember, and complete social
-OAuth. The returned post status includes `UNKNOWN_DELIVERY`, which requires
-remote reconciliation before any retry.
+Scheduled post status includes `UNKNOWN_DELIVERY`, which requires remote
+reconciliation before any retry.
 
 ## Releasing
 
@@ -22,8 +25,8 @@ CI publishes the package; nobody runs `npm publish`. Bump `version` in this
 `package.json` in the pull request that changes the SDK. The Publish SDK
 workflow (`.github/workflows/publish-sdk.yml`) fails a pull request that
 changes the SDK without a new version, and publishes the new version when the
-change reaches `main`. Then pin the app to it: `npm install
-screenshot-studio-backend-sdk@<version> --save-exact` and `bun install`.
+change reaches `main`, for consumers outside this repository. The app itself
+uses the source, so it needs no reinstall.
 
 The workflow authenticates with npm trusted publishing, and only from `main`:
 its publish job runs in the `npm` GitHub environment, which deploys from

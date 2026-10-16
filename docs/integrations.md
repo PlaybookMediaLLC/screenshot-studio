@@ -26,11 +26,11 @@ links return 404 everywhere. **Settings → Shared links** lists every link.
 Owners and admins connect accounts in **Settings → Integrations**. Anyone who
 can edit designs delivers through a connection from the Share dialog.
 
-| Provider | What it does | Scopes |
-| -------- | ------------ | ------ |
-| Slack | Uploads the file to a channel, with the message and the share link. The app joins public channels itself; private channels need `/invite`. | `chat:write`, `files:write`, `channels:read`, `channels:join`, `groups:read` |
-| Notion | Uploads the file with the File Upload API, then appends it, captioned, and a bookmark to the share page to a page shared with the integration. | Public integration, read and insert content |
-| Figma | Posts a comment with the share link, pinned to the frame when the link names one. Figma's REST API cannot place images on a canvas, so the Share dialog also has **Copy image for Figma**: the PNG goes on the clipboard and pastes into Figma. | `current_user:read`, `file_comments:write` |
+| Provider | What it does                                                                                                                                                                                                                                    | Scopes                                                                       |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Slack    | Uploads the file to a channel, with the message and the share link. The app joins public channels itself; private channels need `/invite`.                                                                                                      | `chat:write`, `files:write`, `channels:read`, `channels:join`, `groups:read` |
+| Notion   | Uploads the file with the File Upload API, then appends it, captioned, and a bookmark to the share page to a page shared with the integration.                                                                                                  | Public integration, read and insert content                                  |
+| Figma    | Posts a comment with the share link, pinned to the frame when the link names one. Figma's REST API cannot place images on a canvas, so the Share dialog also has **Copy image for Figma**: the PNG goes on the clipboard and pastes into Figma. | `current_user:read`, `file_comments:write`                                   |
 
 Credentials are sealed with AES-256-GCM by the web facade, the only holder of
 `INTEGRATION_ENCRYPTION_KEY`, before the backend stores them in
@@ -54,10 +54,10 @@ Register this redirect URL with each provider app:
 `<NEXT_PUBLIC_APP_URL>/api/integrations/<slack|notion|figma>/callback`.
 
 - **Slack**: create an app at api.slack.com/apps. Add the bot scopes above, and
-  add the redirect URL under *OAuth & Permissions*. Distribution must be enabled
+  add the redirect URL under _OAuth & Permissions_. Distribution must be enabled
   before other workspaces can install it.
-- **Notion**: create a *public* integration at notion.so/profile/integrations with the
-  *Insert content* and *Read content* capabilities, and set the redirect URI.
+- **Notion**: create a _public_ integration at notion.so/profile/integrations with the
+  _Insert content_ and _Read content_ capabilities, and set the redirect URI.
 - **Figma**: create an app at figma.com/developers/apps with the scopes above and
   the callback URL. Figma reviews apps before they work outside your own team.
 

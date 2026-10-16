@@ -37,7 +37,11 @@ export async function createCreativeTemplate(
 }
 
 /** Rename every version of the template `templateId` belongs to. */
-export async function renameCreativeTemplate(context: TenantContext, templateId: string, name: string) {
+export async function renameCreativeTemplate(
+  context: TenantContext,
+  templateId: string,
+  name: string
+) {
   return withDates(await backendSDK(context).renameCreativeTemplate(templateId, name))
 }
 

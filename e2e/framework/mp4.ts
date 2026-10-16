@@ -149,11 +149,7 @@ export type DecodedMp4 = {
  * element, so no seeking or presentation timing is involved), comparing an
  * early, a middle, and a late frame, and the audio with Web Audio.
  */
-export async function decodeMp4(
-  page: Page,
-  file: Buffer,
-  video: Mp4Track
-): Promise<DecodedMp4> {
+export async function decodeMp4(page: Page, file: Buffer, video: Mp4Track): Promise<DecodedMp4> {
   if (!video.decoder) throw new Error(`No decoder for ${video.codec} samples.`)
   const picks = [2, Math.round(video.samples.length / 2), video.samples.length - 2]
   return page.evaluate(

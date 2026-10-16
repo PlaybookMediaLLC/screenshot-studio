@@ -24,7 +24,14 @@ function richEditor() {
   useImageStore.setState({
     activeSlideId: 'slide-1',
     animationClips: [
-      { color: '#c9ff2e', duration: 1500, id: 'clip-1', name: 'Drop In', presetId: 'drop-in', startTime: 200 },
+      {
+        color: '#c9ff2e',
+        duration: 1500,
+        id: 'clip-1',
+        name: 'Drop In',
+        presetId: 'drop-in',
+        startTime: 200,
+      },
     ],
     annotations: [
       {
@@ -73,14 +80,27 @@ function richEditor() {
       ],
       captions: {
         items: [{ end: 1800, id: 'caption-1', start: 200, text: 'Meet the new dashboard' }],
-        style: { background: 'rgba(0,0,0,0.6)', color: '#ffffff', fontFamily: 'inter', fontSize: 0.03, fontWeight: 'bold', y: 88 },
+        style: {
+          background: 'rgba(0,0,0,0.6)',
+          color: '#ffffff',
+          fontFamily: 'inter',
+          fontSize: 0.03,
+          fontWeight: 'bold',
+          y: 88,
+        },
       },
       layerTracks: [
         {
           id: 'track-spot',
           keyframes: [
             { easing: 'linear', id: 'kf-a', time: 0, value: 0.2 },
-            { bezier: { x1: 0.2, x2: 0.1, y1: 1.4, y2: 1 }, easing: 'ease-out', id: 'kf-b', time: 1200, value: 0.8 },
+            {
+              bezier: { x1: 0.2, x2: 0.1, y1: 1.4, y2: 1 },
+              easing: 'ease-out',
+              id: 'kf-b',
+              time: 1200,
+              value: 0.8,
+            },
           ],
           property: 'dim',
           target: { id: 'element-1', kind: 'element' },
@@ -93,7 +113,14 @@ function richEditor() {
         },
       ],
       reveals: [
-        { duration: 900, easing: 'linear', id: 'reveal-1', mode: 'typewriter', start: 100, targetId: 'text-1' },
+        {
+          duration: 900,
+          easing: 'linear',
+          id: 'reveal-1',
+          mode: 'typewriter',
+          start: 100,
+          targetId: 'text-1',
+        },
       ],
       scrolls: [
         {
@@ -139,7 +166,10 @@ function richEditor() {
       spread: 6,
     },
     brand: {
-      applied: { background: { type: 'solid', value: '#101010' }, 'texts.headline.color': '#fafafa' },
+      applied: {
+        background: { type: 'solid', value: '#101010' },
+        'texts.headline.color': '#fafafa',
+      },
       kitId: 'ckbrandkit00000000000000',
       name: 'Acme',
       version: 3,
@@ -257,11 +287,16 @@ test('an autosaved draft’s inlined audio is uploaded like a local image', () =
   richEditor()
   const inlined = 'data:audio/wav;base64,UklGRg=='
   useImageStore.setState((state) => ({
-    motion: { ...state.motion, audio: state.motion.audio.map((clip) => ({ ...clip, src: inlined })) },
+    motion: {
+      ...state.motion,
+      audio: state.motion.audio.map((clip) => ({ ...clip, src: inlined })),
+    },
   }))
   const local = exportDesignDocument({ keepLocalSources: true })
   assert.ok(getLocalDesignSources(local).includes(inlined))
-  const stored = mapDesignSources(local, (ref) => (ref === inlined ? 'asset:55555555-5555-4555-8555-555555555555' : ref))
+  const stored = mapDesignSources(local, (ref) =>
+    ref === inlined ? 'asset:55555555-5555-4555-8555-555555555555' : ref
+  )
   assert.equal(stored.timeline?.audio?.[0]?.src, 'asset:55555555-5555-4555-8555-555555555555')
 })
 
@@ -306,7 +341,15 @@ function framedComposition() {
     browserUrl: 'shots.playbookmedia.io/launch',
     editorMode: 'device',
     frameChrome: { ...chrome, appearance: 'dark', browser: 'arc' },
-    imageBorder: { color: '#000000', enabled: true, opacity: 1, padding: 0, title: 'shots.playbookmedia.io/launch', type: 'browser', width: 8 },
+    imageBorder: {
+      color: '#000000',
+      enabled: true,
+      opacity: 1,
+      padding: 0,
+      title: 'shots.playbookmedia.io/launch',
+      type: 'browser',
+      width: 8,
+    },
     mockups: [
       {
         definitionId: 'pixel-9-pro',
@@ -342,7 +385,14 @@ function framedComposition() {
         rotation: 0,
         screen: {
           ...screen(null),
-          code: { code: 'npm run ship\n', font: 'google:Fira Code', language: 'shell-session', lineNumbers: false, padding: 2, theme: 'github' },
+          code: {
+            code: 'npm run ship\n',
+            font: 'google:Fira Code',
+            language: 'shell-session',
+            lineNumbers: false,
+            padding: 2,
+            theme: 'github',
+          },
           name: 'Code',
         },
         size: 0.3,
@@ -369,7 +419,11 @@ test('frames, chrome options, and composition screens survive a lossless round t
   assert.equal(exported.image.chrome?.browser, 'arc')
   assert.equal(exported.devices?.layoutId, 'bento')
   assert.equal(exported.devices?.mockups.length, 4)
-  assert.equal(exported.devices?.mockups[0]?.screen.src, null, 'a screen showing the main image follows it')
+  assert.equal(
+    exported.devices?.mockups[0]?.screen.src,
+    null,
+    'a screen showing the main image follows it'
+  )
   assert.equal(exported.devices?.mockups[2]?.screen.code?.language, 'shell-session')
 
   useImageStore.getState().clearImage()
@@ -380,7 +434,10 @@ test('frames, chrome options, and composition screens survive a lossless round t
   assert.deepEqual(exportDesignDocument({ keepLocalSources: true }), exported)
   const { frameChrome, mockups } = useImageStore.getState()
   assert.equal(frameChrome.browser, 'arc')
-  assert.deepEqual(mockups.map((mockup) => mockup.frame?.kind), ['browser', 'device', 'window', 'none'])
+  assert.deepEqual(
+    mockups.map((mockup) => mockup.frame?.kind),
+    ['browser', 'device', 'window', 'none']
+  )
   assert.equal(mockups[0]?.screen.src, main)
   assert.equal(mockups[1]?.orientation, 'landscape')
   assert.equal(mockups[1]?.color, 'hazel')
@@ -391,7 +448,9 @@ test('frames, chrome options, and composition screens survive a lossless round t
 
 test('documents from before frames parse unchanged and render their old browser frame', () => {
   const legacy = parseDesignDocument({
-    devices: { mockups: [{ definitionId: 'iphone-17-pro-front', position: { x: 0.5, y: 0.5 }, size: 0.3 }] },
+    devices: {
+      mockups: [{ definitionId: 'iphone-17-pro-front', position: { x: 0.5, y: 0.5 }, size: 0.3 }],
+    },
     image: { frame: { title: 'app', type: 'macos-dark' }, src: null },
     mode: 'device',
     version: 1,
@@ -402,7 +461,10 @@ test('documents from before frames parse unchanged and render their old browser 
   const state = useImageStore.getState()
   assert.equal(state.mockups[0]?.frame, undefined, 'an old device stays a device')
   assert.equal(state.imageBorder.type, 'macos-dark')
-  assert.deepEqual(exportDesignDocument({ keepLocalSources: true }).devices?.mockups[0]?.frame, undefined)
+  assert.deepEqual(
+    exportDesignDocument({ keepLocalSources: true }).devices?.mockups[0]?.frame,
+    undefined
+  )
 })
 
 test('a version 1 document is read as version 2', () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import Moveable from "react-moveable";
 import { DeviceShell } from "./DeviceShell";
 import { CanvasObjectTopControls } from "@/components/canvas/html/CanvasObjectTopControls";
@@ -9,6 +9,8 @@ import { blobToDataUrl } from "@/lib/image-storage";
 import { useDeviceUIStore } from "@/lib/store/device-ui";
 import { useImageStore } from "@/lib/store";
 import type { Mockup } from "@/types/mockup";
+import { useImageMotion } from "@/lib/animation/use-image-motion";
+import { imageFilterCss } from "@/lib/editor/image-adjustments";
 
 interface MockupRendererProps {
   mockup: Mockup;
@@ -21,7 +23,9 @@ function MockupRenderer({ mockup, canvasWidth, canvasHeight, zIndex }: MockupRen
   const definition = getMockupDefinition(mockup.definitionId);
   const updateMockup = useImageStore((state) => state.updateMockup);
   const removeMockup = useImageStore((state) => state.removeMockup);
-  const sceneScale = useImageStore((state) => state.perspective3D.scale);
+  const sceneScale = useImageMotion().perspective3D.scale;
+  const imageFilters = useImageStore((state) => state.imageFilters);
+  const screenFilter = useMemo(() => imageFilterCss(imageFilters), [imageFilters]);
   const selectedDeviceId = useDeviceUIStore((state) => state.selectedDeviceId);
   const editingScreenDeviceId = useDeviceUIStore((state) => state.editingScreenDeviceId);
   const setSelectedDeviceId = useDeviceUIStore((state) => state.setSelectedDeviceId);
@@ -240,6 +244,7 @@ function MockupRenderer({ mockup, canvasWidth, canvasHeight, zIndex }: MockupRen
           definition={definition}
           screen={mockup.screen}
           editing={isEditingScreen}
+          screenFilter={screenFilter}
           onScreenClick={mockup.screen.src ? undefined : openScreenPicker}
           onScreenDoubleClick={openScreenPicker}
           onScreenFile={mockup.screen.src ? undefined : replaceScreen}
@@ -343,8 +348,8 @@ function MockupRenderer({ mockup, canvasWidth, canvasHeight, zIndex }: MockupRen
 
 export function MockupSceneRenderer({ canvasWidth, canvasHeight }: { canvasWidth: number; canvasHeight: number }): React.JSX.Element {
   const mockups = useImageStore((state) => state.mockups);
-  const perspective3D = useImageStore((state) => state.perspective3D);
-  const imageOpacity = useImageStore((state) => state.imageOpacity);
+  // Drawn values at the playhead, like the main image.
+  const { perspective3D, imageOpacity } = useImageMotion();
 
   return (
     <div

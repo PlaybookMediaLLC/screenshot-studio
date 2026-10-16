@@ -6,6 +6,7 @@ import { buildDropShadowFilter as buildSharedDropShadowFilter, parseShadowRgb } 
 import { type ImageFilters, useImageStore } from '@/lib/store';
 import { SafariToolbar, ChromeToolbar } from '../frames/BrowserToolbar';
 import { CanvasObjectTopControls } from './CanvasObjectTopControls';
+import { imageFilterCss } from '@/lib/editor/image-adjustments';
 
 export interface FrameConfig {
   enabled: boolean;
@@ -50,42 +51,6 @@ interface HTMLMainImageLayerProps {
 }
 
 const SNAP_THRESHOLD = 6;
-
-/**
- * Builds CSS filter string from imageFilters
- */
-function buildImageFilter(imageFilters?: ImageFilters): string | undefined {
-  if (!imageFilters) return undefined;
-
-  const filters: string[] = [];
-
-  if (imageFilters.brightness !== 100) {
-    filters.push(`brightness(${imageFilters.brightness / 100})`);
-  }
-  if (imageFilters.contrast !== 100) {
-    filters.push(`contrast(${imageFilters.contrast / 100})`);
-  }
-  if (imageFilters.saturate !== 100) {
-    filters.push(`saturate(${imageFilters.saturate / 100})`);
-  }
-  if (imageFilters.grayscale > 0) {
-    filters.push(`grayscale(${imageFilters.grayscale / 100})`);
-  }
-  if (imageFilters.sepia > 0) {
-    filters.push(`sepia(${imageFilters.sepia / 100})`);
-  }
-  if (imageFilters.hueRotate !== 0) {
-    filters.push(`hue-rotate(${imageFilters.hueRotate}deg)`);
-  }
-  if (imageFilters.blur > 0) {
-    filters.push(`blur(${imageFilters.blur}px)`);
-  }
-  if (imageFilters.invert > 0) {
-    filters.push(`invert(${imageFilters.invert / 100})`);
-  }
-
-  return filters.length > 0 ? filters.join(' ') : undefined;
-}
 
 function buildDropShadowFilter(shadow: ShadowConfig): string | undefined {
   if (!shadow.enabled) return undefined;
@@ -158,7 +123,7 @@ export function HTMLMainImageLayer({
   const resizeStartRef = useRef<{ mouseX: number; mouseY: number; scale: number; handle: string } | null>(null);
   const rotateStartRef = useRef<{ centerX: number; centerY: number; startAngle: number; startRotation: number } | null>(null);
 
-  const imageFilter = useMemo(() => buildImageFilter(imageFilters), [imageFilters]);
+  const imageFilter = useMemo(() => imageFilterCss(imageFilters), [imageFilters]);
   const isStyleFrame = ['glass-light', 'glass-dark', 'outline-light', 'border-light', 'border-dark'].includes(frame.type);
   // Style frames use box-shadow on the frame container; others use drop-shadow filter on the outer div
   const shadowFilter = useMemo(() => isStyleFrame ? undefined : buildDropShadowFilter(shadow), [shadow, isStyleFrame]);

@@ -14,6 +14,8 @@ interface DeviceShellProps {
   definition: MockupDefinition;
   screen: DeviceScreenContent;
   editing?: boolean;
+  /** CSS filter for the screen image: the screenshot's adjustments. */
+  screenFilter?: string;
   onScreenClick?: () => void;
   onScreenDoubleClick?: () => void;
   onScreenFile?: (file: File) => void;
@@ -50,6 +52,7 @@ function Screen({
   className,
   style,
   imageStyle,
+  filter,
   emptyStatePosition,
   emptyStateWidth,
   emptyStateTransform,
@@ -67,6 +70,7 @@ function Screen({
   className?: string;
   style?: CSSProperties;
   imageStyle?: CSSProperties;
+  filter?: string;
   emptyStatePosition?: { x: number; y: number };
   emptyStateWidth?: number;
   emptyStateTransform?: string;
@@ -152,6 +156,7 @@ function Screen({
           className="block h-full w-full select-none"
           style={{
             ...imageStyle,
+            filter,
             objectFit: screen.fit,
             transform: `translate(${screen.offset.x}%, ${screen.offset.y}%) scale(${screen.scale})`,
             transformOrigin: "center",
@@ -217,6 +222,7 @@ export function DeviceShell({
   definition,
   screen,
   editing = false,
+  screenFilter,
   onScreenClick,
   onScreenDoubleClick,
   onScreenFile,
@@ -230,6 +236,7 @@ export function DeviceShell({
   const screenProps = {
     screen,
     editing,
+    filter: screenFilter,
     onClick: onScreenClick,
     onDoubleClick: onScreenDoubleClick,
     onFile: onScreenFile,

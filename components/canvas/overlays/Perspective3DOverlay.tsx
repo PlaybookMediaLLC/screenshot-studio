@@ -3,6 +3,7 @@
 import { Frame3DOverlay, getFrameImageStyle, type FrameConfig } from '../frames/Frame3DOverlay';
 import { type ShadowConfig } from '../utils/shadow-utils';
 import { type ImageFilters } from '@/lib/store';
+import { imageFilterCss } from '@/lib/editor/image-adjustments'
 
 export interface Perspective3DConfig {
   perspective: number;
@@ -66,41 +67,7 @@ export function Perspective3DOverlay({
 }: Perspective3DOverlayProps) {
   if (!has3DTransform) return null;
 
-  // Build CSS filter string from imageFilters
-  const buildImageFilter = () => {
-    if (!imageFilters) return undefined;
-
-    const filters: string[] = [];
-
-    if (imageFilters.brightness !== 100) {
-      filters.push(`brightness(${imageFilters.brightness / 100})`);
-    }
-    if (imageFilters.contrast !== 100) {
-      filters.push(`contrast(${imageFilters.contrast / 100})`);
-    }
-    if (imageFilters.saturate !== 100) {
-      filters.push(`saturate(${imageFilters.saturate / 100})`);
-    }
-    if (imageFilters.grayscale > 0) {
-      filters.push(`grayscale(${imageFilters.grayscale / 100})`);
-    }
-    if (imageFilters.sepia > 0) {
-      filters.push(`sepia(${imageFilters.sepia / 100})`);
-    }
-    if (imageFilters.hueRotate !== 0) {
-      filters.push(`hue-rotate(${imageFilters.hueRotate}deg)`);
-    }
-    if (imageFilters.blur > 0) {
-      filters.push(`blur(${imageFilters.blur}px)`);
-    }
-    if (imageFilters.invert > 0) {
-      filters.push(`invert(${imageFilters.invert / 100})`);
-    }
-
-    return filters.length > 0 ? filters.join(' ') : undefined;
-  };
-
-  const imageFilterStyle = buildImageFilter();
+  const imageFilterStyle = imageFilterCss(imageFilters);
 
   const perspective3DTransform = `
     translate(${perspective3D.translateX}%, ${perspective3D.translateY}%)

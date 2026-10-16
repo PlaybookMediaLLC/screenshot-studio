@@ -464,9 +464,8 @@ up() {
   else
     compose up --detach app
   fi
-  # The dev account comes first: its paid workspace is what the smoke signs in as.
-  dev_login
   smoke
+  dev_login
   echo "App:     http://localhost:3000"
   if [[ "$renderer" == "on" ]]; then
     echo "Render browser: running (STUDIO_RENDERER=off to skip)"

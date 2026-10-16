@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.21.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.20.0...v1.21.0) (2026-10-16)
+
+
+### Features
+
+* meter AI credits, add Stripe billing, rebuild the site, and move to shots.playbookmedia.io ([#103](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/103)) ([2471374](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/2471374759667a7c73bf6a443de4436ecc90ee14))
+
 ## [1.20.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.19.0...v1.20.0) (2026-10-15)
 
 

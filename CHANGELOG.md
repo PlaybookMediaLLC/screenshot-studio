@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.21.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.21.2...v1.21.3) (2026-10-16)
+
+
+### Bug Fixes
+
+* drop the internal port from the old-domain redirect ([#112](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/112)) ([4142c59](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/4142c593692524adc4f3e623526ca06a946cd32d))
+
 ## [1.21.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.21.1...v1.21.2) (2026-10-16)
 
 

@@ -12,6 +12,25 @@ import {
 } from './apply'
 import { type DesignDocument, getDesignAssetIds } from './document'
 
+/** Workspace images fetched on this page, by asset id. Assets never change bytes. */
+const assetUrls = new Map<string, Promise<string>>()
+
+/** A workspace image as a blob URL, fetched once per page. */
+export function fetchAssetUrl(trpcClient: TRPCClient<AppRouter>, assetId: string) {
+  let url = assetUrls.get(assetId)
+  if (!url) {
+    url = (async () => {
+      const { downloadUrl } = await trpcClient.asset.signDownload.query({ assetId })
+      const response = await fetch(downloadUrl)
+      if (!response.ok) throw new Error(`The download failed with status ${response.status}.`)
+      return URL.createObjectURL(await response.blob())
+    })()
+    url.catch(() => assetUrls.delete(assetId))
+    assetUrls.set(assetId, url)
+  }
+  return url
+}
+
 /**
  * Fetch every workspace image a document names into a blob URL, keyed by its
  * `asset:<id>` reference, so the editor's export never sees a cross-origin image.
@@ -21,12 +40,9 @@ export async function fetchDesignSources(
   document: DesignDocument
 ): Promise<Record<string, string>> {
   const entries = await Promise.all(
-    getDesignAssetIds(document).map(async (assetId) => {
-      const { downloadUrl } = await trpcClient.asset.signDownload.query({ assetId })
-      const response = await fetch(downloadUrl)
-      if (!response.ok) throw new Error(`The download failed with status ${response.status}.`)
-      return [`asset:${assetId}`, URL.createObjectURL(await response.blob())] as const
-    })
+    getDesignAssetIds(document).map(
+      async (assetId) => [`asset:${assetId}`, await fetchAssetUrl(trpcClient, assetId)] as const
+    )
   )
   return Object.fromEntries(entries)
 }

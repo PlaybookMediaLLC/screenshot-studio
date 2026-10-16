@@ -163,6 +163,17 @@ async function storedDocument(trpcClient: Client, document: DesignDocument) {
   return local.length ? mapDesignSources(document, (ref) => uploads.get(ref) ?? ref) : document
 }
 
+/**
+ * The editor's design with images it already uploaded referenced by asset id,
+ * for comparing with a stored version. Nothing is uploaded.
+ */
+export function currentProjectDocument(): DesignDocument {
+  const document = exportDesignDocument({ keepLocalSources: true })
+  return getLocalDesignSources(document).length
+    ? mapDesignSources(document, (ref) => uploads.get(ref) ?? ref)
+    : document
+}
+
 function editorDocument(trpcClient: Client) {
   return storedDocument(trpcClient, exportDesignDocument({ keepLocalSources: true }))
 }
@@ -351,7 +362,10 @@ export async function openProject(
   trpcClient: Client,
   projectId: string
 ): Promise<ProjectOpenOutcome> {
-  await draftRestored
+  await draftRestored()
+  // A save still in flight (from leaving the editor) must land before the
+  // owner record is read, or this device's own write would look like a conflict.
+  await running
   const owner = readOwner()
   closeProject()
   client = trpcClient

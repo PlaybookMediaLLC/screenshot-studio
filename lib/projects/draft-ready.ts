@@ -1,20 +1,27 @@
 'use client'
 
 /**
- * The editor restores its local draft (IndexedDB) once, asynchronously, on
- * mount. Opening a project must wait for it: a restore landing after the
- * project would replace the project on the canvas. The draft is also what a
- * project recovers unsaved changes from after a reload.
+ * The editor restores its local draft (IndexedDB) asynchronously each time
+ * it mounts. Opening a project must wait for that: a restore landing after
+ * the project would replace the project on the canvas. The draft is also
+ * what a project recovers unsaved changes from after a reload.
  */
 
-let markRestored: () => void = () => {}
-
-/** Resolves once the editor's local draft restore has finished, restored or not. */
-export const draftRestored = new Promise<void>((resolve) => {
-  markRestored = resolve
+let restore: Promise<unknown> | null = null
+let markFirst: () => void = () => {}
+const first = new Promise<void>((resolve) => {
+  markFirst = resolve
 })
 
-/** Called by the draft autosave hook when its restore attempt is over. */
-export function markDraftRestored(): void {
-  markRestored()
+/** Called by the draft autosave hook with each restore it starts. */
+export function trackDraftRestore(restoring: Promise<unknown>): void {
+  restore = restoring.catch(() => {}).finally(markFirst)
+}
+
+/** Resolves once the editor's latest draft restore is over, restored or not. */
+export async function draftRestored(): Promise<void> {
+  // The editor starts its restore in an effect of the same commit that mounts
+  // the caller; effects run before this microtask, so it has registered by now.
+  await null
+  await (restore ?? first)
 }

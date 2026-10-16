@@ -10,6 +10,8 @@ import { TIMELINE_HEIGHT } from '@/lib/constants/editor-layout';
 import { VideoReplayIcon, Image01Icon, Cancel01Icon, Add01Icon } from 'hugeicons-react';
 import type { AnimationClip } from '@/types/animation';
 import { useEditorPanels } from '@/lib/store/editor-panels';
+import { MOTION_ROW_HEIGHT, MotionTracks, motionRowCount } from './MotionTracks';
+import { useAudioPlayback } from '@/lib/animation/use-audio-playback';
 
 const TRACK_LABEL_WIDTH = 120;
 const PIXELS_PER_SECOND = 105;
@@ -563,6 +565,7 @@ function SlideDurationHandle({
 /* ─── Main Timeline Editor ───────────────────────────────────── */
 export function TimelineEditor() {
   const { timeline, uploadedImageUrl, slides, showTimeline, toggleTimeline } = useImageStore();
+  const motionRows = useImageStore((state) => motionRowCount(state.motion));
   const playhead = usePlaybackStore((state) => state.playhead);
   const [viewportWidth, setViewportWidth] = React.useState(0);
   const [lockedPixelsPerSecond, setLockedPixelsPerSecond] = React.useState<number | null>(null);
@@ -570,6 +573,7 @@ export function TimelineEditor() {
   const trackRef = React.useRef<HTMLDivElement>(null);
 
   useTimelinePlayback();
+  useAudioPlayback();
 
   React.useEffect(() => {
     const viewport = viewportRef.current;
@@ -600,7 +604,7 @@ export function TimelineEditor() {
   const timelineWidth = trackContentWidth + TRACK_LABEL_WIDTH;
   const playheadPosition = (playhead / timeline.duration) * trackContentWidth + TRACK_LABEL_WIDTH;
   const playheadTimeLabel = formatTime(playhead);
-  const totalTrackHeight = 25 + 49 + 57;
+  const totalTrackHeight = 25 + 49 + motionRows * MOTION_ROW_HEIGHT + 57;
 
   const handleAddAnimation = () => {
     useEditorPanels.getState().showTab('motion');
@@ -611,12 +615,12 @@ export function TimelineEditor() {
   };
 
   return (
-    <div className="flex flex-col border-t border-foreground/10 bg-background" style={{ height: TIMELINE_HEIGHT }}>
+    <div className="flex flex-col border-t border-foreground/10 bg-background" data-keep-selection="" style={{ height: TIMELINE_HEIGHT }}>
       <TimelineControls onAddAnimation={handleAddAnimation} onClose={handleClose} />
 
       <div
         ref={viewportRef}
-        className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-foreground/10"
+        className="flex-1 overflow-x-auto overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-foreground/10"
       >
         <div
           className="relative min-w-full"
@@ -639,6 +643,12 @@ export function TimelineEditor() {
             <AnimationTrack width={timelineWidth} onAddAnimation={handleAddAnimation} />
             <div className="min-w-0 flex-1" aria-hidden />
           </div>
+
+          <MotionTracks
+            duration={timeline.duration}
+            labelWidth={TRACK_LABEL_WIDTH}
+            trackWidth={trackContentWidth}
+          />
 
           <div className="flex w-full border-b border-foreground/10">
             <VideoTrack width={timelineWidth} />

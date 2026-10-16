@@ -22,7 +22,7 @@ import { runSubmitStage, stageMetadata } from './run'
 export async function draftReleaseSpec(
   tenant: TenantContext,
   campaignId: string,
-  options: { fetcher?: TextFetcher } = {}
+  options: { fetcher?: TextFetcher; signal?: AbortSignal } = {}
 ): Promise<StoredSpec> {
   const campaign = await loadLaunchCampaign(tenant, campaignId)
   const release = campaign.release
@@ -67,6 +67,7 @@ export async function draftReleaseSpec(
     .join('\n\n')
 
   const run = await runSubmitStage({
+    abortSignal: options.signal,
     description:
       'Submit the complete launch spec. Every claim cites "brief" or a readable source id. ' +
       'Returns problems to fix if any citation is invalid.',

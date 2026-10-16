@@ -156,7 +156,7 @@ func evaluateBootstrapEntitlement(entitlement *ent.WorkspaceEntitlement, now tim
 		// There is no free plan: "free" is a workspace without a subscription,
 		// and it gets nothing until it pays.
 		case "asset:create", "asset:read", "asset:update", "asset:delete",
-			"release:create", "source-app:create", "workspace:use":
+			"release:create", "source-app:create", "workspace:use", "campaign:workflow":
 			allowed = plan != "free"
 		case "enterprise:audit-drain", "enterprise:sso", "enterprise:scim":
 			allowed = plan == "enterprise"

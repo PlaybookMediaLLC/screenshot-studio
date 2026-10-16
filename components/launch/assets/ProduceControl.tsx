@@ -83,6 +83,14 @@ export function ProduceControl({
     }
   }
 
+  async function cancel(runId: string) {
+    try {
+      await trpcClient.launch.cancelRun.mutate({ runId })
+    } catch (cancelError) {
+      setError(getErrorMessage(cancelError))
+    }
+  }
+
   const elapsed = run && now ? ` ${formatElapsed(now - Date.parse(run.startedAt))}` : ''
   return (
     <div className="flex flex-col gap-3">
@@ -107,14 +115,26 @@ export function ProduceControl({
           }
           label="Visuals and copy"
         >
-          <Button
-            className="rounded-lg tabular-nums"
-            disabled={blocker !== null || run !== null || starting}
-            onClick={() => void produce()}
-            type="button"
-          >
-            {run ? `Producing…${elapsed}` : starting ? 'Starting…' : 'Produce campaign'}
-          </Button>
+          <div className="flex items-center gap-2">
+            {run ? (
+              <Button
+                className="rounded-lg"
+                onClick={() => void cancel(run.id)}
+                type="button"
+                variant="ghost"
+              >
+                Cancel
+              </Button>
+            ) : null}
+            <Button
+              className="rounded-lg tabular-nums"
+              disabled={blocker !== null || run !== null || starting}
+              onClick={() => void produce()}
+              type="button"
+            >
+              {run ? `Producing…${elapsed}` : starting ? 'Starting…' : 'Produce campaign'}
+            </Button>
+          </div>
         </Row>
       </Group>
       <span className="sr-only" role="status">

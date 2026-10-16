@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/quota"
@@ -406,20 +407,67 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if err := repo.Authorize(ctx, Actor{OrganizationID: otherOrgID, UserID: userID, SessionID: actor.SessionID}); !errors.Is(err, publishing.ErrForbidden) {
 		t.Fatalf("wrong tenant authorized: %v", err)
 	}
-	kit, err := repo.CreateBrandKit(ctx, actor, CreateBrandKitInput{Name: "Main", Definition: map[string]any{"color": "blue"}, Publish: true})
-	if err != nil || kit.Version != 1 {
-		t.Fatalf("first kit version=%v err=%v", kit, err)
+	// A legacy definition (no schemaVersion, colors.foreground) is saved canonically.
+	kit, err := repo.CreateBrandKit(ctx, actor, CreateBrandKitInput{Name: "Main", Definition: map[string]any{
+		"colors":     map[string]any{"foreground": "#111111", "background": "#FFFFFF", "accent": "#3366ff", "primary": "#000000"},
+		"typography": map[string]any{"headingFamily": "inter"}}, Publish: true})
+	if err != nil || kit.Version != 1 || kit.Definition["schemaVersion"] != 1 ||
+		kit.Definition["colors"].(map[string]any)["text"] != "#111111" || kit.Definition["colors"].(map[string]any)["primary"] != nil {
+		t.Fatalf("first kit=%+v err=%v", kit, err)
 	}
-	second, err := repo.CreateBrandKit(ctx, actor, CreateBrandKitInput{Name: "Main", Definition: map[string]any{"color": "red"}})
-	if err != nil || second.Version != 2 {
-		t.Fatalf("second kit version=%v err=%v", second, err)
+	logoID, foreignLogoID := uuid.NewString(), uuid.NewString()
+	for _, row := range []struct{ id, org, status string }{{logoID, orgID, "UPLOADED"}, {foreignLogoID, otherOrgID, "UPLOADED"}} {
+		if _, err := db.SQL.ExecContext(ctx, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$3,'image/png',1,$4,now(),now())`,
+			row.id, row.org, "logos/"+row.id, row.status); err != nil {
+			t.Fatal(err)
+		}
+	}
+	definition := func(logo string) map[string]any {
+		return map[string]any{"schemaVersion": float64(1),
+			"colors":     map[string]any{"text": "#111111", "background": "#ffffff", "accent": "#3366FF"},
+			"typography": map[string]any{"headingFamily": "inter", "bodyFamily": "lora"},
+			"logo":       map[string]any{"primaryAssetId": logo}}
+	}
+	second, err := repo.CreateBrandKit(ctx, actor, CreateBrandKitInput{Name: "Main", Definition: definition(logoID)})
+	if err != nil || second.Version != 2 || second.Definition["logo"].(map[string]any)["primaryAssetId"] != logoID {
+		t.Fatalf("second kit=%+v err=%v", second, err)
+	}
+	for name, bad := range map[string]map[string]any{
+		"foreign logo": definition(foreignLogoID), "missing logo": definition(uuid.NewString()),
+		"bad hex":     {"colors": map[string]any{"text": "red", "background": "#ffffff", "accent": "#ffffff"}, "typography": map[string]any{"headingFamily": "inter"}},
+		"no font":     {"colors": map[string]any{"text": "#000000", "background": "#ffffff", "accent": "#ffffff"}, "typography": map[string]any{}},
+		"version two": {"schemaVersion": float64(2), "colors": map[string]any{"text": "#000000", "background": "#ffffff", "accent": "#ffffff"}, "typography": map[string]any{"headingFamily": "inter"}},
+	} {
+		if _, err := repo.CreateBrandKit(ctx, actor, CreateBrandKitInput{Name: "Main", Definition: bad}); !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("%s kit accepted: %v", name, err)
+		}
+	}
+	var terms []brand.ProhibitedTerm
+	if err := json.Unmarshal([]byte(`["Acme",{"term":"cheap","reason":"Off brand","matchMode":"phrase"}]`), &terms); err != nil {
+		t.Fatal(err)
 	}
 	profile, err := repo.UpsertBrandProfile(ctx, actor, UpsertBrandProfileInput{
 		Audience: "Developers", ProductDescription: "Screenshot Studio", Tone: "Clear",
-		PreferredStyles: []string{}, ProhibitedTerms: []string{}, SocialHandles: map[string]string{},
+		PreferredStyles: []string{}, ProhibitedTerms: terms, SocialHandles: map[string]string{},
 	})
-	if err != nil || profile.OrganizationID != orgID {
+	if err != nil || profile.OrganizationID != orgID || len(profile.ProhibitedTerms) != 2 ||
+		profile.ProhibitedTerms[0] != (brand.ProhibitedTerm{Term: "Acme", MatchMode: "word"}) || profile.ProhibitedTerms[1].Reason != "Off brand" {
 		t.Fatalf("profile=%v err=%v", profile, err)
+	}
+	// A row still holding the legacy string array reads as word-mode terms.
+	if _, err := db.SQL.ExecContext(ctx, `UPDATE brand_profile SET "prohibitedTerms"='["Acme", "cheap"]' WHERE "organizationId"=$1`, orgID); err != nil {
+		t.Fatal(err)
+	}
+	if legacy, err := repo.GetBrandProfile(ctx, orgID); err != nil || len(legacy.ProhibitedTerms) != 2 || legacy.ProhibitedTerms[1].MatchMode != "word" {
+		t.Fatalf("legacy profile=%+v err=%v", legacy, err)
+	}
+	if _, err := repo.UpsertBrandProfile(ctx, actor, UpsertBrandProfileInput{Audience: "Developers", ProductDescription: "Screenshot Studio", Tone: "Clear",
+		ProhibitedTerms: []brand.ProhibitedTerm{{Term: "Acme", MatchMode: "regex"}}}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("unknown match mode accepted: %v", err)
+	}
+	if _, err := repo.UpsertBrandProfile(ctx, actor, UpsertBrandProfileInput{Audience: "Developers", ProductDescription: "Screenshot Studio", Tone: "Clear",
+		PreferredStyles: []string{}, ProhibitedTerms: terms, SocialHandles: map[string]string{}}); err != nil {
+		t.Fatal(err)
 	}
 	source, err := repo.CreateSourceApp(ctx, actor, CreateSourceAppInput{
 		Name: "GitHub", Provider: "github", AllowedHosts: []string{"https://github.com"},
@@ -542,7 +590,7 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 		t.Fatal(err)
 	}
 	var auditCount int
-	if err := db.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM audit_log WHERE "organizationId"=$1 AND "requestId"=$2`, orgID, actor.RequestID).Scan(&auditCount); err != nil || auditCount != 17 {
+	if err := db.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM audit_log WHERE "organizationId"=$1 AND "requestId"=$2`, orgID, actor.RequestID).Scan(&auditCount); err != nil || auditCount != 18 {
 		t.Fatalf("audit count=%d err=%v", auditCount, err)
 	}
 	connection, err := repo.auth.CreateConnection(ctx, publishing.Actor{Organization: orgID, UserID: userID, RequestID: actor.RequestID, Type: "USER"},

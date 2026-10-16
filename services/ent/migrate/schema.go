@@ -1065,16 +1065,49 @@ var (
 			},
 		},
 	}
+	// ProductProfileColumns holds the columns for the "product_profile" table.
+	ProductProfileColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "url", Type: field.TypeString},
+		{Name: "summary", Type: field.TypeString, Default: ""},
+		{Name: "problem", Type: field.TypeString, Default: ""},
+		{Name: "audience", Type: field.TypeString, Default: ""},
+		{Name: "capabilities", Type: field.TypeJSON},
+		{Name: "proofPoints", Type: field.TypeJSON},
+		{Name: "pricingNote", Type: field.TypeString, Default: ""},
+		{Name: "competitors", Type: field.TypeJSON},
+		{Name: "provenance", Type: field.TypeJSON},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ProductProfileTable holds the schema information for the "product_profile" table.
+	ProductProfileTable = &schema.Table{
+		Name:       "product_profile",
+		Columns:    ProductProfileColumns,
+		PrimaryKey: []*schema.Column{ProductProfileColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "productprofile_organizationId",
+				Unique:  true,
+				Columns: []*schema.Column{ProductProfileColumns[1]},
+			},
+		},
+	}
 	// ProductSurfaceColumns holds the columns for the "product_surface" table.
 	ProductSurfaceColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "organizationId", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
+		{Name: "slug", Type: field.TypeString},
 		{Name: "url", Type: field.TypeString},
 		{Name: "environment", Type: field.TypeString, Default: "production"},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "featureTags", Type: field.TypeJSON},
 		{Name: "screenshotAssetIds", Type: field.TypeJSON},
+		{Name: "lastCapturedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "lastCaptureFailureCode", Type: field.TypeString, Nullable: true},
 		{Name: "createdAt", Type: field.TypeTime},
 		{Name: "updatedAt", Type: field.TypeTime},
 	}
@@ -1090,9 +1123,14 @@ var (
 				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[2]},
 			},
 			{
+				Name:    "productsurface_organizationId_slug",
+				Unique:  true,
+				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[3]},
+			},
+			{
 				Name:    "productsurface_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[8]},
+				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[11]},
 			},
 		},
 	}
@@ -1474,6 +1512,35 @@ var (
 			},
 		},
 	}
+	// SurfaceCaptureColumns holds the columns for the "surface_capture" table.
+	SurfaceCaptureColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "surfaceId", Type: field.TypeString},
+		{Name: "assetId", Type: field.TypeString},
+		{Name: "source", Type: field.TypeEnum, Enums: []string{"deployment", "agent", "release", "manual"}},
+		{Name: "sourceId", Type: field.TypeString, Nullable: true},
+		{Name: "capturedAt", Type: field.TypeTime},
+		{Name: "supersededAt", Type: field.TypeTime, Nullable: true},
+	}
+	// SurfaceCaptureTable holds the schema information for the "surface_capture" table.
+	SurfaceCaptureTable = &schema.Table{
+		Name:       "surface_capture",
+		Columns:    SurfaceCaptureColumns,
+		PrimaryKey: []*schema.Column{SurfaceCaptureColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "surfacecapture_surfaceId_capturedAt",
+				Unique:  false,
+				Columns: []*schema.Column{SurfaceCaptureColumns[2], SurfaceCaptureColumns[6]},
+			},
+			{
+				Name:    "surfacecapture_organizationId_capturedAt",
+				Unique:  false,
+				Columns: []*schema.Column{SurfaceCaptureColumns[1], SurfaceCaptureColumns[6]},
+			},
+		},
+	}
 	// UserColumns holds the columns for the "user" table.
 	UserColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1651,6 +1718,7 @@ var (
 		OrganizationEnterpriseSettingsTable,
 		OutboxEventTable,
 		PostizTenantBindingTable,
+		ProductProfileTable,
 		ProductSurfaceTable,
 		PublicationAttemptTable,
 		ReleaseTable,
@@ -1663,6 +1731,7 @@ var (
 		SourceAppTable,
 		SourceChangeTable,
 		SupportAccessGrantTable,
+		SurfaceCaptureTable,
 		UserTable,
 		WorkspaceCreditGrantTable,
 		WorkspaceDeletionTable,
@@ -1780,6 +1849,9 @@ func init() {
 	PostizTenantBindingTable.Annotation = &entsql.Annotation{
 		Table: "postiz_tenant_binding",
 	}
+	ProductProfileTable.Annotation = &entsql.Annotation{
+		Table: "product_profile",
+	}
 	ProductSurfaceTable.Annotation = &entsql.Annotation{
 		Table: "product_surface",
 	}
@@ -1817,6 +1889,9 @@ func init() {
 	}
 	SupportAccessGrantTable.Annotation = &entsql.Annotation{
 		Table: "support_access_grant",
+	}
+	SurfaceCaptureTable.Annotation = &entsql.Annotation{
+		Table: "surface_capture",
 	}
 	UserTable.Annotation = &entsql.Annotation{
 		Table: "user",

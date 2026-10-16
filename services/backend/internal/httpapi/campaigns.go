@@ -85,6 +85,49 @@ func (s *Server) decideCampaignPosts(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+// submitCampaignPosts moves draft posts to review. It is the one transition an
+// API key or service may make; the decisions stay on the decide route.
+func (s *Server) submitCampaignPosts(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if !resourceIDPattern.MatchString(id) {
+		writeError(w, http.StatusBadRequest, "invalid campaign ID")
+		return
+	}
+	var input struct {
+		PostIDs []string `json:"postIds"`
+	}
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid campaign post submission")
+		return
+	}
+	result, err := s.configuration.TransitionCampaignPosts(r.Context(), workspaceActor(r), id,
+		product.CampaignPostDecision{Decision: "submit", PostIDs: input.PostIDs})
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) updateCampaignPost(w http.ResponseWriter, r *http.Request) {
+	campaignID, postID := r.PathValue("id"), r.PathValue("postId")
+	if !resourceIDPattern.MatchString(campaignID) || !resourceIDPattern.MatchString(postID) {
+		writeError(w, http.StatusBadRequest, "invalid campaign or post ID")
+		return
+	}
+	var input product.UpdateCampaignPostInput
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid campaign post edit")
+		return
+	}
+	post, err := s.configuration.UpdateCampaignPost(r.Context(), workspaceActor(r), campaignID, postID, input)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, post)
+}
+
 func (s *Server) scheduleCampaignPost(w http.ResponseWriter, r *http.Request) {
 	campaignID, postID := r.PathValue("id"), r.PathValue("postId")
 	if !resourceIDPattern.MatchString(campaignID) || !resourceIDPattern.MatchString(postID) {

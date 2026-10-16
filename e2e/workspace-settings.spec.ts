@@ -24,7 +24,7 @@ test('an owner can persist workspace, profile, and active brand-kit settings', a
 
   await openWorkspaceSetting(page, 'Brand kit')
   await page.getByLabel('Brand kit name').fill('Launch system')
-  await page.getByLabel('Primary typeface').fill('Inter')
+  await page.getByLabel('Primary typeface').selectOption('inter')
   await page.getByRole('button', { name: 'Publish brand kit' }).click()
   await expect(page.getByText('Launch system')).toBeVisible()
   await expect(page.getByText('v1 · active')).toBeVisible()

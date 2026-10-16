@@ -50,6 +50,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
@@ -62,6 +63,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacecreditgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
@@ -145,6 +147,8 @@ type Client struct {
 	OutboxEvent *OutboxEventClient
 	// PostizTenantBinding is the client for interacting with the PostizTenantBinding builders.
 	PostizTenantBinding *PostizTenantBindingClient
+	// ProductProfile is the client for interacting with the ProductProfile builders.
+	ProductProfile *ProductProfileClient
 	// ProductSurface is the client for interacting with the ProductSurface builders.
 	ProductSurface *ProductSurfaceClient
 	// PublicationAttempt is the client for interacting with the PublicationAttempt builders.
@@ -169,6 +173,8 @@ type Client struct {
 	SourceChange *SourceChangeClient
 	// SupportAccessGrant is the client for interacting with the SupportAccessGrant builders.
 	SupportAccessGrant *SupportAccessGrantClient
+	// SurfaceCapture is the client for interacting with the SurfaceCapture builders.
+	SurfaceCapture *SurfaceCaptureClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// WorkspaceCreditGrant is the client for interacting with the WorkspaceCreditGrant builders.
@@ -227,6 +233,7 @@ func (c *Client) init() {
 	c.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(c.config)
 	c.OutboxEvent = NewOutboxEventClient(c.config)
 	c.PostizTenantBinding = NewPostizTenantBindingClient(c.config)
+	c.ProductProfile = NewProductProfileClient(c.config)
 	c.ProductSurface = NewProductSurfaceClient(c.config)
 	c.PublicationAttempt = NewPublicationAttemptClient(c.config)
 	c.Release = NewReleaseClient(c.config)
@@ -239,6 +246,7 @@ func (c *Client) init() {
 	c.SourceApp = NewSourceAppClient(c.config)
 	c.SourceChange = NewSourceChangeClient(c.config)
 	c.SupportAccessGrant = NewSupportAccessGrantClient(c.config)
+	c.SurfaceCapture = NewSurfaceCaptureClient(c.config)
 	c.User = NewUserClient(c.config)
 	c.WorkspaceCreditGrant = NewWorkspaceCreditGrantClient(c.config)
 	c.WorkspaceDeletion = NewWorkspaceDeletionClient(c.config)
@@ -372,6 +380,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		OrganizationEnterpriseSettings: NewOrganizationEnterpriseSettingsClient(cfg),
 		OutboxEvent:                    NewOutboxEventClient(cfg),
 		PostizTenantBinding:            NewPostizTenantBindingClient(cfg),
+		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
 		PublicationAttempt:             NewPublicationAttemptClient(cfg),
 		Release:                        NewReleaseClient(cfg),
@@ -384,6 +393,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		SourceApp:                      NewSourceAppClient(cfg),
 		SourceChange:                   NewSourceChangeClient(cfg),
 		SupportAccessGrant:             NewSupportAccessGrantClient(cfg),
+		SurfaceCapture:                 NewSurfaceCaptureClient(cfg),
 		User:                           NewUserClient(cfg),
 		WorkspaceCreditGrant:           NewWorkspaceCreditGrantClient(cfg),
 		WorkspaceDeletion:              NewWorkspaceDeletionClient(cfg),
@@ -444,6 +454,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		OrganizationEnterpriseSettings: NewOrganizationEnterpriseSettingsClient(cfg),
 		OutboxEvent:                    NewOutboxEventClient(cfg),
 		PostizTenantBinding:            NewPostizTenantBindingClient(cfg),
+		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
 		PublicationAttempt:             NewPublicationAttemptClient(cfg),
 		Release:                        NewReleaseClient(cfg),
@@ -456,6 +467,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		SourceApp:                      NewSourceAppClient(cfg),
 		SourceChange:                   NewSourceChangeClient(cfg),
 		SupportAccessGrant:             NewSupportAccessGrantClient(cfg),
+		SurfaceCapture:                 NewSurfaceCaptureClient(cfg),
 		User:                           NewUserClient(cfg),
 		WorkspaceCreditGrant:           NewWorkspaceCreditGrantClient(cfg),
 		WorkspaceDeletion:              NewWorkspaceDeletionClient(cfg),
@@ -500,11 +512,12 @@ func (c *Client) Use(hooks ...Hook) {
 		c.DeploymentEvent, c.Design, c.GitHubInstallStart, c.GitHubInstallation,
 		c.Invitation, c.LaunchRun, c.Member, c.Organization,
 		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PostizTenantBinding,
-		c.ProductSurface, c.PublicationAttempt, c.Release, c.ReleaseDocument,
-		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session,
-		c.SocialOAuthStart, c.SourceApp, c.SourceChange, c.SupportAccessGrant, c.User,
-		c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
-		c.WorkspaceGitHubInstallation, c.WorkspaceSettings,
+		c.ProductProfile, c.ProductSurface, c.PublicationAttempt, c.Release,
+		c.ReleaseDocument, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
+		c.Session, c.SocialOAuthStart, c.SourceApp, c.SourceChange,
+		c.SupportAccessGrant, c.SurfaceCapture, c.User, c.WorkspaceCreditGrant,
+		c.WorkspaceDeletion, c.WorkspaceEntitlement, c.WorkspaceGitHubInstallation,
+		c.WorkspaceSettings,
 	} {
 		n.Use(hooks...)
 	}
@@ -523,11 +536,12 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.DeploymentEvent, c.Design, c.GitHubInstallStart, c.GitHubInstallation,
 		c.Invitation, c.LaunchRun, c.Member, c.Organization,
 		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PostizTenantBinding,
-		c.ProductSurface, c.PublicationAttempt, c.Release, c.ReleaseDocument,
-		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session,
-		c.SocialOAuthStart, c.SourceApp, c.SourceChange, c.SupportAccessGrant, c.User,
-		c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
-		c.WorkspaceGitHubInstallation, c.WorkspaceSettings,
+		c.ProductProfile, c.ProductSurface, c.PublicationAttempt, c.Release,
+		c.ReleaseDocument, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
+		c.Session, c.SocialOAuthStart, c.SourceApp, c.SourceChange,
+		c.SupportAccessGrant, c.SurfaceCapture, c.User, c.WorkspaceCreditGrant,
+		c.WorkspaceDeletion, c.WorkspaceEntitlement, c.WorkspaceGitHubInstallation,
+		c.WorkspaceSettings,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -606,6 +620,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.OutboxEvent.mutate(ctx, m)
 	case *PostizTenantBindingMutation:
 		return c.PostizTenantBinding.mutate(ctx, m)
+	case *ProductProfileMutation:
+		return c.ProductProfile.mutate(ctx, m)
 	case *ProductSurfaceMutation:
 		return c.ProductSurface.mutate(ctx, m)
 	case *PublicationAttemptMutation:
@@ -630,6 +646,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SourceChange.mutate(ctx, m)
 	case *SupportAccessGrantMutation:
 		return c.SupportAccessGrant.mutate(ctx, m)
+	case *SurfaceCaptureMutation:
+		return c.SurfaceCapture.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	case *WorkspaceCreditGrantMutation:
@@ -5382,6 +5400,139 @@ func (c *PostizTenantBindingClient) mutate(ctx context.Context, m *PostizTenantB
 	}
 }
 
+// ProductProfileClient is a client for the ProductProfile schema.
+type ProductProfileClient struct {
+	config
+}
+
+// NewProductProfileClient returns a client for the ProductProfile from the given config.
+func NewProductProfileClient(c config) *ProductProfileClient {
+	return &ProductProfileClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `productprofile.Hooks(f(g(h())))`.
+func (c *ProductProfileClient) Use(hooks ...Hook) {
+	c.hooks.ProductProfile = append(c.hooks.ProductProfile, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `productprofile.Intercept(f(g(h())))`.
+func (c *ProductProfileClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ProductProfile = append(c.inters.ProductProfile, interceptors...)
+}
+
+// Create returns a builder for creating a ProductProfile entity.
+func (c *ProductProfileClient) Create() *ProductProfileCreate {
+	mutation := newProductProfileMutation(c.config, OpCreate)
+	return &ProductProfileCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ProductProfile entities.
+func (c *ProductProfileClient) CreateBulk(builders ...*ProductProfileCreate) *ProductProfileCreateBulk {
+	return &ProductProfileCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProductProfileClient) MapCreateBulk(slice any, setFunc func(*ProductProfileCreate, int)) *ProductProfileCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProductProfileCreateBulk{err: fmt.Errorf("calling to ProductProfileClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProductProfileCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ProductProfileCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ProductProfile.
+func (c *ProductProfileClient) Update() *ProductProfileUpdate {
+	mutation := newProductProfileMutation(c.config, OpUpdate)
+	return &ProductProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProductProfileClient) UpdateOne(_m *ProductProfile) *ProductProfileUpdateOne {
+	mutation := newProductProfileMutation(c.config, OpUpdateOne, withProductProfile(_m))
+	return &ProductProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProductProfileClient) UpdateOneID(id string) *ProductProfileUpdateOne {
+	mutation := newProductProfileMutation(c.config, OpUpdateOne, withProductProfileID(id))
+	return &ProductProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ProductProfile.
+func (c *ProductProfileClient) Delete() *ProductProfileDelete {
+	mutation := newProductProfileMutation(c.config, OpDelete)
+	return &ProductProfileDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProductProfileClient) DeleteOne(_m *ProductProfile) *ProductProfileDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProductProfileClient) DeleteOneID(id string) *ProductProfileDeleteOne {
+	builder := c.Delete().Where(productprofile.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProductProfileDeleteOne{builder}
+}
+
+// Query returns a query builder for ProductProfile.
+func (c *ProductProfileClient) Query() *ProductProfileQuery {
+	return &ProductProfileQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProductProfile},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ProductProfile entity by its id.
+func (c *ProductProfileClient) Get(ctx context.Context, id string) (*ProductProfile, error) {
+	return c.Query().Where(productprofile.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProductProfileClient) GetX(ctx context.Context, id string) *ProductProfile {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ProductProfileClient) Hooks() []Hook {
+	return c.hooks.ProductProfile
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProductProfileClient) Interceptors() []Interceptor {
+	return c.inters.ProductProfile
+}
+
+func (c *ProductProfileClient) mutate(ctx context.Context, m *ProductProfileMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProductProfileCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProductProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProductProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProductProfileDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ProductProfile mutation op: %q", m.Op())
+	}
+}
+
 // ProductSurfaceClient is a client for the ProductSurface schema.
 type ProductSurfaceClient struct {
 	config
@@ -7026,6 +7177,139 @@ func (c *SupportAccessGrantClient) mutate(ctx context.Context, m *SupportAccessG
 	}
 }
 
+// SurfaceCaptureClient is a client for the SurfaceCapture schema.
+type SurfaceCaptureClient struct {
+	config
+}
+
+// NewSurfaceCaptureClient returns a client for the SurfaceCapture from the given config.
+func NewSurfaceCaptureClient(c config) *SurfaceCaptureClient {
+	return &SurfaceCaptureClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `surfacecapture.Hooks(f(g(h())))`.
+func (c *SurfaceCaptureClient) Use(hooks ...Hook) {
+	c.hooks.SurfaceCapture = append(c.hooks.SurfaceCapture, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `surfacecapture.Intercept(f(g(h())))`.
+func (c *SurfaceCaptureClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SurfaceCapture = append(c.inters.SurfaceCapture, interceptors...)
+}
+
+// Create returns a builder for creating a SurfaceCapture entity.
+func (c *SurfaceCaptureClient) Create() *SurfaceCaptureCreate {
+	mutation := newSurfaceCaptureMutation(c.config, OpCreate)
+	return &SurfaceCaptureCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SurfaceCapture entities.
+func (c *SurfaceCaptureClient) CreateBulk(builders ...*SurfaceCaptureCreate) *SurfaceCaptureCreateBulk {
+	return &SurfaceCaptureCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SurfaceCaptureClient) MapCreateBulk(slice any, setFunc func(*SurfaceCaptureCreate, int)) *SurfaceCaptureCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SurfaceCaptureCreateBulk{err: fmt.Errorf("calling to SurfaceCaptureClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SurfaceCaptureCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SurfaceCaptureCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SurfaceCapture.
+func (c *SurfaceCaptureClient) Update() *SurfaceCaptureUpdate {
+	mutation := newSurfaceCaptureMutation(c.config, OpUpdate)
+	return &SurfaceCaptureUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SurfaceCaptureClient) UpdateOne(_m *SurfaceCapture) *SurfaceCaptureUpdateOne {
+	mutation := newSurfaceCaptureMutation(c.config, OpUpdateOne, withSurfaceCapture(_m))
+	return &SurfaceCaptureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SurfaceCaptureClient) UpdateOneID(id string) *SurfaceCaptureUpdateOne {
+	mutation := newSurfaceCaptureMutation(c.config, OpUpdateOne, withSurfaceCaptureID(id))
+	return &SurfaceCaptureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SurfaceCapture.
+func (c *SurfaceCaptureClient) Delete() *SurfaceCaptureDelete {
+	mutation := newSurfaceCaptureMutation(c.config, OpDelete)
+	return &SurfaceCaptureDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SurfaceCaptureClient) DeleteOne(_m *SurfaceCapture) *SurfaceCaptureDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SurfaceCaptureClient) DeleteOneID(id string) *SurfaceCaptureDeleteOne {
+	builder := c.Delete().Where(surfacecapture.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SurfaceCaptureDeleteOne{builder}
+}
+
+// Query returns a query builder for SurfaceCapture.
+func (c *SurfaceCaptureClient) Query() *SurfaceCaptureQuery {
+	return &SurfaceCaptureQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSurfaceCapture},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SurfaceCapture entity by its id.
+func (c *SurfaceCaptureClient) Get(ctx context.Context, id string) (*SurfaceCapture, error) {
+	return c.Query().Where(surfacecapture.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SurfaceCaptureClient) GetX(ctx context.Context, id string) *SurfaceCapture {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *SurfaceCaptureClient) Hooks() []Hook {
+	return c.hooks.SurfaceCapture
+}
+
+// Interceptors returns the client interceptors.
+func (c *SurfaceCaptureClient) Interceptors() []Interceptor {
+	return c.inters.SurfaceCapture
+}
+
+func (c *SurfaceCaptureClient) mutate(ctx context.Context, m *SurfaceCaptureMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SurfaceCaptureCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SurfaceCaptureUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SurfaceCaptureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SurfaceCaptureDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown SurfaceCapture mutation op: %q", m.Op())
+	}
+}
+
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -7835,11 +8119,11 @@ type (
 		CustomerCommunication, DeploymentEvent, Design, GitHubInstallStart,
 		GitHubInstallation, Invitation, LaunchRun, Member, Organization,
 		OrganizationEnterpriseSettings, OutboxEvent, PostizTenantBinding,
-		ProductSurface, PublicationAttempt, Release, ReleaseDocument, ReleaseSpec,
-		ScheduledPost, ScreenshotCache, Session, SocialOAuthStart, SourceApp,
-		SourceChange, SupportAccessGrant, User, WorkspaceCreditGrant,
-		WorkspaceDeletion, WorkspaceEntitlement, WorkspaceGitHubInstallation,
-		WorkspaceSettings []ent.Hook
+		ProductProfile, ProductSurface, PublicationAttempt, Release, ReleaseDocument,
+		ReleaseSpec, ScheduledPost, ScreenshotCache, Session, SocialOAuthStart,
+		SourceApp, SourceChange, SupportAccessGrant, SurfaceCapture, User,
+		WorkspaceCreditGrant, WorkspaceDeletion, WorkspaceEntitlement,
+		WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
 	}
 	inters struct {
 		Apikey, Approval, Asset, AudienceSubscriber, AuditDrain, AuditDrainDelivery,
@@ -7850,10 +8134,10 @@ type (
 		CustomerCommunication, DeploymentEvent, Design, GitHubInstallStart,
 		GitHubInstallation, Invitation, LaunchRun, Member, Organization,
 		OrganizationEnterpriseSettings, OutboxEvent, PostizTenantBinding,
-		ProductSurface, PublicationAttempt, Release, ReleaseDocument, ReleaseSpec,
-		ScheduledPost, ScreenshotCache, Session, SocialOAuthStart, SourceApp,
-		SourceChange, SupportAccessGrant, User, WorkspaceCreditGrant,
-		WorkspaceDeletion, WorkspaceEntitlement, WorkspaceGitHubInstallation,
-		WorkspaceSettings []ent.Interceptor
+		ProductProfile, ProductSurface, PublicationAttempt, Release, ReleaseDocument,
+		ReleaseSpec, ScheduledPost, ScreenshotCache, Session, SocialOAuthStart,
+		SourceApp, SourceChange, SupportAccessGrant, SurfaceCapture, User,
+		WorkspaceCreditGrant, WorkspaceDeletion, WorkspaceEntitlement,
+		WorkspaceGitHubInstallation, WorkspaceSettings []ent.Interceptor
 	}
 )

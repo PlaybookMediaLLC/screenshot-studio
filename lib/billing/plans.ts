@@ -39,8 +39,8 @@ export const workspaceFeatureSchema = z.enum([
   'enterprise:audit-drain',
   'enterprise:sso',
   'enterprise:scim',
-  // Rollout flag, not a plan feature: no plan includes it, and design-partner
-  // workspaces receive it through featureOverrides.
+  // The campaign workflow. Every paid plan includes it; featureOverrides can
+  // still grant or revoke it per workspace.
   'campaign:workflow',
 ])
 export type WorkspaceFeature = z.infer<typeof workspaceFeatureSchema>
@@ -74,6 +74,7 @@ const planFeatures = {
     'release:create',
     'source-app:create',
     'workspace:use',
+    'campaign:workflow',
   ],
   business: [
     'asset:create',
@@ -83,6 +84,7 @@ const planFeatures = {
     'release:create',
     'source-app:create',
     'workspace:use',
+    'campaign:workflow',
   ],
   enterprise: [
     'asset:create',
@@ -95,6 +97,7 @@ const planFeatures = {
     'enterprise:audit-drain',
     'enterprise:sso',
     'enterprise:scim',
+    'campaign:workflow',
   ],
 } as const satisfies Record<WorkspacePlan, readonly WorkspaceFeature[]>
 
@@ -109,7 +112,7 @@ const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
   'enterprise:audit-drain': 'enterprise',
   'enterprise:sso': 'enterprise',
   'enterprise:scim': 'enterprise',
-  'campaign:workflow': 'enterprise',
+  'campaign:workflow': 'pro',
 }
 
 /** Mirrors `planQuotas` in services/internal/product/quota.go. */

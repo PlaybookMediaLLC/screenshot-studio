@@ -53,6 +53,8 @@ export function RevisePanel({
   const [proposed, setProposed] = useState<Proposed | null>(null)
   const [related, setRelated] = useState<Set<number>>(new Set())
   const [error, setError] = useState<string | null>(null)
+  // Set while the proposal's run is going, so it can be cancelled.
+  const [runId, setRunId] = useState<string | null>(null)
 
   async function propose() {
     setBusy('propose')
@@ -63,6 +65,7 @@ export function RevisePanel({
         comment,
         target: target as Parameters<typeof trpcClient.launch.revision.propose.mutate>[0]['target'],
       })
+      setRunId(run.id)
       const finished = await waitForLaunchRun(trpcClient, run.id)
       if (finished.status !== 'SUCCEEDED' || !finished.resultId) {
         throw new Error(finished.error ?? 'The revision could not be drafted.')
@@ -75,7 +78,16 @@ export function RevisePanel({
     } catch (requestError) {
       setError(errorMessage(requestError))
     } finally {
+      setRunId(null)
       setBusy(null)
+    }
+  }
+
+  async function cancelRun(id: string) {
+    try {
+      await trpcClient.launch.cancelRun.mutate({ runId: id })
+    } catch (requestError) {
+      setError(errorMessage(requestError))
     }
   }
 
@@ -225,8 +237,8 @@ export function RevisePanel({
           <div className="flex justify-end gap-2">
             <Button
               className="rounded-lg"
-              disabled={busy !== null}
-              onClick={() => setOpen(false)}
+              disabled={busy !== null && !runId}
+              onClick={() => (runId ? void cancelRun(runId) : setOpen(false))}
               size="sm"
               type="button"
               variant="ghost"

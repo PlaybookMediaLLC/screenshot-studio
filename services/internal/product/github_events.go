@@ -23,6 +23,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 )
@@ -74,6 +75,8 @@ func (c *Configuration) HandleOutboxEvent(ctx context.Context, eventID, organiza
 		return true, c.backfillSource(ctx, organizationID, aggregateID)
 	case EventDeploymentSucceeded:
 		return true, c.captureDeployment(ctx, organizationID, aggregateID)
+	case EventCampaignPostsSubmitted, EventCampaignPostsDecided:
+		return true, c.notifyReview(ctx, eventID, organizationID, aggregateID)
 	}
 	return false, nil
 }
@@ -523,19 +526,35 @@ func (c *Configuration) captureDeployment(ctx context.Context, organizationID, d
 	}
 	actor := Actor{OrganizationID: organizationID, Kind: "service", Display: "deployment", RequestID: deploymentID}
 	assets := []string{}
+	failed := func(surface *ent.ProductSurface, code string, err error) error {
+		slog.Info("deployment capture failed", "surface", surface.ID, "code", code, "reason", err.Error())
+		return surface.Update().SetLastCaptureFailureCode(code).Exec(ctx)
+	}
 	for i, surface := range surfaces {
 		shot, err := c.capture.Capture(ctx, surface.URL)
 		if err != nil {
-			slog.Info("deployment capture failed", "surface", surface.ID, "reason", err.Error())
+			if err := failed(surface, "capture_failed", err); err != nil {
+				return err
+			}
 			continue
 		}
 		stored, err := c.storeImage(ctx, actor, shot, http.DetectContentType(shot), fmt.Sprintf("deployment-%d", i+1))
 		if err != nil {
-			slog.Info("deployment capture not stored", "surface", surface.ID, "reason", err.Error())
+			if err := failed(surface, "asset_unavailable", err); err != nil {
+				return err
+			}
 			continue
 		}
 		assets = append(assets, stored)
-		if err := surface.Update().SetScreenshotAssetIds(append(surface.ScreenshotAssetIds, stored)).Exec(ctx); err != nil {
+		tx, err := c.client.Tx(ctx)
+		if err != nil {
+			return err
+		}
+		if _, err := recordCapture(ctx, tx, surface, stored, surfacecapture.SourceDeployment, &row.ID); err != nil {
+			_ = tx.Rollback()
+			return err
+		}
+		if err := tx.Commit(); err != nil {
 			return err
 		}
 	}

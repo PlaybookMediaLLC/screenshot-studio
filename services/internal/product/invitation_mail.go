@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -41,6 +42,25 @@ func (EnvInvitationMailer) SendInvitation(ctx context.Context, message Invitatio
 	}
 	acceptURL.Path = "/accept-invitation"
 	acceptURL.RawQuery = url.Values{"invitationId": {message.InvitationID}}.Encode()
+	subject := "Join " + message.OrganizationName + " on Shots"
+	text := fmt.Sprintf("%s invited you to the %s workspace on Shots. Accept the invitation: %s",
+		message.InviterName, message.OrganizationName, acceptURL.String())
+	htmlBody := fmt.Sprintf("<p>%s invited you to join %s on Shots.</p><p><a href=\"%s\">Accept invitation</a></p><p>%s</p>",
+		html.EscapeString(message.InviterName), html.EscapeString(message.OrganizationName),
+		html.EscapeString(acceptURL.String()), html.EscapeString(acceptURL.String()))
+	err = deliverEmail(ctx, message.Email, subject, text, htmlBody)
+	if errors.Is(err, errEmailNotConfigured) {
+		return fmt.Errorf("invitation email is not configured")
+	}
+	return err
+}
+
+// errEmailNotConfigured means neither Resend nor the email webhook is set.
+var errEmailNotConfigured = errors.New("email is not configured")
+
+// deliverEmail sends one message through Resend when RESEND_API_KEY is set,
+// otherwise through AUTH_EMAIL_WEBHOOK_URL, the auth email transport.
+func deliverEmail(ctx context.Context, to, subject, text, htmlBody string) error {
 	from := strings.TrimSpace(os.Getenv("AUTH_EMAIL_FROM"))
 	if from == "" {
 		from = "Shots <noreply@playbookmedia.io>"
@@ -48,27 +68,21 @@ func (EnvInvitationMailer) SendInvitation(ctx context.Context, message Invitatio
 	if _, err := mail.ParseAddress(from); err != nil {
 		return fmt.Errorf("invalid AUTH_EMAIL_FROM: %w", err)
 	}
-	subject := "Join " + message.OrganizationName + " on Shots"
-	text := fmt.Sprintf("%s invited you to the %s workspace on Shots. Accept the invitation: %s",
-		message.InviterName, message.OrganizationName, acceptURL.String())
-	htmlBody := fmt.Sprintf("<p>%s invited you to join %s on Shots.</p><p><a href=\"%s\">Accept invitation</a></p><p>%s</p>",
-		html.EscapeString(message.InviterName), html.EscapeString(message.OrganizationName),
-		html.EscapeString(acceptURL.String()), html.EscapeString(acceptURL.String()))
 	endpoint := strings.TrimSpace(os.Getenv("AUTH_EMAIL_WEBHOOK_URL"))
-	payload := map[string]any{"to": message.Email, "subject": subject, "text": text, "html": htmlBody}
+	payload := map[string]any{"to": to, "subject": subject, "text": text, "html": htmlBody}
 	headers := map[string]string{"Content-Type": "application/json"}
 	if key := strings.TrimSpace(os.Getenv("RESEND_API_KEY")); key != "" {
 		endpoint = "https://api.resend.com/emails"
-		payload["to"] = []string{message.Email}
+		payload["to"] = []string{to}
 		payload["from"] = from
 		headers["Authorization"] = "Bearer " + key
 	}
 	if endpoint == "" {
-		return fmt.Errorf("invitation email is not configured")
+		return errEmailNotConfigured
 	}
 	parsed, err := url.Parse(endpoint)
 	if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || parsed.Host == "" {
-		return fmt.Errorf("invalid invitation email endpoint")
+		return fmt.Errorf("invalid email endpoint")
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -90,7 +104,7 @@ func (EnvInvitationMailer) SendInvitation(ctx context.Context, message Invitatio
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		detail, _ := io.ReadAll(io.LimitReader(response.Body, 1024))
-		return fmt.Errorf("invitation email delivery failed (%d): %s", response.StatusCode, strings.TrimSpace(string(detail)))
+		return fmt.Errorf("email delivery failed (%d): %s", response.StatusCode, strings.TrimSpace(string(detail)))
 	}
 	return nil
 }

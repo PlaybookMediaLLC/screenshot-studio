@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandprofile"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
 )
 
 // BrandProfile is the model entity for the BrandProfile schema.
@@ -31,7 +32,7 @@ type BrandProfile struct {
 	// CtaConventions holds the value of the "cta_conventions" field.
 	CtaConventions *string `json:"cta_conventions,omitempty"`
 	// ProhibitedTerms holds the value of the "prohibited_terms" field.
-	ProhibitedTerms []string `json:"prohibited_terms,omitempty"`
+	ProhibitedTerms []brand.ProhibitedTerm `json:"prohibited_terms,omitempty"`
 	// PreferredStyles holds the value of the "preferred_styles" field.
 	PreferredStyles []string `json:"preferred_styles,omitempty"`
 	// SocialHandles holds the value of the "social_handles" field.

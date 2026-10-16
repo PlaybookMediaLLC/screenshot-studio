@@ -429,6 +429,18 @@ func (f PostizTenantBindingFunc) Mutate(ctx context.Context, m ent.Mutation) (en
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PostizTenantBindingMutation", m)
 }
 
+// The ProductProfileFunc type is an adapter to allow the use of ordinary
+// function as ProductProfile mutator.
+type ProductProfileFunc func(context.Context, *ent.ProductProfileMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProductProfileFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProductProfileMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProductProfileMutation", m)
+}
+
 // The ProductSurfaceFunc type is an adapter to allow the use of ordinary
 // function as ProductSurface mutator.
 type ProductSurfaceFunc func(context.Context, *ent.ProductSurfaceMutation) (ent.Value, error)
@@ -571,6 +583,18 @@ func (f SupportAccessGrantFunc) Mutate(ctx context.Context, m ent.Mutation) (ent
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SupportAccessGrantMutation", m)
+}
+
+// The SurfaceCaptureFunc type is an adapter to allow the use of ordinary
+// function as SurfaceCapture mutator.
+type SurfaceCaptureFunc func(context.Context, *ent.SurfaceCaptureMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SurfaceCaptureFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SurfaceCaptureMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SurfaceCaptureMutation", m)
 }
 
 // The UserFunc type is an adapter to allow the use of ordinary

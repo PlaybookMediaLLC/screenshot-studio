@@ -5,6 +5,7 @@ export type SettingId =
   | 'audit'
   | 'billing'
   | 'brand'
+  | 'channels'
   | 'general'
   | 'members'
   | 'profile'
@@ -74,6 +75,12 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     id: 'brand',
     slug: 'brand-kit',
     title: 'Brand kit',
+  },
+  {
+    description: 'Social accounts that approved posts publish to.',
+    id: 'channels',
+    slug: 'channels',
+    title: 'Channels',
   },
   {
     description: 'Scoped keys for release webhooks and content automation.',

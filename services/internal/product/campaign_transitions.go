@@ -2,10 +2,13 @@ package product
 
 import (
 	"context"
+	"encoding/json"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaign"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
@@ -25,6 +28,24 @@ type CampaignPostDecision struct {
 type CampaignPostTransition struct {
 	PostIDs []string `json:"postIds"`
 	Status  string   `json:"status"`
+}
+
+// apiKeyAllows reports whether the actor's API key was issued with
+// resource:action (apiKeyScopePermissions in lib/auth/api-key-scopes.ts).
+// Better Auth stores the permissions as a JSON object of action lists.
+func (c *Configuration) apiKeyAllows(ctx context.Context, actor Actor, resource, action string) (bool, error) {
+	key, err := c.client.Apikey.Query().Where(apikey.ID(actor.KeyID), apikey.ReferenceID(actor.OrganizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil || key.Permissions == nil {
+		return false, err
+	}
+	var permissions map[string][]string
+	if json.Unmarshal([]byte(*key.Permissions), &permissions) != nil {
+		return false, nil
+	}
+	return slices.Contains(permissions[resource], action), nil
 }
 
 func campaignTransitionRoles(from, to campaign.Status) []string {
@@ -139,12 +160,23 @@ func (c *Configuration) TransitionCampaignPosts(ctx context.Context, actor Actor
 	if !ok || len(input.PostIDs) > 100 || (input.Note != nil && len(*input.Note) > 1000) {
 		return nil, ErrInvalidInput
 	}
+	// Approve, reject, and request changes are a person's decisions. Submit
+	// is open to automation: an API key needs the release:create scope.
 	authorize := c.authorizeDecision
 	if input.Decision == "submit" {
 		authorize = c.authorizeRoles
 	}
 	if err := authorize(ctx, actor, roles...); err != nil {
 		return nil, err
+	}
+	if input.Decision == "submit" && actor.Kind == "api_key" {
+		allowed, err := c.apiKeyAllows(ctx, actor, "release", "create")
+		if err != nil {
+			return nil, err
+		}
+		if !allowed {
+			return nil, forbidden("This API key needs the release:create scope to submit posts for review.")
+		}
 	}
 	seen := make(map[string]bool, len(input.PostIDs))
 	for _, id := range input.PostIDs {
@@ -197,6 +229,9 @@ func (c *Configuration) TransitionCampaignPosts(ctx context.Context, actor Actor
 	}
 	if count != len(ids) {
 		return nil, publishing.ErrConflict
+	}
+	if err := reviewEvent(ctx, tx, actor, campaignID, input.Decision, ids, input.Note); err != nil {
+		return nil, err
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.campaign_post_status_changed", "campaign", campaignID,
 		map[string]any{"decision": input.Decision, "noted": input.Note != nil && strings.TrimSpace(*input.Note) != "" && input.Decision != "approve",

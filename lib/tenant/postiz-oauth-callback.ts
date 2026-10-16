@@ -83,6 +83,17 @@ function verifyChoice(value: string, secret: string): z.infer<typeof pageChoiceS
   }
 }
 
+/** Back to the Channels settings, which confirms the connection. */
+function connectedRedirect(provider: SocialOAuthProvider): Response {
+  return new Response(null, {
+    headers: {
+      'Cache-Control': 'no-store',
+      Location: `/workspace/channels?${new URLSearchParams({ connected: provider })}`,
+    },
+    status: 303,
+  })
+}
+
 function connectionFailed(provider: SocialOAuthProvider): Response {
   return new Response(`${provider} connection failed. Please start again.`, { status: 502 })
 }
@@ -114,9 +125,7 @@ export async function completeSocialOAuth(
   if (!connected.success) return connectionFailed(providerName)
   if (providerName !== 'instagram') {
     await completion.onConnected?.(state, connected.data.id)
-    return new Response(`${providerName} connected to Shots.`, {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    })
+    return connectedRedirect(providerName)
   }
 
   const pages = connected.data.pages ?? []
@@ -174,7 +183,5 @@ export async function selectInstagramAccount(
     return new Response('Social connection is not configured.', { status: 503 })
   await selection.selectPage(choice)
   await selection.onSelected?.(choice.state, choice.integrationId)
-  return new Response('Instagram connected to Shots.', {
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-  })
+  return connectedRedirect('instagram')
 }

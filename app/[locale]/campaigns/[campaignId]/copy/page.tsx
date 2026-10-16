@@ -7,6 +7,8 @@ import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { EmptyState, Section } from '@/components/platform-ui'
 import { isCampaignStudioConfigured } from '@/lib/ai/agents/campaign-studio'
 import { hasPermission } from '@/lib/auth/permissions'
+import { backendSDK } from '@/lib/backend/sdk'
+import { visualChoices } from '@/lib/launch/schedule'
 import {
   claimsMeanTheSame,
   LAUNCH_CHANNEL_LABELS,
@@ -20,6 +22,7 @@ import {
 } from '@/lib/launch/spec-schema'
 import { getCampaignPlans, getReleaseSpecs, getSpecById } from '@/lib/launch/store'
 import { getCampaign } from '@/lib/tenant/campaigns'
+import { listCampaignDesigns } from '@/lib/tenant/designs'
 import { requireCampaignPageAccess } from '../../page-access'
 
 export const metadata: Metadata = { title: 'Campaign copy' }
@@ -63,9 +66,13 @@ export default async function CampaignCopyPage({ params }: CampaignCopyPageProps
     )
   }
 
-  const [plans, specs] = await Promise.all([
+  const [plans, specs, designs, members] = await Promise.all([
     getCampaignPlans(access.tenant, campaign.id),
     campaign.release ? getReleaseSpecs(access.tenant, campaign.release.id) : null,
+    listCampaignDesigns(access.tenant, campaign.id),
+    campaign.posts.some((post) => post.approvedByUserId)
+      ? backendSDK(access.tenant).listWorkspaceMembers()
+      : { members: [] },
   ])
   const workingPlan = plans.approved ?? plans.latest
   const plan = workingPlan?.content
@@ -89,6 +96,29 @@ export default async function CampaignCopyPage({ params }: CampaignCopyPageProps
   const planAngles = new Map(plan?.angles.map((angle) => [angle.key, angle.title]))
   // Posts from before the plan carry a content angle instead.
   const contentAngles = new Map(campaign.angles.map((angle) => [angle.id, angle.title]))
+  const memberNames = new Map(
+    members.members.map((member) => [member.user.id, member.user.name || member.user.email])
+  )
+  // Newest first, so the latest approved render of an asset leads the picker.
+  const approvedVisuals = [...designs]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .flatMap((design) =>
+      design.approvedVariant
+        ? [
+            {
+              id: design.approvedVariant.id,
+              label: [
+                design.planAssetKey,
+                design.name,
+                design.variantLabel ? `Variant ${design.variantLabel}` : null,
+              ]
+                .filter(Boolean)
+                .join(' · '),
+              planAssetKey: design.planAssetKey,
+            },
+          ]
+        : []
+    )
 
   const posts = [...campaign.posts]
     .sort(
@@ -104,6 +134,10 @@ export default async function CampaignCopyPage({ params }: CampaignCopyPageProps
         angle: angleTitle
           ? `${post.planItemKey} · ${angleTitle}`
           : ((post.angleId && contentAngles.get(post.angleId)) ?? post.planItemKey),
+        approval: post.approvedAt && {
+          at: post.approvedAt.toISOString(),
+          by: (post.approvedByUserId && memberNames.get(post.approvedByUserId)) ?? null,
+        },
         callToAction: post.callToAction,
         channel: post.channel,
         claims: claimsSchema.parse(post.claims).map((claim) => {
@@ -120,6 +154,7 @@ export default async function CampaignCopyPage({ params }: CampaignCopyPageProps
           }
         }),
         copy: post.copy,
+        creativeVariantId: post.creativeVariantId,
         fromEarlierPlan:
           workingPlan !== null &&
           post.planVersion !== null &&
@@ -127,8 +162,15 @@ export default async function CampaignCopyPage({ params }: CampaignCopyPageProps
         id: post.id,
         phase: PLAN_PHASE_LABELS[post.phase as PlanPhase] ?? null,
         reviewNote: post.reviewNote,
+        scheduledAt: post.scheduledAt?.toISOString() ?? null,
+        scheduledPostId: post.scheduledPostId,
+        scheduledPostStatus: post.scheduledPostStatus,
         status: post.status,
         title: post.title,
+        visuals: visualChoices(post, plan, approvedVisuals).map(({ id, label }) => ({
+          id,
+          label,
+        })),
       }
     })
 
@@ -161,6 +203,7 @@ export default async function CampaignCopyPage({ params }: CampaignCopyPageProps
           campaignId: campaign.id,
           canApprove: hasPermission(access.role, 'release:approve'),
           canEdit: hasPermission(access.role, 'release:create'),
+          canSchedule: hasPermission(access.role, 'publish:manage'),
         }}
         posts={posts}
       />

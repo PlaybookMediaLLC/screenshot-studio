@@ -89,21 +89,10 @@ jobs:
       IMAGE_DIGEST: ${{ needs.publish.outputs.digest }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Skip a commit that main has moved past
-        id: head
-        run: |
-          head_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
-          if test "$head_sha" = "$GITHUB_SHA"; then
-            echo "current=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Skipped: main is at $head_sha, whose own run deploys it." >> "$GITHUB_STEP_SUMMARY"
-          fi
-      - if: steps.head.outputs.current == 'true'
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - name: Load scoped production credentials
-        if: steps.head.outputs.current == 'true'
         uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d # v1.0.18
         with:
           method: oidc
@@ -113,26 +102,34 @@ jobs:
           secret-path: /screenshot-studio
           include-imports: 'false'
           recursive: 'false'
-      - name: Record a database restore point
-        if: steps.head.outputs.current == 'true'
-        run: infra/digitalocean/backup-database.sh "deploy-${GITHUB_SHA::12}"
-      - if: steps.head.outputs.current == 'true'
-        uses: digitalocean/action-doctl@3cb3953159719656269e044e0e24ca16dd2a690f # v2.5.2
+      - uses: digitalocean/action-doctl@3cb3953159719656269e044e0e24ca16dd2a690f # v2.5.2
         with:
           token: ${{ secrets.DIGITALOCEAN_PRODUCTION_TOKEN }}
           version: 1.180.0
+      # Commits that touch no backend path (release-please's version bumps,
+      # web-only changes) never run this workflow, so "is this main's head" is
+      # the wrong test. Skip only when production already runs a newer commit.
+      - name: Skip an image older than the live one
+        id: newer
+        run: |
+          live="$(doctl apps get "$APP_ID" -o json | jq -r '.[0].spec.services[] | select(.name == "screenshot-studio-backend") | .image.tag // ""')"
+          live_sha="${live#social-backend-}"
+          if test -n "$live_sha" && test "$live_sha" != "$GITHUB_SHA" &&
+            test "$(gh api "repos/$GITHUB_REPOSITORY/compare/$GITHUB_SHA...$live_sha" --jq .status 2>/dev/null)" = ahead; then
+            echo "Skipped: production already runs $live, which is newer." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Record a database restore point
+        if: steps.newer.outputs.deploy == 'true'
+        run: infra/digitalocean/backup-database.sh "deploy-${GITHUB_SHA::12}"
       - name: Cut over to the combined backend
-        if: steps.head.outputs.current == 'true'
+        if: steps.newer.outputs.deploy == 'true'
         run: |
           set -euo pipefail
           umask 077
           test -n "$APP_ID"
           test -n "$IMAGE_DIGEST"
-          head_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
-          if test "$head_sha" != "$GITHUB_SHA"; then
-            echo "Skipped after the backup: main moved to $head_sha." >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
           work="$(mktemp -d)"
           trap 'rm -rf "$work"' EXIT
           doctl apps get "$APP_ID" -o json > "$work/before.json"

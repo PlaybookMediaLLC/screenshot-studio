@@ -14,10 +14,12 @@ on:
       - services/go.mod
       - services/go.sum
       - .github/workflows/social-backend-image.yml
+      - infra/digitalocean/backup-database.sh
+      - infra/digitalocean/consolidate-live-spec.py
   workflow_dispatch:
     inputs:
       deploy:
-        description: Replace the four legacy backend services in production
+        description: Redeploy this commit to production (pushes to main deploy automatically)
         type: boolean
         default: false
 
@@ -69,9 +71,10 @@ jobs:
           docker logout ghcr.io
           docker buildx imagetools inspect "ghcr.io/playbookmediallc/screenshot-studio@$IMAGE_DIGEST"
 
+  # Every push to main deploys: back up the database, migrate, then cut over.
   deploy:
     needs: publish
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.deploy)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: production
@@ -86,10 +89,21 @@ jobs:
       IMAGE_DIGEST: ${{ needs.publish.outputs.digest }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Skip a commit that main has moved past
+        id: head
+        run: |
+          head_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
+          if test "$head_sha" = "$GITHUB_SHA"; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipped: main is at $head_sha, whose own run deploys it." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - if: steps.head.outputs.current == 'true'
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - name: Load scoped production credentials
+        if: steps.head.outputs.current == 'true'
         uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d # v1.0.18
         with:
           method: oidc
@@ -99,18 +113,26 @@ jobs:
           secret-path: /screenshot-studio
           include-imports: 'false'
           recursive: 'false'
-      - uses: digitalocean/action-doctl@3cb3953159719656269e044e0e24ca16dd2a690f # v2.5.2
+      - name: Back up the production database
+        if: steps.head.outputs.current == 'true'
+        run: infra/digitalocean/backup-database.sh "deploy-${GITHUB_SHA::12}"
+      - if: steps.head.outputs.current == 'true'
+        uses: digitalocean/action-doctl@3cb3953159719656269e044e0e24ca16dd2a690f # v2.5.2
         with:
           token: ${{ secrets.DIGITALOCEAN_PRODUCTION_TOKEN }}
           version: 1.180.0
       - name: Cut over to the combined backend
+        if: steps.head.outputs.current == 'true'
         run: |
           set -euo pipefail
           umask 077
           test -n "$APP_ID"
           test -n "$IMAGE_DIGEST"
           head_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
-          test "$head_sha" = "$GITHUB_SHA"
+          if test "$head_sha" != "$GITHUB_SHA"; then
+            echo "Skipped after the backup: main moved to $head_sha." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           work="$(mktemp -d)"
           trap 'rm -rf "$work"' EXIT
           doctl apps get "$APP_ID" -o json > "$work/before.json"

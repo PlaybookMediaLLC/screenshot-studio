@@ -141,3 +141,33 @@ export function calculateCanvasDimensions(
     imageY,
   };
 }
+
+/** A rectangle in stage px: top-left corner and size. */
+export interface StageRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Where the main image's pixels are drawn on the stage (before rotation and
+ * 3D): inside its frame's padding and browser bar, at the layer's scale.
+ */
+export function mainImageRect(
+  dimensions: Pick<CanvasDimensions, 'canvasW' | 'canvasH' | 'framedW' | 'framedH' | 'imageScaledW' | 'imageScaledH' | 'windowPadding' | 'windowHeader'>,
+  screenshot: { offsetX: number; offsetY: number; scale: number },
+  frameType: string
+): StageRect {
+  const scale = screenshot.scale;
+  const centerX = dimensions.canvasW / 2 + screenshot.offsetX;
+  const centerY = dimensions.canvasH / 2 + screenshot.offsetY;
+  // Browser bars sit above the image; a photograph's extra margin is below it.
+  const barAbove = frameType.startsWith('macos') || frameType.startsWith('windows') ? dimensions.windowHeader : 0;
+  return {
+    x: centerX - (dimensions.framedW * scale) / 2 + dimensions.windowPadding * scale,
+    y: centerY - (dimensions.framedH * scale) / 2 + (dimensions.windowPadding + barAbove) * scale,
+    width: dimensions.imageScaledW * scale,
+    height: dimensions.imageScaledH * scale,
+  };
+}

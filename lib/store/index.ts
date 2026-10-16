@@ -3,6 +3,7 @@
 import { create } from 'zustand'
 import { resetPlayback, usePlaybackStore } from './playback'
 import { NEUTRAL_IMAGE_FILTERS } from '@/lib/editor/image-adjustments'
+import { createElementsSlice, type ElementsSlice } from './elements-slice'
 import { shallow } from 'zustand/shallow'
 import { temporal } from 'zundo'
 import { GradientKey } from '@/lib/constants/gradient-colors'
@@ -238,7 +239,7 @@ export function endHistoryGesture() {
 }
 
 // Re-export existing ImageState interface and store
-export interface ImageState {
+export interface ImageState extends ElementsSlice {
   uploadedImageUrl: string | null
   imageName: string | null
   selectedGradient: GradientKey
@@ -442,6 +443,7 @@ export interface ImageState {
 export const useImageStore = create<ImageState>()(
   temporal(
     (set, get) => ({
+      ...createElementsSlice(set, get),
       slides: [],
       activeSlideId: null,
 
@@ -619,6 +621,8 @@ export const useImageStore = create<ImageState>()(
           annotations: [],
           activeAnnotationTool: null,
           blurRegions: [],
+          elements: [],
+          selectedElementId: null,
           // Reset timeline/animation
           timeline: { ...DEFAULT_TIMELINE_STATE },
           animationClips: [],
@@ -697,6 +701,8 @@ export const useImageStore = create<ImageState>()(
           annotations: [],
           activeAnnotationTool: null,
           blurRegions: [],
+          elements: [],
+          selectedElementId: null,
           // Reset timeline/animation
           timeline: { ...DEFAULT_TIMELINE_STATE },
           animationClips: [],
@@ -1393,6 +1399,8 @@ export const useImageStore = create<ImageState>()(
           annotations: [],
           activeAnnotationTool: null,
           blurRegions: [],
+          elements: [],
+          selectedElementId: null,
           timeline: { ...DEFAULT_TIMELINE_STATE },
           animationClips: [],
           showTimeline: false,
@@ -1866,18 +1874,27 @@ export const useImageStore = create<ImageState>()(
       setSelectedTextId: (id) =>
         set(() => ({
           selectedTextId: id,
-          ...(id ? { isMainImageSelected: false, selectedAnnotationId: null, selectedOverlayId: null } : {}),
+          ...(id
+            ? {
+                isMainImageSelected: false,
+                selectedAnnotationId: null,
+                selectedElementId: null,
+                selectedOverlayId: null,
+              }
+            : {}),
         })),
       setSelectedBlurId: (id) => set({ selectedBlurId: id }),
       setSelectedOverlayId: (id: string | null) =>
         set((state) => ({
           selectedOverlayId: id,
           isMainImageSelected: id ? false : state.isMainImageSelected,
+          selectedElementId: id ? null : state.selectedElementId,
         })),
       setIsMainImageSelected: (selected: boolean) =>
         set((state) => ({
           isMainImageSelected: selected,
           selectedOverlayId: selected ? null : state.selectedOverlayId,
+          selectedElementId: selected ? null : state.selectedElementId,
         })),
     }),
     {
@@ -1888,6 +1905,7 @@ export const useImageStore = create<ImageState>()(
         selectedTextId: _text,
         selectedBlurId: _blur,
         selectedAnnotationId: _annotation,
+        selectedElementId: _element,
         activeAnnotationTool: _tool,
         canvasDimensions: _dimensions,
         ...state
@@ -1922,6 +1940,9 @@ useImageStore.subscribe((state) => {
   }
   if (state.selectedBlurId && !state.blurRegions.some((region) => region.id === state.selectedBlurId)) {
     state.setSelectedBlurId(null)
+  }
+  if (state.selectedElementId && !state.elements.some((element) => element.id === state.selectedElementId)) {
+    state.setSelectedElementId(null)
   }
 })
 

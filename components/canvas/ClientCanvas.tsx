@@ -9,7 +9,10 @@ import { generateNoiseTexture } from "@/lib/export/export-utils";
 import { MockupSceneRenderer } from "@/components/mockups/MockupRenderer";
 import { useDeviceUIStore } from "@/lib/store/device-ui";
 import { shouldIgnoreEditorShortcut } from "@/lib/editor-shortcuts";
-import { calculateCanvasDimensions } from "./utils/canvas-dimensions";
+import { calculateCanvasDimensions, mainImageRect } from "./utils/canvas-dimensions";
+import { CanvasGeometryContext, type CanvasGeometry } from "./elements/canvas-geometry";
+import { ElementLayer } from "./elements/ElementLayer";
+import { imageFilterCss } from "@/lib/editor/image-adjustments";
 import { toCanvasShadow } from "./utils/shadow-utils";
 import { useImageMotion } from "@/lib/animation/use-image-motion";
 import { CanvasStageShell } from "./CanvasStageShell";
@@ -235,6 +238,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
         setSelectedBlurId(null);
         setSelectedAnnotationId(null);
         setSelectedDeviceId(null);
+        useImageStore.getState().setSelectedElementId(null);
       }
     };
 
@@ -295,6 +299,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
         setSelectedBlurId(null);
         setSelectedAnnotationId(null);
         setSelectedDeviceId(null);
+        useImageStore.getState().setSelectedElementId(null);
         setEditingScreenDeviceId(null);
       }
     };
@@ -411,6 +416,17 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
 
   const showFrame = frame.enabled && frame.type !== "none";
 
+  const geometry: CanvasGeometry = {
+    canvasH,
+    canvasW,
+    imageFilter: imageFilterCss(imageFilters),
+    imageNaturalSize: { height: image.naturalHeight, width: image.naturalWidth },
+    imageRect: hasSourceImage
+      ? mainImageRect(dimensions, screenshot, showFrame ? frame.type : "none")
+      : null,
+    imageSrc: uploadedImageUrl,
+  };
+
   let selectedSelector: string | null = null;
   if (isMainImageSelected) {
     selectedSelector = '[data-main-image-layer="true"]';
@@ -441,6 +457,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setSelectedAnnotationId(null);
     setEditingScreenDeviceId(null);
     setSelectedDeviceId(null);
+    useImageStore.getState().setSelectedElementId(null);
   };
 
   return (
@@ -610,6 +627,10 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           onDuplicate={handleDuplicateOverlay}
           onDelete={handleDeleteOverlay}
         />
+
+        <CanvasGeometryContext.Provider value={geometry}>
+          <ElementLayer zIndex={205} />
+        </CanvasGeometryContext.Provider>
 
         <HTMLBlurRegionLayer
           blurRegions={blurRegions}

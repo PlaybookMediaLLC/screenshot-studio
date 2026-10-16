@@ -18,10 +18,12 @@ import {
   ShadowSection,
 } from '../sections'
 import { CanvasSection } from './CanvasSection'
+import { ElementInspector } from '../inspector/ElementInspector'
 
 const KIND_LABELS: Record<SelectionKind, string> = {
   annotation: 'Markup',
   device: 'Device',
+  element: 'Element',
   image: 'Screenshot',
   redaction: 'Redaction',
   sticker: 'Sticker',
@@ -132,7 +134,9 @@ export function SelectionInspector() {
           </button>
         ) : null}
       </div>
-      {kind === 'text' ? (
+      {kind === 'element' && id ? (
+        <ElementInspector id={id} />
+      ) : kind === 'text' ? (
         <SectionWrapper title="Text" defaultOpen>
           <TextProperties />
         </SectionWrapper>

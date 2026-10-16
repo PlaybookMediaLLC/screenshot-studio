@@ -17,6 +17,7 @@ import {
   BackgroundEffectsSection,
   BackgroundSection,
   DepthSection,
+  ElementsSection,
   ImageOverlaySection,
   QuickTemplatesSection,
   ScreenshotDesignSection,
@@ -49,11 +50,12 @@ export const COMPOSE_TABS: readonly PanelTabDefinition<ComposeTab>[] = [
         <QuickTemplatesSection />
         <ScreenshotDesignSection />
         <TextSection />
+        <ElementsSection />
         <ImageOverlaySection />
         <AnnotateSection />
       </div>
     ),
-    hint: 'Templates, text, stickers, and markup',
+    hint: 'Templates, text, elements, stickers, and markup',
     icon: <PaintBoardIcon size={14} />,
     id: 'design',
     label: 'Design',

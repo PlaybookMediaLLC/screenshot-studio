@@ -178,6 +178,8 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
     useImageStore.setState({ activeDeviceLayoutId: null, deviceLayoutSnapshot: null, mockups: [] })
   }
   if (changes.mode) useImageStore.setState({ editorMode: changes.mode })
+  // Elements are stored in canvas fractions, so they load as they are.
+  if (changes.elements) useImageStore.setState({ elements: structuredClone(changes.elements) })
 
   if (changes.timeline) {
     const { clips, duration, isLooping, tracks } = changes.timeline

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { canvasElementSchema } from '@/lib/editor/elements/schema'
 import { designCatalog, frameTypes, isKnownBackground } from './catalog'
 
 /**
@@ -375,6 +376,8 @@ export const designDocumentSchema = z.object({
     .max(20)
     .default([]),
   animation: z.object({ presetId: enumOf(designCatalog.animationPresets) }).optional(),
+  /** Step badges, cursors, spotlights, and zoom callouts, bottom to top. */
+  elements: z.array(canvasElementSchema).max(60).default([]),
   /** The full timeline: clips from presets and keyframed tracks. Wins over `animation`. */
   timeline: timelineSchema.optional(),
   /** Several screenshots shown one after another. */

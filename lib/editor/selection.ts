@@ -5,7 +5,7 @@ import { useImageStore } from '@/lib/store'
 import { useDeviceUIStore } from '@/lib/store/device-ui'
 
 /** The kinds of thing the editor can have selected. */
-export const selectionKindSchema = z.enum(['image', 'text', 'sticker', 'annotation', 'redaction', 'device'])
+export const selectionKindSchema = z.enum(['image', 'text', 'sticker', 'element', 'annotation', 'redaction', 'device'])
 /** A selectable layer kind. */
 export type SelectionKind = z.infer<typeof selectionKindSchema>
 
@@ -20,6 +20,8 @@ export function useEditorSelection(): EditorSelection {
   const redaction = useImageStore((state) => state.selectedBlurId)
   const image = useImageStore((state) => state.isMainImageSelected)
   const device = useDeviceUIStore((state) => state.selectedDeviceId)
+  const element = useImageStore((state) => state.selectedElementId)
+  if (element) return { id: element, kind: 'element' }
   if (text) return { id: text, kind: 'text' }
   if (overlay) return { id: overlay, kind: 'sticker' }
   if (annotation) return { id: annotation, kind: 'annotation' }
@@ -36,6 +38,7 @@ export function clearEditorSelection() {
   state.setSelectedTextId(null)
   state.setSelectedAnnotationId(null)
   state.setSelectedBlurId(null)
+  state.setSelectedElementId(null)
   state.setIsMainImageSelected(false)
   useDeviceUIStore.getState().setSelectedDeviceId(null)
 }

@@ -14,6 +14,7 @@ export { ImagePositionSection } from './ImagePositionSection';
 export { DeviceFramesSection } from './DeviceFramesSection';
 export { ScreenshotDesignSection } from "./ScreenshotDesignSection";
 export { AdjustSection } from './AdjustSection';
+export { ElementsSection } from './ElementsSection';
 export { QuickTemplatesSection } from "./QuickTemplatesSection";
 export { ExportPresetsSection } from "./ExportPresetsSection";
 export { BackgroundEffectsSection } from "./BackgroundEffectsSection";

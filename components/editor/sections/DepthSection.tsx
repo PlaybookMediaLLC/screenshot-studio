@@ -29,7 +29,9 @@ import {
   LayersLogoIcon,
   LayerBringForwardIcon,
   LayerSendBackwardIcon,
+  Target01Icon,
 } from 'hugeicons-react';
+import { ELEMENT_LABELS } from '@/components/editor/inspector/ElementInspector';
 
 // ── Local overlay assets ─────────────────────────────────────────────────────
 
@@ -63,7 +65,7 @@ const LOCAL_OBJECTS = [
 
 // ── Layer type helpers ───────────────────────────────────────────────────────
 
-type LayerType = 'image-overlay' | 'text-overlay' | 'annotation' | 'blur';
+type LayerType = 'image-overlay' | 'text-overlay' | 'element' | 'annotation' | 'blur';
 
 interface LayerItem {
   id: string;
@@ -102,13 +104,17 @@ export function DepthSection() {
   const selectedTextId = useImageStore((state) => state.selectedTextId);
   const selectedAnnotationId = useImageStore((state) => state.selectedAnnotationId);
   const selectedBlurId = useImageStore((state) => state.selectedBlurId);
-  const selectedLayerId = selectedOverlayId ?? selectedTextId ?? selectedAnnotationId ?? selectedBlurId;
+  const selectedElementId = useImageStore((state) => state.selectedElementId);
+  const elements = useImageStore((state) => state.elements);
+  const selectedLayerId =
+    selectedOverlayId ?? selectedTextId ?? selectedElementId ?? selectedAnnotationId ?? selectedBlurId;
   const selectLayer = (layer: LayerItem | null) => {
     const state = useImageStore.getState();
     state.setSelectedOverlayId(layer?.type === 'image-overlay' ? layer.id : null);
     state.setSelectedTextId(layer?.type === 'text-overlay' ? layer.id : null);
     state.setSelectedAnnotationId(layer?.type === 'annotation' ? layer.id : null);
     state.setSelectedBlurId(layer?.type === 'blur' ? layer.id : null);
+    state.setSelectedElementId(layer?.type === 'element' ? layer.id : null);
     if (layer) {
       state.setIsMainImageSelected(false);
       useEditorPanels.getState().showTab('edit');
@@ -148,6 +154,19 @@ export function DepthSection() {
       });
     });
 
+    // Composition elements (array order = z-order)
+    elements.forEach((element) => {
+      items.push({
+        id: element.id,
+        type: 'element',
+        label:
+          element.type === 'badge'
+            ? `${ELEMENT_LABELS.badge} ${element.props.number}`
+            : element.name ?? ELEMENT_LABELS[element.type],
+        isVisible: element.visible,
+      });
+    });
+
     // Annotations
     annotations.forEach((ann, i) => {
       items.push({
@@ -169,7 +188,7 @@ export function DepthSection() {
     });
 
     return items;
-  }, [imageOverlays, textOverlays, annotations, blurRegions]);
+  }, [imageOverlays, textOverlays, elements, annotations, blurRegions]);
 
   // Handle file upload for custom overlay
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,6 +237,9 @@ export function DepthSection() {
       case 'text-overlay':
         updateTextOverlay(layer.id, { isVisible: !layer.isVisible });
         break;
+      case 'element':
+        useImageStore.getState().updateElement(layer.id, { visible: !layer.isVisible });
+        break;
       case 'annotation':
         updateAnnotation(layer.id, { isVisible: !layer.isVisible });
         break;
@@ -236,6 +258,9 @@ export function DepthSection() {
       case 'text-overlay':
         removeTextOverlay(layer.id);
         break;
+      case 'element':
+        useImageStore.getState().removeElement(layer.id);
+        break;
       case 'annotation':
         removeAnnotation(layer.id);
         break;
@@ -253,6 +278,8 @@ export function DepthSection() {
         return <Image01Icon size={14} />;
       case 'text-overlay':
         return <TextIcon size={14} />;
+      case 'element':
+        return <Target01Icon size={14} />;
       case 'annotation':
         return <PencilEdit02Icon size={14} />;
       case 'blur':

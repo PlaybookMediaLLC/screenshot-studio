@@ -145,6 +145,7 @@ export function documentFromState(
               })),
           })
         : undefined,
+    elements: image.elements.filter((element) => keepLocalSources || element.visible),
     image: {
       browserHeaderSize: image.browserHeaderSize,
       frame: valid(shape.image.shape.frame, {

@@ -363,7 +363,7 @@ export const howToGuides: HowToGuide[] = [
     slug: "how-to-beautify-screenshots",
     title: "How to Make Screenshots Look Professional (Free Beautifier)",
     metaDescription:
-      "Turn plain screenshots into polished images: add a gradient background, padding, rounded corners, and a soft shadow, or apply a one-click theme. Free, no watermark.",
+      "Turn plain screenshots into polished images: add a gradient background, padding, rounded corners, and a soft shadow, and choose a frame style. Free, no watermark.",
     keywords: [
       "screenshot beautifier",
       "make screenshots look professional",
@@ -373,7 +373,7 @@ export const howToGuides: HowToGuide[] = [
       "pretty screenshot",
     ],
     answer:
-      "To make a screenshot look professional, give it breathing room and depth: place it on a gradient or wallpaper background, add padding, round the corners, and add a soft shadow. In Screenshot Studio that takes under a minute, and Design Themes apply a full look in one click.",
+      "To make a screenshot look professional, give it breathing room and depth: place it on a gradient or wallpaper background, add padding, round the corners, and add a soft shadow. Use the Design and Background controls in Screenshot Studio to build your look.",
     cta: EDITOR_CTA,
     steps: [
       UPLOAD_STEP,
@@ -386,8 +386,8 @@ export const howToGuides: HowToGuide[] = [
         body: "In the Design tab, set Border to Curved or Round and adjust the radius, then choose a Soft or Strong shadow so the screenshot lifts off the background.",
       },
       {
-        title: "Try a style or theme",
-        body: "Style offers Glass Light, Glass Dark, Outline, and Border treatments. Design Themes such as Glass, Neon, Minimal, Vintage, Dark Elegant, and Polaroid change several settings at once.",
+        title: "Choose a frame style",
+        body: "Style offers Glass Light, Glass Dark, Outline, and Border treatments. Adjust the border and shadow to finish your design.",
       },
       {
         title: "Match the canvas to where it will be posted",

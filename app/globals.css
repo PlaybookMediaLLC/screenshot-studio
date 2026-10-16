@@ -395,8 +395,8 @@
   .canvas-stage-presize {
     width: min(
       var(--stage-w),
-      max(100vw - 32px, 320px),
-      max(100vh - 120px, 320px) * var(--stage-ratio)
+      max(100vw - 32px, 1px),
+      max(100dvh - 168px, 1px) * var(--stage-ratio)
     );
     aspect-ratio: var(--stage-ratio);
   }
@@ -526,4 +526,19 @@
 .store-text-size-input::-webkit-outer-spin-button {
   margin: 0;
   -webkit-appearance: none;
+}
+
+@media (max-width: 1023px) {
+  .mobile-editor-drawer button:not([role="switch"]):not([role="slider"]),
+  .mobile-editor-drawer input:not([type="checkbox"]):not([type="color"]),
+  .mobile-editor-drawer select {
+    min-height: 44px;
+  }
+
+  .mobile-editor-drawer input,
+  .mobile-editor-drawer textarea,
+  .mobile-editor-drawer select {
+    min-width: 0;
+    font-size: 16px;
+  }
 }

@@ -40,11 +40,7 @@ import { KeyboardShortcutsDialog } from "@/components/canvas/dialogs/KeyboardSho
 import { useBatchExport } from "@/hooks/useBatchExport";
 import { aspectRatios } from "@/lib/constants/aspect-ratios";
 import { AspectRatioPicker } from "@/components/aspect-ratio/aspect-ratio-picker";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
+import { ResponsivePopover } from "@/components/ui/responsive-popover";
 import { CopyProgressDialog } from "@/components/canvas/dialogs/CopyProgressDialog";
 import { BatchExportProgressDialog } from "@/components/canvas/dialogs/BatchExportProgressDialog";
 import { ExportSlideshowDialog } from "@/lib/export-slideshow-dialog";
@@ -193,14 +189,14 @@ export function EditorHeader() {
     <>
       <header
         className={cn(
-          "h-16 bg-background border-b border-foreground/10 grid grid-cols-[1fr_auto_1fr] items-center shrink-0",
-          isMobile ? "gap-1 px-2" : "gap-3 px-4"
+          "flex h-16 justify-between bg-background border-b border-foreground/10 items-center shrink-0",
+          isMobile ? "gap-2 px-3" : "gap-3 px-4"
         )}
       >
         <div className="flex items-center h-8 justify-self-start min-w-0">
           <Link
             href="/"
-            className="flex items-center gap-2.5 h-8 hover:opacity-80 transition-opacity shrink-0"
+            className="flex h-11 min-w-11 items-center gap-2.5 hover:opacity-80 transition-opacity shrink-0 lg:h-8"
           >
             <Image
               src="/logo-mark.png"
@@ -210,7 +206,7 @@ export function EditorHeader() {
               className="h-8 w-8"
               priority
             />
-            <span className="hidden sm:inline font-semibold text-foreground text-sm tracking-tight leading-none">
+            <span className="hidden xl:inline font-semibold text-foreground text-sm tracking-tight leading-none">
               Screenshot Studio
             </span>
           </Link>
@@ -223,6 +219,7 @@ export function EditorHeader() {
                 onClick={() => setShowTemplates(!showTemplates)}
                 aria-expanded={showTemplates}
                 aria-label="Templates"
+                id="editor-templates-trigger"
                 className={cn(
                   "inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2",
                   "text-sm font-medium leading-none transition-colors duration-150",
@@ -241,7 +238,7 @@ export function EditorHeader() {
         <div
           className={cn(
             "flex items-center justify-center justify-self-center",
-            isMobile ? "gap-1" : "gap-2.5"
+            isMobile ? "gap-1" : "gap-1 xl:gap-2.5"
           )}
         >
           {showHistoryControls ? (
@@ -250,13 +247,14 @@ export function EditorHeader() {
                 onClick={handleUndo}
                 disabled={!canUndo}
                 className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer",
+                  "flex items-center justify-center size-11 lg:size-8 rounded-md shrink-0 cursor-pointer",
                   "text-muted-foreground transition-all duration-150",
                   canUndo
                     ? "hover:text-foreground active:scale-95"
                     : "opacity-40 cursor-not-allowed",
                 )}
                 title="Undo (Cmd+Z)"
+                aria-label="Undo"
               >
                 <ArrowTurnBackwardIcon size={16} />
               </button>
@@ -264,13 +262,14 @@ export function EditorHeader() {
                 onClick={handleRedo}
                 disabled={!canRedo}
                 className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-md shrink-0 cursor-pointer",
+                  "flex items-center justify-center size-11 lg:size-8 rounded-md shrink-0 cursor-pointer",
                   "text-muted-foreground transition-all duration-150",
                   canRedo
                     ? "hover:text-foreground active:scale-95"
                     : "opacity-40 cursor-not-allowed",
                 )}
                 title="Redo (Cmd+Shift+Z)"
+                aria-label="Redo"
               >
                 <ArrowTurnForwardIcon size={16} />
               </button>
@@ -328,39 +327,40 @@ export function EditorHeader() {
           ) : null}
 
           <div className="flex items-center gap-1">
-            <Popover open={aspectRatioOpen} onOpenChange={setAspectRatioOpen}>
-              <PopoverTrigger asChild>
+            <ResponsivePopover
+              open={aspectRatioOpen}
+              onOpenChange={setAspectRatioOpen}
+              title="Canvas size"
+              description="Choose a shape or enter your own dimensions."
+              className="w-[420px] p-0"
+              trigger={
                 <Button
+                  aria-label="Canvas size"
                   variant="ghost"
                   size="sm"
                   className={cn(
                     "h-8 gap-1.5 rounded-md text-muted-foreground hover:text-foreground shrink-0",
-                    isMobile ? "px-1.5" : "px-2.5"
+                    isMobile ? "h-11 px-3" : "px-2.5"
                   )}
                 >
                   <AspectRatioIcon size={15} />
                   <span className="text-xs leading-none">
-                    {currentAspectRatio
+                    {isMobile ? 'Size' : currentAspectRatio
                       ? `${currentAspectRatio.width}:${currentAspectRatio.height}`
                       : "Auto"}
                   </span>
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="p-0 w-[420px]"
-                align="center"
-                sideOffset={8}
-                collisionPadding={16}
-              >
+              }
+            >
                 <AspectRatioPicker onSelect={() => setAspectRatioOpen(false)} />
-              </PopoverContent>
-            </Popover>
+            </ResponsivePopover>
 
             {slides.length > 0 && !isMobile ? (
-              <label className="cursor-pointer inline-flex shrink-0">
+              <label className="cursor-pointer inline-flex shrink-0" aria-label="Add slide">
                 <input
                   type="file"
                   accept="image/*"
+                  aria-label="Add slide"
                   multiple
                   className="hidden"
                   onChange={(e) => {
@@ -373,13 +373,13 @@ export function EditorHeader() {
                 />
                 <span className="h-8 inline-flex items-center justify-center gap-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted text-xs leading-none transition-all font-medium px-2.5">
                   <Add01Icon size={14} />
-                  <span>Add Slide</span>
+                  <span className="hidden xl:inline">Add Slide</span>
                 </span>
               </label>
             ) : null}
           </div>
 
-          <div className="w-px h-4 bg-foreground/10 shrink-0" aria-hidden />
+          <div className="hidden lg:block w-px h-4 bg-foreground/10 shrink-0" aria-hidden />
 
           <div className={cn("flex items-center", isMobile ? "gap-1" : "gap-1.5")}>
             <Button
@@ -389,41 +389,36 @@ export function EditorHeader() {
               size="sm"
               aria-label="Copy"
               className={cn(
-                "h-8 gap-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-transparent dark:hover:bg-transparent text-xs leading-none shrink-0",
+                "hidden lg:inline-flex h-8 gap-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-transparent dark:hover:bg-transparent text-xs leading-none shrink-0",
                 isMobile ? "px-1.5" : "px-2.5"
               )}
             >
               <Copy01Icon size={15} />
-              {!isMobile ? <span>Copy</span> : null}
+              <span className="hidden xl:inline">Copy</span>
             </Button>
 
-            <Popover
+            <ResponsivePopover
               open={exportOpen}
-              onOpenChange={isExporting ? undefined : setExportOpen}
-            >
-              <PopoverTrigger asChild>
+              onOpenChange={setExportOpen}
+              dismissible={!isExporting}
+              title="Save your image"
+              description="Choose the format and quality, then download."
+              className="w-[340px] p-0"
+              trigger={
                 <Button
                   disabled={!hasContent}
                   size="sm"
                   aria-label="Save"
                   className={cn(
                     "h-8 gap-1.5 rounded-md text-xs font-medium leading-none shrink-0",
-                    isMobile ? "px-2" : "px-3"
+                    isMobile ? "h-11 rounded-lg px-3" : "px-3"
                   )}
                 >
                   <Download04Icon size={15} />
-                  {!isMobile ? <span>Save</span> : null}
+                  <span>Save</span>
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-[340px] p-0"
-                align="center"
-                sideOffset={8}
-                collisionPadding={16}
-                onPointerDownOutside={
-                  isExporting ? (e) => e.preventDefault() : undefined
-                }
-              >
+              }
+            >
                 {isExporting ? (
                   <div className="p-5">
                     <p className="text-sm font-medium text-foreground mb-1">
@@ -438,7 +433,7 @@ export function EditorHeader() {
                     />
                   </div>
                 ) : (
-                  <div className="p-4 space-y-4">
+                  <div className="p-5 space-y-5 lg:p-4 lg:space-y-4">
                     <FormatSelector
                       format={exportSettings.format}
                       onFormatChange={updateFormat}
@@ -454,7 +449,7 @@ export function EditorHeader() {
                     />
 
                     {exportError && (
-                      <div className="text-xs text-destructive bg-destructive/10 p-2.5 rounded-md border border-destructive/20">
+                      <div role="alert" className="text-xs text-destructive bg-destructive/10 p-2.5 rounded-md border border-destructive/20">
                         {exportError}
                       </div>
                     )}
@@ -462,7 +457,7 @@ export function EditorHeader() {
                     <Button
                       onClick={handleExport}
                       disabled={isExporting}
-                      className="w-full h-10 text-sm font-semibold rounded-md transition-all"
+                      className="w-full h-12 lg:h-10 text-sm font-semibold rounded-lg transition-all"
                     >
                       <Download01Icon size={16} className="mr-2" />
                       Export as {formatLabel}
@@ -473,25 +468,35 @@ export function EditorHeader() {
                         onClick={handleExportAll}
                         disabled={isExporting || isBatchExporting}
                         variant="outline"
-                        className="w-full h-10 text-sm font-semibold rounded-md transition-all"
+                        className="w-full h-12 lg:h-10 text-sm font-semibold rounded-lg transition-all"
                       >
                         <FileZipIcon size={16} className="mr-2" />
                         Export All ({slides.length})
                       </Button>
                     )}
+                    {isMobile && (
+                      <Button onClick={() => { setExportOpen(false); void copyImage(); }} variant="outline" className="h-12 w-full rounded-lg" disabled={isCopying}>
+                        <Copy01Icon size={16} />Copy image
+                      </Button>
+                    )}
+                    {isMobile && hasImage && showVideoExport && (
+                      <Button onClick={() => { setExportOpen(false); setExportSlideshowOpen(true); }} variant="outline" className="h-12 w-full rounded-lg">
+                        <Video01Icon size={16} />Export video
+                      </Button>
+                    )}
                   </div>
                 )}
-              </PopoverContent>
-            </Popover>
+            </ResponsivePopover>
 
             {hasImage && showVideoExport && !isMobile ? (
               <Button
                 onClick={() => setExportSlideshowOpen(true)}
+                aria-label="Export video"
                 size="sm"
                 className="h-8 gap-1.5 rounded-md text-xs font-medium leading-none px-3 shrink-0"
               >
                 <Video01Icon size={14} />
-                <span>Export Video</span>
+                <span className="hidden xl:inline">Export Video</span>
               </Button>
             ) : null}
           </div>
@@ -513,7 +518,7 @@ export function EditorHeader() {
                       title="Reset the design and animation"
                     >
                       <RefreshIcon size={14} />
-                      <span>Start over</span>
+                      <span className="hidden xl:inline">Start over</span>
                     </button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="sm:max-w-[420px]">
@@ -540,12 +545,13 @@ export function EditorHeader() {
                 {hasContent ? (
                   <Button
                     onClick={clearImage}
+                    aria-label="Remove image"
                     variant="ghost"
                     size="sm"
                     className="h-8 gap-1.5 px-2.5 text-xs leading-none text-muted-foreground hover:text-destructive hover:bg-transparent dark:hover:bg-transparent shrink-0"
                   >
                     <Delete02Icon size={14} />
-                    <span>Remove</span>
+                    <span className="hidden xl:inline">Remove</span>
                   </Button>
                 ) : null}
               </div>
@@ -553,16 +559,17 @@ export function EditorHeader() {
           ) : null}
         </div>
 
-        <div className="flex items-center gap-1 justify-self-end">
+        <div className="hidden lg:flex items-center gap-1 justify-self-end">
           <Button variant="ghost" size="icon" aria-label="Keyboard shortcuts" onClick={() => setShortcutsOpen(true)}>
             <KeyboardIcon size={16} />
           </Button>
-          {!isMobile ? <GitHubStarButton compact /> : null}
+          {!isMobile ? <span className="hidden 2xl:inline-flex"><GitHubStarButton compact /></span> : null}
           <a
             href="https://x.com/code_kartik"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center w-9 h-9 rounded-md text-muted-foreground transition-[color,filter] duration-150 hover:text-foreground "
+            aria-label="Follow on X"
+            className="hidden xl:flex items-center justify-center w-9 h-9 rounded-md text-muted-foreground transition-[color,filter] duration-150 hover:text-foreground "
           >
             <NewTwitterIcon className="h-[18px] w-[18px]" />
           </a>

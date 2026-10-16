@@ -117,12 +117,12 @@ function TemplateDetail({
       transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
       className="flex min-h-0 flex-1 flex-col"
     >
-      <div className="grid shrink-0 grid-cols-[40px_1fr_40px] items-center border-b border-foreground/10 px-3 py-3">
+      <div className="grid shrink-0 grid-cols-[44px_1fr_44px] lg:grid-cols-[40px_1fr_40px] items-center border-b border-foreground/10 px-3 py-3">
         <button
           type="button"
           onClick={onBack}
           aria-label="Back to templates"
-          className="flex size-9 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30"
+          className="flex size-11 lg:size-9 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30"
         >
           <ArrowLeft01Icon size={18} />
         </button>
@@ -134,7 +134,7 @@ function TemplateDetail({
           type="button"
           onClick={onClose}
           aria-label="Close templates"
-          className="flex size-9 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30"
+          className="flex size-11 lg:size-9 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30"
         >
           <Cancel01Icon size={17} />
         </button>
@@ -196,10 +196,6 @@ export function TemplateLibraryDrawer() {
     }
   }, [open]);
 
-  React.useEffect(() => {
-    if (isMobile && open) setOpen(false);
-  }, [isMobile, open, setOpen]);
-
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
     if (!nextOpen) {
@@ -227,11 +223,20 @@ export function TemplateLibraryDrawer() {
   };
 
   return (
-    <Sheet open={open && !isMobile} onOpenChange={handleOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
-        side="left"
+        side={isMobile ? "bottom" : "left"}
         showCloseButton={false}
-        className="w-[min(94vw,560px)] max-w-none gap-0 overflow-hidden border-foreground/10 p-0 data-[state=closed]:duration-200 data-[state=open]:duration-300 sm:max-w-[560px]"
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          document.getElementById('editor-templates-trigger')?.focus({ preventScroll: true });
+        }}
+        className={cn(
+          "gap-0 overflow-hidden border-foreground/10 p-0 data-[state=closed]:duration-200 data-[state=open]:duration-300 motion-reduce:animate-none",
+          isMobile
+            ? "mobile-editor-drawer mx-auto h-[85dvh] w-full max-w-xl rounded-t-2xl pb-[env(safe-area-inset-bottom)]"
+            : "w-[min(94vw,560px)] max-w-none sm:max-w-[560px]"
+        )}
       >
         <AnimatePresence mode="wait" initial={false}>
           {selection ? (
@@ -258,7 +263,7 @@ export function TemplateLibraryDrawer() {
                   type="button"
                   onClick={() => handleOpenChange(false)}
                   aria-label="Close templates"
-                  className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30"
+                  className="flex size-11 lg:size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30"
                 >
                   <Cancel01Icon size={17} />
                 </button>

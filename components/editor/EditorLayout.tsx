@@ -9,11 +9,10 @@ import { EditorCanvas } from "@/components/canvas/EditorCanvas";
 import { EditorStoreSync } from "@/components/canvas/EditorStoreSync";
 import { EditorHeader } from "./EditorHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { MobileDrawer } from "@/components/ui/responsive-popover";
 import { Button } from "@/components/ui/button";
-import { Settings02Icon, Upload01Icon, VideoReplayIcon } from "hugeicons-react";
+import { Settings02Icon, Upload01Icon, VideoReplayIcon, MagicWand01Icon } from "hugeicons-react";
 import { useAutosaveDraft } from "@/hooks/useAutosaveDraft";
-import { MobileBanner } from "./MobileBanner";
 import { TimelineEditor } from "@/components/timeline";
 import { useImageStore } from "@/lib/store";
 import { trackEditorOpen } from "@/lib/analytics";
@@ -22,10 +21,10 @@ import {
   hasVisibleMockups,
   shouldRenderSourceImage,
 } from "@/lib/device-mockups/layouts";
-import { StoreScreenshotsShortcut } from "@/components/store-screenshots/StoreScreenshotsFeatureCard";
 import { TemplateLibraryDrawer } from "@/components/templates/TemplateLibraryDrawer";
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from "@/lib/constants";
 import { useDeviceUIStore } from "@/lib/store/device-ui";
+import { toast } from "sonner";
 import {
   hasTemplateDemoMedia,
   isTemplateDemoMedia,
@@ -97,7 +96,7 @@ function TemplateMediaPrompt() {
 
   return (
     <div className="absolute left-1/2 top-3 z-20 -translate-x-1/2">
-      <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-foreground/10 bg-card/95 px-3 text-xs font-medium text-foreground shadow-md backdrop-blur-md transition-[background-color,transform] duration-150 hover:bg-muted active:scale-[0.98]">
+      <label className="inline-flex min-h-11 lg:min-h-9 cursor-pointer items-center gap-2 whitespace-nowrap rounded-md border border-foreground/10 bg-card/95 px-3 text-xs font-medium text-foreground shadow-md backdrop-blur-md transition-[background-color,transform] duration-150 hover:bg-muted active:scale-[0.98] focus-within:ring-2 focus-within:ring-ring">
         <input
           type="file"
           accept="image/png,image/jpeg,image/webp"
@@ -116,12 +115,12 @@ function EditorMain() {
   const [mobileSheetOpen, setMobileSheetOpen] = React.useState(false);
   const {
     uploadedImageUrl,
-    imageName,
     slides,
     mockups,
     editorMode,
     showTimeline,
     toggleTimeline,
+    setShowTemplates,
   } = useImageStore();
 
   // enable autosave
@@ -133,41 +132,16 @@ function EditorMain() {
   const hasContent = hasSourceContent || (
     editorMode === "device" && hasVisibleMockups(mockups)
   );
-  const isUsingTemplateDemo = editorMode === "device"
-    ? hasTemplateDemoMedia(mockups.map((mockup) => mockup.screen))
-    : isTemplateDemoMedia(uploadedImageUrl, imageName);
-
   React.useEffect(() => {
     trackEditorOpen();
   }, []);
 
-  const handleMobileSheetOpenChange = (open: boolean): void => {
-    setMobileSheetOpen(open);
-  };
-
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden overscroll-contain">
+    <div className="flex h-dvh flex-col overflow-hidden overscroll-contain bg-background pt-[env(safe-area-inset-top)]">
       <EditorStoreSync />
-
-      <MobileBanner />
 
       <EditorHeader />
       <TemplateLibraryDrawer />
-
-      <div className="bg-background border-b border-foreground/10 flex items-center justify-between gap-2 px-3 py-2 z-10 shrink-0 lg:hidden">
-          {!isUsingTemplateDemo ? (
-            <StoreScreenshotsShortcut compact className="min-w-0" />
-          ) : null}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setMobileSheetOpen(true)}
-            className="h-8 gap-1.5 rounded-md px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] border border-foreground/10 bg-foreground/[0.04]"
-          >
-            <Settings02Icon size={15} />
-            <span>Settings</span>
-          </Button>
-      </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -215,24 +189,49 @@ function EditorMain() {
             <RightSettingsPanel />
           </div>
 
-          {isMobile && (
-            <Sheet open={mobileSheetOpen} onOpenChange={handleMobileSheetOpenChange}>
-              <SheetContent
-                side="left"
-                showCloseButton={false}
-                className="h-full w-full max-w-[min(100%,460px)] gap-0 overflow-hidden p-0 sm:max-w-[min(100%,460px)]"
-              >
-                <SheetTitle className="sr-only">Editor settings</SheetTitle>
-                <UnifiedRightPanel
-                  onClose={() => handleMobileSheetOpenChange(false)}
-                />
-              </SheetContent>
-            </Sheet>
-          )}
         </div>
 
         {hasContent && showTimeline && !isMobile && <TimelineEditor />}
       </div>
+      {isMobile && (
+        <nav aria-label="Editor tools" className={cn("grid shrink-0 gap-2 border-t border-foreground/10 bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]", editorMode === "device" ? "grid-cols-2" : "grid-cols-3")}>
+          <MobileDrawer
+            open={mobileSheetOpen}
+            onOpenChange={setMobileSheetOpen}
+            title="Edit design"
+            description="Make it yours. Changes save as you go."
+            className="h-[85dvh]"
+            trigger={<Button variant="secondary" className="h-14 flex-col gap-1 rounded-xl text-xs"><Settings02Icon size={18} />Edit design</Button>}
+          >
+            <UnifiedRightPanel />
+          </MobileDrawer>
+          {editorMode !== "device" && <label className="relative flex h-14 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-foreground/10 text-xs font-medium hover:bg-muted focus-within:ring-2 focus-within:ring-ring">
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              multiple
+              aria-label="Upload images"
+              className="sr-only"
+              onChange={(event) => {
+                const files = Array.from(event.target.files ?? []);
+                event.target.value = "";
+                if (!files.length) return;
+                if (files.some((file) => !ALLOWED_IMAGE_TYPES.includes(file.type) || file.size > MAX_IMAGE_SIZE)) {
+                  toast.error(`Choose PNG, JPG or WebP images under ${MAX_IMAGE_SIZE / 1024 / 1024} MB each.`);
+                  return;
+                }
+                const store = useImageStore.getState();
+                store.addImages(files);
+                store.setActiveSlide(useImageStore.getState().slides.at(-files.length)!.id);
+              }}
+            />
+            <Upload01Icon size={18} />Upload
+          </label>}
+          <Button id="editor-templates-trigger" variant="outline" onClick={() => setShowTemplates(true)} className="h-14 flex-col gap-1 rounded-xl text-xs">
+            <MagicWand01Icon size={18} />Templates
+          </Button>
+        </nav>
+      )}
     </div>
   );
 }

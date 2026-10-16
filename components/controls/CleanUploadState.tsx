@@ -185,7 +185,7 @@ export function CleanUploadState() {
   // Auto-focus the container so paste events work immediately
   React.useEffect(() => {
     if (containerRef.current) {
-      containerRef.current.focus();
+      containerRef.current.focus({ preventScroll: true });
     }
   }, []);
 
@@ -239,7 +239,7 @@ export function CleanUploadState() {
       ref={containerRef}
       {...getRootProps()}
       tabIndex={0}
-      className="relative w-full h-full flex items-center justify-center outline-none overflow-hidden"
+      className="relative w-full h-full min-h-[440px] lg:min-h-0 flex items-center justify-center outline-none overflow-hidden"
     >
       <div
         style={{
@@ -275,12 +275,12 @@ export function CleanUploadState() {
 
       <div
         className={cn(
-          'relative z-10 flex flex-col items-center justify-center cursor-pointer',
-          'group/upload px-6 transition-transform duration-100 ease-out active:scale-[0.98]',
+          'relative z-10 flex w-full flex-col items-center justify-center',
+          'group/upload px-5 py-6 lg:py-0',
           active && 'scale-[1.01]',
         )}
-        onClick={open}
       >
+        <button type="button" onClick={open} className="flex w-full flex-col items-center rounded-xl py-3 focus-visible:outline-2 focus-visible:outline-offset-4" aria-label="Upload images">
         <svg
           width="44"
           height="44"
@@ -302,11 +302,12 @@ export function CleanUploadState() {
               '0 1px 4px color-mix(in srgb, var(--shadow-color) 45%, transparent)',
           }}
         >
-          {active ? 'Drop the image here...' : 'Drag & drop, click to browse, or paste'}
+          <span className="lg:hidden">{active ? 'Drop the image here...' : 'Tap to upload images'}</span>
+          <span className="hidden lg:inline">{active ? 'Drop the image here...' : 'Drag & drop, click to browse, or paste'}</span>
         </p>
 
         {!active && (
-          <div className="flex items-center gap-1.5 text-xs text-foreground/50 mb-5">
+          <div className="hidden lg:flex items-center gap-1.5 text-xs text-foreground/50 mb-5">
             <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-foreground/10 border border-foreground/20 text-foreground/70 font-medium">
               <CommandIcon size={10} />
               V
@@ -314,6 +315,8 @@ export function CleanUploadState() {
             <span>to paste</span>
           </div>
         )}
+        <span className="mb-2 text-xs text-foreground/60 lg:hidden">PNG, JPG or WebP · up to {MAX_IMAGE_SIZE / 1024 / 1024} MB</span>
+        </button>
 
         {!active && (
           <div
@@ -326,22 +329,23 @@ export function CleanUploadState() {
               <div className="flex-1 h-px bg-foreground/20" />
             </div>
 
-            <Button variant="outline" onClick={() => addTextOverlay()}>
+            <Button className="min-h-11 w-full lg:w-auto" variant="outline" onClick={() => addTextOverlay()}>
               Start with text
             </Button>
-            <p className="text-xs text-foreground/60">No image needed. Edit in Design → Add Text.</p>
+            <p className="text-center text-xs leading-5 text-foreground/60">No image needed. Edit in Design → Add Text.</p>
 
-            <div className="flex items-center gap-2 w-full">
-              <div className="flex flex-1 min-w-0 items-center gap-0 h-10 rounded-xl bg-background/35 border border-foreground/15 backdrop-blur-md focus-within:border-foreground/30 focus-within:ring-1 focus-within:ring-foreground/20 transition-[border-color,box-shadow]">
+            <div className="flex items-center gap-2 w-full pt-3 lg:pt-0">
+              <div className="flex flex-1 min-w-0 items-center gap-0 h-12 lg:h-10 rounded-xl bg-background/35 border border-foreground/15 backdrop-blur-md focus-within:border-foreground/30 focus-within:ring-1 focus-within:ring-foreground/20 transition-[border-color,box-shadow]">
                 <Globe02Icon size={14} className="shrink-0 ml-3 text-foreground/45" />
                 <Input
                   type="url"
+                  aria-label="Website URL"
                   placeholder="Enter website URL..."
                   value={screenshotUrl}
                   onChange={(e) => setScreenshotUrl(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCaptureScreenshot()}
                   disabled={isCapturing}
-                  className="h-full flex-1 min-w-0 border-0 bg-transparent px-2 text-xs text-foreground/90 placeholder:text-foreground/35 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
+                  className="h-full flex-1 min-w-0 border-0 bg-transparent px-2 text-base lg:text-xs text-foreground/90 placeholder:text-foreground/35 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
                 />
                 <div className="h-4 w-px shrink-0 bg-foreground/15" />
                 <SegmentedControl
@@ -349,7 +353,7 @@ export function CleanUploadState() {
                   value={colorScheme}
                   onChange={(value) => setColorScheme(value as ColorScheme)}
                   className={cn(
-                    'mx-1 shrink-0 h-7 w-[58px] border-0 bg-transparent p-0.5',
+                    'mx-1 hidden lg:flex shrink-0 h-7 w-[58px] border-0 bg-transparent p-0.5',
                     isCapturing && 'pointer-events-none opacity-60'
                   )}
                   indicatorClassName="bg-foreground/20 shadow-none"
@@ -365,7 +369,8 @@ export function CleanUploadState() {
                 disabled={isCapturing}
                 variant="outline"
                 size="icon"
-                className="size-10 shrink-0 rounded-xl border-foreground/15 bg-background/35 text-foreground/80 backdrop-blur-md hover:bg-background/45 hover:text-foreground hover:border-foreground/25"
+                aria-label="Capture website"
+                className="size-12 lg:size-10 shrink-0 rounded-xl border-foreground/15 bg-background/35 text-foreground/80 backdrop-blur-md hover:bg-background/45 hover:text-foreground hover:border-foreground/25"
               >
                 {isCapturing ? (
                   <Loading03Icon size={16} className="animate-spin" />

@@ -1,9 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useImageStore } from '@/lib/store';
 import { getAspectRatioPreset, calculateFitDimensions, getAspectRatioCSS } from '@/lib/aspect-ratio-utils';
-import { MOBILE_BREAKPOINT } from '@/hooks/use-mobile';
-import { STORE_SHORTCUT_ROW_HEIGHT } from '@/lib/store-screenshots/config';
-import { TIMELINE_HEIGHT } from '@/lib/constants/editor-layout';
 
 export function useAspectRatioDimensions(options?: {
   maxWidth?: number;
@@ -48,90 +45,52 @@ export function useAspectRatioDimensions(options?: {
 
 export function useResponsiveCanvasDimensions() {
   const selectedAspectRatio = useImageStore((s) => s.selectedAspectRatio);
-  const showTimeline = useImageStore((s) => s.showTimeline);
-  const hasContent = useImageStore(
-    (s) => !!s.uploadedImageUrl || s.slides.length > 0
-  );
-  const [measuredViewport, setViewportSize] = useState<{ width: number; height: number } | null>(null);
-  const viewportSize = measuredViewport ?? { width: 1920, height: 1080 };
-  const measured = measuredViewport !== null;
-  
+  const imageName = useImageStore((s) => s.imageName);
+  const customDimensions = useImageStore((s) => s.customDimensions);
+  const [availableSize, setAvailableSize] = useState<{ width: number; height: number } | null>(null);
+
   useEffect(() => {
-    const updateViewportSize = () => {
-      setViewportSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
+    const viewport = document.querySelector<HTMLElement>('[data-canvas-viewport]');
+    if (!viewport) return;
+
+    const measure = () => {
+      const style = getComputedStyle(viewport);
+      const shortcut = viewport.querySelector<HTMLElement>('[data-stage-shortcut]');
+      const shortcutHeight = shortcut?.offsetHeight
+        ? shortcut.offsetHeight + (parseFloat(style.rowGap) || 0)
+        : 0;
+      setAvailableSize({
+        width: Math.max(1, viewport.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)),
+        height: Math.max(1, viewport.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom) - shortcutHeight),
       });
     };
-    
-    updateViewportSize();
 
-    window.addEventListener('resize', updateViewportSize);
-    return () => window.removeEventListener('resize', updateViewportSize);
-  }, []);
-  
-  const dimensions = useMemo(() => {
-    const preset = getAspectRatioPreset(selectedAspectRatio);
-    if (!preset) {
-      return { width: 1920, height: 1080, aspectRatio: '16/9', originalWidth: 1920, originalHeight: 1080, measured };
-    }
-    
-    // On mobile the side panels are hidden inside sheets, so we should not
-    // subtract their desktop width (otherwise calculations go negative and
-    // the canvas collapses). This keeps the preview and export canvases in sync.
-    // Must match useIsMobile / EditorLayout (1024), not Tailwind md (768).
-    const isMobileViewport = viewportSize.width < MOBILE_BREAKPOINT;
-    // Panels are w-[260px] each (LeftEditPanel / RightSettingsPanel)
-    const sidePanelsWidth = isMobileViewport ? 0 : 520;
-    // Match stage chrome: p-3 (24) / md:p-6 (48). Keep a tiny gutter so the shell
-    // never clips against the panels.
-    const horizontalPadding = isMobileViewport ? 32 : 56;
-    // header (h-16 = 64) + stage vertical pad
-    let verticalPadding = isMobileViewport ? 120 : 112;
-    if (!isMobileViewport) {
-      verticalPadding += STORE_SHORTCUT_ROW_HEIGHT;
-      if (showTimeline) {
-        verticalPadding += TIMELINE_HEIGHT;
-      }
-    }
-    // Desktop Animate chip docks under the stage (h-9 + bottom-4 + gap).
-    // Portrait ratios are height-bound, so without this the chip overlaps.
-    const reserveAnimateChip =
-      !isMobileViewport && hasContent && !showTimeline;
-    if (reserveAnimateChip) {
-      verticalPadding += 56;
-    }
-
-    const rawAvailableWidth = viewportSize.width - sidePanelsWidth - horizontalPadding;
-    const rawAvailableHeight = viewportSize.height - verticalPadding;
-
-    // Fit exactly to the stage viewport — no overscale then CSS max-width clamp
-    // (that combo was shrinking the empty upload frame).
-    const maxWidth = Math.max(rawAvailableWidth, 320);
-    const maxHeight = Math.max(rawAvailableHeight, isMobileViewport ? 320 : 160);
-    
-    const fitDimensions = calculateFitDimensions(
-      preset.width,
-      preset.height,
-      maxWidth,
-      maxHeight
-    );
-    
-    return {
-      ...fitDimensions,
-      aspectRatio: getAspectRatioCSS(preset.width, preset.height),
-      originalWidth: preset.width,
-      originalHeight: preset.height,
-      measured,
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    const shortcut = viewport.querySelector('[data-stage-shortcut]');
+    if (shortcut) observer.observe(shortcut);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
     };
-  }, [
-    selectedAspectRatio,
-    viewportSize.width,
-    viewportSize.height,
-    measured,
-    hasContent,
-    showTimeline,
-  ]);
-  
-  return dimensions;
+  }, [imageName]);
+
+  const preset = (selectedAspectRatio === 'custom' ? customDimensions : getAspectRatioPreset(selectedAspectRatio))
+    ?? { width: 1920, height: 1080 };
+  const dimensions = calculateFitDimensions(
+    preset.width,
+    preset.height,
+    availableSize?.width ?? 1920,
+    availableSize?.height ?? 1080,
+  );
+
+  return {
+    ...dimensions,
+    aspectRatio: getAspectRatioCSS(preset.width, preset.height),
+    originalWidth: preset.width,
+    originalHeight: preset.height,
+    measured: availableSize !== null,
+  };
 }

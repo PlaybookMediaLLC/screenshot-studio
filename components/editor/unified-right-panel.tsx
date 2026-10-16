@@ -7,7 +7,6 @@ import {
   ColorsIcon,
   RotateSquareIcon,
   VideoReplayIcon,
-  Cancel01Icon,
   LayersLogoIcon,
   Image01Icon,
   Globe02Icon,
@@ -27,10 +26,7 @@ import {
   DepthSection,
   ImagePositionSection,
   DeviceFramesSection,
-  ScreenshotDesignSection,
   ImageEnhanceSection,
-  QuickTemplatesSection,
-  ExportPresetsSection,
   BackgroundEffectsSection,
 } from './sections';
 import { useImageStore } from '@/lib/store';
@@ -55,11 +51,7 @@ const tabs: { id: TabType; icon: React.ReactNode; label: string }[] = [
   { id: 'animate', icon: <VideoReplayIcon size={14} />, label: 'Motion' },
 ];
 
-export function UnifiedRightPanel({
-  onClose,
-}: {
-  onClose?: () => void;
-} = {}) {
+export function UnifiedRightPanel() {
   const {
     activeRightPanelTab,
     setActiveRightPanelTab,
@@ -84,12 +76,14 @@ export function UnifiedRightPanel({
   }, [activeTab, contentKey]);
 
   return (
-    <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
-      <div className="relative z-20 shrink-0 space-y-2.5 border-b border-foreground/10 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
+    <div className="relative h-full w-full overflow-y-auto overscroll-contain bg-background">
+      <div className="relative z-20 shrink-0 space-y-3 border-b border-foreground/10 px-4 pb-4">
         <div className="flex min-w-0 items-center gap-2">
           <div className="min-w-0 flex-1 overflow-hidden">
             <SegmentedControl
               value={editorMode}
+              ariaLabel="Editor mode"
+              className="h-12"
               onChange={(id) => setEditorMode(id as EditorMode)}
               options={modeTabs.map((tab) => ({
                 id: tab.id,
@@ -99,34 +93,28 @@ export function UnifiedRightPanel({
               }))}
             />
           </div>
-          {onClose ? (
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-              aria-label="Close"
-            >
-              <Cancel01Icon size={16} />
-            </button>
-          ) : null}
         </div>
         <div className="min-w-0 overflow-hidden">
-          <SegmentedControl
-            value={activeTab}
-            onChange={(id) => setActiveTab(id as TabType)}
-            size="sm"
-            options={tabs.map((tab) => ({
-              id: tab.id,
-              icon: tab.icon,
-              ariaLabel: tab.label,
-            }))}
-          />
+          <div role="group" aria-label="Editing tools" className="grid grid-cols-3 gap-2">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                aria-pressed={activeTab === tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-foreground/10 px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted aria-pressed:border-foreground/25 aria-pressed:bg-muted aria-pressed:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                {tab.icon}
+                {tab.id === 'background' ? 'Background' : tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-hide">
+      <div className="min-w-0">
         <div
-          className="p-3 transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none sm:p-4"
+          className="p-4 transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none"
           style={{
             opacity: transitioning ? 0 : 1,
             transform: transitioning ? 'translateY(4px)' : 'translateY(0)',
@@ -148,9 +136,6 @@ export function UnifiedRightPanel({
                     <BrowserMockupSection />
                   ) : (
                     <>
-                      <QuickTemplatesSection />
-                      <ExportPresetsSection />
-                      <ScreenshotDesignSection />
                       <StyleSection />
                       <BorderSection />
                       <ImageEnhanceSection />

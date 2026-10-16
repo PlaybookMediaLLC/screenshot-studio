@@ -32,5 +32,5 @@ test('an owner can persist workspace, profile, and active brand-kit settings', a
   await page.reload()
   // The sidebar is an icon rail; the workspace name shows in the account menu.
   await page.getByRole('button', { name: 'Open account menu' }).click()
-  await expect(page.getByRole('button', { name: `Switch to ${workspaceName}` })).toBeVisible()
+  await expect(page.getByText(`Workspace: ${workspaceName}`, { exact: true })).toBeVisible()
 })

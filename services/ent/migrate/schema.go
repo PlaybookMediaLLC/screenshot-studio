@@ -1096,6 +1096,57 @@ var (
 			},
 		},
 	}
+	// ProjectColumns holds the columns for the "project" table.
+	ProjectColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "document", Type: field.TypeJSON},
+		{Name: "documentVersion", Type: field.TypeInt},
+		{Name: "revision", Type: field.TypeInt, Default: 1},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "updatedByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ProjectTable holds the schema information for the "project" table.
+	ProjectTable = &schema.Table{
+		Name:       "project",
+		Columns:    ProjectColumns,
+		PrimaryKey: []*schema.Column{ProjectColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "project_organizationId_updatedAt",
+				Unique:  false,
+				Columns: []*schema.Column{ProjectColumns[1], ProjectColumns[9]},
+			},
+		},
+	}
+	// ProjectVersionColumns holds the columns for the "project_version" table.
+	ProjectVersionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "projectId", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "revision", Type: field.TypeInt},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"autosave", "named", "restore", "duplicate"}},
+		{Name: "name", Type: field.TypeString, Nullable: true},
+		{Name: "document", Type: field.TypeJSON},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// ProjectVersionTable holds the schema information for the "project_version" table.
+	ProjectVersionTable = &schema.Table{
+		Name:       "project_version",
+		Columns:    ProjectVersionColumns,
+		PrimaryKey: []*schema.Column{ProjectVersionColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "projectversion_projectId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ProjectVersionColumns[1], ProjectVersionColumns[8]},
+			},
+		},
+	}
 	// PublicationAttemptColumns holds the columns for the "publication_attempt" table.
 	PublicationAttemptColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1652,6 +1703,8 @@ var (
 		OutboxEventTable,
 		PostizTenantBindingTable,
 		ProductSurfaceTable,
+		ProjectTable,
+		ProjectVersionTable,
 		PublicationAttemptTable,
 		ReleaseTable,
 		ReleaseDocumentTable,
@@ -1782,6 +1835,12 @@ func init() {
 	}
 	ProductSurfaceTable.Annotation = &entsql.Annotation{
 		Table: "product_surface",
+	}
+	ProjectTable.Annotation = &entsql.Annotation{
+		Table: "project",
+	}
+	ProjectVersionTable.Annotation = &entsql.Annotation{
+		Table: "project_version",
 	}
 	PublicationAttemptTable.ForeignKeys[0].RefTable = ScheduledPostTable
 	PublicationAttemptTable.Annotation = &entsql.Annotation{

@@ -48,6 +48,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/projectversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasedocument"
@@ -161,6 +163,8 @@ func checkColumn(t, c string) error {
 			outboxevent.Table:                    outboxevent.ValidColumn,
 			postiztenantbinding.Table:            postiztenantbinding.ValidColumn,
 			productsurface.Table:                 productsurface.ValidColumn,
+			project.Table:                        project.ValidColumn,
+			projectversion.Table:                 projectversion.ValidColumn,
 			publicationattempt.Table:             publicationattempt.ValidColumn,
 			release.Table:                        release.ValidColumn,
 			releasedocument.Table:                releasedocument.ValidColumn,

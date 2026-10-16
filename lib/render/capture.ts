@@ -4,7 +4,9 @@ import { getCanvasContainer } from '@/components/canvas/ClientCanvas'
 import { currentImageMotion } from '@/lib/animation/use-image-motion'
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { exportElement } from '@/lib/export/export-service'
-import type { ExportFormat, QualityPreset } from '@/lib/export/types'
+import type { StageFormat } from '@/lib/export/formats'
+import { captureStageSvg } from '@/lib/export/svg'
+import type { QualityPreset } from '@/lib/export/types'
 import { useImageStore } from '@/lib/store'
 
 /** The DOM id of the stage every capture reads. */
@@ -12,7 +14,9 @@ export const STAGE_ELEMENT_ID = 'image-render-card'
 
 /** What to produce from the stage. Sizes are output pixels. */
 export type StageOutput = {
-  format: ExportFormat
+  format: StageFormat
+  /** Encode through the image API for smaller files (falls back to the browser). */
+  compress?: boolean
   quality?: QualityPreset
   /** Multiple of the canvas size; ignored when `maxWidth` is set. */
   scale?: number
@@ -65,6 +69,10 @@ export async function captureStage(output: StageOutput): Promise<StageCapture> {
   const preset = getAspectRatioPreset(image.selectedAspectRatio)
   if (!preset) throw new Error('Unknown aspect ratio.')
   const size = stageOutputSize(preset, output)
+  if (output.format === 'svg') {
+    const png = () => captureStage({ ...output, format: 'png' }).then((capture) => capture.blob)
+    return { blob: await captureStageSvg(STAGE_ELEMENT_ID, size, png), height: size.height, width: size.width }
+  }
   const baseWidth = output.maxWidth ? size.width : preset.width
   const baseHeight = output.maxWidth ? size.height : preset.height
   const { blob } = await exportElement(
@@ -75,7 +83,7 @@ export async function captureStage(output: StageOutput): Promise<StageCapture> {
       format: output.format,
       qualityPreset: output.quality ?? 'high',
       scale: size.scale,
-      skipSharp: true,
+      skipSharp: !output.compress,
     },
     getCanvasContainer(),
     image.backgroundConfig,

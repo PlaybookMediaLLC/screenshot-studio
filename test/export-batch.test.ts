@@ -129,6 +129,14 @@ test('ZIP entries are numbered by the current list, so removed items leave no ga
     ),
     ['1-a.pdf']
   )
+  // SVG has no resolution setting, so a leftover 2x never reaches its name.
+  assert.deepEqual(
+    batchZipEntries([{ name: 'a.png', outputs: [{ blob, target: og }] }], {
+      format: 'svg',
+      scale: 2,
+    }).map((entry) => entry.path),
+    ['open-graph-1200x630/1-a.svg']
+  )
 })
 
 test('a batch run reports progress, keeps going past a failed item, and resets cancelled items', async () => {

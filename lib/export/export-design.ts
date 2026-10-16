@@ -6,7 +6,7 @@ import { exportDesignDocument } from '@/lib/design/export'
 import { captureStage, type StageOutput } from '@/lib/render/capture'
 import { renderDocument } from '@/lib/render/scene-renderer'
 import { adaptDocumentToSize, withoutBackground } from './adapt'
-import { type PdfCompression, type QualityPresetName } from './formats'
+import { formatHasControl, type PdfCompression, type QualityPresetName } from './formats'
 import { batchIndex, designFileName, safeBaseName, zipFileName } from './naming'
 import { pdfImageFromBlob, type PdfPage, writePdf } from './pdf'
 import { CANVAS_TARGET_ID, type ExportTarget } from './sizes'
@@ -100,10 +100,12 @@ export async function exportStill(request: StillExportRequest): Promise<Exported
     request.allSlides
   )
   // PDF pages are built from a lossless capture, then encoded per the compression setting.
+  // A format without a resolution setting (SVG) is drawn at its size.
+  const scale = formatHasControl(request.format, 'scale') ? request.scale : 1
   const output: StageOutput = {
     format: request.format === 'pdf' ? 'png' : request.format,
     quality: request.quality,
-    scale: request.scale,
+    scale,
   }
   const total = variants.length * request.targets.length
   const files: ExportedFile[] = []
@@ -136,7 +138,7 @@ export async function exportStill(request: StillExportRequest): Promise<Exported
       } else {
         files.push({
           blob: capture.blob,
-          name: designFileName(variant.name, request.format, target, request.scale),
+          name: designFileName(variant.name, request.format, target, scale),
         })
       }
       request.onProgress?.(++done, total)

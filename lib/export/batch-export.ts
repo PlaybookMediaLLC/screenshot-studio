@@ -6,7 +6,7 @@ import { renderDocument } from '@/lib/render/scene-renderer'
 import { adaptDocumentToSize } from './adapt'
 import type { BatchOutput } from './batch'
 import { PDF_JPEG_QUALITY, type StillFormat } from './export-design'
-import type { PdfCompression, QualityPresetName } from './formats'
+import { formatHasControl, type PdfCompression, type QualityPresetName } from './formats'
 import { pdfImageFromBlob, type PdfPage, writePdf } from './pdf'
 import type { ExportTarget } from './sizes'
 
@@ -78,7 +78,8 @@ export async function renderBatchItem(
   const output: StageOutput = {
     format: settings.format === 'pdf' ? 'png' : settings.format,
     quality: settings.quality,
-    scale: settings.scale,
+    // A format without a resolution setting (SVG) is drawn at its size.
+    scale: formatHasControl(settings.format, 'scale') ? settings.scale : 1,
   }
   const outputs: BatchOutput[] = []
   const pages: PdfPage[] = []

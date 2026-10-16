@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { DesignDocument } from '@/lib/design/document'
 import { adaptDocumentToSize, documentCanvasSize, withoutBackground } from './adapt'
-import type { OutputFormat } from './formats'
+import { formatHasControl, type OutputFormat } from './formats'
 import { batchEntryPath } from './naming'
 import type { ExportTarget } from './sizes'
 import type { ZipEntry } from './zip'
@@ -131,7 +131,7 @@ export function batchZipEntries(
         format: settings.format,
         index,
         name: item.name,
-        scale: settings.scale,
+        scale: formatHasControl(settings.format, 'scale') ? settings.scale : 1,
         target: output.target,
         total: items.length,
       }),

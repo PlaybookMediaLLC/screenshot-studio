@@ -158,6 +158,7 @@ function SecondsField({
   )
 }
 
+/** Props of {@link ExportPanel}. */
 export type ExportPanelProps = {
   /** Called after a file was downloaded, to close the menu. */
   onExported?: () => void

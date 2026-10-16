@@ -218,6 +218,7 @@ function BatchItemCard({
   )
 }
 
+/** Props of {@link BatchWorkspace}. */
 export type BatchWorkspaceProps = {
   onOpenChange: (open: boolean) => void
   open: boolean

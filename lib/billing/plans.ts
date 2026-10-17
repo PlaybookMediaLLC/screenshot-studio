@@ -60,6 +60,10 @@ export const workspaceQuotaSchema = z.enum([
 ])
 export type WorkspaceQuota = z.infer<typeof workspaceQuotaSchema>
 
+/** Caps on what a workspace holds, rather than on what it uses each month. */
+export const workspaceLimitSchema = z.enum(['seats', 'channels'])
+export type WorkspaceLimit = z.infer<typeof workspaceLimitSchema>
+
 export const featureOverrideSchema = z
   .partialRecord(workspaceFeatureSchema, z.boolean())
   .default({})
@@ -151,6 +155,17 @@ const planQuotas = {
   },
 } as const satisfies Record<WorkspacePlan, Record<WorkspaceQuota, number>>
 
+/**
+ * Mirrors `planLimits` in services/internal/product/plan_limits.go. `null` is
+ * unlimited. A pending invitation holds a seat; only active social channels count.
+ */
+const planLimits = {
+  free: { channels: 0, seats: 1 },
+  pro: { channels: 3, seats: 5 },
+  business: { channels: 15, seats: 20 },
+  enterprise: { channels: null, seats: null },
+} as const satisfies Record<WorkspacePlan, Record<WorkspaceLimit, number | null>>
+
 type WorkspaceEntitlementSnapshot = {
   featureOverrides?: unknown
   plan?: unknown
@@ -201,4 +216,9 @@ export function evaluateWorkspaceFeature(
 
 export function getWorkspaceQuota(plan: WorkspacePlan, quota: WorkspaceQuota): number {
   return planQuotas[plan][quota]
+}
+
+/** How many of `limit` a plan's workspace may hold; `null` is unlimited. */
+export function getWorkspaceLimit(plan: WorkspacePlan, limit: WorkspaceLimit): number | null {
+  return planLimits[plan][limit]
 }

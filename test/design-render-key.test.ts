@@ -39,3 +39,16 @@ test('any change to pixels-relevant input changes the key', () => {
     designRenderKey({ assets, document: { ...document, texts: [] }, options: png })
   )
 })
+
+test('the same bytes under a new asset id share a render key', () => {
+  const recaptured = '22222222-2222-4222-8222-222222222222'
+  const moved = JSON.parse(JSON.stringify(document).replaceAll(screenshot.slice(6), recaptured))
+  assert.equal(
+    designRenderKey({ assets, document, options: png }),
+    designRenderKey({ assets: { [recaptured]: 'a'.repeat(64) }, document: moved, options: png })
+  )
+  assert.notEqual(
+    designRenderKey({ assets, document, options: png }),
+    designRenderKey({ assets: { [recaptured]: `${recaptured}@x` }, document: moved, options: png })
+  )
+})

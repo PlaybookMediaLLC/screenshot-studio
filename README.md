@@ -140,8 +140,9 @@ Status as of 2026-10-16: done, including the campaign UI for steps 2, 3, and 5 (
    - `/pricing` explains why someone was sent there and what happened after checkout or a credit purchase.
    - Checkout success returns to the app and applies the plan at once, without waiting for the webhook.
    - Onboarding has a "Choose a plan" step.
-   - Workspace settings have a Billing section: plan, status, credits left, and the billing portal.
+   - Workspace settings have a Billing section: plan, status, AI credits, posts, and emails left, the extra launch credit balance, and the billing portal.
    - Credit packs require a subscription. There is no trial.
+   - Seat and social channel limits are enforced per plan; a workspace has one product.
 2. **Approve → schedule → publish end to end** ([020](docs/rfcs/020-postiz-publishing.md), [014](docs/rfcs/014-structured-marketing-objects.md))
    - Done: approving a launch visual creates an approved creative variant, and scheduling attaches it to the post.
    - Done: the post channel must match the connected platform.

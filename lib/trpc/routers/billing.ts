@@ -1,23 +1,32 @@
 import 'server-only'
 
 import { backendSDK } from '@/lib/backend/sdk'
-import { getWorkspaceQuota, workspacePlanSchema } from '@/lib/billing/plans'
+import { getWorkspaceQuota, type WorkspaceQuota, workspacePlanSchema } from '@/lib/billing/plans'
 import { consumeWorkspaceQuota, WorkspaceQuotaError } from '@/lib/tenant/entitlements'
 import { router } from '../init'
 import { organizationProcedure } from '../procedures'
 
-/** The workspace's plan and AI credits, for the Billing settings page. */
+/** The workspace's plan, its usage against each monthly allowance, and its purchased credits. */
 export const billingRouter = router({
   summary: organizationProcedure('workspace:read').query(async ({ ctx }) => {
     const sdk = backendSDK(ctx.access)
     const entitlements = await sdk.getEntitlements()
     const plan = workspacePlanSchema.catch(workspacePlanSchema.enum.free).parse(entitlements.plan)
-    const creditsLeft = await consumeWorkspaceQuota(ctx.access, 'ai:credits:monthly', 0).catch(
-      (error: unknown) => {
+    // An amount of 0 reads what is left; an exhausted allowance reads as 0.
+    const allowance = async (quota: WorkspaceQuota) => ({
+      included: getWorkspaceQuota(plan, quota),
+      left: await consumeWorkspaceQuota(ctx.access, quota, 0).catch((error: unknown) => {
         if (error instanceof WorkspaceQuotaError) return 0
         throw error
-      }
-    )
+      }),
+    })
+    // The AI credit meter answers with the monthly allowance and packs together.
+    const [credits, posts, emails] = await Promise.all([
+      allowance('ai:credits:monthly'),
+      allowance('posts:monthly'),
+      allowance('emails:monthly'),
+    ])
+    const creditBalance = entitlements.creditBalance ?? 0
     // The grace date is in the owner's sensitive contract view, which needs a
     // fresh two-factor session; without one the page shows no date.
     const graceUntil =
@@ -28,10 +37,12 @@ export const billingRouter = router({
             .catch(() => null)
         : null
     return {
-      creditsLeft,
+      creditBalance,
+      credits: { ...credits, left: Math.max(credits.left - creditBalance, 0) },
+      emails,
       graceUntil,
-      monthlyCredits: getWorkspaceQuota(plan, 'ai:credits:monthly'),
       paid: entitlements.features['workspace:use'] === true,
+      posts,
       plan,
       status: entitlements.status,
     }

@@ -44,11 +44,12 @@ async function assetFingerprints(tenant: TenantContext, document: DesignDocument
   const ids = getDesignAssetIds(document)
   if (ids.length === 0) return {}
   const { assets } = await backendSDK(tenant).findAssets({ ids })
+  // Without a content hash the stand-in keeps the id, so two assets never share it.
   // Normalize the backend's timestamp to Date#toISOString so render keys stay stable.
   return Object.fromEntries(
     assets.map((asset) => [
       asset.id,
-      asset.sha256 ?? `updated:${new Date(asset.updatedAt).toISOString()}`,
+      asset.sha256 ?? `${asset.id}@${new Date(asset.updatedAt).toISOString()}`,
     ])
   )
 }

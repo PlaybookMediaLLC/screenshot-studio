@@ -9,7 +9,7 @@ import {
   isDesignRendererReady,
 } from '@/lib/design/renderer'
 import { brandGradient } from '@/lib/launch/brand'
-import { productionBudget } from '@/lib/launch/budget'
+import { productionBudget, unproducedAssets } from '@/lib/launch/budget'
 import { listSpecClaims } from '@/lib/launch/spec-schema'
 import {
   getActiveBrand,
@@ -19,6 +19,7 @@ import {
   loadLaunchCampaign,
   loadPreferenceExamples,
 } from '@/lib/launch/store'
+import { listCampaignDesigns } from '@/lib/tenant/designs'
 import { models, normalizeTokenUsage } from '../models'
 import { type CampaignStudioRecord, createCampaignStudioTools } from '../tools/campaign-studio'
 import { createDesignStudioTools } from '../tools/design-studio'
@@ -75,9 +76,17 @@ export async function produceCampaign(
     run,
     tenant,
   }
-  const budget = productionBudget(plan.content)
-  const baseTools = createCampaignStudioTools(scope, record, budget)
   const designMode = await isDesignRendererReady()
+  // A re-run makes only what an earlier run of this plan version did not finish.
+  const remaining = designMode
+    ? unproducedAssets(plan.content.assets, await listCampaignDesigns(tenant, campaignId), {
+        brandUpdatedAt: brand.kitUpdatedAt,
+        planVersion: plan.version,
+      })
+    : plan.content.assets
+  const finished = plan.content.assets.filter((asset) => !remaining.includes(asset))
+  const budget = productionBudget({ assets: remaining })
+  const baseTools = createCampaignStudioTools(scope, record, budget)
   let renderer: Promise<DesignRenderer> | null = null
   const getRenderer = () => (renderer ??= createDesignRenderer())
   const claims = listSpecClaims(spec.content).map((claim) => claim.text)
@@ -106,7 +115,9 @@ export async function produceCampaign(
       ? `Product shot colors: background gradient from ${brand.kit.background} to ${brand.kit.accent} (${brandGradient(brand.kit)}), text ${brand.kit.foreground}.`
       : null,
     `<capture_urls>\n${captureUrls.join('\n')}\n</capture_urls>`,
-    'Produce every asset in the plan.',
+    finished.length === 0
+      ? 'Produce every asset in the plan.'
+      : `Plan assets ${finished.map((asset) => asset.key).join(', ')} are already produced and rendered; leave them. Produce only ${remaining.map((asset) => asset.key).join(', ')}.`,
   ]
     .filter(Boolean)
     .join('\n\n')
@@ -114,27 +125,30 @@ export async function produceCampaign(
   // The copy works from the spec and plan, not the visuals, so both run at once.
   // The visuals agent drafts on Sonnet: its long tool loop is most of a launch's cost.
   const [visualsRun, copyRun] = await Promise.allSettled([
-    generateText({
-      abortSignal: signal,
-      model: models.languageModel('drafting'),
-      prompt,
-      stopWhen: [
-        stepCountIs(designMode ? budget.steps : Math.ceil(budget.steps / 2)),
-        isRunStopped(run),
-      ],
-      system: designMode ? VISUALS_INSTRUCTIONS : VISUALS_FALLBACK_INSTRUCTIONS,
-      tools,
-    }).finally(async () => {
-      if (renderer) await (await renderer).close().catch(() => undefined)
-      await flushToolRun(run)
-    }),
+    remaining.length === 0
+      ? null
+      : generateText({
+          abortSignal: signal,
+          model: models.languageModel('drafting'),
+          prompt,
+          stopWhen: [
+            stepCountIs(designMode ? budget.steps : Math.ceil(budget.steps / 2)),
+            isRunStopped(run),
+          ],
+          system: designMode ? VISUALS_INSTRUCTIONS : VISUALS_FALLBACK_INSTRUCTIONS,
+          tools,
+        }).finally(async () => {
+          if (renderer) await (await renderer).close().catch(() => undefined)
+          await flushToolRun(run)
+        }),
     writeLaunchCopy(tenant, { brand, campaign, examples, plan, signal, spec }),
   ])
   if (visualsRun.status === 'rejected') throw visualsRun.reason
   if (copyRun.status === 'rejected') throw copyRun.reason
   const visuals = visualsRun.value
   const copy = copyRun.value
-  const usage = normalizeTokenUsage(visuals.totalUsage)
+  const usage = normalizeTokenUsage(visuals?.totalUsage)
+  const reusedCount = finished.reduce((total, asset) => total + asset.variants, 0)
   signal?.throwIfAborted()
   await backendSDK(tenant).appendAuditEvent({
     action: 'product.campaign_produced',
@@ -148,14 +162,15 @@ export async function produceCampaign(
       outputUsage: usage.outputTokens,
       planVersion: plan.version,
       postCount: copy.postCount,
+      reusedCount,
       specVersion: spec.version,
-      steps: visuals.steps.length,
+      steps: visuals?.steps.length ?? 0,
     },
   })
   return {
-    assetCount: record.assets.length,
+    assetCount: record.assets.length + reusedCount,
     designMode,
     postCount: copy.postCount,
-    summary: visuals.text,
+    summary: visuals?.text ?? `Every visual in plan version ${plan.version} was already produced.`,
   }
 }

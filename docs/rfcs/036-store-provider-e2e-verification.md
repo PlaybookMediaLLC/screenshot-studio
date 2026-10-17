@@ -1,7 +1,8 @@
 # RFC 036: Store Provider End-to-End Verification
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-10-17  
+**Decided:** 2026-10-17 (see Decisions)  
 **Owners:** Engineering  
 **Depends on:** [Store screenshot studio](../store-screenshots.md), RFC 020 ([publishing gate precedent](020-postiz-publishing.md)), `lib/integrations/google-play.ts`, `lib/integrations/app-store-connect.ts`, `lib/integrations/figma.ts`, `lib/ai/models/provider.ts`
 
@@ -124,8 +125,8 @@ keys.
 | Provider | Test account | Credential | Blast radius |
 | --- | --- | --- | --- |
 | Google Play | A dedicated app (`com.playbookmedia.shots.e2e`) in our Play Console, with one internal-testing build uploaded by hand (the API cannot create an app) | Service account invited with store presence permission for that app only | That app's store listing drafts |
-| App Store Connect | A dedicated app record with version 1.0 in Prepare for Submission, preferably in a separate developer team | API key with the App Manager role | Apple keys are team-wide, so a separate team is the only way to keep a leaked key away from real apps |
-| Figma | A test file with known frames in a separate Figma team | Personal access token with the file_content:read scope, 90-day expiry | Read access to that team's files |
+| App Store Connect | A dedicated test app record with version 1.0 in Prepare for Submission, in our existing developer team | A dedicated API key with the App Manager role, used only by this gate | Apple keys are team-wide, so the gate pins the test app (see Safety rules) |
+| Figma | A test file with known frames in our own Figma test account | Personal access token with the file_content:read scope, 90-day expiry | Read access to that account's files |
 | OpenRouter | A separate account | API key with a $20 monthly spend cap | The cap |
 
 ### Secrets and where the gate runs
@@ -174,22 +175,27 @@ exact:
    run.
 4. Cleanup runs in a `finally` block. A cleanup failure fails the run and
    names what was left behind.
+5. The App Store Connect key can reach every app in our team, so the gate
+   pins the test app: before any upload, the live spec checks that the chosen
+   app id and bundle id match the configured test app and aborts otherwise.
+   The key is created for this gate alone, so revoking it affects nothing
+   else.
 
 ## Rollout
 
 | Phase | Work | Gate |
 | --- | --- | --- |
-| 0 | Create the test accounts, the Play test app and build, and the Apple team; load secrets into Infisical and the `provider-e2e` environment | Owners confirm each account and its blast radius |
+| 0 | Create the Play test app and its first build, the App Store test app record and a dedicated key in our team, and the Figma test file; load secrets into Infisical and the `provider-e2e` environment | Engineering confirms each account and its blast radius |
 | 1 | Base URL overrides with the production guard; `fake-stores.mjs`; the five Level 1 specs in CI | Specs pass in CI and fail when a client's auth or request shape is broken on purpose |
 | 2 | `bin/provider-gate` and a nightly plus manual workflow | Three consecutive green nightly runs per configured provider |
-| 3 | Show the last live result per provider in the release PR; a red or stale provider blocks the release until acknowledged | One release cycle |
+| 3 | Show the last live result per provider in the release PR, with a warning for a red or stale provider. It does not block the release | One release cycle |
 
 ## Cost
 
 - Fakes: none beyond CI minutes.
 - OpenRouter: one nightly run is about 70 short strings plus four headline
   calls, a few cents. The $20 cap bounds mistakes.
-- Apple Developer Program for a separate team: $99 a year.
+- Apple: none; the test app lives in our existing developer team.
 - Google Play: no extra cost for a test app in the existing account.
 - CI: about 15 minutes nightly on one runner.
 
@@ -200,8 +206,9 @@ failed, skipped), duration, uploaded file count, and AI cost. Failures and
 stale results notify the engineering channel.
 
 **The metric that actually matters is days since the last green live run, per
-provider.** A provider more than two days stale is treated as broken: its
-features are flagged in release notes until a green run clears it. Pass rate
+provider.** A provider more than two days stale gets a warning in the release
+PR and the engineering channel until a green run clears it. It does not block
+releases. Pass rate
 and duration are secondary; they help separate a flaky provider from a broken
 integration.
 
@@ -225,9 +232,13 @@ integration.
 8. Each provider records three consecutive green nightly runs before Workflow
    F and F05 move to Complete in the completion matrix.
 
-## Open questions
+## Decisions
 
-1. Whether to pay for a separate Apple developer team, or accept a team-wide
-   key in the main team with the app id pinned in the gate's configuration.
-2. Who owns the test accounts and rotates the Figma token every 90 days.
-3. Whether a stale live result should block releases (Phase 3), or only warn.
+Recorded 2026-10-17:
+
+1. **Apple account:** use our existing developer team, not a separate paid
+   team. The gate pins the test app and uses a key created only for it
+   (Safety rule 5).
+2. **Ownership:** we own the test accounts, including the Figma test account,
+   and Engineering rotates the Figma token every 90 days.
+3. **Stale or red providers warn and do not block releases** (Phase 3).

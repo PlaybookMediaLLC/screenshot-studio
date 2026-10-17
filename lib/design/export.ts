@@ -250,8 +250,8 @@ export function documentFromState(
         }))
     ),
     pattern: image.pattern.enabled ? valid(shape.pattern, image.pattern) : undefined,
-    brand: image.brand ?? undefined,
-    copy: image.copy ?? undefined,
+    brand: valid(shape.brand, image.brand ?? undefined),
+    copy: valid(shape.copy, image.copy ?? undefined),
     redactions: validItems(
       shape.redactions.unwrap(),
       image.blurRegions
@@ -314,7 +314,11 @@ export function documentFromState(
         }))
     ),
     timeline:
-      image.timeline.tracks.length > 0 || image.animationClips.length > 0 || hasMotionContent(image.motion)
+      image.timeline.tracks.length > 0 ||
+      image.animationClips.length > 0 ||
+      hasMotionContent(image.motion) ||
+      // A slideshow's length lives on the timeline too.
+      image.slides.length > 1
         ? valid(shape.timeline, {
             clips: image.animationClips,
             duration: image.timeline.duration,

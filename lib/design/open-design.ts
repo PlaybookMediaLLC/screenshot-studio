@@ -56,21 +56,36 @@ export async function fetchDesignSources(
  * `replace` also removes a main image the document does not have, so the
  * editor shows exactly the document rather than keeping the current screenshot.
  */
-export async function applyStoredDocument(
+export function applyStoredDocument(
   trpcClient: TRPCClient<AppRouter>,
   document: DesignDocument,
   history: DesignHistoryMode = 'clear',
-  { replace = false }: { replace?: boolean } = {}
+  options: { replace?: boolean } = {}
+): Promise<Record<string, string>> {
+  // One at a time: two applies in flight would interleave their writes and steps.
+  const run = applying.then(() => applyNow(trpcClient, document, history, options))
+  applying = run.catch(() => undefined)
+  return run
+}
+
+/** The apply in flight, if any; the next one waits for it. */
+let applying: Promise<unknown> = Promise.resolve()
+
+async function applyNow(
+  trpcClient: TRPCClient<AppRouter>,
+  document: DesignDocument,
+  history: DesignHistoryMode,
+  { replace = false }: { replace?: boolean }
 ): Promise<Record<string, string>> {
   const sources = await fetchDesignSources(trpcClient, document)
   const resolve = (ref: string) => sources[ref] ?? ref
-  const start = history === 'step' ? beginHistoryStep() : 0
+  const step = history === 'step' ? beginHistoryStep() : null
   if (replace && !document.image.src) useImageStore.getState().clearImage()
   applyDesignDocument(document, resolve, history)
   const preset = getAspectRatioPreset(useImageStore.getState().selectedAspectRatio)
   const canvas = await waitForSettledCanvas(preset ? preset.width / preset.height : null)
   applyDesignLayout(document, resolve, canvas, history)
-  if (history === 'step') endHistoryStep(start)
+  if (step) endHistoryStep(step)
   return sources
 }
 

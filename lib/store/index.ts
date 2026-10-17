@@ -241,7 +241,13 @@ export const DEFAULT_BACKGROUND_PATTERN: BackgroundPattern = {
   opacity: 0.5,
 }
 
-const HISTORY_LIMIT = 100
+/** A timeline length that still fits the motion (reveals, scrolls, captions, audio). */
+function lastingMotion(duration: number, motion: MotionSlice['motion']): number {
+  return Math.max(duration, Math.ceil(motionEnd(motion)))
+}
+
+/** Most undo steps kept; at the limit each new step drops the oldest. */
+export const HISTORY_LIMIT = 100
 
 /**
  * A pointer gesture (a slider pull, a drag on the canvas) is one undo step:
@@ -1244,17 +1250,17 @@ export const useImageStore = create<ImageState>()(
             ...(options.clearAnimation
               ? {
                   animationClips: [],
-                  timeline: { ...DEFAULT_TIMELINE_STATE },
+                  timeline: { ...DEFAULT_TIMELINE_STATE, duration: lastingMotion(DEFAULT_TIMELINE_STATE.duration, state.motion) },
                   showTimeline: false,
                 }
               : {}),
             ...(options.closeTemplates ? { showTemplates: false } : {}),
+            // In the same write, so a template is one undo step.
+            ...(options.scene?.kind === 'screenshot'
+              ? { imagePlacement: { ...(options.scene.placement ?? DEFAULT_IMAGE_PLACEMENT) } }
+              : {}),
           }
         })
-
-        if (options.scene?.kind === 'screenshot') {
-          set({ imagePlacement: { ...(options.scene.placement ?? DEFAULT_IMAGE_PLACEMENT) } })
-        }
       },
 
       applyAnimatedTemplate: (templateId) => {
@@ -1331,18 +1337,19 @@ export const useImageStore = create<ImageState>()(
             animationClips: [animation.clip],
             timeline: {
               ...DEFAULT_TIMELINE_STATE,
-              duration: animation.duration,
+              duration: lastingMotion(animation.duration, state.motion),
               tracks: animation.tracks,
             },
             showTimeline: true,
             showTemplates: false,
+            // In the same write, so a template is one undo step.
+            imagePlacement: {
+              ...((imageTemplate?.scene.kind === 'screenshot' ? imageTemplate.scene.placement : undefined) ??
+                DEFAULT_IMAGE_PLACEMENT),
+            },
           }
         })
         resetPlayback({ play: true })
-
-        const placement =
-          imageTemplate?.scene.kind === 'screenshot' ? imageTemplate.scene.placement : undefined
-        set({ imagePlacement: { ...(placement ?? DEFAULT_IMAGE_PLACEMENT) } })
       },
 
       setPerspective3D: (perspective: Partial<ImageState['perspective3D']>) => {
@@ -1637,7 +1644,7 @@ export const useImageStore = create<ImageState>()(
         set((state) => ({
           timeline: {
             ...state.timeline,
-            duration: preset.duration,
+            duration: lastingMotion(preset.duration, state.motion),
             tracks,
           },
         }))
@@ -1645,9 +1652,9 @@ export const useImageStore = create<ImageState>()(
       },
 
       clearTimeline: () => {
-        set({
-          timeline: { ...DEFAULT_TIMELINE_STATE },
-        })
+        set((state) => ({
+          timeline: { ...DEFAULT_TIMELINE_STATE, duration: lastingMotion(DEFAULT_TIMELINE_STATE.duration, state.motion) },
+        }))
       },
 
       setTimelineDuration: (duration) => {
@@ -1785,7 +1792,7 @@ export const useImageStore = create<ImageState>()(
           // Keyframes, reveals, scrolls, and captions stay, so the timeline still holds them.
           timeline: {
             ...DEFAULT_TIMELINE_STATE,
-            duration: Math.max(DEFAULT_TIMELINE_STATE.duration, Math.ceil(motionEnd(state.motion))),
+            duration: lastingMotion(DEFAULT_TIMELINE_STATE.duration, state.motion),
           },
         }))
       },
@@ -1999,25 +2006,35 @@ export function selectScreenshot(state: ImageState) {
 
 export type ScreenshotView = ReturnType<typeof selectScreenshot>
 
+type HistoryEntry = ReturnType<typeof useImageStore.temporal.getState>['pastStates'][number]
+
+/** An open undo step: the newest history entry before it began, or null when history was empty. */
+export type HistoryStep = { anchor: HistoryEntry | null }
+
 /**
- * Collapse every history entry recorded since `start` into one, so a whole
- * AI edit (or a chosen variation) undoes with a single ⌘Z. Call
+ * Collapse every history entry recorded since the step began into one, so a
+ * whole AI edit (or a chosen variation) undoes with a single ⌘Z. Call
  * `beginHistoryStep` before the writes and `endHistoryStep` after; this works
- * across awaits as long as the user does not edit in between.
+ * across awaits as long as the user does not edit in between. The step is
+ * anchored on an entry rather than a count, because at the history limit
+ * every new entry evicts the oldest and the count stops growing.
  */
-export function beginHistoryStep(): number {
-  return useImageStore.temporal.getState().pastStates.length
+export function beginHistoryStep(): HistoryStep {
+  return { anchor: useImageStore.temporal.getState().pastStates.at(-1) ?? null }
 }
 
 /** Close a step opened by {@link beginHistoryStep}. */
-export function endHistoryStep(start: number) {
-  useImageStore.temporal.setState((history) =>
-    history.pastStates.length > start + 1
-      ? { pastStates: history.pastStates.slice(0, start + 1) }
+export function endHistoryStep(step: HistoryStep) {
+  useImageStore.temporal.setState((history) => {
+    const index = step.anchor ? history.pastStates.lastIndexOf(step.anchor) : -1
+    // Keep the anchor and the step's first entry. An evicted (or absent)
+    // anchor means every remaining entry belongs to the step: keep the first.
+    const keep = index >= 0 ? index + 2 : 1
+    return history.pastStates.length > keep
+      ? { pastStates: history.pastStates.slice(0, keep) }
       : history
-  )
+  })
 }
-
 
 /** Run synchronous writes as one undo step. */
 export function withHistoryStep<T>(write: () => T): T {

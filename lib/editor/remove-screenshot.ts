@@ -9,11 +9,15 @@ import { useImageStore } from '@/lib/store'
  * design does (Start over).
  */
 export function removeScreenshot() {
-  const { uploadedImageUrl, removeMainImage } = useImageStore.getState()
+  const { activeSlideId, imageName, removeMainImage, slides, uploadedImageUrl } =
+    useImageStore.getState()
   if (!uploadedImageUrl) return
   removeMainImage()
+  // Undo puts back exactly what was removed, even after later edits.
+  const restore = () =>
+    useImageStore.setState({ activeSlideId, imageName, slides, uploadedImageUrl })
   toast('Screenshot removed', {
-    action: { label: 'Undo', onClick: () => useImageStore.temporal.getState().undo() },
-    description: 'The design stays; add another screenshot or undo.',
+    action: { label: 'Undo', onClick: restore },
+    description: 'The design stays; add another screenshot, or undo with ⌘Z.',
   })
 }

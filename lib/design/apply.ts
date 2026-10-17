@@ -9,10 +9,10 @@ import {
   type DesignChanges,
   type DesignDocument,
   type DesignSections,
-  patchDesignDocument,
   pickChangedSections,
 } from './document'
 import { exportDesignDocument } from './export'
+import { patchFromModel } from './model-changes'
 import { resolveEditorTemplate } from './templates'
 import { resetPlayback } from '@/lib/store/playback'
 import { applyCompositionLayout } from '@/lib/frames/commands'
@@ -69,9 +69,9 @@ function inHistory(mode: DesignHistoryMode, write: () => void) {
     }
     return
   }
-  const start = beginHistoryStep()
+  const step = beginHistoryStep()
   write()
-  endHistoryStep(start)
+  endHistoryStep(step)
 }
 
 /** Phase 1 for whichever sections `changes` carries; untouched sections stay as they are. */
@@ -362,9 +362,14 @@ export function applyDesignLayout(
 export async function applyDesignChanges(rawChanges: DesignChanges, resolve: ResolveDesignSource) {
   // Merge into the current design first, so a partial change ("rotateY: 12")
   // keeps every field it did not name, and the result is validated as a whole.
-  const merged = patchDesignDocument(exportDesignDocument(), rawChanges)
+  // Changes are written against the AI view, so layers it hides are kept.
+  const merged = patchFromModel(
+    exportDesignDocument({ keepLocalSources: true }),
+    exportDesignDocument(),
+    rawChanges
+  )
   const changes = pickChangedSections(merged, rawChanges)
-  const start = beginHistoryStep()
+  const step = beginHistoryStep()
   writeSections(changes, resolve)
   const changesLayout =
     changes.image?.offset ||
@@ -378,7 +383,7 @@ export async function applyDesignChanges(rawChanges: DesignChanges, resolve: Res
       : (useImageStore.getState().canvasDimensions ?? (await waitForSettledCanvas(null)))
     writeLayout(changes, resolve, canvas)
   }
-  endHistoryStep(start)
+  endHistoryStep(step)
 }
 
 function currentAspectRatio(): number | null {

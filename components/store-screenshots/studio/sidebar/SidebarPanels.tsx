@@ -31,6 +31,8 @@ export function InsertPanel(): React.JSX.Element {
     api.getState().dispatch({ type: 'layers.add', owner, layers: [layer] })
     api.getState().selectLayers(owner, [layer.id])
   }
+  // Cascade new annotations so several added in a row do not stack on one spot.
+  const nextAnnotationY = 30 + ((slide.layers.filter((layer) => layer.type === 'annotation').length * 11) % 55)
   const addText = (role: TextRole) => {
     const slots = slide.layers.flatMap((layer) => (layer.type === 'text' && layer.placement.mode === 'auto' ? [layer.placement.slot] : []))
     add(createTextLayer(role, role === 'heading' ? 'New heading' : role === 'subheading' ? 'Explain the benefit' : 'Add a detail', { placement: { mode: 'auto', slot: Math.max(role === 'heading' ? 0 : role === 'subheading' ? 1 : 2, ...slots.map((slot) => slot + 1)) } }))
@@ -69,7 +71,7 @@ export function InsertPanel(): React.JSX.Element {
       <Section title="Badges and annotations" description="Ratings and awards start empty: only add claims you can back up.">
         <div className="grid grid-cols-2 gap-1.5">
           {annotationKindSchema.options.map((kind) => (
-            <button key={kind} type="button" className={insertButton} onClick={() => add(createAnnotation(kind, palette[2] ?? '#6D28D9'))}>
+            <button key={kind} type="button" className={insertButton} onClick={() => add(createAnnotation(kind, palette[2] ?? '#6D28D9', 50, nextAnnotationY))}>
               {ANNOTATION_LABELS[kind]}
             </button>
           ))}

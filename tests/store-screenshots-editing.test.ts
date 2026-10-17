@@ -59,3 +59,18 @@ test('restoring a version is one undo step and keeps the edits made before it', 
   store.getState().redo()
   assert.equal(store.getState().document.name, 'Restored')
 })
+
+test('callout picking ends when the slide changes or its layer goes away', async () => {
+  const { createEditorStore } = await import('../components/store-screenshots/studio/editor-store')
+  const { createStarterDocument } = await import('../lib/store-screenshots/document/factory')
+  const store = createEditorStore(createStarterDocument())
+  const [first, second] = store.getState().document.slides
+  const layerId = first.layers[0].id
+  store.getState().setPickingCallout(layerId)
+  store.getState().activateSlide(second.id)
+  assert.equal(store.getState().pickingCalloutId, null)
+  store.getState().activateSlide(first.id)
+  store.getState().setPickingCallout(layerId)
+  store.getState().dispatch({ type: 'layers.delete', owner: { kind: 'slide', id: first.id }, layerIds: [layerId] })
+  assert.equal(store.getState().pickingCalloutId, null)
+})

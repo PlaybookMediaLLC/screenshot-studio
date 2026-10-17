@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
+	"encoding/json"
 	"regexp"
 	"strings"
 	"time"
@@ -111,20 +112,13 @@ func randomToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(bytes), nil
 }
 
+// slidesFromJSON decodes stored slides. A round trip through JSON accepts
+// both the float64 numbers a database read yields and the ints a freshly
+// saved row still holds.
 func slidesFromJSON(raw []map[string]any) []StoreReviewSlide {
-	slides := make([]StoreReviewSlide, 0, len(raw))
-	for _, item := range raw {
-		slide := StoreReviewSlide{}
-		slide.SlideID, _ = item["slideId"].(string)
-		slide.Name, _ = item["name"].(string)
-		slide.AssetID, _ = item["assetId"].(string)
-		if width, ok := item["width"].(float64); ok {
-			slide.Width = int(width)
-		}
-		if height, ok := item["height"].(float64); ok {
-			slide.Height = int(height)
-		}
-		slides = append(slides, slide)
+	slides := []StoreReviewSlide{}
+	if encoded, err := json.Marshal(raw); err == nil {
+		_ = json.Unmarshal(encoded, &slides)
 	}
 	return slides
 }

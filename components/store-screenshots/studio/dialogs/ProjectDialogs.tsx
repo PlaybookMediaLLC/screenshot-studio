@@ -57,7 +57,7 @@ export function ProjectsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto">
+        <DialogContent className="grid-cols-[minmax(0,1fr)] max-h-[88vh] sm:max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Projects</DialogTitle>
             <DialogDescription>Projects are saved in this browser automatically. Images are stored once and shared between versions.</DialogDescription>
@@ -186,7 +186,7 @@ export function VersionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[85vh] sm:max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Version history</DialogTitle>
           <DialogDescription>Save a named version before big changes. Restoring first saves the current design as a version, so nothing is lost.</DialogDescription>

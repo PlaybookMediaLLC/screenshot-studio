@@ -63,7 +63,7 @@ export function TemplatesDialog({ open, onOpenChange, onCreateProject }: DialogP
   const categories = templateCategorySchema.options.filter((item) => item !== 'general' && (item !== 'saved' || saved.length > 0))
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto">
+      <DialogContent className="grid-cols-[minmax(0,1fr)] max-h-[92vh] sm:max-w-5xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Templates</DialogTitle>
           <DialogDescription>Applying a template restyles this project (type, colors, layouts, devices) and keeps your copy and screenshots. Undo restores the previous look.</DialogDescription>
@@ -129,7 +129,7 @@ export function SaveTemplateDialog({ open, onOpenChange }: DialogProps): React.J
   const [name, setName] = React.useState(`${document.name} style`)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Save as template</DialogTitle>
           <DialogDescription>Saves the type, colors, layouts, backgrounds, device style, placeholder copy, and badges. Screenshots and uploaded images are not part of a template.</DialogDescription>
@@ -218,7 +218,7 @@ export function BrandKitsDialog({ open, onOpenChange }: DialogProps): React.JSX.
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto">
+      <DialogContent className="grid-cols-[minmax(0,1fr)] max-h-[92vh] sm:max-w-4xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Brand kits</DialogTitle>
           <DialogDescription>Kits are saved in this browser and work in every project and language.</DialogDescription>

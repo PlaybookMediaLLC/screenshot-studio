@@ -92,7 +92,9 @@ test('share a read-only review link, comment through it, resolve, and revoke', a
     .getByRole('button', { name: 'Click to place a comment pin on this slide' })
     .click({ position: { x: 40, y: 60 } })
   await reviewPage.getByLabel('Your name').fill('Riley Reviewer')
-  await reviewPage.getByLabel('Comment').fill('Headline is too long on small phones')
+  await reviewPage
+    .getByRole('textbox', { name: 'Comment', exact: true })
+    .fill('Headline is too long on small phones')
   await reviewPage.getByRole('button', { name: 'Comment', exact: true }).click()
   await expect(reviewPage.getByText('Headline is too long on small phones')).toBeVisible()
 

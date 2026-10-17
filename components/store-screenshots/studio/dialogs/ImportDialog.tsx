@@ -133,7 +133,7 @@ export function ImportDialog({ open, onOpenChange, initialFiles }: DialogProps &
 
   return (
     <Dialog open={open} onOpenChange={(next) => (progress ? undefined : onOpenChange(next))}>
-      <DialogContent className="max-h-[88vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="grid-cols-[minmax(0,1fr)] max-h-[88vh] sm:max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Import screenshots</DialogTitle>
           <DialogDescription>Each image becomes a slide, in the order below. PNG, JPEG, or WebP up to 25 MB.</DialogDescription>

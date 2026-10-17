@@ -99,16 +99,20 @@ export function ReviewDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
   }
 
   const resolve = async (reviewId: string, commentId: string, resolved: boolean) => {
-    try {
-      await requestJson(`/api/store-screenshots/reviews/${reviewId}/comments/${commentId}`, { method: 'PUT', body: { resolved } })
+    // Optimistic: the checkbox answers at once and reverts if the server refuses.
+    const mark = (value: boolean) =>
       setReviews((current) =>
         current?.map((review) =>
           review.id === reviewId
-            ? { ...review, comments: review.comments.map((comment) => (comment.id === commentId ? { ...comment, resolvedAt: resolved ? new Date().toISOString() : null } : comment)) }
+            ? { ...review, comments: review.comments.map((comment) => (comment.id === commentId ? { ...comment, resolvedAt: value ? new Date().toISOString() : null } : comment)) }
             : review
         ) ?? null
       )
+    mark(resolved)
+    try {
+      await requestJson(`/api/store-screenshots/reviews/${reviewId}/comments/${commentId}`, { method: 'PUT', body: { resolved } })
     } catch (cause) {
+      mark(!resolved)
       toast.error('The comment could not be updated', { description: cause instanceof Error ? cause.message : undefined })
     }
   }
@@ -123,7 +127,7 @@ export function ReviewDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
 
   return (
     <Dialog open={open} onOpenChange={(next) => (running ? undefined : onOpenChange(next))}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="grid-cols-[minmax(0,1fr)] max-h-[90vh] sm:max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Share for review</DialogTitle>
           <DialogDescription>

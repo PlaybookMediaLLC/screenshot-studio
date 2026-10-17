@@ -8,6 +8,21 @@ Store Connect or a Google Play edit.
 Editing runs in the browser. The server holds review links, comments,
 publishing credentials, and the AI and provider calls.
 
+## Screenshots
+
+Captured from the running studio against a local backend (`docs/store-screenshots/`).
+
+| | |
+| --- | --- |
+| ![Editor](store-screenshots/02-editor.jpg) Editor: layers, canvas, contextual inspector, filmstrip | ![Inline editing](store-screenshots/04-inline-text-editing.jpg) Double-click to edit text on the canvas |
+| ![Contrast](store-screenshots/06-dark-background-auto-contrast.jpg) Text color adapts to a dark background | ![Duo](store-screenshots/07-duo-layout.jpg) Two devices with different screenshots |
+| ![Annotations](store-screenshots/08-annotations-and-callout.jpg) Badge, arrow, rating, and a magnified callout | ![Panorama](store-screenshots/11-panorama.jpg) A background shared across three slides |
+| ![Export](store-screenshots/14-export-dialog.jpg) Export: stores, sizes, formats, languages, packaging | ![Export preview](store-screenshots/14b-export-dialog-preview.jpg) Preview at each size, file count, and checks |
+| ![Checks](store-screenshots/15-checks.jpg) Store requirements vs design suggestions | ![Store preview](store-screenshots/16-store-preview.jpg) App Store search-result preview |
+| ![Translate](store-screenshots/21-translate-consent.jpg) AI translation asks before sending text | ![German](store-screenshots/22-german-editing-language.jpg) Editing the German copy on the canvas (text from the local test model) |
+| ![Review page](store-screenshots/25-public-review-page.jpg) Read-only review link with a pinned comment | ![Review comments](store-screenshots/26-review-comments-in-editor.jpg) Comments, resolve, and revoke in the editor |
+| ![Animation](store-screenshots/19-animated-preview.jpg) Animated preview, MP4 and GIF | ![Publishing](store-screenshots/30-publish-add-key.jpg) App Store Connect connection; keys stay on the server |
+
 ## Architecture
 
 One document, one renderer, and one command path serve every feature.

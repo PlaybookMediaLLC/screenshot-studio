@@ -89,7 +89,7 @@ export function TranslateDialog({ open, onOpenChange }: DialogProps): React.JSX.
 
   return (
     <Dialog open={open} onOpenChange={(next) => (progress ? undefined : onOpenChange(next))}>
-      <DialogContent className="max-h-[88vh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[88vh] sm:max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Translate with AI</DialogTitle>
           <DialogDescription>Creates translations you can review and edit. Your {localeName(sourceLocale)} text is never changed.</DialogDescription>
@@ -203,7 +203,7 @@ export function CopyDialog({ open, onOpenChange }: DialogProps): React.JSX.Eleme
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="grid-cols-[minmax(0,1fr)] max-h-[92vh] sm:max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Write headlines with AI</DialogTitle>
           <DialogDescription>Suggestions use only the facts in your brief: no invented numbers, ratings, or awards. Review every line before publishing.</DialogDescription>

@@ -145,7 +145,7 @@ export function ExportDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
 
   return (
     <Dialog open={open} onOpenChange={(next) => (running ? undefined : onOpenChange(next))}>
-      <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto" onEscapeKeyDown={(event) => running && event.preventDefault()}>
+      <DialogContent className="grid-cols-[minmax(0,1fr)] max-h-[92vh] sm:max-w-5xl overflow-y-auto" onEscapeKeyDown={(event) => running && event.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Export screenshots</DialogTitle>
           <DialogDescription>Images are rendered in your browser at exact store sizes, as PNG without transparency or JPEG.</DialogDescription>

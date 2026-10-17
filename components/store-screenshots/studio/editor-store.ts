@@ -134,12 +134,17 @@ function reconcile(state: EditorState, document: StoreDocument): Partial<EditorS
     state.editingText && ownerLayers(document, state.editingText.owner).some((layer) => layer.id === state.editingText!.layerId)
       ? state.editingText
       : null
+  // Cropping and callout picking end when their layer disappears (e.g. undoing its creation).
+  const layerExists = (id: string | null) =>
+    id !== null && [...document.slides, ...document.panoramas].some((owner) => owner.layers.some((layer) => layer.id === id))
   return {
     activeSlideId,
     selectedSlideIds,
     slideAnchorId: slideIds.has(state.slideAnchorId) ? state.slideAnchorId : activeSlideId,
     selection,
     editingText,
+    croppingLayerId: layerExists(state.croppingLayerId) ? state.croppingLayerId : null,
+    pickingCalloutId: layerExists(state.pickingCalloutId) ? state.pickingCalloutId : null,
   }
 }
 
@@ -237,6 +242,7 @@ export function createEditorStore(initial: StoreDocument): StoreApi<EditorState>
           selection: activeSlideId === state.activeSlideId ? state.selection : null,
           editingText: null,
           croppingLayerId: null,
+          pickingCalloutId: null,
         })
         return
       }
@@ -250,6 +256,7 @@ export function createEditorStore(initial: StoreDocument): StoreApi<EditorState>
           selection: slideId === state.activeSlideId ? state.selection : null,
           editingText: null,
           croppingLayerId: null,
+          pickingCalloutId: null,
         })
         return
       }
@@ -260,6 +267,7 @@ export function createEditorStore(initial: StoreDocument): StoreApi<EditorState>
         selection: slideId === state.activeSlideId ? state.selection : null,
         editingText: null,
         croppingLayerId: null,
+        pickingCalloutId: null,
       })
     },
 

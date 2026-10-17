@@ -26,7 +26,7 @@ export function ShortcutsDialog({ open, onOpenChange }: DialogProps): React.JSX.
   const groups = [...new Set(SHORTCUTS.map((shortcut) => shortcut.group))]
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="grid-cols-[minmax(0,1fr)] max-h-[85vh] sm:max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Keyboard shortcuts</DialogTitle>
           <DialogDescription>On Windows and Linux, use Ctrl where you see ⌘ and Alt where you see ⌥.</DialogDescription>
@@ -98,7 +98,7 @@ export function ApplyStyleDialog({ open, onOpenChange }: DialogProps): React.JSX
   const targets = (scope === 'all' ? document.slides.map((slide) => slide.id) : selectedSlideIds).filter((id) => id !== activeSlideId)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Apply style from “{source?.name}”</DialogTitle>
           <DialogDescription>Only the properties you tick are copied. Text, screenshots, and anything unticked stay as they are on each slide.</DialogDescription>

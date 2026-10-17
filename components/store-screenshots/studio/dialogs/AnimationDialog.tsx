@@ -120,7 +120,7 @@ export function AnimationDialog({ open, onOpenChange }: DialogProps): React.JSX.
 
   return (
     <Dialog open={open} onOpenChange={(next) => (job ? undefined : onOpenChange(next))}>
-      <DialogContent className="max-h-[94vh] max-w-5xl overflow-y-auto">
+      <DialogContent className="grid-cols-[minmax(0,1fr)] max-h-[94vh] sm:max-w-5xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Animated preview</DialogTitle>
           <DialogDescription>Turn the set into a short video or GIF for social posts and listings. This is a slideshow of your designs, not captured app footage, so it is not guaranteed to qualify as an App Store app preview.</DialogDescription>

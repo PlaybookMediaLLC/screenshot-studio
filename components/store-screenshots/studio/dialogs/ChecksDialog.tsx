@@ -64,7 +64,7 @@ export function ChecksDialog({ open, onOpenChange, onExport }: DialogProps & { o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[88vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="grid-cols-[minmax(0,1fr)] max-h-[88vh] sm:max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Checks</DialogTitle>
           <DialogDescription>

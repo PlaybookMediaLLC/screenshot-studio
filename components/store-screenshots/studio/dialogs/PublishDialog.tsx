@@ -214,7 +214,7 @@ export function PublishDialog({ open, onOpenChange }: DialogProps): React.JSX.El
 
   return (
     <Dialog open={open} onOpenChange={(next) => (running ? undefined : onOpenChange(next))}>
-      <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto" onEscapeKeyDown={(event) => running && event.preventDefault()}>
+      <DialogContent className="grid-cols-[minmax(0,1fr)] max-h-[92vh] sm:max-w-3xl overflow-y-auto" onEscapeKeyDown={(event) => running && event.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Upload to the stores</DialogTitle>
           <DialogDescription>Screenshots are rendered at each store size and sent from the server. Your keys stay encrypted on the server and never reach the browser.</DialogDescription>

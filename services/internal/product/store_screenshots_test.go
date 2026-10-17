@@ -61,6 +61,16 @@ func TestSlidesRoundTripFromJSON(t *testing.T) {
 	}
 }
 
+// A freshly saved row still holds the ints it was built with; reads from the
+// database hold float64. Both must decode, or the create response reports
+// zero-sized slides.
+func TestSlidesDecodeFromFreshlySavedRow(t *testing.T) {
+	slides := slidesFromJSON([]map[string]any{{"slideId": "a", "name": "A", "assetId": "id", "width": 900, "height": 1955}})
+	if len(slides) != 1 || slides[0].Width != 900 || slides[0].Height != 1955 {
+		t.Fatalf("unexpected slides %+v", slides)
+	}
+}
+
 func TestEncryptedSecretFormatOnlyAcceptsCiphertext(t *testing.T) {
 	if !encryptedSecretFormat.MatchString("aXY.dGFn.Y2lwaGVy") {
 		t.Fatal("iv.tag.ciphertext should be accepted")

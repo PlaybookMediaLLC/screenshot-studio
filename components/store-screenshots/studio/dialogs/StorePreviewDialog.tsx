@@ -59,7 +59,7 @@ export function StorePreviewDialog({ open, onOpenChange }: DialogProps): React.J
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto">
+      <DialogContent className="grid-cols-[minmax(0,1fr)] max-h-[92vh] sm:max-w-4xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Store preview</DialogTitle>
           <DialogDescription>A simulation of how your first screenshots appear in store listings ({localeName(locale)}). Real store layouts vary by device, region, experiments, and app version.</DialogDescription>

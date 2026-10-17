@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
@@ -64,6 +65,25 @@ func (s *Server) transitionCampaign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
+}
+
+// listApprovals is the review queue: posts waiting for a reviewer, oldest first.
+func (s *Server) listApprovals(w http.ResponseWriter, r *http.Request) {
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if r.URL.Query().Get("limit") == "" {
+		limit, err = 50, nil
+	}
+	cursor := r.URL.Query().Get("cursor")
+	if err != nil || (cursor != "" && !resourceIDPattern.MatchString(cursor)) {
+		writeError(w, http.StatusBadRequest, "invalid approval query")
+		return
+	}
+	page, err := s.configuration.ListPendingApprovals(r.Context(), workspaceActor(r), limit, cursor)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) decideCampaignPosts(w http.ResponseWriter, r *http.Request) {

@@ -133,6 +133,11 @@ func (f *fakeConfiguration) UpdateRelease(_ context.Context, _ product.Actor, _ 
 func (f *fakeConfiguration) ListCampaigns(context.Context, product.Actor) ([]product.CampaignItem, error) {
 	return []product.CampaignItem{}, nil
 }
+func (f *fakeConfiguration) ListPendingApprovals(_ context.Context, actor product.Actor, limit int, cursor string) (*product.ApprovalPage, error) {
+	f.actor = actor
+	next := cursor + "-next"
+	return &product.ApprovalPage{Items: []product.PendingApproval{}, NextCursor: &next}, nil
+}
 func (f *fakeConfiguration) GetCampaign(context.Context, product.Actor, string) (*product.CampaignDetail, error) {
 	return &product.CampaignDetail{CampaignItem: product.CampaignItem{ID: "campaign-1", Name: "Launch"}}, nil
 }
@@ -605,5 +610,20 @@ func TestSurfaceLookupReadsFeatureTagsAndLimit(t *testing.T) {
 	}
 	if bad := configurationRequest(handler, http.MethodGet, "/v1/product-surfaces/match?feature=x&limit=many", ""); bad.Code != http.StatusBadRequest {
 		t.Fatalf("bad limit status=%d", bad.Code)
+	}
+}
+
+func TestApprovalQueueRouteValidatesItsQuery(t *testing.T) {
+	config := &fakeConfiguration{}
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", config)
+	page := configurationRequest(handler, http.MethodGet, "/v1/approvals?limit=10&cursor=c123456789012345678901234", "")
+	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), `"nextCursor":"c123456789012345678901234-next"`) ||
+		config.actor.OrganizationID != "org-1" {
+		t.Fatalf("queue status=%d body=%s actor=%+v", page.Code, page.Body.String(), config.actor)
+	}
+	for _, query := range []string{"?limit=ten", "?cursor=../../etc"} {
+		if response := configurationRequest(handler, http.MethodGet, "/v1/approvals"+query, ""); response.Code != http.StatusBadRequest {
+			t.Fatalf("%s status=%d", query, response.Code)
+		}
 	}
 }

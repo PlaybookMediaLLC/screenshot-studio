@@ -6,7 +6,7 @@ import { getSourceWebhookSetup } from '@/lib/tenant/webhooks'
 
 /** Register a source app whose webhooks may create releases, and say where they go. */
 export const POST = route(createSourceAppContract, {
-  auth: tenantAccess({ apiKeyScope: 'source:write', permission: 'brand:manage' }),
+  auth: tenantAccess(createSourceAppContract.access),
   handler: async ({ access, body }) => {
     const sourceApp = await createSourceApp(access, body)
     return { sourceApp, webhook: getSourceWebhookSetup(sourceApp) }

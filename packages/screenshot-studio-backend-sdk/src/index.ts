@@ -568,12 +568,29 @@ export type BackendCreateCampaignInput = {
   angles: { hook: string; title: string }[]
   audience?: string
   feature?: string
+  /** A retried create with the same key returns the first campaign. */
+  idempotencyKey?: string
   messaging?: string
   name: string
   objective: string
   posts: { angleIndex?: number; callToAction?: string; channel: string; copy: string }[]
   productSurfaceId?: string
   releaseId?: string
+}
+
+/** A created campaign; `created` is false when an idempotency key replayed. */
+export type BackendCampaignCreation = BackendCampaignDetail & { created: boolean }
+
+/** A campaign post waiting for a reviewer, with the campaign it belongs to. */
+export type BackendPendingApproval = {
+  campaign: { id: string; name: string; status: BackendCampaignStatus }
+  post: BackendCampaignPost
+}
+
+/** One page of the review queue, oldest post first. */
+export type BackendApprovalPage = {
+  items: BackendPendingApproval[]
+  nextCursor: string | null
 }
 
 export type BackendDesign = {
@@ -1793,7 +1810,14 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async createCampaign(input: BackendCreateCampaignInput) {
-    return this.request<BackendCampaignDetail>('v1/campaigns', { body: input, method: 'POST' })
+    return this.request<BackendCampaignCreation>('v1/campaigns', { body: input, method: 'POST' })
+  }
+
+  /** The review queue: posts waiting for a reviewer's decision, oldest first. */
+  async listPendingApprovals(options: { cursor?: string; limit: number }) {
+    const parameters = new URLSearchParams({ limit: String(options.limit) })
+    if (options.cursor) parameters.set('cursor', options.cursor)
+    return this.request<BackendApprovalPage>(`v1/approvals?${parameters}`)
   }
 
   async transitionCampaign(id: string, status: BackendCampaignStatus) {
@@ -1807,7 +1831,7 @@ export class ScreenshotStudioBackendSDK {
     id: string,
     input: { decision: string; note?: string; postIds?: readonly string[] }
   ) {
-    return this.request<{ postIds: string[]; status: string }>(
+    return this.request<{ postIds: string[]; status: BackendCampaignPost['status'] }>(
       `v1/campaigns/${encodeURIComponent(id)}/posts/decide`,
       { body: input, method: 'POST' }
     )
@@ -1819,7 +1843,7 @@ export class ScreenshotStudioBackendSDK {
    * release:create scope may call it; nothing but a person approves.
    */
   async submitCampaignPosts(campaignId: string, postIds?: readonly string[]) {
-    return this.request<{ postIds: string[]; status: string }>(
+    return this.request<{ postIds: string[]; status: BackendCampaignPost['status'] }>(
       `v1/campaigns/${encodeURIComponent(campaignId)}/posts/submit`,
       { body: postIds === undefined ? {} : { postIds }, method: 'POST' }
     )

@@ -1,0 +1,123 @@
+import { z } from 'zod'
+import { defineContract, mirrors, pageOf } from '@/lib/api/contract'
+import { idempotencyKeySchema } from '@/lib/api/contracts/releases'
+import { memberDocs } from '@/lib/api/contracts/workspace-docs'
+import type { listBackendScheduledPosts } from '@/lib/tenant/publishing-backend'
+import { scheduledPostCreateSchema, scheduledPostListQuerySchema } from '@/lib/tenant/schemas'
+
+/**
+ * Scheduled post contracts (RFC 020). Publishing needs a signed-in member
+ * with `publish:manage`: reading the schedule is routine, and changing it
+ * needs a sign-in under 15 minutes old with two-factor. API keys are refused.
+ */
+
+/** Delivery states of a scheduled post. */
+export const scheduledPostStatusSchema = z.enum([
+  'DRAFT',
+  'SCHEDULED',
+  'PROCESSING',
+  'PUBLISHED',
+  'FAILED',
+  'CANCELLED',
+  'UNKNOWN_DELIVERY',
+])
+
+/** A post scheduled to a channel connection. */
+export const scheduledPostSchema = mirrors<
+  Awaited<ReturnType<typeof listBackendScheduledPosts>>[number]
+>()(
+  z.object({
+    caption: z.string(),
+    channelConnection: z.object({
+      externalAccountId: z.string(),
+      platform: z.string(),
+      provider: z.string(),
+    }),
+    channelConnectionId: z.string(),
+    createdAt: z.string().describe('RFC 3339 timestamp.'),
+    id: z.string(),
+    scheduledFor: z.string().describe('RFC 3339 timestamp of the planned publication.'),
+    status: scheduledPostStatusSchema,
+    variantId: z.string(),
+  })
+)
+
+/** A scheduled post as created or cancelled; the channel connection may be omitted. */
+export const scheduledPostResultSchema = scheduledPostSchema.partial({ channelConnection: true })
+
+/** `GET /api/v1/scheduled-posts` */
+export const listScheduledPostsContract = defineContract({
+  access: { permission: 'publish:manage' },
+  docs: memberDocs({
+    description:
+      'Lists the workspace publishing schedule, newest first, up to `limit` posts. `pagination.hasMore` is true when the page is full. Requires a signed-in member who manages publishing; API keys are refused.',
+    operationId: 'listScheduledPosts',
+    outputName: 'ScheduledPostListResponse',
+    responses: { '200': 'Scheduled posts.', '400': 'The list query is invalid.' },
+    tag: 'Publishing',
+  }),
+  method: 'GET',
+  name: 'scheduled-posts.list',
+  output: pageOf(scheduledPostSchema),
+  path: '/api/v1/scheduled-posts',
+  query: scheduledPostListQuerySchema,
+  summary: 'List scheduled posts',
+})
+
+/** `POST /api/v1/scheduled-posts` */
+export const createScheduledPostContract = defineContract({
+  access: { permission: 'publish:manage', sensitive: true },
+  body: scheduledPostCreateSchema
+    .extend({
+      scheduledFor: z.iso
+        .datetime({ offset: true })
+        .transform((value) => new Date(value))
+        .refine((value) => value.getTime() > Date.now(), 'Scheduled time must be in the future.')
+        .describe('When to publish, as an RFC 3339 timestamp in the future.'),
+    })
+    .strict(),
+  docs: memberDocs({
+    bodyName: 'ScheduledPostCreateRequest',
+    description:
+      'Schedules an approved creative variant to an active channel connection. The variant must be `APPROVED` with an approved review, and both must belong to the workspace. Each new post counts against the monthly posts allowance. Accepts `Idempotency-Key`, unique per channel connection: a retry returns the first post with `200`. Requires a member who manages publishing, signed in within 15 minutes with two-factor.',
+    operationId: 'createScheduledPost',
+    responses: {
+      '200': 'An earlier request with this idempotency key scheduled the post.',
+      '201': 'Post scheduled.',
+      '400': 'The input is invalid, or the variant or connection is not eligible.',
+      '404': 'The variant or channel connection is not in this workspace.',
+      '429': 'The monthly posts allowance is exhausted.',
+    },
+    tag: 'Publishing',
+  }),
+  headers: z.object({ 'idempotency-key': idempotencyKeySchema.optional() }),
+  method: 'POST',
+  name: 'scheduled-posts.create',
+  output: z.object({ created: z.boolean(), scheduledPost: scheduledPostResultSchema }),
+  path: '/api/v1/scheduled-posts',
+  status: 201,
+  summary: 'Schedule a post',
+})
+
+/** `POST /api/v1/scheduled-posts/{scheduledPostId}/cancel` */
+export const cancelScheduledPostContract = defineContract({
+  access: { permission: 'publish:manage', sensitive: true },
+  docs: memberDocs({
+    description:
+      'Cancels a post that has not started publishing. Cancelling a cancelled post returns it unchanged. A post that is processing or published cannot be cancelled; remove a published post on the social network. Requires a member who manages publishing, signed in within 15 minutes with two-factor.',
+    operationId: 'cancelScheduledPost',
+    responses: {
+      '200': 'The post is cancelled.',
+      '400': 'The scheduled post identifier is invalid.',
+      '404': 'No scheduled post with that ID exists in this workspace.',
+      '409': 'The post is already publishing or published.',
+    },
+    tag: 'Publishing',
+  }),
+  method: 'POST',
+  name: 'scheduled-posts.cancel',
+  output: z.object({ scheduledPost: scheduledPostResultSchema }),
+  params: z.object({ scheduledPostId: z.string().cuid() }),
+  path: '/api/v1/scheduled-posts/{scheduledPostId}/cancel',
+  summary: 'Cancel a scheduled post',
+})

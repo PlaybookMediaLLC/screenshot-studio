@@ -41,6 +41,7 @@ export const idempotencyKeySchema = z.string().trim().max(128)
 
 /** `GET /api/v1/releases` (also served at `/api/tenant/releases`). */
 export const listReleasesContract = defineContract({
+  access: { apiKeyScope: 'artifact:read', permission: 'artifact:read' },
   docs: workspaceDocs({
     description: 'Lists releases in the API key workspace. Requires the `artifact:read` scope.',
     operationId: 'listReleases',
@@ -70,6 +71,12 @@ export const listReleasesContract = defineContract({
 
 /** `POST /api/v1/releases` (also served at `/api/tenant/releases`). */
 export const createReleaseContract = defineContract({
+  access: {
+    apiKeyScope: 'release:create',
+    feature: 'release:create',
+    permission: 'release:create',
+    quota: 'api:write:minute',
+  },
   body: releaseCreateSchema,
   docs: workspaceDocs({
     bodyName: 'ReleaseCreateRequest',

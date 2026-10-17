@@ -107,6 +107,19 @@ const CHECKS: Check[] = [
     ],
   },
   {
+    name: "/openapi.json publishes scopes, plan gates, and the campaign API",
+    path: "/openapi.json",
+    expectStatus: 200,
+    expectBody: [
+      /"x-shots-entitlement"/,
+      /"workspaceApiKey":\s*\[\s*"release:create"\s*\]/,
+      /"\/api\/v1\/campaigns\/\{campaignId\}\/review-requests"/,
+      /"\/api\/v1\/approvals"/,
+      /"\/api\/v1\/scheduled-posts"/,
+      /## Quickstart/,
+    ],
+  },
+  {
     name: "/.well-known/openapi.json serves the spec",
     path: "/.well-known/openapi.json",
     expectStatus: 200,
@@ -168,6 +181,21 @@ const CHECKS: Check[] = [
     expectStatus: 401,
     expectHeaders: { "content-type": /application\/json/ },
     expectBody: [/"code":"unauthorized"|"status":401/],
+  },
+  {
+    name: "campaign API rejects an anonymous request",
+    path: "/api/v1/campaigns",
+    expectStatus: 401,
+    expectBody: [/"code":"unauthorized"/],
+  },
+  {
+    name: "an API key can never approve posts",
+    path: "/api/v1/campaigns/cl00000000000000000000000/approvals",
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-API-Key": "ss_not_a_real_key" },
+    body: '{"decision":"approve"}',
+    expectStatus: 403,
+    expectBody: [/"code":"forbidden"/, /API keys cannot/],
   },
   {
     name: "GET on a POST-only endpoint returns JSON 405 with Allow",

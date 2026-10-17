@@ -15,6 +15,12 @@ const releaseResultSchema = z.object({ release: releaseSchema })
 const releaseListSchema = z.object({ releases: z.array(releaseSchema) })
 const assetResultSchema = z.object({ asset: z.object({ id: z.string().uuid() }) })
 const apiKeyResultSchema = z.object({ apiKey: z.object({ id: z.string(), key: z.string().min(1) }) })
+const campaignSchema = z.object({ id: z.string(), posts: z.array(z.object({ id: z.string() })) })
+const campaignResultSchema = z.object({ campaign: campaignSchema, created: z.boolean() })
+const campaignListSchema = z.object({ data: z.array(z.object({ id: z.string() })) })
+const approvalListSchema = z.object({
+  data: z.array(z.object({ campaign: z.object({ id: z.string() }), post: z.object({ id: z.string() }) })),
+})
 
 function getLocalBaseUrl(): string {
   const url = new URL(process.env.TENANT_TEST_BASE_URL ?? 'http://localhost:3000')
@@ -148,6 +154,101 @@ async function createPendingAsset(client: SessionClient): Promise<string> {
   return assetResultSchema.parse(await responseJson(response)).asset.id
 }
 
+const json = { 'content-type': 'application/json' }
+
+async function createCampaign(client: SessionClient, label: string): Promise<z.infer<typeof campaignSchema>> {
+  const create = () =>
+    request(
+      '/api/v1/campaigns',
+      {
+        body: JSON.stringify({
+          name: `Campaign ${label}`,
+          objective: `Objective ${label}`,
+          posts: [{ channel: 'linkedin', copy: `Post ${label}` }],
+        }),
+        headers: { ...json, 'idempotency-key': `${testRunId}:campaign:${label}` },
+        method: 'POST',
+      },
+      client
+    )
+  const created = await create()
+  assertStatus(created, 201)
+  const campaign = campaignResultSchema.parse(await responseJson(created)).campaign
+  // A retry with the same key returns the same campaign, not a second one.
+  const replayed = await create()
+  assertStatus(replayed, 200)
+  assert.equal(campaignResultSchema.parse(await responseJson(replayed)).campaign.id, campaign.id)
+  const submitted = await request(
+    `/api/v1/campaigns/${campaign.id}/review-requests`,
+    { body: '{}', headers: json, method: 'POST' },
+    client
+  )
+  assertStatus(submitted, 200)
+  return campaign
+}
+
+/** Every way to name another workspace's campaign gets 404, and lists never include it. */
+async function assertCampaignIsolation(
+  credentials: { client?: SessionClient; headers?: Record<string, string> },
+  ownCampaignId: string,
+  other: z.infer<typeof campaignSchema>
+): Promise<void> {
+  const { client, headers = {} } = credentials
+  const list = await request('/api/v1/campaigns', { headers }, client)
+  assertStatus(list, 200)
+  const campaigns = campaignListSchema.parse(await responseJson(list)).data
+  assert(campaigns.some((campaign) => campaign.id === ownCampaignId))
+  assert(!campaigns.some((campaign) => campaign.id === other.id))
+
+  const queue = await request('/api/v1/approvals', { headers }, client)
+  assertStatus(queue, 200)
+  const pending = approvalListSchema.parse(await responseJson(queue)).data
+  assert(pending.some((item) => item.campaign.id === ownCampaignId))
+  assert(!pending.some((item) => item.campaign.id === other.id))
+
+  assertStatus(await request(`/api/v1/campaigns/${other.id}`, { headers }, client), 404)
+  for (const [path, body] of [
+    [`/api/v1/campaigns/${other.id}/transitions`, { status: 'ARCHIVED' }],
+    [`/api/v1/campaigns/${other.id}/review-requests`, { postIds: other.posts.map((post) => post.id) }],
+  ] as const) {
+    const response = await request(
+      path,
+      { body: JSON.stringify(body), headers: { ...headers, ...json }, method: 'POST' },
+      client
+    )
+    assertStatus(response, 404)
+  }
+}
+
+/** Approving and publishing are a person's decisions: an API key is refused even on its own data. */
+async function assertApiKeyCannotDecide(apiKey: string, ownCampaignId: string): Promise<void> {
+  const headers = { ...json, 'x-api-key': apiKey }
+  const approve = await request(`/api/v1/campaigns/${ownCampaignId}/approvals`, {
+    body: JSON.stringify({ decision: 'approve' }),
+    headers,
+    method: 'POST',
+  })
+  assertStatus(approve, 403)
+  assertStatus(await request('/api/v1/scheduled-posts', { headers }), 403)
+  const transition = await request(`/api/v1/campaigns/${ownCampaignId}/transitions`, {
+    body: JSON.stringify({ status: 'APPROVED' }),
+    headers,
+    method: 'POST',
+  })
+  assertStatus(transition, 403)
+}
+
+async function assertMemberDecisionIsolation(client: SessionClient, other: z.infer<typeof campaignSchema>) {
+  const decision = await request(
+    `/api/v1/campaigns/${other.id}/approvals`,
+    { body: JSON.stringify({ decision: 'approve' }), headers: json, method: 'POST' },
+    client
+  )
+  assertStatus(decision, 404)
+  // Reading the schedule needs no fresh sign-in; it lists only this workspace.
+  assertStatus(await request('/api/v1/scheduled-posts', {}, client), 200)
+}
+
 async function createApiKey(client: SessionClient): Promise<{ id: string; key: string }> {
   const response = await trpcMutation(
     'apiKey.create',
@@ -238,10 +339,17 @@ async function main(): Promise<void> {
   const releaseB = await createRelease(clientB, 'b')
   const assetA = await createPendingAsset(clientA)
   const assetB = await createPendingAsset(clientB)
+  const campaignA = await createCampaign(clientA, 'a')
+  const campaignB = await createCampaign(clientB, 'b')
   const apiKeyA = await createApiKey(clientA)
 
   await assertSessionIsolation(clientA, releaseA.id, releaseB.id, organizationB, assetB)
   await assertSessionIsolation(clientB, releaseB.id, releaseA.id, organizationA, assetA)
+  await assertCampaignIsolation({ client: clientA }, campaignA.id, campaignB)
+  await assertCampaignIsolation({ client: clientB }, campaignB.id, campaignA)
+  await assertCampaignIsolation({ headers: { 'x-api-key': apiKeyA.key } }, campaignA.id, campaignB)
+  await assertMemberDecisionIsolation(clientA, campaignB)
+  await assertApiKeyCannotDecide(apiKeyA.key, campaignA.id)
   await assertApiKeyIsolation(clientA, apiKeyA, releaseA.id, releaseB.id, organizationB, assetB)
   console.info(`Tenant isolation passed for local run ${testRunId}.`)
 }

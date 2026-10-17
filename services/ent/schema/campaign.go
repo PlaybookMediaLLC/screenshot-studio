@@ -30,6 +30,8 @@ func (Campaign) Fields() []ent.Field {
 		field.String("release_id").StorageKey("releaseId").Optional().Nillable(),
 		field.String("product_surface_id").StorageKey("productSurfaceId").Optional().Nillable(),
 		field.String("created_by_user_id").StorageKey("createdByUserId").Optional().Nillable(),
+		// The caller's Idempotency-Key: a retried create returns this campaign.
+		field.String("idempotency_key").StorageKey("idempotencyKey").Optional().Nillable().Immutable(),
 		field.Time("created_at").StorageKey("createdAt").Default(time.Now).Immutable(),
 		field.Time("updated_at").StorageKey("updatedAt").Default(time.Now).UpdateDefault(time.Now),
 	}
@@ -37,6 +39,7 @@ func (Campaign) Fields() []ent.Field {
 
 func (Campaign) Indexes() []ent.Index {
 	return []ent.Index{
+		index.Fields("organization_id", "idempotency_key").Unique(),
 		index.Fields("organization_id", "created_at"),
 		index.Fields("organization_id", "release_id"),
 		index.Fields("organization_id", "product_surface_id"),

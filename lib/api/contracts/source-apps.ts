@@ -31,6 +31,12 @@ export const sourceAppSchema = z.object({
 
 /** `POST /api/v1/source-apps` (also served at `/api/tenant/source-apps`). */
 export const createSourceAppContract = defineContract({
+  access: {
+    apiKeyScope: 'source:write',
+    feature: 'source-app:create',
+    permission: 'brand:manage',
+    quota: 'api:write:minute',
+  },
   body: sourceAppCreateSchema,
   docs: workspaceDocs({
     bodyName: 'SourceAppCreateRequest',
@@ -53,6 +59,7 @@ export const createSourceAppContract = defineContract({
 
 /** `PATCH /api/v1/source-apps/{sourceAppId}` (also served at `/api/tenant/source-apps/{sourceAppId}`). */
 export const updateSourceAppContract = defineContract({
+  access: { apiKeyScope: 'source:write', permission: 'brand:manage', quota: 'api:write:minute' },
   body: sourceAppUpdateSchema,
   docs: workspaceDocs({
     bodyName: 'SourceAppUpdateRequest',

@@ -188,6 +188,7 @@ type ConfigurationStore interface {
 	CreateRelease(context.Context, product.Actor, product.CreateReleaseInput) (*product.ReleaseCreation, error)
 	UpdateRelease(context.Context, product.Actor, string, product.UpdateReleaseInput) (*product.ReleaseDetail, error)
 	ListCampaigns(context.Context, product.Actor) ([]product.CampaignItem, error)
+	ListPendingApprovals(context.Context, product.Actor, int, string) (*product.ApprovalPage, error)
 	GetCampaign(context.Context, product.Actor, string) (*product.CampaignDetail, error)
 	CreateCampaign(context.Context, product.Actor, product.CreateCampaignInput) (*product.CampaignDetail, error)
 	TransitionCampaign(context.Context, product.Actor, string, string) (*product.CampaignTransition, error)
@@ -594,8 +595,10 @@ func actorFromRequest(w http.ResponseWriter, r *http.Request, requireUser bool) 
 	if requestID == "" {
 		requestID = fmt.Sprintf("backend-%d", time.Now().UnixNano())
 	}
+	// The SDK names the actor in X-Principal-Display; the scheduled post audit
+	// rows (post.scheduled, post.cancelled) record it.
 	return publishing.Actor{
-		Display: r.Header.Get("X-Actor-Display"), Organization: r.Header.Get("X-Organization-ID"),
+		Display: r.Header.Get("X-Principal-Display"), Organization: r.Header.Get("X-Organization-ID"),
 		RequestID: requestID, Type: "USER", UserID: userID,
 	}, true
 }

@@ -30,6 +30,12 @@ const assetNotFound = 'The asset was not found in this workspace.'
 
 /** `POST /api/v1/assets/upload-url` (also served under `/api/tenant/assets`). */
 export const createAssetUploadUrlContract = defineContract({
+  access: {
+    apiKeyScope: 'upload:sign',
+    feature: 'asset:create',
+    permission: 'artifact:edit',
+    quota: 'api:write:minute',
+  },
   body: assetUploadSchema,
   docs: workspaceDocs({
     bodyName: 'AssetUploadRequest',
@@ -51,6 +57,7 @@ export const createAssetUploadUrlContract = defineContract({
 
 /** `POST /api/v1/assets/{assetId}/complete` */
 export const completeAssetUploadContract = defineContract({
+  access: { apiKeyScope: 'asset:write', permission: 'artifact:edit', quota: 'api:write:minute' },
   body: assetCompleteSchema.omit({ assetId: true }),
   docs: workspaceDocs({
     bodyName: 'AssetCompleteRequest',
@@ -76,6 +83,7 @@ export const completeAssetUploadContract = defineContract({
 
 /** `GET /api/v1/assets/{assetId}/download-url` */
 export const createAssetDownloadUrlContract = defineContract({
+  access: { apiKeyScope: 'artifact:read', permission: 'artifact:read' },
   docs: workspaceDocs({
     description:
       'Returns a short-lived signed download URL for a workspace asset. Requires the `artifact:read` scope.',
@@ -112,16 +120,15 @@ export const assetContentContract = defineContract({
 
 /** `DELETE /api/v1/assets/{assetId}` */
 export const deleteAssetContract = defineContract({
+  access: {
+    apiKeyScope: 'asset:write',
+    feature: 'asset:delete',
+    permission: 'artifact:edit',
+    quota: 'api:write:minute',
+  },
   docs: workspaceDocs({
     description:
       'Queues deletion of an uploaded asset that is not in use. Requires the `asset:write` scope and the asset deletion workspace entitlement (Pro or higher by default).',
-    extensions: {
-      'x-shots-entitlement': {
-        feature: 'asset:delete',
-        minimumPlan: 'pro',
-        quota: 'api:write:minute',
-      },
-    },
     operationId: 'deleteAsset',
     responses: {
       '202': 'Asset deletion accepted.',

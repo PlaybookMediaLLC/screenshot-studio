@@ -1,6 +1,8 @@
 import 'server-only'
 
 import {
+  type MemberAccessRequirement,
+  memberAccessRequirementSchema,
   type OrganizationAccessOptions,
   organizationAccessOptionsSchema,
   organizationScopeSchema,
@@ -8,6 +10,7 @@ import {
   type TenantAccessRequirement,
 } from '@/lib/api/access-requirements'
 import { hasMaintenanceAccess } from '@/lib/api/maintenance-auth'
+import { platformHeaders } from '@/lib/api/request-context'
 import type { Authenticate, RawRequest } from '@/lib/api/route'
 import {
   AuthorizationError,
@@ -22,7 +25,7 @@ import {
 } from '@/lib/auth/access'
 import type { Permission } from '@/lib/auth/permissions'
 import { requireTenantAccess } from '@/lib/tenant/access'
-import { requireWorkspaceFeature } from '@/lib/tenant/entitlements'
+import { consumeWorkspaceQuota, requireWorkspaceFeature } from '@/lib/tenant/entitlements'
 
 /**
  * Authenticators for `route()`. Each resolves the caller or throws an
@@ -81,6 +84,35 @@ export function organizationAccess(
  */
 export function tenantAccess(requirement: TenantAccessRequirement): Authenticate<TenantContext> {
   return async ({ request }) => requireTenantAccess(request.headers, requirement)
+}
+
+/**
+ * A signed-in member of the active workspace with `requirement.permission`,
+ * on a paid plan, then the optional feature and quota. An API key is refused
+ * with 403 before the session is read: approving and publishing are a
+ * person's decisions (RFC 019, RFC 020). `sensitive` also requires a fresh
+ * second factor.
+ */
+export function memberAccess(
+  requirement: MemberAccessRequirement
+): Authenticate<OrganizationAccess> {
+  const { feature, permission, quota, sensitive } = memberAccessRequirementSchema.parse(requirement)
+  return async ({ request }) => {
+    if (request.headers.has(platformHeaders['x-api-key'])) {
+      throw new AuthorizationError(
+        'A signed-in workspace member must do this; API keys cannot.',
+        403
+      )
+    }
+    const access = sensitive
+      ? await requireSensitiveActiveOrganizationPermission(request.headers, permission)
+      : await requireActiveOrganizationPermission(request.headers, permission)
+    // There is no free plan: every tenant operation needs an active subscription.
+    await requireWorkspaceFeature(access, 'workspace:use')
+    if (feature) await requireWorkspaceFeature(access, feature)
+    if (quota) await consumeWorkspaceQuota(access, quota)
+    return access
+  }
 }
 
 /**

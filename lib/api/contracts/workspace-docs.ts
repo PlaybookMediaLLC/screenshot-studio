@@ -8,6 +8,24 @@ export const workspaceDocsInputSchema = contractDocsSchema.omit({ security: true
 export type WorkspaceDocsInput = z.infer<typeof workspaceDocsInputSchema>
 
 /**
+ * OpenAPI docs for an operation only a signed-in member may perform, such as
+ * approving or scheduling, with the shared 401, 403, and 503 descriptions.
+ */
+export function memberDocs(docs: WorkspaceDocsInput): ContractDocs {
+  return {
+    ...docs,
+    responses: {
+      '401': 'A signed-in workspace session is required.',
+      '403':
+        'The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.',
+      '503': 'A required dependency is unavailable.',
+      ...docs.responses,
+    },
+    security: 'workspaceSession',
+  }
+}
+
+/**
  * OpenAPI docs for an API-key workspace operation, with the shared 401, 403,
  * and 503 descriptions filled in.
  */

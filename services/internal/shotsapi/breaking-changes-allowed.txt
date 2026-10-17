@@ -1,0 +1,9 @@
+# Intended breaking changes to the public OpenAPI document, one per line.
+#
+# CI compares services/internal/shotsapi/openapi.json with the base revision
+# using oasdiff and fails on any breaking change not listed here. A breaking
+# change to /api/v1 needs a new major version (RFC 034), so a line here should
+# be rare and should name the approving RFC in its pull request.
+#
+# Format: METHOD /path followed by oasdiff's message, for example
+#   GET /api/v1/example api path removed without deprecation

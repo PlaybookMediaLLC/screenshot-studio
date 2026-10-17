@@ -8,7 +8,12 @@ Do not expose `app/api/internal`, webhook receivers, Better Auth handlers, or tR
 
 ## Authentication
 
-Bind workspace operations with `route(contract, { auth: tenantAccess(...), handler })`. Declare both the API-key scope and browser-session permission. `tenantAccess` resolves `TenantContext`, and `route` converts thrown authorization, validation, workflow, storage, and dependency failures through `toApiFailure` in `lib/api/platform-errors.ts`, the same mapping tRPC uses.
+Declare who may call an operation in the contract's `access`, then bind it with `route(contract, { auth: tenantAccess(contract.access), handler })`:
+
+- a tenant operation names `apiKeyScope` and `permission` (and an optional `feature` and `quota`), and accepts an API key or a member session;
+- a human-only operation, such as approving content or scheduling a post, omits `apiKeyScope`, binds `memberAccess(contract.access)`, and refuses API keys with `403`; add `sensitive: true` when it needs a fresh sign-in with two-factor.
+
+The OpenAPI generator publishes `access` as the operation's security requirement (the API-key scope, or the session alone) and its `x-shots-entitlement`, and the Go MCP server reads the same fields from the embedded document, so a scope or plan gate is declared once. `test/openapi-contracts.test.ts` fails when a route binds anything else. `tenantAccess` resolves `TenantContext`, and `route` converts thrown authorization, validation, workflow, storage, and dependency failures through `toApiFailure` in `lib/api/platform-errors.ts`, the same mapping tRPC uses.
 
 Every contract supplies Zod schemas for the request locations it reads. `route` authenticates first, then owns the single parse of each location before the domain service can execute, so async refinements, coercion, defaults, and validation errors behave consistently across endpoints.
 
@@ -24,7 +29,7 @@ Update and delete operations require explicit entitlement review. Apply the same
 
 Destructive and high-value domain services repeat the feature assertion as defense in depth. tRPC procedures use the same `feature` and `quota` fields as REST. Distributed quotas use Redis and fail closed for costly writes when the counter is unavailable. Entitlement reads use a bounded cache; billing synchronization invalidates it after the audited transaction commits.
 
-OpenAPI operations expose `x-shots-entitlement` so Scalar, generated clients, and policy tooling can inspect feature and quota requirements without scraping descriptions.
+OpenAPI operations expose `x-shots-entitlement` (`feature`, `minimumPlan`, and the `quota` the route consumes) so Scalar, generated clients, the MCP server, and policy tooling can read the gate without scraping descriptions. It is generated from `access`; never write it by hand. A quota the backend meters itself, such as monthly posts, is described in the operation description instead, so no caller consumes it twice.
 
 ## Parsing
 
@@ -55,6 +60,8 @@ Give every public contract `docs` and list it in `documentedContracts`. `lib/api
 - a description for every expected success and failure status.
 
 Keep the raw document at `/openapi.json`; Scalar at `/api-reference` consumes it without separate configuration.
+
+After changing a contract, run `npm run api:generate`. It writes the document to `services/internal/shotsapi/openapi.json` (embedded by the Go MCP server) and regenerates the typed client in `packages/shots-api-client`. CI fails when either is stale, and runs `oasdiff` against the base branch to fail any breaking change that is not listed in `services/internal/shotsapi/breaking-changes-allowed.txt`.
 
 ## Compatibility
 

@@ -1,6 +1,7 @@
 import 'server-only'
 
 import type { NextResponse } from 'next/server'
+import { editorUtilityAccess } from '@/lib/api/access-requirements'
 import { apiError } from '@/lib/api/errors'
 import { AuthorizationError } from '@/lib/auth/access'
 import { requireTenantAccess } from '@/lib/tenant/access'
@@ -15,10 +16,7 @@ import { WorkspaceEntitlementError } from '@/lib/tenant/entitlements'
  */
 export async function requirePaidAccess(request: Request): Promise<NextResponse | null> {
   try {
-    await requireTenantAccess(request.headers, {
-      apiKeyScope: 'artifact:read',
-      permission: 'workspace:read',
-    })
+    await requireTenantAccess(request.headers, editorUtilityAccess)
     return null
   } catch (error) {
     if (error instanceof WorkspaceEntitlementError) {

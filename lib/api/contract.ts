@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { contractAccessSchema } from '@/lib/api/access-requirements'
 
 /**
  * Route contracts: the pure-zod description of a platform API operation.
@@ -30,7 +31,14 @@ export const bodyFormatSchema = z.enum(['json', 'text'])
 export type BodyFormat = z.infer<typeof bodyFormatSchema>
 
 /** OpenAPI tags for documented operations. */
-export const openApiTagSchema = z.enum(['Assets', 'Shell', 'Workspace'])
+export const openApiTagSchema = z.enum([
+  'Approvals',
+  'Assets',
+  'Campaigns',
+  'Publishing',
+  'Shell',
+  'Workspace',
+])
 
 /** OpenAPI security schemes for documented operations. */
 export const openApiSecuritySchema = z.enum(['workspaceApiKey', 'workspaceSession'])
@@ -68,7 +76,8 @@ export const contractDocsSchema = z.object({
   outputName: componentNameSchema.optional(),
   /** A description for every documented status. */
   responses: z.partialRecord(documentedStatusSchema, z.string().min(1)),
-  security: openApiSecuritySchema,
+  /** The scheme of a contract without `access`; one with `access` derives it. */
+  security: openApiSecuritySchema.optional(),
   tag: openApiTagSchema,
 })
 
@@ -91,6 +100,23 @@ export const timestampSchema = z.codec(z.date(), z.string(), {
 })
 
 /**
+ * The page envelope of a collection (RFC 034). `nextCursor` is opaque: pass
+ * it back as `cursor` for the next page.
+ */
+export const paginationSchema = z.object({
+  hasMore: z.boolean(),
+  nextCursor: z.string().nullable(),
+})
+
+/** One of {@link paginationSchema}. */
+export type Pagination = z.infer<typeof paginationSchema>
+
+/** A collection response: `{ data, pagination }` with `item` as each entry. */
+export function pageOf<Item extends z.ZodType>(item: Item) {
+  return z.object({ data: z.array(item), pagination: paginationSchema })
+}
+
+/**
  * Compile-time guard that `schema` accepts exactly the values of type
  * `Source`: each must be assignable to the other. A field the schema would
  * strip, or a value it would reject, fails the build. Returns `schema`.
@@ -104,6 +130,8 @@ export function mirrors<Source>() {
 
 /** Everything about a contract except its schemas. */
 export const routeContractMetaSchema = z.object({
+  /** Who may call it: the route binds this, and OpenAPI publishes it. */
+  access: contractAccessSchema.optional(),
   bodyFormat: bodyFormatSchema.default('json'),
   docs: contractDocsSchema.optional(),
   method: httpMethodSchema,
@@ -133,7 +161,8 @@ export type RouteContract = z.infer<typeof routeContractSchema>
 /**
  * Declare a contract. Omitted `params` default to {@link noParamsSchema};
  * omitted `query`, `headers`, and `body` default to {@link noInputSchema}.
- * The metadata is validated when the module loads.
+ * The metadata is validated when the module loads. `access` keeps its
+ * declared shape, so a route can only bind the authenticator it names.
  */
 export function defineContract<
   Output extends z.ZodType,
@@ -141,8 +170,10 @@ export function defineContract<
   Query extends z.ZodType = typeof noInputSchema,
   Headers extends z.ZodType = typeof noInputSchema,
   Body extends z.ZodType = typeof noInputSchema,
+  Access extends z.input<typeof contractAccessSchema> | undefined = undefined,
 >(
-  contract: z.input<typeof routeContractMetaSchema> & {
+  contract: Omit<z.input<typeof routeContractMetaSchema>, 'access'> & {
+    access?: Access
     body?: Body
     /** Request headers the handler reads, keyed by lowercase name. */
     headers?: Headers
@@ -151,8 +182,10 @@ export function defineContract<
     query?: Query
   }
 ) {
+  const meta = routeContractMetaSchema.parse(contract)
   return {
-    ...routeContractMetaSchema.parse(contract),
+    ...meta,
+    access: meta.access as Access,
     body: (contract.body ?? noInputSchema) as Body,
     headers: (contract.headers ?? noInputSchema) as Headers,
     output: contract.output,

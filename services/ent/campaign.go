@@ -37,6 +37,8 @@ type Campaign struct {
 	ProductSurfaceID *string `json:"product_surface_id,omitempty"`
 	// CreatedByUserID holds the value of the "created_by_user_id" field.
 	CreatedByUserID *string `json:"created_by_user_id,omitempty"`
+	// IdempotencyKey holds the value of the "idempotency_key" field.
+	IdempotencyKey *string `json:"idempotency_key,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -49,7 +51,7 @@ func (*Campaign) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case campaign.FieldID, campaign.FieldOrganizationID, campaign.FieldName, campaign.FieldObjective, campaign.FieldAudience, campaign.FieldFeature, campaign.FieldMessaging, campaign.FieldStatus, campaign.FieldReleaseID, campaign.FieldProductSurfaceID, campaign.FieldCreatedByUserID:
+		case campaign.FieldID, campaign.FieldOrganizationID, campaign.FieldName, campaign.FieldObjective, campaign.FieldAudience, campaign.FieldFeature, campaign.FieldMessaging, campaign.FieldStatus, campaign.FieldReleaseID, campaign.FieldProductSurfaceID, campaign.FieldCreatedByUserID, campaign.FieldIdempotencyKey:
 			values[i] = new(sql.NullString)
 		case campaign.FieldCreatedAt, campaign.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -140,6 +142,13 @@ func (_m *Campaign) assignValues(columns []string, values []any) error {
 				_m.CreatedByUserID = new(string)
 				*_m.CreatedByUserID = value.String
 			}
+		case campaign.FieldIdempotencyKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field idempotency_key", values[i])
+			} else if value.Valid {
+				_m.IdempotencyKey = new(string)
+				*_m.IdempotencyKey = value.String
+			}
 		case campaign.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -227,6 +236,11 @@ func (_m *Campaign) String() string {
 	builder.WriteString(", ")
 	if v := _m.CreatedByUserID; v != nil {
 		builder.WriteString("created_by_user_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.IdempotencyKey; v != nil {
+		builder.WriteString("idempotency_key=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

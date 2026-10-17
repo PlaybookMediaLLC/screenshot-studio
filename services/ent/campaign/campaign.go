@@ -34,6 +34,8 @@ const (
 	FieldProductSurfaceID = "productSurfaceId"
 	// FieldCreatedByUserID holds the string denoting the created_by_user_id field in the database.
 	FieldCreatedByUserID = "createdByUserId"
+	// FieldIdempotencyKey holds the string denoting the idempotency_key field in the database.
+	FieldIdempotencyKey = "idempotencyKey"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "createdAt"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -55,6 +57,7 @@ var Columns = []string{
 	FieldReleaseID,
 	FieldProductSurfaceID,
 	FieldCreatedByUserID,
+	FieldIdempotencyKey,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -162,6 +165,11 @@ func ByProductSurfaceID(opts ...sql.OrderTermOption) OrderOption {
 // ByCreatedByUserID orders the results by the created_by_user_id field.
 func ByCreatedByUserID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedByUserID, opts...).ToFunc()
+}
+
+// ByIdempotencyKey orders the results by the idempotency_key field.
+func ByIdempotencyKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIdempotencyKey, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

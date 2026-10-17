@@ -28,6 +28,42 @@ export const tenantAccessRequirementSchema = z.object({
 export type TenantAccessRequirement = z.infer<typeof tenantAccessRequirementSchema>
 
 /**
+ * What the editor utilities (`/api/screenshot`, `/api/export`, `/api/tweet`,
+ * `/api/image-proxy`) require: a member session or an `artifact:read` key, on
+ * a paid plan. `requirePaidAccess` enforces it and the spec publishes it.
+ */
+export const editorUtilityAccess = tenantAccessRequirementSchema.parse({
+  apiKeyScope: 'artifact:read',
+  permission: 'workspace:read',
+})
+
+/**
+ * What a human-only operation requires: a signed-in member with `permission`
+ * on a paid plan, then the optional feature and quota. API keys are refused.
+ * `sensitive` also requires a sign-in under 15 minutes old with two-factor.
+ */
+export const memberAccessRequirementSchema = tenantAccessRequirementSchema
+  .omit({ apiKeyScope: true })
+  .extend({ sensitive: z.boolean().optional() })
+  .strict()
+
+/** One of {@link memberAccessRequirementSchema}. */
+export type MemberAccessRequirement = z.infer<typeof memberAccessRequirementSchema>
+
+/**
+ * The access a contract declares. Its route binds the matching authenticator,
+ * and the OpenAPI spec publishes it as the operation's security and
+ * `x-shots-entitlement`, so docs, REST, and MCP read one declaration.
+ */
+export const contractAccessSchema = z.union([
+  tenantAccessRequirementSchema.strict(),
+  memberAccessRequirementSchema,
+])
+
+/** One of {@link contractAccessSchema}. */
+export type ContractAccess = z.infer<typeof contractAccessSchema>
+
+/**
  * Which organization a permission check runs against. `active` is the
  * session's active organization. `requested` is the `organizationId` in the
  * path, query, or body, which must also be the active organization.

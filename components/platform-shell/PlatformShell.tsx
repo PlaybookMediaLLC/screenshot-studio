@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 import { cn } from '@/lib/utils'
 import { PlatformSidebar } from './PlatformSidebar'
 import { surface } from './shell-config'
@@ -33,6 +34,7 @@ export function PlatformShell({
     <div className={cn('flex min-h-screen flex-col text-foreground md:flex-row', surface.base)}>
       <PlatformSidebar
         campaignsEnabled={campaignsEnabled}
+        draftsEnabled={contentDraftsEnabled()}
         organizationName={organizationName}
         variant={variant}
       />

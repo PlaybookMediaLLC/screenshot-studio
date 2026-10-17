@@ -113,6 +113,11 @@ function footnoteNumber(context: Context, identifier: string): number {
   return next
 }
 
+function collectImage(node: PlateNode, context: Context): void {
+  context.images += 1
+  if (typeof node.assetId === 'string') context.assetIds.push(node.assetId)
+}
+
 /** The text of inline content: text leaves, links, mentions, tags, math. */
 function inlineText(nodes: PlateNode[] | undefined, context: Context): string {
   return (nodes ?? [])
@@ -124,6 +129,10 @@ function inlineText(nodes: PlateNode[] | undefined, context: Context): string {
         return node.text
       }
       switch (node.type) {
+        case 'img':
+          // Imported documents can carry an image inside a paragraph.
+          collectImage(node, context)
+          return ''
         case 'a': {
           const label = inlineText(node.children, context).trim()
           const url = String(node.url ?? '')
@@ -160,13 +169,15 @@ function tableText(table: PlateNode, context: Context): string {
         .trim()
     )
   )
+  // An empty row (the editor starts tables with spare rows) posts nothing.
+  const filled = rows.filter((row) => row.some((cell) => cell))
   const widths: number[] = []
-  for (const row of rows) {
+  for (const row of filled) {
     row.forEach((cell, index) => {
       widths[index] = Math.max(widths[index] ?? 0, cell.length)
     })
   }
-  return rows
+  return filled
     .map((row) =>
       row
         .map((cell, index) => (index === row.length - 1 ? cell : cell.padEnd(widths[index])))
@@ -196,8 +207,7 @@ function listMarker(node: PlateNode, counters: Map<number, number>): string | nu
 function blockText(node: PlateNode, context: Context): string {
   const type = node.type ?? 'p'
   if (type === 'img') {
-    context.images += 1
-    if (typeof node.assetId === 'string') context.assetIds.push(node.assetId)
+    collectImage(node, context)
     return ''
   }
   const dropped = DROPPED_BLOCKS[type]

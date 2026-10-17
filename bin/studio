@@ -348,6 +348,8 @@ run_e2e() {
     wait_for_redirect_or_ok "${app_url%/}/campaigns/warm-up${campaign_page}" "Screenshot Studio campaign${campaign_page:- overview} route"
   done
   wait_for_redirect_or_ok "${app_url%/}/assets" "Screenshot Studio assets route"
+  wait_for_redirect_or_ok "${app_url%/}/drafts" "Screenshot Studio drafts route"
+  wait_for_redirect_or_ok "${app_url%/}/drafts/warm-up" "Screenshot Studio draft composer route"
   wait_for_redirect_or_ok "${app_url%/}/two-factor" "Screenshot Studio two-factor route"
   wait_for_redirect_or_ok "${app_url%/}/onboarding" "Screenshot Studio onboarding route"
   wait_for_redirect_or_ok "${app_url%/}/workspace" "Screenshot Studio workspace route"
@@ -356,6 +358,7 @@ run_e2e() {
   warm_route "${app_url%/}/api/tenant/releases" "Tenant releases API"
   warm_route "${app_url%/}/api/tenant/assets/upload-url" "Tenant assets API"
   warm_route "${app_url%/}/api/v1/bootstrap" "Shell bootstrap API"
+  warm_route "${app_url%/}/api/v1/content-drafts" "Content drafts API"
   warm_route "${app_url%/}/api/v1/organizations/warm-up" "Shell organizations API"
   wait_for_http "$app_url" "Screenshot Studio editor route"
   if ! E2E_BASE_URL="$app_url" \

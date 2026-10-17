@@ -7,6 +7,7 @@ import {
   Link01Icon,
   Megaphone01Icon,
   Menu01Icon,
+  NoteEditIcon,
   PaintBoardIcon,
   SlidersHorizontalIcon,
   UnfoldMoreIcon,
@@ -41,6 +42,7 @@ const NAV_GROUPS: { items: NavItem[]; label?: string }[] = [
       { href: '/', icon: PaintBoardIcon, label: 'Editor' },
       { href: '/projects', icon: Folder01Icon, label: 'Projects' },
       { href: '/campaigns', icon: Megaphone01Icon, label: 'Campaigns' },
+      { href: '/drafts', icon: NoteEditIcon, label: 'Drafts' },
       { href: '/assets', icon: Album02Icon, label: 'Assets' },
       { href: '/link-preview', icon: Link01Icon, label: 'Link preview' },
     ],
@@ -202,10 +204,12 @@ function NavLink({
 function Navigation({
   campaignsEnabled,
   collapsed,
+  draftsEnabled,
   onNavigate,
 }: {
   campaignsEnabled: boolean
   collapsed: boolean
+  draftsEnabled: boolean
   onNavigate?: () => void
 }) {
   return (
@@ -217,6 +221,7 @@ function Navigation({
           ) : null}
           {group.items
             .filter((item) => campaignsEnabled || item.href !== '/campaigns')
+            .filter((item) => draftsEnabled || item.href !== '/drafts')
             .map((item) => (
               <NavLink collapsed={collapsed} item={item} key={item.href} onNavigate={onNavigate} />
             ))}
@@ -278,6 +283,8 @@ function Brand({ collapsed }: { collapsed: boolean }) {
 
 export interface PlatformSidebarProps {
   campaignsEnabled: boolean
+  /** Show Drafts; content drafts are behind PLATFORM_CONTENT_DRAFTS. */
+  draftsEnabled?: boolean
   organizationName?: string
   variant: 'editor' | 'page'
 }
@@ -288,6 +295,7 @@ export interface PlatformSidebarProps {
  */
 export function PlatformSidebar({
   campaignsEnabled,
+  draftsEnabled = false,
   organizationName = 'Workspace',
   variant,
 }: PlatformSidebarProps) {
@@ -306,7 +314,7 @@ export function PlatformSidebar({
         <Brand collapsed />
 
         <div className="mt-5 flex-1">
-          <Navigation campaignsEnabled={campaignsEnabled} collapsed />
+          <Navigation campaignsEnabled={campaignsEnabled} collapsed draftsEnabled={draftsEnabled} />
         </div>
 
         {isPage ? (
@@ -352,6 +360,7 @@ export function PlatformSidebar({
                 <Navigation
                   campaignsEnabled={campaignsEnabled}
                   collapsed={false}
+                  draftsEnabled={draftsEnabled}
                   onNavigate={() => setMobileOpen(false)}
                 />
               </div>

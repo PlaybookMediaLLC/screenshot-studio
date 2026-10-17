@@ -57,3 +57,21 @@ func TestPaidPlansIncludeCampaignWorkflow(t *testing.T) {
 		t.Fatalf("campaign:workflow minimum plan = %s", minimumFeaturePlan["campaign:workflow"])
 	}
 }
+
+// The onboarding agent is on for paid plans; internal limits it to granted
+// workspaces, and disabled turns it off everywhere, overrides included.
+func TestOnboardingAgentFlagModes(t *testing.T) {
+	now := time.Date(2026, time.October, 17, 12, 0, 0, 0, time.UTC)
+	paid := &ent.WorkspaceEntitlement{Plan: "pro", Status: "active"}
+	granted := &ent.WorkspaceEntitlement{Plan: "pro", Status: "active", FeatureOverrides: map[string]any{OnboardingFeature: true}}
+	free := &ent.WorkspaceEntitlement{Plan: "free", Status: "active"}
+	for mode, want := range map[string][3]bool{"": {true, true, false}, "enabled": {true, true, false},
+		"internal": {false, true, false}, "disabled": {false, false, false}} {
+		t.Setenv("PLATFORM_ONBOARDING_AGENT", mode)
+		for i, entitlement := range []*ent.WorkspaceEntitlement{paid, granted, free} {
+			if _, _, features := evaluateBootstrapEntitlement(entitlement, now); features[OnboardingFeature] != want[i] {
+				t.Fatalf("mode %q workspace %d: %v", mode, i, features[OnboardingFeature])
+			}
+		}
+	}
+}

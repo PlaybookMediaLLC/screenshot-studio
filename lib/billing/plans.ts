@@ -44,6 +44,9 @@ export const workspaceFeatureSchema = z.enum([
   'campaign:workflow',
   // Hand-written content drafts scheduled to channels (RFC 037).
   'content:drafts',
+  // The onboarding agent (docs/rfcs/032). Every paid plan includes it;
+  // PLATFORM_ONBOARDING_AGENT in the backend can limit or disable it.
+  'onboarding:agent',
 ])
 export type WorkspaceFeature = z.infer<typeof workspaceFeatureSchema>
 
@@ -82,6 +85,7 @@ const planFeatures = {
     'workspace:use',
     'campaign:workflow',
     'content:drafts',
+    'onboarding:agent',
   ],
   business: [
     'asset:create',
@@ -93,6 +97,7 @@ const planFeatures = {
     'workspace:use',
     'campaign:workflow',
     'content:drafts',
+    'onboarding:agent',
   ],
   enterprise: [
     'asset:create',
@@ -107,6 +112,7 @@ const planFeatures = {
     'enterprise:scim',
     'campaign:workflow',
     'content:drafts',
+    'onboarding:agent',
   ],
 } as const satisfies Record<WorkspacePlan, readonly WorkspaceFeature[]>
 
@@ -123,6 +129,7 @@ const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
   'enterprise:scim': 'enterprise',
   'campaign:workflow': 'pro',
   'content:drafts': 'pro',
+  'onboarding:agent': 'pro',
 }
 
 /** Mirrors `planQuotas` in services/internal/product/quota.go. */

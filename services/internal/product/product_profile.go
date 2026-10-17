@@ -62,12 +62,14 @@ func nonNilProofPoints(points []profile.ProofPoint) []profile.ProofPoint {
 
 // UpsertProductProfileInput changes the fields it names; a nil field is left
 // as it is. Source is manual (the default) or automated. SourceURLs records
-// the page each automated value came from. UnlockFields lets automated
-// updates change those fields again (manual only).
+// the page each automated value came from, and Confidence how sure its
+// source was. UnlockFields lets automated updates change those fields again
+// (manual only).
 type UpsertProductProfileInput struct {
 	Audience     *string               `json:"audience"`
 	Capabilities *[]string             `json:"capabilities"`
 	Competitors  *[]string             `json:"competitors"`
+	Confidence   map[string]float64    `json:"confidence"`
 	Name         *string               `json:"name"`
 	PricingNote  *string               `json:"pricingNote"`
 	Problem      *string               `json:"problem"`
@@ -130,6 +132,9 @@ func normalizeProductProfileInput(input *UpsertProductProfileInput) error {
 	}
 	for field, source := range input.SourceURLs {
 		valid = valid && slices.Contains(productProfileFields, field) && validProfileURL(source)
+	}
+	for field, confidence := range input.Confidence {
+		valid = valid && slices.Contains(productProfileFields, field) && confidence >= 0 && confidence <= 1
 	}
 	for _, field := range input.UnlockFields {
 		valid = valid && slices.Contains(productProfileFields, field)
@@ -206,7 +211,8 @@ func (c *Configuration) UpsertProductProfile(ctx context.Context, actor Actor, i
 		if !different && provenance[field].Source != "" {
 			return false
 		}
-		provenance[field] = profile.FieldProvenance{EditedByUser: !automated, Source: input.Source, UpdatedAt: now, URL: input.SourceURLs[field]}
+		provenance[field] = profile.FieldProvenance{Confidence: input.Confidence[field], EditedByUser: !automated, Source: input.Source,
+			UpdatedAt: now, URL: input.SourceURLs[field]}
 		changed = append(changed, field)
 		return true
 	}

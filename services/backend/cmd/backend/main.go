@@ -17,6 +17,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/media"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/onboarding"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/platformai"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
@@ -91,9 +93,15 @@ func main() {
 		configuration.WithMonthlyMeter(meter)
 	}
 
+	// Without OPENROUTER_API_KEY the onboarding drafts come from page metadata.
+	var model onboarding.Model
+	if client := platformai.FromEnvironment(); client != nil {
+		model = client
+	}
 	server := &http.Server{
-		Addr:              fmt.Sprintf(":%d", cfg.Port),
-		Handler:           httpapi.NewWithConfiguration(publishing.NewRepository(db.Client), scheduler, postiz.New(os.Getenv("POSTIZ_API_URL"), &http.Client{Timeout: 20 * time.Second}, nil), cfg.ServiceToken, configuration),
+		Addr: fmt.Sprintf(":%d", cfg.Port),
+		Handler: httpapi.NewWithOnboarding(publishing.NewRepository(db.Client), scheduler, postiz.New(os.Getenv("POSTIZ_API_URL"), &http.Client{Timeout: 20 * time.Second}, nil), cfg.ServiceToken, configuration,
+			&onboarding.Service{FastPath: &onboarding.FastPath{Fetcher: onboarding.NewFetcher(), Model: model}, Store: configuration}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       60 * time.Second,
 		WriteTimeout:      30 * time.Second,

@@ -10,6 +10,7 @@ import {
   definedChanges,
   designChangesSchema,
   patchDesignDocument,
+  stillDesignChangesSchema,
 } from '@/lib/design/document'
 import { DesignRenderLimitError, renderDesignForTenant } from '@/lib/design/render-design'
 import type { DesignRenderer } from '@/lib/design/renderer'
@@ -183,12 +184,14 @@ export function createDesignStudioTools(
     description:
       'Change any part of a design: background, canvas/aspect ratio, frame, shadow, 3D tilt, ' +
       'filters, devices, text, overlays, annotations (arrows, boxes, circles), redactions ' +
-      '(blur/mosaic), or animation. By default saves the result as a new variant and keeps the ' +
-      'original; set replace=true to edit in place. Positions are 0-1 fractions of the canvas ' +
-      '(text positions are 0-100 percentages); text fontSize is a fraction of canvas width.',
+      `(blur/mosaic)${launch ? '' : ', or animation'}. By default saves the result as a new ` +
+      'variant and keeps the original; set replace=true to edit in place. Positions are 0-1 ' +
+      'fractions of the canvas (text positions are 0-100 percentages); text fontSize is a ' +
+      'fraction of canvas width.',
     effect: 'draft',
     inputSchema: z.object({
-      changes: designChangesSchema,
+      // Launch visuals render to PNG, so the agent never sees the motion sections.
+      changes: launch ? stillDesignChangesSchema : designChangesSchema,
       designId: z.string().cuid(),
       name: z.string().trim().min(1).max(120).optional(),
       replace: z.boolean().default(false),

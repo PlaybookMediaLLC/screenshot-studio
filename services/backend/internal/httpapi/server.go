@@ -131,6 +131,8 @@ type ConfigurationStore interface {
 	RecordAuthEvent(context.Context, product.AuthEvent) error
 	AppendAuditEvent(context.Context, product.Actor, product.AuditEventInput) error
 	WorkspaceOperational(context.Context, string) (bool, error)
+	RequireSeat(context.Context, string, bool) error
+	RequireChannel(context.Context, string, string) error
 	Authorize(context.Context, product.Actor) error
 	AuthorizeRead(context.Context, product.Actor) error
 	AuthorizeSession(context.Context, product.Actor) error
@@ -428,6 +430,12 @@ func (s *Server) createConnection(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if s.configuration != nil {
+		if err := s.configuration.RequireChannel(r.Context(), actor.Organization, input.ExternalAccountID); err != nil {
+			writeStoreError(w, err)
+			return
+		}
+	}
 	connection, err := s.store.CreateConnection(r.Context(), actor, publishing.CreateConnectionInput{
 		ExternalAccountID: input.ExternalAccountID,
 		Platform:          input.Platform,
@@ -634,6 +642,7 @@ func writeStoreError(w http.ResponseWriter, err error) {
 	var notEntitled *product.FeatureNotEntitledError
 	var exceeded *product.QuotaExceededError
 	var prohibited *product.ProhibitedTermsError
+	var atLimit *product.PlanLimitError
 	switch {
 	case errors.As(err, &prohibited):
 		writeJSON(w, http.StatusConflict, map[string]any{
@@ -643,6 +652,11 @@ func writeStoreError(w http.ResponseWriter, err error) {
 		writeJSON(w, http.StatusForbidden, map[string]string{
 			"code": "workspace_feature_not_entitled", "currentPlan": notEntitled.CurrentPlan,
 			"error": err.Error(), "feature": notEntitled.Feature, "requiredPlan": notEntitled.RequiredPlan,
+		})
+	case errors.As(err, &atLimit):
+		writeJSON(w, http.StatusForbidden, map[string]any{
+			"code": "plan_limit_reached", "currentPlan": atLimit.Plan, "error": err.Error(),
+			"limit": atLimit.Limit, "name": atLimit.Name,
 		})
 	case errors.Is(err, publishing.ErrUnauthorized):
 		writeError(w, http.StatusUnauthorized, err.Error())

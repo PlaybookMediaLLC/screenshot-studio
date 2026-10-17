@@ -2,7 +2,8 @@
 
 **Status:** Implemented; revised for no free plan (see Implementation)  
 **Status note (2026-10-16):** The Free plan was removed. Every workspace needs a paid plan to use the product.  
-**Phase 0 update (2026-10-16):** Checkout returns to `/api/billing/checkout/return` and applies the plan immediately; `/pricing` shows why a visitor is there; onboarding has a plan step; workspace settings have a Billing section; credit packs require a subscription. No trial.
+**Phase 0 update (2026-10-16):** Checkout returns to `/api/billing/checkout/return` and applies the plan immediately; `/pricing` shows why a visitor is there; onboarding has a plan step; workspace settings have a Billing section; credit packs require a subscription. No trial.  
+**Packaging update (2026-10-17):** Seat and social channel limits are enforced; Billing settings show every monthly allowance and the pack balance; launch agents send a smaller design schema and skip visuals a re-run already finished.
 **Date:** 2026-10-15  
 **Revised:** 2026-10-16  
 **Owners:** Product and Engineering  
@@ -205,7 +206,11 @@ longer depends on the action mix. A Pro workspace cannot spend more than its
    both before the work and refunded if it does not commit.
 6. **Checkout.** `POST /api/billing/checkout` opens Stripe Checkout for a
    workspace without a subscription, or the billing portal for one that
-   already subscribes (`lib/billing/stripe.ts`).
+   already subscribes (`lib/billing/stripe.ts`). Checkout returns to
+   `/api/billing/checkout/return`, which reads the session from Stripe,
+   applies the plan, and opens onboarding's product step or the app. When
+   Stripe has not activated the subscription yet, it opens
+   `/pricing?checkout=pending`, which polls until the plan is applied.
    `POST /api/webhooks/stripe` verifies the Stripe signature, reads the
    subscription fresh from Stripe, and applies it through the same versioned
    entitlement sync as the signed billing webhook, retrying a stale version
@@ -221,8 +226,8 @@ longer depends on the action mix. A Pro workspace cannot spend more than its
    for a 500-credit pack. When the session is paid, the webhook grants the
    credits through the backend (`workspace_credit_grant`, once per Checkout
    session). AI credit usage draws on the monthly allowance first, then on
-   purchased packs, oldest first. Packs can be bought without a subscription
-   today; see Open items.
+   purchased packs, oldest first. Only a workspace on a paid plan can buy a
+   pack; the route answers `403 workspace_feature_not_entitled` otherwise.
 8. **Sonnet for the long loops.** The production visuals agent and the
    editor copilot use the `drafting` role. Watch the visual critique pass
    rate and move visuals back to `deep` if it drops.
@@ -256,6 +261,25 @@ longer depends on the action mix. A Pro workspace cannot spend more than its
       source apps requires `release:create` and `source-app:create`, which
       only paid plans grant (`requireWorkspaceFeature` in
       `services/internal/product/entitlements.go`).
+11. **Plan limits.** Seats and social channels are capped per plan in
+    `services/internal/product/plan_limits.go`, mirrored in
+    `lib/billing/plans.ts` (`test/ai-credit-metering.test.ts` fails if they
+    drift). A refused add answers `403 plan_limit_reached` with the limit.
+    - **Seats.** Members plus pending, unexpired invitations hold seats.
+      Inviting checks both (`InviteMember`, and Better Auth's
+      `beforeCreateInvitation`); accepting an invitation or adding a member
+      checks members only (`beforeAcceptInvitation`, `beforeAddMember`,
+      through `GET /v1/internal/workspaces/{id}/seat`). A workspace without
+      a subscription has its owner's seat and no other.
+    - **Social channels.** Active channel connections count. Finishing a
+      social OAuth or creating a connection checks the limit; reconnecting an
+      account the workspace already holds does not count again. The check
+      runs after the OAuth exchange, so a refused connection can leave an
+      unused integration in Postiz, as a disconnect does today.
+    - **Products.** A workspace has one product profile (RFC 012), so the
+      product limit is one per workspace on every plan.
+    - Existing members and channels above a lower plan's limit are kept after
+      a downgrade; only new ones are refused.
 
 Stripe setup. The products live in the Playbook Media organization's account
 (`acct_1OXB7hJ5a5YKQUvY`), in live mode:
@@ -290,43 +314,52 @@ contact page.
 
 ## Open items
 
-1. **Paywall notice on `/pricing`.** The gates redirect to
-   `/pricing?subscribe=required`, but the page does not yet explain why the
-   visitor landed there.
-2. **Checkout success lands in the app.** Checkout returns to
-   `/pricing?checkout=success`. It should land in the app with a "finishing
-   setup" state that waits for the webhook to apply the plan.
-3. **Choose a plan during onboarding.** A new workspace starts on `free` and
-   only finds the paywall when it opens a product page.
-4. **In-app Billing settings.** Plan, usage against allowances, credit
-   balance, and the portal link belong in workspace settings.
-5. **Block credit packs without a subscription.** `POST /api/billing/credits`
-   sells a pack to any workspace, including one on `free` that cannot use it.
-6. **Trial decision.** Decide whether to offer a trial. None is configured
-   in Checkout today.
-7. **Seat, product, and channel limits** (see Packaging beyond credits) are
-   not enforced.
+All seven are resolved:
 
-## Optional cost reductions
+1. **Paywall notice on `/pricing`.** Done: `PricingNotice` explains
+   `subscribe=required`, Checkout outcomes, and credit purchases.
+2. **Checkout success lands in the app.** Done: see Implementation 6.
+3. **Choose a plan during onboarding.** Done: `/onboarding/plan`.
+4. **In-app Billing settings.** Done: workspace settings show the plan and
+   its standing, AI credits, scheduled posts, and emails left against each
+   allowance, the extra launch credit balance, and the portal link.
+5. **Block credit packs without a subscription.** Done: see Implementation 7.
+6. **Trial decision.** No trial. Revisit with conversion data (see Risks).
+7. **Seat, product, and channel limits.** Done: see Implementation 11.
 
-- **Shrink the tool schemas.** `editDesign` alone is about 11,900 characters
-  re-sent every step. Cached reads make this cheap, but the first write and
-  every miss pay full price.
-- **Skip regeneration of unchanged assets** using the content-addressed render
-  cache from RFC 010.
+## Cost reductions
+
+- **Smaller tool schemas.** PR #137 grew `editDesign`'s schema from about
+  11,900 to 32,270 characters. Launch visuals render to PNG, so the visuals
+  agent and design revisions get `stillDesignChangesSchema`
+  (`lib/design/document.ts`), which drops the motion-only sections
+  (animation, timeline, slides): 22,936 characters, 29% less, re-sent on
+  every step. `test/design-document.test.ts` fails if it grows past 24,000.
+  The editor copilot and campaign studio keep the full schema.
+- **Skip regeneration of unchanged assets.** The render key now hashes each
+  referenced image by content rather than by asset id
+  (`lib/design/render-key.ts`, version 2), so a recapture that stores the
+  same bytes under a new id still reuses the cached render. A production
+  re-run skips plan assets that already have a rendered design for the same
+  plan version, not sent back by review and newer than the brand kit
+  (`unproducedAssets` in `lib/launch/budget.ts`); it sizes its budget to what
+  is left and skips the visuals agent when nothing is. Editing the plan makes
+  a new version, which remakes every asset.
 
 ## Packaging beyond credits
 
-Recommended limits that are not enforced in code today:
+Enforced since 2026-10-17 (Implementation 11):
 
 | Limit           | Pro | Business | Enterprise |
 | --------------- | --- | -------- | ---------- |
 | Seats           | 5   | 20       | unlimited  |
-| Products        | 1   | 5        | unlimited  |
+| Products        | 1   | 1        | 1          |
 | Social channels | 3   | 15       | unlimited  |
 
 Seats cost nothing to serve. They are a packaging line between a founder and a
-team, not a cost line.
+team, not a cost line. The recommended product limits (Business 5, Enterprise
+unlimited) need more than one product profile per workspace, which RFC 012
+lists as a non-goal; until that changes, each product is its own workspace.
 
 ## Risks
 
@@ -335,8 +368,8 @@ team, not a cost line.
 - **Model prices** move. Credits are defined in list-price dollars, so a price
   change updates the credit cost of an action, not the plan.
 - **No free plan** removes the try-before-buy path. Watch pricing-page
-  conversion and sign-ups that never subscribe, and revisit the trial
-  decision (Open items) with that data.
+  conversion and sign-ups that never subscribe, and revisit the no-trial
+  decision with that data.
 - **Utilization assumptions** are estimates. Measure credit use per workspace
   in the first quarter and revisit allowances.
 - **Fixed-cost sizes** are estimates from the deployment doc and should be

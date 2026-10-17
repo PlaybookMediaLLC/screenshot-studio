@@ -166,6 +166,9 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 0); err != nil || remaining != 500 {
 		t.Fatalf("AI credits with a pack remaining=%d err=%v", remaining, err)
 	}
+	if summary, err := repo.GetEntitlementSummary(ctx, actor); err != nil || summary.CreditBalance != 500 {
+		t.Fatalf("entitlement summary with a pack=%+v err=%v", summary, err)
+	}
 	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 30); err != nil || remaining != 470 {
 		t.Fatalf("AI credits drawn from a pack remaining=%d err=%v", remaining, err)
 	}

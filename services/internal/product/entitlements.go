@@ -10,9 +10,11 @@ import (
 )
 
 type EntitlementSummary struct {
-	Features map[string]bool `json:"features"`
-	Plan     string          `json:"plan"`
-	Status   string          `json:"status"`
+	// CreditBalance is what is left of the workspace's purchased credit packs.
+	CreditBalance int             `json:"creditBalance"`
+	Features      map[string]bool `json:"features"`
+	Plan          string          `json:"plan"`
+	Status        string          `json:"status"`
 }
 
 type FeatureDecision struct {
@@ -55,7 +57,7 @@ func requireFeature(features map[string]bool, plan, feature string) error {
 	return &FeatureNotEntitledError{Feature: feature, CurrentPlan: plan, RequiredPlan: minimumFeaturePlan[feature]}
 }
 
-func (c *Configuration) GetEntitlementSummary(ctx context.Context, actor Actor) (*EntitlementSummary, error) {
+func (c *Configuration) entitlementSummary(ctx context.Context, actor Actor) (*EntitlementSummary, error) {
 	if err := c.AuthorizeRead(ctx, actor); err != nil {
 		return nil, err
 	}
@@ -67,12 +69,25 @@ func (c *Configuration) GetEntitlementSummary(ctx context.Context, actor Actor) 
 	return &EntitlementSummary{Features: features, Plan: plan, Status: status}, nil
 }
 
+// GetEntitlementSummary is the workspace's plan, standing, features, and
+// purchased credit balance, for the Billing settings page.
+func (c *Configuration) GetEntitlementSummary(ctx context.Context, actor Actor) (*EntitlementSummary, error) {
+	summary, err := c.entitlementSummary(ctx, actor)
+	if err != nil {
+		return nil, err
+	}
+	if summary.CreditBalance, err = c.creditBalance(ctx, actor.OrganizationID); err != nil {
+		return nil, err
+	}
+	return summary, nil
+}
+
 func (c *Configuration) GetFeatureDecision(ctx context.Context, actor Actor, feature string) (*FeatureDecision, error) {
 	requiredPlan, ok := minimumFeaturePlan[feature]
 	if !ok {
 		return nil, ErrInvalidInput
 	}
-	summary, err := c.GetEntitlementSummary(ctx, actor)
+	summary, err := c.entitlementSummary(ctx, actor)
 	if err != nil {
 		return nil, err
 	}

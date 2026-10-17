@@ -16,6 +16,7 @@ func (s *Server) registerInternal(mux *http.ServeMux) {
 	mux.Handle("POST /v1/internal/auth-store", s.authenticateService(http.HandlerFunc(s.executeAuthStore)))
 	mux.Handle("POST /v1/internal/auth-events", s.authenticateService(http.HandlerFunc(s.recordAuthEvent)))
 	mux.Handle("GET /v1/internal/workspaces/{id}/operational", s.authenticateService(http.HandlerFunc(s.workspaceOperational)))
+	mux.Handle("GET /v1/internal/workspaces/{id}/seat", s.authenticateService(http.HandlerFunc(s.workspaceSeat)))
 	mux.Handle("POST /v1/audit-events", s.authenticateProduct(http.HandlerFunc(s.appendAuditEvent)))
 }
 
@@ -59,6 +60,16 @@ func (s *Server) workspaceOperational(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"operational": operational})
+}
+
+// workspaceSeat answers whether the workspace has a seat for one more member;
+// invitations=true counts pending invitations as held seats.
+func (s *Server) workspaceSeat(w http.ResponseWriter, r *http.Request) {
+	if err := s.configuration.RequireSeat(r.Context(), r.PathValue("id"), r.URL.Query().Get("invitations") == "true"); err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"available": true})
 }
 
 func (s *Server) appendAuditEvent(w http.ResponseWriter, r *http.Request) {

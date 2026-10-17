@@ -77,13 +77,19 @@ export function releaseSourceUrls(campaign: LaunchCampaign): string[] {
 
 export type ActiveBrand = {
   kit: BrandKitValues | null
+  /** When the kit last changed; visuals made before it are off-brand. */
+  kitUpdatedAt: Date | null
   profile: BrandProfile | null
 }
 
 /** The newest active brand kit and the workspace's brand voice. */
 export async function getActiveBrand(tenant: TenantContext): Promise<ActiveBrand> {
   const { kit, profile } = await backendSDK(tenant).getLaunchBrand()
-  return { kit: kit ? parseBrandKit(kit.name, kit.definition) : null, profile }
+  return {
+    kit: kit ? parseBrandKit(kit.name, kit.definition) : null,
+    kitUpdatedAt: kit ? new Date(kit.updatedAt) : null,
+    profile,
+  }
 }
 
 // --------------------------------------------------------------- specs --

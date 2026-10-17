@@ -1,4 +1,5 @@
 import { APIError } from 'better-auth'
+import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import { WORKSPACE_INVITATION_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
 import { serviceBackend } from '@/lib/backend/sdk'
 import { checkRateLimit } from '@/lib/rate-limit'
@@ -60,6 +61,21 @@ type RoleUpdatedHook = {
 async function requireOperationalWorkspace(organizationId: string): Promise<void> {
   if (!(await serviceBackend().isWorkspaceOperational(organizationId))) {
     throw APIError.fromStatus('FORBIDDEN', { message: 'This workspace is unavailable.' })
+  }
+}
+
+/**
+ * Refuses one more member when the workspace's plan seats are full. A pending
+ * invitation holds a seat, so it is counted before inviting, not on accepting.
+ */
+async function requireSeat(organizationId: string, invitations: boolean): Promise<void> {
+  try {
+    await serviceBackend().requireWorkspaceSeat(organizationId, invitations)
+  } catch (error) {
+    if (error instanceof BackendSDKError && error.status === 403) {
+      throw APIError.fromStatus('FORBIDDEN', { message: error.message })
+    }
+    throw error
   }
 }
 
@@ -197,9 +213,11 @@ export const organizationHooks = {
     if (!isSupportedOrganizationRole(member.role)) {
       throw new Error('Unsupported organization role.')
     }
+    await requireSeat(member.organizationId, false)
   },
   beforeAcceptInvitation: async ({ invitation }: InvitationAcceptanceHook) => {
     await requireOperationalWorkspace(invitation.organizationId)
+    await requireSeat(invitation.organizationId, false)
   },
   beforeCreateInvitation: async ({ invitation, inviter }: InvitationHook) => {
     await requireOperationalWorkspace(invitation.organizationId)
@@ -210,6 +228,7 @@ export const organizationHooks = {
     if (invitation.role === 'owner') {
       throw new Error('Use workspace ownership transfer instead.')
     }
+    await requireSeat(invitation.organizationId, true)
     await serviceBackend().authStore({
       data: { status: 'expired' },
       model: 'invitation',

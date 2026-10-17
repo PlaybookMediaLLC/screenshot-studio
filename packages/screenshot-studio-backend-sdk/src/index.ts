@@ -740,6 +740,8 @@ export type BackendCreativeApproval = {
 }
 
 export type BackendEntitlementSummary = {
+  /** What is left of the workspace's purchased credit packs. */
+  creditBalance: number
   features: Record<string, boolean>
   plan: string
   status: string
@@ -2062,6 +2064,17 @@ export class ScreenshotStudioBackendSDK {
       `v1/internal/workspaces/${encodeURIComponent(organizationId)}/operational`
     )
     return result.operational
+  }
+
+  /**
+   * Resolves when the workspace has a seat for one more member, and rejects
+   * with a 403 `plan_limit_reached` when its plan's seats are full. With
+   * `invitations`, pending invitations count as held seats.
+   */
+  async requireWorkspaceSeat(organizationId: string, invitations: boolean) {
+    await this.request<{ available: true }>(
+      `v1/internal/workspaces/${encodeURIComponent(organizationId)}/seat?invitations=${invitations}`
+    )
   }
 
   async appendAuditEvent(event: BackendAuditEvent) {

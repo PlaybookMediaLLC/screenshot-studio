@@ -240,6 +240,7 @@ schedule.
 27. Creative engine render API and compose helpers ([010](docs/rfcs/010-programmable-creative-engine.md)).
 28. Enterprise remainder ([003](docs/rfcs/003-better-auth-enterprise-audit.md)): support-access approvals and required two-factor.
 29. Asset verification and quarantine ([006](docs/rfcs/006-release-inputs-and-artifact-pipeline.md)).
+30. Store provider verification ([036](docs/rfcs/036-store-provider-e2e-verification.md)): fake Google Play, App Store Connect, Figma, and AI providers on every PR; live runs against test accounts nightly.
 
 ## Where this goes
 

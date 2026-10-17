@@ -312,7 +312,8 @@ browser ──websocket + token──▶ collab-server ──authorize / load / 
   production**. The package refuses a WebRTC configuration without explicit
   signaling servers, so the public y-webrtc signaling servers are never used.
   Turning it on requires our own signaling and TURN servers and a revision of
-  this RFC.
+  this RFC. The app's build aliases y-webrtc to a stub that refuses to start,
+  so neither the library nor its public defaults ship.
 - **Configuration.** The collab URL comes from server config
   (`PLATFORM_COLLAB_URL`) passed in by the app.
 

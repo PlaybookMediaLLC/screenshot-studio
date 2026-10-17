@@ -91,7 +91,9 @@ type UpsertProductProfileInput struct {
 	SourceURLs   map[string]string     `json:"sourceUrls"`
 	Summary      *string               `json:"summary"`
 	UnlockFields []string              `json:"unlockFields"`
-	URL          *string               `json:"url"`
+	// AcceptFields locks fields as they are: a person confirmed them (manual only).
+	AcceptFields []string `json:"acceptFields"`
+	URL          *string  `json:"url"`
 }
 
 func validProfileURL(value string) bool {
@@ -135,7 +137,7 @@ func normalizeProductProfileInput(input *UpsertProductProfileInput) error {
 		validProfileText(input.Summary, 2000) && validProfileText(input.Problem, 2000) &&
 		validProfileText(input.Audience, 1000) && validProfileText(input.PricingNote, 500) &&
 		validProfileList(input.Capabilities, 30, 300) && validProfileList(input.Competitors, 20, 100) &&
-		(input.Source == ProfileSourceManual || len(input.UnlockFields) == 0) && len(input.SourceURLs) <= len(productProfileFields)
+		(input.Source == ProfileSourceManual || len(input.UnlockFields)+len(input.AcceptFields) == 0) && len(input.SourceURLs) <= len(productProfileFields)
 	if input.ProofPoints != nil {
 		valid = valid && len(*input.ProofPoints) <= 30
 		for _, point := range *input.ProofPoints {
@@ -149,7 +151,7 @@ func normalizeProductProfileInput(input *UpsertProductProfileInput) error {
 	for field, confidence := range input.Confidence {
 		valid = valid && slices.Contains(productProfileFields, field) && confidence >= 0 && confidence <= 1
 	}
-	for _, field := range input.UnlockFields {
+	for _, field := range append(slices.Clone(input.UnlockFields), input.AcceptFields...) {
 		valid = valid && slices.Contains(productProfileFields, field)
 	}
 	if !valid {
@@ -207,6 +209,12 @@ func (c *Configuration) UpsertProductProfile(ctx context.Context, actor Actor, i
 	for _, field := range input.UnlockFields {
 		if entry, ok := provenance[field]; ok {
 			entry.EditedByUser = false
+			provenance[field] = entry
+		}
+	}
+	for _, field := range input.AcceptFields {
+		if entry, ok := provenance[field]; ok {
+			entry.EditedByUser, entry.UpdatedAt = true, time.Now().UTC()
 			provenance[field] = entry
 		}
 	}
@@ -281,7 +289,7 @@ func (c *Configuration) UpsertProductProfile(ctx context.Context, actor Actor, i
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.product_profile_updated", "product_profile", saved.ID,
 		map[string]any{"changed": strings.Join(changed, ","), "skipped": strings.Join(skipped, ","), "source": input.Source,
-			"unlocked": strings.Join(input.UnlockFields, ",")}); err != nil {
+			"unlocked": strings.Join(input.UnlockFields, ","), "accepted": strings.Join(input.AcceptFields, ",")}); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {

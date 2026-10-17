@@ -3,8 +3,10 @@ package product
 import (
 	"context"
 	"encoding/json"
+	"net/url"
 	"reflect"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
@@ -40,6 +42,24 @@ func enrichmentRecord(row *ent.EnrichmentRecord) EnrichmentRecordRecord {
 }
 
 var enrichmentName = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`)
+
+// EnrichmentDomain is the host enrichment keys its cache on: lower case, no www.
+func EnrichmentDomain(siteURL string) string {
+	parsed, err := url.Parse(siteURL)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimPrefix(strings.ToLower(parsed.Hostname()), "www.")
+}
+
+// ListOnboardingEnrichment returns what enrichment found for a run's site.
+func (c *Configuration) ListOnboardingEnrichment(ctx context.Context, actor Actor, runID string) ([]EnrichmentRecordRecord, error) {
+	run, err := c.GetOnboardingRun(ctx, actor, runID)
+	if err != nil {
+		return nil, err
+	}
+	return c.ListEnrichmentRecords(ctx, actor, EnrichmentDomain(run.URL))
+}
 
 // ListEnrichmentRecords returns the workspace's results for a domain,
 // expired ones included; callers check ExpiresAt.

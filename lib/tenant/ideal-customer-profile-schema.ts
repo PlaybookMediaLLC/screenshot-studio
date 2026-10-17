@@ -47,9 +47,10 @@ export type IdealCustomerProfileValues = z.infer<typeof idealCustomerProfileValu
 /**
  * A person's change: only the fields given change, and each one changed is
  * locked against automated updates. `unlockFields` lets automated updates
- * change those fields again.
+ * change those fields again; `acceptFields` locks fields as they are.
  */
 export const idealCustomerProfileUpsertSchema = idealCustomerProfileValuesSchema.partial().extend({
+  acceptFields: z.array(idealCustomerProfileFieldSchema).max(6).optional(),
   unlockFields: z.array(idealCustomerProfileFieldSchema).max(6).optional(),
 })
 

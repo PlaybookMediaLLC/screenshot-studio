@@ -5,9 +5,13 @@ import Link from 'next/link'
 import { type FormEvent, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { OnboardingReview } from '@/components/onboarding/OnboardingReview'
+import { IdealCustomerProfileForm } from '@/components/workspace/WorkspaceIdealCustomerProfile'
 import { ProductProfileForm } from '@/components/workspace/WorkspaceProductProfile'
 import { trackOnboarding } from '@/lib/onboarding/funnel'
 import { ONBOARDING_POST_COUNT } from '@/lib/onboarding/plan-target'
+import type { StoredIdealCustomerProfile } from '@/lib/tenant/ideal-customer-profile'
+import type { StoredOnboardingRun } from '@/lib/tenant/onboarding-runs'
 import type { StoredProductProfile } from '@/lib/tenant/product-profile'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
@@ -29,8 +33,12 @@ const STEP_PAGES = ['spec', 'spec', 'plan', 'assets']
 type Stage =
   | { kind: 'url'; manual: boolean; problem: string | null }
   | { kind: 'reading'; startedAt: number }
-  | { extracted: boolean; kind: 'review' }
+  | { extracted: boolean; kind: 'review'; run: StoredOnboardingRun }
+  | { kind: 'manual' }
   | { campaignId: string | null; error: string | null; kind: 'launching'; step: number }
+
+/** The pages the first campaign cites: the run's best few, as the old read used. */
+const CAMPAIGN_PAGES = 4
 
 type LaunchRun = { error: string | null; id: string; resultId: string | null; status: string }
 
@@ -53,29 +61,45 @@ function Elapsed({ startedAt }: { startedAt: number }) {
 }
 
 /**
- * Onboarding's product step: paste the product's URL, review the profile
- * read from the site (or describe it by hand), and confirm. Confirming
- * creates the first campaign and runs spec, plan, and produce on it, then
- * opens its copy for approval.
+ * Onboarding's product step: paste the product's URL, review the drafts the
+ * onboarding agent read from the site while a background run deepens them
+ * (or describe it by hand), and confirm. Confirming creates the first
+ * campaign and runs spec, plan, and produce on it, then opens its copy for
+ * approval. Without the onboarding agent, onboarding is the manual form.
  */
 export function OnboardingProduct({
+  agentEnabled,
   campaignsEnabled,
+  initialIcp,
   initialProfile,
+  initialRun,
 }: {
+  /** The onboarding:agent feature; off means manual-only onboarding. */
+  agentEnabled: boolean
   /** Without the campaign workflow, confirming saves the profile and opens the app. */
   campaignsEnabled: boolean
+  initialIcp: StoredIdealCustomerProfile | null
   initialProfile: StoredProductProfile | null
+  /** The newest run, so a reload resumes its review. */
+  initialRun: StoredOnboardingRun | null
 }) {
   const trpcClient = useTRPCClient()
   const [profile, setProfile] = useState(initialProfile)
-  const [pages, setPages] = useState<string[]>([])
+  const [icp, setIcp] = useState(initialIcp)
+  const [pages, setPages] = useState<string[]>(
+    initialRun?.discoveredUrls.slice(0, CAMPAIGN_PAGES) ?? []
+  )
   const [url, setUrl] = useState(initialProfile?.url ?? '')
   const [sentence, setSentence] = useState('')
   const [formKey, setFormKey] = useState(0)
   const [stage, setStage] = useState<Stage>(
-    initialProfile
-      ? { extracted: true, kind: 'review' }
-      : { kind: 'url', manual: false, problem: null }
+    !agentEnabled
+      ? { kind: 'manual' }
+      : initialProfile && initialRun
+        ? { extracted: true, kind: 'review', run: initialRun }
+        : initialProfile
+          ? { kind: 'manual' }
+          : { kind: 'url', manual: false, problem: null }
   )
 
   async function readSite(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -83,22 +107,23 @@ export function OnboardingProduct({
     trackOnboarding('onboarding_product_started', { path: 'url' })
     setStage({ kind: 'reading', startedAt: Date.now() })
     try {
-      const result = await trpcClient.onboarding.readSite.mutate({
+      const result = await trpcClient.onboarding.start.mutate({
         sentence: sentence.trim() || undefined,
         url: url.trim(),
       })
-      if (!result.ok) {
+      if (!result.productProfile) {
         setStage({
           kind: 'url',
           manual: true,
-          problem: `We could not read that site: ${result.reason} Describe your product below instead.`,
+          problem: `We could not read that site${result.reason ? `: ${result.reason}` : '.'} Describe your product below instead.`,
         })
         return
       }
-      setProfile(result.profile)
-      setPages(result.pages)
+      setProfile(result.productProfile)
+      setIcp(result.idealCustomerProfile)
+      setPages(result.pages.slice(0, CAMPAIGN_PAGES))
       setFormKey((key) => key + 1)
-      setStage({ extracted: result.extracted, kind: 'review' })
+      setStage({ extracted: result.extracted, kind: 'review', run: result.run })
     } catch (error) {
       setStage({
         kind: 'url',
@@ -212,7 +237,7 @@ export function OnboardingProduct({
             ) : (
               <Button
                 className="w-fit rounded-lg"
-                onClick={() => setStage({ extracted: true, kind: 'review' })}
+                onClick={() => setStage({ kind: 'manual' })}
                 variant="outline"
               >
                 Back to your product
@@ -224,26 +249,64 @@ export function OnboardingProduct({
     )
   }
 
-  if (stage.kind === 'review') {
+  if (stage.kind === 'review' && profile) {
     return (
       <div className="flex flex-1 flex-col gap-8 px-6 py-10">
         <Heading
           lead={
             stage.extracted
-              ? 'We read your site. Fix anything that is off; what you edit stays as you wrote it.'
-              : 'We could only read your homepage’s title and description. Fill in the rest.'
+              ? 'We read your homepage and are reading the rest of your site. Accept or fix each field; what you accept or edit stays as it is.'
+              : 'We could only read your homepage’s title and description so far. The rest fills in as we read your site.'
           }
         >
           Does this look right?
         </Heading>
+        <OnboardingReview
+          icp={icp}
+          key={formKey}
+          onConfirm={(confirmed) => void launch(confirmed)}
+          onManual={() => setStage({ kind: 'manual' })}
+          profile={profile}
+          run={stage.run}
+        />
+      </div>
+    )
+  }
+
+  if (stage.kind === 'manual' || stage.kind === 'review') {
+    return (
+      <div className="flex flex-1 flex-col gap-8 px-6 py-10">
+        <Heading lead="Describe your product and who it is for. What you write stays as you wrote it.">
+          Describe your product
+        </Heading>
         <ProductProfileForm
           canManage
           initialUrl={url}
-          key={formKey}
+          key={`manual-${formKey}`}
           onSaved={launch}
           profile={profile}
           submitLabel="Looks right"
         />
+        <section aria-labelledby="icp-manual-heading" className="flex flex-col gap-4">
+          <h2 className="text-base font-medium text-white" id="icp-manual-heading">
+            Your ideal customer <span className="text-neutral-500">(optional)</span>
+          </h2>
+          <IdealCustomerProfileForm
+            canManage
+            onSaved={setIcp}
+            profile={icp}
+            submitLabel="Save ideal customer"
+          />
+        </section>
+        {agentEnabled ? (
+          <button
+            className="w-fit text-sm text-neutral-400 underline underline-offset-4 hover:text-white"
+            onClick={() => setStage({ kind: 'url', manual: false, problem: null })}
+            type="button"
+          >
+            Read my site instead
+          </button>
+        ) : null}
       </div>
     )
   }
@@ -285,7 +348,7 @@ export function OnboardingProduct({
         </div>
         {stage.kind === 'reading' ? (
           <p aria-live="polite" className="text-sm text-neutral-400" role="status">
-            Reading your site… <Elapsed startedAt={stage.startedAt} />. This takes about 20 seconds.
+            Reading your site… <Elapsed startedAt={stage.startedAt} />. This takes under 10 seconds.
           </p>
         ) : null}
         {stage.kind === 'url' && stage.problem ? <FormAlert>{stage.problem}</FormAlert> : null}

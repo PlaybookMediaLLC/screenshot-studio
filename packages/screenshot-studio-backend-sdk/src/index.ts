@@ -270,7 +270,8 @@ export type ProductProfileProvenance = {
   /** How sure an automated source was, in [0, 1], when it said. */
   confidence?: number
   editedByUser: boolean
-  source: 'manual' | 'automated'
+  /** A person, the product's own site, or third-party enrichment, in that precedence. */
+  source: 'manual' | 'automated' | 'enrichment'
   updatedAt: string
   url?: string
 }
@@ -317,11 +318,13 @@ export type UpsertProductProfileInput = {
   pricingNote?: string
   problem?: string
   proofPoints?: ProductProofPoint[]
-  source?: 'manual' | 'automated'
+  source?: 'manual' | 'automated' | 'enrichment'
   /** The page each automated value came from. */
   sourceUrls?: Partial<Record<ProductProfileField, string>>
   summary?: string
   unlockFields?: ProductProfileField[]
+  /** Locks fields as they are: a person confirmed them. */
+  acceptFields?: ProductProfileField[]
   url?: string
 }
 
@@ -359,9 +362,66 @@ export type UpsertIdealCustomerProfileInput = {
   objections?: string[]
   pains?: string[]
   personas?: IdealCustomerPersona[]
-  source?: 'manual' | 'automated'
+  source?: 'manual' | 'automated' | 'enrichment'
   sourceUrls?: Partial<Record<IdealCustomerProfileField, string>>
   unlockFields?: IdealCustomerProfileField[]
+  /** Locks fields as they are: a person confirmed them. */
+  acceptFields?: IdealCustomerProfileField[]
+}
+
+/** An onboarding run's lifecycle state (docs/rfcs/032). */
+export type OnboardingRunStatus = 'queued' | 'running' | 'completed' | 'partial' | 'failed' | 'cancelled'
+
+/** One onboarding run: its stage, monotonic progress, and the budgets it used. */
+export type OnboardingRun = {
+  completedAt: string | null
+  completedStages: string[]
+  createdByUserId: string | null
+  deadlineAt: string
+  discoveredUrls: string[]
+  enrichmentCostMicros: number
+  errorCode: string | null
+  errorMessage: string | null
+  fastPathMs: number
+  id: string
+  pageLimit: number
+  pagesDiscovered: number
+  pagesProcessed: number
+  pagesSkipped: number
+  progress: number
+  stage: string
+  startedAt: string
+  status: OnboardingRunStatus
+  tokenBudget: number
+  tokensUsed: number
+  updatedAt: string
+  url: string
+  workflowId: string
+}
+
+/** The fast path's answer: the drafts on screen and the run deepening them. */
+export type OnboardingStartResult = {
+  created: boolean
+  extracted: boolean
+  idealCustomerProfile: IdealCustomerProfile | null
+  pages: string[]
+  productProfile: ProductProfile | null
+  reason?: string
+  run: OnboardingRun
+}
+
+/** One enrichment finding for a run's site, with its provider and confidence. */
+export type OnboardingEnrichmentRecord = {
+  confidence: number
+  costMicros: number
+  domain: string
+  expiresAt: string
+  fetchedAt: string
+  field: string
+  id: string
+  provider: string
+  sourceUrl?: string
+  value: unknown
 }
 
 /**
@@ -1660,6 +1720,37 @@ export class ScreenshotStudioBackendSDK {
       body: input,
       method: 'POST',
     })
+  }
+  /** Reads the product's site within ten seconds and starts the background run. */
+  async startOnboardingRun(input: { idempotencyKey?: string; sentence?: string; url: string }) {
+    return this.request<OnboardingStartResult>('v1/onboarding-runs', { body: input, method: 'POST' })
+  }
+  /** One onboarding run; while it runs, its progress is live. */
+  async getOnboardingRun(id: string) {
+    return this.request<{ run: OnboardingRun }>(`v1/onboarding-runs/${encodeURIComponent(id)}`)
+  }
+  /** The workspace's newest onboarding run, or null before its first. */
+  async latestOnboardingRun() {
+    return this.request<{ run: OnboardingRun | null }>('v1/onboarding-runs/latest')
+  }
+  /** Stops a running run; it keeps what it already read. */
+  async cancelOnboardingRun(id: string) {
+    return this.request<{ run: OnboardingRun }>(`v1/onboarding-runs/${encodeURIComponent(id)}/cancel`, {
+      method: 'POST',
+    })
+  }
+  /** Starts a new run for a run's URL; unchanged pages cost nothing. */
+  async rerunOnboardingRun(id: string, input: { idempotencyKey?: string } = {}) {
+    return this.request<OnboardingStartResult>(`v1/onboarding-runs/${encodeURIComponent(id)}/rerun`, {
+      body: input,
+      method: 'POST',
+    })
+  }
+  /** What enrichment found for a run's site. */
+  async listOnboardingEnrichment(id: string) {
+    return this.request<{ enrichment: OnboardingEnrichmentRecord[] }>(
+      `v1/onboarding-runs/${encodeURIComponent(id)}/enrichment`
+    )
   }
 
   async createSourceApp(input: {

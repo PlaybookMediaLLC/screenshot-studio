@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/onboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/platformai"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/profile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
@@ -218,8 +220,50 @@ func (a *Activities) EnrichProfile(ctx context.Context, batch BatchInput) (Model
 		return ModelOutcome{Tokens: tokens}, nil
 	}
 	draft.Profile.URL = nil // the run's URL is the founder's; a page never changes it
+	current, err := a.Store.GetProductProfile(ctx, actor)
+	if err != nil {
+		return ModelOutcome{Tokens: tokens}, err
+	}
+	unionLists(&draft.Profile, current)
 	_, err = a.Store.UpsertProductProfile(ctx, actor, draft.Profile)
 	return ModelOutcome{Applied: err == nil, Tokens: tokens}, err
+}
+
+// unionLists merges list fields with what other pages already supplied, so
+// capabilities from /features and from the homepage add up instead of the
+// last page winning (docs/rfcs/012, conflict resolution). A field a person
+// edited is left to the upsert, which skips it.
+func unionLists(draft *product.UpsertProductProfileInput, current *product.ProductProfileRecord) {
+	if current == nil {
+		return
+	}
+	union := func(field string, existing []string, next *[]string, limit int) *[]string {
+		if next == nil || current.Provenance[field].EditedByUser {
+			return next
+		}
+		seen := map[string]bool{}
+		var merged []string
+		for _, value := range append(slices.Clone(existing), *next...) {
+			if key := strings.ToLower(strings.TrimSpace(value)); key != "" && !seen[key] && len(merged) < limit {
+				seen[key] = true
+				merged = append(merged, value)
+			}
+		}
+		return &merged
+	}
+	draft.Capabilities = union("capabilities", current.Capabilities, draft.Capabilities, 12)
+	draft.Competitors = union("competitors", current.Competitors, draft.Competitors, 20)
+	if draft.ProofPoints != nil && !current.Provenance["proofPoints"].EditedByUser {
+		seen := map[string]bool{}
+		var merged []profile.ProofPoint
+		for _, point := range append(slices.Clone(current.ProofPoints), *draft.ProofPoints...) {
+			if key := strings.ToLower(strings.TrimSpace(point.Claim)); key != "" && !seen[key] && len(merged) < 10 {
+				seen[key] = true
+				merged = append(merged, point)
+			}
+		}
+		draft.ProofPoints = &merged
+	}
 }
 
 // Enrich runs the enrichment providers; without any it changes nothing.

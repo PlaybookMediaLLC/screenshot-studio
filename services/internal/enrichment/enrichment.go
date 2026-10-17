@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/url"
 	"os"
 	"slices"
 	"strings"
@@ -117,14 +116,8 @@ func FromEnvironment(fetcher *onboarding.Fetcher) []EnrichmentProvider {
 	}
 }
 
-// Domain is the registrable host enrichment keys its cache on.
-func Domain(siteURL string) string {
-	parsed, err := url.Parse(siteURL)
-	if err != nil {
-		return ""
-	}
-	return strings.TrimPrefix(strings.ToLower(parsed.Hostname()), "www.")
-}
+// Domain is the host enrichment keys its cache on.
+func Domain(siteURL string) string { return product.EnrichmentDomain(siteURL) }
 
 // Enrich runs the providers for a site and merges the results. A provider
 // that fails or has no key is skipped; only a database error is returned.

@@ -717,57 +717,6 @@ function scriptLinkCopy(text: string) {
  * capabilities, the pricing page's first line, and lines with a number as
  * proof points. Every value cites its readable, unflagged source.
  */
-function scriptProductProfile(text: string) {
-  const productUrl = field(text, 'Product URL')
-  const sentence = field(text, "In the founder's words")
-  const citable = (text.match(/You may cite: ([^\n]+?)\.\n/)?.[1] ?? '')
-    .split(',')
-    .map((value) => value.trim())
-  const pattern =
-    /<source id="(S\d+)"[^>]*?flagged="(true|false)" url="([^"]*)" title="([^"]*)">\n([\s\S]*?)\n<\/source>/g
-  const sources = [...text.matchAll(pattern)]
-    .map((match) => ({
-      flagged: match[2] === 'true',
-      id: match[1]!,
-      text: match[5]!,
-      title: match[4]!,
-      url: match[3]!,
-    }))
-    .filter((source) => !source.flagged && citable.includes(source.id))
-  const home = sources.find((source) => source.url === productUrl) ?? sources[0]
-  const lines = (source: (typeof sources)[number]) =>
-    facts({ flagged: false, id: source.id, text: source.text })
-  const cite = (source: (typeof sources)[number] | undefined, value: string, max: number) =>
-    source && value ? { source: source.id, text: clip(value, max) } : { source: 'brief', text: '' }
-  const homeLines = home ? lines(home) : []
-  const pricing = sources.find((source) => /\/(pricing|plans)\b/.test(source.url))
-  const name = (home?.title.split(/\s[|–—-]\s/)[0] ?? '').trim()
-  return {
-    audience: { source: 'brief', text: '' },
-    capabilities: sources
-      .flatMap((source) =>
-        lines(source)
-          .filter((line) => line.includes(':'))
-          .map((line) => cite(source, line, 300))
-      )
-      .slice(0, 6),
-    competitors: [],
-    name: cite(home, name || productUrl.replace(/^https?:\/\//, ''), 160),
-    pricingNote: pricing ? cite(pricing, lines(pricing)[0] ?? '', 500) : cite(undefined, '', 0),
-    problem: cite(home, homeLines[1] ?? '', 2_000),
-    proofPoints: sources
-      .flatMap((source) =>
-        lines(source)
-          .filter((line) => /\d/.test(line) && !line.includes(':'))
-          .map((line) => cite(source, line, 500))
-      )
-      .slice(0, 3),
-    summary: sentence
-      ? { source: 'brief', text: clip(sentence, 2_000) }
-      : cite(home, homeLines[0] ?? '', 2_000),
-  }
-}
-
 // ---------------------------------------------------------------- model --
 
 const usage = {
@@ -850,7 +799,6 @@ const SUBMIT_TOOLS = [
   'submitCritique',
   'submitLinkCopy',
   'submitCaptions',
-  'submitProductProfile',
   'submitTranslations',
   'submitCopySuggestions',
 ] as const
@@ -921,13 +869,11 @@ export function createScriptedModel(modelId: string): LanguageModelV4 {
                     ? scriptLinkCopy(text)
                     : submit === 'submitCaptions'
                       ? scriptCaptions(text)
-                      : submit === 'submitProductProfile'
-                        ? scriptProductProfile(text)
-                        : submit === 'submitTranslations'
-                          ? scriptTranslations(text)
-                          : submit === 'submitCopySuggestions'
-                            ? scriptCopySuggestions(text, systemText(options))
-                            : scriptRevision(text, toolProperties(options, 'proposeRevision'))
+                      : submit === 'submitTranslations'
+                        ? scriptTranslations(text)
+                        : submit === 'submitCopySuggestions'
+                          ? scriptCopySuggestions(text, systemText(options))
+                          : scriptRevision(text, toolProperties(options, 'proposeRevision'))
         return respond(toolCalls([{ input, toolName: submit }]))
       }
       if (names.includes('showVariants') && !results.some((result) => result.toolName === 'showVariants')) {

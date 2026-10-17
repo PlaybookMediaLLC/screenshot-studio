@@ -1,0 +1,541 @@
+'use client'
+
+import { Check, Loader2, Pencil } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import type { StoredIdealCustomerProfile } from '@/lib/tenant/ideal-customer-profile'
+import {
+  type IdealCustomerProfileFieldName,
+  idealCustomerProfileUpsertSchema,
+} from '@/lib/tenant/ideal-customer-profile-schema'
+import type { StoredEnrichment, StoredOnboardingRun } from '@/lib/tenant/onboarding-runs'
+import type { StoredProductProfile } from '@/lib/tenant/product-profile'
+import {
+  type ProductProfileFieldName,
+  productProfileUpsertSchema,
+} from '@/lib/tenant/product-profile-schema'
+import { useTRPCClient } from '@/lib/trpc/react'
+import { cn } from '@/lib/utils'
+
+type Provenance = StoredProductProfile['provenance'][ProductProfileFieldName]
+
+/** The run's stages and the share of the progress bar each one fills (RFC 032). */
+const STAGES = [
+  { from: 0, key: 'fast_path', label: 'First read', to: 20 },
+  { from: 20, key: 'crawl', label: 'Reading your pages', to: 55 },
+  { from: 55, key: 'classify', label: 'Updating the profile', to: 75 },
+  { from: 75, key: 'enrich', label: 'Looking around the web', to: 85 },
+  { from: 85, key: 'icp', label: 'Finding your customer', to: 95 },
+  { from: 95, key: 'brand', label: 'Seeding your brand', to: 98 },
+  { from: 98, key: 'surfaces', label: 'Mapping product pages', to: 100 },
+]
+
+const TERMINAL = new Set(['completed', 'partial', 'failed', 'cancelled'])
+
+const lines = (value: string) =>
+  value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+/** Where a value came from and how sure its source was. */
+export function SourceBadge({ entry }: { entry: Provenance | undefined }) {
+  if (!entry) return <span className="text-xs text-neutral-500">Not filled in</span>
+  const sure = entry.confidence ? ` · ${Math.round(entry.confidence * 100)}% sure` : ''
+  const label =
+    entry.editedByUser && entry.source === 'manual'
+      ? 'Written by you'
+      : entry.editedByUser
+        ? 'Accepted by you'
+        : entry.source === 'enrichment'
+          ? `Found elsewhere${sure}`
+          : `From your site${sure}`
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full border px-2 py-0.5 text-xs',
+        entry.editedByUser
+          ? 'border-emerald-400/30 text-emerald-300'
+          : entry.source === 'enrichment'
+            ? 'border-amber-400/30 text-amber-200'
+            : 'border-white/[0.12] text-neutral-300'
+      )}
+      data-source={entry.source}
+      title={entry.url}
+    >
+      {label}
+    </span>
+  )
+}
+
+/** The run's progress: one bar overall and one per stage, polled until it ends. */
+function RunProgress({
+  onCancel,
+  onRerun,
+  run,
+}: {
+  onCancel: () => void
+  onRerun: () => void
+  run: StoredOnboardingRun
+}) {
+  const running = !TERMINAL.has(run.status)
+  const stageState = (stage: (typeof STAGES)[number]) => {
+    if (run.completedStages.includes(stage.key) || run.progress >= stage.to) return 100
+    if (run.progress <= stage.from) return 0
+    return Math.round(((run.progress - stage.from) / (stage.to - stage.from)) * 100)
+  }
+  const summary = {
+    cancelled: 'Stopped. Everything read so far is kept.',
+    completed: 'Done. Your profile is as complete as your site allows.',
+    failed: run.errorMessage ?? 'The background read failed. Your draft is saved.',
+    partial: run.errorMessage ?? 'Stopped early. What it read is kept.',
+    queued: 'Starting…',
+    running: `Still reading: ${run.pagesProcessed} of ${run.pagesDiscovered} pages so far.`,
+  }[run.status]
+  return (
+    <section
+      aria-label="Background read"
+      className="flex flex-col gap-3 rounded-xl border border-white/[0.08] p-4"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p aria-live="polite" className="text-sm text-neutral-300" role="status">
+          {summary}
+        </p>
+        {running ? (
+          <Button className="rounded-lg" onClick={onCancel} size="sm" variant="outline">
+            Stop
+          </Button>
+        ) : (
+          <Button className="rounded-lg" onClick={onRerun} size="sm" variant="outline">
+            Read again
+          </Button>
+        )}
+      </div>
+      <div
+        aria-label="Overall progress"
+        aria-valuemax={100}
+        aria-valuemin={0}
+        aria-valuenow={run.progress}
+        className="h-1.5 overflow-hidden rounded-full bg-white/[0.08]"
+        role="progressbar"
+      >
+        <div className="h-full bg-white transition-all" style={{ width: `${run.progress}%` }} />
+      </div>
+      <ol className="grid gap-2 sm:grid-cols-2">
+        {STAGES.map((stage) => {
+          const value = stageState(stage)
+          return (
+            <li className="flex flex-col gap-1" key={stage.key}>
+              <span className="flex items-center gap-1.5 text-xs text-neutral-400">
+                {value === 100 ? (
+                  <Check aria-hidden className="size-3" />
+                ) : running && value > 0 ? (
+                  <Loader2 aria-hidden className="size-3 animate-spin" />
+                ) : null}
+                {stage.label}
+              </span>
+              <div
+                aria-label={stage.label}
+                aria-valuemax={100}
+                aria-valuemin={0}
+                aria-valuenow={value}
+                className="h-1 overflow-hidden rounded-full bg-white/[0.06]"
+                role="progressbar"
+              >
+                <div className="h-full bg-neutral-300" style={{ width: `${value}%` }} />
+              </div>
+            </li>
+          )
+        })}
+      </ol>
+    </section>
+  )
+}
+
+type FieldSpec = { field: string; label: string; list?: boolean }
+
+const PRODUCT_FIELDS: FieldSpec[] = [
+  { field: 'name', label: 'Product name' },
+  { field: 'summary', label: 'What it is' },
+  { field: 'problem', label: 'The problem it solves' },
+  { field: 'audience', label: 'Who it is for' },
+  { field: 'capabilities', label: 'Capabilities', list: true },
+  { field: 'proofPoints', label: 'Proof points', list: true },
+  { field: 'pricingNote', label: 'Pricing' },
+  { field: 'competitors', label: 'Alternatives', list: true },
+]
+
+const ICP_FIELDS: FieldSpec[] = [
+  { field: 'personas', label: 'Who buys it', list: true },
+  { field: 'pains', label: 'Pains', list: true },
+  { field: 'jobs', label: 'Jobs they hire it for', list: true },
+  { field: 'buyingTriggers', label: 'What makes them look', list: true },
+  { field: 'objections', label: 'Why they hesitate', list: true },
+  { field: 'channels', label: 'Channels', list: true },
+]
+
+/** A field's value as the review screen shows and edits it, one item per line. */
+type ListItem = string | { claim: string } | { role: string; seniority?: string; teamSize?: string }
+
+function displayValue(source: object | null, field: string): string {
+  const value = (source as Record<string, unknown> | null)?.[field]
+  if (Array.isArray(value)) {
+    return (value as ListItem[])
+      .map((item) =>
+        typeof item === 'string'
+          ? item
+          : 'claim' in item
+            ? item.claim
+            : [item.role, item.seniority, item.teamSize].filter(Boolean).join(', ')
+      )
+      .join('\n')
+  }
+  return typeof value === 'string' ? value : ''
+}
+
+/** One reviewed field: its value, where it came from, and accept or edit. */
+function ReviewField({
+  entry,
+  label,
+  list,
+  onAccept,
+  onSave,
+  value,
+}: {
+  entry: Provenance | undefined
+  label: string
+  list?: boolean
+  onAccept: () => Promise<void>
+  onSave: (text: string) => Promise<void>
+  value: string
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const [busy, setBusy] = useState(false)
+  const id = `review-${label.toLowerCase().replace(/\W+/g, '-')}`
+  const labelId = `${id}-label`
+  const run = async (work: () => Promise<void>) => {
+    setBusy(true)
+    try {
+      await work()
+      setEditing(false)
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <li className="flex flex-col gap-2 border-b border-white/[0.06] py-3 last:border-b-0">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <label
+          className="text-sm font-medium text-neutral-200"
+          htmlFor={editing ? id : undefined}
+          id={labelId}
+        >
+          {label}
+        </label>
+        <SourceBadge entry={entry} />
+      </div>
+      {editing ? (
+        <Textarea
+          className="min-h-20 rounded-lg"
+          disabled={busy}
+          id={id}
+          onChange={(event) => setDraft(event.target.value)}
+          value={draft}
+        />
+      ) : (
+        <p aria-labelledby={labelId} className="text-sm whitespace-pre-line text-neutral-400">
+          {value || 'Nothing yet.'}
+        </p>
+      )}
+      <div className="flex gap-2">
+        {editing ? (
+          <>
+            <Button
+              className="rounded-lg"
+              disabled={busy}
+              onClick={() => void run(() => onSave(list ? lines(draft).join('\n') : draft.trim()))}
+              size="sm"
+            >
+              Save {label.toLowerCase()}
+            </Button>
+            <Button
+              className="rounded-lg"
+              disabled={busy}
+              onClick={() => setEditing(false)}
+              size="sm"
+              variant="ghost"
+            >
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              aria-label={`Accept ${label.toLowerCase()}`}
+              className="rounded-lg"
+              disabled={busy || !value || entry?.editedByUser}
+              onClick={() => void run(onAccept)}
+              size="sm"
+              variant="outline"
+            >
+              <Check aria-hidden className="size-3.5" />
+              {entry?.editedByUser ? 'Kept' : 'Accept'}
+            </Button>
+            <Button
+              aria-label={`Edit ${label.toLowerCase()}`}
+              className="rounded-lg"
+              disabled={busy}
+              onClick={() => {
+                setDraft(value)
+                setEditing(true)
+              }}
+              size="sm"
+              variant="ghost"
+            >
+              <Pencil aria-hidden className="size-3.5" />
+              Edit
+            </Button>
+          </>
+        )}
+      </div>
+    </li>
+  )
+}
+
+/** Enrichment findings that have no profile field: firmographics, reach, apps. */
+function EnrichmentFacts({ findings }: { findings: StoredEnrichment[] }) {
+  const facts = findings.flatMap((finding) => {
+    const value = finding.value as Record<string, unknown> | Array<Record<string, unknown>>
+    if (finding.field === 'firmographics' && value && !Array.isArray(value)) {
+      return Object.entries(value).map(([key, item]) => ({
+        finding,
+        label: key,
+        text: String(item),
+      }))
+    }
+    if (finding.field === 'apps' && Array.isArray(value)) {
+      return value.map((app) => ({
+        finding,
+        label: String(app.name),
+        text: `${app.rating}★ from ${app.ratingCount} ratings`,
+      }))
+    }
+    if (finding.field === 'reach' && value && !Array.isArray(value)) {
+      return Object.entries(value).map(([key, item]) => ({
+        finding,
+        label: key,
+        text: Object.entries(item as Record<string, unknown>)
+          .filter(([name]) => name !== 'url')
+          .map(([name, count]) => `${count} ${name}`)
+          .join(', '),
+      }))
+    }
+    return []
+  })
+  if (facts.length === 0) return null
+  return (
+    <section aria-label="Found elsewhere" className="flex flex-col gap-2">
+      <h2 className="text-base font-medium text-white">Found elsewhere</h2>
+      <ul className="flex flex-col gap-1 text-sm text-neutral-400">
+        {facts.map((fact) => (
+          <li key={`${fact.finding.id}-${fact.label}`}>
+            <span className="text-neutral-200">{fact.label}</span>: {fact.text}{' '}
+            <span className="text-xs text-neutral-500">
+              ({fact.finding.provider}, {Math.round(fact.finding.confidence * 100)}% sure)
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+/**
+ * The onboarding review screen (docs/rfcs/032): the fast path's drafts at
+ * once, a live progress bar for each stage of the background read, a
+ * source and confidence badge on every field, and accept or edit per field.
+ * Accepting or editing locks a field, so the background read never changes it.
+ */
+export function OnboardingReview({
+  icp: initialIcp,
+  onManual,
+  onConfirm,
+  profile: initialProfile,
+  run: initialRun,
+}: {
+  icp: StoredIdealCustomerProfile | null
+  onManual: () => void
+  onConfirm: (profile: StoredProductProfile) => void
+  profile: StoredProductProfile
+  run: StoredOnboardingRun
+}) {
+  const trpcClient = useTRPCClient()
+  const [run, setRun] = useState(initialRun)
+  const [profile, setProfile] = useState(initialProfile)
+  const [icp, setIcp] = useState(initialIcp)
+  const [findings, setFindings] = useState<StoredEnrichment[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const progress = useRef(initialRun.progress)
+
+  useEffect(() => {
+    if (TERMINAL.has(run.status)) return
+    let delay = 1_000
+    let failures = 0
+    let timer: ReturnType<typeof setTimeout>
+    let stopped = false
+    const poll = async () => {
+      try {
+        const next = (await trpcClient.onboarding.run.query({ runId: run.id })).run
+        failures = 0
+        if (stopped) return
+        // A stage finished: the drafts may have changed underneath.
+        if (next.progress > progress.current || TERMINAL.has(next.status)) {
+          progress.current = next.progress
+          const [productResult, icpResult] = await Promise.all([
+            trpcClient.productProfile.get.query(),
+            trpcClient.idealCustomerProfile.get.query(),
+          ])
+          if (productResult.productProfile) setProfile(productResult.productProfile)
+          setIcp(icpResult.idealCustomerProfile)
+        }
+        setRun(next)
+        if (TERMINAL.has(next.status)) return
+      } catch {
+        failures += 1
+        if (failures >= 5) {
+          setError('Lost track of the background read. Reload to see where it got to.')
+          return
+        }
+      }
+      delay = Math.min(5_000, delay * 1.5)
+      timer = setTimeout(poll, delay)
+    }
+    timer = setTimeout(poll, delay)
+    return () => {
+      stopped = true
+      clearTimeout(timer)
+    }
+  }, [run.id, run.status, trpcClient])
+
+  useEffect(() => {
+    if (!TERMINAL.has(run.status)) return
+    trpcClient.onboarding.enrichment
+      .query({ runId: run.id })
+      .then((result) => setFindings(result.enrichment))
+      .catch(() => setFindings([]))
+  }, [run.id, run.status, trpcClient])
+
+  const attempt = async (work: () => Promise<void>) => {
+    setError(null)
+    try {
+      await work()
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'That did not save.')
+      throw requestError
+    }
+  }
+  const saveProduct = (input: Record<string, unknown>) =>
+    attempt(async () => {
+      const parsed = productProfileUpsertSchema.parse(input)
+      setProfile((await trpcClient.productProfile.upsert.mutate(parsed)).productProfile)
+    })
+  const saveIcp = (input: Record<string, unknown>) =>
+    attempt(async () => {
+      const parsed = idealCustomerProfileUpsertSchema.parse(input)
+      setIcp((await trpcClient.idealCustomerProfile.upsert.mutate(parsed)).idealCustomerProfile)
+    })
+  const productValue = (field: string, text: string) => {
+    if (field === 'proofPoints') {
+      return lines(text).map((claim) => ({
+        claim,
+        sourceUrl: profile.proofPoints.find((point) => point.claim === claim)?.sourceUrl,
+      }))
+    }
+    return ['capabilities', 'competitors'].includes(field) ? lines(text) : text
+  }
+  const icpValue = (field: string, text: string) =>
+    field === 'personas'
+      ? lines(text).map((line) => {
+          const [role = '', seniority, teamSize] = line.split(',').map((part) => part.trim())
+          return { role, seniority: seniority || undefined, teamSize: teamSize || undefined }
+        })
+      : lines(text)
+
+  return (
+    <div className="flex flex-col gap-8">
+      <RunProgress
+        onCancel={() =>
+          void trpcClient.onboarding.cancel
+            .mutate({ runId: run.id })
+            .then((result) => setRun(result.run))
+            .catch(() => setError('The run could not be stopped. Try again.'))
+        }
+        onRerun={() =>
+          void trpcClient.onboarding.rerun
+            .mutate({ runId: run.id })
+            .then((result) => {
+              progress.current = result.run.progress
+              setRun(result.run)
+            })
+            .catch((requestError: unknown) =>
+              setError(requestError instanceof Error ? requestError.message : 'Try again later.')
+            )
+        }
+        run={run}
+      />
+      {error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+      <section aria-label="Your product" className="flex flex-col">
+        <h2 className="text-base font-medium text-white">Your product</h2>
+        <ul>
+          {PRODUCT_FIELDS.map((spec) => (
+            <ReviewField
+              entry={profile.provenance[spec.field as ProductProfileFieldName]}
+              key={`${spec.field}-${displayValue(profile, spec.field)}`}
+              label={spec.label}
+              list={spec.list}
+              onAccept={() => saveProduct({ acceptFields: [spec.field] })}
+              onSave={(text) => saveProduct({ [spec.field]: productValue(spec.field, text) })}
+              value={displayValue(profile, spec.field)}
+            />
+          ))}
+        </ul>
+      </section>
+      <section aria-label="Your ideal customer" className="flex flex-col">
+        <h2 className="text-base font-medium text-white">Your ideal customer</h2>
+        <ul>
+          {ICP_FIELDS.map((spec) => (
+            <ReviewField
+              entry={icp?.provenance[spec.field as IdealCustomerProfileFieldName]}
+              key={`${spec.field}-${displayValue(icp, spec.field)}`}
+              label={spec.label}
+              list={spec.list}
+              onAccept={() => saveIcp({ acceptFields: [spec.field] })}
+              onSave={(text) => saveIcp({ [spec.field]: icpValue(spec.field, text) })}
+              value={displayValue(icp, spec.field)}
+            />
+          ))}
+        </ul>
+      </section>
+      <EnrichmentFacts findings={findings} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          className="text-sm text-neutral-400 underline underline-offset-4 hover:text-white"
+          onClick={onManual}
+          type="button"
+        >
+          Edit everything in a form instead
+        </button>
+        <Button className="rounded-lg" onClick={() => onConfirm(profile)}>
+          Looks right
+        </Button>
+      </div>
+    </div>
+  )
+}

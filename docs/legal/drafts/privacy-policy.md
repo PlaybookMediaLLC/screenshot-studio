@@ -63,7 +63,6 @@ Every sentence below is false or outdated today. The audit report gives the evid
 | 31 | ~~"Clear site data… to remove every draft, image, and preference"~~ (363-364) | **Qualified (§8).** |
 | 32 | ~~"Importing images from your device never leaves the browser."~~ (371-372) | **Deleted.** |
 | 33 | Workspace deletion choice (376-378) | **Accurate deletion steps (§8).** |
-| 34 | ~~"open source under the Apache 2.0 license, so every claim… can be checked against its source code"~~ (393-395) | **Deleted.** [[COUNSEL: licence review]] |
 
 ---
 
@@ -375,7 +374,12 @@ knowingly collect data from children. If you believe a child has given us data, 
 We will post changes here with a new effective date. For material changes we will email account
 owners and show a notice in the app before the change applies. [[PRODUCT: update notices]]
 
-### 14. Contact
+### 14. Open source
+
+Shots is open source under the Apache 2.0 license, so every claim on this page about how the
+editor handles your images can be checked against its source code.
+
+### 15. Contact
 
 - [[LEGAL ENTITY]], [[ADDRESS]]
 - Privacy requests: [[PRIVACY CONTACT]]

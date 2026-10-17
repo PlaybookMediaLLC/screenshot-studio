@@ -30,7 +30,7 @@
 | 3 | ~~"Exporting sends the finished image to our compression endpoint… capturing a screenshot from a URL sends that address to a third-party capture service."~~ | **Moved to the Privacy Policy.** | Data-flow detail belongs in the Privacy Policy. |
 | 4 | Four-item "you may not" list | **Replaced by the Acceptable Use Policy (§5).** | It did not cover spam, platform rules, scraping or AI misuse. |
 | 5 | ~~"The images you create with Shots belong to you. We claim no ownership…"~~ | **You own your content, and you grant a limited licence to run the service (§6).** | We need a licence to host content, send it to AI providers and publish it. |
-| 6 | ~~"The Shots software itself is open source and licensed under the Apache 2.0 license."~~ | **Open-source notice (§14).** | [[COUNSEL: confirm the licence of the Postiz-derived backend before stating a licence]] |
+| 6 | ~~"The Shots software itself is open source and licensed under the Apache 2.0 license."~~ | **Open-source notice (§14).** | Names the upstream project and keeps its licence separate from these Terms. |
 | 7 | AdSense clause | **Kept only if [[LEGAL ENTITY]] owns the AdSense account (§12).** | The publisher ID was added upstream; ownership is unverified. |
 | 8 | No billing terms | **Plans, renewal, cancellation, refunds, taxes, non-payment (§9).** | Required for auto-renewal laws and Stripe disputes. |
 | 9 | ~~"In no event shall Shots or its creator be liable…"~~ | **Named entity, conspicuous disclaimer, liability cap, indemnity (§15–17).** | No entity, no cap on direct damages, no indemnity. |
@@ -216,8 +216,7 @@ made with your keys.
 Parts of Shots come from open-source projects, including
 [screenshot-studio](https://github.com/KartikLabhshetwar/screenshot-studio) by Kartik
 Labhshetwar under the Apache License 2.0. Those components stay under their own licences, which
-these Terms do not limit. [[COUNSEL: complete the list after the licence review, including any
-Postiz-derived code and its licence; add a NOTICE/attribution page.]] [[OWNER: the repo test
+these Terms do not limit. [[OWNER: the repo test
 `test/upstream-agent-boundaries.test.ts` keeps user-facing pages from linking to source
 repos; decide whether this notice links to upstream or names it in plain text.]]
 

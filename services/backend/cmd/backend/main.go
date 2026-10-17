@@ -25,6 +25,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/quota"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalonboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
+	"github.com/getsentry/sentry-go"
 )
 
 func main() {
@@ -94,6 +95,8 @@ func main() {
 		configuration.WithMonthlyMeter(meter)
 	}
 
+	temporalonboarding.InitSentry("publishing-backend")
+	defer sentry.Flush(2 * time.Second)
 	// Without OPENROUTER_API_KEY the onboarding drafts come from page metadata.
 	var model onboarding.Model
 	if client := platformai.FromEnvironment(); client != nil {

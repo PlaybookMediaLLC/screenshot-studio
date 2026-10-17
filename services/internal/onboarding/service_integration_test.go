@@ -199,3 +199,32 @@ func TestStartWithAnUnreadableSiteLeavesTheManualForm(t *testing.T) {
 		t.Fatalf("result %+v err=%v", result, err)
 	}
 }
+
+// pendingBackground starts workflows that keep running.
+type pendingBackground struct{ started int }
+
+func (p *pendingBackground) Start(context.Context, *product.OnboardingRunRecord, product.Actor) error {
+	p.started++
+	return nil
+}
+func (p *pendingBackground) Cancel(context.Context, string) error { return nil }
+func (p *pendingBackground) Progress(context.Context, *product.OnboardingRunRecord) (*Progress, error) {
+	return nil, nil
+}
+
+// A second submit while a run is active returns that run, even for another
+// URL or key, and starts no second workflow (RFC 032 AC 5).
+func TestSecondSubmitWhileARunIsActiveReturnsIt(t *testing.T) {
+	site := newTestSite(t)
+	w := newTestWorkspace(t, "pro")
+	background := &pendingBackground{}
+	service := &Service{Background: background, FastPath: &FastPath{Fetcher: testFetcher(t), Model: &fakeModel{}}, Store: w.store}
+	first, err := service.Start(context.Background(), w.owner, StartInput{IdempotencyKey: "first", URL: site.URL + "/acme"})
+	if err != nil || !first.Created || first.Run.Status != product.OnboardingRunning {
+		t.Fatalf("first %+v err=%v", first, err)
+	}
+	second, err := service.Start(context.Background(), w.owner, StartInput{IdempotencyKey: "second", URL: site.URL + "/pricing"})
+	if err != nil || second.Created || second.Run.ID != first.Run.ID || background.started != 1 {
+		t.Fatalf("second %+v err=%v started=%d", second, err, background.started)
+	}
+}

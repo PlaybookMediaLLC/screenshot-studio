@@ -2,7 +2,6 @@ import 'server-only'
 
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
-import { isCampaignStudioConfigured } from '@/lib/ai/agents/campaign-studio'
 import { type BrandVoice, writeCopy } from '@/lib/ai/agents/captions'
 import { critiqueDesign, proposeVariants } from '@/lib/ai/agents/editor-assist'
 import { BackgroundGenerationError, generateBackground } from '@/lib/ai/images/background'
@@ -14,19 +13,11 @@ import { captionChannelSchema } from '@/lib/captions/channels'
 import { designDocumentSchema } from '@/lib/design/document'
 import { getBrandProfile } from '@/lib/tenant/configuration'
 import { router } from '../init'
+import { allowAiAction, isAiEnabled } from './launch'
 import { organizationProcedure } from '../procedures'
 
 /** Up to ~2 MB of base64 JPEG: a snapshot, never a full export. */
 const snapshotSchema = z.string().max(2_800_000).nullable()
-
-function requireConfigured() {
-  if (!isCampaignStudioConfigured()) {
-    throw new TRPCError({
-      code: 'SERVICE_UNAVAILABLE',
-      message: 'AI is not configured for this environment.',
-    })
-  }
-}
 
 /** The workspace's brand voice; members who cannot read the profile write without it. */
 async function brandVoice(
@@ -50,19 +41,14 @@ async function brandVoice(
 
 export const editorAiRouter = router({
   /** Which in-editor AI features this environment and workspace can use. */
-  status: organizationProcedure('artifact:read').query(() => {
-    const configured = isCampaignStudioConfigured()
-    return {
-      backgrounds: configured,
-      captions: configured,
-      copilot: configured,
-      variants: configured,
-    }
+  status: organizationProcedure('artifact:read').query(async ({ ctx }) => {
+    const enabled = await isAiEnabled(ctx.access)
+    return { backgrounds: enabled, captions: enabled, copilot: enabled, variants: enabled }
   }),
   critique: organizationProcedure('artifact:edit')
     .input(z.object({ document: designDocumentSchema, snapshot: snapshotSchema }))
     .mutation(async ({ ctx, input }) => {
-      requireConfigured()
+      await allowAiAction(ctx.access)
       return {
         suggestions: await withAiCredits(ctx.access, () =>
           critiqueDesign(input.document, input.snapshot)
@@ -79,7 +65,7 @@ export const editorAiRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      requireConfigured()
+      await allowAiAction(ctx.access)
       return {
         variants: await withAiCredits(ctx.access, () =>
           proposeVariants(input.document, { count: input.count, instruction: input.instruction })
@@ -90,7 +76,7 @@ export const editorAiRouter = router({
   generateBackground: organizationProcedure('artifact:edit')
     .input(backgroundRequestSchema)
     .mutation(async ({ ctx, input }) => {
-      requireConfigured()
+      await allowAiAction(ctx.access)
       try {
         const image = await withAiCredits(ctx.access, () => generateBackground(input))
         const asset = await backendSDK(ctx.access).storeGeneratedAsset({
@@ -120,7 +106,7 @@ export const editorAiRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      requireConfigured()
+      await allowAiAction(ctx.access)
       const brand = await brandVoice(ctx.access)
       return withAiCredits(ctx.access, () =>
         writeCopy({

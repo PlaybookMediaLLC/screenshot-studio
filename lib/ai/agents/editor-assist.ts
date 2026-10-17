@@ -139,7 +139,8 @@ export async function proposeVariants(
           const problem = distinctnessProblem(
             changes,
             variants.map((variant) => variant.changes),
-            options.instruction
+            options.instruction,
+            document
           )
           if (problem) return { error: problem, ok: false }
           variants.push({ changes, reason: input.reason, title: input.title })

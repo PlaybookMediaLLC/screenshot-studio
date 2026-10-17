@@ -23,6 +23,9 @@ import {
  * from the cost OpenRouter reports.
  */
 
+/** Charged when the provider reports no cost for an image (about one image at list price). */
+const FALLBACK_IMAGE_COST_USD = 0.04
+
 /** The default image model; override with PLATFORM_AI_IMAGE_MODEL. */
 const DEFAULT_IMAGE_MODEL = 'google/gemini-2.5-flash-image'
 /** The generator refused or failed, with a message for the user. */
@@ -74,7 +77,8 @@ async function callImageModel(request: BackgroundRequest): Promise<Buffer> {
     )
   }
   const body = imageResponseSchema.parse(await response.json())
-  await record(body.usage?.cost ?? 0)
+  // A response without a reported cost is still charged, at a typical image price.
+  await record(body.usage?.cost ?? FALLBACK_IMAGE_COST_USD)
   const url = body.choices[0]!.message.images?.[0]?.image_url.url
   const data = url?.match(/^data:image\/[a-z+]+;base64,(.+)$/)?.[1]
   if (!data) {

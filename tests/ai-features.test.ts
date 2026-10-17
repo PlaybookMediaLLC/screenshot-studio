@@ -88,3 +88,24 @@ test('captions are checked against each platform, coverage, and prohibited terms
     ['"Revolutionary" is a prohibited term for this brand.']
   )
 })
+
+test('with the design, only real changes count and repeats are judged by result', async () => {
+  const { parseDesignDocument } = await import('@/lib/design/document')
+  const base = parseDesignDocument({
+    version: 2,
+    canvas: { aspectRatio: '16_9' },
+    image: { scale: 90, src: null },
+  })
+  // Naming the current value is not a change.
+  assert.deepEqual(
+    [...variantAxes({ canvas: { aspectRatio: '16_9' }, image: { scale: 80 } }, base)],
+    ['layout']
+  )
+  assert.equal(variantAxes({ canvas: { aspectRatio: '16_9' } }, base).size, 0)
+  assert.equal(
+    distinctnessProblem({ canvas: { aspectRatio: '16_9' } }, [], undefined, base),
+    'This variation changes nothing.'
+  )
+  // A template switch is a layout change.
+  assert.deepEqual([...variantAxes({ template: 'hero' })], ['layout'])
+})

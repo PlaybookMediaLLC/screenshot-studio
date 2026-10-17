@@ -61,18 +61,29 @@ const campaignInput = z.object({ campaignId: z.string().cuid() })
  * Refuses an AI action when AI is not configured, the workspace turned AI
  * off, the workspace is rate limited, or out of credits.
  */
-export async function allowAiAction(access: OrganizationAccess): Promise<void> {
+/** True when AI is configured and the workspace has not turned it off. */
+export async function isAiEnabled(access: OrganizationAccess): Promise<boolean> {
+  if (!isCampaignStudioConfigured()) return false
+  const { workspace } = await backendSDK(access).getWorkspace()
+  // No settings row is the default: on.
+  return workspace?.workspaceSettings?.aiAgentEnabled !== false
+}
+
+/** Refuse when AI is not configured or the workspace turned it off (the kill switch). */
+export async function requireAiEnabled(access: OrganizationAccess): Promise<void> {
   if (!isCampaignStudioConfigured()) {
     throw new TRPCError({
       code: 'SERVICE_UNAVAILABLE',
       message: 'AI is not configured. Set OPENROUTER_API_KEY.',
     })
   }
-  const { workspace } = await backendSDK(access).getWorkspace()
-  // No settings row is the default: on.
-  if (workspace?.workspaceSettings?.aiAgentEnabled === false) {
+  if (!(await isAiEnabled(access))) {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'AI is turned off for this workspace.' })
   }
+}
+
+export async function allowAiAction(access: OrganizationAccess): Promise<void> {
+  await requireAiEnabled(access)
   const limit = await checkRateLimit(`launch-ai:${access.organizationId}`, LAUNCH_AI_RATE_LIMIT)
   if (!limit.allowed) {
     throw new TRPCError({

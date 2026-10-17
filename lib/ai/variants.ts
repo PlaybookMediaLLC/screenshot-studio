@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { DesignChanges } from '@/lib/design/document'
+import { type DesignChanges, type DesignDocument, patchDesignDocument } from '@/lib/design/document'
 
 /**
  * Copilot variants: several complete versions of a design to compare. A set
@@ -34,6 +34,7 @@ const SECTION_AXES: Record<string, VariantAxis> = {
   mode: 'frame',
   overlays: 'decoration',
   pattern: 'background',
+  template: 'layout',
   texts: 'typography',
   timeline: 'motion',
 }
@@ -49,21 +50,41 @@ const IMAGE_AXES: Record<string, VariantAxis> = {
   shadow: 'frame',
 }
 
-/** The axes a set of changes touches. */
-export function variantAxes(changes: DesignChanges): Set<VariantAxis> {
+const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+
+/**
+ * The axes a set of changes touches. With the `base` design, only what the
+ * changes actually alter counts: naming a field with its current value does not.
+ */
+export function variantAxes(changes: DesignChanges, base?: DesignDocument): Set<VariantAxis> {
+  const after = base ? patchDesignDocument(base, changes) : null
   const axes = new Set<VariantAxis>()
   for (const [section, value] of Object.entries(changes)) {
     if (value === undefined) continue
     if (section === 'image' && value && typeof value === 'object') {
       for (const key of Object.keys(value)) {
         const axis = IMAGE_AXES[key]
-        if (axis) axes.add(axis)
+        const field = key as keyof DesignDocument['image']
+        if (axis && (!base || !after || !same(base.image[field], after.image[field])))
+          axes.add(axis)
       }
     } else if (SECTION_AXES[section]) {
-      axes.add(SECTION_AXES[section])
+      const key = section as keyof DesignDocument
+      if (!base || !after || !same(base[key], after[key])) axes.add(SECTION_AXES[section])
     }
   }
   return axes
+}
+
+/** What a variant makes of the changed sections, to tell repeats apart by result. */
+function resultKey(changes: DesignChanges, base?: DesignDocument): string {
+  if (!base) return JSON.stringify(changes)
+  const after = patchDesignDocument(base, changes)
+  return JSON.stringify(
+    Object.keys(changes)
+      .sort()
+      .map((key) => after[key as keyof DesignDocument])
+  )
 }
 
 /** True when an instruction asks for colour or background variations specifically. */
@@ -80,20 +101,22 @@ export function wantsColourOnly(instruction: string | undefined): boolean {
 export function distinctnessProblem(
   changes: DesignChanges,
   accepted: readonly DesignChanges[],
-  instruction?: string
+  instruction?: string,
+  base?: DesignDocument
 ): string | null {
-  const axes = variantAxes(changes)
+  const axes = variantAxes(changes, base)
   if (axes.size === 0) return 'This variation changes nothing.'
   const compositional = [...axes].filter((axis) => axis !== 'background')
   if (!wantsColourOnly(instruction) && compositional.length === 0) {
     return 'Change the composition too (layout, frame, perspective, or typography), not only the background.'
   }
-  const key = JSON.stringify(changes)
-  if (accepted.some((other) => JSON.stringify(other) === key))
+  const key = resultKey(changes, base)
+  if (accepted.some((other) => resultKey(other, base) === key)) {
     return 'This repeats another variation.'
+  }
   const signature = [...axes].sort().join(',')
   const sameAxes = accepted.filter(
-    (other) => [...variantAxes(other)].sort().join(',') === signature
+    (other) => [...variantAxes(other, base)].sort().join(',') === signature
   ).length
   if (!wantsColourOnly(instruction) && sameAxes >= 2) {
     return `Two variations already change exactly ${signature}. Vary a different aspect.`

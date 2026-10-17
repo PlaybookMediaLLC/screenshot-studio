@@ -75,7 +75,9 @@ export function CaptionsPanel({ disabled }: { disabled: boolean }) {
         notes: notes.trim() || undefined,
         snapshot,
       })
-      save({ altText: written.altText, captions: { ...copy.captions, ...written.captions } })
+      // Merge onto what is saved now: edits made while the request ran are kept.
+      const latest = useImageStore.getState().copy
+      save({ altText: written.altText, captions: { ...latest?.captions, ...written.captions } })
     } catch (error) {
       toast.error('Could not write captions', {
         description: error instanceof Error ? error.message : undefined,
@@ -142,6 +144,7 @@ export function CaptionsPanel({ disabled }: { disabled: boolean }) {
             </span>
             <textarea
               className="w-full resize-y rounded-md border bg-transparent px-3 py-2 text-sm"
+              maxLength={1000}
               onBlur={commit}
               onChange={(event) => setDraft({ ...copy, altText: event.target.value })}
               rows={3}
@@ -169,6 +172,7 @@ export function CaptionsPanel({ disabled }: { disabled: boolean }) {
                   <textarea
                     aria-label={`${name} caption`}
                     className="w-full resize-y rounded-md border bg-transparent px-3 py-2 text-sm"
+                    maxLength={3000}
                     onBlur={commit}
                     onChange={(event) =>
                       setDraft({

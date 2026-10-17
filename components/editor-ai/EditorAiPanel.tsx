@@ -33,7 +33,11 @@ import { VariantsPanel } from './VariantsPanel'
 type Status = { backgrounds: boolean; captions: boolean; copilot: boolean; variants: boolean }
 type Suggestion = { changes: DesignChanges; reason: string; title: string }
 type Tab = 'copilot' | 'variants' | 'captions'
-const TAB_LABELS: Record<Tab, string> = { captions: 'Captions', copilot: 'Copilot', variants: 'Variants' }
+const TAB_LABELS: Record<Tab, string> = {
+  captions: 'Captions',
+  copilot: 'Copilot',
+  variants: 'Variants',
+}
 
 const QUICK_PROMPTS = [
   'Make it pop on a dark gradient',
@@ -55,13 +59,16 @@ export function EditorAiPanel() {
   const [reviewing, setReviewing] = useState(false)
   // At most one automatic review per opening, whatever its outcome.
   const autoReviewed = useRef(false)
-  const [variantsRequest, setVariantsRequest] = useState<(VariantsRequest & { id: number }) | null>(null)
+  const [variantsRequest, setVariantsRequest] = useState<(VariantsRequest & { id: number }) | null>(
+    null
+  )
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const transcriptRef = useRef<HTMLDivElement>(null)
   const showVariants = useCallback((request: VariantsRequest) => {
     setVariantsRequest({ ...request, id: Date.now() })
     setTab('variants')
   }, [])
+  const clearVariantsRequest = useCallback(() => setVariantsRequest(null), [])
   const { entries, isRunning, reset, send } = useEditorCopilot(showVariants)
   const hasImage = useImageStore(
     (state) => Boolean(state.uploadedImageUrl) || state.mockups.length > 0
@@ -308,11 +315,15 @@ export function EditorAiPanel() {
                 </div>
               </form>
             </>
-          ) : tab === 'variants' ? (
-            <VariantsPanel disabled={!hasImage} request={variantsRequest} />
-          ) : (
+          ) : tab === 'captions' ? (
             <CaptionsPanel disabled={!hasImage} />
-          )}
+          ) : null}
+          <VariantsPanel
+            disabled={!hasImage}
+            hidden={tab !== 'variants'}
+            onRequestHandled={clearVariantsRequest}
+            request={variantsRequest}
+          />
         </section>
       ) : null}
     </>

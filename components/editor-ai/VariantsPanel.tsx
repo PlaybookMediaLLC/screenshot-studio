@@ -12,14 +12,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { type DesignDocument, patchDesignDocument } from '@/lib/design/document'
+import type { DesignChanges, DesignDocument } from '@/lib/design/document'
 import { exportDesignDocument } from '@/lib/design/export'
+import { patchFromModel } from '@/lib/design/model-changes'
 import { applyStoredDocument } from '@/lib/design/open-design'
+import { rememberUploadedSources } from '@/lib/design/upload-sources'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
 import { type VariantsRequest, withoutImageSources } from './useEditorCopilot'
 
-type Candidate = { document: DesignDocument; reason: string; title: string }
+/** A version: its changes, and a preview of them on the design as it was when it was made. */
+type Candidate = { changes: DesignChanges; preview: DesignDocument; reason: string; title: string }
 
 const COUNTS = [2, 3, 4, 6] as const
 const LARGE = { format: 'jpeg', maxWidth: 1200, quality: 'high' } as const
@@ -31,9 +34,14 @@ const LARGE = { format: 'jpeg', maxWidth: 1200, quality: 'high' } as const
  */
 export function VariantsPanel({
   disabled,
+  hidden,
+  onRequestHandled,
   request,
 }: {
   disabled: boolean
+  /** Hidden rather than unmounted, so the versions survive switching tabs. */
+  hidden: boolean
+  onRequestHandled: () => void
   request: (VariantsRequest & { id: number }) | null
 }) {
   const trpcClient = useTRPCClient()
@@ -51,16 +59,19 @@ export function VariantsPanel({
         // The model sees the design without local images; each version is
         // built on the full design here, so it keeps the user's screenshot.
         const base = exportDesignDocument({ keepLocalSources: true })
+        const view = exportDesignDocument()
         const { variants } = await trpcClient.editorAi.variants.mutate({
           count: wanted,
-          document: exportDesignDocument(),
+          document: view,
           instruction: words.trim() || undefined,
         })
         const built = variants.flatMap((variant) => {
+          const changes = withoutImageSources(variant.changes)
           try {
             return [
               {
-                document: patchDesignDocument(base, withoutImageSources(variant.changes)),
+                changes,
+                preview: patchFromModel(base, view, changes),
                 reason: variant.reason,
                 title: variant.title,
               },
@@ -86,16 +97,24 @@ export function VariantsPanel({
   )
 
   // The copilot's "give me four versions" arrives here.
+  // Handled once: the request is cleared, so a remount never runs it again.
   useEffect(() => {
     if (!request) return
+    onRequestHandled()
     setCount(request.count)
     setInstruction(request.instruction)
     void generate(request.count, request.instruction)
-  }, [generate, request])
+  }, [generate, onRequestHandled, request])
 
   async function apply(candidate: Candidate) {
     try {
-      await applyStoredDocument(trpcClient, candidate.document, 'step')
+      // Applied to the design as it is now, so edits since the versions were made are kept.
+      const document = patchFromModel(
+        exportDesignDocument({ keepLocalSources: true }),
+        exportDesignDocument(),
+        candidate.changes
+      )
+      rememberUploadedSources(await applyStoredDocument(trpcClient, document, 'step'))
       setInspecting(null)
       toast.success(`Applied “${candidate.title}”`, {
         description: 'Press ⌘Z to go back to the original.',
@@ -108,7 +127,7 @@ export function VariantsPanel({
   }
 
   return (
-    <div className="flex-1 space-y-3 overflow-y-auto p-3 text-sm">
+    <div className="flex-1 space-y-3 overflow-y-auto p-3 text-sm" hidden={hidden}>
       <p className="text-muted-foreground">
         Complete versions of this design to compare. Your design does not change until you apply
         one.
@@ -177,7 +196,7 @@ export function VariantsPanel({
                 type="button"
               >
                 <div className="aspect-[4/3] bg-muted/40">
-                  <DocumentPreview alt={candidate.title} document={candidate.document} />
+                  <DocumentPreview alt={candidate.title} document={candidate.preview} />
                 </div>
                 <span className="block truncate px-2 py-1.5 text-xs font-medium">
                   {candidate.title}
@@ -205,7 +224,7 @@ export function VariantsPanel({
               <div className="aspect-[4/3] rounded-md bg-muted/40">
                 <DocumentPreview
                   alt={inspecting?.title ?? 'Version'}
-                  document={inspecting?.document ?? null}
+                  document={inspecting?.preview ?? null}
                   output={LARGE}
                 />
               </div>

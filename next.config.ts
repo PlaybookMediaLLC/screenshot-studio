@@ -6,6 +6,8 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
 const nextConfig: NextConfig = {
   output: 'standalone',
   reactCompiler: true,
+  // The vendored editor ships TypeScript source (packages/platejs-editor).
+  transpilePackages: ['@shots/platejs-editor'],
   poweredByHeader: false,
   allowedDevOrigins: process.env.PLATFORM_ALLOWED_DEV_ORIGINS?.split(',')
     .map((origin) => origin.trim())

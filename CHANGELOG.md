@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.7.0...v2.7.1) (2026-10-17)
+
+
+### Bug Fixes
+
+* **sdk:** publish the store review methods as 0.1.16 ([#140](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/140)) ([cd67c2a](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/cd67c2ae826190642e343fdde1b46ef05988ad83))
+
 ## [2.7.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.6.0...v2.7.0) (2026-10-17)
 
 

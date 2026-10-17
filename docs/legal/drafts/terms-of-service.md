@@ -134,7 +134,7 @@ Service generates for you.
   to act on that account within the permissions you grant. You can disconnect it at any time.
   [[PRODUCT: disconnect + provider revoke]]
 - Nothing is published unless a member with approval rights approves the post and a member
-  with publishing rights schedules it. [[PRODUCT: close the legacy `/postiz` public API and MCP
+  with publishing rights schedules it. [[PRODUCT: close the legacy social backend's public API and MCP
   routes, which bypass approval]]
 - **You are responsible for your posts and for following each platform's terms.** If a
   platform rejects, removes, limits or delays a post, or suspends your account, that is between

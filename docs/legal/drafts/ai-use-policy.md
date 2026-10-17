@@ -52,7 +52,7 @@ See the [subprocessor list](/subprocessors).
 - A member with approval rights approves each post, and a member with publishing rights
   schedules it.
 - Shots does not offer autonomous publishing. [[OWNER: revisit if RFC 031 autonomy modes ship]]
-  [[PRODUCT: close the legacy `/postiz` public API and MCP routes, which bypass approval]]
+  [[PRODUCT: close the legacy social backend's public API and MCP routes, which bypass approval]]
 - During onboarding, the first AI product brief and plan are accepted for you so you can start
   quickly. Posts still need your approval. [[PRODUCT/OWNER: consider showing the brief before
   accepting it]]

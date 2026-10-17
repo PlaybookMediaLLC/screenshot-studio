@@ -52,7 +52,7 @@
 - If you connect an AI agent or an MCP client to Shots, it acts with your key's scopes, and you
   are responsible for its actions.
 - Agents can create and submit drafts. They cannot approve or publish. [[PRODUCT: close the
-  legacy `/postiz` public API and MCP routes, which can publish]]
+  legacy social backend's public API and MCP routes, which can publish]]
 
 ## 5. Changes and deprecation
 

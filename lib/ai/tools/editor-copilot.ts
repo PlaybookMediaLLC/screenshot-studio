@@ -2,6 +2,7 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { designCatalogSections } from '@/lib/design/catalog'
 import { describeDesignCatalog } from '@/lib/design/catalog-sections'
+import { variantCountSchema } from '@/lib/ai/variants'
 import { designEditSchema } from '@/lib/design/document'
 import type { ToolCapability } from './executor'
 
@@ -14,7 +15,7 @@ import type { ToolCapability } from './executor'
  * The catalog lookup runs on the server.
  */
 
-export const editorClientToolNames = ['inspectCanvas', 'applyChanges', 'undoLastChange'] as const
+export const editorClientToolNames = ['inspectCanvas', 'applyChanges', 'undoLastChange', 'showVariants'] as const
 export type EditorClientToolName = (typeof editorClientToolNames)[number]
 
 /**
@@ -26,6 +27,7 @@ export const editorCopilotCapabilities = {
   applyChanges: { effect: 'draft', maxCallsPerRun: 4, permission: 'artifact:edit' },
   inspectCanvas: { effect: 'read', maxCallsPerRun: 4, permission: 'artifact:read' },
   listDesignOptions: { effect: 'read', maxCallsPerRun: 4, permission: 'workspace:read' },
+  showVariants: { effect: 'read', maxCallsPerRun: 1, permission: 'artifact:edit' },
   undoLastChange: { effect: 'draft', maxCallsPerRun: 4, permission: 'artifact:edit' },
 } as const satisfies Record<string, ToolCapability>
 
@@ -48,6 +50,15 @@ export function createEditorCopilotTools() {
         'overlays, animation.',
       execute: async ({ section }) => ({ options: describeDesignCatalog(section), section }),
       inputSchema: z.object({ section: z.enum(designCatalogSections) }),
+    }),
+    showVariants: tool({
+      description:
+        'Show the user several complete versions of the design side by side to pick from. Use it ' +
+        'when they ask for versions, variants, options, or alternatives. It does not change the design.',
+      inputSchema: z.object({
+        count: variantCountSchema.describe('How many versions, 2 to 6.'),
+        instruction: z.string().max(300).optional().describe('What the versions should explore, in the user’s words.'),
+      }),
     }),
     undoLastChange: tool({
       description: 'Undo the most recent change, yours or the user’s. Returns a snapshot.',

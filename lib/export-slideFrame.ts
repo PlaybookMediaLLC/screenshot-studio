@@ -3,11 +3,10 @@ import { exportElement, exportElementAsCanvas } from "@/lib/export/export-servic
 import { getCanvasContainer } from "@/components/canvas/ClientCanvas";
 import { getAspectRatioPreset } from "@/lib/aspect-ratio-utils";
 
-import { useEditorStore, useImageStore } from "@/lib/store";
+import { useImageStore } from "@/lib/store";
 
 export async function exportSlideFrame(): Promise<HTMLImageElement> {
   const imageStore = useImageStore.getState();
-  const editorStore = useEditorStore.getState();
 
   const preset = getAspectRatioPreset(imageStore.selectedAspectRatio);
   if (!preset) throw new Error("Invalid aspect ratio");
@@ -27,8 +26,8 @@ export async function exportSlideFrame(): Promise<HTMLImageElement> {
     imageStore.textOverlays,
     imageStore.imageOverlays,
     imageStore.perspective3D,
-    editorStore.screenshot.src || undefined,
-    editorStore.screenshot.radius,
+    imageStore.uploadedImageUrl || undefined,
+    imageStore.borderRadius,
     imageStore.backgroundBlur,
     imageStore.backgroundNoise,
     imageStore.backgroundConfig.opacity ?? 1
@@ -47,7 +46,6 @@ export async function exportSlideFrame(): Promise<HTMLImageElement> {
  */
 export async function exportSlideFrameAsCanvas(): Promise<HTMLCanvasElement> {
   const imageStore = useImageStore.getState();
-  const editorStore = useEditorStore.getState();
 
   const preset = getAspectRatioPreset(imageStore.selectedAspectRatio);
   if (!preset) throw new Error("Invalid aspect ratio");
@@ -64,6 +62,6 @@ export async function exportSlideFrameAsCanvas(): Promise<HTMLCanvasElement> {
     getCanvasContainer(),
     imageStore.backgroundBorderRadius,
     imageStore.perspective3D,
-    editorStore.screenshot.src || undefined,
+    imageStore.uploadedImageUrl || undefined,
   );
 }

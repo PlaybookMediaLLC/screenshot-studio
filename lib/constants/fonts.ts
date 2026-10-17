@@ -1,3 +1,5 @@
+import { googleFontCss, googleFontWeights, isGoogleFontId } from '@/lib/typography/google-fonts';
+
 export interface FontFamily {
   id: string;
   name: string;
@@ -322,6 +324,7 @@ export const getFontFamily = (id: string): FontFamily | undefined => {
 };
 
 export const getFontCSS = (fontId: string): string => {
+  if (isGoogleFontId(fontId)) return googleFontCss(fontId);
   const font = getFontFamily(fontId);
   if (!font) return fontFamilies[0].fallback;
 
@@ -334,6 +337,7 @@ export const getFontCSS = (fontId: string): string => {
 };
 
 export const getAvailableFontWeights = (fontId: string): string[] => {
+  if (isGoogleFontId(fontId)) return googleFontWeights(fontId);
   const font = getFontFamily(fontId);
   if (!font) return ['normal', 'bold'];
 

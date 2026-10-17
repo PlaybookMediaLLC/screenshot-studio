@@ -4,8 +4,9 @@ import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Camera01Icon, CommandIcon, Globe02Icon, Loading03Icon } from 'hugeicons-react'
 import { Moon, Sun } from 'lucide-react'
-import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from '@/lib/constants'
-import { useEditorStore, useImageStore } from '@/lib/store'
+import { MAX_IMAGE_SIZE } from '@/lib/constants'
+import { useImageStore } from '@/lib/store'
+import { importImages } from '@/lib/editor/import-images'
 import { browserDisplayUrl } from '@/lib/browser-url'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -41,8 +42,7 @@ export function CleanUploadState() {
   const [colorScheme, setColorScheme] = React.useState<ColorScheme>('light')
   const [isCapturing, setIsCapturing] = React.useState(false)
 
-  const { setScreenshot } = useEditorStore()
-  const { addImages, setImage, setBrowserUrl, backgroundConfig, addTextOverlay } = useImageStore()
+  const { setImage, setBrowserUrl, backgroundConfig, addTextOverlay } = useImageStore()
   const containerRef = React.useRef<HTMLDivElement>(null)
 
   // Crossfade state
@@ -121,32 +121,10 @@ export function CleanUploadState() {
     }
   }, [backgroundConfig, backgroundStyle, activeLayer])
 
-  const validateFile = React.useCallback((file: File): string | null => {
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      return `File type not supported. Please use: PNG, JPG, WEBP`
-    }
-    if (file.size > MAX_IMAGE_SIZE) {
-      return `File size too large. Maximum size is ${MAX_IMAGE_SIZE / 1024 / 1024}MB`
-    }
-    return null
+  const handleFiles = React.useCallback((files: File[]) => {
+    const result = importImages(files)
+    setError(result.imported === 0 ? (result.rejected[0]?.reason ?? null) : null)
   }, [])
-
-  const handleFiles = React.useCallback(
-    (files: File[]) => {
-      const firstFile = files[0]
-      if (!firstFile) return
-      const validationError = validateFile(firstFile)
-      if (validationError) {
-        setError(validationError)
-        return
-      }
-      const acceptedFiles = files.filter((file) => !validateFile(file))
-      addImages(acceptedFiles)
-      setError(null)
-      setScreenshot({ src: URL.createObjectURL(firstFile) })
-    },
-    [addImages, setScreenshot, validateFile]
-  )
 
   const onFileInputChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,9 +196,7 @@ export function CleanUploadState() {
       }
       const byteArray = new Uint8Array(byteNumbers)
       const blob = new Blob([byteArray], { type: 'image/png' })
-      const blobUrl = URL.createObjectURL(blob)
       const file = new File([blob], `screenshot-${colorScheme}.png`, { type: 'image/png' })
-      setScreenshot({ src: blobUrl })
       setImage(file)
       // Show the captured page's address in the browser frame, not the default URL.
       setBrowserUrl(browserDisplayUrl(finalUrl))
@@ -238,6 +214,8 @@ export function CleanUploadState() {
     <div
       ref={containerRef}
       {...getRootProps()}
+      // This dropzone imports its own drops; the global one must not import them again.
+      data-local-dropzone="true"
       tabIndex={0}
       className="relative w-full h-full flex items-center justify-center outline-none overflow-hidden"
     >

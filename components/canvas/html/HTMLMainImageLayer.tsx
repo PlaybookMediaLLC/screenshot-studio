@@ -3,13 +3,20 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { type ShadowConfig } from '../utils/shadow-utils';
 import { buildDropShadowFilter as buildSharedDropShadowFilter, parseShadowRgb } from '@/lib/drop-shadow';
-import { type ImageFilters, useImageStore } from '@/lib/store';
-import { SafariToolbar, ChromeToolbar } from '../frames/BrowserToolbar';
+import { type ImageBorder, type ImageFilters, useImageStore } from '@/lib/store';
+import { ChromeFrame } from '@/components/frames/ChromeFrame';
+import type { FrameChrome, Tone } from '@/lib/frames/schema';
 import { CanvasObjectTopControls } from './CanvasObjectTopControls';
+import { imageFilterCss } from '@/lib/editor/image-adjustments';
+import { canvasOf, collectSnapLines, endSnapDrag, snapDrag } from '@/lib/editor/snap-dom';
+import { removeScreenshot } from '@/lib/editor/remove-screenshot'
+
+/** The main screenshot's browser or window chrome, with the tone it draws in. */
+export type MainChromeFrame = { kind: 'browser' | 'window'; chrome: FrameChrome; tone: Tone };
 
 export interface FrameConfig {
   enabled: boolean;
-  type: 'none' | 'arc-light' | 'arc-dark' | 'macos-light' | 'macos-dark' | 'windows-light' | 'windows-dark' | 'photograph' | 'glass-light' | 'glass-dark' | 'outline-light' | 'border-light' | 'border-dark';
+  type: ImageBorder['type'];
   width: number;
   color: string;
   padding?: number;
@@ -36,10 +43,16 @@ interface HTMLMainImageLayerProps {
     scale: number;
   };
   frame: FrameConfig;
+  /** Browser or window chrome, drawn by the shared chrome renderer. */
+  chrome?: MainChromeFrame | null;
+  /** Chrome size multiplier (the header size setting). */
+  chromeScale?: number;
   shadow: ShadowConfig;
   showFrame: boolean;
   imageOpacity: number;
   imageFilters?: ImageFilters;
+  /** Where a scroll-through has the screenshot inside its frame. */
+  imageObjectPosition?: string;
   isMainImageSelected: boolean;
   setIsMainImageSelected: (selected: boolean) => void;
   setSelectedOverlayId: (id: string | null) => void;
@@ -47,44 +60,6 @@ interface HTMLMainImageLayerProps {
   setScreenshot: (updates: Partial<HTMLMainImageLayerProps['screenshot']>) => void;
   onDragStateChange?: (isDragging: boolean) => void;
   onRemoveImage?: () => void;
-}
-
-const SNAP_THRESHOLD = 6;
-
-/**
- * Builds CSS filter string from imageFilters
- */
-function buildImageFilter(imageFilters?: ImageFilters): string | undefined {
-  if (!imageFilters) return undefined;
-
-  const filters: string[] = [];
-
-  if (imageFilters.brightness !== 100) {
-    filters.push(`brightness(${imageFilters.brightness / 100})`);
-  }
-  if (imageFilters.contrast !== 100) {
-    filters.push(`contrast(${imageFilters.contrast / 100})`);
-  }
-  if (imageFilters.saturate !== 100) {
-    filters.push(`saturate(${imageFilters.saturate / 100})`);
-  }
-  if (imageFilters.grayscale > 0) {
-    filters.push(`grayscale(${imageFilters.grayscale / 100})`);
-  }
-  if (imageFilters.sepia > 0) {
-    filters.push(`sepia(${imageFilters.sepia / 100})`);
-  }
-  if (imageFilters.hueRotate !== 0) {
-    filters.push(`hue-rotate(${imageFilters.hueRotate}deg)`);
-  }
-  if (imageFilters.blur > 0) {
-    filters.push(`blur(${imageFilters.blur}px)`);
-  }
-  if (imageFilters.invert > 0) {
-    filters.push(`invert(${imageFilters.invert / 100})`);
-  }
-
-  return filters.length > 0 ? filters.join(' ') : undefined;
 }
 
 function buildDropShadowFilter(shadow: ShadowConfig): string | undefined {
@@ -133,15 +108,18 @@ export function HTMLMainImageLayer({
   framedH,
   frameOffset: _frameOffset,
   windowPadding,
-  windowHeader,
+  windowHeader: _windowHeader,
   imageScaledW,
   imageScaledH,
   screenshot,
   frame,
+  chrome,
+  chromeScale = 1,
   shadow,
   showFrame,
   imageOpacity,
   imageFilters,
+  imageObjectPosition,
   isMainImageSelected,
   setIsMainImageSelected,
   setSelectedOverlayId,
@@ -158,16 +136,13 @@ export function HTMLMainImageLayer({
   const resizeStartRef = useRef<{ mouseX: number; mouseY: number; scale: number; handle: string } | null>(null);
   const rotateStartRef = useRef<{ centerX: number; centerY: number; startAngle: number; startRotation: number } | null>(null);
 
-  const imageFilter = useMemo(() => buildImageFilter(imageFilters), [imageFilters]);
+  const imageFilter = useMemo(() => imageFilterCss(imageFilters), [imageFilters]);
   const isStyleFrame = ['glass-light', 'glass-dark', 'outline-light', 'border-light', 'border-dark'].includes(frame.type);
   // Style frames use box-shadow on the frame container; others use drop-shadow filter on the outer div
   const shadowFilter = useMemo(() => isStyleFrame ? undefined : buildDropShadowFilter(shadow), [shadow, isStyleFrame]);
   const frameBoxShadow = useMemo(() => isStyleFrame ? buildBoxShadow(shadow) : undefined, [shadow, isStyleFrame]);
 
-  const isDark = frame.type.includes('dark');
   const isArcFrame = frame.type === 'arc-light' || frame.type === 'arc-dark';
-  const isMacFrame = frame.type === 'macos-light' || frame.type === 'macos-dark';
-  const isWinFrame = frame.type === 'windows-light' || frame.type === 'windows-dark';
   const isPolaroid = frame.type === 'photograph';
 
   // Handle drag start
@@ -199,22 +174,28 @@ export function HTMLMainImageLayer({
     };
   }, []);
 
-  // Handle drag move with snap-to-center
+  // Drag, snapping the framed screenshot's edges and centre like every layer.
   useEffect(() => {
     if (!isDragging) return;
+    const canvas = canvasOf(containerRef.current);
+    const lines = canvas ? collectSnapLines(canvas, containerRef.current) : null;
+    const width = framedW * screenshot.scale;
+    const height = framedH * screenshot.scale;
 
     const handleMouseMove = (e: MouseEvent) => {
-      let newOffsetX = e.clientX - dragStart.x;
-      let newOffsetY = e.clientY - dragStart.y;
-
-      // Snap to center when close
-      if (Math.abs(newOffsetX) < SNAP_THRESHOLD) newOffsetX = 0;
-      if (Math.abs(newOffsetY) < SNAP_THRESHOLD) newOffsetY = 0;
-
-      setScreenshot({ offsetX: newOffsetX, offsetY: newOffsetY });
+      const offsetX = e.clientX - dragStart.x;
+      const offsetY = e.clientY - dragStart.y;
+      const { dx, dy } = lines
+        ? snapDrag(
+            { height, width, x: canvasW / 2 + offsetX - width / 2, y: canvasH / 2 + offsetY - height / 2 },
+            lines
+          )
+        : { dx: 0, dy: 0 };
+      setScreenshot({ offsetX: offsetX + dx, offsetY: offsetY + dy });
     };
 
     const handleMouseUp = () => {
+      endSnapDrag();
       setIsDragging(false);
       onDragStateChange?.(false);
     };
@@ -226,7 +207,7 @@ export function HTMLMainImageLayer({
       window.removeEventListener('pointermove', handleMouseMove);
       window.removeEventListener('pointerup', handleMouseUp);
     };
-  }, [isDragging, dragStart, setScreenshot, onDragStateChange]);
+  }, [isDragging, dragStart, setScreenshot, onDragStateChange, canvasW, canvasH, framedW, framedH, screenshot.scale]);
 
   // Handle resize move
   useEffect(() => {
@@ -326,7 +307,7 @@ export function HTMLMainImageLayer({
     if (onRemoveImage) {
       onRemoveImage();
     } else {
-      useImageStore.getState().clearImage();
+      removeScreenshot();
     }
   }, [onRemoveImage]);
 
@@ -340,17 +321,6 @@ export function HTMLMainImageLayer({
 
   const browserRadius = screenshot.radius;
 
-  // Image border radius based on frame type
-  const getImageBorderRadius = () => {
-    if (isMacFrame || isWinFrame) {
-      // For frames with title bar, only round bottom corners
-      // Use slightly smaller radius to fit inside the container
-      const innerRadius = Math.max(0, browserRadius - windowPadding);
-      return `0 0 ${innerRadius}px ${innerRadius}px`;
-    }
-    return `${screenshot.radius}px`;
-  };
-
   // Arc frame styles
   const arcBorderWidth = frame.width || 8;
   const arcDefaultOpacity = frame.type === 'arc-light' ? 0.5 : 0.7;
@@ -358,16 +328,6 @@ export function HTMLMainImageLayer({
   const arcBorderColor = frame.type === 'arc-light'
     ? `rgba(255, 255, 255, ${arcOpacity})`
     : `rgba(0, 0, 0, ${arcOpacity})`;
-
-  // Safari toolbar — uses shared component
-  const renderMacOSTitleBar = () => (
-    <SafariToolbar windowHeader={windowHeader} isDark={isDark} title={frame.title} />
-  );
-
-  // Chrome toolbar — uses shared component
-  const renderWindowsTitleBar = () => (
-    <ChromeToolbar windowHeader={windowHeader} isDark={isDark} title={frame.title} />
-  );
 
   // Get frame container styles based on frame type
   const getFrameContainerStyle = (): React.CSSProperties => {
@@ -383,22 +343,6 @@ export function HTMLMainImageLayer({
         ...baseStyle,
         border: `${arcBorderWidth}px solid ${arcBorderColor}`,
         borderRadius: `${screenshot.radius}px`,
-      };
-    }
-
-    if (isMacFrame) {
-      return {
-        ...baseStyle,
-        backgroundColor: isDark ? '#3A3A3C' : '#F6F6F6',
-        borderRadius: `${browserRadius}px`,
-      };
-    }
-
-    if (isWinFrame) {
-      return {
-        ...baseStyle,
-        backgroundColor: isDark ? '#292A2D' : '#FFFFFF',
-        borderRadius: `${browserRadius}px`,
       };
     }
 
@@ -457,24 +401,6 @@ export function HTMLMainImageLayer({
       };
     }
 
-    if (isMacFrame) {
-      return {
-        ...baseStyle,
-        left: `${windowPadding}px`,
-        top: `${windowHeader}px`,
-        borderRadius: getImageBorderRadius(),
-      };
-    }
-
-    if (isWinFrame) {
-      return {
-        ...baseStyle,
-        left: `${windowPadding}px`,
-        top: `${windowHeader}px`,
-        borderRadius: getImageBorderRadius(),
-      };
-    }
-
     if (isPolaroid) {
       return {
         ...baseStyle,
@@ -508,6 +434,25 @@ export function HTMLMainImageLayer({
     };
   };
 
+  const mainImage = (
+    <img
+      src={image.src}
+      alt="Main image"
+      draggable={false}
+      style={{
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        // A scroll-through moves the screenshot inside its frame.
+        objectPosition: imageObjectPosition,
+        opacity: imageOpacity,
+        filter: imageFilter,
+        display: 'block',
+        borderRadius: 'inherit',
+      }}
+    />
+  );
+
   return (
     <div
       ref={containerRef}
@@ -529,32 +474,18 @@ export function HTMLMainImageLayer({
         filter: shadowFilter,
       }}
     >
-      {/* Frame container */}
-      <div style={getFrameContainerStyle()}>
-        {/* macOS title bar */}
-        {showFrame && isMacFrame && renderMacOSTitleBar()}
-
-        {/* Windows title bar */}
-        {showFrame && isWinFrame && renderWindowsTitleBar()}
-
-        {/* Image container */}
-        <div style={getImageContainerStyle()}>
-          <img
-            src={image.src}
-            alt="Main image"
-            draggable={false}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              opacity: imageOpacity,
-              filter: imageFilter,
-              display: 'block',
-              borderRadius: 'inherit',
-            }}
-          />
+      {showFrame && chrome ? (
+        // Browser and window chrome: the shared renderer places the image.
+        <ChromeFrame frame={chrome} height={framedH} radius={browserRadius} scale={chromeScale} tone={chrome.tone} width={framedW}>
+          {mainImage}
+        </ChromeFrame>
+      ) : (
+        /* Frame container */
+        <div style={getFrameContainerStyle()}>
+          {/* Image container */}
+          <div style={getImageContainerStyle()}>{mainImage}</div>
         </div>
-      </div>
+      )}
 
       {/* Resize handles — visible when selected, excluded from export */}
       {isMainImageSelected && (

@@ -7,6 +7,7 @@ import { createEditorCopilotTools, editorClientToolNames } from '@/lib/ai/tools/
 import { editorCopilotContract, editorMessageRoleSchema } from '@/lib/api/contracts/ai'
 import { errorResponse, route } from '@/lib/api/route'
 import { organizationAccess } from '@/lib/api/route-auth'
+import { isAiEnabled } from '@/lib/trpc/routers/launch'
 
 /** The model loop can run several tool steps; give it room on serverless hosts. */
 export const maxDuration = 120
@@ -81,6 +82,10 @@ export const POST = route(editorCopilotContract, {
   handler: async ({ access, body }) => {
     if (!isCampaignStudioConfigured()) {
       return errorResponse(503, 'AI is not configured.')
+    }
+    // The workspace kill switch; a turn's many round trips are not rate-limited per call.
+    if (!(await isAiEnabled(access))) {
+      return errorResponse(403, 'AI is turned off for this workspace.')
     }
     const messages = body.messages as unknown as ModelMessage[]
     const lastUser = messages.findLastIndex(

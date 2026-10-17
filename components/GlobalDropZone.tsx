@@ -5,8 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { locales } from '@/i18n/routing';
-import { useEditorStore, useImageStore } from '@/lib/store';
-import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from '@/lib/constants';
+import { importImages, transferImageFiles } from '@/lib/editor/import-images';
 import { isLocalDropTarget } from '@/lib/drop-routing';
 import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts';
 
@@ -16,81 +15,35 @@ interface GlobalDropZoneProps {
 
 export function GlobalDropZone({ children }: GlobalDropZoneProps) {
   const [isDraggingOver, setIsDraggingOver] = React.useState(false);
-  const [isProcessing, setIsProcessing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const dragCounterRef = React.useRef(0);
   const router = useRouter();
   const pathname = usePathname();
-
-  const { setScreenshot } = useEditorStore();
-  const { addImages, addImageOverlay } = useImageStore();
 
   const locale = locales.find((locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`));
   // The fork serves the signed-in editor at the locale root, not /editor.
   const editorPath = locale ? `/${locale}` : '/';
   const isEditorPage = pathname === editorPath;
 
-  const validateFile = React.useCallback((file: File): string | null => {
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      return 'File type not supported. Use PNG, JPG, or WEBP.';
-    }
-    if (file.size > MAX_IMAGE_SIZE) {
-      return `File too large. Max ${MAX_IMAGE_SIZE / 1024 / 1024}MB.`;
-    }
-    return null;
-  }, []);
-
+  // Imports apply immediately: deciding the target after a delay let two quick
+  // pastes both see an empty canvas and each become a main image.
   const handleFiles = React.useCallback(
     (files: File[]) => {
-      const imageFiles = files.filter((f) => f.type.startsWith('image/'));
-      if (imageFiles.length === 0) return;
-
-      const validationError = validateFile(imageFiles[0]);
-      if (validationError) {
-        setError(validationError);
-        toast.error(validationError);
+      if (files.length === 0) return;
+      const result = importImages(files);
+      const firstRejection = result.rejected[0];
+      if (firstRejection) {
+        setError(firstRejection.reason);
+        toast.error(firstRejection.reason);
         setTimeout(() => setError(null), 3000);
-        return;
       }
-
-      setIsProcessing(true);
-      setError(null);
-
-      // Small delay for the animation to play
-      setTimeout(() => {
-        const hasMainImage = !!useImageStore.getState().uploadedImageUrl;
-
-        if (isEditorPage && hasMainImage) {
-          // Add as overlay images on top of existing canvas
-          imageFiles.forEach((file) => {
-            const url = URL.createObjectURL(file);
-            addImageOverlay({
-              src: url,
-              position: { x: 200 + Math.random() * 100, y: 200 + Math.random() * 100 },
-              size: 250,
-              rotation: 0,
-              opacity: 1,
-              flipX: false,
-              flipY: false,
-              isVisible: true,
-              isCustom: true,
-            });
-          });
-        } else {
-          const imageUrl = URL.createObjectURL(imageFiles[0]);
-          addImages(imageFiles);
-          setScreenshot({ src: imageUrl });
-
-          if (!isEditorPage) {
-            router.push(editorPath);
-          }
-        }
-
-        setIsProcessing(false);
+      if (result.imported > 0) {
+        setError(null);
         setIsDraggingOver(false);
-      }, 300);
+        if (!isEditorPage) router.push(editorPath);
+      }
     },
-    [validateFile, addImages, addImageOverlay, setScreenshot, isEditorPage, editorPath, router]
+    [isEditorPage, editorPath, router]
   );
 
   // Global drag events
@@ -137,10 +90,7 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
       dragCounterRef.current = 0;
       setIsDraggingOver(false);
 
-      const files = Array.from(e.dataTransfer?.files || []);
-      if (files.length > 0) {
-        handleFiles(files);
-      }
+      handleFiles(transferImageFiles(e.dataTransfer));
     };
 
     document.addEventListener('dragenter', handleDragEnter);
@@ -160,17 +110,10 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
   React.useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
       if (shouldIgnoreEditorShortcut(e)) return;
-
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.startsWith('image/')) {
-          e.preventDefault();
-          const file = items[i].getAsFile();
-          if (file) handleFiles([file]);
-          break;
-        }
-      }
+      const files = transferImageFiles(e.clipboardData);
+      if (files.length === 0) return;
+      e.preventDefault();
+      handleFiles(files);
     };
 
     // Let local paste handlers (for example device screens) consume it first.
@@ -183,7 +126,7 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
       {children}
 
       <AnimatePresence>
-        {(isDraggingOver || isProcessing) && (
+        {isDraggingOver && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -213,73 +156,50 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
                 className="w-[420px] h-[280px] rounded-2xl flex flex-col items-center justify-center gap-4"
                 style={{
                   border: '2.5px dashed',
-                  borderColor: isProcessing ? 'var(--primary)' : 'var(--border)',
-                  background: isProcessing
-                    ? 'hsl(var(--primary) / 0.05)'
-                    : 'hsl(var(--muted) / 0.5)',
+                  borderColor: 'var(--border)',
+                  background: 'hsl(var(--muted) / 0.5)',
                 }}
-                animate={
-                  isProcessing
-                    ? {}
-                    : {
-                        borderColor: [
-                          'hsl(var(--border))',
-                          'hsl(var(--primary))',
-                          'hsl(var(--border))',
-                        ],
-                      }
-                }
+                animate={{
+                  borderColor: ['hsl(var(--border))', 'hsl(var(--primary))', 'hsl(var(--border))'],
+                }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
               >
-                {isProcessing ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                      className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent"
-                    />
-                    <p className="text-sm font-medium text-foreground">Loading image...</p>
-                  </>
-                ) : (
-                  <>
-                    {/* Animated arrow icon */}
-                    <motion.svg
-                      width="48"
-                      height="48"
-                      viewBox="0 0 48 48"
-                      fill="none"
-                      className="text-primary"
-                      animate={{ y: [0, -6, 0] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                    >
-                      <path
-                        d="M24 6v28M14 24l10 10 10-10"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <line
-                        x1="10"
-                        y1="42"
-                        x2="38"
-                        y2="42"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                      />
-                    </motion.svg>
+                {/* Animated arrow icon */}
+                <motion.svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 48 48"
+                  fill="none"
+                  className="text-primary"
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <path
+                    d="M24 6v28M14 24l10 10 10-10"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <line
+                    x1="10"
+                    y1="42"
+                    x2="38"
+                    y2="42"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                </motion.svg>
 
-                    <div className="text-center">
-                      <p className="text-lg font-semibold text-foreground">
-                        Drop your image here
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        PNG, JPG, or WEBP
-                      </p>
-                    </div>
-                  </>
-                )}
+                <div className="text-center">
+                  <p className="text-lg font-semibold text-foreground">
+                    Drop your image here
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    PNG, JPG, or WEBP
+                  </p>
+                </div>
               </motion.div>
 
               {/* Error message */}

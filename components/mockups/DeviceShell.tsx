@@ -6,14 +6,27 @@ import type {
   DragEventHandler,
   KeyboardEventHandler,
   PointerEventHandler,
+  ReactNode,
 } from "react";
+import { DrawnDevice } from "@/components/frames/DeviceArt";
+import type { DeviceOrientation } from "@/lib/frames/schema";
 import { cn } from "@/lib/utils";
 import type { DeviceScreenContent, MockupDefinition } from "@/types/mockup";
 
 interface DeviceShellProps {
   definition: MockupDefinition;
   screen: DeviceScreenContent;
+  /** A drawn device's color id. */
+  color?: string;
+  /** A drawn device's orientation. */
+  orientation?: DeviceOrientation;
+  /** Drawn on the screen instead of its image (a code screen). */
+  content?: ReactNode;
   editing?: boolean;
+  /** CSS filter for the screen image: the screenshot's adjustments. */
+  screenFilter?: string;
+  /** Where a scroll-through has the screen image. */
+  screenObjectPosition?: string;
   onScreenClick?: () => void;
   onScreenDoubleClick?: () => void;
   onScreenFile?: (file: File) => void;
@@ -44,12 +57,16 @@ export function CropGridOverlay({
   );
 }
 
-function Screen({
+/** A screen's content area: its image (cropped), an upload prompt, or `children`. */
+export function Screen({
   screen,
+  children,
   editing,
   className,
   style,
   imageStyle,
+  filter,
+  objectPosition,
   emptyStatePosition,
   emptyStateWidth,
   emptyStateTransform,
@@ -63,10 +80,14 @@ function Screen({
   onCropKeyDown,
 }: {
   screen: DeviceScreenContent;
+  /** Drawn instead of the image or upload prompt. */
+  children?: ReactNode;
   editing: boolean;
   className?: string;
   style?: CSSProperties;
   imageStyle?: CSSProperties;
+  filter?: string;
+  objectPosition?: string;
   emptyStatePosition?: { x: number; y: number };
   emptyStateWidth?: number;
   emptyStateTransform?: string;
@@ -144,7 +165,7 @@ function Screen({
       data-export-clean-device-screen={editing ? "true" : undefined}
       style={{ ...style, touchAction: editing ? "none" : undefined }}
     >
-      {screen.src ? (
+      {children ?? (screen.src ? (
         <img
           src={screen.src}
           alt="Device screen"
@@ -152,7 +173,9 @@ function Screen({
           className="block h-full w-full select-none"
           style={{
             ...imageStyle,
+            filter,
             objectFit: screen.fit,
+            objectPosition,
             transform: `translate(${screen.offset.x}%, ${screen.offset.y}%) scale(${screen.scale})`,
             transformOrigin: "center",
             pointerEvents: "none",
@@ -193,7 +216,7 @@ function Screen({
             </div>
           ) : null}
         </div>
-      )}
+      ))}
       {editing ? (
         <CropGridOverlay />
       ) : null}
@@ -216,7 +239,12 @@ function perspectiveStyle(perspective: MockupDefinition["perspective"]): CSSProp
 export function DeviceShell({
   definition,
   screen,
+  color,
+  orientation,
+  content,
   editing = false,
+  screenFilter,
+  screenObjectPosition,
   onScreenClick,
   onScreenDoubleClick,
   onScreenFile,
@@ -229,7 +257,10 @@ export function DeviceShell({
   const shellClass = frameClasses(definition.finish);
   const screenProps = {
     screen,
+    children: content,
     editing,
+    filter: screenFilter,
+    objectPosition: screenObjectPosition,
     onClick: onScreenClick,
     onDoubleClick: onScreenDoubleClick,
     onFile: onScreenFile,
@@ -239,6 +270,17 @@ export function DeviceShell({
     onPointerCancel: onScreenPointerCancel,
     onCropKeyDown: onScreenKeyDown,
   };
+
+  if (definition.art) {
+    return (
+      <DrawnDevice
+        art={definition.art}
+        colorId={color}
+        orientation={orientation}
+        screen={(placement) => <Screen {...screenProps} style={placement} />}
+      />
+    );
+  }
 
   if (definition.asset) {
     const { asset } = definition;

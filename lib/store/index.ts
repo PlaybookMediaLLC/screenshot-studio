@@ -1,10 +1,19 @@
 'use client'
 
-import React from 'react'
 import { create } from 'zustand'
+import { resetPlayback, usePlaybackStore } from './playback'
+import { NEUTRAL_IMAGE_FILTERS } from '@/lib/editor/image-adjustments'
+import type { TextAlign, TextFill, TextFit, TextRole } from '@/lib/typography/text-style'
+import type { BrandBinding } from '@/lib/brand/binding'
+import type { DesignCopy } from '@/lib/captions/channels'
+import { createElementsSlice, type ElementsSlice } from './elements-slice'
+import { createFramesSlice, type FramesSlice } from './frames-slice'
+import { isChromeFrameType } from '@/lib/frames/main-frame'
+import { createMotionSlice, type MotionSlice } from './motion-slice'
+import { emptyMotion } from '@/lib/animation/motion-schema'
+import { motionEnd } from '@/lib/animation/motion-evaluate'
 import { shallow } from 'zustand/shallow'
 import { temporal } from 'zundo'
-import { exportImageWithGradient } from './export-utils'
 import { GradientKey } from '@/lib/constants/gradient-colors'
 import { AspectRatioKey } from '@/lib/constants/aspect-ratios'
 import { BackgroundConfig, BackgroundType } from '@/lib/constants/backgrounds'
@@ -66,12 +75,24 @@ export interface TextOverlay {
   position: { x: number; y: number }
   fontSize: number
   fontWeight: string
+  /** A font id from the catalog, or `google:<Family>` for Google Fonts. */
   fontFamily: string
   color: string
   opacity: number
   isVisible: boolean
   orientation: 'horizontal' | 'vertical'
   textShadow: TextShadow
+  /** Solid uses `color`; a gradient clips to the glyphs. */
+  fill?: TextFill
+  align?: TextAlign
+  /** Text box width as a fraction of the canvas width; with `fit` it shrinks or wraps. */
+  maxWidth?: number
+  fit?: TextFit
+  /** Letter spacing in em. */
+  letterSpacing?: number
+  lineHeight?: number
+  /** The part this layer plays in a typography template. */
+  role?: TextRole
 }
 
 export interface ImageOverlayTilt {
@@ -163,6 +184,8 @@ export interface ImageBorder {
     | 'outline-light'
     | 'border-light'
     | 'border-dark'
+    | 'browser'
+    | 'window'
   padding?: number
   title?: string
   opacity?: number
@@ -178,390 +201,73 @@ export interface ImageShadow {
   opacity: number
 }
 
-// Helper function to parse gradient string and extract colors
-function parseGradientColors(gradientStr: string): {
-  colorA: string
-  colorB: string
-  direction: number
-} {
-  // Default fallback
-  let colorA = '#4168d0'
-  let colorB = '#c850c0'
-  let direction = 43
-
-  try {
-    // Extract angle from linear-gradient(angle, ...)
-    const angleMatch = gradientStr.match(/linear-gradient\((\d+)deg/)
-    if (angleMatch) {
-      direction = parseInt(angleMatch[1], 10)
-    }
-
-    // Extract RGB colors
-    const rgbMatches = gradientStr.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/g)
-    if (rgbMatches && rgbMatches.length >= 2) {
-      colorA = rgbMatches[0]
-      colorB = rgbMatches[rgbMatches.length - 1]
-    } else {
-      // Try hex colors
-      const hexMatches = gradientStr.match(/#[0-9A-Fa-f]{6}/g)
-      if (hexMatches && hexMatches.length >= 2) {
-        colorA = hexMatches[0]
-        colorB = hexMatches[hexMatches.length - 1]
-      }
-    }
-  } catch {
-    // Use defaults
-  }
-
-  return { colorA, colorB, direction }
-}
-
-// helper function that omits setter types from EditorState and ImageState; only keeps the properties; excludes any functions
+// Keeps a store type's data fields and drops its actions.
 export type OmitFunctions<T> = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [K in keyof T as T[K] extends (...args: any[]) => any ? never : K]: T[K]
 }
 
-export interface EditorState {
-  // Screenshot/image state
-  screenshot: {
-    src: string | null
-    scale: number
-    offsetX: number
-    offsetY: number
-    rotation: number
-    radius: number
-  }
-
-  // Background state (for Konva)
-  background: {
-    mode: 'solid' | 'gradient'
-    colorA: string
-    colorB: string
-    gradientDirection: number
-  }
-
-  // Shadow state (for Konva)
-  shadow: {
-    enabled: boolean
-    elevation: number
-    side: 'bottom' | 'right' | 'bottom-right'
-    softness: number
-    spread: number
-    color: string
-    intensity: number
-    offsetX: number
-    offsetY: number
-  }
-
-  // Pattern state
-  pattern: {
-    enabled: boolean
-    type: string
-    scale: number
-    spacing: number
-    color: string
-    rotation: number
-    blur: number
-    opacity: number
-  }
-
-  // Frame state (same as imageBorder)
-  frame: {
-    enabled: boolean
-    type:
-      | 'none'
-      | 'arc-light'
-      | 'arc-dark'
-      | 'macos-light'
-      | 'macos-dark'
-      | 'windows-light'
-      | 'windows-dark'
-      | 'photograph'
-      | 'glass-light'
-      | 'glass-dark'
-      | 'outline-light'
-      | 'border-light'
-      | 'border-dark'
-    width: number
-    color: string
-    padding?: number
-    title?: string
-    opacity?: number
-  }
-
-  // Canvas state
-  canvas: {
-    aspectRatio: 'square' | '4:3' | '2:1' | '3:2' | 'free'
-    padding: number
-  }
-
-  // Noise state
-  noise: {
-    enabled: boolean
-    type: string
-    opacity: number
-  }
-
-  // Setters
-  setScreenshot: (screenshot: Partial<EditorState['screenshot']>) => void
-  setBackground: (background: Partial<EditorState['background']>) => void
-  setShadow: (shadow: Partial<EditorState['shadow']>) => void
-  setPattern: (pattern: Partial<EditorState['pattern']>) => void
-  setFrame: (frame: Partial<EditorState['frame']>) => void
-  setCanvas: (canvas: Partial<EditorState['canvas']>) => void
-  setNoise: (noise: Partial<EditorState['noise']>) => void
+/** Background pattern drawn over the background (grid, dots, lines). */
+export interface BackgroundPattern {
+  enabled: boolean
+  type: string
+  scale: number
+  spacing: number
+  color: string
+  rotation: number
+  blur: number
+  opacity: number
 }
 
-// Create editor store
-export const useEditorStore = create<EditorState>((set) => ({
-  screenshot: {
-    src: null,
-    scale: 1,
-    offsetX: 0,
-    offsetY: 0,
-    rotation: 0,
-    radius: 0,
-  },
+/** Main image offset from the canvas centre, in stage px, and its rotation in degrees. */
+export interface ImagePlacement {
+  offsetX: number
+  offsetY: number
+  rotation: number
+}
 
-  background: {
-    mode: 'gradient',
-    colorA: '#4168d0',
-    colorB: '#c850c0',
-    gradientDirection: 43,
-  },
+export const DEFAULT_IMAGE_PLACEMENT: ImagePlacement = { offsetX: 0, offsetY: 0, rotation: 0 }
 
-  shadow: {
-    enabled: true,
-    elevation: 12,
-    side: 'bottom-right',
-    softness: 15,
-    spread: 3,
-    color: 'rgba(0, 0, 0, 1)',
-    intensity: 0.5,
-    offsetX: 5,
-    offsetY: 8,
-  },
+export const DEFAULT_CANVAS_PADDING = 40
 
-  pattern: {
-    enabled: false,
-    type: 'grid',
-    scale: 1,
-    spacing: 20,
-    color: '#000000',
-    rotation: 0,
-    blur: 0,
-    opacity: 0.5,
-  },
+export const DEFAULT_BACKGROUND_PATTERN: BackgroundPattern = {
+  enabled: false,
+  type: 'grid',
+  scale: 1,
+  spacing: 20,
+  color: '#000000',
+  rotation: 0,
+  blur: 0,
+  opacity: 0.5,
+}
 
-  frame: {
-    enabled: false,
-    type: 'none',
-    width: 8,
-    color: '#000000',
-    padding: 20,
-    title: '',
-  },
+/** A timeline length that still fits the motion (reveals, scrolls, captions, audio). */
+function lastingMotion(duration: number, motion: MotionSlice['motion']): number {
+  return Math.max(duration, Math.ceil(motionEnd(motion)))
+}
 
-  canvas: {
-    aspectRatio: 'free',
-    padding: 40,
-  },
+/** Most undo steps kept; at the limit each new step drops the oldest. */
+export const HISTORY_LIMIT = 100
 
-  noise: {
-    enabled: false,
-    type: 'none',
-    opacity: 0.5,
-  },
+/**
+ * A pointer gesture (a slider pull, a drag on the canvas) is one undo step:
+ * only the state before its first change is recorded. Clicks finish their
+ * gesture before their handler runs, so each click is still its own step.
+ */
+const historyGesture = { active: false, recorded: false }
 
-  setScreenshot: (screenshot) => {
-    set((state) => ({
-      screenshot: { ...state.screenshot, ...screenshot },
-    }))
-  },
+/** Start grouping changes into one undo step, until {@link endHistoryGesture}. */
+export function startHistoryGesture() {
+  historyGesture.active = true
+  historyGesture.recorded = false
+}
 
-  setBackground: (background) => {
-    set((state) => ({
-      background: { ...state.background, ...background },
-    }))
-  },
-
-  setShadow: (shadow) => {
-    set((state) => ({
-      shadow: { ...state.shadow, ...shadow },
-    }))
-  },
-
-  setPattern: (pattern) => {
-    set((state) => ({
-      pattern: { ...state.pattern, ...pattern },
-    }))
-  },
-
-  setFrame: (frame) => {
-    set((state) => ({
-      frame: { ...state.frame, ...frame },
-    }))
-  },
-
-  setCanvas: (canvas) => {
-    set((state) => ({
-      canvas: { ...state.canvas, ...canvas },
-    }))
-  },
-
-  setNoise: (noise) => {
-    set((state) => ({
-      noise: { ...state.noise, ...noise },
-    }))
-  },
-}))
-
-// Sync hook to keep editor store in sync with image store
-export function useEditorStoreSync() {
-  const imageStore = useImageStore()
-  const editorStore = useEditorStore()
-
-  // Sync when image store changes
-  React.useEffect(() => {
-    // Sync screenshot src
-    if (imageStore.uploadedImageUrl !== editorStore.screenshot.src) {
-      editorStore.setScreenshot({ src: imageStore.uploadedImageUrl })
-    }
-
-    // Sync screenshot scale
-    if (imageStore.imageScale / 100 !== editorStore.screenshot.scale) {
-      editorStore.setScreenshot({ scale: imageStore.imageScale / 100 })
-    }
-
-    // Sync screenshot radius
-    if (imageStore.borderRadius !== editorStore.screenshot.radius) {
-      editorStore.setScreenshot({ radius: imageStore.borderRadius })
-    }
-
-    // Sync background
-    const bgConfig = imageStore.backgroundConfig
-    if (bgConfig.type === 'gradient') {
-      const isCustomGradient =
-        typeof bgConfig.value === 'string' &&
-        /^(?:linear|radial|conic)-gradient\(/.test(bgConfig.value)
-      const gradientStr =
-        (isCustomGradient ? bgConfig.value : gradientColors[bgConfig.value as GradientKey]) ||
-        gradientColors.vibrant_orange_pink
-      const { colorA, colorB, direction } = parseGradientColors(gradientStr)
-      if (
-        editorStore.background.mode !== 'gradient' ||
-        editorStore.background.colorA !== colorA ||
-        editorStore.background.colorB !== colorB ||
-        editorStore.background.gradientDirection !== direction
-      ) {
-        editorStore.setBackground({
-          mode: 'gradient',
-          colorA,
-          colorB,
-          gradientDirection: direction,
-        })
-      }
-    } else if (bgConfig.type === 'solid') {
-      const color = (solidColors as Record<string, string>)[bgConfig.value as string] || '#ffffff'
-      if (editorStore.background.mode !== 'solid' || editorStore.background.colorA !== color) {
-        editorStore.setBackground({
-          mode: 'solid',
-          colorA: color,
-          colorB: color,
-        })
-      }
-    }
-
-    // Sync frame
-    const frame = imageStore.imageBorder
-    if (
-      editorStore.frame.enabled !== frame.enabled ||
-      editorStore.frame.type !== frame.type ||
-      editorStore.frame.width !== frame.width ||
-      editorStore.frame.color !== frame.color ||
-      editorStore.frame.padding !== frame.padding ||
-      editorStore.frame.title !== frame.title ||
-      editorStore.frame.opacity !== frame.opacity
-    ) {
-      editorStore.setFrame({
-        enabled: frame.enabled,
-        type: frame.type,
-        width: frame.width,
-        color: frame.color,
-        padding: frame.padding,
-        title: frame.title,
-        opacity: frame.opacity,
-      })
-    }
-
-    // Sync shadow
-    const shadow = imageStore.imageShadow
-    const offsetX = shadow.offsetX || 0
-    const offsetY = shadow.offsetY || 0
-    const elevation = Math.max(Math.abs(offsetX), Math.abs(offsetY)) || 4
-
-    let side: 'bottom' | 'right' | 'bottom-right' = 'bottom'
-    if (Math.abs(offsetX) > Math.abs(offsetY)) {
-      side = 'right'
-    } else if (Math.abs(offsetX) > 0 && Math.abs(offsetY) > 0) {
-      side = 'bottom-right'
-    }
-
-    if (
-      editorStore.shadow.enabled !== shadow.enabled ||
-      editorStore.shadow.softness !== shadow.blur ||
-      editorStore.shadow.spread !== (shadow.spread || 0) ||
-      editorStore.shadow.color !== shadow.color ||
-      editorStore.shadow.offsetX !== offsetX ||
-      editorStore.shadow.offsetY !== offsetY ||
-      editorStore.shadow.intensity !== (shadow.opacity ?? 0.5)
-    ) {
-      editorStore.setShadow({
-        enabled: shadow.enabled,
-        softness: shadow.blur,
-        spread: shadow.spread || 0,
-        color: shadow.color,
-        elevation,
-        side,
-        intensity: shadow.opacity ?? 0.5,
-        offsetX,
-        offsetY,
-      })
-    }
-
-    // Sync canvas aspect ratio
-    const aspectRatioMap: Record<AspectRatioKey, 'square' | '4:3' | '2:1' | '3:2' | 'free'> = {
-      '1_1': 'square',
-      '4_3': '4:3',
-      '2_1': '2:1',
-      '3_2': '3:2',
-      '16_9': 'free',
-      '9_16': 'free',
-      '4_5': 'free',
-      '3_4': 'free',
-      '2_3': 'free',
-      '5_4': 'free',
-      '16_10': 'free',
-    }
-    const canvasAspectRatio = aspectRatioMap[imageStore.selectedAspectRatio] || 'free'
-    if (editorStore.canvas.aspectRatio !== canvasAspectRatio) {
-      editorStore.setCanvas({ aspectRatio: canvasAspectRatio })
-    }
-  }, [
-    imageStore.uploadedImageUrl,
-    imageStore.imageScale,
-    imageStore.borderRadius,
-    imageStore.backgroundConfig,
-    imageStore.imageBorder,
-    imageStore.imageShadow,
-    imageStore.selectedAspectRatio,
-    editorStore,
-  ])
+export function endHistoryGesture() {
+  historyGesture.active = false
 }
 
 // Re-export existing ImageState interface and store
-export interface ImageState {
+export interface ImageState extends ElementsSlice, FramesSlice, MotionSlice {
   uploadedImageUrl: string | null
   imageName: string | null
   selectedGradient: GradientKey
@@ -593,6 +299,13 @@ export interface ImageState {
     scale: number
   }
   imageFilters: ImageFilters
+  imagePlacement: ImagePlacement
+  canvasPadding: number
+  pattern: BackgroundPattern
+  /** The brand kit the design follows, and what it set (see lib/brand/apply.ts). */
+  brand: BrandBinding | null
+  /** Alt text and captions written for the design (see lib/captions). */
+  copy: DesignCopy | null
   exportSettings: {
     quality: '1x' | '2x' | '3x'
     format: 'png' | 'jpeg' | 'webp'
@@ -602,6 +315,8 @@ export interface ImageState {
   replaceTemplateMedia: (url: string, name: string, mockupId?: string) => void
   setImage: (file: File) => void
   clearImage: () => void
+  /** Remove the screenshot (and its slides) but keep the design around it. */
+  removeMainImage: () => void
   setGradient: (gradient: GradientKey) => void
   setBorderRadius: (radius: number) => void
   setBackgroundBorderRadius: (radius: number) => void
@@ -647,9 +362,13 @@ export interface ImageState {
   setPerspective3D: (perspective: Partial<ImageState['perspective3D']>) => void
   setImageFilter: (key: keyof ImageFilters, value: number) => void
   resetImageFilters: () => void
+  setImagePlacement: (placement: Partial<ImagePlacement>) => void
+  setCanvasPadding: (padding: number) => void
+  setPattern: (pattern: Partial<BackgroundPattern>) => void
+  setBrand: (brand: BrandBinding | null) => void
+  setCopy: (copy: DesignCopy | null) => void
   resetCanvasSettings: () => void
   setExportSettings: (settings: Partial<ImageState['exportSettings']>) => void
-  exportImage: () => Promise<void>
   // Slideshow
   slides: Slide[]
   activeSlideId: string | null
@@ -679,10 +398,6 @@ export interface ImageState {
   setTimeline: (updates: Partial<TimelineState>) => void
   setShowTimeline: (show: boolean) => void
   toggleTimeline: () => void
-  setPlayhead: (time: number) => void
-  togglePlayback: () => void
-  startPlayback: () => void
-  stopPlayback: () => void
   addKeyframe: (trackId: string, keyframe: Omit<Keyframe, 'id'>) => void
   updateKeyframe: (trackId: string, keyframeId: string, updates: Partial<Keyframe>) => void
   removeKeyframe: (trackId: string, keyframeId: string) => void
@@ -720,11 +435,7 @@ export interface ImageState {
   removeBlurRegion: (id: string) => void
   clearBlurRegions: () => void
 
-  // UI State
-  activeRightPanelTab: 'settings' | 'edit' | 'background' | 'transforms' | 'animate' | 'depth'
-  setActiveRightPanelTab: (
-    tab: 'settings' | 'edit' | 'background' | 'transforms' | 'animate' | 'depth'
-  ) => void
+  // UI State (panel tabs live in useEditorPanels)
   reorderImageOverlay: (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => void
   showTemplates: boolean
   setShowTemplates: (show: boolean) => void
@@ -750,16 +461,25 @@ export interface ImageState {
   toggleGrid: () => void
   setRulerInterval: (interval: number) => void
 
-  // Layer Selection State
+  // Layer Selection State: session-only, never in undo history
   selectedOverlayId: string | null
   isMainImageSelected: boolean
+  selectedTextId: string | null
+  selectedBlurId: string | null
   setSelectedOverlayId: (id: string | null) => void
   setIsMainImageSelected: (selected: boolean) => void
+  /** Select a text layer; selecting one clears the image and sticker selection. */
+  setSelectedTextId: (id: string | null) => void
+  /** Select a redaction region. */
+  setSelectedBlurId: (id: string | null) => void
 }
 
 export const useImageStore = create<ImageState>()(
   temporal(
     (set, get) => ({
+      ...createElementsSlice(set, get),
+      ...createFramesSlice(set),
+      ...createMotionSlice(set),
       slides: [],
       activeSlideId: null,
 
@@ -826,16 +546,12 @@ export const useImageStore = create<ImageState>()(
         translateY: 0,
         scale: 1,
       },
-      imageFilters: {
-        brightness: 100,
-        contrast: 100,
-        grayscale: 0,
-        blur: 0,
-        hueRotate: 0,
-        invert: 0,
-        saturate: 100,
-        sepia: 0,
-      },
+      imageFilters: { ...NEUTRAL_IMAGE_FILTERS },
+      imagePlacement: { ...DEFAULT_IMAGE_PLACEMENT },
+      canvasPadding: DEFAULT_CANVAS_PADDING,
+      pattern: { ...DEFAULT_BACKGROUND_PATTERN },
+      brand: null,
+      copy: null,
       exportSettings: {
         quality: '2x',
         format: 'png',
@@ -847,9 +563,6 @@ export const useImageStore = create<ImageState>()(
           uploadedImageUrl: url,
           imageName: name,
         })
-        // Immediately sync to editor store so canvas updates without
-        // waiting for the EditorStoreSync useEffect cycle
-        useEditorStore.getState().setScreenshot({ src: url })
       },
 
       replaceTemplateMedia: (url, name, mockupId) => {
@@ -876,7 +589,6 @@ export const useImageStore = create<ImageState>()(
               }
             : {}),
         }))
-        useEditorStore.getState().setScreenshot({ src: url })
       },
 
       setImage: (file: File) => {
@@ -934,16 +646,9 @@ export const useImageStore = create<ImageState>()(
             scale: 1,
           },
           // Reset filters
-          imageFilters: {
-            brightness: 100,
-            contrast: 100,
-            grayscale: 0,
-            blur: 0,
-            hueRotate: 0,
-            invert: 0,
-            saturate: 100,
-            sepia: 0,
-          },
+          imageFilters: { ...NEUTRAL_IMAGE_FILTERS },
+          imagePlacement: { ...DEFAULT_IMAGE_PLACEMENT },
+          pattern: { ...DEFAULT_BACKGROUND_PATTERN },
           // Clear overlays
           textOverlays: [],
           imageOverlays: [],
@@ -954,6 +659,11 @@ export const useImageStore = create<ImageState>()(
           annotations: [],
           activeAnnotationTool: null,
           blurRegions: [],
+          elements: [],
+          motion: emptyMotion(),
+          selectedElementId: null,
+          brand: null,
+          copy: null,
           // Reset timeline/animation
           timeline: { ...DEFAULT_TIMELINE_STATE },
           animationClips: [],
@@ -1019,16 +729,9 @@ export const useImageStore = create<ImageState>()(
             scale: 1,
           },
           // Reset filters
-          imageFilters: {
-            brightness: 100,
-            contrast: 100,
-            grayscale: 0,
-            blur: 0,
-            hueRotate: 0,
-            invert: 0,
-            saturate: 100,
-            sepia: 0,
-          },
+          imageFilters: { ...NEUTRAL_IMAGE_FILTERS },
+          imagePlacement: { ...DEFAULT_IMAGE_PLACEMENT },
+          pattern: { ...DEFAULT_BACKGROUND_PATTERN },
           // Clear overlays
           textOverlays: [],
           imageOverlays: [],
@@ -1039,10 +742,28 @@ export const useImageStore = create<ImageState>()(
           annotations: [],
           activeAnnotationTool: null,
           blurRegions: [],
+          elements: [],
+          motion: emptyMotion(),
+          selectedElementId: null,
+          brand: null,
+          copy: null,
           // Reset timeline/animation
           timeline: { ...DEFAULT_TIMELINE_STATE },
           animationClips: [],
           showTimeline: false,
+        })
+      },
+
+      removeMainImage: () => {
+        set({
+          activeSlideId: null,
+          imageName: null,
+          isMainImageSelected: false,
+          isPreviewing: false,
+          previewIndex: 0,
+          previewStartedAt: null,
+          slides: [],
+          uploadedImageUrl: null,
         })
       },
 
@@ -1452,7 +1173,6 @@ export const useImageStore = create<ImageState>()(
       applyVisualPreset: (preset, options = {}) => {
         trackPresetApply(preset.id, preset.name)
         const shouldUseDemoMedia = !get().uploadedImageUrl
-        const mediaUrl = get().uploadedImageUrl ?? TEMPLATE_DEMO_IMAGE_URL
 
         set((state) => {
           const mediaUrl = state.uploadedImageUrl ?? TEMPLATE_DEMO_IMAGE_URL
@@ -1530,24 +1250,17 @@ export const useImageStore = create<ImageState>()(
             ...(options.clearAnimation
               ? {
                   animationClips: [],
-                  timeline: { ...DEFAULT_TIMELINE_STATE },
+                  timeline: { ...DEFAULT_TIMELINE_STATE, duration: lastingMotion(DEFAULT_TIMELINE_STATE.duration, state.motion) },
                   showTimeline: false,
                 }
               : {}),
             ...(options.closeTemplates ? { showTemplates: false } : {}),
+            // In the same write, so a template is one undo step.
+            ...(options.scene?.kind === 'screenshot'
+              ? { imagePlacement: { ...(options.scene.placement ?? DEFAULT_IMAGE_PLACEMENT) } }
+              : {}),
           }
         })
-
-        if (shouldUseDemoMedia || options.scene?.kind === 'screenshot') {
-          const placement =
-            options.scene?.kind === 'screenshot'
-              ? (options.scene.placement ?? { offsetX: 0, offsetY: 0, rotation: 0 })
-              : null
-          useEditorStore.getState().setScreenshot({
-            src: mediaUrl,
-            ...(placement ?? {}),
-          })
-        }
       },
 
       applyAnimatedTemplate: (templateId) => {
@@ -1567,7 +1280,6 @@ export const useImageStore = create<ImageState>()(
 
         trackPresetApply(`animated:${template.id}`, template.name)
         const shouldUseDemoMedia = !get().uploadedImageUrl
-        const mediaUrl = get().uploadedImageUrl ?? TEMPLATE_DEMO_IMAGE_URL
 
         set((state) => {
           const retainedOverlays = state.imageOverlays.filter(
@@ -1625,23 +1337,19 @@ export const useImageStore = create<ImageState>()(
             animationClips: [animation.clip],
             timeline: {
               ...DEFAULT_TIMELINE_STATE,
-              duration: animation.duration,
+              duration: lastingMotion(animation.duration, state.motion),
               tracks: animation.tracks,
-              isPlaying: true,
             },
             showTimeline: true,
             showTemplates: false,
+            // In the same write, so a template is one undo step.
+            imagePlacement: {
+              ...((imageTemplate?.scene.kind === 'screenshot' ? imageTemplate.scene.placement : undefined) ??
+                DEFAULT_IMAGE_PLACEMENT),
+            },
           }
         })
-
-        const placement =
-          imageTemplate?.scene.kind === 'screenshot' ? imageTemplate.scene.placement : undefined
-        useEditorStore.getState().setScreenshot({
-          src: mediaUrl,
-          offsetX: placement?.offsetX ?? 0,
-          offsetY: placement?.offsetY ?? 0,
-          rotation: placement?.rotation ?? 0,
-        })
+        resetPlayback({ play: true })
       },
 
       setPerspective3D: (perspective: Partial<ImageState['perspective3D']>) => {
@@ -1666,18 +1374,25 @@ export const useImageStore = create<ImageState>()(
 
       resetImageFilters: () => {
         set({
-          imageFilters: {
-            brightness: 100,
-            contrast: 100,
-            grayscale: 0,
-            blur: 0,
-            hueRotate: 0,
-            invert: 0,
-            saturate: 100,
-            sepia: 0,
-          },
+          imageFilters: { ...NEUTRAL_IMAGE_FILTERS },
         })
       },
+
+      setImagePlacement: (placement) => {
+        set((state) => ({ imagePlacement: { ...state.imagePlacement, ...placement } }))
+      },
+
+      setCanvasPadding: (padding) => {
+        set({ canvasPadding: Math.max(0, padding) })
+      },
+
+      setPattern: (pattern) => {
+        set((state) => ({ pattern: { ...state.pattern, ...pattern } }))
+      },
+
+      setBrand: (brand) => set({ brand }),
+
+      setCopy: (copy) => set({ copy }),
 
       resetCanvasSettings: () => {
         set({
@@ -1721,16 +1436,10 @@ export const useImageStore = create<ImageState>()(
             translateY: 0,
             scale: 1,
           },
-          imageFilters: {
-            brightness: 100,
-            contrast: 100,
-            grayscale: 0,
-            blur: 0,
-            hueRotate: 0,
-            invert: 0,
-            saturate: 100,
-            sepia: 0,
-          },
+          imageFilters: { ...NEUTRAL_IMAGE_FILTERS },
+          imagePlacement: { ...DEFAULT_IMAGE_PLACEMENT },
+          canvasPadding: DEFAULT_CANVAS_PADDING,
+          pattern: { ...DEFAULT_BACKGROUND_PATTERN },
           textOverlays: [],
           imageOverlays: [],
           mockups: [],
@@ -1739,6 +1448,11 @@ export const useImageStore = create<ImageState>()(
           annotations: [],
           activeAnnotationTool: null,
           blurRegions: [],
+          elements: [],
+          motion: emptyMotion(),
+          selectedElementId: null,
+          brand: null,
+          copy: null,
           timeline: { ...DEFAULT_TIMELINE_STATE },
           animationClips: [],
           showTimeline: false,
@@ -1755,14 +1469,6 @@ export const useImageStore = create<ImageState>()(
         })
       },
 
-      exportImage: async () => {
-        try {
-          await exportImageWithGradient('image-render-card')
-        } catch (error) {
-          console.error('Export failed:', error)
-          throw error
-        }
-      },
       addImages: (files: File[]) => {
         const { slides, slideshow, timeline } = get()
 
@@ -1803,10 +1509,6 @@ export const useImageStore = create<ImageState>()(
           uploadedImageUrl: slide.src,
           imageName: slide.name,
         })
-
-        // Also sync to editorStore for export compatibility
-        // (React useEffect sync doesn't run during imperative export)
-        useEditorStore.getState().setScreenshot({ src: slide.src })
       },
 
       removeSlide: (id) => {
@@ -1857,33 +1559,6 @@ export const useImageStore = create<ImageState>()(
 
       toggleTimeline: () => {
         set((state) => ({ showTimeline: !state.showTimeline }))
-      },
-
-      setPlayhead: (time) => {
-        set((state) => ({
-          timeline: {
-            ...state.timeline,
-            playhead: Math.max(0, Math.min(time, state.timeline.duration)),
-          },
-        }))
-      },
-
-      togglePlayback: () => {
-        set((state) => ({
-          timeline: { ...state.timeline, isPlaying: !state.timeline.isPlaying },
-        }))
-      },
-
-      startPlayback: () => {
-        set((state) => ({
-          timeline: { ...state.timeline, isPlaying: true },
-        }))
-      },
-
-      stopPlayback: () => {
-        set((state) => ({
-          timeline: { ...state.timeline, isPlaying: false },
-        }))
       },
 
       addKeyframe: (trackId, keyframe) => {
@@ -1969,18 +1644,17 @@ export const useImageStore = create<ImageState>()(
         set((state) => ({
           timeline: {
             ...state.timeline,
-            duration: preset.duration,
+            duration: lastingMotion(preset.duration, state.motion),
             tracks,
-            playhead: 0,
-            isPlaying: false,
           },
         }))
+        resetPlayback()
       },
 
       clearTimeline: () => {
-        set({
-          timeline: { ...DEFAULT_TIMELINE_STATE },
-        })
+        set((state) => ({
+          timeline: { ...DEFAULT_TIMELINE_STATE, duration: lastingMotion(DEFAULT_TIMELINE_STATE.duration, state.motion) },
+        }))
       },
 
       setTimelineDuration: (duration) => {
@@ -2004,10 +1678,10 @@ export const useImageStore = create<ImageState>()(
             timeline: {
               ...state.timeline,
               duration: newDuration,
-              playhead: Math.min(state.timeline.playhead, newDuration),
             },
           }
         })
+        usePlaybackStore.getState().seek(usePlaybackStore.getState().playhead)
       },
 
       // Animation clips
@@ -2113,10 +1787,14 @@ export const useImageStore = create<ImageState>()(
       },
 
       clearAnimationClips: () => {
-        set({
+        set((state) => ({
           animationClips: [],
-          timeline: { ...DEFAULT_TIMELINE_STATE },
-        })
+          // Keyframes, reveals, scrolls, and captions stay, so the timeline still holds them.
+          timeline: {
+            ...DEFAULT_TIMELINE_STATE,
+            duration: lastingMotion(DEFAULT_TIMELINE_STATE.duration, state.motion),
+          },
+        }))
       },
 
       // Annotations (custom SVG)
@@ -2173,10 +1851,6 @@ export const useImageStore = create<ImageState>()(
       clearBlurRegions: () => set({ blurRegions: [] }),
 
       // UI State
-      activeRightPanelTab: 'edit',
-      setActiveRightPanelTab: (tab) => {
-        set({ activeRightPanelTab: tab })
-      },
       showTemplates: false,
       setShowTemplates: (show) => {
         set({ showTemplates: show })
@@ -2186,30 +1860,20 @@ export const useImageStore = create<ImageState>()(
         const currentBorder = get().imageBorder
         const currentUrl = get().browserUrl || 'shots.playbookmedia.io'
         if (mode === 'browser') {
-          // Apply default browser frame (Chrome Dark) if no browser frame is active
-          const isBrowserFrame = [
-            'macos-light',
-            'macos-dark',
-            'windows-light',
-            'windows-dark',
-          ].includes(currentBorder.type)
+          // Apply the default browser frame if no browser or window frame is active
+          const isBrowserFrame = isChromeFrameType(currentBorder.type)
           set({
             editorMode: mode,
             imageBorder: {
               ...currentBorder,
               enabled: true,
-              type: isBrowserFrame ? currentBorder.type : 'windows-dark',
+              type: isBrowserFrame ? currentBorder.type : 'browser',
               title: currentUrl,
             },
           })
         } else {
           // Switching back to screenshot: disable browser frame
-          const isBrowserFrame = [
-            'macos-light',
-            'macos-dark',
-            'windows-light',
-            'windows-dark',
-          ].includes(currentBorder.type)
+          const isBrowserFrame = isChromeFrameType(currentBorder.type)
           if (isBrowserFrame) {
             set({
               editorMode: mode,
@@ -2251,15 +1915,32 @@ export const useImageStore = create<ImageState>()(
 
       selectedOverlayId: null,
       isMainImageSelected: false,
+      selectedTextId: null,
+      selectedBlurId: null,
+      setSelectedTextId: (id) =>
+        set(() => ({
+          selectedTextId: id,
+          ...(id
+            ? {
+                isMainImageSelected: false,
+                selectedAnnotationId: null,
+                selectedElementId: null,
+                selectedOverlayId: null,
+              }
+            : {}),
+        })),
+      setSelectedBlurId: (id) => set({ selectedBlurId: id }),
       setSelectedOverlayId: (id: string | null) =>
         set((state) => ({
           selectedOverlayId: id,
           isMainImageSelected: id ? false : state.isMainImageSelected,
+          selectedElementId: id ? null : state.selectedElementId,
         })),
       setIsMainImageSelected: (selected: boolean) =>
         set((state) => ({
           isMainImageSelected: selected,
           selectedOverlayId: selected ? null : state.selectedOverlayId,
+          selectedElementId: selected ? null : state.selectedElementId,
         })),
     }),
     {
@@ -2267,10 +1948,23 @@ export const useImageStore = create<ImageState>()(
       partialize: ({
         selectedOverlayId: _overlay,
         isMainImageSelected: _main,
+        selectedTextId: _text,
+        selectedBlurId: _blur,
+        selectedAnnotationId: _annotation,
+        selectedElementId: _element,
+        activeAnnotationTool: _tool,
         canvasDimensions: _dimensions,
         ...state
       }) => state,
       equality: shallow,
+      limit: HISTORY_LIMIT,
+      handleSet: (handleSet) => (pastState, replace) => {
+        if (historyGesture.active) {
+          if (historyGesture.recorded) return
+          historyGesture.recorded = true
+        }
+        handleSet(pastState, replace)
+      },
     }
   )
 )
@@ -2287,4 +1981,67 @@ useImageStore.subscribe((state) => {
   if (state.isMainImageSelected && !state.uploadedImageUrl) {
     state.setIsMainImageSelected(false)
   }
+  if (state.selectedTextId && !state.textOverlays.some((text) => text.id === state.selectedTextId)) {
+    state.setSelectedTextId(null)
+  }
+  if (state.selectedBlurId && !state.blurRegions.some((region) => region.id === state.selectedBlurId)) {
+    state.setSelectedBlurId(null)
+  }
+  if (state.selectedElementId && !state.elements.some((element) => element.id === state.selectedElementId)) {
+    state.setSelectedElementId(null)
+  }
 })
+
+/** The main image as the stage draws it. Every field derives from the image state. */
+export function selectScreenshot(state: ImageState) {
+  return {
+    src: state.uploadedImageUrl,
+    scale: state.imageScale / 100,
+    offsetX: state.imagePlacement.offsetX,
+    offsetY: state.imagePlacement.offsetY,
+    rotation: state.imagePlacement.rotation,
+    radius: state.borderRadius,
+  }
+}
+
+export type ScreenshotView = ReturnType<typeof selectScreenshot>
+
+type HistoryEntry = ReturnType<typeof useImageStore.temporal.getState>['pastStates'][number]
+
+/** An open undo step: the newest history entry before it began, or null when history was empty. */
+export type HistoryStep = { anchor: HistoryEntry | null }
+
+/**
+ * Collapse every history entry recorded since the step began into one, so a
+ * whole AI edit (or a chosen variation) undoes with a single ⌘Z. Call
+ * `beginHistoryStep` before the writes and `endHistoryStep` after; this works
+ * across awaits as long as the user does not edit in between. The step is
+ * anchored on an entry rather than a count, because at the history limit
+ * every new entry evicts the oldest and the count stops growing.
+ */
+export function beginHistoryStep(): HistoryStep {
+  return { anchor: useImageStore.temporal.getState().pastStates.at(-1) ?? null }
+}
+
+/** Close a step opened by {@link beginHistoryStep}. */
+export function endHistoryStep(step: HistoryStep) {
+  useImageStore.temporal.setState((history) => {
+    const index = step.anchor ? history.pastStates.lastIndexOf(step.anchor) : -1
+    // Keep the anchor and the step's first entry. An evicted (or absent)
+    // anchor means every remaining entry belongs to the step: keep the first.
+    const keep = index >= 0 ? index + 2 : 1
+    return history.pastStates.length > keep
+      ? { pastStates: history.pastStates.slice(0, keep) }
+      : history
+  })
+}
+
+/** Run synchronous writes as one undo step. */
+export function withHistoryStep<T>(write: () => T): T {
+  const start = beginHistoryStep()
+  try {
+    return write()
+  } finally {
+    endHistoryStep(start)
+  }
+}

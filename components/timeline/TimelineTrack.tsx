@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
+import { usePlaybackStore } from '@/lib/store/playback';
 import { KeyframeMarker } from './KeyframeMarker';
 import { Button } from '@/components/ui/button';
 import { ViewIcon, ViewOffIcon, Delete02Icon, SquareLockPasswordIcon, SquareUnlock01Icon } from 'hugeicons-react';
@@ -28,8 +29,8 @@ export function TimelineTrack({
     updateKeyframe,
     removeKeyframe,
     addKeyframe,
-    setPlayhead,
   } = useImageStore();
+  const setPlayhead = usePlaybackStore((state) => state.seek);
 
   const { duration } = timeline;
   const trackColor = track.type === 'transform' ? 'border-l-blue-500' : 'border-l-amber-500';

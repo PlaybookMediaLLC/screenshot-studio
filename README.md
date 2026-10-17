@@ -74,19 +74,22 @@ conversation.
 
 ### Creative engine (the editor)
 
-- **250+ backgrounds** — gradients, solid colors, images, blur, noise
-- **Browser mockups** — Safari and Chrome (light/dark) with realistic toolbars and custom URL
-- **Device frames** — Arc browser, Polaroid, glass, outline, border styles
-- **Device mockups** — iPhone, MacBook, and Apple Watch shells with drag, rotate, and screen crop
-- **3D transforms** — 30+ perspective presets with realistic depth
-- **Draw and markup** — arrows, shapes, blur regions, text overlays
-- **Tweet and code snippets** — import tweets, standalone code image editor at `/code` with syntax themes and shareable links
-- **Templates** — reusable image and animated templates with replaceable demo media
-- **Animations** — 30+ presets, timeline editor, keyframe control
-- **Image tools** — crop, resize, rotate, compress, format conversion, and background removal
-- **App Store screenshots** — layered slides, multi-device and panoramic layouts, localization, store compliance checks, every-size export, review links, and App Store Connect and Google Play uploads ([guide](docs/store-screenshots.md))
-- **Video export** — MP4, WebM, GIF with hardware-accelerated encoding
-- **High-res export** — PNG/JPG up to 5x scale, fully in-browser
+One document model and one renderer behind every surface: what the editor
+shows is what previews, batch items, every export size, and share links show.
+See [docs/editor-platform.md](docs/editor-platform.md).
+
+- **Composition**: several screenshots per canvas (side-by-side, stack, grid, bento, fan); snapping to objects and canvas, thirds, platform safe zones, and App Store crops; zoom callouts, spotlights, numbered badges, and cursors
+- **Frames**: in-house device frames (iPhone, Pixel, Galaxy, iPad, MacBook, iMac, Studio Display, Vision Pro) in colours and orientations; Safari, Chrome, Arc, Edge, and Firefox chrome with tabs, bookmarks, and auto appearance; macOS and Windows windows, terminals, and code-to-image
+- **Text**: Google Fonts, gradient text, shrink-to-fit, and headline/subheadline templates
+- **Motion**: preset animations, keyframes with a cubic Bézier editor, typewriter and word reveals, scroll-through inside frames, audio tracks, and burned-in captions
+- **Brand and presets**: workspace brand kits (colours, fonts, logos, background and frame defaults) applied without losing overrides; saved presets that restyle any screenshot
+- **Redaction**: on-device detection of emails, keys, cards, names, and faces, reviewed and then drawn into the pixels so exports keep nothing underneath
+- **Export**: PNG, JPEG, WebP, SVG, PDF, GIF, MP4, and WebM; several sizes in one ZIP, each laid out again; batch mode for up to 50 screenshots
+- **Share**: publish a design at a link with Open Graph previews, embeds, access control, and expiry; deliver it to Slack, Notion, or Figma
+- **AI**: a copilot that edits the canvas, side-by-side versions of a design, generated backgrounds, and platform captions with alt text
+- **Projects**: cloud projects with autosave, named versions, comparison, restore, and recovery after a reload
+- **Image tools**: crop, resize, rotate, compress, format conversion, and background removal; a standalone code image editor at `/code`
+- **App Store screenshots**: layered slides, multi-device and panoramic layouts, localization, store compliance checks, every-size export, review links, and App Store Connect and Google Play uploads ([guide](docs/store-screenshots.md))
 
 ### Capture API
 
@@ -364,17 +367,18 @@ Temporal runs publishing and maintenance in the Go backend. See
 
 ### Optional integrations
 
-| Provider                                                                     | Role                                                                                                                                 | Environment variables                                                                                                     |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| [Postiz](https://postiz.com) ([docs](https://docs.postiz.com))               | Social scheduling and publishing                                                                                                     | `POSTIZ_API_URL`                                                                                                          |
-| [Microlink](https://microlink.io) ([docs](https://microlink.io/docs))        | Screenshot capture API                                                                                                               | `SCREENSHOT_API_URL`                                                                                                      |
-| [OpenRouter](https://openrouter.ai) ([models](https://openrouter.ai/models)) | Model access for the campaign studio agent                                                                                           | `OPENROUTER_API_KEY`, optional `PLATFORM_AI_MODEL_*`                                                                      |
-| [PostHog](https://posthog.com) ([app](https://app.posthog.com))              | Product analytics and session insight                                                                                                | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`                                                                     |
-| [Google Cloud](https://console.cloud.google.com/apis/credentials)            | Google OAuth sign-in                                                                                                                 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`                                                                                |
-| [GitHub OAuth](https://github.com/settings/developers)                       | GitHub sign-in and release intake                                                                                                    | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`                                                                                |
-| [Microsoft Entra ID](https://entra.microsoft.com)                            | Microsoft SSO for enterprise tenants                                                                                                 | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`                                                                          |
-| Billing provider or support automation                                       | Signed workspace plan and entitlement synchronization                                                                                | `BILLING_ENTITLEMENT_WEBHOOK_SECRET`                                                                                      |
-| [Stripe](https://stripe.com) ([dashboard](https://dashboard.stripe.com))     | Self-serve Checkout, billing portal, and extra-launch credit packs; events at `/api/webhooks/stripe` sync the plan and grant credits | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_{PRO,BUSINESS}_{MONTHLY,ANNUAL}`, `STRIPE_PRICE_EXTRA_LAUNCH` |
+| Provider                                                                                                                                  | Role                                                                                                                                 | Environment variables                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| [Postiz](https://postiz.com) ([docs](https://docs.postiz.com))                                                                            | Social scheduling and publishing                                                                                                     | `POSTIZ_API_URL`                                                                                                          |
+| [Microlink](https://microlink.io) ([docs](https://microlink.io/docs))                                                                     | Screenshot capture API                                                                                                               | `SCREENSHOT_API_URL`                                                                                                      |
+| [OpenRouter](https://openrouter.ai) ([models](https://openrouter.ai/models))                                                              | Model access for the campaign studio, editor copilot, captions, and AI backgrounds                                                   | `OPENROUTER_API_KEY`, optional `PLATFORM_AI_MODEL_*`, `PLATFORM_AI_IMAGE_MODEL`                                           |
+| [Slack](https://api.slack.com/apps), [Notion](https://www.notion.so/profile/integrations), [Figma](https://www.figma.com/developers/apps) | Delivering published designs ([setup](docs/integrations.md))                                                                         | `INTEGRATION_ENCRYPTION_KEY`, `{SLACK,NOTION,FIGMA}_CLIENT_ID`, `{SLACK,NOTION,FIGMA}_CLIENT_SECRET`                      |
+| [PostHog](https://posthog.com) ([app](https://app.posthog.com))                                                                           | Product analytics and session insight                                                                                                | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`                                                                     |
+| [Google Cloud](https://console.cloud.google.com/apis/credentials)                                                                         | Google OAuth sign-in                                                                                                                 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`                                                                                |
+| [GitHub OAuth](https://github.com/settings/developers)                                                                                    | GitHub sign-in and release intake                                                                                                    | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`                                                                                |
+| [Microsoft Entra ID](https://entra.microsoft.com)                                                                                         | Microsoft SSO for enterprise tenants                                                                                                 | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`                                                                          |
+| Billing provider or support automation                                                                                                    | Signed workspace plan and entitlement synchronization                                                                                | `BILLING_ENTITLEMENT_WEBHOOK_SECRET`                                                                                      |
+| [Stripe](https://stripe.com) ([dashboard](https://dashboard.stripe.com))                                                                  | Self-serve Checkout, billing portal, and extra-launch credit packs; events at `/api/webhooks/stripe` sync the plan and grant credits | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_{PRO,BUSINESS}_{MONTHLY,ANNUAL}`, `STRIPE_PRICE_EXTRA_LAUNCH` |
 
 Runtime credentials live in Fly secrets (`fly secrets set`), never in the repo or
 in GitHub secrets. GitHub holds only the deploy token and the build-time

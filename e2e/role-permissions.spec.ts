@@ -79,29 +79,40 @@ async function assertRolePermissions(
   const canCreateRelease = role === 'creator'
   const canManageWorkspace = isAdmin
   const canPublish = isAdmin || role === 'publisher'
-  const [audit, brandKits, connections, invitation, releases, workspace] = await Promise.all([
-    browserRequest(page, `/api/audit-logs?organizationId=${organizationId}`),
-    trpcQuery(page, 'brandKit.list'),
-    trpcQuery(page, 'channelConnection.list'),
-    trpcMutation(page, 'workspace.invite', {
-      email: `invited-by-${role}-${organizationId}@example.test`,
-      role: 'viewer',
-    }),
-    requestJson(
-      page,
-      '/api/tenant/releases',
-      { benefitStatement: `Permission check for ${role}.`, title: `Role ${role} release` },
-      'POST',
-      { 'idempotency-key': `role-${role}-release` }
-    ),
-    trpcMutation(page, 'workspace.update', {
-      name: `Denied ${role}`,
-      slug: `denied-${role}-${organizationId.slice(-8).toLowerCase()}`,
-    }),
-  ])
+  const [audit, brandKits, brandKitCreate, connections, invitation, releases, workspace] =
+    await Promise.all([
+      browserRequest(page, `/api/audit-logs?organizationId=${organizationId}`),
+      trpcQuery(page, 'brandKit.list'),
+      trpcMutation(page, 'brandKit.create', {
+        definition: {
+          colors: { accent: '#6d5dfc', background: '#ffffff', text: '#111111' },
+          typography: { headingFamily: 'inter' },
+        },
+        name: `Role ${role} kit`,
+        publish: true,
+      }),
+      trpcQuery(page, 'channelConnection.list'),
+      trpcMutation(page, 'workspace.invite', {
+        email: `invited-by-${role}-${organizationId}@example.test`,
+        role: 'viewer',
+      }),
+      requestJson(
+        page,
+        '/api/tenant/releases',
+        { benefitStatement: `Permission check for ${role}.`, title: `Role ${role} release` },
+        'POST',
+        { 'idempotency-key': `role-${role}-release` }
+      ),
+      trpcMutation(page, 'workspace.update', {
+        name: `Denied ${role}`,
+        slug: `denied-${role}-${organizationId.slice(-8).toLowerCase()}`,
+      }),
+    ])
 
   expect(audit.status).toBe(isAdmin ? 200 : 403)
-  expect(brandKits.status).toBe(isAdmin ? 200 : 403)
+  // Every member reads brand kits to apply them in the editor; only admins manage them.
+  expect(brandKits.status).toBe(200)
+  expect(brandKitCreate.status).toBe(isAdmin ? 200 : 403)
   expect(connections.status).toBe(canPublish ? 200 : 403)
   expect(invitation.status).toBe(isAdmin ? 200 : 403)
   expect(releases.status).toBe(canCreateRelease || isAdmin ? 201 : 403)

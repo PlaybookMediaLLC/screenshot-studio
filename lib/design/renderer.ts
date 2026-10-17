@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { type Browser, chromium } from 'playwright-core'
+import { GOOGLE_FONT_ORIGINS } from '@/lib/typography/google-fonts'
 import { createRenderToken } from './render-token'
 
 /**
@@ -132,12 +133,14 @@ export async function createDesignRenderer(): Promise<DesignRenderer> {
       })
       try {
         const page = await context.newPage()
-        // Only the app itself: no analytics or ad scripts in a render.
+        // Only the app itself and Google Fonts (text may use them): no
+        // analytics or ad scripts in a render.
         await page.route('**/*', (route) => {
           const url = new URL(route.request().url())
           return url.protocol === 'data:' ||
             url.protocol === 'blob:' ||
-            url.origin === baseUrl.origin
+            url.origin === baseUrl.origin ||
+            (GOOGLE_FONT_ORIGINS as readonly string[]).includes(url.origin)
             ? route.continue()
             : route.abort()
         })

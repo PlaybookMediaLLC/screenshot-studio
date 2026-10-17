@@ -96,6 +96,9 @@ type GitHubInstallStart func(*sql.Selector)
 // GitHubInstallation is the predicate function for githubinstallation builders.
 type GitHubInstallation func(*sql.Selector)
 
+// IntegrationConnection is the predicate function for integrationconnection builders.
+type IntegrationConnection func(*sql.Selector)
+
 // Invitation is the predicate function for invitation builders.
 type Invitation func(*sql.Selector)
 
@@ -126,6 +129,12 @@ type ProductProfile func(*sql.Selector)
 // ProductSurface is the predicate function for productsurface builders.
 type ProductSurface func(*sql.Selector)
 
+// Project is the predicate function for project builders.
+type Project func(*sql.Selector)
+
+// ProjectVersion is the predicate function for projectversion builders.
+type ProjectVersion func(*sql.Selector)
+
 // PublicationAttempt is the predicate function for publicationattempt builders.
 type PublicationAttempt func(*sql.Selector)
 
@@ -146,6 +155,9 @@ type ScreenshotCache func(*sql.Selector)
 
 // Session is the predicate function for session builders.
 type Session func(*sql.Selector)
+
+// ShareLink is the predicate function for sharelink builders.
+type ShareLink func(*sql.Selector)
 
 // SocialOAuthStart is the predicate function for socialoauthstart builders.
 type SocialOAuthStart func(*sql.Selector)

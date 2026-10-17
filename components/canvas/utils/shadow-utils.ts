@@ -105,3 +105,50 @@ export function getShadowProps(shadow: ShadowConfig): ShadowProps | Record<strin
   };
 }
 
+
+/**
+ * The stage's shadow for the main image's shadow settings. Zero offsets fall
+ * back to a light-from-top-left default, and rgba colors carry their alpha as
+ * intensity, so presets read the same on every frame type.
+ */
+export function toCanvasShadow(shadow: {
+  enabled: boolean;
+  blur: number;
+  offsetX: number;
+  offsetY: number;
+  spread: number;
+  color: string;
+}): ShadowConfig {
+  const offsetX = shadow.offsetX || Math.round(shadow.blur * 0.3);
+  const offsetY = shadow.offsetY || Math.round(shadow.blur * 0.5);
+  const elevation = Math.max(Math.abs(offsetX), Math.abs(offsetY), shadow.blur * 0.4) || 8;
+  const side: ShadowConfig['side'] =
+    offsetX === 0 && offsetY > 0 ? 'bottom' : offsetX > 0 && offsetY === 0 ? 'right' : 'bottom-right';
+
+  let color = shadow.color;
+  let intensity = 0.6;
+  const rgba = shadow.color.match(/rgba?\(([^)]+)\)/);
+  if (rgba) {
+    const parts = rgba[1].split(',').map((part) => part.trim());
+    if (parts.length === 4) {
+      intensity = Math.min(1, (parseFloat(parts[3]) || 0.5) * 1.2);
+      color = `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, 1)`;
+    } else if (parts.length === 3) {
+      color = `rgb(${parts[0]}, ${parts[1]}, ${parts[2]})`;
+    }
+  } else if (shadow.color.startsWith('#')) {
+    intensity = 0.7;
+  }
+
+  return {
+    enabled: shadow.enabled,
+    elevation,
+    side,
+    softness: shadow.blur,
+    spread: shadow.spread,
+    color,
+    intensity,
+    offsetX,
+    offsetY,
+  };
+}

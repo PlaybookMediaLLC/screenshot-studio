@@ -77,8 +77,10 @@ func (s *Server) productReadActor(w http.ResponseWriter, r *http.Request) (produ
 	return actor, true
 }
 
+// listBrandKits is open to every member: the editor applies brand kits.
+// Creating, renaming, and archiving them stays with owners and admins.
 func (s *Server) listBrandKits(w http.ResponseWriter, r *http.Request) {
-	actor, ok := s.configurationActor(w, r)
+	actor, ok := s.productReadActor(w, r)
 	if !ok {
 		return
 	}

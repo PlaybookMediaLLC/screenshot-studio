@@ -933,6 +933,33 @@ var (
 			},
 		},
 	}
+	// IntegrationConnectionColumns holds the columns for the "integration_connection" table.
+	IntegrationConnectionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "provider", Type: field.TypeEnum, Enums: []string{"SLACK", "NOTION", "FIGMA"}},
+		{Name: "externalId", Type: field.TypeString},
+		{Name: "displayName", Type: field.TypeString},
+		{Name: "encryptedCredentials", Type: field.TypeString},
+		{Name: "scopes", Type: field.TypeJSON},
+		{Name: "tokenExpiresAt", Type: field.TypeTime, Nullable: true},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// IntegrationConnectionTable holds the schema information for the "integration_connection" table.
+	IntegrationConnectionTable = &schema.Table{
+		Name:       "integration_connection",
+		Columns:    IntegrationConnectionColumns,
+		PrimaryKey: []*schema.Column{IntegrationConnectionColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "integrationconnection_organizationId_provider_externalId",
+				Unique:  true,
+				Columns: []*schema.Column{IntegrationConnectionColumns[1], IntegrationConnectionColumns[2], IntegrationConnectionColumns[3]},
+			},
+		},
+	}
 	// InvitationColumns holds the columns for the "invitation" table.
 	InvitationColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1234,6 +1261,57 @@ var (
 			},
 		},
 	}
+	// ProjectColumns holds the columns for the "project" table.
+	ProjectColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "document", Type: field.TypeJSON},
+		{Name: "documentVersion", Type: field.TypeInt},
+		{Name: "revision", Type: field.TypeInt, Default: 1},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "updatedByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ProjectTable holds the schema information for the "project" table.
+	ProjectTable = &schema.Table{
+		Name:       "project",
+		Columns:    ProjectColumns,
+		PrimaryKey: []*schema.Column{ProjectColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "project_organizationId_updatedAt",
+				Unique:  false,
+				Columns: []*schema.Column{ProjectColumns[1], ProjectColumns[9]},
+			},
+		},
+	}
+	// ProjectVersionColumns holds the columns for the "project_version" table.
+	ProjectVersionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "projectId", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "revision", Type: field.TypeInt},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"autosave", "named", "restore", "duplicate"}},
+		{Name: "name", Type: field.TypeString, Nullable: true},
+		{Name: "document", Type: field.TypeJSON},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// ProjectVersionTable holds the schema information for the "project_version" table.
+	ProjectVersionTable = &schema.Table{
+		Name:       "project_version",
+		Columns:    ProjectVersionColumns,
+		PrimaryKey: []*schema.Column{ProjectVersionColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "projectversion_projectId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ProjectVersionColumns[1], ProjectVersionColumns[8]},
+			},
+		},
+	}
 	// PublicationAttemptColumns holds the columns for the "publication_attempt" table.
 	PublicationAttemptColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1473,6 +1551,42 @@ var (
 				Name:    "session_token",
 				Unique:  true,
 				Columns: []*schema.Column{SessionColumns[2]},
+			},
+		},
+	}
+	// ShareLinkColumns holds the columns for the "share_link" table.
+	ShareLinkColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "token", Type: field.TypeString},
+		{Name: "assetId", Type: field.TypeString},
+		{Name: "posterAssetId", Type: field.TypeString, Nullable: true},
+		{Name: "projectId", Type: field.TypeString, Nullable: true},
+		{Name: "title", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "altText", Type: field.TypeString, Nullable: true},
+		{Name: "access", Type: field.TypeEnum, Enums: []string{"PUBLIC", "WORKSPACE"}, Default: "PUBLIC"},
+		{Name: "expiresAt", Type: field.TypeTime, Nullable: true},
+		{Name: "revokedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ShareLinkTable holds the schema information for the "share_link" table.
+	ShareLinkTable = &schema.Table{
+		Name:       "share_link",
+		Columns:    ShareLinkColumns,
+		PrimaryKey: []*schema.Column{ShareLinkColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "sharelink_token",
+				Unique:  true,
+				Columns: []*schema.Column{ShareLinkColumns[2]},
+			},
+			{
+				Name:    "sharelink_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ShareLinkColumns[1], ShareLinkColumns[13]},
 			},
 		},
 	}
@@ -1896,6 +2010,7 @@ var (
 		DesignTable,
 		GithubInstallStartTable,
 		GithubInstallationTable,
+		IntegrationConnectionTable,
 		InvitationTable,
 		LaunchRunTable,
 		LaunchRunStepTable,
@@ -1906,6 +2021,8 @@ var (
 		PostizTenantBindingTable,
 		ProductProfileTable,
 		ProductSurfaceTable,
+		ProjectTable,
+		ProjectVersionTable,
 		PublicationAttemptTable,
 		ReleaseTable,
 		ReleaseDocumentTable,
@@ -1913,6 +2030,7 @@ var (
 		ScheduledPostTable,
 		ScreenshotCacheTable,
 		SessionTable,
+		ShareLinkTable,
 		SocialOauthStartTable,
 		SourceAppTable,
 		SourceChangeTable,
@@ -2023,6 +2141,9 @@ func init() {
 	GithubInstallationTable.Annotation = &entsql.Annotation{
 		Table: "github_installation",
 	}
+	IntegrationConnectionTable.Annotation = &entsql.Annotation{
+		Table: "integration_connection",
+	}
 	InvitationTable.Annotation = &entsql.Annotation{
 		Table: "invitation",
 	}
@@ -2053,6 +2174,12 @@ func init() {
 	ProductSurfaceTable.Annotation = &entsql.Annotation{
 		Table: "product_surface",
 	}
+	ProjectTable.Annotation = &entsql.Annotation{
+		Table: "project",
+	}
+	ProjectVersionTable.Annotation = &entsql.Annotation{
+		Table: "project_version",
+	}
 	PublicationAttemptTable.ForeignKeys[0].RefTable = ScheduledPostTable
 	PublicationAttemptTable.Annotation = &entsql.Annotation{
 		Table: "publication_attempt",
@@ -2075,6 +2202,9 @@ func init() {
 	}
 	SessionTable.Annotation = &entsql.Annotation{
 		Table: "session",
+	}
+	ShareLinkTable.Annotation = &entsql.Annotation{
+		Table: "share_link",
 	}
 	SocialOauthStartTable.Annotation = &entsql.Annotation{
 		Table: "social_oauth_start",

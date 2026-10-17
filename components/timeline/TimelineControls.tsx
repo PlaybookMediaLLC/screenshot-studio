@@ -12,6 +12,7 @@ import {
   Delete02Icon,
 } from 'hugeicons-react';
 import { useImageStore } from '@/lib/store';
+import { usePlaybackStore } from '@/lib/store/playback';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 
@@ -30,14 +31,16 @@ interface TimelineControlsProps {
 export function TimelineControls({ onAddAnimation, onClose }: TimelineControlsProps) {
   const {
     timeline,
-    togglePlayback,
     setTimeline,
     setTimelineDuration,
     clearAnimationClips,
     animationClips,
   } = useImageStore();
 
-  const { isPlaying, isLooping, playhead, duration } = timeline;
+  const { isLooping, duration } = timeline;
+  const isPlaying = usePlaybackStore((state) => state.isPlaying);
+  const playhead = usePlaybackStore((state) => state.playhead);
+  const togglePlayback = usePlaybackStore((state) => state.toggle);
 
   const handleToggleLoop = () => setTimeline({ isLooping: !isLooping });
   const hasAnimations = animationClips.length > 0;

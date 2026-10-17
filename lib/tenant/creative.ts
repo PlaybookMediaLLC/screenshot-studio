@@ -36,6 +36,20 @@ export async function createCreativeTemplate(
   return withDates(await backendSDK(context).createCreativeTemplate(input))
 }
 
+/** Rename every version of the template `templateId` belongs to. */
+export async function renameCreativeTemplate(
+  context: TenantContext,
+  templateId: string,
+  name: string
+) {
+  return withDates(await backendSDK(context).renameCreativeTemplate(templateId, name))
+}
+
+/** Archive every version of the template `templateId` belongs to. */
+export async function archiveCreativeTemplate(context: TenantContext, templateId: string) {
+  return backendSDK(context).archiveCreativeTemplate(templateId)
+}
+
 /**
  * A variant pins the template, brand kit, and source asset revisions it was
  * built from; the backend resolves them in this workspace and numbers the

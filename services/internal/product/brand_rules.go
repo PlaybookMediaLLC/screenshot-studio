@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"encoding/json"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -74,10 +75,16 @@ func optionalText(value *string) string {
 
 var brandHexPattern = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 
+// brandKitEditorLimit caps the editor's extension of a kit definition.
+const brandKitEditorLimit = 32 << 10
+
 // normalizeBrandKitDefinition validates a schema-version-1 kit definition
 // (brandKitDefinitionSchema in lib/tenant/schemas.ts) and returns it in its
 // canonical shape, with the logo asset to verify. A missing schemaVersion is
 // a legacy definition and is read as 1; legacy colors.foreground is text.
+// The optional `editor` block (more colours and logos, Google Fonts, and the
+// background and frame designs start from) is kept as sent; its workspace
+// assets are checked by brandKitEditorAssets.
 func normalizeBrandKitDefinition(definition map[string]any) (map[string]any, string, error) {
 	if definition == nil {
 		return nil, "", invalid("A brand kit needs a definition.")
@@ -131,7 +138,33 @@ func normalizeBrandKitDefinition(definition map[string]any) (map[string]any, str
 		logoAssetID = id
 		canonical["logo"] = map[string]any{"primaryAssetId": id}
 	}
+	if editor, present := definition["editor"]; present && editor != nil {
+		fields, ok := editor.(map[string]any)
+		if !ok {
+			return nil, "", invalid("definition.editor must be an object.")
+		}
+		encoded, err := json.Marshal(fields)
+		if err != nil || len(encoded) > brandKitEditorLimit {
+			return nil, "", invalid("definition.editor is larger than 32 KB.")
+		}
+		canonical["editor"] = fields
+	}
 	return canonical, logoAssetID, nil
+}
+
+// brandKitEditorAssets returns the workspace assets a definition's editor
+// block references (extra logos, a background image). A local image
+// reference is refused: it must be uploaded first.
+func brandKitEditorAssets(definition map[string]any) ([]string, error) {
+	ids := map[string]bool{}
+	if !collectDesignAssetIDs(definition["editor"], ids) {
+		return nil, invalid("definition.editor references a local image; upload it first.")
+	}
+	assets := make([]string, 0, len(ids))
+	for id := range ids {
+		assets = append(assets, id)
+	}
+	return assets, nil
 }
 
 // requireBrandLogo checks that a kit's logo is an uploaded image of the workspace.

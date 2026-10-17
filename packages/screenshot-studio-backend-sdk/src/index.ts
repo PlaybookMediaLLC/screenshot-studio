@@ -610,6 +610,99 @@ export type BackendCreateDesignInput = {
   variantLabel?: string
 }
 
+/** A cloud project: an editor composition with revision-checked writes. */
+export type BackendProject = {
+  createdAt: string
+  createdByUserId: string | null
+  document: Record<string, unknown>
+  documentVersion: number
+  id: string
+  name: string
+  organizationId: string
+  /** Every document write is based on this; a stale one is refused with 409. */
+  revision: number
+  updatedAt: string
+  updatedByUserId: string | null
+}
+
+/** How a project version came to be. */
+export type BackendProjectVersionKind = 'autosave' | 'named' | 'restore' | 'duplicate'
+
+/** A snapshot in a project's history; `document` is only on a single version. */
+export type BackendProjectVersion = {
+  createdAt: string
+  createdByName: string | null
+  createdByUserId: string | null
+  document?: Record<string, unknown>
+  id: string
+  kind: BackendProjectVersionKind
+  name: string | null
+  projectId: string
+  revision: number
+}
+
+/** Filters for a project list; `cursor` comes from the previous page. */
+export type BackendProjectListQuery = {
+  cursor?: string
+  limit?: number
+  search?: string
+  sort?: 'updated' | 'name'
+}
+
+/** Who may open a share link: anyone with it, or members of its workspace. */
+export type ShareLinkAccess = 'PUBLIC' | 'WORKSPACE'
+
+/** A published artifact, as its workspace sees it. */
+export type BackendShareLink = {
+  access: ShareLinkAccess
+  altText: string | null
+  assetId: string
+  createdAt: string
+  description: string | null
+  expiresAt: string | null
+  height: number | null
+  id: string
+  mediaType: string
+  posterAssetId: string | null
+  projectId: string | null
+  revokedAt: string | null
+  title: string
+  token: string
+  updatedAt: string
+  width: number | null
+}
+
+/** What a share page may show for a live link. */
+export type BackendPublicShareLink = {
+  access: ShareLinkAccess
+  altText: string | null
+  createdAt: string
+  description: string | null
+  expiresAt: string | null
+  height: number | null
+  mediaType: string
+  organizationId: string
+  posterMediaType: string | null
+  title: string
+  width: number | null
+}
+
+/** A provider an integration connects. */
+export type IntegrationProvider = 'SLACK' | 'NOTION' | 'FIGMA'
+
+/** A workspace's connection to a provider account, without credentials. */
+export type BackendIntegration = {
+  createdAt: string
+  createdByUserId: string | null
+  displayName: string
+  externalId: string
+  id: string
+  provider: IntegrationProvider
+  scopes: string[]
+  tokenExpiresAt: string | null
+  updatedAt: string
+}
+
 export type BackendCreativeTemplate = {
   createdAt: string
   definition: Record<string, unknown>
@@ -1409,6 +1502,21 @@ export class ScreenshotStudioBackendSDK {
     return this.request<BrandKit>('v1/brand-kits', { body: input, method: 'POST' })
   }
 
+  /** Rename every version of the brand kit `id` belongs to. */
+  async renameBrandKit(id: string, name: string) {
+    return this.request<BrandKit>(`v1/brand-kits/${encodeURIComponent(id)}`, {
+      body: { name },
+      method: 'PATCH',
+    })
+  }
+
+  /** Archive every version of the brand kit `id` belongs to. */
+  async archiveBrandKit(id: string) {
+    return this.request<{ archived: true }>(`v1/brand-kits/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+  }
+
   async getBrandProfile() {
     return this.request<{ brandProfile: BrandProfile | null }>('v1/brand-profile')
   }
@@ -1711,6 +1819,173 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
+  async listProjects(query: BackendProjectListQuery = {}) {
+    const params = new URLSearchParams()
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== '') params.set(key, String(value))
+    }
+    return this.request<{ items: BackendProject[]; nextCursor: string | null }>(
+      `v1/projects?${params}`
+    )
+  }
+
+  async createProject(input: { document: unknown; name: string }) {
+    return this.request<BackendProject>('v1/projects', { body: input, method: 'POST' })
+  }
+
+  async getProject(id: string) {
+    return this.request<BackendProject>(`v1/projects/${encodeURIComponent(id)}`)
+  }
+
+  async renameProject(id: string, name: string) {
+    return this.request<BackendProject>(`v1/projects/${encodeURIComponent(id)}`, {
+      body: { name },
+      method: 'PATCH',
+    })
+  }
+
+  /** Writes a document based on `baseRevision`; a stale write fails with 409 and `currentRevision`. */
+  async updateProjectDocument(id: string, input: { baseRevision: number; document: unknown }) {
+    return this.request<{ revision: number; updatedAt: string }>(
+      `v1/projects/${encodeURIComponent(id)}/document`,
+      { body: input, method: 'PUT' }
+    )
+  }
+
+  async duplicateProject(id: string, name?: string) {
+    return this.request<BackendProject>(`v1/projects/${encodeURIComponent(id)}/duplicate`, {
+      body: name === undefined ? {} : { name },
+      method: 'POST',
+    })
+  }
+
+  async deleteProject(id: string) {
+    return this.request<{ deleted: true }>(`v1/projects/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async listProjectVersions(id: string) {
+    return this.request<{ versions: BackendProjectVersion[] }>(
+      `v1/projects/${encodeURIComponent(id)}/versions`
+    )
+  }
+
+  async getProjectVersion(id: string, versionId: string) {
+    return this.request<BackendProjectVersion & { document: Record<string, unknown> }>(
+      `v1/projects/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}`
+    )
+  }
+
+  /** Names the project's current document as a version. */
+  async createProjectVersion(id: string, name: string) {
+    return this.request<BackendProjectVersion>(`v1/projects/${encodeURIComponent(id)}/versions`, {
+      body: { name },
+      method: 'POST',
+    })
+  }
+
+  /** Makes a version the current document, as a new revision based on `baseRevision`. */
+  async restoreProjectVersion(id: string, versionId: string, baseRevision: number) {
+    return this.request<BackendProject>(
+      `v1/projects/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}/restore`,
+      { body: { baseRevision }, method: 'POST' }
+    )
+  }
+
+  async listShareLinks() {
+    return this.request<{ shareLinks: BackendShareLink[] }>('v1/share-links')
+  }
+
+  async getShareLink(id: string) {
+    return this.request<BackendShareLink>(`v1/share-links/${encodeURIComponent(id)}`)
+  }
+
+  async createShareLink(input: {
+    access: ShareLinkAccess
+    altText?: string | null
+    assetId: string
+    description?: string | null
+    expiresAt?: string | null
+    posterAssetId?: string | null
+    projectId?: string | null
+    title: string
+  }) {
+    return this.request<BackendShareLink>('v1/share-links', { body: input, method: 'POST' })
+  }
+
+  async updateShareLink(
+    id: string,
+    input: {
+      access?: ShareLinkAccess
+      altText?: string | null
+      clearExpiry?: boolean
+      description?: string | null
+      expiresAt?: string | null
+      title?: string
+    }
+  ) {
+    return this.request<BackendShareLink>(`v1/share-links/${encodeURIComponent(id)}`, {
+      body: input,
+      method: 'PATCH',
+    })
+  }
+
+  async revokeShareLink(id: string) {
+    return this.request<{ revoked: true }>(`v1/share-links/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+  }
+
+  /** A live link by its token, for the share page; requires the service token alone. */
+  async resolveShareLink(token: string) {
+    return this.request<BackendPublicShareLink>(`v1/internal/share-links/${encodeURIComponent(token)}`)
+  }
+
+  /** A short-lived signed URL for a live link's media or poster; requires the service token alone. */
+  async shareLinkObjectUrl(token: string, variant: 'media' | 'poster') {
+    return this.request<{ mediaType: string; url: string }>(
+      `v1/internal/share-links/${encodeURIComponent(token)}/object-url?variant=${variant}`
+    )
+  }
+
+  async listIntegrations() {
+    return this.request<{ integrations: BackendIntegration[] }>('v1/integrations')
+  }
+
+  async saveIntegration(input: {
+    displayName: string
+    encryptedCredentials: string
+    externalId: string
+    provider: IntegrationProvider
+    scopes: string[]
+    tokenExpiresAt: string | null
+  }) {
+    return this.request<BackendIntegration>('v1/integrations', { body: input, method: 'POST' })
+  }
+
+  async integrationCredentials(id: string) {
+    return this.request<BackendIntegration & { encryptedCredentials: string }>(
+      `v1/integrations/${encodeURIComponent(id)}/credentials`
+    )
+  }
+
+  async updateIntegrationCredentials(
+    id: string,
+    input: { encryptedCredentials: string; tokenExpiresAt: string | null }
+  ) {
+    return this.request<{ updated: true }>(`v1/integrations/${encodeURIComponent(id)}/credentials`, {
+      body: input,
+      method: 'PUT',
+    })
+  }
+
+  async deleteIntegration(id: string) {
+    return this.request<{ deleted: true }>(`v1/integrations/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+  }
+
   async listCreativeTemplates() {
     return this.request<{ templates: BackendCreativeTemplate[] }>('v1/creative-templates')
   }
@@ -1719,6 +1994,21 @@ export class ScreenshotStudioBackendSDK {
     return this.request<BackendCreativeTemplate>('v1/creative-templates', {
       body: input,
       method: 'POST',
+    })
+  }
+
+  /** Rename every version of the template `id` belongs to. */
+  async renameCreativeTemplate(id: string, name: string) {
+    return this.request<BackendCreativeTemplate>(`v1/creative-templates/${encodeURIComponent(id)}`, {
+      body: { name },
+      method: 'PATCH',
+    })
+  }
+
+  /** Archive every version of the template `id` belongs to. */
+  async archiveCreativeTemplate(id: string) {
+    return this.request<{ archived: true }>(`v1/creative-templates/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
     })
   }
 

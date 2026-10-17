@@ -1,11 +1,15 @@
 import { z } from 'zod'
+import { brandKitEditorSchema } from '@/lib/brand/editor-definition'
 import { fontFamilies } from '@/lib/constants/fonts'
 import { assetClassifications } from './object-key'
 
 const contentTypeSchema = z
   .string()
   .trim()
-  .regex(/^(image\/(gif|jpeg|png|webp)|video\/(mp4|webm))$/, 'Unsupported media type.')
+  .regex(
+    /^(image\/(gif|jpeg|png|webp)|video\/(mp4|webm)|audio\/(aac|mp4|mpeg|ogg|wav|webm))$/,
+    'Unsupported media type.'
+  )
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/i, 'SHA-256 must be hexadecimal.')
 const assetIdSchema = z.string().uuid()
@@ -64,6 +68,8 @@ export const brandKitDefinitionSchema = z.object({
     },
     z.object({ accent: hexColorSchema, background: hexColorSchema, text: hexColorSchema })
   ),
+  /** The editor's extensions: more colours and logos, Google Fonts, background and frame defaults. */
+  editor: brandKitEditorSchema.optional(),
   logo: z.object({ primaryAssetId: assetIdSchema }).optional(),
   schemaVersion: z.literal(1).default(1),
   typography: z.object({
@@ -403,6 +409,15 @@ export const creativeTemplateCreateSchema = z.object({
   definition: z.record(z.string(), z.json()),
   name: z.string().trim().min(1).max(100),
 })
+
+/** Rename a preset or brand kit (every version of its name). */
+export const libraryRenameSchema = z.object({
+  id: z.string().cuid(),
+  name: z.string().trim().min(1).max(100),
+})
+
+/** Archive a preset or brand kit (every version of its name). */
+export const libraryArchiveSchema = z.object({ id: z.string().cuid() })
 
 export const creativeVariantCreateSchema = z.object({
   aspectRatio: z

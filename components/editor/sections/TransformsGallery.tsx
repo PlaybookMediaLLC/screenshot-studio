@@ -1,13 +1,16 @@
 'use client';
 
 import * as React from 'react';
-import { useImageStore, useEditorStore } from '@/lib/store';
+import { useImageStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
-import { getBackgroundCSS } from '@/lib/constants/backgrounds';
 import { aspectRatios } from '@/lib/constants/aspect-ratios';
+import { DocumentPreview } from '@/components/design/DocumentPreview';
+import type { DesignDocument } from '@/lib/design/document';
+import { useEditorDocument } from '@/lib/design/use-editor-document';
 import { SectionWrapper } from './SectionWrapper';
 
-interface TransformPreset {
+/** A 3D layout preset: the main image's perspective values. */
+export interface TransformPreset {
   name: string;
   values: {
     perspective: number;
@@ -104,22 +107,31 @@ const PRESET_CATEGORIES: PresetCategory[] = [
 
 const ALL_PRESETS = PRESET_CATEGORIES.flatMap((cat) => cat.presets);
 
-export function TransformsGallery() {
-  const {
-    uploadedImageUrl,
-    perspective3D,
-    setPerspective3D,
-    backgroundConfig,
-    backgroundBorderRadius,
-    borderRadius,
-    imageShadow,
-  } = useImageStore();
+/**
+ * The design with a layout preset's 3D values and no animation: what
+ * applying the preset produces, frame and devices included.
+ */
+export function withLayoutPreset(document: DesignDocument, values: TransformPreset['values']): DesignDocument {
+  return {
+    ...document,
+    animation: undefined,
+    image: { ...document.image, perspective: { ...values } },
+    timeline: undefined,
+  }
+}
 
-  const { screenshot } = useEditorStore();
+export function TransformsGallery() {
+  const perspective3D = useImageStore((state) => state.perspective3D);
+  const setPerspective3D = useImageStore((state) => state.setPerspective3D);
+  const editorDocument = useEditorDocument();
 
   const selectedAspectRatio = useImageStore((s) => s.selectedAspectRatio);
+  const customDimensions = useImageStore((s) => s.customDimensions);
   const ar = aspectRatios.find((a) => a.id === selectedAspectRatio);
-  const cssAspectRatio = ar ? `${ar.width} / ${ar.height}` : '4 / 3';
+  const cssAspectRatio =
+    selectedAspectRatio === 'custom' && customDimensions
+      ? `${customDimensions.width} / ${customDimensions.height}`
+      : ar ? `${ar.width} / ${ar.height}` : '4 / 3';
 
   const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null);
 
@@ -148,13 +160,6 @@ export function TransformsGallery() {
     setSelectedIndex(index);
   };
 
-  const previewImageUrl = uploadedImageUrl || screenshot?.src || null;
-
-  // Use the same background CSS as the main canvas
-  const backgroundStyle = getBackgroundCSS(backgroundConfig, 384);
-  const previewBorderRadius = Math.round(backgroundBorderRadius * 0.15);
-  const previewImageRadius = Math.round(Math.min(borderRadius, 20) * 0.3);
-
   return (
     <div className="space-y-1">
       {PRESET_CATEGORIES.map((category, categoryIndex) => (
@@ -167,63 +172,26 @@ export function TransformsGallery() {
             {category.presets.map((preset, presetIndex) => {
               const globalIndex = getGlobalIndex(categoryIndex, presetIndex);
               const isSelected = selectedIndex === globalIndex;
-              const { perspective, rotateX, rotateY, rotateZ, translateX, translateY, scale } = preset.values;
               return (
                 <button
                   key={preset.name}
                   type="button"
+                  aria-label={`Apply ${preset.name}`}
+                  aria-pressed={isSelected}
                   onClick={() => applyPreset(preset, globalIndex)}
                   className={cn(
                     'relative w-full rounded-md overflow-hidden transition-all duration-200 group/card cursor-pointer',
-                    'border',
+                    'border bg-foreground/[0.03]',
                     isSelected
                       ? 'border-primary ring-1 ring-foreground/20'
                       : 'border-foreground/10 hover:border-foreground/20'
                   )}
                   style={{ aspectRatio: cssAspectRatio }}
                 >
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      ...backgroundStyle,
-                      borderRadius: `${previewBorderRadius}px`,
-                    }}
+                  <DocumentPreview
+                    alt={`${preset.name} layout`}
+                    document={editorDocument ? withLayoutPreset(editorDocument, preset.values) : null}
                   />
-
-                  <div
-                    className="absolute inset-0 flex items-center justify-center"
-                    style={{ perspective: `${perspective}px` }}
-                  >
-                    {previewImageUrl ? (
-                      <div
-                        className="w-[85%] h-[85%] transition-transform duration-150"
-                        style={{
-                          transform: `translate(${translateX}%, ${translateY}%) rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg) scale(${scale})`,
-                          transformOrigin: 'center center',
-                        }}
-                      >
-                        <img
-                          src={previewImageUrl}
-                          alt={preset.name}
-                          className="w-full h-full object-contain"
-                          style={{
-                            borderRadius: `${previewImageRadius}px`,
-                            filter: imageShadow.enabled
-                              ? `drop-shadow(${imageShadow.offsetX * 0.15}px ${imageShadow.offsetY * 0.15}px ${(imageShadow.blur + imageShadow.spread) * 0.15}px ${imageShadow.color})`
-                              : undefined,
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        className="w-[85%] h-[85%] bg-foreground/[0.08] rounded-md border border-foreground/10"
-                        style={{
-                          transform: `translate(${translateX}%, ${translateY}%) rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg) scale(${scale})`,
-                          transformOrigin: 'center center',
-                        }}
-                      />
-                    )}
-                  </div>
 
                   <div className={cn(
                     'absolute bottom-0 inset-x-0 flex justify-center pb-1.5 transition-opacity duration-150',
@@ -245,10 +213,10 @@ export function TransformsGallery() {
         </SectionWrapper>
       ))}
 
-      {!previewImageUrl && (
+      {!editorDocument && (
         <div className="p-3 rounded-md bg-foreground/[0.04] border border-foreground/10 text-center">
           <p className="text-xs text-muted-foreground">
-            Upload an image to see transform previews
+            Add a screenshot to preview layouts on your design
           </p>
         </div>
       )}

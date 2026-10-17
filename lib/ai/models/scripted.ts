@@ -775,6 +775,63 @@ const usage = {
   outputTokens: { reasoning: 0, text: 0, total: 0 },
 }
 
+/** Distinct, catalog-valid versions of a design, for the variants flow. */
+function scriptVariants(text: string, done: number): ToolCall[] {
+  const count = Number(text.match(/Propose (\d+) versions/)?.[1] ?? 4)
+  const versions = [
+    {
+      changes: { canvas: { aspectRatio: '1_1' }, image: { perspective: { rotateX: 8, rotateY: -14 }, scale: 85 } },
+      reason: 'A square crop with a gentle 3D tilt for feeds.',
+      title: 'Tilted square',
+    },
+    {
+      changes: { canvas: { aspectRatio: '9_16' }, image: { frame: { type: 'macos-dark' }, scale: 90 } },
+      reason: 'A tall story format with a dark window frame.',
+      title: 'Story window',
+    },
+    {
+      changes: { background: { type: 'solid', value: '#0f172a' }, image: { frame: { type: 'arc-light' }, shadow: { preset: 'strong' } } },
+      reason: 'A browser frame on a deep navy background.',
+      title: 'Browser on navy',
+    },
+    {
+      changes: {
+        background: { type: 'gradient', value: 'linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)' },
+        canvas: { padding: 120 },
+        image: { radius: 24, rotation: -4 },
+      },
+      reason: 'More breathing room, rounder corners, and a slight angle.',
+      title: 'Airy angle',
+    },
+    {
+      changes: { canvas: { aspectRatio: '4_5' }, image: { perspective: { rotateX: 18 } } },
+      reason: 'A portrait crop with the screenshot laid back in perspective.',
+      title: 'Laid back',
+    },
+    {
+      changes: { canvas: { aspectRatio: '16_9' }, image: { frame: { type: 'glass-dark' }, scale: 70 } },
+      reason: 'A wide banner with a glass frame and a smaller screenshot.',
+      title: 'Glass banner',
+    },
+  ]
+  return versions.slice(done, count).map((input) => ({ input, toolName: 'proposeVariant' }))
+}
+
+/** Alt text and captions built from the design's own text, within each platform's limit. */
+function scriptCaptions(text: string) {
+  const channels = (text.match(/<channels>([^<]*)<\/channels>/)?.[1] ?? 'x').split(',').filter(Boolean)
+  const visible = text.match(/<visible-text>([^<]*)<\/visible-text>/)?.[1] ?? ''
+  const headline = visible && visible !== '(none)' ? visible.split(' | ')[0]!.trim() : ''
+  const subject = headline ? `“${headline}”` : 'the new release'
+  return {
+    altText: headline ? `A product screenshot with the headline “${headline}”.` : 'A product screenshot.',
+    captions: channels.map((channel) => ({
+      channel,
+      text: channel === 'instagram' ? `Meet ${subject}.\n\n#product #launch #design` : `Meet ${subject}. Take a look.`,
+    })),
+  }
+}
+
 function respond(content: LanguageModelV4Content[]): LanguageModelV4GenerateResult {
   const hasCalls = content.some((part) => part.type === 'tool-call')
   return {
@@ -792,6 +849,7 @@ const SUBMIT_TOOLS = [
   'proposeRevision',
   'submitCritique',
   'submitLinkCopy',
+  'submitCaptions',
   'submitProductProfile',
   'submitTranslations',
   'submitCopySuggestions',
@@ -861,14 +919,30 @@ export function createScriptedModel(modelId: string): LanguageModelV4 {
                   ? { brand: 5, issues: [], legibility: 5, specFidelity: 5, verdict: 'pass' }
                   : submit === 'submitLinkCopy'
                     ? scriptLinkCopy(text)
-                    : submit === 'submitProductProfile'
-                      ? scriptProductProfile(text)
-                      : submit === 'submitTranslations'
-                        ? scriptTranslations(text)
-                        : submit === 'submitCopySuggestions'
-                          ? scriptCopySuggestions(text, systemText(options))
-                          : scriptRevision(text, toolProperties(options, 'proposeRevision'))
+                    : submit === 'submitCaptions'
+                      ? scriptCaptions(text)
+                      : submit === 'submitProductProfile'
+                        ? scriptProductProfile(text)
+                        : submit === 'submitTranslations'
+                          ? scriptTranslations(text)
+                          : submit === 'submitCopySuggestions'
+                            ? scriptCopySuggestions(text, systemText(options))
+                            : scriptRevision(text, toolProperties(options, 'proposeRevision'))
         return respond(toolCalls([{ input, toolName: submit }]))
+      }
+      if (names.includes('showVariants') && !results.some((result) => result.toolName === 'showVariants')) {
+        const words = { five: 5, four: 4, six: 6, three: 3, two: 2 } as Record<string, number>
+        const asked = text.match(/\b(\d|two|three|four|five|six)\s+(?:versions|variants|options|alternatives)\b/i)
+        if (asked) {
+          const count = Number(asked[1]) || words[asked[1]!.toLowerCase()] || 4
+          return respond(toolCalls([{ input: { count, instruction: '' }, toolName: 'showVariants' }]))
+        }
+      }
+      if (names.includes('proposeVariant')) {
+        const done = results.filter((result) => result.toolName === 'proposeVariant').length
+        const next = done === 0 ? scriptVariants(text, 0) : []
+        if (next.length > 0) return respond(toolCalls(next))
+        return respond([{ text: 'Proposed the versions.', type: 'text' }])
       }
       if (names.includes('captureProductPage')) {
         const next = scriptVisuals(text, results, calls)

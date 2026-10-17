@@ -1,12 +1,13 @@
 'use client'
 
 import { TRPCClientError } from '@trpc/client'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from './settings-client'
 
 /**
- * The work a workspace has in flight: releases, campaigns,
+ * The work a workspace has in flight: projects, releases, campaigns,
  * announcements, and scheduled posts.
  *
  * These domains had list procedures with no screen, so a team could
@@ -18,7 +19,7 @@ import { getErrorMessage } from './settings-client'
 
 type TRPC = ReturnType<typeof useTRPCClient>
 
-type Row = { id: string; meta: string; status: string; title: string }
+type Row = { href?: string; id: string; meta: string; status: string; title: string }
 
 type Section = {
   empty: string
@@ -55,6 +56,21 @@ function releaseContents(release: {
 }
 
 const SECTIONS: Section[] = [
+  {
+    empty: 'Save a design from the editor as a project to see it here.',
+    key: 'projects',
+    load: async (trpc) => {
+      const { items } = await trpc.project.list.query({ limit: 5, sort: 'updated' })
+      return items.map((project) => ({
+        href: `/?project=${encodeURIComponent(project.id)}`,
+        id: project.id,
+        meta: `Edited ${formatDate(project.updatedAt)}`,
+        status: `Revision ${project.revision}`,
+        title: project.name,
+      }))
+    },
+    title: 'Recently edited projects',
+  },
   {
     empty: 'Releases arrive through the API or a repository webhook.',
     key: 'releases',
@@ -159,7 +175,16 @@ function ActivitySection({ section }: { section: Section }) {
             {state.rows?.map((row) => (
               <li className="flex items-center justify-between gap-4 p-4" key={row.id}>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{row.title}</p>
+                  {row.href ? (
+                    <Link
+                      className="block truncate text-sm font-medium hover:underline"
+                      href={row.href}
+                    >
+                      {row.title}
+                    </Link>
+                  ) : (
+                    <p className="truncate text-sm font-medium">{row.title}</p>
+                  )}
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">{row.meta}</p>
                 </div>
                 <span className="shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground">

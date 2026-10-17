@@ -1,8 +1,14 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useMemo } from 'react';
+import { fitFontSize, textFillCss } from '@/lib/typography/text-style';
+import { measureLine, useFontsVersion } from '@/lib/typography/measure';
 import { getFontCSS } from '@/lib/constants/fonts';
 import type { TextOverlay } from '@/lib/store';
+import { canvasOf, collectSnapLines, endSnapDrag, snapDrag } from '@/lib/editor/snap-dom';
+import type { SnapLines } from '@/lib/editor/snapping';
+import { useLayerMotion, useTextReveal } from '@/lib/animation/use-motion';
+import { RevealedText } from '../motion/motion-layers';
 
 export function getDraggedTextPosition(
   start: TextOverlay['position'], deltaX: number, deltaY: number, width: number, height: number,
@@ -42,17 +48,39 @@ function DraggableText({
   onSelect,
   onUpdate,
 }: DraggableTextProps) {
-  const drag = useRef<{ x: number; y: number; position: TextOverlay["position"] } | null>(null);
+  const drag = useRef<{ x: number; y: number; position: TextOverlay["position"]; lines: SnapLines | null } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   // Convert percentage position to pixels
   const textX = (overlay.position.x / 100) * canvasW;
   const textY = (overlay.position.y / 100) * canvasH;
 
-  // Build text shadow CSS
-  const textShadow = overlay.textShadow?.enabled
+  // Build text shadow CSS. A gradient fill makes the glyphs transparent, so
+  // its shadow is a drop-shadow of the painted text instead of text-shadow.
+  const shadow = overlay.textShadow?.enabled
     ? `${overlay.textShadow.offsetX}px ${overlay.textShadow.offsetY}px ${overlay.textShadow.blur}px ${overlay.textShadow.color}`
     : undefined;
+  const gradient = overlay.fill?.kind === 'gradient';
+  const fontVersion = useFontsVersion();
+  const fontCss = getFontCSS(overlay.fontFamily);
+  const boxWidth = overlay.maxWidth ? overlay.maxWidth * canvasW : undefined;
+  // Shrink-to-fit is measured with the browser's own text metrics, again once fonts load.
+  const fontSize = useMemo(
+    () =>
+      overlay.fit === 'shrink' && boxWidth
+        ? fitFontSize(overlay.text.split('\n'), overlay.fontSize, boxWidth, (line) =>
+            measureLine(line, { family: fontCss, letterSpacing: overlay.letterSpacing, size: overlay.fontSize, weight: overlay.fontWeight })
+          )
+        : overlay.fontSize,
+    // fontVersion re-measures after a web font finishes loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [boxWidth, fontCss, fontVersion, overlay.fit, overlay.fontSize, overlay.fontWeight, overlay.letterSpacing, overlay.text]
+  );
+
+  // Keyframes and a reveal are drawn at the playhead; dragging edits the design.
+  const motionTarget = useMemo(() => ({ id: overlay.id, kind: 'text' as const }), [overlay.id]);
+  const motion = useLayerMotion(motionTarget);
+  const reveal = useTextReveal(overlay.id, overlay.text);
 
   if (!overlay.isVisible) return null;
 
@@ -65,38 +93,55 @@ function DraggableText({
         event.preventDefault();
         event.stopPropagation();
         event.currentTarget.setPointerCapture(event.pointerId);
-        drag.current = { x: event.clientX, y: event.clientY, position: overlay.position };
+        const canvas = canvasOf(event.currentTarget);
+        drag.current = {
+          x: event.clientX,
+          y: event.clientY,
+          position: overlay.position,
+          lines: canvas ? collectSnapLines(canvas, event.currentTarget) : null,
+        };
         setIsDragging(true);
         onSelect();
       }}
       onPointerMove={(event) => {
         if (!drag.current) return;
         const bounds = event.currentTarget.parentElement!.getBoundingClientRect();
-        onUpdate({ position: getDraggedTextPosition(
-          drag.current.position,
-          event.clientX - drag.current.x,
-          event.clientY - drag.current.y,
-          bounds.width,
-          bounds.height,
-        ) });
+        const own = event.currentTarget.getBoundingClientRect();
+        let deltaX = event.clientX - drag.current.x;
+        let deltaY = event.clientY - drag.current.y;
+        if (drag.current.lines) {
+          const centerX = (drag.current.position.x / 100) * bounds.width + deltaX;
+          const centerY = (drag.current.position.y / 100) * bounds.height + deltaY;
+          const snap = snapDrag(
+            { height: own.height, width: own.width, x: centerX - own.width / 2, y: centerY - own.height / 2 },
+            drag.current.lines
+          );
+          deltaX += snap.dx;
+          deltaY += snap.dy;
+        }
+        onUpdate({ position: getDraggedTextPosition(drag.current.position, deltaX, deltaY, bounds.width, bounds.height) });
       }}
-      onPointerUp={() => { drag.current = null; setIsDragging(false); }}
-      onPointerCancel={() => { drag.current = null; setIsDragging(false); }}
-      onLostPointerCapture={() => { drag.current = null; setIsDragging(false); }}
+      onPointerUp={() => { drag.current = null; setIsDragging(false); endSnapDrag(); }}
+      onPointerCancel={() => { drag.current = null; setIsDragging(false); endSnapDrag(); }}
+      onLostPointerCapture={() => { drag.current = null; setIsDragging(false); endSnapDrag(); }}
       style={{
         position: 'absolute',
-        left: `${textX}px`,
-        top: `${textY}px`,
-        transform: 'translate(-50%, -50%)',
-        fontSize: `${overlay.fontSize}px`,
+        left: `${textX + motion.x * canvasW}px`,
+        top: `${textY + motion.y * canvasH}px`,
+        transform: `translate(-50%, -50%) rotate(${motion.rotation}deg) scale(${motion.scale})`,
+        fontSize: `${fontSize}px`,
         fontWeight: overlay.fontWeight.includes('bold') ? 'bold' : overlay.fontWeight === 'italic' ? 'normal' : overlay.fontWeight,
         fontStyle: overlay.fontWeight.includes('italic') ? 'italic' : 'normal',
-        fontFamily: getFontCSS(overlay.fontFamily),
-        color: overlay.color,
-        opacity: overlay.opacity,
-        textShadow,
-        whiteSpace: 'pre',
-        lineHeight: 1.2,
+        fontFamily: fontCss,
+        ...textFillCss(overlay.fill, overlay.color),
+        opacity: overlay.opacity * motion.opacity,
+        textShadow: gradient ? undefined : shadow,
+        filter: gradient && shadow ? `drop-shadow(${shadow})` : undefined,
+        whiteSpace: overlay.fit === 'wrap' && boxWidth ? 'pre-wrap' : 'pre',
+        width: overlay.fit === 'wrap' ? boxWidth : undefined,
+        textAlign: overlay.align ?? 'center',
+        letterSpacing: overlay.letterSpacing ? `${overlay.letterSpacing}em` : undefined,
+        lineHeight: overlay.lineHeight ?? 1.2,
         touchAction: 'none',
         cursor: isDragging ? 'grabbing' : 'grab',
         userSelect: 'none',
@@ -107,7 +152,7 @@ function DraggableText({
         pointerEvents: 'auto',
       }}
     >
-      {overlay.text}
+      {reveal ? <RevealedText {...reveal} /> : overlay.text}
     </div>
   );
 }

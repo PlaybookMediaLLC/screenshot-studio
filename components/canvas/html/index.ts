@@ -1,7 +1,6 @@
 export { HTMLCanvasRenderer } from './HTMLCanvasRenderer';
 export { HTMLBackgroundLayer } from './HTMLBackgroundLayer';
 export { HTMLPatternLayer } from './HTMLPatternLayer';
-export { HTMLNoiseLayer } from './HTMLNoiseLayer';
 export { HTMLMainImageLayer } from './HTMLMainImageLayer';
 export type { FrameConfig } from './HTMLMainImageLayer';
 export { HTMLTextOverlayLayer } from './HTMLTextOverlayLayer';

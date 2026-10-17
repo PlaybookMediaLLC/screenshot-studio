@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useCanvasGuides } from '@/lib/store/canvas-guides'
 
 interface HTMLGridLayerProps {
   canvasW: number
@@ -11,8 +12,12 @@ export const HTMLGridLayer = memo(function HTMLGridLayer({
   canvasH,
   gridSize = 50,
 }: HTMLGridLayerProps) {
+  // A guide, not part of the design: exported only when guides are.
+  const guidesInExport = useCanvasGuides((state) => state.guidesInExport)
   return (
     <div
+      aria-hidden
+      data-export-exclude={guidesInExport ? undefined : 'true'}
       style={{
         position: 'absolute',
         inset: 0,

@@ -8,9 +8,11 @@ import * as ai from '@/lib/api/contracts/ai'
 import * as assets from '@/lib/api/contracts/assets'
 import * as audit from '@/lib/api/contracts/audit'
 import * as billing from '@/lib/api/contracts/billing'
+import * as integrations from '@/lib/api/contracts/integrations'
 import * as internal from '@/lib/api/contracts/internal'
 import * as linkPreview from '@/lib/api/contracts/link-preview'
 import * as releases from '@/lib/api/contracts/releases'
+import * as sharing from '@/lib/api/contracts/sharing'
 import * as shell from '@/lib/api/contracts/shell'
 import * as sourceApps from '@/lib/api/contracts/source-apps'
 import * as storePublishing from '@/lib/api/contracts/store-publishing'
@@ -27,9 +29,11 @@ const contracts = new Map<string, RouteContract>(
     assets,
     audit,
     billing,
+    integrations,
     internal,
     linkPreview,
     releases,
+    sharing,
     shell,
     sourceApps,
     storePublishing,

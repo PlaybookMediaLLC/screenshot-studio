@@ -1,18 +1,23 @@
 'use client'
 
+import { motionFromTimeline } from '@/lib/animation/motion-schema'
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { createDeviceScreen, createMockup } from '@/lib/device-mockups/layouts'
 import type { DeviceLayoutId } from '@/types/mockup'
-import { useEditorStore, useImageStore } from '@/lib/store'
+import { beginHistoryStep, endHistoryStep, useImageStore } from '@/lib/store'
 import {
   type DesignChanges,
   type DesignDocument,
   type DesignSections,
-  patchDesignDocument,
   pickChangedSections,
 } from './document'
 import { exportDesignDocument } from './export'
+import { patchFromModel } from './model-changes'
 import { resolveEditorTemplate } from './templates'
+import { resetPlayback } from '@/lib/store/playback'
+import { applyCompositionLayout } from '@/lib/frames/commands'
+import { compositionLayoutSchema } from '@/lib/frames/layouts'
+import { DEFAULT_FRAME_CHROME } from '@/lib/frames/schema'
 
 /**
  * Write designs and design changes into the editor stores.
@@ -52,24 +57,6 @@ function newId(prefix: string, index: number): string {
   return `${prefix}-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-/**
- * Collapse every history entry recorded since `start` into one, so a whole
- * AI edit (or a chosen variation) undoes with a single ⌘Z. Call
- * `beginHistoryStep` before the writes and `endHistoryStep` after; this works
- * across awaits as long as the user does not edit in between.
- */
-export function beginHistoryStep(): number {
-  return useImageStore.temporal.getState().pastStates.length
-}
-
-export function endHistoryStep(start: number) {
-  useImageStore.temporal.setState((history) =>
-    history.pastStates.length > start + 1
-      ? { pastStates: history.pastStates.slice(0, start + 1) }
-      : history
-  )
-}
-
 function inHistory(mode: DesignHistoryMode, write: () => void) {
   const history = useImageStore.temporal.getState()
   if (mode === 'clear') {
@@ -82,17 +69,18 @@ function inHistory(mode: DesignHistoryMode, write: () => void) {
     }
     return
   }
-  const start = beginHistoryStep()
+  const step = beginHistoryStep()
   write()
-  endHistoryStep(start)
+  endHistoryStep(step)
 }
 
 /** Phase 1 for whichever sections `changes` carries; untouched sections stay as they are. */
 function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
   const image = useImageStore.getState()
-  const editor = useEditorStore.getState()
 
-  if (changes.image?.src) image.setUploadedImageUrl(resolve(changes.image.src), 'design')
+  if (changes.image?.src) {
+    image.setUploadedImageUrl(resolve(changes.image.src), changes.image.name ?? 'design')
+  }
   const mainSrc = useImageStore.getState().uploadedImageUrl
 
   const template = resolveEditorTemplate(changes.template)
@@ -100,10 +88,12 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
     image.applyVisualPreset(template.preset, { clearAnimation: true, scene: template.scene })
   }
 
-  if (changes.canvas?.aspectRatio) {
+  if (changes.canvas?.aspectRatio === 'custom' && changes.canvas.size) {
+    useImageStore.setState({ customDimensions: { ...changes.canvas.size }, selectedAspectRatio: 'custom' })
+  } else if (changes.canvas?.aspectRatio && changes.canvas.aspectRatio !== 'custom') {
     useImageStore.setState({ selectedAspectRatio: changes.canvas.aspectRatio })
   }
-  if (changes.canvas?.padding !== undefined) editor.setCanvas({ padding: changes.canvas.padding })
+  if (changes.canvas?.padding !== undefined) image.setCanvasPadding(changes.canvas.padding)
 
   if (changes.background) {
     const { blur, noise, opacity, radius, type, value } = changes.background
@@ -112,13 +102,15 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
       backgroundConfig: {
         opacity,
         type,
-        value: value.startsWith('asset:') ? resolve(value) : value,
+        value: type === 'image' ? resolve(value) : value,
       },
       backgroundNoise: noise,
       ...(radius !== undefined ? { backgroundBorderRadius: radius } : {}),
     })
   }
-  if (changes.pattern) editor.setPattern(changes.pattern)
+  if (changes.pattern) image.setPattern(changes.pattern)
+  if (changes.brand) image.setBrand(changes.brand)
+  if (changes.copy) image.setCopy(changes.copy)
 
   const imageChanges = changes.image ?? {}
   const { frame, shadow } = imageChanges
@@ -130,6 +122,7 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
       ? { browserHeaderSize: imageChanges.browserHeaderSize }
       : {}),
   })
+  if (imageChanges.chrome) useImageStore.setState({ frameChrome: structuredClone(imageChanges.chrome) })
   if (shadow?.preset) useImageStore.getState().setShadowPreset(shadow.preset)
   if (shadow?.custom) useImageStore.setState({ imageShadow: shadow.custom })
   if (frame) {
@@ -157,37 +150,75 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
       imageFilters: { ...state.imageFilters, ...imageChanges.filters },
     }))
   }
-  if (imageChanges.rotation !== undefined) editor.setScreenshot({ rotation: imageChanges.rotation })
+  if (imageChanges.rotation !== undefined) {
+    image.setImagePlacement({ rotation: imageChanges.rotation })
+  }
 
   if (changes.devices?.mockups.length) {
     useImageStore.setState({
-      activeDeviceLayoutId: null,
+      activeDeviceLayoutId: (changes.devices.layoutId as DeviceLayoutId | undefined) ?? null,
       deviceLayoutSnapshot: null,
       mockups: changes.devices.mockups.map((device, index) => {
-        const screenSrc = device.screen.src ? resolve(device.screen.src) : mainSrc
+        const custom = Boolean(device.screen.src)
+        // A code screen draws its code; any other screen without a source shows the main image.
+        const screenSrc = device.screen.code ? null : device.screen.src ? resolve(device.screen.src) : mainSrc
+        const screen = createDeviceScreen(screenSrc, device.screen.name ?? 'design', custom)
         return {
-          ...createMockup(device.definitionId, createDeviceScreen(screenSrc, 'design'), index),
+          ...createMockup(device.definitionId, screen, index),
+          ...(device.id ? { id: device.id } : {}),
+          ...(device.frame ? { frame: structuredClone(device.frame) } : {}),
+          ...(device.color ? { color: device.color } : {}),
+          ...(device.orientation ? { orientation: device.orientation } : {}),
+          isVisible: device.visible ?? true,
           opacity: device.opacity,
           position: { ...device.position },
           rotation: device.rotation,
-          screen: { ...createDeviceScreen(screenSrc, 'design'), fit: device.screen.fit },
+          screen: {
+            ...screen,
+            fit: device.screen.fit,
+            offset: device.screen.offset ? { ...device.screen.offset } : screen.offset,
+            scale: device.screen.scale ?? screen.scale,
+            ...(device.screen.aspect !== undefined ? { aspect: device.screen.aspect } : {}),
+            ...(device.screen.code ? { code: structuredClone(device.screen.code) } : {}),
+          },
           size: device.size,
         }
       }),
     })
   } else if (changes.devices?.layoutId) {
-    useImageStore.getState().applyDeviceLayout(changes.devices.layoutId as DeviceLayoutId)
+    const composition = compositionLayoutSchema.safeParse(changes.devices.layoutId)
+    if (composition.success) applyCompositionLayout(composition.data)
+    else useImageStore.getState().applyDeviceLayout(changes.devices.layoutId as DeviceLayoutId)
   } else if (changes.devices && changes.devices.mockups.length === 0) {
     useImageStore.setState({ activeDeviceLayoutId: null, deviceLayoutSnapshot: null, mockups: [] })
   }
   if (changes.mode) useImageStore.setState({ editorMode: changes.mode })
+  // Elements are stored in canvas fractions, so they load as they are.
+  if (changes.elements) useImageStore.setState({ elements: structuredClone(changes.elements) })
 
-  if (changes.animation) {
-    useImageStore.getState().applyAnimationPreset(changes.animation.presetId)
+  if (changes.timeline) {
+    const { clips, duration, isLooping, tracks } = changes.timeline
+    const motion = motionFromTimeline(changes.timeline)
     useImageStore.setState((state) => ({
-      showTimeline: false,
-      timeline: { ...state.timeline, isPlaying: false, playhead: 0 },
+      animationClips: clips.map((clip) => ({ ...clip })),
+      motion: { ...motion, audio: motion.audio.map((clip) => ({ ...clip, src: resolve(clip.src) })) },
+      timeline: { ...state.timeline, duration, isLooping, tracks: structuredClone(tracks) },
     }))
+    resetPlayback()
+  } else if (changes.animation) {
+    useImageStore.getState().applyAnimationPreset(changes.animation.presetId)
+    useImageStore.setState({ showTimeline: false })
+  }
+
+  if (changes.slides) {
+    const { activeId, animation, defaultDuration, enabled, items } = changes.slides
+    const slides = items.map((slide) => ({ ...slide, src: resolve(slide.src) }))
+    const active = slides.find((slide) => slide.id === activeId) ?? slides[0]
+    useImageStore.setState({
+      activeSlideId: active?.id ?? null,
+      slides,
+      slideshow: { animation, defaultDuration, enabled },
+    })
   }
 }
 
@@ -195,7 +226,7 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
 function writeLayout(changes: DesignSections, resolve: ResolveDesignSource, canvas: CanvasSize) {
   const { canvasH, canvasW } = canvas
   if (changes.image?.offset) {
-    useEditorStore.getState().setScreenshot({
+    useImageStore.getState().setImagePlacement({
       offsetX: changes.image.offset.x * canvasW,
       offsetY: changes.image.offset.y * canvasH,
     })
@@ -204,9 +235,12 @@ function writeLayout(changes: DesignSections, resolve: ResolveDesignSource, canv
     ...(changes.annotations
       ? {
           annotations: changes.annotations.map((shape, index) => ({
+            ...(shape.control
+              ? { cx: shape.control.x * canvasW, cy: shape.control.y * canvasH }
+              : {}),
             fillColor: shape.fillColor,
-            id: newId('annotation', index),
-            isVisible: true,
+            id: shape.id ?? newId('annotation', index),
+            isVisible: shape.visible ?? true,
             opacity: shape.opacity,
             strokeColor: shape.strokeColor,
             strokeWidth: shape.strokeWidth,
@@ -222,8 +256,8 @@ function writeLayout(changes: DesignSections, resolve: ResolveDesignSource, canv
       ? {
           blurRegions: changes.redactions.map((region, index) => ({
             blurAmount: region.amount,
-            id: newId('blur', index),
-            isVisible: true,
+            id: region.id ?? newId('blur', index),
+            isVisible: region.visible ?? true,
             position: { x: region.position.x * canvasW, y: region.position.y * canvasH },
             size: { height: region.size.height * canvasH, width: region.size.width * canvasW },
             style: region.style,
@@ -232,23 +266,31 @@ function writeLayout(changes: DesignSections, resolve: ResolveDesignSource, canv
       : {}),
     ...(changes.overlays
       ? {
-          // Template light/shadow overlays belong to the template, not the list.
+          // Template light/shadow overlays belong to the template, not the list,
+          // unless the document carries them itself (a lossless export does).
           imageOverlays: [
-            ...state.imageOverlays.filter((overlay) =>
-              overlay.id.startsWith(TEMPLATE_SHADOW_PREFIX)
-            ),
+            ...(changes.overlays.some((overlay) => overlay.role === 'template-light')
+              ? []
+              : state.imageOverlays.filter((overlay) => overlay.id.startsWith(TEMPLATE_SHADOW_PREFIX))),
             ...changes.overlays.map((overlay, index) => ({
+              ...(overlay.blur !== undefined ? { blur: overlay.blur } : {}),
+              ...(overlay.radius !== undefined ? { radius: overlay.radius } : {}),
+              ...(overlay.shadow ? { shadow: overlay.shadow } : {}),
+              ...(overlay.tilt ? { tilt: { ...overlay.tilt } } : {}),
               flipX: overlay.flipX,
               flipY: overlay.flipY,
-              id: newId('overlay', index),
-              isCustom: overlay.src.startsWith('asset:'),
-              isVisible: true,
+              id:
+                overlay.role === 'template-light'
+                  ? newId(TEMPLATE_SHADOW_PREFIX.slice(0, -1), index)
+                  : (overlay.id ?? newId('overlay', index)),
+              isCustom: overlay.src.startsWith('asset:') || /^(blob|data):/.test(overlay.src),
+              isVisible: overlay.visible ?? true,
               layer: overlay.layer,
               opacity: overlay.opacity,
               position: { x: overlay.position.x * canvasW, y: overlay.position.y * canvasH },
               rotation: overlay.rotation,
               size: overlay.size * canvasW,
-              src: overlay.src.startsWith('asset:') ? resolve(overlay.src) : overlay.src,
+              src: resolve(overlay.src),
             })),
           ],
         }
@@ -260,8 +302,15 @@ function writeLayout(changes: DesignSections, resolve: ResolveDesignSource, canv
             fontFamily: text.fontFamily,
             fontSize: Math.round(text.fontSize * canvasW),
             fontWeight: text.fontWeight,
-            id: newId('text', index),
-            isVisible: true,
+            ...(text.align ? { align: text.align } : {}),
+            ...(text.fill ? { fill: text.fill } : {}),
+            ...(text.fit ? { fit: text.fit } : {}),
+            ...(text.letterSpacing !== undefined ? { letterSpacing: text.letterSpacing } : {}),
+            ...(text.lineHeight !== undefined ? { lineHeight: text.lineHeight } : {}),
+            ...(text.maxWidth !== undefined ? { maxWidth: text.maxWidth } : {}),
+            ...(text.role ? { role: text.role } : {}),
+            id: text.id ?? newId('text', index),
+            isVisible: text.visible ?? true,
             opacity: text.opacity,
             orientation: text.orientation,
             position: { ...text.position },
@@ -289,7 +338,7 @@ export function applyDesignDocument(
     const mainSrc = document.image.src ? resolve(document.image.src) : null
     const keepImage = !mainSrc ? useImageStore.getState().uploadedImageUrl : null
     useImageStore.getState().clearImage()
-    useEditorStore.getState().setScreenshot({ offsetX: 0, offsetY: 0, rotation: 0 })
+    useImageStore.setState({ frameChrome: { ...DEFAULT_FRAME_CHROME } })
     if (keepImage) useImageStore.getState().setUploadedImageUrl(keepImage, 'design')
     writeSections(document, resolve)
   })
@@ -313,9 +362,14 @@ export function applyDesignLayout(
 export async function applyDesignChanges(rawChanges: DesignChanges, resolve: ResolveDesignSource) {
   // Merge into the current design first, so a partial change ("rotateY: 12")
   // keeps every field it did not name, and the result is validated as a whole.
-  const merged = patchDesignDocument(exportDesignDocument(), rawChanges)
+  // Changes are written against the AI view, so layers it hides are kept.
+  const merged = patchFromModel(
+    exportDesignDocument({ keepLocalSources: true }),
+    exportDesignDocument(),
+    rawChanges
+  )
   const changes = pickChangedSections(merged, rawChanges)
-  const start = beginHistoryStep()
+  const step = beginHistoryStep()
   writeSections(changes, resolve)
   const changesLayout =
     changes.image?.offset ||
@@ -329,7 +383,7 @@ export async function applyDesignChanges(rawChanges: DesignChanges, resolve: Res
       : (useImageStore.getState().canvasDimensions ?? (await waitForSettledCanvas(null)))
     writeLayout(changes, resolve, canvas)
   }
-  endHistoryStep(start)
+  endHistoryStep(step)
 }
 
 function currentAspectRatio(): number | null {

@@ -2,12 +2,16 @@
 
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
+import { usePlaybackStore } from '@/lib/store/playback';
 import { TimelineControls } from './TimelineControls';
 import { useTimelinePlayback } from './hooks/useTimelinePlayback';
 import { cn } from '@/lib/utils';
 import { TIMELINE_HEIGHT } from '@/lib/constants/editor-layout';
 import { VideoReplayIcon, Image01Icon, Cancel01Icon, Add01Icon } from 'hugeicons-react';
 import type { AnimationClip } from '@/types/animation';
+import { useEditorPanels } from '@/lib/store/editor-panels';
+import { MOTION_ROW_HEIGHT, MotionTracks, motionRowCount } from './MotionTracks';
+import { useAudioPlayback } from '@/lib/animation/use-audio-playback';
 
 const TRACK_LABEL_WIDTH = 120;
 const PIXELS_PER_SECOND = 105;
@@ -33,7 +37,8 @@ function TimeTrack({
   width: number;
   trackRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const { setPlayhead, stopPlayback } = useImageStore();
+  const setPlayhead = usePlaybackStore((state) => state.seek);
+  const stopPlayback = usePlaybackStore((state) => state.pause);
   const durationSeconds = duration / 1000;
   const wholeSeconds = Math.floor(durationSeconds);
 
@@ -92,7 +97,9 @@ function PlayheadTicker({
   timeLabel: string;
   trackRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const { setPlayhead, timeline, stopPlayback } = useImageStore();
+  const timeline = useImageStore((state) => state.timeline);
+  const setPlayhead = usePlaybackStore((state) => state.seek);
+  const stopPlayback = usePlaybackStore((state) => state.pause);
   const [isDragging, setIsDragging] = React.useState(false);
 
   React.useEffect(() => {
@@ -120,12 +127,12 @@ function PlayheadTicker({
 
   return (
     <div
-      className="absolute top-0 z-30 cursor-ew-resize pointer-events-auto"
+      className="absolute top-0 z-30 cursor-ew-resize pointer-events-none"
       style={{ left: position, height, transform: 'translateX(-50%)' }}
       onMouseDown={() => setIsDragging(true)}
     >
       <div className="relative flex flex-col items-center h-full">
-        <div className="flex min-w-[32px] shrink-0 items-center justify-center rounded-md bg-primary px-1.5 py-0.5 text-primary-foreground shadow-sm">
+        <div className="pointer-events-auto flex min-w-[32px] shrink-0 items-center justify-center rounded-md bg-primary px-1.5 py-0.5 text-primary-foreground shadow-sm">
           <span className="text-[9px] font-semibold tabular-nums leading-none">{timeLabel}</span>
         </div>
         <div className="w-px flex-1 bg-primary" />
@@ -557,13 +564,16 @@ function SlideDurationHandle({
 
 /* ─── Main Timeline Editor ───────────────────────────────────── */
 export function TimelineEditor() {
-  const { timeline, uploadedImageUrl, slides, showTimeline, setActiveRightPanelTab, toggleTimeline } = useImageStore();
+  const { timeline, uploadedImageUrl, slides, showTimeline, toggleTimeline } = useImageStore();
+  const motionRows = useImageStore((state) => motionRowCount(state.motion));
+  const playhead = usePlaybackStore((state) => state.playhead);
   const [viewportWidth, setViewportWidth] = React.useState(0);
   const [lockedPixelsPerSecond, setLockedPixelsPerSecond] = React.useState<number | null>(null);
   const viewportRef = React.useRef<HTMLDivElement>(null);
   const trackRef = React.useRef<HTMLDivElement>(null);
 
   useTimelinePlayback();
+  useAudioPlayback();
 
   React.useEffect(() => {
     const viewport = viewportRef.current;
@@ -592,12 +602,12 @@ export function TimelineEditor() {
   );
   const trackContentWidth = durationSeconds * pixelsPerSecond;
   const timelineWidth = trackContentWidth + TRACK_LABEL_WIDTH;
-  const playheadPosition = (timeline.playhead / timeline.duration) * trackContentWidth + TRACK_LABEL_WIDTH;
-  const playheadTimeLabel = formatTime(timeline.playhead);
-  const totalTrackHeight = 25 + 49 + 57;
+  const playheadPosition = (playhead / timeline.duration) * trackContentWidth + TRACK_LABEL_WIDTH;
+  const playheadTimeLabel = formatTime(playhead);
+  const totalTrackHeight = 25 + 49 + motionRows * MOTION_ROW_HEIGHT + 57;
 
   const handleAddAnimation = () => {
-    setActiveRightPanelTab('animate');
+    useEditorPanels.getState().showTab('motion');
   };
 
   const handleClose = () => {
@@ -605,12 +615,12 @@ export function TimelineEditor() {
   };
 
   return (
-    <div className="flex flex-col border-t border-foreground/10 bg-background" style={{ height: TIMELINE_HEIGHT }}>
+    <div className="flex flex-col border-t border-foreground/10 bg-background" data-keep-selection="" style={{ height: TIMELINE_HEIGHT }}>
       <TimelineControls onAddAnimation={handleAddAnimation} onClose={handleClose} />
 
       <div
         ref={viewportRef}
-        className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-foreground/10"
+        className="flex-1 overflow-x-auto overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-foreground/10"
       >
         <div
           className="relative min-w-full"
@@ -633,6 +643,12 @@ export function TimelineEditor() {
             <AnimationTrack width={timelineWidth} onAddAnimation={handleAddAnimation} />
             <div className="min-w-0 flex-1" aria-hidden />
           </div>
+
+          <MotionTracks
+            duration={timeline.duration}
+            labelWidth={TRACK_LABEL_WIDTH}
+            trackWidth={trackContentWidth}
+          />
 
           <div className="flex w-full border-b border-foreground/10">
             <VideoTrack width={timelineWidth} />

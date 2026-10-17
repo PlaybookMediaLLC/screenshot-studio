@@ -2,11 +2,9 @@
 
 import * as React from 'react'
 import dynamic from 'next/dynamic'
-import { LeftEditPanel } from './LeftEditPanel'
-import { RightSettingsPanel } from './RightSettingsPanel'
+import { ComposePanel, InspectorPanel } from './panels/EditorPanel'
 import { EditorContent } from './EditorContent'
 import { EditorCanvas } from '@/components/canvas/EditorCanvas'
-import { EditorStoreSync } from '@/components/canvas/EditorStoreSync'
 import { EditorPlatformLayer } from '@/components/editor-ai/EditorPlatformLayer'
 import { EditorHeader } from './EditorHeader'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -14,6 +12,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Settings02Icon, Upload01Icon, VideoReplayIcon } from 'hugeicons-react'
 import { useAutosaveDraft } from '@/hooks/useAutosaveDraft'
+import { useHistoryGestures } from '@/lib/editor/history-gestures'
 import { MobileBanner } from './MobileBanner'
 import { useImageStore } from '@/lib/store'
 import { trackEditorOpen } from '@/lib/analytics'
@@ -30,8 +29,8 @@ const TimelineEditor = dynamic(
   { ssr: false }
 )
 
-const UnifiedRightPanel = dynamic(
-  () => import('./unified-right-panel').then((module) => module.UnifiedRightPanel),
+const MobilePanel = dynamic(
+  () => import('./panels/EditorPanel').then((module) => module.MobilePanel),
   { ssr: false }
 )
 
@@ -125,6 +124,7 @@ function EditorMain() {
 
   // enable autosave
   useAutosaveDraft()
+  useHistoryGestures()
 
   const hasSourceContent =
     (!!uploadedImageUrl || slides.length > 0) && shouldRenderSourceImage(editorMode, mockups)
@@ -144,7 +144,6 @@ function EditorMain() {
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden overscroll-contain">
-      <EditorStoreSync />
       <EditorPlatformLayer />
 
       <MobileBanner />
@@ -168,7 +167,7 @@ function EditorMain() {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <div className="hidden lg:contents">
-            <LeftEditPanel />
+            <ComposePanel />
           </div>
 
           <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
@@ -208,7 +207,7 @@ function EditorMain() {
           </div>
 
           <div className="hidden lg:contents">
-            <RightSettingsPanel />
+            <InspectorPanel />
           </div>
 
           {isMobile && (
@@ -219,7 +218,7 @@ function EditorMain() {
                 className="h-full w-full max-w-[min(100%,460px)] gap-0 overflow-hidden p-0 sm:max-w-[min(100%,460px)]"
               >
                 <SheetTitle className="sr-only">Editor settings</SheetTitle>
-                <UnifiedRightPanel onClose={() => handleMobileSheetOpenChange(false)} />
+                <MobilePanel onClose={() => handleMobileSheetOpenChange(false)} />
               </SheetContent>
             </Sheet>
           )}

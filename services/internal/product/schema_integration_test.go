@@ -51,6 +51,8 @@ func TestEntProjectionsMatchMigratedTables(t *testing.T) {
 		"release_document":                 func() error { _, err := c.ReleaseDocument.Query().Limit(1).All(ctx); return err },
 		"release_spec":                     func() error { _, err := c.ReleaseSpec.Query().Limit(1).All(ctx); return err },
 		"screenshot_cache":                 func() error { _, err := c.ScreenshotCache.Query().Limit(1).All(ctx); return err },
+		"share_link":                       func() error { _, err := c.ShareLink.Query().Limit(1).All(ctx); return err },
+		"integration_connection":           func() error { _, err := c.IntegrationConnection.Query().Limit(1).All(ctx); return err },
 		"brand_profile":                    func() error { _, err := c.BrandProfile.Query().Limit(1).All(ctx); return err },
 		"product_surface":                  func() error { _, err := c.ProductSurface.Query().Limit(1).All(ctx); return err },
 		"surface_capture":                  func() error { _, err := c.SurfaceCapture.Query().Limit(1).All(ctx); return err },

@@ -143,8 +143,15 @@ func (c *Configuration) CreateBrandKit(ctx context.Context, actor Actor, input C
 	if err != nil {
 		return nil, err
 	}
-	if logoAssetID != "" {
-		if err := requireBrandLogo(ctx, c.client.Asset, actor.OrganizationID, logoAssetID); err != nil {
+	editorAssets, err := brandKitEditorAssets(definition)
+	if err != nil {
+		return nil, err
+	}
+	for _, assetID := range append(editorAssets, logoAssetID) {
+		if assetID == "" {
+			continue
+		}
+		if err := requireBrandLogo(ctx, c.client.Asset, actor.OrganizationID, assetID); err != nil {
 			return nil, err
 		}
 	}

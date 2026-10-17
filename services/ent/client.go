@@ -45,6 +45,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrunstep"
@@ -55,6 +56,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/projectversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasedocument"
@@ -62,6 +65,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/screenshotcache"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
@@ -143,6 +147,8 @@ type Client struct {
 	GitHubInstallStart *GitHubInstallStartClient
 	// GitHubInstallation is the client for interacting with the GitHubInstallation builders.
 	GitHubInstallation *GitHubInstallationClient
+	// IntegrationConnection is the client for interacting with the IntegrationConnection builders.
+	IntegrationConnection *IntegrationConnectionClient
 	// Invitation is the client for interacting with the Invitation builders.
 	Invitation *InvitationClient
 	// LaunchRun is the client for interacting with the LaunchRun builders.
@@ -163,6 +169,10 @@ type Client struct {
 	ProductProfile *ProductProfileClient
 	// ProductSurface is the client for interacting with the ProductSurface builders.
 	ProductSurface *ProductSurfaceClient
+	// Project is the client for interacting with the Project builders.
+	Project *ProjectClient
+	// ProjectVersion is the client for interacting with the ProjectVersion builders.
+	ProjectVersion *ProjectVersionClient
 	// PublicationAttempt is the client for interacting with the PublicationAttempt builders.
 	PublicationAttempt *PublicationAttemptClient
 	// Release is the client for interacting with the Release builders.
@@ -177,6 +187,8 @@ type Client struct {
 	ScreenshotCache *ScreenshotCacheClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
+	// ShareLink is the client for interacting with the ShareLink builders.
+	ShareLink *ShareLinkClient
 	// SocialOAuthStart is the client for interacting with the SocialOAuthStart builders.
 	SocialOAuthStart *SocialOAuthStartClient
 	// SourceApp is the client for interacting with the SourceApp builders.
@@ -246,6 +258,7 @@ func (c *Client) init() {
 	c.Design = NewDesignClient(c.config)
 	c.GitHubInstallStart = NewGitHubInstallStartClient(c.config)
 	c.GitHubInstallation = NewGitHubInstallationClient(c.config)
+	c.IntegrationConnection = NewIntegrationConnectionClient(c.config)
 	c.Invitation = NewInvitationClient(c.config)
 	c.LaunchRun = NewLaunchRunClient(c.config)
 	c.LaunchRunStep = NewLaunchRunStepClient(c.config)
@@ -256,6 +269,8 @@ func (c *Client) init() {
 	c.PostizTenantBinding = NewPostizTenantBindingClient(c.config)
 	c.ProductProfile = NewProductProfileClient(c.config)
 	c.ProductSurface = NewProductSurfaceClient(c.config)
+	c.Project = NewProjectClient(c.config)
+	c.ProjectVersion = NewProjectVersionClient(c.config)
 	c.PublicationAttempt = NewPublicationAttemptClient(c.config)
 	c.Release = NewReleaseClient(c.config)
 	c.ReleaseDocument = NewReleaseDocumentClient(c.config)
@@ -263,6 +278,7 @@ func (c *Client) init() {
 	c.ScheduledPost = NewScheduledPostClient(c.config)
 	c.ScreenshotCache = NewScreenshotCacheClient(c.config)
 	c.Session = NewSessionClient(c.config)
+	c.ShareLink = NewShareLinkClient(c.config)
 	c.SocialOAuthStart = NewSocialOAuthStartClient(c.config)
 	c.SourceApp = NewSourceAppClient(c.config)
 	c.SourceChange = NewSourceChangeClient(c.config)
@@ -399,6 +415,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Design:                         NewDesignClient(cfg),
 		GitHubInstallStart:             NewGitHubInstallStartClient(cfg),
 		GitHubInstallation:             NewGitHubInstallationClient(cfg),
+		IntegrationConnection:          NewIntegrationConnectionClient(cfg),
 		Invitation:                     NewInvitationClient(cfg),
 		LaunchRun:                      NewLaunchRunClient(cfg),
 		LaunchRunStep:                  NewLaunchRunStepClient(cfg),
@@ -409,6 +426,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PostizTenantBinding:            NewPostizTenantBindingClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
+		Project:                        NewProjectClient(cfg),
+		ProjectVersion:                 NewProjectVersionClient(cfg),
 		PublicationAttempt:             NewPublicationAttemptClient(cfg),
 		Release:                        NewReleaseClient(cfg),
 		ReleaseDocument:                NewReleaseDocumentClient(cfg),
@@ -416,6 +435,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ScheduledPost:                  NewScheduledPostClient(cfg),
 		ScreenshotCache:                NewScreenshotCacheClient(cfg),
 		Session:                        NewSessionClient(cfg),
+		ShareLink:                      NewShareLinkClient(cfg),
 		SocialOAuthStart:               NewSocialOAuthStartClient(cfg),
 		SourceApp:                      NewSourceAppClient(cfg),
 		SourceChange:                   NewSourceChangeClient(cfg),
@@ -479,6 +499,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Design:                         NewDesignClient(cfg),
 		GitHubInstallStart:             NewGitHubInstallStartClient(cfg),
 		GitHubInstallation:             NewGitHubInstallationClient(cfg),
+		IntegrationConnection:          NewIntegrationConnectionClient(cfg),
 		Invitation:                     NewInvitationClient(cfg),
 		LaunchRun:                      NewLaunchRunClient(cfg),
 		LaunchRunStep:                  NewLaunchRunStepClient(cfg),
@@ -489,6 +510,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PostizTenantBinding:            NewPostizTenantBindingClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
+		Project:                        NewProjectClient(cfg),
+		ProjectVersion:                 NewProjectVersionClient(cfg),
 		PublicationAttempt:             NewPublicationAttemptClient(cfg),
 		Release:                        NewReleaseClient(cfg),
 		ReleaseDocument:                NewReleaseDocumentClient(cfg),
@@ -496,6 +519,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ScheduledPost:                  NewScheduledPostClient(cfg),
 		ScreenshotCache:                NewScreenshotCacheClient(cfg),
 		Session:                        NewSessionClient(cfg),
+		ShareLink:                      NewShareLinkClient(cfg),
 		SocialOAuthStart:               NewSocialOAuthStartClient(cfg),
 		SourceApp:                      NewSourceAppClient(cfg),
 		SourceChange:                   NewSourceChangeClient(cfg),
@@ -546,12 +570,13 @@ func (c *Client) Use(hooks ...Hook) {
 		c.ChannelConnection, c.CommunicationAttempt, c.CommunicationRecipient,
 		c.ContentAngle, c.Conversation, c.ConversationMessage, c.CreativeTemplate,
 		c.CreativeVariant, c.CustomerCommunication, c.DeploymentEvent, c.Design,
-		c.GitHubInstallStart, c.GitHubInstallation, c.Invitation, c.LaunchRun,
-		c.LaunchRunStep, c.Member, c.Organization, c.OrganizationEnterpriseSettings,
-		c.OutboxEvent, c.PostizTenantBinding, c.ProductProfile, c.ProductSurface,
+		c.GitHubInstallStart, c.GitHubInstallation, c.IntegrationConnection,
+		c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member, c.Organization,
+		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PostizTenantBinding,
+		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
 		c.PublicationAttempt, c.Release, c.ReleaseDocument, c.ReleaseSpec,
-		c.ScheduledPost, c.ScreenshotCache, c.Session, c.SocialOAuthStart, c.SourceApp,
-		c.SourceChange, c.StorePublishingCredential, c.StoreReview,
+		c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink, c.SocialOAuthStart,
+		c.SourceApp, c.SourceChange, c.StorePublishingCredential, c.StoreReview,
 		c.StoreReviewComment, c.SupportAccessGrant, c.SurfaceCapture, c.User,
 		c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
 		c.WorkspaceGitHubInstallation, c.WorkspaceSettings,
@@ -571,12 +596,13 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.ChannelConnection, c.CommunicationAttempt, c.CommunicationRecipient,
 		c.ContentAngle, c.Conversation, c.ConversationMessage, c.CreativeTemplate,
 		c.CreativeVariant, c.CustomerCommunication, c.DeploymentEvent, c.Design,
-		c.GitHubInstallStart, c.GitHubInstallation, c.Invitation, c.LaunchRun,
-		c.LaunchRunStep, c.Member, c.Organization, c.OrganizationEnterpriseSettings,
-		c.OutboxEvent, c.PostizTenantBinding, c.ProductProfile, c.ProductSurface,
+		c.GitHubInstallStart, c.GitHubInstallation, c.IntegrationConnection,
+		c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member, c.Organization,
+		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PostizTenantBinding,
+		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
 		c.PublicationAttempt, c.Release, c.ReleaseDocument, c.ReleaseSpec,
-		c.ScheduledPost, c.ScreenshotCache, c.Session, c.SocialOAuthStart, c.SourceApp,
-		c.SourceChange, c.StorePublishingCredential, c.StoreReview,
+		c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink, c.SocialOAuthStart,
+		c.SourceApp, c.SourceChange, c.StorePublishingCredential, c.StoreReview,
 		c.StoreReviewComment, c.SupportAccessGrant, c.SurfaceCapture, c.User,
 		c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
 		c.WorkspaceGitHubInstallation, c.WorkspaceSettings,
@@ -648,6 +674,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.GitHubInstallStart.mutate(ctx, m)
 	case *GitHubInstallationMutation:
 		return c.GitHubInstallation.mutate(ctx, m)
+	case *IntegrationConnectionMutation:
+		return c.IntegrationConnection.mutate(ctx, m)
 	case *InvitationMutation:
 		return c.Invitation.mutate(ctx, m)
 	case *LaunchRunMutation:
@@ -668,6 +696,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ProductProfile.mutate(ctx, m)
 	case *ProductSurfaceMutation:
 		return c.ProductSurface.mutate(ctx, m)
+	case *ProjectMutation:
+		return c.Project.mutate(ctx, m)
+	case *ProjectVersionMutation:
+		return c.ProjectVersion.mutate(ctx, m)
 	case *PublicationAttemptMutation:
 		return c.PublicationAttempt.mutate(ctx, m)
 	case *ReleaseMutation:
@@ -682,6 +714,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ScreenshotCache.mutate(ctx, m)
 	case *SessionMutation:
 		return c.Session.mutate(ctx, m)
+	case *ShareLinkMutation:
+		return c.ShareLink.mutate(ctx, m)
 	case *SocialOAuthStartMutation:
 		return c.SocialOAuthStart.mutate(ctx, m)
 	case *SourceAppMutation:
@@ -4785,6 +4819,139 @@ func (c *GitHubInstallationClient) mutate(ctx context.Context, m *GitHubInstalla
 	}
 }
 
+// IntegrationConnectionClient is a client for the IntegrationConnection schema.
+type IntegrationConnectionClient struct {
+	config
+}
+
+// NewIntegrationConnectionClient returns a client for the IntegrationConnection from the given config.
+func NewIntegrationConnectionClient(c config) *IntegrationConnectionClient {
+	return &IntegrationConnectionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `integrationconnection.Hooks(f(g(h())))`.
+func (c *IntegrationConnectionClient) Use(hooks ...Hook) {
+	c.hooks.IntegrationConnection = append(c.hooks.IntegrationConnection, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `integrationconnection.Intercept(f(g(h())))`.
+func (c *IntegrationConnectionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.IntegrationConnection = append(c.inters.IntegrationConnection, interceptors...)
+}
+
+// Create returns a builder for creating a IntegrationConnection entity.
+func (c *IntegrationConnectionClient) Create() *IntegrationConnectionCreate {
+	mutation := newIntegrationConnectionMutation(c.config, OpCreate)
+	return &IntegrationConnectionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of IntegrationConnection entities.
+func (c *IntegrationConnectionClient) CreateBulk(builders ...*IntegrationConnectionCreate) *IntegrationConnectionCreateBulk {
+	return &IntegrationConnectionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *IntegrationConnectionClient) MapCreateBulk(slice any, setFunc func(*IntegrationConnectionCreate, int)) *IntegrationConnectionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &IntegrationConnectionCreateBulk{err: fmt.Errorf("calling to IntegrationConnectionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*IntegrationConnectionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &IntegrationConnectionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for IntegrationConnection.
+func (c *IntegrationConnectionClient) Update() *IntegrationConnectionUpdate {
+	mutation := newIntegrationConnectionMutation(c.config, OpUpdate)
+	return &IntegrationConnectionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *IntegrationConnectionClient) UpdateOne(_m *IntegrationConnection) *IntegrationConnectionUpdateOne {
+	mutation := newIntegrationConnectionMutation(c.config, OpUpdateOne, withIntegrationConnection(_m))
+	return &IntegrationConnectionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *IntegrationConnectionClient) UpdateOneID(id string) *IntegrationConnectionUpdateOne {
+	mutation := newIntegrationConnectionMutation(c.config, OpUpdateOne, withIntegrationConnectionID(id))
+	return &IntegrationConnectionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for IntegrationConnection.
+func (c *IntegrationConnectionClient) Delete() *IntegrationConnectionDelete {
+	mutation := newIntegrationConnectionMutation(c.config, OpDelete)
+	return &IntegrationConnectionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *IntegrationConnectionClient) DeleteOne(_m *IntegrationConnection) *IntegrationConnectionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *IntegrationConnectionClient) DeleteOneID(id string) *IntegrationConnectionDeleteOne {
+	builder := c.Delete().Where(integrationconnection.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &IntegrationConnectionDeleteOne{builder}
+}
+
+// Query returns a query builder for IntegrationConnection.
+func (c *IntegrationConnectionClient) Query() *IntegrationConnectionQuery {
+	return &IntegrationConnectionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeIntegrationConnection},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a IntegrationConnection entity by its id.
+func (c *IntegrationConnectionClient) Get(ctx context.Context, id string) (*IntegrationConnection, error) {
+	return c.Query().Where(integrationconnection.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *IntegrationConnectionClient) GetX(ctx context.Context, id string) *IntegrationConnection {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *IntegrationConnectionClient) Hooks() []Hook {
+	return c.hooks.IntegrationConnection
+}
+
+// Interceptors returns the client interceptors.
+func (c *IntegrationConnectionClient) Interceptors() []Interceptor {
+	return c.inters.IntegrationConnection
+}
+
+func (c *IntegrationConnectionClient) mutate(ctx context.Context, m *IntegrationConnectionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&IntegrationConnectionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&IntegrationConnectionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&IntegrationConnectionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&IntegrationConnectionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown IntegrationConnection mutation op: %q", m.Op())
+	}
+}
+
 // InvitationClient is a client for the Invitation schema.
 type InvitationClient struct {
 	config
@@ -6115,6 +6282,272 @@ func (c *ProductSurfaceClient) mutate(ctx context.Context, m *ProductSurfaceMuta
 	}
 }
 
+// ProjectClient is a client for the Project schema.
+type ProjectClient struct {
+	config
+}
+
+// NewProjectClient returns a client for the Project from the given config.
+func NewProjectClient(c config) *ProjectClient {
+	return &ProjectClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `project.Hooks(f(g(h())))`.
+func (c *ProjectClient) Use(hooks ...Hook) {
+	c.hooks.Project = append(c.hooks.Project, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `project.Intercept(f(g(h())))`.
+func (c *ProjectClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Project = append(c.inters.Project, interceptors...)
+}
+
+// Create returns a builder for creating a Project entity.
+func (c *ProjectClient) Create() *ProjectCreate {
+	mutation := newProjectMutation(c.config, OpCreate)
+	return &ProjectCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Project entities.
+func (c *ProjectClient) CreateBulk(builders ...*ProjectCreate) *ProjectCreateBulk {
+	return &ProjectCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProjectClient) MapCreateBulk(slice any, setFunc func(*ProjectCreate, int)) *ProjectCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProjectCreateBulk{err: fmt.Errorf("calling to ProjectClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProjectCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ProjectCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Project.
+func (c *ProjectClient) Update() *ProjectUpdate {
+	mutation := newProjectMutation(c.config, OpUpdate)
+	return &ProjectUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProjectClient) UpdateOne(_m *Project) *ProjectUpdateOne {
+	mutation := newProjectMutation(c.config, OpUpdateOne, withProject(_m))
+	return &ProjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProjectClient) UpdateOneID(id string) *ProjectUpdateOne {
+	mutation := newProjectMutation(c.config, OpUpdateOne, withProjectID(id))
+	return &ProjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Project.
+func (c *ProjectClient) Delete() *ProjectDelete {
+	mutation := newProjectMutation(c.config, OpDelete)
+	return &ProjectDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProjectClient) DeleteOne(_m *Project) *ProjectDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProjectClient) DeleteOneID(id string) *ProjectDeleteOne {
+	builder := c.Delete().Where(project.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProjectDeleteOne{builder}
+}
+
+// Query returns a query builder for Project.
+func (c *ProjectClient) Query() *ProjectQuery {
+	return &ProjectQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProject},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Project entity by its id.
+func (c *ProjectClient) Get(ctx context.Context, id string) (*Project, error) {
+	return c.Query().Where(project.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProjectClient) GetX(ctx context.Context, id string) *Project {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ProjectClient) Hooks() []Hook {
+	return c.hooks.Project
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProjectClient) Interceptors() []Interceptor {
+	return c.inters.Project
+}
+
+func (c *ProjectClient) mutate(ctx context.Context, m *ProjectMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProjectCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProjectUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProjectDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Project mutation op: %q", m.Op())
+	}
+}
+
+// ProjectVersionClient is a client for the ProjectVersion schema.
+type ProjectVersionClient struct {
+	config
+}
+
+// NewProjectVersionClient returns a client for the ProjectVersion from the given config.
+func NewProjectVersionClient(c config) *ProjectVersionClient {
+	return &ProjectVersionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `projectversion.Hooks(f(g(h())))`.
+func (c *ProjectVersionClient) Use(hooks ...Hook) {
+	c.hooks.ProjectVersion = append(c.hooks.ProjectVersion, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `projectversion.Intercept(f(g(h())))`.
+func (c *ProjectVersionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ProjectVersion = append(c.inters.ProjectVersion, interceptors...)
+}
+
+// Create returns a builder for creating a ProjectVersion entity.
+func (c *ProjectVersionClient) Create() *ProjectVersionCreate {
+	mutation := newProjectVersionMutation(c.config, OpCreate)
+	return &ProjectVersionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ProjectVersion entities.
+func (c *ProjectVersionClient) CreateBulk(builders ...*ProjectVersionCreate) *ProjectVersionCreateBulk {
+	return &ProjectVersionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProjectVersionClient) MapCreateBulk(slice any, setFunc func(*ProjectVersionCreate, int)) *ProjectVersionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProjectVersionCreateBulk{err: fmt.Errorf("calling to ProjectVersionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProjectVersionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ProjectVersionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ProjectVersion.
+func (c *ProjectVersionClient) Update() *ProjectVersionUpdate {
+	mutation := newProjectVersionMutation(c.config, OpUpdate)
+	return &ProjectVersionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProjectVersionClient) UpdateOne(_m *ProjectVersion) *ProjectVersionUpdateOne {
+	mutation := newProjectVersionMutation(c.config, OpUpdateOne, withProjectVersion(_m))
+	return &ProjectVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProjectVersionClient) UpdateOneID(id string) *ProjectVersionUpdateOne {
+	mutation := newProjectVersionMutation(c.config, OpUpdateOne, withProjectVersionID(id))
+	return &ProjectVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ProjectVersion.
+func (c *ProjectVersionClient) Delete() *ProjectVersionDelete {
+	mutation := newProjectVersionMutation(c.config, OpDelete)
+	return &ProjectVersionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProjectVersionClient) DeleteOne(_m *ProjectVersion) *ProjectVersionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProjectVersionClient) DeleteOneID(id string) *ProjectVersionDeleteOne {
+	builder := c.Delete().Where(projectversion.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProjectVersionDeleteOne{builder}
+}
+
+// Query returns a query builder for ProjectVersion.
+func (c *ProjectVersionClient) Query() *ProjectVersionQuery {
+	return &ProjectVersionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProjectVersion},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ProjectVersion entity by its id.
+func (c *ProjectVersionClient) Get(ctx context.Context, id string) (*ProjectVersion, error) {
+	return c.Query().Where(projectversion.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProjectVersionClient) GetX(ctx context.Context, id string) *ProjectVersion {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ProjectVersionClient) Hooks() []Hook {
+	return c.hooks.ProjectVersion
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProjectVersionClient) Interceptors() []Interceptor {
+	return c.inters.ProjectVersion
+}
+
+func (c *ProjectVersionClient) mutate(ctx context.Context, m *ProjectVersionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProjectVersionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProjectVersionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProjectVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProjectVersionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ProjectVersion mutation op: %q", m.Op())
+	}
+}
+
 // PublicationAttemptClient is a client for the PublicationAttempt schema.
 type PublicationAttemptClient struct {
 	config
@@ -7091,6 +7524,139 @@ func (c *SessionClient) mutate(ctx context.Context, m *SessionMutation) (Value, 
 		return (&SessionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Session mutation op: %q", m.Op())
+	}
+}
+
+// ShareLinkClient is a client for the ShareLink schema.
+type ShareLinkClient struct {
+	config
+}
+
+// NewShareLinkClient returns a client for the ShareLink from the given config.
+func NewShareLinkClient(c config) *ShareLinkClient {
+	return &ShareLinkClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `sharelink.Hooks(f(g(h())))`.
+func (c *ShareLinkClient) Use(hooks ...Hook) {
+	c.hooks.ShareLink = append(c.hooks.ShareLink, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `sharelink.Intercept(f(g(h())))`.
+func (c *ShareLinkClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ShareLink = append(c.inters.ShareLink, interceptors...)
+}
+
+// Create returns a builder for creating a ShareLink entity.
+func (c *ShareLinkClient) Create() *ShareLinkCreate {
+	mutation := newShareLinkMutation(c.config, OpCreate)
+	return &ShareLinkCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ShareLink entities.
+func (c *ShareLinkClient) CreateBulk(builders ...*ShareLinkCreate) *ShareLinkCreateBulk {
+	return &ShareLinkCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ShareLinkClient) MapCreateBulk(slice any, setFunc func(*ShareLinkCreate, int)) *ShareLinkCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ShareLinkCreateBulk{err: fmt.Errorf("calling to ShareLinkClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ShareLinkCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ShareLinkCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ShareLink.
+func (c *ShareLinkClient) Update() *ShareLinkUpdate {
+	mutation := newShareLinkMutation(c.config, OpUpdate)
+	return &ShareLinkUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ShareLinkClient) UpdateOne(_m *ShareLink) *ShareLinkUpdateOne {
+	mutation := newShareLinkMutation(c.config, OpUpdateOne, withShareLink(_m))
+	return &ShareLinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ShareLinkClient) UpdateOneID(id string) *ShareLinkUpdateOne {
+	mutation := newShareLinkMutation(c.config, OpUpdateOne, withShareLinkID(id))
+	return &ShareLinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ShareLink.
+func (c *ShareLinkClient) Delete() *ShareLinkDelete {
+	mutation := newShareLinkMutation(c.config, OpDelete)
+	return &ShareLinkDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ShareLinkClient) DeleteOne(_m *ShareLink) *ShareLinkDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ShareLinkClient) DeleteOneID(id string) *ShareLinkDeleteOne {
+	builder := c.Delete().Where(sharelink.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ShareLinkDeleteOne{builder}
+}
+
+// Query returns a query builder for ShareLink.
+func (c *ShareLinkClient) Query() *ShareLinkQuery {
+	return &ShareLinkQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeShareLink},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ShareLink entity by its id.
+func (c *ShareLinkClient) Get(ctx context.Context, id string) (*ShareLink, error) {
+	return c.Query().Where(sharelink.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ShareLinkClient) GetX(ctx context.Context, id string) *ShareLink {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ShareLinkClient) Hooks() []Hook {
+	return c.hooks.ShareLink
+}
+
+// Interceptors returns the client interceptors.
+func (c *ShareLinkClient) Interceptors() []Interceptor {
+	return c.inters.ShareLink
+}
+
+func (c *ShareLinkClient) mutate(ctx context.Context, m *ShareLinkMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ShareLinkCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ShareLinkUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ShareLinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ShareLinkDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ShareLink mutation op: %q", m.Op())
 	}
 }
 
@@ -8965,11 +9531,12 @@ type (
 		CampaignRevision, ChannelConnection, CommunicationAttempt,
 		CommunicationRecipient, ContentAngle, Conversation, ConversationMessage,
 		CreativeTemplate, CreativeVariant, CustomerCommunication, DeploymentEvent,
-		Design, GitHubInstallStart, GitHubInstallation, Invitation, LaunchRun,
-		LaunchRunStep, Member, Organization, OrganizationEnterpriseSettings,
-		OutboxEvent, PostizTenantBinding, ProductProfile, ProductSurface,
-		PublicationAttempt, Release, ReleaseDocument, ReleaseSpec, ScheduledPost,
-		ScreenshotCache, Session, SocialOAuthStart, SourceApp, SourceChange,
+		Design, GitHubInstallStart, GitHubInstallation, IntegrationConnection,
+		Invitation, LaunchRun, LaunchRunStep, Member, Organization,
+		OrganizationEnterpriseSettings, OutboxEvent, PostizTenantBinding,
+		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
+		Release, ReleaseDocument, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
+		ShareLink, SocialOAuthStart, SourceApp, SourceChange,
 		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
 		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
 		WorkspaceEntitlement, WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
@@ -8981,11 +9548,12 @@ type (
 		CampaignRevision, ChannelConnection, CommunicationAttempt,
 		CommunicationRecipient, ContentAngle, Conversation, ConversationMessage,
 		CreativeTemplate, CreativeVariant, CustomerCommunication, DeploymentEvent,
-		Design, GitHubInstallStart, GitHubInstallation, Invitation, LaunchRun,
-		LaunchRunStep, Member, Organization, OrganizationEnterpriseSettings,
-		OutboxEvent, PostizTenantBinding, ProductProfile, ProductSurface,
-		PublicationAttempt, Release, ReleaseDocument, ReleaseSpec, ScheduledPost,
-		ScreenshotCache, Session, SocialOAuthStart, SourceApp, SourceChange,
+		Design, GitHubInstallStart, GitHubInstallation, IntegrationConnection,
+		Invitation, LaunchRun, LaunchRunStep, Member, Organization,
+		OrganizationEnterpriseSettings, OutboxEvent, PostizTenantBinding,
+		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
+		Release, ReleaseDocument, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
+		ShareLink, SocialOAuthStart, SourceApp, SourceChange,
 		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
 		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
 		WorkspaceEntitlement, WorkspaceGitHubInstallation,

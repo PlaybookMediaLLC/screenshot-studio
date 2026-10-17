@@ -369,6 +369,18 @@ func (f GitHubInstallationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GitHubInstallationMutation", m)
 }
 
+// The IntegrationConnectionFunc type is an adapter to allow the use of ordinary
+// function as IntegrationConnection mutator.
+type IntegrationConnectionFunc func(context.Context, *ent.IntegrationConnectionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f IntegrationConnectionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.IntegrationConnectionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IntegrationConnectionMutation", m)
+}
+
 // The InvitationFunc type is an adapter to allow the use of ordinary
 // function as Invitation mutator.
 type InvitationFunc func(context.Context, *ent.InvitationMutation) (ent.Value, error)
@@ -489,6 +501,30 @@ func (f ProductSurfaceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Val
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProductSurfaceMutation", m)
 }
 
+// The ProjectFunc type is an adapter to allow the use of ordinary
+// function as Project mutator.
+type ProjectFunc func(context.Context, *ent.ProjectMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProjectFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProjectMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProjectMutation", m)
+}
+
+// The ProjectVersionFunc type is an adapter to allow the use of ordinary
+// function as ProjectVersion mutator.
+type ProjectVersionFunc func(context.Context, *ent.ProjectVersionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProjectVersionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProjectVersionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProjectVersionMutation", m)
+}
+
 // The PublicationAttemptFunc type is an adapter to allow the use of ordinary
 // function as PublicationAttempt mutator.
 type PublicationAttemptFunc func(context.Context, *ent.PublicationAttemptMutation) (ent.Value, error)
@@ -571,6 +607,18 @@ func (f SessionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SessionMutation", m)
+}
+
+// The ShareLinkFunc type is an adapter to allow the use of ordinary
+// function as ShareLink mutator.
+type ShareLinkFunc func(context.Context, *ent.ShareLinkMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ShareLinkFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ShareLinkMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ShareLinkMutation", m)
 }
 
 // The SocialOAuthStartFunc type is an adapter to allow the use of ordinary

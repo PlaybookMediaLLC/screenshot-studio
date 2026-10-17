@@ -25,6 +25,7 @@ import {
   resolveRestoredEditorMode,
 } from "../lib/device-mockups/draft-migration";
 import type { Mockup } from "../types/mockup";
+import { DEFAULT_FRAME_CHROME } from "../lib/frames/schema";
 import { useDeviceUIStore } from "../lib/store/device-ui";
 
 test("autosave never replaces the saved canvas background", async () => {
@@ -37,13 +38,16 @@ test("autosave never replaces the saved canvas background", async () => {
   assert.match(source, /useImageStore\.setState\(\{\s*\.\.\.definedOnly\(rest\)/);
 });
 
-test("device library ships licensed device assets", () => {
-  assert.equal(MOCKUP_DEFINITIONS.length, 17);
-  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "phone").length, 5);
+test("device library ships licensed device assets and in-house drawn devices", () => {
+  assert.equal(MOCKUP_DEFINITIONS.length, 25);
+  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "phone").length, 7);
   assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "watch").length, 7);
-  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "tablet").length, 0);
-  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "laptop").length, 5);
-  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "desktop").length, 0);
+  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "tablet").length, 2);
+  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "laptop").length, 6);
+  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "desktop").length, 2);
+  assert.equal(MOCKUP_DEFINITIONS.filter((definition) => definition.family === "spatial").length, 1);
+  // Every device is either licensed artwork or drawn in-house, never both.
+  assert.ok(MOCKUP_DEFINITIONS.every((definition) => Boolean(definition.asset) !== Boolean(definition.art)));
   assert.equal(new Set(MOCKUP_DEFINITIONS.map((definition) => definition.id)).size, MOCKUP_DEFINITIONS.length);
 
   const licensedAssets = MOCKUP_DEFINITIONS.filter((definition) => definition.asset);
@@ -92,6 +96,21 @@ test("legacy draft devices migrate to supported catalog definitions", () => {
   assert.equal(resolveMockupDefinitionId("imac-1"), "macbook-pro-studio-front");
   assert.equal(resolveMockupDefinitionId("iphone-17-pro-front"), "iphone-17-pro-front");
   assert.equal(resolveMockupDefinitionId("unknown-device"), null);
+});
+
+test("drafts restore each screen's frame, device color, orientation, and code", () => {
+  const code = { code: "ls", font: "google:Fira Code", language: "bash" as const, lineNumbers: false, padding: 1, theme: "nord" as const };
+  const framed: Mockup = {
+    ...createMockup("pixel-9-pro", { ...createDeviceScreen(null, "Code"), code }),
+    color: "hazel",
+    frame: { kind: "window", chrome: { ...DEFAULT_FRAME_CHROME, window: "terminal-macos" } },
+    orientation: "landscape",
+  };
+  const [restored] = normalizeDraftMockups([framed], { imageName: null, uploadedImageUrl: null }).mockups;
+  assert.deepEqual(restored.frame, framed.frame);
+  assert.equal(restored.color, "hazel");
+  assert.equal(restored.orientation, "landscape");
+  assert.deepEqual(restored.screen.code, code);
 });
 
 test("legacy draft device geometry migrates from pixels to normalized canvas coordinates", () => {
@@ -213,8 +232,8 @@ test("drafts store inherited device images once without changing custom screens"
 });
 
 test("device screen uploads use durable data URLs instead of leaking blob URLs", async () => {
-  const controls = await readFile(
-    new URL("../components/mockups/MockupControls.tsx", import.meta.url),
+  const commands = await readFile(
+    new URL("../lib/frames/commands.ts", import.meta.url),
     "utf8",
   );
   const renderer = await readFile(
@@ -222,9 +241,9 @@ test("device screen uploads use durable data URLs instead of leaking blob URLs",
     "utf8",
   );
 
-  assert.match(controls, /blobToDataUrl\(file\)/);
-  assert.match(renderer, /blobToDataUrl\(file\)/);
-  assert.doesNotMatch(controls, /URL\.createObjectURL\(file\)/);
+  // Replacing a screen's image (canvas double-click or the inspector) goes through one command.
+  assert.match(commands, /export async function replaceScreenImage[\s\S]*?blobToDataUrl\(file\)/);
+  assert.match(renderer, /replaceScreenImage\(mockup\.id, file\)/);
   assert.doesNotMatch(renderer, /URL\.createObjectURL\(file\)/);
 });
 

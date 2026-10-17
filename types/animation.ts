@@ -56,11 +56,9 @@ export interface AnimationTrack {
   originalDuration?: number; // Original preset duration for scaling
 }
 
-// The overall timeline state
+// The overall timeline state. Playback position lives in the playback store.
 export interface TimelineState {
   duration: number; // total duration in milliseconds
-  playhead: number; // current position in milliseconds
-  isPlaying: boolean;
   isLooping: boolean;
   tracks: AnimationTrack[];
   zoom: number; // zoom level for timeline UI (1 = 100%)
@@ -70,8 +68,6 @@ export interface TimelineState {
 // Default timeline state
 export const DEFAULT_TIMELINE_STATE: TimelineState = {
   duration: 3000, // 3 seconds default
-  playhead: 0,
-  isPlaying: false,
   isLooping: true,
   tracks: [],
   zoom: 1,

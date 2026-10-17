@@ -3,14 +3,13 @@
 import * as React from "react";
 import { SectionWrapper } from "./SectionWrapper";
 import { Slider } from "@/components/ui/slider";
-import { useImageStore, useEditorStore } from "@/lib/store";
+import { useImageStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 import { meshGradients } from "@/lib/constants/mesh-gradients";
 
 export function BackgroundEffectsSection() {
-  const { setBackgroundConfig, backgroundNoise, setBackgroundNoise } = useImageStore();
-  const { pattern, setPattern } = useEditorStore();
+  const { setBackgroundConfig, backgroundNoise, setBackgroundNoise, backgroundBlur, setBackgroundBlur, pattern, setPattern } = useImageStore();
 
   return (
     <SectionWrapper title="Background Effects" defaultOpen={false}>
@@ -44,6 +43,16 @@ export function BackgroundEffectsSection() {
             ))}
           </div>
         </div>
+
+        <Slider
+          value={[backgroundBlur]}
+          onValueChange={(value) => setBackgroundBlur(value[0])}
+          min={0}
+          max={50}
+          step={1}
+          label="Background Blur"
+          valueDisplay={`${backgroundBlur}px`}
+        />
 
         <Slider
           value={[backgroundNoise]}

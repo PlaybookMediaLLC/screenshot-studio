@@ -1,14 +1,24 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import { useEditorStore, useImageStore } from "@/lib/store";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
+import { selectScreenshot, useImageStore } from "@/lib/store";
 import { generatePattern } from "@/lib/patterns";
 import { useResponsiveCanvasDimensions } from "@/hooks/useAspectRatioDimensions";
 import { generateNoiseTexture } from "@/lib/export/export-utils";
 import { MockupSceneRenderer } from "@/components/mockups/MockupRenderer";
 import { useDeviceUIStore } from "@/lib/store/device-ui";
 import { shouldIgnoreEditorShortcut } from "@/lib/editor-shortcuts";
-import { calculateCanvasDimensions } from "./utils/canvas-dimensions";
+import { calculateCanvasDimensions, mainImageRect } from "./utils/canvas-dimensions";
+import { CanvasGeometryContext, type CanvasGeometry } from "./elements/canvas-geometry";
+import { ElementLayer } from "./elements/ElementLayer";
+import { imageFilterCss } from "@/lib/editor/image-adjustments";
+import { toCanvasShadow } from "./utils/shadow-utils";
+import { useImageMotion } from "@/lib/animation/use-image-motion";
+import { MAIN_IMAGE_TARGET, useLayerMotion, useScroll } from "@/lib/animation/use-motion";
+import { coverOverflow, imageWithMotion, scrollObjectPosition } from "@/lib/animation/motion-evaluate";
+import { CaptionLayer } from "./motion/motion-layers";
+import { useTextFontLoader } from "@/lib/typography/load-text-fonts";
 import { CanvasStageShell } from "./CanvasStageShell";
 import { Perspective3DOverlay } from "./overlays/Perspective3DOverlay";
 import { useOverlayImages } from "./hooks/useImageLoading";
@@ -16,7 +26,6 @@ import {
   HTMLCanvasRenderer,
   HTMLBackgroundLayer,
   HTMLPatternLayer,
-  HTMLNoiseLayer,
   HTMLMainImageLayer,
   HTMLTextOverlayLayer,
   HTMLImageOverlayLayer,
@@ -26,10 +35,14 @@ import {
   HTMLGridLayer,
 } from "./html";
 import { CanvasRulers } from "./CanvasRulers";
+import { CanvasGuidesLayer } from "./html/CanvasGuidesLayer";
 import {
   hasVisibleMockups,
   shouldRenderSourceImage,
 } from "@/lib/device-mockups/layouts";
+import { removeScreenshot } from '@/lib/editor/remove-screenshot'
+import { useMainChromeFrame } from "@/components/frames/use-main-chrome";
+import { useFrameToneSync } from "@/lib/frames/use-frame-tone";
 
 // Reference to the HTML canvas container for export
 let globalCanvasContainer: HTMLDivElement | null = null;
@@ -37,15 +50,23 @@ let globalCanvasContainer: HTMLDivElement | null = null;
 function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
-  const {
-    screenshot,
-    setScreenshot,
-    shadow,
-    pattern: patternStyle,
-    frame: editorFrame,
-    canvas,
-    noise,
-  } = useEditorStore();
+  const screenshot = useImageStore(useShallow(selectScreenshot));
+  const setImagePlacement = useImageStore((state) => state.setImagePlacement);
+  const patternStyle = useImageStore((state) => state.pattern);
+  const canvasPadding = useImageStore((state) => state.canvasPadding);
+  const imageShadow = useImageStore((state) => state.imageShadow);
+  const shadow = useMemo(() => toCanvasShadow(imageShadow), [imageShadow]);
+  useTextFontLoader();
+  // Drawn values at the playhead; the document keeps its own.
+  const presetMotion = useImageMotion();
+  const imageLayerMotion = useLayerMotion(MAIN_IMAGE_TARGET);
+  // A scroll-through shows the screenshot through a viewport of its own shape.
+  const imageScroll = useScroll(MAIN_IMAGE_TARGET);
+  const scrollViewport = imageScroll?.scroll.viewport;
+  const layoutImage = useMemo(
+    () => (scrollViewport ? { naturalHeight: 1000, naturalWidth: Math.round(scrollViewport * 1000) } : image),
+    [image, scrollViewport]
+  );
 
   const {
     backgroundConfig,
@@ -53,8 +74,6 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     backgroundBorderRadius,
     backgroundBlur,
     backgroundNoise,
-    perspective3D,
-    imageOpacity,
     imageFilters,
     textOverlays,
     imageOverlays,
@@ -95,9 +114,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   const backOverlays = imageOverlays.filter((o) => o.layer === 'back');
   const frontOverlays = imageOverlays.filter((o) => o.layer !== 'back');
 
-  // Build frame from imageBorder directly (editorStore sync may be stale)
   const frame = {
-    ...editorFrame,
     enabled: imageBorder.enabled,
     type: imageBorder.type,
     width: imageBorder.width,
@@ -109,6 +126,8 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
 
   const hasDeviceScene = editorMode === "device" && hasVisibleMockups(mockups);
   const hasSourceImage = !!uploadedImageUrl && !!screenshot.src && shouldRenderSourceImage(editorMode, mockups);
+  const mainChrome = useMainChromeFrame();
+  useFrameToneSync();
   const selectedDeviceId = useDeviceUIStore((state) => state.selectedDeviceId);
   const setSelectedDeviceId = useDeviceUIStore((state) => state.setSelectedDeviceId);
   const setEditingScreenDeviceId = useDeviceUIStore((state) => state.setEditingScreenDeviceId);
@@ -122,14 +141,14 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   const [patternImage, setPatternImage] = useState<HTMLCanvasElement | null>(
     null
   );
-  const [noiseImage, setNoiseImage] = useState<HTMLImageElement | null>(null);
   const [noiseTexture, setNoiseTexture] = useState<HTMLCanvasElement | null>(
     null
   );
 
-  const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
-  const [isDraggingMainImage, setIsDraggingMainImage] = useState(false);
-  const [selectedBlurId, setSelectedBlurId] = useState<string | null>(null);
+  const selectedTextId = useImageStore((state) => state.selectedTextId);
+  const setSelectedTextId = useImageStore((state) => state.setSelectedTextId);
+  const selectedBlurId = useImageStore((state) => state.selectedBlurId);
+  const setSelectedBlurId = useImageStore((state) => state.setSelectedBlurId);
 
   // 3D transform drag state — differentiates click (select) from drag (move)
   const [is3DDragging, setIs3DDragging] = useState(false);
@@ -156,7 +175,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setIsMainImageSelected(true);
     setSelectedOverlayId(null);
     setSelectedTextId(null);
-  }, [setIsMainImageSelected, setSelectedOverlayId]);
+  }, [setIsMainImageSelected, setSelectedOverlayId, setSelectedTextId]);
 
   useEffect(() => {
     if (!is3DPointerDown) return;
@@ -228,7 +247,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
         // Don't deselect when interacting with editor panel controls
         // (sliders, inputs, buttons, etc.) so users can tweak selected items
         const el = target as HTMLElement;
-        if (el.closest?.('[data-slot="slider"], input, button, [role="button"], [data-radix-collection-item], .moveable-control-box, [data-resize-handle]')) return;
+        if (el.closest?.('[data-slot="slider"], input, button, [role="button"], [data-radix-collection-item], .moveable-control-box, [data-resize-handle], [data-keep-selection]')) return;
 
         setSelectedOverlayId(null);
         setIsMainImageSelected(false);
@@ -236,6 +255,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
         setSelectedBlurId(null);
         setSelectedAnnotationId(null);
         setSelectedDeviceId(null);
+        useImageStore.getState().setSelectedElementId(null);
       }
     };
 
@@ -243,7 +263,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, true);
     };
-  }, [setSelectedAnnotationId, setSelectedDeviceId, setSelectedOverlayId, setIsMainImageSelected]);
+  }, [setSelectedAnnotationId, setSelectedDeviceId, setSelectedOverlayId, setIsMainImageSelected, setSelectedBlurId, setSelectedTextId]);
 
   useEffect(() => {
     if (!selectedDeviceId) return;
@@ -252,7 +272,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setSelectedTextId(null);
     setSelectedBlurId(null);
     setSelectedAnnotationId(null);
-  }, [selectedDeviceId, setSelectedAnnotationId, setSelectedOverlayId, setIsMainImageSelected]);
+  }, [selectedDeviceId, setSelectedAnnotationId, setSelectedOverlayId, setIsMainImageSelected, setSelectedBlurId, setSelectedTextId]);
 
   // Panel selection must clear the same competing selections as a canvas click.
   useEffect(() => {
@@ -261,7 +281,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setSelectedBlurId(null);
     setSelectedAnnotationId(null);
     setSelectedDeviceId(null);
-  }, [selectedOverlayId, isMainImageSelected, setSelectedAnnotationId, setSelectedDeviceId]);
+  }, [selectedOverlayId, isMainImageSelected, setSelectedAnnotationId, setSelectedDeviceId, setSelectedBlurId, setSelectedTextId]);
 
   // Selection shortcuts; history lives in the always-mounted editor header.
   useEffect(() => {
@@ -284,8 +304,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           setSelectedTextId(null);
         } else if (isMainImageSelected) {
           e.preventDefault();
-          useImageStore.getState().clearImage();
-          setIsMainImageSelected(false);
+          removeScreenshot();
         }
       }
 
@@ -297,13 +316,14 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
         setSelectedBlurId(null);
         setSelectedAnnotationId(null);
         setSelectedDeviceId(null);
+        useImageStore.getState().setSelectedElementId(null);
         setEditingScreenDeviceId(null);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [editorMode, isMainImageSelected, removeImageOverlay, removeMockup, selectedDeviceId, selectedOverlayId, selectedTextId, setSelectedDeviceId, setSelectedOverlayId, setIsMainImageSelected, setSelectedAnnotationId, setEditingScreenDeviceId]);
+  }, [editorMode, isMainImageSelected, removeImageOverlay, removeMockup, selectedDeviceId, selectedOverlayId, selectedTextId, setSelectedDeviceId, setSelectedOverlayId, setIsMainImageSelected, setSelectedAnnotationId, setEditingScreenDeviceId, setSelectedBlurId, setSelectedTextId]);
 
   // Get selected overlay for toolbar positioning
   const selectedOverlay = selectedOverlayId
@@ -379,28 +399,16 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     patternStyle.blur,
   ]);
 
-  useEffect(() => {
-    if (!noise.enabled || noise.type === "none") {
-      setNoiseImage(null);
-      return;
-    }
-
-    const img = new window.Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => setNoiseImage(img);
-    img.onerror = () => setNoiseImage(null);
-    img.src = `/${noise.type}.jpg`;
-  }, [noise.enabled, noise.type]);
-
   const dimensions = calculateCanvasDimensions(
-    image,
+    layoutImage,
     containerWidth,
     containerHeight,
     viewportSize,
-    canvas,
+    { padding: canvasPadding },
     screenshot,
     frame,
-    browserHeaderSize
+    browserHeaderSize,
+    mainChrome
   );
 
   const {
@@ -425,6 +433,34 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   }, [canvasW, canvasH, framedW, framedH, setCanvasDimensions]);
 
   const showFrame = frame.enabled && frame.type !== "none";
+  const { perspective3D, imageOpacity } = imageWithMotion(presetMotion, imageLayerMotion, {
+    canvasH,
+    canvasW,
+    framedH,
+    framedW,
+  });
+  const imageObjectPosition = imageScroll
+    ? scrollObjectPosition(
+        imageScroll.progress,
+        imageScroll.scroll.direction,
+        coverOverflow(
+          { height: image.naturalHeight, width: image.naturalWidth },
+          { height: imageScaledH, width: imageScaledW }
+        )[imageScroll.scroll.direction === "vertical" ? "y" : "x"]
+      )
+    : undefined;
+
+  const geometry: CanvasGeometry = {
+    canvasH,
+    canvasW,
+    imageFilter: imageFilterCss(imageFilters),
+    imageNaturalSize: { height: image.naturalHeight, width: image.naturalWidth },
+    imageObjectPosition,
+    imageRect: hasSourceImage
+      ? mainImageRect(dimensions, screenshot, showFrame ? frame.type : "none")
+      : null,
+    imageSrc: uploadedImageUrl,
+  };
 
   let selectedSelector: string | null = null;
   if (isMainImageSelected) {
@@ -456,6 +492,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setSelectedAnnotationId(null);
     setEditingScreenDeviceId(null);
     setSelectedDeviceId(null);
+    useImageStore.getState().setSelectedElementId(null);
   };
 
   return (
@@ -508,19 +545,14 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           patternOpacity={patternStyle.opacity}
         />
 
-        <HTMLNoiseLayer
-          noiseImage={noiseImage}
-          width={canvasW}
-          height={canvasH}
-          noiseOpacity={noise.opacity}
-        />
-
         {hasSourceImage ? <Perspective3DOverlay
           has3DTransform={has3DTransform}
           perspective3D={perspective3D}
           screenshot={screenshot}
           shadow={shadow}
           frame={frame}
+          chrome={mainChrome}
+          chromeScale={browserHeaderSize / 100}
           showFrame={showFrame}
           framedW={framedW}
           framedH={framedH}
@@ -537,6 +569,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           image={image}
           imageOpacity={imageOpacity}
           imageFilters={imageFilters}
+          imageObjectPosition={imageObjectPosition}
         /> : null}
 
         {hasSourceImage && has3DTransform && (
@@ -572,13 +605,6 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
 
         {hasSourceImage && !has3DTransform && (
           <>
-            <SnapAlignmentGuides
-              canvasW={canvasW}
-              canvasH={canvasH}
-              offsetX={screenshot.offsetX}
-              offsetY={screenshot.offsetY}
-              isDragging={isDraggingMainImage}
-            />
             <HTMLMainImageLayer
               image={image}
               canvasW={canvasW}
@@ -592,16 +618,18 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
               imageScaledH={imageScaledH}
               screenshot={screenshot}
               frame={frame}
+              chrome={mainChrome}
+              chromeScale={browserHeaderSize / 100}
               shadow={shadow}
               showFrame={showFrame}
               imageOpacity={imageOpacity}
               imageFilters={imageFilters}
+              imageObjectPosition={imageObjectPosition}
               isMainImageSelected={isMainImageSelected}
               setIsMainImageSelected={setIsMainImageSelected}
               setSelectedOverlayId={setSelectedOverlayId}
               setSelectedTextId={setSelectedTextId}
-              setScreenshot={setScreenshot}
-              onDragStateChange={setIsDraggingMainImage}
+              setScreenshot={setImagePlacement}
             />
           </>
         )}
@@ -632,6 +660,12 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
           onDuplicate={handleDuplicateOverlay}
           onDelete={handleDeleteOverlay}
         />
+
+        <CanvasGeometryContext.Provider value={geometry}>
+          <ElementLayer zIndex={205} />
+        </CanvasGeometryContext.Provider>
+
+        <CaptionLayer canvasW={canvasW} canvasH={canvasH} />
 
         <HTMLBlurRegionLayer
           blurRegions={blurRegions}
@@ -666,6 +700,8 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
 
 
         {showGrid && <HTMLGridLayer canvasW={canvasW} canvasH={canvasH} />}
+        <CanvasGuidesLayer canvasW={canvasW} canvasH={canvasH} />
+        <SnapAlignmentGuides />
       </HTMLCanvasRenderer>
     </div>
   );
@@ -686,12 +722,12 @@ export default function ClientCanvas({
 }: ClientCanvasProps) {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [loadError, setLoadError] = useState(false);
-  const { screenshot, setScreenshot } = useEditorStore();
-  const { uploadedImageUrl, editorMode, mockups, textOverlays } = useImageStore();
-  const hasText = textOverlays.length > 0;
+  const uploadedImageUrl = useImageStore((state) => state.uploadedImageUrl);
+  const editorMode = useImageStore((state) => state.editorMode);
+  const mockups = useImageStore((state) => state.mockups);
+  const hasText = useImageStore((state) => state.textOverlays.length > 0);
   const hasDeviceScene = editorMode === "device" && hasVisibleMockups(mockups);
-  const hasSourceImage = !!screenshot.src
-    && !!uploadedImageUrl
+  const hasSourceImage = !!uploadedImageUrl
     && shouldRenderSourceImage(editorMode, mockups);
 
   // Load primary image from screenshot.src
@@ -706,11 +742,16 @@ export default function ClientCanvas({
     const img = new window.Image();
     img.crossOrigin = "anonymous";
 
+    // An image that never loads is dropped so the upload state shows again.
+    const dropBrokenImage = () => {
+      setLoadError(true);
+      if (hasSourceImage) useImageStore.getState().setUploadedImageUrl(null, null);
+    };
+
     const timeoutId = setTimeout(() => {
       if (!img.complete) {
         console.warn("Image load timeout");
-        setLoadError(true);
-        setScreenshot({ src: null });
+        dropBrokenImage();
       }
     }, 10000);
 
@@ -722,18 +763,17 @@ export default function ClientCanvas({
     img.onerror = () => {
       clearTimeout(timeoutId);
       console.warn("Image load error");
-      setLoadError(true);
-      setScreenshot({ src: null });
+      dropBrokenImage();
     };
 
-    img.src = hasSourceImage && screenshot.src
-      ? screenshot.src
+    img.src = hasSourceImage && uploadedImageUrl
+      ? uploadedImageUrl
       : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='1200'/%3E";
 
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [hasDeviceScene, hasSourceImage, hasText, screenshot.src, setScreenshot]);
+  }, [hasDeviceScene, hasSourceImage, hasText, uploadedImageUrl]);
 
   useEffect(() => {
     if (image) {

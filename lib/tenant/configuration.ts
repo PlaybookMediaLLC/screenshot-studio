@@ -26,6 +26,21 @@ export async function createBrandKit(context: OrganizationAccess, input: BrandKi
   return { ...kit, createdAt: new Date(kit.createdAt), updatedAt: new Date(kit.updatedAt) }
 }
 
+/** Rename every version of the brand kit `brandKitId` belongs to. */
+export async function renameBrandKit(
+  context: OrganizationAccess,
+  brandKitId: string,
+  name: string
+) {
+  const kit = await backendSDK(context).renameBrandKit(brandKitId, name)
+  return { ...kit, createdAt: new Date(kit.createdAt), updatedAt: new Date(kit.updatedAt) }
+}
+
+/** Archive every version of the brand kit `brandKitId` belongs to. */
+export async function archiveBrandKit(context: OrganizationAccess, brandKitId: string) {
+  return backendSDK(context).archiveBrandKit(brandKitId)
+}
+
 export async function getBrandProfile(context: OrganizationAccess) {
   const { brandProfile } = await backendSDK(context).getBrandProfile()
   return (

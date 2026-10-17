@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useImageStore, useEditorStore } from '@/lib/store';
+import { selectScreenshot, useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { ANIMATION_PRESETS, CATEGORY_LABELS } from '@/lib/animation/presets';
 import { cn } from '@/lib/utils';
 import type { AnimationPreset } from '@/types/animation';
@@ -33,7 +34,7 @@ export function AnimationPresetGallery() {
     setTimelineDuration,
   } = useImageStore();
 
-  const { screenshot } = useEditorStore();
+  const screenshot = useImageStore(useShallow(selectScreenshot));
 
   const previewImageUrl = uploadedImageUrl || screenshot?.src || null;
 

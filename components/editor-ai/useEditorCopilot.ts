@@ -7,6 +7,8 @@ import { type DesignChanges, designEditSchema } from '@/lib/design/document'
 import { describeSelection, exportDesignDocument } from '@/lib/design/export'
 import { captureCanvasSnapshot } from '@/lib/design/snapshot'
 import { useImageStore } from '@/lib/store'
+import { z } from 'zod'
+import { variantCountSchema } from '@/lib/ai/variants'
 
 /**
  * The in-editor copilot loop.
@@ -39,7 +41,7 @@ const nextFrame = () =>
   new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
 
 /** The model may restyle the design but never swap the user's images. */
-function withoutImageSources(changes: DesignChanges): DesignChanges {
+export function withoutImageSources(changes: DesignChanges): DesignChanges {
   const { devices, image, ...rest } = changes
   const { src: _ignored, ...imageWithoutSource } = image ?? {}
   return {
@@ -83,11 +85,31 @@ async function snapshotParts(text: string): Promise<ToolResultPart['output']> {
   }
 }
 
+/** A request to show variants, from the copilot's showVariants tool. */
+export type VariantsRequest = { count: number; instruction: string }
+
+const variantsRequestSchema = z.object({
+  count: variantCountSchema,
+  instruction: z.string().max(300).default(''),
+})
+
 export async function runEditorTool(
   call: PendingToolCall,
-  onChange: (summary: string) => void
+  onChange: (summary: string) => void,
+  onShowVariants?: (request: VariantsRequest) => void
 ): Promise<ToolResultPart['output']> {
   switch (call.toolName) {
+    case 'showVariants': {
+      const parsed = variantsRequestSchema.safeParse(call.input)
+      if (!parsed.success || !onShowVariants) {
+        return { type: 'error-text', value: 'Variants cannot be shown here.' }
+      }
+      onShowVariants(parsed.data)
+      return {
+        type: 'text',
+        value: `Showing ${parsed.data.count} versions side by side. The user picks one; the design is unchanged until they do.`,
+      }
+    }
     case 'inspectCanvas':
       return snapshotParts(
         JSON.stringify({
@@ -123,7 +145,7 @@ export async function runEditorTool(
   }
 }
 
-export function useEditorCopilot() {
+export function useEditorCopilot(onShowVariants?: (request: VariantsRequest) => void) {
   const [entries, setEntries] = useState<CopilotEntry[]>([])
   const [isRunning, setIsRunning] = useState(false)
   const messages = useRef<ModelMessage[]>([])
@@ -154,7 +176,11 @@ export function useEditorCopilot() {
           const results: ToolResultPart[] = []
           for (const call of step.pendingToolCalls) {
             results.push({
-              output: await runEditorTool(call, (summary) => push({ kind: 'change', summary })),
+              output: await runEditorTool(
+                call,
+                (summary) => push({ kind: 'change', summary }),
+                onShowVariants
+              ),
               toolCallId: call.toolCallId,
               toolName: call.toolName,
               type: 'tool-result',
@@ -171,7 +197,7 @@ export function useEditorCopilot() {
         setIsRunning(false)
       }
     },
-    [isRunning, push]
+    [isRunning, onShowVariants, push]
   )
 
   const reset = useCallback(() => {

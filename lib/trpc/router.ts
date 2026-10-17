@@ -12,12 +12,15 @@ import { creativeTemplateRouter, creativeVariantRouter } from './routers/creativ
 import { designRouter } from './routers/design'
 import { editorAiRouter } from './routers/editor-ai'
 import { githubRouter } from './routers/github'
+import { integrationRouter } from './routers/integration'
 import { launchRouter } from './routers/launch'
 import { onboardingRouter } from './routers/onboarding'
 import { productProfileRouter } from './routers/product-profile'
 import { productSurfaceRouter } from './routers/product-surface'
+import { projectRouter } from './routers/project'
 import { channelConnectionRouter, scheduledPostRouter } from './routers/publishing'
 import { releaseRouter } from './routers/release'
+import { shareLinkRouter } from './routers/share-link'
 import { workspaceRouter } from './routers/workspace'
 
 export const appRouter = router({
@@ -36,12 +39,15 @@ export const appRouter = router({
   design: designRouter,
   editorAi: editorAiRouter,
   github: githubRouter,
+  integration: integrationRouter,
   launch: launchRouter,
   onboarding: onboardingRouter,
   productProfile: productProfileRouter,
   productSurface: productSurfaceRouter,
+  project: projectRouter,
   release: releaseRouter,
   scheduledPost: scheduledPostRouter,
+  shareLink: shareLinkRouter,
   sourceApp: sourceAppRouter,
   workspace: workspaceRouter,
 })

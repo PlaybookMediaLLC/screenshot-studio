@@ -8,13 +8,13 @@ import { applyDesignChanges } from '@/lib/design/apply'
 import type { DesignChanges } from '@/lib/design/document'
 import { describeSelection, exportDesignDocument } from '@/lib/design/export'
 import { captureCanvasSnapshot } from '@/lib/design/snapshot'
-import { openDesignInEditor } from '@/lib/design/open-design'
 import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts'
 import { useImageStore } from '@/lib/store'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
-import { saveExportToWorkspace } from '@/lib/workspace/save-export'
-import { useEditorCopilot } from './useEditorCopilot'
+import { CaptionsPanel } from './CaptionsPanel'
+import { useEditorCopilot, type VariantsRequest } from './useEditorCopilot'
+import { VariantsPanel } from './VariantsPanel'
 
 /**
  * The editor's AI surface: one floating panel with
@@ -22,19 +22,21 @@ import { useEditorCopilot } from './useEditorCopilot'
  * - Copilot: a conversation that edits the live canvas, scoped to the
  *   selected layer when there is one (⌘K opens it on the selection);
  * - Suggestions: up to three one-click improvements from a design review;
- * - Directions: rendered variations of the current design to choose from.
+ * - Variants: complete versions of the design to compare and apply (the
+ *   copilot opens it for "give me four versions");
+ * - Captions: alt text and platform captions for the design.
  *
  * Every AI change goes through the editor's own store actions and is one
  * undo step, so ⌘Z always takes it back.
  */
 
-type Status = { copilot: boolean; directions: boolean }
+type Status = { backgrounds: boolean; captions: boolean; copilot: boolean; variants: boolean }
 type Suggestion = { changes: DesignChanges; reason: string; title: string }
-type Direction = {
-  designId: string
-  name: string
-  previewUrl: string | null
-  rationale: string
+type Tab = 'copilot' | 'variants' | 'captions'
+const TAB_LABELS: Record<Tab, string> = {
+  captions: 'Captions',
+  copilot: 'Copilot',
+  variants: 'Variants',
 }
 
 const QUICK_PROMPTS = [
@@ -46,26 +48,28 @@ const QUICK_PROMPTS = [
   'Make a 9:16 version for stories',
 ]
 
-/** The workspace copy of the current main image, uploaded once per image. */
-const uploadedSources = new Map<string, string>()
-
 export function EditorAiPanel() {
   const trpcClient = useTRPCClient()
   const [status, setStatus] = useState<Status | null>(null)
   const [open, setOpen] = useState(false)
-  const [tab, setTab] = useState<'copilot' | 'directions'>('copilot')
+  const [tab, setTab] = useState<Tab>('copilot')
   const [input, setInput] = useState('')
   const [selection, setSelection] = useState<string | null>(null)
   const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null)
   const [reviewing, setReviewing] = useState(false)
   // At most one automatic review per opening, whatever its outcome.
   const autoReviewed = useRef(false)
-  const [directionPrompt, setDirectionPrompt] = useState('')
-  const [directions, setDirections] = useState<Direction[]>([])
-  const [exploring, setExploring] = useState(false)
+  const [variantsRequest, setVariantsRequest] = useState<(VariantsRequest & { id: number }) | null>(
+    null
+  )
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const transcriptRef = useRef<HTMLDivElement>(null)
-  const { entries, isRunning, reset, send } = useEditorCopilot()
+  const showVariants = useCallback((request: VariantsRequest) => {
+    setVariantsRequest({ ...request, id: Date.now() })
+    setTab('variants')
+  }, [])
+  const clearVariantsRequest = useCallback(() => setVariantsRequest(null), [])
+  const { entries, isRunning, reset, send } = useEditorCopilot(showVariants)
   const hasImage = useImageStore(
     (state) => Boolean(state.uploadedImageUrl) || state.mockups.length > 0
   )
@@ -144,48 +148,6 @@ export function EditorAiPanel() {
     await send(text, selection)
   }
 
-  async function workspaceImageRef(): Promise<string> {
-    const url = useImageStore.getState().uploadedImageUrl
-    if (!url) throw new Error('Add an image to the canvas first.')
-    const cached = uploadedSources.get(url)
-    if (cached) return cached
-    const blob = await (await fetch(url)).blob()
-    const { assetId } = await saveExportToWorkspace({ blob, fileName: 'source.png', trpcClient })
-    const ref = `asset:${assetId}`
-    uploadedSources.set(url, ref)
-    return ref
-  }
-
-  async function explore() {
-    setExploring(true)
-    try {
-      const document = exportDesignDocument()
-      const src = await workspaceImageRef()
-      const result = await trpcClient.editorAi.explore.mutate({
-        count: 4,
-        direction: directionPrompt.trim() || undefined,
-        document: { ...document, image: { ...document.image, src } },
-      })
-      setDirections(result.directions)
-      if (result.directions.length === 0) toast.error('No directions came back. Try again.')
-    } catch (error) {
-      toast.error('Could not explore directions', {
-        description: error instanceof Error ? error.message : undefined,
-      })
-    } finally {
-      setExploring(false)
-    }
-  }
-
-  async function chooseDirection(direction: Direction) {
-    try {
-      await openDesignInEditor(trpcClient, direction.designId, 'step')
-      toast.success(`Applied “${direction.name}”`, { description: 'Press ⌘Z to go back.' })
-    } catch {
-      toast.error('Could not open that direction.')
-    }
-  }
-
   if (!status?.copilot) return null
 
   return (
@@ -210,7 +172,7 @@ export function EditorAiPanel() {
           data-export-exclude
         >
           <header className="flex items-center gap-1 border-b p-2">
-            {(['copilot', 'directions'] as const).map((value) => (
+            {(['copilot', 'variants', 'captions'] as const).map((value) => (
               <button
                 className={cn(
                   'rounded-md px-2.5 py-1 text-sm font-medium',
@@ -220,7 +182,7 @@ export function EditorAiPanel() {
                 onClick={() => setTab(value)}
                 type="button"
               >
-                {value === 'copilot' ? 'Copilot' : 'Directions'}
+                {TAB_LABELS[value]}
               </button>
             ))}
             <span className="flex-1" />
@@ -353,59 +315,15 @@ export function EditorAiPanel() {
                 </div>
               </form>
             </>
-          ) : (
-            <div className="flex-1 space-y-3 overflow-y-auto p-3 text-sm">
-              <p className="text-muted-foreground">
-                Render different takes on this design and pick one. Your current design stays one ⌘Z
-                away.
-              </p>
-              <textarea
-                aria-label="What to explore"
-                className="w-full resize-none rounded-md border bg-transparent px-3 py-2 text-sm"
-                onChange={(event) => setDirectionPrompt(event.target.value)}
-                placeholder="Optional: e.g. warmer, more playful, for LinkedIn"
-                rows={2}
-                value={directionPrompt}
-              />
-              <Button
-                className="w-full"
-                disabled={!status.directions || exploring || !hasImage}
-                onClick={() => void explore()}
-                type="button"
-              >
-                {exploring ? 'Rendering directions…' : 'Explore 4 directions'}
-              </Button>
-              {!status.directions ? (
-                <p className="text-xs text-muted-foreground">
-                  Rendering variations is not enabled in this environment.
-                </p>
-              ) : null}
-              <ul className="grid grid-cols-2 gap-2">
-                {directions.map((direction) => (
-                  <li key={direction.designId}>
-                    <button
-                      className="w-full overflow-hidden rounded-lg border text-left hover:ring-2 hover:ring-ring"
-                      onClick={() => void chooseDirection(direction)}
-                      title={direction.rationale}
-                      type="button"
-                    >
-                      {direction.previewUrl ? (
-                        // Signed, short-lived tenant URL; next/image would cache it past expiry.
-                        <img
-                          alt={direction.name}
-                          className="w-full bg-muted"
-                          src={direction.previewUrl}
-                        />
-                      ) : null}
-                      <span className="block px-2 py-1.5 text-xs font-medium">
-                        {direction.name}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          ) : tab === 'captions' ? (
+            <CaptionsPanel disabled={!hasImage} />
+          ) : null}
+          <VariantsPanel
+            disabled={!hasImage}
+            hidden={tab !== 'variants'}
+            onRequestHandled={clearVariantsRequest}
+            request={variantsRequest}
+          />
         </section>
       ) : null}
     </>

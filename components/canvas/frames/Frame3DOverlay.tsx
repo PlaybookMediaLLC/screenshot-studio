@@ -1,10 +1,10 @@
 'use client';
 
-import { SafariToolbar, ChromeToolbar } from './BrowserToolbar';
+import type { ImageBorder } from '@/lib/store';
 
 export interface FrameConfig {
   enabled: boolean;
-  type: 'none' | 'arc-light' | 'arc-dark' | 'macos-light' | 'macos-dark' | 'windows-light' | 'windows-dark' | 'photograph' | 'glass-light' | 'glass-dark' | 'outline-light' | 'border-light' | 'border-dark';
+  type: ImageBorder['type'];
   width: number;
   color: string;
   padding?: number;
@@ -53,53 +53,6 @@ export function getFrameImageStyle(
         overflow: 'hidden',
         boxSizing: 'border-box',
       };
-
-    default:
-      return null;
-  }
-}
-
-interface Frame3DOverlayProps {
-  frame: FrameConfig;
-  showFrame: boolean;
-  framedW: number;
-  framedH: number;
-  frameOffset: number;
-  windowPadding: number;
-  windowHeader: number;
-  eclipseBorder: number;
-  imageScaledW: number;
-  imageScaledH: number;
-  screenshotRadius: number;
-}
-
-export function Frame3DOverlay({
-  frame,
-  showFrame,
-  windowHeader,
-  screenshotRadius,
-}: Frame3DOverlayProps) {
-  if (!showFrame || frame.type === 'none') {
-    return null;
-  }
-
-  const isDark = frame.type.includes('dark');
-
-  switch (frame.type) {
-    case 'arc-light':
-    case 'arc-dark':
-    case 'photograph':
-      // These frames return null here - the border is applied directly to the image
-      // via the getFrameImageStyle() helper used in Perspective3DOverlay
-      return null;
-
-    case 'macos-light':
-    case 'macos-dark':
-      return <SafariToolbar windowHeader={windowHeader} isDark={isDark} title={frame.title} screenshotRadius={screenshotRadius} />;
-
-    case 'windows-light':
-    case 'windows-dark':
-      return <ChromeToolbar windowHeader={windowHeader} isDark={isDark} title={frame.title} screenshotRadius={screenshotRadius} />;
 
     default:
       return null;

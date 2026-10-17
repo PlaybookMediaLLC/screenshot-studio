@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useImageStore, useEditorStore } from '@/lib/store';
+import { selectScreenshot, useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { presets, type PresetConfig } from '@/lib/constants/presets';
 import { aspectRatios, type AspectRatioKey } from '@/lib/constants/aspect-ratios';
 import { getBackgroundCSS } from '@/lib/constants/backgrounds';
@@ -375,7 +376,7 @@ export function PresetGallery({
     applyVisualPreset,
   } = useImageStore();
 
-  const { screenshot } = useEditorStore();
+  const screenshot = useImageStore(useShallow(selectScreenshot));
   const { customPresets, savePreset, deletePreset } = useCustomPresets();
   const [showSaveForm, setShowSaveForm] = React.useState(false);
   const [presetName, setPresetName] = React.useState('');

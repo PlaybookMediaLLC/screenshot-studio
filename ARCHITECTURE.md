@@ -148,17 +148,11 @@ Manages the main design state:
 - **Animation clips** (preset-based clips with start time, duration, color)
 - **Slides** (multi-slide support for slideshows)
 
-#### 2. Editor Store (`useEditorStore`)
-Manages canvas rendering state:
-- Screenshot/image state (for Konva)
-- Background mode (solid/gradient)
-- Shadow configuration
-- Pattern configuration
-- Frame configuration
-- Canvas dimensions and padding
-- Noise configuration
-
-**Store Synchronization**: `EditorStoreSync` component keeps both stores in sync using React effects.
+#### 2. Editor Store (`useEditorStore`), retired in this fork
+This fork folded the editor store into `useImageStore`, so placement, pattern,
+frame, padding, and filters live in one undoable store. Its document model,
+render pipeline, and editor features are described in
+[docs/editor-platform.md](docs/editor-platform.md).
 
 ### Canvas Rendering Architecture
 

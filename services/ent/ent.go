@@ -42,6 +42,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrunstep"
@@ -52,6 +53,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/projectversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasedocument"
@@ -59,6 +62,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/screenshotcache"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
@@ -163,6 +167,7 @@ func checkColumn(t, c string) error {
 			design.Table:                         design.ValidColumn,
 			githubinstallstart.Table:             githubinstallstart.ValidColumn,
 			githubinstallation.Table:             githubinstallation.ValidColumn,
+			integrationconnection.Table:          integrationconnection.ValidColumn,
 			invitation.Table:                     invitation.ValidColumn,
 			launchrun.Table:                      launchrun.ValidColumn,
 			launchrunstep.Table:                  launchrunstep.ValidColumn,
@@ -173,6 +178,8 @@ func checkColumn(t, c string) error {
 			postiztenantbinding.Table:            postiztenantbinding.ValidColumn,
 			productprofile.Table:                 productprofile.ValidColumn,
 			productsurface.Table:                 productsurface.ValidColumn,
+			project.Table:                        project.ValidColumn,
+			projectversion.Table:                 projectversion.ValidColumn,
 			publicationattempt.Table:             publicationattempt.ValidColumn,
 			release.Table:                        release.ValidColumn,
 			releasedocument.Table:                releasedocument.ValidColumn,
@@ -180,6 +187,7 @@ func checkColumn(t, c string) error {
 			scheduledpost.Table:                  scheduledpost.ValidColumn,
 			screenshotcache.Table:                screenshotcache.ValidColumn,
 			session.Table:                        session.ValidColumn,
+			sharelink.Table:                      sharelink.ValidColumn,
 			socialoauthstart.Table:               socialoauthstart.ValidColumn,
 			sourceapp.Table:                      sourceapp.ValidColumn,
 			sourcechange.Table:                   sourcechange.ValidColumn,

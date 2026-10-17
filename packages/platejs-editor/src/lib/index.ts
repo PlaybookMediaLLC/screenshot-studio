@@ -23,5 +23,15 @@ export {
 export { MarkdownJoiner, markdownJoinerTransform } from "./markdown-streaming";
 export { nid } from "./nid";
 export { isSafeUrl, openSafeUrl } from "./safe-url";
-export type { OurFileRouter } from "./uploadthing";
+export {
+  type EditorAIEndpoint,
+  type EditorAIServices,
+  type EditorServices,
+  EditorServicesProvider,
+  type EditorUploadedFile,
+  type EditorUploadFile,
+  type EditorUploadOptions,
+  useEditorServices,
+} from "./editor-services";
+export { rehostDataImages } from "./rehost-images";
 export { cn } from "./utils";

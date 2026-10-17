@@ -108,6 +108,7 @@ See [docs/editor-platform.md](docs/editor-platform.md).
 - Paid plans only (Pro, Business, Enterprise) through Stripe Checkout and the billing portal, with metered AI credits and extra-launch credit packs; a workspace without a subscription has no access
 - Launch intelligence: a release becomes a cited launch brief, a plan, visuals, and per-channel copy, each reviewed by a teammate (included in every paid plan through the `campaign:workflow` feature)
 - Interactive API reference at `/api-reference` (Scalar), generated from the OpenAPI 3.1 contract at `/openapi.json`
+- An MCP server for AI agents on the Go backend (`/mcp`): Claude Code, Claude.ai, ChatGPT, Cursor, VS Code, and other clients connect with a workspace API key or OAuth; setup guides at `/docs/agents`. In Claude Code, `/plugin install shots --marketplace PlaybookMediaLLC/screenshot-studio` adds the server and a launch skill.
 
 ## Roadmap
 

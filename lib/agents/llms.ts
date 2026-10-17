@@ -1,3 +1,4 @@
+import { API_KEY_PLACEHOLDER, MCP_CLIENTS, MCP_TOOLS, MCP_URL } from "@/lib/agents/mcp-clients";
 import { BASE_URL } from "@/lib/agents/site-content";
 import { comparisons } from "@/lib/seo/comparisons";
 import { guides } from "@/lib/seo/guides";
@@ -19,6 +20,26 @@ const comparisonLines = comparisons
 const guideLines = guides
   .map((guide) => `- ${guide.title}: ${BASE_URL}/guides/${guide.slug}`)
   .join("\n");
+
+const mcpToolLines = MCP_TOOLS.map(
+  (tool) => `| ${tool.name} | ${tool.scope} | ${tool.summary} |`,
+).join("\n");
+
+const mcpClientSections = MCP_CLIENTS.map(
+  (client) =>
+    `#### ${client.name}\n\n${client.location}\n\n\`\`\`${client.language}\n${client.snippet(MCP_URL, API_KEY_PLACEHOLDER)}\n\`\`\``,
+).join("\n\n");
+
+const agentQuickstart = `## Agent Quickstart
+
+Shots runs an MCP server for AI agents at ${MCP_URL}, served by the same backend as the REST API, with the same workspace permissions, plan checks, and quotas.
+
+1. In a signed-in workspace, open Settings → AI agents (/workspace/ai-agents) and create an agent key with only the scopes the agent needs.
+2. Add the server to your agent with the key as a bearer token. For Claude Code: \`claude mcp add --transport http shots ${MCP_URL} --header "Authorization: Bearer $SHOTS_API_KEY"\`.
+3. Claude.ai, Claude Desktop, and ChatGPT connect through OAuth instead and ask a workspace owner or admin to approve.
+4. Prefer HTTP? Every MCP tool mirrors an operation in ${BASE_URL}/openapi.json; send the same key in \`X-API-Key\`.
+
+Setup for Claude Code, Claude.ai, ChatGPT, Cursor, VS Code, Windsurf, Gemini CLI, Codex CLI, and OpenCode: ${BASE_URL}/docs/agents. Agents can read releases, campaigns, and the review queue, create drafts, upload assets, capture screenshots, and submit drafts for review; only a person approves, schedules, or publishes.`;
 
 const comparisonRows = comparisons
   .map(
@@ -106,6 +127,8 @@ ${primaryToolLines}
 - Interactive API Reference: ${BASE_URL}/api-reference
 - OpenAPI Specification (OpenAPI 3.1, JSON): ${BASE_URL}/openapi.json
 - API Authentication and Rate Limits: ${BASE_URL}/docs/authentication
+- AI Agents and MCP Setup: ${BASE_URL}/docs/agents
+- MCP Server: ${MCP_URL}
 - llms.txt: ${BASE_URL}/llms.txt
 - llms-full.txt: ${BASE_URL}/llms-full.txt
 - Sitemap: ${BASE_URL}/sitemap.xml
@@ -113,7 +136,7 @@ ${primaryToolLines}
 
 The editor utility endpoints under paths such as \`/api/screenshot\` require a signed-in session or a workspace API key with the artifact:read scope in \`X-API-Key\`, and per-IP limits apply on top. Create a workspace API key in Settings → Developer API (/workspace/developers). Workspace-scoped \`/api/v1\` operations require an organization key in \`X-API-Key\` or an authorized signed-in session. Every error is JSON with a stable \`code\`, a \`message\`, and a \`hint\`. Any page also serves Markdown when the request sends \`Accept: text/markdown\`.
 
-No official CLI tool and no MCP server are published yet. Use the HTTP API described at ${BASE_URL}/docs.
+${agentQuickstart}
 
 ## Internationalization
 
@@ -351,6 +374,8 @@ Locale detection: URL path > cookie > Accept-Language header > default (English)
 | Interactive API Reference | ${BASE_URL}/api-reference | HTML |
 | OpenAPI Specification | ${BASE_URL}/openapi.json | OpenAPI 3.1 JSON |
 | API Authentication and Rate Limits | ${BASE_URL}/docs/authentication | HTML |
+| AI Agents and MCP Setup | ${BASE_URL}/docs/agents | HTML |
+| MCP Server | ${MCP_URL} | MCP Streamable HTTP |
 | llms.txt | ${BASE_URL}/llms.txt | Markdown |
 | llms-full.txt | ${BASE_URL}/llms-full.txt | Markdown |
 | Sitemap | ${BASE_URL}/sitemap.xml | XML |
@@ -399,9 +424,21 @@ curl -H "Accept: text/markdown" ${BASE_URL}/
 
 Responses set \`Content-Type: text/markdown; charset=utf-8\` and \`Vary: Accept, Accept-Encoding\`. A request that accepts neither \`text/html\` nor \`text/markdown\` is answered with 406. Unknown paths return 404 with a Markdown body listing where to look next.
 
-### CLI and MCP
+### MCP server
 
-No official CLI tool and no MCP server are published yet. Agents should use the HTTP API above.
+${MCP_URL} is the Shots MCP server (Streamable HTTP). Send a workspace API key as \`Authorization: Bearer ss_...\`, or connect an OAuth client through ${MCP_URL.replace(/\/mcp$/, "")}/mcp-oauth-dynamic. Every call passes the same scope, plan, and quota checks as the REST API, and refusals use the error format above. An agent sees only the tools its key's scopes allow:
+
+| Tool | Scope | Does |
+|------|-------|------|
+${mcpToolLines}
+
+No tool approves, schedules, or publishes; a person does that in Shots.
+
+### MCP client configuration
+
+${mcpClientSections}
+
+No official CLI tool is published yet.
 
 ## Technology Stack
 

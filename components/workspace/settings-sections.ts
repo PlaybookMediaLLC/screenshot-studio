@@ -1,6 +1,7 @@
 /** Workspace settings sections, each its own route; shared by the sidebar and the page. */
 
 export type SettingId =
+  | 'agents'
   | 'api'
   | 'audit'
   | 'billing'
@@ -85,6 +86,12 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     id: 'integrations',
     slug: 'integrations',
     title: 'Integrations',
+  },
+  {
+    description: 'Connect Claude, ChatGPT, Cursor, and other AI agents to this workspace over MCP.',
+    id: 'agents',
+    slug: 'ai-agents',
+    title: 'AI agents',
   },
   {
     description: 'Every design published at a link: copy, restrict, or revoke.',

@@ -8,6 +8,7 @@ import {
 } from './framework/auth'
 import { browserRequest, requestJson } from './framework/browser'
 import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
+import { grantWorkspacePlan } from './framework/services'
 import { trpcMutation, trpcQuery } from './framework/trpc'
 
 const invitedRoles = ['admin', 'creator', 'approver', 'publisher', 'viewer'] as const
@@ -127,6 +128,9 @@ test('workspace roles permit only their assigned actions', async ({ browser, ide
   test.slow()
   await signUpAndCreateWorkspace(identity, page)
   const organizationId = await getActiveOrganizationId(page)
+  // The owner, five invited roles, and the admin's own invitation need seven
+  // seats; Pro has five (docs/rfcs/035, Packaging).
+  await grantWorkspacePlan(organizationId, 'business')
 
   // Roles are independent, so they run in pairs rather than one at a
   // time. Serially this was five sign-up and invitation round trips inside

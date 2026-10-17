@@ -1,7 +1,7 @@
 # RFC 017: Conversational Campaign Creation
 
-**Status:** Not started
-**Status note (2026-10-16):** Nothing in this RFC is built.
+**Status:** Partially implemented
+**Status note (2026-10-17):** Campaign chat shipped in #135 (`lib/ai/conversation/`, the `conversation` tRPC router). AI tools in chat can only submit posts for review.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 016

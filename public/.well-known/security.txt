@@ -1,0 +1,6 @@
+Contact: mailto:team@playbookmedia.io
+Contact: https://shots.playbookmedia.io/contact
+Expires: 2027-10-17T00:00:00.000Z
+Policy: https://shots.playbookmedia.io/security
+Preferred-Languages: en
+Canonical: https://shots.playbookmedia.io/.well-known/security.txt

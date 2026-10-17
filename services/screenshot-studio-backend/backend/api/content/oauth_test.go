@@ -13,7 +13,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database/oauth"
 	dto "github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/dtos/oauth"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/httpx"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/redis"
 )
 
 func TestOAuthAuthorizeTokenFlow(t *testing.T) {
@@ -30,11 +29,11 @@ func TestOAuthAuthorizeTokenFlow(t *testing.T) {
 	}
 
 	r := httpx.NewRouter()
-	RegisterOAuthController(r, svc, nil, redis.NewMemory())
+	RegisterOAuthController(r, svc)
 	RegisterOAuthAuthorizedController(r, as(user, org), svc)
 
 	res := do(t, r, httptest.NewRequest(http.MethodGet, "/oauth/authorize?client_id="+app.ClientID+"&response_type=code&state=s1", nil))
-	want := `{"app":{"name":"App","description":null,"picture":null,"clientId":"` + app.ClientID + `","redirectUrl":"https://app.example/cb?x=1"},"state":"s1","selfHosted":false,"selfHostedEmail":false}`
+	want := `{"app":{"name":"App","description":null,"picture":null,"clientId":"` + app.ClientID + `","redirectUrl":"https://app.example/cb?x=1"},"state":"s1"}`
 	if res.status != 200 || res.body != want {
 		t.Fatalf("authorize: %d %s", res.status, res.body)
 	}

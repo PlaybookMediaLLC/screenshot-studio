@@ -15,13 +15,11 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/ent/post"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/agent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/chat"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/chat/mcp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database/autopost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database/clipping"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database/integration"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database/media"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database/notifications"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database/oauth"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database/organizations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database/posts"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database/subscriptions"
@@ -430,38 +428,6 @@ type clippingPosts struct{ *posts.Service }
 
 func (p clippingPosts) CreatePost(ctx context.Context, orgID string, body clipping.CreatePostBody, creationMethod string) error {
 	return createPost(ctx, p.Service, orgID, body, creationMethod)
-}
-
-// ---- oauth / mcp
-
-type mcpOAuth struct{ *oauth.Service }
-
-func (o mcpOAuth) GetSelfHostedByAccessToken(ctx context.Context, token string) (*chat.SelfHostedInstance, error) {
-	c, err := o.Service.GetSelfHostedByAccessToken(ctx, token)
-	if err != nil || c == nil {
-		return nil, err
-	}
-	return &chat.SelfHostedInstance{ID: c.ID, MCPURL: c.MCPURL, APIKey: c.APIKey}, nil
-}
-
-type selfHostedOAuth struct{ *oauth.Service }
-
-func (o selfHostedOAuth) DeleteSelfHostedAuthorization(ctx context.Context, id string) error {
-	_, err := o.Service.DeleteSelfHostedAuthorization(ctx, id)
-	return err
-}
-
-// MCPRelay is the relay as the OAuth controller's content.MCPRelayService.
-func (a *App) MCPRelay() content.MCPRelayService { return relay{a.Relay} }
-
-type relay struct{ *mcp.RelayService }
-
-func (r relay) Connect(ctx context.Context, instanceURL, apiKey string) (*oauth.SelfHostedInstance, error) {
-	i, err := r.RelayService.Connect(ctx, instanceURL, apiKey)
-	if err != nil || i == nil {
-		return nil, err
-	}
-	return &oauth.SelfHostedInstance{MCPURL: i.MCPURL, APIKey: i.APIKey}, nil
 }
 
 // ---- agent (LangGraph generator)

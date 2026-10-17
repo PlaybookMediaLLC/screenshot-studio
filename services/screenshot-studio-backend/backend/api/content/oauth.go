@@ -6,14 +6,12 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/backend/auth"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database/oauth"
 	dto "github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/dtos/oauth"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/httpx"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/redis"
 )
 
 // bindBody is the global body parsing for the OAuth endpoints: Express
@@ -102,20 +100,15 @@ func redirectWith(target string, params ...string) (any, error) {
 
 type oauthController struct {
 	oauth *oauth.Service
-	relay MCPRelayService
 }
 
 // RegisterOAuthController registers the public OAuthController (/oauth).
-func RegisterOAuthController(r *httpx.Router, oauthService *oauth.Service, relay MCPRelayService, store redis.Store) {
-	h := &oauthController{oauth: oauthService, relay: relay}
+func RegisterOAuthController(r *httpx.Router, oauthService *oauth.Service) {
+	h := &oauthController{oauth: oauthService}
 	g := r.Group("/oauth")
 	// Dynamic Client Registration (RFC 7591), used by MCP clients like Claude
 	g.Post("/register", h.register, httpx.Status(http.StatusCreated))
 	g.Get("/authorize", h.authorize)
-	// Public (the person may have no account here) and capped per client,
-	// since every attempt sends requests to the instance
-	g.Post("/authorize/self-hosted", h.authorizeSelfHosted,
-		httpx.With(auth.ThrottlerRealIpGuard(store, "OAuthController-authorizeSelfHosted", 30, time.Hour)))
 	// RFC 6749 §5.1: successful token responses are 200; strict clients (Canva) reject Nest's default 201
 	g.Post("/token", h.token, httpx.Status(http.StatusOK))
 	g.Get("/userinfo", h.userinfo)
@@ -139,10 +132,8 @@ type authorizeApp struct {
 }
 
 type authorizeResponse struct {
-	App             authorizeApp `json:"app"`
-	State           *string      `json:"state,omitempty"`
-	SelfHosted      bool         `json:"selfHosted"`
-	SelfHostedEmail bool         `json:"selfHostedEmail"`
+	App   authorizeApp `json:"app"`
+	State *string      `json:"state,omitempty"`
 }
 
 func (h *oauthController) authorize(c *httpx.Ctx) (any, error) {
@@ -159,7 +150,6 @@ func (h *oauthController) authorize(c *httpx.Ctx) (any, error) {
 		return nil, err
 	}
 
-	selfHosted := h.oauth.AllowsSelfHosted(app, query.Resource)
 	var state *string
 	if c.R.URL.Query().Has("state") {
 		state = &query.State
@@ -172,50 +162,8 @@ func (h *oauthController) authorize(c *httpx.Ctx) (any, error) {
 			ClientID:    app.ClientID,
 			RedirectURL: app.RedirectURL,
 		},
-		State:           state,
-		SelfHosted:      selfHosted,
-		SelfHostedEmail: selfHosted && h.oauth.SelfHostedRequiresEmail(app),
+		State: state,
 	}, nil
-}
-
-func (h *oauthController) authorizeSelfHosted(c *httpx.Ctx) (any, error) {
-	ctx := c.R.Context()
-	var body dto.AuthorizeSelfHostedDto
-	if err := bindBody(c, &body); err != nil {
-		return nil, err
-	}
-	app, err := h.oauth.ValidateAuthorizationRequest(ctx, body.ClientID, oauth.PKCEOptions{
-		RedirectURI:         body.RedirectURI,
-		CodeChallenge:       body.CodeChallenge,
-		CodeChallengeMethod: body.CodeChallengeMethod,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	email := strings.TrimSpace(body.Email)
-	if err := h.oauth.ValidateSelfHostedRequest(app, body.Resource, email); err != nil {
-		return nil, err
-	}
-
-	instance, err := h.relay.Connect(ctx, body.InstanceURL, body.APIKey)
-	if err != nil {
-		return nil, err
-	}
-
-	code, err := h.oauth.CreateSelfHostedAuthorizationCode(ctx, app.ID,
-		oauth.SelfHostedInstance{MCPURL: instance.MCPURL, APIKey: instance.APIKey, Email: email},
-		pkce(app, body.CodeChallenge, body.CodeChallengeMethod, body.RedirectURI))
-	if err != nil {
-		return nil, err
-	}
-
-	// Same redirect as an approved cloud authorization
-	target := app.RedirectURL
-	if app.Dynamic {
-		target = body.RedirectURI
-	}
-	return redirectWith(target, "code", code, "state", body.State)
 }
 
 func (h *oauthController) token(c *httpx.Ctx) (any, error) {

@@ -138,6 +138,17 @@ func (f *fakeConfiguration) ListPendingApprovals(_ context.Context, actor produc
 	next := cursor + "-next"
 	return &product.ApprovalPage{Items: []product.PendingApproval{}, NextCursor: &next}, nil
 }
+func (f *fakeConfiguration) DescribeAgentClient(_ context.Context, actor product.Actor, request product.AgentAuthorizationRequest) (*product.AgentConsent, error) {
+	f.actor = actor
+	return &product.AgentConsent{ClientID: request.ClientID, ClientName: "Claude", RedirectURI: request.RedirectURI, RedirectHost: "claude.ai"}, nil
+}
+func (f *fakeConfiguration) ApproveAgentAccess(_ context.Context, actor product.Actor, request product.AgentAuthorizationRequest) (*product.AgentAuthorizationCode, error) {
+	f.actor = actor
+	if len(request.Scopes) == 0 {
+		return nil, product.ErrInvalidInput
+	}
+	return &product.AgentAuthorizationCode{Code: "shc_code", RedirectURI: request.RedirectURI}, nil
+}
 func (f *fakeConfiguration) GetCampaign(context.Context, product.Actor, string) (*product.CampaignDetail, error) {
 	return &product.CampaignDetail{CampaignItem: product.CampaignItem{ID: "campaign-1", Name: "Launch"}}, nil
 }
@@ -625,5 +636,25 @@ func TestApprovalQueueRouteValidatesItsQuery(t *testing.T) {
 		if response := configurationRequest(handler, http.MethodGet, "/v1/approvals"+query, ""); response.Code != http.StatusBadRequest {
 			t.Fatalf("%s status=%d", query, response.Code)
 		}
+	}
+}
+
+func TestAgentAuthorizationRoutes(t *testing.T) {
+	config := &fakeConfiguration{}
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", config)
+	request := `{"clientId":"pcd_claude","redirectUri":"https://claude.ai/cb","scopes":["artifact:read"]}`
+	preview := configurationRequest(handler, http.MethodPost, "/v1/agent-authorizations/preview", request)
+	if preview.Code != http.StatusOK || !strings.Contains(preview.Body.String(), `"redirectHost":"claude.ai"`) || config.actor.SessionID != "session-1" {
+		t.Fatalf("preview status=%d body=%s", preview.Code, preview.Body.String())
+	}
+	approved := configurationRequest(handler, http.MethodPost, "/v1/agent-authorizations", request)
+	if approved.Code != http.StatusCreated || !strings.Contains(approved.Body.String(), `"code":"shc_code"`) {
+		t.Fatalf("approve status=%d body=%s", approved.Code, approved.Body.String())
+	}
+	if refused := configurationRequest(handler, http.MethodPost, "/v1/agent-authorizations", `{"clientId":"x","scopes":[]}`); refused.Code != http.StatusBadRequest {
+		t.Fatalf("no scopes status=%d", refused.Code)
+	}
+	if unknown := configurationRequest(handler, http.MethodPost, "/v1/agent-authorizations", `{"clientId":"x","admin":true}`); unknown.Code != http.StatusBadRequest {
+		t.Fatalf("unknown field status=%d", unknown.Code)
 	}
 }

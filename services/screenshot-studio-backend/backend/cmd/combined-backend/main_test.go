@@ -75,3 +75,18 @@ func hasEntry(entries []string, value string) bool {
 	}
 	return false
 }
+
+func TestSocialEnvGetsTheMCPPlatformSettings(t *testing.T) {
+	result := socialEnv([]string{"DATABASE_URL=social", "TENANT_R2_BUCKET_NAME=media", "TENANT_PLATFORM_CAMPAIGN_WORKFLOW=enabled",
+		"R2_REGION=auto", "TENANT_R2_REGION=other", "TENANT_PUBLISHING_SERVICE_TOKEN=private-token"})
+	for _, expected := range []string{"R2_BUCKET_NAME=media", "PLATFORM_CAMPAIGN_WORKFLOW=enabled", "R2_REGION=auto", "DATABASE_URL=social"} {
+		if !hasEntry(result, expected) {
+			t.Errorf("missing %s", expected)
+		}
+	}
+	for _, forbidden := range []string{"R2_REGION=other", "PUBLISHING_SERVICE_TOKEN=private-token"} {
+		if hasEntry(result, forbidden) {
+			t.Errorf("unexpected %s", forbidden)
+		}
+	}
+}

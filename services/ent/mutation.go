@@ -12,6 +12,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/agentauthorization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
@@ -93,6 +94,7 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
+	TypeAgentAuthorization             = "AgentAuthorization"
 	TypeApikey                         = "Apikey"
 	TypeApproval                       = "Approval"
 	TypeAsset                          = "Asset"
@@ -161,6 +163,1264 @@ const (
 	TypeWorkspaceSettings              = "WorkspaceSettings"
 )
 
+// AgentAuthorizationMutation represents an operation that mutates the AgentAuthorization nodes in the graph.
+type AgentAuthorizationMutation struct {
+	config
+	op                     Op
+	typ                    string
+	id                     *string
+	organization_id        *string
+	user_id                *string
+	client_id              *string
+	client_name            *string
+	redirect_uri           *string
+	code_hash              *string
+	code_challenge         *string
+	code_challenge_method  *string
+	scopes                 *[]string
+	appendscopes           []string
+	resource               *string
+	key_expires_in_days    *int
+	addkey_expires_in_days *int
+	expires_at             *time.Time
+	exchanged_at           *time.Time
+	api_key_id             *string
+	created_at             *time.Time
+	clearedFields          map[string]struct{}
+	done                   bool
+	oldValue               func(context.Context) (*AgentAuthorization, error)
+	predicates             []predicate.AgentAuthorization
+}
+
+var _ ent.Mutation = (*AgentAuthorizationMutation)(nil)
+
+// agentauthorizationOption allows management of the mutation configuration using functional options.
+type agentauthorizationOption func(*AgentAuthorizationMutation)
+
+// newAgentAuthorizationMutation creates new mutation for the AgentAuthorization entity.
+func newAgentAuthorizationMutation(c config, op Op, opts ...agentauthorizationOption) *AgentAuthorizationMutation {
+	m := &AgentAuthorizationMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeAgentAuthorization,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withAgentAuthorizationID sets the ID field of the mutation.
+func withAgentAuthorizationID(id string) agentauthorizationOption {
+	return func(m *AgentAuthorizationMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *AgentAuthorization
+		)
+		m.oldValue = func(ctx context.Context) (*AgentAuthorization, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().AgentAuthorization.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withAgentAuthorization sets the old AgentAuthorization of the mutation.
+func withAgentAuthorization(node *AgentAuthorization) agentauthorizationOption {
+	return func(m *AgentAuthorizationMutation) {
+		m.oldValue = func(context.Context) (*AgentAuthorization, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m AgentAuthorizationMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m AgentAuthorizationMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of AgentAuthorization entities.
+func (m *AgentAuthorizationMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *AgentAuthorizationMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *AgentAuthorizationMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().AgentAuthorization.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *AgentAuthorizationMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *AgentAuthorizationMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *AgentAuthorizationMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *AgentAuthorizationMutation) SetUserID(s string) {
+	m.user_id = &s
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *AgentAuthorizationMutation) UserID() (r string, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldUserID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *AgentAuthorizationMutation) ResetUserID() {
+	m.user_id = nil
+}
+
+// SetClientID sets the "client_id" field.
+func (m *AgentAuthorizationMutation) SetClientID(s string) {
+	m.client_id = &s
+}
+
+// ClientID returns the value of the "client_id" field in the mutation.
+func (m *AgentAuthorizationMutation) ClientID() (r string, exists bool) {
+	v := m.client_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClientID returns the old "client_id" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldClientID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClientID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClientID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClientID: %w", err)
+	}
+	return oldValue.ClientID, nil
+}
+
+// ResetClientID resets all changes to the "client_id" field.
+func (m *AgentAuthorizationMutation) ResetClientID() {
+	m.client_id = nil
+}
+
+// SetClientName sets the "client_name" field.
+func (m *AgentAuthorizationMutation) SetClientName(s string) {
+	m.client_name = &s
+}
+
+// ClientName returns the value of the "client_name" field in the mutation.
+func (m *AgentAuthorizationMutation) ClientName() (r string, exists bool) {
+	v := m.client_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClientName returns the old "client_name" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldClientName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClientName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClientName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClientName: %w", err)
+	}
+	return oldValue.ClientName, nil
+}
+
+// ResetClientName resets all changes to the "client_name" field.
+func (m *AgentAuthorizationMutation) ResetClientName() {
+	m.client_name = nil
+}
+
+// SetRedirectURI sets the "redirect_uri" field.
+func (m *AgentAuthorizationMutation) SetRedirectURI(s string) {
+	m.redirect_uri = &s
+}
+
+// RedirectURI returns the value of the "redirect_uri" field in the mutation.
+func (m *AgentAuthorizationMutation) RedirectURI() (r string, exists bool) {
+	v := m.redirect_uri
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRedirectURI returns the old "redirect_uri" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldRedirectURI(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRedirectURI is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRedirectURI requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRedirectURI: %w", err)
+	}
+	return oldValue.RedirectURI, nil
+}
+
+// ResetRedirectURI resets all changes to the "redirect_uri" field.
+func (m *AgentAuthorizationMutation) ResetRedirectURI() {
+	m.redirect_uri = nil
+}
+
+// SetCodeHash sets the "code_hash" field.
+func (m *AgentAuthorizationMutation) SetCodeHash(s string) {
+	m.code_hash = &s
+}
+
+// CodeHash returns the value of the "code_hash" field in the mutation.
+func (m *AgentAuthorizationMutation) CodeHash() (r string, exists bool) {
+	v := m.code_hash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCodeHash returns the old "code_hash" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldCodeHash(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCodeHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCodeHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCodeHash: %w", err)
+	}
+	return oldValue.CodeHash, nil
+}
+
+// ResetCodeHash resets all changes to the "code_hash" field.
+func (m *AgentAuthorizationMutation) ResetCodeHash() {
+	m.code_hash = nil
+}
+
+// SetCodeChallenge sets the "code_challenge" field.
+func (m *AgentAuthorizationMutation) SetCodeChallenge(s string) {
+	m.code_challenge = &s
+}
+
+// CodeChallenge returns the value of the "code_challenge" field in the mutation.
+func (m *AgentAuthorizationMutation) CodeChallenge() (r string, exists bool) {
+	v := m.code_challenge
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCodeChallenge returns the old "code_challenge" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldCodeChallenge(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCodeChallenge is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCodeChallenge requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCodeChallenge: %w", err)
+	}
+	return oldValue.CodeChallenge, nil
+}
+
+// ClearCodeChallenge clears the value of the "code_challenge" field.
+func (m *AgentAuthorizationMutation) ClearCodeChallenge() {
+	m.code_challenge = nil
+	m.clearedFields[agentauthorization.FieldCodeChallenge] = struct{}{}
+}
+
+// CodeChallengeCleared returns if the "code_challenge" field was cleared in this mutation.
+func (m *AgentAuthorizationMutation) CodeChallengeCleared() bool {
+	_, ok := m.clearedFields[agentauthorization.FieldCodeChallenge]
+	return ok
+}
+
+// ResetCodeChallenge resets all changes to the "code_challenge" field.
+func (m *AgentAuthorizationMutation) ResetCodeChallenge() {
+	m.code_challenge = nil
+	delete(m.clearedFields, agentauthorization.FieldCodeChallenge)
+}
+
+// SetCodeChallengeMethod sets the "code_challenge_method" field.
+func (m *AgentAuthorizationMutation) SetCodeChallengeMethod(s string) {
+	m.code_challenge_method = &s
+}
+
+// CodeChallengeMethod returns the value of the "code_challenge_method" field in the mutation.
+func (m *AgentAuthorizationMutation) CodeChallengeMethod() (r string, exists bool) {
+	v := m.code_challenge_method
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCodeChallengeMethod returns the old "code_challenge_method" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldCodeChallengeMethod(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCodeChallengeMethod is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCodeChallengeMethod requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCodeChallengeMethod: %w", err)
+	}
+	return oldValue.CodeChallengeMethod, nil
+}
+
+// ClearCodeChallengeMethod clears the value of the "code_challenge_method" field.
+func (m *AgentAuthorizationMutation) ClearCodeChallengeMethod() {
+	m.code_challenge_method = nil
+	m.clearedFields[agentauthorization.FieldCodeChallengeMethod] = struct{}{}
+}
+
+// CodeChallengeMethodCleared returns if the "code_challenge_method" field was cleared in this mutation.
+func (m *AgentAuthorizationMutation) CodeChallengeMethodCleared() bool {
+	_, ok := m.clearedFields[agentauthorization.FieldCodeChallengeMethod]
+	return ok
+}
+
+// ResetCodeChallengeMethod resets all changes to the "code_challenge_method" field.
+func (m *AgentAuthorizationMutation) ResetCodeChallengeMethod() {
+	m.code_challenge_method = nil
+	delete(m.clearedFields, agentauthorization.FieldCodeChallengeMethod)
+}
+
+// SetScopes sets the "scopes" field.
+func (m *AgentAuthorizationMutation) SetScopes(s []string) {
+	m.scopes = &s
+	m.appendscopes = nil
+}
+
+// Scopes returns the value of the "scopes" field in the mutation.
+func (m *AgentAuthorizationMutation) Scopes() (r []string, exists bool) {
+	v := m.scopes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScopes returns the old "scopes" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldScopes(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScopes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScopes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScopes: %w", err)
+	}
+	return oldValue.Scopes, nil
+}
+
+// AppendScopes adds s to the "scopes" field.
+func (m *AgentAuthorizationMutation) AppendScopes(s []string) {
+	m.appendscopes = append(m.appendscopes, s...)
+}
+
+// AppendedScopes returns the list of values that were appended to the "scopes" field in this mutation.
+func (m *AgentAuthorizationMutation) AppendedScopes() ([]string, bool) {
+	if len(m.appendscopes) == 0 {
+		return nil, false
+	}
+	return m.appendscopes, true
+}
+
+// ResetScopes resets all changes to the "scopes" field.
+func (m *AgentAuthorizationMutation) ResetScopes() {
+	m.scopes = nil
+	m.appendscopes = nil
+}
+
+// SetResource sets the "resource" field.
+func (m *AgentAuthorizationMutation) SetResource(s string) {
+	m.resource = &s
+}
+
+// Resource returns the value of the "resource" field in the mutation.
+func (m *AgentAuthorizationMutation) Resource() (r string, exists bool) {
+	v := m.resource
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResource returns the old "resource" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldResource(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResource is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResource requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResource: %w", err)
+	}
+	return oldValue.Resource, nil
+}
+
+// ClearResource clears the value of the "resource" field.
+func (m *AgentAuthorizationMutation) ClearResource() {
+	m.resource = nil
+	m.clearedFields[agentauthorization.FieldResource] = struct{}{}
+}
+
+// ResourceCleared returns if the "resource" field was cleared in this mutation.
+func (m *AgentAuthorizationMutation) ResourceCleared() bool {
+	_, ok := m.clearedFields[agentauthorization.FieldResource]
+	return ok
+}
+
+// ResetResource resets all changes to the "resource" field.
+func (m *AgentAuthorizationMutation) ResetResource() {
+	m.resource = nil
+	delete(m.clearedFields, agentauthorization.FieldResource)
+}
+
+// SetKeyExpiresInDays sets the "key_expires_in_days" field.
+func (m *AgentAuthorizationMutation) SetKeyExpiresInDays(i int) {
+	m.key_expires_in_days = &i
+	m.addkey_expires_in_days = nil
+}
+
+// KeyExpiresInDays returns the value of the "key_expires_in_days" field in the mutation.
+func (m *AgentAuthorizationMutation) KeyExpiresInDays() (r int, exists bool) {
+	v := m.key_expires_in_days
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKeyExpiresInDays returns the old "key_expires_in_days" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldKeyExpiresInDays(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKeyExpiresInDays is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKeyExpiresInDays requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKeyExpiresInDays: %w", err)
+	}
+	return oldValue.KeyExpiresInDays, nil
+}
+
+// AddKeyExpiresInDays adds i to the "key_expires_in_days" field.
+func (m *AgentAuthorizationMutation) AddKeyExpiresInDays(i int) {
+	if m.addkey_expires_in_days != nil {
+		*m.addkey_expires_in_days += i
+	} else {
+		m.addkey_expires_in_days = &i
+	}
+}
+
+// AddedKeyExpiresInDays returns the value that was added to the "key_expires_in_days" field in this mutation.
+func (m *AgentAuthorizationMutation) AddedKeyExpiresInDays() (r int, exists bool) {
+	v := m.addkey_expires_in_days
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearKeyExpiresInDays clears the value of the "key_expires_in_days" field.
+func (m *AgentAuthorizationMutation) ClearKeyExpiresInDays() {
+	m.key_expires_in_days = nil
+	m.addkey_expires_in_days = nil
+	m.clearedFields[agentauthorization.FieldKeyExpiresInDays] = struct{}{}
+}
+
+// KeyExpiresInDaysCleared returns if the "key_expires_in_days" field was cleared in this mutation.
+func (m *AgentAuthorizationMutation) KeyExpiresInDaysCleared() bool {
+	_, ok := m.clearedFields[agentauthorization.FieldKeyExpiresInDays]
+	return ok
+}
+
+// ResetKeyExpiresInDays resets all changes to the "key_expires_in_days" field.
+func (m *AgentAuthorizationMutation) ResetKeyExpiresInDays() {
+	m.key_expires_in_days = nil
+	m.addkey_expires_in_days = nil
+	delete(m.clearedFields, agentauthorization.FieldKeyExpiresInDays)
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (m *AgentAuthorizationMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *AgentAuthorizationMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldExpiresAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *AgentAuthorizationMutation) ResetExpiresAt() {
+	m.expires_at = nil
+}
+
+// SetExchangedAt sets the "exchanged_at" field.
+func (m *AgentAuthorizationMutation) SetExchangedAt(t time.Time) {
+	m.exchanged_at = &t
+}
+
+// ExchangedAt returns the value of the "exchanged_at" field in the mutation.
+func (m *AgentAuthorizationMutation) ExchangedAt() (r time.Time, exists bool) {
+	v := m.exchanged_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExchangedAt returns the old "exchanged_at" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldExchangedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExchangedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExchangedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExchangedAt: %w", err)
+	}
+	return oldValue.ExchangedAt, nil
+}
+
+// ClearExchangedAt clears the value of the "exchanged_at" field.
+func (m *AgentAuthorizationMutation) ClearExchangedAt() {
+	m.exchanged_at = nil
+	m.clearedFields[agentauthorization.FieldExchangedAt] = struct{}{}
+}
+
+// ExchangedAtCleared returns if the "exchanged_at" field was cleared in this mutation.
+func (m *AgentAuthorizationMutation) ExchangedAtCleared() bool {
+	_, ok := m.clearedFields[agentauthorization.FieldExchangedAt]
+	return ok
+}
+
+// ResetExchangedAt resets all changes to the "exchanged_at" field.
+func (m *AgentAuthorizationMutation) ResetExchangedAt() {
+	m.exchanged_at = nil
+	delete(m.clearedFields, agentauthorization.FieldExchangedAt)
+}
+
+// SetAPIKeyID sets the "api_key_id" field.
+func (m *AgentAuthorizationMutation) SetAPIKeyID(s string) {
+	m.api_key_id = &s
+}
+
+// APIKeyID returns the value of the "api_key_id" field in the mutation.
+func (m *AgentAuthorizationMutation) APIKeyID() (r string, exists bool) {
+	v := m.api_key_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAPIKeyID returns the old "api_key_id" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldAPIKeyID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAPIKeyID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAPIKeyID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAPIKeyID: %w", err)
+	}
+	return oldValue.APIKeyID, nil
+}
+
+// ClearAPIKeyID clears the value of the "api_key_id" field.
+func (m *AgentAuthorizationMutation) ClearAPIKeyID() {
+	m.api_key_id = nil
+	m.clearedFields[agentauthorization.FieldAPIKeyID] = struct{}{}
+}
+
+// APIKeyIDCleared returns if the "api_key_id" field was cleared in this mutation.
+func (m *AgentAuthorizationMutation) APIKeyIDCleared() bool {
+	_, ok := m.clearedFields[agentauthorization.FieldAPIKeyID]
+	return ok
+}
+
+// ResetAPIKeyID resets all changes to the "api_key_id" field.
+func (m *AgentAuthorizationMutation) ResetAPIKeyID() {
+	m.api_key_id = nil
+	delete(m.clearedFields, agentauthorization.FieldAPIKeyID)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *AgentAuthorizationMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *AgentAuthorizationMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the AgentAuthorization entity.
+// If the AgentAuthorization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AgentAuthorizationMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *AgentAuthorizationMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the AgentAuthorizationMutation builder.
+func (m *AgentAuthorizationMutation) Where(ps ...predicate.AgentAuthorization) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the AgentAuthorizationMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *AgentAuthorizationMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.AgentAuthorization, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *AgentAuthorizationMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *AgentAuthorizationMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (AgentAuthorization).
+func (m *AgentAuthorizationMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *AgentAuthorizationMutation) Fields() []string {
+	fields := make([]string, 0, 15)
+	if m.organization_id != nil {
+		fields = append(fields, agentauthorization.FieldOrganizationID)
+	}
+	if m.user_id != nil {
+		fields = append(fields, agentauthorization.FieldUserID)
+	}
+	if m.client_id != nil {
+		fields = append(fields, agentauthorization.FieldClientID)
+	}
+	if m.client_name != nil {
+		fields = append(fields, agentauthorization.FieldClientName)
+	}
+	if m.redirect_uri != nil {
+		fields = append(fields, agentauthorization.FieldRedirectURI)
+	}
+	if m.code_hash != nil {
+		fields = append(fields, agentauthorization.FieldCodeHash)
+	}
+	if m.code_challenge != nil {
+		fields = append(fields, agentauthorization.FieldCodeChallenge)
+	}
+	if m.code_challenge_method != nil {
+		fields = append(fields, agentauthorization.FieldCodeChallengeMethod)
+	}
+	if m.scopes != nil {
+		fields = append(fields, agentauthorization.FieldScopes)
+	}
+	if m.resource != nil {
+		fields = append(fields, agentauthorization.FieldResource)
+	}
+	if m.key_expires_in_days != nil {
+		fields = append(fields, agentauthorization.FieldKeyExpiresInDays)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, agentauthorization.FieldExpiresAt)
+	}
+	if m.exchanged_at != nil {
+		fields = append(fields, agentauthorization.FieldExchangedAt)
+	}
+	if m.api_key_id != nil {
+		fields = append(fields, agentauthorization.FieldAPIKeyID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, agentauthorization.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *AgentAuthorizationMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case agentauthorization.FieldOrganizationID:
+		return m.OrganizationID()
+	case agentauthorization.FieldUserID:
+		return m.UserID()
+	case agentauthorization.FieldClientID:
+		return m.ClientID()
+	case agentauthorization.FieldClientName:
+		return m.ClientName()
+	case agentauthorization.FieldRedirectURI:
+		return m.RedirectURI()
+	case agentauthorization.FieldCodeHash:
+		return m.CodeHash()
+	case agentauthorization.FieldCodeChallenge:
+		return m.CodeChallenge()
+	case agentauthorization.FieldCodeChallengeMethod:
+		return m.CodeChallengeMethod()
+	case agentauthorization.FieldScopes:
+		return m.Scopes()
+	case agentauthorization.FieldResource:
+		return m.Resource()
+	case agentauthorization.FieldKeyExpiresInDays:
+		return m.KeyExpiresInDays()
+	case agentauthorization.FieldExpiresAt:
+		return m.ExpiresAt()
+	case agentauthorization.FieldExchangedAt:
+		return m.ExchangedAt()
+	case agentauthorization.FieldAPIKeyID:
+		return m.APIKeyID()
+	case agentauthorization.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *AgentAuthorizationMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case agentauthorization.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case agentauthorization.FieldUserID:
+		return m.OldUserID(ctx)
+	case agentauthorization.FieldClientID:
+		return m.OldClientID(ctx)
+	case agentauthorization.FieldClientName:
+		return m.OldClientName(ctx)
+	case agentauthorization.FieldRedirectURI:
+		return m.OldRedirectURI(ctx)
+	case agentauthorization.FieldCodeHash:
+		return m.OldCodeHash(ctx)
+	case agentauthorization.FieldCodeChallenge:
+		return m.OldCodeChallenge(ctx)
+	case agentauthorization.FieldCodeChallengeMethod:
+		return m.OldCodeChallengeMethod(ctx)
+	case agentauthorization.FieldScopes:
+		return m.OldScopes(ctx)
+	case agentauthorization.FieldResource:
+		return m.OldResource(ctx)
+	case agentauthorization.FieldKeyExpiresInDays:
+		return m.OldKeyExpiresInDays(ctx)
+	case agentauthorization.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
+	case agentauthorization.FieldExchangedAt:
+		return m.OldExchangedAt(ctx)
+	case agentauthorization.FieldAPIKeyID:
+		return m.OldAPIKeyID(ctx)
+	case agentauthorization.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown AgentAuthorization field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AgentAuthorizationMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case agentauthorization.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case agentauthorization.FieldUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case agentauthorization.FieldClientID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClientID(v)
+		return nil
+	case agentauthorization.FieldClientName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClientName(v)
+		return nil
+	case agentauthorization.FieldRedirectURI:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRedirectURI(v)
+		return nil
+	case agentauthorization.FieldCodeHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCodeHash(v)
+		return nil
+	case agentauthorization.FieldCodeChallenge:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCodeChallenge(v)
+		return nil
+	case agentauthorization.FieldCodeChallengeMethod:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCodeChallengeMethod(v)
+		return nil
+	case agentauthorization.FieldScopes:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScopes(v)
+		return nil
+	case agentauthorization.FieldResource:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResource(v)
+		return nil
+	case agentauthorization.FieldKeyExpiresInDays:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKeyExpiresInDays(v)
+		return nil
+	case agentauthorization.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
+	case agentauthorization.FieldExchangedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExchangedAt(v)
+		return nil
+	case agentauthorization.FieldAPIKeyID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAPIKeyID(v)
+		return nil
+	case agentauthorization.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AgentAuthorization field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *AgentAuthorizationMutation) AddedFields() []string {
+	var fields []string
+	if m.addkey_expires_in_days != nil {
+		fields = append(fields, agentauthorization.FieldKeyExpiresInDays)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *AgentAuthorizationMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case agentauthorization.FieldKeyExpiresInDays:
+		return m.AddedKeyExpiresInDays()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AgentAuthorizationMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case agentauthorization.FieldKeyExpiresInDays:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddKeyExpiresInDays(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AgentAuthorization numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *AgentAuthorizationMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(agentauthorization.FieldCodeChallenge) {
+		fields = append(fields, agentauthorization.FieldCodeChallenge)
+	}
+	if m.FieldCleared(agentauthorization.FieldCodeChallengeMethod) {
+		fields = append(fields, agentauthorization.FieldCodeChallengeMethod)
+	}
+	if m.FieldCleared(agentauthorization.FieldResource) {
+		fields = append(fields, agentauthorization.FieldResource)
+	}
+	if m.FieldCleared(agentauthorization.FieldKeyExpiresInDays) {
+		fields = append(fields, agentauthorization.FieldKeyExpiresInDays)
+	}
+	if m.FieldCleared(agentauthorization.FieldExchangedAt) {
+		fields = append(fields, agentauthorization.FieldExchangedAt)
+	}
+	if m.FieldCleared(agentauthorization.FieldAPIKeyID) {
+		fields = append(fields, agentauthorization.FieldAPIKeyID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *AgentAuthorizationMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *AgentAuthorizationMutation) ClearField(name string) error {
+	switch name {
+	case agentauthorization.FieldCodeChallenge:
+		m.ClearCodeChallenge()
+		return nil
+	case agentauthorization.FieldCodeChallengeMethod:
+		m.ClearCodeChallengeMethod()
+		return nil
+	case agentauthorization.FieldResource:
+		m.ClearResource()
+		return nil
+	case agentauthorization.FieldKeyExpiresInDays:
+		m.ClearKeyExpiresInDays()
+		return nil
+	case agentauthorization.FieldExchangedAt:
+		m.ClearExchangedAt()
+		return nil
+	case agentauthorization.FieldAPIKeyID:
+		m.ClearAPIKeyID()
+		return nil
+	}
+	return fmt.Errorf("unknown AgentAuthorization nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *AgentAuthorizationMutation) ResetField(name string) error {
+	switch name {
+	case agentauthorization.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case agentauthorization.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case agentauthorization.FieldClientID:
+		m.ResetClientID()
+		return nil
+	case agentauthorization.FieldClientName:
+		m.ResetClientName()
+		return nil
+	case agentauthorization.FieldRedirectURI:
+		m.ResetRedirectURI()
+		return nil
+	case agentauthorization.FieldCodeHash:
+		m.ResetCodeHash()
+		return nil
+	case agentauthorization.FieldCodeChallenge:
+		m.ResetCodeChallenge()
+		return nil
+	case agentauthorization.FieldCodeChallengeMethod:
+		m.ResetCodeChallengeMethod()
+		return nil
+	case agentauthorization.FieldScopes:
+		m.ResetScopes()
+		return nil
+	case agentauthorization.FieldResource:
+		m.ResetResource()
+		return nil
+	case agentauthorization.FieldKeyExpiresInDays:
+		m.ResetKeyExpiresInDays()
+		return nil
+	case agentauthorization.FieldExpiresAt:
+		m.ResetExpiresAt()
+		return nil
+	case agentauthorization.FieldExchangedAt:
+		m.ResetExchangedAt()
+		return nil
+	case agentauthorization.FieldAPIKeyID:
+		m.ResetAPIKeyID()
+		return nil
+	case agentauthorization.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AgentAuthorization field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *AgentAuthorizationMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *AgentAuthorizationMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *AgentAuthorizationMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *AgentAuthorizationMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *AgentAuthorizationMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *AgentAuthorizationMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *AgentAuthorizationMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown AgentAuthorization unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *AgentAuthorizationMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown AgentAuthorization edge %s", name)
+}
+
 // ApikeyMutation represents an operation that mutates the Apikey nodes in the graph.
 type ApikeyMutation struct {
 	config
@@ -176,6 +1436,7 @@ type ApikeyMutation struct {
 	enabled       *bool
 	expires_at    *time.Time
 	permissions   *string
+	metadata      *string
 	created_at    *time.Time
 	updated_at    *time.Time
 	clearedFields map[string]struct{}
@@ -690,6 +1951,55 @@ func (m *ApikeyMutation) ResetPermissions() {
 	delete(m.clearedFields, apikey.FieldPermissions)
 }
 
+// SetMetadata sets the "metadata" field.
+func (m *ApikeyMutation) SetMetadata(s string) {
+	m.metadata = &s
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *ApikeyMutation) Metadata() (r string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the Apikey entity.
+// If the Apikey object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ApikeyMutation) OldMetadata(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *ApikeyMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[apikey.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *ApikeyMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[apikey.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *ApikeyMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, apikey.FieldMetadata)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *ApikeyMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -796,7 +2106,7 @@ func (m *ApikeyMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ApikeyMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.config_id != nil {
 		fields = append(fields, apikey.FieldConfigID)
 	}
@@ -823,6 +2133,9 @@ func (m *ApikeyMutation) Fields() []string {
 	}
 	if m.permissions != nil {
 		fields = append(fields, apikey.FieldPermissions)
+	}
+	if m.metadata != nil {
+		fields = append(fields, apikey.FieldMetadata)
 	}
 	if m.created_at != nil {
 		fields = append(fields, apikey.FieldCreatedAt)
@@ -856,6 +2169,8 @@ func (m *ApikeyMutation) Field(name string) (ent.Value, bool) {
 		return m.ExpiresAt()
 	case apikey.FieldPermissions:
 		return m.Permissions()
+	case apikey.FieldMetadata:
+		return m.Metadata()
 	case apikey.FieldCreatedAt:
 		return m.CreatedAt()
 	case apikey.FieldUpdatedAt:
@@ -887,6 +2202,8 @@ func (m *ApikeyMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldExpiresAt(ctx)
 	case apikey.FieldPermissions:
 		return m.OldPermissions(ctx)
+	case apikey.FieldMetadata:
+		return m.OldMetadata(ctx)
 	case apikey.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case apikey.FieldUpdatedAt:
@@ -963,6 +2280,13 @@ func (m *ApikeyMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPermissions(v)
 		return nil
+	case apikey.FieldMetadata:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
 	case apikey.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -1025,6 +2349,9 @@ func (m *ApikeyMutation) ClearedFields() []string {
 	if m.FieldCleared(apikey.FieldPermissions) {
 		fields = append(fields, apikey.FieldPermissions)
 	}
+	if m.FieldCleared(apikey.FieldMetadata) {
+		fields = append(fields, apikey.FieldMetadata)
+	}
 	return fields
 }
 
@@ -1056,6 +2383,9 @@ func (m *ApikeyMutation) ClearField(name string) error {
 		return nil
 	case apikey.FieldPermissions:
 		m.ClearPermissions()
+		return nil
+	case apikey.FieldMetadata:
+		m.ClearMetadata()
 		return nil
 	}
 	return fmt.Errorf("unknown Apikey nullable field %s", name)
@@ -1091,6 +2421,9 @@ func (m *ApikeyMutation) ResetField(name string) error {
 		return nil
 	case apikey.FieldPermissions:
 		m.ResetPermissions()
+		return nil
+	case apikey.FieldMetadata:
+		m.ResetMetadata()
 		return nil
 	case apikey.FieldCreatedAt:
 		m.ResetCreatedAt()

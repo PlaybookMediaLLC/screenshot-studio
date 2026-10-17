@@ -151,7 +151,7 @@ func newRouter(a *app.App) *httpx.Router {
 	r := httpx.NewRouter()
 	if os.Getenv("MCP_ONLY") != "" {
 		account.RegisterRootController(r)
-		content.RegisterOAuthController(r, a.OAuth, a.MCPRelay(), a.Redis)
+		content.RegisterOAuthController(r, a.OAuth)
 		content.RegisterMediaWidgetController(r, a.Media, a.Uploader())
 		content.RegisterClippingWidgetController(r, a.Clipping)
 		return r
@@ -165,7 +165,7 @@ func newRouter(a *app.App) *httpx.Router {
 	account.RegisterMonitorController(r)
 	account.RegisterEnterpriseController(r, a.Manager, a.Organizations, a.Integrations, a.Posts, a.Redis)
 	channels.RegisterNoAuthIntegrationsController(r, a.Manager, a.Integrations, a.Organizations, a.Redis)
-	content.RegisterOAuthController(r, a.OAuth, a.MCPRelay(), a.Redis)
+	content.RegisterOAuthController(r, a.OAuth)
 	content.RegisterMediaWidgetController(r, a.Media, a.Uploader())
 	content.RegisterClippingWidgetController(r, a.Clipping)
 

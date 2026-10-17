@@ -137,11 +137,10 @@ func TestOAuthFlow(t *testing.T) {
 	}
 }
 
-func TestDynamicClientAndSelfHosted(t *testing.T) {
+func TestDynamicClientAndAgentCodes(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret")
 	t.Setenv("OPENAI_OAUTH_CLIENT_ID", "")
 	t.Setenv("DCR_VERIFIED_DOMAINS", "claude.ai")
-	t.Setenv("MCP_SELF_HOSTED_RELAY", "true")
 	client := dbtest.Open(t)
 	ctx := context.Background()
 	s := NewService(NewRepository(client))
@@ -187,44 +186,40 @@ func TestDynamicClientAndSelfHosted(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := s.ValidateSelfHostedRequest(app, "", ""); err != nil {
-		t.Fatal(err)
+	if app.ClientID != reg.ClientID {
+		t.Fatalf("validated app: %v", app.ClientID)
 	}
 
-	// self-hosted: a public client exchanges a psc_ code with PKCE only
-	verifier := "v"
-	code, err := s.CreateSelfHostedAuthorizationCode(ctx, app.ID, SelfHostedInstance{MCPURL: "https://me.example/mcp", APIKey: "key-1"},
-		PKCEOptions{CodeChallenge: challenge(verifier), CodeChallengeMethod: "S256", RedirectURI: "https://claude.ai/cb"})
-	if err != nil || !strings.HasPrefix(code, "psc_") {
-		t.Fatal(code, err)
+	// A Shots consent code (shc_) is exchanged by the platform once the
+	// client authenticated; without an exchanger it is an invalid grant.
+	if _, err := s.ExchangeCodeForToken(ctx, "shc_code", reg.ClientID, "", "v", "https://claude.ai/cb"); status(err) != 400 {
+		t.Fatalf("shc_ without an exchanger: %v", err)
 	}
-	if _, err := s.ExchangeCodeForToken(ctx, code, reg.ClientID, "", "", "https://claude.ai/cb"); status(err) != 400 {
-		t.Fatalf("missing verifier: %v", err)
+	exchanger := &fakeAgentCodes{}
+	s.WithAgentCodes(exchanger)
+	token, err := s.ExchangeCodeForToken(ctx, "shc_code", reg.ClientID, "", "v", "https://claude.ai/cb")
+	if err != nil || token["access_token"] != "ss_key" || exchanger.clientID != reg.ClientID || exchanger.verifier != "v" {
+		t.Fatalf("agent token: %v %v %+v", token, err, exchanger)
 	}
-	token, err := s.ExchangeCodeForToken(ctx, code, reg.ClientID, "", verifier, "https://claude.ai/cb")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := token["id"]; ok || !strings.HasPrefix(token["access_token"].(string), "psh_") {
-		t.Fatalf("self-hosted token: %v", token)
-	}
-	conn, err := s.GetSelfHostedByAccessToken(ctx, token["access_token"].(string))
-	if err != nil || conn == nil || conn.APIKey != "key-1" || conn.MCPURL != "https://me.example/mcp" {
-		t.Fatalf("connection: %v %v", conn, err)
+	if _, err := s.ExchangeCodeForToken(ctx, "shc_code", "pcd_unknown", "", "v", ""); status(err) != 401 {
+		t.Fatalf("unknown client: %v", err)
 	}
 
-	// userinfo needs OIDC claims enabled and a verified dynamic client
-	if _, err := s.GetUserInfo(ctx, "Bearer "+token["access_token"].(string)); status(err) != 404 {
+	// userinfo needs OIDC claims enabled and a bearer token
+	if _, err := s.GetUserInfo(ctx, "Bearer pos_unknown"); status(err) != 404 {
 		t.Fatalf("userinfo disabled: %v", err)
 	}
 	t.Setenv("OPENAI_OAUTH_CLIENT_ID", "chatgpt")
-	info, err := s.GetUserInfo(ctx, "Bearer "+token["access_token"].(string))
-	if err != nil || info.Sub != conn.ID || info.Email != nil {
-		t.Fatalf("userinfo: %v %v", info, err)
-	}
 	if _, err := s.GetUserInfo(ctx, "Basic x"); status(err) != 401 {
 		t.Fatalf("no bearer: %v", err)
 	}
+}
+
+type fakeAgentCodes struct{ clientID, verifier string }
+
+func (f *fakeAgentCodes) ExchangeAgentCode(_ context.Context, clientID, _, codeVerifier, _ string) (map[string]any, error) {
+	f.clientID, f.verifier = clientID, codeVerifier
+	return map[string]any{"access_token": "ss_key", "token_type": "bearer"}, nil
 }
 
 func TestExtractBearerToken(t *testing.T) {

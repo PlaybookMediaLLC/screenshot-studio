@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// AgentAuthorization is the predicate function for agentauthorization builders.
+type AgentAuthorization func(*sql.Selector)
+
 // Apikey is the predicate function for apikey builders.
 type Apikey func(*sql.Selector)
 

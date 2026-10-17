@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/backend/internal/httpapi"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/agentclients"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/config"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
@@ -62,7 +63,8 @@ func main() {
 		slog.Error("media storage unavailable", "error", err)
 		os.Exit(1)
 	}
-	configuration := product.NewConfiguration(db.Client).WithObjectStore(objects).WithAuthStore(authstore.New(db.SQL))
+	configuration := product.NewConfiguration(db.Client).WithObjectStore(objects).WithAuthStore(authstore.New(db.SQL)).
+		WithAgentClients(agentclients.New(db.SQL))
 	// Content draft collaboration (RFC 037): only the backend can sign tokens.
 	if key := os.Getenv("COLLAB_TOKEN_SECRET"); key != "" {
 		configuration.WithCollabKey([]byte(key))

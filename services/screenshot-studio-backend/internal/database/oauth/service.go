@@ -26,10 +26,6 @@ func openAIOAuthClientID() string { return strings.TrimSpace(os.Getenv("OPENAI_O
 
 func enableOIDCEmailClaims() bool { return openAIOAuthClientID() != "" }
 
-// SelfHostedRelayEnabled is Postiz Cloud only, a self-hosted install has
-// nothing to relay to.
-func SelfHostedRelayEnabled() bool { return os.Getenv("MCP_SELF_HOSTED_RELAY") == "true" }
-
 // Verified-domain match: exact host or a subdomain of it (spoof-safe, the
 // leading dot means evilclaude.ai and claude.ai.evil.com are both rejected)
 func isVerifiedHost(host string, verifiedDomains []string) bool {
@@ -44,21 +40,6 @@ func isVerifiedHost(host string, verifiedDomains []string) bool {
 // Schemes a browser would execute instead of navigating away from the
 // consent screen, so they can never be a redirect_uri
 var browserSchemes = []string{"javascript:", "data:", "blob:", "file:", "vbscript:", "about:"}
-
-// SelfHostedInstance is chat/mcp.relay.service's SelfHostedInstance plus the
-// email typed on the consent screen.
-type SelfHostedInstance struct {
-	MCPURL string `json:"mcpUrl"`
-	APIKey string `json:"apiKey"`
-	Email  string `json:"email,omitempty"`
-}
-
-// SelfHostedConnection is getSelfHostedByAccessToken's result.
-type SelfHostedConnection struct {
-	ID     string `json:"id"`
-	MCPURL string `json:"mcpUrl"`
-	APIKey string `json:"apiKey"`
-}
 
 // PKCEOptions are the code challenge and redirect_uri of an authorization
 // request ("" = not sent).
@@ -144,9 +125,25 @@ func invalidRedirect(description string) error {
 	return badRequest(map[string]any{"error": "invalid_redirect_uri", "error_description": description})
 }
 
-type Service struct{ repo *Repository }
+type Service struct {
+	repo   *Repository
+	agents AgentCodeExchanger
+}
 
 func NewService(repo *Repository) *Service { return &Service{repo: repo} }
+
+// AgentCodeExchanger trades a Shots consent code (shc_) for a workspace API
+// key, the access token of an MCP agent (RFC 037). It returns the token
+// response, or an error the token endpoint reports as invalid_grant.
+type AgentCodeExchanger interface {
+	ExchangeAgentCode(ctx context.Context, clientID, code, codeVerifier, redirectURI string) (map[string]any, error)
+}
+
+// WithAgentCodes lets the token endpoint exchange Shots consent codes.
+func (s *Service) WithAgentCodes(agents AgentCodeExchanger) *Service {
+	s.agents = agents
+	return s
+}
 
 // GetApp returns nil when the org has no app (the controller answers false).
 // The client secret is never serialized.
@@ -399,51 +396,6 @@ func grantedScope(app *ent.OAuthApp) string {
 	return strings.Join(append(scopes, "mcp:read", "mcp:write"), " ")
 }
 
-// AllowsSelfHosted: only MCP connections can be relayed to an instance:
-// dynamically registered clients (registration is only advertised to MCP
-// clients), the ChatGPT app, or a client asking for one of the /mcp-oauth
-// resources (RFC 8707). Apps that use Postiz OAuth for the public API never
-// get the option, a relayed token doesn't work there
-func (s *Service) AllowsSelfHosted(app *ent.OAuthApp, resource string) bool {
-	if !SelfHostedRelayEnabled() {
-		return false
-	}
-	if app.Dynamic || app.ClientID == openAIOAuthClientID() {
-		return true
-	}
-	if resource == "" {
-		return false
-	}
-	_, _, u, ok := parseURL(resource)
-	if !ok {
-		return false
-	}
-	path := u.EscapedPath()
-	if path == "" && specialSchemes[u.Scheme] {
-		path = "/"
-	}
-	return strings.HasPrefix(path, "/mcp-oauth")
-}
-
-// SelfHostedRequiresEmail: the ChatGPT app reads the email from userinfo; a
-// self-hosted connection has no cloud user to take it from, so the consent
-// screen asks for one
-func (s *Service) SelfHostedRequiresEmail(app *ent.OAuthApp) bool {
-	return enableOIDCEmailClaims() && app.ClientID == openAIOAuthClientID()
-}
-
-// ValidateSelfHostedRequest runs on top of ValidateAuthorizationRequest, for
-// a self-hosted connection.
-func (s *Service) ValidateSelfHostedRequest(app *ent.OAuthApp, resource, email string) error {
-	if !s.AllowsSelfHosted(app, resource) {
-		return httpx.HTTPException("This application can not connect to a self-hosted instance", http.StatusBadRequest)
-	}
-	if email == "" && s.SelfHostedRequiresEmail(app) {
-		return httpx.HTTPException("Enter your email address", http.StatusBadRequest)
-	}
-	return nil
-}
-
 func (s *Service) ValidateAuthorizationRequest(ctx context.Context, clientID string, options PKCEOptions) (*ent.OAuthApp, error) {
 	app, err := s.repo.GetAppByClientID(ctx, clientID)
 	if err != nil {
@@ -492,36 +444,9 @@ func (s *Service) CreateAuthorizationCode(ctx context.Context, oauthAppID, userI
 	return code, nil
 }
 
-func (s *Service) CreateSelfHostedAuthorizationCode(ctx context.Context, oauthAppID string, instance SelfHostedInstance, pkce PKCEOptions) (string, error) {
-	go func(ctx context.Context) {
-		_, _ = s.repo.DeleteAbandonedSelfHostedAuthorizations(ctx, time.Now().Add(-24*time.Hour))
-	}(context.WithoutCancel(ctx))
-
-	// The prefix sends the code to the self-hosted table at the token
-	// endpoint (regular codes use the same alphabet, without an underscore)
-	code := "psc_" + ids.Secure(32)
-	apiKey, err := helpers.FixedEncryption(instance.APIKey)
-	if err != nil {
-		return "", err
-	}
-	encryptedCode, err := helpers.FixedEncryption(code)
-	if err != nil {
-		return "", err
-	}
-	_, err = s.repo.CreateSelfHostedAuthorization(ctx, CreateSelfHostedAuthorizationData{
-		OauthAppID: oauthAppID, MCPURL: instance.MCPURL, APIKey: apiKey, Email: instance.Email,
-		AuthorizationCode: encryptedCode, CodeExpiresAt: time.Now().Add(10 * time.Minute),
-		CodeChallenge: pkce.CodeChallenge, CodeChallengeMethod: pkce.CodeChallengeMethod, RedirectURI: pkce.RedirectURI,
-	})
-	if err != nil {
-		return "", err
-	}
-	return code, nil
-}
-
 // ExchangeCodeForToken is the token endpoint's authorization_code grant. The
-// response is {id, cus, access_token, token_type, scope}, or without id/cus
-// for a self-hosted code.
+// response is {id, cus, access_token, token_type, scope}; a Shots consent
+// code (shc_) answers with an agent's workspace API key instead.
 func (s *Service) ExchangeCodeForToken(ctx context.Context, code, clientID, clientSecret, codeVerifier, redirectURI string) (map[string]any, error) {
 	invalidClient := httpx.HTTPException(map[string]any{"error": "invalid_client"}, http.StatusUnauthorized)
 	app, err := s.repo.GetAppByClientID(ctx, clientID)
@@ -548,8 +473,11 @@ func (s *Service) ExchangeCodeForToken(ctx context.Context, code, clientID, clie
 		}
 	}
 
-	if strings.HasPrefix(code, "psc_") {
-		return s.exchangeSelfHostedCodeForToken(ctx, app, code, codeVerifier, redirectURI)
+	if strings.HasPrefix(code, "shc_") {
+		if s.agents == nil {
+			return nil, badRequest(map[string]any{"error": "invalid_grant"})
+		}
+		return s.agents.ExchangeAgentCode(ctx, app.ClientID, code, codeVerifier, redirectURI)
 	}
 
 	encryptedCode, err := helpers.FixedEncryption(code)
@@ -610,60 +538,6 @@ func verifyCodeGrant(codeExpiresAt *time.Time, codeChallenge, storedRedirectURI 
 	return nil
 }
 
-// A self-hosted connection has no organization (or payment) to return,
-// only the token
-func (s *Service) exchangeSelfHostedCodeForToken(ctx context.Context, app *ent.OAuthApp, code, codeVerifier, redirectURI string) (map[string]any, error) {
-	encryptedCode, err := helpers.FixedEncryption(code)
-	if err != nil {
-		return nil, err
-	}
-	auth, err := s.repo.FindSelfHostedByCode(ctx, encryptedCode)
-	if err != nil {
-		return nil, err
-	}
-	if auth == nil || auth.OauthAppID != app.ID {
-		return nil, badRequest(map[string]any{"error": "invalid_grant"})
-	}
-	if err := verifyCodeGrant(auth.CodeExpiresAt, auth.CodeChallenge, auth.RedirectURI, codeVerifier, redirectURI); err != nil {
-		return nil, err
-	}
-
-	token := "psh_" + ids.Secure(40)
-	encryptedToken, err := helpers.FixedEncryption(token)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.repo.ExchangeSelfHostedCodeForToken(ctx, auth.ID, encryptedToken); err != nil {
-		return nil, err
-	}
-	return map[string]any{"access_token": token, "token_type": "bearer", "scope": grantedScope(app)}, nil
-}
-
-// GetSelfHostedByAccessToken returns nil when the relay is off or the token
-// is unknown or revoked.
-func (s *Service) GetSelfHostedByAccessToken(ctx context.Context, token string) (*SelfHostedConnection, error) {
-	if !SelfHostedRelayEnabled() {
-		return nil, nil
-	}
-	encrypted, err := helpers.FixedEncryption(token)
-	if err != nil {
-		return nil, err
-	}
-	authorization, err := s.repo.FindSelfHostedByAccessToken(ctx, encrypted)
-	if err != nil || authorization == nil {
-		return nil, err
-	}
-	apiKey, err := helpers.FixedDecryption(authorization.APIKey)
-	if err != nil {
-		return nil, err
-	}
-	return &SelfHostedConnection{ID: authorization.ID, MCPURL: authorization.McpURL, APIKey: apiKey}, nil
-}
-
-func (s *Service) DeleteSelfHostedAuthorization(ctx context.Context, id string) (int, error) {
-	return s.repo.DeleteSelfHostedAuthorization(ctx, id)
-}
-
 // GetOrgByOAuthToken returns nil for an unknown or revoked token.
 func (s *Service) GetOrgByOAuthToken(ctx context.Context, token string) (*ent.OAuthAuthorization, error) {
 	encrypted, err := helpers.FixedEncryption(token)
@@ -696,10 +570,6 @@ func (s *Service) GetUserInfo(ctx context.Context, authorization string) (*UserI
 		}, http.StatusUnauthorized)
 	}
 
-	if strings.HasPrefix(token, "psh_") {
-		return s.getSelfHostedUserInfo(ctx, token)
-	}
-
 	record, err := s.GetOrgByOAuthToken(ctx, token)
 	if err != nil {
 		return nil, err
@@ -715,33 +585,6 @@ func (s *Service) GetUserInfo(ctx context.Context, authorization string) (*UserI
 		return nil, errInvalidToken
 	}
 	return &UserInfo{Sub: user.ID, Email: &user.Email, EmailVerified: &user.Activated}, nil
-}
-
-// A self-hosted connection has no cloud user: the subject is the connection
-// and the email is the one typed on the consent screen, which nobody verified
-func (s *Service) getSelfHostedUserInfo(ctx context.Context, token string) (*UserInfo, error) {
-	var selfHosted *ent.OAuthSelfHostedAuthorization
-	if SelfHostedRelayEnabled() {
-		encrypted, err := helpers.FixedEncryption(token)
-		if err != nil {
-			return nil, err
-		}
-		if selfHosted, err = s.repo.FindSelfHostedUserInfo(ctx, encrypted); err != nil {
-			return nil, err
-		}
-	}
-	if selfHosted == nil {
-		return nil, errInvalidToken
-	}
-	if !allowsEmailClaims(selfHosted.Edges.OauthApp) {
-		return nil, errInsufficientScope
-	}
-	info := &UserInfo{Sub: selfHosted.ID}
-	if selfHosted.Email != nil && *selfHosted.Email != "" {
-		verified := false
-		info.Email, info.EmailVerified = selfHosted.Email, &verified
-	}
-	return info, nil
 }
 
 func (s *Service) GetApprovedApps(ctx context.Context, userID string) ([]*ent.OAuthAuthorization, error) {

@@ -130,6 +130,20 @@ func (_c *ApikeyCreate) SetNillablePermissions(v *string) *ApikeyCreate {
 	return _c
 }
 
+// SetMetadata sets the "metadata" field.
+func (_c *ApikeyCreate) SetMetadata(v string) *ApikeyCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
+}
+
+// SetNillableMetadata sets the "metadata" field if the given value is not nil.
+func (_c *ApikeyCreate) SetNillableMetadata(v *string) *ApikeyCreate {
+	if v != nil {
+		_c.SetMetadata(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *ApikeyCreate) SetCreatedAt(v time.Time) *ApikeyCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -276,6 +290,10 @@ func (_c *ApikeyCreate) createSpec() (*Apikey, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Permissions(); ok {
 		_spec.SetField(apikey.FieldPermissions, field.TypeString, value)
 		_node.Permissions = &value
+	}
+	if value, ok := _c.mutation.Metadata(); ok {
+		_spec.SetField(apikey.FieldMetadata, field.TypeString, value)
+		_node.Metadata = &value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(apikey.FieldCreatedAt, field.TypeTime, value)

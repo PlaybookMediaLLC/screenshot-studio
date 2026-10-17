@@ -3,273 +3,213 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/ent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/chat"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/shotsapi"
 )
 
-type fakeOrgs struct{}
-
-func (fakeOrgs) GetOrgByAPIKey(_ context.Context, key string) (*ent.Organization, error) {
-	if key == "key" {
-		return &ent.Organization{ID: "org1"}, nil
+func newUnitServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	t.Setenv("PLATFORM_MCP_URL", "https://api.shots.test/mcp")
+	t.Setenv("FRONTEND_URL", "https://shots.test")
+	t.Setenv("OPENAI_OAUTH_CLIENT_ID", "")
+	s, err := New(Config{})
+	if err != nil {
+		t.Fatal(err)
 	}
-	return nil, nil
-}
-
-type fakeOAuth struct{}
-
-func (fakeOAuth) GetOrgByOAuthToken(_ context.Context, token string) (*ent.OAuthAuthorization, error) {
-	if token == "pos_good" {
-		a := &ent.OAuthAuthorization{}
-		a.Edges.Organization = &ent.Organization{ID: "org2"}
-		return a, nil
-	}
-	return nil, nil
-}
-
-func (fakeOAuth) GetSelfHostedByAccessToken(context.Context, string) (*chat.SelfHostedInstance, error) {
-	return nil, nil
-}
-
-type fakeIntegrations struct{ chat.IntegrationService }
-
-func (fakeIntegrations) Customers(_ context.Context, orgID string) ([]*ent.Customer, error) {
-	return []*ent.Customer{{ID: "c-" + orgID, Name: "Acme"}}, nil
-}
-
-func newTestServer(t *testing.T) *httptest.Server {
-	t.Setenv("NEXT_PUBLIC_BACKEND_URL", "https://api.postiz.test")
-	t.Setenv("FRONTEND_URL", "https://app.postiz.test")
-	tools := chat.NewTools(chat.Services{Integrations: fakeIntegrations{}})
-	agent := chat.NewAgent(tools, nil)
-	s := New(agent, tools, fakeOrgs{}, fakeOAuth{}, nil)
 	ts := httptest.NewServer(s.Handler(http.NotFoundHandler()))
 	t.Cleanup(ts.Close)
 	return ts
 }
 
-func connect(t *testing.T, endpoint string) *sdk.ClientSession {
-	client := sdk.NewClient(&sdk.Implementation{Name: "test", Version: "1"}, nil)
-	session, err := client.Connect(context.Background(), &sdk.StreamableClientTransport{Endpoint: endpoint, DisableStandaloneSSE: true}, nil)
+func get(t *testing.T, url string, header ...string) (*http.Response, string) {
+	t.Helper()
+	request, _ := http.NewRequest(http.MethodGet, url, nil)
+	for i := 0; i+1 < len(header); i += 2 {
+		request.Header.Set(header[i], header[i+1])
+	}
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { session.Close() })
-	return session
+	defer response.Body.Close()
+	body, _ := io.ReadAll(response.Body)
+	return response, string(body)
 }
 
-func TestStreamableHTTPWithAPIKey(t *testing.T) {
-	ts := newTestServer(t)
-	session := connect(t, ts.URL+"/mcp/key")
-	if name := session.InitializeResult().ServerInfo.Name; name != "Postiz MCP" {
-		t.Errorf("server name %q", name)
-	}
-
-	list, err := session.ListTools(context.Background(), nil)
+// The tool surface is RFC 037's, and every schema is the one generated from
+// the REST operation it names: there is no second spec to drift.
+func TestToolsMirrorTheirOpenAPIOperations(t *testing.T) {
+	tools, err := buildTools()
 	if err != nil {
 		t.Fatal(err)
 	}
-	var names []string
-	for _, tool := range list.Tools {
-		names = append(names, tool.Name)
-	}
-	joined := strings.Join(names, ",")
-	for _, want := range []string{"integrationList", "integrationSchedulePostTool", "uploadWidgetTool", "ask_postiz"} {
-		if !strings.Contains(joined, want) {
-			t.Errorf("missing %s in %s", want, joined)
-		}
-	}
-	if strings.Contains(joined, "clippingTool") {
-		t.Error("clipping tools need clipping to be configured")
-	}
-
-	res, err := session.CallTool(context.Background(), &sdk.CallToolParams{Name: "groupList", Arguments: map[string]any{}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	text := res.Content[0].(*sdk.TextContent).Text
-	if res.IsError || text != `{"output":[{"id":"c-org1","name":"Acme"}]}` {
-		t.Errorf("groupList: %v %s", res.IsError, text)
-	}
-
-	res, err = session.CallTool(context.Background(), &sdk.CallToolParams{Name: "postsListTool", Arguments: map[string]any{"startDate": 1}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	text = res.Content[0].(*sdk.TextContent).Text
-	if !res.IsError || !strings.HasPrefix(text, "Tool validation failed. Please fix the following errors and try again:\n- startDate: Expected string, received number\n- endDate: Required") {
-		t.Errorf("validation: %s", text)
-	}
-
-	resources, err := session.ListResources(context.Background(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(resources.Resources) != 1 || resources.Resources[0].MIMEType != "text/html;profile=mcp-app" {
-		t.Fatalf("resources: %+v", resources.Resources)
-	}
-	read, err := session.ReadResource(context.Background(), &sdk.ReadResourceParams{URI: chat.UploadWidgetURI})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(read.Contents[0].Text, `var BACKEND = "https://api.postiz.test";`) || !strings.Contains(read.Contents[0].Text, "videos up to 1024 MB") {
-		t.Error("upload widget html not rendered")
-	}
-}
-
-func TestAPIKeyAndOAuthErrors(t *testing.T) {
-	ts := newTestServer(t)
-	get := func(method, path, auth string) (int, string, http.Header) {
-		req, _ := http.NewRequest(method, ts.URL+path, strings.NewReader(`{}`))
-		if auth != "" {
-			req.Header.Set("Authorization", auth)
-		}
-		res, err := http.DefaultClient.Do(req)
+	names := []string{}
+	for _, tool := range tools {
+		names = append(names, tool.spec.Name)
+		operation, err := shotsapi.Lookup(tool.spec.Name)
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer res.Body.Close()
-		body, _ := io.ReadAll(res.Body)
-		return res.StatusCode, string(body), res.Header
-	}
-	if code, body, _ := get("POST", "/mcp", ""); code != 401 || body != "Missing Authorization header" {
-		t.Errorf("/mcp without token: %d %s", code, body)
-	}
-	if code, body, _ := get("POST", "/mcp", "Bearer nope"); code != 401 || body != "Invalid API Key or OAuth token" {
-		t.Errorf("/mcp bad token: %d %s", code, body)
-	}
-	if code, body, _ := get("POST", "/mcp/nope", ""); code != 400 || body != "Invalid API Key" {
-		t.Errorf("/mcp/:id bad key: %d %s", code, body)
-	}
-	code, body, headers := get("POST", "/mcp-oauth-claude", "")
-	if code != 401 || body != `{"error":"unauthorized","error_description":"Bearer token required"}` ||
-		headers.Get("WWW-Authenticate") != `Bearer resource_metadata="https://api.postiz.test/.well-known/oauth-protected-resource/mcp-oauth-claude"` {
-		t.Errorf("oauth without token: %d %s %v", code, body, headers)
-	}
-	code, _, headers = get("POST", "/mcp-oauth-claude", "Bearer pos_bad")
-	if code != 401 || !strings.Contains(headers.Get("WWW-Authenticate"), `error="invalid_token", error_description="Invalid API Key or OAuth token"`) {
-		t.Errorf("oauth bad token: %d %v", code, headers)
-	}
-	code, body, _ = get("GET", "/.well-known/oauth-protected-resource/mcp-oauth-claude", "")
-	if code != 200 || body != `{"resource":"https://api.postiz.test/mcp-oauth-claude","authorization_servers":["https://api.postiz.test/mcp-oauth-dynamic"],"scopes_supported":["mcp:read","mcp:write"],"bearer_methods_supported":["header"]}` {
-		t.Errorf("protected resource metadata: %d %s", code, body)
-	}
-	code, body, _ = get("GET", "/.well-known/oauth-authorization-server/mcp-oauth-chatgpt", "")
-	if code != 200 || strings.Contains(body, "registration_endpoint") || !strings.Contains(body, `"authorization_endpoint":"https://app.postiz.test/oauth/authorize"`) {
-		t.Errorf("chatgpt issuer metadata: %d %s", code, body)
-	}
-	if code, _, _ := get("GET", "/.well-known/oauth-protected-resource/mcp", ""); code != 404 {
-		t.Errorf("/mcp must not be OAuth protected: %d", code)
-	}
-}
-
-func TestOAuthConnectionHidesClaudeTools(t *testing.T) {
-	ts := newTestServer(t)
-	client := sdk.NewClient(&sdk.Implementation{Name: "test", Version: "1"}, nil)
-	httpClient := &http.Client{Transport: bearer{"pos_good"}}
-	session, err := client.Connect(context.Background(), &sdk.StreamableClientTransport{Endpoint: ts.URL + "/mcp-oauth-claude", HTTPClient: httpClient, DisableStandaloneSSE: true}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer session.Close()
-	list, err := session.ListTools(context.Background(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, tool := range list.Tools {
-		if tool.Name == "generateImageTool" || tool.Name == "ask_postiz" {
-			t.Errorf("%s must be hidden on the Claude endpoint", tool.Name)
+		if !reflect.DeepEqual(tool.spec.InputSchema, operation.InputSchema) {
+			t.Errorf("%s input schema is not the generated one", tool.spec.Name)
+		}
+		if operation.Scope == "" || !slices.Contains(product.APIKeyScopes, operation.Scope) {
+			t.Errorf("%s scope %q is not an API key scope", tool.spec.Name, operation.Scope)
+		}
+		readOnly := operation.Method == http.MethodGet || tool.spec.Name == "captureScreenshot"
+		if tool.spec.Annotations.ReadOnlyHint != readOnly {
+			t.Errorf("%s readOnlyHint=%v", tool.spec.Name, tool.spec.Annotations.ReadOnlyHint)
+		}
+		destructive := *tool.spec.Annotations.DestructiveHint
+		if destructive != (operation.Method == http.MethodDelete) {
+			t.Errorf("%s destructiveHint=%v", tool.spec.Name, destructive)
 		}
 	}
-	res, err := session.CallTool(context.Background(), &sdk.CallToolParams{Name: "groupList", Arguments: map[string]any{}})
-	if err != nil {
-		t.Fatal(err)
+	want := []string{"listReleases", "createRelease", "createAssetUploadUrl", "completeAssetUpload", "createAssetDownloadUrl",
+		"deleteAsset", "captureScreenshot", "listCampaigns", "getCampaign", "createCampaign", "listApprovals", "requestCampaignReview"}
+	if !slices.Equal(names, want) {
+		t.Fatalf("tools=%v", names)
 	}
-	if text := res.Content[0].(*sdk.TextContent).Text; !strings.Contains(text, "c-org2") {
-		t.Errorf("oauth organization not used: %s", text)
-	}
-}
-
-type bearer struct{ token string }
-
-func (b bearer) RoundTrip(r *http.Request) (*http.Response, error) {
-	r = r.Clone(r.Context())
-	r.Header.Set("Authorization", "Bearer "+b.token)
-	return http.DefaultTransport.RoundTrip(r)
-}
-
-func TestSSETransport(t *testing.T) {
-	ts := newTestServer(t)
-	client := sdk.NewClient(&sdk.Implementation{Name: "test", Version: "1"}, nil)
-	session, err := client.Connect(context.Background(), &sdk.SSEClientTransport{Endpoint: ts.URL + "/sse/key"}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer session.Close()
-	res, err := session.CallTool(context.Background(), &sdk.CallToolParams{Name: "groupList", Arguments: map[string]any{}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if text := res.Content[0].(*sdk.TextContent).Text; !strings.Contains(text, "c-org1") {
-		t.Errorf("sse groupList: %s", text)
-	}
-}
-
-type deleted struct{ ids []string }
-
-func (d *deleted) DeleteSelfHostedAuthorization(_ context.Context, id string) error {
-	d.ids = append(d.ids, id)
-	return nil
-}
-
-func TestRelayConnectAndCall(t *testing.T) {
-	t.Setenv("NEXT_PUBLIC_BACKEND_URL", "https://api.postiz.test")
-	tools := chat.NewTools(chat.Services{Integrations: fakeIntegrations{}})
-	instance := httptest.NewTLSServer(New(chat.NewAgent(tools, nil), tools, fakeOrgs{}, fakeOAuth{}, nil).Handler(http.NotFoundHandler()))
-	defer instance.Close()
-	oldClient, oldSafe := instanceClient, isSafePublicHTTPSURL
-	instanceClient = instance.Client
-	isSafePublicHTTPSURL = func(context.Context, string) bool { return true }
-	defer func() { instanceClient, isSafePublicHTTPSURL = oldClient, oldSafe }()
-
-	gone := &deleted{}
-	relay := NewRelayService(gone, tools)
-	// the MCP URL from Settings > Agents carries the key; /api/mcp is tried first
-	got, err := relay.Connect(context.Background(), instance.URL+"/mcp/key", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got.MCPURL != instance.URL+"/mcp" || got.APIKey != "key" {
-		t.Errorf("connect: %+v", got)
-	}
-	if _, err := relay.Connect(context.Background(), instance.URL, "wrong"); err == nil || !strings.Contains(err.Error(), "Your Postiz instance rejected this API key") {
-		t.Errorf("bad key: %v", err)
-	}
-
-	relayed := relay.Tools(chat.LoadTools(tools, false))
-	var groupList *chat.Tool
-	for _, tool := range relayed {
-		if tool.Name == "groupList" {
-			groupList = tool
+	// Approving, scheduling, and publishing stay human-only (RFC 019, 020).
+	for _, absent := range []string{"decideCampaignApproval", "createScheduledPost", "cancelScheduledPost", "transitionCampaign"} {
+		if slices.Contains(names, absent) {
+			t.Fatalf("%s must not be an agent tool", absent)
 		}
 	}
-	ctx := chat.RunWithContext(context.Background(), "psh_x", nil, got)
-	out, err := groupList.Call(ctx, json.RawMessage(`{}`))
-	if err != nil {
-		t.Fatal(err)
+}
+
+func TestProtectedResourceMetadataAndChallenges(t *testing.T) {
+	ts := newUnitServer(t)
+
+	response, body := get(t, ts.URL+"/.well-known/oauth-protected-resource/mcp")
+	var resource ProtectedResourceMetadata
+	if response.StatusCode != 200 || json.Unmarshal([]byte(body), &resource) != nil {
+		t.Fatalf("metadata: %d %s", response.StatusCode, body)
 	}
-	if data, _ := json.Marshal(out); string(data) != `{"output":[{"id":"c-org1","name":"Acme"}]}` {
-		t.Errorf("relayed result: %s", data)
+	if resource.Resource != "https://api.shots.test/mcp" ||
+		!slices.Equal(resource.AuthorizationServers, []string{"https://api.shots.test/mcp-oauth-dynamic"}) ||
+		!slices.Equal(resource.ScopesSupported, product.APIKeyScopes) {
+		t.Fatalf("metadata=%+v", resource)
 	}
-	if _, err := groupList.Call(context.Background(), json.RawMessage(`{}`)); err == nil || err.Error() != "This connection is not linked to a self-hosted instance" {
-		t.Errorf("without relay: %v", err)
+	_, body = get(t, ts.URL+"/.well-known/oauth-protected-resource/mcp-oauth-chatgpt")
+	if !strings.Contains(body, `"authorization_servers":["https://api.shots.test/mcp-oauth-chatgpt"]`) {
+		t.Fatalf("chatgpt metadata=%s", body)
+	}
+
+	response, body = get(t, ts.URL+"/.well-known/oauth-authorization-server/mcp-oauth-dynamic")
+	var issuer metadata
+	_ = json.Unmarshal([]byte(body), &issuer)
+	if response.StatusCode != 200 || issuer.AuthorizationEndpoint != "https://shots.test/oauth/authorize" ||
+		issuer.TokenEndpoint != "https://api.shots.test/oauth/token" ||
+		issuer.RegistrationEndpoint != "https://api.shots.test/oauth/register" ||
+		!slices.Equal(issuer.ScopesSupported, product.APIKeyScopes) {
+		t.Fatalf("issuer: %d %s", response.StatusCode, body)
+	}
+	if _, body = get(t, ts.URL+"/.well-known/oauth-authorization-server/mcp-oauth-chatgpt"); strings.Contains(body, "registration_endpoint") {
+		t.Fatalf("the ChatGPT issuer advertised registration: %s", body)
+	}
+
+	// No credential: 401 with the RFC 9728 pointer, so OAuth clients start the flow.
+	for _, mount := range []string{"/mcp", "/mcp-oauth-claude", "/mcp-oauth-chatgpt", "/mcp-oauth-dynamic"} {
+		response, body = get(t, ts.URL+mount)
+		want := `Bearer resource_metadata="https://api.shots.test/.well-known/oauth-protected-resource` + mount + `"`
+		if response.StatusCode != 401 || response.Header.Get("WWW-Authenticate") != want || !strings.Contains(body, `"error":"unauthorized"`) {
+			t.Fatalf("%s: %d %q %s", mount, response.StatusCode, response.Header.Get("WWW-Authenticate"), body)
+		}
+	}
+	// A Postiz-style key in the URL path, the SSE transport, and the root
+	// well-known document are not served.
+	for _, path := range []string{"/mcp/some-key", "/sse/some-key", "/message/some-key", "/mcp-oauth",
+		"/.well-known/oauth-protected-resource"} {
+		if response, _ := get(t, ts.URL+path); response.StatusCode != 404 {
+			t.Fatalf("%s: %d", path, response.StatusCode)
+		}
+	}
+}
+
+func TestRequestIDsAndClientNames(t *testing.T) {
+	request := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+	request.Header.Set("X-Request-Id", "trace:1.2-3")
+	request.Header.Set("User-Agent", "claude-code/1.0.80 (cli)")
+	if requestID(request) != "trace:1.2-3" {
+		t.Fatal("a valid request ID was replaced")
+	}
+	if clientName(&product.AgentKey{}, request) != "claude-code" {
+		t.Fatal("the user agent product was not used")
+	}
+	if clientName(&product.AgentKey{ClientName: "Claude"}, request) != "Claude" {
+		t.Fatal("an agent key's OAuth client was not used")
+	}
+	request.Header.Set("X-Request-Id", "ss_secret key")
+	if id := requestID(request); id == "ss_secret key" || len(id) != 36 {
+		t.Fatalf("an unsafe request ID was kept: %q", id)
+	}
+}
+
+type countingLimiter struct{ counts map[string]int }
+
+func (c *countingLimiter) Increment(_ context.Context, key string, amount int, _ time.Duration) (int, error) {
+	c.counts[key] += amount
+	return c.counts[key], nil
+}
+
+type brokenLimiter struct{}
+
+func (brokenLimiter) Increment(context.Context, string, int, time.Duration) (int, error) {
+	return 0, errors.New("redis down")
+}
+
+// A key gets the calls a REST key gets a minute; an unavailable counter skips
+// the per-key limit, since writes stay metered by the workspace quota.
+func TestPerKeyLimit(t *testing.T) {
+	s := &Server{config: Config{Limiter: &countingLimiter{counts: map[string]int{}}}}
+	for i := 0; i < callsPerKeyMinute; i++ {
+		if f := s.limit(context.Background(), "key", "key_1", callsPerKeyMinute); f != nil {
+			t.Fatalf("call %d refused", i+1)
+		}
+	}
+	f := s.limit(context.Background(), "key", "key_1", callsPerKeyMinute)
+	if f == nil || f.code != "rate_limited" || f.status != 429 || f.extra["retryAfter"].(int) < 1 {
+		t.Fatalf("call over the limit: %+v", f)
+	}
+	if s.limit(context.Background(), "key", "key_2", callsPerKeyMinute) != nil {
+		t.Fatal("one key's calls limited another")
+	}
+	s.config.Limiter = brokenLimiter{}
+	if s.limit(context.Background(), "key", "key_1", callsPerKeyMinute) != nil {
+		t.Fatal("an unavailable counter refused a call")
+	}
+}
+
+func TestDomainErrorsUseTheRESTEnvelope(t *testing.T) {
+	for err, want := range map[error]string{
+		publishing.ErrNotFound: "not_found", publishing.ErrForbidden: "forbidden", publishing.ErrConflict: "conflict",
+		product.ErrInvalidInput: "invalid_request", product.ErrStorageUnavailable: "upstream_unavailable",
+		&product.FeatureNotEntitledError{Feature: "asset:delete", CurrentPlan: "free", RequiredPlan: "pro"}:      "workspace_feature_not_entitled",
+		&product.QuotaExceededError{Limit: 300, Quota: "api:write:minute", ResetAt: time.Now().Add(time.Minute)}: "workspace_quota_exceeded",
+		errors.New("boom"): "internal_error",
+	} {
+		f := failureFor(err)
+		var body map[string]any
+		_ = json.Unmarshal([]byte(f.result().Content[0].(*sdk.TextContent).Text), &body)
+		if body["code"] != want || body["error"] != body["message"] || body["hint"] == "" || body["status"] != float64(f.status) {
+			t.Errorf("%v: %v", err, body)
+		}
+	}
+	if f := failureFor(publishing.ErrNotFound); strings.Contains(f.message, "publishing") {
+		t.Fatalf("an internal sentinel leaked: %q", f.message)
 	}
 }

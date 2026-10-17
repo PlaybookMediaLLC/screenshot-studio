@@ -97,6 +97,17 @@ class DeploymentSpecTest(unittest.TestCase):
         backend = next(item for item in rerendered["services"] if item["name"] == "screenshot-studio-backend")
         self.assertTrue({"X_API_KEY", "X_API_SECRET"}.isdisjoint({item["key"] for item in backend["envs"]}))
 
+    def test_mcp_url_reaches_the_backend_and_the_web(self):
+        spec = render_spec.render(self.base, self.secrets)
+        for component in spec["services"]:
+            self.assertNotIn("PLATFORM_MCP_URL", {item["key"] for item in component.get("envs", [])})
+        self.secrets["PLATFORM_MCP_URL"] = "https://api.example.com/mcp"
+        spec = render_spec.render(self.base, self.secrets)
+        for name in ("web", "screenshot-studio-backend"):
+            component = next(item for item in spec["services"] if item["name"] == name)
+            envs = {item["key"]: item for item in component["envs"]}
+            self.assertEqual(envs["PLATFORM_MCP_URL"]["value"], "https://api.example.com/mcp")
+
     def test_web_uses_backend_without_database_and_go_migrates_schema(self):
         self.base["services"][0]["envs"].append({"key": "POSTIZ_API_KEY_TENANT", "value": "legacy-social-key", "type": "SECRET"})
         spec = render_spec.render(self.base, self.secrets)

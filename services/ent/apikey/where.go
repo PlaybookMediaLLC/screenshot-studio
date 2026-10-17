@@ -109,6 +109,11 @@ func Permissions(v string) predicate.Apikey {
 	return predicate.Apikey(sql.FieldEQ(FieldPermissions, v))
 }
 
+// Metadata applies equality check predicate on the "metadata" field. It's identical to MetadataEQ.
+func Metadata(v string) predicate.Apikey {
+	return predicate.Apikey(sql.FieldEQ(FieldMetadata, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Apikey {
 	return predicate.Apikey(sql.FieldEQ(FieldCreatedAt, v))
@@ -682,6 +687,81 @@ func PermissionsEqualFold(v string) predicate.Apikey {
 // PermissionsContainsFold applies the ContainsFold predicate on the "permissions" field.
 func PermissionsContainsFold(v string) predicate.Apikey {
 	return predicate.Apikey(sql.FieldContainsFold(FieldPermissions, v))
+}
+
+// MetadataEQ applies the EQ predicate on the "metadata" field.
+func MetadataEQ(v string) predicate.Apikey {
+	return predicate.Apikey(sql.FieldEQ(FieldMetadata, v))
+}
+
+// MetadataNEQ applies the NEQ predicate on the "metadata" field.
+func MetadataNEQ(v string) predicate.Apikey {
+	return predicate.Apikey(sql.FieldNEQ(FieldMetadata, v))
+}
+
+// MetadataIn applies the In predicate on the "metadata" field.
+func MetadataIn(vs ...string) predicate.Apikey {
+	return predicate.Apikey(sql.FieldIn(FieldMetadata, vs...))
+}
+
+// MetadataNotIn applies the NotIn predicate on the "metadata" field.
+func MetadataNotIn(vs ...string) predicate.Apikey {
+	return predicate.Apikey(sql.FieldNotIn(FieldMetadata, vs...))
+}
+
+// MetadataGT applies the GT predicate on the "metadata" field.
+func MetadataGT(v string) predicate.Apikey {
+	return predicate.Apikey(sql.FieldGT(FieldMetadata, v))
+}
+
+// MetadataGTE applies the GTE predicate on the "metadata" field.
+func MetadataGTE(v string) predicate.Apikey {
+	return predicate.Apikey(sql.FieldGTE(FieldMetadata, v))
+}
+
+// MetadataLT applies the LT predicate on the "metadata" field.
+func MetadataLT(v string) predicate.Apikey {
+	return predicate.Apikey(sql.FieldLT(FieldMetadata, v))
+}
+
+// MetadataLTE applies the LTE predicate on the "metadata" field.
+func MetadataLTE(v string) predicate.Apikey {
+	return predicate.Apikey(sql.FieldLTE(FieldMetadata, v))
+}
+
+// MetadataContains applies the Contains predicate on the "metadata" field.
+func MetadataContains(v string) predicate.Apikey {
+	return predicate.Apikey(sql.FieldContains(FieldMetadata, v))
+}
+
+// MetadataHasPrefix applies the HasPrefix predicate on the "metadata" field.
+func MetadataHasPrefix(v string) predicate.Apikey {
+	return predicate.Apikey(sql.FieldHasPrefix(FieldMetadata, v))
+}
+
+// MetadataHasSuffix applies the HasSuffix predicate on the "metadata" field.
+func MetadataHasSuffix(v string) predicate.Apikey {
+	return predicate.Apikey(sql.FieldHasSuffix(FieldMetadata, v))
+}
+
+// MetadataIsNil applies the IsNil predicate on the "metadata" field.
+func MetadataIsNil() predicate.Apikey {
+	return predicate.Apikey(sql.FieldIsNull(FieldMetadata))
+}
+
+// MetadataNotNil applies the NotNil predicate on the "metadata" field.
+func MetadataNotNil() predicate.Apikey {
+	return predicate.Apikey(sql.FieldNotNull(FieldMetadata))
+}
+
+// MetadataEqualFold applies the EqualFold predicate on the "metadata" field.
+func MetadataEqualFold(v string) predicate.Apikey {
+	return predicate.Apikey(sql.FieldEqualFold(FieldMetadata, v))
+}
+
+// MetadataContainsFold applies the ContainsFold predicate on the "metadata" field.
+func MetadataContainsFold(v string) predicate.Apikey {
+	return predicate.Apikey(sql.FieldContainsFold(FieldMetadata, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

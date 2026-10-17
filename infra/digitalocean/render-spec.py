@@ -141,6 +141,12 @@ def render(base, secrets, *, branch="main"):
         "INSTAGRAM_APP_SECRET": "POSTIZ_GO_INSTAGRAM_APP_SECRET",
     }
     postiz_env += [secret(key, source) for key, source in provider_secret_sources.items() if secrets.get(source)]
+    # The public MCP URL (RFC 037), e.g. https://api.<domain>/mcp on a domain
+    # routed to this component. OAuth discovery needs it at a host root.
+    mcp_url = secrets.get("PLATFORM_MCP_URL", "")
+    if mcp_url:
+        postiz_env.append(env("PLATFORM_MCP_URL", mcp_url))
+        merge_env(web, [env("PLATFORM_MCP_URL", mcp_url)])
     backend = service("screenshot-studio-backend", "services", "services/screenshot-studio-backend/backend/Dockerfile", 3000, "/readyz", "apps-s-1vcpu-2gb")
     merge_env(backend, postiz_env + [env("PORT", "3000"), env("RUN_CRON", "true"), env("RUN_WORKER", "true")])
     # The social API on :3000 is reached only over loopback by the publishing

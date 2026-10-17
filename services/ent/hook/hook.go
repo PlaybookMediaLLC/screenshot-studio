@@ -9,6 +9,18 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 )
 
+// The AgentAuthorizationFunc type is an adapter to allow the use of ordinary
+// function as AgentAuthorization mutator.
+type AgentAuthorizationFunc func(context.Context, *ent.AgentAuthorizationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AgentAuthorizationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AgentAuthorizationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AgentAuthorizationMutation", m)
+}
+
 // The ApikeyFunc type is an adapter to allow the use of ordinary
 // function as Apikey mutator.
 type ApikeyFunc func(context.Context, *ent.ApikeyMutation) (ent.Value, error)

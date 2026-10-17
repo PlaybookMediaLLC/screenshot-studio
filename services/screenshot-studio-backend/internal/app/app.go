@@ -104,11 +104,12 @@ type App struct {
 	Auth          *auth.AuthService
 	Permissions   *auth.PermissionsService
 
-	Tools       []*chat.Tool
-	Memory      *chat.Memory
-	Agent       *chat.Agent
-	Relay       *mcp.RelayService
-	MCP         *mcp.Server
+	Tools  []*chat.Tool
+	Memory *chat.Memory
+	Agent  *chat.Agent
+	MCP    *mcp.Server
+	// shots is the platform domain behind the MCP tools.
+	shots       *shotsPlatform
 	AgentGraph  *agent.GraphService
 	AgentInsert *agent.InsertService
 }
@@ -141,7 +142,15 @@ func New(ctx context.Context) (*App, error) {
 		a.Close()
 		return nil, err
 	}
+	if a.shots, err = openShotsPlatform(ctx); err != nil {
+		a.Close()
+		return nil, err
+	}
 	a.wire()
+	if a.MCP, err = a.shots.mcpServer(); err != nil {
+		a.Close()
+		return nil, err
+	}
 	return a, nil
 }
 
@@ -178,7 +187,7 @@ func (a *App) wire() {
 	a.Signatures = signatures.NewService(signatures.NewRepository(db))
 	a.Webhooks = webhooks.NewService(webhooks.NewRepository(db))
 	a.Errors = errorsdb.NewService(errorsdb.NewRepository(db))
-	a.OAuth = oauth.NewService(oauth.NewRepository(db))
+	a.OAuth = oauth.NewService(oauth.NewRepository(db)).WithAgentCodes(agentCodes{a.shots.product})
 	a.ThirdParty = thirdparties.NewManager(thirdPartyService{a.ThirdParties}, a.OpenAI)
 
 	a.Media = media.NewService(media.NewRepository(db), a.OpenAI, mediaSubscriptions{a.Subscriptions}, videoManager{a.Videos},
@@ -220,12 +229,6 @@ func (a *App) wire() {
 	})
 	a.Memory = chat.NewMemory(db)
 	a.Agent = chat.NewAgent(a.Tools, a.Memory)
-	a.Relay = mcp.NewRelayService(selfHostedOAuth{a.OAuth}, a.Tools)
-	var relay *mcp.RelayService
-	if oauth.SelfHostedRelayEnabled() {
-		relay = a.Relay
-	}
-	a.MCP = mcp.New(a.Agent, a.Tools, a.Organizations, mcpOAuth{a.OAuth}, relay)
 
 	a.AgentGraph = agent.NewGraphService(agentPosts{a.Posts}, agentMedia{a.Media}, a.Storage)
 	a.AgentInsert = agent.NewInsertService(agentPosts{a.Posts})
@@ -238,5 +241,8 @@ func (a *App) Close() {
 	}
 	if a.DB != nil {
 		_ = a.DB.Close()
+	}
+	if a.shots != nil {
+		a.shots.close()
 	}
 }

@@ -29,6 +29,8 @@ const (
 	FieldExpiresAt = "expiresAt"
 	// FieldPermissions holds the string denoting the permissions field in the database.
 	FieldPermissions = "permissions"
+	// FieldMetadata holds the string denoting the metadata field in the database.
+	FieldMetadata = "metadata"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "createdAt"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -49,6 +51,7 @@ var Columns = []string{
 	FieldEnabled,
 	FieldExpiresAt,
 	FieldPermissions,
+	FieldMetadata,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -119,6 +122,11 @@ func ByExpiresAt(opts ...sql.OrderTermOption) OrderOption {
 // ByPermissions orders the results by the permissions field.
 func ByPermissions(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPermissions, opts...).ToFunc()
+}
+
+// ByMetadata orders the results by the metadata field.
+func ByMetadata(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMetadata, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

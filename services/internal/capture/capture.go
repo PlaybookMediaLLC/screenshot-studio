@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"strings"
@@ -35,10 +36,32 @@ func FromEnvironment() *Client {
 	return &Client{API: api, Key: os.Getenv("SCREENSHOT_API_KEY"), HTTP: &http.Client{Timeout: 45 * time.Second}}
 }
 
+// Options choose the viewport and color scheme, as the web's
+// POST /api/screenshot does.
+type Options struct {
+	Mobile bool
+	// ColorScheme is "light" or "dark"; empty leaves the page's default.
+	ColorScheme string
+}
+
 // Capture screenshots a public page at a desktop viewport and returns the image.
 func (c *Client) Capture(ctx context.Context, pageURL string) ([]byte, error) {
+	return c.CaptureWith(ctx, pageURL, Options{})
+}
+
+// CaptureWith screenshots a public page with the given viewport and color
+// scheme. A mobile capture is a current iPhone viewport, like the web's.
+func (c *Client) CaptureWith(ctx context.Context, pageURL string, options Options) ([]byte, error) {
 	query := url.Values{"meta": {"false"}, "screenshot": {"true"}, "url": {pageURL},
 		"viewport.height": {"1080"}, "viewport.isMobile": {"false"}, "viewport.width": {"1920"}}
+	if options.Mobile {
+		query.Set("viewport.height", "844")
+		query.Set("viewport.isMobile", "true")
+		query.Set("viewport.width", "390")
+	}
+	if options.ColorScheme != "" {
+		query.Set("colorScheme", options.ColorScheme)
+	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, c.API+"/?"+query.Encode(), nil)
 	if err != nil {
 		return nil, err
@@ -98,4 +121,26 @@ func (c *Client) download(ctx context.Context, imageURL string) ([]byte, error) 
 		return nil, errors.New("screenshot too large")
 	}
 	return body, nil
+}
+
+// PublicPageURL reports whether raw is an http(s) URL whose host is not
+// local or private: the web's assertPublicCaptureUrl, so a capture through
+// any transport refuses the same addresses.
+func PublicPageURL(raw string) bool {
+	parsed, err := url.Parse(raw)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" {
+		return false
+	}
+	host := strings.ToLower(strings.Trim(parsed.Hostname(), "[]"))
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") || strings.HasSuffix(host, ".local") {
+		return false
+	}
+	address, err := netip.ParseAddr(host)
+	if err != nil {
+		return true
+	}
+	address = address.Unmap()
+	return !(address.IsLoopback() || address.IsPrivate() || address.IsLinkLocalUnicast() ||
+		address.IsLinkLocalMulticast() || address.IsUnspecified() || address.IsMulticast() ||
+		(address.Is4() && (address.As4()[0] == 0 || (address.As4()[0] == 100 && address.As4()[1]&0xc0 == 64))))
 }

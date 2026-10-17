@@ -110,7 +110,7 @@ type StoreBackendRequest = <T>(
  * error mapping stay identical.
  *
  * ponytail: remove this bridge and call backendSDK(context) directly once
- * screenshot-studio-backend-sdk >= 0.1.13 (the first release with these methods) is installed.
+ * screenshot-studio-backend-sdk >= 0.1.15 (the first release with these methods) is installed.
  */
 export function storeBackend(context: BackendContext) {
   const request = ((client) =>

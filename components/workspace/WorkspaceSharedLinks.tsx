@@ -73,7 +73,7 @@ export function WorkspaceSharedLinks({ canEdit }: { canEdit: boolean }) {
       ) : null}
       <Section
         description="Publish from the editor with Share. Revoking a link turns it off everywhere it was posted or embedded."
-        title="Shared links"
+        title="Links"
       >
         <Group>
           {links === null ? (

@@ -44,7 +44,7 @@ export function FrameSection() {
   const scope =
     screens.length === 0
       ? 'the screenshot'
-      : target.single
+      : target.single || screens.length === 1
         ? screenLabel(screens[0]!).toLowerCase()
         : `all ${screens.length} screens`
   const onChange = (changes: Parameters<typeof changeChrome>[1]) => changeChrome(target, changes)

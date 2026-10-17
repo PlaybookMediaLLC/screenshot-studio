@@ -62,6 +62,14 @@ spec:
             - name: GOOGLE_SITE_VERIFICATION
               value: {{ . | quote }}
             {{- end }}
+            {{- with .Values.config.contentDrafts }}
+            - name: PLATFORM_CONTENT_DRAFTS
+              value: {{ . | quote }}
+            {{- end }}
+            {{- if and .Values.collab.enabled .Values.collab.publicUrl }}
+            - name: PLATFORM_COLLAB_URL
+              value: {{ .Values.collab.publicUrl | quote }}
+            {{- end }}
             {{- with .Values.config.publishingApiUrl }}
             - name: PUBLISHING_API_URL
               value: {{ . | quote }}

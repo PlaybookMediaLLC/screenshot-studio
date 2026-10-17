@@ -64,6 +64,8 @@ NODE
     ensure_env_value POSTIZ_API_KEY_E2E "e2e-postiz-token"
     ensure_env_value POSTIZ_GO_JWT_SECRET "$(random_hex 32)"
     ensure_env_value PUBLISHING_SERVICE_TOKEN "$(random_hex 32)"
+    ensure_env_value COLLAB_TOKEN_SECRET "$(random_hex 32)"
+    ensure_env_value COLLAB_SERVICE_TOKEN "$(random_hex 32)"
     database_url="$(grep '^DATABASE_URL=' "$LOCAL_ENV" | cut -d= -f2-)"
     ensure_env_value AUDIT_RETENTION_DATABASE_URL "$database_url"
     chmod 600 "$LOCAL_ENV"
@@ -113,6 +115,8 @@ POSTIZ_API_KEY=e2e-postiz-token
 POSTIZ_API_KEY_E2E=e2e-postiz-token
 POSTIZ_GO_JWT_SECRET=$(random_hex 32)
 PUBLISHING_SERVICE_TOKEN=$(random_hex 32)
+COLLAB_TOKEN_SECRET=$(random_hex 32)
+COLLAB_SERVICE_TOKEN=$(random_hex 32)
 R2_ENDPOINT=http://rustfs:9000
 R2_REGION=us-east-1
 R2_FORCE_PATH_STYLE=true
@@ -166,6 +170,8 @@ STORE_PUBLISHING_ENCRYPTION_KEY=$STORE_PUBLISHING_ENCRYPTION_KEY
 DATABASE_URL=postgresql://screenshot_studio:$POSTGRES_APP_PASSWORD@screenshot-studio-postgres:5432/screenshot_studio?sslmode=disable
 AUDIT_RETENTION_DATABASE_URL=postgresql://screenshot_studio:$POSTGRES_APP_PASSWORD@screenshot-studio-postgres:5432/screenshot_studio?schema=public
 PUBLISHING_SERVICE_TOKEN=$PUBLISHING_SERVICE_TOKEN
+COLLAB_TOKEN_SECRET=$COLLAB_TOKEN_SECRET
+COLLAB_SERVICE_TOKEN=$COLLAB_SERVICE_TOKEN
 R2_ENDPOINT=http://screenshot-studio-rustfs:9000
 R2_BROWSER_ENDPOINT=http://127.0.0.1:9003
 R2_REGION=us-east-1
@@ -455,7 +461,7 @@ dev_login() {
 up() {
   ensure_env
   compose rm --force --stop rustfs-init >/dev/null 2>&1 || true
-  compose up --detach --build postgres redis rustfs rustfs-init publishing-backend publishing-orchestrator
+  compose up --detach --build postgres redis rustfs rustfs-init publishing-backend publishing-orchestrator collab
   sync_dependencies
   # The render browser runs locally by default for parity with production,
   # where designs render in Cloudflare Browser Rendering over the same CDP
@@ -540,7 +546,10 @@ kind_up() {
   docker build --file "$ROOT_DIR/services/backend/Dockerfile" \
     --tag screenshot-studio-publishing-backend:kind-dev "$ROOT_DIR/services"
   kind load docker-image screenshot-studio:kind-dev --name "$KIND_CLUSTER"
+  docker build --file "$ROOT_DIR/packages/collab-server/Dockerfile" \
+    --tag screenshot-studio-collab:kind-dev "$ROOT_DIR"
   kind load docker-image screenshot-studio-publishing-backend:kind-dev --name "$KIND_CLUSTER"
+  kind load docker-image screenshot-studio-collab:kind-dev --name "$KIND_CLUSTER"
   kubectl create namespace "$KIND_NAMESPACE" --dry-run=client --output=yaml | kubectl apply --filename -
   kubectl create secret generic screenshot-studio-local \
     --namespace "$KIND_NAMESPACE" \

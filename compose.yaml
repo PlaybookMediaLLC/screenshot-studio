@@ -36,6 +36,11 @@ services:
       FIGMA_CLIENT_SECRET: ${FIGMA_CLIENT_SECRET:-}
       PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}
       PLATFORM_CONTENT_DRAFTS: ${PLATFORM_CONTENT_DRAFTS:-enabled}
+      # The browser connects to the collaboration server directly. Only the
+      # backend holds the collaboration secrets.
+      PLATFORM_COLLAB_URL: ${PLATFORM_COLLAB_URL:-ws://localhost:1234}
+      COLLAB_TOKEN_SECRET: ''
+      COLLAB_SERVICE_TOKEN: ''
       # Set by bin/studio for e2e runs: a deterministic stand-in model (lib/ai/models/scripted.ts).
       PLATFORM_AI_SCRIPTED: ${PLATFORM_AI_SCRIPTED:-}
       # Set by bin/studio when render-browser runs. It shares this container's
@@ -176,6 +181,22 @@ services:
         condition: service_healthy
       rustfs-init:
         condition: service_completed_successfully
+
+  # Real-time co-editing of content drafts (RFC 037). It holds no database
+  # credential: it authorizes, loads and stores only through the backend.
+  collab:
+    build:
+      context: .
+      dockerfile: packages/collab-server/Dockerfile
+    image: screenshot-studio-collab:local
+    environment:
+      COLLAB_BACKEND_URL: http://publishing-backend:8080
+      COLLAB_SERVICE_TOKEN: ${COLLAB_SERVICE_TOKEN:-}
+    ports:
+      - '127.0.0.1:1234:1234'
+    depends_on:
+      publishing-backend:
+        condition: service_started
 
   # The backend image is distroless (no shell or HTTP client for a
   # healthcheck), so its readiness is probed from here.

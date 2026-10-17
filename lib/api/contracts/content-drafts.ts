@@ -249,3 +249,25 @@ export const scheduleContentDraftContract = defineContract({
   status: 201,
   summary: 'Schedule a content draft to channels',
 })
+
+/** A collaboration token: one member, one draft, a few minutes. */
+export const collabTokenSchema = z.object({
+  access: z.enum(['read', 'write']),
+  documentName: z.string(),
+  expiresAt: timestampSchema,
+  token: z.string(),
+})
+
+/**
+ * `POST /api/v1/content-drafts/{id}/collab-token`: admits the signed-in member
+ * to the draft's real-time session. Browser-only, so it is not in the
+ * API-key reference.
+ */
+export const createCollabTokenContract = defineContract({
+  method: 'POST',
+  name: 'content-drafts.collab-token',
+  output: collabTokenSchema,
+  params: contentDraftParamsSchema,
+  path: '/api/v1/content-drafts/{id}/collab-token',
+  summary: 'Issue a collaboration token for a content draft',
+})

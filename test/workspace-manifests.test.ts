@@ -11,7 +11,7 @@ import test from 'node:test'
  */
 
 const ROOT = process.cwd()
-const IMAGES = ['Dockerfile', 'Dockerfile.dev']
+const IMAGES = ['Dockerfile', 'Dockerfile.dev', 'packages/collab-server/Dockerfile']
 
 function workspaceDirectories(): string[] {
   const manifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {

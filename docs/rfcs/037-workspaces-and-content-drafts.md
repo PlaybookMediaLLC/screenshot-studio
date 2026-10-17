@@ -316,6 +316,27 @@ browser ──websocket + token──▶ collab-server ──authorize / load / 
 - **Configuration.** The collab URL comes from server config
   (`PLATFORM_COLLAB_URL`) passed in by the app.
 
+### Endpoints and secrets
+
+| Route | Caller | Credential |
+| --- | --- | --- |
+| `POST /v1/content-drafts/{id}/collab-token` | the web, for a signed-in member | service token and the member's session |
+| `POST /v1/collab/authorize` | the collab server, per connection | `COLLAB_SERVICE_TOKEN` and the member's token |
+| `GET`, `PUT /v1/collab/documents/{draftId}` | the collab server, to load and store | `COLLAB_SERVICE_TOKEN` and the member's token |
+
+Only the backend holds `COLLAB_TOKEN_SECRET`, the signing key. The collab
+server holds `COLLAB_SERVICE_TOKEN`, which opens the three collab routes and
+nothing else, and every one of them also needs a member's token for that
+draft. A connection is admitted with an unexpired token; loads and stores
+accept the connection's token for twelve hours after it expires, so a long
+session keeps saving. A member removed from the workspace is refused on their
+next connection, and one demoted below `artifact:edit` joins read-only.
+
+The server runs as one replica: a document's live state lives in one process.
+More replicas need the Hocuspocus Redis extension or routing by document name.
+Comment threads (the discussion plugin) are kept in the editor's memory and
+are not yet stored with the draft; the comment marks in the text are.
+
 ## Rollout
 
 Each step is its own pull request and can be reverted alone.

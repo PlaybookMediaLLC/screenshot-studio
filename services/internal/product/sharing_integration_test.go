@@ -85,6 +85,12 @@ func TestShareLinksAndIntegrations(t *testing.T) {
 		}
 	}
 
+	if got, err := repo.GetShareLink(ctx, actor, link.ID); err != nil || got.Token != link.Token {
+		t.Fatalf("get=%+v err=%v", got, err)
+	}
+	if _, err := repo.GetShareLink(ctx, stranger, link.ID); !errors.Is(err, publishing.ErrNotFound) {
+		t.Fatalf("stranger get: %v", err)
+	}
 	if _, err := repo.UpdateShareLink(ctx, stranger, link.ID, ShareLinkUpdate{Title: ptr("Mine")}); !errors.Is(err, publishing.ErrNotFound) {
 		t.Fatalf("stranger update: %v", err)
 	}
@@ -115,7 +121,7 @@ func TestShareLinksAndIntegrations(t *testing.T) {
 	if _, err := repo.ResolveShareLink(ctx, link.Token); !errors.Is(err, publishing.ErrNotFound) {
 		t.Fatalf("revoked link resolved: %v", err)
 	}
-	if _, _, err := repo.ReadShareLinkObject(ctx, link.Token, "media"); !errors.Is(err, publishing.ErrNotFound) {
+	if _, _, err := repo.ShareLinkObjectURL(ctx, link.Token, "media"); !errors.Is(err, publishing.ErrNotFound) {
 		t.Fatalf("revoked link read: %v", err)
 	}
 	if _, err := repo.ResolveShareLink(ctx, "not-a-real-token-value-at-all"); !errors.Is(err, publishing.ErrNotFound) {

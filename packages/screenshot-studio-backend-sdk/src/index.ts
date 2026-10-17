@@ -1849,6 +1849,10 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ shareLinks: BackendShareLink[] }>('v1/share-links')
   }
 
+  async getShareLink(id: string) {
+    return this.request<BackendShareLink>(`v1/share-links/${encodeURIComponent(id)}`)
+  }
+
   async createShareLink(input: {
     access: ShareLinkAccess
     altText?: string | null
@@ -1890,11 +1894,10 @@ export class ScreenshotStudioBackendSDK {
     return this.request<BackendPublicShareLink>(`v1/internal/share-links/${encodeURIComponent(token)}`)
   }
 
-  /** A live link's media or poster bytes; requires the service token alone. */
-  async readShareLinkObject(token: string, variant: 'media' | 'poster') {
-    return this.request<Uint8Array>(
-      `v1/internal/share-links/${encodeURIComponent(token)}/object?variant=${variant}`,
-      { responseType: 'bytes' }
+  /** A short-lived signed URL for a live link's media or poster; requires the service token alone. */
+  async shareLinkObjectUrl(token: string, variant: 'media' | 'poster') {
+    return this.request<{ mediaType: string; url: string }>(
+      `v1/internal/share-links/${encodeURIComponent(token)}/object-url?variant=${variant}`
     )
   }
 

@@ -3,7 +3,7 @@ import 'server-only'
 import { backendSDK } from '@/lib/backend/sdk'
 import { appOrigin } from '@/lib/sharing/page'
 import { shareUrl } from '@/lib/sharing/schema'
-import { listShareLinks } from '@/lib/sharing/server'
+import { getShareLink } from '@/lib/sharing/server'
 import type { TenantContext } from '@/lib/auth/access'
 import { canSealCredentials, openCredentials, sealCredentials } from './crypto'
 import { deliverToFigma, deliverToNotion, deliverToSlack, type DeliveryResult } from './deliver'
@@ -114,9 +114,7 @@ export async function deliverShareLink(
   context: TenantContext,
   input: { integrationId: string; shareLinkId: string; target: DeliveryTarget }
 ): Promise<DeliveryResult> {
-  const link = (await listShareLinks(context)).find(
-    (candidate) => candidate.id === input.shareLinkId
-  )
+  const link = await getShareLink(context, input.shareLinkId)
   if (!link || link.revokedAt || (link.expiresAt && link.expiresAt <= new Date())) {
     throw new ProviderError('That share link is no longer live. Publish again.')
   }

@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 	"net/http"
-	"strconv"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 )
@@ -13,10 +12,11 @@ import (
 type SharingStore interface {
 	CreateShareLink(context.Context, product.Actor, product.ShareLinkInput) (*product.ShareLinkRecord, error)
 	ListShareLinks(context.Context, product.Actor) ([]product.ShareLinkRecord, error)
+	GetShareLink(context.Context, product.Actor, string) (*product.ShareLinkRecord, error)
 	UpdateShareLink(context.Context, product.Actor, string, product.ShareLinkUpdate) (*product.ShareLinkRecord, error)
 	RevokeShareLink(context.Context, product.Actor, string) error
 	ResolveShareLink(context.Context, string) (*product.PublicShareLink, error)
-	ReadShareLinkObject(context.Context, string, string) ([]byte, string, error)
+	ShareLinkObjectURL(context.Context, string, string) (string, string, error)
 	SaveIntegration(context.Context, product.Actor, product.IntegrationInput) (*product.IntegrationRecord, error)
 	ListIntegrations(context.Context, product.Actor) ([]product.IntegrationRecord, error)
 	IntegrationCredentials(context.Context, product.Actor, string) (*product.IntegrationWithCredentials, error)
@@ -27,11 +27,12 @@ type SharingStore interface {
 func (s *Server) registerSharing(mux *http.ServeMux) {
 	mux.Handle("GET /v1/share-links", s.authenticateProduct(http.HandlerFunc(s.listShareLinks)))
 	mux.Handle("POST /v1/share-links", s.authenticateProduct(http.HandlerFunc(s.createShareLink)))
+	mux.Handle("GET /v1/share-links/{id}", s.authenticateProduct(http.HandlerFunc(s.getShareLink)))
 	mux.Handle("PATCH /v1/share-links/{id}", s.authenticateProduct(http.HandlerFunc(s.updateShareLink)))
 	mux.Handle("DELETE /v1/share-links/{id}", s.authenticateProduct(http.HandlerFunc(s.revokeShareLink)))
 	// The share page has no session: only the facade may resolve a token.
 	mux.Handle("GET /v1/internal/share-links/{token}", s.authenticateService(http.HandlerFunc(s.resolveShareLink)))
-	mux.Handle("GET /v1/internal/share-links/{token}/object", s.authenticateService(http.HandlerFunc(s.readShareLinkObject)))
+	mux.Handle("GET /v1/internal/share-links/{token}/object-url", s.authenticateService(http.HandlerFunc(s.shareLinkObjectURL)))
 	mux.Handle("GET /v1/integrations", s.authenticateProduct(http.HandlerFunc(s.listIntegrations)))
 	mux.Handle("POST /v1/integrations", s.authenticateProduct(http.HandlerFunc(s.saveIntegration)))
 	mux.Handle("GET /v1/integrations/{id}/credentials", s.authenticateProduct(http.HandlerFunc(s.integrationCredentials)))
@@ -69,6 +70,19 @@ func (s *Server) createShareLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, item)
+}
+
+func (s *Server) getShareLink(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	item, err := s.configuration.GetShareLink(r.Context(), workspaceActor(r), id)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
 }
 
 func (s *Server) updateShareLink(w http.ResponseWriter, r *http.Request) {
@@ -110,20 +124,17 @@ func (s *Server) resolveShareLink(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, link)
 }
 
-func (s *Server) readShareLinkObject(w http.ResponseWriter, r *http.Request) {
+func (s *Server) shareLinkObjectURL(w http.ResponseWriter, r *http.Request) {
 	variant := r.URL.Query().Get("variant")
 	if variant == "" {
 		variant = "media"
 	}
-	body, mediaType, err := s.configuration.ReadShareLinkObject(r.Context(), r.PathValue("token"), variant)
+	url, mediaType, err := s.configuration.ShareLinkObjectURL(r.Context(), r.PathValue("token"), variant)
 	if err != nil {
 		writeStoreError(w, err)
 		return
 	}
-	w.Header().Set("Content-Type", mediaType)
-	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(body)
+	writeJSON(w, http.StatusOK, map[string]string{"mediaType": mediaType, "url": url})
 }
 
 func (s *Server) listIntegrations(w http.ResponseWriter, r *http.Request) {

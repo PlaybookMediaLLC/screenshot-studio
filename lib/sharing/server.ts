@@ -17,6 +17,12 @@ export async function listShareLinks(context: TenantContext): Promise<ShareLink[
   return shareLinks.map((link) => shareLinkSchema.parse(link))
 }
 
+/** One of the workspace's links by id, or null. */
+export async function getShareLink(context: TenantContext, id: string): Promise<ShareLink | null> {
+  const link = await orNull(backendSDK(context).getShareLink(id))
+  return link && shareLinkSchema.parse(link)
+}
+
 /** Publish an uploaded asset at a new link. */
 export async function createShareLink(
   context: TenantContext,
@@ -33,10 +39,13 @@ export async function updateShareLink(
   context: TenantContext,
   input: ShareLinkUpdateInput
 ): Promise<ShareLink> {
-  const { expiry, id, ...rest } = input
+  const { altText, description, expiry, id, ...rest } = input
   return shareLinkSchema.parse(
     await backendSDK(context).updateShareLink(id, {
       ...rest,
+      // The backend clears a text field on an empty string (null means "unchanged").
+      ...(altText !== undefined ? { altText: altText ?? '' } : {}),
+      ...(description !== undefined ? { description: description ?? '' } : {}),
       ...(expiry === 'never'
         ? { clearExpiry: true }
         : expiry
@@ -56,7 +65,7 @@ export function resolveShareLink(token: string) {
   return orNull(serviceBackend().resolveShareLink(token))
 }
 
-/** A live link's media or poster bytes, or null. */
-export function readShareMedia(token: string, variant: ShareMediaVariant) {
-  return orNull(serviceBackend().readShareLinkObject(token, variant))
+/** A short-lived signed URL for a live link's media or poster, or null. */
+export function signedShareMedia(token: string, variant: ShareMediaVariant) {
+  return orNull(serviceBackend().shareLinkObjectUrl(token, variant))
 }

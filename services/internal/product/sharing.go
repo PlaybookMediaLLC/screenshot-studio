@@ -240,6 +240,26 @@ func (c *Configuration) ListShareLinks(ctx context.Context, actor Actor) ([]Shar
 	return items, nil
 }
 
+// GetShareLink reads one of the workspace's links, revoked or not.
+func (c *Configuration) GetShareLink(ctx context.Context, actor Actor, id string) (*ShareLinkRecord, error) {
+	if err := c.AuthorizeRead(ctx, actor); err != nil {
+		return nil, err
+	}
+	row, err := c.client.ShareLink.Query().Where(sharelink.ID(id), sharelink.OrganizationID(actor.OrganizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, publishing.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	media, err := c.client.Asset.Query().Where(asset.ID(row.AssetID), asset.OrganizationID(actor.OrganizationID)).Only(ctx)
+	if err != nil && !ent.IsNotFound(err) {
+		return nil, err
+	}
+	record := shareLinkRecord(row, media)
+	return &record, nil
+}
+
 // UpdateShareLink changes a live link's text, access, or expiry.
 func (c *Configuration) UpdateShareLink(ctx context.Context, actor Actor, id string, input ShareLinkUpdate) (*ShareLinkRecord, error) {
 	if err := c.authorizeRoles(ctx, actor, shareEditRoles...); err != nil {
@@ -388,37 +408,39 @@ func (c *Configuration) ResolveShareLink(ctx context.Context, token string) (*Pu
 	return result, nil
 }
 
-// ReadShareLinkObject reads a live link's media ("media") or poster ("poster") bytes.
-func (c *Configuration) ReadShareLinkObject(ctx context.Context, token, variant string) ([]byte, string, error) {
+// ShareLinkObjectURL returns a short-lived signed URL for a live link's media
+// ("media") or poster ("poster"), and its media type. Storage serves the bytes
+// and range requests; nothing passes through the backend.
+func (c *Configuration) ShareLinkObjectURL(ctx context.Context, token, variant string) (string, string, error) {
 	row, err := c.liveShareLink(ctx, token)
 	if err != nil {
-		return nil, "", err
+		return "", "", err
 	}
 	assetID := row.AssetID
 	if variant == "poster" {
 		if row.PosterAssetID == nil {
-			return nil, "", publishing.ErrNotFound
+			return "", "", publishing.ErrNotFound
 		}
 		assetID = *row.PosterAssetID
 	} else if variant != "media" {
-		return nil, "", ErrInvalidInput
+		return "", "", ErrInvalidInput
 	}
 	media, err := c.client.Asset.Query().Where(asset.ID(assetID), asset.OrganizationID(row.OrganizationID),
 		asset.StatusEQ(asset.StatusUPLOADED)).Only(ctx)
 	if ent.IsNotFound(err) {
-		return nil, "", publishing.ErrNotFound
+		return "", "", publishing.ErrNotFound
 	}
 	if err != nil {
-		return nil, "", err
+		return "", "", err
 	}
 	if c.objects == nil {
-		return nil, "", ErrStorageUnavailable
+		return "", "", ErrStorageUnavailable
 	}
-	body, err := c.objects.Read(ctx, media.ObjectKey)
+	url, err := c.objects.SignDownload(ctx, media.ObjectKey)
 	if err != nil {
-		return nil, "", fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
+		return "", "", fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
 	}
-	return body, media.MediaType, nil
+	return url, media.MediaType, nil
 }
 
 // Integrations: Slack, Notion, and Figma connections. Owners and admins

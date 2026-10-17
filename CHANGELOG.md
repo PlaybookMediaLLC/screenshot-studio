@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.7.1...v2.8.0) (2026-10-17)
+
+
+### Features
+
+* **editor:** complete the editor platform, UX fixes, and capabilities F01–F24 ([#137](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/137)) ([03700f9](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/03700f94ce5d943a0e50e340ecdb20740717b590))
+
 ## [2.7.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.7.0...v2.7.1) (2026-10-17)
 
 

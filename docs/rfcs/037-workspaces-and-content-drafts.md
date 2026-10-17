@@ -167,9 +167,20 @@ and `test/api-platform-boundary.test.ts`.
 ### Bundle cost
 
 The editor is heavy. It loads with `next/dynamic` on the draft composer route
-only. The change that wires it in reports first-load JavaScript for the
-composer route and for the screenshot editor's main route, before and after.
-The main editor route must not grow.
+only, after the page renders, and DOCX support (mammoth and the Word writer)
+loads on first use. No package code reaches the screenshot editor's main
+route.
+
+Measured on production builds, signed in, gzipped JavaScript the browser
+downloads (2026-10-17):
+
+| Route | Before | After |
+| --- | --- | --- |
+| Screenshot editor (`/`), first load | 920.0 KB | 926.9 KB (+0.75%, chunk re-partitioning and the Drafts nav entry) |
+| Drafts list (`/drafts`), first load | none | 944.3 KB |
+| Composer (`/drafts/{id}`), first load | none | 951.9 KB |
+| Composer, editor chunk after render | none | 1,266 KB |
+| Composer, DOCX import or export on first use | none | 369 KB |
 
 ## Content drafts
 

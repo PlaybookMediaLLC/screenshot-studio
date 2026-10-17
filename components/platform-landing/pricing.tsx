@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import {
   checkoutPlanSchema,
   CREDIT_PACKS,
@@ -221,6 +222,15 @@ export function PlanCards({
           )
         })}
       </div>
+      <p className={cn('mt-4 text-[13px] leading-[1.6]', MUTED)}>
+        Plans renew automatically each month or year at the price shown, plus any tax, until you
+        cancel. Cancel any time in Settings → Billing; access continues to the end of the paid
+        period. By subscribing you agree to the{' '}
+        <Link className="underline underline-offset-4" href="/terms">
+          Terms
+        </Link>
+        .
+      </p>
       {withExtras ? (
         <>
           <div className="mt-4 flex flex-col gap-6 bg-[#111] p-6 sm:flex-row sm:items-center sm:justify-between">

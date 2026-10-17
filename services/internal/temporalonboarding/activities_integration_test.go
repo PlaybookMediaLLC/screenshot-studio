@@ -8,16 +8,19 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/enrichment"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/onboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/platformai"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
@@ -47,11 +50,28 @@ func (m *countingModel) Structured(_ context.Context, request platformai.Request
 	if strings.Contains(request.Prompt, `title="Acme pricing"`) {
 		pricing = "$9 a month for three clients"
 	}
+	// Only the third-party mentions name a pain, so pains cite them or are empty.
+	pains := ""
+	if match := regexp.MustCompile(`<source id="(S\d+)" kind="fake-mentions"`).FindStringSubmatch(request.Prompt); match != nil {
+		pains = `{"source":"` + match[1] + `","text":"Late payments"}`
+	}
 	reply := `{"name":{"source":"S1","text":"Acme"},"summary":{"source":"S1","text":"Invoicing for agencies."},"problem":{"source":"","text":""},
 "audience":{"source":"S1","text":"Agencies"},"pricingNote":{"source":"S1","text":"` + pricing + `"},"capabilities":[{"source":"S1","text":"Smart retries"}],
 "proofPoints":[],"competitors":[],"confidence":0.8,"icp":{"personas":[{"role":"Agency owner","seniority":"","teamSize":"","source":"S1"}],
-"pains":[{"source":"S1","text":"Late payments"}],"jobs":[{"source":"S1","text":"Get paid on time"}],"buyingTriggers":[],"objections":[],"channels":[],"confidence":0.6}}`
+"pains":[` + pains + `],"jobs":[{"source":"S1","text":"Get paid on time"}],"buyingTriggers":[],"objections":[],"channels":[],"confidence":0.6}}`
 	return platformai.Usage{CostUSD: 0.01, InputTokens: 2_000, OutputTokens: 200}, json.Unmarshal([]byte(reply), out)
+}
+
+// mentions is a third-party provider: what a forum says about the product.
+type mentions struct{ calls atomic.Int32 }
+
+func (*mentions) Name() string       { return "fake" }
+func (*mentions) Enabled() bool      { return true }
+func (*mentions) TTL() time.Duration { return time.Hour }
+func (m *mentions) Enrich(context.Context, enrichment.Subject) ([]enrichment.Result, error) {
+	m.calls.Add(1)
+	return []enrichment.Result{{Confidence: 0.4, CostMicros: 5_000, Field: enrichment.FieldMentions,
+		Value: []enrichment.Snippet{{Text: "Late payments were killing us before Acme.", Title: "Agency owners forum", URL: "https://forum.test/acme"}}}}, nil
 }
 
 type site struct {
@@ -181,9 +201,16 @@ func TestBackgroundRunEnrichesAndAReRunOfAnUnchangedSiteCostsNothing(t *testing.
 	s := newSite(t)
 	w := newWorkspace(t)
 	ctx := context.Background()
+	// No enrichment keys, and the keyless public providers off: only the site
+	// provider and the fake third party run, and the run still completes (AC 14).
+	t.Setenv("PLATFORM_ENRICHMENT_PDL_API_KEY", "")
+	t.Setenv("PLATFORM_ENRICHMENT_BRAVE_API_KEY", "")
+	t.Setenv("PLATFORM_ENRICHMENT_DISABLED", "github,appstore")
 	model := &countingModel{}
 	fetcher := onboarding.NewFetcher()
-	service := &onboarding.Service{Background: &suiteBackground{activities: &Activities{Fetcher: fetcher, Model: model, Store: w.store}},
+	forum := &mentions{}
+	enricher := &enrichment.Enricher{Providers: append(enrichment.FromEnvironment(fetcher), forum), Store: w.store}
+	service := &onboarding.Service{Background: &suiteBackground{activities: &Activities{Enricher: enricher, Fetcher: fetcher, Model: model, Store: w.store}},
 		FastPath: &onboarding.FastPath{Fetcher: fetcher, Model: model}, Store: w.store}
 
 	first, err := service.Start(ctx, w.owner, onboarding.StartInput{URL: s.URL + "/acme"})
@@ -208,8 +235,13 @@ func TestBackgroundRunEnrichesAndAReRunOfAnUnchangedSiteCostsNothing(t *testing.
 		t.Fatalf("profile %+v err=%v", profile, err)
 	}
 	icp, err := w.store.GetIdealCustomerProfile(ctx, w.owner)
-	if err != nil || icp == nil || len(icp.Jobs) != 1 {
+	// Pains cite the forum, so they rank as enrichment; jobs cite the site.
+	if err != nil || icp == nil || len(icp.Jobs) != 1 || icp.Provenance["pains"].Source != product.ProfileSourceEnrichment ||
+		icp.Provenance["pains"].URL != "https://forum.test/acme" || icp.Provenance["jobs"].Source != product.ProfileSourceAutomated {
 		t.Fatalf("ICP %+v err=%v", icp, err)
+	}
+	if run.EnrichmentCostMicros != 5_000 || forum.calls.Load() != 1 {
+		t.Fatalf("enrichment cost %d forum calls %d", run.EnrichmentCostMicros, forum.calls.Load())
 	}
 	surfaces, err := w.store.ListProductSurfaces(ctx, w.org)
 	if err != nil || len(surfaces) != 2 {
@@ -223,7 +255,8 @@ func TestBackgroundRunEnrichesAndAReRunOfAnUnchangedSiteCostsNothing(t *testing.
 	}
 	rerun, err := w.store.GetOnboardingRun(ctx, w.owner, second.Run.ID)
 	// The failing page has no stored copy, so it is the one request; it is not a page read.
-	if err != nil || rerun.Status != product.OnboardingCompleted || s.total()-fetches != 3 || s.count("/broken") != 6 || model.calls.Load() != calls {
+	if err != nil || rerun.Status != product.OnboardingCompleted || s.total()-fetches != 3 || s.count("/broken") != 6 || model.calls.Load() != calls ||
+		forum.calls.Load() != 1 || rerun.EnrichmentCostMicros != 0 {
 		t.Fatalf("re-run %+v err=%v fetches %d model calls %d", rerun, err, s.total()-fetches, model.calls.Load()-calls)
 	}
 }

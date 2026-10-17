@@ -67,7 +67,7 @@ jobs:
         run: |
           DATABASE_URL="$POSTIZ_TEST_DATABASE_URL" go run ./screenshot-studio-backend/cmd/postiz-migrate
           DATABASE_URL="$POSTIZ_TEST_DATABASE_URL" go run ./screenshot-studio-backend/cmd/postiz-migrate
-      - run: go test -race ./backend/internal/httpapi ./internal/postiz ./internal/publishing ./internal/temporalpublishing ./internal/maintenance ./internal/temporalmaintenance ./internal/onboarding ./internal/temporalonboarding ./screenshot-studio-backend/tenantpublishing
+      - run: go test -race ./backend/internal/httpapi ./internal/postiz ./internal/publishing ./internal/temporalpublishing ./internal/maintenance ./internal/temporalmaintenance ./internal/onboarding ./internal/temporalonboarding ./internal/enrichment ./screenshot-studio-backend/tenantpublishing
       - run: go test -race ./screenshot-studio-backend/backend/auth ./screenshot-studio-backend/internal/database/users ./screenshot-studio-backend/orchestrator/...
       - run: go vet ./...
       - name: Build publishing service images

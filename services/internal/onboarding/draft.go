@@ -33,6 +33,8 @@ type Draft struct {
 	ICP     product.UpsertIdealCustomerProfileInput
 	Issues  []string
 	Profile product.UpsertProductProfileInput
+	// ThirdParty names the fields whose value cites a third-party source.
+	ThirdParty map[string]bool
 }
 
 // Empty reports a draft with nothing to apply.
@@ -181,15 +183,15 @@ func clamp01(value, low, high float64) float64 { return min(high, max(low, value
 // checkDraft keeps the values that cite a readable source and read as
 // information, maps them to profile changes, and records the rest as issues.
 func checkDraft(reply modelDraft, input DraftInput) *Draft {
-	draft := &Draft{}
+	draft := &Draft{ThirdParty: map[string]bool{}}
 	sourceURL := map[string]string{}
-	allowed := map[string]bool{}
+	allowed, thirdParty := map[string]bool{}, map[string]bool{}
 	if input.Brief != "" {
 		allowed["brief"], sourceURL["brief"] = true, input.Homepage
 	}
 	for _, source := range input.Sources {
 		if !source.Flagged {
-			allowed[source.ID], sourceURL[source.ID] = true, source.URL
+			allowed[source.ID], sourceURL[source.ID], thirdParty[source.ID] = true, source.URL, source.ThirdParty
 		}
 	}
 	keep := func(path string, value citedText, limit int) (string, bool) {
@@ -213,6 +215,9 @@ func checkDraft(reply modelDraft, input DraftInput) *Draft {
 		confidence[field] = profileConfidence
 		if source == "brief" {
 			confidence[field] = 0.9
+		}
+		if thirdParty[source] {
+			draft.ThirdParty[field], confidence[field] = true, min(confidence[field], 0.5)
 		}
 	}
 	text := func(field string, value citedText, limit int) *string {
@@ -283,6 +288,9 @@ func checkDraft(reply modelDraft, input DraftInput) *Draft {
 			if url := sourceURL[source]; url != "" {
 				icp.SourceURLs[field] = url
 			}
+			if thirdParty[source] {
+				draft.ThirdParty["icp."+field], icp.Confidence[field] = true, min(icpConfidence, 0.5)
+			}
 		}
 		return kept
 	}
@@ -304,6 +312,7 @@ func checkDraft(reply modelDraft, input DraftInput) *Draft {
 			if url := sourceURL[persona.Source]; url != "" {
 				icp.SourceURLs["personas"] = url
 			}
+			draft.ThirdParty["icp.personas"] = thirdParty[persona.Source]
 		}
 	}
 	if len(personas) > 0 {
@@ -319,4 +328,51 @@ func dropEmpty(values map[string]string) map[string]string {
 		}
 	}
 	return values
+}
+
+// SplitICP separates the ICP fields that cite the product's own pages from
+// those that cite third-party sources, which are applied as enrichment so a
+// site or user value always outranks them.
+func (d *Draft) SplitICP() (site, enrichment product.UpsertIdealCustomerProfileInput) {
+	site = product.UpsertIdealCustomerProfileInput{Confidence: map[string]float64{}, Source: product.ProfileSourceAutomated, SourceURLs: map[string]string{}}
+	enrichment = product.UpsertIdealCustomerProfileInput{Confidence: map[string]float64{}, Source: product.ProfileSourceEnrichment, SourceURLs: map[string]string{}}
+	icp := d.ICP
+	for field, values := range map[string]*[]string{"pains": icp.Pains, "jobs": icp.Jobs, "buyingTriggers": icp.BuyingTriggers, "objections": icp.Objections, "channels": icp.Channels} {
+		if values == nil {
+			continue
+		}
+		target := &site
+		if d.ThirdParty["icp."+field] {
+			target = &enrichment
+		}
+		switch field {
+		case "pains":
+			target.Pains = values
+		case "jobs":
+			target.Jobs = values
+		case "buyingTriggers":
+			target.BuyingTriggers = values
+		case "objections":
+			target.Objections = values
+		case "channels":
+			target.Channels = values
+		}
+		target.Confidence[field], target.SourceURLs[field] = icp.Confidence[field], icp.SourceURLs[field]
+	}
+	if icp.Personas != nil {
+		target := &site
+		if d.ThirdParty["icp.personas"] {
+			target = &enrichment
+		}
+		target.Personas = icp.Personas
+		target.Confidence["personas"], target.SourceURLs["personas"] = icp.Confidence["personas"], icp.SourceURLs["personas"]
+	}
+	for _, input := range []*product.UpsertIdealCustomerProfileInput{&site, &enrichment} {
+		for field, url := range input.SourceURLs {
+			if url == "" {
+				delete(input.SourceURLs, field)
+			}
+		}
+	}
+	return site, enrichment
 }

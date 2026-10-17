@@ -13,6 +13,7 @@ import (
 	"go.temporal.io/sdk/temporal"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/enrichment"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/onboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/platformai"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
@@ -30,6 +31,7 @@ type Store interface {
 	GetIdealCustomerProfile(ctx context.Context, actor product.Actor) (*product.IdealCustomerProfileRecord, error)
 	GetPageKnowledge(ctx context.Context, actor product.Actor, url string) (*product.PageKnowledgeRecord, error)
 	GetProductProfile(ctx context.Context, actor product.Actor) (*product.ProductProfileRecord, error)
+	ListEnrichmentRecords(ctx context.Context, actor product.Actor, domain string) ([]product.EnrichmentRecordRecord, error)
 	ListPageKnowledge(ctx context.Context, actor product.Actor) ([]product.PageKnowledgeRecord, error)
 	ListProductSurfaces(ctx context.Context, organizationID string) ([]*ent.ProductSurface, error)
 	SavePageKnowledge(ctx context.Context, actor product.Actor, input product.SavePageKnowledgeInput) (*product.PageKnowledgeRecord, bool, error)
@@ -39,9 +41,10 @@ type Store interface {
 	UpsertProductProfile(ctx context.Context, actor product.Actor, input product.UpsertProductProfileInput) (*product.ProductProfileRecord, error)
 }
 
-// Enricher runs the enrichment providers for a run (docs/rfcs/032, Enrichment).
+// Enricher runs the enrichment providers for a site (docs/rfcs/032,
+// Enrichment); *enrichment.Enricher is one.
 type Enricher interface {
-	Enrich(ctx context.Context, actor product.Actor, run Input) (EnrichOutcome, error)
+	Enrich(ctx context.Context, actor product.Actor, siteURL string) (changed bool, costMicros int64, err error)
 }
 
 // Activities are the onboarding workflow's I/O: page fetches, model calls,
@@ -220,12 +223,16 @@ func (a *Activities) EnrichProfile(ctx context.Context, batch BatchInput) (Model
 }
 
 // Enrich runs the enrichment providers; without any it changes nothing.
+// A provider without its key or failing is skipped inside the enricher.
 func (a *Activities) Enrich(ctx context.Context, run Input) (EnrichOutcome, error) {
 	actor, err := a.authorize(ctx, run)
 	if err != nil || a.Enricher == nil {
 		return EnrichOutcome{}, err
 	}
-	return a.Enricher.Enrich(ctx, actor, run)
+	stop := heartbeat(ctx, "enrichment")
+	defer stop()
+	changed, cost, err := a.Enricher.Enrich(ctx, actor, run.URL)
+	return EnrichOutcome{Changed: changed, CostMicros: cost}, err
 }
 
 // DeriveICP reads the run's best pages and derives the ideal customer profile.
@@ -247,19 +254,47 @@ func (a *Activities) DeriveICP(ctx context.Context, run Input) (ModelOutcome, er
 		}
 	}
 	sources, err := a.sources(ctx, actor, urls)
-	if err != nil || len(sources) == 0 {
+	if err != nil {
 		return ModelOutcome{}, err
+	}
+	// Competitor results, mentions, and reviews are third-party: fenced like
+	// pages, and values citing them rank below the site's.
+	records, err := a.Store.ListEnrichmentRecords(ctx, actor, enrichment.Domain(run.URL))
+	if err != nil {
+		return ModelOutcome{}, err
+	}
+	sources = append(sources, enrichment.Sources(records, len(sources)+1)...)
+	if len(sources) == 0 {
+		return ModelOutcome{}, nil
 	}
 	draft, tokens, err := a.draft(ctx, actor, run, sources)
 	if err != nil {
 		return ModelOutcome{Tokens: tokens}, err
 	}
-	icp := draft.ICP
-	if icp.Personas == nil && icp.Pains == nil && icp.Jobs == nil && icp.BuyingTriggers == nil && icp.Objections == nil && icp.Channels == nil {
-		return ModelOutcome{Tokens: tokens}, nil
+	applied := false
+	site, thirdParty := draft.SplitICP()
+	for _, icp := range []product.UpsertIdealCustomerProfileInput{site, thirdParty} {
+		if icp.Personas == nil && icp.Pains == nil && icp.Jobs == nil && icp.BuyingTriggers == nil && icp.Objections == nil && icp.Channels == nil {
+			continue
+		}
+		if _, err := a.Store.UpsertIdealCustomerProfile(ctx, actor, icp); err != nil {
+			return ModelOutcome{Tokens: tokens}, err
+		}
+		applied = true
 	}
-	_, err = a.Store.UpsertIdealCustomerProfile(ctx, actor, icp)
-	return ModelOutcome{Applied: err == nil, Tokens: tokens}, err
+	if competitors := draft.Profile.Competitors; competitors != nil {
+		source := product.ProfileSourceAutomated
+		if draft.ThirdParty["competitors"] {
+			source = product.ProfileSourceEnrichment
+		}
+		if _, err := a.Store.UpsertProductProfile(ctx, actor, product.UpsertProductProfileInput{Competitors: competitors, Source: source,
+			Confidence: map[string]float64{"competitors": draft.Profile.Confidence["competitors"]},
+			SourceURLs: map[string]string{"competitors": draft.Profile.SourceURLs["competitors"]}}); err != nil {
+			return ModelOutcome{Tokens: tokens}, err
+		}
+		applied = true
+	}
+	return ModelOutcome{Applied: applied, Tokens: tokens}, nil
 }
 
 func sameSite(pageURL, siteURL string) bool {

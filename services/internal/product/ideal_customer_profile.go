@@ -91,7 +91,7 @@ func normalizeIdealCustomerProfileInput(input *UpsertIdealCustomerProfileInput) 
 		}
 	}
 	lists := []*[]string{input.Pains, input.Jobs, input.BuyingTriggers, input.Objections, input.Channels}
-	valid := (input.Source == ProfileSourceManual || input.Source == ProfileSourceAutomated) && validPersonas(input.Personas) &&
+	valid := validProfileSource(input.Source) && validPersonas(input.Personas) &&
 		(input.Source == ProfileSourceManual || len(input.UnlockFields) == 0)
 	for _, list := range lists {
 		if list != nil {
@@ -164,14 +164,14 @@ func (c *Configuration) UpsertIdealCustomerProfile(ctx context.Context, actor Ac
 			provenance[field] = entry
 		}
 	}
-	automated := input.Source == ProfileSourceAutomated
+	automated := input.Source != ProfileSourceManual
 	now := time.Now().UTC()
 	changed, skipped := []string{}, []string{}
 	apply := func(field string, supplied, different bool) bool {
 		if !supplied {
 			return false
 		}
-		if automated && provenance[field].EditedByUser {
+		if automated && provenance[field].EditedByUser || !outranks(input.Source, provenance[field].Source) {
 			skipped = append(skipped, field)
 			return false
 		}

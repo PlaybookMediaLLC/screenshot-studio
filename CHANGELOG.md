@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.6.0...v2.7.0) (2026-10-17)
+
+
+### Features
+
+* **store-screenshots:** rebuild the store screenshot studio with export, review, and publishing ([#138](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/138)) ([7df6ca5](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/7df6ca5f6274f13ab1f659c8df4e0b48f9445b2b))
+
 ## [2.6.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.5.0...v2.6.0) (2026-10-16)
 
 

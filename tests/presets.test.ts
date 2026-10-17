@@ -113,3 +113,41 @@ test('copy names never collide', () => {
   assert.equal(copyName('Hero', new Set(['Hero copy', 'Hero copy 2'])), 'Hero copy 3')
   assert.ok(copyName('x'.repeat(100), new Set()).length <= 100)
 })
+
+test('a preset leaves out alt text, captions, the brand binding, audio, and the caption track', () => {
+  const project = parseDesignDocument({
+    version: 2,
+    brand: { applied: {}, kitId: 'ckkit', name: 'Acme', version: 1 },
+    copy: { altText: 'Project A dashboard', captions: { x: 'A' } },
+    image: { src: 'blob:http://localhost/a' },
+    timeline: {
+      audio: [],
+      clips: [
+        {
+          color: '#fff',
+          duration: 1000,
+          id: 'c1',
+          name: 'Fade',
+          presetId: 'fade-in',
+          startTime: 0,
+        },
+      ],
+      duration: 4000,
+      tracks: [],
+    },
+  })
+  const preset = presetFromDocument(project)
+  assert.equal(preset.copy, undefined)
+  assert.equal(preset.brand, undefined)
+  assert.equal(preset.timeline?.clips.length, 1, 'motion stays')
+  assert.equal(preset.timeline?.audio, undefined)
+  const other = parseDesignDocument({
+    version: 2,
+    copy: { altText: 'Project B', captions: {} },
+    image: { src: 'blob:http://localhost/b' },
+  })
+  const applied = applyPresetTo(preset, other)
+  assert.equal(applied.copy?.altText, 'Project B')
+  assert.equal(applied.brand, undefined)
+  assert.equal(applied.timeline?.clips.length, 1)
+})

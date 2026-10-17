@@ -43,7 +43,9 @@ export function useLibraryStyleSources(open: boolean): BatchStyleSource[] {
       })),
       ...kits.map((kit) => ({
         description: 'Brand kit on the current design',
-        document: applyBrandKit(current, kit, BRAND_CATEGORIES).document,
+        // The design's own overrides survive, as when the kit is applied in the editor.
+        document: applyBrandKit(current, kit, BRAND_CATEGORIES, { binding: current.brand })
+          .document,
         id: `brand:${kit.id}`,
         label: kit.name,
       })),
@@ -54,13 +56,19 @@ export function useLibraryStyleSources(open: boolean): BatchStyleSource[] {
         ? mapDesignSources(document, (ref) => urls[ref] ?? ref)
         : document
     }
+    // One source at a time: a preset or kit whose image was deleted is left out alone.
     Promise.all(
-      library.map(async (source) => ({ ...source, document: await resolve(source.document) }))
-    )
-      .then((resolved) => {
-        if (active) setSources(resolved)
+      library.map(async (source) => {
+        try {
+          return { ...source, document: await resolve(source.document) }
+        } catch {
+          return null
+        }
       })
-      .catch(() => undefined)
+    ).then((resolved) => {
+      if (active)
+        setSources(resolved.filter((source): source is BatchStyleSource => source !== null))
+    })
     return () => {
       active = false
     }

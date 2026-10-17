@@ -160,12 +160,24 @@ export const brandKitDraftSchema = z.object({
 /** A kit as edited in the editor. */
 export type BrandKitDraft = z.input<typeof brandKitDraftSchema>
 
-/** A full #rrggbb colour (the canonical definition takes no shorthand). */
-function fullHex(value: string): string {
-  const hexValue = value.trim().toLowerCase()
-  return /^#[0-9a-f]{3}$/.test(hexValue)
-    ? `#${[...hexValue.slice(1)].map((char) => char + char).join('')}`
-    : hexValue
+/**
+ * A colour as full #rrggbb, as the canonical definition takes it: shorthand
+ * hex is expanded, and the alpha of #rrggbbaa or rgba() a picker produced is
+ * dropped (brand colours are opaque).
+ */
+export function fullHex(value: string): string {
+  const color = value.trim().toLowerCase()
+  if (/^#[0-9a-f]{3}$/.test(color))
+    return `#${[...color.slice(1)].map((char) => char + char).join('')}`
+  if (/^#[0-9a-f]{8}$/.test(color)) return color.slice(0, 7)
+  const rgb = color.match(/^rgba?\(\s*(\d{1,3})[\s,]+(\d{1,3})[\s,]+(\d{1,3})/)
+  if (rgb) {
+    return `#${rgb
+      .slice(1, 4)
+      .map((channel) => Math.min(255, Number(channel)).toString(16).padStart(2, '0'))
+      .join('')}`
+  }
+  return color
 }
 
 /**

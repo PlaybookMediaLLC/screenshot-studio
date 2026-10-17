@@ -118,7 +118,7 @@ export function PresetLibrarySection() {
               <button
                 aria-label={`Apply preset ${preset.name}`}
                 className="w-full overflow-hidden rounded-md border border-foreground/10 text-left transition-colors hover:border-foreground/25 disabled:opacity-60"
-                disabled={busy === preset.id}
+                disabled={busy !== null}
                 onClick={() =>
                   run(preset.id, () => applyPreset(trpcClient, preset), `Applied “${preset.name}”`)
                 }

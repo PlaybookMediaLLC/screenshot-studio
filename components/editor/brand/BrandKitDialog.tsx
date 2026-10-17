@@ -30,7 +30,8 @@ import { fetchAssetUrl } from '@/lib/design/open-design'
 import { uploadSource } from '@/lib/design/upload-sources'
 import { useTRPCClient } from '@/lib/trpc/react'
 
-const LOGO_TYPES = ['image/png', 'image/svg+xml', 'image/jpeg', 'image/webp']
+/** Logo types workspace assets accept (SVG is not one). */
+const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const LOGO_MAX_BYTES = 5 * 1024 * 1024
 
 const TONES: readonly { label: string; value: LogoTone }[] = [
@@ -142,7 +143,7 @@ export function BrandKitDialog({
       const added: BrandLogo[] = []
       for (const file of Array.from(files)) {
         if (!LOGO_TYPES.includes(file.type))
-          throw new Error(`${file.name} is not a PNG, SVG, JPEG, or WebP image.`)
+          throw new Error(`${file.name} is not a PNG, JPEG, or WebP image.`)
         if (file.size > LOGO_MAX_BYTES) throw new Error(`${file.name} is larger than 5 MB.`)
         const local = URL.createObjectURL(file)
         try {
@@ -179,10 +180,21 @@ export function BrandKitDialog({
 
   function designFrame(): BrandFrame {
     const document = exportDesignDocument({ keepLocalSources: true })
+    const { chrome, frame } = document.image
+    // The frame's look, not this design's content: no address, tabs,
+    // bookmarks, or titles, and no tone sampled from this screenshot.
     return {
       browserHeaderSize: document.image.browserHeaderSize,
-      chrome: document.image.chrome,
-      frame: document.image.frame,
+      chrome: chrome && {
+        ...chrome,
+        activeTab: 0,
+        address: '',
+        bookmarks: [],
+        tabs: [],
+        title: '',
+        tone: undefined,
+      },
+      frame: frame && { ...frame, title: undefined },
       mode: document.mode,
       radius: document.image.radius,
       shadow: document.image.shadow,

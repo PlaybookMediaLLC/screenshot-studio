@@ -5,7 +5,7 @@ import { create } from 'zustand'
 import type { DesignDocument } from '@/lib/design/document'
 import { exportDesignDocument } from '@/lib/design/export'
 import { applyStoredDocument } from '@/lib/design/open-design'
-import { uploadDesignSources } from '@/lib/design/upload-sources'
+import { rememberUploadedSources, uploadDesignSources } from '@/lib/design/upload-sources'
 import type { AppRouter } from '@/lib/trpc/router'
 import {
   applyPresetTo,
@@ -13,6 +13,7 @@ import {
   creativeTemplateSchema,
   type DesignPreset,
   presetDefinition,
+  presetFromDocument,
   presetLibrary,
 } from './preset'
 
@@ -53,7 +54,8 @@ export async function loadPresets(trpcClient: Client): Promise<DesignPreset[]> {
 }
 
 async function store(trpcClient: Client, name: string, document: DesignDocument) {
-  const uploaded = await uploadDesignSources(trpcClient, document)
+  // Upload only what the preset keeps: never the project's screenshots.
+  const uploaded = await uploadDesignSources(trpcClient, presetFromDocument(document))
   const { template } = await trpcClient.creativeTemplate.create.mutate({
     definition: presetDefinition(uploaded),
     name,
@@ -96,5 +98,7 @@ export async function deletePreset(trpcClient: Client, preset: DesignPreset) {
 /** Apply a preset to the editor's screenshot as one undoable step. */
 export async function applyPreset(trpcClient: Client, preset: DesignPreset) {
   const current = exportDesignDocument({ keepLocalSources: true })
-  await applyStoredDocument(trpcClient, applyPresetTo(preset.document, current), 'step')
+  rememberUploadedSources(
+    await applyStoredDocument(trpcClient, applyPresetTo(preset.document, current), 'step')
+  )
 }

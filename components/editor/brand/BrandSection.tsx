@@ -71,6 +71,8 @@ export function BrandSection() {
   const [editing, setEditing] = React.useState<{ kit?: BrandKit } | null>(null)
   const [deleting, setDeleting] = React.useState<BrandKit | null>(null)
   const [applying, setApplying] = React.useState(false)
+  // The toast's "Reset overrides" calls apply from outside a render: guard with a ref.
+  const applyingRef = React.useRef(false)
 
   React.useEffect(() => {
     if (session) void loadBrandKits(trpcClient).catch(() => undefined)
@@ -89,6 +91,8 @@ export function BrandSection() {
     : []
 
   async function apply(kit: BrandKit, resetOverrides = false) {
+    if (applyingRef.current) return
+    applyingRef.current = true
     setApplying(true)
     try {
       const kept = await applyBrandKitToEditor(trpcClient, kit, chosen, { resetOverrides })
@@ -103,6 +107,7 @@ export function BrandSection() {
     } catch (failure) {
       toast.error('Could not apply the brand kit', { description: errorMessage(failure) })
     } finally {
+      applyingRef.current = false
       setApplying(false)
     }
   }

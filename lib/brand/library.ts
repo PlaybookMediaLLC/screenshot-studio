@@ -4,6 +4,7 @@ import type { TRPCClient } from '@trpc/client'
 import { create } from 'zustand'
 import { exportDesignDocument } from '@/lib/design/export'
 import { applyStoredDocument } from '@/lib/design/open-design'
+import { rememberUploadedSources, withUploadedSources } from '@/lib/design/upload-sources'
 import { useImageStore } from '@/lib/store'
 import type { AppRouter } from '@/lib/trpc/router'
 import { applyBrandKit, type BrandCategory } from './apply'
@@ -93,12 +94,15 @@ export async function applyBrandKitToEditor(
   categories: readonly BrandCategory[],
   { resetOverrides = false }: { resetOverrides?: boolean } = {}
 ): Promise<string[]> {
-  const current = exportDesignDocument({ keepLocalSources: true })
+  // Workspace images the editor loaded compare by asset id, as the kit stored them.
+  const current = withUploadedSources(exportDesignDocument({ keepLocalSources: true }))
   // The values the previous kit (this one or another) set tell the user's overrides apart.
   const result = applyBrandKit(current, kit, categories, {
     binding: useImageStore.getState().brand,
     resetOverrides,
   })
-  await applyStoredDocument(trpcClient, { ...result.document, brand: result.binding }, 'step')
+  rememberUploadedSources(
+    await applyStoredDocument(trpcClient, { ...result.document, brand: result.binding }, 'step')
+  )
   return result.keptOverrides
 }

@@ -157,13 +157,23 @@ function assignments(
   }
 
   if (categories.has('background')) {
+    // The canvas corner radius is not the kit's: it is neither set nor compared.
+    const withoutRadius = (background: DesignDocument['background']) => {
+      if (!background) return background
+      const { radius: _radius, ...rest } = background
+      return rest
+    }
     list.push({
-      get: (doc) => doc.background,
+      get: (doc) => withoutRadius(doc.background),
       path: 'background',
       set: (doc, next) => {
-        doc.background = next as DesignDocument['background']
+        const radius = doc.background?.radius
+        doc.background = {
+          ...(next as NonNullable<DesignDocument['background']>),
+          ...(radius !== undefined ? { radius } : {}),
+        }
       },
-      value: kit.background ?? {
+      value: withoutRadius(kit.background) ?? {
         blur: 0,
         noise: 0,
         opacity: 1,

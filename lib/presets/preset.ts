@@ -72,13 +72,16 @@ export function presetLibrary(templates: readonly CreativeTemplate[]): DesignPre
 }
 
 /**
- * The reusable structure of a design: the main screenshot, device screen
- * images, slides, and blur regions (which cover that screenshot's content)
- * are left out. Backgrounds, overlays, and logos stay: they are part of the look.
+ * The reusable structure of a design. The project's own content is left
+ * out: the main screenshot, device screen images, slides, blur regions
+ * (which cover that screenshot's content), alt text and captions, the brand
+ * binding, and the timeline's audio and caption track. Backgrounds,
+ * overlays, logos, text, and motion stay: they are part of the look.
  */
 export function presetFromDocument(document: DesignDocument): DesignDocument {
-  const { slides: _slides, ...rest } = document
+  const { brand: _brand, copy: _copy, slides: _slides, ...rest } = document
   const { name: _name, ...image } = document.image
+  const timeline = document.timeline && withoutProjectMedia(document.timeline)
   return {
     ...rest,
     devices: document.devices && {
@@ -92,17 +95,35 @@ export function presetFromDocument(document: DesignDocument): DesignDocument {
     },
     image: { ...image, src: null },
     redactions: [],
+    ...(timeline ? { timeline } : {}),
   }
 }
 
+type Timeline = NonNullable<DesignDocument['timeline']>
+
+/** A timeline without the project's audio and caption track. */
+function withoutProjectMedia(timeline: Timeline): Timeline {
+  const { audio: _audio, captions: _captions, ...rest } = timeline
+  return rest
+}
+
 /**
- * A preset applied to a project: the preset's structure around the project's
- * own screenshot, device screen images (by position), slides, and blur regions.
+ * A preset applied to a project: the preset's structure around the
+ * project's own screenshot, device screen images (by position), slides,
+ * blur regions, alt text and captions, brand binding, audio, and captions.
  */
 export function applyPresetTo(preset: DesignDocument, project: DesignDocument): DesignDocument {
   const screens = project.devices?.mockups ?? []
+  const media = { audio: project.timeline?.audio, captions: project.timeline?.captions }
+  const timeline = preset.timeline
+    ? { ...withoutProjectMedia(preset.timeline), ...media }
+    : project.timeline && (media.audio?.length || media.captions)
+      ? { ...project.timeline, clips: [], layerTracks: [], reveals: [], scrolls: [], tracks: [] }
+      : undefined
   return {
     ...preset,
+    brand: project.brand,
+    copy: project.copy,
     devices: preset.devices && {
       ...preset.devices,
       mockups: preset.devices.mockups.map((mockup, index) => {
@@ -115,6 +136,7 @@ export function applyPresetTo(preset: DesignDocument, project: DesignDocument): 
     image: { ...preset.image, name: project.image.name, src: project.image.src },
     redactions: project.redactions,
     slides: project.slides,
+    timeline,
   }
 }
 

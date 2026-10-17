@@ -11,6 +11,7 @@ import {
   brandKitDefinition,
   brandKitLibrary,
   fontIdForName,
+  fullHex,
   readBrandKit,
   type StoredBrandKit,
 } from '@/lib/brand/kit'
@@ -253,4 +254,23 @@ test('a frame default carries the browser chrome along with the frame', () => {
   assert.equal(document.image.chrome?.browser, 'firefox')
   assert.equal(document.image.chrome?.address, 'acme.com')
   assert.equal(document.image.radius, 14)
+})
+
+test('the canvas corner radius is not a brand override', () => {
+  const first = applyBrandKit(design(), kit, ['background'])
+  const edited = structuredClone(first.document)
+  edited.background = { ...edited.background!, radius: 24 }
+  const again = applyBrandKit(edited, { ...kit, accent: '#00ff00', version: 2 }, ['background'], {
+    binding: first.binding,
+  })
+  assert.deepEqual(again.keptOverrides, [])
+  assert.match(again.document.background?.value ?? '', /#00ff00/)
+  assert.equal(again.document.background?.radius, 24)
+})
+
+test('picker colours become full hex for the canonical definition', () => {
+  assert.equal(fullHex('#ABC'), '#aabbcc')
+  assert.equal(fullHex('#11223380'), '#112233')
+  assert.equal(fullHex('rgba(255, 0, 16, 0.5)'), '#ff0010')
+  assert.equal(fullHex('rgb(1 2 3)'), '#010203')
 })

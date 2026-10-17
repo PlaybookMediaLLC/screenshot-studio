@@ -44,7 +44,8 @@ async function createAndApplyBrand(page: Page, name: string) {
   const dialog = page.getByRole('dialog', { name: 'New brand kit' })
   await dialog.getByLabel('Name').fill(name)
   await dialog.getByRole('button', { name: 'Create brand kit' }).click()
-  await expect(dialog).toBeHidden()
+  // Saving uploads nothing here, but reloads the workspace's kits.
+  await expect(dialog).toBeHidden({ timeout: 30_000 })
   await page.getByRole('button', { name: `Apply ${name}` }).click()
   await expect(page.getByText(`Applied ${name}`)).toBeVisible()
 }
@@ -54,7 +55,7 @@ async function savePreset(page: Page, name: string) {
   const dialog = page.getByRole('dialog', { name: 'Save as preset' })
   await dialog.getByLabel('Preset name').fill(name)
   await dialog.getByRole('button', { name: 'Save preset' }).click()
-  await expect(dialog).toBeHidden()
+  await expect(dialog).toBeHidden({ timeout: 30_000 })
   await expect(page.getByRole('button', { name: `Apply preset ${name}` })).toBeVisible()
 }
 

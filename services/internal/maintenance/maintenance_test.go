@@ -193,6 +193,13 @@ func TestWorkspaceCleanupKeepsAuditAndOtherTenants(t *testing.T) {
 		exec(t, s.DB, `INSERT INTO conversation(id,"organizationId",title) VALUES($1,$2,'Launch')`, "conversation-"+org, org)
 		exec(t, s.DB, `INSERT INTO conversation_message(id,"organizationId","conversationId",role,kind,content,"launchRunId") VALUES($1,$2,$3,'user','text','Market it',$4)`,
 			"message-"+org, org, "conversation-"+org, "run-"+org)
+		exec(t, s.DB, `INSERT INTO onboarding_run(id,"organizationId",url,"idempotencyKey","workflowId","deadlineAt") VALUES($1,$2,'https://acme.test','key',$3,now())`,
+			"onboarding-"+org, org, "onboarding-"+org)
+		exec(t, s.DB, `INSERT INTO page_knowledge(id,"organizationId","runId",url,"contentHash","fetchedAt") VALUES($1,$2,$3,'https://acme.test/pricing','hash',now())`,
+			"page-"+org, org, "onboarding-"+org)
+		exec(t, s.DB, `INSERT INTO ideal_customer_profile(id,"organizationId") VALUES($1,$2)`, "icp-"+org, org)
+		exec(t, s.DB, `INSERT INTO enrichment_record(id,"organizationId",domain,provider,field,value,"fetchedAt","expiresAt") VALUES($1,$2,'acme.test','site','brand','{}',now(),now())`,
+			"enrichment-"+org, org)
 	}
 	if n := run(t, s, "workspace-cleanup"); n != 1 {
 		t.Fatalf("purged %d", n)
@@ -201,7 +208,7 @@ func TestWorkspaceCleanupKeepsAuditAndOtherTenants(t *testing.T) {
 	expect(t, s.DB, 1, `SELECT count(*) FROM audit_log WHERE id='evidence'`)
 	expect(t, s.DB, 0, `SELECT count(*) FROM design WHERE "organizationId"='a'`)
 	expect(t, s.DB, 1, `SELECT count(*) FROM design WHERE "organizationId"='b'`)
-	for _, table := range []string{"launch_run", "launch_run_step", "conversation", "conversation_message"} {
+	for _, table := range []string{"launch_run", "launch_run_step", "conversation", "conversation_message", "onboarding_run", "page_knowledge", "ideal_customer_profile", "enrichment_record"} {
 		expect(t, s.DB, 0, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='a'`)
 		expect(t, s.DB, 1, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='b'`)
 	}

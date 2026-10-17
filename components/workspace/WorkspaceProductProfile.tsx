@@ -125,7 +125,8 @@ function changedFields(
   return changes as ProductProfileUpsertInput
 }
 
-function Provenance({
+/** Where a profile field's value came from, with an unlock action on a locked field. */
+export function Provenance({
   canManage,
   entry,
   onUnlock,

@@ -12,7 +12,9 @@ type ProofPoint struct {
 
 // FieldProvenance records where a profile field's value came from. A field a
 // person edited is locked: automated updates skip it until it is unlocked.
+// Confidence, in [0, 1], is set by automated sources that report one.
 type FieldProvenance struct {
+	Confidence   float64   `json:"confidence,omitempty"`
 	EditedByUser bool      `json:"editedByUser"`
 	Source       string    `json:"source"`
 	UpdatedAt    time.Time `json:"updatedAt"`

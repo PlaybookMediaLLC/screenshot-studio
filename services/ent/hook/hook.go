@@ -357,6 +357,18 @@ func (f DesignFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DesignMutation", m)
 }
 
+// The EnrichmentRecordFunc type is an adapter to allow the use of ordinary
+// function as EnrichmentRecord mutator.
+type EnrichmentRecordFunc func(context.Context, *ent.EnrichmentRecordMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f EnrichmentRecordFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.EnrichmentRecordMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.EnrichmentRecordMutation", m)
+}
+
 // The GitHubInstallStartFunc type is an adapter to allow the use of ordinary
 // function as GitHubInstallStart mutator.
 type GitHubInstallStartFunc func(context.Context, *ent.GitHubInstallStartMutation) (ent.Value, error)
@@ -379,6 +391,18 @@ func (f GitHubInstallationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GitHubInstallationMutation", m)
+}
+
+// The IdealCustomerProfileFunc type is an adapter to allow the use of ordinary
+// function as IdealCustomerProfile mutator.
+type IdealCustomerProfileFunc func(context.Context, *ent.IdealCustomerProfileMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f IdealCustomerProfileFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.IdealCustomerProfileMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IdealCustomerProfileMutation", m)
 }
 
 // The IntegrationConnectionFunc type is an adapter to allow the use of ordinary
@@ -441,6 +465,18 @@ func (f MemberFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MemberMutation", m)
 }
 
+// The OnboardingRunFunc type is an adapter to allow the use of ordinary
+// function as OnboardingRun mutator.
+type OnboardingRunFunc func(context.Context, *ent.OnboardingRunMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OnboardingRunFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OnboardingRunMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OnboardingRunMutation", m)
+}
+
 // The OrganizationFunc type is an adapter to allow the use of ordinary
 // function as Organization mutator.
 type OrganizationFunc func(context.Context, *ent.OrganizationMutation) (ent.Value, error)
@@ -475,6 +511,18 @@ func (f OutboxEventFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value,
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OutboxEventMutation", m)
+}
+
+// The PageKnowledgeFunc type is an adapter to allow the use of ordinary
+// function as PageKnowledge mutator.
+type PageKnowledgeFunc func(context.Context, *ent.PageKnowledgeMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PageKnowledgeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PageKnowledgeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PageKnowledgeMutation", m)
 }
 
 // The PostizTenantBindingFunc type is an adapter to allow the use of ordinary

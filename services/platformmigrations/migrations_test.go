@@ -50,7 +50,7 @@ func TestApplyFreshDatabaseAndIsIdempotent(t *testing.T) {
 		t.Fatalf("repeat migration failed: %v", err)
 	}
 	var applied int
-	if err := db.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM "_screenshot_studio_go_migrations"`).Scan(&applied); err != nil || applied != 32 {
+	if err := db.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM "_screenshot_studio_go_migrations"`).Scan(&applied); err != nil || applied != 33 {
 		t.Fatalf("applied migrations=%d err=%v", applied, err)
 	}
 }

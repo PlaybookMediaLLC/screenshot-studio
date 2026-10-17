@@ -69,6 +69,9 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storepublishingcredential"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storereview"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storereviewcomment"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
@@ -192,6 +195,12 @@ type Client struct {
 	SourceApp *SourceAppClient
 	// SourceChange is the client for interacting with the SourceChange builders.
 	SourceChange *SourceChangeClient
+	// StorePublishingCredential is the client for interacting with the StorePublishingCredential builders.
+	StorePublishingCredential *StorePublishingCredentialClient
+	// StoreReview is the client for interacting with the StoreReview builders.
+	StoreReview *StoreReviewClient
+	// StoreReviewComment is the client for interacting with the StoreReviewComment builders.
+	StoreReviewComment *StoreReviewCommentClient
 	// SupportAccessGrant is the client for interacting with the SupportAccessGrant builders.
 	SupportAccessGrant *SupportAccessGrantClient
 	// SurfaceCapture is the client for interacting with the SurfaceCapture builders.
@@ -273,6 +282,9 @@ func (c *Client) init() {
 	c.SocialOAuthStart = NewSocialOAuthStartClient(c.config)
 	c.SourceApp = NewSourceAppClient(c.config)
 	c.SourceChange = NewSourceChangeClient(c.config)
+	c.StorePublishingCredential = NewStorePublishingCredentialClient(c.config)
+	c.StoreReview = NewStoreReviewClient(c.config)
+	c.StoreReviewComment = NewStoreReviewCommentClient(c.config)
 	c.SupportAccessGrant = NewSupportAccessGrantClient(c.config)
 	c.SurfaceCapture = NewSurfaceCaptureClient(c.config)
 	c.User = NewUserClient(c.config)
@@ -427,6 +439,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		SocialOAuthStart:               NewSocialOAuthStartClient(cfg),
 		SourceApp:                      NewSourceAppClient(cfg),
 		SourceChange:                   NewSourceChangeClient(cfg),
+		StorePublishingCredential:      NewStorePublishingCredentialClient(cfg),
+		StoreReview:                    NewStoreReviewClient(cfg),
+		StoreReviewComment:             NewStoreReviewCommentClient(cfg),
 		SupportAccessGrant:             NewSupportAccessGrantClient(cfg),
 		SurfaceCapture:                 NewSurfaceCaptureClient(cfg),
 		User:                           NewUserClient(cfg),
@@ -508,6 +523,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		SocialOAuthStart:               NewSocialOAuthStartClient(cfg),
 		SourceApp:                      NewSourceAppClient(cfg),
 		SourceChange:                   NewSourceChangeClient(cfg),
+		StorePublishingCredential:      NewStorePublishingCredentialClient(cfg),
+		StoreReview:                    NewStoreReviewClient(cfg),
+		StoreReviewComment:             NewStoreReviewCommentClient(cfg),
 		SupportAccessGrant:             NewSupportAccessGrantClient(cfg),
 		SurfaceCapture:                 NewSurfaceCaptureClient(cfg),
 		User:                           NewUserClient(cfg),
@@ -558,7 +576,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
 		c.PublicationAttempt, c.Release, c.ReleaseDocument, c.ReleaseSpec,
 		c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink, c.SocialOAuthStart,
-		c.SourceApp, c.SourceChange, c.SupportAccessGrant, c.SurfaceCapture, c.User,
+		c.SourceApp, c.SourceChange, c.StorePublishingCredential, c.StoreReview,
+		c.StoreReviewComment, c.SupportAccessGrant, c.SurfaceCapture, c.User,
 		c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
 		c.WorkspaceGitHubInstallation, c.WorkspaceSettings,
 	} {
@@ -583,7 +602,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
 		c.PublicationAttempt, c.Release, c.ReleaseDocument, c.ReleaseSpec,
 		c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink, c.SocialOAuthStart,
-		c.SourceApp, c.SourceChange, c.SupportAccessGrant, c.SurfaceCapture, c.User,
+		c.SourceApp, c.SourceChange, c.StorePublishingCredential, c.StoreReview,
+		c.StoreReviewComment, c.SupportAccessGrant, c.SurfaceCapture, c.User,
 		c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
 		c.WorkspaceGitHubInstallation, c.WorkspaceSettings,
 	} {
@@ -702,6 +722,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SourceApp.mutate(ctx, m)
 	case *SourceChangeMutation:
 		return c.SourceChange.mutate(ctx, m)
+	case *StorePublishingCredentialMutation:
+		return c.StorePublishingCredential.mutate(ctx, m)
+	case *StoreReviewMutation:
+		return c.StoreReview.mutate(ctx, m)
+	case *StoreReviewCommentMutation:
+		return c.StoreReviewComment.mutate(ctx, m)
 	case *SupportAccessGrantMutation:
 		return c.SupportAccessGrant.mutate(ctx, m)
 	case *SurfaceCaptureMutation:
@@ -8033,6 +8059,405 @@ func (c *SourceChangeClient) mutate(ctx context.Context, m *SourceChangeMutation
 	}
 }
 
+// StorePublishingCredentialClient is a client for the StorePublishingCredential schema.
+type StorePublishingCredentialClient struct {
+	config
+}
+
+// NewStorePublishingCredentialClient returns a client for the StorePublishingCredential from the given config.
+func NewStorePublishingCredentialClient(c config) *StorePublishingCredentialClient {
+	return &StorePublishingCredentialClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `storepublishingcredential.Hooks(f(g(h())))`.
+func (c *StorePublishingCredentialClient) Use(hooks ...Hook) {
+	c.hooks.StorePublishingCredential = append(c.hooks.StorePublishingCredential, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `storepublishingcredential.Intercept(f(g(h())))`.
+func (c *StorePublishingCredentialClient) Intercept(interceptors ...Interceptor) {
+	c.inters.StorePublishingCredential = append(c.inters.StorePublishingCredential, interceptors...)
+}
+
+// Create returns a builder for creating a StorePublishingCredential entity.
+func (c *StorePublishingCredentialClient) Create() *StorePublishingCredentialCreate {
+	mutation := newStorePublishingCredentialMutation(c.config, OpCreate)
+	return &StorePublishingCredentialCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StorePublishingCredential entities.
+func (c *StorePublishingCredentialClient) CreateBulk(builders ...*StorePublishingCredentialCreate) *StorePublishingCredentialCreateBulk {
+	return &StorePublishingCredentialCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StorePublishingCredentialClient) MapCreateBulk(slice any, setFunc func(*StorePublishingCredentialCreate, int)) *StorePublishingCredentialCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StorePublishingCredentialCreateBulk{err: fmt.Errorf("calling to StorePublishingCredentialClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StorePublishingCredentialCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StorePublishingCredentialCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StorePublishingCredential.
+func (c *StorePublishingCredentialClient) Update() *StorePublishingCredentialUpdate {
+	mutation := newStorePublishingCredentialMutation(c.config, OpUpdate)
+	return &StorePublishingCredentialUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StorePublishingCredentialClient) UpdateOne(_m *StorePublishingCredential) *StorePublishingCredentialUpdateOne {
+	mutation := newStorePublishingCredentialMutation(c.config, OpUpdateOne, withStorePublishingCredential(_m))
+	return &StorePublishingCredentialUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StorePublishingCredentialClient) UpdateOneID(id string) *StorePublishingCredentialUpdateOne {
+	mutation := newStorePublishingCredentialMutation(c.config, OpUpdateOne, withStorePublishingCredentialID(id))
+	return &StorePublishingCredentialUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StorePublishingCredential.
+func (c *StorePublishingCredentialClient) Delete() *StorePublishingCredentialDelete {
+	mutation := newStorePublishingCredentialMutation(c.config, OpDelete)
+	return &StorePublishingCredentialDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StorePublishingCredentialClient) DeleteOne(_m *StorePublishingCredential) *StorePublishingCredentialDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StorePublishingCredentialClient) DeleteOneID(id string) *StorePublishingCredentialDeleteOne {
+	builder := c.Delete().Where(storepublishingcredential.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StorePublishingCredentialDeleteOne{builder}
+}
+
+// Query returns a query builder for StorePublishingCredential.
+func (c *StorePublishingCredentialClient) Query() *StorePublishingCredentialQuery {
+	return &StorePublishingCredentialQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStorePublishingCredential},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a StorePublishingCredential entity by its id.
+func (c *StorePublishingCredentialClient) Get(ctx context.Context, id string) (*StorePublishingCredential, error) {
+	return c.Query().Where(storepublishingcredential.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StorePublishingCredentialClient) GetX(ctx context.Context, id string) *StorePublishingCredential {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *StorePublishingCredentialClient) Hooks() []Hook {
+	return c.hooks.StorePublishingCredential
+}
+
+// Interceptors returns the client interceptors.
+func (c *StorePublishingCredentialClient) Interceptors() []Interceptor {
+	return c.inters.StorePublishingCredential
+}
+
+func (c *StorePublishingCredentialClient) mutate(ctx context.Context, m *StorePublishingCredentialMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StorePublishingCredentialCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StorePublishingCredentialUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StorePublishingCredentialUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StorePublishingCredentialDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown StorePublishingCredential mutation op: %q", m.Op())
+	}
+}
+
+// StoreReviewClient is a client for the StoreReview schema.
+type StoreReviewClient struct {
+	config
+}
+
+// NewStoreReviewClient returns a client for the StoreReview from the given config.
+func NewStoreReviewClient(c config) *StoreReviewClient {
+	return &StoreReviewClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `storereview.Hooks(f(g(h())))`.
+func (c *StoreReviewClient) Use(hooks ...Hook) {
+	c.hooks.StoreReview = append(c.hooks.StoreReview, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `storereview.Intercept(f(g(h())))`.
+func (c *StoreReviewClient) Intercept(interceptors ...Interceptor) {
+	c.inters.StoreReview = append(c.inters.StoreReview, interceptors...)
+}
+
+// Create returns a builder for creating a StoreReview entity.
+func (c *StoreReviewClient) Create() *StoreReviewCreate {
+	mutation := newStoreReviewMutation(c.config, OpCreate)
+	return &StoreReviewCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StoreReview entities.
+func (c *StoreReviewClient) CreateBulk(builders ...*StoreReviewCreate) *StoreReviewCreateBulk {
+	return &StoreReviewCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StoreReviewClient) MapCreateBulk(slice any, setFunc func(*StoreReviewCreate, int)) *StoreReviewCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StoreReviewCreateBulk{err: fmt.Errorf("calling to StoreReviewClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StoreReviewCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StoreReviewCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StoreReview.
+func (c *StoreReviewClient) Update() *StoreReviewUpdate {
+	mutation := newStoreReviewMutation(c.config, OpUpdate)
+	return &StoreReviewUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StoreReviewClient) UpdateOne(_m *StoreReview) *StoreReviewUpdateOne {
+	mutation := newStoreReviewMutation(c.config, OpUpdateOne, withStoreReview(_m))
+	return &StoreReviewUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StoreReviewClient) UpdateOneID(id string) *StoreReviewUpdateOne {
+	mutation := newStoreReviewMutation(c.config, OpUpdateOne, withStoreReviewID(id))
+	return &StoreReviewUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StoreReview.
+func (c *StoreReviewClient) Delete() *StoreReviewDelete {
+	mutation := newStoreReviewMutation(c.config, OpDelete)
+	return &StoreReviewDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StoreReviewClient) DeleteOne(_m *StoreReview) *StoreReviewDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StoreReviewClient) DeleteOneID(id string) *StoreReviewDeleteOne {
+	builder := c.Delete().Where(storereview.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StoreReviewDeleteOne{builder}
+}
+
+// Query returns a query builder for StoreReview.
+func (c *StoreReviewClient) Query() *StoreReviewQuery {
+	return &StoreReviewQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStoreReview},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a StoreReview entity by its id.
+func (c *StoreReviewClient) Get(ctx context.Context, id string) (*StoreReview, error) {
+	return c.Query().Where(storereview.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StoreReviewClient) GetX(ctx context.Context, id string) *StoreReview {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *StoreReviewClient) Hooks() []Hook {
+	return c.hooks.StoreReview
+}
+
+// Interceptors returns the client interceptors.
+func (c *StoreReviewClient) Interceptors() []Interceptor {
+	return c.inters.StoreReview
+}
+
+func (c *StoreReviewClient) mutate(ctx context.Context, m *StoreReviewMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StoreReviewCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StoreReviewUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StoreReviewUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StoreReviewDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown StoreReview mutation op: %q", m.Op())
+	}
+}
+
+// StoreReviewCommentClient is a client for the StoreReviewComment schema.
+type StoreReviewCommentClient struct {
+	config
+}
+
+// NewStoreReviewCommentClient returns a client for the StoreReviewComment from the given config.
+func NewStoreReviewCommentClient(c config) *StoreReviewCommentClient {
+	return &StoreReviewCommentClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `storereviewcomment.Hooks(f(g(h())))`.
+func (c *StoreReviewCommentClient) Use(hooks ...Hook) {
+	c.hooks.StoreReviewComment = append(c.hooks.StoreReviewComment, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `storereviewcomment.Intercept(f(g(h())))`.
+func (c *StoreReviewCommentClient) Intercept(interceptors ...Interceptor) {
+	c.inters.StoreReviewComment = append(c.inters.StoreReviewComment, interceptors...)
+}
+
+// Create returns a builder for creating a StoreReviewComment entity.
+func (c *StoreReviewCommentClient) Create() *StoreReviewCommentCreate {
+	mutation := newStoreReviewCommentMutation(c.config, OpCreate)
+	return &StoreReviewCommentCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StoreReviewComment entities.
+func (c *StoreReviewCommentClient) CreateBulk(builders ...*StoreReviewCommentCreate) *StoreReviewCommentCreateBulk {
+	return &StoreReviewCommentCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StoreReviewCommentClient) MapCreateBulk(slice any, setFunc func(*StoreReviewCommentCreate, int)) *StoreReviewCommentCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StoreReviewCommentCreateBulk{err: fmt.Errorf("calling to StoreReviewCommentClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StoreReviewCommentCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StoreReviewCommentCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StoreReviewComment.
+func (c *StoreReviewCommentClient) Update() *StoreReviewCommentUpdate {
+	mutation := newStoreReviewCommentMutation(c.config, OpUpdate)
+	return &StoreReviewCommentUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StoreReviewCommentClient) UpdateOne(_m *StoreReviewComment) *StoreReviewCommentUpdateOne {
+	mutation := newStoreReviewCommentMutation(c.config, OpUpdateOne, withStoreReviewComment(_m))
+	return &StoreReviewCommentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StoreReviewCommentClient) UpdateOneID(id string) *StoreReviewCommentUpdateOne {
+	mutation := newStoreReviewCommentMutation(c.config, OpUpdateOne, withStoreReviewCommentID(id))
+	return &StoreReviewCommentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StoreReviewComment.
+func (c *StoreReviewCommentClient) Delete() *StoreReviewCommentDelete {
+	mutation := newStoreReviewCommentMutation(c.config, OpDelete)
+	return &StoreReviewCommentDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StoreReviewCommentClient) DeleteOne(_m *StoreReviewComment) *StoreReviewCommentDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StoreReviewCommentClient) DeleteOneID(id string) *StoreReviewCommentDeleteOne {
+	builder := c.Delete().Where(storereviewcomment.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StoreReviewCommentDeleteOne{builder}
+}
+
+// Query returns a query builder for StoreReviewComment.
+func (c *StoreReviewCommentClient) Query() *StoreReviewCommentQuery {
+	return &StoreReviewCommentQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStoreReviewComment},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a StoreReviewComment entity by its id.
+func (c *StoreReviewCommentClient) Get(ctx context.Context, id string) (*StoreReviewComment, error) {
+	return c.Query().Where(storereviewcomment.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StoreReviewCommentClient) GetX(ctx context.Context, id string) *StoreReviewComment {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *StoreReviewCommentClient) Hooks() []Hook {
+	return c.hooks.StoreReviewComment
+}
+
+// Interceptors returns the client interceptors.
+func (c *StoreReviewCommentClient) Interceptors() []Interceptor {
+	return c.inters.StoreReviewComment
+}
+
+func (c *StoreReviewCommentClient) mutate(ctx context.Context, m *StoreReviewCommentMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StoreReviewCommentCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StoreReviewCommentUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StoreReviewCommentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StoreReviewCommentDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown StoreReviewComment mutation op: %q", m.Op())
+	}
+}
+
 // SupportAccessGrantClient is a client for the SupportAccessGrant schema.
 type SupportAccessGrantClient struct {
 	config
@@ -9111,7 +9536,8 @@ type (
 		OrganizationEnterpriseSettings, OutboxEvent, PostizTenantBinding,
 		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
 		Release, ReleaseDocument, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
-		ShareLink, SocialOAuthStart, SourceApp, SourceChange, SupportAccessGrant,
+		ShareLink, SocialOAuthStart, SourceApp, SourceChange,
+		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
 		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
 		WorkspaceEntitlement, WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
 	}
@@ -9127,7 +9553,8 @@ type (
 		OrganizationEnterpriseSettings, OutboxEvent, PostizTenantBinding,
 		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
 		Release, ReleaseDocument, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
-		ShareLink, SocialOAuthStart, SourceApp, SourceChange, SupportAccessGrant,
+		ShareLink, SocialOAuthStart, SourceApp, SourceChange,
+		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
 		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
 		WorkspaceEntitlement, WorkspaceGitHubInstallation,
 		WorkspaceSettings []ent.Interceptor

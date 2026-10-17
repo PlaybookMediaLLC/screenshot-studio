@@ -1698,6 +1698,88 @@ var (
 			},
 		},
 	}
+	// StorePublishingCredentialColumns holds the columns for the "store_publishing_credential" table.
+	StorePublishingCredentialColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "provider", Type: field.TypeEnum, Enums: []string{"APP_STORE_CONNECT", "GOOGLE_PLAY"}},
+		{Name: "label", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON},
+		{Name: "encryptedSecret", Type: field.TypeString},
+		{Name: "lastUsedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// StorePublishingCredentialTable holds the schema information for the "store_publishing_credential" table.
+	StorePublishingCredentialTable = &schema.Table{
+		Name:       "store_publishing_credential",
+		Columns:    StorePublishingCredentialColumns,
+		PrimaryKey: []*schema.Column{StorePublishingCredentialColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "storepublishingcredential_organizationId_provider",
+				Unique:  false,
+				Columns: []*schema.Column{StorePublishingCredentialColumns[1], StorePublishingCredentialColumns[2]},
+			},
+		},
+	}
+	// StoreReviewColumns holds the columns for the "store_review" table.
+	StoreReviewColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "projectId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "versionLabel", Type: field.TypeString},
+		{Name: "projectRevision", Type: field.TypeInt},
+		{Name: "shareTokenId", Type: field.TypeString},
+		{Name: "slides", Type: field.TypeJSON},
+		{Name: "revokedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// StoreReviewTable holds the schema information for the "store_review" table.
+	StoreReviewTable = &schema.Table{
+		Name:       "store_review",
+		Columns:    StoreReviewColumns,
+		PrimaryKey: []*schema.Column{StoreReviewColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "storereview_organizationId_projectId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{StoreReviewColumns[1], StoreReviewColumns[2], StoreReviewColumns[10]},
+			},
+		},
+	}
+	// StoreReviewCommentColumns holds the columns for the "store_review_comment" table.
+	StoreReviewCommentColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "reviewId", Type: field.TypeString},
+		{Name: "slideId", Type: field.TypeString},
+		{Name: "x", Type: field.TypeFloat64, Nullable: true},
+		{Name: "y", Type: field.TypeFloat64, Nullable: true},
+		{Name: "authorName", Type: field.TypeString},
+		{Name: "body", Type: field.TypeString},
+		{Name: "fromLink", Type: field.TypeBool},
+		{Name: "resolvedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "resolvedByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// StoreReviewCommentTable holds the schema information for the "store_review_comment" table.
+	StoreReviewCommentTable = &schema.Table{
+		Name:       "store_review_comment",
+		Columns:    StoreReviewCommentColumns,
+		PrimaryKey: []*schema.Column{StoreReviewCommentColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "storereviewcomment_organizationId_reviewId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{StoreReviewCommentColumns[1], StoreReviewCommentColumns[2], StoreReviewCommentColumns[11]},
+			},
+		},
+	}
 	// SupportAccessGrantColumns holds the columns for the "support_access_grant" table.
 	SupportAccessGrantColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1952,6 +2034,9 @@ var (
 		SocialOauthStartTable,
 		SourceAppTable,
 		SourceChangeTable,
+		StorePublishingCredentialTable,
+		StoreReviewTable,
+		StoreReviewCommentTable,
 		SupportAccessGrantTable,
 		SurfaceCaptureTable,
 		UserTable,
@@ -2129,6 +2214,15 @@ func init() {
 	}
 	SourceChangeTable.Annotation = &entsql.Annotation{
 		Table: "source_change",
+	}
+	StorePublishingCredentialTable.Annotation = &entsql.Annotation{
+		Table: "store_publishing_credential",
+	}
+	StoreReviewTable.Annotation = &entsql.Annotation{
+		Table: "store_review",
+	}
+	StoreReviewCommentTable.Annotation = &entsql.Annotation{
+		Table: "store_review_comment",
 	}
 	SupportAccessGrantTable.Annotation = &entsql.Annotation{
 		Table: "support_access_grant",

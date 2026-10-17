@@ -1299,6 +1299,54 @@ export class BackendSDKError extends Error {
   }
 }
 
+
+/** One rendered slide in a store screenshot review. */
+export type BackendStoreReviewSlide = {
+  slideId: string
+  name: string
+  assetId: string
+  width: number
+  height: number
+}
+
+/** A reviewer comment, keyed by the editor's stable slide id. */
+export type BackendStoreReviewComment = {
+  id: string
+  slideId: string
+  x: number | null
+  y: number | null
+  authorName: string
+  body: string
+  fromLink: boolean
+  resolvedAt: string | null
+  createdAt: string
+}
+
+/** A shareable store screenshot review snapshot. */
+export type BackendStoreReview = {
+  id: string
+  projectId: string
+  name: string
+  versionLabel: string
+  projectRevision: number
+  shareTokenId: string
+  slides: BackendStoreReviewSlide[]
+  revokedAt: string | null
+  createdAt: string
+  updatedAt: string
+  comments: BackendStoreReviewComment[]
+}
+
+/** A store publishing credential without its secret. */
+export type BackendStorePublishingCredential = {
+  id: string
+  provider: 'APP_STORE_CONNECT' | 'GOOGLE_PLAY'
+  label: string
+  metadata: Record<string, string>
+  lastUsedAt: string | null
+  createdAt: string
+}
+
 export class ScreenshotStudioBackendSDK {
   private readonly baseURL: string
 
@@ -2673,5 +2721,92 @@ export class ScreenshotStudioBackendSDK {
 
   async cancelWorkspaceDeletion() {
     return this.request<WorkspaceDeletion>('v1/workspaces/deletion/cancel', { method: 'POST' })
+  }
+
+  async createStoreReview(input: {
+    projectId: string
+    name: string
+    versionLabel: string
+    projectRevision: number
+    slides: BackendStoreReviewSlide[]
+  }) {
+    return this.request<BackendStoreReview>('v1/store-reviews', { body: input, method: 'POST' })
+  }
+
+  async listStoreReviews(projectId: string) {
+    return this.request<{ reviews: BackendStoreReview[] }>(
+      `v1/store-reviews?projectId=${encodeURIComponent(projectId)}`
+    )
+  }
+
+  async getStoreReview(id: string) {
+    return this.request<BackendStoreReview>(`v1/store-reviews/${encodeURIComponent(id)}`)
+  }
+
+  /** Read a review through its share link; service principals only. */
+  async getSharedStoreReview(id: string, shareTokenId: string) {
+    return this.request<BackendStoreReview>(`v1/store-reviews/${encodeURIComponent(id)}/shared`, {
+      headers: { 'x-share-token-id': shareTokenId },
+    })
+  }
+
+  async revokeStoreReview(id: string) {
+    return this.request<{ revoked: boolean }>(`v1/store-reviews/${encodeURIComponent(id)}/revoke`, {
+      method: 'POST',
+    })
+  }
+
+  async addStoreReviewComment(
+    id: string,
+    input: { slideId: string; x: number | null; y: number | null; authorName: string; body: string },
+    shareTokenId?: string
+  ) {
+    return this.request<BackendStoreReviewComment>(
+      `v1/store-reviews/${encodeURIComponent(id)}/comments`,
+      {
+        body: input,
+        headers: shareTokenId ? { 'x-share-token-id': shareTokenId } : {},
+        method: 'POST',
+      }
+    )
+  }
+
+  async resolveStoreReviewComment(id: string, commentId: string, resolved: boolean) {
+    return this.request<{ resolved: boolean }>(
+      `v1/store-reviews/${encodeURIComponent(id)}/comments/${encodeURIComponent(commentId)}/resolution`,
+      { body: { resolved }, method: 'PUT' }
+    )
+  }
+
+  async listStorePublishingCredentials() {
+    return this.request<{ credentials: BackendStorePublishingCredential[] }>(
+      'v1/store-publishing/credentials'
+    )
+  }
+
+  async createStorePublishingCredential(input: {
+    provider: BackendStorePublishingCredential['provider']
+    label: string
+    metadata: Record<string, string>
+    encryptedSecret: string
+  }) {
+    return this.request<BackendStorePublishingCredential>('v1/store-publishing/credentials', {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async getStorePublishingCredentialSecret(id: string) {
+    return this.request<BackendStorePublishingCredential & { encryptedSecret: string }>(
+      `v1/store-publishing/credentials/${encodeURIComponent(id)}/secret`,
+      { method: 'POST' }
+    )
+  }
+
+  async deleteStorePublishingCredential(id: string) {
+    return this.request<{ deleted: boolean }>(
+      `v1/store-publishing/credentials/${encodeURIComponent(id)}`,
+      { method: 'DELETE' }
+    )
   }
 }

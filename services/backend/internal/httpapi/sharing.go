@@ -40,15 +40,6 @@ func (s *Server) registerSharing(mux *http.ServeMux) {
 	mux.Handle("DELETE /v1/integrations/{id}", s.authenticateProduct(http.HandlerFunc(s.deleteIntegration)))
 }
 
-func pathID(w http.ResponseWriter, r *http.Request) (string, bool) {
-	id := r.PathValue("id")
-	if !resourceIDPattern.MatchString(id) {
-		writeError(w, http.StatusBadRequest, "invalid ID")
-		return "", false
-	}
-	return id, true
-}
-
 func (s *Server) listShareLinks(w http.ResponseWriter, r *http.Request) {
 	items, err := s.configuration.ListShareLinks(r.Context(), workspaceActor(r))
 	if err != nil {
@@ -73,7 +64,7 @@ func (s *Server) createShareLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getShareLink(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathID(w, r)
+	id, ok := pathID(w, r, "id")
 	if !ok {
 		return
 	}
@@ -86,7 +77,7 @@ func (s *Server) getShareLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) updateShareLink(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathID(w, r)
+	id, ok := pathID(w, r, "id")
 	if !ok {
 		return
 	}
@@ -104,7 +95,7 @@ func (s *Server) updateShareLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) revokeShareLink(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathID(w, r)
+	id, ok := pathID(w, r, "id")
 	if !ok {
 		return
 	}
@@ -161,7 +152,7 @@ func (s *Server) saveIntegration(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) integrationCredentials(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathID(w, r)
+	id, ok := pathID(w, r, "id")
 	if !ok {
 		return
 	}
@@ -174,7 +165,7 @@ func (s *Server) integrationCredentials(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) updateIntegrationCredentials(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathID(w, r)
+	id, ok := pathID(w, r, "id")
 	if !ok {
 		return
 	}
@@ -191,7 +182,7 @@ func (s *Server) updateIntegrationCredentials(w http.ResponseWriter, r *http.Req
 }
 
 func (s *Server) deleteIntegration(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathID(w, r)
+	id, ok := pathID(w, r, "id")
 	if !ok {
 		return
 	}

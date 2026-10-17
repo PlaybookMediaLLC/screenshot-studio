@@ -88,7 +88,8 @@ See [docs/editor-platform.md](docs/editor-platform.md).
 - **Share**: publish a design at a link with Open Graph previews, embeds, access control, and expiry; deliver it to Slack, Notion, or Figma
 - **AI**: a copilot that edits the canvas, side-by-side versions of a design, generated backgrounds, and platform captions with alt text
 - **Projects**: cloud projects with autosave, named versions, comparison, restore, and recovery after a reload
-- **Image tools**: crop, resize, rotate, compress, format conversion, and background removal; App Store screenshot sets; a standalone code image editor at `/code`
+- **Image tools**: crop, resize, rotate, compress, format conversion, and background removal; a standalone code image editor at `/code`
+- **App Store screenshots**: layered slides, multi-device and panoramic layouts, localization, store compliance checks, every-size export, review links, and App Store Connect and Google Play uploads ([guide](docs/store-screenshots.md))
 
 ### Capture API
 

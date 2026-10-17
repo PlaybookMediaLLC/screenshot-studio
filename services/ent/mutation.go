@@ -67,6 +67,9 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storepublishingcredential"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storereview"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storereviewcomment"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
@@ -143,6 +146,9 @@ const (
 	TypeSocialOAuthStart               = "SocialOAuthStart"
 	TypeSourceApp                      = "SourceApp"
 	TypeSourceChange                   = "SourceChange"
+	TypeStorePublishingCredential      = "StorePublishingCredential"
+	TypeStoreReview                    = "StoreReview"
+	TypeStoreReviewComment             = "StoreReviewComment"
 	TypeSupportAccessGrant             = "SupportAccessGrant"
 	TypeSurfaceCapture                 = "SurfaceCapture"
 	TypeUser                           = "User"
@@ -48538,6 +48544,2798 @@ func (m *SourceChangeMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *SourceChangeMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown SourceChange edge %s", name)
+}
+
+// StorePublishingCredentialMutation represents an operation that mutates the StorePublishingCredential nodes in the graph.
+type StorePublishingCredentialMutation struct {
+	config
+	op                 Op
+	typ                string
+	id                 *string
+	organization_id    *string
+	provider           *storepublishingcredential.Provider
+	label              *string
+	metadata           *map[string]string
+	encrypted_secret   *string
+	last_used_at       *time.Time
+	created_by_user_id *string
+	created_at         *time.Time
+	updated_at         *time.Time
+	clearedFields      map[string]struct{}
+	done               bool
+	oldValue           func(context.Context) (*StorePublishingCredential, error)
+	predicates         []predicate.StorePublishingCredential
+}
+
+var _ ent.Mutation = (*StorePublishingCredentialMutation)(nil)
+
+// storepublishingcredentialOption allows management of the mutation configuration using functional options.
+type storepublishingcredentialOption func(*StorePublishingCredentialMutation)
+
+// newStorePublishingCredentialMutation creates new mutation for the StorePublishingCredential entity.
+func newStorePublishingCredentialMutation(c config, op Op, opts ...storepublishingcredentialOption) *StorePublishingCredentialMutation {
+	m := &StorePublishingCredentialMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeStorePublishingCredential,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withStorePublishingCredentialID sets the ID field of the mutation.
+func withStorePublishingCredentialID(id string) storepublishingcredentialOption {
+	return func(m *StorePublishingCredentialMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *StorePublishingCredential
+		)
+		m.oldValue = func(ctx context.Context) (*StorePublishingCredential, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().StorePublishingCredential.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withStorePublishingCredential sets the old StorePublishingCredential of the mutation.
+func withStorePublishingCredential(node *StorePublishingCredential) storepublishingcredentialOption {
+	return func(m *StorePublishingCredentialMutation) {
+		m.oldValue = func(context.Context) (*StorePublishingCredential, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m StorePublishingCredentialMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m StorePublishingCredentialMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of StorePublishingCredential entities.
+func (m *StorePublishingCredentialMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *StorePublishingCredentialMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *StorePublishingCredentialMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().StorePublishingCredential.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *StorePublishingCredentialMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *StorePublishingCredentialMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the StorePublishingCredential entity.
+// If the StorePublishingCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorePublishingCredentialMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *StorePublishingCredentialMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetProvider sets the "provider" field.
+func (m *StorePublishingCredentialMutation) SetProvider(s storepublishingcredential.Provider) {
+	m.provider = &s
+}
+
+// Provider returns the value of the "provider" field in the mutation.
+func (m *StorePublishingCredentialMutation) Provider() (r storepublishingcredential.Provider, exists bool) {
+	v := m.provider
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProvider returns the old "provider" field's value of the StorePublishingCredential entity.
+// If the StorePublishingCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorePublishingCredentialMutation) OldProvider(ctx context.Context) (v storepublishingcredential.Provider, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProvider is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProvider requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProvider: %w", err)
+	}
+	return oldValue.Provider, nil
+}
+
+// ResetProvider resets all changes to the "provider" field.
+func (m *StorePublishingCredentialMutation) ResetProvider() {
+	m.provider = nil
+}
+
+// SetLabel sets the "label" field.
+func (m *StorePublishingCredentialMutation) SetLabel(s string) {
+	m.label = &s
+}
+
+// Label returns the value of the "label" field in the mutation.
+func (m *StorePublishingCredentialMutation) Label() (r string, exists bool) {
+	v := m.label
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLabel returns the old "label" field's value of the StorePublishingCredential entity.
+// If the StorePublishingCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorePublishingCredentialMutation) OldLabel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLabel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLabel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLabel: %w", err)
+	}
+	return oldValue.Label, nil
+}
+
+// ResetLabel resets all changes to the "label" field.
+func (m *StorePublishingCredentialMutation) ResetLabel() {
+	m.label = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *StorePublishingCredentialMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *StorePublishingCredentialMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the StorePublishingCredential entity.
+// If the StorePublishingCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorePublishingCredentialMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *StorePublishingCredentialMutation) ResetMetadata() {
+	m.metadata = nil
+}
+
+// SetEncryptedSecret sets the "encrypted_secret" field.
+func (m *StorePublishingCredentialMutation) SetEncryptedSecret(s string) {
+	m.encrypted_secret = &s
+}
+
+// EncryptedSecret returns the value of the "encrypted_secret" field in the mutation.
+func (m *StorePublishingCredentialMutation) EncryptedSecret() (r string, exists bool) {
+	v := m.encrypted_secret
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEncryptedSecret returns the old "encrypted_secret" field's value of the StorePublishingCredential entity.
+// If the StorePublishingCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorePublishingCredentialMutation) OldEncryptedSecret(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEncryptedSecret is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEncryptedSecret requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEncryptedSecret: %w", err)
+	}
+	return oldValue.EncryptedSecret, nil
+}
+
+// ResetEncryptedSecret resets all changes to the "encrypted_secret" field.
+func (m *StorePublishingCredentialMutation) ResetEncryptedSecret() {
+	m.encrypted_secret = nil
+}
+
+// SetLastUsedAt sets the "last_used_at" field.
+func (m *StorePublishingCredentialMutation) SetLastUsedAt(t time.Time) {
+	m.last_used_at = &t
+}
+
+// LastUsedAt returns the value of the "last_used_at" field in the mutation.
+func (m *StorePublishingCredentialMutation) LastUsedAt() (r time.Time, exists bool) {
+	v := m.last_used_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastUsedAt returns the old "last_used_at" field's value of the StorePublishingCredential entity.
+// If the StorePublishingCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorePublishingCredentialMutation) OldLastUsedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastUsedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastUsedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastUsedAt: %w", err)
+	}
+	return oldValue.LastUsedAt, nil
+}
+
+// ClearLastUsedAt clears the value of the "last_used_at" field.
+func (m *StorePublishingCredentialMutation) ClearLastUsedAt() {
+	m.last_used_at = nil
+	m.clearedFields[storepublishingcredential.FieldLastUsedAt] = struct{}{}
+}
+
+// LastUsedAtCleared returns if the "last_used_at" field was cleared in this mutation.
+func (m *StorePublishingCredentialMutation) LastUsedAtCleared() bool {
+	_, ok := m.clearedFields[storepublishingcredential.FieldLastUsedAt]
+	return ok
+}
+
+// ResetLastUsedAt resets all changes to the "last_used_at" field.
+func (m *StorePublishingCredentialMutation) ResetLastUsedAt() {
+	m.last_used_at = nil
+	delete(m.clearedFields, storepublishingcredential.FieldLastUsedAt)
+}
+
+// SetCreatedByUserID sets the "created_by_user_id" field.
+func (m *StorePublishingCredentialMutation) SetCreatedByUserID(s string) {
+	m.created_by_user_id = &s
+}
+
+// CreatedByUserID returns the value of the "created_by_user_id" field in the mutation.
+func (m *StorePublishingCredentialMutation) CreatedByUserID() (r string, exists bool) {
+	v := m.created_by_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedByUserID returns the old "created_by_user_id" field's value of the StorePublishingCredential entity.
+// If the StorePublishingCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorePublishingCredentialMutation) OldCreatedByUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedByUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedByUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedByUserID: %w", err)
+	}
+	return oldValue.CreatedByUserID, nil
+}
+
+// ClearCreatedByUserID clears the value of the "created_by_user_id" field.
+func (m *StorePublishingCredentialMutation) ClearCreatedByUserID() {
+	m.created_by_user_id = nil
+	m.clearedFields[storepublishingcredential.FieldCreatedByUserID] = struct{}{}
+}
+
+// CreatedByUserIDCleared returns if the "created_by_user_id" field was cleared in this mutation.
+func (m *StorePublishingCredentialMutation) CreatedByUserIDCleared() bool {
+	_, ok := m.clearedFields[storepublishingcredential.FieldCreatedByUserID]
+	return ok
+}
+
+// ResetCreatedByUserID resets all changes to the "created_by_user_id" field.
+func (m *StorePublishingCredentialMutation) ResetCreatedByUserID() {
+	m.created_by_user_id = nil
+	delete(m.clearedFields, storepublishingcredential.FieldCreatedByUserID)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *StorePublishingCredentialMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *StorePublishingCredentialMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the StorePublishingCredential entity.
+// If the StorePublishingCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorePublishingCredentialMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *StorePublishingCredentialMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *StorePublishingCredentialMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *StorePublishingCredentialMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the StorePublishingCredential entity.
+// If the StorePublishingCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorePublishingCredentialMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *StorePublishingCredentialMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the StorePublishingCredentialMutation builder.
+func (m *StorePublishingCredentialMutation) Where(ps ...predicate.StorePublishingCredential) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the StorePublishingCredentialMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *StorePublishingCredentialMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.StorePublishingCredential, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *StorePublishingCredentialMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *StorePublishingCredentialMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (StorePublishingCredential).
+func (m *StorePublishingCredentialMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *StorePublishingCredentialMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.organization_id != nil {
+		fields = append(fields, storepublishingcredential.FieldOrganizationID)
+	}
+	if m.provider != nil {
+		fields = append(fields, storepublishingcredential.FieldProvider)
+	}
+	if m.label != nil {
+		fields = append(fields, storepublishingcredential.FieldLabel)
+	}
+	if m.metadata != nil {
+		fields = append(fields, storepublishingcredential.FieldMetadata)
+	}
+	if m.encrypted_secret != nil {
+		fields = append(fields, storepublishingcredential.FieldEncryptedSecret)
+	}
+	if m.last_used_at != nil {
+		fields = append(fields, storepublishingcredential.FieldLastUsedAt)
+	}
+	if m.created_by_user_id != nil {
+		fields = append(fields, storepublishingcredential.FieldCreatedByUserID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, storepublishingcredential.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, storepublishingcredential.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *StorePublishingCredentialMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case storepublishingcredential.FieldOrganizationID:
+		return m.OrganizationID()
+	case storepublishingcredential.FieldProvider:
+		return m.Provider()
+	case storepublishingcredential.FieldLabel:
+		return m.Label()
+	case storepublishingcredential.FieldMetadata:
+		return m.Metadata()
+	case storepublishingcredential.FieldEncryptedSecret:
+		return m.EncryptedSecret()
+	case storepublishingcredential.FieldLastUsedAt:
+		return m.LastUsedAt()
+	case storepublishingcredential.FieldCreatedByUserID:
+		return m.CreatedByUserID()
+	case storepublishingcredential.FieldCreatedAt:
+		return m.CreatedAt()
+	case storepublishingcredential.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *StorePublishingCredentialMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case storepublishingcredential.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case storepublishingcredential.FieldProvider:
+		return m.OldProvider(ctx)
+	case storepublishingcredential.FieldLabel:
+		return m.OldLabel(ctx)
+	case storepublishingcredential.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case storepublishingcredential.FieldEncryptedSecret:
+		return m.OldEncryptedSecret(ctx)
+	case storepublishingcredential.FieldLastUsedAt:
+		return m.OldLastUsedAt(ctx)
+	case storepublishingcredential.FieldCreatedByUserID:
+		return m.OldCreatedByUserID(ctx)
+	case storepublishingcredential.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case storepublishingcredential.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown StorePublishingCredential field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StorePublishingCredentialMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case storepublishingcredential.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case storepublishingcredential.FieldProvider:
+		v, ok := value.(storepublishingcredential.Provider)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProvider(v)
+		return nil
+	case storepublishingcredential.FieldLabel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLabel(v)
+		return nil
+	case storepublishingcredential.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case storepublishingcredential.FieldEncryptedSecret:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEncryptedSecret(v)
+		return nil
+	case storepublishingcredential.FieldLastUsedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastUsedAt(v)
+		return nil
+	case storepublishingcredential.FieldCreatedByUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedByUserID(v)
+		return nil
+	case storepublishingcredential.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case storepublishingcredential.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown StorePublishingCredential field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *StorePublishingCredentialMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *StorePublishingCredentialMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StorePublishingCredentialMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown StorePublishingCredential numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *StorePublishingCredentialMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(storepublishingcredential.FieldLastUsedAt) {
+		fields = append(fields, storepublishingcredential.FieldLastUsedAt)
+	}
+	if m.FieldCleared(storepublishingcredential.FieldCreatedByUserID) {
+		fields = append(fields, storepublishingcredential.FieldCreatedByUserID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *StorePublishingCredentialMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *StorePublishingCredentialMutation) ClearField(name string) error {
+	switch name {
+	case storepublishingcredential.FieldLastUsedAt:
+		m.ClearLastUsedAt()
+		return nil
+	case storepublishingcredential.FieldCreatedByUserID:
+		m.ClearCreatedByUserID()
+		return nil
+	}
+	return fmt.Errorf("unknown StorePublishingCredential nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *StorePublishingCredentialMutation) ResetField(name string) error {
+	switch name {
+	case storepublishingcredential.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case storepublishingcredential.FieldProvider:
+		m.ResetProvider()
+		return nil
+	case storepublishingcredential.FieldLabel:
+		m.ResetLabel()
+		return nil
+	case storepublishingcredential.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case storepublishingcredential.FieldEncryptedSecret:
+		m.ResetEncryptedSecret()
+		return nil
+	case storepublishingcredential.FieldLastUsedAt:
+		m.ResetLastUsedAt()
+		return nil
+	case storepublishingcredential.FieldCreatedByUserID:
+		m.ResetCreatedByUserID()
+		return nil
+	case storepublishingcredential.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case storepublishingcredential.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown StorePublishingCredential field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *StorePublishingCredentialMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *StorePublishingCredentialMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *StorePublishingCredentialMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *StorePublishingCredentialMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *StorePublishingCredentialMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *StorePublishingCredentialMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *StorePublishingCredentialMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown StorePublishingCredential unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *StorePublishingCredentialMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown StorePublishingCredential edge %s", name)
+}
+
+// StoreReviewMutation represents an operation that mutates the StoreReview nodes in the graph.
+type StoreReviewMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *string
+	organization_id     *string
+	project_id          *string
+	name                *string
+	version_label       *string
+	project_revision    *int
+	addproject_revision *int
+	share_token_id      *string
+	slides              *[]map[string]interface{}
+	appendslides        []map[string]interface{}
+	revoked_at          *time.Time
+	created_by_user_id  *string
+	created_at          *time.Time
+	updated_at          *time.Time
+	clearedFields       map[string]struct{}
+	done                bool
+	oldValue            func(context.Context) (*StoreReview, error)
+	predicates          []predicate.StoreReview
+}
+
+var _ ent.Mutation = (*StoreReviewMutation)(nil)
+
+// storereviewOption allows management of the mutation configuration using functional options.
+type storereviewOption func(*StoreReviewMutation)
+
+// newStoreReviewMutation creates new mutation for the StoreReview entity.
+func newStoreReviewMutation(c config, op Op, opts ...storereviewOption) *StoreReviewMutation {
+	m := &StoreReviewMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeStoreReview,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withStoreReviewID sets the ID field of the mutation.
+func withStoreReviewID(id string) storereviewOption {
+	return func(m *StoreReviewMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *StoreReview
+		)
+		m.oldValue = func(ctx context.Context) (*StoreReview, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().StoreReview.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withStoreReview sets the old StoreReview of the mutation.
+func withStoreReview(node *StoreReview) storereviewOption {
+	return func(m *StoreReviewMutation) {
+		m.oldValue = func(context.Context) (*StoreReview, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m StoreReviewMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m StoreReviewMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of StoreReview entities.
+func (m *StoreReviewMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *StoreReviewMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *StoreReviewMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().StoreReview.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *StoreReviewMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *StoreReviewMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the StoreReview entity.
+// If the StoreReview object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *StoreReviewMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetProjectID sets the "project_id" field.
+func (m *StoreReviewMutation) SetProjectID(s string) {
+	m.project_id = &s
+}
+
+// ProjectID returns the value of the "project_id" field in the mutation.
+func (m *StoreReviewMutation) ProjectID() (r string, exists bool) {
+	v := m.project_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProjectID returns the old "project_id" field's value of the StoreReview entity.
+// If the StoreReview object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewMutation) OldProjectID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProjectID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProjectID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProjectID: %w", err)
+	}
+	return oldValue.ProjectID, nil
+}
+
+// ResetProjectID resets all changes to the "project_id" field.
+func (m *StoreReviewMutation) ResetProjectID() {
+	m.project_id = nil
+}
+
+// SetName sets the "name" field.
+func (m *StoreReviewMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *StoreReviewMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the StoreReview entity.
+// If the StoreReview object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *StoreReviewMutation) ResetName() {
+	m.name = nil
+}
+
+// SetVersionLabel sets the "version_label" field.
+func (m *StoreReviewMutation) SetVersionLabel(s string) {
+	m.version_label = &s
+}
+
+// VersionLabel returns the value of the "version_label" field in the mutation.
+func (m *StoreReviewMutation) VersionLabel() (r string, exists bool) {
+	v := m.version_label
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVersionLabel returns the old "version_label" field's value of the StoreReview entity.
+// If the StoreReview object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewMutation) OldVersionLabel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVersionLabel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVersionLabel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVersionLabel: %w", err)
+	}
+	return oldValue.VersionLabel, nil
+}
+
+// ResetVersionLabel resets all changes to the "version_label" field.
+func (m *StoreReviewMutation) ResetVersionLabel() {
+	m.version_label = nil
+}
+
+// SetProjectRevision sets the "project_revision" field.
+func (m *StoreReviewMutation) SetProjectRevision(i int) {
+	m.project_revision = &i
+	m.addproject_revision = nil
+}
+
+// ProjectRevision returns the value of the "project_revision" field in the mutation.
+func (m *StoreReviewMutation) ProjectRevision() (r int, exists bool) {
+	v := m.project_revision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProjectRevision returns the old "project_revision" field's value of the StoreReview entity.
+// If the StoreReview object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewMutation) OldProjectRevision(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProjectRevision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProjectRevision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProjectRevision: %w", err)
+	}
+	return oldValue.ProjectRevision, nil
+}
+
+// AddProjectRevision adds i to the "project_revision" field.
+func (m *StoreReviewMutation) AddProjectRevision(i int) {
+	if m.addproject_revision != nil {
+		*m.addproject_revision += i
+	} else {
+		m.addproject_revision = &i
+	}
+}
+
+// AddedProjectRevision returns the value that was added to the "project_revision" field in this mutation.
+func (m *StoreReviewMutation) AddedProjectRevision() (r int, exists bool) {
+	v := m.addproject_revision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetProjectRevision resets all changes to the "project_revision" field.
+func (m *StoreReviewMutation) ResetProjectRevision() {
+	m.project_revision = nil
+	m.addproject_revision = nil
+}
+
+// SetShareTokenID sets the "share_token_id" field.
+func (m *StoreReviewMutation) SetShareTokenID(s string) {
+	m.share_token_id = &s
+}
+
+// ShareTokenID returns the value of the "share_token_id" field in the mutation.
+func (m *StoreReviewMutation) ShareTokenID() (r string, exists bool) {
+	v := m.share_token_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldShareTokenID returns the old "share_token_id" field's value of the StoreReview entity.
+// If the StoreReview object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewMutation) OldShareTokenID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldShareTokenID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldShareTokenID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldShareTokenID: %w", err)
+	}
+	return oldValue.ShareTokenID, nil
+}
+
+// ResetShareTokenID resets all changes to the "share_token_id" field.
+func (m *StoreReviewMutation) ResetShareTokenID() {
+	m.share_token_id = nil
+}
+
+// SetSlides sets the "slides" field.
+func (m *StoreReviewMutation) SetSlides(value []map[string]interface{}) {
+	m.slides = &value
+	m.appendslides = nil
+}
+
+// Slides returns the value of the "slides" field in the mutation.
+func (m *StoreReviewMutation) Slides() (r []map[string]interface{}, exists bool) {
+	v := m.slides
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlides returns the old "slides" field's value of the StoreReview entity.
+// If the StoreReview object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewMutation) OldSlides(ctx context.Context) (v []map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSlides is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSlides requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlides: %w", err)
+	}
+	return oldValue.Slides, nil
+}
+
+// AppendSlides adds value to the "slides" field.
+func (m *StoreReviewMutation) AppendSlides(value []map[string]interface{}) {
+	m.appendslides = append(m.appendslides, value...)
+}
+
+// AppendedSlides returns the list of values that were appended to the "slides" field in this mutation.
+func (m *StoreReviewMutation) AppendedSlides() ([]map[string]interface{}, bool) {
+	if len(m.appendslides) == 0 {
+		return nil, false
+	}
+	return m.appendslides, true
+}
+
+// ResetSlides resets all changes to the "slides" field.
+func (m *StoreReviewMutation) ResetSlides() {
+	m.slides = nil
+	m.appendslides = nil
+}
+
+// SetRevokedAt sets the "revoked_at" field.
+func (m *StoreReviewMutation) SetRevokedAt(t time.Time) {
+	m.revoked_at = &t
+}
+
+// RevokedAt returns the value of the "revoked_at" field in the mutation.
+func (m *StoreReviewMutation) RevokedAt() (r time.Time, exists bool) {
+	v := m.revoked_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevokedAt returns the old "revoked_at" field's value of the StoreReview entity.
+// If the StoreReview object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewMutation) OldRevokedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevokedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevokedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevokedAt: %w", err)
+	}
+	return oldValue.RevokedAt, nil
+}
+
+// ClearRevokedAt clears the value of the "revoked_at" field.
+func (m *StoreReviewMutation) ClearRevokedAt() {
+	m.revoked_at = nil
+	m.clearedFields[storereview.FieldRevokedAt] = struct{}{}
+}
+
+// RevokedAtCleared returns if the "revoked_at" field was cleared in this mutation.
+func (m *StoreReviewMutation) RevokedAtCleared() bool {
+	_, ok := m.clearedFields[storereview.FieldRevokedAt]
+	return ok
+}
+
+// ResetRevokedAt resets all changes to the "revoked_at" field.
+func (m *StoreReviewMutation) ResetRevokedAt() {
+	m.revoked_at = nil
+	delete(m.clearedFields, storereview.FieldRevokedAt)
+}
+
+// SetCreatedByUserID sets the "created_by_user_id" field.
+func (m *StoreReviewMutation) SetCreatedByUserID(s string) {
+	m.created_by_user_id = &s
+}
+
+// CreatedByUserID returns the value of the "created_by_user_id" field in the mutation.
+func (m *StoreReviewMutation) CreatedByUserID() (r string, exists bool) {
+	v := m.created_by_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedByUserID returns the old "created_by_user_id" field's value of the StoreReview entity.
+// If the StoreReview object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewMutation) OldCreatedByUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedByUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedByUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedByUserID: %w", err)
+	}
+	return oldValue.CreatedByUserID, nil
+}
+
+// ClearCreatedByUserID clears the value of the "created_by_user_id" field.
+func (m *StoreReviewMutation) ClearCreatedByUserID() {
+	m.created_by_user_id = nil
+	m.clearedFields[storereview.FieldCreatedByUserID] = struct{}{}
+}
+
+// CreatedByUserIDCleared returns if the "created_by_user_id" field was cleared in this mutation.
+func (m *StoreReviewMutation) CreatedByUserIDCleared() bool {
+	_, ok := m.clearedFields[storereview.FieldCreatedByUserID]
+	return ok
+}
+
+// ResetCreatedByUserID resets all changes to the "created_by_user_id" field.
+func (m *StoreReviewMutation) ResetCreatedByUserID() {
+	m.created_by_user_id = nil
+	delete(m.clearedFields, storereview.FieldCreatedByUserID)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *StoreReviewMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *StoreReviewMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the StoreReview entity.
+// If the StoreReview object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *StoreReviewMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *StoreReviewMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *StoreReviewMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the StoreReview entity.
+// If the StoreReview object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *StoreReviewMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the StoreReviewMutation builder.
+func (m *StoreReviewMutation) Where(ps ...predicate.StoreReview) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the StoreReviewMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *StoreReviewMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.StoreReview, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *StoreReviewMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *StoreReviewMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (StoreReview).
+func (m *StoreReviewMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *StoreReviewMutation) Fields() []string {
+	fields := make([]string, 0, 11)
+	if m.organization_id != nil {
+		fields = append(fields, storereview.FieldOrganizationID)
+	}
+	if m.project_id != nil {
+		fields = append(fields, storereview.FieldProjectID)
+	}
+	if m.name != nil {
+		fields = append(fields, storereview.FieldName)
+	}
+	if m.version_label != nil {
+		fields = append(fields, storereview.FieldVersionLabel)
+	}
+	if m.project_revision != nil {
+		fields = append(fields, storereview.FieldProjectRevision)
+	}
+	if m.share_token_id != nil {
+		fields = append(fields, storereview.FieldShareTokenID)
+	}
+	if m.slides != nil {
+		fields = append(fields, storereview.FieldSlides)
+	}
+	if m.revoked_at != nil {
+		fields = append(fields, storereview.FieldRevokedAt)
+	}
+	if m.created_by_user_id != nil {
+		fields = append(fields, storereview.FieldCreatedByUserID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, storereview.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, storereview.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *StoreReviewMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case storereview.FieldOrganizationID:
+		return m.OrganizationID()
+	case storereview.FieldProjectID:
+		return m.ProjectID()
+	case storereview.FieldName:
+		return m.Name()
+	case storereview.FieldVersionLabel:
+		return m.VersionLabel()
+	case storereview.FieldProjectRevision:
+		return m.ProjectRevision()
+	case storereview.FieldShareTokenID:
+		return m.ShareTokenID()
+	case storereview.FieldSlides:
+		return m.Slides()
+	case storereview.FieldRevokedAt:
+		return m.RevokedAt()
+	case storereview.FieldCreatedByUserID:
+		return m.CreatedByUserID()
+	case storereview.FieldCreatedAt:
+		return m.CreatedAt()
+	case storereview.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *StoreReviewMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case storereview.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case storereview.FieldProjectID:
+		return m.OldProjectID(ctx)
+	case storereview.FieldName:
+		return m.OldName(ctx)
+	case storereview.FieldVersionLabel:
+		return m.OldVersionLabel(ctx)
+	case storereview.FieldProjectRevision:
+		return m.OldProjectRevision(ctx)
+	case storereview.FieldShareTokenID:
+		return m.OldShareTokenID(ctx)
+	case storereview.FieldSlides:
+		return m.OldSlides(ctx)
+	case storereview.FieldRevokedAt:
+		return m.OldRevokedAt(ctx)
+	case storereview.FieldCreatedByUserID:
+		return m.OldCreatedByUserID(ctx)
+	case storereview.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case storereview.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown StoreReview field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StoreReviewMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case storereview.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case storereview.FieldProjectID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProjectID(v)
+		return nil
+	case storereview.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case storereview.FieldVersionLabel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVersionLabel(v)
+		return nil
+	case storereview.FieldProjectRevision:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProjectRevision(v)
+		return nil
+	case storereview.FieldShareTokenID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetShareTokenID(v)
+		return nil
+	case storereview.FieldSlides:
+		v, ok := value.([]map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlides(v)
+		return nil
+	case storereview.FieldRevokedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevokedAt(v)
+		return nil
+	case storereview.FieldCreatedByUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedByUserID(v)
+		return nil
+	case storereview.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case storereview.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown StoreReview field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *StoreReviewMutation) AddedFields() []string {
+	var fields []string
+	if m.addproject_revision != nil {
+		fields = append(fields, storereview.FieldProjectRevision)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *StoreReviewMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case storereview.FieldProjectRevision:
+		return m.AddedProjectRevision()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StoreReviewMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case storereview.FieldProjectRevision:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddProjectRevision(v)
+		return nil
+	}
+	return fmt.Errorf("unknown StoreReview numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *StoreReviewMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(storereview.FieldRevokedAt) {
+		fields = append(fields, storereview.FieldRevokedAt)
+	}
+	if m.FieldCleared(storereview.FieldCreatedByUserID) {
+		fields = append(fields, storereview.FieldCreatedByUserID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *StoreReviewMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *StoreReviewMutation) ClearField(name string) error {
+	switch name {
+	case storereview.FieldRevokedAt:
+		m.ClearRevokedAt()
+		return nil
+	case storereview.FieldCreatedByUserID:
+		m.ClearCreatedByUserID()
+		return nil
+	}
+	return fmt.Errorf("unknown StoreReview nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *StoreReviewMutation) ResetField(name string) error {
+	switch name {
+	case storereview.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case storereview.FieldProjectID:
+		m.ResetProjectID()
+		return nil
+	case storereview.FieldName:
+		m.ResetName()
+		return nil
+	case storereview.FieldVersionLabel:
+		m.ResetVersionLabel()
+		return nil
+	case storereview.FieldProjectRevision:
+		m.ResetProjectRevision()
+		return nil
+	case storereview.FieldShareTokenID:
+		m.ResetShareTokenID()
+		return nil
+	case storereview.FieldSlides:
+		m.ResetSlides()
+		return nil
+	case storereview.FieldRevokedAt:
+		m.ResetRevokedAt()
+		return nil
+	case storereview.FieldCreatedByUserID:
+		m.ResetCreatedByUserID()
+		return nil
+	case storereview.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case storereview.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown StoreReview field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *StoreReviewMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *StoreReviewMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *StoreReviewMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *StoreReviewMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *StoreReviewMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *StoreReviewMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *StoreReviewMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown StoreReview unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *StoreReviewMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown StoreReview edge %s", name)
+}
+
+// StoreReviewCommentMutation represents an operation that mutates the StoreReviewComment nodes in the graph.
+type StoreReviewCommentMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *string
+	organization_id     *string
+	review_id           *string
+	slide_id            *string
+	x                   *float64
+	addx                *float64
+	y                   *float64
+	addy                *float64
+	author_name         *string
+	body                *string
+	from_link           *bool
+	resolved_at         *time.Time
+	resolved_by_user_id *string
+	created_at          *time.Time
+	clearedFields       map[string]struct{}
+	done                bool
+	oldValue            func(context.Context) (*StoreReviewComment, error)
+	predicates          []predicate.StoreReviewComment
+}
+
+var _ ent.Mutation = (*StoreReviewCommentMutation)(nil)
+
+// storereviewcommentOption allows management of the mutation configuration using functional options.
+type storereviewcommentOption func(*StoreReviewCommentMutation)
+
+// newStoreReviewCommentMutation creates new mutation for the StoreReviewComment entity.
+func newStoreReviewCommentMutation(c config, op Op, opts ...storereviewcommentOption) *StoreReviewCommentMutation {
+	m := &StoreReviewCommentMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeStoreReviewComment,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withStoreReviewCommentID sets the ID field of the mutation.
+func withStoreReviewCommentID(id string) storereviewcommentOption {
+	return func(m *StoreReviewCommentMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *StoreReviewComment
+		)
+		m.oldValue = func(ctx context.Context) (*StoreReviewComment, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().StoreReviewComment.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withStoreReviewComment sets the old StoreReviewComment of the mutation.
+func withStoreReviewComment(node *StoreReviewComment) storereviewcommentOption {
+	return func(m *StoreReviewCommentMutation) {
+		m.oldValue = func(context.Context) (*StoreReviewComment, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m StoreReviewCommentMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m StoreReviewCommentMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of StoreReviewComment entities.
+func (m *StoreReviewCommentMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *StoreReviewCommentMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *StoreReviewCommentMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().StoreReviewComment.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *StoreReviewCommentMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *StoreReviewCommentMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the StoreReviewComment entity.
+// If the StoreReviewComment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewCommentMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *StoreReviewCommentMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetReviewID sets the "review_id" field.
+func (m *StoreReviewCommentMutation) SetReviewID(s string) {
+	m.review_id = &s
+}
+
+// ReviewID returns the value of the "review_id" field in the mutation.
+func (m *StoreReviewCommentMutation) ReviewID() (r string, exists bool) {
+	v := m.review_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReviewID returns the old "review_id" field's value of the StoreReviewComment entity.
+// If the StoreReviewComment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewCommentMutation) OldReviewID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReviewID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReviewID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReviewID: %w", err)
+	}
+	return oldValue.ReviewID, nil
+}
+
+// ResetReviewID resets all changes to the "review_id" field.
+func (m *StoreReviewCommentMutation) ResetReviewID() {
+	m.review_id = nil
+}
+
+// SetSlideID sets the "slide_id" field.
+func (m *StoreReviewCommentMutation) SetSlideID(s string) {
+	m.slide_id = &s
+}
+
+// SlideID returns the value of the "slide_id" field in the mutation.
+func (m *StoreReviewCommentMutation) SlideID() (r string, exists bool) {
+	v := m.slide_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlideID returns the old "slide_id" field's value of the StoreReviewComment entity.
+// If the StoreReviewComment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewCommentMutation) OldSlideID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSlideID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSlideID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlideID: %w", err)
+	}
+	return oldValue.SlideID, nil
+}
+
+// ResetSlideID resets all changes to the "slide_id" field.
+func (m *StoreReviewCommentMutation) ResetSlideID() {
+	m.slide_id = nil
+}
+
+// SetX sets the "x" field.
+func (m *StoreReviewCommentMutation) SetX(f float64) {
+	m.x = &f
+	m.addx = nil
+}
+
+// X returns the value of the "x" field in the mutation.
+func (m *StoreReviewCommentMutation) X() (r float64, exists bool) {
+	v := m.x
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldX returns the old "x" field's value of the StoreReviewComment entity.
+// If the StoreReviewComment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewCommentMutation) OldX(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldX is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldX requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldX: %w", err)
+	}
+	return oldValue.X, nil
+}
+
+// AddX adds f to the "x" field.
+func (m *StoreReviewCommentMutation) AddX(f float64) {
+	if m.addx != nil {
+		*m.addx += f
+	} else {
+		m.addx = &f
+	}
+}
+
+// AddedX returns the value that was added to the "x" field in this mutation.
+func (m *StoreReviewCommentMutation) AddedX() (r float64, exists bool) {
+	v := m.addx
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearX clears the value of the "x" field.
+func (m *StoreReviewCommentMutation) ClearX() {
+	m.x = nil
+	m.addx = nil
+	m.clearedFields[storereviewcomment.FieldX] = struct{}{}
+}
+
+// XCleared returns if the "x" field was cleared in this mutation.
+func (m *StoreReviewCommentMutation) XCleared() bool {
+	_, ok := m.clearedFields[storereviewcomment.FieldX]
+	return ok
+}
+
+// ResetX resets all changes to the "x" field.
+func (m *StoreReviewCommentMutation) ResetX() {
+	m.x = nil
+	m.addx = nil
+	delete(m.clearedFields, storereviewcomment.FieldX)
+}
+
+// SetY sets the "y" field.
+func (m *StoreReviewCommentMutation) SetY(f float64) {
+	m.y = &f
+	m.addy = nil
+}
+
+// Y returns the value of the "y" field in the mutation.
+func (m *StoreReviewCommentMutation) Y() (r float64, exists bool) {
+	v := m.y
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldY returns the old "y" field's value of the StoreReviewComment entity.
+// If the StoreReviewComment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewCommentMutation) OldY(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldY is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldY requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldY: %w", err)
+	}
+	return oldValue.Y, nil
+}
+
+// AddY adds f to the "y" field.
+func (m *StoreReviewCommentMutation) AddY(f float64) {
+	if m.addy != nil {
+		*m.addy += f
+	} else {
+		m.addy = &f
+	}
+}
+
+// AddedY returns the value that was added to the "y" field in this mutation.
+func (m *StoreReviewCommentMutation) AddedY() (r float64, exists bool) {
+	v := m.addy
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearY clears the value of the "y" field.
+func (m *StoreReviewCommentMutation) ClearY() {
+	m.y = nil
+	m.addy = nil
+	m.clearedFields[storereviewcomment.FieldY] = struct{}{}
+}
+
+// YCleared returns if the "y" field was cleared in this mutation.
+func (m *StoreReviewCommentMutation) YCleared() bool {
+	_, ok := m.clearedFields[storereviewcomment.FieldY]
+	return ok
+}
+
+// ResetY resets all changes to the "y" field.
+func (m *StoreReviewCommentMutation) ResetY() {
+	m.y = nil
+	m.addy = nil
+	delete(m.clearedFields, storereviewcomment.FieldY)
+}
+
+// SetAuthorName sets the "author_name" field.
+func (m *StoreReviewCommentMutation) SetAuthorName(s string) {
+	m.author_name = &s
+}
+
+// AuthorName returns the value of the "author_name" field in the mutation.
+func (m *StoreReviewCommentMutation) AuthorName() (r string, exists bool) {
+	v := m.author_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAuthorName returns the old "author_name" field's value of the StoreReviewComment entity.
+// If the StoreReviewComment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewCommentMutation) OldAuthorName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAuthorName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAuthorName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAuthorName: %w", err)
+	}
+	return oldValue.AuthorName, nil
+}
+
+// ResetAuthorName resets all changes to the "author_name" field.
+func (m *StoreReviewCommentMutation) ResetAuthorName() {
+	m.author_name = nil
+}
+
+// SetBody sets the "body" field.
+func (m *StoreReviewCommentMutation) SetBody(s string) {
+	m.body = &s
+}
+
+// Body returns the value of the "body" field in the mutation.
+func (m *StoreReviewCommentMutation) Body() (r string, exists bool) {
+	v := m.body
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBody returns the old "body" field's value of the StoreReviewComment entity.
+// If the StoreReviewComment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewCommentMutation) OldBody(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBody is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBody requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBody: %w", err)
+	}
+	return oldValue.Body, nil
+}
+
+// ResetBody resets all changes to the "body" field.
+func (m *StoreReviewCommentMutation) ResetBody() {
+	m.body = nil
+}
+
+// SetFromLink sets the "from_link" field.
+func (m *StoreReviewCommentMutation) SetFromLink(b bool) {
+	m.from_link = &b
+}
+
+// FromLink returns the value of the "from_link" field in the mutation.
+func (m *StoreReviewCommentMutation) FromLink() (r bool, exists bool) {
+	v := m.from_link
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFromLink returns the old "from_link" field's value of the StoreReviewComment entity.
+// If the StoreReviewComment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewCommentMutation) OldFromLink(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFromLink is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFromLink requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFromLink: %w", err)
+	}
+	return oldValue.FromLink, nil
+}
+
+// ResetFromLink resets all changes to the "from_link" field.
+func (m *StoreReviewCommentMutation) ResetFromLink() {
+	m.from_link = nil
+}
+
+// SetResolvedAt sets the "resolved_at" field.
+func (m *StoreReviewCommentMutation) SetResolvedAt(t time.Time) {
+	m.resolved_at = &t
+}
+
+// ResolvedAt returns the value of the "resolved_at" field in the mutation.
+func (m *StoreReviewCommentMutation) ResolvedAt() (r time.Time, exists bool) {
+	v := m.resolved_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResolvedAt returns the old "resolved_at" field's value of the StoreReviewComment entity.
+// If the StoreReviewComment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewCommentMutation) OldResolvedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResolvedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResolvedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResolvedAt: %w", err)
+	}
+	return oldValue.ResolvedAt, nil
+}
+
+// ClearResolvedAt clears the value of the "resolved_at" field.
+func (m *StoreReviewCommentMutation) ClearResolvedAt() {
+	m.resolved_at = nil
+	m.clearedFields[storereviewcomment.FieldResolvedAt] = struct{}{}
+}
+
+// ResolvedAtCleared returns if the "resolved_at" field was cleared in this mutation.
+func (m *StoreReviewCommentMutation) ResolvedAtCleared() bool {
+	_, ok := m.clearedFields[storereviewcomment.FieldResolvedAt]
+	return ok
+}
+
+// ResetResolvedAt resets all changes to the "resolved_at" field.
+func (m *StoreReviewCommentMutation) ResetResolvedAt() {
+	m.resolved_at = nil
+	delete(m.clearedFields, storereviewcomment.FieldResolvedAt)
+}
+
+// SetResolvedByUserID sets the "resolved_by_user_id" field.
+func (m *StoreReviewCommentMutation) SetResolvedByUserID(s string) {
+	m.resolved_by_user_id = &s
+}
+
+// ResolvedByUserID returns the value of the "resolved_by_user_id" field in the mutation.
+func (m *StoreReviewCommentMutation) ResolvedByUserID() (r string, exists bool) {
+	v := m.resolved_by_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResolvedByUserID returns the old "resolved_by_user_id" field's value of the StoreReviewComment entity.
+// If the StoreReviewComment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewCommentMutation) OldResolvedByUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResolvedByUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResolvedByUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResolvedByUserID: %w", err)
+	}
+	return oldValue.ResolvedByUserID, nil
+}
+
+// ClearResolvedByUserID clears the value of the "resolved_by_user_id" field.
+func (m *StoreReviewCommentMutation) ClearResolvedByUserID() {
+	m.resolved_by_user_id = nil
+	m.clearedFields[storereviewcomment.FieldResolvedByUserID] = struct{}{}
+}
+
+// ResolvedByUserIDCleared returns if the "resolved_by_user_id" field was cleared in this mutation.
+func (m *StoreReviewCommentMutation) ResolvedByUserIDCleared() bool {
+	_, ok := m.clearedFields[storereviewcomment.FieldResolvedByUserID]
+	return ok
+}
+
+// ResetResolvedByUserID resets all changes to the "resolved_by_user_id" field.
+func (m *StoreReviewCommentMutation) ResetResolvedByUserID() {
+	m.resolved_by_user_id = nil
+	delete(m.clearedFields, storereviewcomment.FieldResolvedByUserID)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *StoreReviewCommentMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *StoreReviewCommentMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the StoreReviewComment entity.
+// If the StoreReviewComment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewCommentMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *StoreReviewCommentMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the StoreReviewCommentMutation builder.
+func (m *StoreReviewCommentMutation) Where(ps ...predicate.StoreReviewComment) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the StoreReviewCommentMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *StoreReviewCommentMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.StoreReviewComment, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *StoreReviewCommentMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *StoreReviewCommentMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (StoreReviewComment).
+func (m *StoreReviewCommentMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *StoreReviewCommentMutation) Fields() []string {
+	fields := make([]string, 0, 11)
+	if m.organization_id != nil {
+		fields = append(fields, storereviewcomment.FieldOrganizationID)
+	}
+	if m.review_id != nil {
+		fields = append(fields, storereviewcomment.FieldReviewID)
+	}
+	if m.slide_id != nil {
+		fields = append(fields, storereviewcomment.FieldSlideID)
+	}
+	if m.x != nil {
+		fields = append(fields, storereviewcomment.FieldX)
+	}
+	if m.y != nil {
+		fields = append(fields, storereviewcomment.FieldY)
+	}
+	if m.author_name != nil {
+		fields = append(fields, storereviewcomment.FieldAuthorName)
+	}
+	if m.body != nil {
+		fields = append(fields, storereviewcomment.FieldBody)
+	}
+	if m.from_link != nil {
+		fields = append(fields, storereviewcomment.FieldFromLink)
+	}
+	if m.resolved_at != nil {
+		fields = append(fields, storereviewcomment.FieldResolvedAt)
+	}
+	if m.resolved_by_user_id != nil {
+		fields = append(fields, storereviewcomment.FieldResolvedByUserID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, storereviewcomment.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *StoreReviewCommentMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case storereviewcomment.FieldOrganizationID:
+		return m.OrganizationID()
+	case storereviewcomment.FieldReviewID:
+		return m.ReviewID()
+	case storereviewcomment.FieldSlideID:
+		return m.SlideID()
+	case storereviewcomment.FieldX:
+		return m.X()
+	case storereviewcomment.FieldY:
+		return m.Y()
+	case storereviewcomment.FieldAuthorName:
+		return m.AuthorName()
+	case storereviewcomment.FieldBody:
+		return m.Body()
+	case storereviewcomment.FieldFromLink:
+		return m.FromLink()
+	case storereviewcomment.FieldResolvedAt:
+		return m.ResolvedAt()
+	case storereviewcomment.FieldResolvedByUserID:
+		return m.ResolvedByUserID()
+	case storereviewcomment.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *StoreReviewCommentMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case storereviewcomment.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case storereviewcomment.FieldReviewID:
+		return m.OldReviewID(ctx)
+	case storereviewcomment.FieldSlideID:
+		return m.OldSlideID(ctx)
+	case storereviewcomment.FieldX:
+		return m.OldX(ctx)
+	case storereviewcomment.FieldY:
+		return m.OldY(ctx)
+	case storereviewcomment.FieldAuthorName:
+		return m.OldAuthorName(ctx)
+	case storereviewcomment.FieldBody:
+		return m.OldBody(ctx)
+	case storereviewcomment.FieldFromLink:
+		return m.OldFromLink(ctx)
+	case storereviewcomment.FieldResolvedAt:
+		return m.OldResolvedAt(ctx)
+	case storereviewcomment.FieldResolvedByUserID:
+		return m.OldResolvedByUserID(ctx)
+	case storereviewcomment.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown StoreReviewComment field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StoreReviewCommentMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case storereviewcomment.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case storereviewcomment.FieldReviewID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReviewID(v)
+		return nil
+	case storereviewcomment.FieldSlideID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlideID(v)
+		return nil
+	case storereviewcomment.FieldX:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetX(v)
+		return nil
+	case storereviewcomment.FieldY:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetY(v)
+		return nil
+	case storereviewcomment.FieldAuthorName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAuthorName(v)
+		return nil
+	case storereviewcomment.FieldBody:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBody(v)
+		return nil
+	case storereviewcomment.FieldFromLink:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFromLink(v)
+		return nil
+	case storereviewcomment.FieldResolvedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResolvedAt(v)
+		return nil
+	case storereviewcomment.FieldResolvedByUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResolvedByUserID(v)
+		return nil
+	case storereviewcomment.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown StoreReviewComment field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *StoreReviewCommentMutation) AddedFields() []string {
+	var fields []string
+	if m.addx != nil {
+		fields = append(fields, storereviewcomment.FieldX)
+	}
+	if m.addy != nil {
+		fields = append(fields, storereviewcomment.FieldY)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *StoreReviewCommentMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case storereviewcomment.FieldX:
+		return m.AddedX()
+	case storereviewcomment.FieldY:
+		return m.AddedY()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StoreReviewCommentMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case storereviewcomment.FieldX:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddX(v)
+		return nil
+	case storereviewcomment.FieldY:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddY(v)
+		return nil
+	}
+	return fmt.Errorf("unknown StoreReviewComment numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *StoreReviewCommentMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(storereviewcomment.FieldX) {
+		fields = append(fields, storereviewcomment.FieldX)
+	}
+	if m.FieldCleared(storereviewcomment.FieldY) {
+		fields = append(fields, storereviewcomment.FieldY)
+	}
+	if m.FieldCleared(storereviewcomment.FieldResolvedAt) {
+		fields = append(fields, storereviewcomment.FieldResolvedAt)
+	}
+	if m.FieldCleared(storereviewcomment.FieldResolvedByUserID) {
+		fields = append(fields, storereviewcomment.FieldResolvedByUserID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *StoreReviewCommentMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *StoreReviewCommentMutation) ClearField(name string) error {
+	switch name {
+	case storereviewcomment.FieldX:
+		m.ClearX()
+		return nil
+	case storereviewcomment.FieldY:
+		m.ClearY()
+		return nil
+	case storereviewcomment.FieldResolvedAt:
+		m.ClearResolvedAt()
+		return nil
+	case storereviewcomment.FieldResolvedByUserID:
+		m.ClearResolvedByUserID()
+		return nil
+	}
+	return fmt.Errorf("unknown StoreReviewComment nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *StoreReviewCommentMutation) ResetField(name string) error {
+	switch name {
+	case storereviewcomment.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case storereviewcomment.FieldReviewID:
+		m.ResetReviewID()
+		return nil
+	case storereviewcomment.FieldSlideID:
+		m.ResetSlideID()
+		return nil
+	case storereviewcomment.FieldX:
+		m.ResetX()
+		return nil
+	case storereviewcomment.FieldY:
+		m.ResetY()
+		return nil
+	case storereviewcomment.FieldAuthorName:
+		m.ResetAuthorName()
+		return nil
+	case storereviewcomment.FieldBody:
+		m.ResetBody()
+		return nil
+	case storereviewcomment.FieldFromLink:
+		m.ResetFromLink()
+		return nil
+	case storereviewcomment.FieldResolvedAt:
+		m.ResetResolvedAt()
+		return nil
+	case storereviewcomment.FieldResolvedByUserID:
+		m.ResetResolvedByUserID()
+		return nil
+	case storereviewcomment.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown StoreReviewComment field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *StoreReviewCommentMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *StoreReviewCommentMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *StoreReviewCommentMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *StoreReviewCommentMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *StoreReviewCommentMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *StoreReviewCommentMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *StoreReviewCommentMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown StoreReviewComment unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *StoreReviewCommentMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown StoreReviewComment edge %s", name)
 }
 
 // SupportAccessGrantMutation represents an operation that mutates the SupportAccessGrant nodes in the graph.

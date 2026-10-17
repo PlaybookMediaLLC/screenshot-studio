@@ -61,6 +61,9 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storepublishingcredential"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storereview"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storereviewcomment"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
@@ -799,6 +802,36 @@ func init() {
 	sourcechange.DefaultUpdatedAt = sourcechangeDescUpdatedAt.Default.(func() time.Time)
 	// sourcechange.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	sourcechange.UpdateDefaultUpdatedAt = sourcechangeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	storepublishingcredentialFields := schema.StorePublishingCredential{}.Fields()
+	_ = storepublishingcredentialFields
+	// storepublishingcredentialDescCreatedAt is the schema descriptor for created_at field.
+	storepublishingcredentialDescCreatedAt := storepublishingcredentialFields[8].Descriptor()
+	// storepublishingcredential.DefaultCreatedAt holds the default value on creation for the created_at field.
+	storepublishingcredential.DefaultCreatedAt = storepublishingcredentialDescCreatedAt.Default.(func() time.Time)
+	// storepublishingcredentialDescUpdatedAt is the schema descriptor for updated_at field.
+	storepublishingcredentialDescUpdatedAt := storepublishingcredentialFields[9].Descriptor()
+	// storepublishingcredential.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	storepublishingcredential.DefaultUpdatedAt = storepublishingcredentialDescUpdatedAt.Default.(func() time.Time)
+	// storepublishingcredential.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	storepublishingcredential.UpdateDefaultUpdatedAt = storepublishingcredentialDescUpdatedAt.UpdateDefault.(func() time.Time)
+	storereviewFields := schema.StoreReview{}.Fields()
+	_ = storereviewFields
+	// storereviewDescCreatedAt is the schema descriptor for created_at field.
+	storereviewDescCreatedAt := storereviewFields[10].Descriptor()
+	// storereview.DefaultCreatedAt holds the default value on creation for the created_at field.
+	storereview.DefaultCreatedAt = storereviewDescCreatedAt.Default.(func() time.Time)
+	// storereviewDescUpdatedAt is the schema descriptor for updated_at field.
+	storereviewDescUpdatedAt := storereviewFields[11].Descriptor()
+	// storereview.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	storereview.DefaultUpdatedAt = storereviewDescUpdatedAt.Default.(func() time.Time)
+	// storereview.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	storereview.UpdateDefaultUpdatedAt = storereviewDescUpdatedAt.UpdateDefault.(func() time.Time)
+	storereviewcommentFields := schema.StoreReviewComment{}.Fields()
+	_ = storereviewcommentFields
+	// storereviewcommentDescCreatedAt is the schema descriptor for created_at field.
+	storereviewcommentDescCreatedAt := storereviewcommentFields[11].Descriptor()
+	// storereviewcomment.DefaultCreatedAt holds the default value on creation for the created_at field.
+	storereviewcomment.DefaultCreatedAt = storereviewcommentDescCreatedAt.Default.(func() time.Time)
 	supportaccessgrantFields := schema.SupportAccessGrant{}.Fields()
 	_ = supportaccessgrantFields
 	// supportaccessgrantDescScope is the schema descriptor for scope field.

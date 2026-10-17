@@ -1,7 +1,7 @@
 # RFC 032: Background Onboarding Agent and ICP Extraction
 
-**Status:** In progress
-**Status note (2026-10-17):** Rollout steps 1–6 are built: the data model, the Go fast path, the Temporal workflow, the enrichment providers, the `/api/v1/onboarding-runs` routes, and the review screen. The web's 20-second fast path is removed. Step 7 (the end-to-end test and the dashboard) follows.
+**Status:** Implemented behind the onboarding:agent flag
+**Status note (2026-10-17):** All seven rollout steps are built, with the end-to-end test and the dashboard (`infra/dashboards/onboarding.json`). Still open: MCP tools (question 7), and enabling the agent for every new workspace.
 **Date:** 2026-08-17
 **Revised:** 2026-10-17
 **Depends on:** RFC 004, RFC 011, RFC 012, RFC 013, and RFC 026

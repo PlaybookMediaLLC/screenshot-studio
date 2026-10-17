@@ -228,3 +228,31 @@ func TestSecondSubmitWhileARunIsActiveReturnsIt(t *testing.T) {
 		t.Fatalf("second %+v err=%v started=%d", second, err, background.started)
 	}
 }
+
+// A run nothing finished (its process died) stops blocking the workspace
+// once it is well past its deadline: the next submit records it failed and
+// starts a new run.
+func TestAnAbandonedRunDoesNotBlockTheNextOne(t *testing.T) {
+	site := newTestSite(t)
+	w := newTestWorkspace(t, "pro")
+	ctx := context.Background()
+	stuck, _, err := w.store.CreateOnboardingRun(ctx, w.owner, product.CreateOnboardingRunInput{IdempotencyKey: "stuck", URL: site.URL + "/acme"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &Service{FastPath: &FastPath{Fetcher: testFetcher(t)}, Store: w.store}
+	if again, err := service.Start(ctx, w.owner, StartInput{IdempotencyKey: "next", URL: site.URL + "/acme"}); err != nil || again.Created {
+		t.Fatalf("within its deadline the stuck run is still the active one: %+v %v", again, err)
+	}
+	if _, err := w.db.SQL.ExecContext(ctx, `UPDATE onboarding_run SET "deadlineAt" = now() - interval '1 hour' WHERE id = $1`, stuck.ID); err != nil {
+		t.Fatal(err)
+	}
+	next, err := service.Start(ctx, w.owner, StartInput{IdempotencyKey: "next", URL: site.URL + "/acme"})
+	if err != nil || !next.Created || next.Run.ID == stuck.ID {
+		t.Fatalf("next %+v err=%v", next, err)
+	}
+	old, err := w.store.GetOnboardingRun(ctx, w.owner, stuck.ID)
+	if err != nil || old.Status != product.OnboardingFailed || old.ErrorCode == nil || *old.ErrorCode != "abandoned" {
+		t.Fatalf("stuck run %+v err=%v", old, err)
+	}
+}

@@ -115,10 +115,13 @@ func (c *Client) Structured(ctx context.Context, request Request, out any) (Usag
 	if maxTokens <= 0 {
 		maxTokens = 4_000
 	}
+	// The schema is ours, so it may sit in the system prompt; a provider that
+	// ignores response_format still knows the shape to answer in.
+	system := request.System + "\n\nReply with only a JSON object that matches this JSON Schema:\n" + string(request.Schema)
 	body, err := json.Marshal(map[string]any{
 		"max_tokens": maxTokens,
 		"messages": []map[string]string{
-			{"content": request.System, "role": "system"},
+			{"content": system, "role": "system"},
 			{"content": request.Prompt, "role": "user"},
 		},
 		"model": model,

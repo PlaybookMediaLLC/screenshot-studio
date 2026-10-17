@@ -15,7 +15,7 @@
 - We send content you choose to use with AI features to third-party AI models. We do not use
   your content to train models.
 - We publish to the social accounts you connect, only after a member approves and schedules a
-  post. [[PRODUCT: close the legacy social backend's public API and MCP routes]]
+  post.
 - Our application servers are in the United States. [[REGION: database, Redis, object
   storage]]
 - We don't sell personal information. Where advertising cookies count as "sharing", you can opt
@@ -104,9 +104,6 @@ we keep it, and your choices.
 - For SSO and SCIM: your organization's identity-provider settings, and the user attributes it
   sends.
 - API keys. We store a hash, plus the first characters so you can recognize the key.
-
-[[PRODUCT/OWNER: the legacy social backend keeps its own user records (email,
-password hash, IP address). Remove that surface, or disclose those records here.]]
 
 #### 2.2 Workspace content (we act for the customer)
 

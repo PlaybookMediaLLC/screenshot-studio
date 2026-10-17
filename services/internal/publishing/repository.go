@@ -8,8 +8,10 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditlog"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
@@ -97,14 +99,23 @@ func (r *Repository) CreateScheduledPost(ctx context.Context, actor Actor, input
 	if err != nil {
 		return CreateScheduledPostResult{}, err
 	}
-	variantExists, err := r.client.CreativeVariant.Query().Where(
-		creativevariant.ID(input.VariantID),
-		creativevariant.OrganizationID(actor.Organization),
-	).Exist(ctx)
+	if (input.VariantID == "") == (input.ContentDraftID == "") {
+		return CreateScheduledPostResult{}, ErrNotEligible
+	}
+	var sourceExists bool
+	if input.ContentDraftID != "" {
+		sourceExists, err = r.client.ContentDraft.Query().Where(contentdraft.ID(input.ContentDraftID),
+			contentdraft.OrganizationID(actor.Organization), contentdraft.StatusNEQ(contentdraft.StatusArchived)).Exist(ctx)
+	} else {
+		sourceExists, err = r.client.CreativeVariant.Query().Where(
+			creativevariant.ID(input.VariantID),
+			creativevariant.OrganizationID(actor.Organization),
+		).Exist(ctx)
+	}
 	if err != nil {
 		return CreateScheduledPostResult{}, err
 	}
-	if !connectionExists || !variantExists {
+	if !connectionExists || !sourceExists {
 		return CreateScheduledPostResult{}, ErrNotFound
 	}
 
@@ -124,7 +135,8 @@ func (r *Repository) CreateScheduledPost(ctx context.Context, actor Actor, input
 	post, err := tx.ScheduledPost.Create().
 		SetID(cuid.New()).
 		SetOrganizationID(actor.Organization).
-		SetVariantID(input.VariantID).
+		SetNillableVariantID(nonEmpty(input.VariantID)).
+		SetNillableContentDraftID(nonEmpty(input.ContentDraftID)).
 		SetChannelConnectionID(input.ChannelConnectionID).
 		SetScheduledFor(input.ScheduledFor.UTC()).
 		SetStatus(scheduledpost.StatusSCHEDULED).
@@ -156,6 +168,16 @@ func (r *Repository) CreateScheduledPost(ctx context.Context, actor Actor, input
 	return CreateScheduledPostResult{Created: true, Post: post.Unwrap()}, nil
 }
 
+func nonEmpty(value string) *string {
+	if value == "" {
+		return nil
+	}
+	return &value
+}
+
+// isEligible checks the destination is active and, for a variant post, that
+// the variant is approved. A content draft needs no approval (RFC 037): the
+// person scheduling it holds publish:manage.
 func (r *Repository) isEligible(ctx context.Context, organizationID, variantID, connectionID string) (bool, error) {
 	connectionExists, err := r.client.ChannelConnection.Query().Where(
 		channelconnection.ID(connectionID),
@@ -163,8 +185,8 @@ func (r *Repository) isEligible(ctx context.Context, organizationID, variantID, 
 		channelconnection.Provider("postiz"),
 		channelconnection.StatusEQ(channelconnection.StatusACTIVE),
 	).Exist(ctx)
-	if err != nil || !connectionExists {
-		return false, err
+	if err != nil || !connectionExists || variantID == "" {
+		return connectionExists, err
 	}
 	return r.client.CreativeVariant.Query().Where(
 		creativevariant.ID(variantID),
@@ -286,8 +308,14 @@ func (r *Repository) LoadPublishJob(ctx context.Context, id, runID string) (Publ
 	if err != nil {
 		return PublishJob{Post: post, WorkspaceActive: false}, nil
 	}
+	if post.ContentDraftID != nil {
+		return r.loadDraftPublishJob(ctx, post, connection)
+	}
+	if post.VariantID == nil {
+		return PublishJob{Post: post, Connection: connection, WorkspaceActive: false}, nil
+	}
 	variant, err := r.client.CreativeVariant.Query().Where(
-		creativevariant.ID(post.VariantID), creativevariant.OrganizationID(post.OrganizationID),
+		creativevariant.ID(*post.VariantID), creativevariant.OrganizationID(post.OrganizationID),
 	).WithApproval().WithSourceAsset().Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -304,17 +332,61 @@ func (r *Repository) LoadPublishJob(ctx context.Context, id, runID string) (Publ
 		return PublishJob{Post: post, Connection: connection, WorkspaceActive: false}, nil
 	}
 	approved = approved && asset.OrganizationID == post.OrganizationID
-	deletion, err := r.client.WorkspaceDeletion.Query().Where(
-		workspacedeletion.OrganizationID(post.OrganizationID),
-	).Only(ctx)
-	workspaceActive := ent.IsNotFound(err) || (err == nil && deletion.Status == workspacedeletion.StatusCANCELLED)
-	if err != nil && !ent.IsNotFound(err) {
+	workspaceActive, err := r.workspaceActive(ctx, post.OrganizationID)
+	if err != nil {
 		return PublishJob{}, err
 	}
 	return PublishJob{
 		AssetObjectKey: asset.ObjectKey, AssetMediaType: asset.MediaType,
 		Connection: connection, Post: post, WorkspaceActive: workspaceActive && approved && connection.Status == channelconnection.StatusACTIVE,
 	}, nil
+}
+
+// loadDraftPublishJob publishes a content draft's post: its caption was
+// snapshotted when it was scheduled, and its media is the post's own asset,
+// if any. A draft post without an asset publishes as text.
+func (r *Repository) loadDraftPublishJob(ctx context.Context, post *ent.ScheduledPost, connection *ent.ChannelConnection) (PublishJob, error) {
+	inactive := PublishJob{Post: post, Connection: connection, WorkspaceActive: false}
+	owned, err := r.client.ContentDraft.Query().Where(contentdraft.ID(*post.ContentDraftID),
+		contentdraft.OrganizationID(post.OrganizationID)).Exist(ctx)
+	if err != nil {
+		return PublishJob{}, err
+	}
+	if !owned {
+		return inactive, nil
+	}
+	job := PublishJob{Connection: connection, Post: post}
+	if post.AssetID != nil {
+		media, err := r.client.Asset.Query().Where(asset.ID(*post.AssetID), asset.OrganizationID(post.OrganizationID),
+			asset.StatusEQ(asset.StatusUPLOADED)).Only(ctx)
+		if ent.IsNotFound(err) {
+			return inactive, nil
+		}
+		if err != nil {
+			return PublishJob{}, err
+		}
+		job.AssetObjectKey, job.AssetMediaType = media.ObjectKey, media.MediaType
+	}
+	workspaceActive, err := r.workspaceActive(ctx, post.OrganizationID)
+	if err != nil {
+		return PublishJob{}, err
+	}
+	job.WorkspaceActive = workspaceActive && connection.Status == channelconnection.StatusACTIVE
+	return job, nil
+}
+
+// workspaceActive reports whether the workspace is not being deleted.
+func (r *Repository) workspaceActive(ctx context.Context, organizationID string) (bool, error) {
+	deletion, err := r.client.WorkspaceDeletion.Query().Where(
+		workspacedeletion.OrganizationID(organizationID),
+	).Only(ctx)
+	if ent.IsNotFound(err) {
+		return true, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return deletion.Status == workspacedeletion.StatusCANCELLED, nil
 }
 
 func (r *Repository) StartAttempt(ctx context.Context, post *ent.ScheduledPost, runID string, attemptNumber int) (Attempt, error) {

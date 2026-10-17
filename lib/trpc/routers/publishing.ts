@@ -11,6 +11,7 @@ import {
 import { getScheduledPostIdempotencyKey } from '@/lib/tenant/scheduled-posts'
 import {
   channelConnectionCreateSchema,
+  hasOneScheduledPostSource,
   scheduledPostCreateSchema,
   scheduledPostListQuerySchema,
 } from '@/lib/tenant/schemas'
@@ -36,9 +37,12 @@ export const scheduledPostRouter = router({
     })),
   create: sensitiveOrganizationProcedure('publish:manage')
     .input(
-      scheduledPostCreateSchema.extend({
-        idempotencyKey: z.string().trim().min(1).max(128).optional(),
-      })
+      scheduledPostCreateSchema
+        .extend({ idempotencyKey: z.string().trim().min(1).max(128).optional() })
+        .refine(hasOneScheduledPostSource, {
+          message: 'Give exactly one of variantId and contentDraftId.',
+          path: ['variantId'],
+        })
     )
     .mutation(async ({ ctx, input }) => {
       const { idempotencyKey, ...post } = input

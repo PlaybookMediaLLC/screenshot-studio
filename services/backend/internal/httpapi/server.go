@@ -470,7 +470,9 @@ type scheduledPostRequest struct {
 	ChannelConnectionID string    `json:"channelConnectionId"`
 	IdempotencyKey      string    `json:"idempotencyKey"`
 	ScheduledFor        time.Time `json:"scheduledFor"`
-	VariantID           string    `json:"variantId"`
+	// Exactly one source: a campaign variant or a content draft (RFC 037).
+	ContentDraftID string `json:"contentDraftId"`
+	VariantID      string `json:"variantId"`
 }
 
 func (s *Server) createScheduledPost(w http.ResponseWriter, r *http.Request) {
@@ -485,8 +487,12 @@ func (s *Server) createScheduledPost(w http.ResponseWriter, r *http.Request) {
 	}
 	input.Caption = strings.TrimSpace(input.Caption)
 	input.IdempotencyKey = strings.TrimSpace(input.IdempotencyKey)
-	if input.Caption == "" || len([]rune(input.Caption)) > 3000 || input.ChannelConnectionID == "" || input.VariantID == "" || input.IdempotencyKey == "" || input.ScheduledFor.IsZero() {
-		writeError(w, http.StatusBadRequest, "caption, channelConnectionId, idempotencyKey, scheduledFor, and variantId are required")
+	if input.Caption == "" || len([]rune(input.Caption)) > 3000 || input.ChannelConnectionID == "" || input.IdempotencyKey == "" || input.ScheduledFor.IsZero() {
+		writeError(w, http.StatusBadRequest, "caption, channelConnectionId, idempotencyKey, and scheduledFor are required")
+		return
+	}
+	if (input.VariantID == "") == (input.ContentDraftID == "") {
+		writeError(w, http.StatusBadRequest, "exactly one of variantId and contentDraftId is required")
 		return
 	}
 	if len(input.IdempotencyKey) > 128 {
@@ -508,7 +514,8 @@ func (s *Server) createScheduledPost(w http.ResponseWriter, r *http.Request) {
 	}
 	result, err := s.store.CreateScheduledPost(r.Context(), actor, publishing.CreateScheduledPostInput{
 		Caption: input.Caption, ChannelConnectionID: input.ChannelConnectionID,
-		IdempotencyKey: input.IdempotencyKey, ScheduledFor: input.ScheduledFor, VariantID: input.VariantID,
+		ContentDraftID: input.ContentDraftID, IdempotencyKey: input.IdempotencyKey, ScheduledFor: input.ScheduledFor,
+		VariantID: input.VariantID,
 	})
 	if err != nil {
 		refund()
@@ -606,7 +613,7 @@ func scheduledPostResponse(post *ent.ScheduledPost) map[string]any {
 	response := map[string]any{
 		"id": post.ID, "caption": post.Caption, "channelConnectionId": post.ChannelConnectionID,
 		"createdAt": post.CreatedAt, "scheduledFor": post.ScheduledFor, "status": post.Status,
-		"updatedAt": post.UpdatedAt, "variantId": post.VariantID,
+		"updatedAt": post.UpdatedAt, "variantId": post.VariantID, "contentDraftId": post.ContentDraftID,
 	}
 	if connection, err := post.Edges.ChannelConnectionOrErr(); err == nil {
 		response["channelConnection"] = map[string]any{

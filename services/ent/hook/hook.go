@@ -609,6 +609,42 @@ func (f SourceChangeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SourceChangeMutation", m)
 }
 
+// The StorePublishingCredentialFunc type is an adapter to allow the use of ordinary
+// function as StorePublishingCredential mutator.
+type StorePublishingCredentialFunc func(context.Context, *ent.StorePublishingCredentialMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StorePublishingCredentialFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.StorePublishingCredentialMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StorePublishingCredentialMutation", m)
+}
+
+// The StoreReviewFunc type is an adapter to allow the use of ordinary
+// function as StoreReview mutator.
+type StoreReviewFunc func(context.Context, *ent.StoreReviewMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StoreReviewFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.StoreReviewMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StoreReviewMutation", m)
+}
+
+// The StoreReviewCommentFunc type is an adapter to allow the use of ordinary
+// function as StoreReviewComment mutator.
+type StoreReviewCommentFunc func(context.Context, *ent.StoreReviewCommentMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StoreReviewCommentFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.StoreReviewCommentMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StoreReviewCommentMutation", m)
+}
+
 // The SupportAccessGrantFunc type is an adapter to allow the use of ordinary
 // function as SupportAccessGrant mutator.
 type SupportAccessGrantFunc func(context.Context, *ent.SupportAccessGrantMutation) (ent.Value, error)

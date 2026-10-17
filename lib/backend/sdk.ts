@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { randomUUID } from 'node:crypto'
+import type { StoreProvider } from '@/lib/api/contracts/store-publishing'
 import type { Principal } from '@/lib/auth/principal'
 import {
   BackendSDKError,
@@ -94,4 +95,122 @@ export function withDates<T>(value: T): WithDates<T> {
       key.endsWith('At') && typeof item === 'string' ? new Date(item) : withDates(item),
     ])
   ) as WithDates<T>
+}
+
+type StoreBackendRequest = <T>(
+  path: string,
+  init?: { body?: unknown; headers?: Record<string, string>; method?: 'GET' | 'POST' | 'PUT' | 'DELETE' }
+) => Promise<T>
+
+/**
+ * Store screenshot review and credential endpoints. They are added to the
+ * SDK package source in this release; until the app installs a published
+ * SDK that includes them, they are called through the installed client's
+ * own request pipeline, so base URL, auth headers, principal headers, and
+ * error mapping stay identical.
+ *
+ * ponytail: remove this bridge and call backendSDK(context) directly once
+ * screenshot-studio-backend-sdk >= 0.1.15 (the first release with these methods) is installed.
+ */
+export function storeBackend(context: BackendContext) {
+  const request = ((client) =>
+    (client as unknown as { request: StoreBackendRequest }).request.bind(client))(
+    backendSDK(context)
+  )
+  const id = (value: string) => encodeURIComponent(value)
+  return {
+    createStoreReview: (input: StoreReviewCreateInput) =>
+      request<StoreReviewPayload>('v1/store-reviews', { body: input, method: 'POST' }),
+    listStoreReviews: (projectId: string) =>
+      request<{ reviews: StoreReviewPayload[] }>(`v1/store-reviews?projectId=${id(projectId)}`),
+    getStoreReview: (reviewId: string) => request<StoreReviewPayload>(`v1/store-reviews/${id(reviewId)}`),
+    getSharedStoreReview: (reviewId: string, shareTokenId: string) =>
+      request<StoreReviewPayload>(`v1/store-reviews/${id(reviewId)}/shared`, {
+        headers: { 'x-share-token-id': shareTokenId },
+      }),
+    revokeStoreReview: (reviewId: string) =>
+      request<{ revoked: boolean }>(`v1/store-reviews/${id(reviewId)}/revoke`, { method: 'POST' }),
+    addStoreReviewComment: (reviewId: string, input: StoreReviewCommentInput, shareTokenId?: string) =>
+      request<StoreReviewPayload['comments'][number]>(`v1/store-reviews/${id(reviewId)}/comments`, {
+        body: input,
+        headers: shareTokenId ? { 'x-share-token-id': shareTokenId } : {},
+        method: 'POST',
+      }),
+    resolveStoreReviewComment: (reviewId: string, commentId: string, resolved: boolean) =>
+      request<{ resolved: boolean }>(
+        `v1/store-reviews/${id(reviewId)}/comments/${id(commentId)}/resolution`,
+        { body: { resolved }, method: 'PUT' }
+      ),
+    listStorePublishingCredentials: () =>
+      request<{ credentials: StoreCredentialPayload[] }>('v1/store-publishing/credentials'),
+    createStorePublishingCredential: (input: StoreCredentialCreateInput) =>
+      request<StoreCredentialPayload>('v1/store-publishing/credentials', { body: input, method: 'POST' }),
+    getStorePublishingCredentialSecret: (credentialId: string) =>
+      request<StoreCredentialPayload & { encryptedSecret: string }>(
+        `v1/store-publishing/credentials/${id(credentialId)}/secret`,
+        { method: 'POST' }
+      ),
+    deleteStorePublishingCredential: (credentialId: string) =>
+      request<{ deleted: boolean }>(`v1/store-publishing/credentials/${id(credentialId)}`, {
+        method: 'DELETE',
+      }),
+  }
+}
+
+/** Review as the backend returns it. */
+export type StoreReviewPayload = {
+  id: string
+  projectId: string
+  name: string
+  versionLabel: string
+  projectRevision: number
+  shareTokenId: string
+  slides: Array<{ slideId: string; name: string; assetId: string; width: number; height: number }>
+  revokedAt: string | null
+  createdAt: string
+  updatedAt: string
+  comments: Array<{
+    id: string
+    slideId: string
+    x: number | null
+    y: number | null
+    authorName: string
+    body: string
+    fromLink: boolean
+    resolvedAt: string | null
+    createdAt: string
+  }>
+}
+
+/** Input to create a review. */
+export type StoreReviewCreateInput = Omit<
+  StoreReviewPayload,
+  'id' | 'shareTokenId' | 'revokedAt' | 'createdAt' | 'updatedAt' | 'comments'
+>
+
+/** Input to add a comment. */
+export type StoreReviewCommentInput = {
+  slideId: string
+  x: number | null
+  y: number | null
+  authorName: string
+  body: string
+}
+
+/** Credential as the backend returns it, without its secret. */
+export type StoreCredentialPayload = {
+  id: string
+  provider: StoreProvider
+  label: string
+  metadata: Record<string, string>
+  lastUsedAt: string | null
+  createdAt: string
+}
+
+/** Input to store a credential. */
+export type StoreCredentialCreateInput = {
+  provider: StoreCredentialPayload['provider']
+  label: string
+  metadata: Record<string, string>
+  encryptedSecret: string
 }

@@ -22,6 +22,7 @@ import {
 } from '@/lib/auth/access'
 import type { Permission } from '@/lib/auth/permissions'
 import { requireTenantAccess } from '@/lib/tenant/access'
+import { requireWorkspaceFeature } from '@/lib/tenant/entitlements'
 
 /**
  * Authenticators for `route()`. Each resolves the caller or throws an
@@ -80,4 +81,22 @@ export function organizationAccess(
  */
 export function tenantAccess(requirement: TenantAccessRequirement): Authenticate<TenantContext> {
   return async ({ request }) => requireTenantAccess(request.headers, requirement)
+}
+
+/**
+ * A signed-in member of the active workspace with `permission`, on a paid
+ * plan. API keys are refused: store publishing and its credentials are
+ * human actions. `sensitive` also requires a fresh second factor.
+ */
+export function paidSessionAccess(
+  permission: Permission,
+  options: { sensitive?: boolean } = {}
+): Authenticate<OrganizationAccess> {
+  return async ({ request }) => {
+    const access = options.sensitive
+      ? await requireSensitiveActiveOrganizationPermission(request.headers, permission)
+      : await requireActiveOrganizationPermission(request.headers, permission)
+    await requireWorkspaceFeature(access, 'workspace:use')
+    return access
+  }
 }

@@ -62,6 +62,9 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storepublishingcredential"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storereview"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storereviewcomment"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
@@ -180,6 +183,9 @@ func checkColumn(t, c string) error {
 			socialoauthstart.Table:               socialoauthstart.ValidColumn,
 			sourceapp.Table:                      sourceapp.ValidColumn,
 			sourcechange.Table:                   sourcechange.ValidColumn,
+			storepublishingcredential.Table:      storepublishingcredential.ValidColumn,
+			storereview.Table:                    storereview.ValidColumn,
+			storereviewcomment.Table:             storereviewcomment.ValidColumn,
 			supportaccessgrant.Table:             supportaccessgrant.ValidColumn,
 			surfacecapture.Table:                 surfacecapture.ValidColumn,
 			user.Table:                           user.ValidColumn,

@@ -10,6 +10,15 @@ replicaCount: 2
 config:
   publishingApiUrl: http://screenshot-studio-backend:8080
   screenshotApiUrl: http://screenshot-studio-screenshot-mock:5678
+  contentDrafts: enabled
+
+collab:
+  enabled: true
+  image:
+    repository: screenshot-studio-collab
+    pullPolicy: Never
+    tag: kind-dev
+  publicUrl: ws://localhost:1234
 
 migration:
   enabled: true

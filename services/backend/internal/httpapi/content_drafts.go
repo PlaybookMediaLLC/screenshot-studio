@@ -18,6 +18,10 @@ type ContentDraftStore interface {
 	DeleteContentDraft(context.Context, product.Actor, string) error
 	ScheduleContentDraft(context.Context, product.Actor, string, product.ScheduleContentDraftInput) (*product.ScheduleContentDraftResult, error)
 	ListContentDraftPosts(context.Context, product.Actor, string) ([]product.ContentDraftPost, error)
+	IssueContentDraftCollabToken(context.Context, product.Actor, string) (*product.CollabToken, error)
+	AuthorizeCollab(context.Context, string, string) (*product.CollabGrant, error)
+	LoadCollabState(context.Context, string, string) ([]byte, error)
+	StoreCollabState(context.Context, string, string, []byte) error
 }
 
 func (s *Server) registerContentDrafts(mux *http.ServeMux) {
@@ -28,6 +32,8 @@ func (s *Server) registerContentDrafts(mux *http.ServeMux) {
 	mux.Handle("DELETE /v1/content-drafts/{id}", s.authenticateProduct(http.HandlerFunc(s.deleteContentDraft)))
 	mux.Handle("POST /v1/content-drafts/{id}/schedule", s.authenticateProduct(http.HandlerFunc(s.scheduleContentDraft)))
 	mux.Handle("GET /v1/content-drafts/{id}/posts", s.authenticateProduct(http.HandlerFunc(s.listContentDraftPosts)))
+	mux.Handle("POST /v1/content-drafts/{id}/collab-token", s.authenticateProduct(http.HandlerFunc(s.issueCollabToken)))
+	s.registerCollab(mux)
 }
 
 // writeContentDraftError answers a stale write with the version the draft is
@@ -176,4 +182,17 @@ func (s *Server) listContentDraftPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"posts": posts})
+}
+
+func (s *Server) issueCollabToken(w http.ResponseWriter, r *http.Request) {
+	id, ok := contentDraftID(w, r)
+	if !ok {
+		return
+	}
+	token, err := s.configuration.IssueContentDraftCollabToken(r.Context(), workspaceActor(r), id)
+	if err != nil {
+		writeCollabError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, token)
 }

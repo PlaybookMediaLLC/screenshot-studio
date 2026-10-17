@@ -66,11 +66,14 @@ export function DraftComposer({
   canEdit,
   canSchedule,
   channels,
+  collabUrl,
   draft,
   posts: initialPosts,
   user,
 }: {
   aiEnabled: boolean
+  /** The collaboration server, when real-time co-editing is configured. */
+  collabUrl: string | null
   canEdit: boolean
   canSchedule: boolean
   channels: ComposerChannel[]
@@ -100,6 +103,10 @@ export function DraftComposer({
   latest.current = { selected, title, value }
   const inFlight = React.useRef<Promise<void> | null>(null)
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const collaboration = React.useMemo(
+    () => (collabUrl ? { draftId: draft.id, url: collabUrl } : null),
+    [collabUrl, draft.id]
+  )
 
   const reloadLatest = React.useCallback(async () => {
     const fresh = await draftsApi.get(draft.id)
@@ -129,6 +136,14 @@ export function DraftComposer({
         setStatus(saved.status)
         setSaveState('saved')
       } catch (error) {
+        if (error instanceof DraftRequestError && error.status === 409 && collaboration) {
+          // In a live session every editor holds the same content: another
+          // editor's autosave moved the version, so save again on top of it.
+          version.current = (await draftsApi.get(draft.id)).version
+          inFlight.current = null
+          await save()
+          return
+        }
         if (error instanceof DraftRequestError && error.status === 409) {
           // Someone saved a newer version: show it rather than overwrite it.
           await reloadLatest()
@@ -143,7 +158,7 @@ export function DraftComposer({
     inFlight.current = run
     await run
     inFlight.current = null
-  }, [canEdit, draft.id, reloadLatest])
+  }, [canEdit, collaboration, draft.id, reloadLatest])
 
   const scheduleSave = React.useCallback(() => {
     if (!canEdit) return
@@ -240,6 +255,7 @@ export function DraftComposer({
       />
       <div className="overflow-hidden rounded-2xl bg-white/[0.015] ring-1 ring-white/[0.08]">
         <DraftEditor
+          collaboration={collaboration}
           initialValue={editorState.value}
           key={editorState.key}
           onChange={(next) => {

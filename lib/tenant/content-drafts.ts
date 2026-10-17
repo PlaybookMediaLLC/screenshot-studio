@@ -111,3 +111,9 @@ export async function scheduleContentDraft(
     posts: result.posts.map(readPost),
   }
 }
+
+/** A collaboration token for the draft; null when it is not in this workspace. */
+export async function createContentDraftCollabToken(context: OrganizationAccess, id: string) {
+  const token = await orNull(backendSDK(context).createContentDraftCollabToken(id))
+  return token ? withDates(token) : null
+}

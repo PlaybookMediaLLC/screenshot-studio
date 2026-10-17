@@ -145,6 +145,27 @@ class DeploymentSpecTest(unittest.TestCase):
         self.assertEqual(updated["image"], backend["image"])
         self.assertNotIn("git", updated)
 
+    def test_collaboration_ships_only_with_its_secrets(self):
+        spec = render_spec.render(self.base, self.secrets)
+        self.assertNotIn("collab", [item["name"] for item in spec["services"]])
+        self.secrets.update(COLLAB_TOKEN_SECRET="fixture-signing", COLLAB_SERVICE_TOKEN="fixture-service")
+        spec = render_spec.render(self.base, self.secrets)
+        services = {item["name"]: item for item in spec["services"]}
+        collab = services["collab"]
+        collab_env = {item["key"]: item for item in collab["envs"]}
+        backend_env = {item["key"] for item in services["screenshot-studio-backend"]["envs"]}
+        web_env = {item["key"]: item["value"] for item in services["web"]["envs"]}
+        self.assertEqual(collab["dockerfile_path"], "packages/collab-server/Dockerfile")
+        self.assertEqual(collab_env["COLLAB_SERVICE_TOKEN"]["type"], "SECRET")
+        # The collab service never gets the signing key or a database.
+        self.assertNotIn("COLLAB_TOKEN_SECRET", collab_env)
+        self.assertFalse({"DATABASE_URL", "REDIS_URL"} & set(collab_env))
+        self.assertTrue({"TENANT_COLLAB_TOKEN_SECRET", "TENANT_COLLAB_SERVICE_TOKEN"} <= backend_env)
+        self.assertEqual(web_env["PLATFORM_COLLAB_URL"], "wss://app.example.com/collab")
+        self.assertNotIn("COLLAB_TOKEN_SECRET", web_env)
+        self.assertEqual(spec["ingress"]["rules"][0]["component"]["name"], "collab")
+        self.assertEqual(render_spec.render(spec, self.secrets), spec)
+
 
 if __name__ == "__main__":
     unittest.main()

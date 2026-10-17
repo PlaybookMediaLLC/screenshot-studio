@@ -176,6 +176,11 @@ def render(base, secrets, *, branch="main"):
               env("BETTER_AUTH_URL", origin), env("AUTH_EMAIL_FROM", required("AUTH_EMAIL_FROM")),
               env("PLATFORM_CAMPAIGN_WORKFLOW", secrets.get("PLATFORM_CAMPAIGN_WORKFLOW", "")),
               env("COMPANY_POSTAL_ADDRESS", secrets.get("COMPANY_POSTAL_ADDRESS", ""))]
+    # Content draft co-editing (RFC 037): only the backend signs collaboration
+    # tokens; the collab service reaches the backend with its own credential.
+    collaboration = bool(secrets.get("COLLAB_TOKEN_SECRET") and secrets.get("COLLAB_SERVICE_TOKEN"))
+    if collaboration:
+        tenant_env += [secret("COLLAB_TOKEN_SECRET"), secret("COLLAB_SERVICE_TOKEN")]
     merge_env(backend, [dict(item, key="TENANT_" + item["key"]) for item in tenant_env])
     backend["internal_ports"] = [3003, 8082]
     for old_name in ("postiz-backend", "postiz-orchestrator", "publishing-backend", "publishing-orchestrator"):
@@ -185,6 +190,19 @@ def render(base, secrets, *, branch="main"):
     rules = spec.setdefault("ingress", {}).setdefault("rules", [])
     rules[:] = [rule for rule in rules if rule.get("component", {}).get("name") not in ("postiz-backend", "screenshot-studio-backend")]
     rules.insert(0, {"match": {"path": {"prefix": "/postiz"}}, "component": {"name": "screenshot-studio-backend"}})
+    rules[:] = [rule for rule in rules if rule.get("component", {}).get("name") != "collab"]
+    if collaboration:
+        # Browsers open wss://<origin>/collab; the prefix is stripped before Hocuspocus.
+        collab = service("collab", "/", "packages/collab-server/Dockerfile", 1234, "/health", "apps-s-1vcpu-0.5gb")
+        collab["http_port"] = 1234
+        collab.pop("internal_ports")
+        merge_env(collab, [env("COLLAB_BACKEND_URL", "http://screenshot-studio-backend:8082"),
+                           secret("COLLAB_SERVICE_TOKEN")])
+        services["collab"] = collab
+        rules.insert(0, {"match": {"path": {"prefix": "/collab"}}, "component": {"name": "collab"}})
+        merge_env(web, [env("PLATFORM_COLLAB_URL", "wss://" + urlsplit(origin).netloc + "/collab")])
+    else:
+        services.pop("collab", None)
 
     spec["services"] = list(services.values())
     spec["jobs"] = list(jobs.values())

@@ -37,6 +37,8 @@ export default async function DraftPage({ params }: DraftPageProps) {
         aiEnabled={aiEnabled}
         canEdit={hasPermission(access.role, 'artifact:edit')}
         canSchedule={canSchedule}
+        // Real-time co-editing runs when the collaboration server is configured.
+        collabUrl={process.env.PLATFORM_COLLAB_URL || null}
         channels={connections.flatMap((connection) => {
           const channel = channelForPlatform(connection.platform)
           return connection.status === 'ACTIVE' && channel

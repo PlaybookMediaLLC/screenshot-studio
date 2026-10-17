@@ -123,6 +123,20 @@ jobs:
             sleep 1
           done
           exit 1
+      - name: Build and smoke test the collaboration server image
+        run: |
+          docker build --file packages/collab-server/Dockerfile --tag screenshot-studio-collab:${{ github.sha }} .
+          docker run --detach --rm --name collab-smoke --publish 1234:1234 \
+            --env COLLAB_BACKEND_URL=http://127.0.0.1:9 --env COLLAB_SERVICE_TOKEN=smoke \
+            screenshot-studio-collab:${{ github.sha }}
+          trap 'docker logs collab-smoke || true; docker stop collab-smoke || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent --show-error http://127.0.0.1:1234/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
       - run: helm lint charts/screenshot-studio
       - run: helm template screenshot-studio charts/screenshot-studio > /dev/null
       - run: helm lint charts/screenshot-studio --values charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local

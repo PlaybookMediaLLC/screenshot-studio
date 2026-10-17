@@ -1,0 +1,85 @@
+{{- if .Values.collab.enabled }}
+{{- $fullName := include "screenshot-studio.fullname" . }}
+# Real-time co-editing of content drafts (RFC 037). A Hocuspocus server that
+# holds no database credential: it authorizes connections and loads and stores
+# documents only through the Go backend, with COLLAB_SERVICE_TOKEN.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-collab
+  labels:
+    {{- include "screenshot-studio.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: ws
+      port: {{ .Values.collab.port }}
+      targetPort: ws
+      protocol: TCP
+  selector:
+    app.kubernetes.io/component: collab
+    {{- include "screenshot-studio.selectorLabels" . | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}-collab
+  labels:
+    {{- include "screenshot-studio.labels" . | nindent 4 }}
+spec:
+  # One replica: a document's live state lives in one process. More replicas
+  # need the Hocuspocus Redis extension or routing by document name.
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: collab
+      {{- include "screenshot-studio.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: collab
+        {{- include "screenshot-studio.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: collab
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ required "collab.image.repository is required when collab.enabled" .Values.collab.image.repository }}:{{ .Values.collab.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.collab.image.pullPolicy }}
+          ports:
+            - name: ws
+              containerPort: {{ .Values.collab.port }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: {{ .Values.collab.port | quote }}
+            - name: COLLAB_BACKEND_URL
+              value: {{ required "collab.backendUrl or config.publishingApiUrl is required when collab.enabled" (.Values.collab.backendUrl | default .Values.config.publishingApiUrl) | quote }}
+            - name: COLLAB_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "existingSecret is required when collab.enabled" .Values.existingSecret }}
+                  key: COLLAB_SERVICE_TOKEN
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: ws
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: ws
+          {{- with .Values.collab.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

@@ -87,6 +87,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Workspace scripts, as the SDK publish path builds it.
+      - run: npm run build:sdk
       - run: python3 -m unittest discover -s infra/digitalocean -p 'test_*.py'
       - run: npm run quality:check
       - run: npm run test:publishing-backend-client

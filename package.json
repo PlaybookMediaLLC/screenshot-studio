@@ -2,10 +2,13 @@
   "name": "screenshot-studio",
   "version": "2.9.0",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
-    "build:sdk": "npm run build --prefix packages/screenshot-studio-backend-sdk",
+    "build:sdk": "npm run build -w screenshot-studio-backend-sdk",
     "start": "next start",
     "db:migrate": "cd services && go run ./cmd/platform-migrate",
     "format": "prettier --write app/api lib/api lib/audit lib/email lib/tenant lib/auth lib/rate-limit.ts lib/redis.ts lib/screenshot-cache.ts lib/screenshot-service.ts lib/storage test e2e .github/workflows commitlint.config.mjs playwright.config.ts",

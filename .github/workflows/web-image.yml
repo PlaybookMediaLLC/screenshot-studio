@@ -11,6 +11,7 @@ on:
       - Dockerfile
       - package.json
       - package-lock.json
+      - packages/**
       - next.config.ts
       - proxy.ts
       - instrumentation-client.ts

@@ -55,6 +55,9 @@ func (c *Configuration) RenameCreativeTemplate(ctx context.Context, actor Actor,
 		}
 		if _, err := tx.CreativeTemplate.Update().Where(creativetemplate.OrganizationID(actor.OrganizationID),
 			creativetemplate.Name(row.Name)).SetName(name).Save(ctx); err != nil {
+			if ent.IsConstraintError(err) {
+				return nil, publishing.ErrConflict
+			}
 			return nil, err
 		}
 		if err := appendConfigurationAudit(ctx, tx, actor, "product.creative_template_renamed", "creative_template", row.ID,
@@ -134,6 +137,9 @@ func (c *Configuration) RenameBrandKit(ctx context.Context, actor Actor, id, nam
 		}
 		if _, err := tx.BrandKit.Update().Where(brandkit.OrganizationID(actor.OrganizationID),
 			brandkit.Name(row.Name)).SetName(name).Save(ctx); err != nil {
+			if ent.IsConstraintError(err) {
+				return nil, publishing.ErrConflict
+			}
 			return nil, err
 		}
 		if err := appendConfigurationAudit(ctx, tx, actor, "product.brand_kit_renamed", "brand_kit", row.ID,

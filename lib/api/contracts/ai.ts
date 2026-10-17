@@ -41,3 +41,60 @@ export const editorCopilotContract = defineContract({
   path: '/api/ai/editor',
   summary: 'Run one step of the editor copilot',
 })
+
+/** Most messages one document-editor AI request may carry. */
+export const MAX_DOCUMENT_MESSAGES = 40
+
+/** Roles the document editor may send; it may not inject system messages. */
+export const documentMessageRoleSchema = z.enum(['user', 'assistant'])
+
+/** What the document AI menu asks for (the editor's tool names). */
+export const documentToolNameSchema = z.enum(['comment', 'edit', 'generate'])
+
+/**
+ * One document AI menu request, as the AI SDK chat transport posts it.
+ * `system` is the editor's rendering of the document and selection: it is
+ * untrusted user content, so the server passes it to the model as context and
+ * never as instructions.
+ */
+export const documentChatRequestSchema = z.looseObject({
+  ctx: z.looseObject({ toolName: documentToolNameSchema.nullable().optional() }).optional(),
+  messages: z
+    .array(
+      z.looseObject({
+        parts: z.array(z.looseObject({ type: z.string() })).max(100),
+        role: documentMessageRoleSchema,
+      })
+    )
+    .min(1)
+    .max(MAX_DOCUMENT_MESSAGES),
+  system: z.string().max(120_000).optional(),
+})
+
+/** `POST /api/ai/document`: streams AI SDK UI message parts. */
+export const documentChatContract = defineContract({
+  body: documentChatRequestSchema,
+  method: 'POST',
+  name: 'ai.document',
+  output: z.never(),
+  path: '/api/ai/document',
+  summary: 'Stream a document editor AI response',
+})
+
+/** One inline completion request from the document editor's copilot. */
+export const documentCopilotRequestSchema = z.object({
+  prompt: z.string().trim().min(1).max(8_000),
+})
+
+/** The completion text, or `0` when the model has nothing worth suggesting. */
+export const documentCopilotResponseSchema = z.object({ text: z.string().min(1) })
+
+/** `POST /api/ai/document/copilot` */
+export const documentCopilotContract = defineContract({
+  body: documentCopilotRequestSchema,
+  method: 'POST',
+  name: 'ai.document-copilot',
+  output: documentCopilotResponseSchema,
+  path: '/api/ai/document/copilot',
+  summary: 'Suggest an inline completion in the document editor',
+})

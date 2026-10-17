@@ -256,6 +256,7 @@ function MediaPlaceholderPopover({ children }: { children: React.ReactNode }) {
         placeholderId: element.id as string,
         type: mediaType,
         url: uploadedFile.url,
+        ...(uploadedFile.assetId ? { assetId: uploadedFile.assetId } : {}),
       },
       { at: path }
     );

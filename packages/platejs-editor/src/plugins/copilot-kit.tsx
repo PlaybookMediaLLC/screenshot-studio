@@ -3,9 +3,11 @@
 import { CopilotPlugin } from "@platejs/ai/react";
 import { serializeMd, stripMarkdown } from "@platejs/markdown";
 import type { TElement } from "platejs";
+import { useEffect } from "react";
 
 import { GhostText } from "../ui/ghost-text";
 import { getCopilotContext } from "../lib/copilot-context";
+import { useEditorServices } from "../lib/editor-services";
 
 import { MarkdownKit } from "./markdown-kit";
 
@@ -45,8 +47,9 @@ export const CopilotKit = [
   ...MarkdownKit,
   CopilotPlugin.configure(({ api }) => ({
     options: {
+      // The endpoint comes from the host's `ai.copilot` service (useHooks
+      // below). Until one is set, getPrompt returns "" and nothing is sent.
       completeOptions: {
-        api: "/api/ai/copilot",
         onFinish: (_, completion) => {
           if (completion === "0") return;
 
@@ -57,7 +60,20 @@ export const CopilotKit = [
       },
       debounceDelay: 500,
       renderGhostText: GhostText,
-      getPrompt: ({ editor }) => getCopilotPrompt(editor),
+      getPrompt: ({ editor }) =>
+        editor.getOptions(CopilotPlugin).completeOptions?.api
+          ? getCopilotPrompt(editor)
+          : "",
+    },
+    useHooks: ({ getOptions, setOption }) => {
+      const copilot = useEditorServices().ai?.copilot;
+      useEffect(() => {
+        setOption("completeOptions", {
+          ...getOptions().completeOptions,
+          api: copilot?.api,
+          fetch: copilot?.fetch,
+        });
+      }, [copilot?.api, copilot?.fetch, getOptions, setOption]);
     },
     shortcuts: {
       accept: {

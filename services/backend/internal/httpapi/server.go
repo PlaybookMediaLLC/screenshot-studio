@@ -51,6 +51,7 @@ type WorkflowScheduler interface {
 
 type ConfigurationStore interface {
 	ProjectStore
+	ContentDraftStore
 	LibraryStore
 	SharingStore
 	GetCampaignAsset(context.Context, product.Actor, string, string) (*product.CampaignAssetLink, error)
@@ -261,6 +262,7 @@ func NewWithConfiguration(store Store, scheduler WorkflowScheduler, verifier Des
 		s.registerScreenshots(mux)
 		s.registerRender(mux)
 		s.registerProjects(mux)
+		s.registerContentDrafts(mux)
 		s.registerLibrary(mux)
 		s.registerSharing(mux)
 	}

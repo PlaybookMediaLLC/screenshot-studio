@@ -101,6 +101,8 @@ def render(base, secrets, *, branch="main"):
         env("PLATFORM_DESIGN_RENDERER", "enabled"),
         env("PLATFORM_RENDER_CDP_URL", required("PLATFORM_RENDER_CDP_URL")),
         env("PLATFORM_RENDER_BASE_URL", origin),
+        # Content drafts (RFC 037) stay off until the secret turns them on.
+        env("PLATFORM_CONTENT_DRAFTS", secrets.get("PLATFORM_CONTENT_DRAFTS", "")),
     ] + [env(key, secrets[key]) for key in ["AUTH_EMAIL_FROM", *stripe_price_keys] if secrets.get(key)])
     services.pop("storage", None)
 

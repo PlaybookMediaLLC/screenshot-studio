@@ -261,6 +261,18 @@ func (f ContentAngleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentAngleMutation", m)
 }
 
+// The ContentDraftFunc type is an adapter to allow the use of ordinary
+// function as ContentDraft mutator.
+type ContentDraftFunc func(context.Context, *ent.ContentDraftMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ContentDraftFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ContentDraftMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentDraftMutation", m)
+}
+
 // The ConversationFunc type is an adapter to allow the use of ordinary
 // function as Conversation mutator.
 type ConversationFunc func(context.Context, *ent.ConversationMutation) (ent.Value, error)

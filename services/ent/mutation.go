@@ -33,6 +33,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversationmessage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
@@ -113,6 +114,7 @@ const (
 	TypeCommunicationAttempt           = "CommunicationAttempt"
 	TypeCommunicationRecipient         = "CommunicationRecipient"
 	TypeContentAngle                   = "ContentAngle"
+	TypeContentDraft                   = "ContentDraft"
 	TypeConversation                   = "Conversation"
 	TypeConversationMessage            = "ConversationMessage"
 	TypeCreativeTemplate               = "CreativeTemplate"
@@ -18910,6 +18912,1130 @@ func (m *ContentAngleMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *ContentAngleMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ContentAngle edge %s", name)
+}
+
+// ContentDraftMutation represents an operation that mutates the ContentDraft nodes in the graph.
+type ContentDraftMutation struct {
+	config
+	op                           Op
+	typ                          string
+	id                           *string
+	organization_id              *string
+	title                        *string
+	body                         *[]interface{}
+	appendbody                   []interface{}
+	plain_text                   *string
+	asset_ids                    *[]string
+	appendasset_ids              []string
+	channel_connection_ids       *[]string
+	appendchannel_connection_ids []string
+	status                       *contentdraft.Status
+	version                      *int
+	addversion                   *int
+	collab_state                 *[]byte
+	created_by_user_id           *string
+	updated_by_user_id           *string
+	created_at                   *time.Time
+	updated_at                   *time.Time
+	clearedFields                map[string]struct{}
+	done                         bool
+	oldValue                     func(context.Context) (*ContentDraft, error)
+	predicates                   []predicate.ContentDraft
+}
+
+var _ ent.Mutation = (*ContentDraftMutation)(nil)
+
+// contentdraftOption allows management of the mutation configuration using functional options.
+type contentdraftOption func(*ContentDraftMutation)
+
+// newContentDraftMutation creates new mutation for the ContentDraft entity.
+func newContentDraftMutation(c config, op Op, opts ...contentdraftOption) *ContentDraftMutation {
+	m := &ContentDraftMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeContentDraft,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withContentDraftID sets the ID field of the mutation.
+func withContentDraftID(id string) contentdraftOption {
+	return func(m *ContentDraftMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ContentDraft
+		)
+		m.oldValue = func(ctx context.Context) (*ContentDraft, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ContentDraft.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withContentDraft sets the old ContentDraft of the mutation.
+func withContentDraft(node *ContentDraft) contentdraftOption {
+	return func(m *ContentDraftMutation) {
+		m.oldValue = func(context.Context) (*ContentDraft, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ContentDraftMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ContentDraftMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ContentDraft entities.
+func (m *ContentDraftMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ContentDraftMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ContentDraftMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ContentDraft.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *ContentDraftMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *ContentDraftMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *ContentDraftMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetTitle sets the "title" field.
+func (m *ContentDraftMutation) SetTitle(s string) {
+	m.title = &s
+}
+
+// Title returns the value of the "title" field in the mutation.
+func (m *ContentDraftMutation) Title() (r string, exists bool) {
+	v := m.title
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTitle returns the old "title" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldTitle(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTitle is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTitle requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTitle: %w", err)
+	}
+	return oldValue.Title, nil
+}
+
+// ResetTitle resets all changes to the "title" field.
+func (m *ContentDraftMutation) ResetTitle() {
+	m.title = nil
+}
+
+// SetBody sets the "body" field.
+func (m *ContentDraftMutation) SetBody(i []interface{}) {
+	m.body = &i
+	m.appendbody = nil
+}
+
+// Body returns the value of the "body" field in the mutation.
+func (m *ContentDraftMutation) Body() (r []interface{}, exists bool) {
+	v := m.body
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBody returns the old "body" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldBody(ctx context.Context) (v []interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBody is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBody requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBody: %w", err)
+	}
+	return oldValue.Body, nil
+}
+
+// AppendBody adds i to the "body" field.
+func (m *ContentDraftMutation) AppendBody(i []interface{}) {
+	m.appendbody = append(m.appendbody, i...)
+}
+
+// AppendedBody returns the list of values that were appended to the "body" field in this mutation.
+func (m *ContentDraftMutation) AppendedBody() ([]interface{}, bool) {
+	if len(m.appendbody) == 0 {
+		return nil, false
+	}
+	return m.appendbody, true
+}
+
+// ResetBody resets all changes to the "body" field.
+func (m *ContentDraftMutation) ResetBody() {
+	m.body = nil
+	m.appendbody = nil
+}
+
+// SetPlainText sets the "plain_text" field.
+func (m *ContentDraftMutation) SetPlainText(s string) {
+	m.plain_text = &s
+}
+
+// PlainText returns the value of the "plain_text" field in the mutation.
+func (m *ContentDraftMutation) PlainText() (r string, exists bool) {
+	v := m.plain_text
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlainText returns the old "plain_text" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldPlainText(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlainText is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlainText requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlainText: %w", err)
+	}
+	return oldValue.PlainText, nil
+}
+
+// ResetPlainText resets all changes to the "plain_text" field.
+func (m *ContentDraftMutation) ResetPlainText() {
+	m.plain_text = nil
+}
+
+// SetAssetIds sets the "asset_ids" field.
+func (m *ContentDraftMutation) SetAssetIds(s []string) {
+	m.asset_ids = &s
+	m.appendasset_ids = nil
+}
+
+// AssetIds returns the value of the "asset_ids" field in the mutation.
+func (m *ContentDraftMutation) AssetIds() (r []string, exists bool) {
+	v := m.asset_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAssetIds returns the old "asset_ids" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldAssetIds(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAssetIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAssetIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAssetIds: %w", err)
+	}
+	return oldValue.AssetIds, nil
+}
+
+// AppendAssetIds adds s to the "asset_ids" field.
+func (m *ContentDraftMutation) AppendAssetIds(s []string) {
+	m.appendasset_ids = append(m.appendasset_ids, s...)
+}
+
+// AppendedAssetIds returns the list of values that were appended to the "asset_ids" field in this mutation.
+func (m *ContentDraftMutation) AppendedAssetIds() ([]string, bool) {
+	if len(m.appendasset_ids) == 0 {
+		return nil, false
+	}
+	return m.appendasset_ids, true
+}
+
+// ResetAssetIds resets all changes to the "asset_ids" field.
+func (m *ContentDraftMutation) ResetAssetIds() {
+	m.asset_ids = nil
+	m.appendasset_ids = nil
+}
+
+// SetChannelConnectionIds sets the "channel_connection_ids" field.
+func (m *ContentDraftMutation) SetChannelConnectionIds(s []string) {
+	m.channel_connection_ids = &s
+	m.appendchannel_connection_ids = nil
+}
+
+// ChannelConnectionIds returns the value of the "channel_connection_ids" field in the mutation.
+func (m *ContentDraftMutation) ChannelConnectionIds() (r []string, exists bool) {
+	v := m.channel_connection_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChannelConnectionIds returns the old "channel_connection_ids" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldChannelConnectionIds(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChannelConnectionIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChannelConnectionIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannelConnectionIds: %w", err)
+	}
+	return oldValue.ChannelConnectionIds, nil
+}
+
+// AppendChannelConnectionIds adds s to the "channel_connection_ids" field.
+func (m *ContentDraftMutation) AppendChannelConnectionIds(s []string) {
+	m.appendchannel_connection_ids = append(m.appendchannel_connection_ids, s...)
+}
+
+// AppendedChannelConnectionIds returns the list of values that were appended to the "channel_connection_ids" field in this mutation.
+func (m *ContentDraftMutation) AppendedChannelConnectionIds() ([]string, bool) {
+	if len(m.appendchannel_connection_ids) == 0 {
+		return nil, false
+	}
+	return m.appendchannel_connection_ids, true
+}
+
+// ResetChannelConnectionIds resets all changes to the "channel_connection_ids" field.
+func (m *ContentDraftMutation) ResetChannelConnectionIds() {
+	m.channel_connection_ids = nil
+	m.appendchannel_connection_ids = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *ContentDraftMutation) SetStatus(c contentdraft.Status) {
+	m.status = &c
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *ContentDraftMutation) Status() (r contentdraft.Status, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldStatus(ctx context.Context) (v contentdraft.Status, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *ContentDraftMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetVersion sets the "version" field.
+func (m *ContentDraftMutation) SetVersion(i int) {
+	m.version = &i
+	m.addversion = nil
+}
+
+// Version returns the value of the "version" field in the mutation.
+func (m *ContentDraftMutation) Version() (r int, exists bool) {
+	v := m.version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVersion returns the old "version" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldVersion(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVersion: %w", err)
+	}
+	return oldValue.Version, nil
+}
+
+// AddVersion adds i to the "version" field.
+func (m *ContentDraftMutation) AddVersion(i int) {
+	if m.addversion != nil {
+		*m.addversion += i
+	} else {
+		m.addversion = &i
+	}
+}
+
+// AddedVersion returns the value that was added to the "version" field in this mutation.
+func (m *ContentDraftMutation) AddedVersion() (r int, exists bool) {
+	v := m.addversion
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetVersion resets all changes to the "version" field.
+func (m *ContentDraftMutation) ResetVersion() {
+	m.version = nil
+	m.addversion = nil
+}
+
+// SetCollabState sets the "collab_state" field.
+func (m *ContentDraftMutation) SetCollabState(b []byte) {
+	m.collab_state = &b
+}
+
+// CollabState returns the value of the "collab_state" field in the mutation.
+func (m *ContentDraftMutation) CollabState() (r []byte, exists bool) {
+	v := m.collab_state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCollabState returns the old "collab_state" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldCollabState(ctx context.Context) (v *[]byte, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCollabState is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCollabState requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCollabState: %w", err)
+	}
+	return oldValue.CollabState, nil
+}
+
+// ClearCollabState clears the value of the "collab_state" field.
+func (m *ContentDraftMutation) ClearCollabState() {
+	m.collab_state = nil
+	m.clearedFields[contentdraft.FieldCollabState] = struct{}{}
+}
+
+// CollabStateCleared returns if the "collab_state" field was cleared in this mutation.
+func (m *ContentDraftMutation) CollabStateCleared() bool {
+	_, ok := m.clearedFields[contentdraft.FieldCollabState]
+	return ok
+}
+
+// ResetCollabState resets all changes to the "collab_state" field.
+func (m *ContentDraftMutation) ResetCollabState() {
+	m.collab_state = nil
+	delete(m.clearedFields, contentdraft.FieldCollabState)
+}
+
+// SetCreatedByUserID sets the "created_by_user_id" field.
+func (m *ContentDraftMutation) SetCreatedByUserID(s string) {
+	m.created_by_user_id = &s
+}
+
+// CreatedByUserID returns the value of the "created_by_user_id" field in the mutation.
+func (m *ContentDraftMutation) CreatedByUserID() (r string, exists bool) {
+	v := m.created_by_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedByUserID returns the old "created_by_user_id" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldCreatedByUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedByUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedByUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedByUserID: %w", err)
+	}
+	return oldValue.CreatedByUserID, nil
+}
+
+// ClearCreatedByUserID clears the value of the "created_by_user_id" field.
+func (m *ContentDraftMutation) ClearCreatedByUserID() {
+	m.created_by_user_id = nil
+	m.clearedFields[contentdraft.FieldCreatedByUserID] = struct{}{}
+}
+
+// CreatedByUserIDCleared returns if the "created_by_user_id" field was cleared in this mutation.
+func (m *ContentDraftMutation) CreatedByUserIDCleared() bool {
+	_, ok := m.clearedFields[contentdraft.FieldCreatedByUserID]
+	return ok
+}
+
+// ResetCreatedByUserID resets all changes to the "created_by_user_id" field.
+func (m *ContentDraftMutation) ResetCreatedByUserID() {
+	m.created_by_user_id = nil
+	delete(m.clearedFields, contentdraft.FieldCreatedByUserID)
+}
+
+// SetUpdatedByUserID sets the "updated_by_user_id" field.
+func (m *ContentDraftMutation) SetUpdatedByUserID(s string) {
+	m.updated_by_user_id = &s
+}
+
+// UpdatedByUserID returns the value of the "updated_by_user_id" field in the mutation.
+func (m *ContentDraftMutation) UpdatedByUserID() (r string, exists bool) {
+	v := m.updated_by_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedByUserID returns the old "updated_by_user_id" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldUpdatedByUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedByUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedByUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedByUserID: %w", err)
+	}
+	return oldValue.UpdatedByUserID, nil
+}
+
+// ClearUpdatedByUserID clears the value of the "updated_by_user_id" field.
+func (m *ContentDraftMutation) ClearUpdatedByUserID() {
+	m.updated_by_user_id = nil
+	m.clearedFields[contentdraft.FieldUpdatedByUserID] = struct{}{}
+}
+
+// UpdatedByUserIDCleared returns if the "updated_by_user_id" field was cleared in this mutation.
+func (m *ContentDraftMutation) UpdatedByUserIDCleared() bool {
+	_, ok := m.clearedFields[contentdraft.FieldUpdatedByUserID]
+	return ok
+}
+
+// ResetUpdatedByUserID resets all changes to the "updated_by_user_id" field.
+func (m *ContentDraftMutation) ResetUpdatedByUserID() {
+	m.updated_by_user_id = nil
+	delete(m.clearedFields, contentdraft.FieldUpdatedByUserID)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ContentDraftMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ContentDraftMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ContentDraftMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ContentDraftMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ContentDraftMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ContentDraftMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the ContentDraftMutation builder.
+func (m *ContentDraftMutation) Where(ps ...predicate.ContentDraft) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ContentDraftMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ContentDraftMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ContentDraft, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ContentDraftMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ContentDraftMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ContentDraft).
+func (m *ContentDraftMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ContentDraftMutation) Fields() []string {
+	fields := make([]string, 0, 13)
+	if m.organization_id != nil {
+		fields = append(fields, contentdraft.FieldOrganizationID)
+	}
+	if m.title != nil {
+		fields = append(fields, contentdraft.FieldTitle)
+	}
+	if m.body != nil {
+		fields = append(fields, contentdraft.FieldBody)
+	}
+	if m.plain_text != nil {
+		fields = append(fields, contentdraft.FieldPlainText)
+	}
+	if m.asset_ids != nil {
+		fields = append(fields, contentdraft.FieldAssetIds)
+	}
+	if m.channel_connection_ids != nil {
+		fields = append(fields, contentdraft.FieldChannelConnectionIds)
+	}
+	if m.status != nil {
+		fields = append(fields, contentdraft.FieldStatus)
+	}
+	if m.version != nil {
+		fields = append(fields, contentdraft.FieldVersion)
+	}
+	if m.collab_state != nil {
+		fields = append(fields, contentdraft.FieldCollabState)
+	}
+	if m.created_by_user_id != nil {
+		fields = append(fields, contentdraft.FieldCreatedByUserID)
+	}
+	if m.updated_by_user_id != nil {
+		fields = append(fields, contentdraft.FieldUpdatedByUserID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, contentdraft.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, contentdraft.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ContentDraftMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case contentdraft.FieldOrganizationID:
+		return m.OrganizationID()
+	case contentdraft.FieldTitle:
+		return m.Title()
+	case contentdraft.FieldBody:
+		return m.Body()
+	case contentdraft.FieldPlainText:
+		return m.PlainText()
+	case contentdraft.FieldAssetIds:
+		return m.AssetIds()
+	case contentdraft.FieldChannelConnectionIds:
+		return m.ChannelConnectionIds()
+	case contentdraft.FieldStatus:
+		return m.Status()
+	case contentdraft.FieldVersion:
+		return m.Version()
+	case contentdraft.FieldCollabState:
+		return m.CollabState()
+	case contentdraft.FieldCreatedByUserID:
+		return m.CreatedByUserID()
+	case contentdraft.FieldUpdatedByUserID:
+		return m.UpdatedByUserID()
+	case contentdraft.FieldCreatedAt:
+		return m.CreatedAt()
+	case contentdraft.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ContentDraftMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case contentdraft.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case contentdraft.FieldTitle:
+		return m.OldTitle(ctx)
+	case contentdraft.FieldBody:
+		return m.OldBody(ctx)
+	case contentdraft.FieldPlainText:
+		return m.OldPlainText(ctx)
+	case contentdraft.FieldAssetIds:
+		return m.OldAssetIds(ctx)
+	case contentdraft.FieldChannelConnectionIds:
+		return m.OldChannelConnectionIds(ctx)
+	case contentdraft.FieldStatus:
+		return m.OldStatus(ctx)
+	case contentdraft.FieldVersion:
+		return m.OldVersion(ctx)
+	case contentdraft.FieldCollabState:
+		return m.OldCollabState(ctx)
+	case contentdraft.FieldCreatedByUserID:
+		return m.OldCreatedByUserID(ctx)
+	case contentdraft.FieldUpdatedByUserID:
+		return m.OldUpdatedByUserID(ctx)
+	case contentdraft.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case contentdraft.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ContentDraft field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ContentDraftMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case contentdraft.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case contentdraft.FieldTitle:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTitle(v)
+		return nil
+	case contentdraft.FieldBody:
+		v, ok := value.([]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBody(v)
+		return nil
+	case contentdraft.FieldPlainText:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlainText(v)
+		return nil
+	case contentdraft.FieldAssetIds:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAssetIds(v)
+		return nil
+	case contentdraft.FieldChannelConnectionIds:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChannelConnectionIds(v)
+		return nil
+	case contentdraft.FieldStatus:
+		v, ok := value.(contentdraft.Status)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case contentdraft.FieldVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVersion(v)
+		return nil
+	case contentdraft.FieldCollabState:
+		v, ok := value.([]byte)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCollabState(v)
+		return nil
+	case contentdraft.FieldCreatedByUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedByUserID(v)
+		return nil
+	case contentdraft.FieldUpdatedByUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedByUserID(v)
+		return nil
+	case contentdraft.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case contentdraft.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ContentDraft field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ContentDraftMutation) AddedFields() []string {
+	var fields []string
+	if m.addversion != nil {
+		fields = append(fields, contentdraft.FieldVersion)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ContentDraftMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case contentdraft.FieldVersion:
+		return m.AddedVersion()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ContentDraftMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case contentdraft.FieldVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddVersion(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ContentDraft numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ContentDraftMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(contentdraft.FieldCollabState) {
+		fields = append(fields, contentdraft.FieldCollabState)
+	}
+	if m.FieldCleared(contentdraft.FieldCreatedByUserID) {
+		fields = append(fields, contentdraft.FieldCreatedByUserID)
+	}
+	if m.FieldCleared(contentdraft.FieldUpdatedByUserID) {
+		fields = append(fields, contentdraft.FieldUpdatedByUserID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ContentDraftMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ContentDraftMutation) ClearField(name string) error {
+	switch name {
+	case contentdraft.FieldCollabState:
+		m.ClearCollabState()
+		return nil
+	case contentdraft.FieldCreatedByUserID:
+		m.ClearCreatedByUserID()
+		return nil
+	case contentdraft.FieldUpdatedByUserID:
+		m.ClearUpdatedByUserID()
+		return nil
+	}
+	return fmt.Errorf("unknown ContentDraft nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ContentDraftMutation) ResetField(name string) error {
+	switch name {
+	case contentdraft.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case contentdraft.FieldTitle:
+		m.ResetTitle()
+		return nil
+	case contentdraft.FieldBody:
+		m.ResetBody()
+		return nil
+	case contentdraft.FieldPlainText:
+		m.ResetPlainText()
+		return nil
+	case contentdraft.FieldAssetIds:
+		m.ResetAssetIds()
+		return nil
+	case contentdraft.FieldChannelConnectionIds:
+		m.ResetChannelConnectionIds()
+		return nil
+	case contentdraft.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case contentdraft.FieldVersion:
+		m.ResetVersion()
+		return nil
+	case contentdraft.FieldCollabState:
+		m.ResetCollabState()
+		return nil
+	case contentdraft.FieldCreatedByUserID:
+		m.ResetCreatedByUserID()
+		return nil
+	case contentdraft.FieldUpdatedByUserID:
+		m.ResetUpdatedByUserID()
+		return nil
+	case contentdraft.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case contentdraft.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ContentDraft field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ContentDraftMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ContentDraftMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ContentDraftMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ContentDraftMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ContentDraftMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ContentDraftMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ContentDraftMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ContentDraft unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ContentDraftMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ContentDraft edge %s", name)
 }
 
 // ConversationMutation represents an operation that mutates the Conversation nodes in the graph.

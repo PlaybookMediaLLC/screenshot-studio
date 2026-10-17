@@ -282,9 +282,10 @@ pages mid-crawl; the denominator is fixed at discovery time and late
 discoveries are queued for the next run. The workflow keeps the maximum it has
 reported, and the row update only ever raises the stored value.
 
-The UI polls the backend through `GET /api/v1/onboarding-runs/{runId}`. While
-the workflow runs, the backend answers from the `progress` query, and falls
-back to the row when Temporal is unreachable. Polling backs off from 1s to 5s
+The UI polls the backend: the review screen through the same-origin tRPC
+facade, API callers through `GET /api/v1/onboarding-runs/{runId}`. Both reach
+one backend endpoint. While the workflow runs, the backend answers from the
+`progress` query, and falls back to the row when Temporal is unreachable. Polling backs off from 1s to 5s
 and stops on a terminal status. No realtime dependency is added.
 
 ## Enrichment

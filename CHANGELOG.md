@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.8.0...v2.9.0) (2026-10-17)
+
+
+### Features
+
+* **billing:** enforce seat and channel limits and cut launch AI cost ([#148](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/148)) ([0f2b474](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/0f2b474de239dab58bcea06cee57312921cd4fab))
+
 ## [2.8.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.7.1...v2.8.0) (2026-10-17)
 
 

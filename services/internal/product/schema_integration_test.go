@@ -24,6 +24,7 @@ func TestEntProjectionsMatchMigratedTables(t *testing.T) {
 	c := db.Client
 	queries := map[string]func() error{
 		"audit_drain":                      func() error { _, err := c.AuditDrain.Query().Limit(1).All(ctx); return err },
+		"content_draft":                    func() error { _, err := c.ContentDraft.Query().Limit(1).All(ctx); return err },
 		"organization_enterprise_settings": func() error { _, err := c.OrganizationEnterpriseSettings.Query().Limit(1).All(ctx); return err },
 		"session":                          func() error { _, err := c.Session.Query().Limit(1).All(ctx); return err },
 		"support_access_grant":             func() error { _, err := c.SupportAccessGrant.Query().Limit(1).All(ctx); return err },

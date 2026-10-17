@@ -2,10 +2,12 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { apiKeyScopes } from '@/lib/auth/api-key-scopes'
 
-test('organization API keys expose only intake and artifact scopes', () => {
+// Drafts are content, not publishing: scheduling stays session-only (RFC 037).
+test('organization API keys expose only intake, artifact, and draft scopes', () => {
   assert.deepEqual(apiKeyScopes, [
     'artifact:read',
     'asset:write',
+    'draft:write',
     'release:create',
     'source:write',
     'upload:sign',

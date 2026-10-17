@@ -14,6 +14,7 @@ const SCOPE_NOTES: Record<ApiKeyScope, string> = {
   'source:write': 'Register source apps that send signed webhooks.',
   'asset:write': 'Create and complete workspace assets.',
   'upload:sign': 'Request signed upload URLs for asset bytes.',
+  'draft:write': 'Create, update, and delete content drafts.',
   'artifact:read': 'Read releases, assets, and generated artifacts.',
 }
 

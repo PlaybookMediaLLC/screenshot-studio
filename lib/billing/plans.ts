@@ -42,6 +42,8 @@ export const workspaceFeatureSchema = z.enum([
   // The campaign workflow. Every paid plan includes it; featureOverrides can
   // still grant or revoke it per workspace.
   'campaign:workflow',
+  // Hand-written content drafts scheduled to channels (RFC 037).
+  'content:drafts',
 ])
 export type WorkspaceFeature = z.infer<typeof workspaceFeatureSchema>
 
@@ -79,6 +81,7 @@ const planFeatures = {
     'source-app:create',
     'workspace:use',
     'campaign:workflow',
+    'content:drafts',
   ],
   business: [
     'asset:create',
@@ -89,6 +92,7 @@ const planFeatures = {
     'source-app:create',
     'workspace:use',
     'campaign:workflow',
+    'content:drafts',
   ],
   enterprise: [
     'asset:create',
@@ -102,6 +106,7 @@ const planFeatures = {
     'enterprise:sso',
     'enterprise:scim',
     'campaign:workflow',
+    'content:drafts',
   ],
 } as const satisfies Record<WorkspacePlan, readonly WorkspaceFeature[]>
 
@@ -117,6 +122,7 @@ const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
   'enterprise:sso': 'enterprise',
   'enterprise:scim': 'enterprise',
   'campaign:workflow': 'pro',
+  'content:drafts': 'pro',
 }
 
 /** Mirrors `planQuotas` in services/internal/product/quota.go. */

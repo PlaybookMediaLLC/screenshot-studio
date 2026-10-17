@@ -610,6 +610,47 @@ export type BackendCreateDesignInput = {
   variantLabel?: string
 }
 
+/** Where a content draft is in its life. */
+export type BackendContentDraftStatus = 'draft' | 'scheduled' | 'archived'
+
+/** A post written by hand in the document editor (RFC 037). */
+export type BackendContentDraft = {
+  assetIds: string[]
+  /** Plate JSON: the editor's value, a list of block nodes. */
+  body: unknown[]
+  channelConnectionIds: string[]
+  createdAt: string
+  createdByUserId: string | null
+  id: string
+  organizationId: string
+  plainText: string
+  status: BackendContentDraftStatus
+  title: string
+  updatedAt: string
+  updatedByUserId: string | null
+  /** Every update is based on this; a stale one is refused with 409 and `currentVersion`. */
+  version: number
+}
+
+export type BackendContentDraftInput = {
+  assetIds?: string[]
+  body?: unknown[]
+  channelConnectionIds?: string[]
+  plainText?: string
+  title?: string
+}
+
+export type BackendContentDraftUpdate = BackendContentDraftInput & {
+  baseVersion: number
+  status?: Exclude<BackendContentDraftStatus, 'scheduled'>
+}
+
+export type BackendContentDraftListQuery = {
+  cursor?: string
+  limit?: number
+  status?: BackendContentDraftStatus
+}
+
 /** A cloud project: an editor composition with revision-checked writes. */
 export type BackendProject = {
   createdAt: string
@@ -1818,6 +1859,38 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ updated: true }>(`v1/designs/${encodeURIComponent(id)}/render`, {
       body: { assetId, renderKey },
       method: 'PUT',
+    })
+  }
+
+  async listContentDrafts(query: BackendContentDraftListQuery = {}) {
+    const params = new URLSearchParams()
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== '') params.set(key, String(value))
+    }
+    return this.request<{ items: BackendContentDraft[]; nextCursor: string | null }>(
+      `v1/content-drafts?${params}`
+    )
+  }
+
+  async createContentDraft(input: BackendContentDraftInput) {
+    return this.request<BackendContentDraft>('v1/content-drafts', { body: input, method: 'POST' })
+  }
+
+  async getContentDraft(id: string) {
+    return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}`)
+  }
+
+  /** Updates the fields set, based on `baseVersion`; a stale write fails with 409. */
+  async updateContentDraft(id: string, input: BackendContentDraftUpdate) {
+    return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}`, {
+      body: input,
+      method: 'PATCH',
+    })
+  }
+
+  async deleteContentDraft(id: string) {
+    return this.request<{ deleted: true }>(`v1/content-drafts/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
     })
   }
 

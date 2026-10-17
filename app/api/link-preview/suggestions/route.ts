@@ -8,6 +8,7 @@ import { workspaceQuotaSchema } from '@/lib/billing/plans'
 import { suggestLinkCopy } from '@/lib/link-preview/suggest'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { consumeWorkspaceQuota } from '@/lib/tenant/entitlements'
+import { isAiEnabled } from '@/lib/trpc/routers/launch'
 
 /** The page fetch plus a few model steps. */
 export const maxDuration = 60
@@ -23,6 +24,9 @@ export const POST = route(suggestLinkCopyContract, {
   handler: async ({ access, body }) => {
     if (!isCampaignStudioConfigured()) {
       return errorResponse(503, 'AI is not configured for this workspace.')
+    }
+    if (!(await isAiEnabled(access))) {
+      return errorResponse(403, 'AI is turned off for this workspace.')
     }
     const limit = await checkRateLimit(
       `link-copy-ai:${access.organizationId}`,

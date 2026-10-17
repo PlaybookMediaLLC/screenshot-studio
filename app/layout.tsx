@@ -37,7 +37,8 @@ import { GlobalDropZone } from '@/components/GlobalDropZone'
 import { PathTracker } from '@/components/landing/GoBackButton'
 import { AdFreeRouteLinks } from '@/components/AdFreeRouteLinks'
 import { getRootJsonLd } from '@/lib/seo/json-ld'
-import { ADSENSE_CLIENT } from '@/components/AdSenseScript'
+import { ADSENSE_CLIENT } from '@/lib/adsense'
+import { ConsentBanner } from '@/components/ConsentBanner'
 import { PRODUCT_FACTS, atLeast } from '@/lib/seo/product-facts'
 
 // System UI fonts
@@ -447,6 +448,7 @@ export default async function RootLayout({
               {children}
             </GlobalDropZone>
             <Toaster />
+            <ConsentBanner />
           </TRPCReactProvider>
         </QueryProvider>
       </body>

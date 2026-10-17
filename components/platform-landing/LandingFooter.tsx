@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ArrowUpRight01Icon } from 'hugeicons-react'
 import { navGroupSchema, pagesInGroup, type NavGroup } from '@/lib/marketing/platform-pages'
 import { cn } from '@/lib/utils'
+import { CookieSettingsButton } from '@/components/ConsentBanner'
 import { CONTAINER, MUTED } from './primitives'
 
 const fromRegistry = (group: NavGroup) =>
@@ -73,6 +74,7 @@ export function LandingFooter() {
               <p className={cn('text-[15px]', MUTED)}>
                 © {new Date().getFullYear()} Shots. All rights reserved.
               </p>
+              <CookieSettingsButton className={cn('text-[15px] hover:text-white', MUTED)} />
             </div>
           </div>
           <nav

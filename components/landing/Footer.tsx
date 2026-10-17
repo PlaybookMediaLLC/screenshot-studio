@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { AdSenseScript } from "@/components/AdSenseScript";
+import { CookieSettingsButton } from "@/components/ConsentBanner";
 import { TOOLS } from "@/lib/seo/tools";
 import { guides } from "@/lib/seo/guides";
 
@@ -148,6 +149,7 @@ export function Footer({ brandName = "Shots" }: FooterProps) {
             >
               Terms of service
             </Link>
+            <CookieSettingsButton className="inline-flex h-10 items-center rounded-md bg-foreground/[0.04] px-3 text-sm text-foreground/90 ring-1 ring-border transition-colors duration-150 hover:bg-foreground/[0.08] hover:text-foreground" />
           </div>
 
           <p className="text-xs text-muted-foreground/70">

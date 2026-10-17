@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isAdFreePath } from "../components/AdSenseScript";
+import { isAdFreePath } from "../lib/adsense";
 
 test("editor workspaces are ad free with or without a locale prefix", () => {
   for (const path of ["/", "/de", "/editor", "/code/", "/tweet", "/store-screenshots", "/de/editor", "/ja/store-screenshots"]) {

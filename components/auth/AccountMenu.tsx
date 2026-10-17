@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { authClient, useHydratedSession } from '@/lib/auth/client'
+import { resetUser } from '@/lib/analytics'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useTRPCClient } from '@/lib/trpc/react'
 
@@ -59,6 +60,8 @@ export function AccountMenu({
   async function handleSignOut() {
     setIsSigningOut(true)
     await authClient.signOut()
+    // Forget the analytics device ID so the next person on this browser starts fresh.
+    resetUser()
     window.location.assign('/sign-in')
   }
 

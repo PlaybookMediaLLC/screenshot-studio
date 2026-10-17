@@ -42,6 +42,12 @@ func (s *Store) WorkspaceCleanup(ctx context.Context) (int, error) {
 	return count, nil
 }
 func (s *Store) purgeWorkspace(ctx context.Context, id, org string) error {
+	// A run still going would write pages back after the purge deleted them.
+	if s.Onboarding != nil {
+		if err := s.Onboarding.Cancel(ctx, org); err != nil {
+			return err
+		}
+	}
 	keys, err := ids(ctx, s.DB, `SELECT "objectKey" FROM asset WHERE "organizationId"=$1`, org)
 	if err != nil {
 		return err

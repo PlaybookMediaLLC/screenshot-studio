@@ -31,6 +31,13 @@ type Store struct {
 	Drains      *DrainSender
 	Mail        *Mailer
 	Events      ProductEvents
+	// Onboarding stops a workspace's onboarding run before its data is purged.
+	Onboarding OnboardingCanceller
+}
+
+// OnboardingCanceller stops a workspace's running onboarding workflow.
+type OnboardingCanceller interface {
+	Cancel(ctx context.Context, organizationID string) error
 }
 
 // Serialize a job across replicas and manual invocations, including activity

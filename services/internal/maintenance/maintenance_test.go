@@ -201,8 +201,13 @@ func TestWorkspaceCleanupKeepsAuditAndOtherTenants(t *testing.T) {
 		exec(t, s.DB, `INSERT INTO enrichment_record(id,"organizationId",domain,provider,field,value,"fetchedAt","expiresAt") VALUES($1,$2,'acme.test','site','brand','{}',now(),now())`,
 			"enrichment-"+org, org)
 	}
+	cancelled := &onboardingCancels{}
+	s.Onboarding = cancelled
 	if n := run(t, s, "workspace-cleanup"); n != 1 {
 		t.Fatalf("purged %d", n)
+	}
+	if len(cancelled.organizations) != 1 || cancelled.organizations[0] != "a" {
+		t.Fatalf("onboarding cancelled for %v", cancelled.organizations)
 	}
 	expect(t, s.DB, "PURGED", `SELECT status FROM workspace_deletion WHERE id='due'`)
 	expect(t, s.DB, 1, `SELECT count(*) FROM audit_log WHERE id='evidence'`)
@@ -393,4 +398,11 @@ func TestStaleCommunicationsRequireReviewOnlyAfterAttempt(t *testing.T) {
 	}
 	expect(t, s.DB, "FAILED", `SELECT status FROM customer_communication WHERE id='comm'`)
 	expect(t, s.DB, "UNKNOWN_DELIVERY", `SELECT "failureCode" FROM communication_attempt WHERE id='attempt'`)
+}
+
+type onboardingCancels struct{ organizations []string }
+
+func (o *onboardingCancels) Cancel(_ context.Context, organizationID string) error {
+	o.organizations = append(o.organizations, organizationID)
+	return nil
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/quota"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalonboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
 
@@ -101,7 +102,8 @@ func main() {
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%d", cfg.Port),
 		Handler: httpapi.NewWithOnboarding(publishing.NewRepository(db.Client), scheduler, postiz.New(os.Getenv("POSTIZ_API_URL"), &http.Client{Timeout: 20 * time.Second}, nil), cfg.ServiceToken, configuration,
-			&onboarding.Service{FastPath: &onboarding.FastPath{Fetcher: onboarding.NewFetcher(), Model: model}, Store: configuration}),
+			&onboarding.Service{Background: &temporalonboarding.Client{SeedSurfaces: os.Getenv("PLATFORM_ONBOARDING_SURFACES") == "enabled", Temporal: temporalClient},
+				FastPath: &onboarding.FastPath{Fetcher: onboarding.NewFetcher(), Model: model}, Store: configuration}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       60 * time.Second,
 		WriteTimeout:      30 * time.Second,

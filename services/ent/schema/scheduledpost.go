@@ -22,7 +22,12 @@ func (ScheduledPost) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("id").StorageKey("id").Immutable(),
 		field.String("organization_id").StorageKey("organizationId").Immutable(),
-		field.String("variant_id").StorageKey("variantId").Immutable(),
+		// A post comes from exactly one source: a campaign's creative variant or
+		// a hand-written content draft (RFC 037). A check constraint enforces it.
+		field.String("variant_id").StorageKey("variantId").Optional().Nillable().Immutable(),
+		field.String("content_draft_id").StorageKey("contentDraftId").Optional().Nillable().Immutable(),
+		// A draft post's media. Variant posts take theirs from the variant.
+		field.String("asset_id").StorageKey("assetId").Optional().Nillable().Immutable(),
 		field.String("channel_connection_id").StorageKey("channelConnectionId").Immutable(),
 		field.Time("scheduled_for").StorageKey("scheduledFor"),
 		field.Enum("status").StorageKey("status").Values("DRAFT", "SCHEDULED", "PROCESSING", "PUBLISHED", "FAILED", "CANCELLED", "UNKNOWN_DELIVERY").Default("DRAFT"),
@@ -51,5 +56,6 @@ func (ScheduledPost) Indexes() []ent.Index {
 		index.Fields("channel_connection_id", "idempotency_key").Unique(),
 		index.Fields("organization_id", "status", "scheduled_for"),
 		index.Fields("status", "updated_at"),
+		index.Fields("content_draft_id"),
 	}
 }

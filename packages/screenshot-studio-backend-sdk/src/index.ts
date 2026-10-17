@@ -108,10 +108,14 @@ export type ScheduledPost = {
   createdAt: string
   id: string
   scheduledFor: string
-  status:
-    'DRAFT' | 'SCHEDULED' | 'PROCESSING' | 'PUBLISHED' | 'FAILED' | 'CANCELLED' | 'UNKNOWN_DELIVERY'
-  variantId: string
+  status: ScheduledPostStatus
+  /** A post comes from exactly one source: a campaign variant or a content draft. */
+  contentDraftId: string | null
+  variantId: string | null
 }
+
+export type ScheduledPostStatus =
+  'DRAFT' | 'SCHEDULED' | 'PROCESSING' | 'PUBLISHED' | 'FAILED' | 'CANCELLED' | 'UNKNOWN_DELIVERY'
 
 export type ChannelConnection = {
   createdAt: string
@@ -644,6 +648,20 @@ export type BackendContentDraftUpdate = BackendContentDraftInput & {
   baseVersion: number
   status?: Exclude<BackendContentDraftStatus, 'scheduled'>
 }
+
+/** A post scheduled from a content draft, with its delivery status. */
+export type BackendContentDraftPost = {
+  caption: string
+  channelConnectionId: string
+  createdAt: string
+  id: string
+  platform: string
+  scheduledFor: string
+  status: ScheduledPostStatus
+}
+
+/** One channel of a draft schedule and the caption serialized for it. */
+export type BackendContentDraftScheduleTarget = { caption: string; channelConnectionId: string }
 
 export type BackendContentDraftListQuery = {
   cursor?: string
@@ -1451,13 +1469,13 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ items: ScheduledPost[] }>(`v1/scheduled-posts?limit=${limit}`)
   }
 
+  /** Schedules one post from exactly one source: `variantId` or `contentDraftId`. */
   async createScheduledPost(input: {
     caption: string
     channelConnectionId: string
     idempotencyKey: string
     scheduledFor: Date
-    variantId: string
-  }) {
+  } & ({ contentDraftId?: never; variantId: string } | { contentDraftId: string; variantId?: never })) {
     return this.request<{ created: boolean; scheduledPost: ScheduledPost }>('v1/scheduled-posts', {
       body: input,
       method: 'POST',
@@ -1886,6 +1904,28 @@ export class ScreenshotStudioBackendSDK {
       body: input,
       method: 'PATCH',
     })
+  }
+
+  /**
+   * Schedules the draft at `version` to every target: one post per channel. A
+   * repeat at the same version replays the same posts (`created: false`); a
+   * stale version fails with 409; a new version cancels queued posts first.
+   */
+  async scheduleContentDraft(
+    id: string,
+    input: { scheduledFor: Date; targets: BackendContentDraftScheduleTarget[]; version: number }
+  ) {
+    return this.request<{
+      created: boolean
+      draft: BackendContentDraft
+      posts: BackendContentDraftPost[]
+    }>(`v1/content-drafts/${encodeURIComponent(id)}/schedule`, { body: input, method: 'POST' })
+  }
+
+  async listContentDraftPosts(id: string) {
+    return this.request<{ posts: BackendContentDraftPost[] }>(
+      `v1/content-drafts/${encodeURIComponent(id)}/posts`
+    )
   }
 
   async deleteContentDraft(id: string) {

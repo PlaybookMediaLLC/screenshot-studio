@@ -2,6 +2,7 @@ import 'server-only'
 
 import type { OrganizationAccess } from '@/lib/auth/access'
 import { backendSDK } from '@/lib/backend/sdk'
+import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
 import {
   BackendSDKError,
   type OAuthProvider,
@@ -44,12 +45,19 @@ export async function createBackendScheduledPost(
   input: {
     caption: string
     channelConnectionId: string
+    contentDraftId?: string
     idempotencyKey: string
     scheduledFor: Date
-    variantId: string
+    variantId?: string
   }
 ) {
-  return backendSDK(access).createScheduledPost(input)
+  const { contentDraftId, variantId, ...post } = input
+  if (variantId && !contentDraftId)
+    return backendSDK(access).createScheduledPost({ ...post, variantId })
+  if (contentDraftId && !variantId) {
+    return backendSDK(access).createScheduledPost({ ...post, contentDraftId })
+  }
+  throw new ScheduledPostError('Give exactly one of variantId and contentDraftId.', 400)
 }
 
 export async function cancelBackendScheduledPost(access: OrganizationAccess, id: string) {

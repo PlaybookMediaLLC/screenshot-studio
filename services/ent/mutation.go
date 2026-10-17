@@ -43215,6 +43215,8 @@ type ScheduledPostMutation struct {
 	id                        *string
 	organization_id           *string
 	variant_id                *string
+	content_draft_id          *string
+	asset_id                  *string
 	scheduled_for             *time.Time
 	status                    *scheduledpost.Status
 	caption                   *string
@@ -43390,7 +43392,7 @@ func (m *ScheduledPostMutation) VariantID() (r string, exists bool) {
 // OldVariantID returns the old "variant_id" field's value of the ScheduledPost entity.
 // If the ScheduledPost object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ScheduledPostMutation) OldVariantID(ctx context.Context) (v string, err error) {
+func (m *ScheduledPostMutation) OldVariantID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldVariantID is only allowed on UpdateOne operations")
 	}
@@ -43404,9 +43406,120 @@ func (m *ScheduledPostMutation) OldVariantID(ctx context.Context) (v string, err
 	return oldValue.VariantID, nil
 }
 
+// ClearVariantID clears the value of the "variant_id" field.
+func (m *ScheduledPostMutation) ClearVariantID() {
+	m.variant_id = nil
+	m.clearedFields[scheduledpost.FieldVariantID] = struct{}{}
+}
+
+// VariantIDCleared returns if the "variant_id" field was cleared in this mutation.
+func (m *ScheduledPostMutation) VariantIDCleared() bool {
+	_, ok := m.clearedFields[scheduledpost.FieldVariantID]
+	return ok
+}
+
 // ResetVariantID resets all changes to the "variant_id" field.
 func (m *ScheduledPostMutation) ResetVariantID() {
 	m.variant_id = nil
+	delete(m.clearedFields, scheduledpost.FieldVariantID)
+}
+
+// SetContentDraftID sets the "content_draft_id" field.
+func (m *ScheduledPostMutation) SetContentDraftID(s string) {
+	m.content_draft_id = &s
+}
+
+// ContentDraftID returns the value of the "content_draft_id" field in the mutation.
+func (m *ScheduledPostMutation) ContentDraftID() (r string, exists bool) {
+	v := m.content_draft_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContentDraftID returns the old "content_draft_id" field's value of the ScheduledPost entity.
+// If the ScheduledPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduledPostMutation) OldContentDraftID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldContentDraftID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldContentDraftID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContentDraftID: %w", err)
+	}
+	return oldValue.ContentDraftID, nil
+}
+
+// ClearContentDraftID clears the value of the "content_draft_id" field.
+func (m *ScheduledPostMutation) ClearContentDraftID() {
+	m.content_draft_id = nil
+	m.clearedFields[scheduledpost.FieldContentDraftID] = struct{}{}
+}
+
+// ContentDraftIDCleared returns if the "content_draft_id" field was cleared in this mutation.
+func (m *ScheduledPostMutation) ContentDraftIDCleared() bool {
+	_, ok := m.clearedFields[scheduledpost.FieldContentDraftID]
+	return ok
+}
+
+// ResetContentDraftID resets all changes to the "content_draft_id" field.
+func (m *ScheduledPostMutation) ResetContentDraftID() {
+	m.content_draft_id = nil
+	delete(m.clearedFields, scheduledpost.FieldContentDraftID)
+}
+
+// SetAssetID sets the "asset_id" field.
+func (m *ScheduledPostMutation) SetAssetID(s string) {
+	m.asset_id = &s
+}
+
+// AssetID returns the value of the "asset_id" field in the mutation.
+func (m *ScheduledPostMutation) AssetID() (r string, exists bool) {
+	v := m.asset_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAssetID returns the old "asset_id" field's value of the ScheduledPost entity.
+// If the ScheduledPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduledPostMutation) OldAssetID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAssetID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAssetID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAssetID: %w", err)
+	}
+	return oldValue.AssetID, nil
+}
+
+// ClearAssetID clears the value of the "asset_id" field.
+func (m *ScheduledPostMutation) ClearAssetID() {
+	m.asset_id = nil
+	m.clearedFields[scheduledpost.FieldAssetID] = struct{}{}
+}
+
+// AssetIDCleared returns if the "asset_id" field was cleared in this mutation.
+func (m *ScheduledPostMutation) AssetIDCleared() bool {
+	_, ok := m.clearedFields[scheduledpost.FieldAssetID]
+	return ok
+}
+
+// ResetAssetID resets all changes to the "asset_id" field.
+func (m *ScheduledPostMutation) ResetAssetID() {
+	m.asset_id = nil
+	delete(m.clearedFields, scheduledpost.FieldAssetID)
 }
 
 // SetChannelConnectionID sets the "channel_connection_id" field.
@@ -43825,12 +43938,18 @@ func (m *ScheduledPostMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ScheduledPostMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 12)
 	if m.organization_id != nil {
 		fields = append(fields, scheduledpost.FieldOrganizationID)
 	}
 	if m.variant_id != nil {
 		fields = append(fields, scheduledpost.FieldVariantID)
+	}
+	if m.content_draft_id != nil {
+		fields = append(fields, scheduledpost.FieldContentDraftID)
+	}
+	if m.asset_id != nil {
+		fields = append(fields, scheduledpost.FieldAssetID)
 	}
 	if m.channel_connection != nil {
 		fields = append(fields, scheduledpost.FieldChannelConnectionID)
@@ -43868,6 +43987,10 @@ func (m *ScheduledPostMutation) Field(name string) (ent.Value, bool) {
 		return m.OrganizationID()
 	case scheduledpost.FieldVariantID:
 		return m.VariantID()
+	case scheduledpost.FieldContentDraftID:
+		return m.ContentDraftID()
+	case scheduledpost.FieldAssetID:
+		return m.AssetID()
 	case scheduledpost.FieldChannelConnectionID:
 		return m.ChannelConnectionID()
 	case scheduledpost.FieldScheduledFor:
@@ -43897,6 +44020,10 @@ func (m *ScheduledPostMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldOrganizationID(ctx)
 	case scheduledpost.FieldVariantID:
 		return m.OldVariantID(ctx)
+	case scheduledpost.FieldContentDraftID:
+		return m.OldContentDraftID(ctx)
+	case scheduledpost.FieldAssetID:
+		return m.OldAssetID(ctx)
 	case scheduledpost.FieldChannelConnectionID:
 		return m.OldChannelConnectionID(ctx)
 	case scheduledpost.FieldScheduledFor:
@@ -43935,6 +44062,20 @@ func (m *ScheduledPostMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetVariantID(v)
+		return nil
+	case scheduledpost.FieldContentDraftID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContentDraftID(v)
+		return nil
+	case scheduledpost.FieldAssetID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAssetID(v)
 		return nil
 	case scheduledpost.FieldChannelConnectionID:
 		v, ok := value.(string)
@@ -44022,6 +44163,15 @@ func (m *ScheduledPostMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *ScheduledPostMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(scheduledpost.FieldVariantID) {
+		fields = append(fields, scheduledpost.FieldVariantID)
+	}
+	if m.FieldCleared(scheduledpost.FieldContentDraftID) {
+		fields = append(fields, scheduledpost.FieldContentDraftID)
+	}
+	if m.FieldCleared(scheduledpost.FieldAssetID) {
+		fields = append(fields, scheduledpost.FieldAssetID)
+	}
 	if m.FieldCleared(scheduledpost.FieldTriggerRunID) {
 		fields = append(fields, scheduledpost.FieldTriggerRunID)
 	}
@@ -44039,6 +44189,15 @@ func (m *ScheduledPostMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ScheduledPostMutation) ClearField(name string) error {
 	switch name {
+	case scheduledpost.FieldVariantID:
+		m.ClearVariantID()
+		return nil
+	case scheduledpost.FieldContentDraftID:
+		m.ClearContentDraftID()
+		return nil
+	case scheduledpost.FieldAssetID:
+		m.ClearAssetID()
+		return nil
 	case scheduledpost.FieldTriggerRunID:
 		m.ClearTriggerRunID()
 		return nil
@@ -44055,6 +44214,12 @@ func (m *ScheduledPostMutation) ResetField(name string) error {
 		return nil
 	case scheduledpost.FieldVariantID:
 		m.ResetVariantID()
+		return nil
+	case scheduledpost.FieldContentDraftID:
+		m.ResetContentDraftID()
+		return nil
+	case scheduledpost.FieldAssetID:
+		m.ResetAssetID()
 		return nil
 	case scheduledpost.FieldChannelConnectionID:
 		m.ResetChannelConnectionID()

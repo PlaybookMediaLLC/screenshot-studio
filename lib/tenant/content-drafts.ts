@@ -2,12 +2,16 @@ import 'server-only'
 
 import type {
   BackendContentDraft,
+  BackendContentDraftPost,
   BackendContentDraftInput,
   BackendContentDraftListQuery,
   BackendContentDraftUpdate,
 } from 'screenshot-studio-backend-sdk'
-import type { TenantContext } from '@/lib/auth/access'
+import type { OrganizationAccess, TenantContext } from '@/lib/auth/access'
 import { backendSDK, orNull, withDates } from '@/lib/backend/sdk'
+import { channelForPlatform, serializeDraft } from '@/lib/content-drafts/serialize'
+import { listBackendConnections } from '@/lib/tenant/publishing-backend'
+import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
 
 /**
  * Content drafts for a workspace (RFC 037). The backend scopes every query to
@@ -55,4 +59,55 @@ export async function updateContentDraft(
 /** Delete a draft; false when it is not in this workspace. */
 export async function deleteContentDraft(context: TenantContext, id: string) {
   return (await orNull(backendSDK(context).deleteContentDraft(id))) !== null
+}
+
+/** A draft's post with its times as Dates. */
+function readPost(post: BackendContentDraftPost) {
+  return { ...withDates(post), scheduledFor: new Date(post.scheduledFor) }
+}
+
+/** Every post scheduled from a draft; null when it is not in this workspace. */
+export async function listContentDraftPosts(context: TenantContext, id: string) {
+  const result = await orNull(backendSDK(context).listContentDraftPosts(id))
+  return result ? result.posts.map(readPost) : null
+}
+
+/**
+ * Schedule the draft to channels. Each caption is serialized here from the
+ * stored draft, with the same function the composer previews with, and a
+ * caption a channel cannot take is refused before anything is queued.
+ */
+export async function scheduleContentDraft(
+  context: OrganizationAccess,
+  id: string,
+  input: { channelConnectionIds: string[]; scheduledFor: Date; version: number }
+) {
+  const draft = await getContentDraft(context, id)
+  if (!draft) return null
+  const platforms = new Map(
+    (await listBackendConnections(context)).map((connection) => [
+      connection.id,
+      connection.platform,
+    ])
+  )
+  const targets = input.channelConnectionIds.map((channelConnectionId) => {
+    const platform = platforms.get(channelConnectionId)
+    const channel = platform ? channelForPlatform(platform) : null
+    if (!channel) throw new ScheduledPostError('A selected channel cannot take this draft.', 404)
+    const serialized = serializeDraft(draft.body, channel)
+    if (serialized.errors.length > 0) {
+      throw new ScheduledPostError(`${channel}: ${serialized.errors.join(' ')}`, 409)
+    }
+    return { caption: serialized.caption, channelConnectionId }
+  })
+  const result = await backendSDK(context).scheduleContentDraft(id, {
+    scheduledFor: input.scheduledFor,
+    targets,
+    version: input.version,
+  })
+  return {
+    created: result.created,
+    draft: readDraft(result.draft),
+    posts: result.posts.map(readPost),
+  }
 }

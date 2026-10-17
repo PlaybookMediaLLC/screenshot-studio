@@ -19,6 +19,10 @@ const (
 	FieldOrganizationID = "organizationId"
 	// FieldVariantID holds the string denoting the variant_id field in the database.
 	FieldVariantID = "variantId"
+	// FieldContentDraftID holds the string denoting the content_draft_id field in the database.
+	FieldContentDraftID = "contentDraftId"
+	// FieldAssetID holds the string denoting the asset_id field in the database.
+	FieldAssetID = "assetId"
 	// FieldChannelConnectionID holds the string denoting the channel_connection_id field in the database.
 	FieldChannelConnectionID = "channelConnectionId"
 	// FieldScheduledFor holds the string denoting the scheduled_for field in the database.
@@ -62,6 +66,8 @@ var Columns = []string{
 	FieldID,
 	FieldOrganizationID,
 	FieldVariantID,
+	FieldContentDraftID,
+	FieldAssetID,
 	FieldChannelConnectionID,
 	FieldScheduledFor,
 	FieldStatus,
@@ -140,6 +146,16 @@ func ByOrganizationID(opts ...sql.OrderTermOption) OrderOption {
 // ByVariantID orders the results by the variant_id field.
 func ByVariantID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldVariantID, opts...).ToFunc()
+}
+
+// ByContentDraftID orders the results by the content_draft_id field.
+func ByContentDraftID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldContentDraftID, opts...).ToFunc()
+}
+
+// ByAssetID orders the results by the asset_id field.
+func ByAssetID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAssetID, opts...).ToFunc()
 }
 
 // ByChannelConnectionID orders the results by the channel_connection_id field.

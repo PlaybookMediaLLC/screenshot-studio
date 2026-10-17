@@ -82,7 +82,7 @@ func (p *Publisher) Publish(ctx context.Context, input postiz.PublishInput) (str
 	if p.bindings == nil || p.integrations == nil || p.signer == nil || p.resolve == nil {
 		return "", postiz.NewError(http.StatusServiceUnavailable, false, "direct publisher is not configured")
 	}
-	if input.OrganizationID == "" || input.DestinationID == "" || input.Platform == "" || input.PostID == "" || input.AssetObjectKey == "" {
+	if input.OrganizationID == "" || input.DestinationID == "" || input.Platform == "" || input.PostID == "" {
 		return "", postiz.NewError(http.StatusBadRequest, false, "incomplete publication request")
 	}
 	binding, err := p.bindings.Binding(ctx, input.OrganizationID)
@@ -112,17 +112,21 @@ func (p *Publisher) Publish(ctx context.Context, input postiz.PublishInput) (str
 	if err != nil {
 		return "", postiz.NewError(http.StatusBadRequest, false, "invalid provider settings")
 	}
-	path, err := p.signer.SignDelivery(ctx, input.OrganizationID, input.AssetObjectKey)
-	if err != nil {
-		return "", postiz.NewError(http.StatusServiceUnavailable, false, "private asset could not be signed")
-	}
-	mediaType := "image"
-	if strings.HasPrefix(input.AssetMediaType, "video/") {
-		mediaType = "video"
+	// A content draft post without an image publishes as text (RFC 037).
+	var media []integrations.MediaContent
+	if input.AssetObjectKey != "" {
+		path, err := p.signer.SignDelivery(ctx, input.OrganizationID, input.AssetObjectKey)
+		if err != nil {
+			return "", postiz.NewError(http.StatusServiceUnavailable, false, "private asset could not be signed")
+		}
+		mediaType := "image"
+		if strings.HasPrefix(input.AssetMediaType, "video/") {
+			mediaType = "video"
+		}
+		media = []integrations.MediaContent{{Type: mediaType, Path: path}}
 	}
 	response, err := provider.Post(ctx, account.InternalID, account.Token, []integrations.PostDetails{{
-		ID: input.PostID, Message: input.Caption, Settings: settings,
-		Media: []integrations.MediaContent{{Type: mediaType, Path: path}},
+		ID: input.PostID, Message: input.Caption, Settings: settings, Media: media,
 	}}, account)
 	if err != nil {
 		if temporalx.FailureType(err) == temporalx.TypeRefreshToken || temporalx.FailureType(err) == temporalx.TypeDisconnect {

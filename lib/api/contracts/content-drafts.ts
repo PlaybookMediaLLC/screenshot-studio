@@ -172,3 +172,80 @@ export const deleteContentDraftContract = defineContract({
   path: '/api/v1/content-drafts/{id}',
   summary: 'Delete a content draft',
 })
+
+/** Delivery states of a scheduled post. */
+export const scheduledPostStatusSchema = z.enum([
+  'DRAFT',
+  'SCHEDULED',
+  'PROCESSING',
+  'PUBLISHED',
+  'FAILED',
+  'CANCELLED',
+  'UNKNOWN_DELIVERY',
+])
+
+/** A post scheduled from a draft, with the caption it will publish. */
+export const contentDraftPostSchema = z.object({
+  caption: z.string(),
+  channelConnectionId: z.string(),
+  createdAt: timestampSchema,
+  id: z.string(),
+  platform: z.string(),
+  scheduledFor: timestampSchema,
+  status: scheduledPostStatusSchema,
+})
+
+/**
+ * A schedule request. The server serializes the draft for each channel, so
+ * the posted captions are the ones the composer previewed.
+ */
+export const contentDraftScheduleSchema = z.object({
+  channelConnectionIds: z.array(contentDraftIdSchema).min(1).max(10),
+  scheduledFor: z.coerce.date().refine((value) => value.getTime() > Date.now(), {
+    message: 'Pick a time in the future.',
+  }),
+  version: z.number().int().min(1),
+})
+
+/** `GET /api/v1/content-drafts/{id}/posts` */
+export const listContentDraftPostsContract = defineContract({
+  docs: workspaceDocs({
+    description:
+      'Lists the posts scheduled from a content draft, newest first, with each post status. Requires the `artifact:read` scope.',
+    extensions: entitlement,
+    operationId: 'listContentDraftPosts',
+    outputName: 'ContentDraftPostList',
+    responses: {
+      '200': 'The draft posts.',
+      '400': 'The draft identifier is invalid.',
+      '404': 'The draft was not found in this workspace.',
+    },
+    tag: 'Workspace',
+  }),
+  method: 'GET',
+  name: 'content-drafts.posts',
+  output: z.object({ posts: z.array(contentDraftPostSchema) }),
+  params: contentDraftParamsSchema,
+  path: '/api/v1/content-drafts/{id}/posts',
+  summary: 'List the posts scheduled from a content draft',
+})
+
+/**
+ * `POST /api/v1/content-drafts/{id}/schedule`: one post per channel. A person
+ * with `publish:manage` schedules, as for campaign posts, so it takes a
+ * session only and is not in the API-key reference.
+ */
+export const scheduleContentDraftContract = defineContract({
+  body: contentDraftScheduleSchema,
+  method: 'POST',
+  name: 'content-drafts.schedule',
+  output: z.object({
+    created: z.boolean(),
+    draft: contentDraftSchema,
+    posts: z.array(contentDraftPostSchema),
+  }),
+  params: contentDraftParamsSchema,
+  path: '/api/v1/content-drafts/{id}/schedule',
+  status: 201,
+  summary: 'Schedule a content draft to channels',
+})

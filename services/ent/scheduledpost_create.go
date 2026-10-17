@@ -34,6 +34,42 @@ func (_c *ScheduledPostCreate) SetVariantID(v string) *ScheduledPostCreate {
 	return _c
 }
 
+// SetNillableVariantID sets the "variant_id" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableVariantID(v *string) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetVariantID(*v)
+	}
+	return _c
+}
+
+// SetContentDraftID sets the "content_draft_id" field.
+func (_c *ScheduledPostCreate) SetContentDraftID(v string) *ScheduledPostCreate {
+	_c.mutation.SetContentDraftID(v)
+	return _c
+}
+
+// SetNillableContentDraftID sets the "content_draft_id" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableContentDraftID(v *string) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetContentDraftID(*v)
+	}
+	return _c
+}
+
+// SetAssetID sets the "asset_id" field.
+func (_c *ScheduledPostCreate) SetAssetID(v string) *ScheduledPostCreate {
+	_c.mutation.SetAssetID(v)
+	return _c
+}
+
+// SetNillableAssetID sets the "asset_id" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableAssetID(v *string) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetAssetID(*v)
+	}
+	return _c
+}
+
 // SetChannelConnectionID sets the "channel_connection_id" field.
 func (_c *ScheduledPostCreate) SetChannelConnectionID(v string) *ScheduledPostCreate {
 	_c.mutation.SetChannelConnectionID(v)
@@ -194,9 +230,6 @@ func (_c *ScheduledPostCreate) check() error {
 	if _, ok := _c.mutation.OrganizationID(); !ok {
 		return &ValidationError{Name: "organization_id", err: errors.New(`ent: missing required field "ScheduledPost.organization_id"`)}
 	}
-	if _, ok := _c.mutation.VariantID(); !ok {
-		return &ValidationError{Name: "variant_id", err: errors.New(`ent: missing required field "ScheduledPost.variant_id"`)}
-	}
 	if _, ok := _c.mutation.ChannelConnectionID(); !ok {
 		return &ValidationError{Name: "channel_connection_id", err: errors.New(`ent: missing required field "ScheduledPost.channel_connection_id"`)}
 	}
@@ -272,7 +305,15 @@ func (_c *ScheduledPostCreate) createSpec() (*ScheduledPost, *sqlgraph.CreateSpe
 	}
 	if value, ok := _c.mutation.VariantID(); ok {
 		_spec.SetField(scheduledpost.FieldVariantID, field.TypeString, value)
-		_node.VariantID = value
+		_node.VariantID = &value
+	}
+	if value, ok := _c.mutation.ContentDraftID(); ok {
+		_spec.SetField(scheduledpost.FieldContentDraftID, field.TypeString, value)
+		_node.ContentDraftID = &value
+	}
+	if value, ok := _c.mutation.AssetID(); ok {
+		_spec.SetField(scheduledpost.FieldAssetID, field.TypeString, value)
+		_node.AssetID = &value
 	}
 	if value, ok := _c.mutation.ScheduledFor(); ok {
 		_spec.SetField(scheduledpost.FieldScheduledFor, field.TypeTime, value)

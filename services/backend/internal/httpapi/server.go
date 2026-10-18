@@ -146,6 +146,8 @@ type ConfigurationStore interface {
 	UpsertProductProfile(context.Context, product.Actor, product.UpsertProductProfileInput) (*product.ProductProfileRecord, error)
 	GetIdealCustomerProfile(context.Context, product.Actor) (*product.IdealCustomerProfileRecord, error)
 	UpsertIdealCustomerProfile(context.Context, product.Actor, product.UpsertIdealCustomerProfileInput) (*product.IdealCustomerProfileRecord, error)
+	GetOnboardingRun(context.Context, product.Actor, string) (*product.OnboardingRunRecord, error)
+	LatestOnboardingRun(context.Context, product.Actor) (*product.OnboardingRunRecord, error)
 	CreateSourceApp(context.Context, product.Actor, product.CreateSourceAppInput) (*ent.SourceApp, error)
 	UpdateSourceApp(context.Context, product.Actor, string, product.UpdateSourceAppInput) (*ent.SourceApp, error)
 	ListProductSurfaces(context.Context, string) ([]*ent.ProductSurface, error)
@@ -224,6 +226,7 @@ type ConfigurationStore interface {
 
 type Server struct {
 	configuration ConfigurationStore
+	onboarding    OnboardingService
 	scheduler     WorkflowScheduler
 	serviceToken  string
 	store         Store
@@ -235,7 +238,12 @@ func New(store Store, scheduler WorkflowScheduler, verifier DestinationVerifier,
 }
 
 func NewWithConfiguration(store Store, scheduler WorkflowScheduler, verifier DestinationVerifier, serviceToken string, configuration ConfigurationStore) http.Handler {
-	s := &Server{store: store, scheduler: scheduler, verifier: verifier, serviceToken: serviceToken, configuration: configuration}
+	return NewWithOnboarding(store, scheduler, verifier, serviceToken, configuration, nil)
+}
+
+// NewWithOnboarding also serves the onboarding agent's runs.
+func NewWithOnboarding(store Store, scheduler WorkflowScheduler, verifier DestinationVerifier, serviceToken string, configuration ConfigurationStore, onboarding OnboardingService) http.Handler {
+	s := &Server{store: store, scheduler: scheduler, verifier: verifier, serviceToken: serviceToken, configuration: configuration, onboarding: onboarding}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.health)
 	mux.HandleFunc("GET /readyz", s.ready)

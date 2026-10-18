@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.14.0...v2.15.0) (2026-10-18)
+
+
+### Features
+
+* **drafts:** save comment threads with the draft ([#176](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/176)) ([1ec9fef](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1ec9fef05f3dfd6eb5f80e57602eb317d628e2ef))
+
 ## [2.14.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.13.0...v2.14.0) (2026-10-18)
 
 

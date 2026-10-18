@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.10.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.9.0...v2.10.0) (2026-10-18)
+
+
+### Features
+
+* **drafts:** add content drafts to the Go backend, SDK and /api/v1 ([#163](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/163)) ([6e8c07b](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/6e8c07be20ac4158c3038cfa40d9737d498b6ec0))
+* **drafts:** add the draft composer and live co-editing behind PLATFORM_CONTENT_DRAFTS ([#165](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/165)) ([2e6469e](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/2e6469ef852b86a7f18fd683b68bec8c94c9a1f7))
+* **drafts:** schedule a content draft to several channels ([#164](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/164)) ([6d3525f](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/6d3525ffc5007133a516231505ec578ad53a2c17))
+* **editor:** inject uploads, AI and collaboration config into the editor package ([#162](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/162)) ([9d9160c](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/9d9160ca33c3d33900695cc4f7256adeb2d79b69))
+* **editor:** vendor the Plate.js editor package as @shots/platejs-editor ([#161](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/161)) ([0052234](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/0052234e8b6f0be7d90ad40be8b7800d18f0b6ae))
+
 ## [2.9.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.8.0...v2.9.0) (2026-10-17)
 
 

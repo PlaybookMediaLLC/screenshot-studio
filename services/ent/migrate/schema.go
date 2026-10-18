@@ -916,6 +916,35 @@ var (
 			},
 		},
 	}
+	// EnrichmentRecordColumns holds the columns for the "enrichment_record" table.
+	EnrichmentRecordColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "domain", Type: field.TypeString},
+		{Name: "provider", Type: field.TypeString},
+		{Name: "field", Type: field.TypeString},
+		{Name: "value", Type: field.TypeJSON},
+		{Name: "confidence", Type: field.TypeFloat64, Default: 0},
+		{Name: "sourceUrl", Type: field.TypeString, Nullable: true},
+		{Name: "fetchedAt", Type: field.TypeTime},
+		{Name: "expiresAt", Type: field.TypeTime},
+		{Name: "costMicros", Type: field.TypeInt64, Default: 0},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// EnrichmentRecordTable holds the schema information for the "enrichment_record" table.
+	EnrichmentRecordTable = &schema.Table{
+		Name:       "enrichment_record",
+		Columns:    EnrichmentRecordColumns,
+		PrimaryKey: []*schema.Column{EnrichmentRecordColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "enrichmentrecord_organizationId_domain_provider_field",
+				Unique:  true,
+				Columns: []*schema.Column{EnrichmentRecordColumns[1], EnrichmentRecordColumns[2], EnrichmentRecordColumns[3], EnrichmentRecordColumns[4]},
+			},
+		},
+	}
 	// GithubInstallStartColumns holds the columns for the "github_install_start" table.
 	GithubInstallStartColumns = []*schema.Column{
 		{Name: "state", Type: field.TypeString},
@@ -960,6 +989,33 @@ var (
 				Name:    "githubinstallation_installationId",
 				Unique:  true,
 				Columns: []*schema.Column{GithubInstallationColumns[1]},
+			},
+		},
+	}
+	// IdealCustomerProfileColumns holds the columns for the "ideal_customer_profile" table.
+	IdealCustomerProfileColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "personas", Type: field.TypeJSON},
+		{Name: "pains", Type: field.TypeJSON},
+		{Name: "jobs", Type: field.TypeJSON},
+		{Name: "buyingTriggers", Type: field.TypeJSON},
+		{Name: "objections", Type: field.TypeJSON},
+		{Name: "channels", Type: field.TypeJSON},
+		{Name: "provenance", Type: field.TypeJSON},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// IdealCustomerProfileTable holds the schema information for the "ideal_customer_profile" table.
+	IdealCustomerProfileTable = &schema.Table{
+		Name:       "ideal_customer_profile",
+		Columns:    IdealCustomerProfileColumns,
+		PrimaryKey: []*schema.Column{IdealCustomerProfileColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "idealcustomerprofile_organizationId",
+				Unique:  true,
+				Columns: []*schema.Column{IdealCustomerProfileColumns[1]},
 			},
 		},
 	}
@@ -1128,6 +1184,53 @@ var (
 			},
 		},
 	}
+	// OnboardingRunColumns holds the columns for the "onboarding_run" table.
+	OnboardingRunColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "url", Type: field.TypeString},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"queued", "running", "completed", "partial", "failed", "cancelled"}, Default: "queued"},
+		{Name: "stage", Type: field.TypeString, Default: "fast_path"},
+		{Name: "completedStages", Type: field.TypeJSON},
+		{Name: "progress", Type: field.TypeInt, Default: 0},
+		{Name: "discoveredUrls", Type: field.TypeJSON},
+		{Name: "pagesDiscovered", Type: field.TypeInt, Default: 0},
+		{Name: "pagesProcessed", Type: field.TypeInt, Default: 0},
+		{Name: "pagesSkipped", Type: field.TypeInt, Default: 0},
+		{Name: "pageLimit", Type: field.TypeInt, Default: 0},
+		{Name: "tokensUsed", Type: field.TypeInt, Default: 0},
+		{Name: "tokenBudget", Type: field.TypeInt, Default: 0},
+		{Name: "enrichmentCostMicros", Type: field.TypeInt64, Default: 0},
+		{Name: "fastPathMs", Type: field.TypeInt, Default: 0},
+		{Name: "errorCode", Type: field.TypeString, Nullable: true},
+		{Name: "errorMessage", Type: field.TypeString, Nullable: true},
+		{Name: "idempotencyKey", Type: field.TypeString},
+		{Name: "workflowId", Type: field.TypeString},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "startedAt", Type: field.TypeTime},
+		{Name: "completedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "deadlineAt", Type: field.TypeTime},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// OnboardingRunTable holds the schema information for the "onboarding_run" table.
+	OnboardingRunTable = &schema.Table{
+		Name:       "onboarding_run",
+		Columns:    OnboardingRunColumns,
+		PrimaryKey: []*schema.Column{OnboardingRunColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "onboardingrun_organizationId_idempotencyKey",
+				Unique:  true,
+				Columns: []*schema.Column{OnboardingRunColumns[1], OnboardingRunColumns[18]},
+			},
+			{
+				Name:    "onboardingrun_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{OnboardingRunColumns[1], OnboardingRunColumns[24]},
+			},
+		},
+	}
 	// OrganizationColumns holds the columns for the "organization" table.
 	OrganizationColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1194,6 +1297,41 @@ var (
 				Name:    "outboxevent_organizationId_createdAt",
 				Unique:  false,
 				Columns: []*schema.Column{OutboxEventColumns[1], OutboxEventColumns[12]},
+			},
+		},
+	}
+	// PageKnowledgeColumns holds the columns for the "page_knowledge" table.
+	PageKnowledgeColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "runId", Type: field.TypeString},
+		{Name: "url", Type: field.TypeString},
+		{Name: "title", Type: field.TypeString, Default: ""},
+		{Name: "contentHash", Type: field.TypeString},
+		{Name: "pageType", Type: field.TypeEnum, Enums: []string{"homepage", "pricing", "features", "docs", "changelog", "about", "other"}, Default: "other"},
+		{Name: "text", Type: field.TypeString, Size: 2147483647, Default: ""},
+		{Name: "httpStatus", Type: field.TypeInt, Default: 0},
+		{Name: "etag", Type: field.TypeString, Nullable: true},
+		{Name: "lastModified", Type: field.TypeString, Nullable: true},
+		{Name: "fetchedAt", Type: field.TypeTime},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// PageKnowledgeTable holds the schema information for the "page_knowledge" table.
+	PageKnowledgeTable = &schema.Table{
+		Name:       "page_knowledge",
+		Columns:    PageKnowledgeColumns,
+		PrimaryKey: []*schema.Column{PageKnowledgeColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "pageknowledge_organizationId_url",
+				Unique:  true,
+				Columns: []*schema.Column{PageKnowledgeColumns[1], PageKnowledgeColumns[3]},
+			},
+			{
+				Name:    "pageknowledge_organizationId_runId",
+				Unique:  false,
+				Columns: []*schema.Column{PageKnowledgeColumns[1], PageKnowledgeColumns[2]},
 			},
 		},
 	}
@@ -2046,16 +2184,20 @@ var (
 		CustomerCommunicationTable,
 		DeploymentEventTable,
 		DesignTable,
+		EnrichmentRecordTable,
 		GithubInstallStartTable,
 		GithubInstallationTable,
+		IdealCustomerProfileTable,
 		IntegrationConnectionTable,
 		InvitationTable,
 		LaunchRunTable,
 		LaunchRunStepTable,
 		MemberTable,
+		OnboardingRunTable,
 		OrganizationTable,
 		OrganizationEnterpriseSettingsTable,
 		OutboxEventTable,
+		PageKnowledgeTable,
 		PostizTenantBindingTable,
 		ProductProfileTable,
 		ProductSurfaceTable,
@@ -2176,11 +2318,17 @@ func init() {
 	DesignTable.Annotation = &entsql.Annotation{
 		Table: "design",
 	}
+	EnrichmentRecordTable.Annotation = &entsql.Annotation{
+		Table: "enrichment_record",
+	}
 	GithubInstallStartTable.Annotation = &entsql.Annotation{
 		Table: "github_install_start",
 	}
 	GithubInstallationTable.Annotation = &entsql.Annotation{
 		Table: "github_installation",
+	}
+	IdealCustomerProfileTable.Annotation = &entsql.Annotation{
+		Table: "ideal_customer_profile",
 	}
 	IntegrationConnectionTable.Annotation = &entsql.Annotation{
 		Table: "integration_connection",
@@ -2197,6 +2345,9 @@ func init() {
 	MemberTable.Annotation = &entsql.Annotation{
 		Table: "member",
 	}
+	OnboardingRunTable.Annotation = &entsql.Annotation{
+		Table: "onboarding_run",
+	}
 	OrganizationTable.Annotation = &entsql.Annotation{
 		Table: "organization",
 	}
@@ -2205,6 +2356,9 @@ func init() {
 	}
 	OutboxEventTable.Annotation = &entsql.Annotation{
 		Table: "outbox_event",
+	}
+	PageKnowledgeTable.Annotation = &entsql.Annotation{
+		Table: "page_knowledge",
 	}
 	PostizTenantBindingTable.Annotation = &entsql.Annotation{
 		Table: "postiz_tenant_binding",

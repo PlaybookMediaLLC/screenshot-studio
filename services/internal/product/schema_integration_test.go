@@ -62,6 +62,10 @@ func TestEntProjectionsMatchMigratedTables(t *testing.T) {
 		"conversation":                     func() error { _, err := c.Conversation.Query().Limit(1).All(ctx); return err },
 		"conversation_message":             func() error { _, err := c.ConversationMessage.Query().Limit(1).All(ctx); return err },
 		"workspace_settings":               func() error { _, err := c.WorkspaceSettings.Query().Limit(1).All(ctx); return err },
+		"onboarding_run":                   func() error { _, err := c.OnboardingRun.Query().Limit(1).All(ctx); return err },
+		"page_knowledge":                   func() error { _, err := c.PageKnowledge.Query().Limit(1).All(ctx); return err },
+		"ideal_customer_profile":           func() error { _, err := c.IdealCustomerProfile.Query().Limit(1).All(ctx); return err },
+		"enrichment_record":                func() error { _, err := c.EnrichmentRecord.Query().Limit(1).All(ctx); return err },
 	}
 	for table, query := range queries {
 		if err := query(); err != nil {

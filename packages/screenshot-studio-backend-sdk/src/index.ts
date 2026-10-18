@@ -267,6 +267,8 @@ export type ProductProofPoint = { claim: string; sourceUrl?: string }
 
 /** Where a product profile field's value came from. An edited field is locked. */
 export type ProductProfileProvenance = {
+  /** How sure an automated source was, in [0, 1], when it said. */
+  confidence?: number
   editedByUser: boolean
   source: 'manual' | 'automated'
   updatedAt: string
@@ -321,6 +323,45 @@ export type UpsertProductProfileInput = {
   summary?: string
   unlockFields?: ProductProfileField[]
   url?: string
+}
+
+/** One kind of buyer in an ideal customer profile. */
+export type IdealCustomerPersona = { role: string; seniority?: string; teamSize?: string }
+
+/** An ideal customer profile field name. */
+export type IdealCustomerProfileField =
+  'personas' | 'pains' | 'jobs' | 'buyingTriggers' | 'objections' | 'channels'
+
+/** Who the workspace sells to, one per workspace, with per-field provenance. */
+export type IdealCustomerProfile = {
+  buyingTriggers: string[]
+  channels: string[]
+  createdAt: string
+  id: string
+  jobs: string[]
+  objections: string[]
+  pains: string[]
+  personas: IdealCustomerPersona[]
+  provenance: Partial<Record<IdealCustomerProfileField, ProductProfileProvenance>>
+  updatedAt: string
+}
+
+/**
+ * An ideal customer profile change, with the product profile's rules: a
+ * manual change (the default) locks each changed field; an automated one
+ * skips locked fields and records each value's page and confidence.
+ */
+export type UpsertIdealCustomerProfileInput = {
+  buyingTriggers?: string[]
+  channels?: string[]
+  confidence?: Partial<Record<IdealCustomerProfileField, number>>
+  jobs?: string[]
+  objections?: string[]
+  pains?: string[]
+  personas?: IdealCustomerPersona[]
+  source?: 'manual' | 'automated'
+  sourceUrls?: Partial<Record<IdealCustomerProfileField, string>>
+  unlockFields?: IdealCustomerProfileField[]
 }
 
 /**
@@ -1603,6 +1644,19 @@ export class ScreenshotStudioBackendSDK {
   /** Creates or changes the product profile; owner or admin only. */
   async upsertProductProfile(input: UpsertProductProfileInput) {
     return this.request<ProductProfile>('v1/product-profile', { body: input, method: 'POST' })
+  }
+  /** The workspace's ideal customer profile, or null before one is saved. */
+  async getIdealCustomerProfile() {
+    return this.request<{ idealCustomerProfile: IdealCustomerProfile | null }>(
+      'v1/ideal-customer-profile'
+    )
+  }
+  /** Creates or changes the ideal customer profile; owner or admin only. */
+  async upsertIdealCustomerProfile(input: UpsertIdealCustomerProfileInput) {
+    return this.request<IdealCustomerProfile>('v1/ideal-customer-profile', {
+      body: input,
+      method: 'POST',
+    })
   }
 
   async createSourceApp(input: {

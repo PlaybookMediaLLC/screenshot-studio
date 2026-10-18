@@ -144,6 +144,8 @@ type ConfigurationStore interface {
 	UpsertBrandProfile(context.Context, product.Actor, product.UpsertBrandProfileInput) (*ent.BrandProfile, error)
 	GetProductProfile(context.Context, product.Actor) (*product.ProductProfileRecord, error)
 	UpsertProductProfile(context.Context, product.Actor, product.UpsertProductProfileInput) (*product.ProductProfileRecord, error)
+	GetIdealCustomerProfile(context.Context, product.Actor) (*product.IdealCustomerProfileRecord, error)
+	UpsertIdealCustomerProfile(context.Context, product.Actor, product.UpsertIdealCustomerProfileInput) (*product.IdealCustomerProfileRecord, error)
 	CreateSourceApp(context.Context, product.Actor, product.CreateSourceAppInput) (*ent.SourceApp, error)
 	UpdateSourceApp(context.Context, product.Actor, string, product.UpdateSourceAppInput) (*ent.SourceApp, error)
 	ListProductSurfaces(context.Context, string) ([]*ent.ProductSurface, error)
@@ -265,6 +267,7 @@ func NewWithConfiguration(store Store, scheduler WorkflowScheduler, verifier Des
 		s.registerContentDrafts(mux)
 		s.registerLibrary(mux)
 		s.registerSharing(mux)
+		s.registerOnboarding(mux)
 	}
 	return requestLogging(mux)
 }

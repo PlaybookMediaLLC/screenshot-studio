@@ -12,6 +12,10 @@ import (
 // OnboardingService runs the onboarding agent; *onboarding.Service is one.
 type OnboardingService interface {
 	Start(context.Context, product.Actor, onboarding.StartInput) (*onboarding.StartResult, error)
+	Get(context.Context, product.Actor, string) (*product.OnboardingRunRecord, error)
+	Cancel(context.Context, product.Actor, string) (*product.OnboardingRunRecord, error)
+	Rerun(context.Context, product.Actor, string, string) (*onboarding.StartResult, error)
+	CancelWorkspace(context.Context, string) error
 }
 
 // The onboarding agent's routes (docs/rfcs/032-background-onboarding-agent.md).
@@ -21,6 +25,8 @@ func (s *Server) registerOnboarding(mux *http.ServeMux) {
 	mux.Handle("POST /v1/onboarding-runs", s.authenticateProduct(http.HandlerFunc(s.startOnboardingRun)))
 	mux.Handle("GET /v1/onboarding-runs/latest", s.authenticateProduct(http.HandlerFunc(s.latestOnboardingRun)))
 	mux.Handle("GET /v1/onboarding-runs/{id}", s.authenticateProduct(http.HandlerFunc(s.getOnboardingRun)))
+	mux.Handle("POST /v1/onboarding-runs/{id}/cancel", s.authenticateProduct(http.HandlerFunc(s.cancelOnboardingRun)))
+	mux.Handle("POST /v1/onboarding-runs/{id}/rerun", s.authenticateProduct(http.HandlerFunc(s.rerunOnboardingRun)))
 }
 
 func (s *Server) getIdealCustomerProfile(w http.ResponseWriter, r *http.Request) {
@@ -72,13 +78,59 @@ func (s *Server) startOnboardingRun(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, status, result)
 }
 
+// getOnboardingRun answers a running run's progress from its workflow.
 func (s *Server) getOnboardingRun(w http.ResponseWriter, r *http.Request) {
-	run, err := s.configuration.GetOnboardingRun(r.Context(), workspaceActor(r), r.PathValue("id"))
+	var run *product.OnboardingRunRecord
+	var err error
+	if s.onboarding != nil {
+		run, err = s.onboarding.Get(r.Context(), workspaceActor(r), r.PathValue("id"))
+	} else {
+		run, err = s.configuration.GetOnboardingRun(r.Context(), workspaceActor(r), r.PathValue("id"))
+	}
 	if err != nil {
 		writeStoreError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"run": run})
+}
+
+func (s *Server) cancelOnboardingRun(w http.ResponseWriter, r *http.Request) {
+	if s.onboarding == nil {
+		writeError(w, http.StatusServiceUnavailable, "onboarding is unavailable")
+		return
+	}
+	run, err := s.onboarding.Cancel(r.Context(), workspaceActor(r), r.PathValue("id"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"run": run})
+}
+
+// rerunOnboardingRun starts a new run for the run's URL; a replayed
+// idempotency key returns the run it started.
+func (s *Server) rerunOnboardingRun(w http.ResponseWriter, r *http.Request) {
+	if s.onboarding == nil {
+		writeError(w, http.StatusServiceUnavailable, "onboarding is unavailable")
+		return
+	}
+	var input struct {
+		IdempotencyKey string `json:"idempotencyKey"`
+	}
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	result, err := s.onboarding.Rerun(r.Context(), workspaceActor(r), r.PathValue("id"), strings.TrimSpace(input.IdempotencyKey))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	status := http.StatusOK
+	if result.Created {
+		status = http.StatusCreated
+	}
+	writeJSON(w, status, result)
 }
 
 func (s *Server) latestOnboardingRun(w http.ResponseWriter, r *http.Request) {

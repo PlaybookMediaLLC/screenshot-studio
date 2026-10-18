@@ -19,13 +19,19 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/maintenance"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/media"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/onboarding"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/platformai"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/quota"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalmaintenance"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalonboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/tenantpublishing"
+	"github.com/getsentry/sentry-go"
 	workflowservice "go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/interceptor"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 )
@@ -109,6 +115,43 @@ func main() {
 		activityWorker.RegisterActivityWithOptions(activities.Check, activity.RegisterOptions{Name: temporalpublishing.CheckActivityName})
 	}
 
+	// The onboarding agent's background read (docs/rfcs/032) on its own queue.
+	onboardingStore := product.NewConfiguration(db.Client)
+	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
+		counter, err := quota.NewRedisCounter(redisURL)
+		if err != nil {
+			slog.Error("invalid quota counter configuration", "error", err)
+			os.Exit(1)
+		}
+		defer counter.Close()
+		meter, err := counter.MonthlyMeter()
+		if err != nil {
+			slog.Error("monthly quota meter unavailable", "error", err)
+			os.Exit(1)
+		}
+		onboardingStore.WithQuotaCounter(counter).WithMonthlyMeter(meter)
+	}
+	onboardingActivities := &temporalonboarding.Activities{Fetcher: onboarding.NewFetcher(), Store: onboardingStore}
+	if model := platformai.FromEnvironment(); model != nil {
+		onboardingActivities.Model = model
+	}
+	var onboardingWorker worker.Worker
+	if !slices.Contains(cfg.ExcludedQueues, temporalonboarding.TaskQueue) {
+		temporalonboarding.InitSentry("publishing-orchestrator")
+		defer sentry.Flush(2 * time.Second)
+		onboardingWorker = worker.New(temporalClient, temporalonboarding.TaskQueue, worker.Options{
+			Interceptors:                       []interceptor.WorkerInterceptor{&temporalonboarding.Observer{}},
+			MaxConcurrentActivityExecutionSize: max(1, 10/cfg.WorkerConcurrencyDivider), MaxHeartbeatThrottleInterval: 5 * time.Second,
+			OnFatalError: func(err error) { slog.Error("Temporal onboarding worker failed", "error", err); stop() },
+		})
+		temporalonboarding.Register(onboardingWorker, onboardingActivities)
+		if err := onboardingWorker.Start(); err != nil {
+			slog.Error("Temporal onboarding worker did not start", "error", err)
+			os.Exit(1)
+		}
+		defer onboardingWorker.Stop()
+	}
+
 	if cfg.RunMaintenance {
 		retention, err := database.Open(ctx, cfg.AuditRetentionDatabaseURL)
 		if err != nil {
@@ -129,8 +172,9 @@ func main() {
 			events.WithGitHubApp(github)
 		}
 		jobs := &maintenance.Store{DB: db.SQL, RetentionDB: retention.SQL, Objects: tenantObjects, Events: events,
-			Drains: maintenance.NewDrainSender(cfg.AuditDrainEncryptionKey),
-			Mail:   &maintenance.Mailer{APIKey: cfg.ResendAPIKey, From: cfg.EmailFrom, BaseURL: cfg.AuthBaseURL, SigningSecret: cfg.AuthSecret, PostalAddress: cfg.CompanyPostalAddress},
+			Onboarding: &temporalonboarding.Client{Temporal: temporalClient},
+			Drains:     maintenance.NewDrainSender(cfg.AuditDrainEncryptionKey),
+			Mail:       &maintenance.Mailer{APIKey: cfg.ResendAPIKey, From: cfg.EmailFrom, BaseURL: cfg.AuthBaseURL, SigningSecret: cfg.AuthSecret, PostalAddress: cfg.CompanyPostalAddress},
 		}
 		maintenanceWorker := worker.New(temporalClient, temporalmaintenance.TaskQueue, worker.Options{
 			MaxConcurrentActivityExecutionSize: 5, OnFatalError: func(err error) { slog.Error("maintenance worker failed"); stop() },

@@ -286,6 +286,22 @@ func (c *Configuration) UpdateOnboardingRun(ctx context.Context, actor Actor, id
 	}
 }
 
+// FinishOnboardingRun is the workflow's own bookkeeping: it records a run's
+// outcome even when the workspace was scheduled for deletion meanwhile, so a
+// cancelled run reads cancelled. It writes only that run's row, matched on
+// its workspace, and is never exposed to a caller.
+func (c *Configuration) FinishOnboardingRun(ctx context.Context, organizationID, id string, update OnboardingRunUpdate) (*OnboardingRunRecord, error) {
+	if update.Status != nil && !slices.Contains(onboardingStatuses, *update.Status) || update.Progress < 0 || update.Progress > 100 {
+		return nil, ErrInvalidInput
+	}
+	for attempt := 0; ; attempt++ {
+		saved, err := c.updateOnboardingRunOnce(ctx, organizationID, id, update)
+		if !ent.IsNotFound(err) || attempt == 4 {
+			return saved, err
+		}
+	}
+}
+
 func (c *Configuration) updateOnboardingRunOnce(ctx context.Context, organizationID, id string, update OnboardingRunUpdate) (*OnboardingRunRecord, error) {
 	current, err := c.client.OnboardingRun.Query().Where(onboardingrun.ID(id), onboardingrun.OrganizationID(organizationID)).Only(ctx)
 	if ent.IsNotFound(err) {

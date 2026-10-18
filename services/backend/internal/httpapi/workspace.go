@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"log/slog"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -177,6 +178,12 @@ func (s *Server) requestWorkspaceDeletion(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		writeStoreError(w, err)
 		return
+	}
+	// A running onboarding run stops now; the purge deletes its pages later.
+	if s.onboarding != nil {
+		if err := s.onboarding.CancelWorkspace(r.Context(), actor.OrganizationID); err != nil {
+			slog.Error("onboarding run not cancelled for workspace deletion", "organizationId", actor.OrganizationID, "error", err)
+		}
 	}
 	writeJSON(w, http.StatusOK, workspaceDeletionResponse(deletion))
 }

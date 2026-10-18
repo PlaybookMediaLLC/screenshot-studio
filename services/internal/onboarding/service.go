@@ -3,6 +3,7 @@ package onboarding
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strings"
 	"time"
@@ -17,9 +18,11 @@ import (
 // REST API uses the same methods. *product.Configuration implements it.
 type Store interface {
 	AIAgentEnabled(ctx context.Context, organizationID string) (bool, error)
+	Authorize(ctx context.Context, actor product.Actor) error
 	ConsumeWorkspaceQuota(ctx context.Context, actor product.Actor, name string, amount int) (int, error)
 	CreateOnboardingRun(ctx context.Context, actor product.Actor, input product.CreateOnboardingRunInput) (*product.OnboardingRunRecord, bool, error)
 	GetIdealCustomerProfile(ctx context.Context, actor product.Actor) (*product.IdealCustomerProfileRecord, error)
+	GetOnboardingRun(ctx context.Context, actor product.Actor, id string) (*product.OnboardingRunRecord, error)
 	GetPageKnowledge(ctx context.Context, actor product.Actor, url string) (*product.PageKnowledgeRecord, error)
 	GetProductProfile(ctx context.Context, actor product.Actor) (*product.ProductProfileRecord, error)
 	RecentOnboardingDiscovery(ctx context.Context, actor product.Actor, url string) ([]string, bool, error)
@@ -30,17 +33,35 @@ type Store interface {
 	UpsertProductProfile(ctx context.Context, actor product.Actor, input product.UpsertProductProfileInput) (*product.ProductProfileRecord, error)
 }
 
-// Starter starts the background workflow for a run. Without one, a run ends
-// after its fast path.
-type Starter interface {
+// Background runs a run's workflow. Without one, a run ends after its fast path.
+type Background interface {
+	// Start starts the workflow for a new run.
 	Start(ctx context.Context, run *product.OnboardingRunRecord, started product.Actor) error
+	// Cancel asks the workspace's running workflow to stop; none running is not an error.
+	Cancel(ctx context.Context, organizationID string) error
+	// Progress is the running workflow's progress, for a run that is not finished.
+	Progress(ctx context.Context, run *product.OnboardingRunRecord) (*Progress, error)
+}
+
+// Progress is a running workflow's state, as its progress query answers.
+type Progress struct {
+	CompletedStages      []string `json:"completedStages"`
+	EnrichmentCostMicros int64    `json:"enrichmentCostMicros"`
+	PagesDiscovered      int      `json:"pagesDiscovered"`
+	PagesProcessed       int      `json:"pagesProcessed"`
+	PagesSkipped         int      `json:"pagesSkipped"`
+	Percent              int      `json:"percent"`
+	RunID                string   `json:"runId"`
+	Stage                string   `json:"stage"`
+	TokenBudget          int      `json:"tokenBudget"`
+	TokensUsed           int      `json:"tokensUsed"`
 }
 
 // Service runs onboarding: the fast path in the request, then the workflow.
 type Service struct {
-	FastPath *FastPath
-	Starter  Starter
-	Store    Store
+	Background Background
+	FastPath   *FastPath
+	Store      Store
 }
 
 // StartInput is a pasted URL and, optionally, the founder's one sentence.
@@ -189,8 +210,8 @@ func (s *Service) save(ctx context.Context, actor product.Actor, run *product.On
 // the drafts are saved and the founder can run it again.
 func (s *Service) startBackground(ctx context.Context, actor product.Actor, run *product.OnboardingRunRecord) *product.OnboardingRunRecord {
 	update := product.OnboardingRunUpdate{Progress: ProgressDone, Stage: strPtr(StageDone), Status: strPtr(product.OnboardingCompleted)}
-	if s.Starter != nil {
-		err := s.Starter.Start(ctx, run, actor)
+	if s.Background != nil {
+		err := s.Background.Start(ctx, run, actor)
 		if err == nil {
 			return run
 		}
@@ -202,6 +223,66 @@ func (s *Service) startBackground(ctx context.Context, actor product.Actor, run 
 		return saved
 	}
 	return run
+}
+
+// Get returns a run; while it runs, its progress comes from the workflow,
+// and from the row when the workflow cannot be asked.
+func (s *Service) Get(ctx context.Context, actor product.Actor, id string) (*product.OnboardingRunRecord, error) {
+	run, err := s.Store.GetOnboardingRun(ctx, actor, id)
+	if err != nil || run.Terminal() || s.Background == nil {
+		return run, err
+	}
+	queryCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	live, err := s.Background.Progress(queryCtx, run)
+	if err != nil || live == nil || live.RunID != run.ID {
+		return run, nil
+	}
+	run.Progress = max(run.Progress, live.Percent)
+	run.Stage, run.CompletedStages = live.Stage, live.CompletedStages
+	run.PagesDiscovered, run.PagesProcessed, run.PagesSkipped = live.PagesDiscovered, live.PagesProcessed, live.PagesSkipped
+	run.TokensUsed, run.EnrichmentCostMicros = live.TokensUsed, live.EnrichmentCostMicros
+	return run, nil
+}
+
+// Cancel asks a running run to stop; it keeps everything already extracted
+// and reaches cancelled within seconds. Cancelling a finished run is a no-op.
+func (s *Service) Cancel(ctx context.Context, actor product.Actor, id string) (*product.OnboardingRunRecord, error) {
+	if err := s.Store.Authorize(ctx, actor); err != nil {
+		return nil, err
+	}
+	run, err := s.Store.GetOnboardingRun(ctx, actor, id)
+	if err != nil || run.Terminal() {
+		return run, err
+	}
+	if s.Background != nil {
+		if err := s.Background.Cancel(ctx, actor.OrganizationID); err == nil {
+			return run, nil
+		}
+	}
+	// No workflow to tell: record the cancellation directly.
+	return s.Store.UpdateOnboardingRun(ctx, actor, id, product.OnboardingRunUpdate{Status: strPtr(product.OnboardingCancelled)})
+}
+
+// Rerun starts a new run for a run's URL. Pages stored within the hour are
+// reused and unchanged pages skip the model, so an unchanged site costs nothing.
+func (s *Service) Rerun(ctx context.Context, actor product.Actor, id, idempotencyKey string) (*StartResult, error) {
+	run, err := s.Store.GetOnboardingRun(ctx, actor, id)
+	if err != nil {
+		return nil, err
+	}
+	if idempotencyKey == "" {
+		idempotencyKey = fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	return s.Start(ctx, actor, StartInput{IdempotencyKey: "rerun:" + run.ID + ":" + idempotencyKey, URL: run.URL})
+}
+
+// CancelWorkspace stops a workspace's running workflow, for workspace deletion.
+func (s *Service) CancelWorkspace(ctx context.Context, organizationID string) error {
+	if s.Background == nil {
+		return nil
+	}
+	return s.Background.Cancel(ctx, organizationID)
 }
 
 // current is the run with the workspace's saved drafts.

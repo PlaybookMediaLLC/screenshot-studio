@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.21.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.20.0...v2.21.0) (2026-10-18)
+
+
+### Features
+
+* **drafts:** add the posting queue, calendar, approvals, share links, history and polls ([#197](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/197)) ([e82aa79](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/e82aa791f4c7fea98963f64cb081ec367e7a19f3))
+
 ## [2.20.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.19.1...v2.20.0) (2026-10-18)
 
 

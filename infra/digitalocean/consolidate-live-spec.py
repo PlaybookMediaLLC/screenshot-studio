@@ -30,6 +30,10 @@ OPTIONAL_SOCIAL_SECRETS = (
     "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "X_API_KEY", "X_API_SECRET",
     "FACEBOOK_APP_ID", "FACEBOOK_APP_SECRET", "INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET",
 )
+# The onboarding agent's model and enrichment (docs/rfcs/032); without them it
+# drafts from page metadata and skips Exa.
+OPTIONAL_TENANT_SECRETS = ("OPENROUTER_API_KEY", "PLATFORM_ENRICHMENT_EXA_API_KEY")
+OPTIONAL_TENANT_KEYS = {"TENANT_" + key for key in OPTIONAL_TENANT_SECRETS}
 
 
 def set_env(envs, key, value):
@@ -91,6 +95,10 @@ def configure_product_api(backend, secrets):
     set_env(backend["envs"], "TENANT_R2_REGION", secrets.get("R2_REGION") or "auto")
     for key in ("R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "REDIS_URL"):
         set_secret_env(backend["envs"], "TENANT_" + key, secrets[key])
+    backend["envs"][:] = [item for item in backend["envs"] if item["key"] not in OPTIONAL_TENANT_KEYS]
+    for key in OPTIONAL_TENANT_SECRETS:
+        if secrets.get(key):
+            set_secret_env(backend["envs"], "TENANT_" + key, secrets[key])
 
 
 def refresh_secrets(envs, secrets):
@@ -100,7 +108,7 @@ def refresh_secrets(envs, secrets):
         if item.get("type") != "SECRET":
             continue
         key = item["key"]
-        if key in OPTIONAL_SOCIAL_SECRETS:
+        if key in OPTIONAL_SOCIAL_SECRETS or key in OPTIONAL_TENANT_KEYS:
             continue
         source = key.removeprefix("TENANT_") if key.startswith("TENANT_") else SOCIAL_SECRET_SOURCES.get(key, key)
         if not secrets.get(source):

@@ -74,17 +74,30 @@ func TestToolsMirrorTheirOpenAPIOperations(t *testing.T) {
 			t.Errorf("%s readOnlyHint=%v", tool.spec.Name, tool.spec.Annotations.ReadOnlyHint)
 		}
 		destructive := *tool.spec.Annotations.DestructiveHint
-		if destructive != (operation.Method == http.MethodDelete) {
+		if destructive != (operation.Method == http.MethodDelete || tool.spec.Name == "cancelScheduledPost") {
 			t.Errorf("%s destructiveHint=%v", tool.spec.Name, destructive)
 		}
 	}
 	want := []string{"listReleases", "createRelease", "createAssetUploadUrl", "completeAssetUpload", "createAssetDownloadUrl",
-		"deleteAsset", "captureScreenshot", "listCampaigns", "getCampaign", "createCampaign", "listApprovals", "requestCampaignReview"}
+		"deleteAsset", "captureScreenshot", "listCampaigns", "getCampaign", "createCampaign", "listApprovals", "requestCampaignReview",
+		"scheduleCampaignPost", "listScheduledPosts", "createScheduledPost", "cancelScheduledPost"}
 	if !slices.Equal(names, want) {
 		t.Fatalf("tools=%v", names)
 	}
-	// Approving, scheduling, and publishing stay human-only (RFC 019, 020).
-	for _, absent := range []string{"decideCampaignApproval", "createScheduledPost", "cancelScheduledPost", "transitionCampaign"} {
+	// Scheduling reaches a public channel, and needs its own opt-in scope.
+	for _, tool := range tools {
+		switch tool.spec.Name {
+		case "scheduleCampaignPost", "createScheduledPost", "cancelScheduledPost":
+			if tool.operation.Scope != product.PostScheduleScope {
+				t.Errorf("%s scope=%q", tool.spec.Name, tool.operation.Scope)
+			}
+		}
+		if publishes := tool.spec.Name == "scheduleCampaignPost" || tool.spec.Name == "createScheduledPost"; publishes && !*tool.spec.Annotations.OpenWorldHint {
+			t.Errorf("%s must carry openWorldHint", tool.spec.Name)
+		}
+	}
+	// Approving stays human-only (RFC 019).
+	for _, absent := range []string{"decideCampaignApproval", "transitionCampaign"} {
 		if slices.Contains(names, absent) {
 			t.Fatalf("%s must not be an agent tool", absent)
 		}

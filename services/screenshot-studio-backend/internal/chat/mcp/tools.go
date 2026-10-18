@@ -52,6 +52,8 @@ var (
 	idempotent  = sdk.ToolAnnotations{DestructiveHint: boolPtr(false), IdempotentHint: true, OpenWorldHint: boolPtr(false)}
 	destructive = sdk.ToolAnnotations{DestructiveHint: boolPtr(true), IdempotentHint: true, OpenWorldHint: boolPtr(false)}
 	openWorld   = sdk.ToolAnnotations{ReadOnlyHint: true, DestructiveHint: boolPtr(false), OpenWorldHint: boolPtr(true)}
+	// publishes marks a tool whose effect reaches a public social channel.
+	publishes = sdk.ToolAnnotations{DestructiveHint: boolPtr(false), OpenWorldHint: boolPtr(true)}
 )
 
 // toolTable is the tool surface of RFC 037. Each tool is named after the
@@ -79,6 +81,11 @@ var toolTable = []struct {
 	{"createCampaign", write, 0, createCampaign, ""},
 	{"listApprovals", readOnly, 0, listApprovals, ""},
 	{"requestCampaignReview", write, 0, requestCampaignReview, ""},
+	{"scheduleCampaignPost", publishes, 0, scheduleCampaignPost,
+		"Schedules an approved campaign post on a channel connection that publishes its channel. The post must be `APPROVED` with an approved visual: the one it has, or `creativeVariantId`, an approved variant of this campaign’s designs. Scheduling never approves. The copy is checked against the brand profile and the channel’s character limit, and each new post counts against the monthly posts allowance. This server cannot read link previews, so it refuses a call without `skipLinkCheck: true`: check each link in the post first (GET /api/v1/link-preview with the same key), then call again with `skipLinkCheck: true`. The post publishes within a minute of its time. Requires the `post:schedule` scope."},
+	{"listScheduledPosts", readOnly, 0, listScheduledPosts, ""},
+	{"createScheduledPost", publishes, 0, createScheduledPost, ""},
+	{"cancelScheduledPost", destructive, 0, cancelScheduledPost, ""},
 }
 
 func buildTools() ([]*shotsTool, error) {
@@ -494,4 +501,65 @@ func requestCampaignReview(ctx context.Context, s *Server, actor product.Actor, 
 	}
 	return s.config.Product.TransitionCampaignPosts(ctx, actor, stringArg(args, "campaignId"),
 		product.CampaignPostDecision{Decision: "submit", PostIDs: input.PostIDs})
+}
+
+// scheduleCampaignPost schedules approved copy. The REST route reads the
+// post's links before it schedules, in the web tier; this server cannot, so
+// it refuses rather than skip a check REST would run.
+func scheduleCampaignPost(ctx context.Context, s *Server, actor product.Actor, args map[string]any) (any, error) {
+	if skip, _ := args["skipLinkCheck"].(bool); !skip {
+		return nil, failWith(http.StatusBadRequest, "This server cannot check link previews. Check each link in the post with GET /api/v1/link-preview, then call again with skipLinkCheck: true.")
+	}
+	var input product.ScheduleCampaignPostInput
+	if err := decode(args, &input); err != nil {
+		return nil, failWith(http.StatusBadRequest, "The schedule input is invalid.")
+	}
+	if input.ScheduledAt != nil && !input.ScheduledAt.After(time.Now()) {
+		return nil, failWith(http.StatusBadRequest, "Scheduled time must be in the future.")
+	}
+	result, err := s.config.Product.ScheduleCampaignPost(ctx, actor, stringArg(args, "campaignId"), stringArg(args, "postId"), input)
+	if err != nil {
+		return nil, err
+	}
+	return result.Post, nil
+}
+
+func listScheduledPosts(ctx context.Context, s *Server, actor product.Actor, args map[string]any) (any, error) {
+	limit := intArg(args, "limit")
+	posts, err := s.config.Product.ListScheduledPosts(ctx, actor, limit)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]any, 0, len(posts))
+	for _, post := range posts {
+		items = append(items, product.ScheduledPostView(post))
+	}
+	return map[string]any{"data": items, "pagination": map[string]any{"hasMore": len(posts) == limit, "nextCursor": nil}}, nil
+}
+
+func createScheduledPost(ctx context.Context, s *Server, actor product.Actor, args map[string]any) (any, error) {
+	var input publishing.CreateScheduledPostInput
+	if err := decode(args, &input); err != nil {
+		return nil, failWith(http.StatusBadRequest, "The scheduled post input is invalid.")
+	}
+	// Like POST /api/v1/scheduled-posts, a call without a key gets a fresh one.
+	if input.IdempotencyKey == "" {
+		input.IdempotencyKey = uuid.NewString()
+	}
+	if !input.ScheduledFor.After(time.Now()) {
+		return nil, failWith(http.StatusBadRequest, "Scheduled time must be in the future.")
+	}
+	result, err := s.config.Product.CreateScheduledPost(ctx, actor, input)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"created": result.Created, "scheduledPost": product.ScheduledPostView(result.Post)}, nil
+}
+
+func cancelScheduledPost(ctx context.Context, s *Server, actor product.Actor, args map[string]any) (any, error) {
+	post, err := s.config.Product.CancelScheduledPost(ctx, actor, stringArg(args, "scheduledPostId"))
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"scheduledPost": product.ScheduledPostView(post)}, nil
 }

@@ -101,12 +101,33 @@ class DeploymentSpecTest(unittest.TestCase):
         spec = render_spec.render(self.base, self.secrets)
         for component in spec["services"]:
             self.assertNotIn("PLATFORM_MCP_URL", {item["key"] for item in component.get("envs", [])})
-        self.secrets["PLATFORM_MCP_URL"] = "https://api.example.com/mcp"
+        self.assertFalse(any("authority" in rule["match"] for rule in spec["ingress"]["rules"]))
+        self.secrets["PLATFORM_MCP_URL"] = "https://shots-mcp.playbookmedia.io/mcp"
         spec = render_spec.render(self.base, self.secrets)
         for name in ("web", "screenshot-studio-backend"):
             component = next(item for item in spec["services"] if item["name"] == name)
             envs = {item["key"]: item for item in component["envs"]}
-            self.assertEqual(envs["PLATFORM_MCP_URL"]["value"], "https://api.example.com/mcp")
+            self.assertEqual(envs["PLATFORM_MCP_URL"]["value"], "https://shots-mcp.playbookmedia.io/mcp")
+        # Only the MCP and OAuth paths on the MCP host reach the backend, ahead
+        # of the web's catch-all; the backend stays private otherwise (#177).
+        backend_rules = [rule for rule in spec["ingress"]["rules"]
+                         if rule["component"]["name"] == "screenshot-studio-backend"]
+        self.assertEqual(spec["ingress"]["rules"][:len(backend_rules)], backend_rules)
+        self.assertEqual(sorted(rule["match"]["path"]["prefix"] for rule in backend_rules),
+                         sorted(render_spec.MCP_PATH_PREFIXES))
+        for rule in backend_rules:
+            self.assertEqual(rule["match"]["authority"], {"exact": "shots-mcp.playbookmedia.io"})
+            self.assertTrue(rule["component"]["preserve_path_prefix"])
+        backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertEqual(backend["http_port"], 3000)
+        self.assertIn({"domain": "shots-mcp.playbookmedia.io", "type": "ALIAS"}, spec["domains"])
+        rerendered = render_spec.render(spec, self.secrets)
+        self.assertEqual(sum("authority" in rule["match"] for rule in rerendered["ingress"]["rules"]),
+                         len(render_spec.MCP_PATH_PREFIXES))
+        self.assertEqual([item["domain"] for item in rerendered["domains"]].count("shots-mcp.playbookmedia.io"), 1)
+        self.secrets["PLATFORM_MCP_URL"] = "https://shots.playbookmedia.io/postiz/mcp"
+        with self.assertRaises(ValueError):
+            render_spec.render(self.base, self.secrets)
 
     def test_web_uses_backend_without_database_and_go_migrates_schema(self):
         self.base["services"][0]["envs"].append({"key": "POSTIZ_API_KEY_TENANT", "value": "legacy-social-key", "type": "SECRET"})

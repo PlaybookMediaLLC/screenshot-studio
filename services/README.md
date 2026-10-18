@@ -152,6 +152,10 @@ workspace API key as the actor:
   operation's feature, its quota, then argument validation and the domain call.
   Every call logs one `shots.mcp_call` line with the request ID, client, and
   workspace.
+- Scheduling tools need the opt-in `post:schedule` scope and take only
+  approved posts and variants. This process has no tenant Temporal client: the
+  orchestrator's once-a-minute `scheduled-posts` dispatcher starts the
+  workflow of a post an agent scheduled, and a cancelled post is never claimed.
 - OAuth consent happens on the web (`/oauth/authorize`), recorded through
   `POST /v1/agent-authorizations`; `/oauth/token` exchanges the `shc_` code for
   a workspace API key with the approved scopes.
@@ -159,8 +163,8 @@ workspace API key as the actor:
 It reads `DATABASE_URL`, `R2_*` (in production the combined backend copies the
 tenant's `TENANT_R2_*`), `PLATFORM_QUOTA_REDIS_URL` (default `REDIS_URL`),
 `PLATFORM_CAMPAIGN_WORKFLOW`, `SCREENSHOT_API_URL`, and `PLATFORM_MCP_URL`, the
-public MCP URL, which must sit at a host root such as
-`https://api.<domain>/mcp` for OAuth discovery. Locally, `./bin/studio
+public MCP URL, which must sit at a host root for OAuth discovery: production
+is `https://shots-mcp.playbookmedia.io/mcp`. Locally, `./bin/studio
 postiz-go-up` serves it at `http://localhost:3100/mcp`.
 
 ## screenshot-studio-backend and screenshot-studio-orchestrator

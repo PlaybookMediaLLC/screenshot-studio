@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/google/uuid"
 	"github.com/lucsky/cuid"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -28,7 +29,26 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/capture"
 	platformdb "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/quota"
 )
+
+// memoryMeter meters the monthly posts allowance without Redis.
+type memoryMeter struct {
+	sync.Mutex
+	used map[string]int64
+}
+
+func (m *memoryMeter) Meter(_ context.Context, key string, amount, limit int64) (quota.MonthlyUsage, error) {
+	m.Lock()
+	defer m.Unlock()
+	if m.used == nil {
+		m.used = map[string]int64{}
+	}
+	m.used[key] += amount
+	used := m.used[key]
+	return quota.MonthlyUsage{Used: min(used, limit), Remaining: max(limit-used, 0), Reached: used > limit}, nil
+}
 
 type memoryCounter struct {
 	sync.Mutex
@@ -118,7 +138,8 @@ func newFixture(t *testing.T) *fixture {
 	}
 	f := &fixture{t: t, ctx: ctx, db: db, counter: &memoryCounter{}, capture: &fakeCapture{}, id: cuid.New(),
 		orgs: map[string]string{}, keys: map[string]string{}, keyNames: map[string]string{}}
-	f.product = product.NewConfiguration(db.Client).WithObjectStore(memoryObjects{}).WithQuotaCounter(f.counter)
+	f.product = product.NewConfiguration(db.Client).WithObjectStore(memoryObjects{}).WithQuotaCounter(f.counter).
+		WithMonthlyMeter(&memoryMeter{})
 	for _, workspace := range []string{"a", "b", "free"} {
 		org := "org_" + workspace + "_" + f.id
 		f.orgs[workspace] = org
@@ -136,6 +157,7 @@ func newFixture(t *testing.T) *fixture {
 	all := `{"artifact":["read"],"asset":["write"],"release":["create"],"source":["write"],"upload":["sign"]}`
 	f.key("a", "a", all, true)
 	f.key("a-read", "a", `{"artifact":["read"]}`, true)
+	f.key("a-schedule", "a", strings.Replace(all, "}", `,"post":["schedule"]}`, 1), true)
 	f.key("a-off", "a", all, false)
 	f.key("b", "b", all, true)
 	f.key("free", "free", all, true)
@@ -297,7 +319,7 @@ func TestEveryToolIsTenantIsolated(t *testing.T) {
 	session := f.session("a")
 
 	listed, err := session.ListTools(f.ctx, nil)
-	if err != nil || len(listed.Tools) != 12 {
+	if err != nil || len(listed.Tools) != 13 {
 		t.Fatalf("tools/list: %d %v", len(listed.Tools), err)
 	}
 
@@ -476,7 +498,8 @@ func TestScopesLimitTheToolList(t *testing.T) {
 		names = append(names, tool.Name)
 	}
 	// The SDK lists tools by name.
-	want := []string{"captureScreenshot", "createAssetDownloadUrl", "getCampaign", "listApprovals", "listCampaigns", "listReleases"}
+	want := []string{"captureScreenshot", "createAssetDownloadUrl", "getCampaign", "listApprovals", "listCampaigns", "listReleases",
+		"listScheduledPosts"}
 	if !slices.Equal(names, want) {
 		t.Fatalf("read-only key tools=%v", names)
 	}
@@ -500,5 +523,115 @@ func TestMutationsAreAuditedWithTheRequestID(t *testing.T) {
 		auditlog.Action("product.campaign_created")).Only(f.ctx)
 	if err != nil || row.RequestID != requestID || row.ActorDisplay == nil || *row.ActorDisplay != f.keyNames["a"] {
 		t.Fatalf("audit: %+v %v", row, err)
+	}
+}
+
+// approvedPost makes what a person would have approved in workspace A: a
+// LinkedIn post with an approved visual, another post still in review, and
+// an active LinkedIn connection. Approving goes through a session; no key can.
+func (f *fixture) approvedPost() (campaignID, approved, pending, variantID, connectionID string) {
+	f.t.Helper()
+	org, userID := f.orgs["a"], "user_"+f.id
+	f.exec(`INSERT INTO "user" (id,name,email,"emailVerified","createdAt","updatedAt") VALUES ($1,'Owner',$2,true,now(),now())`, userID, userID+"@example.test")
+	f.t.Cleanup(func() { _, _ = f.db.SQL.ExecContext(f.ctx, `DELETE FROM "user" WHERE id=$1`, userID) })
+	f.exec(`INSERT INTO session (id,"expiresAt",token,"createdAt","updatedAt","userId","activeOrganizationId") VALUES ($1,now()+interval '1 hour',$1,now(),now(),$2,$3)`, "session_"+f.id, userID, org)
+	f.exec(`INSERT INTO member (id,"organizationId","userId",role,"createdAt") VALUES ($1,$2,$3,'owner',now())`, "member_"+f.id, org, userID)
+	owner := product.Actor{OrganizationID: org, UserID: userID, SessionID: "session_" + f.id, RequestID: "owner-" + f.id}
+	// The tools' schemas take only cuid identifiers, as REST does.
+	releaseID, campaignID, render, design := cuid.New(), cuid.New(), uuid.NewString(), cuid.New()
+	approved, pending = cuid.New(), cuid.New()
+	f.exec(`INSERT INTO release (id,"organizationId",title,"benefitStatement","updatedAt") VALUES ($1,$2,'Launch','Faster',now())`, releaseID, org)
+	f.exec(`INSERT INTO campaign (id,"organizationId",name,objective,"releaseId","updatedAt") VALUES ($1,$2,'Launch','Adoption',$3,now())`, campaignID, org, releaseID)
+	f.exec(`INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,width,height,status,"createdAt","updatedAt") VALUES ($1,$2,$3,'image/png',1,1600,900,'UPLOADED',now(),now())`,
+		render, org, "org/"+org+"/render/"+render+".png")
+	f.exec(`INSERT INTO design (id,"organizationId","campaignId",name,document,"renderedAssetId","updatedAt") VALUES ($1,$2,$3,'Hero','{"version":1}',$4,now())`, design, org, campaignID, render)
+	f.exec(`INSERT INTO campaign_post (id,"organizationId","campaignId",channel,copy,status,"updatedAt") VALUES ($1,$3,$4,'linkedin','Ship faster','READY_FOR_REVIEW',now()),($2,$3,$4,'linkedin','Not yet','READY_FOR_REVIEW',now())`,
+		approved, pending, org, campaignID)
+	if _, err := f.product.TransitionCampaignPosts(f.ctx, owner, campaignID, product.CampaignPostDecision{Decision: "approve", PostIDs: []string{approved}}); err != nil {
+		f.t.Fatal(err)
+	}
+	visual, err := f.product.ApproveCampaignDesign(f.ctx, owner, campaignID, design)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	connection, err := publishing.NewRepository(f.db.Client).CreateConnection(f.ctx, publishing.Actor{Organization: org, UserID: userID, Type: "USER"},
+		publishing.CreateConnectionInput{ExternalAccountID: "li-" + f.id, Platform: "linkedin", ProviderSettings: map[string]any{}, SecretReference: "POSTIZ_API_KEY"})
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return campaignID, approved, pending, visual.Variant.ID, connection.ID
+}
+
+// A key with post:schedule schedules what a person approved, in its own
+// workspace, and cancels it; a key without the scope never sees the tools.
+func TestSchedulingToolsTakeOnlyApprovedContent(t *testing.T) {
+	f := newFixture(t)
+	_, otherCampaign, _ := f.seed("b")
+	campaignID, approved, pending, variantID, connectionID := f.approvedPost()
+	listed, err := f.session("a").ListTools(f.ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tool := range listed.Tools {
+		if tool.Name == "scheduleCampaignPost" || tool.Name == "createScheduledPost" || tool.Name == "cancelScheduledPost" {
+			t.Fatalf("a key without post:schedule lists %s", tool.Name)
+		}
+	}
+
+	requestID := "mcp-schedule-" + f.id
+	session := f.session("a-schedule", "X-Request-Id", requestID)
+	at := time.Now().Add(2 * time.Hour).UTC().Format(time.RFC3339)
+	schedule := func(campaign, post string, skip bool) (map[string]any, bool) {
+		return f.call(session, "scheduleCampaignPost", map[string]any{"campaignId": campaign, "postId": post,
+			"channelConnectionId": connectionID, "creativeVariantId": variantID, "scheduledAt": at, "skipLinkCheck": skip})
+	}
+	body, isError := schedule(campaignID, approved, false)
+	refusedWith(t, "scheduleCampaignPost without skipLinkCheck", body, isError, "invalid_request")
+	body, isError = schedule(campaignID, pending, true)
+	refusedWith(t, "scheduleCampaignPost on copy in review", body, isError, "conflict")
+	body, isError = schedule(otherCampaign, approved, true)
+	refusedWith(t, "scheduleCampaignPost in workspace B", body, isError, "not_found")
+	body, isError = schedule(campaignID, approved, true)
+	if isError || body["status"] != "SCHEDULED" || body["scheduledPostStatus"] != "SCHEDULED" {
+		t.Fatalf("scheduleCampaignPost: %v", body)
+	}
+	fromCampaign := body["scheduledPostId"].(string)
+	row, err := f.db.Client.AuditLog.Query().Where(auditlog.OrganizationID(f.orgs["a"]), auditlog.EntityID(approved),
+		auditlog.Action("product.campaign_post_scheduled")).Only(f.ctx)
+	if err != nil || row.RequestID != requestID || row.ActorDisplay == nil || *row.ActorDisplay != f.keyNames["a-schedule"] {
+		t.Fatalf("audit: %+v %v", row, err)
+	}
+
+	direct := map[string]any{"caption": "Ship faster", "channelConnectionId": connectionID, "variantId": variantID,
+		"scheduledFor": at, "idempotencyKey": "agent-" + f.id}
+	body, isError = f.call(session, "createScheduledPost", direct)
+	created := body["scheduledPost"].(map[string]any)
+	if isError || body["created"] != true || created["status"] != "SCHEDULED" {
+		t.Fatalf("createScheduledPost: %v", body)
+	}
+	if body, _ = f.call(session, "createScheduledPost", direct); body["created"] != false ||
+		body["scheduledPost"].(map[string]any)["id"] != created["id"] {
+		t.Fatalf("idempotent replay: %v", body)
+	}
+
+	body, isError = f.call(f.session("b"), "listScheduledPosts", map[string]any{})
+	if isError || len(ids(body["data"], "id")) != 0 {
+		t.Fatalf("workspace B sees workspace A's schedule: %v", body)
+	}
+	body, isError = f.call(f.session("b"), "listScheduledPosts", map[string]any{"limit": 10})
+	if isError || len(ids(body["data"], "id")) != 0 {
+		t.Fatalf("workspace B with a limit: %v", body)
+	}
+	body, isError = f.call(session, "listScheduledPosts", map[string]any{})
+	if listedIDs := ids(body["data"], "id"); isError || !slices.Contains(listedIDs, fromCampaign) || !slices.Contains(listedIDs, created["id"].(string)) {
+		t.Fatalf("listScheduledPosts: %v", body)
+	}
+
+	f.key("b-schedule", "b", `{"artifact":["read"],"post":["schedule"]}`, true)
+	body, isError = f.call(f.session("b-schedule"), "cancelScheduledPost", map[string]any{"scheduledPostId": created["id"]})
+	refusedWith(t, "cancelScheduledPost from workspace B", body, isError, "not_found")
+	body, isError = f.call(session, "cancelScheduledPost", map[string]any{"scheduledPostId": created["id"]})
+	if isError || body["scheduledPost"].(map[string]any)["status"] != "CANCELLED" {
+		t.Fatalf("cancelScheduledPost: %v", body)
 	}
 }

@@ -554,7 +554,7 @@ func (s *Server) createScheduledPost(w http.ResponseWriter, r *http.Request) {
 	if result.Created {
 		status = http.StatusCreated
 	}
-	writeJSON(w, status, map[string]any{"created": result.Created, "scheduledPost": scheduledPostResponse(result.Post)})
+	writeJSON(w, status, map[string]any{"created": result.Created, "scheduledPost": product.ScheduledPostView(result.Post)})
 }
 
 func (s *Server) listScheduledPosts(w http.ResponseWriter, r *http.Request) {
@@ -574,7 +574,7 @@ func (s *Server) listScheduledPosts(w http.ResponseWriter, r *http.Request) {
 	}
 	items := make([]any, 0, len(posts))
 	for _, post := range posts {
-		items = append(items, scheduledPostResponse(post))
+		items = append(items, product.ScheduledPostView(post))
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": items})
 }
@@ -595,7 +595,7 @@ func (s *Server) cancelScheduledPost(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "could not cancel publishing workflow")
 		return
 	}
-	writeJSON(w, http.StatusOK, scheduledPostResponse(post))
+	writeJSON(w, http.StatusOK, product.ScheduledPostView(post))
 }
 
 func actorFromRequest(w http.ResponseWriter, r *http.Request, requireUser bool) (publishing.Actor, bool) {
@@ -627,22 +627,6 @@ func connectionResponse(connection *ent.ChannelConnection) map[string]any {
 		"providerSettings": connection.ProviderSettings, "status": connection.Status,
 		"createdAt": connection.CreatedAt, "updatedAt": connection.UpdatedAt,
 	}
-}
-
-func scheduledPostResponse(post *ent.ScheduledPost) map[string]any {
-	response := map[string]any{
-		"id": post.ID, "caption": post.Caption, "channelConnectionId": post.ChannelConnectionID,
-		"createdAt": post.CreatedAt, "scheduledFor": post.ScheduledFor, "status": post.Status,
-		"updatedAt": post.UpdatedAt, "variantId": post.VariantID, "contentDraftId": post.ContentDraftID,
-	}
-	if connection, err := post.Edges.ChannelConnectionOrErr(); err == nil {
-		response["channelConnection"] = map[string]any{
-			"externalAccountId": connection.ExternalAccountID,
-			"platform":          connection.Platform,
-			"provider":          connection.Provider,
-		}
-	}
-	return response
 }
 
 func decodeJSON(r *http.Request, target any) error {

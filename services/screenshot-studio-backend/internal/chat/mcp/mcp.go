@@ -326,7 +326,8 @@ func (s *Server) serveMCP(w http.ResponseWriter, r *http.Request, mount string) 
 // instructions tell an agent what Shots is and where its authority ends.
 const instructions = `Shots turns a software release into a reviewed launch: a cited brief, campaign posts, and visuals.
 Create releases and draft campaigns, upload assets, capture screenshots, and submit drafts for review.
-A person approves, schedules, and publishes in the Shots app; no tool can. getCampaign reports each post's review and delivery status.`
+Only a person approves, in the Shots app; no tool can. With the post:schedule scope you may schedule posts a person approved, and cancel scheduled posts.
+getCampaign reports each post's review and delivery status; listScheduledPosts shows the schedule.`
 
 // build makes the MCP server for one request, with the tools the key's
 // scopes allow.

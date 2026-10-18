@@ -128,7 +128,7 @@ backup kept 14 days, and stops if it fails.
 `platform-migrate` runs the backend image's `/platform-migrate` with
 `MIGRATION_DATABASE_URL` before deployment. It applies the product SQL in
 `services/platformmigrations/sql` and the social SQL in
-`services/screenshot-studio-backend/migrations` to the same database and
+`services/internal/social/migrations` to the same database and
 `public` schema. It records migration history and adopts product migrations
 Prisma already applied. The `Social backend image` deploy replaces
 `web-migrate` with this single job. A migration failure stops the deployment.

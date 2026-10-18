@@ -1,7 +1,7 @@
 .PHONY: generate fmt fmt-check test race vet check build
 
 generate:
-	go generate ./ent ./screenshot-studio-backend/ent
+	go generate ./ent ./internal/social/ent
 
 fmt:
 	gofmt -w .
@@ -13,13 +13,13 @@ test:
 	go test ./...
 
 race:
-	go test -race ./backend/internal/httpapi ./internal/postiz ./internal/publishing ./internal/temporalpublishing ./internal/onboarding ./internal/temporalonboarding ./internal/enrichment
+	go test -race ./internal/httpapi ./internal/postiz ./internal/publishing ./internal/temporalpublishing ./internal/onboarding ./internal/temporalonboarding ./internal/enrichment
 
 vet:
 	go vet ./...
 
 check: generate fmt-check test race vet
-	git diff --exit-code -- ent screenshot-studio-backend/ent
+	git diff --exit-code -- ent internal/social/ent
 
 build:
-	go build ./backend/cmd/backend ./cmd/platform-migrate ./orchestrator/cmd/orchestrator ./screenshot-studio-backend/backend/cmd/screenshot-studio-backend ./screenshot-studio-backend/orchestrator/cmd/screenshot-studio-orchestrator ./screenshot-studio-backend/cmd/postiz-migrate
+	go build ./cmd/...

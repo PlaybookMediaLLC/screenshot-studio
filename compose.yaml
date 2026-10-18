@@ -154,11 +154,12 @@ services:
     volumes:
       - .:/workspace:ro
 
+  # The Go services share the production image; each one selects its binary.
   publishing-backend:
     build:
       context: ./services
-      dockerfile: backend/Dockerfile
-    image: screenshot-studio-publishing-backend:local
+    image: screenshot-studio-backend:local
+    entrypoint: ['/publishing-backend']
     env_file: .local/dev.env
     environment:
       PORT: '8080'
@@ -225,8 +226,7 @@ services:
   platform-go-migrate:
     build:
       context: ./services
-      dockerfile: backend/Dockerfile
-    image: screenshot-studio-publishing-backend:local
+    image: screenshot-studio-backend:local
     entrypoint: ['/platform-migrate']
     environment:
       DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
@@ -250,7 +250,8 @@ services:
   publishing-orchestrator:
     build:
       context: ./services
-      dockerfile: orchestrator/Dockerfile
+    image: screenshot-studio-backend:local
+    entrypoint: ['/publishing-orchestrator']
     env_file: .local/dev.env
     environment:
       PORT: '8081'
@@ -312,8 +313,7 @@ services:
     profiles: ['postiz-go']
     build:
       context: ./services
-      dockerfile: screenshot-studio-backend/backend/Dockerfile
-    image: screenshot-studio-postiz-backend:local
+    image: screenshot-studio-backend:local
     # Local API shares the product database; the combined backend entrypoint
     # runs the tenant API and workers on a production host.
     entrypoint: ['/screenshot-studio-backend']

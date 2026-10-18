@@ -103,7 +103,7 @@ local:
   curlImage: curlimages/curl:8.12.1
   temporal:
     image: temporalio/temporal:1.8.2
-  # Built from services/backend/Dockerfile; bin/studio kind-up loads it.
+  # Built from services/Dockerfile; bin/studio kind-up loads it.
   backend:
     image: ''
   screenshotMock:

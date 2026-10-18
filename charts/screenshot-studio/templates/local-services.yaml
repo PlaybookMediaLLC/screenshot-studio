@@ -330,6 +330,7 @@ spec:
       containers:
         - name: backend
           image: {{ required "local.backend.image is required when local.enabled" .Values.local.backend.image | quote }}
+          command: ["/publishing-backend"]
           ports:
             - name: http
               containerPort: 8080

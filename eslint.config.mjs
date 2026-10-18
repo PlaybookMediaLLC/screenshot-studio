@@ -123,7 +123,7 @@ export default defineConfig([
       'public/**',
       '.vercel/**',
       'coverage/**',
-      'services/screenshot-studio-backend/internal/helpers/testdata/**',
+      'services/internal/social/helpers/testdata/**',
       'scripts/**',
       '*.tsbuildinfo',
       'next-env.d.ts',

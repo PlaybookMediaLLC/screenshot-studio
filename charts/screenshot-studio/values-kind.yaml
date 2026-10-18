@@ -23,11 +23,11 @@ collab:
 migration:
   enabled: true
   image:
-    repository: screenshot-studio-publishing-backend
+    repository: screenshot-studio-backend
     pullPolicy: Never
     tag: kind-dev
 
 local:
   enabled: true
   backend:
-    image: screenshot-studio-publishing-backend:kind-dev
+    image: screenshot-studio-backend:kind-dev

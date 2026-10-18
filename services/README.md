@@ -4,14 +4,35 @@ This directory contains Screenshot Studio's Go product API, Temporal workers,
 and social provider services. The combined backend image runs them together in
 production; Compose can start the social API separately for local testing.
 
+## Layout
+
+| Path | Contents |
+| --- | --- |
+| `cmd/product-api` | The product API (`:8080`). The web calls it through the SDK. |
+| `cmd/product-worker` | The tenant Temporal worker for publishing, onboarding, and maintenance (`:8081`). |
+| `cmd/social-api` | The social API (`:3000`), the MCP server, and the social workers when `RUN_WORKER=true`. |
+| `cmd/combined` | The production entry point. It starts the three processes above in one container. |
+| `cmd/platform-migrate` | The one migration command for the product and social SQL. |
+| `cmd/postiz-migrate` | The social SQL only, for isolated social tests. |
+| `internal/httpapi` | The product API's HTTP handlers. |
+| `internal/<domain>` | The product domain packages. |
+| `internal/social` | The Go port of Postiz: social controllers, workers, and provider adapters. |
+| `ent`, `internal/social/ent` | The product and social Ent clients. |
+| `platformmigrations`, `internal/social/migrations` | The reviewed product and social SQL. |
+
+`Dockerfile` builds one image for every environment. Production runs its
+default entry point, `/combined-backend`. Compose and kind run one binary for
+each service: `/publishing-backend`, `/publishing-orchestrator`,
+`/screenshot-studio-backend`, or `/platform-migrate`.
+
 ## Architecture
 
 The services split into a control plane and an execution plane:
 
-- **backend** is the control plane. It exposes tenant-scoped APIs for Postiz
+- **The product API** is the control plane. It exposes tenant-scoped APIs for Postiz
   channel connections and scheduled posts, validates approved creative variants,
   preserves idempotency, and writes audit records.
-- **orchestrator** is the Temporal execution plane. It runs the versioned post
+- **The product worker** is the Temporal execution plane. It runs the versioned post
   workflow, re-checks workspace and approval eligibility, and records
   publication attempts. The direct provider path calls the Go social adapters
   and stores their remote receipt without creating a second social `Post` row.
@@ -55,10 +76,10 @@ remain owned by Screenshot Studio's campaign and email systems.
 
 ## Database ownership
 
-`ent/schema` and `screenshot-studio-backend/ent/schema` are the Ent sources for
+`ent/schema` and `internal/social/ent/schema` are the Ent sources for
 product and social tables. One ordered `/platform-migrate` command applies
 reviewed SQL from `platformmigrations/sql` and
-`screenshot-studio-backend/migrations` to the same `public` schema. Prisma and
+`internal/social/migrations` to the same `public` schema. Prisma and
 Drizzle are no longer runtime or migration authorities. Do not call
 `client.Schema.Create` from either service. When a table changes, update its
 Ent schema and reviewed SQL migration, then run `make generate` and `make
@@ -131,13 +152,12 @@ curl --fail http://localhost:8080/healthz
 curl --fail http://localhost:8081/healthz
 ```
 
-The backend and orchestrator images use the `services` directory as their Docker
-build context.
+The image uses the `services` directory as its Docker build context.
 
 ## MCP server
 
 The social backend serves the Shots MCP server (RFC 038,
-`screenshot-studio-backend/internal/chat/mcp`) on `/mcp` and the OAuth mounts
+`internal/social/chat/mcp`) on `/mcp` and the OAuth mounts
 `/mcp-oauth-claude`, `/mcp-oauth-chatgpt`, and `/mcp-oauth-dynamic`. Its tools
 call `internal/product`, the same domain the `/v1` API serves, with the caller's
 workspace API key as the actor:
@@ -165,29 +185,29 @@ public MCP URL, which must sit at a host root for OAuth discovery: production
 is `https://shots-mcp.playbookmedia.io/mcp`. Locally, `./bin/studio
 postiz-go-up` serves it at `http://localhost:3100/mcp`.
 
-## screenshot-studio-backend and screenshot-studio-orchestrator
+## Social services (`internal/social`)
 
-`screenshot-studio-backend/` is Screenshot Studio's Go social backend and its
-Temporal orchestrator. It serves the social HTTP API and the Temporal contracts
-that the provider adapters use, while Screenshot Studio customer publishing uses
-the canonical product post state.
+`internal/social` is Screenshot Studio's Go social backend and its Temporal
+workers. It serves the social HTTP API and the Temporal contracts that the
+provider adapters use, while Screenshot Studio customer publishing uses the
+canonical product post state.
 
 Layout:
 
-- `screenshot-studio-backend/backend/cmd/screenshot-studio-backend`: the HTTP entry point. CORS, MCP, the controllers in
+- `cmd/social-api`: the HTTP entry point. CORS, MCP, the controllers in
   registration order (honors `MCP_ONLY`), the search-attribute and
   `missingPostWorkflow` registration, the configuration check, and `/docs`.
-- `screenshot-studio-backend/orchestrator/cmd/screenshot-studio-orchestrator`: the workers (`main` plus one queue per
+  With `RUN_WORKER=true` it also runs the workers (`main` plus one queue per
   provider, `email`, `email-bulk`) and `GET /health/status`.
-- `screenshot-studio-backend/internal/app`: builds the service graph once from the environment, for
-  both binaries. Consumer-interface adapters live in `adapters.go`.
-- `screenshot-studio-backend/backend/{auth,api/*,publicapi}`: the controllers, guards and auth.
-- `screenshot-studio-backend/orchestrator/{workflows,activities,worker}`: the Temporal side.
-- `screenshot-studio-backend/internal/database/<domain>`: the social Ent repositories and services.
-- `screenshot-studio-backend/internal/integrations/social/<provider>`: one package per provider.
-- `screenshot-studio-backend/internal/*`: the support libraries.
-- `screenshot-studio-backend/ent`: the generated Ent client.
-- `screenshot-studio-backend/migrations`: the DDL.
+- `internal/social/app`: builds the service graph once from the environment.
+  Consumer-interface adapters live in `adapters.go`.
+- `internal/social/{auth,api/*,publicapi}`: the controllers, guards and auth.
+- `internal/social/{workflows,activities,worker}`: the Temporal side.
+- `internal/social/database/<domain>`: the social Ent repositories and services.
+- `internal/social/integrations/social/<provider>`: one package per provider.
+- `internal/social/*`: the support libraries.
+- `internal/social/ent`: the generated Ent client.
+- `internal/social/migrations`: the DDL.
 
 **Environment.** The services read these variables: `DATABASE_URL`, `REDIS_URL`
 (unset = in-memory), `TEMPORAL_*`, `JWT_SECRET`, `FRONTEND_URL`, `MAIN_URL`,
@@ -205,9 +225,9 @@ production migration job. See [the deployment guide](../docs/social-backend-depl
 for the local and App Platform configuration.
 
 ```sh
-go build ./screenshot-studio-backend/backend/cmd/screenshot-studio-backend ./screenshot-studio-backend/orchestrator/cmd/screenshot-studio-orchestrator
-POSTIZ_TEST_DATABASE_URL=postgresql://postgres@localhost:55432/postiz_test?sslmode=disable go test ./screenshot-studio-backend/...
-temporal server start-dev   # then run both binaries with the variables above
+go build ./cmd/social-api
+POSTIZ_TEST_DATABASE_URL=postgresql://postgres@localhost:55432/postiz_test?sslmode=disable go test ./internal/social/...
+temporal server start-dev   # then run cmd/social-api with RUN_WORKER=true and the variables above
 ```
 
 **Implementation notes:**

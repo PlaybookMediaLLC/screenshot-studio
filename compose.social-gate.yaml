@@ -22,7 +22,13 @@ services:
       - '127.0.0.1:9013:9000'
       - '127.0.0.1:9014:9001'
 
+  # The Go services share one image tag, so they all build with the e2e tag.
+  # The gate's own tag keeps the dev image free of e2e-only code.
   publishing-backend:
+    image: screenshot-studio-backend:social-gate
+    build:
+      args:
+        GO_BUILD_TAGS: e2e
     environment:
       BETTER_AUTH_URL: http://localhost:3010
       R2_BROWSER_ENDPOINT: http://localhost:9013
@@ -31,7 +37,14 @@ services:
     ports: !override
       - '127.0.0.1:8180:8080'
 
+  platform-go-migrate:
+    image: screenshot-studio-backend:social-gate
+    build:
+      args:
+        GO_BUILD_TAGS: e2e
+
   publishing-orchestrator:
+    image: screenshot-studio-backend:social-gate
     build:
       args:
         GO_BUILD_TAGS: e2e
@@ -50,6 +63,7 @@ services:
     ports: !override []
 
   screenshot-studio-backend:
+    image: screenshot-studio-backend:social-gate
     build:
       args:
         GO_BUILD_TAGS: e2e

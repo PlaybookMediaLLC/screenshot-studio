@@ -9,7 +9,7 @@
 
 Shots gives AI agents its workspace operations through the MCP server that
 already runs in the Go social backend
-(`services/screenshot-studio-backend/internal/chat/mcp`). This RFC extends that
+(`services/internal/social/chat/mcp`). This RFC extends that
 server. It does not replace it, and it does not start a second one.
 
 - **One server, in Go.** MCP runs only in the Go backend. Next.js neither hosts
@@ -44,7 +44,7 @@ to a Postiz `Organization`. Nothing in it is about Shots.
 
 ### Mounting
 
-`backend/cmd/screenshot-studio-backend/main.go` wraps the whole router with the
+`services/cmd/social-api/main.go` wraps the whole router with the
 MCP handler (`cors().Wrap(a.MCP.Handler(...))`). The MCP handler matches its own
 paths and passes the rest on. None of the router's middleware applies to it:
 no throttler, no auth middleware, no compression. `internal/app/app.go` wires
@@ -184,7 +184,7 @@ agent client ──Streamable HTTP──► shots-mcp.playbookmedia.io/mcp   (Go
 
 - The MCP package builds a `product.Configuration` from the platform Ent client
   on the same database. It uses the same object store, Redis quota counter, and
-  monthly meter that `services/backend/cmd/backend` wires.
+  monthly meter that `services/cmd/product-api` wires.
 - Tool adapters are thin. Each one decodes the validated input, calls one
   domain function with the resolved `product.Actor`, and returns its result.
   Business rules stay in the domain packages.

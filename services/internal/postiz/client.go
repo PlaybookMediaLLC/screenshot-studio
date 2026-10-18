@@ -29,8 +29,11 @@ type Client struct {
 }
 
 type PublishInput struct {
+	// AssetMediaType and AssetObjectKey are the single asset of a job prepared
+	// before Assets existed; Media reads either.
 	AssetMediaType   string
 	AssetObjectKey   string
+	Assets           []publishing.MediaAsset
 	Caption          string
 	DestinationID    string
 	OrganizationID   string
@@ -38,6 +41,17 @@ type PublishInput struct {
 	PostID           string
 	ProviderSettings map[string]any
 	SecretReference  string
+}
+
+// Media is every file to publish, in order.
+func (input PublishInput) Media() []publishing.MediaAsset {
+	if len(input.Assets) > 0 {
+		return input.Assets
+	}
+	if input.AssetObjectKey == "" {
+		return nil
+	}
+	return []publishing.MediaAsset{{MediaType: input.AssetMediaType, ObjectKey: input.AssetObjectKey}}
 }
 
 type StatusInput struct {
@@ -245,12 +259,12 @@ func (c *Client) Publish(ctx context.Context, input PublishInput) (string, error
 	}
 	// A content draft post without an image publishes as text (RFC 037).
 	images := []any{}
-	if input.AssetObjectKey != "" {
-		asset, err := c.assetReader.Read(ctx, input.OrganizationID, input.AssetObjectKey)
+	for _, media := range input.Media() {
+		asset, err := c.assetReader.Read(ctx, input.OrganizationID, media.ObjectKey)
 		if err != nil {
 			return "", &Error{message: "tenant asset is unavailable: " + err.Error()}
 		}
-		upload, err := c.upload(ctx, token, input.AssetObjectKey, input.AssetMediaType, asset)
+		upload, err := c.upload(ctx, token, media.ObjectKey, media.MediaType, asset)
 		if err != nil {
 			return "", err
 		}

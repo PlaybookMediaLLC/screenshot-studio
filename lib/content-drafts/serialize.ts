@@ -34,7 +34,7 @@ export type Degradation = { kind: DegradationKind; message: string }
 
 /** A caption for one channel, with its limit and what it lost. */
 export type SerializedCaption = {
-  /** Workspace assets attached to the post (the channel takes the first). */
+  /** The draft's workspace images; the channel takes the first {@link CHANNEL_IMAGE_LIMITS}. */
   assetIds: string[]
   caption: string
   channel: DraftChannel
@@ -51,6 +51,17 @@ type PlateNode = {
   children?: PlateNode[]
   text?: string
   type?: string
+}
+
+/**
+ * How many images one post takes on each channel. The backend attaches the
+ * draft's first images up to this many (`draftChannelImageLimits` in
+ * services/internal/product/content_draft_schedule.go).
+ */
+export const CHANNEL_IMAGE_LIMITS: Record<DraftChannel, number> = {
+  instagram: 10,
+  linkedin: 9,
+  x: 4,
 }
 
 const CONNECTION_CHANNELS: Record<string, DraftChannel> = {
@@ -287,7 +298,7 @@ export function captionLength(caption: string): number {
 
 /**
  * Serialize a draft for one channel. The caption is trimmed, footnotes follow
- * the body, and only the first image is attached (the publish job carries one).
+ * the body, and the images are attached up to the channel's limit.
  */
 export function serializeDraft(value: unknown, channel: DraftChannel): SerializedCaption {
   const nodes = (Array.isArray(value) ? value : []) as PlateNode[]
@@ -307,8 +318,9 @@ export function serializeDraft(value: unknown, channel: DraftChannel): Serialize
   if (channel === 'instagram' && context.assetIds.length === 0) {
     errors.push('Instagram needs an image.')
   }
-  if (context.images > 1) {
-    degrade(context, 'extra-images', 'Only the first image is attached.')
+  const imageLimit = CHANNEL_IMAGE_LIMITS[channel]
+  if (context.images > imageLimit) {
+    degrade(context, 'extra-images', `Only the first ${imageLimit} images are attached.`)
   }
   if (context.images > context.assetIds.length) {
     errors.push('Upload every image to the workspace before scheduling.')

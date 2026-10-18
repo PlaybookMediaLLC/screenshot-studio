@@ -1,6 +1,10 @@
 package temporalpublishing
 
-import "time"
+import (
+	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+)
 
 const (
 	WorkflowNameV1          = "PostWorkflowV1"
@@ -59,8 +63,11 @@ type PrepareInput struct {
 }
 
 type PreparedPublication struct {
+	// AssetMediaType and AssetObjectKey are Assets[0]. Jobs recorded before
+	// Assets existed carry only these, so both stay.
 	AssetMediaType   string
 	AssetObjectKey   string
+	Assets           []publishing.MediaAsset `json:",omitempty"`
 	Caption          string
 	DestinationID    string
 	OrganizationID   string

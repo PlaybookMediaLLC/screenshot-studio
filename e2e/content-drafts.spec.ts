@@ -122,8 +122,7 @@ test('a draft is written, saved, scheduled to two channels once, and one post is
     await expect(page.getByTestId('preview-x')).toContainText('formatting are removed')
 
     // Over X's limit: the counter goes red, and scheduling is blocked.
-    await draftEditor(page).getByText('for you.').click()
-    await page.keyboard.press('End')
+    await caretAtEndOf(page, draftEditor(page).getByText('for you.'))
     await page.keyboard.type(` ${'x'.repeat(260)}`)
     await expect(page.getByTestId('counter-x')).toHaveText(/^3\d\d \/ 280$/)
     await expect(page.getByTestId('preview-x').getByRole('alert')).toContainText(

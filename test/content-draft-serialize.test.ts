@@ -131,7 +131,7 @@ test('unsupported marks are dropped and reported once', () => {
   ])
 })
 
-test('images become attachments; extra images and embeds are reported', () => {
+test('images become attachments; embeds are reported', () => {
   const result = serializeDraft(
     [
       p(text('Look')),
@@ -153,8 +153,23 @@ test('images become attachments; extra images and embeds are reported', () => {
   )
   assert.equal(result.caption, 'Look')
   assert.deepEqual(result.assetIds, ['asset-1', 'asset-2'])
-  assert.deepEqual(result.degradations.map((item) => item.kind).sort(), ['embed', 'extra-images'])
+  assert.deepEqual(result.degradations.map((item) => item.kind).sort(), ['embed'])
   assert.deepEqual(result.errors, [])
+})
+
+test('images past the channel limit are reported, not dropped from the draft', () => {
+  const images = Array.from({ length: 5 }, (_, index) => ({
+    type: 'img',
+    assetId: `asset-${index}`,
+    url: `/api/v1/assets/asset-${index}/content`,
+    children: [text('')],
+  }))
+  const x = serializeDraft([p(text('Look')), ...images], 'x')
+  assert.equal(x.assetIds.length, 5)
+  assert.deepEqual(x.degradations, [
+    { kind: 'extra-images', message: 'Only the first 4 images are attached.' },
+  ])
+  assert.deepEqual(serializeDraft([p(text('Look')), ...images], 'linkedin').degradations, [])
 })
 
 test('an image inside a paragraph is attached too', () => {

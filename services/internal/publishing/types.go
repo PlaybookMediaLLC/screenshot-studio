@@ -46,9 +46,17 @@ type CreateScheduledPostResult struct {
 	Post    *ent.ScheduledPost
 }
 
+// MediaAsset is one stored file a post publishes.
+type MediaAsset struct {
+	MediaType string
+	ObjectKey string
+}
+
 type PublishJob struct {
+	// AssetObjectKey and AssetMediaType are Assets[0], for callers that take one.
 	AssetObjectKey  string
 	AssetMediaType  string
+	Assets          []MediaAsset
 	Connection      *ent.ChannelConnection
 	Post            *ent.ScheduledPost
 	WorkspaceActive bool

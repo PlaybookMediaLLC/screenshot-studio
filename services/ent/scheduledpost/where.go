@@ -410,6 +410,16 @@ func AssetIDContainsFold(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldContainsFold(FieldAssetID, v))
 }
 
+// AssetIdsIsNil applies the IsNil predicate on the "asset_ids" field.
+func AssetIdsIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldAssetIds))
+}
+
+// AssetIdsNotNil applies the NotNil predicate on the "asset_ids" field.
+func AssetIdsNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldAssetIds))
+}
+
 // ChannelConnectionIDEQ applies the EQ predicate on the "channel_connection_id" field.
 func ChannelConnectionIDEQ(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldEQ(FieldChannelConnectionID, v))

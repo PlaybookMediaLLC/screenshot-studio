@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -173,6 +174,37 @@ func TestContentDraftScheduling(t *testing.T) {
 		job, err := store.LoadPublishJob(ctx, live[0].ID, "run-"+id)
 		if err != nil || !job.WorkspaceActive || job.AssetObjectKey != "" || job.Post.Caption != "Edited for X" {
 			t.Fatalf("job=%+v err=%v", job, err)
+		}
+	})
+
+	t.Run("each post carries the draft's images up to its channel's limit", func(t *testing.T) {
+		images := make([]string, 5)
+		for i := range images {
+			images[i] = cuid.New()
+			exec(`INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$3,'image/png',1,'UPLOADED',now(),now())`,
+				images[i], org, fmt.Sprintf("org/%s/%d.png", org, i))
+		}
+		t.Cleanup(func() { _, _ = db.SQL.ExecContext(ctx, `DELETE FROM asset WHERE "organizationId" = $1`, org) })
+		gallery, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{AssetIDs: images, Title: "Gallery"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		result, err := repo.ScheduleContentDraft(ctx, owner, gallery.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: targets, Version: 1})
+		if err != nil {
+			t.Fatal(err)
+		}
+		store := publishing.NewRepository(db.Client)
+		want := map[string]int{xChannel: 4, linkedinChannel: 5}
+		for _, post := range result.Scheduled {
+			if claimed, err := store.Claim(ctx, post.ID, "run-"+post.ID, at.Add(time.Minute)); err != nil || !claimed {
+				t.Fatalf("claimed=%v err=%v", claimed, err)
+			}
+			job, err := store.LoadPublishJob(ctx, post.ID, "run-"+post.ID)
+			count := want[post.ChannelConnectionID]
+			if err != nil || !job.WorkspaceActive || len(job.Assets) != count || job.AssetObjectKey != "org/"+org+"/0.png" ||
+				job.Assets[count-1].ObjectKey != fmt.Sprintf("org/%s/%d.png", org, count-1) {
+				t.Fatalf("channel %s job=%+v err=%v", post.ChannelConnectionID, job, err)
+			}
 		}
 	})
 

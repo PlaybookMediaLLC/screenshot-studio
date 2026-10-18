@@ -339,16 +339,20 @@ func init() {
 	contentangle.UpdateDefaultUpdatedAt = contentangleDescUpdatedAt.UpdateDefault.(func() time.Time)
 	contentdraftFields := schema.ContentDraft{}.Fields()
 	_ = contentdraftFields
+	// contentdraftDescDiscussions is the schema descriptor for discussions field.
+	contentdraftDescDiscussions := contentdraftFields[7].Descriptor()
+	// contentdraft.DefaultDiscussions holds the default value on creation for the discussions field.
+	contentdraft.DefaultDiscussions = contentdraftDescDiscussions.Default.(map[string]interface{})
 	// contentdraftDescVersion is the schema descriptor for version field.
-	contentdraftDescVersion := contentdraftFields[8].Descriptor()
+	contentdraftDescVersion := contentdraftFields[9].Descriptor()
 	// contentdraft.DefaultVersion holds the default value on creation for the version field.
 	contentdraft.DefaultVersion = contentdraftDescVersion.Default.(int)
 	// contentdraftDescCreatedAt is the schema descriptor for created_at field.
-	contentdraftDescCreatedAt := contentdraftFields[12].Descriptor()
+	contentdraftDescCreatedAt := contentdraftFields[13].Descriptor()
 	// contentdraft.DefaultCreatedAt holds the default value on creation for the created_at field.
 	contentdraft.DefaultCreatedAt = contentdraftDescCreatedAt.Default.(func() time.Time)
 	// contentdraftDescUpdatedAt is the schema descriptor for updated_at field.
-	contentdraftDescUpdatedAt := contentdraftFields[13].Descriptor()
+	contentdraftDescUpdatedAt := contentdraftFields[14].Descriptor()
 	// contentdraft.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	contentdraft.DefaultUpdatedAt = contentdraftDescUpdatedAt.Default.(func() time.Time)
 	// contentdraft.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

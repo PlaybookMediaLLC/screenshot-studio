@@ -455,7 +455,11 @@ function FloatingDiscussionContent() {
 
     if (!relativeElement) return;
 
-    topRef.current = {};
+    // Keep the open create form's place: this runs debounced after edits and
+    // would otherwise send the form back off screen.
+    topRef.current = {
+      [getDraftCommentKey()]: topRef.current[getDraftCommentKey()],
+    };
 
     discussions.forEach((discussion) => {
       if (

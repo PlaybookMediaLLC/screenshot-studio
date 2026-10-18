@@ -93,6 +93,12 @@ func (_u *ContentDraftUpdate) AppendChannelConnectionIds(v []string) *ContentDra
 	return _u
 }
 
+// SetDiscussions sets the "discussions" field.
+func (_u *ContentDraftUpdate) SetDiscussions(v map[string]interface{}) *ContentDraftUpdate {
+	_u.mutation.SetDiscussions(v)
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *ContentDraftUpdate) SetStatus(v contentdraft.Status) *ContentDraftUpdate {
 	_u.mutation.SetStatus(v)
@@ -279,6 +285,9 @@ func (_u *ContentDraftUpdate) sqlSave(ctx context.Context) (_node int, err error
 			sqljson.Append(u, contentdraft.FieldChannelConnectionIds, value)
 		})
 	}
+	if value, ok := _u.mutation.Discussions(); ok {
+		_spec.SetField(contentdraft.FieldDiscussions, field.TypeJSON, value)
+	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(contentdraft.FieldStatus, field.TypeEnum, value)
 	}
@@ -390,6 +399,12 @@ func (_u *ContentDraftUpdateOne) SetChannelConnectionIds(v []string) *ContentDra
 // AppendChannelConnectionIds appends value to the "channel_connection_ids" field.
 func (_u *ContentDraftUpdateOne) AppendChannelConnectionIds(v []string) *ContentDraftUpdateOne {
 	_u.mutation.AppendChannelConnectionIds(v)
+	return _u
+}
+
+// SetDiscussions sets the "discussions" field.
+func (_u *ContentDraftUpdateOne) SetDiscussions(v map[string]interface{}) *ContentDraftUpdateOne {
+	_u.mutation.SetDiscussions(v)
 	return _u
 }
 
@@ -608,6 +623,9 @@ func (_u *ContentDraftUpdateOne) sqlSave(ctx context.Context) (_node *ContentDra
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, contentdraft.FieldChannelConnectionIds, value)
 		})
+	}
+	if value, ok := _u.mutation.Discussions(); ok {
+		_spec.SetField(contentdraft.FieldDiscussions, field.TypeJSON, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(contentdraft.FieldStatus, field.TypeEnum, value)

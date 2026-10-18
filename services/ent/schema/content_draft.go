@@ -30,6 +30,8 @@ func (ContentDraft) Fields() []ent.Field {
 		field.String("plain_text").StorageKey("plainText"),
 		field.JSON("asset_ids", []string{}).StorageKey("assetIds"),
 		field.JSON("channel_connection_ids", []string{}).StorageKey("channelConnectionIds"),
+		// Comment threads on the body, and the people who wrote them.
+		field.JSON("discussions", map[string]any{}).StorageKey("discussions").Default(map[string]any{}),
 		field.Enum("status").StorageKey("status").Values("draft", "scheduled", "archived").Default("draft"),
 		field.Int("version").StorageKey("version").Default(1),
 		// Yjs document state, written only by the collaboration service.

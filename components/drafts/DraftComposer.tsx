@@ -9,6 +9,11 @@ import { Group, Page, Pill, type PillTone, Row, Section } from '@/components/pla
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DraftRequestError, type DraftPostWire, draftsApi } from '@/lib/content-drafts/client'
+import {
+  type DraftDiscussions,
+  mergeDiscussions,
+  readDiscussions,
+} from '@/lib/content-drafts/discussions'
 import { type DraftChannel, draftPlainText, serializeDraft } from '@/lib/content-drafts/serialize'
 import { platformEditorServices } from '@/lib/editor/services'
 import { useTRPCClient } from '@/lib/trpc/react'
@@ -26,6 +31,7 @@ export type ComposerDraft = {
   assetIds: string[]
   body: Record<string, unknown>[]
   channelConnectionIds: string[]
+  discussions: Record<string, unknown>
   id: string
   status: 'draft' | 'scheduled' | 'archived'
   title: string
@@ -99,6 +105,11 @@ export function DraftComposer({
   const [scheduling, setScheduling] = React.useState(false)
   const [confirming, setConfirming] = React.useState(false)
   const version = React.useRef(draft.version)
+  const initialDiscussions = React.useMemo(
+    () => readDiscussions(draft.discussions),
+    [draft.discussions]
+  )
+  const discussions = React.useRef(initialDiscussions)
   const latest = React.useRef({ selected, title, value })
   latest.current = { selected, title, value }
   const inFlight = React.useRef<Promise<void> | null>(null)
@@ -129,6 +140,7 @@ export function DraftComposer({
           baseVersion: version.current,
           body: nextValue,
           channelConnectionIds: channelIds,
+          discussions: discussions.current,
           plainText: draftPlainText(nextValue),
           title: nextTitle,
         })
@@ -138,8 +150,14 @@ export function DraftComposer({
       } catch (error) {
         if (error instanceof DraftRequestError && error.status === 409 && collaboration) {
           // In a live session every editor holds the same content: another
-          // editor's autosave moved the version, so save again on top of it.
-          version.current = (await draftsApi.get(draft.id)).version
+          // editor's autosave moved the version, so save again on top of it,
+          // keeping the threads they saved as well as ours.
+          const fresh = await draftsApi.get(draft.id)
+          version.current = fresh.version
+          discussions.current = mergeDiscussions(
+            discussions.current,
+            readDiscussions(fresh.discussions)
+          )
           inFlight.current = null
           await save()
           return
@@ -166,6 +184,14 @@ export function DraftComposer({
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => void save(), AUTOSAVE_DELAY_MS)
   }, [canEdit, save])
+
+  const onDiscussionsChange = React.useCallback(
+    (next: DraftDiscussions) => {
+      discussions.current = next
+      scheduleSave()
+    },
+    [scheduleSave]
+  )
 
   const flush = React.useCallback(async () => {
     if (timer.current) clearTimeout(timer.current)
@@ -256,12 +282,14 @@ export function DraftComposer({
       <div className="overflow-hidden rounded-2xl bg-white/[0.015] ring-1 ring-white/[0.08]">
         <DraftEditor
           collaboration={collaboration}
+          initialDiscussions={initialDiscussions}
           initialValue={editorState.value}
           key={editorState.key}
           onChange={(next) => {
             setValue(next)
             scheduleSave()
           }}
+          onDiscussionsChange={onDiscussionsChange}
           readOnly={!canEdit}
           services={services}
           title={title}

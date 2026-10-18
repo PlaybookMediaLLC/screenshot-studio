@@ -281,6 +281,32 @@ test('a table, a math block and a footnote persist and serialize into the previe
   }
 })
 
+// Comment threads are saved with the draft, so a reload still shows them.
+test('a comment thread survives a reload', async ({ identity, page }) => {
+  let workspace: DraftWorkspace | null = null
+  try {
+    workspace = await createDraftWorkspace(identity, page, ['linkedin'])
+    await openNewDraft(page)
+    await draftEditor(page).click()
+    await page.keyboard.type('Launch day')
+    await draftEditor(page).getByText('Launch day', { exact: true }).selectText()
+    await page.getByRole('button', { name: 'Comment', exact: true }).click()
+    // The reply box is a small editor that takes focus when it opens.
+    await expect(page.getByText('Reply...')).toBeInViewport()
+    await page.keyboard.type('Check the date')
+    await page.keyboard.press('Enter')
+    await expect(page.getByText('Check the date')).toBeVisible()
+    await expectSaved(page)
+
+    await page.reload()
+    await draftEditor(page).getByText('Launch day', { exact: true }).click({ timeout: 60_000 })
+    await expect(page.getByText('Check the date')).toBeVisible()
+  } finally {
+    await workspace?.provider.close()
+    await unbindTestGoOrganization(workspace?.organizationId ?? null)
+  }
+})
+
 // DOCX and Markdown in and out. Imported images are stored as workspace
 // assets, not left inline; the exported Word file opens and holds the text.
 test('a draft imports and exports DOCX and Markdown', async ({ identity, page }) => {

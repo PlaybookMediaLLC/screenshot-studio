@@ -341,8 +341,11 @@ the replica that stores can still present it to the backend. Redis carries
 live updates and those tokens only; every draft stays in the backend. Helm
 (`collab.replicaCount`) and the deploy (`COLLAB_INSTANCE_COUNT`) refuse more
 than one replica without Redis.
-Comment threads (the discussion plugin) are kept in the editor's memory and
-are not yet stored with the draft; the comment marks in the text are.
+Comment threads (the discussion plugin) are saved with the draft in its
+`discussions` column, capped at 256 KB, by the same versioned autosave as the
+body. When an autosave meets a newer version in a live session, the composer
+merges the stored threads with its own by thread id before saving again; a
+thread both editors changed keeps the local copy.
 
 ## Rollout
 

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { asSchema } from 'ai'
 import { isKnownBackground } from '@/lib/design/catalog'
 import {
   DESIGN_DOCUMENT_VERSION,
@@ -8,6 +9,7 @@ import {
   designDocumentSchema,
   getDesignAssetIds,
   patchDesignDocument,
+  stillDesignChangesSchema,
 } from '@/lib/design/document'
 import { designTemplates, fitFontSize, getDesignTemplate } from '@/lib/design/templates'
 
@@ -102,4 +104,16 @@ test('change sets carry only the fields that were sent, at every depth', () => {
   assert.deepEqual(designChangesSchema.parse({ background: { value: 'mesh:mesh_ocean' } }), {
     background: { value: 'mesh:mesh_ocean' },
   })
+})
+
+test('launch agents get a still-image change schema within its size budget', () => {
+  // The visuals agent re-sends its tool schemas on every step (docs/rfcs/035).
+  const schema = asSchema(stillDesignChangesSchema).jsonSchema as {
+    properties: Record<string, unknown>
+  }
+  for (const motion of ['animation', 'slides', 'timeline']) {
+    assert.equal(motion in schema.properties, false, motion)
+  }
+  assert.ok('texts' in schema.properties)
+  assert.ok(JSON.stringify(schema).length < 24_000, `${JSON.stringify(schema).length} characters`)
 })

@@ -39,4 +39,10 @@ Resolve conflicts by class:
 
 1. Platform code, tenancy, campaign domain, infra: the fork wins.
 2. Editor internals the fork never modified: upstream wins.
-3. Run the repo checks before you push the merge.
+3. `bun.lock` is deleted in the fork (npm is the only package manager). When
+   upstream changes it, resolve the modify/delete conflict with
+   `git rm bun.lock`.
+4. Root `package.json` and `package-lock.json` are fork-owned. Keep the
+   `workspaces` entry, take upstream's dependency changes, then regenerate
+   the lockfile with `npm install`.
+5. Run the repo checks before you push the merge.

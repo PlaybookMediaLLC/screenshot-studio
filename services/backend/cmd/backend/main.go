@@ -63,6 +63,10 @@ func main() {
 		os.Exit(1)
 	}
 	configuration := product.NewConfiguration(db.Client).WithObjectStore(objects).WithAuthStore(authstore.New(db.SQL))
+	// Content draft collaboration (RFC 037): only the backend can sign tokens.
+	if key := os.Getenv("COLLAB_TOKEN_SECRET"); key != "" {
+		configuration.WithCollabKey([]byte(key))
+	}
 	github, err := githubapp.FromEnvironment()
 	if err != nil {
 		slog.Error("invalid GitHub App configuration", "error", err)

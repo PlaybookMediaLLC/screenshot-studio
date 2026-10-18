@@ -4,6 +4,14 @@ import {
   createAssetUploadUrlContract,
   deleteAssetContract,
 } from '@/lib/api/contracts/assets'
+import {
+  createContentDraftContract,
+  deleteContentDraftContract,
+  getContentDraftContract,
+  listContentDraftPostsContract,
+  listContentDraftsContract,
+  updateContentDraftContract,
+} from '@/lib/api/contracts/content-drafts'
 import { getLinkPreviewContract } from '@/lib/api/contracts/link-preview'
 import { createReleaseContract, listReleasesContract } from '@/lib/api/contracts/releases'
 import {
@@ -31,6 +39,12 @@ export const documentedContracts = [
   completeAssetUploadContract,
   createAssetDownloadUrlContract,
   deleteAssetContract,
+  listContentDraftsContract,
+  createContentDraftContract,
+  getContentDraftContract,
+  updateContentDraftContract,
+  deleteContentDraftContract,
+  listContentDraftPostsContract,
   getCurrentUserContract,
   getBootstrapContract,
   listOrganizationsContract,

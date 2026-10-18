@@ -2,11 +2,14 @@ import Link from 'next/link'
 import {
   checkoutPlanSchema,
   CREDIT_PACKS,
+  getWorkspaceLimit,
   getWorkspaceQuota,
   hasWorkspaceFeature,
+  workspaceLimitSchema,
   workspacePlanSchema,
   workspaceQuotaSchema,
   type WorkspaceFeature,
+  type WorkspaceLimit,
   type WorkspacePlan,
   type WorkspaceQuota,
 } from '@/lib/billing/plans'
@@ -50,7 +53,7 @@ const PLAN_COPY: Record<
   },
   business: {
     name: 'Business',
-    tagline: 'For teams with many products and channels',
+    tagline: 'For larger teams posting to many channels',
     cta: { href: '/contact', label: 'Choose Business' },
   },
   enterprise: {
@@ -76,6 +79,26 @@ const QUOTA_ORDER: WorkspaceQuota[] = [
   QUOTA['api:write:minute'],
   QUOTA['jobs:concurrent'],
   QUOTA['storage:bytes'],
+]
+
+const LIMIT_LABELS: Record<WorkspaceLimit, string> = {
+  seats: 'Seats',
+  channels: 'Social channels',
+}
+
+/** Every plan limit in display order, each read from the code that enforces it. */
+const ALLOWANCES: { key: string; label: string; format: (plan: WorkspacePlan) => string }[] = [
+  ...workspaceLimitSchema.options.map((limit) => ({
+    format: (plan: WorkspacePlan) =>
+      getWorkspaceLimit(plan, limit)?.toLocaleString('en-US') ?? 'Unlimited',
+    key: limit,
+    label: LIMIT_LABELS[limit],
+  })),
+  ...QUOTA_ORDER.map((quota) => ({
+    format: (plan: WorkspacePlan) => formatQuota(plan, quota),
+    key: quota,
+    label: QUOTA_LABELS[quota],
+  })),
 ]
 
 /** Plan features read from the entitlement code, so the cards cannot drift from enforcement. */
@@ -194,12 +217,10 @@ export function PlanCards({
                 />
               )}
               <dl className="mt-8 space-y-2.5 border-t border-[#212121] pt-6 text-[15px]">
-                {QUOTA_ORDER.map((quota) => (
-                  <div className="flex items-baseline justify-between gap-4" key={quota}>
-                    <dt className={MUTED}>{QUOTA_LABELS[quota]}</dt>
-                    <dd className={cn(MONO, 'text-[13px] text-white')}>
-                      {formatQuota(plan, quota)}
-                    </dd>
+                {ALLOWANCES.map((allowance) => (
+                  <div className="flex items-baseline justify-between gap-4" key={allowance.key}>
+                    <dt className={MUTED}>{allowance.label}</dt>
+                    <dd className={cn(MONO, 'text-[13px] text-white')}>{allowance.format(plan)}</dd>
                   </div>
                 ))}
               </dl>
@@ -273,11 +294,11 @@ export function PlanComparison() {
       caption="Plan comparison"
       head={['', ...plans.map((plan) => PLAN_COPY[plan].name)]}
       rows={[
-        ...QUOTA_ORDER.map((quota) => ({
-          label: QUOTA_LABELS[quota],
+        ...ALLOWANCES.map((allowance) => ({
+          label: allowance.label,
           cells: plans.map((plan) => (
             <span className={cn(MONO, 'text-[13px] text-white')} key={plan}>
-              {formatQuota(plan, quota)}
+              {allowance.format(plan)}
             </span>
           )),
         })),

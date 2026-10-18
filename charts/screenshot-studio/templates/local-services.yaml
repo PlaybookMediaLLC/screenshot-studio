@@ -315,6 +315,18 @@ spec:
         app.kubernetes.io/component: backend
         {{- include "screenshot-studio.selectorLabels" . | nindent 8 }}
     spec:
+      # Readiness queries the schema, and Helm runs the post-install migrate
+      # hook only after everything is ready, so a fresh install would never
+      # finish. The backend image ships the migrator; apply the schema first.
+      # It retries until Postgres accepts connections, and is idempotent.
+      initContainers:
+        - name: migrate
+          image: {{ .Values.local.backend.image | quote }}
+          command:
+            {{- toYaml .Values.migration.command | nindent 12 }}
+          envFrom:
+            - secretRef:
+                name: {{ $secretName }}
       containers:
         - name: backend
           image: {{ required "local.backend.image is required when local.enabled" .Values.local.backend.image | quote }}

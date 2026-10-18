@@ -5,7 +5,9 @@ import {
   FlashIcon,
   Layers01Icon,
   Mail01Icon,
+  Share08Icon,
   SparklesIcon,
+  UserGroupIcon,
 } from 'hugeicons-react'
 import { PRODUCT_FACTS } from '@/lib/seo/product-facts'
 import { cn } from '@/lib/utils'
@@ -60,7 +62,7 @@ export function PricingPage() {
         <SectionIntro
           body="Here is what each limit counts."
           label="What counts"
-          lead="Six limits decide what a plan can do,"
+          lead="Eight limits decide what a plan can do,"
           trail="and using the editor counts toward none of them."
         />
         <div className="mt-24 space-y-12">
@@ -68,6 +70,16 @@ export function PricingPage() {
           <TileGrid
             columns={2}
             items={[
+              {
+                icon: UserGroupIcon,
+                title: 'Seats',
+                body: 'Each member of the workspace holds a seat. A pending invitation holds one too, until it is accepted or expires.',
+              },
+              {
+                icon: Share08Icon,
+                title: 'Social channels',
+                body: 'Each connected social account counts once. Reconnecting an account you already have does not count again, and disconnecting one frees it.',
+              },
               {
                 icon: SparklesIcon,
                 title: 'AI credits',

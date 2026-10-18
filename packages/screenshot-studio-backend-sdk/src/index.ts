@@ -108,10 +108,14 @@ export type ScheduledPost = {
   createdAt: string
   id: string
   scheduledFor: string
-  status:
-    'DRAFT' | 'SCHEDULED' | 'PROCESSING' | 'PUBLISHED' | 'FAILED' | 'CANCELLED' | 'UNKNOWN_DELIVERY'
-  variantId: string
+  status: ScheduledPostStatus
+  /** A post comes from exactly one source: a campaign variant or a content draft. */
+  contentDraftId: string | null
+  variantId: string | null
 }
+
+export type ScheduledPostStatus =
+  'DRAFT' | 'SCHEDULED' | 'PROCESSING' | 'PUBLISHED' | 'FAILED' | 'CANCELLED' | 'UNKNOWN_DELIVERY'
 
 export type ChannelConnection = {
   createdAt: string
@@ -610,6 +614,61 @@ export type BackendCreateDesignInput = {
   variantLabel?: string
 }
 
+/** Where a content draft is in its life. */
+export type BackendContentDraftStatus = 'draft' | 'scheduled' | 'archived'
+
+/** A post written by hand in the document editor (RFC 037). */
+export type BackendContentDraft = {
+  assetIds: string[]
+  /** Plate JSON: the editor's value, a list of block nodes. */
+  body: unknown[]
+  channelConnectionIds: string[]
+  createdAt: string
+  createdByUserId: string | null
+  id: string
+  organizationId: string
+  plainText: string
+  status: BackendContentDraftStatus
+  title: string
+  updatedAt: string
+  updatedByUserId: string | null
+  /** Every update is based on this; a stale one is refused with 409 and `currentVersion`. */
+  version: number
+}
+
+export type BackendContentDraftInput = {
+  assetIds?: string[]
+  body?: unknown[]
+  channelConnectionIds?: string[]
+  plainText?: string
+  title?: string
+}
+
+export type BackendContentDraftUpdate = BackendContentDraftInput & {
+  baseVersion: number
+  status?: Exclude<BackendContentDraftStatus, 'scheduled'>
+}
+
+/** A post scheduled from a content draft, with its delivery status. */
+export type BackendContentDraftPost = {
+  caption: string
+  channelConnectionId: string
+  createdAt: string
+  id: string
+  platform: string
+  scheduledFor: string
+  status: ScheduledPostStatus
+}
+
+/** One channel of a draft schedule and the caption serialized for it. */
+export type BackendContentDraftScheduleTarget = { caption: string; channelConnectionId: string }
+
+export type BackendContentDraftListQuery = {
+  cursor?: string
+  limit?: number
+  status?: BackendContentDraftStatus
+}
+
 /** A cloud project: an editor composition with revision-checked writes. */
 export type BackendProject = {
   createdAt: string
@@ -740,6 +799,8 @@ export type BackendCreativeApproval = {
 }
 
 export type BackendEntitlementSummary = {
+  /** What is left of the workspace's purchased credit packs. */
+  creditBalance: number
   features: Record<string, boolean>
   plan: string
   status: string
@@ -1408,13 +1469,13 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ items: ScheduledPost[] }>(`v1/scheduled-posts?limit=${limit}`)
   }
 
+  /** Schedules one post from exactly one source: `variantId` or `contentDraftId`. */
   async createScheduledPost(input: {
     caption: string
     channelConnectionId: string
     idempotencyKey: string
     scheduledFor: Date
-    variantId: string
-  }) {
+  } & ({ contentDraftId?: never; variantId: string } | { contentDraftId: string; variantId?: never })) {
     return this.request<{ created: boolean; scheduledPost: ScheduledPost }>('v1/scheduled-posts', {
       body: input,
       method: 'POST',
@@ -1819,6 +1880,70 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
+  async listContentDrafts(query: BackendContentDraftListQuery = {}) {
+    const params = new URLSearchParams()
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== '') params.set(key, String(value))
+    }
+    return this.request<{ items: BackendContentDraft[]; nextCursor: string | null }>(
+      `v1/content-drafts?${params}`
+    )
+  }
+
+  async createContentDraft(input: BackendContentDraftInput) {
+    return this.request<BackendContentDraft>('v1/content-drafts', { body: input, method: 'POST' })
+  }
+
+  async getContentDraft(id: string) {
+    return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}`)
+  }
+
+  /** Updates the fields set, based on `baseVersion`; a stale write fails with 409. */
+  async updateContentDraft(id: string, input: BackendContentDraftUpdate) {
+    return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}`, {
+      body: input,
+      method: 'PATCH',
+    })
+  }
+
+  /**
+   * Schedules the draft at `version` to every target: one post per channel. A
+   * repeat at the same version replays the same posts (`created: false`); a
+   * stale version fails with 409; a new version cancels queued posts first.
+   */
+  async scheduleContentDraft(
+    id: string,
+    input: { scheduledFor: Date; targets: BackendContentDraftScheduleTarget[]; version: number }
+  ) {
+    return this.request<{
+      created: boolean
+      draft: BackendContentDraft
+      posts: BackendContentDraftPost[]
+    }>(`v1/content-drafts/${encodeURIComponent(id)}/schedule`, { body: input, method: 'POST' })
+  }
+
+  /** A short-lived token admitting the signed-in member to the draft's live session. */
+  async createContentDraftCollabToken(id: string) {
+    return this.request<{
+      access: 'read' | 'write'
+      documentName: string
+      expiresAt: string
+      token: string
+    }>(`v1/content-drafts/${encodeURIComponent(id)}/collab-token`, { body: {}, method: 'POST' })
+  }
+
+  async listContentDraftPosts(id: string) {
+    return this.request<{ posts: BackendContentDraftPost[] }>(
+      `v1/content-drafts/${encodeURIComponent(id)}/posts`
+    )
+  }
+
+  async deleteContentDraft(id: string) {
+    return this.request<{ deleted: true }>(`v1/content-drafts/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+  }
+
   async listProjects(query: BackendProjectListQuery = {}) {
     const params = new URLSearchParams()
     for (const [key, value] of Object.entries(query)) {
@@ -2062,6 +2187,17 @@ export class ScreenshotStudioBackendSDK {
       `v1/internal/workspaces/${encodeURIComponent(organizationId)}/operational`
     )
     return result.operational
+  }
+
+  /**
+   * Resolves when the workspace has a seat for one more member, and rejects
+   * with a 403 `plan_limit_reached` when its plan's seats are full. With
+   * `invitations`, pending invitations count as held seats.
+   */
+  async requireWorkspaceSeat(organizationId: string, invitations: boolean) {
+    await this.request<{ available: true }>(
+      `v1/internal/workspaces/${encodeURIComponent(organizationId)}/seat?invitations=${invitations}`
+    )
   }
 
   async appendAuditEvent(event: BackendAuditEvent) {

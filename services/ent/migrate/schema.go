@@ -650,6 +650,36 @@ var (
 			},
 		},
 	}
+	// ContentDraftColumns holds the columns for the "content_draft" table.
+	ContentDraftColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "title", Type: field.TypeString},
+		{Name: "body", Type: field.TypeJSON},
+		{Name: "plainText", Type: field.TypeString},
+		{Name: "assetIds", Type: field.TypeJSON},
+		{Name: "channelConnectionIds", Type: field.TypeJSON},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"draft", "scheduled", "archived"}, Default: "draft"},
+		{Name: "version", Type: field.TypeInt, Default: 1},
+		{Name: "collabState", Type: field.TypeBytes, Nullable: true},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "updatedByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ContentDraftTable holds the schema information for the "content_draft" table.
+	ContentDraftTable = &schema.Table{
+		Name:       "content_draft",
+		Columns:    ContentDraftColumns,
+		PrimaryKey: []*schema.Column{ContentDraftColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "contentdraft_organizationId_updatedAt",
+				Unique:  false,
+				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[13]},
+			},
+		},
+	}
 	// ConversationColumns holds the columns for the "conversation" table.
 	ConversationColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1462,7 +1492,9 @@ var (
 	ScheduledPostColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "organizationId", Type: field.TypeString},
-		{Name: "variantId", Type: field.TypeString},
+		{Name: "variantId", Type: field.TypeString, Nullable: true},
+		{Name: "contentDraftId", Type: field.TypeString, Nullable: true},
+		{Name: "assetId", Type: field.TypeString, Nullable: true},
 		{Name: "scheduledFor", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "SCHEDULED", "PROCESSING", "PUBLISHED", "FAILED", "CANCELLED", "UNKNOWN_DELIVERY"}, Default: "DRAFT"},
 		{Name: "caption", Type: field.TypeString},
@@ -1480,7 +1512,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "scheduled_post_channel_connection_scheduled_posts",
-				Columns:    []*schema.Column{ScheduledPostColumns[10]},
+				Columns:    []*schema.Column{ScheduledPostColumns[12]},
 				RefColumns: []*schema.Column{ChannelConnectionColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1489,17 +1521,22 @@ var (
 			{
 				Name:    "scheduledpost_channelConnectionId_idempotencyKey",
 				Unique:  true,
-				Columns: []*schema.Column{ScheduledPostColumns[10], ScheduledPostColumns[6]},
+				Columns: []*schema.Column{ScheduledPostColumns[12], ScheduledPostColumns[8]},
 			},
 			{
 				Name:    "scheduledpost_organizationId_status_scheduledFor",
 				Unique:  false,
-				Columns: []*schema.Column{ScheduledPostColumns[1], ScheduledPostColumns[4], ScheduledPostColumns[3]},
+				Columns: []*schema.Column{ScheduledPostColumns[1], ScheduledPostColumns[6], ScheduledPostColumns[5]},
 			},
 			{
 				Name:    "scheduledpost_status_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ScheduledPostColumns[4], ScheduledPostColumns[9]},
+				Columns: []*schema.Column{ScheduledPostColumns[6], ScheduledPostColumns[11]},
+			},
+			{
+				Name:    "scheduledpost_contentDraftId",
+				Unique:  false,
+				Columns: []*schema.Column{ScheduledPostColumns[3]},
 			},
 		},
 	}
@@ -2001,6 +2038,7 @@ var (
 		CommunicationAttemptTable,
 		CommunicationRecipientTable,
 		ContentAngleTable,
+		ContentDraftTable,
 		ConversationTable,
 		ConversationMessageTable,
 		CreativeTemplateTable,
@@ -2112,6 +2150,9 @@ func init() {
 	}
 	ContentAngleTable.Annotation = &entsql.Annotation{
 		Table: "content_angle",
+	}
+	ContentDraftTable.Annotation = &entsql.Annotation{
+		Table: "content_draft",
 	}
 	ConversationTable.Annotation = &entsql.Annotation{
 		Table: "conversation",

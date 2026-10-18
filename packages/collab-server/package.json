@@ -1,0 +1,20 @@
+{
+  "name": "@shots/collab-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hocuspocus server for real-time co-editing of content drafts (RFC 037)",
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "start": "node src/main.ts",
+    "test": "tsc --noEmit -p tsconfig.json && tsx --test 'src/**/*.test.ts'"
+  },
+  "dependencies": {
+    "@hocuspocus/server": "3.4.4",
+    "y-protocols": "^1.0.7",
+    "yjs": "13.6.32"
+  },
+  "devDependencies": {
+    "@hocuspocus/provider": "^3.4.4"
+  }
+}

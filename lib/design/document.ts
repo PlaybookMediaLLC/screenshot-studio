@@ -561,13 +561,25 @@ export type DesignSections = Partial<Omit<DesignDocument, 'image' | 'version'>> 
   image?: Partial<DesignDocument['image']>
 }
 
+const CHANGES_DESCRIPTION =
+  'Sections to change. Objects merge field by field; arrays (texts, overlays, annotations, ' +
+  'redactions, devices.mockups) replace the whole list, so resend items you want to keep.'
+
 /** Any section of a DesignDocument; omitted sections and fields are left as they are. */
 export const designChangesSchema = (
   withoutDefaults(designDocumentSchema.omit({ version: true })) as z.ZodType<DesignChanges>
-).describe(
-  'Sections to change. Objects merge field by field; arrays (texts, overlays, annotations, ' +
-    'redactions, devices.mockups) replace the whole list, so resend items you want to keep.'
-)
+).describe(CHANGES_DESCRIPTION)
+
+/**
+ * {@link designChangesSchema} without the sections that only move (animation,
+ * timeline, slides), for agents that render stills. They are a third of the
+ * schema, and a tool schema is re-sent on every agent step (docs/rfcs/035).
+ */
+export const stillDesignChangesSchema = (
+  withoutDefaults(
+    designDocumentSchema.omit({ animation: true, slides: true, timeline: true, version: true })
+  ) as z.ZodType<DesignChanges>
+).describe(CHANGES_DESCRIPTION)
 
 /** Drop keys a validator filled with undefined so they cannot clear the base document. */
 export function definedChanges(changes: Record<string, unknown>): Record<string, unknown> {

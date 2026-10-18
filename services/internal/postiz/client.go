@@ -243,13 +243,18 @@ func (c *Client) Publish(ctx context.Context, input PublishInput) (string, error
 	if !ok || token == "" {
 		return "", &Error{message: "Postiz credentials are unavailable"}
 	}
-	asset, err := c.assetReader.Read(ctx, input.OrganizationID, input.AssetObjectKey)
-	if err != nil {
-		return "", &Error{message: "tenant asset is unavailable: " + err.Error()}
-	}
-	upload, err := c.upload(ctx, token, input.AssetObjectKey, input.AssetMediaType, asset)
-	if err != nil {
-		return "", err
+	// A content draft post without an image publishes as text (RFC 037).
+	images := []any{}
+	if input.AssetObjectKey != "" {
+		asset, err := c.assetReader.Read(ctx, input.OrganizationID, input.AssetObjectKey)
+		if err != nil {
+			return "", &Error{message: "tenant asset is unavailable: " + err.Error()}
+		}
+		upload, err := c.upload(ctx, token, input.AssetObjectKey, input.AssetMediaType, asset)
+		if err != nil {
+			return "", err
+		}
+		images = append(images, upload)
 	}
 	settings := make(map[string]any, len(input.ProviderSettings)+1)
 	for key, value := range input.ProviderSettings {
@@ -261,7 +266,7 @@ func (c *Client) Publish(ctx context.Context, input PublishInput) (string, error
 		"posts": []any{map[string]any{
 			"integration": map[string]string{"id": input.DestinationID},
 			"settings":    settings,
-			"value":       []any{map[string]any{"content": input.Caption, "image": []any{upload}}},
+			"value":       []any{map[string]any{"content": input.Caption, "image": images}},
 		}},
 	}
 	body, err := json.Marshal(payload)

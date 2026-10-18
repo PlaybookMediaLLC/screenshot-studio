@@ -1,3 +1,4 @@
+import path from 'node:path'
 import type { NextConfig } from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
 
@@ -6,6 +7,8 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
 const nextConfig: NextConfig = {
   output: 'standalone',
   reactCompiler: true,
+  // The vendored editor ships TypeScript source (packages/platejs-editor).
+  transpilePackages: ['@shots/platejs-editor'],
   poweredByHeader: false,
   allowedDevOrigins: process.env.PLATFORM_ALLOWED_DEV_ORIGINS?.split(',')
     .map((origin) => origin.trim())
@@ -182,6 +185,12 @@ const nextConfig: NextConfig = {
   // REQUIRED for react-konva
   webpack: (config, { isServer }) => {
     config.externals = [...(config.externals || []), { canvas: 'canvas' }]
+    // WebRTC co-editing is off (RFC 037); keep y-webrtc and its public
+    // signaling defaults out of the bundle.
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'y-webrtc$': path.join(process.cwd(), 'lib/collab/y-webrtc-disabled.ts'),
+    }
     if (!isServer) {
       // The background-removal client must not bundle Node-only inference backends.
       config.resolve.alias = {

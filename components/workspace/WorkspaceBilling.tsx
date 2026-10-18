@@ -34,8 +34,29 @@ const PLAN_NAMES: Record<string, string> = {
   pro: 'Pro',
 }
 
+/** What is left of one monthly allowance, out of what the plan includes. */
+function UsageRow({
+  allowance,
+  description,
+  label,
+}: {
+  allowance: Summary['credits']
+  description: string
+  label: string
+}) {
+  return (
+    <Row description={description} label={label} layout="inline">
+      <span className="text-sm font-medium text-white tabular-nums">
+        {allowance.left.toLocaleString('en-US')}
+        <span className="text-neutral-500"> / {allowance.included.toLocaleString('en-US')}</span>
+      </span>
+    </Row>
+  )
+}
+
 /**
- * The workspace's plan, its standing, and the AI credits left this month.
+ * The workspace's plan, its standing, what is left of each monthly allowance,
+ * and its extra launch credits.
  * Owners and admins manage the subscription in Stripe's billing portal, pick
  * a plan when there is none, and buy an extra launch on a paid plan.
  */
@@ -59,7 +80,7 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
 
   return (
     <Section
-      description="What this workspace pays for and the AI credits left this month."
+      description="What this workspace pays for and what is left of it this month."
       title="Plan and credits"
     >
       {outcome && OUTCOMES[outcome] ? (
@@ -97,19 +118,32 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
               </div>
             </Row>
             {summary.paid ? (
-              <Row
-                description={`Your plan includes ${summary.monthlyCredits.toLocaleString('en-US')} AI credits a month. One credit is one cent of AI cost.`}
-                label="AI credits left"
-                layout="inline"
-              >
-                <span className="text-sm font-medium text-white tabular-nums">
-                  {summary.creditsLeft.toLocaleString('en-US')}
-                  <span className="text-neutral-500">
-                    {' '}
-                    / {summary.monthlyCredits.toLocaleString('en-US')}
+              <>
+                <UsageRow
+                  allowance={summary.credits}
+                  description="AI credits left this month. One credit is one cent of AI cost."
+                  label="AI credits"
+                />
+                <Row
+                  description="Extra launch credits are spent after the monthly allowance and do not expire."
+                  label="Extra launch credits"
+                  layout="inline"
+                >
+                  <span className="text-sm font-medium text-white tabular-nums">
+                    {summary.creditBalance.toLocaleString('en-US')}
                   </span>
-                </span>
-              </Row>
+                </Row>
+                <UsageRow
+                  allowance={summary.posts}
+                  description="Scheduled posts left this month."
+                  label="Scheduled posts"
+                />
+                <UsageRow
+                  allowance={summary.emails}
+                  description="Release emails left this month, counted per recipient."
+                  label="Emails"
+                />
+              </>
             ) : null}
             {canManage ? (
               <Row layout="inline">

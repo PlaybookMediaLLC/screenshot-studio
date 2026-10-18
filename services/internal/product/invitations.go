@@ -89,6 +89,9 @@ func (c *Configuration) InviteMember(ctx context.Context, actor Actor, email, ro
 	if err := c.invitationRateLimit(ctx, actor, "product.member_invited", "", 10); err != nil {
 		return nil, err
 	}
+	if err := c.RequireSeat(ctx, actor.OrganizationID, true); err != nil {
+		return nil, err
+	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err

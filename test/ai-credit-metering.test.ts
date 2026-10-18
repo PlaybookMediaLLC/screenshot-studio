@@ -11,7 +11,12 @@ import {
   tokenCostUsd,
 } from '@/lib/ai/metering/pricing'
 import { createMeterMiddleware, type ModelCallMeter } from '@/lib/ai/models/middleware/meter'
-import { getWorkspaceQuota, workspacePlanSchema } from '@/lib/billing/plans'
+import {
+  getWorkspaceLimit,
+  getWorkspaceQuota,
+  type WorkspaceLimit,
+  workspacePlanSchema,
+} from '@/lib/billing/plans'
 import {
   creditGrantForSession,
   entitlementForSubscription,
@@ -172,6 +177,24 @@ test('plan allowances match the Go backend', () => {
     }
   }
   assert.equal(getWorkspaceQuota('pro', 'ai:credits:monthly'), 3_600)
+})
+
+test('plan seat and channel limits match the Go backend', () => {
+  const go = readFileSync('services/internal/product/plan_limits.go', 'utf8')
+  const names: Record<string, WorkspaceLimit> = { LimitChannels: 'channels', LimitSeats: 'seats' }
+  for (const plan of workspacePlanSchema.options) {
+    const block = go.match(new RegExp(`"${plan}": +\\{([^}]*)\\}`))?.[1]
+    assert.ok(block, `plan_limits.go has no ${plan} plan`)
+    const pairs = [...block.matchAll(/(\w+): (\w+)/g)]
+    assert.equal(pairs.length, Object.keys(names).length, `${plan} limits in plan_limits.go`)
+    for (const [, name, value] of pairs) {
+      assert.equal(
+        getWorkspaceLimit(plan, names[name]),
+        value === 'unlimited' ? null : Number(value),
+        `${plan} ${name}`
+      )
+    }
+  }
 })
 
 function subscription(

@@ -165,3 +165,31 @@ test('production budgets grow with the plan and stay capped', async () => {
   })
   assert.deepEqual([huge.captures, huge.designs, huge.renders, huge.steps], [12, 32, 32, 96])
 })
+
+test('a production re-run skips plan assets it already finished', async () => {
+  const { unproducedAssets } = await import('@/lib/launch/budget')
+  const assets = [
+    { key: 'A1', variants: 1 },
+    { key: 'A2', variants: 2 },
+    { key: 'A3', variants: 1 },
+  ]
+  const design = (planAssetKey: string, variantLabel: string | null, extra = {}) => ({
+    createdAt: new Date('2026-10-02'),
+    critique: { verdict: 'pass' },
+    planAssetKey,
+    planVersion: 3,
+    renderedAssetId: 'asset',
+    variantLabel,
+    ...extra,
+  })
+  const keys = (designs: ReturnType<typeof design>[], brandUpdatedAt: Date | null = null) =>
+    unproducedAssets(assets, designs, { brandUpdatedAt, planVersion: 3 }).map((a) => a.key)
+
+  assert.deepEqual(keys([design('A1', null), design('A2', 'A'), design('A2', 'B')]), ['A3'])
+  assert.deepEqual(keys([design('A2', 'A')]), ['A1', 'A2', 'A3'], 'an A/B pair needs both')
+  assert.deepEqual(keys([design('A1', null, { planVersion: 2 })]), ['A1', 'A2', 'A3'])
+  assert.deepEqual(keys([design('A1', null, { renderedAssetId: null })]), ['A1', 'A2', 'A3'])
+  assert.deepEqual(keys([design('A1', null, { critique: { verdict: 'fix' } })]), ['A1', 'A2', 'A3'])
+  assert.deepEqual(keys([design('A1', null, { critique: null })]), ['A2', 'A3'])
+  assert.deepEqual(keys([design('A1', null)], new Date('2026-10-03')), ['A1', 'A2', 'A3'])
+})

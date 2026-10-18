@@ -8,9 +8,9 @@ import type { TenantContext } from '@/lib/auth/access'
 import { backendSDK } from '@/lib/backend/sdk'
 import {
   definedChanges,
-  designChangesSchema,
   parseDesignDocument,
   patchDesignDocument,
+  stillDesignChangesSchema,
 } from '@/lib/design/document'
 import { findCitationIssues } from '@/lib/launch/citations'
 import { checkLaunchPost } from '@/lib/launch/guards'
@@ -346,7 +346,8 @@ export async function proposeCampaignRevision(
       description: 'Propose the design changes.',
       messages: [{ content, role: 'user' } as ModelMessage],
       role: 'deep',
-      schema: z.object({ changes: designChangesSchema, summary: summarySchema }),
+      // Launch visuals are stills, so a revision never needs the motion sections.
+      schema: z.object({ changes: stillDesignChangesSchema, summary: summarySchema }),
       system: REVISE_INSTRUCTIONS,
       toolName: 'proposeRevision',
       validate: ({ changes }) => {

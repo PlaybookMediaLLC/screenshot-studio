@@ -86,6 +86,27 @@ export default defineConfig([
       'max-params': ['error', 4],
     },
   },
+  // The vendored Plate.js editor (packages/platejs-editor/UPSTREAM.md) keeps
+  // its upstream source unformatted and unedited. These rules flag Plate's own
+  // conventions there: hyperscript node props, forwardRef components, and the
+  // latest-value ref pattern. Code the fork writes in the package still gets
+  // every other rule.
+  {
+    files: ['packages/platejs-editor/**/*.{ts,tsx}'],
+    linterOptions: { reportUnusedDisableDirectives: 'off' },
+    rules: {
+      'react/display-name': 'off',
+      'react/no-unescaped-entities': 'off',
+      'react/no-unknown-property': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+      'react-hooks/refs': 'off',
+      'react-hooks/unsupported-syntax': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': ['warn', { args: 'none', ignoreRestSiblings: true, varsIgnorePattern: '^_' }],
+      '@typescript-eslint/triple-slash-reference': 'off',
+    },
+  },
   {
     ignores: [
       'node_modules/**',

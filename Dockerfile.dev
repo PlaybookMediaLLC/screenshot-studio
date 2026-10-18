@@ -9,6 +9,11 @@ RUN apt-get update \
 WORKDIR /workspace
 
 COPY package.json package-lock.json ./
+# npm ci links every workspace, so each workspace manifest must exist first.
+# test/workspace-manifests.test.ts fails when a workspace is missing here.
+COPY packages/collab-server/package.json ./packages/collab-server/
+COPY packages/platejs-editor/package.json ./packages/platejs-editor/
+COPY packages/screenshot-studio-backend-sdk/package.json ./packages/screenshot-studio-backend-sdk/
 RUN npm ci
 
 CMD ["npm", "run", "dev"]

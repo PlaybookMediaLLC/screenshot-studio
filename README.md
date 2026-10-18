@@ -122,8 +122,8 @@ built from real product screenshots, approves them, and schedules them.
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Shipped     | 007 tRPC product surface; 034 phases 1–2 (zod contracts, OpenAPI 3.1, Scalar reference); 035 paid plans, Stripe billing, credit metering                                                                                                                                                                                                                                |
 | Partial     | 002 tenant data model; 003 auth, enterprise, audit; 005 inbound webhooks and GitHub App; 006 asset pipeline; 009 thesis (V1 and part of V2); 010 creative engine; 011 brand profile; 013 product surfaces; 014 campaign objects; 016 AI tools; 017 campaign chat; 018 campaign workspace; 019 approval; 020 publishing; 021 core workflows; 022 GitHub integration; 023 deployment capture; 032 onboarding fast path |
-| Not started | 008, 012, 024, 025, 026, 027, 028, 029, 030, 031                                                                                                                                                                                                                                                                                                                  |      
-| Superseded  | 001 (by the AI launch pipeline); 004 (by Temporal); 015 (by the launch pipeline in `lib/ai/launch`); 033 (the SDK ships to npm instead)                                                                                                                                                                                                                                 |
+| Not started | 008, 012, 024, 025, 026, 027, 028, 029, 030, 031, 037                                                                                                                                                                                                                                                                                                         |
+| Superseded  | 001 (by the AI launch pipeline); 004 (by Temporal); 015 (by the launch pipeline in `lib/ai/launch`); 033 (by 037, npm workspaces with the app at the root)                                                                                                                                                                                                              |
 
 There is no free plan. Every workspace needs an active subscription to use the editor, the
 tools, or the API ([035](docs/rfcs/035-pricing-and-unit-economics.md)).
@@ -140,8 +140,9 @@ Status as of 2026-10-16: done, including the campaign UI for steps 2, 3, and 5 (
    - `/pricing` explains why someone was sent there and what happened after checkout or a credit purchase.
    - Checkout success returns to the app and applies the plan at once, without waiting for the webhook.
    - Onboarding has a "Choose a plan" step.
-   - Workspace settings have a Billing section: plan, status, credits left, and the billing portal.
+   - Workspace settings have a Billing section: plan, status, AI credits, posts, and emails left, the extra launch credit balance, and the billing portal.
    - Credit packs require a subscription. There is no trial.
+   - Seat and social channel limits are enforced per plan; a workspace has one product.
 2. **Approve → schedule → publish end to end** ([020](docs/rfcs/020-postiz-publishing.md), [014](docs/rfcs/014-structured-marketing-objects.md))
    - Done: approving a launch visual creates an approved creative variant, and scheduling attaches it to the post.
    - Done: the post channel must match the connected platform.
@@ -241,6 +242,7 @@ schedule.
 28. Enterprise remainder ([003](docs/rfcs/003-better-auth-enterprise-audit.md)): support-access approvals and required two-factor.
 29. Asset verification and quarantine ([006](docs/rfcs/006-release-inputs-and-artifact-pipeline.md)).
 30. Store provider verification ([036](docs/rfcs/036-store-provider-e2e-verification.md)): fake Google Play, App Store Connect, Figma, and AI providers on every PR; live runs against test accounts nightly.
+31. Workspaces and content drafts ([037](docs/rfcs/037-workspaces-and-content-drafts.md)): npm workspaces, the vendored Plate.js editor, manual drafts scheduled to several channels, and real-time co-editing.
 
 ## Where this goes
 

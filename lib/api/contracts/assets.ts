@@ -96,6 +96,20 @@ export const createAssetDownloadUrlContract = defineContract({
   summary: 'Create a signed asset download URL',
 })
 
+/**
+ * `GET /api/v1/assets/{assetId}/content`: redirects to a fresh signed URL.
+ * Documents embed this stable address (a draft's images), because a signed
+ * URL expires. Browser-only, so it is not in the public reference.
+ */
+export const assetContentContract = defineContract({
+  method: 'GET',
+  name: 'assets.content',
+  output: z.never(),
+  params: assetParamsSchema,
+  path: '/api/v1/assets/{assetId}/content',
+  summary: 'Redirect to a workspace asset',
+})
+
 /** `DELETE /api/v1/assets/{assetId}` */
 export const deleteAssetContract = defineContract({
   docs: workspaceDocs({

@@ -252,6 +252,12 @@ func (s *Server) completeSocialOAuth(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "social destination could not be verified")
 		return
 	}
+	if s.configuration != nil {
+		if err := s.configuration.RequireChannel(r.Context(), actor.Organization, input.IntegrationID); err != nil {
+			writeStoreError(w, err)
+			return
+		}
+	}
 	connection, err := s.store.FinishOAuth(r.Context(), actor, sessionID, input.State, input.Provider, input.IntegrationID)
 	if err != nil {
 		writeOAuthStoreError(w, err)

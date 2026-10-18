@@ -75,6 +75,16 @@ func VariantID(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldEQ(FieldVariantID, v))
 }
 
+// ContentDraftID applies equality check predicate on the "content_draft_id" field. It's identical to ContentDraftIDEQ.
+func ContentDraftID(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldContentDraftID, v))
+}
+
+// AssetID applies equality check predicate on the "asset_id" field. It's identical to AssetIDEQ.
+func AssetID(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldAssetID, v))
+}
+
 // ChannelConnectionID applies equality check predicate on the "channel_connection_id" field. It's identical to ChannelConnectionIDEQ.
 func ChannelConnectionID(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldEQ(FieldChannelConnectionID, v))
@@ -230,6 +240,16 @@ func VariantIDHasSuffix(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldHasSuffix(FieldVariantID, v))
 }
 
+// VariantIDIsNil applies the IsNil predicate on the "variant_id" field.
+func VariantIDIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldVariantID))
+}
+
+// VariantIDNotNil applies the NotNil predicate on the "variant_id" field.
+func VariantIDNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldVariantID))
+}
+
 // VariantIDEqualFold applies the EqualFold predicate on the "variant_id" field.
 func VariantIDEqualFold(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldEqualFold(FieldVariantID, v))
@@ -238,6 +258,156 @@ func VariantIDEqualFold(v string) predicate.ScheduledPost {
 // VariantIDContainsFold applies the ContainsFold predicate on the "variant_id" field.
 func VariantIDContainsFold(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldContainsFold(FieldVariantID, v))
+}
+
+// ContentDraftIDEQ applies the EQ predicate on the "content_draft_id" field.
+func ContentDraftIDEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldContentDraftID, v))
+}
+
+// ContentDraftIDNEQ applies the NEQ predicate on the "content_draft_id" field.
+func ContentDraftIDNEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNEQ(FieldContentDraftID, v))
+}
+
+// ContentDraftIDIn applies the In predicate on the "content_draft_id" field.
+func ContentDraftIDIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIn(FieldContentDraftID, vs...))
+}
+
+// ContentDraftIDNotIn applies the NotIn predicate on the "content_draft_id" field.
+func ContentDraftIDNotIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotIn(FieldContentDraftID, vs...))
+}
+
+// ContentDraftIDGT applies the GT predicate on the "content_draft_id" field.
+func ContentDraftIDGT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGT(FieldContentDraftID, v))
+}
+
+// ContentDraftIDGTE applies the GTE predicate on the "content_draft_id" field.
+func ContentDraftIDGTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGTE(FieldContentDraftID, v))
+}
+
+// ContentDraftIDLT applies the LT predicate on the "content_draft_id" field.
+func ContentDraftIDLT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLT(FieldContentDraftID, v))
+}
+
+// ContentDraftIDLTE applies the LTE predicate on the "content_draft_id" field.
+func ContentDraftIDLTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLTE(FieldContentDraftID, v))
+}
+
+// ContentDraftIDContains applies the Contains predicate on the "content_draft_id" field.
+func ContentDraftIDContains(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContains(FieldContentDraftID, v))
+}
+
+// ContentDraftIDHasPrefix applies the HasPrefix predicate on the "content_draft_id" field.
+func ContentDraftIDHasPrefix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasPrefix(FieldContentDraftID, v))
+}
+
+// ContentDraftIDHasSuffix applies the HasSuffix predicate on the "content_draft_id" field.
+func ContentDraftIDHasSuffix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasSuffix(FieldContentDraftID, v))
+}
+
+// ContentDraftIDIsNil applies the IsNil predicate on the "content_draft_id" field.
+func ContentDraftIDIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldContentDraftID))
+}
+
+// ContentDraftIDNotNil applies the NotNil predicate on the "content_draft_id" field.
+func ContentDraftIDNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldContentDraftID))
+}
+
+// ContentDraftIDEqualFold applies the EqualFold predicate on the "content_draft_id" field.
+func ContentDraftIDEqualFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEqualFold(FieldContentDraftID, v))
+}
+
+// ContentDraftIDContainsFold applies the ContainsFold predicate on the "content_draft_id" field.
+func ContentDraftIDContainsFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContainsFold(FieldContentDraftID, v))
+}
+
+// AssetIDEQ applies the EQ predicate on the "asset_id" field.
+func AssetIDEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldAssetID, v))
+}
+
+// AssetIDNEQ applies the NEQ predicate on the "asset_id" field.
+func AssetIDNEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNEQ(FieldAssetID, v))
+}
+
+// AssetIDIn applies the In predicate on the "asset_id" field.
+func AssetIDIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIn(FieldAssetID, vs...))
+}
+
+// AssetIDNotIn applies the NotIn predicate on the "asset_id" field.
+func AssetIDNotIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotIn(FieldAssetID, vs...))
+}
+
+// AssetIDGT applies the GT predicate on the "asset_id" field.
+func AssetIDGT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGT(FieldAssetID, v))
+}
+
+// AssetIDGTE applies the GTE predicate on the "asset_id" field.
+func AssetIDGTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGTE(FieldAssetID, v))
+}
+
+// AssetIDLT applies the LT predicate on the "asset_id" field.
+func AssetIDLT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLT(FieldAssetID, v))
+}
+
+// AssetIDLTE applies the LTE predicate on the "asset_id" field.
+func AssetIDLTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLTE(FieldAssetID, v))
+}
+
+// AssetIDContains applies the Contains predicate on the "asset_id" field.
+func AssetIDContains(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContains(FieldAssetID, v))
+}
+
+// AssetIDHasPrefix applies the HasPrefix predicate on the "asset_id" field.
+func AssetIDHasPrefix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasPrefix(FieldAssetID, v))
+}
+
+// AssetIDHasSuffix applies the HasSuffix predicate on the "asset_id" field.
+func AssetIDHasSuffix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasSuffix(FieldAssetID, v))
+}
+
+// AssetIDIsNil applies the IsNil predicate on the "asset_id" field.
+func AssetIDIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldAssetID))
+}
+
+// AssetIDNotNil applies the NotNil predicate on the "asset_id" field.
+func AssetIDNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldAssetID))
+}
+
+// AssetIDEqualFold applies the EqualFold predicate on the "asset_id" field.
+func AssetIDEqualFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEqualFold(FieldAssetID, v))
+}
+
+// AssetIDContainsFold applies the ContainsFold predicate on the "asset_id" field.
+func AssetIDContainsFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContainsFold(FieldAssetID, v))
 }
 
 // ChannelConnectionIDEQ applies the EQ predicate on the "channel_connection_id" field.

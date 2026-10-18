@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "plugins": [],
+    "paths": {}
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "../../css-modules.d.ts"],
+  "exclude": []
+}

@@ -27,6 +27,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversationmessage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
@@ -332,6 +333,22 @@ func init() {
 	contentangle.DefaultUpdatedAt = contentangleDescUpdatedAt.Default.(func() time.Time)
 	// contentangle.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	contentangle.UpdateDefaultUpdatedAt = contentangleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	contentdraftFields := schema.ContentDraft{}.Fields()
+	_ = contentdraftFields
+	// contentdraftDescVersion is the schema descriptor for version field.
+	contentdraftDescVersion := contentdraftFields[8].Descriptor()
+	// contentdraft.DefaultVersion holds the default value on creation for the version field.
+	contentdraft.DefaultVersion = contentdraftDescVersion.Default.(int)
+	// contentdraftDescCreatedAt is the schema descriptor for created_at field.
+	contentdraftDescCreatedAt := contentdraftFields[12].Descriptor()
+	// contentdraft.DefaultCreatedAt holds the default value on creation for the created_at field.
+	contentdraft.DefaultCreatedAt = contentdraftDescCreatedAt.Default.(func() time.Time)
+	// contentdraftDescUpdatedAt is the schema descriptor for updated_at field.
+	contentdraftDescUpdatedAt := contentdraftFields[13].Descriptor()
+	// contentdraft.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	contentdraft.DefaultUpdatedAt = contentdraftDescUpdatedAt.Default.(func() time.Time)
+	// contentdraft.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	contentdraft.UpdateDefaultUpdatedAt = contentdraftDescUpdatedAt.UpdateDefault.(func() time.Time)
 	conversationFields := schema.Conversation{}.Fields()
 	_ = conversationFields
 	// conversationDescCreatedAt is the schema descriptor for created_at field.
@@ -691,15 +708,15 @@ func init() {
 	scheduledpostFields := schema.ScheduledPost{}.Fields()
 	_ = scheduledpostFields
 	// scheduledpostDescIdempotencyKey is the schema descriptor for idempotency_key field.
-	scheduledpostDescIdempotencyKey := scheduledpostFields[7].Descriptor()
+	scheduledpostDescIdempotencyKey := scheduledpostFields[9].Descriptor()
 	// scheduledpost.IdempotencyKeyValidator is a validator for the "idempotency_key" field. It is called by the builders before save.
 	scheduledpost.IdempotencyKeyValidator = scheduledpostDescIdempotencyKey.Validators[0].(func(string) error)
 	// scheduledpostDescCreatedAt is the schema descriptor for created_at field.
-	scheduledpostDescCreatedAt := scheduledpostFields[9].Descriptor()
+	scheduledpostDescCreatedAt := scheduledpostFields[11].Descriptor()
 	// scheduledpost.DefaultCreatedAt holds the default value on creation for the created_at field.
 	scheduledpost.DefaultCreatedAt = scheduledpostDescCreatedAt.Default.(func() time.Time)
 	// scheduledpostDescUpdatedAt is the schema descriptor for updated_at field.
-	scheduledpostDescUpdatedAt := scheduledpostFields[10].Descriptor()
+	scheduledpostDescUpdatedAt := scheduledpostFields[12].Descriptor()
 	// scheduledpost.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	scheduledpost.DefaultUpdatedAt = scheduledpostDescUpdatedAt.Default.(func() time.Time)
 	// scheduledpost.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.10.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.10.1...v2.10.2) (2026-10-18)
+
+
+### Bug Fixes
+
+* **infra:** make the backend internal-only ([#177](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/177)) ([67942f1](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/67942f187f5ddcbd8fbb873d92a818c3ba006337))
+
 ## [2.10.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.10.0...v2.10.1) (2026-10-18)
 
 

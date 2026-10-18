@@ -17,7 +17,10 @@ test('rich text marks apply to a word without losing the rest (F10)', () => {
 })
 
 test('normalizing merges equal neighbours and keeps one empty span', () => {
-  assert.deepEqual(normalizeSpans([{ text: 'a', italic: true }, { text: 'b', italic: true }, { text: '' }]), [{ text: 'ab', italic: true }])
+  assert.deepEqual(
+    normalizeSpans([{ text: 'a', italic: true }, { text: 'b', italic: true }, { text: '' }]),
+    [{ text: 'ab', italic: true }]
+  )
   assert.deepEqual(normalizeSpans([]), [{ text: '' }])
 })
 
@@ -28,8 +31,13 @@ test('snapping pulls a rectangle to the slide centre within the threshold (F15)'
   assert.equal(result.guides[0].axis, 'x')
   const none = snapRect({ x: 380, y: 300, width: 200, height: 100 }, slide, [], 6)
   assert.equal(none.dx, 0)
-  const toOther = snapRect({ x: 10, y: 503, width: 50, height: 50 }, slide, [{ x: 100, y: 500, width: 10, height: 10 }], 6)
-  assert.equal(toOther.dy, 2, "the nearest line (the other layer centre) wins")
+  const toOther = snapRect(
+    { x: 10, y: 503, width: 50, height: 50 },
+    slide,
+    [{ x: 100, y: 500, width: 10, height: 10 }],
+    6
+  )
+  assert.equal(toOther.dy, 2, 'the nearest line (the other layer centre) wins')
 })
 
 test('tilted selection corners match the CSS transform projection (UX-13)', () => {
@@ -48,7 +56,12 @@ test('restoring a version is one undo step and keeps the edits made before it', 
   const store = createEditorStore(createStarterDocument())
   store.getState().dispatch({ type: 'project.patch', patch: { name: 'Edited' } })
   const edited = store.getState().document
-  const version = { ...createStarterDocument(), id: edited.id, revision: edited.revision, name: 'Restored' }
+  const version = {
+    ...createStarterDocument(),
+    id: edited.id,
+    revision: edited.revision,
+    name: 'Restored',
+  }
   store.getState().replaceDocument(version, { undoLabel: 'Restore version' })
   assert.equal(store.getState().document.name, 'Restored')
   store.getState().undo()
@@ -71,6 +84,10 @@ test('callout picking ends when the slide changes or its layer goes away', async
   assert.equal(store.getState().pickingCalloutId, null)
   store.getState().activateSlide(first.id)
   store.getState().setPickingCallout(layerId)
-  store.getState().dispatch({ type: 'layers.delete', owner: { kind: 'slide', id: first.id }, layerIds: [layerId] })
+  store.getState().dispatch({
+    type: 'layers.delete',
+    owner: { kind: 'slide', id: first.id },
+    layerIds: [layerId],
+  })
   assert.equal(store.getState().pickingCalloutId, null)
 })

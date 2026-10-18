@@ -50,7 +50,10 @@ test('elements are added, edited, reordered, duplicated, and removed as undoable
   assert.equal(one.type === 'badge' && one.props.shape, 'circle', 'props merge, not replace')
 
   store.reorderElement('one', 'top')
-  assert.deepEqual(useImageStore.getState().elements.map((element) => element.id), ['two', 'one'])
+  assert.deepEqual(
+    useImageStore.getState().elements.map((element) => element.id),
+    ['two', 'one']
+  )
   const copy = store.duplicateElement('one')
   assert.ok(copy)
   assert.equal(useImageStore.getState().elements.length, 3)

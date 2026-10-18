@@ -28,7 +28,7 @@ and Workflow F at their current statuses.
 ## Why two levels
 
 Today the integrations are covered by contract tests that inject `fetch`
-(`tests/store-publishing-integrations.test.ts`) and by the scripted model
+(`test/store-publishing-integrations.test.ts`) and by the scripted model
 (`lib/ai/models/scripted.ts`). Neither runs the browser flow, and neither
 talks to a real provider:
 

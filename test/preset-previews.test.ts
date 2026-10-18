@@ -7,7 +7,15 @@ import { previewKey } from '../lib/render/preview-cache'
 import { withLayoutPreset } from '../components/editor/sections/TransformsGallery'
 
 const output = { format: 'jpeg', maxWidth: 480 } as const
-const tilt = { perspective: 2400, rotateX: 8, rotateY: -6, rotateZ: 0, scale: 0.98, translateX: 0, translateY: -2 }
+const tilt = {
+  perspective: 2400,
+  rotateX: 8,
+  rotateY: -6,
+  rotateZ: 0,
+  scale: 0.98,
+  translateX: 0,
+  translateY: -2,
+}
 
 function design(frame: 'none' | 'windows-dark' | 'macos-light') {
   return designDocumentSchema.parse({

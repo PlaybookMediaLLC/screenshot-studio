@@ -148,7 +148,7 @@ Migrations are SQL in `services/platformmigrations/sql`. Ent schemas are in `ser
 
 ## Tests
 
-Unit tests run with `npm test` (`test/*.test.ts`, `tests/*.test.ts`). The
+Unit tests run with `npm test` (`test/*.test.ts`). The
 cross-feature workflows are Playwright specs:
 
 | Workflow                       | Spec                                   |

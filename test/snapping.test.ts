@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { canvasSnapLines, mergeSnapLines, objectSnapLines, safeZoneRect, snapBox } from '../lib/editor/snapping'
+import {
+  canvasSnapLines,
+  mergeSnapLines,
+  objectSnapLines,
+  safeZoneRect,
+  snapBox,
+} from '../lib/editor/snapping'
 
 test('a box snaps its centre to the canvas centre within tolerance', () => {
   const lines = canvasSnapLines(1000, 600)
@@ -17,7 +23,10 @@ test('nothing snaps outside the tolerance', () => {
 })
 
 test('edges snap to other objects, and the closest line wins', () => {
-  const lines = mergeSnapLines(canvasSnapLines(1000, 600), objectSnapLines([{ height: 50, width: 100, x: 610, y: 40 }]))
+  const lines = mergeSnapLines(
+    canvasSnapLines(1000, 600),
+    objectSnapLines([{ height: 50, width: 100, x: 610, y: 40 }])
+  )
   // Right edge at 608 is 2px from the other box's left edge, closer than any canvas line.
   const result = snapBox({ height: 20, width: 100, x: 508, y: 37 }, lines, 6)
   assert.equal(result.vertical, 610)

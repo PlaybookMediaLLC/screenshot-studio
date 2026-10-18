@@ -196,8 +196,11 @@ export async function createBillingSession(input: {
     )
   }
 
+  // Stripe Tax adds sales tax from the address Checkout collects. Stripe refuses the
+  // session until Tax is activated (head office address) in the Dashboard.
   const session = await api.checkout.sessions.create({
     allow_promotion_codes: true,
+    automatic_tax: { enabled: true },
     cancel_url: appUrl('/pricing?checkout=cancelled'),
     client_reference_id: input.organizationId,
     line_items: [{ price, quantity: 1 }],
@@ -220,6 +223,7 @@ export async function createCreditPackSession(input: {
     throw new BillingError('Credit packs are not available yet. Contact us to add credits.', 503)
   }
   const session = await api.checkout.sessions.create({
+    automatic_tax: { enabled: true },
     cancel_url: `${returnUrl()}?credits=cancelled`,
     client_reference_id: input.organizationId,
     line_items: [{ price, quantity: 1 }],

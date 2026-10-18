@@ -20,9 +20,10 @@ production; Compose can start the social API separately for local testing.
 | `ent`, `internal/social/ent` | The product and social Ent clients. |
 | `platformmigrations`, `internal/social/migrations` | The reviewed product and social SQL. |
 
-Each `cmd/<name>/Dockerfile` builds the image for that entry point. The images
-keep the earlier binary names, for example `/publishing-backend`, so the deploy
-specs do not change.
+`Dockerfile` builds one image for every environment. Production runs its
+default entry point, `/combined-backend`. Compose and kind run one binary for
+each service: `/publishing-backend`, `/publishing-orchestrator`,
+`/screenshot-studio-backend`, or `/platform-migrate`.
 
 ## Architecture
 
@@ -151,8 +152,7 @@ curl --fail http://localhost:8080/healthz
 curl --fail http://localhost:8081/healthz
 ```
 
-The backend and orchestrator images use the `services` directory as their Docker
-build context.
+The image uses the `services` directory as its Docker build context.
 
 ## MCP server
 

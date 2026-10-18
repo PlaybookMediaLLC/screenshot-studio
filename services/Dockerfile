@@ -1,3 +1,6 @@
+# One image for every environment. Production runs the default entry point,
+# cmd/combined, which starts the three services. Compose and kind select one
+# binary for each service with the entry point.
 FROM golang:1.26-alpine AS build
 
 WORKDIR /src
@@ -8,7 +11,7 @@ ARG GO_BUILD_TAGS=""
 RUN CGO_ENABLED=0 go build -tags "$GO_BUILD_TAGS" -trimpath -ldflags="-s -w" -o /out/screenshot-studio-backend ./cmd/social-api
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/postiz-migrate ./cmd/postiz-migrate
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/platform-migrate ./cmd/platform-migrate
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/publishing-orchestrator ./cmd/product-worker
+RUN CGO_ENABLED=0 go build -tags "$GO_BUILD_TAGS" -trimpath -ldflags="-s -w" -o /out/publishing-orchestrator ./cmd/product-worker
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/publishing-backend ./cmd/product-api
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/combined-backend ./cmd/combined
 

@@ -548,12 +548,11 @@ kind_up() {
   fi
 
   docker build --tag screenshot-studio:kind-dev "$ROOT_DIR"
-  docker build --file "$ROOT_DIR/services/cmd/product-api/Dockerfile" \
-    --tag screenshot-studio-publishing-backend:kind-dev "$ROOT_DIR/services"
+  docker build --tag screenshot-studio-backend:kind-dev "$ROOT_DIR/services"
   kind load docker-image screenshot-studio:kind-dev --name "$KIND_CLUSTER"
   docker build --file "$ROOT_DIR/packages/collab-server/Dockerfile" \
     --tag screenshot-studio-collab:kind-dev "$ROOT_DIR"
-  kind load docker-image screenshot-studio-publishing-backend:kind-dev --name "$KIND_CLUSTER"
+  kind load docker-image screenshot-studio-backend:kind-dev --name "$KIND_CLUSTER"
   kind load docker-image screenshot-studio-collab:kind-dev --name "$KIND_CLUSTER"
   kubectl create namespace "$KIND_NAMESPACE" --dry-run=client --output=yaml | kubectl apply --filename -
   kubectl create secret generic screenshot-studio-local \

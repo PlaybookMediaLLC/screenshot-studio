@@ -70,12 +70,9 @@ jobs:
       - run: go test -race ./internal/httpapi ./internal/postiz ./internal/publishing ./internal/temporalpublishing ./internal/maintenance ./internal/temporalmaintenance ./internal/onboarding ./internal/temporalonboarding ./internal/enrichment ./internal/social/tenantpublishing
       - run: go test -race ./internal/social/auth ./internal/social/database/users ./internal/social/activities ./internal/social/worker ./internal/social/workflows ./internal/social/chat/mcp ./internal/shotsapi
       - run: go vet ./...
-      - name: Build publishing service images
+      - name: Build the backend image
         working-directory: .
-        run: |
-          docker build --file services/cmd/product-api/Dockerfile --tag screenshot-studio-publishing-backend:${{ github.sha }} services
-          docker build --file services/cmd/product-worker/Dockerfile --tag screenshot-studio-publishing-orchestrator:${{ github.sha }} services
-          docker build --file services/cmd/combined/Dockerfile --tag screenshot-studio-backend:${{ github.sha }} services
+        run: docker build --tag screenshot-studio-backend:${{ github.sha }} services
 
   validate:
     runs-on: ubuntu-latest

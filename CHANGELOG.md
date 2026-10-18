@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.17.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.16.0...v2.17.0) (2026-10-18)
+
+
+### Features
+
+* **drafts:** post tables and math blocks as images ([#180](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/180)) ([1d3f1bf](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1d3f1bf612abda52bca741015a50663d27bd7867))
+* **drafts:** publish every image of a draft, up to each channel's limit ([#179](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/179)) ([c2d3845](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/c2d38456303db2d726f6753686fa9d8bde546199))
+
 ## [2.16.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.15.0...v2.16.0) (2026-10-18)
 
 

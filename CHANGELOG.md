@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.18.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.17.0...v2.18.0) (2026-10-18)
+
+
+### Features
+
+* **api:** campaigns, approvals, and scheduled posts in /api/v1, entitlement tags, typed client, OpenAPI diff ([#152](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/152)) ([55d762d](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/55d762dce1b1ab4ddd6f43ba9146239600922880))
+* **mcp:** serve Shots tools from the Go MCP server ([#153](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/153)) ([305b66b](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/305b66bafd57c2b783d4be183f63ddb2e67265cf))
+
 ## [2.17.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.16.0...v2.17.0) (2026-10-18)
 
 

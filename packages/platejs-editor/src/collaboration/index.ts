@@ -22,11 +22,41 @@ export interface CollaborationProviderConfig {
   } | null;
 }
 
+// y-webrtc falls back to these public servers when `signaling` is empty.
+const PUBLIC_SIGNALING_HOSTS = new Set([
+  "signaling.yjs.dev",
+  "y-webrtc-signaling-eu.herokuapp.com",
+  "y-webrtc-signaling-us.herokuapp.com",
+]);
+
+/**
+ * WebRTC needs the host's own signaling (and TURN) servers. An empty list
+ * would make y-webrtc use public servers, so it is refused, as are the
+ * public hosts themselves.
+ */
+export const assertPrivateSignaling = (signaling: readonly string[]): void => {
+  if (signaling.length === 0) {
+    throw new Error("WebRTC collaboration needs explicit signaling servers.");
+  }
+  for (const url of signaling) {
+    const { hostname, protocol } = new URL(url);
+    if (protocol !== "wss:" && protocol !== "ws:") {
+      throw new Error(`Signaling server ${url} is not a WebSocket URL.`);
+    }
+    if (PUBLIC_SIGNALING_HOSTS.has(hostname)) {
+      throw new Error(`Signaling server ${hostname} is public.`);
+    }
+  }
+};
+
 export const createYjsPlugin = (
   config: CollaborationProviderConfig,
   cursor: CollaborationCursor
-) =>
-  YjsPlugin.configure({
+) => {
+  if (config.access === "write" && config.webrtc) {
+    assertPrivateSignaling(config.webrtc.signaling);
+  }
+  return YjsPlugin.configure({
     options: {
       cursors: {
         data: {
@@ -76,5 +106,6 @@ export const createYjsPlugin = (
       ],
     },
   });
+};
 
 export { YjsPlugin };

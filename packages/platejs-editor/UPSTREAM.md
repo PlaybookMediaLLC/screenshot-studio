@@ -67,6 +67,28 @@ Build and tooling (this repository has no Bun, Turbo or Biome):
   trip, and a package `.prettierrc.json` matching the upstream style.
   Upstream files are not reformatted; Prettier checks only `test/`.
 
+Boundaries (RFC 037: the package reaches nothing the app owns, enforced by
+`test/editor-package-boundary.test.ts`):
+
+- `src/lib/editor-services.tsx` (new): `EditorServicesProvider` injects the
+  host's `uploadFile` and AI endpoints.
+- `src/hooks/use-upload-file.ts`: rewritten around the injected `uploadFile`.
+  uploadthing is gone (`src/lib/uploadthing.ts` and the `OurFileRouter` type
+  export are deleted), and a failed upload rejects instead of falling back to
+  a mock object URL.
+- `src/ui/media-placeholder-node.tsx`: keeps the host's `assetId` on the
+  uploaded media node.
+- `src/components/use-chat.ts`: the chat endpoint comes from `ai.chat`; with
+  none, a send fails visibly instead of posting to `/api/ai/command`. The
+  system template names Shots instead of Eigenn.
+- `src/plugins/copilot-kit.tsx`: the completion endpoint comes from
+  `ai.copilot`; with none, no completion is requested (was `/api/ai/copilot`).
+- `src/collaboration/index.ts`: `assertPrivateSignaling` refuses a WebRTC
+  configuration without explicit signaling servers, or with the public
+  y-webrtc ones.
+- `src/lib/rehost-images.ts` (new): re-uploads `data:` and `blob:` images, as
+  DOCX import produces, through `uploadFile`.
+
 ## Pulling a later fix from oppulence-canvas
 
 1. In oppulence-canvas:
@@ -81,11 +103,11 @@ Build and tooling (this repository has no Bun, Turbo or Biome):
 ## Accepted `npm audit` findings
 
 Recorded 2026-10-17. These are the findings the package adds over the app's
-baseline, with `--omit=dev`:
+baseline, with `--omit=dev` (uploadthing's, which the vendored copy also
+added, left with the upload adapter):
 
 | Package | Severity | Path | Why accepted |
 | --- | --- | --- | --- |
-| `uploadthing`, `@uploadthing/*` | high | direct | Removed with the upload adapter (RFC 037 step 4) |
 | `katex`, `remark-math`, `micromark-extension-math` | low | `@platejs/math`, `remark-math` | Needs existing prototype pollution to matter; `@platejs/math` pins KaTeX 0.16.22. Revisit when Plate moves |
 | `xmlbuilder2` → `js-yaml` 3 | high | `@platejs/docx-io` export | `js-yaml` parses YAML input only; DOCX export builds XML and never passes YAML |
 | `mammoth` → `argparse` → `sprintf-js` | moderate | `@platejs/docx-io` import | `argparse` serves mammoth's command line, which the browser bundle does not include |

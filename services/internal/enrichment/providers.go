@@ -329,11 +329,13 @@ func (a *AppStore) Enrich(ctx context.Context, subject Subject) ([]Result, error
 	return results, nil
 }
 
-// Exa reads what the rest of the web says about the product through the Exa
-// API: similar sites for competitors and alternatives, reviews and mentions
-// as highlights, and company firmographics as a cited structured answer.
-// Three calls a run, each costed from Exa's own costDollars. Needs
-// PLATFORM_ENRICHMENT_EXA_API_KEY. Snippets only; no result page is fetched.
+// Exa reads what the rest of the web says about the product through Exa's
+// search API, always as structured output: every call sends an outputSchema
+// and reads output.content, with output.grounding giving each field's
+// citations and confidence. Three calls a run: competitors and alternatives,
+// what customers praise and complain about and where they talk, and company
+// firmographics, each costed from Exa's own costDollars. Needs
+// PLATFORM_ENRICHMENT_EXA_API_KEY. No result page is fetched.
 type Exa struct {
 	APIKey  string
 	BaseURL string
@@ -344,124 +346,186 @@ func (*Exa) Name() string       { return "exa" }
 func (e *Exa) Enabled() bool    { return e.APIKey != "" }
 func (*Exa) TTL() time.Duration { return 7 * 24 * time.Hour }
 
-type exaResults struct {
+// errUnstructured is an answer without the structured output it was asked for.
+var errUnstructured = &ProviderError{Status: http.StatusOK}
+
+type exaGrounding struct {
+	Citations []struct {
+		URL string `json:"url"`
+	} `json:"citations"`
+	Confidence string `json:"confidence"`
+	Field      string `json:"field"`
+}
+
+// exaAnswer is a structured search: what it cost, and output.content in the
+// requested schema with its field-level grounding.
+type exaAnswer struct {
 	CostDollars struct {
 		Total float64 `json:"total"`
 	} `json:"costDollars"`
-	Results []struct {
-		Highlights []string `json:"highlights"`
-		Text       string   `json:"text"`
-		Title      string   `json:"title"`
-		URL        string   `json:"url"`
-	} `json:"results"`
+	Output struct {
+		Content   json.RawMessage `json:"content"`
+		Grounding []exaGrounding  `json:"grounding"`
+	} `json:"output"`
 }
 
 func micros(dollars float64) int64 { return int64(dollars*1e6 + 0.5) }
 
-// post calls one Exa endpoint with the API key and decodes its JSON answer.
-func (e *Exa) post(ctx context.Context, path string, body any, out any) error {
+// confidence is the grounding's average reliability, capped as third-party.
+func (a exaAnswer) confidence() float64 {
+	levels := map[string]float64{"high": 0.7, "medium": 0.5, "low": 0.3}
+	total, count := 0.0, 0
+	for _, item := range a.Output.Grounding {
+		if level, ok := levels[item.Confidence]; ok {
+			total, count = total+level, count+1
+		}
+	}
+	if count == 0 {
+		return 0.4
+	}
+	return total / float64(count)
+}
+
+// cite is the first citation of the fields under path, such as "praise".
+func (a exaAnswer) cite(path string) string {
+	for _, item := range a.Output.Grounding {
+		if strings.HasPrefix(item.Field, path) && len(item.Citations) > 0 {
+			return item.Citations[0].URL
+		}
+	}
+	return ""
+}
+
+// search runs one structured search and decodes output.content into out.
+func (e *Exa) search(ctx context.Context, query, domain string, schema map[string]any, out any) (exaAnswer, error) {
+	body := map[string]any{"query": query, "type": "auto", "numResults": 10, "outputSchema": schema}
+	if domain != "" {
+		body["excludeDomains"] = []string{domain}
+	}
 	data, err := json.Marshal(body)
 	if err != nil {
-		return err
+		return exaAnswer{}, err
 	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(firstNonEmpty(e.BaseURL, "https://api.exa.ai"), "/")+path, bytes.NewReader(data))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(firstNonEmpty(e.BaseURL, "https://api.exa.ai"), "/")+"/search", bytes.NewReader(data))
 	if err != nil {
-		return err
+		return exaAnswer{}, err
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Api-Key", e.APIKey)
 	client := e.Client
 	if client == nil {
-		client = vendor
+		// Structured output adds synthesis time to the search.
+		client = &http.Client{Timeout: 30 * time.Second}
 	}
 	response, err := client.Do(request)
 	if err != nil {
-		return &ProviderError{Retryable: true}
+		return exaAnswer{}, &ProviderError{Retryable: true}
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return &ProviderError{Retryable: response.StatusCode == http.StatusTooManyRequests || response.StatusCode >= 500, Status: response.StatusCode}
+		return exaAnswer{}, &ProviderError{Retryable: response.StatusCode == http.StatusTooManyRequests || response.StatusCode >= 500, Status: response.StatusCode}
 	}
-	return json.NewDecoder(io.LimitReader(response.Body, 2<<20)).Decode(out)
+	var answer exaAnswer
+	if err := json.NewDecoder(io.LimitReader(response.Body, 2<<20)).Decode(&answer); err != nil {
+		return exaAnswer{}, err
+	}
+	if len(answer.Output.Content) == 0 || json.Unmarshal(answer.Output.Content, out) != nil {
+		return answer, errUnstructured
+	}
+	return answer, nil
 }
 
-// snippets keeps results off the product's own domain, quoted at snippet length.
-func snippets(answer exaResults, domain string) []Snippet {
-	out := []Snippet{}
-	for _, result := range answer.Results {
-		parsed, err := url.Parse(result.URL)
-		if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || Domain(result.URL) == domain {
-			continue
-		}
-		text := result.Text
-		if len(result.Highlights) > 0 {
-			text = strings.Join(result.Highlights, " … ")
-		}
-		out = append(out, Snippet{Text: clampSnippet(text), Title: clampSnippet(result.Title), URL: result.URL})
-	}
-	return out
+func object(properties map[string]any) map[string]any {
+	return map[string]any{"type": "object", "properties": properties}
 }
 
-func sourceOf(found []Snippet) string {
-	if len(found) == 0 {
-		return ""
-	}
-	return found[0].URL
+func list(description string, items map[string]any) map[string]any {
+	return map[string]any{"type": "array", "description": description, "items": items}
 }
 
-var firmographicsSchema = map[string]any{"type": "object", "properties": map[string]any{
-	"employees":    map[string]any{"type": "integer", "description": "Approximate headcount"},
-	"founded":      map[string]any{"type": "string", "description": "Founding year"},
-	"fundingStage": map[string]any{"type": "string", "description": "Latest funding stage, such as seed or Series A"},
-	"fundingTotal": map[string]any{"type": "integer", "description": "Total funding raised in US dollars"},
-	"headquarters": map[string]any{"type": "string", "description": "City and country"},
-	"industry":     map[string]any{"type": "string"},
-	"size":         map[string]any{"type": "string", "description": "Headcount band, such as 11-50"},
-}}
+var (
+	text = map[string]any{"type": "string"}
+	// Exa allows ten properties per schema, nested ones included.
+	competitorsSchema = object(map[string]any{"competitors": list("Products customers compare it with or switch to, never the product itself",
+		object(map[string]any{"name": text, "url": text, "reason": map[string]any{"type": "string", "description": "Why it is an alternative, in one sentence"}}))})
+	voiceSchema = object(map[string]any{
+		"praise":     list("What customers like about it, in their own words", text),
+		"complaints": list("What customers dislike or find missing, in their own words", text),
+		"channels":   list("Communities, forums, and sites where customers discuss it", text),
+	})
+	firmographicsSchema = object(map[string]any{
+		"employees":    map[string]any{"type": "integer", "description": "Approximate headcount"},
+		"founded":      map[string]any{"type": "string", "description": "Founding year"},
+		"fundingStage": map[string]any{"type": "string", "description": "Latest funding stage, such as seed or Series A"},
+		"fundingTotal": map[string]any{"type": "integer", "description": "Total funding raised in US dollars"},
+		"headquarters": map[string]any{"type": "string", "description": "City and country"},
+		"industry":     text,
+		"size":         map[string]any{"type": "string", "description": "Headcount band, such as 11-50"},
+	})
+)
 
 func (e *Exa) Enrich(ctx context.Context, subject Subject) ([]Result, error) {
 	name := firstNonEmpty(subject.Name, subject.Domain)
-	var similar, mentions exaResults
-	if err := e.post(ctx, "/findSimilar", map[string]any{"url": subject.Homepage, "numResults": 8, "excludeSourceDomain": true,
-		"contents": map[string]any{"text": map[string]any{"maxCharacters": 300}}}, &similar); err != nil {
+	about := fmt.Sprintf("%s (%s)", name, subject.Homepage)
+
+	var rivals struct {
+		Competitors []struct {
+			Name   string `json:"name"`
+			Reason string `json:"reason"`
+			URL    string `json:"url"`
+		} `json:"competitors"`
+	}
+	answer, err := e.search(ctx, "Alternatives and competitors to "+about, subject.Domain, competitorsSchema, &rivals)
+	if err != nil {
 		return nil, err
 	}
-	if err := e.post(ctx, "/search", map[string]any{"query": `"` + name + `" reviews`, "type": "auto", "numResults": 8,
-		"excludeDomains": []string{subject.Domain}, "contents": map[string]any{"highlights": map[string]any{
-			"numSentences": 2, "highlightsPerUrl": 2, "query": "what customers like and dislike about " + name}}}, &mentions); err != nil {
+	competitors := []Snippet{}
+	for _, rival := range rivals.Competitors {
+		parsed, err := url.Parse(rival.URL)
+		if strings.TrimSpace(rival.Name) == "" || (rival.URL != "" && (err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || Domain(rival.URL) == subject.Domain)) {
+			continue
+		}
+		competitors = append(competitors, Snippet{Text: clampSnippet(rival.Reason), Title: clampSnippet(rival.Name), URL: rival.URL})
+	}
+	results := []Result{{Confidence: answer.confidence(), CostMicros: micros(answer.CostDollars.Total), Field: FieldCompetitors,
+		SourceURL: answer.cite("competitors"), Value: competitors}}
+
+	var voice struct {
+		Channels   []string `json:"channels"`
+		Complaints []string `json:"complaints"`
+		Praise     []string `json:"praise"`
+	}
+	answer, err = e.search(ctx, "What customers say about "+about+": reviews, praise, complaints, and where they discuss it", subject.Domain, voiceSchema, &voice)
+	if err != nil {
 		return nil, err
 	}
-	competitors, said := snippets(similar, subject.Domain), snippets(mentions, subject.Domain)
-	results := []Result{
-		{Confidence: 0.5, CostMicros: micros(similar.CostDollars.Total), Field: FieldCompetitors, SourceURL: sourceOf(competitors), Value: competitors},
-		{Confidence: 0.4, CostMicros: micros(mentions.CostDollars.Total), Field: FieldMentions, SourceURL: sourceOf(said), Value: said},
+	mentions := []Snippet{}
+	for _, group := range []struct {
+		items []string
+		path  string
+		title string
+	}{{voice.Praise, "praise", "Customers like"}, {voice.Complaints, "complaints", "Customers complain"}, {voice.Channels, "channels", "Discussed on"}} {
+		for _, item := range group.items[:min(len(group.items), 6)] {
+			if item = clampSnippet(item); item != "" {
+				mentions = append(mentions, Snippet{Text: item, Title: group.title, URL: answer.cite(group.path)})
+			}
+		}
 	}
-	var answer struct {
-		Answer    json.RawMessage `json:"answer"`
-		Citations []struct {
-			URL string `json:"url"`
-		} `json:"citations"`
-		CostDollars struct {
-			Total float64 `json:"total"`
-		} `json:"costDollars"`
-	}
-	question := fmt.Sprintf("For the company behind %s (%s): headcount, industry, total funding raised, latest funding stage, headquarters, and founding year.", name, subject.Homepage)
-	if err := e.post(ctx, "/answer", map[string]any{"query": question, "text": false, "outputSchema": firmographicsSchema}, &answer); err != nil {
-		// Competitors and mentions stand on their own; the answer is a bonus.
-		return results, nil
-	}
+	results = append(results, Result{Confidence: min(answer.confidence(), 0.5), CostMicros: micros(answer.CostDollars.Total), Field: FieldMentions,
+		SourceURL: answer.cite(""), Value: mentions})
+
 	var facts Firmographics
-	if json.Unmarshal(answer.Answer, &facts) == nil && facts != (Firmographics{}) {
+	answer, err = e.search(ctx, "Company profile of "+about+": headcount, industry, total funding raised, latest funding stage, headquarters, founding year", "",
+		firmographicsSchema, &facts)
+	switch {
+	case err == nil && facts != (Firmographics{}):
 		facts = Firmographics{Employees: facts.Employees, Founded: clampSnippet(facts.Founded), FundingStage: clampSnippet(facts.FundingStage),
 			FundingTotal: facts.FundingTotal, Headquarters: clampSnippet(facts.Headquarters), Industry: clampSnippet(facts.Industry), Size: clampSnippet(facts.Size)}
-		source := ""
-		if len(answer.Citations) > 0 {
-			source = answer.Citations[0].URL
-		}
-		results = append(results, Result{Confidence: 0.5, CostMicros: micros(answer.CostDollars.Total), Field: FieldFirmographics, SourceURL: source, Value: facts})
-	} else if cost := micros(answer.CostDollars.Total); cost > 0 {
+		results = append(results, Result{Confidence: answer.confidence(), CostMicros: micros(answer.CostDollars.Total), Field: FieldFirmographics,
+			SourceURL: answer.cite(""), Value: facts})
+	case answer.CostDollars.Total > 0:
 		// Nothing usable came back, but the call still cost something.
-		results[1].CostMicros += cost
+		results[1].CostMicros += micros(answer.CostDollars.Total)
 	}
 	return results, nil
 }

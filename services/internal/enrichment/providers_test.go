@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -90,16 +91,18 @@ func TestGitHubAndAppStoreReadPublicCounts(t *testing.T) {
 	}
 }
 
-// Exa is off without its key, sends the key and the product's site, keeps
-// results off the product's own domain, records each call's own cost, and
-// still returns competitors and mentions when the structured answer fails.
-func TestExaFindsCompetitorsMentionsAndFirmographics(t *testing.T) {
+// Exa is off without its key; every call asks for structured output and
+// reads output.content; results on the product's own domain are dropped;
+// grounding sets the source and confidence; each call records its own cost;
+// a reply without structured output is a failure, not free text.
+func TestExaAsksForStructuredOutputOnEveryCall(t *testing.T) {
 	if (&Exa{}).Enabled() {
 		t.Fatal("Exa is enabled without a key")
 	}
 	var calls atomic.Int32
-	var failAnswer atomic.Bool
-	sent := map[string]map[string]any{}
+	var unstructured atomic.Bool
+	var mu sync.Mutex
+	var queries []map[string]any
 	exa := vendorServer(t, func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
 		if r.Header.Get("X-Api-Key") != "key" {
@@ -108,22 +111,28 @@ func TestExaFindsCompetitorsMentionsAndFirmographics(t *testing.T) {
 		}
 		var body map[string]any
 		_ = json.NewDecoder(r.Body).Decode(&body)
-		sent[r.URL.Path] = body
-		switch r.URL.Path {
-		case "/findSimilar":
-			_, _ = w.Write([]byte(`{"results":[{"title":"Ledgerly","url":"https://ledgerly.test/","text":"Invoicing for freelancers."},
-{"title":"Acme","url":"https://www.acme.test/","text":"Our own site."}],"costDollars":{"total":0.005}}`))
-		case "/search":
-			_, _ = w.Write([]byte(`{"results":[{"title":"Acme review","url":"https://reviews.test/acme","highlights":["Late payments stopped.","Setup took minutes."]}],"costDollars":{"total":0.006}}`))
-		case "/answer":
-			if failAnswer.Load() {
-				w.WriteHeader(http.StatusBadGateway)
-				return
-			}
-			_, _ = w.Write([]byte(`{"answer":{"employees":40,"industry":"Software","headquarters":"Lisbon, Portugal","fundingStage":"Seed","fundingTotal":2500000,"founded":"2019"},
-"citations":[{"url":"https://news.test/acme-seed"}],"costDollars":{"total":0.01}}`))
+		mu.Lock()
+		queries = append(queries, body)
+		mu.Unlock()
+		if r.URL.Path != "/search" || body["outputSchema"] == nil || unstructured.Load() {
+			_, _ = w.Write([]byte(`{"results":[],"costDollars":{"total":0.005}}`))
+			return
+		}
+		query := body["query"].(string)
+		switch {
+		case strings.HasPrefix(query, "Alternatives"):
+			_, _ = w.Write([]byte(`{"output":{"content":{"competitors":[{"name":"Ledgerly","url":"https://ledgerly.test/","reason":"Invoicing for freelancers."},
+{"name":"Acme","url":"https://www.acme.test/","reason":"The product itself."}]},
+"grounding":[{"field":"competitors[0].name","citations":[{"url":"https://compare.test/acme","title":"Acme alternatives"}],"confidence":"high"}]},
+"costDollars":{"total":0.012}}`))
+		case strings.HasPrefix(query, "What customers say"):
+			_, _ = w.Write([]byte(`{"output":{"content":{"praise":["Late payments stopped."],"complaints":["No multi-currency."],"channels":["r/agency"]},
+"grounding":[{"field":"complaints[0]","citations":[{"url":"https://reviews.test/acme","title":"Review"}],"confidence":"medium"}]},
+"costDollars":{"total":0.013}}`))
 		default:
-			http.NotFound(w, r)
+			_, _ = w.Write([]byte(`{"output":{"content":{"employees":40,"industry":"Software","headquarters":"Lisbon, Portugal","fundingStage":"Seed","fundingTotal":2500000,"founded":"2019"},
+"grounding":[{"field":"fundingTotal","citations":[{"url":"https://news.test/acme-seed","title":"Seed round"}],"confidence":"low"}]},
+"costDollars":{"total":0.014}}`))
 		}
 	})
 	provider := &Exa{APIKey: "key", BaseURL: exa.URL}
@@ -134,22 +143,32 @@ func TestExaFindsCompetitorsMentionsAndFirmographics(t *testing.T) {
 	}
 	competitors, mentions := results[0].Value.([]Snippet), results[1].Value.([]Snippet)
 	facts := results[2].Value.(Firmographics)
-	if len(competitors) != 1 || competitors[0].Title != "Ledgerly" || results[0].CostMicros != 5_000 ||
-		mentions[0].Text != "Late payments stopped. … Setup took minutes." || results[1].CostMicros != 6_000 ||
-		facts.Headquarters != "Lisbon, Portugal" || facts.FundingTotal != 2_500_000 || results[2].CostMicros != 10_000 ||
-		results[2].SourceURL != "https://news.test/acme-seed" {
-		t.Fatalf("results %+v", results)
+	if len(competitors) != 1 || competitors[0].Title != "Ledgerly" || competitors[0].Text != "Invoicing for freelancers." ||
+		results[0].SourceURL != "https://compare.test/acme" || results[0].Confidence != 0.7 || results[0].CostMicros != 12_000 {
+		t.Fatalf("competitors %+v", results[0])
 	}
-	if sent["/findSimilar"]["url"] != "https://acme.test/" || sent["/findSimilar"]["excludeSourceDomain"] != true ||
-		!strings.Contains(sent["/search"]["query"].(string), `"Acme"`) || sent["/answer"]["outputSchema"] == nil {
-		t.Fatalf("requests %+v", sent)
+	if len(mentions) != 3 || mentions[1].Title != "Customers complain" || mentions[1].URL != "https://reviews.test/acme" ||
+		results[1].Confidence != 0.5 || results[1].CostMicros != 13_000 {
+		t.Fatalf("mentions %+v", results[1])
 	}
-	failAnswer.Store(true)
-	if results, err := provider.Enrich(context.Background(), subject); err != nil || len(results) != 2 {
-		t.Fatalf("without the answer: %+v err=%v", results, err)
+	if facts.Headquarters != "Lisbon, Portugal" || facts.FundingTotal != 2_500_000 || results[2].Confidence != 0.3 ||
+		results[2].SourceURL != "https://news.test/acme-seed" || results[2].CostMicros != 14_000 {
+		t.Fatalf("firmographics %+v", results[2])
+	}
+	for _, query := range queries {
+		if query["outputSchema"] == nil || query["type"] != "auto" {
+			t.Fatalf("a call did not ask for structured output: %+v", query)
+		}
+	}
+	if excluded := queries[0]["excludeDomains"].([]any); excluded[0] != "acme.test" {
+		t.Fatalf("own domain not excluded: %+v", queries[0])
+	}
+	unstructured.Store(true)
+	var failure *ProviderError
+	if _, err := provider.Enrich(context.Background(), subject); !errors.As(err, &failure) || failure.Retryable {
+		t.Fatalf("an unstructured reply was accepted: %v", err)
 	}
 	_, err = (&Exa{APIKey: "wrong", BaseURL: exa.URL}).Enrich(context.Background(), subject)
-	var failure *ProviderError
 	if !errors.As(err, &failure) || failure.Retryable || failure.Status != http.StatusUnauthorized {
 		t.Fatalf("unauthorized: %v", err)
 	}

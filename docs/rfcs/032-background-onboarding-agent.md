@@ -1,7 +1,7 @@
 # RFC 032: Background Onboarding Agent and ICP Extraction
 
 **Status:** Implemented behind the onboarding:agent flag
-**Status note (2026-10-17):** All seven rollout steps are built, with the end-to-end test and the dashboard (`infra/dashboards/onboarding.json`). Still open: MCP tools (question 5). Onboarding spends no AI credits, Exa does the third-party enrichment, and the agent is on by default (see Decisions).
+**Status note (2026-10-17):** All seven rollout steps are built, with the end-to-end test and the dashboard (`infra/dashboards/onboarding.json`). Still open: MCP tools (question 4). Onboarding spends no AI credits, Exa does the third-party enrichment, and the agent is on by default (see Decisions).
 **Date:** 2026-08-17
 **Revised:** 2026-10-17
 **Depends on:** RFC 004, RFC 011, RFC 012, RFC 013, and RFC 026
@@ -326,7 +326,7 @@ completes.
 | `site`     | Logo, colors, fonts, social and community links, app store links, JSON-LD organization facts | Always on; reads the homepage already fetched | 0                    |
 | `github`   | Stars and followers for the GitHub organization or repository the site links | Keyless; `PLATFORM_ENRICHMENT_GITHUB_TOKEN` raises the rate limit | 0                    |
 | `appstore` | App Store listing, rating, rating count, and review snippets from the iTunes lookup and reviews feeds | Keyless; `PLATFORM_ENRICHMENT_APPSTORE_COUNTRY` (default `us`) | 0                    |
-| `exa`      | Competitors and alternatives (similar sites), review and mention snippets, and company size, industry, funding, and headquarters as a cited structured answer | `PLATFORM_ENRICHMENT_EXA_API_KEY` (Exa API) | Exa's own `costDollars` per call |
+| `exa`      | Competitors and alternatives, what customers praise and complain about and where they talk, and company size, industry, funding, and headquarters, all as structured output with per-field citations | `PLATFORM_ENRICHMENT_EXA_API_KEY` (Exa API) | Exa's own `costDollars` per call |
 
 `PLATFORM_ENRICHMENT_DISABLED` lists keyless providers to switch off.
 
@@ -336,12 +336,17 @@ boundary but names no vendor, so these are recorded here:
 1. **No crawl vendor.** Our own fetcher on the platform SSRF guard covers
    scrape, site map, and brand extraction. A vendor would add cost and a
    second network path that our guard does not see.
-2. **Exa** for everything third-party, in three calls a run: find-similar on
-   the product's URL for competitors and alternatives, a search with
-   highlights for reviews and mentions, and an answer with a JSON schema for
-   firmographics, cited. One vendor and one key instead of a search API plus
-   a data broker; Exa reports each call's cost, which is recorded as is. It
-   implements RFC 026's `SearchProvider` boundary, so it stays swappable.
+2. **Exa** for everything third-party, in three structured searches a run:
+   competitors and alternatives, the voice of the customer (praise,
+   complaints, and channels), and firmographics. Every call sends an
+   `outputSchema`, so Exa answers with `output.content` in that shape and
+   `output.grounding` gives each field's citations and a low, medium, or high
+   confidence, which becomes the stored confidence (capped as third-party).
+   A reply without structured output counts as a failure, never as free
+   text. Competitor names fill the profile's alternatives as enrichment; the
+   rest reaches the ICP as fenced sources. One vendor and one key; Exa
+   reports each call's cost, which is recorded as is. It implements RFC 026's
+   `SearchProvider` boundary, so it stays swappable.
 3. **GitHub and iTunes** are public, keyless, and first-party for the facts
    they hold. Google Play has no public ratings API; a Play link is recorded
    without a rating.
@@ -611,7 +616,9 @@ Decided 2026-10-18:
 1. **Onboarding spends no AI credits.** The platform pays for its model calls,
    bounded by the token budget, and records the cost per run.
 2. **Exa is the enrichment vendor** for competitors, mentions, and
-   firmographics; the keyless site, GitHub, and App Store providers stay.
+   firmographics, always as structured output; the keyless site, GitHub, and
+   App Store providers stay. The platform owns the Exa account, because
+   enrichment is part of the product, and sets no spend ceiling.
 3. **The agent is on by default** for every paid workspace.
 
 ## Open questions
@@ -621,17 +628,15 @@ Decided 2026-10-18:
    Enterprise get more?
 2. **Token budgets.** Proposed: 120,000 tokens per run on Pro and 400,000 on
    Business and Enterprise, paid by the platform. Are those the right caps?
-3. **Exa spend.** Exa needs an account and a monthly ceiling. Who owns it,
-   and what is the ceiling?
-4. **End-to-end infrastructure.** The goal for this work asked for Temporal and
+3. **End-to-end infrastructure.** The goal for this work asked for Temporal and
    Postgres in Testcontainers, but the `add-e2e-flow` skill reserves
    Testcontainers for dependencies Compose does not supply, and Compose
    already runs both. The end-to-end test uses the Compose stack. Is that
    acceptable?
-5. **MCP tools.** The product backend has no MCP server; the only Go MCP
+4. **MCP tools.** The product backend has no MCP server; the only Go MCP
    server is the Postiz port's. Should the onboarding operations wait for a
    product MCP server rather than be added to Postiz's?
-6. **Funnel events.** The web already sends onboarding funnel events to
+5. **Funnel events.** The web already sends onboarding funnel events to
    PostHog. Should the backend emit the server-side half (run completed,
    partial) to the same place?
 

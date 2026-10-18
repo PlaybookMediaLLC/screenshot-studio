@@ -767,7 +767,12 @@ export type BackendContentDraftPost = {
 }
 
 /** One channel of a draft schedule and the caption serialized for it. */
-export type BackendContentDraftScheduleTarget = { caption: string; channelConnectionId: string }
+export type BackendContentDraftScheduleTarget = {
+  /** The post's images in order; the draft's own when omitted. */
+  assetIds?: string[]
+  caption: string
+  channelConnectionId: string
+}
 
 export type BackendContentDraftListQuery = {
   cursor?: string

@@ -206,6 +206,22 @@ func TestContentDraftScheduling(t *testing.T) {
 				t.Fatalf("channel %s job=%+v err=%v", post.ChannelConnectionID, job, err)
 			}
 		}
+
+		// A target's own images (a rendered table among them) replace the
+		// draft's, and must be this workspace's uploads.
+		tables, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{AssetIDs: images[:1], Title: "Tables"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		foreignImage := []ContentDraftScheduleTarget{{AssetIDs: []string{cuid.New()}, Caption: "Theirs", ChannelConnectionID: xChannel}}
+		if _, err := repo.ScheduleContentDraft(ctx, owner, tables.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: foreignImage, Version: 1}); !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("foreign target image err=%v", err)
+		}
+		own := []ContentDraftScheduleTarget{{AssetIDs: []string{images[4], images[0]}, Caption: "Rendered", ChannelConnectionID: xChannel}}
+		rendered, err := repo.ScheduleContentDraft(ctx, owner, tables.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: own, Version: 1})
+		if err != nil || len(rendered.Scheduled) != 1 || len(rendered.Scheduled[0].AssetIds) != 2 || rendered.Scheduled[0].AssetIds[0] != images[4] {
+			t.Fatalf("rendered=%+v err=%v", rendered, err)
+		}
 	})
 
 	t.Run("a post has exactly one source", func(t *testing.T) {

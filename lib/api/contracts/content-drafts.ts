@@ -203,6 +203,11 @@ export const contentDraftPostSchema = z.object({
  * the posted captions are the ones the composer previewed.
  */
 export const contentDraftScheduleSchema = z.object({
+  /**
+   * The draft's table and math blocks rendered as uploaded images, in body
+   * order; null for a block posted as text.
+   */
+  blockImages: z.array(contentDraftIdSchema.nullable()).max(50).optional(),
   channelConnectionIds: z.array(contentDraftIdSchema).min(1).max(10),
   scheduledFor: z.coerce.date().refine((value) => value.getTime() > Date.now(), {
     message: 'Pick a time in the future.',

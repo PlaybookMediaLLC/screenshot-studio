@@ -269,10 +269,18 @@ caption per channel and reports what it had to degrade:
 | Lists | `- item` or `1. item`, indented per level |
 | Links | The link text followed by the URL |
 | Mentions, hashtags | Their plain text |
-| Tables | Aligned text rows |
-| Math | The LaTeX source |
+| Tables, math blocks | Images attached to the post, in body order |
+| Inline math | The LaTeX source |
 | Footnotes | Numbered markers, with the notes listed at the end |
 | Unsupported marks | Dropped, and reported |
+
+When the draft is scheduled, the composer renders each table and math block as
+it looks in the editor (`modern-screenshot`), uploads it as a workspace asset,
+and sends the block-to-asset map with the request. The server serializes with
+that map and passes each post's image list to Go, which checks the images are
+the workspace's uploads and applies the channel's image limit. A block the
+composer could not render stays as text: aligned rows for a table, the LaTeX
+source for math. Search and the draft list keep the text form.
 
 The composer shows the per-channel preview the serializer produces, a live
 character counter per selected channel (X 280, LinkedIn 3,000, Instagram

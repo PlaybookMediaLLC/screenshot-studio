@@ -34,7 +34,7 @@ export type Degradation = { kind: DegradationKind; message: string }
 
 /** A caption for one channel, with its limit and what it lost. */
 export type SerializedCaption = {
-  /** The draft's workspace images; the channel takes the first {@link CHANNEL_IMAGE_LIMITS}. */
+  /** The post's workspace images in body order; the channel takes the first {@link CHANNEL_IMAGE_LIMITS}. */
   assetIds: string[]
   caption: string
   channel: DraftChannel
@@ -107,9 +107,52 @@ const CONTAINERS = new Set(['column_group', 'column', 'ul', 'ol'])
 
 type Context = {
   assetIds: string[]
+  /** Table and math blocks posted as rendered images, in body order. */
+  blockImages: BlockImages | undefined
+  /** How many table and math blocks the caption has passed. */
+  blocks: number
   degraded: Map<DegradationKind, string>
   footnotes: Map<string, number>
   images: number
+  /** Images not uploaded to the workspace. */
+  unstored: number
+}
+
+/**
+ * The draft's table and math blocks as images, in body order: each one's
+ * rendered asset id, '' when it is rendered at scheduling (the preview), or
+ * null when it could not be and posts as text. Positions, not block ids, tie
+ * an image to its block: a live session gives the editor's blocks new ids.
+ */
+export type BlockImages = (string | null)[]
+
+/** Block types the composer renders to an image for posting. */
+const RENDERED_BLOCKS = new Set(['table', 'equation'])
+
+/** How many table and math blocks the draft has (the composer renders each). */
+export function renderableBlockCount(value: unknown): number {
+  const count = (nodes: PlateNode[]): number =>
+    nodes.reduce(
+      (total, node) =>
+        total +
+        (RENDERED_BLOCKS.has(node.type ?? '')
+          ? 1
+          : node.type === 'footnoteDefinition'
+            ? 0
+            : count(node.children ?? [])),
+      0
+    )
+  return count((Array.isArray(value) ? value : []) as PlateNode[])
+}
+
+/** A rendered block counts as an image; its text stays out of the caption. */
+function renderedBlock(context: Context): boolean {
+  const assetId = context.blockImages?.[context.blocks]
+  context.blocks += 1
+  if (assetId === undefined || assetId === null) return false
+  context.images += 1
+  if (assetId) context.assetIds.push(assetId)
+  return true
 }
 
 function degrade(context: Context, kind: DegradationKind, message: string): void {
@@ -127,6 +170,7 @@ function footnoteNumber(context: Context, identifier: string): number {
 function collectImage(node: PlateNode, context: Context): void {
   context.images += 1
   if (typeof node.assetId === 'string') context.assetIds.push(node.assetId)
+  else context.unstored += 1
 }
 
 /** The text of inline content: text leaves, links, mentions, tags, math. */
@@ -232,6 +276,14 @@ function blockText(node: PlateNode, context: Context): string {
     )
     return ''
   }
+  if (type === 'table' && renderedBlock(context)) {
+    degrade(context, 'table', 'Tables are posted as images.')
+    return ''
+  }
+  if (type === 'equation' && renderedBlock(context)) {
+    degrade(context, 'math', 'Math blocks are posted as images.')
+    return ''
+  }
   if (type === 'table') return tableText(node, context)
   if (type === 'equation') {
     degrade(context, 'math', 'Math is posted as its LaTeX source.')
@@ -298,11 +350,24 @@ export function captionLength(caption: string): number {
 
 /**
  * Serialize a draft for one channel. The caption is trimmed, footnotes follow
- * the body, and the images are attached up to the channel's limit.
+ * the body, and the images are attached up to the channel's limit. Table and
+ * math blocks in `blockImages` are posted as those images instead of text.
  */
-export function serializeDraft(value: unknown, channel: DraftChannel): SerializedCaption {
+export function serializeDraft(
+  value: unknown,
+  channel: DraftChannel,
+  blockImages?: BlockImages
+): SerializedCaption {
   const nodes = (Array.isArray(value) ? value : []) as PlateNode[]
-  const context: Context = { assetIds: [], degraded: new Map(), footnotes: new Map(), images: 0 }
+  const context: Context = {
+    assetIds: [],
+    blockImages,
+    blocks: 0,
+    degraded: new Map(),
+    footnotes: new Map(),
+    images: 0,
+    unstored: 0,
+  }
   const body = serializeBlocks(nodes, context)
   const notes = footnotesText(nodes, context)
   const caption = [body, notes]
@@ -315,14 +380,14 @@ export function serializeDraft(value: unknown, channel: DraftChannel): Serialize
   if (!caption) errors.push('Write something to post.')
   const length = captionLength(caption)
   if (length > limit) errors.push(`${length} of ${limit} characters: shorten it for ${channel}.`)
-  if (channel === 'instagram' && context.assetIds.length === 0) {
+  if (channel === 'instagram' && context.images === context.unstored) {
     errors.push('Instagram needs an image.')
   }
   const imageLimit = CHANNEL_IMAGE_LIMITS[channel]
   if (context.images > imageLimit) {
     degrade(context, 'extra-images', `Only the first ${imageLimit} images are attached.`)
   }
-  if (context.images > context.assetIds.length) {
+  if (context.unstored > 0) {
     errors.push('Upload every image to the workspace before scheduling.')
   }
   return {

@@ -31,6 +31,18 @@ export interface CropRect {
   height: number;
 }
 
+/** A point in source pixel space. */
+export interface Point {
+  x: number;
+  y: number;
+}
+
+/** A round brush stroke, in source pixels, that makes what it covers transparent. */
+export interface EraseStroke {
+  points: Point[];
+  radius: number;
+}
+
 /** Quarter-turn rotation, clockwise, in degrees. */
 export type RotateAngle = 0 | 90 | 180 | 270;
 
@@ -68,6 +80,13 @@ export interface EncodeOptions {
 
 export interface ProcessOptions {
   crop?: CropRect | null;
+  /**
+   * Closed polygon in source pixels, from a freehand crop. Pixels outside it
+   * become transparent, so pair it with a format that keeps alpha.
+   */
+  mask?: Point[] | null;
+  /** Brush strokes that erase to transparent. Same alpha caveat as `mask`. */
+  erase?: EraseStroke[] | null;
   transform?: TransformOptions | null;
   resize?: ResizeOptions | null;
   encode: EncodeOptions;

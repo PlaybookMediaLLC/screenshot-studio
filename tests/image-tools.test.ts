@@ -12,6 +12,15 @@ import {
   normalizeAngle,
 } from "../lib/image-tools/geometry";
 import {
+  appendPathPoint,
+  clampPoint,
+  pickCutSide,
+  pointInPolygon,
+  polygonArea,
+  polygonBounds,
+  resolveFreehand,
+} from "../lib/image-tools/freehand";
+import {
   clampQuality,
   extensionFor,
   formatBytes,
@@ -192,6 +201,174 @@ test("centeredCropForRatio returns the largest fitting rect", () => {
     width: 1600,
     height: 900,
   });
+});
+
+test("polygonBounds grows a freehand shape outward to whole pixels", () => {
+  assert.deepEqual(
+    polygonBounds(
+      [
+        { x: 100.6, y: 50.2 },
+        { x: 300.1, y: 80.9 },
+        { x: 180.4, y: 240.5 },
+      ],
+      SOURCE
+    ),
+    { x: 100, y: 50, width: 201, height: 191 }
+  );
+});
+
+test("polygonBounds clamps a stroke that runs off the image", () => {
+  assert.deepEqual(
+    polygonBounds(
+      [
+        { x: -40, y: -40 },
+        { x: 1700, y: 100 },
+        { x: 800, y: 1000 },
+      ],
+      SOURCE
+    ),
+    { x: 0, y: 0, width: 1600, height: 900 }
+  );
+});
+
+test("polygonBounds rejects clicks and lines too thin to crop", () => {
+  assert.equal(polygonBounds([{ x: 10, y: 10 }, { x: 20, y: 20 }], SOURCE), null);
+  assert.equal(
+    polygonBounds(
+      [
+        { x: 10, y: 10 },
+        { x: 400, y: 12 },
+        { x: 200, y: 14 },
+      ],
+      SOURCE,
+      16
+    ),
+    null
+  );
+});
+
+test("appendPathPoint skips points too close to the last one", () => {
+  const path = [{ x: 0, y: 0 }];
+  assert.equal(appendPathPoint(path, { x: 1, y: 1 }, 2), path);
+  assert.deepEqual(appendPathPoint(path, { x: 3, y: 0 }, 2), [
+    { x: 0, y: 0 },
+    { x: 3, y: 0 },
+  ]);
+  assert.deepEqual(appendPathPoint([], { x: 5, y: 5 }, 2), [{ x: 5, y: 5 }]);
+});
+
+test("clampPoint pins a point to the image edge", () => {
+  assert.deepEqual(clampPoint({ x: -5, y: 2000 }, SOURCE), { x: 0, y: 900 });
+});
+
+const THRESHOLDS = { edge: 16, close: 32, minSize: 16 };
+
+test("polygonArea measures a shape whichever way it winds", () => {
+  const square = [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+    { x: 100, y: 100 },
+    { x: 0, y: 100 },
+  ];
+  assert.equal(polygonArea(square), 10000);
+  assert.equal(polygonArea([...square].reverse()), 10000);
+});
+
+test("pointInPolygon finds points inside and outside a triangle", () => {
+  const triangle = [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+    { x: 50, y: 100 },
+  ];
+  assert.equal(pointInPolygon({ x: 50, y: 20 }, triangle), true);
+  assert.equal(pointInPolygon({ x: 5, y: 90 }, triangle), false);
+});
+
+test("a loop that ends near its start is a lasso", () => {
+  const loop = [
+    { x: 400, y: 200 },
+    { x: 800, y: 200 },
+    { x: 800, y: 600 },
+    { x: 400, y: 600 },
+    { x: 410, y: 210 },
+  ];
+  assert.deepEqual(resolveFreehand(loop, SOURCE, THRESHOLDS), {
+    kind: "lasso",
+    polygon: loop,
+  });
+});
+
+test("a straight line in the middle encloses nothing and is rejected", () => {
+  const line = [
+    { x: 200, y: 200 },
+    { x: 700, y: 500 },
+    { x: 1200, y: 800 },
+  ];
+  assert.equal(resolveFreehand(line, SOURCE, THRESHOLDS), null);
+});
+
+test("a corner-to-corner diagonal splits the image into two triangles", () => {
+  const selection = resolveFreehand(
+    [
+      { x: 0, y: 0 },
+      { x: 800, y: 450 },
+      { x: 1600, y: 900 },
+    ],
+    SOURCE,
+    THRESHOLDS
+  );
+  assert.equal(selection?.kind, "cut");
+  if (selection?.kind !== "cut") return;
+  for (const side of selection.sides) {
+    assert.equal(polygonArea(side), (1600 * 900) / 2);
+  }
+  const topRight = pickCutSide(selection.sides, { x: 1500, y: 100 });
+  const bottomLeft = pickCutSide(selection.sides, { x: 100, y: 800 });
+  assert.notEqual(topRight, null);
+  assert.notEqual(bottomLeft, null);
+  assert.notEqual(topRight, bottomLeft);
+});
+
+test("an edge-to-edge cut snaps its ends to the border and keeps the clicked side", () => {
+  const selection = resolveFreehand(
+    [
+      { x: 10, y: 300 },
+      { x: 800, y: 320 },
+      { x: 1590, y: 300 },
+    ],
+    SOURCE,
+    THRESHOLDS
+  );
+  assert.equal(selection?.kind, "cut");
+  if (selection?.kind !== "cut") return;
+  assert.deepEqual(selection.stroke[0], { x: 0, y: 300 });
+  assert.deepEqual(selection.stroke.at(-1), { x: 1600, y: 300 });
+
+  const top = pickCutSide(selection.sides, { x: 800, y: 50 });
+  const bottom = pickCutSide(selection.sides, { x: 800, y: 850 });
+  assert.notEqual(top, bottom);
+  // The kept side spans the whole width and only its own half of the height.
+  assert.deepEqual(polygonBounds(selection.sides[top!], SOURCE), {
+    x: 0,
+    y: 0,
+    width: 1600,
+    height: 320,
+  });
+  assert.deepEqual(polygonBounds(selection.sides[bottom!], SOURCE), {
+    x: 0,
+    y: 300,
+    width: 1600,
+    height: 600,
+  });
+});
+
+test("a line that only skims an edge is not offered as a cut", () => {
+  const skim = [
+    { x: 100, y: 2 },
+    { x: 800, y: 4 },
+    { x: 1500, y: 2 },
+  ];
+  assert.equal(resolveFreehand(skim, SOURCE, THRESHOLDS), null);
 });
 
 test("fitWithin shrinks to the box but never enlarges", () => {

@@ -18929,6 +18929,7 @@ type ContentDraftMutation struct {
 	appendasset_ids              []string
 	channel_connection_ids       *[]string
 	appendchannel_connection_ids []string
+	discussions                  *map[string]interface{}
 	status                       *contentdraft.Status
 	version                      *int
 	addversion                   *int
@@ -19308,6 +19309,42 @@ func (m *ContentDraftMutation) ResetChannelConnectionIds() {
 	m.appendchannel_connection_ids = nil
 }
 
+// SetDiscussions sets the "discussions" field.
+func (m *ContentDraftMutation) SetDiscussions(value map[string]interface{}) {
+	m.discussions = &value
+}
+
+// Discussions returns the value of the "discussions" field in the mutation.
+func (m *ContentDraftMutation) Discussions() (r map[string]interface{}, exists bool) {
+	v := m.discussions
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDiscussions returns the old "discussions" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldDiscussions(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDiscussions is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDiscussions requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDiscussions: %w", err)
+	}
+	return oldValue.Discussions, nil
+}
+
+// ResetDiscussions resets all changes to the "discussions" field.
+func (m *ContentDraftMutation) ResetDiscussions() {
+	m.discussions = nil
+}
+
 // SetStatus sets the "status" field.
 func (m *ContentDraftMutation) SetStatus(c contentdraft.Status) {
 	m.status = &c
@@ -19653,7 +19690,7 @@ func (m *ContentDraftMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ContentDraftMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.organization_id != nil {
 		fields = append(fields, contentdraft.FieldOrganizationID)
 	}
@@ -19671,6 +19708,9 @@ func (m *ContentDraftMutation) Fields() []string {
 	}
 	if m.channel_connection_ids != nil {
 		fields = append(fields, contentdraft.FieldChannelConnectionIds)
+	}
+	if m.discussions != nil {
+		fields = append(fields, contentdraft.FieldDiscussions)
 	}
 	if m.status != nil {
 		fields = append(fields, contentdraft.FieldStatus)
@@ -19713,6 +19753,8 @@ func (m *ContentDraftMutation) Field(name string) (ent.Value, bool) {
 		return m.AssetIds()
 	case contentdraft.FieldChannelConnectionIds:
 		return m.ChannelConnectionIds()
+	case contentdraft.FieldDiscussions:
+		return m.Discussions()
 	case contentdraft.FieldStatus:
 		return m.Status()
 	case contentdraft.FieldVersion:
@@ -19748,6 +19790,8 @@ func (m *ContentDraftMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldAssetIds(ctx)
 	case contentdraft.FieldChannelConnectionIds:
 		return m.OldChannelConnectionIds(ctx)
+	case contentdraft.FieldDiscussions:
+		return m.OldDiscussions(ctx)
 	case contentdraft.FieldStatus:
 		return m.OldStatus(ctx)
 	case contentdraft.FieldVersion:
@@ -19812,6 +19856,13 @@ func (m *ContentDraftMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetChannelConnectionIds(v)
+		return nil
+	case contentdraft.FieldDiscussions:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDiscussions(v)
 		return nil
 	case contentdraft.FieldStatus:
 		v, ok := value.(contentdraft.Status)
@@ -19964,6 +20015,9 @@ func (m *ContentDraftMutation) ResetField(name string) error {
 		return nil
 	case contentdraft.FieldChannelConnectionIds:
 		m.ResetChannelConnectionIds()
+		return nil
+	case contentdraft.FieldDiscussions:
+		m.ResetDiscussions()
 		return nil
 	case contentdraft.FieldStatus:
 		m.ResetStatus()

@@ -23,6 +23,7 @@ export const contentDraftSchema = z.object({
   channelConnectionIds: z.array(z.string()),
   createdAt: timestampSchema,
   createdByUserId: z.string().nullable(),
+  discussions: z.record(z.string(), z.unknown()),
   id: z.string(),
   organizationId: z.string(),
   plainText: z.string(),
@@ -38,6 +39,8 @@ export const contentDraftFieldsSchema = z.object({
   assetIds: z.array(contentDraftIdSchema).max(20).optional(),
   body: plateValueSchema.optional(),
   channelConnectionIds: z.array(contentDraftIdSchema).max(10).optional(),
+  /** Comment threads on the body and their authors' names. */
+  discussions: z.record(z.string(), z.unknown()).optional(),
   plainText: z.string().max(100_000).optional(),
   title: z.string().max(200).optional(),
 })

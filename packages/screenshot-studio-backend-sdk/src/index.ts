@@ -625,6 +625,8 @@ export type BackendContentDraft = {
   channelConnectionIds: string[]
   createdAt: string
   createdByUserId: string | null
+  /** Comment threads on the body and their authors, as the editor keeps them. */
+  discussions: Record<string, unknown>
   id: string
   organizationId: string
   plainText: string
@@ -640,6 +642,7 @@ export type BackendContentDraftInput = {
   assetIds?: string[]
   body?: unknown[]
   channelConnectionIds?: string[]
+  discussions?: Record<string, unknown>
   plainText?: string
   title?: string
 }

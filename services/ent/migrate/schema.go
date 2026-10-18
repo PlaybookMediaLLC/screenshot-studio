@@ -659,6 +659,7 @@ var (
 		{Name: "plainText", Type: field.TypeString},
 		{Name: "assetIds", Type: field.TypeJSON},
 		{Name: "channelConnectionIds", Type: field.TypeJSON},
+		{Name: "discussions", Type: field.TypeJSON},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"draft", "scheduled", "archived"}, Default: "draft"},
 		{Name: "version", Type: field.TypeInt, Default: 1},
 		{Name: "collabState", Type: field.TypeBytes, Nullable: true},
@@ -676,7 +677,7 @@ var (
 			{
 				Name:    "contentdraft_organizationId_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[13]},
+				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[14]},
 			},
 		},
 	}

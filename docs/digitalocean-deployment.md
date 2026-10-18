@@ -37,12 +37,12 @@ Edit) in Infisical.
 
 The MCP server (RFC 038) runs in `screenshot-studio-backend` and is public at
 `https://shots-mcp.playbookmedia.io/mcp`. Set `PLATFORM_MCP_URL` to that URL
-in Infisical. The renderer then adds the host as an alias domain and, on that
-host only, routes the MCP and OAuth paths (`/mcp*`, `/.well-known`, `/oauth`)
-to the backend ahead of the web; OAuth discovery reads metadata from the host
-root. The backend has no other public route. Point a `CNAME` for `shots-mcp.playbookmedia.io`
-at the app's default domain. App Platform issues the certificate once the name
-resolves.
+in Infisical. The backend deploy then adds the host as an alias domain and, on
+that host only, routes the MCP and OAuth paths (`/mcp*`, `/.well-known`,
+`/oauth`) to the backend ahead of the web; OAuth discovery reads metadata from
+the host root. Removing the value removes the domain and its routes. Point a
+DNS-only (unproxied) `CNAME` for `shots-mcp.playbookmedia.io` at the app's
+default domain. App Platform issues the certificate once the name resolves.
 
 See DigitalOcean's [internal routing documentation](https://docs.digitalocean.com/products/app-platform/how-to/manage-internal-routing/)
 and [app spec reference](https://docs.digitalocean.com/products/app-platform/reference/app-spec/).
@@ -85,41 +85,14 @@ Infisical is the configuration source: **Desktop App Backend**, project
 available only at runtime. App Platform holds a snapshot: updating Infisical
 alone does not update the running containers.
 
-From the repository root:
-
-```sh
-umask 077
-mkdir -p .context/digitalocean
-doctl --context solomonai-cluster apps get \
-  c525b0ba-b92a-4174-ae91-4ab4d7c92fd2 --output json \
-  > .context/digitalocean/current-app.json
-infisical export --silent --format=json --env=prod \
-  --projectId=04ebc1cf-0ec5-4e9e-8ab9-4c6da4252574 \
-  --path=/screenshot-studio \
-  --output-file=.context/digitalocean/secrets.json
-python3 infra/digitalocean/render-spec.py \
-  --base .context/digitalocean/current-app.json \
-  --secrets .context/digitalocean/secrets.json \
-  --output .context/digitalocean/app.json
-python3 -m unittest discover -s infra/digitalocean -p 'test_*.py'
-# Schema validation echoes secrets; suppress output. The update validates
-# against the existing app, which is required for preserved encrypted values.
-doctl --context solomonai-cluster apps spec validate \
-  .context/digitalocean/app.json --schema-only > /dev/null
-doctl --context solomonai-cluster apps update \
-  c525b0ba-b92a-4174-ae91-4ab4d7c92fd2 \
-  --spec .context/digitalocean/app.json > /dev/null
-```
-
-The renderer accepts an app object, a one-element `doctl` JSON array, or a
-bare spec. It preserves unrelated components, web settings, domains, and
-ingress. It refuses missing credentials, mismatched product database URLs, or
-colliding Temporal namespaces. It always renders the backend: the web has no
-database and calls the backend at `PUBLISHING_API_URL` with
-`PUBLISHING_SERVICE_TOKEN`. Rendering strips any database URL from the web and
-replaces `web-migrate` with `platform-migrate`. Generated specs contain
-plaintext secrets and must never enter git or logs. Delete local exported
-secrets when finished.
+To apply a changed Infisical value, dispatch `Social backend image` (backend
+and ingress settings) or `Web image` (web settings) on `main` with
+`deploy=true`; see [Releases](#releases). Both workflows load Infisical through
+the repository's scoped OIDC identity and edit the live spec in place
+(`infra/digitalocean/consolidate-live-spec.py` and `update-web-image.py`), so
+they keep components, domains, and settings they do not own. Do not replace
+the whole spec by hand: a spec rendered from an older template drops live
+components and credentials.
 
 ## Releases
 
@@ -280,7 +253,7 @@ The backend is released with the `Social backend image` GitHub workflow. Its
 manual `deploy` input authenticates to Infisical with the repository's scoped
 OIDC identity, loads the new backend credentials, proposes the topology, and
 updates the app only after validation. It preserves the live web, storage,
-renderer, and both migration jobs.
+and both migration jobs.
 
 ### Production maintenance verification: 2026-10-13
 

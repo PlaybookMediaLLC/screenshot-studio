@@ -11,6 +11,7 @@ import json
 import os
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
 
 OLD_BACKENDS = {"postiz-backend", "postiz-orchestrator", "publishing-backend", "publishing-orchestrator"}
 BACKEND = "screenshot-studio-backend"
@@ -210,6 +211,45 @@ def configure_collab(spec, backend, secrets, collab_tag):
     rules.insert(0, {"match": {"path": {"prefix": "/collab"}}, "component": {"name": COLLAB}})
 
 
+# The paths the MCP server and its OAuth flow serve (RFC 038).
+MCP_PATH_PREFIXES = ("/mcp", "/mcp-oauth-claude", "/mcp-oauth-chatgpt", "/mcp-oauth-dynamic", "/.well-known", "/oauth")
+
+
+def is_mcp_rule(rule):
+    return rule.get("component", {}).get("name") == BACKEND and bool(
+        rule.get("match", {}).get("authority", {}).get("exact"))
+
+
+def configure_mcp(spec, backend, web, secrets):
+    """Serve the MCP server (RFC 038) at PLATFORM_MCP_URL, or remove it.
+
+    OAuth discovery reads metadata from the host root, so the URL must be
+    https://<host>/mcp on a host of its own. On that host only, the MCP and
+    OAuth paths reach the backend ahead of the web. The host is an alias
+    domain; its CNAME points at the app's default domain.
+    """
+    if secrets is None:
+        return
+    url = secrets.get("PLATFORM_MCP_URL") or ""
+    parts = urlsplit(url)
+    if url and (parts.scheme != "https" or not parts.hostname or parts.path != "/mcp"):
+        raise ValueError("PLATFORM_MCP_URL must be https://<host>/mcp, at the root of its own host")
+    rules = spec.setdefault("ingress", {}).setdefault("rules", [])
+    previous = {rule["match"]["authority"]["exact"] for rule in rules if is_mcp_rule(rule)}
+    rules[:] = [rule for rule in rules if not is_mcp_rule(rule)]
+    spec["domains"] = [item for item in spec.get("domains", []) if item["domain"] not in previous]
+    for service in (backend, web):
+        service["envs"] = [item for item in service["envs"] if item["key"] != "PLATFORM_MCP_URL"]
+    if not url:
+        return
+    for service in (backend, web):
+        set_env(service["envs"], "PLATFORM_MCP_URL", url)
+    for prefix in reversed(MCP_PATH_PREFIXES):
+        rules.insert(0, {"match": {"authority": {"exact": parts.hostname}, "path": {"prefix": prefix}},
+                         "component": {"name": BACKEND, "preserve_path_prefix": True}})
+    spec["domains"].append({"domain": parts.hostname, "type": "ALIAS"})
+
+
 def consolidate(base, digest, secrets=None, tag=None, collab_tag=None):
     if not digest.startswith("sha256:") or len(digest) != 71:
         raise ValueError("Expected an immutable SHA-256 image digest")
@@ -230,6 +270,7 @@ def consolidate(base, digest, secrets=None, tag=None, collab_tag=None):
         if backend.get("image", {}).get("registry_type") != "GHCR":
             raise ValueError("Combined backend image source changed")
         configure_collab(spec, backend, secrets, collab_tag)
+        configure_mcp(spec, backend, services["web"], secrets)
         refresh_secrets(backend["envs"], secrets)
         add_optional_social_secrets(backend["envs"], secrets)
         configure_publishing_api(backend, services["web"], publishing_token(services, secrets),

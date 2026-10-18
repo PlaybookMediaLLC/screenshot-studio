@@ -220,6 +220,40 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         # Removing it from Infisical removes it from the app instead of failing the deploy.
         self.assertFalse(cutover.OPTIONAL_TENANT_KEYS & set(backend_envs(cutover.consolidate(keyed, self.digest, secrets))))
 
+    def test_mcp_host_follows_infisical(self):
+        secrets = {key: "infisical-" + key for key in
+                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
+        live = cutover.consolidate(self.base, self.digest, secrets)
+        self.assertFalse(any(cutover.is_mcp_rule(rule) for rule in live["ingress"]["rules"]))
+        enabled = dict(secrets, PLATFORM_MCP_URL="https://mcp.example.com/mcp")
+        spec = cutover.consolidate(live, self.digest, enabled)
+        services = {item["name"]: item for item in spec["services"]}
+        for name in ("web", "screenshot-studio-backend"):
+            envs = {item["key"]: item for item in services[name]["envs"]}
+            self.assertEqual(envs["PLATFORM_MCP_URL"]["value"], "https://mcp.example.com/mcp")
+        # Only the MCP and OAuth paths on the MCP host reach the backend, ahead of the web.
+        rules = spec["ingress"]["rules"]
+        mcp_rules = rules[:len(cutover.MCP_PATH_PREFIXES)]
+        self.assertEqual([rule["match"]["path"]["prefix"] for rule in mcp_rules], list(cutover.MCP_PATH_PREFIXES))
+        for rule in mcp_rules:
+            self.assertEqual(rule["match"]["authority"], {"exact": "mcp.example.com"})
+            self.assertEqual(rule["component"], {"name": "screenshot-studio-backend", "preserve_path_prefix": True})
+        self.assertEqual(sum(cutover.is_mcp_rule(rule) for rule in rules), len(cutover.MCP_PATH_PREFIXES))
+        self.assertIn({"domain": "mcp.example.com", "type": "ALIAS"}, spec["domains"])
+        self.assertIn({"domain": "shots.example.com"}, spec["domains"])
+        self.assertEqual(cutover.consolidate(spec, self.digest, enabled), spec)
+        # A deploy without Infisical values leaves the live MCP host alone.
+        self.assertEqual(cutover.consolidate(spec, self.digest)["domains"], spec["domains"])
+        moved = cutover.consolidate(spec, self.digest, dict(secrets, PLATFORM_MCP_URL="https://agents.example.com/mcp"))
+        self.assertEqual([item["domain"] for item in moved["domains"]], ["shots.example.com", "agents.example.com"])
+        removed = cutover.consolidate(spec, self.digest, secrets)
+        self.assertEqual(removed["domains"], [{"domain": "shots.example.com"}])
+        self.assertFalse(any(cutover.is_mcp_rule(rule) for rule in removed["ingress"]["rules"]))
+        self.assertNotIn("PLATFORM_MCP_URL", {item["key"] for service in removed["services"] for item in service.get("envs", [])})
+        for url in ("http://mcp.example.com/mcp", "https://shots.example.com/postiz/mcp"):
+            with self.assertRaisesRegex(ValueError, "PLATFORM_MCP_URL"):
+                cutover.consolidate(live, self.digest, dict(secrets, PLATFORM_MCP_URL=url))
+
 
 if __name__ == "__main__":
     unittest.main()

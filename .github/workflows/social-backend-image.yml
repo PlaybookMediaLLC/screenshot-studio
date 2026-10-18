@@ -4,11 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - services/screenshot-studio-backend/**
-      - services/backend/**
       - services/cmd/**
       - services/ent/**
-      - services/orchestrator/**
       - services/internal/**
       - services/platformmigrations/**
       - services/go.mod
@@ -53,7 +50,7 @@ jobs:
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: services
-          file: services/screenshot-studio-backend/backend/Dockerfile
+          file: services/cmd/combined/Dockerfile
           platforms: linux/amd64
           push: true
           provenance: false

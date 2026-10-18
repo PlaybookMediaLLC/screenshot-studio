@@ -28,7 +28,7 @@ App Platform runs one `platform-migrate` predeploy job from the backend image.
 It applies product and social migrations to the same PostgreSQL database and
 `public` schema. The web has no database connection. Review the migration
 sources in `services/platformmigrations/sql` and
-`services/screenshot-studio-backend/migrations` and the
+`services/internal/social/migrations` and the
 database backup before changing the backend image.
 
 For a local web image smoke test:

@@ -548,7 +548,7 @@ kind_up() {
   fi
 
   docker build --tag screenshot-studio:kind-dev "$ROOT_DIR"
-  docker build --file "$ROOT_DIR/services/backend/Dockerfile" \
+  docker build --file "$ROOT_DIR/services/cmd/product-api/Dockerfile" \
     --tag screenshot-studio-publishing-backend:kind-dev "$ROOT_DIR/services"
   kind load docker-image screenshot-studio:kind-dev --name "$KIND_CLUSTER"
   docker build --file "$ROOT_DIR/packages/collab-server/Dockerfile" \

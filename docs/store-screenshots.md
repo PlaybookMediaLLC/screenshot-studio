@@ -39,7 +39,7 @@ One document, one renderer, and one command path serve every feature.
 | Localization | `lib/store-screenshots/localization.ts`, `locales.ts` | Per-layer translations with source hashes, status, and outdated detection |
 | Persistence | `lib/store-screenshots/persistence/` | IndexedDB projects, content-addressed assets, versions, brand kits, templates |
 | Server | `lib/tenant/store-*.ts`, `app/api/store-screenshots/`, `app/api/review/` | Reviews, comments, credentials, provider uploads, AI |
-| Backend | `services/internal/product/store_screenshots.go`, `services/backend/internal/httpapi/store_screenshots.go` | Ent models `StoreReview`, `StoreReviewComment`, `StorePublishingCredential`; authorization and audit |
+| Backend | `services/internal/product/store_screenshots.go`, `services/internal/httpapi/store_screenshots.go` | Ent models `StoreReview`, `StoreReviewComment`, `StorePublishingCredential`; authorization and audit |
 | Integrations | `lib/integrations/` | App Store Connect, Google Play, and Figma clients, isolated from the editor |
 
 ### Data flow
@@ -219,6 +219,6 @@ DOM; the export dialog stays responsive and can cancel between files.
 | --- | --- |
 | Engine, commands, editing, output pipeline, server crypto, provider contracts | `npm test` (files under `test/store-*.test.ts`) |
 | Contract registry and API boundaries | `npm test` (`test/openapi-contracts.test.ts`, `test/api-platform-boundary.test.ts`) |
-| Backend unit and route tests | `cd services && go test ./internal/product ./backend/internal/httpapi` |
+| Backend unit and route tests | `cd services && go test ./internal/product ./internal/httpapi` |
 | Backend lifecycle against Postgres | `PUBLISHING_TEST_DATABASE_URL=… go test ./internal/product -run TestStoreReviewLifecycleAndCredentials` |
 | Browser flows | `npx playwright test test/e2e/store-screenshots.spec.ts` against the local stack |

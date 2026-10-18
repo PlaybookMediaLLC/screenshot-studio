@@ -45,10 +45,7 @@ test('every client snippet is a valid configuration that points at the Go MCP se
 })
 
 test('the documented tools are the Go tool table, with the scopes the spec declares', () => {
-  const source = readFileSync(
-    'services/screenshot-studio-backend/internal/chat/mcp/tools.go',
-    'utf8'
-  )
+  const source = readFileSync('services/internal/social/chat/mcp/tools.go', 'utf8')
   const goTools = [...source.matchAll(/^\t\{"(\w+)", \w+,/gm)].map((match) => match[1])
   assert.deepEqual(
     MCP_TOOLS.map((tool) => tool.name),

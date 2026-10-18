@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	socialmigrations "github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/migrations"
+	socialmigrations "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/migrations"
 )
 
 //go:embed sql/*.sql

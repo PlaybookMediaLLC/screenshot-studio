@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/ssrfguard"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ssrfguard"
 )
 
 const (

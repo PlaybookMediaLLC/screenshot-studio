@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
-	social "github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/ent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/ent/oauthapp"
+	social "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/oauthapp"
 )
 
 // Registry implements product.AgentClients.

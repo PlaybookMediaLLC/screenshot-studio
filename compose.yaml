@@ -157,7 +157,7 @@ services:
   publishing-backend:
     build:
       context: ./services
-      dockerfile: backend/Dockerfile
+      dockerfile: cmd/product-api/Dockerfile
     image: screenshot-studio-publishing-backend:local
     env_file: .local/dev.env
     environment:
@@ -225,7 +225,7 @@ services:
   platform-go-migrate:
     build:
       context: ./services
-      dockerfile: backend/Dockerfile
+      dockerfile: cmd/product-api/Dockerfile
     image: screenshot-studio-publishing-backend:local
     entrypoint: ['/platform-migrate']
     environment:
@@ -250,7 +250,7 @@ services:
   publishing-orchestrator:
     build:
       context: ./services
-      dockerfile: orchestrator/Dockerfile
+      dockerfile: cmd/product-worker/Dockerfile
     env_file: .local/dev.env
     environment:
       PORT: '8081'
@@ -312,7 +312,7 @@ services:
     profiles: ['postiz-go']
     build:
       context: ./services
-      dockerfile: screenshot-studio-backend/backend/Dockerfile
+      dockerfile: cmd/combined/Dockerfile
     image: screenshot-studio-postiz-backend:local
     # Local API shares the product database; the combined backend entrypoint
     # runs the tenant API and workers on a production host.

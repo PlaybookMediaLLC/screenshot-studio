@@ -457,7 +457,7 @@ All of RFC 012's crawl safety rules apply unchanged: SSRF rejection, pinned DNS
 resolution, redirect re-validation, scheme allowlisting, size caps, robots
 compliance, and prompt-injection handling. Every outbound fetch of a
 user-supplied URL goes through the platform SSRF guard in
-`services/screenshot-studio-backend/internal/ssrf`, which checks each dialed
+`services/internal/social/ssrf`, which checks each dialed
 address, so DNS rebinding and redirect hops are covered. Redirects are capped
 at 5, only `http` and `https` on standard web ports are allowed, and robots
 are honored for our user agent.

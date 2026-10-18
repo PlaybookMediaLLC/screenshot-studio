@@ -154,7 +154,7 @@ Status as of 2026-10-16: done, including the campaign UI for steps 2, 3, and 5 (
    - Approval records who approved a post and when.
    - Revising an approved post sends it back to draft.
    - Revising a live scheduled or published post is refused.
-4. **Security check**, done: approvals refuse API-key, service, webhook, and support actors in the backend itself, with a test for every entrypoint. Scheduling admits only a publisher's session or a key the backend finds holds `post:schedule` (RFC 037).
+4. **Security check**, done: approvals refuse API-key, service, webhook, and support actors in the backend itself, with a test for every entrypoint. Scheduling admits only a publisher's session or a key the backend finds holds `post:schedule` (RFC 038).
 5. **Launch runs** ([004](docs/rfcs/004-trigger-dev-background-jobs.md))
    - Done: the database enforces one active run per kind.
    - Done: runs carry a heartbeat lease, so a dead run fails within minutes.

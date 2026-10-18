@@ -1,5 +1,5 @@
 /**
- * How each AI agent client connects to the Shots MCP server (RFC 037). One
+ * How each AI agent client connects to the Shots MCP server (RFC 038). One
  * source for the public guide at /docs/agents, Settings → AI agents, and
  * llms-full.txt, so a snippet is never copied by hand into three places.
  */
@@ -219,7 +219,7 @@ export const MCP_CLIENTS: McpClientGuide[] = [
   },
 ]
 
-/** The tools agents get, by the scope that grants them (RFC 037). */
+/** The tools agents get, by the scope that grants them (RFC 038). */
 export const MCP_TOOLS: { name: string; scope: string; summary: string }[] = [
   { name: 'listReleases', scope: 'artifact:read', summary: 'List the workspace releases' },
   { name: 'createRelease', scope: 'release:create', summary: 'Create a release brief' },

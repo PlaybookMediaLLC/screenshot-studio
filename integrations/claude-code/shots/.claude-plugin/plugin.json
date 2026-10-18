@@ -1,7 +1,7 @@
 {
   "name": "shots",
   "version": "0.1.0",
-  "description": "Connect Claude Code to a Shots workspace over MCP: releases, campaigns, assets, screenshots, and review requests (RFC 037).",
+  "description": "Connect Claude Code to a Shots workspace over MCP: releases, campaigns, assets, screenshots, and review requests (RFC 038).",
   "author": { "name": "Playbook Media" },
   "homepage": "https://shots.playbookmedia.io/docs/agents",
   "license": "Apache-2.0",

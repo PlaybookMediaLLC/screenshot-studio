@@ -4,12 +4,17 @@ import { idempotencyKeySchema } from '@/lib/api/contracts/releases'
 import { scheduledPostStatusSchema } from '@/lib/api/contracts/scheduled-posts'
 import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
 import type { createCampaign, getCampaign, listCampaigns } from '@/lib/tenant/campaigns'
-import { campaignCreateSchema, campaignTransitionSchema } from '@/lib/tenant/schemas'
+import {
+  campaignCreateSchema,
+  campaignPostScheduleSchema,
+  campaignTransitionSchema,
+} from '@/lib/tenant/schemas'
 
 /**
- * Campaign contracts (RFC 018, RFC 019). Every operation needs the campaign
- * workflow. API keys read with `artifact:read` and create drafts with
- * `release:create`; approving a campaign stays with a person.
+ * Campaign contracts (RFC 018, RFC 019, RFC 037). Every operation needs the
+ * campaign workflow. API keys read with `artifact:read`, create drafts with
+ * `release:create`, and schedule approved posts with `post:schedule`;
+ * approving stays with a person.
  */
 
 /** Lifecycle states of a campaign. */
@@ -265,4 +270,50 @@ export const transitionCampaignContract = defineContract({
   params: campaignParamsSchema,
   path: '/api/v1/campaigns/{campaignId}/transitions',
   summary: 'Change a campaign status',
+})
+
+/** The `{campaignId}` and `{postId}` path parameters. */
+export const campaignPostParamsSchema = campaignParamsSchema.extend({ postId: z.string().cuid() })
+
+/** `POST /api/v1/campaigns/{campaignId}/posts/{postId}/schedule` */
+export const scheduleCampaignPostContract = defineContract({
+  access: {
+    apiKeyScope: 'post:schedule',
+    feature: 'campaign:workflow',
+    permission: 'publish:manage',
+    quota: 'api:write:minute',
+  },
+  body: campaignPostScheduleSchema
+    .extend({
+      scheduledAt: z.iso
+        .datetime({ offset: true })
+        .transform((value) => new Date(value))
+        .refine((value) => value.getTime() > Date.now(), 'Scheduled time must be in the future.')
+        .optional()
+        .describe(
+          'When to publish, as an RFC 3339 timestamp in the future. Defaults to the next default publish time in the workspace time zone.'
+        ),
+    })
+    .strict(),
+  docs: workspaceDocs({
+    bodyName: 'CampaignPostScheduleRequest',
+    description:
+      'Schedules an approved campaign post on a channel connection that publishes its channel. The post must be `APPROVED` with an approved visual: the one it has, or `creativeVariantId`, an approved variant of this campaign’s designs. Scheduling never approves. The copy is checked again against the brand profile and the channel’s character limit, and every link in the post is read first: a link whose preview is broken stops the schedule unless `skipLinkCheck` is true. Each new post counts against the monthly posts allowance. Repeating the request on the same channel returns the post as scheduled; a cancelled or failed post can be scheduled again. Requires the `post:schedule` scope, or a member who manages publishing.',
+    operationId: 'scheduleCampaignPost',
+    responses: {
+      '200': 'The post is scheduled.',
+      '400': 'The input is invalid, or the channel connection cannot be used.',
+      '404': 'The campaign, post, or variant is not in this workspace.',
+      '409':
+        'The post is not approved, has no approved visual, does not fit the channel, uses a prohibited term, has a link that would preview badly, or may already be live.',
+      '429': 'The monthly posts allowance or the workspace write quota is exhausted.',
+    },
+    tag: 'Campaigns',
+  }),
+  method: 'POST',
+  name: 'campaigns.schedule-post',
+  output: campaignPostSchema,
+  params: campaignPostParamsSchema,
+  path: '/api/v1/campaigns/{campaignId}/posts/{postId}/schedule',
+  summary: 'Schedule a campaign post',
 })

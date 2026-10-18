@@ -81,6 +81,7 @@ export function organizationAccess(
 /**
  * A session member with `requirement.permission`, or an organization API key
  * with `requirement.apiKeyScope`, then the optional plan feature and quota.
+ * `sensitive` also requires the session's fresh second factor.
  */
 export function tenantAccess(requirement: TenantAccessRequirement): Authenticate<TenantContext> {
   return async ({ request }) => requireTenantAccess(request.headers, requirement)

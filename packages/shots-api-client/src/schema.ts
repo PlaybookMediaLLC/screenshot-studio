@@ -380,6 +380,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/campaigns/{campaignId}/posts/{postId}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Schedule a campaign post
+         * @description Schedules an approved campaign post on a channel connection that publishes its channel. The post must be `APPROVED` with an approved visual: the one it has, or `creativeVariantId`, an approved variant of this campaign’s designs. Scheduling never approves. The copy is checked again against the brand profile and the channel’s character limit, and every link in the post is read first: a link whose preview is broken stops the schedule unless `skipLinkCheck` is true. Each new post counts against the monthly posts allowance. Repeating the request on the same channel returns the post as scheduled; a cancelled or failed post can be scheduled again. Requires the `post:schedule` scope, or a member who manages publishing.
+         */
+        post: operations["scheduleCampaignPost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/scheduled-posts": {
         parameters: {
             query?: never;
@@ -389,13 +409,13 @@ export interface paths {
         };
         /**
          * List scheduled posts
-         * @description Lists the workspace publishing schedule, newest first, up to `limit` posts. `pagination.hasMore` is true when the page is full. Requires a signed-in member who manages publishing; API keys are refused.
+         * @description Lists the workspace publishing schedule, newest first, up to `limit` posts. `pagination.hasMore` is true when the page is full. Requires the `artifact:read` scope, or a member who manages publishing.
          */
         get: operations["listScheduledPosts"];
         put?: never;
         /**
          * Schedule a post
-         * @description Schedules an approved creative variant to an active channel connection. The variant must be `APPROVED` with an approved review, and both must belong to the workspace. Each new post counts against the monthly posts allowance. Accepts `Idempotency-Key`, unique per channel connection: a retry returns the first post with `200`. Requires a member who manages publishing, signed in within 15 minutes with two-factor.
+         * @description Schedules an approved creative variant to an active channel connection. The variant must be `APPROVED` with an approved review, and both must belong to the workspace; scheduling never approves. Each new post counts against the monthly posts allowance. Accepts `Idempotency-Key`, unique per channel connection: a retry returns the first post with `200`. Requires the `post:schedule` scope, or a member who manages publishing, signed in within 15 minutes with two-factor.
          */
         post: operations["createScheduledPost"];
         delete?: never;
@@ -415,7 +435,7 @@ export interface paths {
         put?: never;
         /**
          * Cancel a scheduled post
-         * @description Cancels a post that has not started publishing. Cancelling a cancelled post returns it unchanged. A post that is processing or published cannot be cancelled; remove a published post on the social network. Requires a member who manages publishing, signed in within 15 minutes with two-factor.
+         * @description Cancels a post that has not started publishing. Cancelling a cancelled post returns it unchanged. A post that is processing or published cannot be cancelled; remove a published post on the social network. Requires the `post:schedule` scope, or a member who manages publishing, signed in within 15 minutes with two-factor.
          */
         post: operations["cancelScheduledPost"];
         delete?: never;
@@ -1061,6 +1081,19 @@ export interface components {
             decision: "approve" | "reject" | "request_changes";
             note?: string;
             postIds?: string[];
+        };
+        CampaignPostScheduleRequest: {
+            /** Format: cuid */
+            channelConnectionId: string;
+            /** Format: cuid */
+            creativeVariantId?: string;
+            /**
+             * Format: date-time
+             * @description When to publish, as an RFC 3339 timestamp in the future. Defaults to the next default publish time in the workspace time zone.
+             */
+            scheduledAt?: string;
+            /** @default false */
+            skipLinkCheck: boolean;
         };
         ScheduledPostListResponse: {
             data: {
@@ -3064,6 +3097,125 @@ export interface operations {
             };
         };
     };
+    scheduleCampaignPost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaignId: string;
+                postId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignPostScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description The post is scheduled. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        angleId: string | null;
+                        approvedAt: string | null;
+                        approvedByUserId: string | null;
+                        callToAction: string | null;
+                        campaignId: string;
+                        channel: string;
+                        claims: {
+                            [key: string]: unknown;
+                        }[] | null;
+                        copy: string;
+                        createdAt: string;
+                        creativeVariantId: string | null;
+                        id: string;
+                        organizationId: string;
+                        phase: string | null;
+                        planItemKey: string | null;
+                        planVersion: number | null;
+                        /** @description Why a reviewer rejected or asked for changes. */
+                        reviewNote: string | null;
+                        scheduledAt: string | null;
+                        scheduledPostId: string | null;
+                        /** @description Delivery state of `scheduledPostId`. */
+                        scheduledPostStatus: ("DRAFT" | "SCHEDULED" | "PROCESSING" | "PUBLISHED" | "FAILED" | "CANCELLED" | "UNKNOWN_DELIVERY") | null;
+                        specVersion: number | null;
+                        /** @enum {string} */
+                        status: "DRAFT" | "READY_FOR_REVIEW" | "APPROVED" | "REJECTED" | "NEEDS_CHANGES" | "SCHEDULED" | "PUBLISHED";
+                        title: string | null;
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description The input is invalid, or the channel connection cannot be used. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The campaign, post, or variant is not in this workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The post is not approved, has no approved visual, does not fit the channel, uses a prohibited term, has a link that would preview badly, or may already be live. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The monthly posts allowance or the workspace write quota is exhausted. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listScheduledPosts: {
         parameters: {
             query?: {
@@ -3093,7 +3245,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description A signed-in workspace session is required. */
+            /** @description Authentication is required. */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3102,7 +3254,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            /** @description The API key lacks the required workspace scope. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3202,7 +3354,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description A signed-in workspace session is required. */
+            /** @description Authentication is required. */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3211,7 +3363,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            /** @description The API key lacks the required workspace scope. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3229,7 +3381,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The monthly posts allowance is exhausted. */
+            /** @description The monthly posts allowance or the workspace write quota is exhausted. */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -3296,7 +3448,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description A signed-in workspace session is required. */
+            /** @description Authentication is required. */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3305,7 +3457,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            /** @description The API key lacks the required workspace scope. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3330,6 +3482,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The workspace write quota is exhausted. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceQuotaError"];
                 };
             };
             /** @description A required dependency is unavailable. */

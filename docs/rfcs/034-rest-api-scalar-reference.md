@@ -73,7 +73,7 @@ Shipped:
 - `assets` (signed upload URL, upload completion, signed download URL, delete)
 - `source-apps` (create, update)
 - `link-preview`
-- `campaigns` (list, get, create, status transitions)
+- `campaigns` (list, get, create, status transitions, post scheduling)
 - `approvals` (the review queue, review requests, and review decisions)
 - `scheduled-posts` (list, create, cancel)
 - workspace shell operations: `me`, `bootstrap`, and `organizations` with
@@ -100,9 +100,10 @@ identifier from another workspace selects nothing and returns `404`.
 | `listApprovals` | `GET /api/v1/approvals` | `artifact:read` | `artifact:read` | `campaign:workflow` | none |
 | `requestCampaignReview` | `POST /api/v1/campaigns/{campaignId}/review-requests` | `release:create` | `release:create` | `campaign:workflow` | `api:write:minute` |
 | `decideCampaignApproval` | `POST /api/v1/campaigns/{campaignId}/approvals` | refused | `release:approve` | `campaign:workflow` | none |
-| `listScheduledPosts` | `GET /api/v1/scheduled-posts` | refused | `publish:manage` | `workspace:use` | none |
-| `createScheduledPost` | `POST /api/v1/scheduled-posts` | refused | `publish:manage`, fresh 2FA | `workspace:use` | monthly posts, in the backend |
-| `cancelScheduledPost` | `POST /api/v1/scheduled-posts/{scheduledPostId}/cancel` | refused | `publish:manage`, fresh 2FA | `workspace:use` | none |
+| `scheduleCampaignPost` | `POST /api/v1/campaigns/{campaignId}/posts/{postId}/schedule` | `post:schedule` | `publish:manage` | `campaign:workflow` | `api:write:minute`; monthly posts, in the backend |
+| `listScheduledPosts` | `GET /api/v1/scheduled-posts` | `artifact:read` | `publish:manage` | `workspace:use` | none |
+| `createScheduledPost` | `POST /api/v1/scheduled-posts` | `post:schedule` | `publish:manage`, fresh 2FA | `workspace:use` | `api:write:minute`; monthly posts, in the backend |
+| `cancelScheduledPost` | `POST /api/v1/scheduled-posts/{scheduledPostId}/cancel` | `post:schedule` | `publish:manage`, fresh 2FA | `workspace:use` | `api:write:minute` |
 
 The rules come from the owning RFCs:
 
@@ -114,9 +115,14 @@ The rules come from the owning RFCs:
 - The campaign transition table (`campaignStatusTransitions` in
   `lib/tenant/campaign-status.ts`, enforced again in the backend) decides the
   role for each move. Moving a campaign to `APPROVED` refuses an API key.
-- RFC 020 makes scheduling a signed-in publisher's action with a fresh second
-  factor, and reading the schedule a routine session read. No API-key scope
-  covers publishing.
+- RFC 020 makes scheduling a publisher's action and reading the schedule a
+  routine read. Creating or cancelling a scheduled post from a session needs
+  a fresh second factor. Scheduling a campaign post asks for `publish:manage`,
+  as the in-app procedure does.
+- RFC 037 adds the `post:schedule` key scope, at the owners' request. It
+  schedules and cancels but never approves: every scheduling path accepts
+  only an approved post or variant. The backend rechecks the scope itself.
+  `artifact:read` reads the schedule.
 
 ### Lifecycle
 
@@ -127,6 +133,9 @@ The rules come from the owning RFCs:
   reviewer's decision (RFC 019). The batch semantics are RFC 019's: omitted
   `postIds` means every eligible post, a listed post that is not eligible
   fails the whole call with `409`, and the batch is one transaction.
+- Scheduling moves an `APPROVED` campaign post to `SCHEDULED`. It needs an
+  approved visual and a channel connection that publishes the post's channel.
+  It also reads the post's links first, unless `skipLinkCheck` is true.
 - Scheduled posts move `SCHEDULED` to `PROCESSING` to `PUBLISHED`, or to
   `FAILED`, `CANCELLED`, or `UNKNOWN_DELIVERY` (RFC 020). Cancelling works from
   `DRAFT`, `SCHEDULED`, and `FAILED`, and is a no-op on a cancelled post.
@@ -139,6 +148,7 @@ The rules come from the owning RFCs:
 | `createScheduledPost` | `Idempotency-Key`, unique per channel connection (RFC 020). Without one, the route mints a key per request. A retry returns `200` and `created: false`. |
 | Transitions, review requests, decisions | Each applies only from the current status with a conditional write, so a repeated request changes nothing and returns `409`. |
 | `cancelScheduledPost` | Repeating it returns the cancelled post unchanged. |
+| `scheduleCampaignPost` | The scheduled post is keyed on the campaign post, so repeating the request on the same channel returns the post as scheduled. Another channel returns `409`. After a cancel or failure it schedules a new post. |
 
 ### Audit
 
@@ -148,7 +158,8 @@ Every mutation writes its audit record in the same transaction as its effect:
 - `product.campaign_status_changed`, with `from` and `to`;
 - `product.campaign_post_status_changed`, one record per batch with `decision`
   and `postCount`;
-- `post.scheduled` and `post.cancelled`.
+- `post.scheduled` and `post.cancelled`;
+- `product.campaign_post_scheduled`, with `campaignId` and `scheduledPostId`.
 
 The actor is the session user or the API key's display name, and the request
 ID is the caller's `X-Request-Id`. The review queue and the other reads are
@@ -177,14 +188,13 @@ those RFCs define.
      whether an API key may trigger one.
    - It does not define the period key on campaigns, or how an expired plan
      reads (archived with a reason, or a separate state).
-5. **Reading the schedule with a key (RFC 020).** No API-key scope grants
-   `listScheduledPosts`, so scripts and agents see delivery state only through
-   each campaign post's `scheduledPostStatus`. A read-only publishing scope
-   would close the gap. It would expose channel account identifiers to keys.
-6. **Scheduling a campaign post (RFC 020).** RFC 020's table requires a fresh
-   second factor to create a scheduled post. The shipped campaign-post
-   schedule procedure asks only for `publish:manage`. The API does not expose
-   campaign-post scheduling until the two agree.
+5. **Reading the schedule with a key.** Resolved on 2026-10-17 by RFC 037:
+   `artifact:read` reads it, including channel account identifiers.
+6. **A second factor for campaign-post scheduling (RFC 020).** The owners
+   asked for campaign-post scheduling in the API, so it now ships. It follows
+   the in-app procedure and asks a session only for `publish:manage`. RFC
+   020's table asks for a fresh second factor to create a scheduled post.
+   Should a session that schedules a campaign post need one too?
 7. **Design approval (RFC 019).** Approving a design's render is a
    `release:approve` session action in the app. It is not part of
    `/api/v1/approvals` yet.

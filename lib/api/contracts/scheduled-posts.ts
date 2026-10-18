@@ -1,14 +1,15 @@
 import { z } from 'zod'
 import { defineContract, mirrors, pageOf } from '@/lib/api/contract'
 import { idempotencyKeySchema } from '@/lib/api/contracts/releases'
-import { memberDocs } from '@/lib/api/contracts/workspace-docs'
+import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
 import type { listBackendScheduledPosts } from '@/lib/tenant/publishing-backend'
 import { scheduledPostCreateSchema, scheduledPostListQuerySchema } from '@/lib/tenant/schemas'
 
 /**
- * Scheduled post contracts (RFC 020). Publishing needs a signed-in member
- * with `publish:manage`: reading the schedule is routine, and changing it
- * needs a sign-in under 15 minutes old with two-factor. API keys are refused.
+ * Scheduled post contracts (RFC 020, RFC 037). A member with
+ * `publish:manage` reads the schedule, and changes it with a sign-in under 15
+ * minutes old with two-factor. A key reads it with `artifact:read` and changes
+ * it with `post:schedule`. Only approved variants can be scheduled.
  */
 
 /** Delivery states of a scheduled post. */
@@ -47,10 +48,10 @@ export const scheduledPostResultSchema = scheduledPostSchema.partial({ channelCo
 
 /** `GET /api/v1/scheduled-posts` */
 export const listScheduledPostsContract = defineContract({
-  access: { permission: 'publish:manage' },
-  docs: memberDocs({
+  access: { apiKeyScope: 'artifact:read', permission: 'publish:manage' },
+  docs: workspaceDocs({
     description:
-      'Lists the workspace publishing schedule, newest first, up to `limit` posts. `pagination.hasMore` is true when the page is full. Requires a signed-in member who manages publishing; API keys are refused.',
+      'Lists the workspace publishing schedule, newest first, up to `limit` posts. `pagination.hasMore` is true when the page is full. Requires the `artifact:read` scope, or a member who manages publishing.',
     operationId: 'listScheduledPosts',
     outputName: 'ScheduledPostListResponse',
     responses: { '200': 'Scheduled posts.', '400': 'The list query is invalid.' },
@@ -66,7 +67,12 @@ export const listScheduledPostsContract = defineContract({
 
 /** `POST /api/v1/scheduled-posts` */
 export const createScheduledPostContract = defineContract({
-  access: { permission: 'publish:manage', sensitive: true },
+  access: {
+    apiKeyScope: 'post:schedule',
+    permission: 'publish:manage',
+    quota: 'api:write:minute',
+    sensitive: true,
+  },
   body: scheduledPostCreateSchema
     .extend({
       scheduledFor: z.iso
@@ -76,17 +82,17 @@ export const createScheduledPostContract = defineContract({
         .describe('When to publish, as an RFC 3339 timestamp in the future.'),
     })
     .strict(),
-  docs: memberDocs({
+  docs: workspaceDocs({
     bodyName: 'ScheduledPostCreateRequest',
     description:
-      'Schedules an approved creative variant to an active channel connection. The variant must be `APPROVED` with an approved review, and both must belong to the workspace. Each new post counts against the monthly posts allowance. Accepts `Idempotency-Key`, unique per channel connection: a retry returns the first post with `200`. Requires a member who manages publishing, signed in within 15 minutes with two-factor.',
+      'Schedules an approved creative variant to an active channel connection. The variant must be `APPROVED` with an approved review, and both must belong to the workspace; scheduling never approves. Each new post counts against the monthly posts allowance. Accepts `Idempotency-Key`, unique per channel connection: a retry returns the first post with `200`. Requires the `post:schedule` scope, or a member who manages publishing, signed in within 15 minutes with two-factor.',
     operationId: 'createScheduledPost',
     responses: {
       '200': 'An earlier request with this idempotency key scheduled the post.',
       '201': 'Post scheduled.',
       '400': 'The input is invalid, or the variant or connection is not eligible.',
       '404': 'The variant or channel connection is not in this workspace.',
-      '429': 'The monthly posts allowance is exhausted.',
+      '429': 'The monthly posts allowance or the workspace write quota is exhausted.',
     },
     tag: 'Publishing',
   }),
@@ -101,16 +107,22 @@ export const createScheduledPostContract = defineContract({
 
 /** `POST /api/v1/scheduled-posts/{scheduledPostId}/cancel` */
 export const cancelScheduledPostContract = defineContract({
-  access: { permission: 'publish:manage', sensitive: true },
-  docs: memberDocs({
+  access: {
+    apiKeyScope: 'post:schedule',
+    permission: 'publish:manage',
+    quota: 'api:write:minute',
+    sensitive: true,
+  },
+  docs: workspaceDocs({
     description:
-      'Cancels a post that has not started publishing. Cancelling a cancelled post returns it unchanged. A post that is processing or published cannot be cancelled; remove a published post on the social network. Requires a member who manages publishing, signed in within 15 minutes with two-factor.',
+      'Cancels a post that has not started publishing. Cancelling a cancelled post returns it unchanged. A post that is processing or published cannot be cancelled; remove a published post on the social network. Requires the `post:schedule` scope, or a member who manages publishing, signed in within 15 minutes with two-factor.',
     operationId: 'cancelScheduledPost',
     responses: {
       '200': 'The post is cancelled.',
       '400': 'The scheduled post identifier is invalid.',
       '404': 'No scheduled post with that ID exists in this workspace.',
       '409': 'The post is already publishing or published.',
+      '429': 'The workspace write quota is exhausted.',
     },
     tag: 'Publishing',
   }),

@@ -70,7 +70,9 @@ Each operation lists the scope it needs in its security requirement. A key can n
 | --- | --- |
 ${scopeRows}
 
-Some operations are a person's decision and take a session only: approving, rejecting, or requesting changes on posts, and scheduling or cancelling posts. They refuse API keys with \`403\`, whatever the key's scopes. Scheduling and cancelling also need a sign-in under 15 minutes old with two-factor enabled.
+Approving, rejecting, or requesting changes on posts is a person's decision and takes a session only. Those operations refuse API keys with \`403\`, whatever the key's scopes.
+
+A key with \`post:schedule\` may schedule campaign posts and visuals a person approved, and cancel scheduled posts. Nothing unapproved can be scheduled, by a key or a person. A session that schedules a variant or cancels a post needs a sign-in under 15 minutes old with two-factor enabled.
 
 Shell operations (\`/api/v1/me\`, \`/api/v1/bootstrap\`, \`/api/v1/organizations\`) describe the signed-in user and refuse API keys.
 

@@ -9,7 +9,7 @@ export type WorkspaceDocsInput = z.infer<typeof workspaceDocsInputSchema>
 
 /**
  * OpenAPI docs for an operation only a signed-in member may perform, such as
- * approving or scheduling, with the shared 401, 403, and 503 descriptions.
+ * approving, with the shared 401, 403, and 503 descriptions.
  */
 export function memberDocs(docs: WorkspaceDocsInput): ContractDocs {
   return {

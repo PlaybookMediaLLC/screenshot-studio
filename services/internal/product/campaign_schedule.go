@@ -87,8 +87,7 @@ func nextCampaignPublishTime(now time.Time, timeZone, publishTime string) (time.
 
 func (c *Configuration) ScheduleCampaignPost(ctx context.Context, actor Actor, campaignID, postID string,
 	input ScheduleCampaignPostInput) (*ScheduleCampaignPostResult, error) {
-	if err := c.authorizeDecision(ctx, actor,
-		"owner", "admin", "publisher"); err != nil {
+	if err := c.authorizeScheduling(ctx, actor); err != nil {
 		return nil, err
 	}
 	if input.ChannelConnectionID == "" {

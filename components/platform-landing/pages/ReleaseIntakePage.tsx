@@ -16,6 +16,7 @@ const SCOPE_NOTES: Record<ApiKeyScope, string> = {
   'upload:sign': 'Request signed upload URLs for asset bytes.',
   'draft:write': 'Create, update, and delete content drafts.',
   'artifact:read': 'Read releases, assets, and generated artifacts.',
+  'post:schedule': 'Schedule approved campaign posts. People still approve.',
 }
 
 /** Field limits match releaseCreateSchema in lib/tenant/schemas.ts. */

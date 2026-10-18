@@ -168,18 +168,29 @@ test('every tenant /api/v1 operation and editor utility publishes its plan gate'
   assert.deepEqual(ungated, [])
 })
 
-test('approving and scheduling are human-only; agents can only ask for review', () => {
+test('approving is human-only; agents ask for review and schedule only with post:schedule', () => {
+  assert.ok(
+    !('apiKeyScope' in approvals.decideCampaignApprovalContract.access),
+    'approving must refuse API keys'
+  )
+  assert.equal(approvals.requestCampaignReviewContract.access.apiKeyScope, 'release:create')
+  assert.equal(scheduledPosts.listScheduledPostsContract.access.apiKeyScope, 'artifact:read')
   for (const contract of [
-    approvals.decideCampaignApprovalContract,
-    scheduledPosts.listScheduledPostsContract,
+    campaigns.scheduleCampaignPostContract,
     scheduledPosts.createScheduledPostContract,
     scheduledPosts.cancelScheduledPostContract,
   ]) {
-    assert.ok(!('apiKeyScope' in contract.access), `${contract.name} must refuse API keys`)
+    assert.equal(contract.access.apiKeyScope, 'post:schedule', contract.name)
+    assert.equal(contract.access.quota, 'api:write:minute', contract.name)
   }
+  // A session still needs a fresh second factor where RFC 020 asks for one.
   assert.equal(scheduledPosts.createScheduledPostContract.access.sensitive, true)
   assert.equal(scheduledPosts.cancelScheduledPostContract.access.sensitive, true)
-  assert.equal(approvals.requestCampaignReviewContract.access.apiKeyScope, 'release:create')
+  const schedule = campaigns.scheduleCampaignPostContract.body
+  const channel = { channelConnectionId: 'cl0000000000000000000000' }
+  assert.equal(schedule.parse(channel).skipLinkCheck, false)
+  assert.ok(!schedule.safeParse({ ...channel, scheduledAt: '2020-01-01T09:00:00Z' }).success)
+  assert.ok(!schedule.safeParse({ ...channel, status: 'APPROVED' }).success)
   const body = approvals.decideCampaignApprovalContract.body
   assert.ok(!body.safeParse({ decision: 'submit' }).success, 'submit is a review request')
   assert.ok(body.safeParse({ decision: 'approve' }).success)

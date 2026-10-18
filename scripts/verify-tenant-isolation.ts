@@ -155,6 +155,8 @@ async function createPendingAsset(client: SessionClient): Promise<string> {
 }
 
 const json = { 'content-type': 'application/json' }
+/** A well-formed ID that names nothing, so a request passes validation and reaches the backend. */
+const unknownCuid = 'cl0000000000000000000000'
 
 async function createCampaign(client: SessionClient, label: string): Promise<z.infer<typeof campaignSchema>> {
   const create = () =>
@@ -210,6 +212,7 @@ async function assertCampaignIsolation(
   for (const [path, body] of [
     [`/api/v1/campaigns/${other.id}/transitions`, { status: 'ARCHIVED' }],
     [`/api/v1/campaigns/${other.id}/review-requests`, { postIds: other.posts.map((post) => post.id) }],
+    [`/api/v1/campaigns/${other.id}/posts/${other.posts[0]!.id}/schedule`, { channelConnectionId: unknownCuid }],
   ] as const) {
     const response = await request(
       path,
@@ -220,17 +223,27 @@ async function assertCampaignIsolation(
   }
 }
 
-/** Approving and publishing are a person's decisions: an API key is refused even on its own data. */
-async function assertApiKeyCannotDecide(apiKey: string, ownCampaignId: string): Promise<void> {
+/**
+ * Approving is a person's decision: an API key is refused even on its own
+ * data. A key with post:schedule reads the schedule, but cannot schedule copy
+ * no one approved.
+ */
+async function assertApiKeyCannotDecide(apiKey: string, own: z.infer<typeof campaignSchema>): Promise<void> {
   const headers = { ...json, 'x-api-key': apiKey }
-  const approve = await request(`/api/v1/campaigns/${ownCampaignId}/approvals`, {
+  const approve = await request(`/api/v1/campaigns/${own.id}/approvals`, {
     body: JSON.stringify({ decision: 'approve' }),
     headers,
     method: 'POST',
   })
   assertStatus(approve, 403)
-  assertStatus(await request('/api/v1/scheduled-posts', { headers }), 403)
-  const transition = await request(`/api/v1/campaigns/${ownCampaignId}/transitions`, {
+  assertStatus(await request('/api/v1/scheduled-posts', { headers }), 200)
+  const schedule = await request(`/api/v1/campaigns/${own.id}/posts/${own.posts[0]!.id}/schedule`, {
+    body: JSON.stringify({ channelConnectionId: unknownCuid }),
+    headers,
+    method: 'POST',
+  })
+  assertStatus(schedule, 409)
+  const transition = await request(`/api/v1/campaigns/${own.id}/transitions`, {
     body: JSON.stringify({ status: 'APPROVED' }),
     headers,
     method: 'POST',
@@ -252,7 +265,7 @@ async function assertMemberDecisionIsolation(client: SessionClient, other: z.inf
 async function createApiKey(client: SessionClient): Promise<{ id: string; key: string }> {
   const response = await trpcMutation(
     'apiKey.create',
-    { name: `tenant-${testRunId.slice(0, 20)}`, scopes: ['artifact:read', 'release:create'] },
+    { name: `tenant-${testRunId.slice(0, 20)}`, scopes: ['artifact:read', 'post:schedule', 'release:create'] },
     client
   )
   assertStatus(response, 200)
@@ -349,7 +362,7 @@ async function main(): Promise<void> {
   await assertCampaignIsolation({ client: clientB }, campaignB.id, campaignA)
   await assertCampaignIsolation({ headers: { 'x-api-key': apiKeyA.key } }, campaignA.id, campaignB)
   await assertMemberDecisionIsolation(clientA, campaignB)
-  await assertApiKeyCannotDecide(apiKeyA.key, campaignA.id)
+  await assertApiKeyCannotDecide(apiKeyA.key, campaignA)
   await assertApiKeyIsolation(clientA, apiKeyA, releaseA.id, releaseB.id, organizationB, assetB)
   console.info(`Tenant isolation passed for local run ${testRunId}.`)
 }

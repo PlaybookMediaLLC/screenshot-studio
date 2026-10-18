@@ -28,7 +28,7 @@ RFC_DIR = "docs/rfcs"
 IMPLEMENTED = ["019-approval-workflow.md", "020-postiz-publishing.md"]
 
 # Declared as a prerequisite by RFC 010 rather than claimed to exist.
-ALLOWED_MISSING_IDENTIFIERS = {"creative:render", "post:schedule"}
+ALLOWED_MISSING_IDENTIFIERS = {"creative:render"}
 
 PLANNED_SECTION = re.compile(
     r"\*\*This section is a design for planned work.*?(?=\n## )", re.S

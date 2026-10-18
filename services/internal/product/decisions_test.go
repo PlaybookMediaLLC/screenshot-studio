@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
-// Approving, scheduling, and announcing are decisions a person makes. The
+// Approving and announcing are decisions a person makes. The
 // backend refuses every other principal before it touches the database.
 func TestDecisionsRefuseNonSessionActors(t *testing.T) {
 	ctx := context.Background()
@@ -20,10 +21,6 @@ func TestDecisionsRefuseNonSessionActors(t *testing.T) {
 		},
 		"ApproveLaunchSpec": func(a Actor) error { _, err := repo.ApproveLaunchSpec(ctx, a, "spec"); return err },
 		"ApproveLaunchPlan": func(a Actor) error { _, err := repo.ApproveLaunchPlan(ctx, a, "plan"); return err },
-		"ScheduleCampaignPost": func(a Actor) error {
-			_, err := repo.ScheduleCampaignPost(ctx, a, "campaign", "post", ScheduleCampaignPostInput{ChannelConnectionID: "c"})
-			return err
-		},
 		"ScheduleAnnouncement": func(a Actor) error {
 			_, err := repo.ScheduleAnnouncement(ctx, a, ScheduleAnnouncementInput{IdempotencyKey: "k", ReleaseDocumentID: "d"})
 			return err
@@ -50,6 +47,23 @@ func TestDecisionsRefuseNonSessionActors(t *testing.T) {
 			if err := call(actor); !errors.Is(err, publishing.ErrForbidden) {
 				t.Errorf("%s as %s: err=%v, want ErrForbidden", name, kind, err)
 			}
+		}
+	}
+}
+
+// Scheduling takes a publisher's session or a key with post:schedule (RFC
+// 037), which the integration tests check. Every other principal is refused.
+func TestSchedulingRefusesSupportWebhookAndServiceActors(t *testing.T) {
+	ctx := context.Background()
+	repo := &Configuration{}
+	at := time.Now().Add(time.Hour)
+	for _, kind := range []string{"support", "webhook", "service"} {
+		actor := Actor{OrganizationID: "org", Kind: kind, GrantID: "grant", UserID: "user"}
+		if _, err := repo.ScheduleCampaignPost(ctx, actor, "campaign", "post", ScheduleCampaignPostInput{ChannelConnectionID: "c"}); !errors.Is(err, publishing.ErrForbidden) {
+			t.Errorf("ScheduleCampaignPost as %s: err=%v", kind, err)
+		}
+		if _, err := repo.CreateScheduledPost(ctx, actor, publishing.CreateScheduledPostInput{Caption: "Hi", IdempotencyKey: "k", ScheduledFor: at}); !errors.Is(err, publishing.ErrForbidden) {
+			t.Errorf("CreateScheduledPost as %s: err=%v", kind, err)
 		}
 	}
 }

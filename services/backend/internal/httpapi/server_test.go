@@ -22,6 +22,8 @@ type fakeStore struct {
 	oauthSession  string
 	oauthProvider string
 	authError     error
+	keyScope      string
+	cancelActor   publishing.Actor
 }
 
 type fakeVerifier struct {
@@ -66,6 +68,10 @@ func (f *fakeScheduler) Cancel(_ context.Context, postID string) error {
 
 func (f *fakeStore) Ping(context.Context) error { return nil }
 func (f *fakeStore) AuthorizePublishing(context.Context, string, string, string) error {
+	return f.authError
+}
+func (f *fakeStore) AuthorizeAPIKeyScope(_ context.Context, _, _, scope string) error {
+	f.keyScope = scope
 	return f.authError
 }
 func (f *fakeStore) Binding(context.Context, string) (*ent.PostizTenantBinding, error) {
@@ -153,7 +159,8 @@ func (f *fakeStore) CreateScheduledPost(_ context.Context, actor publishing.Acto
 func (f *fakeStore) ListScheduledPosts(context.Context, string, int) ([]*ent.ScheduledPost, error) {
 	return nil, nil
 }
-func (f *fakeStore) CancelScheduledPost(context.Context, publishing.Actor, string) (*ent.ScheduledPost, error) {
+func (f *fakeStore) CancelScheduledPost(_ context.Context, actor publishing.Actor, _ string) (*ent.ScheduledPost, error) {
+	f.cancelActor = actor
 	return &ent.ScheduledPost{ID: "post-1"}, nil
 }
 
@@ -196,6 +203,35 @@ func TestPublishingRequestRequiresAnAuthorizedSession(t *testing.T) {
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusForbidden {
 		t.Fatalf("request without publishing permission status=%d", response.Code)
+	}
+}
+
+func TestScheduledPostsAdmitAnAPIKeyWithTheScope(t *testing.T) {
+	store := &fakeStore{}
+	handler := New(store, &fakeScheduler{}, &fakeVerifier{}, "secret")
+	send := func(method, path string) int {
+		request := httptest.NewRequest(method, path, nil)
+		request.Header.Set("Authorization", "Bearer secret")
+		request.Header.Set("X-Organization-ID", "org-1")
+		request.Header.Set("X-Principal-Kind", "api_key")
+		request.Header.Set("X-API-Key-ID", "key-1")
+		request.Header.Set("X-Principal-Display", "Coding agent")
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		return response.Code
+	}
+	if code := send(http.MethodGet, "/v1/scheduled-posts"); code != http.StatusOK || store.keyScope != "artifact:read" {
+		t.Fatalf("list status=%d scope=%q", code, store.keyScope)
+	}
+	if code := send(http.MethodPost, "/v1/scheduled-posts/post-1/cancel"); code != http.StatusOK || store.keyScope != "post:schedule" {
+		t.Fatalf("cancel status=%d scope=%q", code, store.keyScope)
+	}
+	if store.cancelActor.Type != "SERVICE" || store.cancelActor.Display != "Coding agent" || store.cancelActor.UserID != "" {
+		t.Fatalf("a key cancels as a named service: %#v", store.cancelActor)
+	}
+	store.authError = publishing.ErrForbidden
+	if code := send(http.MethodPost, "/v1/scheduled-posts/post-1/cancel"); code != http.StatusForbidden {
+		t.Fatalf("a key without post:schedule status=%d", code)
 	}
 }
 

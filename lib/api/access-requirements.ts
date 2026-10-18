@@ -15,13 +15,15 @@ export const apiKeyScopeSchema = z.enum(apiKeyScopes)
 /**
  * What a tenant operation requires: a session member with `permission`, or
  * an organization API key with `apiKeyScope`, then the optional plan feature
- * and metered quota.
+ * and metered quota. `sensitive` also requires a session to have signed in
+ * under 15 minutes ago with two-factor; a key is its own credential.
  */
 export const tenantAccessRequirementSchema = z.object({
   apiKeyScope: apiKeyScopeSchema,
   feature: workspaceFeatureSchema.optional(),
   permission: permissionSchema,
   quota: workspaceQuotaSchema.optional(),
+  sensitive: z.boolean().optional(),
 })
 
 /** One of {@link tenantAccessRequirementSchema}. */
@@ -44,7 +46,6 @@ export const editorUtilityAccess = tenantAccessRequirementSchema.parse({
  */
 export const memberAccessRequirementSchema = tenantAccessRequirementSchema
   .omit({ apiKeyScope: true })
-  .extend({ sensitive: z.boolean().optional() })
   .strict()
 
 /** One of {@link memberAccessRequirementSchema}. */

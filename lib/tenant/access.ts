@@ -1,6 +1,10 @@
 import 'server-only'
 
-import { requireActiveOrganizationPermission, type TenantContext } from '@/lib/auth/access'
+import {
+  requireActiveOrganizationPermission,
+  requireSensitiveActiveOrganizationPermission,
+  type TenantContext,
+} from '@/lib/auth/access'
 import { requireOrganizationApiKeyScope } from '@/lib/auth/api-keys'
 import type { TenantAccessRequirement } from '@/lib/api/access-requirements'
 import { consumeWorkspaceQuota, requireWorkspaceFeature } from '@/lib/tenant/entitlements'
@@ -11,7 +15,9 @@ export async function requireTenantAccess(
 ): Promise<TenantContext> {
   const context = headers.has('x-api-key')
     ? await requireOrganizationApiKeyScope(headers, requirement.apiKeyScope)
-    : await requireActiveOrganizationPermission(headers, requirement.permission)
+    : requirement.sensitive
+      ? await requireSensitiveActiveOrganizationPermission(headers, requirement.permission)
+      : await requireActiveOrganizationPermission(headers, requirement.permission)
 
   // There is no free plan: every tenant operation needs an active subscription.
   await requireWorkspaceFeature(context, 'workspace:use')

@@ -13,6 +13,7 @@ import {
   createCampaignContract,
   getCampaignContract,
   listCampaignsContract,
+  scheduleCampaignPostContract,
   transitionCampaignContract,
 } from '@/lib/api/contracts/campaigns'
 import {
@@ -62,6 +63,7 @@ export const documentedContracts = [
   listApprovalsContract,
   requestCampaignReviewContract,
   decideCampaignApprovalContract,
+  scheduleCampaignPostContract,
   listScheduledPostsContract,
   createScheduledPostContract,
   cancelScheduledPostContract,

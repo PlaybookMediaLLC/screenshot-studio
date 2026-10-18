@@ -1,4 +1,4 @@
-// Package mcp is the Shots MCP server (RFC 037): Streamable HTTP endpoints
+// Package mcp is the Shots MCP server (RFC 038): Streamable HTTP endpoints
 // whose tools call the same domain services as the /v1 API, authenticated by
 // workspace API keys. An OAuth access token is such a key, minted when a
 // member approves an agent, so every call resolves to one workspace and key.

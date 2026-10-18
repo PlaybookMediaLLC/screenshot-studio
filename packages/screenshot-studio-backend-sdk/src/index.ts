@@ -1849,7 +1849,7 @@ export class ScreenshotStudioBackendSDK {
   /**
    * Records the member's consent and returns a single-use code; the agent
    * exchanges it at the MCP server's /oauth/token for a workspace API key with
-   * exactly these scopes (RFC 037).
+   * exactly these scopes (RFC 038).
    */
   async approveAgentAuthorization(input: BackendAgentAuthorizationRequest) {
     return this.request<{ code: string; redirectUri: string }>('v1/agent-authorizations', {

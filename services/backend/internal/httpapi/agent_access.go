@@ -6,7 +6,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 )
 
-// Agent consent (RFC 037): the web's OAuth consent page validates a request,
+// Agent consent (RFC 038): the web's OAuth consent page validates a request,
 // then records a signed-in owner's or admin's approval. The code it returns
 // is exchanged for a workspace API key at the social backend's /oauth/token.
 func (s *Server) registerAgentAccess(mux *http.ServeMux) {

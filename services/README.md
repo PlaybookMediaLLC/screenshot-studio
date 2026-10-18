@@ -138,7 +138,7 @@ build context.
 
 ## MCP server
 
-The social backend serves the Shots MCP server (RFC 037,
+The social backend serves the Shots MCP server (RFC 038,
 `screenshot-studio-backend/internal/chat/mcp`) on `/mcp` and the OAuth mounts
 `/mcp-oauth-claude`, `/mcp-oauth-chatgpt`, and `/mcp-oauth-dynamic`. Its tools
 call `internal/product`, the same domain the `/v1` API serves, with the caller's

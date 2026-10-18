@@ -133,7 +133,7 @@ type Service struct {
 func NewService(repo *Repository) *Service { return &Service{repo: repo} }
 
 // AgentCodeExchanger trades a Shots consent code (shc_) for a workspace API
-// key, the access token of an MCP agent (RFC 037). It returns the token
+// key, the access token of an MCP agent (RFC 038). It returns the token
 // response, or an error the token endpoint reports as invalid_grant.
 type AgentCodeExchanger interface {
 	ExchangeAgentCode(ctx context.Context, clientID, code, codeVerifier, redirectURI string) (map[string]any, error)

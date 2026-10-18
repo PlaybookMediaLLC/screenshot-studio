@@ -320,7 +320,7 @@ services:
       PORT: '3000'
       RUN_CRON: 'true'
       RUN_WORKER: 'true'
-      # The MCP server (RFC 037) serves the same domain as publishing-backend:
+      # The MCP server (RFC 038) serves the same domain as publishing-backend:
       # its media bucket, its quota Redis, and its campaign rollout.
       PLATFORM_MCP_URL: http://localhost:3100/mcp
       PLATFORM_QUOTA_REDIS_URL: ${REDIS_URL:-redis://redis:6379}

@@ -11,7 +11,7 @@ import (
 )
 
 // AgentAuthorization is a member's consent for an AI agent, an OAuth client of
-// the MCP authorization server, to act in their workspace (RFC 037). Its
+// the MCP authorization server, to act in their workspace (RFC 038). Its
 // single-use code is exchanged for a workspace API key with exactly the
 // approved scopes; the row then records which key it became.
 type AgentAuthorization struct{ ent.Schema }

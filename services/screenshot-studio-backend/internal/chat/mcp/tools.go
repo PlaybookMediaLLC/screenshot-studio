@@ -56,7 +56,7 @@ var (
 	publishes = sdk.ToolAnnotations{DestructiveHint: boolPtr(false), OpenWorldHint: boolPtr(true)}
 )
 
-// toolTable is the tool surface of RFC 037. Each tool is named after the
+// toolTable is the tool surface of RFC 038. Each tool is named after the
 // operationId it mirrors; its schema, scope, plan gate, and quota come from
 // that operation in the embedded OpenAPI document.
 var toolTable = []struct {

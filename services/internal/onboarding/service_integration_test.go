@@ -199,3 +199,60 @@ func TestStartWithAnUnreadableSiteLeavesTheManualForm(t *testing.T) {
 		t.Fatalf("result %+v err=%v", result, err)
 	}
 }
+
+// pendingBackground starts workflows that keep running.
+type pendingBackground struct{ started int }
+
+func (p *pendingBackground) Start(context.Context, *product.OnboardingRunRecord, product.Actor) error {
+	p.started++
+	return nil
+}
+func (p *pendingBackground) Cancel(context.Context, string) error { return nil }
+func (p *pendingBackground) Progress(context.Context, *product.OnboardingRunRecord) (*Progress, error) {
+	return nil, nil
+}
+
+// A second submit while a run is active returns that run, even for another
+// URL or key, and starts no second workflow (RFC 032 AC 5).
+func TestSecondSubmitWhileARunIsActiveReturnsIt(t *testing.T) {
+	site := newTestSite(t)
+	w := newTestWorkspace(t, "pro")
+	background := &pendingBackground{}
+	service := &Service{Background: background, FastPath: &FastPath{Fetcher: testFetcher(t), Model: &fakeModel{}}, Store: w.store}
+	first, err := service.Start(context.Background(), w.owner, StartInput{IdempotencyKey: "first", URL: site.URL + "/acme"})
+	if err != nil || !first.Created || first.Run.Status != product.OnboardingRunning {
+		t.Fatalf("first %+v err=%v", first, err)
+	}
+	second, err := service.Start(context.Background(), w.owner, StartInput{IdempotencyKey: "second", URL: site.URL + "/pricing"})
+	if err != nil || second.Created || second.Run.ID != first.Run.ID || background.started != 1 {
+		t.Fatalf("second %+v err=%v started=%d", second, err, background.started)
+	}
+}
+
+// A run nothing finished (its process died) stops blocking the workspace
+// once it is well past its deadline: the next submit records it failed and
+// starts a new run.
+func TestAnAbandonedRunDoesNotBlockTheNextOne(t *testing.T) {
+	site := newTestSite(t)
+	w := newTestWorkspace(t, "pro")
+	ctx := context.Background()
+	stuck, _, err := w.store.CreateOnboardingRun(ctx, w.owner, product.CreateOnboardingRunInput{IdempotencyKey: "stuck", URL: site.URL + "/acme"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &Service{FastPath: &FastPath{Fetcher: testFetcher(t)}, Store: w.store}
+	if again, err := service.Start(ctx, w.owner, StartInput{IdempotencyKey: "next", URL: site.URL + "/acme"}); err != nil || again.Created {
+		t.Fatalf("within its deadline the stuck run is still the active one: %+v %v", again, err)
+	}
+	if _, err := w.db.SQL.ExecContext(ctx, `UPDATE onboarding_run SET "deadlineAt" = now() - interval '1 hour' WHERE id = $1`, stuck.ID); err != nil {
+		t.Fatal(err)
+	}
+	next, err := service.Start(ctx, w.owner, StartInput{IdempotencyKey: "next", URL: site.URL + "/acme"})
+	if err != nil || !next.Created || next.Run.ID == stuck.ID {
+		t.Fatalf("next %+v err=%v", next, err)
+	}
+	old, err := w.store.GetOnboardingRun(ctx, w.owner, stuck.ID)
+	if err != nil || old.Status != product.OnboardingFailed || old.ErrorCode == nil || *old.ErrorCode != "abandoned" {
+		t.Fatalf("stuck run %+v err=%v", old, err)
+	}
+}

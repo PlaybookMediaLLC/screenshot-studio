@@ -44,6 +44,9 @@ const (
 	onboardingRunsPerHour = 3
 	// OnboardingCacheAge is how long a stored page is served without a fetch.
 	OnboardingCacheAge = time.Hour
+	// onboardingAbandonAfter is past the deadline and the workflow's own
+	// margin: an active run older than that has no process finishing it.
+	onboardingAbandonAfter = 10 * time.Minute
 )
 
 // onboardingLimits are a plan's pages and tokens per run. There is no free plan.
@@ -149,8 +152,22 @@ func (c *Configuration) CreateOnboardingRun(ctx context.Context, actor Actor, in
 	} else {
 		key = "client:" + key
 	}
-	if existing, err := c.findOnboardingRun(ctx, actor.OrganizationID, key); existing != nil || err != nil {
-		return existing, false, err
+	existing, err := c.findOnboardingRun(ctx, actor.OrganizationID, key)
+	if err != nil {
+		return nil, false, err
+	}
+	if existing != nil && !existing.Terminal() && now.After(existing.DeadlineAt.Add(onboardingAbandonAfter)) {
+		// Nothing finished this run: the process running it died. Free the workspace.
+		failed, code, message := OnboardingFailed, "abandoned", "The run stopped without finishing. Run it again."
+		if _, err := c.FinishOnboardingRun(ctx, actor.OrganizationID, existing.ID, OnboardingRunUpdate{Status: &failed, ErrorCode: &code, ErrorMessage: &message}); err != nil {
+			return nil, false, err
+		}
+		if existing, err = c.findOnboardingRun(ctx, actor.OrganizationID, key); err != nil {
+			return nil, false, err
+		}
+	}
+	if existing != nil {
+		return existing, false, nil
 	}
 	recent, err := c.client.OnboardingRun.Query().Where(onboardingrun.OrganizationID(actor.OrganizationID),
 		onboardingrun.CreatedAtGT(now.Add(-time.Hour))).Order(ent.Asc(onboardingrun.FieldCreatedAt)).All(ctx)

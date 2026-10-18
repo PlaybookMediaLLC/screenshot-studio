@@ -121,7 +121,7 @@ built from real product screenshots, approves them, and schedules them.
 | Status      | RFCs                                                                                                                                                                                                                                                                                                                                                                    |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Shipped     | 007 tRPC product surface; 034 phases 1–2 (zod contracts, OpenAPI 3.1, Scalar reference); 035 paid plans, Stripe billing, credit metering                                                                                                                                                                                                                                |
-| Partial     | 002 tenant data model; 003 auth, enterprise, audit; 005 inbound webhooks and GitHub App; 006 asset pipeline; 009 thesis (V1 and part of V2); 010 creative engine; 011 brand profile; 013 product surfaces; 014 campaign objects; 016 AI tools; 017 campaign chat; 018 campaign workspace; 019 approval; 020 publishing; 021 core workflows; 022 GitHub integration; 023 deployment capture; 032 onboarding fast path |
+| Partial     | 002 tenant data model; 003 auth, enterprise, audit; 005 inbound webhooks and GitHub App; 006 asset pipeline; 009 thesis (V1 and part of V2); 010 creative engine; 011 brand profile; 013 product surfaces; 014 campaign objects; 016 AI tools; 017 campaign chat; 018 campaign workspace; 019 approval; 020 publishing; 021 core workflows; 022 GitHub integration; 023 deployment capture; 032 onboarding agent (behind the onboarding:agent flag) |
 | Not started | 008, 012, 024, 025, 026, 027, 028, 029, 030, 031, 037                                                                                                                                                                                                                                                                                                         |
 | Superseded  | 001 (by the AI launch pipeline); 004 (by Temporal); 015 (by the launch pipeline in `lib/ai/launch`); 033 (by 037, npm workspaces with the app at the root)                                                                                                                                                                                                              |
 
@@ -180,8 +180,8 @@ schedule.
    - Next: release screenshots as captures.
 9. **Product intelligence and the onboarding agent** ([012](docs/rfcs/012-product-intelligence.md), [032](docs/rfcs/032-background-onboarding-agent.md))
    - Done: a cited product profile with per-field provenance and locks on your edits.
-   - Done: the "Your product" onboarding step reads the site in about 20 seconds.
-   - Next: a background crawl and the ideal-customer profile.
+   - Done: the onboarding agent drafts the product and ideal-customer profiles in under ten seconds, then a Temporal run crawls the site, enriches both, and reports progress on a review screen where each field is accepted or edited.
+   - Next: MCP tools for the onboarding runs, and enable the agent for every new workspace.
 10. **Workflow 1, URL → seven posts** ([021](docs/rfcs/021-core-workflows.md)), done
     - Confirming the profile builds the first launch campaign and lands on Copy.
     - From Copy: batch approve, connect a channel, schedule.

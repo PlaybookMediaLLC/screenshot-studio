@@ -15,6 +15,7 @@ const releaseResultSchema = z.object({ release: releaseSchema })
 const releaseListSchema = z.object({ releases: z.array(releaseSchema) })
 const assetResultSchema = z.object({ asset: z.object({ id: z.string().uuid() }) })
 const apiKeyResultSchema = z.object({ apiKey: z.object({ id: z.string(), key: z.string().min(1) }) })
+const onboardingRunSchema = z.object({ run: z.object({ id: z.string().min(1) }) })
 
 function getLocalBaseUrl(): string {
   const url = new URL(process.env.TENANT_TEST_BASE_URL ?? 'http://localhost:3000')
@@ -205,6 +206,41 @@ async function assertApiKeyIsolation(
 }
 
 /**
+ * Start an onboarding run (docs/rfcs/032). The site is unreachable on
+ * purpose: the run still completes, so no external request is made.
+ */
+async function createOnboardingRun(client: SessionClient, label: string): Promise<string> {
+  const response = await request(
+    '/api/v1/onboarding-runs',
+    {
+      body: JSON.stringify({ url: `https://tenant-${label}.invalid/` }),
+      headers: { 'content-type': 'application/json', 'idempotency-key': `${testRunId}:${label}` },
+      method: 'POST',
+    },
+    client
+  )
+  assertStatus(response, 201)
+  return onboardingRunSchema.parse(await responseJson(response)).run.id
+}
+
+/** Another workspace's run, its pages' findings, and its ICP are invisible and untouchable. */
+async function assertOnboardingIsolation(
+  client: SessionClient,
+  ownRunId: string,
+  otherRunId: string
+): Promise<void> {
+  assertStatus(await request(`/api/v1/onboarding-runs/${ownRunId}`, {}, client), 200)
+  for (const [path, method] of [
+    [`/api/v1/onboarding-runs/${otherRunId}`, 'GET'],
+    [`/api/v1/onboarding-runs/${otherRunId}/enrichment`, 'GET'],
+    [`/api/v1/onboarding-runs/${otherRunId}/cancel`, 'POST'],
+    [`/api/v1/onboarding-runs/${otherRunId}/rerun`, 'POST'],
+  ] as const) {
+    assertStatus(await request(path, { method }, client), 404)
+  }
+}
+
+/**
  * There is no free plan, so each fixture workspace gets Pro directly in the
  * local database, the same way the e2e framework does.
  */
@@ -243,6 +279,10 @@ async function main(): Promise<void> {
   await assertSessionIsolation(clientA, releaseA.id, releaseB.id, organizationB, assetB)
   await assertSessionIsolation(clientB, releaseB.id, releaseA.id, organizationA, assetA)
   await assertApiKeyIsolation(clientA, apiKeyA, releaseA.id, releaseB.id, organizationB, assetB)
+  const runA = await createOnboardingRun(clientA, 'a')
+  const runB = await createOnboardingRun(clientB, 'b')
+  await assertOnboardingIsolation(clientA, runA, runB)
+  await assertOnboardingIsolation(clientB, runB, runA)
   console.info(`Tenant isolation passed for local run ${testRunId}.`)
 }
 

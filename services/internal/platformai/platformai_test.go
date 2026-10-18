@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -25,7 +26,9 @@ func TestStructuredDecodesTheReplyAndItsCost(t *testing.T) {
 	if err != nil || out.Name != "Acme" || usage.Tokens() != 120 || Credits(usage.CostUSD) != 2 {
 		t.Fatalf("out=%+v usage=%+v err=%v", out, usage, err)
 	}
-	if sent["model"] != "model-fast" || sent["response_format"].(map[string]any)["type"] != "json_schema" {
+	system := sent["messages"].([]any)[0].(map[string]any)["content"].(string)
+	if sent["model"] != "model-fast" || sent["response_format"].(map[string]any)["type"] != "json_schema" ||
+		!strings.HasPrefix(system, "sys") || !strings.HasSuffix(system, "JSON Schema:\n{}") {
 		t.Fatalf("sent %+v", sent)
 	}
 }

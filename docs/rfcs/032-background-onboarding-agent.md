@@ -1,7 +1,7 @@
 # RFC 032: Background Onboarding Agent and ICP Extraction
 
-**Status:** In progress
-**Status note (2026-10-17):** Rollout steps 1–6 are built: the data model, the Go fast path, the Temporal workflow, the enrichment providers, the `/api/v1/onboarding-runs` routes, and the review screen. The web's 20-second fast path is removed. Step 7 (the end-to-end test and the dashboard) follows.
+**Status:** Implemented behind the onboarding:agent flag
+**Status note (2026-10-17):** All seven rollout steps are built, with the end-to-end test and the dashboard (`infra/dashboards/onboarding.json`). Still open: MCP tools (question 7), and enabling the agent for every new workspace.
 **Date:** 2026-08-17
 **Revised:** 2026-10-17
 **Depends on:** RFC 004, RFC 011, RFC 012, RFC 013, and RFC 026
@@ -282,9 +282,10 @@ pages mid-crawl; the denominator is fixed at discovery time and late
 discoveries are queued for the next run. The workflow keeps the maximum it has
 reported, and the row update only ever raises the stored value.
 
-The UI polls the backend through `GET /api/v1/onboarding-runs/{runId}`. While
-the workflow runs, the backend answers from the `progress` query, and falls
-back to the row when Temporal is unreachable. Polling backs off from 1s to 5s
+The UI polls the backend: the review screen through the same-origin tRPC
+facade, API callers through `GET /api/v1/onboarding-runs/{runId}`. Both reach
+one backend endpoint. While the workflow runs, the backend answers from the
+`progress` query, and falls back to the row when Temporal is unreachable. Polling backs off from 1s to 5s
 and stops on a terminal status. No realtime dependency is added.
 
 ## Enrichment

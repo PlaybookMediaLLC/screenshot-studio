@@ -9,6 +9,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/getsentry/sentry-go"
+
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/platformai"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
@@ -171,6 +173,7 @@ func (s *Service) save(ctx context.Context, actor product.Actor, run *product.On
 	logFailure := func(step string, err error) {
 		if err != nil {
 			slog.Error("onboarding fast path write failed", "step", step, "organizationId", actor.OrganizationID, "runId", run.ID, "error", err)
+			report(err, actor, run, "fast path "+step)
 		}
 	}
 	if fast.Homepage != nil {
@@ -216,6 +219,7 @@ func (s *Service) startBackground(ctx context.Context, actor product.Actor, run 
 			return run
 		}
 		slog.Error("onboarding workflow did not start", "organizationId", actor.OrganizationID, "runId", run.ID, "error", err)
+		report(err, actor, run, "workflow start")
 		update = product.OnboardingRunUpdate{ErrorCode: strPtr("background_unavailable"),
 			ErrorMessage: strPtr("The background read could not start. Your draft is saved; run it again later."), Status: strPtr(product.OnboardingFailed)}
 	}
@@ -318,4 +322,14 @@ func deref(value *string) string {
 		return ""
 	}
 	return *value
+}
+
+// report sends a failure to Sentry, tagged with the run, workspace, and
+// request; without PLATFORM_SENTRY_DSN it does nothing.
+func report(err error, actor product.Actor, run *product.OnboardingRunRecord, step string) {
+	sentry.WithScope(func(scope *sentry.Scope) {
+		scope.SetTags(map[string]string{"organizationId": actor.OrganizationID, "requestId": actor.RequestID, "runId": run.ID,
+			"step": step, "workflowId": run.WorkflowID})
+		sentry.CaptureException(err)
+	})
 }

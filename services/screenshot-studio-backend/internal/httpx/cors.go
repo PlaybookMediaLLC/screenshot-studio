@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// CORS reproduces the backend's Nest cors options: an origin allow-list,
+// CORS returns the backend's CORS options: an origin allow-list,
 // credentials unless NOT_SECURED, and the Postiz auth headers.
 type CORS struct {
 	Origins        []string

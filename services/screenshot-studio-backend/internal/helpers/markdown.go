@@ -8,7 +8,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/ids"
 )
 
-// RemoveMarkdown is remove.markdown.ts (remove-markdown with exceptions).
+// RemoveMarkdown removes Markdown (remove-markdown with exceptions).
 func RemoveMarkdown(text string, except []*regexp.Regexp) string {
 	modifiedText := text
 	type placeholder struct{ key, value string }

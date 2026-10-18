@@ -1,4 +1,4 @@
-// Package twitch ports twitch.provider.ts: chat messages and announcements
+// Package twitch is the Twitch provider: chat messages and announcements
 // in the broadcaster's own channel.
 package twitch
 

@@ -66,7 +66,7 @@ func signHS256(claims jwt.MapClaims, secret string, expiresIn time.Duration) (st
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
 }
 
-// RegisterUsersController is users.controller.ts (authenticated, /user).
+// RegisterUsersController registers the users routes (authenticated, /user).
 // authMiddleware is auth.AuthMiddleware(...).
 func RegisterUsersController(r *httpx.Router, authMiddleware httpx.Middleware, perms *auth.PermissionsService,
 	payments *payment.Service, authService *auth.AuthService, orgs *organizations.Service, usersService *users.Service,

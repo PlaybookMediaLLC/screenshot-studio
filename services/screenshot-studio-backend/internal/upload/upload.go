@@ -1,4 +1,4 @@
-// Package upload is Postiz's libraries/nestjs-libraries/src/upload: the
+// Package upload holds the upload code: the
 // storage providers (local disk, Cloudflare R2), the R2 multipart endpoints,
 // upload validation, the multer stream engine equivalent and the RunPod media
 // processors.

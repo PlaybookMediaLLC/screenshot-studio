@@ -1,4 +1,4 @@
-// Package medium ports medium.provider.ts and its settings DTO.
+// Package medium is the Medium provider and its settings DTO.
 package medium
 
 import (
@@ -27,7 +27,7 @@ type MediumTagsSettings struct {
 	Label *string `json:"label"`
 }
 
-// MediumSettingsDto is medium.settings.dto.ts.
+// MediumSettingsDto holds the Medium settings.
 type MediumSettingsDto struct {
 	Title       *string               `json:"title"`
 	Subtitle    *string               `json:"subtitle"`
@@ -36,7 +36,7 @@ type MediumSettingsDto struct {
 	Tags        *[]MediumTagsSettings `json:"tags,omitempty"`
 }
 
-// Validate reproduces class-validator plus Nest's error flattening: messages
+// Validate reproduces class-validator with flattened errors: messages
 // per property in execution order, nested ones prefixed with their path, and
 // a property with failing children reports only the children.
 func (d *MediumSettingsDto) Validate() []string {

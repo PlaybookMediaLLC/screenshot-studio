@@ -1,4 +1,4 @@
-// Package instagram is instagram.provider.ts: Instagram business accounts
+// Package instagram is the Instagram provider: Instagram business accounts
 // linked to a Facebook page, published through the Graph API with media
 // containers (pending -> ready -> finalize), plus comments, insights and the
 // Reel audio search. The instagram-standalone provider reuses it with the
@@ -1013,7 +1013,7 @@ func (p *Provider) AnalyticsOn(ctx context.Context, id, token string, days int, 
 	return analytics, nil
 }
 
-// Music is `music`: TypeScript returns the raw fetch Response, which Nest
+// Music is `music`: the API returns the raw fetch response, which
 // serializes as {}.
 func (p *Provider) Music(ctx context.Context, accessToken string, data json.RawMessage) (any, error) {
 	var input struct {

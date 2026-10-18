@@ -9,7 +9,7 @@ import (
 	"unicode/utf16"
 )
 
-// dtos/posts/providers-settings/lemmy.dto.ts. Pointers mark presence so
+// Lemmy post settings. Pointers mark presence so
 // Validate can reproduce class-validator's IsDefined; a wrong JSON type fails
 // decoding instead of producing an isString message.
 

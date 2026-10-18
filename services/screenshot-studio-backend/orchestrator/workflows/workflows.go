@@ -29,15 +29,14 @@ const (
 	SendEmailSignal = "sendEmail"
 )
 
-// Email is the digest signal item (signals/email.signal.ts).
+// Email is the digest signal item.
 type Email struct {
 	Message string  `json:"message"`
 	Title   *string `json:"title,omitempty"`
 	Type    string  `json:"type"` // success | fail | info
 }
 
-// SendEmail is the sendEmail signal / sendSingleEmailWorkflow argument
-// (signals/send.email.signal.ts).
+// SendEmail is the sendEmail signal / sendSingleEmailWorkflow argument.
 type SendEmail struct {
 	To      string  `json:"to"`
 	Subject string  `json:"subject"`

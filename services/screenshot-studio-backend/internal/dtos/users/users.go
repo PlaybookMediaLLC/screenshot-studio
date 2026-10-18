@@ -9,7 +9,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/httpx"
 )
 
-// EmailNotificationsDto is email-notifications.dto.ts.
+// EmailNotificationsDto is the email notifications request body.
 type EmailNotificationsDto struct {
 	SendSuccessEmails *bool `json:"sendSuccessEmails"`
 	SendFailureEmails *bool `json:"sendFailureEmails"`
@@ -29,7 +29,7 @@ func (d *EmailNotificationsDto) Validate() []string {
 	return out
 }
 
-// UserDetailDto is user.details.dto.ts. Bio nil means "leave unchanged".
+// UserDetailDto is the user details request body. Bio nil means "leave unchanged".
 type UserDetailDto struct {
 	Fullname string    `json:"fullname"`
 	Bio      *string   `json:"bio"`
@@ -42,7 +42,7 @@ func (d *UserDetailDto) Validate() []string {
 		out = append(out, "fullname must be longer than or equal to 3 characters")
 	}
 	if d.Picture != nil {
-		// Nest prefixes nested messages with the parent property.
+		// Nested messages are prefixed with the parent property.
 		for _, msg := range d.Picture.Validate() {
 			out = append(out, "picture."+msg)
 		}
@@ -50,7 +50,7 @@ func (d *UserDetailDto) Validate() []string {
 	return out
 }
 
-// MediaDto mirrors dtos/media/media.dto.ts (UserDetailDto.picture).
+// MediaDto is a media reference (UserDetailDto.picture).
 type MediaDto struct {
 	ID        *string `json:"id"`
 	Path      *string `json:"path"`

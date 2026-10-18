@@ -33,7 +33,7 @@ func annotations(title string, readOnly, destructive, idempotent, openWorld bool
 	return &Annotations{Title: title, ReadOnlyHint: readOnly, DestructiveHint: destructive, IdempotentHint: idempotent, OpenWorldHint: openWorld}
 }
 
-// exceptionMessage is `err.message` of a Nest HttpException or an Error.
+// exceptionMessage is the message of an HTTP error or an error.
 func exceptionMessage(err error) string {
 	var httpErr *httpx.Error
 	if errors.As(err, &httpErr) {

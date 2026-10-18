@@ -1,4 +1,4 @@
-// Package tumblr ports integrations/social/tumblr.provider.ts (NPF posts).
+// Package tumblr is the Tumblr provider (NPF posts).
 package tumblr
 
 import (

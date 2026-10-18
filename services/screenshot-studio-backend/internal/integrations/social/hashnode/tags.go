@@ -1,8 +1,8 @@
-// Code generated from hashnode.tags.ts. DO NOT EDIT.
+// Code generated from the Hashnode tag list. DO NOT EDIT.
 
 package hashnode
 
-// tags is hashnode.tags.ts. Logo is nil where the source has no logo or null.
+// tags is the Hashnode tag list. Logo is nil where the source has no logo or null.
 var tags = []Tag{
 	{Name: "JavaScript", Logo: str("https://cdn.hashnode.com/res/hashnode/image/upload/v1513320898547/BJjpblWfG.png"), Slug: "javascript", ObjectID: "56744721958ef13879b94cad"},
 	{Name: "General Programming", Logo: str("https://cdn.hashnode.com/res/hashnode/image/upload/v1535648192079/H1daWiBvQ.png"), Slug: "programming", ObjectID: "56744721958ef13879b94c7e"},

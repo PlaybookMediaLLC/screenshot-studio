@@ -1,4 +1,4 @@
-// Package dribbble ports dribbble.provider.ts and its DribbbleDto.
+// Package dribbble is the Dribbble provider and its DribbbleDto.
 package dribbble
 
 import (

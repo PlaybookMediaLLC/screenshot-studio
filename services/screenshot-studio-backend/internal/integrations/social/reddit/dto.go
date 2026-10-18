@@ -9,7 +9,7 @@ import (
 	"unicode/utf8"
 )
 
-// dtos/posts/providers-settings/reddit.dto.ts. Pointers mark presence so
+// Reddit post settings. Pointers mark presence so
 // Validate can reproduce class-validator's IsDefined; a wrong JSON type fails
 // decoding instead of producing an isString/isBoolean message.
 

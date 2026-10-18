@@ -1,6 +1,6 @@
 package agent
 
-// agentCategories (agent.categories.ts).
+// agentCategories lists the agent's post categories.
 var agentCategories = []string{
 	"Educational", "Inspirational", "Promotional", "Entertaining", "Interactive",
 	"Behind The Scenes", "Testimonial", "Informative", "Humorous", "Seasonal",
@@ -10,7 +10,7 @@ var agentCategories = []string{
 	"Celebration", "Reminder", "Debate", "Update", "Trend",
 }
 
-// agentTopics (agent.topics.ts), duplicates included.
+// agentTopics lists the agent's post topics, duplicates included.
 var agentTopics = []string{
 	"Business", "Marketing", "Finance", "Startups", "Networking",
 	"Leadership", "Strategy", "Branding", "Analytics", "Growth",

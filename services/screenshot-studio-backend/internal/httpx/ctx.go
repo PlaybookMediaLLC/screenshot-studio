@@ -49,10 +49,10 @@ func newCtx(w http.ResponseWriter, r *http.Request, params map[string]string) *C
 	return &Ctx{W: w, R: r, params: params, bodyLimit: MaxBody}
 }
 
-// Param returns a path parameter (Nest's @Param).
+// Param returns a path parameter.
 func (c *Ctx) Param(name string) string { return c.params[name] }
 
-// Query returns a query string value (Nest's @Query('name')).
+// Query returns a query string value.
 func (c *Ctx) Query(name string) string { return c.R.URL.Query().Get(name) }
 
 // Header returns a request header.
@@ -75,7 +75,7 @@ func (c *Ctx) Role() string {
 	return string(c.Org.Edges.Users[0].Role)
 }
 
-// RealIP mirrors nestjs-real-ip: the first X-Forwarded-For entry, then X-Real-IP,
+// RealIP returns the first X-Forwarded-For entry, then X-Real-IP,
 // then the socket address.
 func (c *Ctx) RealIP() string {
 	if forwarded := c.Header("X-Forwarded-For"); forwarded != "" {
@@ -94,7 +94,7 @@ func (c *Ctx) RealIP() string {
 // BodyLimit raises the JSON body limit for this request.
 func (c *Ctx) BodyLimit(n int64) { c.bodyLimit = n }
 
-// RawBody returns the request body bytes (Nest's rawBody: true), read once.
+// RawBody returns the request body bytes, read once.
 func (c *Ctx) RawBody() ([]byte, error) {
 	if c.bodyRead {
 		return c.body, nil
@@ -113,8 +113,8 @@ func (c *Ctx) RawBody() ([]byte, error) {
 	return data, nil
 }
 
-// Bind decodes the JSON body into v and validates it like Nest's
-// ValidationPipe (transform: true). An empty body decodes as {}.
+// Bind decodes the JSON body into v and validates it, with type
+// conversion. An empty body decodes as {}.
 func (c *Ctx) Bind(v any) error {
 	if err := c.Decode(v); err != nil {
 		return err
@@ -154,7 +154,7 @@ func (c *Ctx) SetCookie(cookie *http.Cookie) { http.SetCookie(c.W, cookie) }
 // SetHeader writes a response header.
 func (c *Ctx) SetHeader(name, value string) { c.W.Header().Set(name, value) }
 
-// Redirect sends a redirect and ends the request (Nest's res.redirect).
+// Redirect sends a redirect and ends the request.
 func (c *Ctx) Redirect(status int, location string) {
 	c.written = true
 	http.Redirect(c.W, c.R, location, status)
@@ -166,7 +166,7 @@ func (c *Ctx) JSON(status int, body any) {
 	writeJSON(c.W, c.R, status, body)
 }
 
-// Send writes the body with Nest's rules and marks the response as written.
+// Send writes the body and marks the response as written.
 func (c *Ctx) Send(status int, body any) { c.send(status, body) }
 
 func (c *Ctx) send(status int, body any) {

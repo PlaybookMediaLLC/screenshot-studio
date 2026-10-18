@@ -1,4 +1,4 @@
-// Package tiktokbusiness ports integrations/social/tiktok.business.provider.ts
+// Package tiktokbusiness is the TikTok Business provider
 // (the TikTok Business API v1.3 app). Settings reuse tiktok.TikTokDTO.
 package tiktokbusiness
 

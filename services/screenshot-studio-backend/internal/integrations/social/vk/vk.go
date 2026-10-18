@@ -1,4 +1,4 @@
-// Package vk ports vk.provider.ts: VK ID OAuth (PKCE) and wall posts.
+// Package vk is the VK provider: VK ID OAuth (PKCE) and wall posts.
 package vk
 
 import (

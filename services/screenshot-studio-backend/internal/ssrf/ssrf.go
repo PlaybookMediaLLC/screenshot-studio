@@ -1,5 +1,5 @@
-// Package ssrf is Postiz's SSRF guard (dtos/webhooks/ssrf.safe.dispatcher.ts
-// and webhook.url.validator.ts). Every outbound request whose URL a user can
+// Package ssrf is the SSRF guard for webhooks and other user-supplied
+// URLs. Every outbound request whose URL a user can
 // influence goes through Client, which checks the address actually dialed,
 // so DNS rebinding cannot slip past a check done earlier.
 package ssrf

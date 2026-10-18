@@ -24,7 +24,7 @@ func deref(s *string) string {
 	return *s
 }
 
-// RegisterAuthController is auth.controller.ts (public, /auth).
+// RegisterAuthController registers the auth routes (public, /auth).
 func RegisterAuthController(r *httpx.Router, authService *auth.AuthService, email EmailService, store redis.Store) {
 	g := r.Group("/auth")
 

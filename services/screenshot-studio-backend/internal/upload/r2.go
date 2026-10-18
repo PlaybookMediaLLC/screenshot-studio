@@ -22,7 +22,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/ids"
 )
 
-// This file is r2.uploader.ts: the Uppy multipart endpoints behind
+// This file holds the Uppy multipart endpoints behind
 // POST /media/:endpoint, talking to R2 with region "auto".
 
 var allowedExtToMime = map[string]string{

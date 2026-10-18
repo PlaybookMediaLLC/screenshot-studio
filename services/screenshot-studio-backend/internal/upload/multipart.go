@@ -11,8 +11,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/httpx"
 )
 
-// This file is multer.stream.engine.ts plus FileInterceptor('file',
-// streamUploadOptions()): each incoming file streams straight into storage
+// This file streams each uploaded 'file' field (streamUploadOptions())
+// straight into storage
 // instead of being buffered whole in memory. Filename / Path end up as the
 // stored key and public URL, Originalname keeps the sender's name with the
 // detected extension.

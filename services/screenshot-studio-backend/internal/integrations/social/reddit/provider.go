@@ -1,4 +1,4 @@
-// Package reddit ports integrations/social/reddit.provider.ts.
+// Package reddit is the Reddit provider.
 package reddit
 
 import (

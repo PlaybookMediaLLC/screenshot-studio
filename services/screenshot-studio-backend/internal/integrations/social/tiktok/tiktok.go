@@ -1,4 +1,4 @@
-// Package tiktok ports integrations/social/tiktok.provider.ts (the TikTok
+// Package tiktok is the TikTok provider (the TikTok
 // Content Posting API app) and the shared TikTokDto settings.
 package tiktok
 

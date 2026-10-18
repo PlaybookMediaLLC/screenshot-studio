@@ -1,4 +1,4 @@
-// Package bluesky ports integrations/social/bluesky.provider.ts. The
+// Package bluesky is the Bluesky provider. The
 // @atproto/api agent is replaced by direct XRPC calls (agent.go) and
 // RichText.detectFacets by richtext.go.
 package bluesky

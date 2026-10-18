@@ -1,4 +1,4 @@
-// Package slack is the Slack provider (slack.provider.ts).
+// Package slack is the Slack provider.
 package slack
 
 import (

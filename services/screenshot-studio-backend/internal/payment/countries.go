@@ -1,12 +1,12 @@
 package payment
 
-// Country is one entry of stripe.country.list.ts.
+// Country is one Stripe Connect country.
 type Country struct {
 	Value string `json:"value"`
 	Label string `json:"label"`
 }
 
-// Countries is stripe.country.list.ts (Stripe Connect supported countries).
+// Countries are the Stripe Connect supported countries.
 var Countries = []Country{
 	{"AL", "Albania"},
 	{"AG", "Antigua & Barbuda"},

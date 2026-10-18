@@ -1,4 +1,4 @@
-// Package telegram ports telegram.provider.ts. node-telegram-bot-api is
+// Package telegram is the Telegram provider. node-telegram-bot-api is
 // replaced by direct Bot API calls with the same parameters, including its
 // upload of local files (a media path that exists on disk is sent as
 // multipart, anything else is passed to Telegram as a URL).

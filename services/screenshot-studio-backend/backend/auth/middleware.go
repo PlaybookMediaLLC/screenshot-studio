@@ -194,7 +194,7 @@ func authenticate(c *httpx.Ctx, auth string, orgs OrganizationService, users Use
 
 var errForbidden = httpx.HTTPException("Forbidden", http.StatusForbidden)
 
-// setSentryUserContext is initialize.sentry.ts setSentryUserContext, scoped to
+// setSentryUserContext sets the Sentry user for the request, scoped to
 // the request's hub so concurrent requests don't share a user.
 func setSentryUserContext(c *httpx.Ctx, userID, email string, org *ent.Organization) {
 	ctx := c.R.Context()

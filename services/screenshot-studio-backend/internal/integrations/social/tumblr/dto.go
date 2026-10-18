@@ -6,7 +6,7 @@ import (
 	"unicode/utf8"
 )
 
-// TumblrDTO is dtos/posts/providers-settings/tumblr.dto.ts. Every field is
+// TumblrDTO holds the Tumblr post settings. Every field is
 // @IsOptional, so nil skips its validators; a wrong JSON type fails decoding
 // instead of producing an isString message.
 type TumblrDTO struct {

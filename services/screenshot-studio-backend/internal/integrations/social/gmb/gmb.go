@@ -1,4 +1,4 @@
-// Package gmb is gmb.provider.ts (Google Business Profile).
+// Package gmb is the Google Business Profile provider.
 package gmb
 
 import (

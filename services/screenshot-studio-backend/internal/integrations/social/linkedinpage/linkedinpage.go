@@ -1,4 +1,4 @@
-// Package linkedinpage ports linkedin.page.provider.ts: LinkedinPageProvider
+// Package linkedinpage is the LinkedIn Page provider: LinkedinPageProvider
 // extends LinkedinProvider, so Provider embeds *linkedin.Provider and
 // overrides what the TypeScript class overrides. Posts, comments and plugs
 // act as the organization (company) instead of the member.

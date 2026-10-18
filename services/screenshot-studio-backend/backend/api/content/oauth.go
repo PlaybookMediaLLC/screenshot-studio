@@ -116,7 +116,7 @@ func RegisterOAuthController(r *httpx.Router, oauthService *oauth.Service, relay
 	// since every attempt sends requests to the instance
 	g.Post("/authorize/self-hosted", h.authorizeSelfHosted,
 		httpx.With(auth.ThrottlerRealIpGuard(store, "OAuthController-authorizeSelfHosted", 30, time.Hour)))
-	// RFC 6749 §5.1: successful token responses are 200; strict clients (Canva) reject Nest's default 201
+	// RFC 6749 §5.1: successful token responses are 200; strict clients (Canva) reject a 201
 	g.Post("/token", h.token, httpx.Status(http.StatusOK))
 	g.Get("/userinfo", h.userinfo)
 	g.Post("/userinfo", h.userinfo)

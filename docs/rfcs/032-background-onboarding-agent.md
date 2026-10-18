@@ -1,7 +1,7 @@
 # RFC 032: Background Onboarding Agent and ICP Extraction
 
-**Status:** Not started
-**Status note (2026-10-16):** Nothing in this RFC is built.
+**Status:** Partially implemented
+**Status note (2026-10-17):** The onboarding fast path shipped in #131: it reads the homepage, sitemap and up to four pages (`lib/ai/onboarding/product-profile.ts`). The background agent and ICP research are not built.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 004, RFC 011, and RFC 012

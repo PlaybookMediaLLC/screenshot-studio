@@ -13,6 +13,13 @@ export function toOpenRouterModelId(modelId: string): string {
 }
 
 /**
+ * Routing every OpenRouter request uses. Endpoints that may store or train on
+ * prompts are skipped, which backs the public "no training on your content"
+ * promise.
+ */
+export const OPENROUTER_PROVIDER_PREFERENCES = { data_collection: 'deny' } as const
+
+/**
  * Settings every model gets. Usage accounting returns each call's cost, which
  * the AI credit meter charges. On Anthropic models, automatic prompt caching
  * marks the newest message each step, so a multi-step agent reads its growing
@@ -20,6 +27,7 @@ export function toOpenRouterModelId(modelId: string): string {
  */
 export function openRouterSettings(modelId: string): OpenRouterChatSettings {
   return {
+    provider: OPENROUTER_PROVIDER_PREFERENCES,
     usage: { include: true },
     ...(modelId.startsWith(ANTHROPIC_MODEL_PREFIX) ? { cache_control: { type: 'ephemeral' } } : {}),
   }

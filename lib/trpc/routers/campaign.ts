@@ -20,10 +20,11 @@ import {
   campaignPostUpdateSchema,
   campaignTransitionSchema,
 } from '@/lib/tenant/schemas'
-import { isCampaignStudioConfigured, runCampaignStudio } from '@/lib/ai/agents/campaign-studio'
+import { runCampaignStudio } from '@/lib/ai/agents/campaign-studio'
 import { withAiCredits } from '@/lib/ai/metering'
 import { requireActiveOrganizationPermission } from '@/lib/auth/access'
 import { router, publicProcedure } from '../init'
+import { allowAiAction } from './launch'
 import { organizationProcedure } from '../procedures'
 
 const campaignIdSchema = z.object({ campaignId: z.string().cuid() })
@@ -55,12 +56,7 @@ export const campaignRouter = router({
   generate: organizationProcedure('release:create')
     .input(z.object({ campaignId: z.string().cuid() }))
     .mutation(async ({ ctx, input, signal }) => {
-      if (!isCampaignStudioConfigured()) {
-        throw new TRPCError({
-          code: 'SERVICE_UNAVAILABLE',
-          message: 'AI generation is not configured. Set OPENROUTER_API_KEY.',
-        })
-      }
+      await allowAiAction(ctx.access)
       return withAiCredits(ctx.access, () =>
         runCampaignStudio(ctx.access, input.campaignId, signal)
       )

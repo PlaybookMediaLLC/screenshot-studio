@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { isAdFreePath } from "@/components/AdSenseScript";
+import { isAdFreePath } from "@/lib/adsense";
 
 /** Enters editor workspaces from content pages with a full page load so the ads script never carries over. */
 export function AdFreeRouteLinks(): null {

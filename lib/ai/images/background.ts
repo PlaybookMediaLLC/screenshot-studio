@@ -3,6 +3,7 @@ import 'server-only'
 import sharp from 'sharp'
 import { z } from 'zod'
 import { aiCreditMeter } from '@/lib/ai/metering'
+import { OPENROUTER_PROVIDER_PREFERENCES } from '@/lib/ai/models/provider'
 import { isScriptedModelEnabled } from '@/lib/ai/models/scripted'
 import {
   type BackgroundRequest,
@@ -60,6 +61,7 @@ async function callImageModel(request: BackgroundRequest): Promise<Buffer> {
       messages: [{ content: backgroundPrompt(request), role: 'user' }],
       modalities: ['image', 'text'],
       model: process.env.PLATFORM_AI_IMAGE_MODEL?.trim() || DEFAULT_IMAGE_MODEL,
+      provider: OPENROUTER_PROVIDER_PREFERENCES,
       usage: { include: true },
     }),
     headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },

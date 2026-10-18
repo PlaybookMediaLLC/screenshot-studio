@@ -4,6 +4,7 @@ import { TranslationResultError, translateStrings } from '@/lib/ai/store-screens
 import { storeTranslateContract } from '@/lib/api/contracts/store-screenshots'
 import { errorResponse, route } from '@/lib/api/route'
 import { organizationAccess } from '@/lib/api/route-auth'
+import { isAiEnabled } from '@/lib/trpc/routers/launch'
 
 /** Translation batches can take a little while on slower models. */
 export const maxDuration = 60
@@ -14,6 +15,8 @@ export const POST = route(storeTranslateContract, {
   handler: async ({ access, body }) => {
     if (!isCampaignStudioConfigured())
       return errorResponse(503, 'AI translation is not configured on this server.')
+    if (!(await isAiEnabled(access)))
+      return errorResponse(403, 'AI is turned off for this workspace.')
     if (body.sourceLocale === body.targetLocale)
       return errorResponse(400, 'Choose a different target language.')
     try {

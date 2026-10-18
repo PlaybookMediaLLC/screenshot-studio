@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button, type buttonVariants } from '@/components/ui/button'
 import type { VariantProps } from 'class-variance-authority'
 import { authClient } from '@/lib/auth/client'
+import { resetUser } from '@/lib/analytics'
 
 export function SignOutButton({
   className,
@@ -17,6 +18,8 @@ export function SignOutButton({
   async function handleSignOut() {
     setIsSigningOut(true)
     await authClient.signOut()
+    // Forget the analytics device ID so the next person on this browser starts fresh.
+    resetUser()
     // A full document load, not router.push + refresh. The router can serve a
     // cached RSC payload for '/' that was rendered while the user still had a
     // session, which leaves the signed-out user sitting on the editor instead

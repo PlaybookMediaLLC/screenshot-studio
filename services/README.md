@@ -170,7 +170,7 @@ Layout:
 both Ent-backed SQL sets to one database, records their history, and adopts
 compatible tables from the earlier Prisma deployment. `/postiz-migrate`
 remains in the image for isolated social backend tests; it is not a second
-production migration job. See [the deployment guide](../docs/postiz-go-deployment.md)
+production migration job. See [the deployment guide](../docs/social-backend-deployment.md)
 for the local and App Platform configuration.
 
 ```sh

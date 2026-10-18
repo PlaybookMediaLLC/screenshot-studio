@@ -1,4 +1,4 @@
-// Package threads ports integrations/social/threads.provider.ts.
+// Package threads is the Threads provider.
 package threads
 
 import (

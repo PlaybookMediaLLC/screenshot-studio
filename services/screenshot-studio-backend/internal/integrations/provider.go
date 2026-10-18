@@ -1,5 +1,5 @@
-// Package integrations is the social provider contract
-// (libraries/nestjs-libraries/src/integrations): the Provider interface every
+// Package integrations is the social provider contract:
+// the Provider interface every
 // social network implements, the optional capabilities generic code checks
 // for, the SocialAbstract base (Base), and the IntegrationManager (Manager).
 //

@@ -1,4 +1,4 @@
-// Package wordpress ports wordpress.provider.ts: articles on a self-hosted
+// Package wordpress is the WordPress provider: articles on a self-hosted
 // WordPress site through the REST API and an Application Password.
 package wordpress
 

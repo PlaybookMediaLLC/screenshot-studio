@@ -1,5 +1,5 @@
-// Package auth holds Postiz's dtos/auth. Each DTO's Validate returns the
-// messages Nest's ValidationPipe would send (class-validator order: IsDefined
+// Package auth holds the auth request bodies. Each DTO's Validate returns the
+// validation messages in the API's format (class-validator order: IsDefined
 // first, then the remaining decorators bottom-up); an empty result means valid.
 // Controllers decode with c.Decode and answer httpx.BadRequest(msgs) when
 // Validate returns anything.
@@ -12,7 +12,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/httpx"
 )
 
-// CreateOrgUserDto is create.org.user.dto.ts.
+// CreateOrgUserDto is the create org user request body.
 type CreateOrgUserDto struct {
 	Password          *string `json:"password"`
 	Provider          *string `json:"provider"`
@@ -51,7 +51,7 @@ func (d *CreateOrgUserDto) Validate() []string {
 	return out
 }
 
-// LoginUserDto is login.user.dto.ts.
+// LoginUserDto is the login user request body.
 type LoginUserDto struct {
 	Password          *string `json:"password"`
 	Provider          *string `json:"provider"`
@@ -78,7 +78,7 @@ func (d *LoginUserDto) Validate() []string {
 	return out
 }
 
-// ForgotReturnPasswordDto is forgot-return.password.dto.ts. repeatPassword is
+// ForgotReturnPasswordDto is the forgot return password request body. repeatPassword is
 // only validated when it differs from password, and then always fails its
 // IsIn([makeId(10)]) check with "Passwords do not match".
 type ForgotReturnPasswordDto struct {
@@ -103,14 +103,14 @@ func (d *ForgotReturnPasswordDto) Validate() []string {
 	return out
 }
 
-// ForgotPasswordDto is forgot.password.dto.ts.
+// ForgotPasswordDto is the forgot password request body.
 type ForgotPasswordDto struct {
 	Email *string `json:"email"`
 }
 
 func (d *ForgotPasswordDto) Validate() []string { return emailOnly(d.Email) }
 
-// ResendActivationDto is resend-activation.dto.ts.
+// ResendActivationDto is the resend activation request body.
 type ResendActivationDto struct {
 	Email *string `json:"email"`
 }

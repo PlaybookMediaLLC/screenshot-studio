@@ -25,7 +25,7 @@ type InstagramAudio struct {
 	VideoVolume json.RawMessage `json:"video_volume,omitempty"`
 }
 
-// InstagramDTO is dtos/posts/providers-settings/instagram.dto.ts.
+// InstagramDTO holds the Instagram post settings.
 type InstagramDTO struct {
 	PostType           *string         `json:"post_type"` // post | story
 	IsTrialReel        any             `json:"is_trial_reel,omitempty"`
@@ -34,7 +34,7 @@ type InstagramDTO struct {
 	Audio              *InstagramAudio `json:"audio,omitempty"`
 }
 
-// Validate reproduces the class-validator messages (Nest-flattened, nested
+// Validate returns the class-validator messages (flattened, nested
 // paths prefixed) in declaration order.
 func (d *InstagramDTO) Validate() []string {
 	var out []string

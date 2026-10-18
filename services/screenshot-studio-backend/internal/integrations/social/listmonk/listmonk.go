@@ -1,4 +1,4 @@
-// Package listmonk ports listmonk.provider.ts: email campaigns on a
+// Package listmonk is the Listmonk provider: email campaigns on a
 // self-hosted ListMonk instance.
 package listmonk
 

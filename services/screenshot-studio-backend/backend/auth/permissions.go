@@ -12,7 +12,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/httpx"
 )
 
-// Sections are permission.exception.class.ts Sections.
+// Sections are the permission sections.
 type Sections string
 
 const (
@@ -29,7 +29,7 @@ const (
 	SectionWebhooks           Sections = "webhooks"
 )
 
-// AuthorizationActions are permission.exception.class.ts AuthorizationActions.
+// AuthorizationActions are the permission actions.
 type AuthorizationActions string
 
 const (
@@ -80,7 +80,7 @@ type WebhooksService interface {
 	GetTotal(ctx context.Context, orgID string) (int, error)
 }
 
-// PackageOptions are the pricing.ts fields the permission checks read.
+// PackageOptions are the plan pricing fields the permission checks read.
 type PackageOptions struct {
 	Channel            int
 	PostsPerMonth      int
@@ -92,7 +92,7 @@ type PackageOptions struct {
 	Webhooks           int
 }
 
-// packageOptions reads the permission fields of subscriptions/pricing.ts.
+// packageOptions reads the permission fields of a plan's pricing.
 func packageOptions(tier string) PackageOptions {
 	p := subscriptions.Pricing[tier]
 	return PackageOptions{Channel: p.Channel, PostsPerMonth: p.PostsPerMonth, TeamMembers: p.TeamMembers,
@@ -100,7 +100,7 @@ func packageOptions(tier string) PackageOptions {
 		ImportFromChannels: p.ImportFromChannels, Webhooks: p.Webhooks}
 }
 
-// PermissionsService ports permissions.service.ts.
+// PermissionsService is the permissions service.
 type PermissionsService struct {
 	subscriptions SubscriptionService
 	posts         PostsService

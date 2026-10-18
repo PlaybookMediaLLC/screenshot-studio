@@ -1,4 +1,4 @@
-// Package linkedin ports linkedin.provider.ts (LinkedinProvider) and its
+// Package linkedin is the LinkedIn provider (LinkedinProvider) and its
 // settings DTO. linkedinpage embeds Provider and overrides what
 // LinkedinPageProvider overrides.
 package linkedin

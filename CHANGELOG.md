@@ -308,7 +308,7 @@
 
 ### Features
 
-* port Postiz services to Screenshot Studio backend ([#57](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/57)) ([07a1e45](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/07a1e45f8c3a4046aee60e2100d93d666788e785))
+* add the social publishing services to the Screenshot Studio backend ([#57](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/57)) ([07a1e45](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/07a1e45f8c3a4046aee60e2100d93d666788e785))
 
 ## [1.9.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.8.2...v1.9.0) (2026-10-09)
 
@@ -414,7 +414,7 @@
 
 ### Features
 
-* **publishing:** complete Postiz Temporal parity ([#40](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/40)) ([e539ebc](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/e539ebc1d0b46a0eaad2927cc0ae0daaa1a14a32))
+* **publishing:** complete the Temporal publishing guarantees ([#40](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/40)) ([e539ebc](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/e539ebc1d0b46a0eaad2927cc0ae0daaa1a14a32))
 
 ## [1.4.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.3.2...v1.4.0) (2026-08-31)
 

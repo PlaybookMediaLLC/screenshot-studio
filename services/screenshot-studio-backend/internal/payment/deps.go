@@ -51,7 +51,7 @@ type TrackService interface {
 // TrackPurchase is TrackEnum.Purchase.
 const TrackPurchase = 4
 
-// pricing is subscriptions/pricing.ts (payment reads channel, month_price
+// pricing is the plan pricing table (payment reads channel, month_price
 // and year_price).
 type pricingInner = subscriptions.PricingInner
 

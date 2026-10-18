@@ -25,8 +25,8 @@ type PostWorkflowInput struct {
 	PostNow        bool   `json:"postNow,omitempty"`
 }
 
-// The twelve post workflow versions (post-workflows/post.workflow.v1.0.1.ts
-// ... v1.1.2.ts). Runs stay on the version they started with, so each keeps
+// The twelve post workflow versions (v1.0.1
+// ... v1.1.2). Runs stay on the version they started with, so each keeps
 // its own behavior; postWorkflow branches on the version where they differ.
 // They return undefined (nil) or false, like TypeScript.
 

@@ -20,7 +20,7 @@ type DigestEmailInput struct {
 	Queue          []Email `json:"queue,omitempty"`
 }
 
-// DigestEmailWorkflow (digest.email.workflow.ts) collects email signals for an
+// DigestEmailWorkflow collects email signals for an
 // hour, sends one digest per user, then continues as new with whatever
 // arrived meanwhile.
 func DigestEmailWorkflow(ctx workflow.Context, in DigestEmailInput) error {
@@ -95,7 +95,7 @@ func drain[T any](ch workflow.ReceiveChannel) []T {
 	}
 }
 
-// SendSingleEmailWorkflow (send.email.workflow.ts): one workflow per email,
+// SendSingleEmailWorkflow: one workflow per email,
 // the Resend rate limit is enforced on the email task queues.
 func SendSingleEmailWorkflow(ctx workflow.Context, email SendEmail) error {
 	queue := temporalx.EmailQueues.Bulk.TaskQueue
@@ -201,7 +201,7 @@ func sendStreakEmails(act workflow.Context, team activities.Team, subject, html 
 	return nil
 }
 
-// StreakWorkflow (streak.workflow.ts) is the first streak version; runs hand
+// StreakWorkflow is the first streak version; runs hand
 // over to streakWorkflowV2 when the organization posted since they started.
 func StreakWorkflow(ctx workflow.Context, in StreakInput) error {
 	act := streakCtx(ctx)

@@ -1,4 +1,4 @@
-// Package whop ports whop.provider.ts: forum posts on Whop experiences.
+// Package whop is the Whop provider: forum posts on Whop experiences.
 package whop
 
 import (

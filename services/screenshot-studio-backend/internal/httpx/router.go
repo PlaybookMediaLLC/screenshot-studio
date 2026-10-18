@@ -1,8 +1,8 @@
-// Package httpx is the HTTP layer the Postiz backend controllers are ported
-// onto. It keeps the NestJS/Express behavior Postiz clients rely on: routes
+// Package httpx is the HTTP layer of the social backend. It keeps the
+// behavior that API clients rely on: routes
 // match in registration order with ":param" segments, handlers return the
-// response body, POST answers 201 by default, and errors render the same JSON
-// bodies Nest's exception filters produce.
+// response body, POST answers 201 by default, and errors render a stable JSON
+// body.
 package httpx
 
 import (
@@ -41,7 +41,7 @@ func NewRouter() *Router { return &Router{} }
 // Use adds middleware that runs for every matched route, before route middleware.
 func (r *Router) Use(m ...Middleware) { r.before = append(r.before, m...) }
 
-// Group registers routes under a prefix with shared middleware, like a Nest controller.
+// Group registers routes under a prefix with shared middleware.
 type Group struct {
 	router      *Router
 	prefix      string
@@ -56,10 +56,10 @@ func (r *Router) Group(prefix string, m ...Middleware) *Group {
 // RouteOption customizes one route.
 type RouteOption func(*route)
 
-// Status overrides the default status code (Nest's @HttpCode).
+// Status overrides the default status code.
 func Status(code int) RouteOption { return func(r *route) { r.status = code } }
 
-// Raw marks a handler that writes the response itself (Nest's @Res()).
+// Raw marks a handler that writes the response itself.
 func Raw() RouteOption { return func(r *route) { r.raw = true } }
 
 // With adds route-level middleware (guards).
@@ -92,11 +92,11 @@ func (g *Group) Delete(path string, h Handler, opts ...RouteOption) {
 	g.Handle(http.MethodDelete, path, h, opts...)
 }
 
-// All matches any method (Nest's @All()).
+// All matches any method.
 func (g *Group) All(path string, h Handler, opts ...RouteOption) { g.Handle("*", path, h, opts...) }
 
 // RouteInfo is one registered route. Status is the status a successful
-// response gets (Nest's @HttpCode, else 201 for POST and 200 otherwise).
+// response gets (an explicit status, else 201 for POST and 200 otherwise).
 type RouteInfo struct {
 	Method, Path string
 	Status       int
@@ -119,12 +119,12 @@ func (r *Router) Routes() []RouteInfo {
 	return out
 }
 
-// RouteDoc is a route's OpenAPI metadata: what @nestjs/swagger reads from the
-// controller decorators (@ApiTags, @Param, @Query, @Body, @UploadedFile,
-// @HttpCode), plus the response shapes and auth Nest leaves out. It never
-// changes how the route runs. DTOs are Go values whose type is the schema.
+// RouteDoc is a route's OpenAPI metadata: tags, parameters, query values,
+// the body, uploaded files, the status code, the response shapes, and auth.
+// It never changes how the route runs. DTOs are Go values whose type is the
+// schema.
 type RouteDoc struct {
-	Controller  string   // Nest controller class; operationId = Controller_Operation
+	Controller  string   // controller name; operationId = Controller_Operation
 	Operation   string   // controller method name
 	Tags        []string // @ApiTags
 	Security    []string // alternative security schemes; empty non-nil = public
@@ -146,7 +146,7 @@ type DocResponse struct {
 	Body        any
 }
 
-// Doc names the Nest controller class and its @ApiTags for the routes
+// Doc names the controller and its tags for the routes
 // registered on the group afterwards.
 func (g *Group) Doc(controller string, tags ...string) *Group {
 	g.doc.Controller, g.doc.Tags = controller, tags

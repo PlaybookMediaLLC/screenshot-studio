@@ -13,7 +13,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/httpx"
 )
 
-// postsBodyLimit is main.ts `json({ limit: '50mb' })` on /posts.
+// postsBodyLimit is the 50 MB JSON body limit on /posts.
 const postsBodyLimit = 50 << 20
 
 type postsController struct {

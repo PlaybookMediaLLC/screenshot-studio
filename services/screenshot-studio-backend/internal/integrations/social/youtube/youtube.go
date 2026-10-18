@@ -1,4 +1,4 @@
-// Package youtube is youtube.provider.ts. googleapis calls are made over
+// Package youtube is the YouTube provider. googleapis calls are made over
 // plain HTTP against the same REST endpoints (see googleapi).
 package youtube
 

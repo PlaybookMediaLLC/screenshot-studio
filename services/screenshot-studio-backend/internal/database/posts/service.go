@@ -38,8 +38,8 @@ type IntegrationService interface {
 	GetPlugs(ctx context.Context, orgID, integrationID string) ([]*ent.Plugs, error)
 }
 
-// RefreshIntegrationService is refresh.integration.service.ts; Refresh
-// returns nil where TypeScript returned false.
+// RefreshIntegrationService is the refresh integration service; Refresh
+// returns nil instead of false.
 type RefreshIntegrationService interface {
 	Refresh(ctx context.Context, integration *ent.Integration, cause string) (*integrations.AuthTokenDetails, error)
 }

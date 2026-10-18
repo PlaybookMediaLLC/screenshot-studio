@@ -11,7 +11,7 @@ import (
 // background ("text format") post.
 const FacebookPresetMaxChars = 130
 
-// FacebookDTO is dtos/posts/providers-settings/facebook.dto.ts.
+// FacebookDTO holds the Facebook post settings.
 type FacebookDTO struct {
 	URL      string  `json:"url,omitempty"`
 	PostType *string `json:"post_type,omitempty"` // post | story

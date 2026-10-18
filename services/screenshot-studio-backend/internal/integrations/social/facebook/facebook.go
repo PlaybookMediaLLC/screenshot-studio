@@ -1,4 +1,4 @@
-// Package facebook is facebook.provider.ts: Facebook Pages through the Graph
+// Package facebook is the Facebook provider: Facebook Pages through the Graph
 // API (feed posts, videos/reels, stories with a pending -> finalize flow,
 // comments, page insights and post insights).
 package facebook

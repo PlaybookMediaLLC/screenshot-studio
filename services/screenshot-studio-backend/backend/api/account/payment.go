@@ -8,7 +8,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/payment"
 )
 
-// RegisterPaymentController is payment.controller.ts (public, /payment):
+// RegisterPaymentController registers the payment routes (public, /payment):
 // provider webhooks verified against the raw body.
 func RegisterPaymentController(r *httpx.Router, payments *payment.Service) {
 	g := r.Group("/payment")
@@ -31,7 +31,7 @@ func RegisterPaymentController(r *httpx.Router, payments *payment.Service) {
 	})
 }
 
-// RegisterStripeController is stripe.controller.ts (public, /stripe).
+// RegisterStripeController registers the stripe routes (public, /stripe).
 func RegisterStripeController(r *httpx.Router, payments *payment.Service) {
 	g := r.Group("/stripe")
 

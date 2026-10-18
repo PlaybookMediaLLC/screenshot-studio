@@ -46,8 +46,8 @@ type integrationsController struct {
 }
 
 // RegisterIntegrationsController registers IntegrationsController under
-// /integrations. Register RegisterNoAuthIntegrationsController first: Nest
-// mounts NoAuthIntegrationsController before the authenticated controllers.
+// /integrations. Register RegisterNoAuthIntegrationsController first: the
+// router mounts NoAuthIntegrationsController before the authenticated controllers.
 func RegisterIntegrationsController(r *httpx.Router, authn httpx.Middleware, perms *auth.PermissionsService,
 	manager *integrations.Manager, integrationService *integration.Service, posts PostsService, store redis.Store) {
 	h := &integrationsController{manager: manager, integrations: integrationService,

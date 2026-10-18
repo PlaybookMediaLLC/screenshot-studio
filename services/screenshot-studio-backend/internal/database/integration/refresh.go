@@ -12,7 +12,7 @@ import (
 	"go.temporal.io/sdk/client"
 )
 
-// RefreshIntegrationService is integrations/refresh.integration.service.ts.
+// RefreshIntegrationService is the refresh integration service.
 type RefreshIntegrationService struct {
 	manager  *integrations.Manager
 	service  *Service

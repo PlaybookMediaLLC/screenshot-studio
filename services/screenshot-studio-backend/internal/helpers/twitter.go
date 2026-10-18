@@ -9,7 +9,7 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-// twitter-text@3.1.0 parseTweet with the v3 config (count.length.ts passes
+// twitter-text@3.1.0 parseTweet with the v3 config (the backend passes
 // the same values as configs.defaults, only maxWeightedTweetLength varies).
 // Everything runs on UTF-16 code units so indices match JavaScript.
 
@@ -75,7 +75,7 @@ var (
 	twemojiRe                = jsRegexp(twemojiSource, 0)
 )
 
-// TextSlicer is count.length.ts textSlicer (twitter-text for x).
+// TextSlicer returns the slice bounds of text within the length limit (twitter-text for x).
 func TextSlicer(integrationType string, end int, text string) (int, int) {
 	if integrationType != "x" {
 		return 0, end
@@ -93,7 +93,7 @@ func WeightedLength(text string) int {
 	return weighted
 }
 
-// CountLength is count.length.ts countLength.
+// CountLength counts the length of text for a provider.
 func CountLength(integrationType, text string) int {
 	if integrationType == "x" {
 		return WeightedLength(text)

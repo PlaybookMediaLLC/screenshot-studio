@@ -1,9 +1,9 @@
-// Package posts ports libraries/nestjs-libraries/src/dtos/posts (except
+// Package posts holds the post request bodies (except
 // providers-settings, which the provider packages own).
 //
 // class-validator rules that struct tags cannot express (custom messages,
 // nested paths, ISO dates) are implemented as Validate() []string returning
-// the messages Nest's ValidationPipe would send, in declaration order. Call it
+// the validation messages in the API's format, in declaration order. Call it
 // after binding and answer httpx.BadRequest(messages) when it is not empty.
 package posts
 

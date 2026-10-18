@@ -6,7 +6,7 @@ import "github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio
 
 const roleMessage = "role must be one of the following values: USER, ADMIN"
 
-// AddTeamMemberDto is add.team.member.dto.ts. Email is only validated when
+// AddTeamMemberDto is the add team member request body. Email is only validated when
 // SendEmail is true.
 type AddTeamMemberDto struct {
 	Email     *string `json:"email"`
@@ -26,7 +26,7 @@ func (d *AddTeamMemberDto) Validate() []string {
 	return out
 }
 
-// AdminAddTeamMemberDto is admin.add.team.member.dto.ts.
+// AdminAddTeamMemberDto is the admin add team member request body.
 type AdminAddTeamMemberDto struct {
 	Email *string `json:"email"`
 	Role  *string `json:"role"`
@@ -36,7 +36,7 @@ func (d *AdminAddTeamMemberDto) Validate() []string {
 	return append(email(d.Email), role(d.Role)...)
 }
 
-// ShortlinkPreferenceDto is shortlink-preference.dto.ts.
+// ShortlinkPreferenceDto is the shortlink preference request body.
 type ShortlinkPreferenceDto struct {
 	Shortlink string `json:"shortlink"`
 }

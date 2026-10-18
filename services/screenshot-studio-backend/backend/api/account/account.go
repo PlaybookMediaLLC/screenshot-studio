@@ -20,17 +20,17 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/track"
 )
 
-// EmailService is the part of services/email.service.ts the auth controller uses.
+// EmailService is the part of the email service the auth controller uses.
 type EmailService interface {
 	HasProvider() bool
 }
 
-// TrackService is the part of track.service.ts the users controller uses.
+// TrackService is the part of the track service the users controller uses.
 type TrackService interface {
 	Track(ctx context.Context, uniqueID, ip, agent string, tt track.Enum, additional map[string]any, fbclid string, user *ent.User) error
 }
 
-// PostsService is the part of posts.service.ts the analytics and enterprise
+// PostsService is the part of the posts service the analytics and enterprise
 // controllers use.
 type PostsService interface {
 	CheckPostAnalytics(ctx context.Context, orgID, postID string, date int64, forceRefresh bool) (any, error)

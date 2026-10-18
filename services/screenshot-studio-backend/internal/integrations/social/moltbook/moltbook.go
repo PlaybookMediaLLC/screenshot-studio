@@ -1,4 +1,4 @@
-// Package moltbook ports moltbook.provider.ts and its MoltbookDto.
+// Package moltbook is the Moltbook provider and its MoltbookDto.
 package moltbook
 
 import (

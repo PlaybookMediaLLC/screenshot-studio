@@ -1,4 +1,4 @@
-// Package skool ports skool.provider.ts: Skool community posts, connected
+// Package skool is the Skool provider: Skool community posts, connected
 // with session cookies read by the Chrome extension.
 package skool
 

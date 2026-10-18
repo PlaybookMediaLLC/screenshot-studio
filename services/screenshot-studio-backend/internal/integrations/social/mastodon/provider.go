@@ -1,4 +1,4 @@
-// Package mastodon ports integrations/social/mastodon.provider.ts. The
+// Package mastodon is the Mastodon provider. The
 // dynamic* methods take the instance URL so mastodoncustom can reuse them.
 package mastodon
 

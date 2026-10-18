@@ -604,7 +604,7 @@ func verifyWalletSignature(publicKey, challenge, signature string) (bool, error)
 	return ed25519.Verify(pk, []byte(challenge), sig), nil
 }
 
-// hexToBytes is wallet.provider.ts hexToUint8Array: parseInt per byte, so an
+// hexToBytes decodes hex with parseInt per byte, so an
 // invalid pair decodes its leading hex digits (or 0).
 func hexToBytes(s string) ([]byte, error) {
 	s = strings.TrimPrefix(s, "0x")

@@ -8,7 +8,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/httpx"
 )
 
-// RegisterSettingsController is settings.controller.ts (authenticated, /settings).
+// RegisterSettingsController registers the settings routes (authenticated, /settings).
 func RegisterSettingsController(r *httpx.Router, authMiddleware httpx.Middleware, perms *auth.PermissionsService, orgs *organizations.Service) {
 	g := r.Group("/settings", authMiddleware)
 	team := perms.CheckPolicies(

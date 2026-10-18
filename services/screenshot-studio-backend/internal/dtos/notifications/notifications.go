@@ -1,7 +1,7 @@
 // Package notifications holds Postiz's dtos/notifications.
 package notifications
 
-// GetNotificationsDto is get.notifications.dto.ts, a query DTO: bind it with
+// GetNotificationsDto is the get notifications request body, a query DTO: bind it with
 // c.BindQuery (which rejects a non-numeric page with the IsNumber message),
 // then call Validate. Page defaults to 0.
 type GetNotificationsDto struct {

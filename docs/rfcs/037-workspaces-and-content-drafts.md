@@ -249,10 +249,14 @@ second scheduler.
   live posts and creates new ones under the new version.
 - Go re-validates each caption against its channel's limit and the
   workspace's prohibited terms, as the campaign path does.
-- Publishing takes the post's media from the draft's first image asset. The
-  publish job carries one asset today; a draft with no image publishes as
-  text. More images per post are a later change to the publish job, and the
-  composer says so before scheduling.
+- Each post carries the draft's images in body order, up to its channel's
+  limit: 4 on X, 9 on LinkedIn, 10 on Instagram. The post keeps the list in
+  `scheduled_post.assetIds` and the first in `assetId`; the composer says when
+  a channel drops images. A draft with no image publishes as text. The publish
+  job carries the list beside the single asset fields, so a job prepared
+  before the list existed still publishes its one image. If any listed image
+  has been deleted by publish time, the post is cancelled rather than sent
+  without it.
 
 ### Serialization
 

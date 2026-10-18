@@ -1635,6 +1635,7 @@ var (
 		{Name: "variantId", Type: field.TypeString, Nullable: true},
 		{Name: "contentDraftId", Type: field.TypeString, Nullable: true},
 		{Name: "assetId", Type: field.TypeString, Nullable: true},
+		{Name: "assetIds", Type: field.TypeJSON, Nullable: true},
 		{Name: "scheduledFor", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "SCHEDULED", "PROCESSING", "PUBLISHED", "FAILED", "CANCELLED", "UNKNOWN_DELIVERY"}, Default: "DRAFT"},
 		{Name: "caption", Type: field.TypeString},
@@ -1652,7 +1653,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "scheduled_post_channel_connection_scheduled_posts",
-				Columns:    []*schema.Column{ScheduledPostColumns[12]},
+				Columns:    []*schema.Column{ScheduledPostColumns[13]},
 				RefColumns: []*schema.Column{ChannelConnectionColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1661,17 +1662,17 @@ var (
 			{
 				Name:    "scheduledpost_channelConnectionId_idempotencyKey",
 				Unique:  true,
-				Columns: []*schema.Column{ScheduledPostColumns[12], ScheduledPostColumns[8]},
+				Columns: []*schema.Column{ScheduledPostColumns[13], ScheduledPostColumns[9]},
 			},
 			{
 				Name:    "scheduledpost_organizationId_status_scheduledFor",
 				Unique:  false,
-				Columns: []*schema.Column{ScheduledPostColumns[1], ScheduledPostColumns[6], ScheduledPostColumns[5]},
+				Columns: []*schema.Column{ScheduledPostColumns[1], ScheduledPostColumns[7], ScheduledPostColumns[6]},
 			},
 			{
 				Name:    "scheduledpost_status_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ScheduledPostColumns[6], ScheduledPostColumns[11]},
+				Columns: []*schema.Column{ScheduledPostColumns[7], ScheduledPostColumns[12]},
 			},
 			{
 				Name:    "scheduledpost_contentDraftId",

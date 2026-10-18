@@ -25,6 +25,16 @@ var draftPlatformChannels = map[string]string{
 	"x": "x", "linkedin": "linkedin", "instagram": "instagram", "instagram-standalone": "instagram",
 }
 
+// draftChannelImageLimits is how many images each channel takes in one post.
+// A post carries the draft's first images up to that many; the composer's
+// preview says so (lib/content-drafts/serialize.ts holds the same numbers).
+var draftChannelImageLimits = map[string]int{"instagram": 10, "linkedin": 9, "x": 4}
+
+// draftChannelImages is the draft's images that fit the channel.
+func draftChannelImages(assetIDs []string, platform string) []string {
+	return assetIDs[:min(len(assetIDs), draftChannelImageLimits[draftPlatformChannels[platform]])]
+}
+
 // ContentDraftScheduleTarget is one channel and the caption serialized for it.
 type ContentDraftScheduleTarget struct {
 	Caption             string `json:"caption"`
@@ -225,11 +235,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	if draft.Version != input.Version {
 		return nil, &ContentDraftVersionConflictError{Current: draft.Version}
 	}
-	var assetID *string
-	if len(draft.AssetIds) > 0 {
-		assetID = &draft.AssetIds[0]
-	}
-	connections, err := draftTargetConnections(ctx, tx, actor.OrganizationID, input.Targets, assetID != nil)
+	connections, err := draftTargetConnections(ctx, tx, actor.OrganizationID, input.Targets, len(draft.AssetIds) > 0)
 	if err != nil {
 		return nil, err
 	}
@@ -257,8 +263,12 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	result := &ScheduleContentDraftResult{Cancelled: cancelled, Created: true}
 	channelIDs := make([]string, 0, len(input.Targets))
 	for _, target := range input.Targets {
-		post, err := tx.ScheduledPost.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
-			SetContentDraftID(draft.ID).SetNillableAssetID(assetID).SetChannelConnectionID(target.ChannelConnectionID).
+		create := tx.ScheduledPost.Create()
+		if images := draftChannelImages(draft.AssetIds, connections[target.ChannelConnectionID].Platform); len(images) > 0 {
+			create.SetAssetID(images[0]).SetAssetIds(images)
+		}
+		post, err := create.SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
+			SetContentDraftID(draft.ID).SetChannelConnectionID(target.ChannelConnectionID).
 			SetScheduledFor(input.ScheduledFor.UTC()).SetStatus(scheduledpost.StatusSCHEDULED).
 			SetCaption(strings.TrimSpace(target.Caption)).
 			SetIdempotencyKey(contentDraftPostKey(draft.ID, target.ChannelConnectionID, input.Version)).Save(ctx)

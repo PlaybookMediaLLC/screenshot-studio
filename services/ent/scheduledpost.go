@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -26,6 +27,8 @@ type ScheduledPost struct {
 	ContentDraftID *string `json:"content_draft_id,omitempty"`
 	// AssetID holds the value of the "asset_id" field.
 	AssetID *string `json:"asset_id,omitempty"`
+	// AssetIds holds the value of the "asset_ids" field.
+	AssetIds []string `json:"asset_ids,omitempty"`
 	// ChannelConnectionID holds the value of the "channel_connection_id" field.
 	ChannelConnectionID string `json:"channel_connection_id,omitempty"`
 	// ScheduledFor holds the value of the "scheduled_for" field.
@@ -84,6 +87,8 @@ func (*ScheduledPost) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case scheduledpost.FieldAssetIds:
+			values[i] = new([]byte)
 		case scheduledpost.FieldID, scheduledpost.FieldOrganizationID, scheduledpost.FieldVariantID, scheduledpost.FieldContentDraftID, scheduledpost.FieldAssetID, scheduledpost.FieldChannelConnectionID, scheduledpost.FieldStatus, scheduledpost.FieldCaption, scheduledpost.FieldIdempotencyKey, scheduledpost.FieldTriggerRunID:
 			values[i] = new(sql.NullString)
 		case scheduledpost.FieldScheduledFor, scheduledpost.FieldCreatedAt, scheduledpost.FieldUpdatedAt:
@@ -135,6 +140,14 @@ func (_m *ScheduledPost) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.AssetID = new(string)
 				*_m.AssetID = value.String
+			}
+		case scheduledpost.FieldAssetIds:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field asset_ids", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.AssetIds); err != nil {
+					return fmt.Errorf("unmarshal field asset_ids: %w", err)
+				}
 			}
 		case scheduledpost.FieldChannelConnectionID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -248,6 +261,9 @@ func (_m *ScheduledPost) String() string {
 		builder.WriteString("asset_id=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("asset_ids=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AssetIds))
 	builder.WriteString(", ")
 	builder.WriteString("channel_connection_id=")
 	builder.WriteString(_m.ChannelConnectionID)

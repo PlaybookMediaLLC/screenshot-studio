@@ -3,6 +3,17 @@ import { defineConfig, devices } from '@playwright/test'
 const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
 const recoveryTest = 'e2e/dependency-recovery.spec.ts'
 const testIgnore = process.env.E2E_INCLUDE_RECOVERY === 'true' ? undefined : [recoveryTest]
+// Every context starts with a saved cookie choice so the consent banner
+// never covers the controls a flow clicks.
+const storageState = {
+  cookies: [],
+  origins: [
+    {
+      origin: new URL(baseURL).origin,
+      localStorage: [{ name: 'shots-consent', value: '{"analytics":false,"ads":false}' }],
+    },
+  ],
+}
 
 export default defineConfig({
   expect: { timeout: 20_000 },
@@ -19,6 +30,7 @@ export default defineConfig({
   use: {
     baseURL,
     screenshot: 'only-on-failure',
+    storageState,
     trace: 'retain-on-failure',
   },
   projects: [

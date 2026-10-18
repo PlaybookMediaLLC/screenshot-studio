@@ -1,8 +1,8 @@
 # RFC 033: Monorepo Workspace Migration
 
 **Status:** Superseded
-**Status note (2026-10-16):** The backend SDK shipped as a second artifact without a workspace migration: CI publishes it to npm from main.
-**Superseded by:** the npm-published backend SDK in `packages/screenshot-studio-backend-sdk`
+**Status note (2026-10-17):** The editor package became the second shared package the app consumes, which is the trigger below. RFC 037 adopts npm workspaces with the app kept at the root. This document's cost analysis is out of date (it predates the Go backend owning product data, and mentions Prisma and Trigger.dev); its migration order and interim practice still apply.
+**Superseded by:** [RFC 037](037-workspaces-and-content-drafts.md)
 **Date:** 2026-08-19
 **Depends on:** none
 **Owners:** Engineering

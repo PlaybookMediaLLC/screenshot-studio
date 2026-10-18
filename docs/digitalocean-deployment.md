@@ -19,7 +19,7 @@ webhooks configured with the old host. The local `doctl` context is
 | Component | Source | Readiness | Exposure |
 | --- | --- | --- | --- |
 | `web` | Existing pinned GHCR image | `/api/health`, port 3000 | `/` |
-| `screenshot-studio-backend` | Public GHCR image built on GitHub | `/readyz`, port 3003 | `/postiz` on port 3000; prefix stripped |
+| `screenshot-studio-backend` | Public GHCR image built on GitHub | `/readyz`, port 3003 | Internal only: ports 3003 and 8082; the social API on 3000 is loopback-only |
 
 The web component retains its two replicas. The single Go
 backend container starts the Postiz API and worker plus the tenant publishing

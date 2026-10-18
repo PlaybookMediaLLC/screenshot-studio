@@ -143,8 +143,9 @@ def render(base, secrets, *, branch="main"):
     postiz_env += [secret(key, source) for key, source in provider_secret_sources.items() if secrets.get(source)]
     backend = service("screenshot-studio-backend", "services", "services/screenshot-studio-backend/backend/Dockerfile", 3000, "/readyz", "apps-s-1vcpu-2gb")
     merge_env(backend, postiz_env + [env("PORT", "3000"), env("RUN_CRON", "true"), env("RUN_WORKER", "true")])
-    # Public Postiz callbacks/API use their own prefix; tenant publishing stays private.
-    backend["http_port"] = 3000
+    # The social API on :3000 is reached only over loopback by the publishing
+    # worker; the backend has no public route.
+    backend.pop("http_port", None)
     backend["internal_ports"] = [3003]
     backend["health_check"]["port"] = 3003
     # Once GitHub has cut production over to a digest, subsequent config
@@ -191,7 +192,6 @@ def render(base, secrets, *, branch="main"):
                     secret("PUBLISHING_SERVICE_TOKEN")])
     rules = spec.setdefault("ingress", {}).setdefault("rules", [])
     rules[:] = [rule for rule in rules if rule.get("component", {}).get("name") not in ("postiz-backend", "screenshot-studio-backend")]
-    rules.insert(0, {"match": {"path": {"prefix": "/postiz"}}, "component": {"name": "screenshot-studio-backend"}})
     rules[:] = [rule for rule in rules if rule.get("component", {}).get("name") != "collab"]
     if collaboration:
         # Browsers open wss://<origin>/collab; the prefix is stripped before Hocuspocus.

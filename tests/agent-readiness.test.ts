@@ -17,6 +17,7 @@ import {
   renderNotFoundMarkdown,
 } from "../lib/agents/site-content";
 import { openApiSpec } from "../lib/api/openapi";
+import { apiKeyScopes } from "../lib/auth/api-key-scopes";
 import { apiErrorBody, apiError, methodNotAllowed, notFoundJson } from "../lib/api/errors";
 import { llmsTxt, llmsFullTxt } from "../lib/agents/llms";
 import { GET as getApiReference } from "../app/api-reference/route";
@@ -224,12 +225,17 @@ test("tenant OpenAPI operations declare the implemented X-API-Key scheme", () =>
   for (const [path, operations] of Object.entries(spec.paths)) {
     for (const operation of Object.values(operations)) {
       if (path.startsWith("/api/v1/")) {
-        // Tenant operations take an API key; shell operations describe the
-        // signed-in user and take only a session.
-        const expected = (operation as { tags?: string[] }).tags?.includes("Shell")
-          ? [{ workspaceSession: [] }]
-          : [{ workspaceApiKey: [] }];
-        assert.deepEqual(operation.security, expected, path);
+        // Tenant operations take an API key with one scope, or a member
+        // session. Shell operations and a person's decisions (approving,
+        // scheduling) take only a session.
+        const [first, ...rest] = operation.security ?? [];
+        if ("workspaceApiKey" in (first ?? {})) {
+          assert.equal(first.workspaceApiKey.length, 1, path);
+          assert.ok(apiKeyScopes.includes(first.workspaceApiKey[0] as never), path);
+          assert.deepEqual(rest, [{ workspaceSession: [] }], path);
+        } else {
+          assert.deepEqual(operation.security, [{ workspaceSession: [] }], path);
+        }
       }
     }
   }

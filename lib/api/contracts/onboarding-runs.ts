@@ -121,6 +121,7 @@ const scope = 'Requires the `onboarding:run` scope.'
 
 /** `POST /api/v1/onboarding-runs`: the fast path, then the background run. */
 export const createOnboardingRunContract = defineContract({
+  access: { apiKeyScope: 'onboarding:run', permission: 'workspace:update' },
   body: onboardingStartBodySchema,
   docs: workspaceDocs({
     bodyName: 'OnboardingRunCreateRequest',
@@ -145,6 +146,7 @@ export const createOnboardingRunContract = defineContract({
 
 /** `GET /api/v1/onboarding-runs/{runId}`: status and live progress. */
 export const getOnboardingRunContract = defineContract({
+  access: { apiKeyScope: 'onboarding:run', permission: 'workspace:read' },
   docs: workspaceDocs({
     description: `Returns a run's status, stage, and progress (0 to 100, never decreasing). While the run is active the progress is live. ${scope}`,
     operationId: 'getOnboardingRun',
@@ -164,6 +166,7 @@ export const getOnboardingRunContract = defineContract({
 
 /** `POST /api/v1/onboarding-runs/{runId}/cancel`. */
 export const cancelOnboardingRunContract = defineContract({
+  access: { apiKeyScope: 'onboarding:run', permission: 'workspace:update' },
   docs: workspaceDocs({
     description: `Stops an active run within seconds. Everything it already read is kept; cancelling a finished run changes nothing. ${scope}`,
     operationId: 'cancelOnboardingRun',
@@ -183,6 +186,7 @@ export const cancelOnboardingRunContract = defineContract({
 
 /** `POST /api/v1/onboarding-runs/{runId}/rerun`. */
 export const rerunOnboardingRunContract = defineContract({
+  access: { apiKeyScope: 'onboarding:run', permission: 'workspace:update' },
   docs: workspaceDocs({
     description: `Starts a new run for a run's URL. Pages read within the hour are reused and unchanged pages skip the model, so re-running an unchanged site costs nothing. Accepts \`Idempotency-Key\`. ${scope}`,
     operationId: 'rerunOnboardingRun',
@@ -220,6 +224,7 @@ export const onboardingEnrichmentSchema = z.object({
 
 /** `GET /api/v1/onboarding-runs/{runId}/enrichment`. */
 export const listOnboardingEnrichmentContract = defineContract({
+  access: { apiKeyScope: 'onboarding:run', permission: 'workspace:read' },
   docs: workspaceDocs({
     description: `Lists what enrichment found for the run's site: brand assets, firmographics, social reach, app store listings, competitors, and mentions, each with its provider, confidence, source, and cost. ${scope}`,
     operationId: 'listOnboardingEnrichment',

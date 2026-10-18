@@ -5,14 +5,10 @@ import { deleteAsset } from '@/lib/tenant/assets'
 
 /** Delete an uploaded asset that no creative variant uses. */
 export const DELETE = route(deleteAssetContract, {
-  // No `feature` here on purpose. The `asset:delete` plan gate runs inside
-  // `deleteAsset`, after ownership is resolved, so a caller cannot learn that
-  // a foreign asset exists by comparing a 403 against a 404.
-  auth: tenantAccess({
-    apiKeyScope: 'asset:write',
-    permission: 'artifact:edit',
-    quota: 'api:write:minute',
-  }),
+  // The `asset:delete` gate runs here before any lookup, so every identifier
+  // gets the same 403 on a plan without it, and again inside `deleteAsset`
+  // so other transports cannot skip it.
+  auth: tenantAccess(deleteAssetContract.access),
   handler: async ({ access, params }) => {
     const result = await deleteAsset(access, params.assetId)
     const outcome = assetDeletionResultSchema.enum

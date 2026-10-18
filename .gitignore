@@ -52,6 +52,7 @@ public/backgrounds
 !/scripts/verify-rfcs.py
 !/scripts/indexnow.ts
 !/scripts/bind-postiz-tenant.ts
+!/scripts/openapi.ts
 
 /lib/generated/prisma
 /services/.social-gate-bin/

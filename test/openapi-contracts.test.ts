@@ -5,15 +5,18 @@ import test from 'node:test'
 import { type RouteContract, routeContractSchema } from '@/lib/api/contract'
 import { documentedContracts } from '@/lib/api/contracts'
 import * as ai from '@/lib/api/contracts/ai'
+import * as approvals from '@/lib/api/contracts/approvals'
 import * as assets from '@/lib/api/contracts/assets'
 import * as audit from '@/lib/api/contracts/audit'
 import * as billing from '@/lib/api/contracts/billing'
+import * as campaigns from '@/lib/api/contracts/campaigns'
 import * as contentDrafts from '@/lib/api/contracts/content-drafts'
 import * as integrations from '@/lib/api/contracts/integrations'
 import * as internal from '@/lib/api/contracts/internal'
 import * as linkPreview from '@/lib/api/contracts/link-preview'
 import * as onboardingRuns from '@/lib/api/contracts/onboarding-runs'
 import * as releases from '@/lib/api/contracts/releases'
+import * as scheduledPosts from '@/lib/api/contracts/scheduled-posts'
 import * as sharing from '@/lib/api/contracts/sharing'
 import * as shell from '@/lib/api/contracts/shell'
 import * as sourceApps from '@/lib/api/contracts/source-apps'
@@ -22,21 +25,25 @@ import * as storeScreenshots from '@/lib/api/contracts/store-screenshots'
 import * as unsubscribe from '@/lib/api/contracts/unsubscribe'
 import * as webhooks from '@/lib/api/contracts/webhooks'
 import { openApiSpec } from '@/lib/api/openapi'
+import { getMinimumPlan } from '@/lib/billing/plans'
 
 const ROOT = process.cwd()
 
 const contracts = new Map<string, RouteContract>(
   [
     ai,
+    approvals,
     assets,
     audit,
     billing,
+    campaigns,
     contentDrafts,
     integrations,
     internal,
     linkPreview,
     onboardingRuns,
     releases,
+    scheduledPosts,
     sharing,
     shell,
     sourceApps,
@@ -114,4 +121,113 @@ test('contracts accept what the Go backend actually sends', () => {
     organization: { id: 'org_1', logo: null, name: 'Acme', role: 'owner', slug: 'acme' },
   })
   assert.ok(parsed.success)
+})
+
+test('a contract that declares access binds it, and the spec publishes it', () => {
+  const paths = openApiSpec.paths as Record<string, Record<string, Record<string, unknown>>>
+  for (const [name, contract] of contracts) {
+    if (!contract.access) continue
+    const tenant = 'apiKeyScope' in contract.access
+    const auth = tenant ? 'tenantAccess' : 'memberAccess'
+    const source = readFileSync(join(ROOT, routeFileFor(contract)), 'utf8')
+    assert.match(
+      source,
+      new RegExp(`auth: ${auth}\\(${name}\\.access\\)`),
+      `${name} must bind ${auth}`
+    )
+    if (!contract.docs) continue
+    const operation = paths[contract.path][contract.method.toLowerCase()]
+    const feature = contract.access.feature ?? 'workspace:use'
+    assert.deepEqual(
+      operation['x-shots-entitlement'],
+      {
+        feature,
+        minimumPlan: getMinimumPlan(feature),
+        ...(contract.access.quota ? { quota: contract.access.quota } : {}),
+      },
+      name
+    )
+    assert.deepEqual(
+      operation.security,
+      'apiKeyScope' in contract.access
+        ? [{ workspaceApiKey: [contract.access.apiKeyScope] }, { workspaceSession: [] }]
+        : [{ workspaceSession: [] }],
+      name
+    )
+  }
+})
+
+test('every tenant /api/v1 operation and editor utility publishes its plan gate', () => {
+  const paths = openApiSpec.paths as Record<string, Record<string, Record<string, unknown>>>
+  const ungated = Object.entries(paths).flatMap(([path, item]) =>
+    Object.entries(item)
+      .filter(([, operation]) => {
+        const security = JSON.stringify(operation.security ?? [])
+        return security.includes('workspaceApiKey') && !operation['x-shots-entitlement']
+      })
+      .map(([method]) => `${method.toUpperCase()} ${path}`)
+  )
+  assert.deepEqual(ungated, [])
+})
+
+test('approving is human-only; agents ask for review and schedule only with post:schedule', () => {
+  assert.ok(
+    !('apiKeyScope' in approvals.decideCampaignApprovalContract.access),
+    'approving must refuse API keys'
+  )
+  assert.equal(approvals.requestCampaignReviewContract.access.apiKeyScope, 'release:create')
+  assert.equal(scheduledPosts.listScheduledPostsContract.access.apiKeyScope, 'artifact:read')
+  for (const contract of [
+    campaigns.scheduleCampaignPostContract,
+    scheduledPosts.createScheduledPostContract,
+    scheduledPosts.cancelScheduledPostContract,
+  ]) {
+    assert.equal(contract.access.apiKeyScope, 'post:schedule', contract.name)
+    assert.equal(contract.access.quota, 'api:write:minute', contract.name)
+  }
+  // A session still needs a fresh second factor where RFC 020 asks for one.
+  assert.equal(scheduledPosts.createScheduledPostContract.access.sensitive, true)
+  assert.equal(scheduledPosts.cancelScheduledPostContract.access.sensitive, true)
+  const schedule = campaigns.scheduleCampaignPostContract.body
+  const channel = { channelConnectionId: 'cl0000000000000000000000' }
+  assert.equal(schedule.parse(channel).skipLinkCheck, false)
+  assert.ok(!schedule.safeParse({ ...channel, scheduledAt: '2020-01-01T09:00:00Z' }).success)
+  assert.ok(!schedule.safeParse({ ...channel, status: 'APPROVED' }).success)
+  const body = approvals.decideCampaignApprovalContract.body
+  assert.ok(!body.safeParse({ decision: 'submit' }).success, 'submit is a review request')
+  assert.ok(body.safeParse({ decision: 'approve' }).success)
+  assert.ok(!body.safeParse({ decision: 'approve', organizationId: 'org_2' }).success)
+})
+
+test('new mutation bodies reject unknown fields', () => {
+  const campaign = { name: 'Launch', objective: 'Adoption' }
+  assert.ok(campaigns.createCampaignContract.body.safeParse(campaign).success)
+  assert.ok(
+    !campaigns.createCampaignContract.body.safeParse({ ...campaign, status: 'APPROVED' }).success
+  )
+  assert.ok(
+    !campaigns.transitionCampaignContract.body.safeParse({ campaignId: 'c1', status: 'DRAFT' })
+      .success
+  )
+  assert.ok(
+    !approvals.requestCampaignReviewContract.body.safeParse({ decision: 'approve' }).success
+  )
+  const scheduled = {
+    caption: 'Hello',
+    channelConnectionId: 'cl0000000000000000000000',
+    scheduledFor: '2999-01-01T09:00:00Z',
+    variantId: 'cl0000000000000000000001',
+  }
+  assert.ok(scheduledPosts.createScheduledPostContract.body.safeParse(scheduled).success)
+  assert.ok(
+    !scheduledPosts.createScheduledPostContract.body.safeParse({
+      ...scheduled,
+      scheduledFor: '2000-01-01T00:00:00Z',
+    }).success
+  )
+})
+
+test('the committed OpenAPI snapshot is the document /openapi.json serves', () => {
+  const committed = readFileSync(join(ROOT, 'services/internal/shotsapi/openapi.json'), 'utf8')
+  assert.equal(committed, `${JSON.stringify(openApiSpec, null, 2)}\n`, 'run npm run api:generate')
 })

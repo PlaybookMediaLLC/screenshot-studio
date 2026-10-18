@@ -26,6 +26,7 @@ import (
 type Store interface {
 	Ping(context.Context) error
 	AuthorizePublishing(context.Context, string, string, string) error
+	AuthorizeAPIKeyScope(context.Context, string, string, string) error
 	Binding(context.Context, string) (*ent.PostizTenantBinding, error)
 	StartOAuth(context.Context, publishing.Actor, string, string, string, string) error
 	OAuthStart(context.Context, publishing.Actor, string, string, string, *string) (*ent.SocialOAuthStart, error)
@@ -187,12 +188,13 @@ type ConfigurationStore interface {
 	ReadAsset(context.Context, product.Actor, string) ([]byte, string, error)
 	StoreGeneratedAsset(context.Context, product.Actor, product.GeneratedAssetInput) (*product.GeneratedAssetRecord, error)
 	ConsumeWorkspaceQuota(context.Context, product.Actor, string, int) (int, error)
-	ChargeMonthlyQuota(context.Context, string, string, int) (func(), error)
+	CreateScheduledPost(context.Context, product.Actor, publishing.CreateScheduledPostInput) (publishing.CreateScheduledPostResult, error)
 	ListReleases(context.Context, product.Actor, int) ([]product.ReleaseListItem, error)
 	GetRelease(context.Context, product.Actor, string) (*product.ReleaseDetail, error)
 	CreateRelease(context.Context, product.Actor, product.CreateReleaseInput) (*product.ReleaseCreation, error)
 	UpdateRelease(context.Context, product.Actor, string, product.UpdateReleaseInput) (*product.ReleaseDetail, error)
 	ListCampaigns(context.Context, product.Actor) ([]product.CampaignItem, error)
+	ListPendingApprovals(context.Context, product.Actor, int, string) (*product.ApprovalPage, error)
 	GetCampaign(context.Context, product.Actor, string) (*product.CampaignDetail, error)
 	CreateCampaign(context.Context, product.Actor, product.CreateCampaignInput) (*product.CampaignDetail, error)
 	TransitionCampaign(context.Context, product.Actor, string, string) (*product.CampaignTransition, error)
@@ -256,9 +258,9 @@ func NewWithOnboarding(store Store, scheduler WorkflowScheduler, verifier Destin
 	mux.Handle("POST /v1/social-oauth/verify", s.authenticate(http.HandlerFunc(s.verifySocialOAuth)))
 	mux.Handle("POST /v1/social-oauth/remember", s.authenticate(http.HandlerFunc(s.rememberSocialOAuth)))
 	mux.Handle("POST /v1/social-oauth/complete", s.authenticate(http.HandlerFunc(s.completeSocialOAuth)))
-	mux.Handle("GET /v1/scheduled-posts", s.authenticate(http.HandlerFunc(s.listScheduledPosts)))
-	mux.Handle("POST /v1/scheduled-posts", s.authenticate(http.HandlerFunc(s.createScheduledPost)))
-	mux.Handle("POST /v1/scheduled-posts/{id}/cancel", s.authenticate(http.HandlerFunc(s.cancelScheduledPost)))
+	mux.Handle("GET /v1/scheduled-posts", s.authenticatePublishing("artifact:read", s.listScheduledPosts))
+	mux.Handle("POST /v1/scheduled-posts", s.authenticatePublishing(product.PostScheduleScope, s.createScheduledPost))
+	mux.Handle("POST /v1/scheduled-posts/{id}/cancel", s.authenticatePublishing(product.PostScheduleScope, s.cancelScheduledPost))
 	if configuration != nil {
 		s.registerConfiguration(mux)
 		s.registerWorkspace(mux)
@@ -302,6 +304,21 @@ func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 func (s *Server) authenticate(next http.Handler) http.Handler {
 	return s.authenticateWithOptions(next, true, true, func(ctx context.Context, actor product.Actor) error {
 		return s.store.AuthorizePublishing(ctx, actor.OrganizationID, actor.UserID, actor.SessionID)
+	})
+}
+
+// authenticatePublishing admits a publisher's session, or an API key the
+// backend itself finds was issued with scope: agents may read and change the
+// schedule, while only a person approves what is on it (RFC 038).
+func (s *Server) authenticatePublishing(scope string, next http.HandlerFunc) http.Handler {
+	return s.authenticateWithOptions(next, true, false, func(ctx context.Context, actor product.Actor) error {
+		switch {
+		case actor.IsSession():
+			return s.store.AuthorizePublishing(ctx, actor.OrganizationID, actor.UserID, actor.SessionID)
+		case actor.Kind == "api_key":
+			return s.store.AuthorizeAPIKeyScope(ctx, actor.OrganizationID, actor.KeyID, scope)
+		}
+		return publishing.ErrForbidden
 	})
 }
 
@@ -515,28 +532,22 @@ func (s *Server) createScheduledPost(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "scheduledFor must be in the future")
 		return
 	}
-	refund := func() {}
-	if s.configuration != nil {
-		charged, err := s.configuration.ChargeMonthlyQuota(r.Context(), actor.Organization, product.QuotaPosts, 1)
-		if err != nil {
-			writeStoreError(w, err)
-			return
-		}
-		refund = charged
-	}
-	result, err := s.store.CreateScheduledPost(r.Context(), actor, publishing.CreateScheduledPostInput{
+	create := publishing.CreateScheduledPostInput{
 		Caption: input.Caption, ChannelConnectionID: input.ChannelConnectionID,
 		ContentDraftID: input.ContentDraftID, IdempotencyKey: input.IdempotencyKey, ScheduledFor: input.ScheduledFor,
 		VariantID: input.VariantID,
-	})
+	}
+	var result publishing.CreateScheduledPostResult
+	var err error
+	if s.configuration != nil {
+		// The domain charges the monthly posts allowance, for REST and MCP alike.
+		result, err = s.configuration.CreateScheduledPost(r.Context(), requestActor(r), create)
+	} else {
+		result, err = s.store.CreateScheduledPost(r.Context(), actor, create)
+	}
 	if err != nil {
-		refund()
 		writeStoreError(w, err)
 		return
-	}
-	if !result.Created {
-		// An idempotent replay was already counted when it was created.
-		refund()
 	}
 	if result.Post.Status == scheduledpost.StatusSCHEDULED {
 		if err := s.scheduler.Start(r.Context(), temporalpublishing.ScheduleInput{
@@ -597,7 +608,11 @@ func (s *Server) cancelScheduledPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func actorFromRequest(w http.ResponseWriter, r *http.Request, requireUser bool) (publishing.Actor, bool) {
-	userID := r.Header.Get("X-User-ID")
+	userID, actorType := r.Header.Get("X-User-ID"), "USER"
+	if !requestActor(r).IsSession() {
+		// An API key has no user; the audit records it as a service by its name.
+		requireUser, actorType = false, "SERVICE"
+	}
 	if requireUser && userID == "" {
 		writeError(w, http.StatusBadRequest, "X-User-ID is required")
 		return publishing.Actor{}, false
@@ -606,9 +621,11 @@ func actorFromRequest(w http.ResponseWriter, r *http.Request, requireUser bool) 
 	if requestID == "" {
 		requestID = fmt.Sprintf("backend-%d", time.Now().UnixNano())
 	}
+	// The SDK names the actor in X-Principal-Display; the scheduled post audit
+	// rows (post.scheduled, post.cancelled) record it.
 	return publishing.Actor{
-		Display: r.Header.Get("X-Actor-Display"), Organization: r.Header.Get("X-Organization-ID"),
-		RequestID: requestID, Type: "USER", UserID: userID,
+		Display: r.Header.Get("X-Principal-Display"), Organization: r.Header.Get("X-Organization-ID"),
+		RequestID: requestID, Type: actorType, UserID: userID,
 	}, true
 }
 

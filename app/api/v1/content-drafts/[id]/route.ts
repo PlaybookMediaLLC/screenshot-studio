@@ -16,7 +16,7 @@ const notFound = () => errorResponse(404, 'Content draft not found.')
 
 /** One content draft. */
 export const GET = route(getContentDraftContract, {
-  auth: tenantAccess({ apiKeyScope: 'artifact:read', permission: 'artifact:read' }),
+  auth: tenantAccess(getContentDraftContract.access),
   handler: async ({ access, params }) => {
     if (!contentDraftsEnabled()) return notFound()
     return (await getContentDraft(access, params.id)) ?? notFound()
@@ -25,7 +25,7 @@ export const GET = route(getContentDraftContract, {
 
 /** Update a draft based on the version the client last saw; stale writes get 409. */
 export const PATCH = route(updateContentDraftContract, {
-  auth: tenantAccess({ apiKeyScope: 'draft:write', permission: 'artifact:edit' }),
+  auth: tenantAccess(updateContentDraftContract.access),
   handler: async ({ access, body, params }) => {
     if (!contentDraftsEnabled()) return notFound()
     return (await updateContentDraft(access, params.id, body)) ?? notFound()
@@ -34,7 +34,7 @@ export const PATCH = route(updateContentDraftContract, {
 
 /** Delete a content draft. */
 export const DELETE = route(deleteContentDraftContract, {
-  auth: tenantAccess({ apiKeyScope: 'draft:write', permission: 'artifact:edit' }),
+  auth: tenantAccess(deleteContentDraftContract.access),
   handler: async ({ access, params }) => {
     if (!contentDraftsEnabled()) return notFound()
     return (await deleteContentDraft(access, params.id)) ? { deleted: true as const } : notFound()

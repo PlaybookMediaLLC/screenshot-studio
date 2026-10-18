@@ -37,15 +37,17 @@ type CampaignPostInput struct {
 }
 
 type CreateCampaignInput struct {
-	Angles           []CampaignAngleInput `json:"angles"`
-	Audience         *string              `json:"audience"`
-	Feature          *string              `json:"feature"`
-	Messaging        *string              `json:"messaging"`
-	Name             string               `json:"name"`
-	Objective        string               `json:"objective"`
-	Posts            []CampaignPostInput  `json:"posts"`
-	ProductSurfaceID *string              `json:"productSurfaceId"`
-	ReleaseID        *string              `json:"releaseId"`
+	Angles   []CampaignAngleInput `json:"angles"`
+	Audience *string              `json:"audience"`
+	Feature  *string              `json:"feature"`
+	// IdempotencyKey makes a retried create return the first campaign.
+	IdempotencyKey   *string             `json:"idempotencyKey"`
+	Messaging        *string             `json:"messaging"`
+	Name             string              `json:"name"`
+	Objective        string              `json:"objective"`
+	Posts            []CampaignPostInput `json:"posts"`
+	ProductSurfaceID *string             `json:"productSurfaceId"`
+	ReleaseID        *string             `json:"releaseId"`
 }
 
 type CampaignReleaseLink struct {
@@ -141,6 +143,8 @@ type CampaignReleaseDetail struct {
 
 type CampaignDetail struct {
 	CampaignItem
+	// Created is set by CreateCampaign: false when an idempotency key replayed.
+	Created        *bool                  `json:"created,omitempty"`
 	Angles         []CampaignAngle        `json:"angles"`
 	Assets         []CampaignAssetItem    `json:"assets"`
 	Posts          []CampaignPostItem     `json:"posts"`
@@ -298,6 +302,9 @@ func campaignPostTexts(posts []CampaignPostInput) []string {
 }
 
 func validCampaignCreate(input CreateCampaignInput) bool {
+	if input.IdempotencyKey != nil && (*input.IdempotencyKey == "" || len(*input.IdempotencyKey) > 128) {
+		return false
+	}
 	if strings.TrimSpace(input.Name) == "" || utf8.RuneCountInString(input.Name) > 160 ||
 		strings.TrimSpace(input.Objective) == "" || utf8.RuneCountInString(input.Objective) > 500 ||
 		len(input.Angles) > 20 || len(input.Posts) > 50 {
@@ -336,8 +343,15 @@ func (c *Configuration) CreateCampaign(ctx context.Context, actor Actor, input C
 		return nil, err
 	}
 	input.Name, input.Objective = strings.TrimSpace(input.Name), strings.TrimSpace(input.Objective)
+	if input.IdempotencyKey != nil {
+		key := strings.TrimSpace(*input.IdempotencyKey)
+		input.IdempotencyKey = &key
+	}
 	if !validCampaignCreate(input) {
 		return nil, ErrInvalidInput
+	}
+	if replayed, err := c.replayCampaign(ctx, actor, input.IdempotencyKey); replayed != nil || err != nil {
+		return replayed, err
 	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
@@ -396,7 +410,13 @@ func (c *Configuration) CreateCampaign(ctx context.Context, actor Actor, input C
 	if actor.UserID != "" {
 		create.SetCreatedByUserID(actor.UserID)
 	}
+	create.SetNillableIdempotencyKey(input.IdempotencyKey)
 	if _, err := create.Save(ctx); err != nil {
+		// A concurrent create with the same key won; return its campaign.
+		if ent.IsConstraintError(err) && input.IdempotencyKey != nil {
+			_ = tx.Rollback()
+			return c.replayCampaign(ctx, actor, input.IdempotencyKey)
+		}
 		return nil, err
 	}
 	angleIDs := make([]string, 0, len(input.Angles))
@@ -430,7 +450,36 @@ func (c *Configuration) CreateCampaign(ctx context.Context, actor Actor, input C
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	return c.GetCampaign(ctx, actor, id)
+	detail, err := c.GetCampaign(ctx, actor, id)
+	if err != nil {
+		return nil, err
+	}
+	created := true
+	detail.Created = &created
+	return detail, nil
+}
+
+// replayCampaign returns the campaign an earlier create with this
+// idempotency key made in the workspace, or nil when there is none.
+func (c *Configuration) replayCampaign(ctx context.Context, actor Actor, key *string) (*CampaignDetail, error) {
+	if key == nil {
+		return nil, nil
+	}
+	id, err := c.client.Campaign.Query().Where(campaign.OrganizationID(actor.OrganizationID),
+		campaign.IdempotencyKey(*key)).OnlyID(ctx)
+	if ent.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	detail, err := c.GetCampaign(ctx, actor, id)
+	if err != nil {
+		return nil, err
+	}
+	created := false
+	detail.Created = &created
+	return detail, nil
 }
 
 // UpdateCampaignPostInput is a person's edit to a post. ExpectedCopy is the

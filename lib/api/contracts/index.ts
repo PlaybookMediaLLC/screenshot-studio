@@ -1,9 +1,21 @@
 import {
+  decideCampaignApprovalContract,
+  listApprovalsContract,
+  requestCampaignReviewContract,
+} from '@/lib/api/contracts/approvals'
+import {
   completeAssetUploadContract,
   createAssetDownloadUrlContract,
   createAssetUploadUrlContract,
   deleteAssetContract,
 } from '@/lib/api/contracts/assets'
+import {
+  createCampaignContract,
+  getCampaignContract,
+  listCampaignsContract,
+  scheduleCampaignPostContract,
+  transitionCampaignContract,
+} from '@/lib/api/contracts/campaigns'
 import {
   createContentDraftContract,
   deleteContentDraftContract,
@@ -21,6 +33,11 @@ import {
   rerunOnboardingRunContract,
 } from '@/lib/api/contracts/onboarding-runs'
 import { createReleaseContract, listReleasesContract } from '@/lib/api/contracts/releases'
+import {
+  cancelScheduledPostContract,
+  createScheduledPostContract,
+  listScheduledPostsContract,
+} from '@/lib/api/contracts/scheduled-posts'
 import {
   activateOrganizationContract,
   getBootstrapContract,
@@ -46,6 +63,17 @@ export const documentedContracts = [
   completeAssetUploadContract,
   createAssetDownloadUrlContract,
   deleteAssetContract,
+  listCampaignsContract,
+  createCampaignContract,
+  getCampaignContract,
+  transitionCampaignContract,
+  listApprovalsContract,
+  requestCampaignReviewContract,
+  decideCampaignApprovalContract,
+  scheduleCampaignPostContract,
+  listScheduledPostsContract,
+  createScheduledPostContract,
+  cancelScheduledPostContract,
   listContentDraftsContract,
   createContentDraftContract,
   getContentDraftContract,

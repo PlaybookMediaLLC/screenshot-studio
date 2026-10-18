@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { ContractAccess } from '@/lib/api/access-requirements'
 import {
   type ContractDocs,
   type DocumentedStatus,
@@ -8,6 +9,7 @@ import {
 import { documentedContracts } from '@/lib/api/contracts'
 import { platformErrorBodySchema } from '@/lib/api/platform-errors'
 import {
+  getMinimumPlan,
   workspaceFeatureSchema,
   workspacePlanSchema,
   workspaceQuotaSchema,
@@ -103,6 +105,40 @@ function requestBodyFor(contract: RouteContract, docs: ContractDocs): OpenApiObj
   return { requestBody: { required: true, ...jsonContent(schema) } }
 }
 
+/**
+ * The plan gate an operation publishes as `x-shots-entitlement`. Every tenant
+ * operation needs `workspace:use`; a declared feature is the stricter gate.
+ */
+export const shotsEntitlementSchema = z.object({
+  feature: workspaceFeatureSchema,
+  minimumPlan: workspacePlanSchema,
+  quota: workspaceQuotaSchema.optional(),
+})
+
+/** One of {@link shotsEntitlementSchema}. */
+export type ShotsEntitlement = z.infer<typeof shotsEntitlementSchema>
+
+/** The `x-shots-entitlement` of an operation that declares `access`. */
+export function entitlementFor(access: ContractAccess): ShotsEntitlement {
+  const feature = access.feature ?? workspaceFeatureSchema.enum['workspace:use']
+  return shotsEntitlementSchema.parse({
+    feature,
+    minimumPlan: getMinimumPlan(feature),
+    ...(access.quota ? { quota: access.quota } : {}),
+  })
+}
+
+/**
+ * The OpenAPI security requirements. A tenant operation takes an API key with
+ * its scope, or a member session; a member operation takes the session only.
+ */
+function securityFor(contract: RouteContract, docs: ContractDocs): OpenApiObject[] {
+  const { access } = contract
+  if (!access) return [{ [docs.security ?? 'workspaceSession']: [] }]
+  const session = { workspaceSession: [] }
+  return 'apiKeyScope' in access ? [{ workspaceApiKey: [access.apiKeyScope] }, session] : [session]
+}
+
 function operationFor(contract: RouteContract, docs: ContractDocs): OpenApiObject {
   const parameters = [
     ...parametersIn(contract.params, 'path'),
@@ -111,6 +147,7 @@ function operationFor(contract: RouteContract, docs: ContractDocs): OpenApiObjec
   ]
   return {
     ...docs.extensions,
+    ...(contract.access ? { 'x-shots-entitlement': entitlementFor(contract.access) } : {}),
     description: docs.description,
     operationId: docs.operationId,
     ...(parameters.length ? { parameters } : {}),
@@ -121,7 +158,7 @@ function operationFor(contract: RouteContract, docs: ContractDocs): OpenApiObjec
         responseFor(contract, status as DocumentedStatus, description),
       ])
     ),
-    security: [{ [docs.security]: [] }],
+    security: securityFor(contract, docs),
     summary: contract.summary,
     tags: [docs.tag],
   }

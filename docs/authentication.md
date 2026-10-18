@@ -92,10 +92,12 @@ organization membership and named permission. Organization API keys can only
 use these scopes:
 
 ```text
-release:create, source:write, asset:write, upload:sign, artifact:read
+release:create, source:write, asset:write, upload:sign, artifact:read, post:schedule
 ```
 
-They cannot manage users, SSO, SCIM, drains, retention, or publishing.
+They cannot manage users, SSO, SCIM, drains, retention, or channel connections.
+They never approve content. A key with `post:schedule` may schedule what a
+person approved and cancel scheduled posts (RFC 038).
 
 ## Enterprise identity
 

@@ -150,6 +150,45 @@ jobs:
       - run: helm lint charts/screenshot-studio --values charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local
       - run: helm template screenshot-studio charts/screenshot-studio --values charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local > /dev/null
 
+  # The public contract: the committed OpenAPI document and typed client must
+  # match the zod contracts, and a pull request may not break the document
+  # unless the break is listed in breaking-changes-allowed.txt (RFC 034).
+  openapi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/go.mod
+          cache: false
+      - run: npm ci
+      - name: Verify the OpenAPI document and typed client are current
+        run: |
+          npm run api:generate
+          git diff --exit-code -- services/internal/shotsapi packages/shots-api-client/src
+      - name: Build the typed client
+        run: npx tsc -p packages/shots-api-client/tsconfig.json --noEmit
+      - name: Block unintended breaking API changes
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          document=services/internal/shotsapi/openapi.json
+          if ! git cat-file -e "$BASE:$document" 2>/dev/null; then
+            echo "The base revision has no OpenAPI document to compare against."
+            exit 0
+          fi
+          git show "$BASE:$document" > "$RUNNER_TEMP/base-openapi.json"
+          go run github.com/oasdiff/oasdiff@v1.33.0 breaking "$RUNNER_TEMP/base-openapi.json" "$document" \
+            --fail-on ERR --format githubactions \
+            --err-ignore services/internal/shotsapi/breaking-changes-allowed.txt
+
   # Runs in parallel with validate rather than after it. The two jobs
   # share no outputs, and the serial order added the whole validate
   # duration to every release. The cost is integration runner minutes
@@ -202,6 +241,9 @@ jobs:
         run: ./bin/studio up
       - name: Run local stack smoke test
         run: ./bin/studio smoke
+      - name: Smoke test the API reference, OpenAPI document, and agent endpoints
+        if: matrix.shard_index == 1
+        run: VERIFY_BASE_URL=http://127.0.0.1:3000 npm run verify:agents
       - name: Verify tenant isolation
         run: ./bin/studio tenant-isolation
       - name: Verify browser end-to-end flows

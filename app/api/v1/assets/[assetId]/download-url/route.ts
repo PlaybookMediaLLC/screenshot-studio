@@ -5,7 +5,7 @@ import { signAssetDownload } from '@/lib/tenant/assets'
 
 /** A short-lived signed download URL for a ready asset. */
 export const GET = route(createAssetDownloadUrlContract, {
-  auth: tenantAccess({ apiKeyScope: 'artifact:read', permission: 'artifact:read' }),
+  auth: tenantAccess(createAssetDownloadUrlContract.access),
   handler: async ({ access, params }) => {
     const downloadUrl = await signAssetDownload(access, params.assetId)
     return downloadUrl ? { downloadUrl } : errorResponse(404, 'Asset not found.')

@@ -232,11 +232,11 @@ func init() {
 	campaignFields := schema.Campaign{}.Fields()
 	_ = campaignFields
 	// campaignDescCreatedAt is the schema descriptor for created_at field.
-	campaignDescCreatedAt := campaignFields[11].Descriptor()
+	campaignDescCreatedAt := campaignFields[12].Descriptor()
 	// campaign.DefaultCreatedAt holds the default value on creation for the created_at field.
 	campaign.DefaultCreatedAt = campaignDescCreatedAt.Default.(func() time.Time)
 	// campaignDescUpdatedAt is the schema descriptor for updated_at field.
-	campaignDescUpdatedAt := campaignFields[12].Descriptor()
+	campaignDescUpdatedAt := campaignFields[13].Descriptor()
 	// campaign.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	campaign.DefaultUpdatedAt = campaignDescUpdatedAt.Default.(func() time.Time)
 	// campaign.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

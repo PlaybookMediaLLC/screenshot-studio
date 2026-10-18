@@ -3,6 +3,7 @@
 **Status:** Partially implemented (see `lib/tenant/publishing-backend.ts` and `services/internal/publishing`)
 **Status note (2026-10-17):** Settings → Channels connects X, LinkedIn and Instagram, and the launch Schedule dialog schedules approved posts (#129). Missing: disconnect, provider token revocation, and publishing for the Facebook Login Instagram flow.
 **Phase 0 update (2026-10-16):** Launch visuals become schedulable: `ApproveCampaignDesign` creates an approved creative variant from a design's render, and `ScheduleCampaignPost` accepts that variant, checks the post channel against the connection platform, and reschedules after CANCELLED or FAILED (never after UNKNOWN_DELIVERY). Posts report their scheduled post's state instead of a write-back from the publish workers. The Approve visual, Schedule, and Channels screens ship with SDK 0.1.12.
+**RFC 038 update (2026-10-17):** A workspace API key with the opt-in `post:schedule` scope may schedule approved content and cancel scheduled posts, through `/api/v1` and MCP. See Agents under Authorization.  
 **Date:** 2026-08-17
 **Revised:** 2026-10-14
 **Depends on:** RFC 005 and RFC 019
@@ -179,6 +180,26 @@ scoped by `organizationId`, so a `channelConnectionId` naming another
 tenant's connection selects nothing and returns `404` rather than a
 permission error.
 The surface does not confirm the existence of records the caller cannot see.
+
+### Agents
+
+RFC 038 lets an agent schedule, because the owners asked for it. An agent
+still never approves anything. A workspace API key may change the schedule
+only when an owner or admin gave it the `post:schedule` scope. That scope is
+never on by default, in Settings or on the agent consent page. With it, the key
+may:
+
+- create a scheduled post;
+- cancel a scheduled post;
+- schedule an approved campaign post (`ScheduleCampaignPost`).
+
+A key reads the schedule with `artifact:read`.
+
+For an agent, the proof of a person moves to two places: the person who
+approved the content, and the person who granted the scope. A key has no second
+factor to check, so the fresh-2FA rule above still applies to sessions only.
+The Go backend rechecks the key's scope itself (`AuthorizeAPIKeyScope`) before
+it schedules or cancels. It does not rely on the caller's check.
 
 The same lookup carries two further predicates that make scheduling fail closed:
 the connection must be `ACTIVE`, and the variant must be `APPROVED` with an

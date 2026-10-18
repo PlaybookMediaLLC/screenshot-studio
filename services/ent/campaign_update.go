@@ -304,6 +304,9 @@ func (_u *CampaignUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.CreatedByUserIDCleared() {
 		_spec.ClearField(campaign.FieldCreatedByUserID, field.TypeString)
 	}
+	if _u.mutation.IdempotencyKeyCleared() {
+		_spec.ClearField(campaign.FieldIdempotencyKey, field.TypeString)
+	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(campaign.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -632,6 +635,9 @@ func (_u *CampaignUpdateOne) sqlSave(ctx context.Context) (_node *Campaign, err 
 	}
 	if _u.mutation.CreatedByUserIDCleared() {
 		_spec.ClearField(campaign.FieldCreatedByUserID, field.TypeString)
+	}
+	if _u.mutation.IdempotencyKeyCleared() {
+		_spec.ClearField(campaign.FieldIdempotencyKey, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(campaign.FieldUpdatedAt, field.TypeTime, value)

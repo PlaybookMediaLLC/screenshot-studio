@@ -54,6 +54,7 @@ func (s *Server) registerWorkspace(mux *http.ServeMux) {
 	mux.Handle("POST /v1/campaigns/{id}/posts/submit", s.authenticateProduct(http.HandlerFunc(s.submitCampaignPosts)))
 	mux.Handle("POST /v1/campaigns/{id}/posts/{postId}/schedule", s.authenticateProduct(http.HandlerFunc(s.scheduleCampaignPost)))
 	mux.Handle("GET /v1/campaigns/{id}/designs", s.authenticateProduct(http.HandlerFunc(s.listCampaignDesigns)))
+	mux.Handle("GET /v1/approvals", s.authenticateProduct(http.HandlerFunc(s.listApprovals)))
 	mux.Handle("POST /v1/designs", s.authenticateProduct(http.HandlerFunc(s.createDesign)))
 	mux.Handle("GET /v1/designs/{id}", s.authenticateProduct(http.HandlerFunc(s.getDesign)))
 	mux.Handle("PUT /v1/designs/{id}/document", s.authenticateProduct(http.HandlerFunc(s.updateDesignDocument)))

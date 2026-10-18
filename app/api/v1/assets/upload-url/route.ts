@@ -5,6 +5,6 @@ import { signAssetUpload } from '@/lib/tenant/assets'
 
 /** Record a pending asset and return a signed upload URL for it. */
 export const POST = route(createAssetUploadUrlContract, {
-  auth: tenantAccess({ apiKeyScope: 'upload:sign', permission: 'artifact:edit' }),
+  auth: tenantAccess(createAssetUploadUrlContract.access),
   handler: async ({ access, body }) => signAssetUpload(access, body),
 })

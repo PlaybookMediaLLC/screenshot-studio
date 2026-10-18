@@ -5,7 +5,7 @@ import { startOnboardingRun } from '@/lib/tenant/onboarding-runs'
 
 /** Read a product's site into drafts within ten seconds and start the background run. */
 export const POST = route(createOnboardingRunContract, {
-  auth: tenantAccess({ apiKeyScope: 'onboarding:run', permission: 'workspace:update' }),
+  auth: tenantAccess(createOnboardingRunContract.access),
   handler: async ({ access, body, headers }) =>
     startOnboardingRun(access, {
       ...body,

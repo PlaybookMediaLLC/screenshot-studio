@@ -229,6 +229,7 @@ export type LinkPreviewReport = z.infer<typeof linkPreviewReportSchema>
  * report how its link previews. Served to the signed-in app and to API keys.
  */
 export const getLinkPreviewContract = defineContract({
+  access: { apiKeyScope: 'artifact:read', permission: 'artifact:read' },
   docs: workspaceDocs({
     description:
       'Reads a public page as the chosen crawler and reports how its links preview: every meta tag, the measured preview images, robots.txt access for each platform crawler, the redirect chain, a 0 to 100 score, and each issue with its fix. Run it in CI to fail a deploy whose links would preview badly. Requires the `artifact:read` scope.',

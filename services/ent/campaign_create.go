@@ -136,6 +136,20 @@ func (_c *CampaignCreate) SetNillableCreatedByUserID(v *string) *CampaignCreate 
 	return _c
 }
 
+// SetIdempotencyKey sets the "idempotency_key" field.
+func (_c *CampaignCreate) SetIdempotencyKey(v string) *CampaignCreate {
+	_c.mutation.SetIdempotencyKey(v)
+	return _c
+}
+
+// SetNillableIdempotencyKey sets the "idempotency_key" field if the given value is not nil.
+func (_c *CampaignCreate) SetNillableIdempotencyKey(v *string) *CampaignCreate {
+	if v != nil {
+		_c.SetIdempotencyKey(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *CampaignCreate) SetCreatedAt(v time.Time) *CampaignCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -318,6 +332,10 @@ func (_c *CampaignCreate) createSpec() (*Campaign, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.CreatedByUserID(); ok {
 		_spec.SetField(campaign.FieldCreatedByUserID, field.TypeString, value)
 		_node.CreatedByUserID = &value
+	}
+	if value, ok := _c.mutation.IdempotencyKey(); ok {
+		_spec.SetField(campaign.FieldIdempotencyKey, field.TypeString, value)
+		_node.IdempotencyKey = &value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(campaign.FieldCreatedAt, field.TypeTime, value)

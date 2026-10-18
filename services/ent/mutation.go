@@ -9752,6 +9752,7 @@ type CampaignMutation struct {
 	release_id         *string
 	product_surface_id *string
 	created_by_user_id *string
+	idempotency_key    *string
 	created_at         *time.Time
 	updated_at         *time.Time
 	clearedFields      map[string]struct{}
@@ -10302,6 +10303,55 @@ func (m *CampaignMutation) ResetCreatedByUserID() {
 	delete(m.clearedFields, campaign.FieldCreatedByUserID)
 }
 
+// SetIdempotencyKey sets the "idempotency_key" field.
+func (m *CampaignMutation) SetIdempotencyKey(s string) {
+	m.idempotency_key = &s
+}
+
+// IdempotencyKey returns the value of the "idempotency_key" field in the mutation.
+func (m *CampaignMutation) IdempotencyKey() (r string, exists bool) {
+	v := m.idempotency_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdempotencyKey returns the old "idempotency_key" field's value of the Campaign entity.
+// If the Campaign object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CampaignMutation) OldIdempotencyKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdempotencyKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdempotencyKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdempotencyKey: %w", err)
+	}
+	return oldValue.IdempotencyKey, nil
+}
+
+// ClearIdempotencyKey clears the value of the "idempotency_key" field.
+func (m *CampaignMutation) ClearIdempotencyKey() {
+	m.idempotency_key = nil
+	m.clearedFields[campaign.FieldIdempotencyKey] = struct{}{}
+}
+
+// IdempotencyKeyCleared returns if the "idempotency_key" field was cleared in this mutation.
+func (m *CampaignMutation) IdempotencyKeyCleared() bool {
+	_, ok := m.clearedFields[campaign.FieldIdempotencyKey]
+	return ok
+}
+
+// ResetIdempotencyKey resets all changes to the "idempotency_key" field.
+func (m *CampaignMutation) ResetIdempotencyKey() {
+	m.idempotency_key = nil
+	delete(m.clearedFields, campaign.FieldIdempotencyKey)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *CampaignMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -10408,7 +10458,7 @@ func (m *CampaignMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CampaignMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.organization_id != nil {
 		fields = append(fields, campaign.FieldOrganizationID)
 	}
@@ -10438,6 +10488,9 @@ func (m *CampaignMutation) Fields() []string {
 	}
 	if m.created_by_user_id != nil {
 		fields = append(fields, campaign.FieldCreatedByUserID)
+	}
+	if m.idempotency_key != nil {
+		fields = append(fields, campaign.FieldIdempotencyKey)
 	}
 	if m.created_at != nil {
 		fields = append(fields, campaign.FieldCreatedAt)
@@ -10473,6 +10526,8 @@ func (m *CampaignMutation) Field(name string) (ent.Value, bool) {
 		return m.ProductSurfaceID()
 	case campaign.FieldCreatedByUserID:
 		return m.CreatedByUserID()
+	case campaign.FieldIdempotencyKey:
+		return m.IdempotencyKey()
 	case campaign.FieldCreatedAt:
 		return m.CreatedAt()
 	case campaign.FieldUpdatedAt:
@@ -10506,6 +10561,8 @@ func (m *CampaignMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldProductSurfaceID(ctx)
 	case campaign.FieldCreatedByUserID:
 		return m.OldCreatedByUserID(ctx)
+	case campaign.FieldIdempotencyKey:
+		return m.OldIdempotencyKey(ctx)
 	case campaign.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case campaign.FieldUpdatedAt:
@@ -10589,6 +10646,13 @@ func (m *CampaignMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCreatedByUserID(v)
 		return nil
+	case campaign.FieldIdempotencyKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdempotencyKey(v)
+		return nil
 	case campaign.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -10651,6 +10715,9 @@ func (m *CampaignMutation) ClearedFields() []string {
 	if m.FieldCleared(campaign.FieldCreatedByUserID) {
 		fields = append(fields, campaign.FieldCreatedByUserID)
 	}
+	if m.FieldCleared(campaign.FieldIdempotencyKey) {
+		fields = append(fields, campaign.FieldIdempotencyKey)
+	}
 	return fields
 }
 
@@ -10682,6 +10749,9 @@ func (m *CampaignMutation) ClearField(name string) error {
 		return nil
 	case campaign.FieldCreatedByUserID:
 		m.ClearCreatedByUserID()
+		return nil
+	case campaign.FieldIdempotencyKey:
+		m.ClearIdempotencyKey()
 		return nil
 	}
 	return fmt.Errorf("unknown Campaign nullable field %s", name)
@@ -10720,6 +10790,9 @@ func (m *CampaignMutation) ResetField(name string) error {
 		return nil
 	case campaign.FieldCreatedByUserID:
 		m.ResetCreatedByUserID()
+		return nil
+	case campaign.FieldIdempotencyKey:
+		m.ResetIdempotencyKey()
 		return nil
 	case campaign.FieldCreatedAt:
 		m.ResetCreatedAt()

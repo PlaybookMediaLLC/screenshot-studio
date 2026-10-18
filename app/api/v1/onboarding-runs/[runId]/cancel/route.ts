@@ -5,6 +5,6 @@ import { cancelOnboardingRun } from '@/lib/tenant/onboarding-runs'
 
 /** Stop a run within seconds; what it read is kept. */
 export const POST = route(cancelOnboardingRunContract, {
-  auth: tenantAccess({ apiKeyScope: 'onboarding:run', permission: 'workspace:update' }),
+  auth: tenantAccess(cancelOnboardingRunContract.access),
   handler: async ({ access, params }) => ({ run: await cancelOnboardingRun(access, params.runId) }),
 })

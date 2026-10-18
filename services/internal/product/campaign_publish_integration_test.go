@@ -45,7 +45,8 @@ func TestCampaignPublishing(t *testing.T) {
 			t.Fatalf("%v\n%s", err, query)
 		}
 	}
-	repo := NewConfiguration(db.Client).WithMonthlyMeter(&recordingMonthlyMeter{})
+	meter := &recordingMonthlyMeter{}
+	repo := NewConfiguration(db.Client).WithMonthlyMeter(meter)
 	actors := map[string]Actor{}
 	for _, organization := range []string{org, other} {
 		userID := "user_" + organization
@@ -214,7 +215,29 @@ func TestCampaignPublishing(t *testing.T) {
 			t.Fatalf("cancelled post=%+v", post)
 		}
 	}
-	second, err := schedule(linkedin, nil)
+	// An agent's key reschedules it only with post:schedule, and only approved
+	// copy: the key never approves (RFC 038).
+	scheduler, reader, pending := "key_schedule_"+id, "key_read_"+id, "post_pending_"+id
+	for key, permissions := range map[string]string{scheduler: `{"post":["schedule"]}`, reader: `{"artifact":["read"],"release":["create"]}`} {
+		exec(`INSERT INTO apikey (id,"referenceId",key,enabled,permissions,"createdAt","updatedAt") VALUES ($1,$2,$1,true,$3,now(),now())`, key, org, permissions)
+	}
+	exec(`INSERT INTO campaign_post (id,"organizationId","campaignId",channel,copy,status,"updatedAt") VALUES ($1,$2,$3,'linkedin','Not yet','READY_FOR_REVIEW',now())`, pending, org, campaignA)
+	agent := func(key, post string) (*ScheduleCampaignPostResult, error) {
+		return repo.ScheduleCampaignPost(ctx, Actor{Kind: "api_key", KeyID: key, OrganizationID: org, Display: "Coding agent", RequestID: "agent_" + id},
+			campaignA, post, ScheduleCampaignPostInput{ChannelConnectionID: connection.ID, ScheduledAt: &at})
+	}
+	_, err = agent(reader, linkedin)
+	expect(err, publishing.ErrForbidden, "key without post:schedule scheduled")
+	_, err = agent(scheduler, pending)
+	expect(err, publishing.ErrConflict, "key scheduled copy no one approved")
+	second, err := agent(scheduler, linkedin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n, err := db.Client.AuditLog.Query().Where(auditlog.OrganizationID(org), auditlog.Action("product.campaign_post_scheduled"),
+		auditlog.ActorTypeEQ(auditlog.ActorTypeSERVICE), auditlog.ActorDisplay("Coding agent"), auditlog.RequestID("agent_"+id)).Count(ctx); err != nil || n != 1 {
+		t.Fatalf("agent schedule audits=%d err=%v", n, err)
+	}
 	if err != nil || second.ScheduledPost.ID == firstID || second.ScheduledPost.IdempotencyKey != "campaign-post:"+linkedin+":"+firstID ||
 		second.Post.ScheduledPostID == nil || *second.Post.ScheduledPostID != second.ScheduledPost.ID {
 		t.Fatalf("reschedule=%+v err=%v", second, err)
@@ -243,5 +266,30 @@ func TestCampaignPublishing(t *testing.T) {
 			row.ApprovedByUserID != nil || row.Copy != "Ship even faster" {
 			t.Fatalf("edited post=%+v err=%v", row, err)
 		}
+	}
+
+	// The same key schedules an approved variant directly, charged once.
+	key := func(id string) Actor {
+		return Actor{Kind: "api_key", KeyID: id, OrganizationID: org, Display: "Coding agent", RequestID: "agent_" + id}
+	}
+	direct := publishing.CreateScheduledPostInput{Caption: "Ship faster", ChannelConnectionID: connection.ID,
+		IdempotencyKey: "agent-" + id, ScheduledFor: at, VariantID: variant}
+	_, err = repo.CreateScheduledPost(ctx, key(reader), direct)
+	expect(err, publishing.ErrForbidden, "key without post:schedule created a scheduled post")
+	draft := direct
+	draft.VariantID, draft.ContentDraftID = "", "draft_"+id
+	_, err = repo.CreateScheduledPost(ctx, key(scheduler), draft)
+	expect(err, publishing.ErrForbidden, "key scheduled a content draft")
+	before := meter.used[monthlyMeterKey(QuotaPosts, org, time.Now().UTC())]
+	created, err := repo.CreateScheduledPost(ctx, key(scheduler), direct)
+	if err != nil || !created.Created {
+		t.Fatalf("created=%+v err=%v", created, err)
+	}
+	replayed, err := repo.CreateScheduledPost(ctx, key(scheduler), direct)
+	if err != nil || replayed.Created || replayed.Post.ID != created.Post.ID {
+		t.Fatalf("replayed=%+v err=%v", replayed, err)
+	}
+	if used := meter.used[monthlyMeterKey(QuotaPosts, org, time.Now().UTC())] - before; used != 1 {
+		t.Fatalf("posts charged=%d, want 1", used)
 	}
 }

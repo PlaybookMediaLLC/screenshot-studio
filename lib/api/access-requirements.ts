@@ -15,17 +15,54 @@ export const apiKeyScopeSchema = z.enum(apiKeyScopes)
 /**
  * What a tenant operation requires: a session member with `permission`, or
  * an organization API key with `apiKeyScope`, then the optional plan feature
- * and metered quota.
+ * and metered quota. `sensitive` also requires a session to have signed in
+ * under 15 minutes ago with two-factor; a key is its own credential.
  */
 export const tenantAccessRequirementSchema = z.object({
   apiKeyScope: apiKeyScopeSchema,
   feature: workspaceFeatureSchema.optional(),
   permission: permissionSchema,
   quota: workspaceQuotaSchema.optional(),
+  sensitive: z.boolean().optional(),
 })
 
 /** One of {@link tenantAccessRequirementSchema}. */
 export type TenantAccessRequirement = z.infer<typeof tenantAccessRequirementSchema>
+
+/**
+ * What the editor utilities (`/api/screenshot`, `/api/export`, `/api/tweet`,
+ * `/api/image-proxy`) require: a member session or an `artifact:read` key, on
+ * a paid plan. `requirePaidAccess` enforces it and the spec publishes it.
+ */
+export const editorUtilityAccess = tenantAccessRequirementSchema.parse({
+  apiKeyScope: 'artifact:read',
+  permission: 'workspace:read',
+})
+
+/**
+ * What a human-only operation requires: a signed-in member with `permission`
+ * on a paid plan, then the optional feature and quota. API keys are refused.
+ * `sensitive` also requires a sign-in under 15 minutes old with two-factor.
+ */
+export const memberAccessRequirementSchema = tenantAccessRequirementSchema
+  .omit({ apiKeyScope: true })
+  .strict()
+
+/** One of {@link memberAccessRequirementSchema}. */
+export type MemberAccessRequirement = z.infer<typeof memberAccessRequirementSchema>
+
+/**
+ * The access a contract declares. Its route binds the matching authenticator,
+ * and the OpenAPI spec publishes it as the operation's security and
+ * `x-shots-entitlement`, so docs, REST, and MCP read one declaration.
+ */
+export const contractAccessSchema = z.union([
+  tenantAccessRequirementSchema.strict(),
+  memberAccessRequirementSchema,
+])
+
+/** One of {@link contractAccessSchema}. */
+export type ContractAccess = z.infer<typeof contractAccessSchema>
 
 /**
  * Which organization a permission check runs against. `active` is the

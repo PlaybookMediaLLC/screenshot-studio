@@ -17,6 +17,7 @@ const SCOPE_NOTES: Record<ApiKeyScope, string> = {
   'draft:write': 'Create, update, and delete content drafts.',
   'artifact:read': 'Read releases, assets, and generated artifacts.',
   'onboarding:run': 'Read a product site into its profile and follow the run.',
+  'post:schedule': 'Schedule approved campaign posts. People still approve.',
 }
 
 /** Field limits match releaseCreateSchema in lib/tenant/schemas.ts. */

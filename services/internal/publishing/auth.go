@@ -2,6 +2,9 @@ package publishing
 
 import (
 	"context"
+	"encoding/json"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
@@ -118,20 +121,44 @@ func (r *Repository) AuthorizeWorkspace(ctx context.Context, organizationID stri
 // AuthorizeAPIKey rechecks that an organization API key is still enabled,
 // unexpired, and issued for this workspace. The facade checked its scope.
 func (r *Repository) AuthorizeAPIKey(ctx context.Context, organizationID, keyID string) error {
-	if organizationID == "" || keyID == "" {
-		return ErrUnauthorized
-	}
-	key, err := r.client.Apikey.Query().Where(apikey.ID(keyID), apikey.ReferenceID(organizationID)).Only(ctx)
-	if ent.IsNotFound(err) {
-		return ErrUnauthorized
-	}
+	_, err := r.apiKey(ctx, organizationID, keyID)
+	return err
+}
+
+// AuthorizeAPIKeyScope also requires the key to hold scope, read from Better
+// Auth's {"resource": ["action"]} permissions. Scheduling uses it so the
+// backend checks the scope itself rather than trust the facade (RFC 038).
+func (r *Repository) AuthorizeAPIKeyScope(ctx context.Context, organizationID, keyID, scope string) error {
+	key, err := r.apiKey(ctx, organizationID, keyID)
 	if err != nil {
 		return err
 	}
-	if (key.Enabled != nil && !*key.Enabled) || (key.ExpiresAt != nil && !key.ExpiresAt.After(time.Now().UTC())) {
-		return ErrUnauthorized
+	var permissions map[string][]string
+	if key.Permissions != nil {
+		_ = json.Unmarshal([]byte(*key.Permissions), &permissions)
 	}
-	return r.requireOperational(ctx, organizationID)
+	resource, action, _ := strings.Cut(scope, ":")
+	if !slices.Contains(permissions[resource], action) {
+		return ErrForbidden
+	}
+	return nil
+}
+
+func (r *Repository) apiKey(ctx context.Context, organizationID, keyID string) (*ent.Apikey, error) {
+	if organizationID == "" || keyID == "" {
+		return nil, ErrUnauthorized
+	}
+	key, err := r.client.Apikey.Query().Where(apikey.ID(keyID), apikey.ReferenceID(organizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, ErrUnauthorized
+	}
+	if err != nil {
+		return nil, err
+	}
+	if (key.Enabled != nil && !*key.Enabled) || (key.ExpiresAt != nil && !key.ExpiresAt.After(time.Now().UTC())) {
+		return nil, ErrUnauthorized
+	}
+	return key, r.requireOperational(ctx, organizationID)
 }
 
 // AuthorizeSupportGrant rechecks a time-bound support grant for its user.

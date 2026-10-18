@@ -1,6 +1,6 @@
 import 'server-only'
 
-import type { OrganizationAccess } from '@/lib/auth/access'
+import type { OrganizationAccess, TenantContext } from '@/lib/auth/access'
 import { backendSDK } from '@/lib/backend/sdk'
 import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
 import {
@@ -15,7 +15,7 @@ type ListedScheduledPost = ScheduledPost & {
   channelConnection: NonNullable<ScheduledPost['channelConnection']>
 }
 
-export async function listBackendScheduledPosts(access: OrganizationAccess, limit: number) {
+export async function listBackendScheduledPosts(access: TenantContext, limit: number) {
   const result = await backendSDK(access).listScheduledPosts(limit)
   if (result.items.some((post) => !post.channelConnection)) {
     throw new BackendSDKError('Publishing backend returned an incomplete post.', 503)
@@ -41,7 +41,7 @@ export async function createBackendConnection(
 }
 
 export async function createBackendScheduledPost(
-  access: OrganizationAccess,
+  access: TenantContext,
   input: {
     caption: string
     channelConnectionId: string
@@ -60,7 +60,7 @@ export async function createBackendScheduledPost(
   throw new ScheduledPostError('Give exactly one of variantId and contentDraftId.', 400)
 }
 
-export async function cancelBackendScheduledPost(access: OrganizationAccess, id: string) {
+export async function cancelBackendScheduledPost(access: TenantContext, id: string) {
   const scheduledPost = await backendSDK(access).cancelScheduledPost(id)
   return { scheduledPost }
 }

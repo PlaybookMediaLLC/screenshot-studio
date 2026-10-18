@@ -6,13 +6,13 @@ import { createRelease, listReleases } from '@/lib/tenant/releases'
 
 /** The workspace's most recent releases. */
 export const GET = route(listReleasesContract, {
-  auth: tenantAccess({ apiKeyScope: 'artifact:read', permission: 'artifact:read' }),
+  auth: tenantAccess(listReleasesContract.access),
   handler: async ({ access, query }) => ({ releases: await listReleases(access, query.limit) }),
 })
 
 /** Create a release. Replaying an `Idempotency-Key` returns the original with 200. */
 export const POST = route(createReleaseContract, {
-  auth: tenantAccess({ apiKeyScope: 'release:create', permission: 'release:create' }),
+  auth: tenantAccess(createReleaseContract.access),
   handler: async ({ access, body, headers }) =>
     createRelease(access, { ...body, idempotencyKey: headers['idempotency-key'] || randomUUID() }),
   status: (result) => (result.created ? 201 : 200),

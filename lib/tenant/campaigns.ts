@@ -8,7 +8,7 @@ import {
 } from 'screenshot-studio-backend-sdk'
 import { backendSDK, orNull, withDates } from '@/lib/backend/sdk'
 import { linkPreviewAgentSchema } from '@/lib/api/contracts/link-preview'
-import type { OrganizationAccess, TenantContext } from '@/lib/auth/access'
+import type { TenantContext } from '@/lib/auth/access'
 import { readLinkPreview } from '@/lib/link-preview/fetch'
 import { postLinkProblems } from '@/lib/link-preview/gate'
 import { type PostEditResult, type PostSnapshot, postFields } from '@/lib/launch/post-edit'
@@ -37,14 +37,43 @@ export async function getCampaign(context: TenantContext, campaignId: string) {
   return withDates(await orNull(backendSDK(context).getCampaign(campaignId)))
 }
 
-export async function createCampaign(context: TenantContext, input: CampaignCreateInput) {
+/**
+ * New campaigns start as DRAFT; the backend links the release and its
+ * surface. A retried create with the same `idempotencyKey` returns the first
+ * campaign with `created: false`.
+ */
+export async function createCampaign(
+  context: TenantContext,
+  input: CampaignCreateInput,
+  idempotencyKey?: string
+) {
   for (const post of input.posts) {
     if (post.angleIndex !== undefined && post.angleIndex >= input.angles.length) {
       throw new CampaignError('A post references an angle that does not exist.', 400)
     }
   }
-  // New campaigns start as DRAFT; the backend links the release and its surface.
-  return withDates(await backendSDK(context).createCampaign(input))
+  return withDates(await backendSDK(context).createCampaign({ ...input, idempotencyKey }))
+}
+
+/** The review queue: posts waiting for a reviewer's decision, oldest first. */
+export async function listPendingApprovals(
+  context: TenantContext,
+  options: { cursor?: string; limit: number }
+) {
+  return withDates(await backendSDK(context).listPendingApprovals(options))
+}
+
+/**
+ * Move draft or needs-changes posts to review, every eligible post when
+ * `postIds` is omitted. An API key with `release:create` may do this; only a
+ * person approves (RFC 019).
+ */
+export async function requestCampaignReview(
+  context: TenantContext,
+  campaignId: string,
+  postIds?: readonly string[]
+) {
+  return backendSDK(context).submitCampaignPosts(campaignId, postIds)
 }
 
 /**
@@ -53,7 +82,7 @@ export async function createCampaign(context: TenantContext, input: CampaignCrea
  * write conditionally so two racing transitions cannot both apply.
  */
 export async function transitionCampaign(
-  access: OrganizationAccess,
+  access: TenantContext,
   campaignId: string,
   to: BackendCampaignStatus
 ) {

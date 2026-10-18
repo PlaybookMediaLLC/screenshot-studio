@@ -14,7 +14,7 @@ export const maxDuration = 30
  * for workspace members in the app and for API keys with `artifact:read`.
  */
 export const GET = route(getLinkPreviewContract, {
-  auth: tenantAccess({ apiKeyScope: 'artifact:read', permission: 'artifact:read' }),
+  auth: tenantAccess(getLinkPreviewContract.access),
   handler: async ({ access, query }) => {
     const limited = await linkPreviewLimit(access.organizationId)
     if (limited) return limited

@@ -353,6 +353,7 @@ var (
 		{Name: "releaseId", Type: field.TypeString, Nullable: true},
 		{Name: "productSurfaceId", Type: field.TypeString, Nullable: true},
 		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "idempotencyKey", Type: field.TypeString, Nullable: true},
 		{Name: "createdAt", Type: field.TypeTime},
 		{Name: "updatedAt", Type: field.TypeTime},
 	}
@@ -363,9 +364,14 @@ var (
 		PrimaryKey: []*schema.Column{CampaignColumns[0]},
 		Indexes: []*schema.Index{
 			{
+				Name:    "campaign_organizationId_idempotencyKey",
+				Unique:  true,
+				Columns: []*schema.Column{CampaignColumns[1], CampaignColumns[11]},
+			},
+			{
 				Name:    "campaign_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{CampaignColumns[1], CampaignColumns[11]},
+				Columns: []*schema.Column{CampaignColumns[1], CampaignColumns[12]},
 			},
 			{
 				Name:    "campaign_organizationId_releaseId",

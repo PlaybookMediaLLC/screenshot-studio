@@ -119,9 +119,9 @@ func (c *Configuration) authorizeRoles(ctx context.Context, actor Actor, roles .
 	return publishing.ErrUnauthorized
 }
 
-// authorizeDecision guards approve, schedule, and announce: a person decides
-// these, so an API key, support grant, webhook, or service is refused here
-// rather than trusted to the web facade.
+// authorizeDecision guards approve and announce: a person decides these, so
+// an API key, support grant, webhook, or service is refused here rather than
+// trusted to the web facade. Scheduling uses authorizeScheduling.
 func (c *Configuration) authorizeDecision(ctx context.Context, actor Actor, roles ...string) error {
 	if !actor.IsSession() {
 		return publishing.ErrForbidden

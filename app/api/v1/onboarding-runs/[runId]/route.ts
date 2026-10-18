@@ -5,6 +5,6 @@ import { getOnboardingRun } from '@/lib/tenant/onboarding-runs'
 
 /** A run's status and live progress. */
 export const GET = route(getOnboardingRunContract, {
-  auth: tenantAccess({ apiKeyScope: 'onboarding:run', permission: 'workspace:read' }),
+  auth: tenantAccess(getOnboardingRunContract.access),
   handler: async ({ access, params }) => ({ run: await getOnboardingRun(access, params.runId) }),
 })

@@ -1,7 +1,9 @@
 /* eslint-disable max-lines */
 
 import { BASE_URL } from '@/lib/agents/site-content'
-import { platformOpenApi } from '@/lib/api/openapi-platform'
+import { editorUtilityAccess } from '@/lib/api/access-requirements'
+import { apiGuide } from '@/lib/api/openapi-guide'
+import { entitlementFor, platformOpenApi } from '@/lib/api/openapi-platform'
 
 const errorResponse = (description: string) => ({
   description,
@@ -13,15 +15,18 @@ const errorResponse = (description: string) => ({
 })
 
 /** Editor utilities need a paid workspace: a signed-in session, or an API key with artifact:read. */
-const ACCOUNT_SECURITY = [{ workspaceSession: [] }, { workspaceApiKey: [] }]
+const ACCOUNT_SECURITY = [
+  { workspaceSession: [] },
+  { workspaceApiKey: [editorUtilityAccess.apiKeyScope] },
+]
+const ACCOUNT_ENTITLEMENT = entitlementFor(editorUtilityAccess)
 export const openApiSpec = {
   openapi: '3.1.0',
   info: {
     title: 'Shots API',
     version: '1.0.0',
     summary: 'Public HTTP API for Shots.',
-    description:
-      'Shots exposes editor utilities for screenshot capture, export compression, tweet resolution, and approved media proxying; they require a signed-in session or a workspace API key with the `artifact:read` scope, on a workspace with an active paid plan. Workspace-scoped `/api/v1` operations require an organization API key with the declared scope. Shell operations under `/api/v1` (bootstrap, organizations, membership) describe the signed-in user and require a session; they refuse API keys. Every error response uses the same JSON envelope with a stable `code` and a human-readable `hint`.',
+    description: apiGuide,
     contact: {
       name: 'Shots',
       url: `${BASE_URL}/contact`,
@@ -72,6 +77,7 @@ export const openApiSpec = {
           'Renders the page at the given URL and returns the screenshot as a base64-encoded PNG. Results are cached per URL, device type, and color scheme; set `forceRefresh` to bypass the cache. Limited to 20 requests per minute per IP address.',
         tags: ['Screenshots'],
         security: ACCOUNT_SECURITY,
+        'x-shots-entitlement': ACCOUNT_ENTITLEMENT,
         requestBody: {
           required: true,
           content: {
@@ -143,6 +149,7 @@ export const openApiSpec = {
           'Accepts a raw image as multipart form data and returns an optimized image in the requested format. JPEG uses the MozJPEG encoder, WebP uses libwebp, and PNG uses adaptive filtering. The response body is the image bytes, not JSON.',
         tags: ['Images'],
         security: ACCOUNT_SECURITY,
+        'x-shots-entitlement': ACCOUNT_ENTITLEMENT,
         requestBody: {
           required: true,
           content: {
@@ -187,6 +194,7 @@ export const openApiSpec = {
           'Returns the public tweet payload used to render a tweet as an image. The `id` is the numeric status ID from the tweet URL.',
         tags: ['Social'],
         security: ACCOUNT_SECURITY,
+        'x-shots-entitlement': ACCOUNT_ENTITLEMENT,
         parameters: [
           {
             name: 'id',
@@ -222,6 +230,7 @@ export const openApiSpec = {
           'Streams a Twitter-hosted image through this origin so it can be drawn onto a canvas without tainting it. Only pbs.twimg.com, abs.twimg.com, ton.twitter.com, and video.twimg.com are allowed.',
         tags: ['Images'],
         security: ACCOUNT_SECURITY,
+        'x-shots-entitlement': ACCOUNT_ENTITLEMENT,
         parameters: [
           {
             name: 'url',

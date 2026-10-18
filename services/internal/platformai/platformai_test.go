@@ -23,7 +23,7 @@ func TestStructuredDecodesTheReplyAndItsCost(t *testing.T) {
 	client := &Client{APIKey: "key", BaseURL: server.URL, HTTP: server.Client(), Models: map[Role]string{RoleFast: "model-fast"}}
 	var out struct{ Name string }
 	usage, err := client.Structured(context.Background(), Request{Role: RoleFast, Schema: json.RawMessage(`{}`), SchemaName: "s", System: "sys", Prompt: "p"}, &out)
-	if err != nil || out.Name != "Acme" || usage.Tokens() != 120 || Credits(usage.CostUSD) != 2 {
+	if err != nil || out.Name != "Acme" || usage.Tokens() != 120 || usage.CostMicros() != 12_300 {
 		t.Fatalf("out=%+v usage=%+v err=%v", out, usage, err)
 	}
 	system := sent["messages"].([]any)[0].(map[string]any)["content"].(string)

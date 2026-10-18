@@ -90,39 +90,65 @@ func TestGitHubAndAppStoreReadPublicCounts(t *testing.T) {
 	}
 }
 
-// Keyed providers are off without their keys, record their cost, and skip
-// the product's own domain in search results.
-func TestKeyedProvidersNeedTheirKeysAndRecordCost(t *testing.T) {
-	if (&PeopleDataLabs{}).Enabled() || (&Brave{}).Enabled() {
-		t.Fatal("a keyed provider is enabled without its key")
+// Exa is off without its key, sends the key and the product's site, keeps
+// results off the product's own domain, records each call's own cost, and
+// still returns competitors and mentions when the structured answer fails.
+func TestExaFindsCompetitorsMentionsAndFirmographics(t *testing.T) {
+	if (&Exa{}).Enabled() {
+		t.Fatal("Exa is enabled without a key")
 	}
-	var pdlKey string
-	pdl := vendorServer(t, func(w http.ResponseWriter, r *http.Request) {
-		pdlKey = r.Header.Get("X-Api-Key")
-		_, _ = w.Write([]byte(`{"employee_count":40,"founded":2019,"industry":"computer software","size":"11-50","likelihood":8,"location":{"name":"lisbon, portugal"},"total_funding_raised":2500000,"latest_funding_stage":"seed"}`))
-	})
-	results, err := (&PeopleDataLabs{APIKey: "key", BaseURL: pdl.URL}).Enrich(context.Background(), Subject{Domain: "acme.test"})
-	facts := results[0].Value.(Firmographics)
-	if err != nil || pdlKey != "key" || facts.Size != "11-50" || facts.FundingTotal != 2_500_000 || results[0].CostMicros != pdlCostMicros || results[0].Confidence != 0.8 {
-		t.Fatalf("pdl %+v err=%v", results, err)
-	}
-	var queries atomic.Int32
-	brave := vendorServer(t, func(w http.ResponseWriter, r *http.Request) {
-		queries.Add(1)
-		if r.Header.Get("X-Subscription-Token") != "key" {
+	var calls atomic.Int32
+	var failAnswer atomic.Bool
+	sent := map[string]map[string]any{}
+	exa := vendorServer(t, func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		if r.Header.Get("X-Api-Key") != "key" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"web": map[string]any{"results": []map[string]string{
-			{"title": "Acme alternatives", "url": "https://compare.test/acme", "description": "Try Ledgerly or Invoicely."},
-			{"title": "Acme", "url": "https://www.acme.test/", "description": "Our own site."}}}})
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		sent[r.URL.Path] = body
+		switch r.URL.Path {
+		case "/findSimilar":
+			_, _ = w.Write([]byte(`{"results":[{"title":"Ledgerly","url":"https://ledgerly.test/","text":"Invoicing for freelancers."},
+{"title":"Acme","url":"https://www.acme.test/","text":"Our own site."}],"costDollars":{"total":0.005}}`))
+		case "/search":
+			_, _ = w.Write([]byte(`{"results":[{"title":"Acme review","url":"https://reviews.test/acme","highlights":["Late payments stopped.","Setup took minutes."]}],"costDollars":{"total":0.006}}`))
+		case "/answer":
+			if failAnswer.Load() {
+				w.WriteHeader(http.StatusBadGateway)
+				return
+			}
+			_, _ = w.Write([]byte(`{"answer":{"employees":40,"industry":"Software","headquarters":"Lisbon, Portugal","fundingStage":"Seed","fundingTotal":2500000,"founded":"2019"},
+"citations":[{"url":"https://news.test/acme-seed"}],"costDollars":{"total":0.01}}`))
+		default:
+			http.NotFound(w, r)
+		}
 	})
-	results, err = (&Brave{APIKey: "key", BaseURL: brave.URL}).Enrich(context.Background(), Subject{Domain: "acme.test", Name: "Acme"})
-	if err != nil || queries.Load() != 4 || len(results) != 2 || results[0].Field != FieldCompetitors || results[0].CostMicros != 2*braveCostMicros ||
-		len(results[0].Value.([]Snippet)) != 2 || strings.Contains(results[0].SourceURL, "acme.test") {
-		t.Fatalf("brave %+v err=%v", results, err)
+	provider := &Exa{APIKey: "key", BaseURL: exa.URL}
+	subject := Subject{Domain: "acme.test", Homepage: "https://acme.test/", Name: "Acme"}
+	results, err := provider.Enrich(context.Background(), subject)
+	if err != nil || len(results) != 3 || calls.Load() != 3 {
+		t.Fatalf("results %+v err=%v calls=%d", results, err, calls.Load())
 	}
-	_, err = (&Brave{APIKey: "wrong", BaseURL: brave.URL}).Enrich(context.Background(), Subject{Name: "Acme"})
+	competitors, mentions := results[0].Value.([]Snippet), results[1].Value.([]Snippet)
+	facts := results[2].Value.(Firmographics)
+	if len(competitors) != 1 || competitors[0].Title != "Ledgerly" || results[0].CostMicros != 5_000 ||
+		mentions[0].Text != "Late payments stopped. … Setup took minutes." || results[1].CostMicros != 6_000 ||
+		facts.Headquarters != "Lisbon, Portugal" || facts.FundingTotal != 2_500_000 || results[2].CostMicros != 10_000 ||
+		results[2].SourceURL != "https://news.test/acme-seed" {
+		t.Fatalf("results %+v", results)
+	}
+	if sent["/findSimilar"]["url"] != "https://acme.test/" || sent["/findSimilar"]["excludeSourceDomain"] != true ||
+		!strings.Contains(sent["/search"]["query"].(string), `"Acme"`) || sent["/answer"]["outputSchema"] == nil {
+		t.Fatalf("requests %+v", sent)
+	}
+	failAnswer.Store(true)
+	if results, err := provider.Enrich(context.Background(), subject); err != nil || len(results) != 2 {
+		t.Fatalf("without the answer: %+v err=%v", results, err)
+	}
+	_, err = (&Exa{APIKey: "wrong", BaseURL: exa.URL}).Enrich(context.Background(), subject)
 	var failure *ProviderError
 	if !errors.As(err, &failure) || failure.Retryable || failure.Status != http.StatusUnauthorized {
 		t.Fatalf("unauthorized: %v", err)

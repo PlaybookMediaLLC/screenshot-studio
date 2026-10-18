@@ -249,6 +249,27 @@ func (_u *OnboardingRunUpdate) AddEnrichmentCostMicros(v int64) *OnboardingRunUp
 	return _u
 }
 
+// SetModelCostMicros sets the "model_cost_micros" field.
+func (_u *OnboardingRunUpdate) SetModelCostMicros(v int64) *OnboardingRunUpdate {
+	_u.mutation.ResetModelCostMicros()
+	_u.mutation.SetModelCostMicros(v)
+	return _u
+}
+
+// SetNillableModelCostMicros sets the "model_cost_micros" field if the given value is not nil.
+func (_u *OnboardingRunUpdate) SetNillableModelCostMicros(v *int64) *OnboardingRunUpdate {
+	if v != nil {
+		_u.SetModelCostMicros(*v)
+	}
+	return _u
+}
+
+// AddModelCostMicros adds value to the "model_cost_micros" field.
+func (_u *OnboardingRunUpdate) AddModelCostMicros(v int64) *OnboardingRunUpdate {
+	_u.mutation.AddModelCostMicros(v)
+	return _u
+}
+
 // SetFastPathMs sets the "fast_path_ms" field.
 func (_u *OnboardingRunUpdate) SetFastPathMs(v int) *OnboardingRunUpdate {
 	_u.mutation.ResetFastPathMs()
@@ -482,6 +503,12 @@ func (_u *OnboardingRunUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if value, ok := _u.mutation.AddedEnrichmentCostMicros(); ok {
 		_spec.AddField(onboardingrun.FieldEnrichmentCostMicros, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.ModelCostMicros(); ok {
+		_spec.SetField(onboardingrun.FieldModelCostMicros, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedModelCostMicros(); ok {
+		_spec.AddField(onboardingrun.FieldModelCostMicros, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.FastPathMs(); ok {
 		_spec.SetField(onboardingrun.FieldFastPathMs, field.TypeInt, value)
@@ -756,6 +783,27 @@ func (_u *OnboardingRunUpdateOne) AddEnrichmentCostMicros(v int64) *OnboardingRu
 	return _u
 }
 
+// SetModelCostMicros sets the "model_cost_micros" field.
+func (_u *OnboardingRunUpdateOne) SetModelCostMicros(v int64) *OnboardingRunUpdateOne {
+	_u.mutation.ResetModelCostMicros()
+	_u.mutation.SetModelCostMicros(v)
+	return _u
+}
+
+// SetNillableModelCostMicros sets the "model_cost_micros" field if the given value is not nil.
+func (_u *OnboardingRunUpdateOne) SetNillableModelCostMicros(v *int64) *OnboardingRunUpdateOne {
+	if v != nil {
+		_u.SetModelCostMicros(*v)
+	}
+	return _u
+}
+
+// AddModelCostMicros adds value to the "model_cost_micros" field.
+func (_u *OnboardingRunUpdateOne) AddModelCostMicros(v int64) *OnboardingRunUpdateOne {
+	_u.mutation.AddModelCostMicros(v)
+	return _u
+}
+
 // SetFastPathMs sets the "fast_path_ms" field.
 func (_u *OnboardingRunUpdateOne) SetFastPathMs(v int) *OnboardingRunUpdateOne {
 	_u.mutation.ResetFastPathMs()
@@ -1019,6 +1067,12 @@ func (_u *OnboardingRunUpdateOne) sqlSave(ctx context.Context) (_node *Onboardin
 	}
 	if value, ok := _u.mutation.AddedEnrichmentCostMicros(); ok {
 		_spec.AddField(onboardingrun.FieldEnrichmentCostMicros, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.ModelCostMicros(); ok {
+		_spec.SetField(onboardingrun.FieldModelCostMicros, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedModelCostMicros(); ok {
+		_spec.AddField(onboardingrun.FieldModelCostMicros, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.FastPathMs(); ok {
 		_spec.SetField(onboardingrun.FieldFastPathMs, field.TypeInt, value)

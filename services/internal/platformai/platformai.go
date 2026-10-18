@@ -1,7 +1,7 @@
 // Package platformai calls the platform's language models from Go. It uses
 // OpenRouter, as the web does (lib/ai/models), with the same role catalog and
 // overrides, and asks for JSON that matches a schema. Usage accounting
-// returns each call's cost, which the caller charges to AI credits.
+// returns each call's cost, which the caller records.
 package platformai
 
 import (
@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"strings"
@@ -176,16 +177,6 @@ func (c *Client) Structured(ctx context.Context, request Request, out any) (Usag
 	return usage, nil
 }
 
-// Credits converts a call's cost to AI credits, rounded up: one credit is
-// $0.01 at list price (docs/rfcs/035-pricing-and-unit-economics.md).
-func Credits(costUSD float64) int {
-	if costUSD <= 0 {
-		return 0
-	}
-	cents := costUSD * 100
-	credits := int(cents)
-	if float64(credits) < cents {
-		credits++
-	}
-	return credits
-}
+// CostMicros is the call's cost in USD micros. Onboarding records it on the
+// run; the platform pays it, not the workspace's AI credits.
+func (u Usage) CostMicros() int64 { return int64(math.Round(u.CostUSD * 1e6)) }

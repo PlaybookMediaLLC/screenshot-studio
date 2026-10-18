@@ -184,6 +184,20 @@ func (_c *OnboardingRunCreate) SetNillableEnrichmentCostMicros(v *int64) *Onboar
 	return _c
 }
 
+// SetModelCostMicros sets the "model_cost_micros" field.
+func (_c *OnboardingRunCreate) SetModelCostMicros(v int64) *OnboardingRunCreate {
+	_c.mutation.SetModelCostMicros(v)
+	return _c
+}
+
+// SetNillableModelCostMicros sets the "model_cost_micros" field if the given value is not nil.
+func (_c *OnboardingRunCreate) SetNillableModelCostMicros(v *int64) *OnboardingRunCreate {
+	if v != nil {
+		_c.SetModelCostMicros(*v)
+	}
+	return _c
+}
+
 // SetFastPathMs sets the "fast_path_ms" field.
 func (_c *OnboardingRunCreate) SetFastPathMs(v int) *OnboardingRunCreate {
 	_c.mutation.SetFastPathMs(v)
@@ -403,6 +417,10 @@ func (_c *OnboardingRunCreate) defaults() {
 		v := onboardingrun.DefaultEnrichmentCostMicros
 		_c.mutation.SetEnrichmentCostMicros(v)
 	}
+	if _, ok := _c.mutation.ModelCostMicros(); !ok {
+		v := onboardingrun.DefaultModelCostMicros
+		_c.mutation.SetModelCostMicros(v)
+	}
 	if _, ok := _c.mutation.FastPathMs(); !ok {
 		v := onboardingrun.DefaultFastPathMs
 		_c.mutation.SetFastPathMs(v)
@@ -469,6 +487,9 @@ func (_c *OnboardingRunCreate) check() error {
 	}
 	if _, ok := _c.mutation.EnrichmentCostMicros(); !ok {
 		return &ValidationError{Name: "enrichment_cost_micros", err: errors.New(`ent: missing required field "OnboardingRun.enrichment_cost_micros"`)}
+	}
+	if _, ok := _c.mutation.ModelCostMicros(); !ok {
+		return &ValidationError{Name: "model_cost_micros", err: errors.New(`ent: missing required field "OnboardingRun.model_cost_micros"`)}
 	}
 	if _, ok := _c.mutation.FastPathMs(); !ok {
 		return &ValidationError{Name: "fast_path_ms", err: errors.New(`ent: missing required field "OnboardingRun.fast_path_ms"`)}
@@ -581,6 +602,10 @@ func (_c *OnboardingRunCreate) createSpec() (*OnboardingRun, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.EnrichmentCostMicros(); ok {
 		_spec.SetField(onboardingrun.FieldEnrichmentCostMicros, field.TypeInt64, value)
 		_node.EnrichmentCostMicros = value
+	}
+	if value, ok := _c.mutation.ModelCostMicros(); ok {
+		_spec.SetField(onboardingrun.FieldModelCostMicros, field.TypeInt64, value)
+		_node.ModelCostMicros = value
 	}
 	if value, ok := _c.mutation.FastPathMs(); ok {
 		_spec.SetField(onboardingrun.FieldFastPathMs, field.TypeInt, value)

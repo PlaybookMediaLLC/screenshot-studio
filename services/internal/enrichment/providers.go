@@ -1,6 +1,7 @@
 package enrichment
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -329,111 +329,139 @@ func (a *AppStore) Enrich(ctx context.Context, subject Subject) ([]Result, error
 	return results, nil
 }
 
-// PeopleDataLabs reads company size, industry, funding, and headquarters from
-// PDL's company enrichment, one call per domain. Needs PLATFORM_ENRICHMENT_PDL_API_KEY.
-type PeopleDataLabs struct {
+// Exa reads what the rest of the web says about the product through the Exa
+// API: similar sites for competitors and alternatives, reviews and mentions
+// as highlights, and company firmographics as a cited structured answer.
+// Three calls a run, each costed from Exa's own costDollars. Needs
+// PLATFORM_ENRICHMENT_EXA_API_KEY. Snippets only; no result page is fetched.
+type Exa struct {
 	APIKey  string
 	BaseURL string
 	Client  *http.Client
 }
 
-// pdlCostMicros is what one matched company lookup costs.
-const pdlCostMicros = 100_000
+func (*Exa) Name() string       { return "exa" }
+func (e *Exa) Enabled() bool    { return e.APIKey != "" }
+func (*Exa) TTL() time.Duration { return 7 * 24 * time.Hour }
 
-func (*PeopleDataLabs) Name() string       { return "pdl" }
-func (p *PeopleDataLabs) Enabled() bool    { return p.APIKey != "" }
-func (*PeopleDataLabs) TTL() time.Duration { return 30 * 24 * time.Hour }
+type exaResults struct {
+	CostDollars struct {
+		Total float64 `json:"total"`
+	} `json:"costDollars"`
+	Results []struct {
+		Highlights []string `json:"highlights"`
+		Text       string   `json:"text"`
+		Title      string   `json:"title"`
+		URL        string   `json:"url"`
+	} `json:"results"`
+}
 
-func (p *PeopleDataLabs) Enrich(ctx context.Context, subject Subject) ([]Result, error) {
-	base := strings.TrimRight(firstNonEmpty(p.BaseURL, "https://api.peopledatalabs.com"), "/")
-	client := p.Client
+func micros(dollars float64) int64 { return int64(dollars*1e6 + 0.5) }
+
+// post calls one Exa endpoint with the API key and decodes its JSON answer.
+func (e *Exa) post(ctx context.Context, path string, body any, out any) error {
+	data, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(firstNonEmpty(e.BaseURL, "https://api.exa.ai"), "/")+path, bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Api-Key", e.APIKey)
+	client := e.Client
 	if client == nil {
 		client = vendor
 	}
-	var company struct {
-		Employees    int     `json:"employee_count"`
-		Founded      int     `json:"founded"`
-		FundingStage string  `json:"latest_funding_stage"`
-		FundingTotal int64   `json:"total_funding_raised"`
-		Industry     string  `json:"industry"`
-		Likelihood   float64 `json:"likelihood"`
-		Location     struct {
-			Name string `json:"name"`
-		} `json:"location"`
-		Size string `json:"size"`
+	response, err := client.Do(request)
+	if err != nil {
+		return &ProviderError{Retryable: true}
 	}
-	status, err := getJSON(ctx, client, base+"/v5/company/enrich?website="+url.QueryEscape(subject.Domain), map[string]string{"X-Api-Key": p.APIKey}, &company)
-	if err != nil || status != http.StatusOK {
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return &ProviderError{Retryable: response.StatusCode == http.StatusTooManyRequests || response.StatusCode >= 500, Status: response.StatusCode}
+	}
+	return json.NewDecoder(io.LimitReader(response.Body, 2<<20)).Decode(out)
+}
+
+// snippets keeps results off the product's own domain, quoted at snippet length.
+func snippets(answer exaResults, domain string) []Snippet {
+	out := []Snippet{}
+	for _, result := range answer.Results {
+		parsed, err := url.Parse(result.URL)
+		if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || Domain(result.URL) == domain {
+			continue
+		}
+		text := result.Text
+		if len(result.Highlights) > 0 {
+			text = strings.Join(result.Highlights, " … ")
+		}
+		out = append(out, Snippet{Text: clampSnippet(text), Title: clampSnippet(result.Title), URL: result.URL})
+	}
+	return out
+}
+
+func sourceOf(found []Snippet) string {
+	if len(found) == 0 {
+		return ""
+	}
+	return found[0].URL
+}
+
+var firmographicsSchema = map[string]any{"type": "object", "properties": map[string]any{
+	"employees":    map[string]any{"type": "integer", "description": "Approximate headcount"},
+	"founded":      map[string]any{"type": "string", "description": "Founding year"},
+	"fundingStage": map[string]any{"type": "string", "description": "Latest funding stage, such as seed or Series A"},
+	"fundingTotal": map[string]any{"type": "integer", "description": "Total funding raised in US dollars"},
+	"headquarters": map[string]any{"type": "string", "description": "City and country"},
+	"industry":     map[string]any{"type": "string"},
+	"size":         map[string]any{"type": "string", "description": "Headcount band, such as 11-50"},
+}}
+
+func (e *Exa) Enrich(ctx context.Context, subject Subject) ([]Result, error) {
+	name := firstNonEmpty(subject.Name, subject.Domain)
+	var similar, mentions exaResults
+	if err := e.post(ctx, "/findSimilar", map[string]any{"url": subject.Homepage, "numResults": 8, "excludeSourceDomain": true,
+		"contents": map[string]any{"text": map[string]any{"maxCharacters": 300}}}, &similar); err != nil {
 		return nil, err
 	}
-	facts := Firmographics{Employees: company.Employees, FundingStage: clampSnippet(company.FundingStage), FundingTotal: company.FundingTotal,
-		Headquarters: clampSnippet(company.Location.Name), Industry: clampSnippet(company.Industry), Size: clampSnippet(company.Size)}
-	if company.Founded > 0 {
-		facts.Founded = strconv.Itoa(company.Founded)
+	if err := e.post(ctx, "/search", map[string]any{"query": `"` + name + `" reviews`, "type": "auto", "numResults": 8,
+		"excludeDomains": []string{subject.Domain}, "contents": map[string]any{"highlights": map[string]any{
+			"numSentences": 2, "highlightsPerUrl": 2, "query": "what customers like and dislike about " + name}}}, &mentions); err != nil {
+		return nil, err
 	}
-	return []Result{{Confidence: min(1, max(0.3, company.Likelihood/10)), CostMicros: pdlCostMicros, Field: FieldFirmographics,
-		SourceURL: "https://www.peopledatalabs.com", Value: facts}}, nil
-}
-
-// Brave finds competitors, alternatives, and what people write about the
-// product through the Brave Search API, at most four queries a run. Needs
-// PLATFORM_ENRICHMENT_BRAVE_API_KEY. Snippets only; no result page is fetched.
-type Brave struct {
-	APIKey  string
-	BaseURL string
-	Client  *http.Client
-}
-
-// braveCostMicros is what one search query costs.
-const braveCostMicros = 5_000
-
-func (*Brave) Name() string       { return "brave" }
-func (b *Brave) Enabled() bool    { return b.APIKey != "" }
-func (*Brave) TTL() time.Duration { return 24 * time.Hour }
-
-func (b *Brave) Enrich(ctx context.Context, subject Subject) ([]Result, error) {
-	if subject.Name == "" {
-		return nil, nil
+	competitors, said := snippets(similar, subject.Domain), snippets(mentions, subject.Domain)
+	results := []Result{
+		{Confidence: 0.5, CostMicros: micros(similar.CostDollars.Total), Field: FieldCompetitors, SourceURL: sourceOf(competitors), Value: competitors},
+		{Confidence: 0.4, CostMicros: micros(mentions.CostDollars.Total), Field: FieldMentions, SourceURL: sourceOf(said), Value: said},
 	}
-	base := strings.TrimRight(firstNonEmpty(b.BaseURL, "https://api.search.brave.com"), "/")
-	client := b.Client
-	if client == nil {
-		client = vendor
+	var answer struct {
+		Answer    json.RawMessage `json:"answer"`
+		Citations []struct {
+			URL string `json:"url"`
+		} `json:"citations"`
+		CostDollars struct {
+			Total float64 `json:"total"`
+		} `json:"costDollars"`
 	}
-	var results []Result
-	for field, queries := range map[string][]string{FieldCompetitors: {"alternatives", "vs"}, FieldMentions: {"review", "reddit"}} {
-		var snippets []Snippet
-		cost := int64(0)
-		for _, suffix := range queries {
-			var answer struct {
-				Web struct {
-					Results []struct {
-						Description string `json:"description"`
-						Title       string `json:"title"`
-						URL         string `json:"url"`
-					} `json:"results"`
-				} `json:"web"`
-			}
-			query := url.QueryEscape(`"` + subject.Name + `" ` + suffix)
-			if _, err := getJSON(ctx, client, base+"/res/v1/web/search?count=5&q="+query, map[string]string{"X-Subscription-Token": b.APIKey}, &answer); err != nil {
-				return nil, err
-			}
-			cost += braveCostMicros
-			for _, result := range answer.Web.Results {
-				if parsed, err := url.Parse(result.URL); err == nil && Domain(result.URL) != subject.Domain && (parsed.Scheme == "https" || parsed.Scheme == "http") {
-					snippets = append(snippets, Snippet{Text: clampSnippet(result.Description), Title: clampSnippet(result.Title), URL: result.URL})
-				}
-			}
-		}
-		// Kept even when empty, so the queries' cost is recorded and cached.
+	question := fmt.Sprintf("For the company behind %s (%s): headcount, industry, total funding raised, latest funding stage, headquarters, and founding year.", name, subject.Homepage)
+	if err := e.post(ctx, "/answer", map[string]any{"query": question, "text": false, "outputSchema": firmographicsSchema}, &answer); err != nil {
+		// Competitors and mentions stand on their own; the answer is a bonus.
+		return results, nil
+	}
+	var facts Firmographics
+	if json.Unmarshal(answer.Answer, &facts) == nil && facts != (Firmographics{}) {
+		facts = Firmographics{Employees: facts.Employees, Founded: clampSnippet(facts.Founded), FundingStage: clampSnippet(facts.FundingStage),
+			FundingTotal: facts.FundingTotal, Headquarters: clampSnippet(facts.Headquarters), Industry: clampSnippet(facts.Industry), Size: clampSnippet(facts.Size)}
 		source := ""
-		if len(snippets) > 0 {
-			source = snippets[0].URL
-		} else {
-			snippets = []Snippet{}
+		if len(answer.Citations) > 0 {
+			source = answer.Citations[0].URL
 		}
-		results = append(results, Result{Confidence: 0.4, CostMicros: cost, Field: field, SourceURL: source, Value: snippets})
+		results = append(results, Result{Confidence: 0.5, CostMicros: micros(answer.CostDollars.Total), Field: FieldFirmographics, SourceURL: source, Value: facts})
+	} else if cost := micros(answer.CostDollars.Total); cost > 0 {
+		// Nothing usable came back, but the call still cost something.
+		results[1].CostMicros += cost
 	}
-	sort.Slice(results, func(i, j int) bool { return results[i].Field < results[j].Field })
 	return results, nil
 }

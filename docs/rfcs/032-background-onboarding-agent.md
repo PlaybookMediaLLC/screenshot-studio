@@ -1,7 +1,7 @@
 # RFC 032: Background Onboarding Agent and ICP Extraction
 
 **Status:** Implemented behind the onboarding:agent flag
-**Status note (2026-10-17):** All seven rollout steps are built, with the end-to-end test and the dashboard (`infra/dashboards/onboarding.json`). Still open: MCP tools (question 7), and enabling the agent for every new workspace.
+**Status note (2026-10-17):** All seven rollout steps are built, with the end-to-end test and the dashboard (`infra/dashboards/onboarding.json`). Still open: MCP tools (question 5). Onboarding spends no AI credits, Exa does the third-party enrichment, and the agent is on by default (see Decisions).
 **Date:** 2026-08-17
 **Revised:** 2026-10-17
 **Depends on:** RFC 004, RFC 011, RFC 012, RFC 013, and RFC 026
@@ -79,7 +79,7 @@ Patterns we adopt directly:
 ```text
 POST /v1/onboarding-runs              (Go backend; web route /api/v1/onboarding-runs)
    ↓
-authorize, flag, rate limit, credits
+authorize, flag, rate limit
    ↓
 scrape homepage ∥ map site ∥ extract brand    (parallel, cached)
    ↓
@@ -201,6 +201,7 @@ OnboardingRun {
   tokensUsed
   tokenBudget
   enrichmentCostMicros
+  modelCostMicros   // what the run's model calls cost the platform
   fastPathMs
   error             // stable code plus a safe message
   idempotencyKey    // unique per workspace
@@ -241,7 +242,7 @@ EnrichmentRecord {
   id
   workspaceId
   domain
-  provider          // site | github | appstore | pdl | brave
+  provider          // site | github | appstore | exa
   field             // brand | firmographics | socials | apps | competitors | mentions
   value             // JSON
   confidence
@@ -288,6 +289,11 @@ one backend endpoint. While the workflow runs, the backend answers from the
 `progress` query, and falls back to the row when Temporal is unreachable. Polling backs off from 1s to 5s
 and stops on a terminal status. No realtime dependency is added.
 
+After onboarding, a card in the bottom-right corner of every app page follows
+the same run: how far enrichment has got, the stage it is on, and the pages
+read, with a link to review the profile. It stays for half an hour after the
+run ends, until dismissed, and workspaces without a run never see it.
+
 ## Enrichment
 
 Enrichment fills what a product's own pages rarely say: firmographics,
@@ -320,8 +326,7 @@ completes.
 | `site`     | Logo, colors, fonts, social and community links, app store links, JSON-LD organization facts | Always on; reads the homepage already fetched | 0                    |
 | `github`   | Stars and followers for the GitHub organization or repository the site links | Keyless; `PLATFORM_ENRICHMENT_GITHUB_TOKEN` raises the rate limit | 0                    |
 | `appstore` | App Store listing, rating, rating count, and review snippets from the iTunes lookup and reviews feeds | Keyless; `PLATFORM_ENRICHMENT_APPSTORE_COUNTRY` (default `us`) | 0                    |
-| `pdl`      | Company size, industry, funding, headquarters                        | `PLATFORM_ENRICHMENT_PDL_API_KEY` (People Data Labs company enrichment) | Per matched call     |
-| `brave`    | Competitors and alternatives; review and mention snippets            | `PLATFORM_ENRICHMENT_BRAVE_API_KEY` (Brave Search API)           | Per query            |
+| `exa`      | Competitors and alternatives (similar sites), review and mention snippets, and company size, industry, funding, and headquarters as a cited structured answer | `PLATFORM_ENRICHMENT_EXA_API_KEY` (Exa API) | Exa's own `costDollars` per call |
 
 `PLATFORM_ENRICHMENT_DISABLED` lists keyless providers to switch off.
 
@@ -331,14 +336,13 @@ boundary but names no vendor, so these are recorded here:
 1. **No crawl vendor.** Our own fetcher on the platform SSRF guard covers
    scrape, site map, and brand extraction. A vendor would add cost and a
    second network path that our guard does not see.
-2. **Brave Search** for competitors and mentions. Its API licence permits
-   commercial use of results, it returns stable result URLs, and it prices per
-   query. It implements RFC 026's `SearchProvider` boundary, so it stays
-   swappable. At most four queries per run.
-3. **People Data Labs** for firmographics. One call per domain, priced per
-   match, and the response carries size, industry, funding, and location in
-   one record.
-4. **GitHub and iTunes** are public, keyless, and first-party for the facts
+2. **Exa** for everything third-party, in three calls a run: find-similar on
+   the product's URL for competitors and alternatives, a search with
+   highlights for reviews and mentions, and an answer with a JSON schema for
+   firmographics, cited. One vendor and one key instead of a search API plus
+   a data broker; Exa reports each call's cost, which is recorded as is. It
+   implements RFC 026's `SearchProvider` boundary, so it stays swappable.
+3. **GitHub and iTunes** are public, keyless, and first-party for the facts
    they hold. Google Play has no public ratings API; a Play link is recorded
    without a rating.
 
@@ -346,7 +350,7 @@ boundary but names no vendor, so these are recorded here:
 
 Results are cached in `EnrichmentRecord`, keyed by workspace, domain,
 provider, and field, with a TTL per provider: 7 days for `site`, `github`, and
-`appstore`, 30 days for `pdl`, and 24 hours for `brave`. A cache hit makes no
+`appstore`, and `exa`. A cache hit makes no
 call and costs nothing. Every call records its cost in USD micros, and the
 run's `enrichmentCostMicros` is their sum.
 
@@ -391,7 +395,12 @@ no field it returns selects a URL to fetch, a stage to run, or a budget.
 | Total run wall clock               | 15 minutes                               | Child workflow execution timeout             |
 | Tokens per run                     | Plan-scoped cap                          | Budget accumulator in the workflow           |
 | Runs per workspace per hour        | 3                                        | Count of the workspace's recent run rows     |
-| AI spend                           | The workspace's AI credits               | The credit meter, before and after each call |
+| Model spend                        | Paid by the platform; no AI credits      | The token budget; cost recorded per run      |
+
+Onboarding spends none of the workspace's AI credits: a new workspace should
+not start its month with a dent. The platform pays, bounded by the token
+budget and three runs an hour, and every run records its model cost
+(`modelCostMicros`) beside its enrichment cost.
 
 A second run request for a workspace with an active run returns the existing
 run rather than starting a new one. The idempotency key is
@@ -514,7 +523,7 @@ Three consequences follow:
 - Fast-path latency at p50, p95, and p99, and its timeout rate by stage.
 - Background run duration, and the completed, `partial`, and failed rates.
 - Pages processed versus skipped, which measures incremental-crawl value.
-- Tokens and cost per run at p50 and p95, and budget-exhaustion count.
+- Tokens and model cost per run at p50 and p95, and budget-exhaustion count.
 - Enrichment cost per run, by provider, and the cache hit rate.
 - Onboarding funnel: URL submitted, profile reviewed, profile confirmed, first
   campaign generated.
@@ -590,10 +599,20 @@ Each step is its own pull request, in order:
 RFC 013 lands.
 
 The whole feature sits behind one workspace feature, onboarding:agent, which
-every paid plan includes. `PLATFORM_ONBOARDING_AGENT` overrides it per
-environment: `enabled` (the default), `internal` (only workspaces whose
-feature overrides grant it), or `disabled`. Rollback is setting it to
-`disabled`, which makes onboarding manual-only at any step.
+every paid plan includes and which is on by default. `PLATFORM_ONBOARDING_AGENT`
+overrides it per environment: `enabled` (the default), `internal` (only
+workspaces whose feature overrides grant it), or `disabled`. Rollback is
+setting it to `disabled`, which makes onboarding manual-only at any step.
+
+## Decisions
+
+Decided 2026-10-18:
+
+1. **Onboarding spends no AI credits.** The platform pays for its model calls,
+   bounded by the token budget, and records the cost per run.
+2. **Exa is the enrichment vendor** for competitors, mentions, and
+   firmographics; the keyless site, GitHub, and App Store providers stay.
+3. **The agent is on by default** for every paid workspace.
 
 ## Open questions
 
@@ -601,25 +620,18 @@ feature overrides grant it), or `disabled`. Rollback is setting it to
    revision uses 25 pages for Pro and 100 for Business and Enterprise. Should
    Enterprise get more?
 2. **Token budgets.** Proposed: 120,000 tokens per run on Pro and 400,000 on
-   Business and Enterprise, on top of the workspace's AI credits. Are those the
-   right caps?
-3. **Who pays for the background run.** The fast path and the background run
-   both spend the workspace's AI credits. Should onboarding have its own
-   allowance instead, so a new workspace does not start with a dent?
-4. **Enrichment vendors and spend.** People Data Labs and Brave Search need
-   accounts and a monthly ceiling. Who owns them, and what is the ceiling?
-5. **End-to-end infrastructure.** The goal for this work asked for Temporal and
+   Business and Enterprise, paid by the platform. Are those the right caps?
+3. **Exa spend.** Exa needs an account and a monthly ceiling. Who owns it,
+   and what is the ceiling?
+4. **End-to-end infrastructure.** The goal for this work asked for Temporal and
    Postgres in Testcontainers, but the `add-e2e-flow` skill reserves
    Testcontainers for dependencies Compose does not supply, and Compose
    already runs both. The end-to-end test uses the Compose stack. Is that
    acceptable?
-6. **Default flag state.** The flag defaults to `enabled` so the Go path
-   replaces the web fast path without a regression. Should production start
-   at `internal` instead?
-7. **MCP tools.** The product backend has no MCP server; the only Go MCP
+5. **MCP tools.** The product backend has no MCP server; the only Go MCP
    server is the Postiz port's. Should the onboarding operations wait for a
    product MCP server rather than be added to Postiz's?
-8. **Funnel events.** The web already sends onboarding funnel events to
+6. **Funnel events.** The web already sends onboarding funnel events to
    PostHog. Should the backend emit the server-side half (run completed,
    partial) to the same place?
 

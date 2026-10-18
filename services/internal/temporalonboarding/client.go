@@ -45,7 +45,7 @@ func StartOptions(run *product.OnboardingRunRecord) client.StartWorkflowOptions 
 func InputFor(run *product.OnboardingRunRecord, started product.Actor, seedSurfaces bool) Input {
 	return Input{OrganizationID: started.OrganizationID, PageLimit: run.PageLimit, Pages: run.DiscoveredURLs, RunID: run.ID, SeedSurfaces: seedSurfaces,
 		StartedBy:   StartedBy{Kind: started.Kind, KeyID: started.KeyID, RequestID: started.RequestID, UserID: started.UserID},
-		TokenBudget: run.TokenBudget, TokensUsed: run.TokensUsed, URL: run.URL}
+		TokenBudget: run.TokenBudget, TokensUsed: run.TokensUsed, ModelCostMicros: run.ModelCostMicros, URL: run.URL}
 }
 
 // Start starts the workflow for a run that just finished its fast path.

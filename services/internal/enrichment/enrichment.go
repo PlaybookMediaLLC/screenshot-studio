@@ -111,8 +111,7 @@ func FromEnvironment(fetcher *onboarding.Fetcher) []EnrichmentProvider {
 		&Site{Fetcher: fetcher, Off: disabled["site"]},
 		&GitHub{Token: os.Getenv("PLATFORM_ENRICHMENT_GITHUB_TOKEN"), Off: disabled["github"]},
 		&AppStore{Country: country, Off: disabled["appstore"]},
-		&PeopleDataLabs{APIKey: os.Getenv("PLATFORM_ENRICHMENT_PDL_API_KEY")},
-		&Brave{APIKey: os.Getenv("PLATFORM_ENRICHMENT_BRAVE_API_KEY")},
+		&Exa{APIKey: os.Getenv("PLATFORM_ENRICHMENT_EXA_API_KEY")},
 	}
 }
 

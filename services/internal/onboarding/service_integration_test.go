@@ -256,3 +256,20 @@ func TestAnAbandonedRunDoesNotBlockTheNextOne(t *testing.T) {
 		t.Fatalf("stuck run %+v err=%v", old, err)
 	}
 }
+
+// Onboarding spends no AI credits: a workspace whose credits cannot be read
+// (no meter, which fails closed) still gets a model draft, and the run
+// records what the platform paid.
+func TestOnboardingSpendsNoAICredits(t *testing.T) {
+	site := newTestSite(t)
+	w := newTestWorkspace(t, "pro")
+	withoutCredits := product.NewConfiguration(w.db.Client)
+	if _, err := withoutCredits.ConsumeWorkspaceQuota(context.Background(), w.owner, product.QuotaAICredits, 0); err == nil {
+		t.Fatal("the workspace has AI credits; the test needs none")
+	}
+	service := &Service{FastPath: &FastPath{Fetcher: testFetcher(t), Model: &fakeModel{}}, Store: withoutCredits}
+	result, err := service.Start(context.Background(), w.owner, StartInput{URL: site.URL + "/acme"})
+	if err != nil || !result.Extracted || result.Run.ModelCostMicros != 12_000 || result.Run.TokensUsed != 1_000 {
+		t.Fatalf("result %+v err=%v", result, err)
+	}
+}

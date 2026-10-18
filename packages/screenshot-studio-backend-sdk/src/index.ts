@@ -384,6 +384,8 @@ export type OnboardingRun = {
   errorMessage: string | null
   fastPathMs: number
   id: string
+  /** What the run's model calls cost the platform, in USD micros; no AI credits are spent. */
+  modelCostMicros: number
   pageLimit: number
   pagesDiscovered: number
   pagesProcessed: number

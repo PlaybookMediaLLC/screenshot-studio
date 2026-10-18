@@ -46,6 +46,8 @@ type OnboardingRun struct {
 	TokenBudget int `json:"token_budget,omitempty"`
 	// EnrichmentCostMicros holds the value of the "enrichment_cost_micros" field.
 	EnrichmentCostMicros int64 `json:"enrichment_cost_micros,omitempty"`
+	// ModelCostMicros holds the value of the "model_cost_micros" field.
+	ModelCostMicros int64 `json:"model_cost_micros,omitempty"`
 	// FastPathMs holds the value of the "fast_path_ms" field.
 	FastPathMs int `json:"fast_path_ms,omitempty"`
 	// ErrorCode holds the value of the "error_code" field.
@@ -78,7 +80,7 @@ func (*OnboardingRun) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case onboardingrun.FieldCompletedStages, onboardingrun.FieldDiscoveredUrls:
 			values[i] = new([]byte)
-		case onboardingrun.FieldProgress, onboardingrun.FieldPagesDiscovered, onboardingrun.FieldPagesProcessed, onboardingrun.FieldPagesSkipped, onboardingrun.FieldPageLimit, onboardingrun.FieldTokensUsed, onboardingrun.FieldTokenBudget, onboardingrun.FieldEnrichmentCostMicros, onboardingrun.FieldFastPathMs:
+		case onboardingrun.FieldProgress, onboardingrun.FieldPagesDiscovered, onboardingrun.FieldPagesProcessed, onboardingrun.FieldPagesSkipped, onboardingrun.FieldPageLimit, onboardingrun.FieldTokensUsed, onboardingrun.FieldTokenBudget, onboardingrun.FieldEnrichmentCostMicros, onboardingrun.FieldModelCostMicros, onboardingrun.FieldFastPathMs:
 			values[i] = new(sql.NullInt64)
 		case onboardingrun.FieldID, onboardingrun.FieldOrganizationID, onboardingrun.FieldURL, onboardingrun.FieldStatus, onboardingrun.FieldStage, onboardingrun.FieldErrorCode, onboardingrun.FieldErrorMessage, onboardingrun.FieldIdempotencyKey, onboardingrun.FieldWorkflowID, onboardingrun.FieldCreatedByUserID:
 			values[i] = new(sql.NullString)
@@ -192,6 +194,12 @@ func (_m *OnboardingRun) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field enrichment_cost_micros", values[i])
 			} else if value.Valid {
 				_m.EnrichmentCostMicros = value.Int64
+			}
+		case onboardingrun.FieldModelCostMicros:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field model_cost_micros", values[i])
+			} else if value.Valid {
+				_m.ModelCostMicros = value.Int64
 			}
 		case onboardingrun.FieldFastPathMs:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -340,6 +348,9 @@ func (_m *OnboardingRun) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("enrichment_cost_micros=")
 	builder.WriteString(fmt.Sprintf("%v", _m.EnrichmentCostMicros))
+	builder.WriteString(", ")
+	builder.WriteString("model_cost_micros=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ModelCostMicros))
 	builder.WriteString(", ")
 	builder.WriteString("fast_path_ms=")
 	builder.WriteString(fmt.Sprintf("%v", _m.FastPathMs))

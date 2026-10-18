@@ -36,6 +36,7 @@ export const onboardingRunSchema = z.object({
   errorMessage: z.string().nullable(),
   fastPathMs: z.number().int(),
   id: z.string(),
+  modelCostMicros: z.number().int(),
   pageLimit: z.number().int(),
   pagesDiscovered: z.number().int(),
   pagesProcessed: z.number().int(),

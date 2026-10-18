@@ -60,16 +60,18 @@ type StartedBy struct {
 // Input starts a run. Pages is fixed at the fast path's discovery: it is the
 // progress denominator, and late discoveries wait for the next run.
 type Input struct {
-	Brief          string    `json:"brief,omitempty"`
-	OrganizationID string    `json:"organizationId"`
-	PageLimit      int       `json:"pageLimit"`
-	Pages          []string  `json:"pages"`
-	RunID          string    `json:"runId"`
-	SeedSurfaces   bool      `json:"seedSurfaces"`
-	StartedBy      StartedBy `json:"startedBy"`
-	TokenBudget    int       `json:"tokenBudget"`
-	TokensUsed     int       `json:"tokensUsed"`
-	URL            string    `json:"url"`
+	Brief string `json:"brief,omitempty"`
+	// ModelCostMicros is what the fast path's model call cost; the run adds to it.
+	ModelCostMicros int64     `json:"modelCostMicros"`
+	OrganizationID  string    `json:"organizationId"`
+	PageLimit       int       `json:"pageLimit"`
+	Pages           []string  `json:"pages"`
+	RunID           string    `json:"runId"`
+	SeedSurfaces    bool      `json:"seedSurfaces"`
+	StartedBy       StartedBy `json:"startedBy"`
+	TokenBudget     int       `json:"tokenBudget"`
+	TokensUsed      int       `json:"tokensUsed"`
+	URL             string    `json:"url"`
 }
 
 // Progress is a run's state as the progress query and the run row report it.
@@ -94,8 +96,9 @@ type BatchInput struct {
 
 // ModelOutcome is what a model-calling activity spent and whether it changed anything.
 type ModelOutcome struct {
-	Applied bool `json:"applied"`
-	Tokens  int  `json:"tokens"`
+	Applied    bool  `json:"applied"`
+	CostMicros int64 `json:"costMicros"`
+	Tokens     int   `json:"tokens"`
 }
 
 // EnrichOutcome is the enrichment stage's result.

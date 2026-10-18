@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { OnboardingProgressCard } from '@/components/onboarding/OnboardingProgressCard'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 import { cn } from '@/lib/utils'
 import { PlatformSidebar } from './PlatformSidebar'
@@ -53,6 +54,7 @@ export function PlatformShell({
       ) : (
         <div className="min-w-0 flex-1 bg-background">{children}</div>
       )}
+      <OnboardingProgressCard />
     </div>
   )
 }

@@ -151,6 +151,20 @@ test('a pasted URL is drafted in under ten seconds, enriched in the background, 
 
   await page.getByRole('button', { name: 'Looks right' }).click()
   await expect(page.getByText('Creating your first 7 posts')).toBeVisible()
+
+  // After onboarding, a card in the corner of the app reports how far enrichment got.
+  await page.goto('/workspace')
+  const card = page.getByRole('complementary', { name: 'Profile enrichment' })
+  await expect(card).toContainText('Your profile is enriched', { timeout: 30_000 })
+  await expect(card.getByRole('progressbar', { name: 'Enrichment progress' })).toHaveAttribute(
+    'aria-valuenow',
+    '100'
+  )
+  await card.getByRole('button', { name: 'Dismiss' }).click()
+  await expect(card).toBeHidden()
+  await page.reload()
+  await expect(page.getByRole('heading').first()).toBeVisible()
+  await expect(card).toBeHidden()
 })
 
 test('runs stay in their workspace, and replays, bad input, and an unreadable site are handled', async ({

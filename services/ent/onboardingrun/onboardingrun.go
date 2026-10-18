@@ -42,6 +42,8 @@ const (
 	FieldTokenBudget = "tokenBudget"
 	// FieldEnrichmentCostMicros holds the string denoting the enrichment_cost_micros field in the database.
 	FieldEnrichmentCostMicros = "enrichmentCostMicros"
+	// FieldModelCostMicros holds the string denoting the model_cost_micros field in the database.
+	FieldModelCostMicros = "modelCostMicros"
 	// FieldFastPathMs holds the string denoting the fast_path_ms field in the database.
 	FieldFastPathMs = "fastPathMs"
 	// FieldErrorCode holds the string denoting the error_code field in the database.
@@ -85,6 +87,7 @@ var Columns = []string{
 	FieldTokensUsed,
 	FieldTokenBudget,
 	FieldEnrichmentCostMicros,
+	FieldModelCostMicros,
 	FieldFastPathMs,
 	FieldErrorCode,
 	FieldErrorMessage,
@@ -131,6 +134,8 @@ var (
 	DefaultTokenBudget int
 	// DefaultEnrichmentCostMicros holds the default value on creation for the "enrichment_cost_micros" field.
 	DefaultEnrichmentCostMicros int64
+	// DefaultModelCostMicros holds the default value on creation for the "model_cost_micros" field.
+	DefaultModelCostMicros int64
 	// DefaultFastPathMs holds the default value on creation for the "fast_path_ms" field.
 	DefaultFastPathMs int
 	// DefaultStartedAt holds the default value on creation for the "started_at" field.
@@ -239,6 +244,11 @@ func ByTokenBudget(opts ...sql.OrderTermOption) OrderOption {
 // ByEnrichmentCostMicros orders the results by the enrichment_cost_micros field.
 func ByEnrichmentCostMicros(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEnrichmentCostMicros, opts...).ToFunc()
+}
+
+// ByModelCostMicros orders the results by the model_cost_micros field.
+func ByModelCostMicros(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldModelCostMicros, opts...).ToFunc()
 }
 
 // ByFastPathMs orders the results by the fast_path_ms field.

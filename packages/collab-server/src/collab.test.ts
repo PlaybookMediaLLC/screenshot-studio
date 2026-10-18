@@ -8,6 +8,7 @@ import {
   CollabBackendError,
   collabHooks,
   draftIdOf,
+  redisWriterTokens,
 } from "./collab.ts";
 
 const DRAFT = "cdraft0000001";
@@ -126,3 +127,61 @@ test("edits sync between editors, viewers stay read-only, strangers are refused"
     await server.destroy();
   }
 });
+
+// Two replicas behind one Redis: an edit on one reaches a reader on the
+// other, and the document is stored with the writer's token whichever
+// replica wins the store lock. Needs a real Redis (COLLAB_TEST_REDIS_URL).
+test(
+  "replicas share edits and writer tokens through Redis",
+  { skip: !process.env.COLLAB_TEST_REDIS_URL },
+  async () => {
+    const { Redis: RedisExtension } =
+      await import("@hocuspocus/extension-redis");
+    const { Redis } = await import("ioredis");
+    const url = process.env.COLLAB_TEST_REDIS_URL ?? "";
+    const { backend, stored } = fakeBackend();
+    const clients: InstanceType<typeof Redis>[] = [];
+    const replica = async () => {
+      const redis = new Redis(url);
+      clients.push(redis);
+      const server = new Server({
+        debounce: 50,
+        extensions: [
+          new RedisExtension({
+            createClient: () => {
+              const client = new Redis(url, { enableReadyCheck: false });
+              clients.push(client);
+              return client;
+            },
+            prefix: `shots-collab-test-${process.pid}`,
+          }),
+        ],
+        port: 0,
+        quiet: true,
+        ...collabHooks(backend, () => {}, redisWriterTokens(redis)),
+      });
+      await server.listen();
+      return server;
+    };
+    const first = await replica();
+    const second = await replica();
+    const editor = connect(first.address.port, "editor-token");
+    const viewer = connect(second.address.port, "viewer-token");
+    try {
+      await until(() => editor.events.synced && viewer.events.synced, "sync");
+      editor.doc.getText("t").insert(0, "across replicas");
+      await until(
+        () => viewer.doc.getText("t").toString() === "across replicas",
+        "the edit to cross replicas"
+      );
+      await until(() => stored.length > 0, "a store");
+      assert.ok(stored.every(({ token }) => token === "editor-token"));
+    } finally {
+      editor.provider.destroy();
+      viewer.provider.destroy();
+      await first.destroy();
+      await second.destroy();
+      for (const client of clients) client.disconnect();
+    }
+  }
+);

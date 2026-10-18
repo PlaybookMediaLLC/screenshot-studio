@@ -177,10 +177,17 @@ def configure_collab(spec, backend, secrets, collab_tag):
         return
     for key in COLLAB_SECRETS:
         set_secret_env(backend["envs"], "TENANT_" + key, secrets[key])
+    # Replicas relay live edits through Redis (the Hocuspocus Redis
+    # extension); without COLLAB_REDIS_URL there is one instance.
+    instances = int(secrets.get("COLLAB_INSTANCE_COUNT") or 1)
+    if instances < 1 or (instances > 1 and not secrets.get("COLLAB_REDIS_URL")):
+        raise ValueError("COLLAB_INSTANCE_COUNT above 1 needs COLLAB_REDIS_URL")
+    redis = ([{"key": "COLLAB_REDIS_URL", "value": secrets["COLLAB_REDIS_URL"], "type": "SECRET",
+               "scope": "RUN_TIME"}] if secrets.get("COLLAB_REDIS_URL") else [])
     spec["services"].append({
         "name": COLLAB,
         "image": dict(IMAGE, tag=collab_tag),
-        "instance_count": 1,
+        "instance_count": instances,
         "instance_size_slug": "apps-s-1vcpu-0.5gb",
         "http_port": 1234,
         "health_check": {"http_path": "/health", "port": 1234, "initial_delay_seconds": 10,
@@ -189,7 +196,7 @@ def configure_collab(spec, backend, secrets, collab_tag):
             {"key": "COLLAB_BACKEND_URL", "value": f"http://{BACKEND}:8082", "type": "GENERAL", "scope": "RUN_TIME"},
             {"key": "COLLAB_SERVICE_TOKEN", "value": secrets["COLLAB_SERVICE_TOKEN"], "type": "SECRET",
              "scope": "RUN_TIME"},
-        ],
+        ] + redis,
     })
     # The prefix is stripped before Hocuspocus sees the request.
     rules.insert(0, {"match": {"path": {"prefix": "/collab"}}, "component": {"name": COLLAB}})

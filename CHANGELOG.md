@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.19.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.19.0...v2.19.1) (2026-10-18)
+
+
+### Bug Fixes
+
+* **deploy:** own the MCP host in the backend deploy and retire render-spec.py ([#191](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/191)) ([89804c7](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/89804c72337759ab2d57716a3753da9e1ab0ab19))
+
 ## [2.19.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.18.0...v2.19.0) (2026-10-18)
 
 

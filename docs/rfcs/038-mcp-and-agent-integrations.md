@@ -13,8 +13,9 @@ already runs in the Go social backend
 server. It does not replace it, and it does not start a second one.
 
 - **One server, in Go.** MCP runs only in the Go backend. Next.js neither hosts
-  nor proxies MCP. Each environment publishes one public MCP URL,
-  `https://api.<domain>/mcp`, with RFC 9728 protected-resource metadata.
+  nor proxies MCP. Each environment publishes one public MCP URL at the root
+  of its own host, with RFC 9728 protected-resource metadata. Production is
+  `https://shots-mcp.playbookmedia.io/mcp`.
 - **The same domain services as REST.** Tools call `services/internal/product`
   and `services/internal/publishing`, the packages behind `/v1/*`. They never
   call Next.js, and they never query Ent directly, which would skip the tenant
@@ -27,6 +28,9 @@ server. It does not replace it, and it does not start a second one.
 - **No second spec.** Tool input schemas, scopes, plan gates, and quotas are
   read from the production OpenAPI document (`/openapi.json`). The Go binary
   embeds a committed copy of that document, and CI fails when the copy drifts.
+- **People approve, agents may schedule.** No tool approves anything. A key
+  with the opt-in `post:schedule` scope may schedule posts and visuals a person
+  already approved, and cancel scheduled posts.
 - **Postiz leftovers go.** The Postiz social tools, the `ask_postiz` agent, the
   Postiz widgets, keys in URL paths, the SSE transport, and the self-hosted
   relay are removed from the Shots MCP surface.
@@ -155,8 +159,9 @@ posts directly, so it bypasses the Shots approval gate in RFC 019.
 
 ## Non-goals
 
-- Approving, scheduling, or publishing content from an agent (RFC 016,
-  RFC 019, RFC 020).
+- Approving content from an agent (RFC 016, RFC 019), or scheduling anything
+  a person has not approved.
+- Connecting or disconnecting social channels (RFC 020).
 - An MCP surface for the in-product copilot. RFC 016 governs that runtime.
 - MCP prompts, resources, sampling, or elicitation. The first version serves
   tools only.
@@ -165,7 +170,7 @@ posts directly, so it bypasses the Shots approval gate in RFC 019.
 ## Architecture
 
 ```text
-agent client ──Streamable HTTP──► api.<domain>/mcp            (Go, screenshot-studio-backend)
+agent client ──Streamable HTTP──► shots-mcp.playbookmedia.io/mcp   (Go, screenshot-studio-backend)
                                     │ authenticate key → workspace + actor
                                     │ per-key rate limit
                                     │ scope, entitlement, quota   ◄── embedded openapi.json
@@ -194,20 +199,24 @@ scope, plan gate, and quota columns are read from that operation in
 `/openapi.json` at startup. They are listed here for review, not as a second
 source.
 
-| Tool                     | REST operation                                        | Hints                 | Scope            | Plan gate           | Quota              |
-| ------------------------ | ----------------------------------------------------- | --------------------- | ---------------- | ------------------- | ------------------ |
-| `listReleases`           | `GET /api/v1/releases`                                | read-only             | `artifact:read`  | `workspace:use`     | none               |
-| `createRelease`          | `POST /api/v1/releases`                               | write                 | `release:create` | `release:create`    | `api:write:minute` |
-| `createAssetUploadUrl`   | `POST /api/v1/assets/upload-url`                      | write                 | `upload:sign`    | `asset:create`      | `api:write:minute` |
-| `completeAssetUpload`    | `POST /api/v1/assets/{assetId}/complete`              | write, idempotent     | `asset:write`    | `workspace:use`     | `api:write:minute` |
-| `createAssetDownloadUrl` | `GET /api/v1/assets/{assetId}/download-url`           | read-only             | `artifact:read`  | `workspace:use`     | none               |
-| `deleteAsset`            | `DELETE /api/v1/assets/{assetId}`                     | **destructive**       | `asset:write`    | `asset:delete`      | `api:write:minute` |
-| `captureScreenshot`      | `POST /api/screenshot`                                | read-only, open world | `artifact:read`  | `workspace:use`     | none               |
-| `listCampaigns`          | `GET /api/v1/campaigns`                               | read-only             | `artifact:read`  | `campaign:workflow` | none               |
-| `getCampaign`            | `GET /api/v1/campaigns/{campaignId}`                  | read-only             | `artifact:read`  | `campaign:workflow` | none               |
-| `createCampaign`         | `POST /api/v1/campaigns`                              | write                 | `release:create` | `campaign:workflow` | `api:write:minute` |
-| `listApprovals`          | `GET /api/v1/approvals`                               | read-only             | `artifact:read`  | `campaign:workflow` | none               |
-| `requestCampaignReview`  | `POST /api/v1/campaigns/{campaignId}/review-requests` | write                 | `release:create` | `campaign:workflow` | `api:write:minute` |
+| Tool                     | REST operation                                                | Hints                 | Scope            | Plan gate           | Quota              |
+| ------------------------ | ------------------------------------------------------------- | --------------------- | ---------------- | ------------------- | ------------------ |
+| `listReleases`           | `GET /api/v1/releases`                                        | read-only             | `artifact:read`  | `workspace:use`     | none               |
+| `createRelease`          | `POST /api/v1/releases`                                       | write                 | `release:create` | `release:create`    | `api:write:minute` |
+| `createAssetUploadUrl`   | `POST /api/v1/assets/upload-url`                              | write                 | `upload:sign`    | `asset:create`      | `api:write:minute` |
+| `completeAssetUpload`    | `POST /api/v1/assets/{assetId}/complete`                      | write, idempotent     | `asset:write`    | `workspace:use`     | `api:write:minute` |
+| `createAssetDownloadUrl` | `GET /api/v1/assets/{assetId}/download-url`                   | read-only             | `artifact:read`  | `workspace:use`     | none               |
+| `deleteAsset`            | `DELETE /api/v1/assets/{assetId}`                             | **destructive**       | `asset:write`    | `asset:delete`      | `api:write:minute` |
+| `captureScreenshot`      | `POST /api/screenshot`                                        | read-only, open world | `artifact:read`  | `workspace:use`     | none               |
+| `listCampaigns`          | `GET /api/v1/campaigns`                                       | read-only             | `artifact:read`  | `campaign:workflow` | none               |
+| `getCampaign`            | `GET /api/v1/campaigns/{campaignId}`                          | read-only             | `artifact:read`  | `campaign:workflow` | none               |
+| `createCampaign`         | `POST /api/v1/campaigns`                                      | write                 | `release:create` | `campaign:workflow` | `api:write:minute` |
+| `listApprovals`          | `GET /api/v1/approvals`                                       | read-only             | `artifact:read`  | `campaign:workflow` | none               |
+| `requestCampaignReview`  | `POST /api/v1/campaigns/{campaignId}/review-requests`         | write                 | `release:create` | `campaign:workflow` | `api:write:minute` |
+| `scheduleCampaignPost`   | `POST /api/v1/campaigns/{campaignId}/posts/{postId}/schedule` | write                 | `post:schedule`  | `campaign:workflow` | `api:write:minute` |
+| `listScheduledPosts`     | `GET /api/v1/scheduled-posts`                                 | read-only             | `artifact:read`  | `workspace:use`     | none               |
+| `createScheduledPost`    | `POST /api/v1/scheduled-posts`                                | write                 | `post:schedule`  | `workspace:use`     | `api:write:minute` |
+| `cancelScheduledPost`    | `POST /api/v1/scheduled-posts/{scheduledPostId}/cancel`       | **destructive**       | `post:schedule`  | `workspace:use`     | `api:write:minute` |
 
 Notes on the table:
 
@@ -223,6 +232,23 @@ Notes on the table:
   public URL. Go's `internal/capture` client takes the screenshot. The URL
   passes the same public-host guard that the web route applies, and the
   rendered image comes back as MCP image content.
+- **Scheduling** (`scheduleCampaignPost`, `createScheduledPost`) takes only
+  approved content: a campaign post must be `APPROVED` with an approved
+  visual, and a variant must be `APPROVED` with an approved review. The domain
+  checks that, the brand terms, the channel, and the character limit, and it
+  charges `posts:monthly`, exactly as for a session. `cancelScheduledPost`
+  carries `destructiveHint: true`.
+- **Workflow start.** `/v1` starts the publishing workflow as soon as it
+  schedules. The MCP process has no tenant Temporal client, so the
+  once-a-minute due-post dispatcher (`scheduled-posts` in
+  `temporalmaintenance`) starts it. A post an agent schedules publishes within
+  a minute of its time. A cancelled post is never claimed, because the claim
+  requires `SCHEDULED`.
+- **Link check.** The REST schedule reads each link in the post and refuses
+  one whose preview is broken, unless `skipLinkCheck` is true. That check runs
+  in the web tier, so `scheduleCampaignPost` refuses a call without
+  `skipLinkCheck: true` rather than skip a check REST would run. The tool
+  description tells the agent to check the post's links first.
 
 What agents cannot do, and why:
 
@@ -230,8 +256,8 @@ What agents cannot do, and why:
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | Approve, reject, or request changes | RFC 019 makes these decisions human-only. The backend refuses non-session actors (`authorizeDecision`), and RFC 016 says no tool approves. |
 | Approve a campaign or a design      | Same rule. `TransitionCampaign` and `ApproveCampaignDesign` refuse API keys.                                                               |
-| Schedule, cancel, or publish a post | RFC 020 requires a signed-in publisher with a fresh second factor.                                                                         |
-| Read the publishing schedule        | No API-key scope covers it yet (see Open questions). Campaign posts still report their delivery state through `getCampaign`.               |
+| Schedule unapproved content         | Scheduling requires an approved post or variant, whoever schedules it.                                                                     |
+| Connect or disconnect a channel     | RFC 020: channel credentials are a person's action.                                                                                        |
 | Edit approval policies              | RFC 030: automation never edits policy.                                                                                                    |
 | Transition or archive a campaign    | Left out of the first tool set. The REST operation exists for sessions and scripts.                                                        |
 
@@ -340,13 +366,20 @@ second scope vocabulary. The authorization server advertises them in
 `scopes_supported`, the consent page grants a subset, and the minted key holds
 exactly that subset.
 
-| Scope            | Lets an agent                                                                                              |
-| ---------------- | ---------------------------------------------------------------------------------------------------------- |
-| `artifact:read`  | list releases, campaigns, and the review queue; read a campaign; sign a download URL; capture a screenshot |
-| `release:create` | create releases and draft campaigns; submit drafts for review                                              |
-| `upload:sign`    | sign asset uploads                                                                                         |
-| `asset:write`    | complete and delete asset uploads                                                                          |
-| `source:write`   | no MCP tool in the first version                                                                           |
+| Scope            | Lets an agent                                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `artifact:read`  | list releases, campaigns, the review queue, and the schedule; read a campaign; sign a download URL; capture a screenshot |
+| `release:create` | create releases and draft campaigns; submit drafts for review                                                            |
+| `post:schedule`  | schedule approved campaign posts and approved variants; cancel scheduled posts                                           |
+| `upload:sign`    | sign asset uploads                                                                                                       |
+| `asset:write`    | complete and delete asset uploads                                                                                        |
+| `source:write`   | no MCP tool in the first version                                                                                         |
+
+`post:schedule` is never granted by default. Settings and the consent page
+leave it unchecked, so a person opts in per key. For a session, scheduling
+still needs `publish:manage`, and a fresh second factor where RFC 020 asks for
+one. The Go backend rechecks the key's `post:schedule` permission itself
+before it schedules or cancels, rather than trust the caller's scope check.
 
 ## Entitlements, quotas, and parity with REST
 
@@ -387,6 +420,7 @@ workspaces.
 
 - **Mutations** write their existing audit actions (`product.release_created`,
   `product.campaign_created`, `product.campaign_post_status_changed`,
+  `product.campaign_post_scheduled`, `post.scheduled`, `post.cancelled`,
   `product.asset_upload_signed`, `product.asset_deletion_requested`, and the
   rest) inside the domain transaction. The actor is the key's display name and
   the request ID is the MCP call's request ID.
@@ -436,12 +470,12 @@ snippet is never copied by hand. The settings page (Settings → AI agents) show
 the URL for the current environment, creates a scoped key that fills each
 client's snippet, and lists the agents connected through OAuth.
 
-| Client                                                               | Transport and auth                                                                                         | Setup                                                                                                                                                          |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Claude Code                                                          | HTTP and an API key, or HTTP and OAuth                                                                     | `claude mcp add --transport http shots https://api.<domain>/mcp`, with `--header "Authorization: Bearer …"` for a key. A plugin bundle wraps the same command. |
-| Claude.ai, Claude Desktop                                            | OAuth through `/mcp-oauth-claude`                                                                          | Custom connector URL                                                                                                                                           |
-| ChatGPT                                                              | OAuth through `/mcp-oauth-chatgpt` for the listed app, `/mcp-oauth-dynamic` for a developer-mode connector | Connector or Apps SDK app URL                                                                                                                                  |
-| Cursor, VS Code (Copilot), Windsurf, Gemini CLI, Codex CLI, OpenCode | HTTP and an API key, or OAuth through `/mcp-oauth-dynamic`                                                 | Each client's JSON or TOML snippet                                                                                                                             |
+| Client                                                               | Transport and auth                                                                                         | Setup                                                                                                                                                                        |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code                                                          | HTTP and an API key, or HTTP and OAuth                                                                     | `claude mcp add --transport http shots https://shots-mcp.playbookmedia.io/mcp`, with `--header "Authorization: Bearer …"` for a key. A plugin bundle wraps the same command. |
+| Claude.ai, Claude Desktop                                            | OAuth through `/mcp-oauth-claude`                                                                          | Custom connector URL                                                                                                                                                         |
+| ChatGPT                                                              | OAuth through `/mcp-oauth-chatgpt` for the listed app, `/mcp-oauth-dynamic` for a developer-mode connector | Connector or Apps SDK app URL                                                                                                                                                |
+| Cursor, VS Code (Copilot), Windsurf, Gemini CLI, Codex CLI, OpenCode | HTTP and an API key, or OAuth through `/mcp-oauth-dynamic`                                                 | Each client's JSON or TOML snippet                                                                                                                                           |
 
 `/llms.txt` lists the MCP URL, the OpenAPI document, and an agent quickstart.
 
@@ -461,7 +495,9 @@ client's snippet, and lists the agents connected through OAuth.
 
 | Threat                                     | Mitigation                                                                                                                       |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| Agent approves or publishes its own output | No such tool exists. The domain refuses non-session actors anyway.                                                               |
+| Agent approves its own output              | No such tool exists. The domain refuses non-session actors anyway.                                                               |
+| Agent schedules unapproved content         | The domain schedules only approved posts and variants, for every actor.                                                          |
+| Prompt-injected agent schedules or cancels | `post:schedule` is opt-in per key. `cancelScheduledPost` is destructive, so clients confirm. Every change is audited.            |
 | Prompt-injected agent deletes assets       | `deleteAsset` is marked destructive, so clients confirm. Deletion needs `asset:write`, the plan gate, and the in-use check.      |
 | Cross-workspace access by identifier       | The workspace comes only from the key. Every query filters on it. Unknown or foreign identifiers return `not_found`.             |
 | Stolen OAuth code                          | Single use, 10 minutes, hashed at rest, bound to the client, redirect URI, and PKCE verifier.                                    |
@@ -482,13 +518,16 @@ client's snippet, and lists the agents connected through OAuth.
 5. `tools/list` contains the tools in this RFC that the key's scopes allow.
    Their input schemas equal the ones generated from the embedded OpenAPI
    document, and that document equals `/openapi.json`.
-6. `deleteAsset` is listed with `destructiveHint: true`.
+6. `deleteAsset` and `cancelScheduledPost` are listed with
+   `destructiveHint: true`.
 7. Every mutation writes its audit record with the MCP request ID. Every call
    logs request ID, client name, and workspace.
 8. MCP Inspector connects with a key and runs `listReleases`.
 9. The OAuth flow mints a key with exactly the approved scopes, and revoking
    that key ends the connection.
 10. Postiz keys, `pos_` tokens, and keys in URL paths are refused.
+11. A key without `post:schedule` cannot schedule or cancel, through REST or
+    MCP. A key with it cannot schedule a post that is not approved.
 
 ## Rollout
 
@@ -498,8 +537,9 @@ client's snippet, and lists the agents connected through OAuth.
 2. **Go MCP.** Add the Shots tools, API-key authentication, the OAuth grant
    exchange, rate limits, and logging. Remove the Postiz surface. Ship behind
    the existing mount.
-3. **Public URL.** Route `api.<domain>` to the social backend and set
-   `PLATFORM_MCP_URL`. OAuth discovery reads metadata from the host root, so
+3. **Public URL.** Route `shots-mcp.playbookmedia.io` to the social backend
+   and set `PLATFORM_MCP_URL=https://shots-mcp.playbookmedia.io/mcp` for the
+   backend and the web. OAuth discovery reads metadata from the host root, so
    the path-prefixed `/postiz` route production uses today cannot carry the
    OAuth clients; API-key clients work on either.
 4. **Web.** Add the consent page, Settings → AI agents, the client guides, and
@@ -509,11 +549,12 @@ client's snippet, and lists the agents connected through OAuth.
 
 ## Open questions
 
-1. **API-key read access to the schedule.** RFC 020 allows reading the
-   publishing schedule only to sessions with publish permission. No scope
-   grants it to a key, so no scheduled-post tool ships. A read-only publishing
-   scope would close the gap. Owners need to decide whether a key may see
-   channel account identifiers.
+1. **API-key access to the schedule.** Resolved on 2026-10-17: the owners
+   asked for agents to schedule campaign posts and manage scheduled posts.
+   Scheduling and cancelling take the new `post:schedule` scope. Reading the
+   schedule, including channel account identifiers, takes `artifact:read`,
+   like the campaign posts that already report delivery state. Approval stays
+   with a person.
 2. **Who may connect an agent.** This RFC reuses the API-key rule, owner or
    admin. Should a creator be able to connect an agent limited to the scopes
    that role already holds?

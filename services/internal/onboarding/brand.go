@@ -62,11 +62,7 @@ func ExtractBrand(doc *Document, pageURL string) Brand {
 		}
 	}
 	if brand.Logo == "" {
-		for _, icon := range doc.Icons {
-			if strings.Contains(icon, "apple-touch") {
-				brand.Logo = icon
-			}
-		}
+		brand.Logo = doc.TouchIcon
 	}
 	if len(doc.Icons) > 0 {
 		brand.Favicon = doc.Icons[0]

@@ -20,11 +20,24 @@ import (
 // workspace. A person's edit locks a field; an automated update skips locked
 // fields so a correction is never reverted.
 
-// Profile update sources.
+// Profile update sources, in precedence order (docs/rfcs/032, Merge and
+// precedence): a person, then the product's own site, then third-party
+// enrichment. A source never overwrites a field a higher one set.
 const (
-	ProfileSourceManual    = "manual"
-	ProfileSourceAutomated = "automated"
+	ProfileSourceManual     = "manual"
+	ProfileSourceAutomated  = "automated"
+	ProfileSourceEnrichment = "enrichment"
 )
+
+func validProfileSource(source string) bool {
+	return source == ProfileSourceManual || source == ProfileSourceAutomated || source == ProfileSourceEnrichment
+}
+
+// outranks reports whether an update from source may replace a field current
+// set. Manual and site values outrank enrichment; everything outranks nothing.
+func outranks(source, current string) bool {
+	return source != ProfileSourceEnrichment || current == "" || current == ProfileSourceEnrichment
+}
 
 // productProfileFields are the field names provenance is kept for.
 var productProfileFields = []string{"name", "url", "summary", "problem", "audience", "capabilities", "proofPoints", "pricingNote", "competitors"}
@@ -116,7 +129,7 @@ func normalizeProductProfileInput(input *UpsertProductProfileInput) error {
 			*text = &trimmed
 		}
 	}
-	valid := (input.Source == ProfileSourceManual || input.Source == ProfileSourceAutomated) &&
+	valid := validProfileSource(input.Source) &&
 		(input.Name == nil || (*input.Name != "" && utf8.RuneCountInString(*input.Name) <= 160)) &&
 		(input.URL == nil || validProfileURL(*input.URL)) &&
 		validProfileText(input.Summary, 2000) && validProfileText(input.Problem, 2000) &&
@@ -190,7 +203,7 @@ func (c *Configuration) UpsertProductProfile(ctx context.Context, actor Actor, i
 	if provenance == nil {
 		provenance = map[string]profile.FieldProvenance{}
 	}
-	automated := input.Source == ProfileSourceAutomated
+	automated := input.Source != ProfileSourceManual
 	for _, field := range input.UnlockFields {
 		if entry, ok := provenance[field]; ok {
 			entry.EditedByUser = false
@@ -204,7 +217,7 @@ func (c *Configuration) UpsertProductProfile(ctx context.Context, actor Actor, i
 		if !supplied {
 			return false
 		}
-		if automated && provenance[field].EditedByUser {
+		if automated && provenance[field].EditedByUser || !outranks(input.Source, provenance[field].Source) {
 			skipped = append(skipped, field)
 			return false
 		}

@@ -54,13 +54,16 @@ var fenceTags = regexp.MustCompile(`(?i)<(/?)\s*(source|sources|brief|system|ins
 func DefuseMarkup(value string) string { return fenceTags.ReplaceAllString(value, "‹$1$2") }
 
 // Source is one fenced piece of untrusted text the prompt can cite by ID.
+// ThirdParty is text about the product from elsewhere (search results,
+// reviews): values citing it rank below the product's own site.
 type Source struct {
-	Flagged bool
-	ID      string
-	Kind    string
-	Text    string
-	Title   string
-	URL     string
+	Flagged    bool
+	ID         string
+	Kind       string
+	Text       string
+	ThirdParty bool
+	Title      string
+	URL        string
 }
 
 // Fence wraps a source as untrusted data.

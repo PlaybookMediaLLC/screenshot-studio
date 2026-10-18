@@ -23,6 +23,8 @@ type Document struct {
 	Meta  map[string]string
 	Text  string
 	Title string
+	// TouchIcon is the apple-touch-icon, usually the square logo.
+	TouchIcon string
 }
 
 var (
@@ -110,10 +112,13 @@ func ParseHTML(body []byte, pageURL string) *Document {
 			case "link":
 				rel, _ := attribute(token, "rel")
 				href, _ := attribute(token, "href")
-				if strings.Contains(strings.ToLower(rel), "icon") {
-					if icon := resolve(base, href); icon != "" {
-						doc.Icons = append(doc.Icons, icon)
-					}
+				rel, icon := strings.ToLower(rel), resolve(base, href)
+				switch {
+				case icon == "" || !strings.Contains(rel, "icon"):
+				case strings.Contains(rel, "apple-touch"):
+					doc.TouchIcon = firstNonEmpty(doc.TouchIcon, icon)
+				default:
+					doc.Icons = append(doc.Icons, icon)
 				}
 			case "a":
 				href, _ := attribute(token, "href")

@@ -16,6 +16,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/capture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/config"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/enrichment"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/maintenance"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/media"
@@ -131,7 +132,9 @@ func main() {
 		}
 		onboardingStore.WithQuotaCounter(counter).WithMonthlyMeter(meter)
 	}
-	onboardingActivities := &temporalonboarding.Activities{Fetcher: onboarding.NewFetcher(), Store: onboardingStore}
+	fetcher := onboarding.NewFetcher()
+	onboardingActivities := &temporalonboarding.Activities{Fetcher: fetcher, Store: onboardingStore,
+		Enricher: &enrichment.Enricher{Providers: enrichment.FromEnvironment(fetcher), Store: onboardingStore}}
 	if model := platformai.FromEnvironment(); model != nil {
 		onboardingActivities.Model = model
 	}

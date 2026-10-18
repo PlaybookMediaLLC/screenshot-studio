@@ -491,7 +491,7 @@ pressure.
   document's description, which Scalar renders above the operations.
 - A typed client generated from the production document, and an OpenAPI diff
   in CI that blocks unintended breaking changes.
-- API and documentation smoke tests (`tests/verify-agent-endpoints.ts`) run
+- API and documentation smoke tests (`test/verify-agent-endpoints.ts`) run
   in CI against the local stack.
 
 ## Acceptance criteria

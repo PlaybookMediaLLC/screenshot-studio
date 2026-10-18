@@ -79,4 +79,4 @@ code that references it. Never attach a public domain to the tenant bucket.
 - `services/internal/product`: the asset integration tests cover upload
   completion, duplicate completion, generated images, outbox events, and
   cross-tenant key rejection against a disposable database.
-- `e2e/tenant-assets.spec.ts` runs the browser path on the local stack.
+- `test/e2e/tenant-assets.spec.ts` runs the browser path on the local stack.

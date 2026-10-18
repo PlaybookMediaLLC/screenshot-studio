@@ -4,7 +4,7 @@ import type { E2EIdentity } from './flow'
 import { browserJson } from './browser'
 import { grantWorkspacePlan } from './services'
 import { getTotpCode } from './totp'
-import { SETTINGS_SECTIONS, settingsHref } from '../../components/workspace/settings-sections'
+import { SETTINGS_SECTIONS, settingsHref } from '../../../components/workspace/settings-sections'
 
 const sessionSchema = z.object({
   session: z.object({ activeOrganizationId: z.string().nullable() }),

@@ -170,7 +170,7 @@ confirmation.
 ### Provider verification status
 
 Both clients are covered by contract tests against recorded API shapes
-(`tests/store-publishing-integrations.test.ts`): JWT and OAuth signing,
+(`test/store-publishing-integrations.test.ts`): JWT and OAuth signing,
 pagination, retries, idempotent re-uploads, and error mapping. They have
 not been run against real Apple or Google accounts; that needs
 credentials for a test app.
@@ -217,8 +217,8 @@ DOM; the export dialog stays responsive and can cancel between files.
 
 | Suite | Command |
 | --- | --- |
-| Engine, commands, editing, output pipeline, server crypto, provider contracts | `npm test` (files under `tests/store-*.test.ts`) |
+| Engine, commands, editing, output pipeline, server crypto, provider contracts | `npm test` (files under `test/store-*.test.ts`) |
 | Contract registry and API boundaries | `npm test` (`test/openapi-contracts.test.ts`, `test/api-platform-boundary.test.ts`) |
 | Backend unit and route tests | `cd services && go test ./internal/product ./backend/internal/httpapi` |
 | Backend lifecycle against Postgres | `PUBLISHING_TEST_DATABASE_URL=… go test ./internal/product -run TestStoreReviewLifecycleAndCredentials` |
-| Browser flows | `npx playwright test e2e/store-screenshots.spec.ts` against the local stack |
+| Browser flows | `npx playwright test test/e2e/store-screenshots.spec.ts` against the local stack |

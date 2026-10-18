@@ -22,7 +22,7 @@ npm run dev        # start dev server
 npm run build      # production build
 npm run lint       # eslint
 npm run lint:fix   # eslint --fix
-npm test           # node test runner (tests/*.test.ts)
+npm test           # node test runner (test/*.test.ts)
 ```
 
 ## Project Structure
@@ -46,7 +46,7 @@ lib/
   seo/            Metadata, JSON-LD, comparison page data
 hooks/            Custom hooks
 types/            TypeScript definitions
-tests/            Node test files
+test/             Node test files
 ```
 
 ## Coding Standards

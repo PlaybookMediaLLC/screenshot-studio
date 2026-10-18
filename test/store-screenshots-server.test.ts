@@ -16,7 +16,11 @@ process.env.STORE_PUBLISHING_ENCRYPTION_KEY = randomBytes(32).toString('base64')
 const tokens = import('../lib/tenant/store-review-token')
 const crypto = import('../lib/tenant/store-credential-crypto')
 
-const claim = { reviewId: 'clx0review0001', organizationId: 'org_123', shareTokenId: 'share-token-abc' }
+const claim = {
+  reviewId: 'clx0review0001',
+  organizationId: 'org_123',
+  shareTokenId: 'share-token-abc',
+}
 
 test('review tokens round-trip and stay routable (no dots: the proxy skips dotted paths)', async () => {
   const { createStoreReviewToken, verifyStoreReviewToken } = await tokens
@@ -30,7 +34,9 @@ test('review tokens reject tampering, other secrets, and junk', async () => {
   const { createStoreReviewToken, verifyStoreReviewToken } = await tokens
   const token = createStoreReviewToken(claim)
   const [payload, signature] = token.split('~')
-  const forged = Buffer.from(JSON.stringify([claim.reviewId, 'org_other', claim.shareTokenId])).toString('base64url')
+  const forged = Buffer.from(
+    JSON.stringify([claim.reviewId, 'org_other', claim.shareTokenId])
+  ).toString('base64url')
   assert.equal(verifyStoreReviewToken(`${forged}~${signature}`), null)
   assert.equal(verifyStoreReviewToken(`${payload}~${signature.slice(0, -1)}A`), null)
   assert.equal(verifyStoreReviewToken(`${token}~extra`), null)
@@ -42,7 +48,12 @@ test('review tokens reject tampering, other secrets, and junk', async () => {
 })
 
 test('credential secrets round-trip, never appear in the envelope, and fail closed', async () => {
-  const { decryptStoreCredential, encryptStoreCredential, isStoreCredentialEncryptionConfigured, StoreCredentialKeyError } = await crypto
+  const {
+    decryptStoreCredential,
+    encryptStoreCredential,
+    isStoreCredentialEncryptionConfigured,
+    StoreCredentialKeyError,
+  } = await crypto
   const secret = '{"private_key":"-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----"}'
   const envelope = encryptStoreCredential(secret)
   assert.equal(envelope.includes('PRIVATE'), false)

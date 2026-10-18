@@ -3,7 +3,7 @@ import { chmod, writeFile } from 'node:fs/promises'
 
 const base = process.env.POSTIZ_SOCIAL_GATE_URL ?? 'http://127.0.0.1:3110'
 const output = process.argv[2]
-if (!output) throw new Error('Usage: node e2e/fixtures/bootstrap-go.mjs <private-output-file>')
+if (!output) throw new Error('Usage: node test/e2e/fixtures/bootstrap-go.mjs <private-output-file>')
 
 async function json(path, options = {}) {
   const response = await fetch(new URL(path, base), options)

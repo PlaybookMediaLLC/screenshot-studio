@@ -6,7 +6,10 @@ import { TEMPLATE_DEMO_IMAGE_NAME, TEMPLATE_DEMO_IMAGE_URL } from '../lib/templa
 test('an import goes to the main image, the template, or new layers', () => {
   assert.equal(planImageImport({ imageName: null, uploadedImageUrl: null }), 'main')
   assert.equal(
-    planImageImport({ imageName: TEMPLATE_DEMO_IMAGE_NAME, uploadedImageUrl: TEMPLATE_DEMO_IMAGE_URL }),
+    planImageImport({
+      imageName: TEMPLATE_DEMO_IMAGE_NAME,
+      uploadedImageUrl: TEMPLATE_DEMO_IMAGE_URL,
+    }),
     'template-media'
   )
   assert.equal(planImageImport({ imageName: 'a.png', uploadedImageUrl: 'blob:x' }), 'layers')

@@ -51,7 +51,10 @@ function deviceNodes(scene: ReturnType<typeof evaluate>): SceneDevice[] {
 }
 
 function singleSlideDocument(heading: string, subheading = ''): StoreDocument {
-  return createDocument({ name: 'Test', slides: [createStandardSlide('One', null, heading, subheading)] })
+  return createDocument({
+    name: 'Test',
+    slides: [createStandardSlide('One', null, heading, subheading)],
+  })
 }
 
 test('contrast ratios follow WCAG', () => {
@@ -88,19 +91,38 @@ test('the scene picks readable heading colors per background and keeps explicit 
   const [explicit] = textNodes(evaluate(document))
   assert.equal(explicit.autoColor, false)
   assert.equal(explicit.color, '#111111')
-  assert.ok(explicit.contrast < explicit.requiredContrast, 'low contrast is reported, not silently fixed')
+  assert.ok(
+    explicit.contrast < explicit.requiredContrast,
+    'low contrast is reported, not silently fixed'
+  )
 })
 
 test('devices never start inside the measured copy block (UX-03)', () => {
   const long = 'Plan smarter training blocks with adaptive weekly goals and recovery insights'
-  for (const layout of ['classic', 'hero', 'editorial-left', 'editorial-right', 'offset', 'duo', 'minimal', 'tablet-phone', 'trio'] as const) {
-    const document = singleSlideDocument(long, 'A subheading that explains the benefit in one sentence.')
+  for (const layout of [
+    'classic',
+    'hero',
+    'editorial-left',
+    'editorial-right',
+    'offset',
+    'duo',
+    'minimal',
+    'tablet-phone',
+    'trio',
+  ] as const) {
+    const document = singleSlideDocument(
+      long,
+      'A subheading that explains the benefit in one sentence.'
+    )
     document.slides[0].layout = layout
     const scene = evaluate(document)
     const copyBottom = Math.max(...textNodes(scene).map((node) => node.box.y + node.box.height))
     for (const device of deviceNodes(scene)) {
       const bounds = rotatedBounds(device.box, device.rotation)
-      assert.ok(bounds.y >= copyBottom, `${layout}: device top ${bounds.y} overlaps copy bottom ${copyBottom}`)
+      assert.ok(
+        bounds.y >= copyBottom,
+        `${layout}: device top ${bounds.y} overlaps copy bottom ${copyBottom}`
+      )
     }
   }
 })
@@ -157,19 +179,30 @@ test('the same composition adapts to an iPad target with smaller relative type (
 })
 
 test('screen image framing matches object-fit and the crop transform', () => {
-  assert.deepEqual(screenImageRect(100, 200, 1, { mode: 'fill', scale: 1, offsetX: 0, offsetY: 0 }), {
-    x: -50,
-    y: 0,
-    width: 200,
-    height: 200,
+  assert.deepEqual(
+    screenImageRect(100, 200, 1, { mode: 'fill', scale: 1, offsetX: 0, offsetY: 0 }),
+    {
+      x: -50,
+      y: 0,
+      width: 200,
+      height: 200,
+    }
+  )
+  assert.deepEqual(
+    screenImageRect(100, 200, 1, { mode: 'fit', scale: 1, offsetX: 0, offsetY: 0 }),
+    {
+      x: 0,
+      y: 50,
+      width: 100,
+      height: 100,
+    }
+  )
+  const custom = screenImageRect(100, 200, 0.5, {
+    mode: 'custom',
+    scale: 2,
+    offsetX: 10,
+    offsetY: 0,
   })
-  assert.deepEqual(screenImageRect(100, 200, 1, { mode: 'fit', scale: 1, offsetX: 0, offsetY: 0 }), {
-    x: 0,
-    y: 50,
-    width: 100,
-    height: 100,
-  })
-  const custom = screenImageRect(100, 200, 0.5, { mode: 'custom', scale: 2, offsetX: 10, offsetY: 0 })
   assert.deepEqual(custom, { x: -40, y: -100, width: 200, height: 400 })
 })
 
@@ -184,9 +217,15 @@ test('device image coordinates round-trip through rotation (UX-13, F19)', () => 
 })
 
 test('panorama slides paint one continuous background and shared layers line up (F08)', () => {
-  const slides = [createStandardSlide('A', null, 'Left'), createStandardSlide('B', null, 'Middle'), createStandardSlide('C', null, 'Right')]
+  const slides = [
+    createStandardSlide('A', null, 'Left'),
+    createStandardSlide('B', null, 'Middle'),
+    createStandardSlide('C', null, 'Right'),
+  ]
   const document = createDocument({ name: 'Pano', slides })
-  const shared = createDeviceLayer('wide', 0, undefined, { placement: { mode: 'free', x: 50, y: 50, width: 20 } })
+  const shared = createDeviceLayer('wide', 0, undefined, {
+    placement: { mode: 'free', x: 50, y: 50, width: 20 },
+  })
   document.panoramas = [
     {
       id: 'p',
@@ -203,9 +242,24 @@ test('panorama slides paint one continuous background and shared layers line up 
   const middle = scenes[1].nodes.find((node) => node.layerId === shared.id)!
   assert.ok(middle.panorama)
   assert.ok(Math.abs(middle.box.x + middle.box.width / 2 - IPHONE.width / 2) < 1e-6)
-  assert.equal(scenes[0].nodes.some((node) => node.layerId === shared.id), false)
-  const rightEdge = sampleBackground(scenes[0].background.fill, {}, { width: IPHONE.width * 3, height: IPHONE.height }, { x: IPHONE.width - 1, y: 0, width: 1, height: 10 }, 0)
-  const leftEdge = sampleBackground(scenes[1].background.fill, {}, { width: IPHONE.width * 3, height: IPHONE.height }, { x: 0, y: 0, width: 1, height: 10 }, IPHONE.width)
+  assert.equal(
+    scenes[0].nodes.some((node) => node.layerId === shared.id),
+    false
+  )
+  const rightEdge = sampleBackground(
+    scenes[0].background.fill,
+    {},
+    { width: IPHONE.width * 3, height: IPHONE.height },
+    { x: IPHONE.width - 1, y: 0, width: 1, height: 10 },
+    0
+  )
+  const leftEdge = sampleBackground(
+    scenes[1].background.fill,
+    {},
+    { width: IPHONE.width * 3, height: IPHONE.height },
+    { x: 0, y: 0, width: 1, height: 10 },
+    IPHONE.width
+  )
   assert.ok(Math.abs(rightEdge[0].r - leftEdge[0].r) < 1)
 })
 
@@ -217,8 +271,15 @@ test('a version 1 starter project migrates without losing slides, copy, or image
   assert.equal(pendingAssets.length, 0, 'bundled screens stay public URLs')
   const first = document.slides[0]
   const heading = first.layers.find((layer) => layer.type === 'text')
-  assert.equal(heading?.type === 'text' && heading.content[0].text, 'Prepare for your\nnext challenge')
-  assert.equal(document.theme.textStyles.heading.color, null, 'template default colors become automatic')
+  assert.equal(
+    heading?.type === 'text' && heading.content[0].text,
+    'Prepare for your\nnext challenge'
+  )
+  assert.equal(
+    document.theme.textStyles.heading.color,
+    null,
+    'template default colors become automatic'
+  )
   assert.equal(first.background?.kind, 'linear')
 })
 
@@ -228,21 +289,52 @@ test('version 1 duo, extra text, overlay, and inline images all migrate', () => 
   left.layoutOverride = 'duo'
   left.duoRightSlideId = right.id
   left.headlineColorOverride = '#FF0000'
-  left.extraTexts = [{ id: 't', text: 'Extra', kind: 'heading', fontSize: 5.5, bold: true, italic: false, color: null, x: 40, y: 30 }]
-  left.overlay = { src: 'data:image/png;base64,CCCC', name: 'logo.png', x: 75, y: 20, size: 24, opacity: 0.8 }
+  left.extraTexts = [
+    {
+      id: 't',
+      text: 'Extra',
+      kind: 'heading',
+      fontSize: 5.5,
+      bold: true,
+      italic: false,
+      color: null,
+      x: 40,
+      y: 30,
+    },
+  ]
+  left.overlay = {
+    src: 'data:image/png;base64,CCCC',
+    name: 'logo.png',
+    x: 75,
+    y: 20,
+    size: 24,
+    opacity: 0.8,
+  }
   left.device = { scale: 1.1, offsetX: 3, offsetY: -2, rotation: 5, rotateX: 4, rotateY: -6 }
   const { document, pendingAssets } = migrateV1Project(createStoreProject([left, right]))
   assert.equal(pendingAssets.length, 3)
   const slide = document.slides[0]
   const devices = slide.layers.filter((layer) => layer.type === 'device')
   assert.equal(devices.length, 2)
-  assert.notEqual(devices[0].type === 'device' && devices[0].assetId, devices[1].type === 'device' && devices[1].assetId)
-  assert.deepEqual(devices[0].transform, { offsetX: 3, offsetY: -2, scale: 1.1, rotation: 5, tiltX: 4, tiltY: -6 })
+  assert.notEqual(
+    devices[0].type === 'device' && devices[0].assetId,
+    devices[1].type === 'device' && devices[1].assetId
+  )
+  assert.deepEqual(devices[0].transform, {
+    offsetX: 3,
+    offsetY: -2,
+    scale: 1.1,
+    rotation: 5,
+    tiltX: 4,
+    tiltY: -6,
+  })
   const texts = slide.layers.filter((layer) => layer.type === 'text')
   assert.equal(texts.length, 3)
   const extra = texts.find((layer) => layer.type === 'text' && layer.placement.mode === 'free')
   assert.equal(extra?.type === 'text' && extra.style.fontSize, Math.round(5.5 * 13.2))
-  const heading = texts.find((layer) => layer.type === 'text' && layer.role === 'heading' && layer.placement.mode === 'auto')
+  const heading = texts.find(
+    (layer) => layer.type === 'text' && layer.role === 'heading' && layer.placement.mode === 'auto'
+  )
   assert.equal(heading?.type === 'text' && heading.style.color, '#FF0000')
   assert.ok(slide.layers.some((layer) => layer.type === 'image' && layer.opacity === 0.8))
 })

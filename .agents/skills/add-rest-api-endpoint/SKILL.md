@@ -26,7 +26,7 @@ Add versioned public operations to the existing Next.js application without dupl
 6. Never accept `organizationId` as authorization. `tenantAccess` resolves workspace ownership through `requireTenantAccess`.
    Never accept a plan, billing status, or entitlement from the request. The framework resolves it from the authenticated workspace.
 7. Add the contract to `documentedContracts` in `lib/api/contracts/index.ts`. `lib/api/openapi-platform.ts` generates the OpenAPI operation, its security scopes, and its `x-shots-entitlement`, and Scalar reads it automatically. Run `npm run api:generate` to refresh the committed document and the typed client.
-8. Add a focused contract test and extend `tests/verify-agent-endpoints.ts` when the route can be exercised without destructive durable effects.
+8. Add a focused contract test and extend `test/verify-agent-endpoints.ts` when the route can be exercised without destructive durable effects.
 9. Run the deterministic registry check, formatting, lint, typecheck, tests, and a production build.
 
 ## Route template

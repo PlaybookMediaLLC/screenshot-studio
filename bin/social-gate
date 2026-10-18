@@ -55,7 +55,7 @@ gate_compose --profile postiz-go up --detach --build \
   platform-go-migrate fake-social screenshot-studio-backend
 wait_http http://127.0.0.1:3110/
 POSTIZ_SOCIAL_GATE_URL=http://127.0.0.1:3110 \
-  node e2e/fixtures/bootstrap-go.mjs "$BOOTSTRAP_FILE"
+  node test/e2e/fixtures/bootstrap-go.mjs "$BOOTSTRAP_FILE"
 POSTIZ_API_KEY_SOCIAL_GATE="$(node -e 'const f=JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); process.stdout.write(f.apiKey)' "$BOOTSTRAP_FILE")"
 export POSTIZ_API_KEY_SOCIAL_GATE
 gate_compose up --detach --build publishing-backend publishing-orchestrator app
@@ -71,4 +71,4 @@ E2E_R2_REGION="$R2_REGION" \
 E2E_R2_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
 E2E_REDIS_URL=redis://127.0.0.1:63809 \
 E2E_SOCIAL_GATE_BOOTSTRAP="$BOOTSTRAP_FILE" \
-  npx playwright test e2e/social-gate.spec.ts --retries=0
+  npx playwright test test/e2e/social-gate.spec.ts --retries=0

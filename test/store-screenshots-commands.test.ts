@@ -25,12 +25,20 @@ import { localizedContent } from '../lib/store-screenshots/engine/text'
 
 function project(count = 3): StoreDocument {
   const slides = Array.from({ length: count }, (_, index) =>
-    createStandardSlide(`Slide ${index + 1}`, `asset-${index + 1}`, `Heading ${index + 1}`, `Sub ${index + 1}`)
+    createStandardSlide(
+      `Slide ${index + 1}`,
+      `asset-${index + 1}`,
+      `Heading ${index + 1}`,
+      `Sub ${index + 1}`
+    )
   )
   return createDocument({ name: 'Test', slides })
 }
 
-const owner = (document: StoreDocument, index = 0) => ({ kind: 'slide' as const, id: document.slides[index].id })
+const owner = (document: StoreDocument, index = 0) => ({
+  kind: 'slide' as const,
+  id: document.slides[index].id,
+})
 const devices = (document: StoreDocument, index = 0) =>
   document.slides[index].layers.filter((layer): layer is DeviceLayer => layer.type === 'device')
 const texts = (document: StoreDocument, index = 0) =>
@@ -38,7 +46,11 @@ const texts = (document: StoreDocument, index = 0) =>
 
 test('switching to Duo adds a second device with the next slide screenshot', () => {
   const document = project()
-  const next = applyCommand(document, { type: 'slides.setLayout', slideIds: [document.slides[0].id], layout: 'duo' })
+  const next = applyCommand(document, {
+    type: 'slides.setLayout',
+    slideIds: [document.slides[0].id],
+    layout: 'duo',
+  })
   const pair = devices(next)
   assert.equal(pair.length, 2)
   assert.deepEqual(
@@ -46,8 +58,16 @@ test('switching to Duo adds a second device with the next slide screenshot', () 
     ['asset-1', 'asset-2'],
     'Duo shows two distinct screenshots'
   )
-  const back = applyCommand(next, { type: 'slides.setLayout', slideIds: [document.slides[0].id], layout: 'classic' })
-  assert.equal(devices(back).length, 2, 'switching back keeps the second device instead of deleting it')
+  const back = applyCommand(next, {
+    type: 'slides.setLayout',
+    slideIds: [document.slides[0].id],
+    layout: 'classic',
+  })
+  assert.equal(
+    devices(back).length,
+    2,
+    'switching back keeps the second device instead of deleting it'
+  )
 })
 
 test('device reset leaves text positions alone (UX-04)', () => {
@@ -55,14 +75,33 @@ test('device reset leaves text positions alone (UX-04)', () => {
   const [device] = devices(document)
   const [heading] = texts(document)
   const moved = applyCommands(document, [
-    { type: 'layers.patch', owner: owner(document), layerIds: [device.id], patch: { transform: { offsetX: 10, rotation: 8 } } },
-    { type: 'layers.patch', owner: owner(document), layerIds: [heading.id], patch: { transform: { offsetY: 5 } } },
+    {
+      type: 'layers.patch',
+      owner: owner(document),
+      layerIds: [device.id],
+      patch: { transform: { offsetX: 10, rotation: 8 } },
+    },
+    {
+      type: 'layers.patch',
+      owner: owner(document),
+      layerIds: [heading.id],
+      patch: { transform: { offsetY: 5 } },
+    },
   ])
-  const reset = applyCommand(moved, { type: 'reset.devices', owner: owner(moved), layerIds: [device.id] })
+  const reset = applyCommand(moved, {
+    type: 'reset.devices',
+    owner: owner(moved),
+    layerIds: [device.id],
+  })
   assert.equal(devices(reset)[0].transform.offsetX, 0)
   assert.equal(devices(reset)[0].transform.rotation, 0)
   assert.equal(texts(reset)[0].transform.offsetY, 5, 'heading keeps its manual position')
-  const textReset = applyCommand(reset, { type: 'reset.text', owner: owner(reset), layerIds: [heading.id], scope: 'position' })
+  const textReset = applyCommand(reset, {
+    type: 'reset.text',
+    owner: owner(reset),
+    layerIds: [heading.id],
+    scope: 'position',
+  })
   assert.equal(texts(textReset)[0].transform.offsetY, 0)
 })
 
@@ -70,14 +109,29 @@ test('apply to slides copies only the chosen property groups (UX-08, F18)', () =
   const document = project(3)
   const source = document.slides[0]
   const styled = applyCommands(document, [
-    { type: 'slides.patch', slideIds: [source.id], patch: { background: { kind: 'solid', color: '#123456' } } },
+    {
+      type: 'slides.patch',
+      slideIds: [source.id],
+      patch: { background: { kind: 'solid', color: '#123456' } },
+    },
     {
       type: 'layers.patch',
       owner: owner(document),
       layerIds: [texts(document)[0].id],
-      patch: { style: { fontFamily: 'var(--font-sora), system-ui, sans-serif', fontWeight: 800, color: '#FF00FF' } },
+      patch: {
+        style: {
+          fontFamily: 'var(--font-sora), system-ui, sans-serif',
+          fontWeight: 800,
+          color: '#FF00FF',
+        },
+      },
     },
-    { type: 'layers.patch', owner: owner(document), layerIds: [devices(document)[0].id], patch: { frame: { modelId: 'pixel-10-pro', finishId: 'jade' } } },
+    {
+      type: 'layers.patch',
+      owner: owner(document),
+      layerIds: [devices(document)[0].id],
+      patch: { frame: { modelId: 'pixel-10-pro', finishId: 'jade' } },
+    },
   ])
   const applied = applyCommand(styled, {
     type: 'slides.applyStyle',
@@ -97,10 +151,20 @@ test('font change for selected slides only and one undo restores it (Workflow C)
   const document = project(10)
   const selected = document.slides.slice(0, 7).map((slide) => slide.id)
   let history: History = EMPTY_HISTORY
-  const command: Command = { type: 'slides.patchText', slideIds: selected, roles: ['heading', 'subheading', 'body'], style: { fontFamily: 'var(--font-lora), Georgia, serif' } }
+  const command: Command = {
+    type: 'slides.patchText',
+    slideIds: selected,
+    roles: ['heading', 'subheading', 'body'],
+    style: { fontFamily: 'var(--font-lora), Georgia, serif' },
+  }
   const next = applyCommand(document, command, 1000)
   history = recordHistory(history, document, 'font', null, 1000)
-  assert.equal(next.slides.filter((slide) => texts({ ...next, slides: [slide] })[0].style.fontFamily?.includes('lora')).length, 7)
+  assert.equal(
+    next.slides.filter((slide) =>
+      texts({ ...next, slides: [slide] })[0].style.fontFamily?.includes('lora')
+    ).length,
+    7
+  )
   assert.equal(texts(next, 8)[0].style.fontFamily, undefined)
   const undone = undoHistory(history, next)!
   assert.equal(undone.document, document)
@@ -109,12 +173,18 @@ test('font change for selected slides only and one undo restores it (Workflow C)
 test('moving a slide keeps panorama members together and in order (F08)', () => {
   const document = project(5)
   const ids = document.slides.map((slide) => slide.id)
-  const withPanorama = applyCommand(document, { type: 'panorama.create', slideIds: [ids[1], ids[2]] })
+  const withPanorama = applyCommand(document, {
+    type: 'panorama.create',
+    slideIds: [ids[1], ids[2]],
+  })
   assert.equal(withPanorama.panoramas.length, 1)
   const moved = applyCommand(withPanorama, { type: 'slides.move', slideIds: [ids[2]], toIndex: 3 })
   const order = moved.slides.map((slide) => slide.id)
   assert.equal(order.indexOf(ids[2]) - order.indexOf(ids[1]), 1, 'panorama stays contiguous')
-  const reordered = applyCommand(withPanorama, { type: 'slides.reorder', order: [ids[2], ids[0], ids[3], ids[1], ids[4]] })
+  const reordered = applyCommand(withPanorama, {
+    type: 'slides.reorder',
+    order: [ids[2], ids[0], ids[3], ids[1], ids[4]],
+  })
   const after = reordered.slides.map((slide) => slide.id)
   assert.equal(after.indexOf(ids[2]) - after.indexOf(ids[1]), 1)
 })
@@ -127,25 +197,41 @@ test('detaching a panorama keeps the continuous look on each slide', () => {
   const withLayer = applyCommand(created, {
     type: 'layers.add',
     owner: { kind: 'panorama', id: panoramaId },
-    layers: [createDeviceLayer('wide', 0, undefined, { placement: { mode: 'free', x: 50, y: 50, width: 20 } })],
+    layers: [
+      createDeviceLayer('wide', 0, undefined, {
+        placement: { mode: 'free', x: 50, y: 50, width: 20 },
+      }),
+    ],
   })
   const detached = applyCommand(withLayer, { type: 'panorama.detach', panoramaId })
   assert.equal(detached.panoramas.length, 0)
-  assert.deepEqual(detached.slides.map((slide) => slide.backgroundSpan), [
-    { count: 3, index: 0 },
-    { count: 3, index: 1 },
-    { count: 3, index: 2 },
-  ])
+  assert.deepEqual(
+    detached.slides.map((slide) => slide.backgroundSpan),
+    [
+      { count: 3, index: 0 },
+      { count: 3, index: 1 },
+      { count: 3, index: 2 },
+    ]
+  )
   const middleDevice = devices(detached, 1).find((device) => device.assetId === 'wide')
   assert.ok(middleDevice && middleDevice.placement.mode === 'free')
   assert.equal(middleDevice.placement.mode === 'free' && middleDevice.placement.x, 50)
-  assert.equal(devices(detached, 0).some((device) => device.assetId === 'wide'), false)
+  assert.equal(
+    devices(detached, 0).some((device) => device.assetId === 'wide'),
+    false
+  )
 })
 
 test('the last slide cannot be deleted and duplicates get fresh ids', () => {
   const document = project(1)
-  assert.equal(applyCommand(document, { type: 'slides.delete', slideIds: [document.slides[0].id] }), document)
-  const duplicated = applyCommand(document, { type: 'slides.duplicate', slideIds: [document.slides[0].id] })
+  assert.equal(
+    applyCommand(document, { type: 'slides.delete', slideIds: [document.slides[0].id] }),
+    document
+  )
+  const duplicated = applyCommand(document, {
+    type: 'slides.duplicate',
+    slideIds: [document.slides[0].id],
+  })
   assert.equal(duplicated.slides.length, 2)
   assert.notEqual(duplicated.slides[1].id, duplicated.slides[0].id)
   const layerIds = new Set(duplicated.slides[0].layers.map((layer) => layer.id))
@@ -162,7 +248,12 @@ test('invalid patches are rejected instead of corrupting the document', () => {
     patch: { opacity: 0.5, style: { fontSize: 9999 } },
   })
   assert.equal(next, document)
-  assert.equal(storeDocumentSchema.safeParse(applyCommand(document, { type: 'slides.duplicate', slideIds: [document.slides[0].id] })).success, true)
+  assert.equal(
+    storeDocumentSchema.safeParse(
+      applyCommand(document, { type: 'slides.duplicate', slideIds: [document.slides[0].id] })
+    ).success,
+    true
+  )
 })
 
 test('translations go outdated when the source changes and approval refreshes them (F13)', () => {
@@ -170,14 +261,33 @@ test('translations go outdated when the source changes and approval refreshes th
   const [heading] = texts(document)
   const translated = applyCommand(document, {
     type: 'text.translate',
-    entries: [{ slideId: document.slides[0].id, layerId: heading.id, locale: 'de-DE', content: [{ text: 'Überschrift' }], status: 'approved' }],
+    entries: [
+      {
+        slideId: document.slides[0].id,
+        layerId: heading.id,
+        locale: 'de-DE',
+        content: [{ text: 'Überschrift' }],
+        status: 'approved',
+      },
+    ],
   })
   assert.equal(localizedContent(texts(translated)[0], 'de-DE', 'en-US').state, 'translated')
-  const edited = applyCommand(translated, { type: 'layers.patch', owner: owner(translated), layerIds: [heading.id], patch: { content: [{ text: 'New source' }] } })
+  const edited = applyCommand(translated, {
+    type: 'layers.patch',
+    owner: owner(translated),
+    layerIds: [heading.id],
+    patch: { content: [{ text: 'New source' }] },
+  })
   const state = localizedContent(texts(edited)[0], 'de-DE', 'en-US')
   assert.equal(state.state, 'outdated')
   assert.equal(state.content[0].text, 'Überschrift', 'approved translation is not overwritten')
-  const approved = applyCommand(edited, { type: 'text.setTranslationStatus', slideId: edited.slides[0].id, layerId: heading.id, locale: 'de-DE', status: 'approved' })
+  const approved = applyCommand(edited, {
+    type: 'text.setTranslationStatus',
+    slideId: edited.slides[0].id,
+    layerId: heading.id,
+    locale: 'de-DE',
+    status: 'approved',
+  })
   assert.equal(localizedContent(texts(approved)[0], 'de-DE', 'en-US').state, 'translated')
 })
 
@@ -185,7 +295,16 @@ test('applying a copy suggestion keeps the replaced copy available (F14)', () =>
   const document = project(1)
   const remembered = applyCommand(document, {
     type: 'copy.remember',
-    suggestions: [{ id: 's1', slideId: document.slides[0].id, locale: 'en-US', headline: 'Train smarter', subheadline: 'Plans that adapt', tone: 'confident' }],
+    suggestions: [
+      {
+        id: 's1',
+        slideId: document.slides[0].id,
+        locale: 'en-US',
+        headline: 'Train smarter',
+        subheadline: 'Plans that adapt',
+        tone: 'confident',
+      },
+    ],
   })
   const applied = applyCommand(remembered, { type: 'copy.apply', suggestionId: 's1' })
   assert.equal(texts(applied)[0].content[0].text, 'Train smarter')
@@ -225,12 +344,29 @@ test('layer arrange, group, and delete keep dependent callouts consistent (F16)'
       },
     ],
   })
-  const front = applyCommand(withCallout, { type: 'layers.arrange', owner: owner(withCallout), layerIds: [device.id], move: 'front' })
+  const front = applyCommand(withCallout, {
+    type: 'layers.arrange',
+    owner: owner(withCallout),
+    layerIds: [device.id],
+    move: 'front',
+  })
   assert.equal(front.slides[0].layers.at(-1)?.id, device.id)
-  const grouped = applyCommand(front, { type: 'layers.group', owner: owner(front), layerIds: [device.id, 'callout-1'], groupId: 'g' })
+  const grouped = applyCommand(front, {
+    type: 'layers.group',
+    owner: owner(front),
+    layerIds: [device.id, 'callout-1'],
+    groupId: 'g',
+  })
   assert.equal(grouped.slides[0].layers.filter((layer) => layer.groupId === 'g').length, 2)
-  const deleted = applyCommand(grouped, { type: 'layers.delete', owner: owner(grouped), layerIds: [device.id] })
-  assert.equal(deleted.slides[0].layers.some((layer) => layer.id === 'callout-1'), false)
+  const deleted = applyCommand(grouped, {
+    type: 'layers.delete',
+    owner: owner(grouped),
+    layerIds: [device.id],
+  })
+  assert.equal(
+    deleted.slides[0].layers.some((layer) => layer.id === 'callout-1'),
+    false
+  )
 })
 
 test('forty edits undo and redo back to the exact documents (Workflow J)', () => {
@@ -241,11 +377,31 @@ test('forty edits undo and redo back to the exact documents (Workflow J)', () =>
     const slide = document.slides[step % 3]
     const command: Command =
       step % 4 === 0
-        ? { type: 'slides.setLayout', slideIds: [slide.id], layout: (['hero', 'duo', 'minimal', 'offset'] as const)[step % 4 === 0 ? (step / 4) % 4 : 0] }
+        ? {
+            type: 'slides.setLayout',
+            slideIds: [slide.id],
+            layout: (['hero', 'duo', 'minimal', 'offset'] as const)[
+              step % 4 === 0 ? (step / 4) % 4 : 0
+            ],
+          }
         : step % 4 === 1
-          ? { type: 'layers.patch', owner: { kind: 'slide', id: slide.id }, layerIds: [slide.layers[0].id], patch: { transform: { rotation: step % 20 } } }
+          ? {
+              type: 'layers.patch',
+              owner: { kind: 'slide', id: slide.id },
+              layerIds: [slide.layers[0].id],
+              patch: { transform: { rotation: step % 20 } },
+            }
           : step % 4 === 2
-            ? { type: 'slides.patch', slideIds: [slide.id], patch: { background: { kind: 'solid', color: `#${(step * 111111).toString(16).padStart(6, '0').slice(0, 6)}` } } }
+            ? {
+                type: 'slides.patch',
+                slideIds: [slide.id],
+                patch: {
+                  background: {
+                    kind: 'solid',
+                    color: `#${(step * 111111).toString(16).padStart(6, '0').slice(0, 6)}`,
+                  },
+                },
+              }
             : { type: 'slides.move', slideIds: [slide.id], toIndex: (step + 1) % 3 }
     const next = applyCommand(document, command, step * 1000)
     if (next !== document) {

@@ -71,7 +71,7 @@ services:
     environment:
       POSTIZ_E2E_MEDIA_ORIGIN: http://rustfs:9000
     volumes:
-      - ./e2e/fixtures/fake-social.mjs:/fake-social.mjs:ro
+      - ./test/e2e/fixtures/fake-social.mjs:/fake-social.mjs:ro
     ports:
       - '127.0.0.1:5680:8080'
     healthcheck:

@@ -92,7 +92,7 @@ settings, audit controls, identity controls, and secret exposure.
 `make e2e-recovery` runs serial failure and recovery checks for Redis, RustFS,
 Storage, and Postgres. Use a Kind port-forward with
 `E2E_MANAGE_SCREENSHOT_MOCK=false` so the command does not recreate Compose.
-See [`e2e/README.md`](../e2e/README.md) to add flows with shared lifecycle hooks.
+See [`test/e2e/README.md`](../test/e2e/README.md) to add flows with shared lifecycle hooks.
 
 ### Give Docker enough memory
 

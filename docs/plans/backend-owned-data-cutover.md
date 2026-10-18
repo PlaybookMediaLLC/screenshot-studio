@@ -170,7 +170,7 @@ the customer path after adapter parity is proven.
   signs every transfer; the Supabase Storage service, its metadata database,
   and the web storage proxy are gone (`docs/tenant-storage.md`).
 - **Social gate on the backend path.** `bin/social-gate` runs an isolated full
-  stack and `e2e/social-gate.spec.ts` drives scheduling through the web SDK,
+  stack and `test/e2e/social-gate.spec.ts` drives scheduling through the web SDK,
   backend, Temporal worker, private RustFS, and fake social API. It asserts
   canonical receipts and zero legacy social posts.
 - **Open before the release gates:** deploy the backend before the web, because

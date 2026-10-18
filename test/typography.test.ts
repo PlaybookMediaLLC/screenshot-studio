@@ -39,7 +39,8 @@ test('a gradient fill clips to the glyphs; solid uses the colour', () => {
 
 test('every typography template yields valid document texts and keeps written copy', async () => {
   const { designDocumentSchema, DESIGN_DOCUMENT_VERSION } = await import('../lib/design/document')
-  const { TYPOGRAPHY_TEMPLATES, withTypographyTemplate } = await import('../lib/typography/templates')
+  const { TYPOGRAPHY_TEMPLATES, withTypographyTemplate } =
+    await import('../lib/typography/templates')
   const base = designDocumentSchema.parse({
     image: { src: null },
     texts: [
@@ -52,7 +53,14 @@ test('every typography template yields valid document texts and keeps written co
     const texts = withTypographyTemplate(base.texts, template)
     const parsed = designDocumentSchema.parse({ ...base, texts })
     assert.equal(parsed.texts.filter((text) => text.role === 'headline').length, 1, template.id)
-    assert.equal(parsed.texts.find((text) => text.role === 'headline')?.text, 'Ship it today', template.id)
-    assert.ok(parsed.texts.some((text) => text.text === 'Footer note'), `${template.id} keeps other text`)
+    assert.equal(
+      parsed.texts.find((text) => text.role === 'headline')?.text,
+      'Ship it today',
+      template.id
+    )
+    assert.ok(
+      parsed.texts.some((text) => text.text === 'Footer note'),
+      `${template.id} keeps other text`
+    )
   }
 })

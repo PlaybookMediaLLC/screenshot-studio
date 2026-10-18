@@ -3,6 +3,7 @@ package postiz
 import (
 	"context"
 	"encoding/json"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -107,6 +108,12 @@ func TestPublishUploadsAssetAndCreatesPost(t *testing.T) {
 			if payload["type"] != "now" {
 				t.Fatalf("unexpected payload: %#v", payload)
 			}
+			// The thread is one value per post: the post, then its reply.
+			values := payload["posts"].([]any)[0].(map[string]any)["value"].([]any)
+			if len(values) != 2 || values[1].(map[string]any)["content"] != "and more" ||
+				len(values[1].(map[string]any)["image"].([]any)) != 1 {
+				t.Fatalf("unexpected thread: %#v", values)
+			}
 			_ = json.NewEncoder(w).Encode([]map[string]string{{"postId": "post-1", "integration": "destination-1"}})
 		default:
 			http.NotFound(w, r)
@@ -118,6 +125,8 @@ func TestPublishUploadsAssetAndCreatesPost(t *testing.T) {
 		AssetMediaType: "image/png", AssetObjectKey: "org/org-1/input/asset/1/file.png",
 		Caption: "hello", DestinationID: "destination-1", OrganizationID: "org-1",
 		Platform: "x", ProviderSettings: map[string]any{"visibility": "public"}, SecretReference: "POSTIZ_API_KEY_TEST",
+		Replies: []publishing.PublishReply{{Caption: "and more",
+			Assets: []publishing.MediaAsset{{MediaType: "image/png", ObjectKey: "org/org-1/input/asset/2/file.png"}}}},
 	})
 	if err != nil {
 		t.Fatal(err)

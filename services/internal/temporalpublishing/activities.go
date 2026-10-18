@@ -55,7 +55,7 @@ func (a *Activities) Prepare(ctx context.Context, input PrepareInput) (PreparedP
 		return PreparedPublication{}, nil
 	}
 	return PreparedPublication{
-		AssetMediaType: job.AssetMediaType, AssetObjectKey: job.AssetObjectKey, Assets: job.Assets,
+		AssetMediaType: job.AssetMediaType, AssetObjectKey: job.AssetObjectKey, Assets: job.Assets, Replies: job.Replies,
 		Caption: job.Post.Caption, DestinationID: job.Connection.ExternalAccountID,
 		OrganizationID: job.Post.OrganizationID, Platform: job.Connection.Platform,
 		PostID: job.Post.ID, ProviderSettings: job.Connection.ProviderSettings,
@@ -71,7 +71,7 @@ func (a *Activities) Publish(ctx context.Context, input PublishInput) (PublishRe
 		return PublishResult{NextAttempt: input.AttemptNumber, Outcome: OutcomeRetry, RetryAfter: time.Second}, nil
 	}
 	providerID, publishErr := a.provider.Publish(ctx, postiz.PublishInput{
-		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey, Assets: input.Job.Assets,
+		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey, Assets: input.Job.Assets, Replies: input.Job.Replies,
 		Caption: input.Job.Caption, DestinationID: input.Job.DestinationID,
 		OrganizationID: input.Job.OrganizationID, Platform: input.Job.Platform,
 		PostID:           input.Job.PostID,
@@ -130,7 +130,7 @@ func (a *Activities) Begin(ctx context.Context, input BeginInput) (BeginResult, 
 
 func (a *Activities) Submit(ctx context.Context, input SubmitInput) (PublishResult, error) {
 	providerID, err := a.provider.Publish(ctx, postiz.PublishInput{
-		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey, Assets: input.Job.Assets,
+		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey, Assets: input.Job.Assets, Replies: input.Job.Replies,
 		Caption: input.Job.Caption, DestinationID: input.Job.DestinationID,
 		OrganizationID: input.Job.OrganizationID, Platform: input.Job.Platform,
 		PostID:           input.Job.PostID,

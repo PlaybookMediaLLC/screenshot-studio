@@ -211,6 +211,9 @@ func (_u *ScheduledPostUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if _u.mutation.AssetIdsCleared() {
 		_spec.ClearField(scheduledpost.FieldAssetIds, field.TypeJSON)
 	}
+	if _u.mutation.RepliesCleared() {
+		_spec.ClearField(scheduledpost.FieldReplies, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.ScheduledFor(); ok {
 		_spec.SetField(scheduledpost.FieldScheduledFor, field.TypeTime, value)
 	}
@@ -505,6 +508,9 @@ func (_u *ScheduledPostUpdateOne) sqlSave(ctx context.Context) (_node *Scheduled
 	}
 	if _u.mutation.AssetIdsCleared() {
 		_spec.ClearField(scheduledpost.FieldAssetIds, field.TypeJSON)
+	}
+	if _u.mutation.RepliesCleared() {
+		_spec.ClearField(scheduledpost.FieldReplies, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.ScheduledFor(); ok {
 		_spec.SetField(scheduledpost.FieldScheduledFor, field.TypeTime, value)

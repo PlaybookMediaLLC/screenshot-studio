@@ -43,6 +43,14 @@ import {
 import type { DraftDiscussions } from '@/lib/content-drafts/discussions'
 import { cn } from '@/lib/utils'
 import { POST_COLUMN } from './layout'
+import {
+  FirstPostHeader,
+  insertPostBreak,
+  PostBreakPlugin,
+  PostHeaderContext,
+  ThreadLine,
+  threadAsRules,
+} from './thread'
 
 /**
  * The document editor for a content draft: the vendored Plate.js editor with
@@ -57,8 +65,8 @@ export type DraftCollaboration = { draftId: string; url: string }
 
 export type DraftEditorProps = {
   collaboration: DraftCollaboration | null
-  /** Shown above the text, in the post column: who the post is from. */
-  header?: React.ReactNode
+  /** Each post's header, by its 1-based number in the thread: who it is from. */
+  postHeader: (number: number) => React.ReactNode
   /** Comment threads stored with the draft. */
   initialDiscussions: DraftDiscussions
   initialValue: Value
@@ -338,7 +346,7 @@ function DraftToolbar({
   }
   const exportDocument = async () => {
     const { exportToDocx } = await import('@shots/platejs-editor/@platejs/docx-io')
-    const blob = await exportToDocx(editor.children, {
+    const blob = await exportToDocx(threadAsRules(editor.children), {
       editorPlugins: BaseEditorKit,
       editorStaticComponent: EditorStatic,
       title,
@@ -346,7 +354,9 @@ function DraftToolbar({
     download(blob, `${fileSlug(title)}.docx`)
   }
   const exportMarkdown = () => {
-    const markdown = editor.getApi({ key: KEYS.markdown }).markdown.serialize()
+    const markdown = editor
+      .getApi({ key: KEYS.markdown })
+      .markdown.serialize({ value: threadAsRules(editor.children) })
     download(new Blob([markdown], { type: 'text/markdown' }), `${fileSlug(title)}.md`)
   }
 
@@ -359,6 +369,11 @@ function DraftToolbar({
         <MarkToolbarButton nodeType={KEYS.italic} tooltip="Italic">
           <span className="italic">I</span>
         </MarkToolbarButton>
+      </ToolbarGroup>
+      <ToolbarGroup>
+        <InsertButton editor={editor} insert={() => insertPostBreak(editor)} label="New post (⌘↵)">
+          + Post
+        </InsertButton>
       </ToolbarGroup>
       <ToolbarGroup>
         <InsertButton
@@ -418,7 +433,7 @@ function DraftToolbar({
 
 export default function DraftEditor({
   collaboration,
-  header,
+  postHeader,
   initialDiscussions: storedDiscussions,
   initialValue,
   onChange,
@@ -445,7 +460,7 @@ export default function DraftEditor({
         )
       : null
     return createEditorKit({
-      additionalPlugins: live ? [live] : [],
+      additionalPlugins: live ? [PostBreakPlugin, live] : [PostBreakPlugin],
       // Comments and suggestions are authored by the signed-in member, not
       // the upstream demo users.
       overridePlugins: [
@@ -506,27 +521,30 @@ export default function DraftEditor({
 
   return (
     <EditorServicesProvider services={services}>
-      <Plate editor={editor} onValueChange={({ value }) => onChange(value)} readOnly={readOnly}>
-        {collaboration ? <Presence /> : null}
-        <DiscussionsWatcher onChange={onDiscussionsChange} />
-        <CommentColumn key={live ? 'live' : 'local'}>
-          {header ? <div className={cn('pt-10', POST_COLUMN)}>{header}</div> : null}
-          <Editor
-            aria-label="Draft body"
-            className={cn(POST_COLUMN, 'pt-1 pb-12 text-[15px] leading-relaxed')}
-            placeholder="What do you want to say?"
-            variant="default"
-          />
-        </CommentColumn>
-        {readOnly ? null : (
-          // The formatting bar floats at the bottom of the page, out of the text's way.
-          <div className="pointer-events-none sticky bottom-5 z-10 flex justify-center">
-            <div className="pointer-events-auto">
-              <DraftToolbar editor={editor} services={services} title={title} />
+      <PostHeaderContext.Provider value={postHeader}>
+        <Plate editor={editor} onValueChange={({ value }) => onChange(value)} readOnly={readOnly}>
+          {collaboration ? <Presence /> : null}
+          <DiscussionsWatcher onChange={onDiscussionsChange} />
+          <CommentColumn key={live ? 'live' : 'local'}>
+            <FirstPostHeader />
+            <ThreadLine />
+            <Editor
+              aria-label="Draft body"
+              className={cn(POST_COLUMN, 'pt-1 pb-12 text-[15px] leading-relaxed')}
+              placeholder="What do you want to say?"
+              variant="default"
+            />
+          </CommentColumn>
+          {readOnly ? null : (
+            // The formatting bar floats at the bottom of the page, out of the text's way.
+            <div className="pointer-events-none sticky bottom-5 z-10 flex justify-center">
+              <div className="pointer-events-auto">
+                <DraftToolbar editor={editor} services={services} title={title} />
+              </div>
             </div>
-          </div>
-        )}
-      </Plate>
+          )}
+        </Plate>
+      </PostHeaderContext.Provider>
     </EditorServicesProvider>
   )
 }

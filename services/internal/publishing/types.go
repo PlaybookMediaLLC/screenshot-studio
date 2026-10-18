@@ -52,11 +52,19 @@ type MediaAsset struct {
 	ObjectKey string
 }
 
+// PublishReply is a thread reply to publish after the post: its text and files.
+type PublishReply struct {
+	Assets  []MediaAsset
+	Caption string
+}
+
 type PublishJob struct {
 	// AssetObjectKey and AssetMediaType are Assets[0], for callers that take one.
-	AssetObjectKey  string
-	AssetMediaType  string
-	Assets          []MediaAsset
+	AssetObjectKey string
+	AssetMediaType string
+	Assets         []MediaAsset
+	// Replies follow the post as a thread, each answering the one before.
+	Replies         []PublishReply
 	Connection      *ent.ChannelConnection
 	Post            *ent.ScheduledPost
 	WorkspaceActive bool

@@ -420,6 +420,16 @@ func AssetIdsNotNil() predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldNotNull(FieldAssetIds))
 }
 
+// RepliesIsNil applies the IsNil predicate on the "replies" field.
+func RepliesIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldReplies))
+}
+
+// RepliesNotNil applies the NotNil predicate on the "replies" field.
+func RepliesNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldReplies))
+}
+
 // ChannelConnectionIDEQ applies the EQ predicate on the "channel_connection_id" field.
 func ChannelConnectionIDEQ(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldEQ(FieldChannelConnectionID, v))

@@ -65,9 +65,11 @@ type PrepareInput struct {
 type PreparedPublication struct {
 	// AssetMediaType and AssetObjectKey are Assets[0]. Jobs recorded before
 	// Assets existed carry only these, so both stay.
-	AssetMediaType   string
-	AssetObjectKey   string
-	Assets           []publishing.MediaAsset `json:",omitempty"`
+	AssetMediaType string
+	AssetObjectKey string
+	Assets         []publishing.MediaAsset `json:",omitempty"`
+	// Replies follow the post as a thread; jobs from before threads have none.
+	Replies          []publishing.PublishReply `json:",omitempty"`
 	Caption          string
 	DestinationID    string
 	OrganizationID   string

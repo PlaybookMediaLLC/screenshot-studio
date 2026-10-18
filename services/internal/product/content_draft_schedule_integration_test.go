@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 	"os"
 	"strings"
 	"testing"
@@ -221,6 +222,43 @@ func TestContentDraftScheduling(t *testing.T) {
 		rendered, err := repo.ScheduleContentDraft(ctx, owner, tables.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: own, Version: 1})
 		if err != nil || len(rendered.Scheduled) != 1 || len(rendered.Scheduled[0].AssetIds) != 2 || rendered.Scheduled[0].AssetIds[0] != images[4] {
 			t.Fatalf("rendered=%+v err=%v", rendered, err)
+		}
+	})
+
+	t.Run("an X thread posts its later posts as replies", func(t *testing.T) {
+		photo := cuid.New()
+		exec(`INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$3,'image/png',1,'UPLOADED',now(),now())`,
+			photo, org, "org/"+org+"/reply.png")
+		threadDraft, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{Title: "Thread"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		onLinkedIn := []ContentDraftScheduleTarget{{Caption: "One", ChannelConnectionID: linkedinChannel,
+			Replies: []thread.Reply{{Caption: "Two"}}}}
+		if _, err := repo.ScheduleContentDraft(ctx, owner, threadDraft.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: onLinkedIn, Version: 1}); !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("LinkedIn replies err=%v", err)
+		}
+		foreignReply := []ContentDraftScheduleTarget{{Caption: "One", ChannelConnectionID: xChannel,
+			Replies: []thread.Reply{{AssetIDs: []string{cuid.New()}, Caption: "Two"}}}}
+		if _, err := repo.ScheduleContentDraft(ctx, owner, threadDraft.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: foreignReply, Version: 1}); !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("foreign reply image err=%v", err)
+		}
+		onX := []ContentDraftScheduleTarget{{Caption: "One", ChannelConnectionID: xChannel,
+			Replies: []thread.Reply{{AssetIDs: []string{photo}, Caption: " Two "}, {Caption: "Three"}}}}
+		result, err := repo.ScheduleContentDraft(ctx, owner, threadDraft.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: onX, Version: 1})
+		if err != nil || len(result.Scheduled) != 1 || len(result.Scheduled[0].Replies) != 2 {
+			t.Fatalf("result=%+v err=%v", result, err)
+		}
+		post := result.Scheduled[0]
+		store := publishing.NewRepository(db.Client)
+		if claimed, err := store.Claim(ctx, post.ID, "run-"+post.ID, at.Add(time.Minute)); err != nil || !claimed {
+			t.Fatalf("claimed=%v err=%v", claimed, err)
+		}
+		job, err := store.LoadPublishJob(ctx, post.ID, "run-"+post.ID)
+		if err != nil || !job.WorkspaceActive || len(job.Replies) != 2 || job.Replies[0].Caption != "Two" ||
+			len(job.Replies[0].Assets) != 1 || job.Replies[0].Assets[0].ObjectKey != "org/"+org+"/reply.png" ||
+			job.Replies[1].Caption != "Three" {
+			t.Fatalf("job=%+v err=%v", job, err)
 		}
 	})
 

@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 	"time"
 
 	"entgo.io/ent"
@@ -31,6 +32,8 @@ func (ScheduledPost) Fields() []ent.Field {
 		// Every image of a draft post, in order; asset_id is the first. Posts
 		// scheduled before this column have only asset_id.
 		field.JSON("asset_ids", []string{}).StorageKey("assetIds").Optional().Immutable(),
+		// A thread's later posts, posted as replies to the first (X only).
+		field.JSON("replies", []thread.Reply{}).StorageKey("replies").Optional().Immutable(),
 		field.String("channel_connection_id").StorageKey("channelConnectionId").Immutable(),
 		field.Time("scheduled_for").StorageKey("scheduledFor"),
 		field.Enum("status").StorageKey("status").Values("DRAFT", "SCHEDULED", "PROCESSING", "PUBLISHED", "FAILED", "CANCELLED", "UNKNOWN_DELIVERY").Default("DRAFT"),

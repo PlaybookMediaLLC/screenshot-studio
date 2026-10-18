@@ -342,6 +342,60 @@ test('a table, a math block and a footnote persist, and the blocks post as image
   }
 })
 
+// RFC 037 threads: ⌘↵ starts the next post. X gets the first post and the
+// rest as replies; LinkedIn gets the thread joined into one post.
+test('a thread schedules to X as a post and its replies', async ({ identity, page }) => {
+  let workspace: DraftWorkspace | null = null
+  try {
+    workspace = await createDraftWorkspace(identity, page, ['x', 'linkedin'])
+    const draftId = await openNewDraft(page)
+    await draftEditor(page).click()
+    await page.keyboard.type('First post')
+    await page.waitForTimeout(300)
+    await page.keyboard.press('ControlOrMeta+Enter')
+    await expect(page.getByTestId('post-header')).toHaveCount(2)
+    await page.waitForTimeout(300)
+    await page.keyboard.type('Second post')
+    await chooseChannels(page, ['x', 'linkedin'])
+    await expectSaved(page)
+
+    await page.reload()
+    await expect(page.getByTestId('post-header')).toHaveCount(2, { timeout: 60_000 })
+    await inPreview(page, async () => {
+      await expect(page.getByTestId('preview-linkedin')).toContainText(
+        'The thread is posted as one LinkedIn post.'
+      )
+      await expect(page.getByTestId('preview-x')).toContainText('Second post')
+    })
+    await (await openSchedule(page)).getByRole('button', { name: 'Schedule anyway' }).click()
+    await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
+
+    const database = createE2EDatabase()
+    try {
+      const rows = await queryRows<{ caption: string; platform: string; replies: unknown }>(
+        database,
+        `SELECT p.caption, c.platform, p.replies
+         FROM scheduled_post p JOIN channel_connection c ON c.id = p."channelConnectionId"
+         WHERE p."contentDraftId" = $1 ORDER BY c.platform`,
+        [draftId]
+      )
+      expect(rows).toEqual([
+        { caption: 'First post\n\nSecond post', platform: 'linkedin', replies: null },
+        {
+          caption: 'First post',
+          platform: 'x',
+          replies: [{ assetIds: [], caption: 'Second post' }],
+        },
+      ])
+    } finally {
+      await database.end()
+    }
+  } finally {
+    await workspace?.provider.close()
+    await unbindTestGoOrganization(workspace?.organizationId ?? null)
+  }
+})
+
 // Comment threads are saved with the draft, so a reload still shows them.
 test('a comment thread survives a reload', async ({ identity, page }) => {
   let workspace: DraftWorkspace | null = null

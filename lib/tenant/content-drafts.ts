@@ -105,7 +105,17 @@ export async function scheduleContentDraft(
     if (serialized.errors.length > 0) {
       throw new ScheduledPostError(`${channel}: ${serialized.errors.join(' ')}`, 409)
     }
-    return { assetIds: serialized.assetIds, caption: serialized.caption, channelConnectionId }
+    // A thread channel posts the first post, then the rest as replies; every
+    // other channel gets the whole draft as its one post.
+    const [first, ...replies] = serialized.posts
+    return {
+      assetIds: first?.assetIds ?? [],
+      caption: first?.caption ?? '',
+      channelConnectionId,
+      ...(replies.length > 0
+        ? { replies: replies.map(({ assetIds, caption }) => ({ assetIds, caption })) }
+        : {}),
+    }
   })
   const result = await backendSDK(context).scheduleContentDraft(id, {
     scheduledFor: input.scheduledFor,

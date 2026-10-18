@@ -31,9 +31,11 @@ type Client struct {
 type PublishInput struct {
 	// AssetMediaType and AssetObjectKey are the single asset of a job prepared
 	// before Assets existed; Media reads either.
-	AssetMediaType   string
-	AssetObjectKey   string
-	Assets           []publishing.MediaAsset
+	AssetMediaType string
+	AssetObjectKey string
+	Assets         []publishing.MediaAsset
+	// Replies follow the post as a thread, each answering the one before.
+	Replies          []publishing.PublishReply
 	Caption          string
 	DestinationID    string
 	OrganizationID   string
@@ -52,6 +54,23 @@ func (input PublishInput) Media() []publishing.MediaAsset {
 		return nil
 	}
 	return []publishing.MediaAsset{{MediaType: input.AssetMediaType, ObjectKey: input.AssetObjectKey}}
+}
+
+// uploadAll stages each file with Postiz, in order.
+func (c *Client) uploadAll(ctx context.Context, token, organizationID string, media []publishing.MediaAsset) ([]any, error) {
+	images := []any{}
+	for _, file := range media {
+		asset, err := c.assetReader.Read(ctx, organizationID, file.ObjectKey)
+		if err != nil {
+			return nil, &Error{message: "tenant asset is unavailable: " + err.Error()}
+		}
+		upload, err := c.upload(ctx, token, file.ObjectKey, file.MediaType, asset)
+		if err != nil {
+			return nil, err
+		}
+		images = append(images, upload)
+	}
+	return images, nil
 }
 
 type StatusInput struct {
@@ -258,17 +277,18 @@ func (c *Client) Publish(ctx context.Context, input PublishInput) (string, error
 		return "", &Error{message: "Postiz credentials are unavailable"}
 	}
 	// A content draft post without an image publishes as text (RFC 037).
-	images := []any{}
-	for _, media := range input.Media() {
-		asset, err := c.assetReader.Read(ctx, input.OrganizationID, media.ObjectKey)
-		if err != nil {
-			return "", &Error{message: "tenant asset is unavailable: " + err.Error()}
-		}
-		upload, err := c.upload(ctx, token, media.ObjectKey, media.MediaType, asset)
+	images, err := c.uploadAll(ctx, token, input.OrganizationID, input.Media())
+	if err != nil {
+		return "", err
+	}
+	// Postiz posts a thread from the value list: the post, then each reply.
+	values := []any{map[string]any{"content": input.Caption, "image": images}}
+	for _, reply := range input.Replies {
+		replyImages, err := c.uploadAll(ctx, token, input.OrganizationID, reply.Assets)
 		if err != nil {
 			return "", err
 		}
-		images = append(images, upload)
+		values = append(values, map[string]any{"content": reply.Caption, "image": replyImages})
 	}
 	settings := make(map[string]any, len(input.ProviderSettings)+1)
 	for key, value := range input.ProviderSettings {
@@ -280,7 +300,7 @@ func (c *Client) Publish(ctx context.Context, input PublishInput) (string, error
 		"posts": []any{map[string]any{
 			"integration": map[string]string{"id": input.DestinationID},
 			"settings":    settings,
-			"value":       []any{map[string]any{"content": input.Caption, "image": images}},
+			"value":       values,
 		}},
 	}
 	body, err := json.Marshal(payload)

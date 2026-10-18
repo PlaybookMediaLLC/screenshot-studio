@@ -381,21 +381,17 @@ export function DraftComposer({
         <div className="relative" ref={editorArea}>
           <DraftEditor
             collaboration={collaboration}
-            header={
+            postHeader={(number) => (
               // The draft reads as the post: who posts it, then the text.
-              <div className="mb-1 flex items-center gap-3">
-                <span
-                  aria-hidden
-                  className="-ml-12 hidden size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500/40 to-violet-500/40 text-sm font-medium text-white sm:flex"
-                >
-                  {author.slice(0, 1).toUpperCase()}
-                </span>
-                <p className="min-w-0 truncate text-sm">
-                  <span className="font-medium text-white">{author}</span>
-                  {handles ? <span className="ml-1.5 text-neutral-500">{handles}</span> : null}
-                </p>
-              </div>
-            }
+              <PostHeader
+                author={author}
+                handles={handles}
+                number={number}
+                xLength={
+                  previews.find(({ channel }) => channel === 'x')?.result.posts[number - 1]?.length
+                }
+              />
+            )}
             initialDiscussions={initialDiscussions}
             initialValue={editorState.value}
             key={editorState.key}
@@ -531,6 +527,44 @@ export function DraftComposer({
           </div>
         </SheetContent>
       </Sheet>
+    </div>
+  )
+}
+
+/** A post's header in the thread: avatar, author, channels, and its number. */
+function PostHeader({
+  author,
+  handles,
+  number,
+  xLength,
+}: {
+  author: string
+  handles: string
+  number: number
+  /** The post's length on X, where each post has its own limit. */
+  xLength?: number
+}) {
+  return (
+    <div className="mb-1 flex items-center gap-3" data-testid="post-header">
+      <span
+        aria-hidden
+        className="relative z-[1] -ml-12 hidden size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500/40 to-violet-500/40 text-sm font-medium text-white ring-4 ring-[#111111] sm:flex"
+        data-post-avatar
+      >
+        {author.slice(0, 1).toUpperCase()}
+      </span>
+      <p className="min-w-0 flex-1 truncate text-sm">
+        <span className="font-medium text-white">{author}</span>
+        {handles ? <span className="ml-1.5 text-neutral-500">{handles}</span> : null}
+      </p>
+      {number > 1 || xLength !== undefined ? (
+        <span className="flex shrink-0 items-center gap-2 text-xs text-neutral-500">
+          {xLength !== undefined ? (
+            <span className={xLength > 280 ? 'text-red-400' : undefined}>{xLength} / 280</span>
+          ) : null}
+          <span>#{number}</span>
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -671,41 +705,49 @@ function PostPreview({
         <ChannelIcon channel={channel} />
         {CHANNEL_META[channel].label}
       </p>
-      <div className="flex gap-3">
-        <span
-          aria-hidden
-          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500/40 to-violet-500/40 text-sm text-white"
-        >
-          {author.slice(0, 1).toUpperCase()}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm">
-            <span className="font-medium text-white">{author}</span>
-            <span className="ml-1.5 text-neutral-500">{handle}</span>
-          </p>
-          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-neutral-200">
-            {result.caption || ' '}
-          </p>
-          {result.assetIds.length > 0 ? (
-            <div
-              className={cn(
-                'mt-3 grid gap-1 overflow-hidden rounded-xl',
-                result.assetIds.length > 1 && 'grid-cols-2'
-              )}
+      {(result.posts.length > 0 ? result.posts : [{ assetIds: [], caption: '' }]).map(
+        (post, index, posts) => (
+          <div className="relative flex gap-3 pb-4 last:pb-0" key={index}>
+            {index < posts.length - 1 ? (
+              // The thread line, from this avatar down to the next.
+              <span aria-hidden className="absolute top-10 bottom-0 left-[18px] w-px bg-white/10" />
+            ) : null}
+            <span
+              aria-hidden
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500/40 to-violet-500/40 text-sm text-white"
             >
-              {result.assetIds.slice(0, CHANNEL_IMAGE_LIMITS[channel]).map((assetId) => (
-                // biome-ignore lint/performance/noImgElement: signed asset redirects
-                <img
-                  alt=""
-                  className="aspect-video w-full bg-white/5 object-cover"
-                  key={assetId}
-                  src={assetContentUrl(assetId)}
-                />
-              ))}
+              {author.slice(0, 1).toUpperCase()}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm">
+                <span className="font-medium text-white">{author}</span>
+                <span className="ml-1.5 text-neutral-500">{handle}</span>
+              </p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm text-neutral-200">
+                {post.caption || ' '}
+              </p>
+              {post.assetIds.length > 0 ? (
+                <div
+                  className={cn(
+                    'mt-3 grid gap-1 overflow-hidden rounded-xl',
+                    post.assetIds.length > 1 && 'grid-cols-2'
+                  )}
+                >
+                  {post.assetIds.slice(0, CHANNEL_IMAGE_LIMITS[channel]).map((assetId) => (
+                    // biome-ignore lint/performance/noImgElement: signed asset redirects
+                    <img
+                      alt=""
+                      className="aspect-video w-full bg-white/5 object-cover"
+                      key={assetId}
+                      src={assetContentUrl(assetId)}
+                    />
+                  ))}
+                </div>
+              ) : null}
             </div>
-          ) : null}
-        </div>
-      </div>
+          </div>
+        )
+      )}
       <div className="mt-3 flex flex-col gap-1 border-t border-white/[0.06] pt-3">
         <CharacterCount channel={channel} result={result} />
         {result.errors.map((error) => (

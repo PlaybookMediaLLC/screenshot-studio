@@ -241,3 +241,44 @@ test('rendered tables and math blocks post as images in body order', () => {
   // Without rendered images, both stay text.
   assert.match(serializeDraft(value, 'x').caption, /E = mc\^2[\s\S]*Plan/)
 })
+
+test('a thread posts each post on X and one joined post elsewhere', () => {
+  const image = (id: string) => ({
+    type: 'img',
+    assetId: id,
+    url: `/api/v1/assets/${id}/content`,
+    children: [text('')],
+  })
+  const brk = { type: 'post_break', children: [text('')] }
+  const value = [
+    p(text('First post')),
+    image('a'),
+    brk,
+    p(text('Second post')),
+    image('b'),
+    brk,
+    // An empty post (a break just added) posts nothing.
+    p(text('')),
+  ]
+  const x = serializeDraft(value, 'x')
+  assert.deepEqual(
+    x.posts.map(({ assetIds, caption }) => ({ assetIds, caption })),
+    [
+      { assetIds: ['a'], caption: 'First post' },
+      { assetIds: ['b'], caption: 'Second post' },
+    ]
+  )
+  assert.deepEqual(x.degradations, [])
+  const linkedin = serializeDraft(value, 'linkedin')
+  assert.equal(linkedin.posts.length, 1)
+  assert.equal(linkedin.posts[0].caption, 'First post\n\nSecond post')
+  assert.deepEqual(linkedin.posts[0].assetIds, ['a', 'b'])
+  assert.deepEqual(
+    linkedin.degradations.map((item) => item.kind),
+    ['thread']
+  )
+  // Each X post has its own limit.
+  const long = serializeDraft([p(text('Short')), brk, p(text('y'.repeat(281)))], 'x')
+  assert.deepEqual(long.errors, ['Post 2 is 281 of 280 characters: shorten it for x.'])
+  assert.equal(long.length, 281)
+})

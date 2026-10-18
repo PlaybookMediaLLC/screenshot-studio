@@ -811,6 +811,8 @@ export type BackendContentDraftScheduleTarget = {
   assetIds?: string[]
   caption: string
   channelConnectionId: string
+  /** A thread's later posts, posted as replies to the first (X only). */
+  replies?: { assetIds: string[]; caption: string }[]
 }
 
 export type BackendContentDraftListQuery = {

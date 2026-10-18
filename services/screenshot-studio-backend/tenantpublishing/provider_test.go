@@ -3,6 +3,7 @@ package tenantpublishing
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -40,11 +41,13 @@ func (f *fakeSigner) SignDelivery(_ context.Context, organizationID, key string)
 }
 
 type fakePoster struct {
-	calls  int
-	media  int
-	path   string
-	err    error
-	status string
+	calls int
+	media int
+	// replies records each reply as "message>answers", in order.
+	replies []string
+	path    string
+	err     error
+	status  string
 }
 
 func (f *fakePoster) Post(_ context.Context, id, token string, posts []integrations.PostDetails, _ *socialent.Integration) ([]integrations.PostResponse, error) {
@@ -61,6 +64,15 @@ func (f *fakePoster) Post(_ context.Context, id, token string, posts []integrati
 		status = "posted"
 	}
 	return []integrations.PostResponse{{PostID: "remote-post-1", Status: status}}, nil
+}
+
+func (f *fakePoster) Comment(_ context.Context, _, postID, lastCommentID, _ string, posts []integrations.PostDetails, _ *socialent.Integration) ([]integrations.PostResponse, error) {
+	answers := lastCommentID
+	if answers == "" {
+		answers = postID
+	}
+	f.replies = append(f.replies, posts[0].Message+">"+answers)
+	return []integrations.PostResponse{{PostID: fmt.Sprintf("reply-%d", len(f.replies))}}, nil
 }
 
 func directFixture() (*Publisher, *fakeSigner, *fakePoster, postiz.PublishInput) {
@@ -92,6 +104,15 @@ func TestDirectPublisherSendsEveryAssetInOnePost(t *testing.T) {
 		{MediaType: "image/png", ObjectKey: "org/product-org/2.png"}}
 	if _, err := p.Publish(context.Background(), input); err != nil || signer.calls != 2 || poster.media != 2 {
 		t.Fatalf("err=%v signer=%d media=%d", err, signer.calls, poster.media)
+	}
+}
+
+func TestDirectPublisherPostsAThreadAsChainedReplies(t *testing.T) {
+	p, _, poster, input := directFixture()
+	input.Replies = []publishing.PublishReply{{Caption: "two"}, {Caption: "three"}}
+	id, err := p.Publish(context.Background(), input)
+	if err != nil || id != "remote-post-1" || strings.Join(poster.replies, ",") != "two>remote-post-1,three>reply-1" {
+		t.Fatalf("id=%q err=%v replies=%v", id, err, poster.replies)
 	}
 }
 

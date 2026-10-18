@@ -13,6 +13,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 )
 
 // ScheduledPostCreate is the builder for creating a ScheduledPost entity.
@@ -73,6 +74,12 @@ func (_c *ScheduledPostCreate) SetNillableAssetID(v *string) *ScheduledPostCreat
 // SetAssetIds sets the "asset_ids" field.
 func (_c *ScheduledPostCreate) SetAssetIds(v []string) *ScheduledPostCreate {
 	_c.mutation.SetAssetIds(v)
+	return _c
+}
+
+// SetReplies sets the "replies" field.
+func (_c *ScheduledPostCreate) SetReplies(v []thread.Reply) *ScheduledPostCreate {
+	_c.mutation.SetReplies(v)
 	return _c
 }
 
@@ -324,6 +331,10 @@ func (_c *ScheduledPostCreate) createSpec() (*ScheduledPost, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.AssetIds(); ok {
 		_spec.SetField(scheduledpost.FieldAssetIds, field.TypeJSON, value)
 		_node.AssetIds = value
+	}
+	if value, ok := _c.mutation.Replies(); ok {
+		_spec.SetField(scheduledpost.FieldReplies, field.TypeJSON, value)
+		_node.Replies = value
 	}
 	if value, ok := _c.mutation.ScheduledFor(); ok {
 		_spec.SetField(scheduledpost.FieldScheduledFor, field.TypeTime, value)

@@ -362,16 +362,17 @@ func (r *Repository) loadDraftPublishJob(ctx context.Context, post *ent.Schedule
 		ids = []string{*post.AssetID}
 	}
 	// A missing image cancels the post rather than publishing it without one.
-	for _, id := range ids {
-		media, err := r.client.Asset.Query().Where(asset.ID(id), asset.OrganizationID(post.OrganizationID),
-			asset.StatusEQ(asset.StatusUPLOADED)).Only(ctx)
-		if ent.IsNotFound(err) {
-			return inactive, nil
+	assets, missing, err := r.draftMedia(ctx, post.OrganizationID, ids)
+	if err != nil || missing {
+		return inactive, err
+	}
+	job.Assets = assets
+	for _, reply := range post.Replies {
+		media, missing, err := r.draftMedia(ctx, post.OrganizationID, reply.AssetIDs)
+		if err != nil || missing {
+			return inactive, err
 		}
-		if err != nil {
-			return PublishJob{}, err
-		}
-		job.Assets = append(job.Assets, MediaAsset{MediaType: media.MediaType, ObjectKey: media.ObjectKey})
+		job.Replies = append(job.Replies, PublishReply{Assets: media, Caption: reply.Caption})
 	}
 	if len(job.Assets) > 0 {
 		job.AssetObjectKey, job.AssetMediaType = job.Assets[0].ObjectKey, job.Assets[0].MediaType
@@ -382,6 +383,24 @@ func (r *Repository) loadDraftPublishJob(ctx context.Context, post *ent.Schedule
 	}
 	job.WorkspaceActive = workspaceActive && connection.Status == channelconnection.StatusACTIVE
 	return job, nil
+}
+
+// draftMedia loads a draft post's images in order; missing reports one that
+// is gone from the workspace.
+func (r *Repository) draftMedia(ctx context.Context, organizationID string, ids []string) ([]MediaAsset, bool, error) {
+	media := make([]MediaAsset, 0, len(ids))
+	for _, id := range ids {
+		row, err := r.client.Asset.Query().Where(asset.ID(id), asset.OrganizationID(organizationID),
+			asset.StatusEQ(asset.StatusUPLOADED)).Only(ctx)
+		if ent.IsNotFound(err) {
+			return nil, true, nil
+		}
+		if err != nil {
+			return nil, false, err
+		}
+		media = append(media, MediaAsset{MediaType: row.MediaType, ObjectKey: row.ObjectKey})
+	}
+	return media, false, nil
 }
 
 // workspaceActive reports whether the workspace is not being deleted.

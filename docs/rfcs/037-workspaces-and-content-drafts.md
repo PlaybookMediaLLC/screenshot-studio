@@ -258,6 +258,23 @@ second scheduler.
   has been deleted by publish time, the post is cancelled rather than sent
   without it.
 
+### Threads
+
+A draft is one post or a thread. A `post_break` block starts the next post;
+the composer draws it as that post's header (avatar, author, number, and its
+length on X) and joins the avatars with a line. ⌘↵ starts a new post, and so
+does Enter on the second empty line in a row, as in Typefully.
+
+X posts a thread as the first post and the rest as replies, each answering
+the one before; every post has X's limit and its own images. LinkedIn and
+Instagram take the thread joined into one post, and the composer says so.
+The scheduled post keeps the replies (`scheduled_post.replies`, each a caption
+and image ids), the publish job carries them, Postiz receives them as its
+value list, and the direct publisher posts each with the provider's comment
+call. The first post is live by the time a reply goes out, so a reply that
+fails ends the thread there and is logged rather than retried. Exports write
+each break as a horizontal rule.
+
 ### Serialization
 
 Social channels take plain text. One pure function turns Plate JSON into a

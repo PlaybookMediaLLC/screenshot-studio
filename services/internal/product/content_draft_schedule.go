@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"fmt"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 	"strings"
 	"time"
 
@@ -37,7 +38,16 @@ type ContentDraftScheduleTarget struct {
 	AssetIDs            []string `json:"assetIds"`
 	Caption             string   `json:"caption"`
 	ChannelConnectionID string   `json:"channelConnectionId"`
+	// Replies are a thread's later posts, posted as replies to the first.
+	// Only a channel that publishes threads (X) takes them.
+	Replies []thread.Reply `json:"replies"`
 }
+
+// draftThreadChannels publish a thread's later posts as replies.
+var draftThreadChannels = map[string]bool{"x": true}
+
+// contentDraftReplyLimit caps a thread: the first post and this many replies.
+const contentDraftReplyLimit = 24
 
 // ScheduleContentDraftInput schedules the draft at Version to every target.
 type ScheduleContentDraftInput struct {
@@ -145,10 +155,45 @@ func draftTargetConnections(ctx context.Context, tx *ent.Tx, organizationID stri
 		if length, limit := campaignPostLength(target.Caption, ""), campaignChannelLimit(channel); length > limit {
 			return nil, nil, conflict(fmt.Sprintf("The %s caption is %d characters; the limit is %d.", channel, length, limit))
 		}
+		if err := checkDraftReplies(ctx, tx, organizationID, channel, target.Replies); err != nil {
+			return nil, nil, err
+		}
 		connections[target.ChannelConnectionID] = connection
 		images[target.ChannelConnectionID] = ids
 	}
 	return connections, images, nil
+}
+
+// checkDraftReplies checks a thread's later posts: a thread channel, at most
+// contentDraftReplyLimit, each within the limit with text or an image, and
+// every image an upload of the workspace, up to the channel's image limit.
+func checkDraftReplies(ctx context.Context, tx *ent.Tx, organizationID, channel string, replies []thread.Reply) error {
+	if len(replies) == 0 {
+		return nil
+	}
+	if !draftThreadChannels[channel] {
+		return invalid("Only X posts a thread; send " + channel + " one post.")
+	}
+	if len(replies) > contentDraftReplyLimit {
+		return invalid(fmt.Sprintf("A thread can have at most %d replies.", contentDraftReplyLimit))
+	}
+	for index := range replies {
+		reply := &replies[index]
+		reply.Caption = strings.TrimSpace(reply.Caption)
+		if length, limit := campaignPostLength(reply.Caption, ""), campaignChannelLimit(channel); length > limit {
+			return conflict(fmt.Sprintf("Post %d is %d characters; the %s limit is %d.", index+2, length, channel, limit))
+		}
+		ids, err := contentDraftAssets(ctx, tx, organizationID,
+			reply.AssetIDs[:min(len(reply.AssetIDs), draftChannelImageLimits[channel])])
+		if err != nil {
+			return err
+		}
+		if reply.Caption == "" && len(ids) == 0 {
+			return invalid(fmt.Sprintf("Post %d is empty.", index+2))
+		}
+		reply.AssetIDs = ids
+	}
+	return nil
 }
 
 // replayDraftSchedule returns the posts already made for these targets at this
@@ -253,6 +298,9 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	captions := make([]string, 0, len(input.Targets))
 	for _, target := range input.Targets {
 		captions = append(captions, target.Caption)
+		for _, reply := range target.Replies {
+			captions = append(captions, reply.Caption)
+		}
 	}
 	if err := requireAllowedCopy(ctx, tx.BrandProfile, actor.OrganizationID, captions...); err != nil {
 		return nil, err
@@ -277,6 +325,9 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		create := tx.ScheduledPost.Create()
 		if ids := images[target.ChannelConnectionID]; len(ids) > 0 {
 			create.SetAssetID(ids[0]).SetAssetIds(ids)
+		}
+		if len(target.Replies) > 0 {
+			create.SetReplies(target.Replies)
 		}
 		post, err := create.SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
 			SetContentDraftID(draft.ID).SetChannelConnectionID(target.ChannelConnectionID).

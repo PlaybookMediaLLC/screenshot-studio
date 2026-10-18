@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 )
 
 // ScheduledPost is the model entity for the ScheduledPost schema.
@@ -29,6 +30,8 @@ type ScheduledPost struct {
 	AssetID *string `json:"asset_id,omitempty"`
 	// AssetIds holds the value of the "asset_ids" field.
 	AssetIds []string `json:"asset_ids,omitempty"`
+	// Replies holds the value of the "replies" field.
+	Replies []thread.Reply `json:"replies,omitempty"`
 	// ChannelConnectionID holds the value of the "channel_connection_id" field.
 	ChannelConnectionID string `json:"channel_connection_id,omitempty"`
 	// ScheduledFor holds the value of the "scheduled_for" field.
@@ -87,7 +90,7 @@ func (*ScheduledPost) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case scheduledpost.FieldAssetIds:
+		case scheduledpost.FieldAssetIds, scheduledpost.FieldReplies:
 			values[i] = new([]byte)
 		case scheduledpost.FieldID, scheduledpost.FieldOrganizationID, scheduledpost.FieldVariantID, scheduledpost.FieldContentDraftID, scheduledpost.FieldAssetID, scheduledpost.FieldChannelConnectionID, scheduledpost.FieldStatus, scheduledpost.FieldCaption, scheduledpost.FieldIdempotencyKey, scheduledpost.FieldTriggerRunID:
 			values[i] = new(sql.NullString)
@@ -147,6 +150,14 @@ func (_m *ScheduledPost) assignValues(columns []string, values []any) error {
 			} else if value != nil && len(*value) > 0 {
 				if err := json.Unmarshal(*value, &_m.AssetIds); err != nil {
 					return fmt.Errorf("unmarshal field asset_ids: %w", err)
+				}
+			}
+		case scheduledpost.FieldReplies:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field replies", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Replies); err != nil {
+					return fmt.Errorf("unmarshal field replies: %w", err)
 				}
 			}
 		case scheduledpost.FieldChannelConnectionID:
@@ -264,6 +275,9 @@ func (_m *ScheduledPost) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("asset_ids=")
 	builder.WriteString(fmt.Sprintf("%v", _m.AssetIds))
+	builder.WriteString(", ")
+	builder.WriteString("replies=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Replies))
 	builder.WriteString(", ")
 	builder.WriteString("channel_connection_id=")
 	builder.WriteString(_m.ChannelConnectionID)

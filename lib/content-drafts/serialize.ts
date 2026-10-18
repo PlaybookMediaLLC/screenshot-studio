@@ -23,6 +23,7 @@ export const degradationKindSchema = z.enum([
   'footnotes',
   'embed',
   'extra-images',
+  'thread',
   'unsupported',
 ])
 
@@ -31,6 +32,21 @@ export type DegradationKind = z.infer<typeof degradationKindSchema>
 
 /** A change the composer warns about before scheduling. */
 export type Degradation = { kind: DegradationKind; message: string }
+
+/** One post of a thread: its text and its workspace images in order. */
+export type SerializedPost = {
+  assetIds: string[]
+  caption: string
+  /** Images in the post, uploaded or still to render. */
+  images: number
+  length: number
+}
+
+/** Channels that post a thread as replies; the others post it as one post. */
+export const THREAD_CHANNELS: ReadonlySet<DraftChannel> = new Set(['x'])
+
+/** The block that starts the next post of a thread. */
+export const POST_BREAK = 'post_break'
 
 /** A caption for one channel, with its limit and what it lost. */
 export type SerializedCaption = {
@@ -41,9 +57,14 @@ export type SerializedCaption = {
   degradations: Degradation[]
   /** Blocking problems: the post cannot be scheduled as is. */
   errors: string[]
-  /** UTF-16 length, as the channel and the backend count it. */
+  /** UTF-16 length, as the channel and the backend count it; a thread's longest post. */
   length: number
   limit: number
+  /**
+   * What the channel posts, in order. A thread channel posts each post of
+   * the draft (the first, then replies); any other channel posts one.
+   */
+  posts: SerializedPost[]
 }
 
 type PlateNode = {
@@ -368,37 +389,95 @@ export function serializeDraft(
     images: 0,
     unstored: 0,
   }
-  const body = serializeBlocks(nodes, context)
+  // Each post of a thread serializes on its own; footnotes close the last.
+  const written = splitPosts(nodes).map((group) => {
+    const [assets, images] = [context.assetIds.length, context.images]
+    const caption = tidy(serializeBlocks(group, context))
+    return {
+      assetIds: context.assetIds.slice(assets),
+      caption,
+      images: context.images - images,
+      length: 0,
+    }
+  })
   const notes = footnotesText(nodes, context)
-  const caption = [body, notes]
-    .filter((part) => part.trim())
-    .join('\n\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
+  const last = written[written.length - 1]
+  if (notes && last) last.caption = tidy(`${last.caption}\n\n${notes}`)
+  const filled = written.filter((post) => post.caption || post.images > 0)
+  const thread = THREAD_CHANNELS.has(channel)
+  if (!thread && filled.length > 1) {
+    degrade(context, 'thread', `The thread is posted as one ${CHANNEL_NAMES[channel]} post.`)
+  }
+  const posts: SerializedPost[] = (
+    thread || filled.length <= 1
+      ? filled
+      : [
+          {
+            assetIds: filled.flatMap((post) => post.assetIds),
+            caption: filled.map((post) => post.caption).join('\n\n'),
+            images: filled.reduce((total, post) => total + post.images, 0),
+            length: 0,
+          },
+        ]
+  ).map((post) => ({ ...post, length: captionLength(post.caption) }))
+
   const limit = CHANNEL_RULES[channel].bodyMax
+  const imageLimit = CHANNEL_IMAGE_LIMITS[channel]
   const errors: string[] = []
-  if (!caption) errors.push('Write something to post.')
-  const length = captionLength(caption)
-  if (length > limit) errors.push(`${length} of ${limit} characters: shorten it for ${channel}.`)
+  if (posts.length === 0 || posts.every((post) => !post.caption)) {
+    errors.push('Write something to post.')
+  }
+  posts.forEach((post, index) => {
+    if (post.length <= limit) return
+    errors.push(
+      posts.length > 1
+        ? `Post ${index + 1} is ${post.length} of ${limit} characters: shorten it for ${channel}.`
+        : `${post.length} of ${limit} characters: shorten it for ${channel}.`
+    )
+  })
   if (channel === 'instagram' && context.images === context.unstored) {
     errors.push('Instagram needs an image.')
   }
-  const imageLimit = CHANNEL_IMAGE_LIMITS[channel]
-  if (context.images > imageLimit) {
-    degrade(context, 'extra-images', `Only the first ${imageLimit} images are attached.`)
+  if (posts.some((post) => post.images > imageLimit)) {
+    degrade(
+      context,
+      'extra-images',
+      `Only the first ${imageLimit} images ${posts.length > 1 ? 'of each post ' : ''}are attached.`
+    )
   }
   if (context.unstored > 0) {
     errors.push('Upload every image to the workspace before scheduling.')
   }
   return {
     assetIds: context.assetIds,
-    caption,
+    caption: posts.map((post) => post.caption).join('\n\n'),
     channel,
     degradations: [...context.degraded].map(([kind, message]) => ({ kind, message })),
     errors,
-    length,
+    length: Math.max(0, ...posts.map((post) => post.length)),
     limit,
+    posts,
   }
+}
+
+const CHANNEL_NAMES: Record<DraftChannel, string> = {
+  instagram: 'Instagram',
+  linkedin: 'LinkedIn',
+  x: 'X',
+}
+
+/** Top-level blocks grouped into posts at each post break. */
+function splitPosts(nodes: PlateNode[]): PlateNode[][] {
+  const posts: PlateNode[][] = [[]]
+  for (const node of nodes) {
+    if (node.type === POST_BREAK) posts.push([])
+    else posts[posts.length - 1].push(node)
+  }
+  return posts
+}
+
+function tidy(text: string): string {
+  return text.replace(/\n{3,}/g, '\n\n').trim()
 }
 
 /** The draft's plain text, for search and the list preview. */

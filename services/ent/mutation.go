@@ -87,6 +87,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/profile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 )
 
 const (
@@ -49817,6 +49818,8 @@ type ScheduledPostMutation struct {
 	asset_id                  *string
 	asset_ids                 *[]string
 	appendasset_ids           []string
+	replies                   *[]thread.Reply
+	appendreplies             []thread.Reply
 	scheduled_for             *time.Time
 	status                    *scheduledpost.Status
 	caption                   *string
@@ -50185,6 +50188,71 @@ func (m *ScheduledPostMutation) ResetAssetIds() {
 	m.asset_ids = nil
 	m.appendasset_ids = nil
 	delete(m.clearedFields, scheduledpost.FieldAssetIds)
+}
+
+// SetReplies sets the "replies" field.
+func (m *ScheduledPostMutation) SetReplies(t []thread.Reply) {
+	m.replies = &t
+	m.appendreplies = nil
+}
+
+// Replies returns the value of the "replies" field in the mutation.
+func (m *ScheduledPostMutation) Replies() (r []thread.Reply, exists bool) {
+	v := m.replies
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReplies returns the old "replies" field's value of the ScheduledPost entity.
+// If the ScheduledPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduledPostMutation) OldReplies(ctx context.Context) (v []thread.Reply, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReplies is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReplies requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReplies: %w", err)
+	}
+	return oldValue.Replies, nil
+}
+
+// AppendReplies adds t to the "replies" field.
+func (m *ScheduledPostMutation) AppendReplies(t []thread.Reply) {
+	m.appendreplies = append(m.appendreplies, t...)
+}
+
+// AppendedReplies returns the list of values that were appended to the "replies" field in this mutation.
+func (m *ScheduledPostMutation) AppendedReplies() ([]thread.Reply, bool) {
+	if len(m.appendreplies) == 0 {
+		return nil, false
+	}
+	return m.appendreplies, true
+}
+
+// ClearReplies clears the value of the "replies" field.
+func (m *ScheduledPostMutation) ClearReplies() {
+	m.replies = nil
+	m.appendreplies = nil
+	m.clearedFields[scheduledpost.FieldReplies] = struct{}{}
+}
+
+// RepliesCleared returns if the "replies" field was cleared in this mutation.
+func (m *ScheduledPostMutation) RepliesCleared() bool {
+	_, ok := m.clearedFields[scheduledpost.FieldReplies]
+	return ok
+}
+
+// ResetReplies resets all changes to the "replies" field.
+func (m *ScheduledPostMutation) ResetReplies() {
+	m.replies = nil
+	m.appendreplies = nil
+	delete(m.clearedFields, scheduledpost.FieldReplies)
 }
 
 // SetChannelConnectionID sets the "channel_connection_id" field.
@@ -50603,7 +50671,7 @@ func (m *ScheduledPostMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ScheduledPostMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.organization_id != nil {
 		fields = append(fields, scheduledpost.FieldOrganizationID)
 	}
@@ -50618,6 +50686,9 @@ func (m *ScheduledPostMutation) Fields() []string {
 	}
 	if m.asset_ids != nil {
 		fields = append(fields, scheduledpost.FieldAssetIds)
+	}
+	if m.replies != nil {
+		fields = append(fields, scheduledpost.FieldReplies)
 	}
 	if m.channel_connection != nil {
 		fields = append(fields, scheduledpost.FieldChannelConnectionID)
@@ -50661,6 +50732,8 @@ func (m *ScheduledPostMutation) Field(name string) (ent.Value, bool) {
 		return m.AssetID()
 	case scheduledpost.FieldAssetIds:
 		return m.AssetIds()
+	case scheduledpost.FieldReplies:
+		return m.Replies()
 	case scheduledpost.FieldChannelConnectionID:
 		return m.ChannelConnectionID()
 	case scheduledpost.FieldScheduledFor:
@@ -50696,6 +50769,8 @@ func (m *ScheduledPostMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldAssetID(ctx)
 	case scheduledpost.FieldAssetIds:
 		return m.OldAssetIds(ctx)
+	case scheduledpost.FieldReplies:
+		return m.OldReplies(ctx)
 	case scheduledpost.FieldChannelConnectionID:
 		return m.OldChannelConnectionID(ctx)
 	case scheduledpost.FieldScheduledFor:
@@ -50755,6 +50830,13 @@ func (m *ScheduledPostMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAssetIds(v)
+		return nil
+	case scheduledpost.FieldReplies:
+		v, ok := value.([]thread.Reply)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReplies(v)
 		return nil
 	case scheduledpost.FieldChannelConnectionID:
 		v, ok := value.(string)
@@ -50854,6 +50936,9 @@ func (m *ScheduledPostMutation) ClearedFields() []string {
 	if m.FieldCleared(scheduledpost.FieldAssetIds) {
 		fields = append(fields, scheduledpost.FieldAssetIds)
 	}
+	if m.FieldCleared(scheduledpost.FieldReplies) {
+		fields = append(fields, scheduledpost.FieldReplies)
+	}
 	if m.FieldCleared(scheduledpost.FieldTriggerRunID) {
 		fields = append(fields, scheduledpost.FieldTriggerRunID)
 	}
@@ -50883,6 +50968,9 @@ func (m *ScheduledPostMutation) ClearField(name string) error {
 	case scheduledpost.FieldAssetIds:
 		m.ClearAssetIds()
 		return nil
+	case scheduledpost.FieldReplies:
+		m.ClearReplies()
+		return nil
 	case scheduledpost.FieldTriggerRunID:
 		m.ClearTriggerRunID()
 		return nil
@@ -50908,6 +50996,9 @@ func (m *ScheduledPostMutation) ResetField(name string) error {
 		return nil
 	case scheduledpost.FieldAssetIds:
 		m.ResetAssetIds()
+		return nil
+	case scheduledpost.FieldReplies:
+		m.ResetReplies()
 		return nil
 	case scheduledpost.FieldChannelConnectionID:
 		m.ResetChannelConnectionID()

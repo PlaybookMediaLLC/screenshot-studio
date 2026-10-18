@@ -5,12 +5,16 @@ package tenantpublishing
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
 	productent "github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	socialent "github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/ent/integration"
 	socialdatabase "github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database"
@@ -113,17 +117,9 @@ func (p *Publisher) Publish(ctx context.Context, input postiz.PublishInput) (str
 		return "", postiz.NewError(http.StatusBadRequest, false, "invalid provider settings")
 	}
 	// A content draft post without an image publishes as text (RFC 037).
-	var media []integrations.MediaContent
-	for _, asset := range input.Media() {
-		path, err := p.signer.SignDelivery(ctx, input.OrganizationID, asset.ObjectKey)
-		if err != nil {
-			return "", postiz.NewError(http.StatusServiceUnavailable, false, "private asset could not be signed")
-		}
-		mediaType := "image"
-		if strings.HasPrefix(asset.MediaType, "video/") {
-			mediaType = "video"
-		}
-		media = append(media, integrations.MediaContent{Type: mediaType, Path: path})
+	media, err := p.signedMedia(ctx, input.OrganizationID, input.Media())
+	if err != nil {
+		return "", err
 	}
 	response, err := provider.Post(ctx, account.InternalID, account.Token, []integrations.PostDetails{{
 		ID: input.PostID, Message: input.Caption, Settings: settings, Media: media,
@@ -140,7 +136,61 @@ func (p *Publisher) Publish(ctx context.Context, input postiz.PublishInput) (str
 		response[0].Status != "posted" && response[0].Status != "success" {
 		return "", postiz.NewError(http.StatusBadGateway, true, "provider returned no confirmed post receipt")
 	}
+	p.postReplies(ctx, provider, account, input, settings, response[0].PostID)
 	return response[0].PostID, nil
+}
+
+// postReplies posts a thread's later posts, each answering the one before.
+// The first post is already live, so a reply that fails ends the thread
+// there and is logged: retrying the publication would post the first again.
+// ponytail: a failed reply is not surfaced to the composer yet; record it on
+// the post when a partial thread needs to be visible.
+func (p *Publisher) postReplies(ctx context.Context, provider poster, account *socialent.Integration,
+	input postiz.PublishInput, settings json.RawMessage, postID string) {
+	if len(input.Replies) == 0 {
+		return
+	}
+	commenter, ok := provider.(integrations.Commenter)
+	if !ok {
+		slog.WarnContext(ctx, "provider cannot post thread replies", "platform", input.Platform, "post", input.PostID)
+		return
+	}
+	last := ""
+	for index, reply := range input.Replies {
+		media, err := p.signedMedia(ctx, input.OrganizationID, reply.Assets)
+		if err == nil {
+			var response []integrations.PostResponse
+			response, err = commenter.Comment(ctx, account.InternalID, postID, last, account.Token, []integrations.PostDetails{{
+				ID: fmt.Sprintf("%s-reply-%d", input.PostID, index+1), Message: reply.Caption, Settings: settings, Media: media,
+			}}, account)
+			if err == nil && (len(response) == 0 || response[0].PostID == "") {
+				err = errors.New("provider returned no reply receipt")
+			}
+			if err == nil {
+				last = response[0].PostID
+				continue
+			}
+		}
+		slog.ErrorContext(ctx, "thread reply was not posted", "post", input.PostID, "reply", index+1, "error", err)
+		return
+	}
+}
+
+// signedMedia signs each private file for the provider to fetch, in order.
+func (p *Publisher) signedMedia(ctx context.Context, organizationID string, assets []publishing.MediaAsset) ([]integrations.MediaContent, error) {
+	var media []integrations.MediaContent
+	for _, asset := range assets {
+		path, err := p.signer.SignDelivery(ctx, organizationID, asset.ObjectKey)
+		if err != nil {
+			return nil, postiz.NewError(http.StatusServiceUnavailable, false, "private asset could not be signed")
+		}
+		mediaType := "image"
+		if strings.HasPrefix(asset.MediaType, "video/") {
+			mediaType = "video"
+		}
+		media = append(media, integrations.MediaContent{Type: mediaType, Path: path})
+	}
+	return media, nil
 }
 
 func (p *Publisher) Status(context.Context, postiz.StatusInput) (postiz.StatusResult, error) {

@@ -25,6 +25,8 @@ const (
 	FieldAssetID = "assetId"
 	// FieldAssetIds holds the string denoting the asset_ids field in the database.
 	FieldAssetIds = "assetIds"
+	// FieldReplies holds the string denoting the replies field in the database.
+	FieldReplies = "replies"
 	// FieldChannelConnectionID holds the string denoting the channel_connection_id field in the database.
 	FieldChannelConnectionID = "channelConnectionId"
 	// FieldScheduledFor holds the string denoting the scheduled_for field in the database.
@@ -71,6 +73,7 @@ var Columns = []string{
 	FieldContentDraftID,
 	FieldAssetID,
 	FieldAssetIds,
+	FieldReplies,
 	FieldChannelConnectionID,
 	FieldScheduledFor,
 	FieldStatus,

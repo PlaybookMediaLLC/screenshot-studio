@@ -166,6 +166,37 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "R2_SECRET_ACCESS_KEY"):
             cutover.consolidate(first, self.digest, secrets)
 
+    def test_collab_service_ships_only_with_its_secrets(self):
+        secrets = {key: "infisical-" + key for key in
+                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
+        collab_tag = "collab-" + "c" * 40
+        live = cutover.consolidate(self.base, self.digest, secrets)
+        self.assertNotIn("collab", {item["name"] for item in cutover.consolidate(live, self.digest, secrets, None, collab_tag)["services"]})
+        enabled = dict(secrets, COLLAB_TOKEN_SECRET="signing-key", COLLAB_SERVICE_TOKEN="collab-credential")
+        spec = cutover.consolidate(live, self.digest, enabled, None, collab_tag)
+        services = {item["name"]: item for item in spec["services"]}
+        collab = services["collab"]
+        self.assertEqual(collab["image"], dict(cutover.IMAGE, tag=collab_tag))
+        collab_env = {item["key"]: item for item in collab["envs"]}
+        self.assertEqual(collab_env["COLLAB_BACKEND_URL"]["value"], "http://screenshot-studio-backend:8082")
+        self.assertEqual((collab_env["COLLAB_SERVICE_TOKEN"]["type"], collab_env["COLLAB_SERVICE_TOKEN"]["value"]),
+                         ("SECRET", "collab-credential"))
+        # The collab service gets no signing key, database or Redis setting.
+        self.assertEqual(set(collab_env), {"COLLAB_BACKEND_URL", "COLLAB_SERVICE_TOKEN"})
+        backend = {item["key"]: item["value"] for item in services["screenshot-studio-backend"]["envs"]}
+        self.assertEqual(backend["TENANT_COLLAB_TOKEN_SECRET"], "signing-key")
+        self.assertEqual(backend["TENANT_COLLAB_SERVICE_TOKEN"], "collab-credential")
+        self.assertEqual(spec["ingress"]["rules"][0], {"match": {"path": {"prefix": "/collab"}}, "component": {"name": "collab"}})
+        repeated = cutover.consolidate(spec, self.digest, enabled, None, collab_tag)
+        self.assertEqual(repeated, spec)
+        withdrawn = cutover.consolidate(spec, self.digest, secrets, None, collab_tag)
+        self.assertNotIn("collab", {item["name"] for item in withdrawn["services"]})
+        self.assertNotIn("collab", {rule["component"]["name"] for rule in withdrawn["ingress"]["rules"]})
+        withdrawn_backend = next(item for item in withdrawn["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertFalse({"TENANT_COLLAB_TOKEN_SECRET", "TENANT_COLLAB_SERVICE_TOKEN"} & {item["key"] for item in withdrawn_backend["envs"]})
+        with self.assertRaisesRegex(ValueError, "collab-<commit SHA>"):
+            cutover.consolidate(live, self.digest, enabled, None, "collab-latest")
+
 
 if __name__ == "__main__":
     unittest.main()

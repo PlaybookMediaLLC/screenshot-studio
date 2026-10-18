@@ -10,12 +10,15 @@ import json
 import os
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
 
 IMAGE = {"registry_type": "GHCR", "registry": "playbookmediallc", "repository": "screenshot-studio"}
 SERVICES = {"web", "storage", "screenshot-studio-backend"}
 # Designs render in Cloudflare Browser Rendering over CDP, not a render service.
 RETIRED_SERVICES = {"design-renderer"}
 RETIRED_WEB_KEYS = {"PLATFORM_RENDER_SERVICE_URL", "PLATFORM_RENDER_SERVICE_SECRET"}
+# Deployed by the backend workflow when its secrets are set (RFC 037).
+OPTIONAL_SERVICES = {"collab"}
 JOBS = {"platform-migrate", "postiz-migrate"}
 # Self-serve billing (docs/rfcs/035). Each key joins the web once it is in Infisical,
 # so a deploy before Stripe is wired keeps checkout on the contact page.
@@ -27,6 +30,23 @@ WEB_DATABASE_KEYS = {"DATABASE_URL", "DIRECT_URL", "MIGRATION_DATABASE_URL", "AU
                      "STORAGE_SERVICE_KEY", "STORAGE_API_URL", "STORAGE_PROXY_URL", "STORAGE_BUCKET",
                      "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_ACCOUNT_ID", "R2_BUCKET_NAME", "R2_ENDPOINT", "R2_REGION",
                      "POSTIZ_API_URL", "POSTIZ_API_KEY"}
+
+
+def configure_content_drafts(web_envs, secrets, collab_deployed):
+    """Content drafts and co-editing (RFC 037), switched on from Infisical.
+
+    PLATFORM_CONTENT_DRAFTS mirrors its Infisical value. The composer joins
+    live sessions at wss://<origin>/collab once the backend deploy has added
+    the collab service.
+    """
+    web_envs[:] = [item for item in web_envs if item["key"] not in ("PLATFORM_CONTENT_DRAFTS", "PLATFORM_COLLAB_URL")]
+    if secrets.get("PLATFORM_CONTENT_DRAFTS"):
+        web_envs.append({"key": "PLATFORM_CONTENT_DRAFTS", "value": secrets["PLATFORM_CONTENT_DRAFTS"],
+                         "type": "GENERAL", "scope": "RUN_TIME"})
+    origin = urlsplit(secrets.get("BETTER_AUTH_URL") or "").netloc
+    if collab_deployed and origin:
+        web_envs.append({"key": "PLATFORM_COLLAB_URL", "value": f"wss://{origin}/collab",
+                         "type": "GENERAL", "scope": "RUN_TIME"})
 
 
 def update_web_image(base, tag, secrets=None):
@@ -41,7 +61,7 @@ def update_web_image(base, tag, secrets=None):
     jobs = {item["name"]: item for item in spec.get("jobs", [])}
     if "web-migrate" in jobs:
         raise ValueError("Deploy the backend first; its platform-migrate job replaces web-migrate")
-    if set(services) - RETIRED_SERVICES != SERVICES or set(jobs) != JOBS:
+    if set(services) - RETIRED_SERVICES - OPTIONAL_SERVICES != SERVICES or set(jobs) != JOBS:
         raise ValueError("Production topology changed; inspect the app before updating web")
 
     web = services["web"]
@@ -61,6 +81,7 @@ def update_web_image(base, tag, secrets=None):
                       "type": "GENERAL", "scope": "RUN_TIME"},
                      # Filled from Infisical with the other secrets below.
                      {"key": "PLATFORM_RENDER_CDP_TOKEN", "value": "", "type": "SECRET", "scope": "RUN_TIME"}]
+        configure_content_drafts(web_envs, secrets, "collab" in services)
         for key in (key for key in STRIPE_SECRET_KEYS + STRIPE_PRICE_KEYS if secrets.get(key)):
             web_envs[:] = [item for item in web_envs if item["key"] != key]
             web_envs.append({"key": key, "value": secrets[key], "scope": "RUN_TIME",

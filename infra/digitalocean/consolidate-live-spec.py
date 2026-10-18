@@ -152,11 +152,56 @@ def add_optional_social_secrets(envs, secrets):
                 item.update(value=value, type="SECRET", scope="RUN_TIME")
 
 
-def consolidate(base, digest, secrets=None, tag=None):
+COLLAB = "collab"
+COLLAB_SECRETS = ("COLLAB_TOKEN_SECRET", "COLLAB_SERVICE_TOKEN")
+
+
+def collaboration_enabled(secrets):
+    """Content draft co-editing (RFC 037) ships once both secrets are in Infisical."""
+    return secrets is not None and all(secrets.get(key) for key in COLLAB_SECRETS)
+
+
+def configure_collab(spec, backend, secrets, collab_tag):
+    """Run the collab service beside the backend, or remove it.
+
+    Only the backend holds the signing key. The collab service gets its own
+    credential, which opens only the backend's collaboration routes, and no
+    database or Redis setting. Browsers reach it at /collab.
+    """
+    keys = {"TENANT_" + key for key in COLLAB_SECRETS}
+    backend["envs"] = [item for item in backend["envs"] if item["key"] not in keys]
+    spec["services"] = [item for item in spec["services"] if item["name"] != COLLAB]
+    rules = spec.setdefault("ingress", {}).setdefault("rules", [])
+    rules[:] = [rule for rule in rules if rule.get("component", {}).get("name") != COLLAB]
+    if not collaboration_enabled(secrets) or collab_tag is None:
+        return
+    for key in COLLAB_SECRETS:
+        set_secret_env(backend["envs"], "TENANT_" + key, secrets[key])
+    spec["services"].append({
+        "name": COLLAB,
+        "image": dict(IMAGE, tag=collab_tag),
+        "instance_count": 1,
+        "instance_size_slug": "apps-s-1vcpu-0.5gb",
+        "http_port": 1234,
+        "health_check": {"http_path": "/health", "port": 1234, "initial_delay_seconds": 10,
+                         "period_seconds": 15, "timeout_seconds": 5, "failure_threshold": 6},
+        "envs": [
+            {"key": "COLLAB_BACKEND_URL", "value": f"http://{BACKEND}:8082", "type": "GENERAL", "scope": "RUN_TIME"},
+            {"key": "COLLAB_SERVICE_TOKEN", "value": secrets["COLLAB_SERVICE_TOKEN"], "type": "SECRET",
+             "scope": "RUN_TIME"},
+        ],
+    })
+    # The prefix is stripped before Hocuspocus sees the request.
+    rules.insert(0, {"match": {"path": {"prefix": "/collab"}}, "component": {"name": COLLAB}})
+
+
+def consolidate(base, digest, secrets=None, tag=None, collab_tag=None):
     if not digest.startswith("sha256:") or len(digest) != 71:
         raise ValueError("Expected an immutable SHA-256 image digest")
     if tag is not None and not re.fullmatch(r"social-backend-[0-9a-f]{40}", tag):
         raise ValueError("Expected a commit SHA image tag")
+    if collab_tag is not None and not re.fullmatch(r"collab-[0-9a-f]{40}", collab_tag):
+        raise ValueError("Expected a collab-<commit SHA> image tag")
     image = dict(IMAGE, **({"tag": tag} if tag else {"digest": digest}))
     if isinstance(base, list):
         if len(base) != 1:
@@ -165,10 +210,11 @@ def consolidate(base, digest, secrets=None, tag=None):
     spec = copy.deepcopy(base.get("spec", base))
     services = {item["name"]: item for item in spec["services"]}
     # The web deploy retires design-renderer; both shapes are current.
-    if set(services) - {"design-renderer"} == {"web", "storage", BACKEND}:
+    if set(services) - {"design-renderer", COLLAB} == {"web", "storage", BACKEND}:
         backend = services[BACKEND]
         if backend.get("image", {}).get("registry_type") != "GHCR":
             raise ValueError("Combined backend image source changed")
+        configure_collab(spec, backend, secrets, collab_tag)
         refresh_secrets(backend["envs"], secrets)
         add_optional_social_secrets(backend["envs"], secrets)
         configure_publishing_api(backend, services["web"], publishing_token(services, secrets),
@@ -250,12 +296,13 @@ def main():
     parser.add_argument("--base", type=Path, required=True)
     parser.add_argument("--digest", required=True)
     parser.add_argument("--tag", help="Unique social-backend-<commit SHA> tag to deploy")
+    parser.add_argument("--collab-tag", help="collab-<commit SHA> tag of the collaboration server")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--from-infisical-env", action="store_true",
                         help="Use OIDC-loaded Infisical values for the new backend secrets")
     args = parser.parse_args()
     spec = consolidate(json.loads(args.base.read_text()), args.digest,
-                       dict(os.environ) if args.from_infisical_env else None, args.tag)
+                       dict(os.environ) if args.from_infisical_env else None, args.tag, args.collab_tag)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with os.fdopen(os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as output:
         os.fchmod(output.fileno(), 0o600)

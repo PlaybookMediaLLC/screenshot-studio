@@ -1,0 +1,94 @@
+"use client";
+
+import {
+  type BaseSuggestionConfig,
+  BaseSuggestionPlugin,
+} from "@platejs/suggestion";
+import {
+  type ExtendConfig,
+  isSlateElement,
+  isSlateString,
+  type Path,
+} from "platejs";
+import { toTPlatePlugin } from "platejs/react";
+import { BlockSuggestion } from "../ui/block-suggestion";
+import { SuggestionLeaf, SuggestionLineBreak } from "../ui/suggestion-node";
+import { discussionPlugin } from "./discussion-kit";
+
+export type SuggestionConfig = ExtendConfig<
+  BaseSuggestionConfig,
+  {
+    activeId: string | null;
+    hoverId: string | null;
+    uniquePathMap: Map<string, Path>;
+  }
+>;
+
+export const suggestionPlugin = toTPlatePlugin<SuggestionConfig>(
+  BaseSuggestionPlugin,
+  ({ editor }) => ({
+    handlers: {
+      // unset active suggestion when clicking outside of suggestion
+      onClick: ({ api, event, setOption, type }) => {
+        let leaf = event.target as HTMLElement;
+        let isSet = false;
+
+        const unsetActiveSuggestion = () => {
+          setOption("activeId", null);
+          isSet = true;
+        };
+
+        if (!isSlateString(leaf)) unsetActiveSuggestion();
+
+        while (
+          leaf.parentElement &&
+          !isSlateElement(leaf.parentElement)
+          //  &&        !isSlateEditor(leaf.parentElement)
+        ) {
+          if (leaf.classList.contains(`slate-${type}`)) {
+            const suggestionEntry = api.suggestion!.node({
+              isText: true,
+            });
+
+            if (!suggestionEntry) {
+              unsetActiveSuggestion();
+
+              break;
+            }
+
+            const id = api.suggestion!.nodeId(suggestionEntry[0]);
+            setOption("activeId", id ?? null);
+
+            isSet = true;
+
+            break;
+          }
+
+          leaf = leaf.parentElement;
+        }
+
+        if (!isSet) unsetActiveSuggestion();
+      },
+    },
+    options: {
+      activeId: null,
+      currentUserId: editor.getOption(discussionPlugin, "currentUserId") ?? null,
+      hoverId: null,
+      uniquePathMap: new Map(),
+    },
+  })
+).configure({
+  render: {
+    belowNodes: SuggestionLineBreak as never,
+    node: SuggestionLeaf as never,
+    belowRootNodes: ({ api, element }) => {
+      if (!api.suggestion!.isBlockSuggestion(element)) {
+        return null;
+      }
+
+      return <BlockSuggestion element={element} />;
+    },
+  },
+});
+
+export const SuggestionKit = [suggestionPlugin];

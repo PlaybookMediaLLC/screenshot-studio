@@ -209,9 +209,9 @@ instead of overwriting it.
 
 | Operation | Requirement |
 | --- | --- |
-| List, get | `artifact:read` (every workspace member) |
-| Create, update, delete | `artifact:edit` |
-| Schedule, reschedule, cancel | `publish:manage`, as CopyBoard requires |
+| List, get | `artifact:read` (every workspace member, or an API key with that scope) |
+| Create, update, delete | `artifact:edit`, or an API key with `draft:write` |
+| Schedule, reschedule, cancel | `publish:manage`, as CopyBoard requires; a session only |
 
 Every operation is plan-gated by a new workspace feature, `content:drafts`,
 declared on each contract with `x-shots-entitlement` and enforced in Go. The

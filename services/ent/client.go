@@ -36,6 +36,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversationmessage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
@@ -129,6 +130,8 @@ type Client struct {
 	CommunicationRecipient *CommunicationRecipientClient
 	// ContentAngle is the client for interacting with the ContentAngle builders.
 	ContentAngle *ContentAngleClient
+	// ContentDraft is the client for interacting with the ContentDraft builders.
+	ContentDraft *ContentDraftClient
 	// Conversation is the client for interacting with the Conversation builders.
 	Conversation *ConversationClient
 	// ConversationMessage is the client for interacting with the ConversationMessage builders.
@@ -249,6 +252,7 @@ func (c *Client) init() {
 	c.CommunicationAttempt = NewCommunicationAttemptClient(c.config)
 	c.CommunicationRecipient = NewCommunicationRecipientClient(c.config)
 	c.ContentAngle = NewContentAngleClient(c.config)
+	c.ContentDraft = NewContentDraftClient(c.config)
 	c.Conversation = NewConversationClient(c.config)
 	c.ConversationMessage = NewConversationMessageClient(c.config)
 	c.CreativeTemplate = NewCreativeTemplateClient(c.config)
@@ -406,6 +410,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		CommunicationAttempt:           NewCommunicationAttemptClient(cfg),
 		CommunicationRecipient:         NewCommunicationRecipientClient(cfg),
 		ContentAngle:                   NewContentAngleClient(cfg),
+		ContentDraft:                   NewContentDraftClient(cfg),
 		Conversation:                   NewConversationClient(cfg),
 		ConversationMessage:            NewConversationMessageClient(cfg),
 		CreativeTemplate:               NewCreativeTemplateClient(cfg),
@@ -490,6 +495,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		CommunicationAttempt:           NewCommunicationAttemptClient(cfg),
 		CommunicationRecipient:         NewCommunicationRecipientClient(cfg),
 		ContentAngle:                   NewContentAngleClient(cfg),
+		ContentDraft:                   NewContentDraftClient(cfg),
 		Conversation:                   NewConversationClient(cfg),
 		ConversationMessage:            NewConversationMessageClient(cfg),
 		CreativeTemplate:               NewCreativeTemplateClient(cfg),
@@ -568,17 +574,17 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingEntitlementEvent, c.BrandKit, c.BrandProfile, c.Campaign,
 		c.CampaignAsset, c.CampaignPlan, c.CampaignPost, c.CampaignRevision,
 		c.ChannelConnection, c.CommunicationAttempt, c.CommunicationRecipient,
-		c.ContentAngle, c.Conversation, c.ConversationMessage, c.CreativeTemplate,
-		c.CreativeVariant, c.CustomerCommunication, c.DeploymentEvent, c.Design,
-		c.GitHubInstallStart, c.GitHubInstallation, c.IntegrationConnection,
-		c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member, c.Organization,
-		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PostizTenantBinding,
-		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
-		c.PublicationAttempt, c.Release, c.ReleaseDocument, c.ReleaseSpec,
-		c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink, c.SocialOAuthStart,
-		c.SourceApp, c.SourceChange, c.StorePublishingCredential, c.StoreReview,
-		c.StoreReviewComment, c.SupportAccessGrant, c.SurfaceCapture, c.User,
-		c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
+		c.ContentAngle, c.ContentDraft, c.Conversation, c.ConversationMessage,
+		c.CreativeTemplate, c.CreativeVariant, c.CustomerCommunication,
+		c.DeploymentEvent, c.Design, c.GitHubInstallStart, c.GitHubInstallation,
+		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
+		c.Organization, c.OrganizationEnterpriseSettings, c.OutboxEvent,
+		c.PostizTenantBinding, c.ProductProfile, c.ProductSurface, c.Project,
+		c.ProjectVersion, c.PublicationAttempt, c.Release, c.ReleaseDocument,
+		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
+		c.SocialOAuthStart, c.SourceApp, c.SourceChange, c.StorePublishingCredential,
+		c.StoreReview, c.StoreReviewComment, c.SupportAccessGrant, c.SurfaceCapture,
+		c.User, c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
 		c.WorkspaceGitHubInstallation, c.WorkspaceSettings,
 	} {
 		n.Use(hooks...)
@@ -594,17 +600,17 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingEntitlementEvent, c.BrandKit, c.BrandProfile, c.Campaign,
 		c.CampaignAsset, c.CampaignPlan, c.CampaignPost, c.CampaignRevision,
 		c.ChannelConnection, c.CommunicationAttempt, c.CommunicationRecipient,
-		c.ContentAngle, c.Conversation, c.ConversationMessage, c.CreativeTemplate,
-		c.CreativeVariant, c.CustomerCommunication, c.DeploymentEvent, c.Design,
-		c.GitHubInstallStart, c.GitHubInstallation, c.IntegrationConnection,
-		c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member, c.Organization,
-		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PostizTenantBinding,
-		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
-		c.PublicationAttempt, c.Release, c.ReleaseDocument, c.ReleaseSpec,
-		c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink, c.SocialOAuthStart,
-		c.SourceApp, c.SourceChange, c.StorePublishingCredential, c.StoreReview,
-		c.StoreReviewComment, c.SupportAccessGrant, c.SurfaceCapture, c.User,
-		c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
+		c.ContentAngle, c.ContentDraft, c.Conversation, c.ConversationMessage,
+		c.CreativeTemplate, c.CreativeVariant, c.CustomerCommunication,
+		c.DeploymentEvent, c.Design, c.GitHubInstallStart, c.GitHubInstallation,
+		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
+		c.Organization, c.OrganizationEnterpriseSettings, c.OutboxEvent,
+		c.PostizTenantBinding, c.ProductProfile, c.ProductSurface, c.Project,
+		c.ProjectVersion, c.PublicationAttempt, c.Release, c.ReleaseDocument,
+		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
+		c.SocialOAuthStart, c.SourceApp, c.SourceChange, c.StorePublishingCredential,
+		c.StoreReview, c.StoreReviewComment, c.SupportAccessGrant, c.SurfaceCapture,
+		c.User, c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
 		c.WorkspaceGitHubInstallation, c.WorkspaceSettings,
 	} {
 		n.Intercept(interceptors...)
@@ -656,6 +662,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.CommunicationRecipient.mutate(ctx, m)
 	case *ContentAngleMutation:
 		return c.ContentAngle.mutate(ctx, m)
+	case *ContentDraftMutation:
+		return c.ContentDraft.mutate(ctx, m)
 	case *ConversationMutation:
 		return c.Conversation.mutate(ctx, m)
 	case *ConversationMessageMutation:
@@ -3587,6 +3595,139 @@ func (c *ContentAngleClient) mutate(ctx context.Context, m *ContentAngleMutation
 		return (&ContentAngleDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown ContentAngle mutation op: %q", m.Op())
+	}
+}
+
+// ContentDraftClient is a client for the ContentDraft schema.
+type ContentDraftClient struct {
+	config
+}
+
+// NewContentDraftClient returns a client for the ContentDraft from the given config.
+func NewContentDraftClient(c config) *ContentDraftClient {
+	return &ContentDraftClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `contentdraft.Hooks(f(g(h())))`.
+func (c *ContentDraftClient) Use(hooks ...Hook) {
+	c.hooks.ContentDraft = append(c.hooks.ContentDraft, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `contentdraft.Intercept(f(g(h())))`.
+func (c *ContentDraftClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ContentDraft = append(c.inters.ContentDraft, interceptors...)
+}
+
+// Create returns a builder for creating a ContentDraft entity.
+func (c *ContentDraftClient) Create() *ContentDraftCreate {
+	mutation := newContentDraftMutation(c.config, OpCreate)
+	return &ContentDraftCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ContentDraft entities.
+func (c *ContentDraftClient) CreateBulk(builders ...*ContentDraftCreate) *ContentDraftCreateBulk {
+	return &ContentDraftCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ContentDraftClient) MapCreateBulk(slice any, setFunc func(*ContentDraftCreate, int)) *ContentDraftCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ContentDraftCreateBulk{err: fmt.Errorf("calling to ContentDraftClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ContentDraftCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ContentDraftCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ContentDraft.
+func (c *ContentDraftClient) Update() *ContentDraftUpdate {
+	mutation := newContentDraftMutation(c.config, OpUpdate)
+	return &ContentDraftUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ContentDraftClient) UpdateOne(_m *ContentDraft) *ContentDraftUpdateOne {
+	mutation := newContentDraftMutation(c.config, OpUpdateOne, withContentDraft(_m))
+	return &ContentDraftUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ContentDraftClient) UpdateOneID(id string) *ContentDraftUpdateOne {
+	mutation := newContentDraftMutation(c.config, OpUpdateOne, withContentDraftID(id))
+	return &ContentDraftUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ContentDraft.
+func (c *ContentDraftClient) Delete() *ContentDraftDelete {
+	mutation := newContentDraftMutation(c.config, OpDelete)
+	return &ContentDraftDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ContentDraftClient) DeleteOne(_m *ContentDraft) *ContentDraftDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ContentDraftClient) DeleteOneID(id string) *ContentDraftDeleteOne {
+	builder := c.Delete().Where(contentdraft.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ContentDraftDeleteOne{builder}
+}
+
+// Query returns a query builder for ContentDraft.
+func (c *ContentDraftClient) Query() *ContentDraftQuery {
+	return &ContentDraftQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeContentDraft},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ContentDraft entity by its id.
+func (c *ContentDraftClient) Get(ctx context.Context, id string) (*ContentDraft, error) {
+	return c.Query().Where(contentdraft.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ContentDraftClient) GetX(ctx context.Context, id string) *ContentDraft {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ContentDraftClient) Hooks() []Hook {
+	return c.hooks.ContentDraft
+}
+
+// Interceptors returns the client interceptors.
+func (c *ContentDraftClient) Interceptors() []Interceptor {
+	return c.inters.ContentDraft
+}
+
+func (c *ContentDraftClient) mutate(ctx context.Context, m *ContentDraftMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ContentDraftCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ContentDraftUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ContentDraftUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ContentDraftDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ContentDraft mutation op: %q", m.Op())
 	}
 }
 
@@ -9529,11 +9670,11 @@ type (
 		AuditLog, AuditOutbox, AuditRetentionPolicy, BillingEntitlementEvent, BrandKit,
 		BrandProfile, Campaign, CampaignAsset, CampaignPlan, CampaignPost,
 		CampaignRevision, ChannelConnection, CommunicationAttempt,
-		CommunicationRecipient, ContentAngle, Conversation, ConversationMessage,
-		CreativeTemplate, CreativeVariant, CustomerCommunication, DeploymentEvent,
-		Design, GitHubInstallStart, GitHubInstallation, IntegrationConnection,
-		Invitation, LaunchRun, LaunchRunStep, Member, Organization,
-		OrganizationEnterpriseSettings, OutboxEvent, PostizTenantBinding,
+		CommunicationRecipient, ContentAngle, ContentDraft, Conversation,
+		ConversationMessage, CreativeTemplate, CreativeVariant, CustomerCommunication,
+		DeploymentEvent, Design, GitHubInstallStart, GitHubInstallation,
+		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
+		Organization, OrganizationEnterpriseSettings, OutboxEvent, PostizTenantBinding,
 		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
 		Release, ReleaseDocument, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
 		ShareLink, SocialOAuthStart, SourceApp, SourceChange,
@@ -9546,11 +9687,11 @@ type (
 		AuditLog, AuditOutbox, AuditRetentionPolicy, BillingEntitlementEvent, BrandKit,
 		BrandProfile, Campaign, CampaignAsset, CampaignPlan, CampaignPost,
 		CampaignRevision, ChannelConnection, CommunicationAttempt,
-		CommunicationRecipient, ContentAngle, Conversation, ConversationMessage,
-		CreativeTemplate, CreativeVariant, CustomerCommunication, DeploymentEvent,
-		Design, GitHubInstallStart, GitHubInstallation, IntegrationConnection,
-		Invitation, LaunchRun, LaunchRunStep, Member, Organization,
-		OrganizationEnterpriseSettings, OutboxEvent, PostizTenantBinding,
+		CommunicationRecipient, ContentAngle, ContentDraft, Conversation,
+		ConversationMessage, CreativeTemplate, CreativeVariant, CustomerCommunication,
+		DeploymentEvent, Design, GitHubInstallStart, GitHubInstallation,
+		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
+		Organization, OrganizationEnterpriseSettings, OutboxEvent, PostizTenantBinding,
 		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
 		Release, ReleaseDocument, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
 		ShareLink, SocialOAuthStart, SourceApp, SourceChange,

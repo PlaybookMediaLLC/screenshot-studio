@@ -35,6 +35,7 @@ services:
       FIGMA_CLIENT_ID: ${FIGMA_CLIENT_ID:-}
       FIGMA_CLIENT_SECRET: ${FIGMA_CLIENT_SECRET:-}
       PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}
+      PLATFORM_CONTENT_DRAFTS: ${PLATFORM_CONTENT_DRAFTS:-enabled}
       # Set by bin/studio for e2e runs: a deterministic stand-in model (lib/ai/models/scripted.ts).
       PLATFORM_AI_SCRIPTED: ${PLATFORM_AI_SCRIPTED:-}
       # Set by bin/studio when render-browser runs. It shares this container's

@@ -26,7 +26,7 @@ type FeatureDecision struct {
 var minimumFeaturePlan = map[string]string{
 	"asset:create": "pro", "asset:read": "pro", "asset:update": "pro", "asset:delete": "pro",
 	"release:create": "pro", "source-app:create": "pro", "workspace:use": "pro", "enterprise:audit-drain": "enterprise",
-	"enterprise:sso": "enterprise", "enterprise:scim": "enterprise", "campaign:workflow": "pro",
+	"enterprise:sso": "enterprise", "enterprise:scim": "enterprise", "campaign:workflow": "pro", "content:drafts": "pro",
 }
 
 // FeatureNotEntitledError reports a plan gate with the decision the web shows.

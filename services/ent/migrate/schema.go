@@ -650,6 +650,36 @@ var (
 			},
 		},
 	}
+	// ContentDraftColumns holds the columns for the "content_draft" table.
+	ContentDraftColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "title", Type: field.TypeString},
+		{Name: "body", Type: field.TypeJSON},
+		{Name: "plainText", Type: field.TypeString},
+		{Name: "assetIds", Type: field.TypeJSON},
+		{Name: "channelConnectionIds", Type: field.TypeJSON},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"draft", "scheduled", "archived"}, Default: "draft"},
+		{Name: "version", Type: field.TypeInt, Default: 1},
+		{Name: "collabState", Type: field.TypeBytes, Nullable: true},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "updatedByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ContentDraftTable holds the schema information for the "content_draft" table.
+	ContentDraftTable = &schema.Table{
+		Name:       "content_draft",
+		Columns:    ContentDraftColumns,
+		PrimaryKey: []*schema.Column{ContentDraftColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "contentdraft_organizationId_updatedAt",
+				Unique:  false,
+				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[13]},
+			},
+		},
+	}
 	// ConversationColumns holds the columns for the "conversation" table.
 	ConversationColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -2001,6 +2031,7 @@ var (
 		CommunicationAttemptTable,
 		CommunicationRecipientTable,
 		ContentAngleTable,
+		ContentDraftTable,
 		ConversationTable,
 		ConversationMessageTable,
 		CreativeTemplateTable,
@@ -2112,6 +2143,9 @@ func init() {
 	}
 	ContentAngleTable.Annotation = &entsql.Annotation{
 		Table: "content_angle",
+	}
+	ContentDraftTable.Annotation = &entsql.Annotation{
+		Table: "content_draft",
 	}
 	ConversationTable.Annotation = &entsql.Annotation{
 		Table: "conversation",

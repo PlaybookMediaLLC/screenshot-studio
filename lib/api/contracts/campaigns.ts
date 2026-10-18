@@ -11,7 +11,7 @@ import {
 } from '@/lib/tenant/schemas'
 
 /**
- * Campaign contracts (RFC 018, RFC 019, RFC 037). Every operation needs the
+ * Campaign contracts (RFC 018, RFC 019, RFC 038). Every operation needs the
  * campaign workflow. API keys read with `artifact:read`, create drafts with
  * `release:create`, and schedule approved posts with `post:schedule`;
  * approving stays with a person.

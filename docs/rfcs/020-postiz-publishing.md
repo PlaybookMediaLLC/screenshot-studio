@@ -3,7 +3,7 @@
 **Status:** Partially implemented (see `lib/tenant/publishing-backend.ts` and `services/internal/publishing`)
 **Status note (2026-10-17):** Settings → Channels connects X, LinkedIn and Instagram, and the launch Schedule dialog schedules approved posts (#129). Missing: disconnect, provider token revocation, and publishing for the Facebook Login Instagram flow.
 **Phase 0 update (2026-10-16):** Launch visuals become schedulable: `ApproveCampaignDesign` creates an approved creative variant from a design's render, and `ScheduleCampaignPost` accepts that variant, checks the post channel against the connection platform, and reschedules after CANCELLED or FAILED (never after UNKNOWN_DELIVERY). Posts report their scheduled post's state instead of a write-back from the publish workers. The Approve visual, Schedule, and Channels screens ship with SDK 0.1.12.
-**RFC 037 update (2026-10-17):** A workspace API key with the opt-in `post:schedule` scope may schedule approved content and cancel scheduled posts, through `/api/v1` and MCP. See Agents under Authorization.  
+**RFC 038 update (2026-10-17):** A workspace API key with the opt-in `post:schedule` scope may schedule approved content and cancel scheduled posts, through `/api/v1` and MCP. See Agents under Authorization.  
 **Date:** 2026-08-17
 **Revised:** 2026-10-14
 **Depends on:** RFC 005 and RFC 019
@@ -183,7 +183,7 @@ The surface does not confirm the existence of records the caller cannot see.
 
 ### Agents
 
-RFC 037 lets an agent schedule, because the owners asked for it. An agent
+RFC 038 lets an agent schedule, because the owners asked for it. An agent
 still never approves anything. A workspace API key may change the schedule
 only when an owner or admin gave it the `post:schedule` scope. That scope is
 never on by default, in Settings or on the agent consent page. With it, the key

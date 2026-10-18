@@ -3,10 +3,14 @@ import { defineContract, mirrors, pageOf } from '@/lib/api/contract'
 import { idempotencyKeySchema } from '@/lib/api/contracts/releases'
 import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
 import type { listBackendScheduledPosts } from '@/lib/tenant/publishing-backend'
-import { scheduledPostCreateSchema, scheduledPostListQuerySchema } from '@/lib/tenant/schemas'
+import {
+  hasOneScheduledPostSource,
+  scheduledPostCreateSchema,
+  scheduledPostListQuerySchema,
+} from '@/lib/tenant/schemas'
 
 /**
- * Scheduled post contracts (RFC 020, RFC 037). A member with
+ * Scheduled post contracts (RFC 020, RFC 038). A member with
  * `publish:manage` reads the schedule, and changes it with a sign-in under 15
  * minutes old with two-factor. A key reads it with `artifact:read` and changes
  * it with `post:schedule`. Only approved variants can be scheduled.
@@ -39,7 +43,14 @@ export const scheduledPostSchema = mirrors<
     id: z.string(),
     scheduledFor: z.string().describe('RFC 3339 timestamp of the planned publication.'),
     status: scheduledPostStatusSchema,
-    variantId: z.string(),
+    contentDraftId: z
+      .string()
+      .nullable()
+      .describe('The content draft the post came from, when it has no variant.'),
+    variantId: z
+      .string()
+      .nullable()
+      .describe('The approved campaign variant the post came from, when it has no draft.'),
   })
 )
 
@@ -81,11 +92,12 @@ export const createScheduledPostContract = defineContract({
         .refine((value) => value.getTime() > Date.now(), 'Scheduled time must be in the future.')
         .describe('When to publish, as an RFC 3339 timestamp in the future.'),
     })
-    .strict(),
+    .strict()
+    .refine(hasOneScheduledPostSource, 'Send exactly one of variantId and contentDraftId.'),
   docs: workspaceDocs({
     bodyName: 'ScheduledPostCreateRequest',
     description:
-      'Schedules an approved creative variant to an active channel connection. The variant must be `APPROVED` with an approved review, and both must belong to the workspace; scheduling never approves. Each new post counts against the monthly posts allowance. Accepts `Idempotency-Key`, unique per channel connection: a retry returns the first post with `200`. Requires the `post:schedule` scope, or a member who manages publishing, signed in within 15 minutes with two-factor.',
+      'Schedules an approved creative variant, or a content draft, to an active channel connection. Send exactly one of `variantId` and `contentDraftId`. A variant must be `APPROVED` with an approved review; scheduling never approves. Only a signed-in member schedules a content draft; an API key gets `403`. Everything must belong to the workspace. Each new post counts against the monthly posts allowance. Accepts `Idempotency-Key`, unique per channel connection: a retry returns the first post with `200`. Requires the `post:schedule` scope, or a member who manages publishing, signed in within 15 minutes with two-factor.',
     operationId: 'createScheduledPost',
     responses: {
       '200': 'An earlier request with this idempotency key scheduled the post.',

@@ -9,7 +9,7 @@ import { createContentDraft, listContentDrafts } from '@/lib/tenant/content-draf
 
 /** The workspace's content drafts, newest first. */
 export const GET = route(listContentDraftsContract, {
-  auth: tenantAccess({ apiKeyScope: 'artifact:read', permission: 'artifact:read' }),
+  auth: tenantAccess(listContentDraftsContract.access),
   handler: async ({ access, query }) =>
     contentDraftsEnabled()
       ? listContentDrafts(access, query)
@@ -18,7 +18,7 @@ export const GET = route(listContentDraftsContract, {
 
 /** Create a content draft. */
 export const POST = route(createContentDraftContract, {
-  auth: tenantAccess({ apiKeyScope: 'draft:write', permission: 'artifact:edit' }),
+  auth: tenantAccess(createContentDraftContract.access),
   handler: async ({ access, body }) =>
     contentDraftsEnabled()
       ? createContentDraft(access, body)

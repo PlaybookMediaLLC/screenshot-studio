@@ -64,6 +64,7 @@ const entitlement = {
 
 /** `GET /api/v1/content-drafts` */
 export const listContentDraftsContract = defineContract({
+  access: { apiKeyScope: 'artifact:read', feature: 'content:drafts', permission: 'artifact:read' },
   docs: workspaceDocs({
     description:
       'Lists the workspace content drafts, newest first. Requires the `artifact:read` scope and the content drafts entitlement (Pro or higher).',
@@ -83,6 +84,7 @@ export const listContentDraftsContract = defineContract({
 
 /** `POST /api/v1/content-drafts` */
 export const createContentDraftContract = defineContract({
+  access: { apiKeyScope: 'draft:write', feature: 'content:drafts', permission: 'artifact:edit' },
   body: contentDraftFieldsSchema,
   docs: workspaceDocs({
     bodyName: 'ContentDraftCreateRequest',
@@ -104,6 +106,7 @@ export const createContentDraftContract = defineContract({
 
 /** `GET /api/v1/content-drafts/{id}` */
 export const getContentDraftContract = defineContract({
+  access: { apiKeyScope: 'artifact:read', feature: 'content:drafts', permission: 'artifact:read' },
   docs: workspaceDocs({
     description:
       'Returns one content draft with its Plate JSON body. Requires the `artifact:read` scope and the content drafts entitlement.',
@@ -127,6 +130,7 @@ export const getContentDraftContract = defineContract({
 
 /** `PATCH /api/v1/content-drafts/{id}` */
 export const updateContentDraftContract = defineContract({
+  access: { apiKeyScope: 'draft:write', feature: 'content:drafts', permission: 'artifact:edit' },
   body: contentDraftUpdateSchema,
   docs: workspaceDocs({
     bodyName: 'ContentDraftUpdateRequest',
@@ -153,6 +157,7 @@ export const updateContentDraftContract = defineContract({
 
 /** `DELETE /api/v1/content-drafts/{id}` */
 export const deleteContentDraftContract = defineContract({
+  access: { apiKeyScope: 'draft:write', feature: 'content:drafts', permission: 'artifact:edit' },
   docs: workspaceDocs({
     description:
       'Deletes a content draft. Posts already scheduled from it are not changed. Requires the `draft:write` scope.',
@@ -209,6 +214,7 @@ export const contentDraftScheduleSchema = z.object({
 
 /** `GET /api/v1/content-drafts/{id}/posts` */
 export const listContentDraftPostsContract = defineContract({
+  access: { apiKeyScope: 'artifact:read', feature: 'content:drafts', permission: 'artifact:read' },
   docs: workspaceDocs({
     description:
       'Lists the posts scheduled from a content draft, newest first, with each post status. Requires the `artifact:read` scope.',

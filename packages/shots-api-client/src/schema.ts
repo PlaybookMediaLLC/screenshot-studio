@@ -415,7 +415,7 @@ export interface paths {
         put?: never;
         /**
          * Schedule a post
-         * @description Schedules an approved creative variant to an active channel connection. The variant must be `APPROVED` with an approved review, and both must belong to the workspace; scheduling never approves. Each new post counts against the monthly posts allowance. Accepts `Idempotency-Key`, unique per channel connection: a retry returns the first post with `200`. Requires the `post:schedule` scope, or a member who manages publishing, signed in within 15 minutes with two-factor.
+         * @description Schedules an approved creative variant, or a content draft, to an active channel connection. Send exactly one of `variantId` and `contentDraftId`. A variant must be `APPROVED` with an approved review; scheduling never approves. Only a signed-in member schedules a content draft; an API key gets `403`. Everything must belong to the workspace. Each new post counts against the monthly posts allowance. Accepts `Idempotency-Key`, unique per channel connection: a retry returns the first post with `200`. Requires the `post:schedule` scope, or a member who manages publishing, signed in within 15 minutes with two-factor.
          */
         post: operations["createScheduledPost"];
         delete?: never;
@@ -438,6 +438,78 @@ export interface paths {
          * @description Cancels a post that has not started publishing. Cancelling a cancelled post returns it unchanged. A post that is processing or published cannot be cancelled; remove a published post on the social network. Requires the `post:schedule` scope, or a member who manages publishing, signed in within 15 minutes with two-factor.
          */
         post: operations["cancelScheduledPost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List content drafts
+         * @description Lists the workspace content drafts, newest first. Requires the `artifact:read` scope and the content drafts entitlement (Pro or higher).
+         */
+        get: operations["listContentDrafts"];
+        put?: never;
+        /**
+         * Create a content draft
+         * @description Creates a content draft: a post written in the document editor, kept until it is scheduled. Every attached asset and channel must belong to the workspace. Requires the `draft:write` scope and the content drafts entitlement.
+         */
+        post: operations["createContentDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-drafts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a content draft
+         * @description Returns one content draft with its Plate JSON body. Requires the `artifact:read` scope and the content drafts entitlement.
+         */
+        get: operations["getContentDraft"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a content draft
+         * @description Deletes a content draft. Posts already scheduled from it are not changed. Requires the `draft:write` scope.
+         */
+        delete: operations["deleteContentDraft"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a content draft
+         * @description Updates the fields it sets, based on `baseVersion`. A write based on an older version is refused with 409, so concurrent editors never overwrite each other; reload the draft and retry. Requires the `draft:write` scope.
+         */
+        patch: operations["updateContentDraft"];
+        trace?: never;
+    };
+    "/api/v1/content-drafts/{id}/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the posts scheduled from a content draft
+         * @description Lists the posts scheduled from a content draft, newest first, with each post status. Requires the `artifact:read` scope.
+         */
+        get: operations["listContentDraftPosts"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1111,7 +1183,10 @@ export interface components {
                 scheduledFor: string;
                 /** @enum {string} */
                 status: "DRAFT" | "SCHEDULED" | "PROCESSING" | "PUBLISHED" | "FAILED" | "CANCELLED" | "UNKNOWN_DELIVERY";
-                variantId: string;
+                /** @description The content draft the post came from, when it has no variant. */
+                contentDraftId: string | null;
+                /** @description The approved campaign variant the post came from, when it has no draft. */
+                variantId: string | null;
             }[];
             pagination: {
                 hasMore: boolean;
@@ -1128,7 +1203,81 @@ export interface components {
              */
             scheduledFor: string;
             /** Format: cuid */
-            variantId: string;
+            contentDraftId?: string;
+            /** Format: cuid */
+            variantId?: string;
+        };
+        ContentDraftListResponse: {
+            items: {
+                assetIds: string[];
+                body: {
+                    [key: string]: unknown;
+                }[];
+                channelConnectionIds: string[];
+                createdAt: string;
+                createdByUserId: string | null;
+                id: string;
+                organizationId: string;
+                plainText: string;
+                /** @enum {string} */
+                status: "draft" | "scheduled" | "archived";
+                title: string;
+                updatedAt: string;
+                updatedByUserId: string | null;
+                version: number;
+            }[];
+            nextCursor: string | null;
+        };
+        ContentDraftCreateRequest: {
+            assetIds?: string[];
+            body?: {
+                [key: string]: unknown;
+            }[];
+            channelConnectionIds?: string[];
+            plainText?: string;
+            title?: string;
+        };
+        ContentDraft: {
+            assetIds: string[];
+            body: {
+                [key: string]: unknown;
+            }[];
+            channelConnectionIds: string[];
+            createdAt: string;
+            createdByUserId: string | null;
+            id: string;
+            organizationId: string;
+            plainText: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "archived";
+            title: string;
+            updatedAt: string;
+            updatedByUserId: string | null;
+            version: number;
+        };
+        ContentDraftUpdateRequest: {
+            assetIds?: string[];
+            body?: {
+                [key: string]: unknown;
+            }[];
+            channelConnectionIds?: string[];
+            plainText?: string;
+            title?: string;
+            baseVersion: number;
+            /** @enum {string} */
+            status?: "draft" | "archived";
+        };
+        ContentDraftPostList: {
+            posts: {
+                caption: string;
+                channelConnectionId: string;
+                createdAt: string;
+                id: string;
+                platform: string;
+                scheduledFor: string;
+                /** @enum {string} */
+                status: "DRAFT" | "SCHEDULED" | "PROCESSING" | "PUBLISHED" | "FAILED" | "CANCELLED" | "UNKNOWN_DELIVERY";
+            }[];
         };
         PlaybookBootstrap: {
             capabilities: {
@@ -1225,7 +1374,7 @@ export interface components {
             /** @enum {string} */
             currentPlan: "free" | "pro" | "business" | "enterprise";
             /** @enum {string} */
-            feature: "asset:create" | "asset:read" | "asset:update" | "asset:delete" | "release:create" | "source-app:create" | "workspace:use" | "enterprise:audit-drain" | "enterprise:sso" | "enterprise:scim" | "campaign:workflow";
+            feature: "asset:create" | "asset:read" | "asset:update" | "asset:delete" | "release:create" | "source-app:create" | "workspace:use" | "enterprise:audit-drain" | "enterprise:sso" | "enterprise:scim" | "campaign:workflow" | "content:drafts";
             /** @enum {string} */
             requiredPlan: "free" | "pro" | "business" | "enterprise";
         };
@@ -3312,7 +3461,10 @@ export interface operations {
                             scheduledFor: string;
                             /** @enum {string} */
                             status: "DRAFT" | "SCHEDULED" | "PROCESSING" | "PUBLISHED" | "FAILED" | "CANCELLED" | "UNKNOWN_DELIVERY";
-                            variantId: string;
+                            /** @description The content draft the post came from, when it has no variant. */
+                            contentDraftId: string | null;
+                            /** @description The approved campaign variant the post came from, when it has no draft. */
+                            variantId: string | null;
                         };
                     };
                 };
@@ -3340,7 +3492,10 @@ export interface operations {
                             scheduledFor: string;
                             /** @enum {string} */
                             status: "DRAFT" | "SCHEDULED" | "PROCESSING" | "PUBLISHED" | "FAILED" | "CANCELLED" | "UNKNOWN_DELIVERY";
-                            variantId: string;
+                            /** @description The content draft the post came from, when it has no variant. */
+                            contentDraftId: string | null;
+                            /** @description The approved campaign variant the post came from, when it has no draft. */
+                            variantId: string | null;
                         };
                     };
                 };
@@ -3434,7 +3589,10 @@ export interface operations {
                             scheduledFor: string;
                             /** @enum {string} */
                             status: "DRAFT" | "SCHEDULED" | "PROCESSING" | "PUBLISHED" | "FAILED" | "CANCELLED" | "UNKNOWN_DELIVERY";
-                            variantId: string;
+                            /** @description The content draft the post came from, when it has no variant. */
+                            contentDraftId: string | null;
+                            /** @description The approved campaign variant the post came from, when it has no draft. */
+                            variantId: string | null;
                         };
                     };
                 };
@@ -3491,6 +3649,410 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listContentDrafts: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+                status?: "draft" | "scheduled" | "archived";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Workspace content drafts. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraftListResponse"];
+                };
+            };
+            /** @description The list query is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createContentDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContentDraftCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Draft created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraft"];
+                };
+            };
+            /** @description The draft is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getContentDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The draft. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraft"];
+                };
+            };
+            /** @description The draft identifier is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft was not found in this workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteContentDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Draft deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        deleted: true;
+                    };
+                };
+            };
+            /** @description The draft identifier is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft was not found in this workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateContentDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContentDraftUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Draft updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraft"];
+                };
+            };
+            /** @description The update is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft was not found in this workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft has a newer version than `baseVersion`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listContentDraftPosts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The draft posts. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraftPostList"];
+                };
+            };
+            /** @description The draft identifier is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft was not found in this workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description A required dependency is unavailable. */

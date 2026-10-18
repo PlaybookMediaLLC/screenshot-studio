@@ -127,7 +127,7 @@ func (r *Repository) AuthorizeAPIKey(ctx context.Context, organizationID, keyID 
 
 // AuthorizeAPIKeyScope also requires the key to hold scope, read from Better
 // Auth's {"resource": ["action"]} permissions. Scheduling uses it so the
-// backend checks the scope itself rather than trust the facade (RFC 037).
+// backend checks the scope itself rather than trust the facade (RFC 038).
 func (r *Repository) AuthorizeAPIKeyScope(ctx context.Context, organizationID, keyID, scope string) error {
 	key, err := r.apiKey(ctx, organizationID, keyID)
 	if err != nil {

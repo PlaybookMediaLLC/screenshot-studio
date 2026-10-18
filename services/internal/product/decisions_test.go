@@ -52,7 +52,7 @@ func TestDecisionsRefuseNonSessionActors(t *testing.T) {
 }
 
 // Scheduling takes a publisher's session or a key with post:schedule (RFC
-// 037), which the integration tests check. Every other principal is refused.
+// 038), which the integration tests check. Every other principal is refused.
 func TestSchedulingRefusesSupportWebhookAndServiceActors(t *testing.T) {
 	ctx := context.Background()
 	repo := &Configuration{}

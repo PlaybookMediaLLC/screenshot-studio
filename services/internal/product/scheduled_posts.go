@@ -9,7 +9,7 @@ import (
 )
 
 // PostScheduleScope is the API-key scope that schedules and cancels posts
-// (RFC 037). It schedules only what a person already approved.
+// (RFC 038). It schedules only what a person already approved.
 const PostScheduleScope = "post:schedule"
 
 // authorizeScheduling admits a publisher's session, or an API key the backend

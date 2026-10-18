@@ -102,7 +102,7 @@ identifier from another workspace selects nothing and returns `404`.
 | `decideCampaignApproval` | `POST /api/v1/campaigns/{campaignId}/approvals` | refused | `release:approve` | `campaign:workflow` | none |
 | `scheduleCampaignPost` | `POST /api/v1/campaigns/{campaignId}/posts/{postId}/schedule` | `post:schedule` | `publish:manage` | `campaign:workflow` | `api:write:minute`; monthly posts, in the backend |
 | `listScheduledPosts` | `GET /api/v1/scheduled-posts` | `artifact:read` | `publish:manage` | `workspace:use` | none |
-| `createScheduledPost` | `POST /api/v1/scheduled-posts` | `post:schedule` | `publish:manage`, fresh 2FA | `workspace:use` | `api:write:minute`; monthly posts, in the backend |
+| `createScheduledPost` | `POST /api/v1/scheduled-posts` | `post:schedule`, variants only; a content draft needs a session (RFC 037) | `publish:manage`, fresh 2FA | `workspace:use` | `api:write:minute`; monthly posts, in the backend |
 | `cancelScheduledPost` | `POST /api/v1/scheduled-posts/{scheduledPostId}/cancel` | `post:schedule` | `publish:manage`, fresh 2FA | `workspace:use` | `api:write:minute` |
 
 The rules come from the owning RFCs:
@@ -119,7 +119,7 @@ The rules come from the owning RFCs:
   routine read. Creating or cancelling a scheduled post from a session needs
   a fresh second factor. Scheduling a campaign post asks for `publish:manage`,
   as the in-app procedure does.
-- RFC 037 adds the `post:schedule` key scope, at the owners' request. It
+- RFC 038 adds the `post:schedule` key scope, at the owners' request. It
   schedules and cancels but never approves: every scheduling path accepts
   only an approved post or variant. The backend rechecks the scope itself.
   `artifact:read` reads the schedule.
@@ -188,7 +188,7 @@ those RFCs define.
      whether an API key may trigger one.
    - It does not define the period key on campaigns, or how an expired plan
      reads (archived with a reason, or a separate state).
-5. **Reading the schedule with a key.** Resolved on 2026-10-17 by RFC 037:
+5. **Reading the schedule with a key.** Resolved on 2026-10-17 by RFC 038:
    `artifact:read` reads it, including channel account identifiers.
 6. **A second factor for campaign-post scheduling (RFC 020).** The owners
    asked for campaign-post scheduling in the API, so it now ships. It follows
@@ -388,7 +388,7 @@ provider payloads, SQL errors, secrets, and stack traces are never returned.
 - Every operation declares authentication, scopes, request schemas, success schemas, error schemas, and rate-limit behavior.
 - Internal routes are excluded.
 - CI validates the document shape and checks that every contract is served by the route file its path names.
-- `npm run api:generate` writes the document to `services/internal/shotsapi/openapi.json` and generates the typed client in `packages/shots-api-client` from it with `openapi-typescript`. The Go MCP server (RFC 037) embeds the same file.
+- `npm run api:generate` writes the document to `services/internal/shotsapi/openapi.json` and generates the typed client in `packages/shots-api-client` from it with `openapi-typescript`. The Go MCP server (RFC 038) embeds the same file.
 - CI regenerates both and fails on any difference. It then compares the document with the base revision using oasdiff and fails any breaking change that `services/internal/shotsapi/breaking-changes-allowed.txt` does not list.
 
 ## Endpoint extension framework

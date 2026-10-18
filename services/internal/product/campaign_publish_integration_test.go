@@ -216,7 +216,7 @@ func TestCampaignPublishing(t *testing.T) {
 		}
 	}
 	// An agent's key reschedules it only with post:schedule, and only approved
-	// copy: the key never approves (RFC 037).
+	// copy: the key never approves (RFC 038).
 	scheduler, reader, pending := "key_schedule_"+id, "key_read_"+id, "post_pending_"+id
 	for key, permissions := range map[string]string{scheduler: `{"post":["schedule"]}`, reader: `{"artifact":["read"],"release":["create"]}`} {
 		exec(`INSERT INTO apikey (id,"referenceId",key,enabled,permissions,"createdAt","updatedAt") VALUES ($1,$2,$1,true,$3,now(),now())`, key, org, permissions)

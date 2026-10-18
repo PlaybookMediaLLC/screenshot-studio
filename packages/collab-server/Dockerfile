@@ -11,6 +11,7 @@ COPY package.json package-lock.json ./
 COPY packages/collab-server/package.json ./packages/collab-server/
 COPY packages/platejs-editor/package.json ./packages/platejs-editor/
 COPY packages/screenshot-studio-backend-sdk/package.json ./packages/screenshot-studio-backend-sdk/
+COPY packages/shots-api-client/package.json ./packages/shots-api-client/
 RUN --mount=type=cache,target=/root/.npm npm ci --workspace @shots/collab-server --omit=dev --ignore-scripts --no-audit
 
 FROM node:22-bookworm-slim

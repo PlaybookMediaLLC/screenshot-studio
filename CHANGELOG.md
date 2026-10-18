@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.13.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.12.0...v2.13.0) (2026-10-18)
+
+
+### Features
+
+* **collab:** run the collaboration server as several replicas through Redis ([#171](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/171)) ([6998e26](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/6998e261aba86b8958430368f91966647e68b743))
+
 ## [2.12.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.11.0...v2.12.0) (2026-10-18)
 
 

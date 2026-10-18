@@ -400,7 +400,7 @@
 
 ### Features
 
-* **publishing:** complete Postiz Temporal parity ([#40](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/40)) ([e539ebc](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/e539ebc1d0b46a0eaad2927cc0ae0daaa1a14a32))
+* **publishing:** complete the Temporal publishing guarantees ([#40](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/40)) ([e539ebc](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/e539ebc1d0b46a0eaad2927cc0ae0daaa1a14a32))
 
 ## [1.4.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.3.2...v1.4.0) (2026-08-31)
 

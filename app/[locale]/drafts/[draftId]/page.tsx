@@ -49,6 +49,7 @@ export default async function DraftPage({ params }: DraftPageProps) {
           assetIds: draft.assetIds,
           body: draft.body,
           channelConnectionIds: draft.channelConnectionIds,
+          discussions: draft.discussions,
           id: draft.id,
           status: draft.status,
           title: draft.title,

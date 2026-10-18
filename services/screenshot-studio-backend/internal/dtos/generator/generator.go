@@ -1,4 +1,4 @@
-// Package generator ports libraries/nestjs-libraries/src/dtos/generator.
+// Package generator holds the post generator request bodies.
 package generator
 
 type InnerPost struct {

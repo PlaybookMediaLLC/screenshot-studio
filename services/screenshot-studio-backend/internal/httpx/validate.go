@@ -36,8 +36,8 @@ func Validator() *validator.Validate {
 	return validate
 }
 
-// Validate checks `validate` struct tags and reports failures the way Nest's
-// ValidationPipe does: 400 with {message: [...], error, statusCode}.
+// Validate checks `validate` struct tags and reports failures as a 400 with
+// {message: [...], error, statusCode}.
 // A DTO with a `Validate() []string` method (the exact class-validator
 // messages) is validated by that method instead of its tags.
 func Validate(v any) error {

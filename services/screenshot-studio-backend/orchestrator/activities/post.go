@@ -32,7 +32,7 @@ import (
 
 var _ PostActivity = (*PostActivities)(nil)
 
-// PostActivities is post.activity.ts.
+// PostActivities are the post activities.
 type PostActivities struct {
 	posts         *posts.Service
 	notifications *notifications.Service

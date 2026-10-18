@@ -1,4 +1,4 @@
-// Package instagramstandalone is instagram.standalone.provider.ts: Instagram
+// Package instagramstandalone is the Instagram (direct login) provider: Instagram
 // accounts connected with Instagram Login. Publishing, comments and insights
 // delegate to the instagram provider on the graph.instagram.com host; only
 // auth, validation and metadata differ.

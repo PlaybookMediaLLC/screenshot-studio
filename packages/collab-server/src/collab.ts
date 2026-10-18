@@ -103,14 +103,59 @@ export function backendClient(
 
 type Log = (event: string, fields: Record<string, unknown>) => void;
 
+/**
+ * The newest read-write token per document. A store runs after a debounce,
+ * possibly after its connection left, so it uses the last writer's token.
+ * With several replicas the store can run on any of them (the Redis
+ * extension picks one by lock), so the tokens must be shared too.
+ */
+export type WriterTokens = {
+  get: (documentName: string) => Promise<string | undefined>;
+  set: (documentName: string, token: string) => Promise<void>;
+};
+
+/** Writer tokens for a single replica. */
+export function memoryWriterTokens(): WriterTokens {
+  const tokens = new Map<string, string>();
+  return {
+    get: async (documentName) => tokens.get(documentName),
+    set: async (documentName, token) => {
+      tokens.set(documentName, token);
+    },
+  };
+}
+
+/** How long a writer token is kept: the backend's store grace for a token. */
+const WRITER_TOKEN_TTL_SECONDS = 12 * 60 * 60;
+
+/** Writer tokens shared by every replica through Redis. */
+export function redisWriterTokens(redis: {
+  get: (key: string) => Promise<string | null>;
+  set: (
+    key: string,
+    value: string,
+    mode: "EX",
+    seconds: number
+  ) => Promise<unknown>;
+}): WriterTokens {
+  const key = (documentName: string) => `shots-collab:writer:${documentName}`;
+  return {
+    get: async (documentName) =>
+      (await redis.get(key(documentName))) ?? undefined,
+    set: async (documentName, token) => {
+      await redis.set(key(documentName), token, "EX", WRITER_TOKEN_TTL_SECONDS);
+    },
+  };
+}
+
 type Context = { grant: CollabGrant; token: string };
 
 /** The Hocuspocus hooks that route every decision through the backend. */
-export function collabHooks(backend: CollabBackend, log: Log) {
-  // The newest read-write token per document. A store runs after a debounce,
-  // possibly after its connection left, so it uses the last writer's token.
-  const writers = new Map<string, string>();
-
+export function collabHooks(
+  backend: CollabBackend,
+  log: Log,
+  writers: WriterTokens = memoryWriterTokens()
+) {
   return {
     async onAuthenticate({
       connectionConfig,
@@ -124,7 +169,7 @@ export function collabHooks(backend: CollabBackend, log: Log) {
       try {
         const grant = await backend.authorize(token, documentName);
         connectionConfig.readOnly = grant.access !== "write";
-        if (grant.access === "write") writers.set(documentName, token);
+        if (grant.access === "write") await writers.set(documentName, token);
         log("collab.admitted", {
           access: grant.access,
           documentName,
@@ -156,7 +201,7 @@ export function collabHooks(backend: CollabBackend, log: Log) {
 
     async onStoreDocument({ document, documentName }: onStoreDocumentPayload) {
       const draftId = draftIdOf(documentName);
-      const token = writers.get(documentName);
+      const token = await writers.get(documentName);
       if (!draftId || !token) return;
       await backend.store(draftId, token, Y.encodeStateAsUpdate(document));
       log("collab.stored", { documentName });

@@ -1,5 +1,6 @@
 import type { z } from 'zod'
 import type { contentDraftPostSchema, contentDraftSchema } from '@/lib/api/contracts/content-drafts'
+import type { DraftDiscussions } from '@/lib/content-drafts/discussions'
 
 /**
  * Browser calls to the content draft API (`/api/v1/content-drafts`), with the
@@ -51,6 +52,7 @@ export type DraftSave = {
   baseVersion: number
   body?: unknown[]
   channelConnectionIds?: string[]
+  discussions?: DraftDiscussions
   plainText?: string
   status?: 'draft' | 'archived'
   title?: string
@@ -66,7 +68,12 @@ export const draftsApi = {
     call<DraftWire>(one(id), { body: input, method: 'PATCH' }),
   schedule: (
     id: string,
-    input: { channelConnectionIds: string[]; scheduledFor: string; version: number }
+    input: {
+      blockImages: (string | null)[]
+      channelConnectionIds: string[]
+      scheduledFor: string
+      version: number
+    }
   ) =>
     call<{ created: boolean; draft: DraftWire; posts: DraftPostWire[] }>(`${one(id)}/schedule`, {
       body: input,

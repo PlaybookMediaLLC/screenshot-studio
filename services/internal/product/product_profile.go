@@ -20,11 +20,24 @@ import (
 // workspace. A person's edit locks a field; an automated update skips locked
 // fields so a correction is never reverted.
 
-// Profile update sources.
+// Profile update sources, in precedence order (docs/rfcs/032, Merge and
+// precedence): a person, then the product's own site, then third-party
+// enrichment. A source never overwrites a field a higher one set.
 const (
-	ProfileSourceManual    = "manual"
-	ProfileSourceAutomated = "automated"
+	ProfileSourceManual     = "manual"
+	ProfileSourceAutomated  = "automated"
+	ProfileSourceEnrichment = "enrichment"
 )
+
+func validProfileSource(source string) bool {
+	return source == ProfileSourceManual || source == ProfileSourceAutomated || source == ProfileSourceEnrichment
+}
+
+// outranks reports whether an update from source may replace a field current
+// set. Manual and site values outrank enrichment; everything outranks nothing.
+func outranks(source, current string) bool {
+	return source != ProfileSourceEnrichment || current == "" || current == ProfileSourceEnrichment
+}
 
 // productProfileFields are the field names provenance is kept for.
 var productProfileFields = []string{"name", "url", "summary", "problem", "audience", "capabilities", "proofPoints", "pricingNote", "competitors"}
@@ -62,12 +75,14 @@ func nonNilProofPoints(points []profile.ProofPoint) []profile.ProofPoint {
 
 // UpsertProductProfileInput changes the fields it names; a nil field is left
 // as it is. Source is manual (the default) or automated. SourceURLs records
-// the page each automated value came from. UnlockFields lets automated
-// updates change those fields again (manual only).
+// the page each automated value came from, and Confidence how sure its
+// source was. UnlockFields lets automated updates change those fields again
+// (manual only).
 type UpsertProductProfileInput struct {
 	Audience     *string               `json:"audience"`
 	Capabilities *[]string             `json:"capabilities"`
 	Competitors  *[]string             `json:"competitors"`
+	Confidence   map[string]float64    `json:"confidence"`
 	Name         *string               `json:"name"`
 	PricingNote  *string               `json:"pricingNote"`
 	Problem      *string               `json:"problem"`
@@ -76,7 +91,9 @@ type UpsertProductProfileInput struct {
 	SourceURLs   map[string]string     `json:"sourceUrls"`
 	Summary      *string               `json:"summary"`
 	UnlockFields []string              `json:"unlockFields"`
-	URL          *string               `json:"url"`
+	// AcceptFields locks fields as they are: a person confirmed them (manual only).
+	AcceptFields []string `json:"acceptFields"`
+	URL          *string  `json:"url"`
 }
 
 func validProfileURL(value string) bool {
@@ -114,13 +131,13 @@ func normalizeProductProfileInput(input *UpsertProductProfileInput) error {
 			*text = &trimmed
 		}
 	}
-	valid := (input.Source == ProfileSourceManual || input.Source == ProfileSourceAutomated) &&
+	valid := validProfileSource(input.Source) &&
 		(input.Name == nil || (*input.Name != "" && utf8.RuneCountInString(*input.Name) <= 160)) &&
 		(input.URL == nil || validProfileURL(*input.URL)) &&
 		validProfileText(input.Summary, 2000) && validProfileText(input.Problem, 2000) &&
 		validProfileText(input.Audience, 1000) && validProfileText(input.PricingNote, 500) &&
 		validProfileList(input.Capabilities, 30, 300) && validProfileList(input.Competitors, 20, 100) &&
-		(input.Source == ProfileSourceManual || len(input.UnlockFields) == 0) && len(input.SourceURLs) <= len(productProfileFields)
+		(input.Source == ProfileSourceManual || len(input.UnlockFields)+len(input.AcceptFields) == 0) && len(input.SourceURLs) <= len(productProfileFields)
 	if input.ProofPoints != nil {
 		valid = valid && len(*input.ProofPoints) <= 30
 		for _, point := range *input.ProofPoints {
@@ -131,7 +148,10 @@ func normalizeProductProfileInput(input *UpsertProductProfileInput) error {
 	for field, source := range input.SourceURLs {
 		valid = valid && slices.Contains(productProfileFields, field) && validProfileURL(source)
 	}
-	for _, field := range input.UnlockFields {
+	for field, confidence := range input.Confidence {
+		valid = valid && slices.Contains(productProfileFields, field) && confidence >= 0 && confidence <= 1
+	}
+	for _, field := range append(slices.Clone(input.UnlockFields), input.AcceptFields...) {
 		valid = valid && slices.Contains(productProfileFields, field)
 	}
 	if !valid {
@@ -185,10 +205,16 @@ func (c *Configuration) UpsertProductProfile(ctx context.Context, actor Actor, i
 	if provenance == nil {
 		provenance = map[string]profile.FieldProvenance{}
 	}
-	automated := input.Source == ProfileSourceAutomated
+	automated := input.Source != ProfileSourceManual
 	for _, field := range input.UnlockFields {
 		if entry, ok := provenance[field]; ok {
 			entry.EditedByUser = false
+			provenance[field] = entry
+		}
+	}
+	for _, field := range input.AcceptFields {
+		if entry, ok := provenance[field]; ok {
+			entry.EditedByUser, entry.UpdatedAt = true, time.Now().UTC()
 			provenance[field] = entry
 		}
 	}
@@ -199,14 +225,15 @@ func (c *Configuration) UpsertProductProfile(ctx context.Context, actor Actor, i
 		if !supplied {
 			return false
 		}
-		if automated && provenance[field].EditedByUser {
+		if automated && provenance[field].EditedByUser || !outranks(input.Source, provenance[field].Source) {
 			skipped = append(skipped, field)
 			return false
 		}
 		if !different && provenance[field].Source != "" {
 			return false
 		}
-		provenance[field] = profile.FieldProvenance{EditedByUser: !automated, Source: input.Source, UpdatedAt: now, URL: input.SourceURLs[field]}
+		provenance[field] = profile.FieldProvenance{Confidence: input.Confidence[field], EditedByUser: !automated, Source: input.Source,
+			UpdatedAt: now, URL: input.SourceURLs[field]}
 		changed = append(changed, field)
 		return true
 	}
@@ -262,7 +289,7 @@ func (c *Configuration) UpsertProductProfile(ctx context.Context, actor Actor, i
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.product_profile_updated", "product_profile", saved.ID,
 		map[string]any{"changed": strings.Join(changed, ","), "skipped": strings.Join(skipped, ","), "source": input.Source,
-			"unlocked": strings.Join(input.UnlockFields, ",")}); err != nil {
+			"unlocked": strings.Join(input.UnlockFields, ","), "accepted": strings.Join(input.AcceptFields, ",")}); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {

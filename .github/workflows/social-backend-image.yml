@@ -16,6 +16,8 @@ on:
       - .github/workflows/social-backend-image.yml
       - infra/digitalocean/backup-database.sh
       - infra/digitalocean/consolidate-live-spec.py
+      # The collaboration server (RFC 037) ships with the backend it calls.
+      - packages/collab-server/**
   workflow_dispatch:
     inputs:
       deploy:
@@ -59,6 +61,18 @@ jobs:
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha,scope=social-backend
           cache-to: type=gha,mode=max,ignore-error=true,scope=social-backend
+      - name: Build and publish the collaboration server
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          file: packages/collab-server/Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          tags: ghcr.io/playbookmediallc/screenshot-studio:collab-${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=collab
+          cache-to: type=gha,mode=max,ignore-error=true,scope=collab
       - name: Record immutable image reference
         env:
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
@@ -136,12 +150,13 @@ jobs:
           previous_id="$(jq -r '.[0].active_deployment.id // empty' "$work/before.json")"
           python3 infra/digitalocean/consolidate-live-spec.py \
             --base "$work/before.json" --digest "$IMAGE_DIGEST" \
-            --tag "social-backend-$GITHUB_SHA" \
+            --tag "social-backend-$GITHUB_SHA" --collab-tag "collab-$GITHUB_SHA" \
             --from-infisical-env --output "$work/spec.json"
           doctl apps propose --app "$APP_ID" --spec "$work/spec.json" -o json > "$work/proposal.json"
           doctl apps update "$APP_ID" --spec "$work/spec.json" --wait > "$work/update.log"
           doctl apps get "$APP_ID" -o json > "$work/after.json"
-          test "$(jq -r '.[0].spec.services | length' "$work/after.json")" -le 4
+          # web, storage, backend, and collab once its secrets are set.
+          test "$(jq -r '.[0].spec.services | length' "$work/after.json")" -le 5
           test "$(jq -r '.[0].spec.services[] | select(.name == "screenshot-studio-backend") | .image.tag' "$work/after.json")" = "social-backend-$GITHUB_SHA"
           if test "$(jq -r '.[0].active_deployment.id // empty' "$work/after.json")" = "$previous_id"; then
             test "$(jq -r '.[0].spec.services[] | select(.name == "screenshot-studio-backend") | .image.tag' "$work/before.json")" = "social-backend-$GITHUB_SHA"

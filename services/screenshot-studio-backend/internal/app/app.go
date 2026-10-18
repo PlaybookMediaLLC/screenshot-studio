@@ -1,7 +1,6 @@
-// Package app builds the Postiz service graph once from the environment, the
-// Go form of the Nest modules both apps import (DatabaseModule, ApiModule's
-// providers, ChatModule, AgentModule, VideoModule, ThirdPartyModule and
-// getTemporalModule). The backend and the orchestrator binaries share it.
+// Package app builds the service graph once from the environment: the
+// database, API providers, chat, agent, video, third-party, and Temporal
+// modules. The backend and the orchestrator binaries share it.
 package app
 
 import (

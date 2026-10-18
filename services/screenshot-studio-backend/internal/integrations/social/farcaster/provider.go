@@ -1,4 +1,4 @@
-// Package farcaster ports integrations/social/farcaster.provider.ts. The
+// Package farcaster is the Farcaster provider. The
 // @neynar/nodejs-sdk calls are made directly against the Neynar REST API.
 package farcaster
 

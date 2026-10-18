@@ -1,6 +1,6 @@
 package slack
 
-// SlackDto is dtos/posts/providers-settings/slack.dto.ts.
+// SlackDto holds the Slack post settings.
 type SlackDto struct {
 	Channel *string `json:"channel"`
 }

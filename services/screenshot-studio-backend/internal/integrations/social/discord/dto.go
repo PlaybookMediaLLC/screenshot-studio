@@ -1,6 +1,6 @@
 package discord
 
-// DiscordDto is dtos/posts/providers-settings/discord.dto.ts.
+// DiscordDto holds the Discord post settings.
 type DiscordDto struct {
 	Channel *string `json:"channel"`
 }

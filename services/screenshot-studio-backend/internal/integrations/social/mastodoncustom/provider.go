@@ -1,4 +1,4 @@
-// Package mastodoncustom ports integrations/social/mastodon.custom.provider.ts:
+// Package mastodoncustom is the custom Mastodon provider:
 // Mastodon on a user-supplied instance. Postiz does not register it in its
 // provider list; it is ported anyway.
 package mastodoncustom

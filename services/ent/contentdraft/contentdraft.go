@@ -26,6 +26,8 @@ const (
 	FieldAssetIds = "assetIds"
 	// FieldChannelConnectionIds holds the string denoting the channel_connection_ids field in the database.
 	FieldChannelConnectionIds = "channelConnectionIds"
+	// FieldDiscussions holds the string denoting the discussions field in the database.
+	FieldDiscussions = "discussions"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldVersion holds the string denoting the version field in the database.
@@ -53,6 +55,7 @@ var Columns = []string{
 	FieldPlainText,
 	FieldAssetIds,
 	FieldChannelConnectionIds,
+	FieldDiscussions,
 	FieldStatus,
 	FieldVersion,
 	FieldCollabState,
@@ -73,6 +76,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultDiscussions holds the default value on creation for the "discussions" field.
+	DefaultDiscussions map[string]interface{}
 	// DefaultVersion holds the default value on creation for the "version" field.
 	DefaultVersion int
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.

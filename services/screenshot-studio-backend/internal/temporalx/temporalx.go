@@ -1,5 +1,5 @@
-// Package temporalx holds the Temporal pieces Postiz's backend and
-// orchestrator share (libraries/nestjs-libraries/src/temporal): connection,
+// Package temporalx holds the Temporal pieces the backend and
+// orchestrator share: connection,
 // search attributes, task queues, heartbeat details, and the provider failure
 // types the post workflows branch on.
 package temporalx
@@ -70,7 +70,7 @@ func RegisterSearchAttributes(ctx context.Context, c client.Client) error {
 	return temporalpublishing.RegisterSearchAttributes(ctx, c, Namespace())
 }
 
-// Failure types thrown by providers (social.abstract.ts). They are
+// Failure types thrown by providers. They are
 // non-retryable: the post workflow decides what to do with each.
 const (
 	TypeRefreshToken = "refresh_token"

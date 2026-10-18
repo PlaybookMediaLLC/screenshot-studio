@@ -11,13 +11,13 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/helpers"
 )
 
-// DevToTagsSettingsDto is dev.to.tags.settings.dto.ts.
+// DevToTagsSettingsDto holds the DEV tag settings.
 type DevToTagsSettingsDto struct {
 	Value *float64 `json:"value"`
 	Label *string  `json:"label"`
 }
 
-// MediaDto is dtos/media/media.dto.ts (used for main_image).
+// MediaDto is a media reference (used for main_image).
 type MediaDto struct {
 	ID        *string `json:"id"`
 	Path      *string `json:"path"`
@@ -25,7 +25,7 @@ type MediaDto struct {
 	Thumbnail *string `json:"thumbnail,omitempty"`
 }
 
-// DevToSettingsDto is dev.to.settings.dto.ts. Tags defaults to [] when absent.
+// DevToSettingsDto holds the DEV settings. Tags defaults to [] when absent.
 type DevToSettingsDto struct {
 	Title        *string                 `json:"title"`
 	MainImage    *MediaDto               `json:"main_image,omitempty"`
@@ -34,7 +34,7 @@ type DevToSettingsDto struct {
 	Tags         *[]DevToTagsSettingsDto `json:"tags,omitempty"`
 }
 
-// Validate reproduces class-validator plus Nest's error flattening: messages
+// Validate reproduces class-validator with flattened errors: messages
 // per property in execution order, nested ones prefixed with their path, and
 // a property with failing children reports only the children.
 func (d *DevToSettingsDto) Validate() []string {

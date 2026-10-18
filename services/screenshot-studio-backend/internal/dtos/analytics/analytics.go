@@ -5,7 +5,7 @@ package analytics
 
 import "regexp"
 
-// GetOrgActivityDto is get.org.activity.dto.ts.
+// GetOrgActivityDto is the get org activity request body.
 type GetOrgActivityDto struct {
 	From *string `json:"from" query:"from"`
 	To   *string `json:"to" query:"to"`
@@ -22,7 +22,7 @@ func (d *GetOrgActivityDto) Validate() []string {
 	return out
 }
 
-// StarsListDto is stars.list.dto.ts.
+// StarsListDto is the stars list request body.
 type StarsListDto struct {
 	Page  *int    `json:"page" query:"page"`
 	Key   *string `json:"key" query:"key"`

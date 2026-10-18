@@ -38,7 +38,7 @@ type TagsSettings struct {
 	Label *string `json:"label"`
 }
 
-// MediaDTO is dtos/media/media.dto.ts.
+// MediaDTO is a media reference.
 type MediaDTO struct {
 	ID        *string `json:"id"`
 	Path      *string `json:"path"`

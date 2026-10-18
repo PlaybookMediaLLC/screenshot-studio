@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// HasExtension is has.extension.ts.
+// HasExtension reports whether path has the extension.
 func HasExtension(path, extension string) bool {
 	if path == "" {
 		return false
@@ -20,7 +20,7 @@ func HasExtension(path, extension string) bool {
 	return strings.Contains(strings.ToLower(path), strings.ToLower(ext))
 }
 
-// IsAllowedUploadPath checks RESTRICT_UPLOAD_DOMAINS (valid.url.path.ts).
+// IsAllowedUploadPath checks RESTRICT_UPLOAD_DOMAINS.
 func IsAllowedUploadPath(text string) bool {
 	domain := os.Getenv("RESTRICT_UPLOAD_DOMAINS")
 	if domain == "" {
@@ -63,7 +63,7 @@ func AfterLinkedinCompanyPreventRemove(text string) string {
 	return afterLinkedinCompany.ReplaceAllString(text, "<strong>@$1</strong>")
 }
 
-// ValidContentMessage is ValidContent's message (valid.images.ts).
+// ValidContentMessage is ValidContent's message.
 const ValidContentMessage = " If images do not exist, content must be a non-empty string."
 
 // ValidContent: content (tags stripped) must be non-empty unless images exist.

@@ -56,6 +56,12 @@ func (_c *ContentDraftCreate) SetChannelConnectionIds(v []string) *ContentDraftC
 	return _c
 }
 
+// SetDiscussions sets the "discussions" field.
+func (_c *ContentDraftCreate) SetDiscussions(v map[string]interface{}) *ContentDraftCreate {
+	_c.mutation.SetDiscussions(v)
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *ContentDraftCreate) SetStatus(v contentdraft.Status) *ContentDraftCreate {
 	_c.mutation.SetStatus(v)
@@ -187,6 +193,10 @@ func (_c *ContentDraftCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *ContentDraftCreate) defaults() {
+	if _, ok := _c.mutation.Discussions(); !ok {
+		v := contentdraft.DefaultDiscussions
+		_c.mutation.SetDiscussions(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := contentdraft.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -224,6 +234,9 @@ func (_c *ContentDraftCreate) check() error {
 	}
 	if _, ok := _c.mutation.ChannelConnectionIds(); !ok {
 		return &ValidationError{Name: "channel_connection_ids", err: errors.New(`ent: missing required field "ContentDraft.channel_connection_ids"`)}
+	}
+	if _, ok := _c.mutation.Discussions(); !ok {
+		return &ValidationError{Name: "discussions", err: errors.New(`ent: missing required field "ContentDraft.discussions"`)}
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "ContentDraft.status"`)}
@@ -300,6 +313,10 @@ func (_c *ContentDraftCreate) createSpec() (*ContentDraft, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.ChannelConnectionIds(); ok {
 		_spec.SetField(contentdraft.FieldChannelConnectionIds, field.TypeJSON, value)
 		_node.ChannelConnectionIds = value
+	}
+	if value, ok := _c.mutation.Discussions(); ok {
+		_spec.SetField(contentdraft.FieldDiscussions, field.TypeJSON, value)
+		_node.Discussions = value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(contentdraft.FieldStatus, field.TypeEnum, value)

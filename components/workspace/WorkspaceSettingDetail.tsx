@@ -9,6 +9,7 @@ import { WorkspaceGeneralSettings } from './WorkspaceGeneralSettings'
 import { WorkspaceIdentitySettings } from './WorkspaceIdentitySettings'
 import { WorkspaceIntegrations } from './WorkspaceIntegrations'
 import { WorkspaceMembersSettings } from './WorkspaceMembersSettings'
+import { WorkspaceIdealCustomerProfile } from './WorkspaceIdealCustomerProfile'
 import { WorkspaceProductProfile } from './WorkspaceProductProfile'
 import { WorkspaceProductSurfaces } from './WorkspaceProductSurfaces'
 import { WorkspaceRolesSettings } from './WorkspaceRolesSettings'
@@ -65,7 +66,12 @@ function getDetailContent({
         currentUserId={userId}
       />
     ),
-    product: <WorkspaceProductProfile canManage={hasPermission(role, 'brand:manage')} />,
+    product: (
+      <>
+        <WorkspaceProductProfile canManage={hasPermission(role, 'brand:manage')} />
+        <WorkspaceIdealCustomerProfile canManage={hasPermission(role, 'brand:manage')} />
+      </>
+    ),
     profile: <ProfileForm email={email} name={name} />,
     roles: <WorkspaceRolesSettings />,
     security: <WorkspaceSecuritySettings twoFactorEnabled={twoFactorEnabled} />,

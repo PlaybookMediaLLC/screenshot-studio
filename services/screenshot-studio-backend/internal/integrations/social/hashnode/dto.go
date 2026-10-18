@@ -16,7 +16,7 @@ type HashnodeTagsSettings struct {
 	Label *string `json:"label"`
 }
 
-// MediaDto is dtos/media/media.dto.ts (used for main_image).
+// MediaDto is a media reference (used for main_image).
 type MediaDto struct {
 	ID        *string `json:"id"`
 	Path      *string `json:"path"`
@@ -24,7 +24,7 @@ type MediaDto struct {
 	Thumbnail *string `json:"thumbnail,omitempty"`
 }
 
-// HashnodeSettingsDto is hashnode.settings.dto.ts.
+// HashnodeSettingsDto holds the Hashnode settings.
 type HashnodeSettingsDto struct {
 	Title       *string                 `json:"title"`
 	Subtitle    *string                 `json:"subtitle,omitempty"`
@@ -34,7 +34,7 @@ type HashnodeSettingsDto struct {
 	Tags        *[]HashnodeTagsSettings `json:"tags"`
 }
 
-// Validate reproduces class-validator plus Nest's error flattening: messages
+// Validate reproduces class-validator with flattened errors: messages
 // per property in execution order, nested ones prefixed with their path, and
 // a property with failing children reports only the children.
 func (d *HashnodeSettingsDto) Validate() []string {

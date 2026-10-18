@@ -1,6 +1,6 @@
 package farcaster
 
-// dtos/posts/providers-settings/farcaster.dto.ts. A missing and a null nested
+// Farcaster post settings. A missing and a null nested
 // value both decode to nil, so both are treated as undefined (skipped by
 // @ValidateNested); a wrong JSON type fails decoding.
 

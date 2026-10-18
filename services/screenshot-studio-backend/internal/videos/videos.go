@@ -87,8 +87,8 @@ func AvailableIdentifiers() []string {
 	return ids
 }
 
-// GetAllVideos lists the available providers. JSON-encoded it matches the
-// Nest response, where the target and dto classes are dropped.
+// GetAllVideos lists the available providers. JSON-encoded, it leaves out
+// the target and dto classes.
 func (m *Manager) GetAllVideos() []Params {
 	out := []Params{}
 	for _, v := range m.videos {

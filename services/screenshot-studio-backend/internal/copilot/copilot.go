@@ -195,13 +195,13 @@ var methodNames = []string{"agent/run", "agent/suggest", "agent/connect", "agent
 func serve(c *httpx.Ctx, agents map[string]agentEntry) (any, error) {
 	if os.Getenv("OPENAI_API_KEY") == "" {
 		slog.Warn("OpenAI API key not set, chat functionality will not work")
-		// The Nest handler returns without touching @Res(), so the request is
+		// The handler returns without writing a response, so the request is
 		// never answered; hold it until the client gives up.
 		<-c.R.Context().Done()
 		return nil, nil
 	}
 
-	// main.ts mounts json({limit: '50mb'}) on /copilot; a body Express does not
+	// The /copilot route has a 50 MB JSON limit; a body that does not
 	// parse as JSON reaches the runtime as {}.
 	c.BodyLimit(50 << 20)
 	var env envelope

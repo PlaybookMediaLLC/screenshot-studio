@@ -18,7 +18,7 @@ const (
 	TypeInfo    NotificationType = "info"
 )
 
-// EmailService is the part of services/email.service.ts notifications use.
+// EmailService is the part of the email service notifications use.
 // SendEmail starts the sendSingleEmailWorkflow; addTo is "top" or "bottom".
 type EmailService interface {
 	HasProvider() bool

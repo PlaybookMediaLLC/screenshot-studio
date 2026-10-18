@@ -232,7 +232,7 @@ func registerActivities(w worker.ActivityRegistry, d Deps) {
 	}
 }
 
-// healthRouter is health.controller.ts: GET /health/status opens a new
+// healthRouter serves GET /health/status: it opens a new
 // Temporal connection and describes the namespace within 10 seconds.
 func healthRouter() http.Handler {
 	r := httpx.NewRouter()

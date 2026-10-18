@@ -166,6 +166,60 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "R2_SECRET_ACCESS_KEY"):
             cutover.consolidate(first, self.digest, secrets)
 
+    def test_collab_service_ships_only_with_its_secrets(self):
+        secrets = {key: "infisical-" + key for key in
+                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
+        collab_tag = "collab-" + "c" * 40
+        live = cutover.consolidate(self.base, self.digest, secrets)
+        self.assertNotIn("collab", {item["name"] for item in cutover.consolidate(live, self.digest, secrets, None, collab_tag)["services"]})
+        enabled = dict(secrets, COLLAB_TOKEN_SECRET="signing-key", COLLAB_SERVICE_TOKEN="collab-credential")
+        spec = cutover.consolidate(live, self.digest, enabled, None, collab_tag)
+        services = {item["name"]: item for item in spec["services"]}
+        collab = services["collab"]
+        self.assertEqual(collab["image"], dict(cutover.IMAGE, tag=collab_tag))
+        collab_env = {item["key"]: item for item in collab["envs"]}
+        self.assertEqual(collab_env["COLLAB_BACKEND_URL"]["value"], "http://screenshot-studio-backend:8082")
+        self.assertEqual((collab_env["COLLAB_SERVICE_TOKEN"]["type"], collab_env["COLLAB_SERVICE_TOKEN"]["value"]),
+                         ("SECRET", "collab-credential"))
+        # The collab service gets no signing key, database or Redis setting.
+        self.assertEqual(set(collab_env), {"COLLAB_BACKEND_URL", "COLLAB_SERVICE_TOKEN"})
+        backend = {item["key"]: item["value"] for item in services["screenshot-studio-backend"]["envs"]}
+        self.assertEqual(backend["TENANT_COLLAB_TOKEN_SECRET"], "signing-key")
+        self.assertEqual(backend["TENANT_COLLAB_SERVICE_TOKEN"], "collab-credential")
+        self.assertEqual(spec["ingress"]["rules"][0], {"match": {"path": {"prefix": "/collab"}}, "component": {"name": "collab"}})
+        repeated = cutover.consolidate(spec, self.digest, enabled, None, collab_tag)
+        self.assertEqual(repeated, spec)
+        withdrawn = cutover.consolidate(spec, self.digest, secrets, None, collab_tag)
+        self.assertNotIn("collab", {item["name"] for item in withdrawn["services"]})
+        self.assertNotIn("collab", {rule["component"]["name"] for rule in withdrawn["ingress"]["rules"]})
+        withdrawn_backend = next(item for item in withdrawn["services"] if item["name"] == "screenshot-studio-backend")
+        self.assertFalse({"TENANT_COLLAB_TOKEN_SECRET", "TENANT_COLLAB_SERVICE_TOKEN"} & {item["key"] for item in withdrawn_backend["envs"]})
+        with self.assertRaisesRegex(ValueError, "collab-<commit SHA>"):
+            cutover.consolidate(live, self.digest, enabled, None, "collab-latest")
+        with self.assertRaisesRegex(ValueError, "COLLAB_REDIS_URL"):
+            cutover.consolidate(live, self.digest, dict(enabled, COLLAB_INSTANCE_COUNT="2"), None, collab_tag)
+        scaled = cutover.consolidate(live, self.digest, dict(enabled, COLLAB_INSTANCE_COUNT="3",
+                                                             COLLAB_REDIS_URL="rediss://collab"), None, collab_tag)
+        scaled_collab = next(item for item in scaled["services"] if item["name"] == "collab")
+        self.assertEqual(scaled_collab["instance_count"], 3)
+        self.assertEqual({item["key"]: item["type"] for item in scaled_collab["envs"]}["COLLAB_REDIS_URL"], "SECRET")
+
+    def test_onboarding_keys_follow_infisical(self):
+        secrets = {key: "infisical-" + key for key in
+                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
+        first = cutover.consolidate(self.base, self.digest, secrets)
+        backend_envs = lambda spec: {item["key"]: item for item in next(
+            item for item in spec["services"] if item["name"] == "screenshot-studio-backend")["envs"]}
+        self.assertFalse(cutover.OPTIONAL_TENANT_KEYS & set(backend_envs(first)))
+        # A key added to Infisical reaches the live app on the next deploy.
+        keyed = cutover.consolidate(first, self.digest, dict(secrets, PLATFORM_ENRICHMENT_EXA_API_KEY="exa", OPENROUTER_API_KEY="or"))
+        envs = backend_envs(keyed)
+        self.assertEqual(envs["TENANT_PLATFORM_ENRICHMENT_EXA_API_KEY"], {"key": "TENANT_PLATFORM_ENRICHMENT_EXA_API_KEY", "value": "exa",
+                                                                          "type": "SECRET", "scope": "RUN_TIME"})
+        self.assertEqual(envs["TENANT_OPENROUTER_API_KEY"]["value"], "or")
+        # Removing it from Infisical removes it from the app instead of failing the deploy.
+        self.assertFalse(cutover.OPTIONAL_TENANT_KEYS & set(backend_envs(cutover.consolidate(keyed, self.digest, secrets))))
+
 
 if __name__ == "__main__":
     unittest.main()

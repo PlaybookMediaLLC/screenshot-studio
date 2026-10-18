@@ -1,4 +1,4 @@
-// Package discord is the Discord provider (discord.provider.ts).
+// Package discord is the Discord provider.
 package discord
 
 import (

@@ -1,6 +1,6 @@
-// Package mcp is start.mcp.ts: the Postiz MCP server (Streamable HTTP and
+// Package mcp is the MCP server (Streamable HTTP and
 // SSE) with API key and OAuth (RFC 9728) auth, the MCP Apps widgets, and the
-// relay to self-hosted instances (mcp.relay.service.ts).
+// relay to self-hosted instances.
 package mcp
 
 import (

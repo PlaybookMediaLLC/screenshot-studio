@@ -30,6 +30,8 @@ type ContentDraft struct {
 	AssetIds []string `json:"asset_ids,omitempty"`
 	// ChannelConnectionIds holds the value of the "channel_connection_ids" field.
 	ChannelConnectionIds []string `json:"channel_connection_ids,omitempty"`
+	// Discussions holds the value of the "discussions" field.
+	Discussions map[string]interface{} `json:"discussions,omitempty"`
 	// Status holds the value of the "status" field.
 	Status contentdraft.Status `json:"status,omitempty"`
 	// Version holds the value of the "version" field.
@@ -52,7 +54,7 @@ func (*ContentDraft) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case contentdraft.FieldBody, contentdraft.FieldAssetIds, contentdraft.FieldChannelConnectionIds, contentdraft.FieldCollabState:
+		case contentdraft.FieldBody, contentdraft.FieldAssetIds, contentdraft.FieldChannelConnectionIds, contentdraft.FieldDiscussions, contentdraft.FieldCollabState:
 			values[i] = new([]byte)
 		case contentdraft.FieldVersion:
 			values[i] = new(sql.NullInt64)
@@ -121,6 +123,14 @@ func (_m *ContentDraft) assignValues(columns []string, values []any) error {
 			} else if value != nil && len(*value) > 0 {
 				if err := json.Unmarshal(*value, &_m.ChannelConnectionIds); err != nil {
 					return fmt.Errorf("unmarshal field channel_connection_ids: %w", err)
+				}
+			}
+		case contentdraft.FieldDiscussions:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field discussions", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Discussions); err != nil {
+					return fmt.Errorf("unmarshal field discussions: %w", err)
 				}
 			}
 		case contentdraft.FieldStatus:
@@ -220,6 +230,9 @@ func (_m *ContentDraft) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("channel_connection_ids=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ChannelConnectionIds))
+	builder.WriteString(", ")
+	builder.WriteString("discussions=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Discussions))
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))

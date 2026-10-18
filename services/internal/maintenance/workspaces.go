@@ -42,6 +42,12 @@ func (s *Store) WorkspaceCleanup(ctx context.Context) (int, error) {
 	return count, nil
 }
 func (s *Store) purgeWorkspace(ctx context.Context, id, org string) error {
+	// A run still going would write pages back after the purge deleted them.
+	if s.Onboarding != nil {
+		if err := s.Onboarding.Cancel(ctx, org); err != nil {
+			return err
+		}
+	}
 	keys, err := ids(ctx, s.DB, `SELECT "objectKey" FROM asset WHERE "organizationId"=$1`, org)
 	if err != nil {
 		return err
@@ -63,7 +69,7 @@ func (s *Store) purgeWorkspace(ctx context.Context, id, org string) error {
 		// children before parents; tenant predicates apply even to cascading tables.
 		// These tables were added by a newer web release. Delete them when
 		// present while retaining compatibility during a rolling web upgrade.
-		for _, table := range []string{"social_oauth_start", "postiz_tenant_binding", "github_install_start", "workspace_github_installation", "source_change", "deployment_event", "surface_capture", "product_profile", "conversation_message", "conversation", "launch_run_step"} {
+		for _, table := range []string{"social_oauth_start", "postiz_tenant_binding", "github_install_start", "workspace_github_installation", "source_change", "deployment_event", "surface_capture", "product_profile", "conversation_message", "conversation", "launch_run_step", "page_knowledge", "enrichment_record", "ideal_customer_profile", "onboarding_run"} {
 			var exists bool
 			if err := tx.QueryRowContext(ctx, `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 				return err

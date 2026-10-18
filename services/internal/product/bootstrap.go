@@ -17,7 +17,7 @@ import (
 var bootstrapFeatures = []string{
 	"asset:create", "asset:read", "asset:update", "asset:delete", "release:create", "source-app:create",
 	"workspace:use", "enterprise:audit-drain", "enterprise:sso", "enterprise:scim", "campaign:workflow",
-	"content:drafts",
+	"content:drafts", OnboardingFeature,
 }
 
 type BootstrapSnapshot struct {
@@ -164,6 +164,9 @@ func evaluateBootstrapEntitlement(entitlement *ent.WorkspaceEntitlement, now tim
 			allowed = plan != "free"
 		case "enterprise:audit-drain", "enterprise:sso", "enterprise:scim":
 			allowed = plan == "enterprise"
+		case OnboardingFeature:
+			// PLATFORM_ONBOARDING_AGENT=internal limits it to workspaces an override grants.
+			allowed = plan != "free" && os.Getenv("PLATFORM_ONBOARDING_AGENT") != "internal"
 		}
 		if override, ok := overrides[feature].(bool); ok {
 			allowed = override
@@ -172,6 +175,10 @@ func evaluateBootstrapEntitlement(entitlement *ent.WorkspaceEntitlement, now tim
 	}
 	if os.Getenv("PLATFORM_CAMPAIGN_WORKFLOW") == "enabled" {
 		features["campaign:workflow"] = true
+	}
+	// The rollback switch: onboarding becomes manual-only everywhere.
+	if os.Getenv("PLATFORM_ONBOARDING_AGENT") == "disabled" {
+		features[OnboardingFeature] = false
 	}
 	return plan, status, features
 }

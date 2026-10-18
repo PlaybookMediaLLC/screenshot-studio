@@ -31,7 +31,7 @@ var stripeBackends *stripe.Backends
 
 var errNoOrganization = errors.New("organization not found")
 
-// StripeService is the web payment provider (services/stripe.service.ts).
+// StripeService is the web payment provider.
 type StripeService struct {
 	Unsupported
 	sc            *stripe.Client

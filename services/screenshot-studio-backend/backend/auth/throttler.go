@@ -82,7 +82,7 @@ func ThrottlerBehindProxyGuard(store redis.Store) httpx.Middleware {
 
 // ThrottlerRealIpGuard is @UseGuards(ThrottlerRealIpGuard) with
 // @Throttle({ default: { limit, ttl } }) for public endpoints, keyed by the
-// client address the proxy forwards. handler is Nest's "Controller-method"
+// client address the proxy forwards. handler is the "Controller-method" key
 // (e.g. "AuthController-farcasterSigner"), which keeps one counter per route.
 func ThrottlerRealIpGuard(store redis.Store, handler string, limit int64, ttl time.Duration) httpx.Middleware {
 	return func(c *httpx.Ctx) error {

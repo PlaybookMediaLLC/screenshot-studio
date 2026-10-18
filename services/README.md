@@ -6,8 +6,7 @@ production; Compose can start the social API separately for local testing.
 
 ## Architecture
 
-The split follows the useful boundary in Postiz's `apps/backend` and
-`apps/orchestrator`, without copying Postiz's full platform:
+The services split into a control plane and an execution plane:
 
 - **backend** is the control plane. It exposes tenant-scoped APIs for Postiz
   channel connections and scheduled posts, validates approved creative variants,
@@ -28,13 +27,12 @@ provider retry timers. The V2 activity calls the provider adapter directly and
 stores its remote receipt on the canonical attempt. An ambiguous failure is
 `UNKNOWN_DELIVERY` because retrying could create a duplicate social post.
 
-## Postiz Temporal parity
+## Temporal guarantees
 
-This contract is pinned to Postiz commit
-`60ffa4df2277130cdbf255e81aa13f0e8f31fd1e` (2026-08-30). The services match
-every Temporal guarantee at Screenshot Studio's provider boundary:
+The services make these Temporal guarantees at Screenshot Studio's provider
+boundary:
 
-| Postiz guarantee | Screenshot Studio implementation |
+| Guarantee | Implementation |
 | --- | --- |
 | Versioned workflows remain registered | `PostWorkflowV1` and `PostWorkflowV2` are both workers |
 | Atomic recovery start | `poke` plus `SignalWithStartWorkflow` and `USE_EXISTING` |
@@ -47,13 +45,13 @@ every Temporal guarantee at Screenshot Studio's provider boundary:
 | Namespace readiness | `DescribeNamespace` with a 10-second bound |
 | TLS and API-key authentication | both settings apply independently |
 
-Postiz's per-social-network adapters, token refresh, comments, plugs, and repeat
-posts remain inside the social Go packages. Screenshot Studio's tenant Temporal
+The per-network adapters, token refresh, comments, plugs, and repeat posts live
+inside the social Go packages. Screenshot Studio's tenant Temporal
 activity invokes the LinkedIn, X, or Instagram adapter directly. The social
 HTTP API handles OAuth, but customer publishing does not call
-`/public/v1/posts` or stage a second media copy. Postiz's autopost, streak,
-and email workflows are product domains, not publishing transport, and remain
-owned by Screenshot Studio's campaign and email systems.
+`/public/v1/posts` or stage a second media copy. The social backend's autopost,
+streak, and email workflows are product domains, not publishing transport, and
+remain owned by Screenshot Studio's campaign and email systems.
 
 ## Database ownership
 
@@ -138,15 +136,15 @@ build context.
 
 ## screenshot-studio-backend and screenshot-studio-orchestrator
 
-`screenshot-studio-backend/` is a Go port of Postiz's NestJS `apps/backend` and
-`apps/orchestrator` (plus the `nestjs-libraries` and `helpers` code they use).
-It preserves the social HTTP and Temporal contracts for the adapter, while
-Screenshot Studio customer publishing uses the canonical product post state.
+`screenshot-studio-backend/` is Screenshot Studio's Go social backend and its
+Temporal orchestrator. It serves the social HTTP API and the Temporal contracts
+that the provider adapters use, while Screenshot Studio customer publishing uses
+the canonical product post state.
 
 Layout:
 
-- `screenshot-studio-backend/backend/cmd/screenshot-studio-backend`: `main.ts`. CORS, MCP (`startMcp`), the controllers in
-  Nest's registration order (honors `MCP_ONLY`), the search-attribute and
+- `screenshot-studio-backend/backend/cmd/screenshot-studio-backend`: the HTTP entry point. CORS, MCP, the controllers in
+  registration order (honors `MCP_ONLY`), the search-attribute and
   `missingPostWorkflow` registration, the configuration check, and `/docs`.
 - `screenshot-studio-backend/orchestrator/cmd/screenshot-studio-orchestrator`: the workers (`main` plus one queue per
   provider, `email`, `email-bulk`) and `GET /health/status`.
@@ -160,63 +158,57 @@ Layout:
 - `screenshot-studio-backend/ent`: the generated Ent client.
 - `screenshot-studio-backend/migrations`: the DDL.
 
-**Environment.** The services read the same variables as Postiz's
-`.env.example`, under the same names and defaults: `DATABASE_URL`, `REDIS_URL`
+**Environment.** The services read these variables: `DATABASE_URL`, `REDIS_URL`
 (unset = in-memory), `TEMPORAL_*`, `JWT_SECRET`, `FRONTEND_URL`, `MAIN_URL`,
 `NEXT_PUBLIC_BACKEND_URL`, `BACKEND_INTERNAL_URL`,
 `STORAGE_PROVIDER`/`UPLOAD_DIRECTORY`/`CLOUDFLARE_*`,
 `NOT_SECURED`, `STRIPE_*`, provider keys, `RUN_CRON`, `EXCLUDE_QUEUE`,
 `WORKER_CONCURRENCY_DIVIDER`, `PORT` (default 3000), and `ORCHESTRATOR_PORT`
-(default 3002). Each process forces `time.Local = time.UTC`, as Postiz sets
-`TZ=UTC`.
+(default 3002). Each process forces `time.Local = time.UTC`.
 
 **Migrations.** Run `/platform-migrate` before the API and workers. It applies
 both Ent-backed SQL sets to one database, records their history, and adopts
 compatible tables from the earlier Prisma deployment. `/postiz-migrate`
-remains in the image for isolated social-port tests; it is not a second
-production migration job. See [the deployment guide](../docs/postiz-go-deployment.md)
+remains in the image for isolated social backend tests; it is not a second
+production migration job. See [the deployment guide](../docs/social-backend-deployment.md)
 for the local and App Platform configuration.
 
 ```sh
 go build ./screenshot-studio-backend/backend/cmd/screenshot-studio-backend ./screenshot-studio-backend/orchestrator/cmd/screenshot-studio-orchestrator
 POSTIZ_TEST_DATABASE_URL=postgresql://postgres@localhost:55432/postiz_test?sslmode=disable go test ./screenshot-studio-backend/...
-temporal server start-dev   # then run both binaries with the Postiz .env
+temporal server start-dev   # then run both binaries with the variables above
 ```
 
-**Parity notes and known deviations** (each package's details are in
-`.context/postiz-go/reports/`):
+**Implementation notes:**
 
-- **Temporal.** Workflow names, IDs and arguments match the TypeScript code, but
-  Go workers cannot replay workflows that a TypeScript worker started (Go has
-  different `patched` markers). Drain or cut over the `main` workflow workers.
-  Activity workers are interchangeable with the TypeScript ones.
-  `cancellationType: ABANDON` is not available in Go. `SignalWithStart` sends one
-  `null` argument.
+- **Temporal.** Workflow names, IDs and arguments match the earlier TypeScript
+  deployment, but Go workers cannot replay workflows that a TypeScript worker
+  started (Go has different `patched` markers). Drain or cut over the `main`
+  workflow workers. Activity workers are interchangeable with the TypeScript
+  ones. `cancellationType: ABANDON` is not available in Go. `SignalWithStart`
+  sends one `null` argument.
 - **HTTP.**
-  - Express-style response compression is supported (Brotli, gzip, and deflate).
+  - Response compression is supported (Brotli, gzip, and deflate).
   - Cookies use `Max-Age=0` and Go's attribute order.
-  - JSON type mismatches fail at decode with a 400 instead of class-validator's
-    "must be a string" messages.
+  - JSON type mismatches fail at decode with a 400.
   - `/docs` serves Swagger UI with a minimal OpenAPI document that lists every
     route (method and path) without schemas. `/docs-json` serves the same
     document.
-- **AI.** OpenAI is called with chat completions over HTTP, not the AI SDK's
-  Responses API. Mastra and LangGraph are reproduced at the level of their events
-  and memory tables, not their internals. CopilotKit 1.72 is spoken through its
-  single-route envelope.
-- **Libraries.** Several libraries are replaced:
-  - googleapis, Neynar, the Facebook SDK, Transloadit, rss-parser, JSDOM and
-    music-metadata: plain HTTP or the standard library.
-  - DOMPurify, parse5, striptags, twitter-text and remove-markdown: hand ports
-    verified against golden outputs.
+- **AI.** OpenAI is called with chat completions over HTTP. The Mastra and
+  LangGraph event and memory tables are supported, not their internals.
+  CopilotKit 1.72 is spoken through its single-route envelope.
+- **Libraries.**
+  - Google APIs, Neynar, Facebook, Transloadit, RSS, HTML, and audio metadata:
+    plain HTTP or the standard library.
+  - HTML sanitizing, HTML parsing, tag stripping, tweet text, and Markdown
+    removal: Go implementations verified against golden outputs.
   - Stripe uses stripe-go v84, with API version `2026-02-25.clover`.
 - **Data.**
   - Ent returns its in-memory timestamps, while Prisma returns the stored
     `timestamp(3)` values. The two can differ by 1 ms of rounding.
   - Some internal lookups load full rows where Prisma selected a few columns.
     Sensitive columns are never serialized.
-- **Unbounded recursion.** Where TypeScript recursion has no bound, the Go code
-  caps it:
+- **Bounded recursion.** The Go code caps recursion that has no natural bound:
   - the `getMissingContent` refresh retry runs once
   - the random draft time search stops after 10,000 tries
   - a negative `intervalInDays` shows the post once

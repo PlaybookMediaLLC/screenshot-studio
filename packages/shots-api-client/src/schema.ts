@@ -516,6 +516,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/onboarding-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start an onboarding run
+         * @description Reads the product's site and returns a product profile and ideal customer profile draft within ten seconds, then starts the background run that deepens them. A second request while a run is active, or a replayed `Idempotency-Key`, returns the existing run with 200. Requires the `onboarding:run` scope.
+         */
+        post: operations["createOnboardingRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding-runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get an onboarding run
+         * @description Returns a run's status, stage, and progress (0 to 100, never decreasing). While the run is active the progress is live. Requires the `onboarding:run` scope.
+         */
+        get: operations["getOnboardingRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding-runs/{runId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel an onboarding run
+         * @description Stops an active run within seconds. Everything it already read is kept; cancelling a finished run changes nothing. Requires the `onboarding:run` scope.
+         */
+        post: operations["cancelOnboardingRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding-runs/{runId}/rerun": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Re-run onboarding
+         * @description Starts a new run for a run's URL. Pages read within the hour are reused and unchanged pages skip the model, so re-running an unchanged site costs nothing. Accepts `Idempotency-Key`. Requires the `onboarding:run` scope.
+         */
+        post: operations["rerunOnboardingRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding-runs/{runId}/enrichment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List onboarding enrichment
+         * @description Lists what enrichment found for the run's site: brand assets, firmographics, social reach, app store listings, competitors, and mentions, each with its provider, confidence, source, and cost. Requires the `onboarding:run` scope.
+         */
+        get: operations["listOnboardingEnrichment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -1216,6 +1316,9 @@ export interface components {
                 channelConnectionIds: string[];
                 createdAt: string;
                 createdByUserId: string | null;
+                discussions: {
+                    [key: string]: unknown;
+                };
                 id: string;
                 organizationId: string;
                 plainText: string;
@@ -1234,6 +1337,9 @@ export interface components {
                 [key: string]: unknown;
             }[];
             channelConnectionIds?: string[];
+            discussions?: {
+                [key: string]: unknown;
+            };
             plainText?: string;
             title?: string;
         };
@@ -1245,6 +1351,9 @@ export interface components {
             channelConnectionIds: string[];
             createdAt: string;
             createdByUserId: string | null;
+            discussions: {
+                [key: string]: unknown;
+            };
             id: string;
             organizationId: string;
             plainText: string;
@@ -1261,6 +1370,9 @@ export interface components {
                 [key: string]: unknown;
             }[];
             channelConnectionIds?: string[];
+            discussions?: {
+                [key: string]: unknown;
+            };
             plainText?: string;
             title?: string;
             baseVersion: number;
@@ -1277,6 +1389,54 @@ export interface components {
                 scheduledFor: string;
                 /** @enum {string} */
                 status: "DRAFT" | "SCHEDULED" | "PROCESSING" | "PUBLISHED" | "FAILED" | "CANCELLED" | "UNKNOWN_DELIVERY";
+            }[];
+        };
+        OnboardingRunCreateRequest: {
+            sentence?: string;
+            /** Format: uri */
+            url: string;
+        };
+        OnboardingRunResponse: {
+            run: {
+                completedAt: string | null;
+                completedStages: string[];
+                createdByUserId: string | null;
+                deadlineAt: string;
+                discoveredUrls: string[];
+                enrichmentCostMicros: number;
+                errorCode: string | null;
+                errorMessage: string | null;
+                fastPathMs: number;
+                id: string;
+                modelCostMicros: number;
+                pageLimit: number;
+                pagesDiscovered: number;
+                pagesProcessed: number;
+                pagesSkipped: number;
+                progress: number;
+                stage: string;
+                startedAt: string;
+                /** @enum {string} */
+                status: "queued" | "running" | "completed" | "partial" | "failed" | "cancelled";
+                tokenBudget: number;
+                tokensUsed: number;
+                updatedAt: string;
+                url: string;
+                workflowId: string;
+            };
+        };
+        OnboardingEnrichmentResponse: {
+            enrichment: {
+                confidence: number;
+                costMicros: number;
+                domain: string;
+                expiresAt: string;
+                fetchedAt: string;
+                field: string;
+                id: string;
+                provider: string;
+                sourceUrl?: string;
+                value: unknown;
             }[];
         };
         PlaybookBootstrap: {
@@ -1374,7 +1534,7 @@ export interface components {
             /** @enum {string} */
             currentPlan: "free" | "pro" | "business" | "enterprise";
             /** @enum {string} */
-            feature: "asset:create" | "asset:read" | "asset:update" | "asset:delete" | "release:create" | "source-app:create" | "workspace:use" | "enterprise:audit-drain" | "enterprise:sso" | "enterprise:scim" | "campaign:workflow" | "content:drafts";
+            feature: "asset:create" | "asset:read" | "asset:update" | "asset:delete" | "release:create" | "source-app:create" | "workspace:use" | "enterprise:audit-drain" | "enterprise:sso" | "enterprise:scim" | "campaign:workflow" | "content:drafts" | "onboarding:agent";
             /** @enum {string} */
             requiredPlan: "free" | "pro" | "business" | "enterprise";
         };
@@ -4047,6 +4207,674 @@ export interface operations {
                 };
             };
             /** @description The draft was not found in this workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createOnboardingRun: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnboardingRunCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description An existing run. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        created: boolean;
+                        extracted: boolean;
+                        idealCustomerProfile: {
+                            buyingTriggers: string[];
+                            channels: string[];
+                            createdAt: string;
+                            id: string;
+                            jobs: string[];
+                            objections: string[];
+                            pains: string[];
+                            personas: {
+                                role: string;
+                                seniority?: string;
+                                teamSize?: string;
+                            }[];
+                            provenance: {
+                                [key: string]: {
+                                    confidence?: number;
+                                    editedByUser: boolean;
+                                    /** @enum {string} */
+                                    source: "manual" | "automated" | "enrichment";
+                                    updatedAt: string;
+                                    url?: string;
+                                };
+                            };
+                            updatedAt: string;
+                        } | null;
+                        pages: string[];
+                        productProfile: {
+                            audience: string;
+                            capabilities: string[];
+                            competitors: string[];
+                            createdAt: string;
+                            id: string;
+                            name: string;
+                            pricingNote: string;
+                            problem: string;
+                            proofPoints: {
+                                claim: string;
+                                sourceUrl?: string;
+                            }[];
+                            provenance: {
+                                [key: string]: {
+                                    confidence?: number;
+                                    editedByUser: boolean;
+                                    /** @enum {string} */
+                                    source: "manual" | "automated" | "enrichment";
+                                    updatedAt: string;
+                                    url?: string;
+                                };
+                            };
+                            summary: string;
+                            updatedAt: string;
+                            url: string;
+                        } | null;
+                        reason?: string;
+                        run: {
+                            completedAt: string | null;
+                            completedStages: string[];
+                            createdByUserId: string | null;
+                            deadlineAt: string;
+                            discoveredUrls: string[];
+                            enrichmentCostMicros: number;
+                            errorCode: string | null;
+                            errorMessage: string | null;
+                            fastPathMs: number;
+                            id: string;
+                            modelCostMicros: number;
+                            pageLimit: number;
+                            pagesDiscovered: number;
+                            pagesProcessed: number;
+                            pagesSkipped: number;
+                            progress: number;
+                            stage: string;
+                            startedAt: string;
+                            /** @enum {string} */
+                            status: "queued" | "running" | "completed" | "partial" | "failed" | "cancelled";
+                            tokenBudget: number;
+                            tokensUsed: number;
+                            updatedAt: string;
+                            url: string;
+                            workflowId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Run started. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        created: boolean;
+                        extracted: boolean;
+                        idealCustomerProfile: {
+                            buyingTriggers: string[];
+                            channels: string[];
+                            createdAt: string;
+                            id: string;
+                            jobs: string[];
+                            objections: string[];
+                            pains: string[];
+                            personas: {
+                                role: string;
+                                seniority?: string;
+                                teamSize?: string;
+                            }[];
+                            provenance: {
+                                [key: string]: {
+                                    confidence?: number;
+                                    editedByUser: boolean;
+                                    /** @enum {string} */
+                                    source: "manual" | "automated" | "enrichment";
+                                    updatedAt: string;
+                                    url?: string;
+                                };
+                            };
+                            updatedAt: string;
+                        } | null;
+                        pages: string[];
+                        productProfile: {
+                            audience: string;
+                            capabilities: string[];
+                            competitors: string[];
+                            createdAt: string;
+                            id: string;
+                            name: string;
+                            pricingNote: string;
+                            problem: string;
+                            proofPoints: {
+                                claim: string;
+                                sourceUrl?: string;
+                            }[];
+                            provenance: {
+                                [key: string]: {
+                                    confidence?: number;
+                                    editedByUser: boolean;
+                                    /** @enum {string} */
+                                    source: "manual" | "automated" | "enrichment";
+                                    updatedAt: string;
+                                    url?: string;
+                                };
+                            };
+                            summary: string;
+                            updatedAt: string;
+                            url: string;
+                        } | null;
+                        reason?: string;
+                        run: {
+                            completedAt: string | null;
+                            completedStages: string[];
+                            createdByUserId: string | null;
+                            deadlineAt: string;
+                            discoveredUrls: string[];
+                            enrichmentCostMicros: number;
+                            errorCode: string | null;
+                            errorMessage: string | null;
+                            fastPathMs: number;
+                            id: string;
+                            modelCostMicros: number;
+                            pageLimit: number;
+                            pagesDiscovered: number;
+                            pagesProcessed: number;
+                            pagesSkipped: number;
+                            progress: number;
+                            stage: string;
+                            startedAt: string;
+                            /** @enum {string} */
+                            status: "queued" | "running" | "completed" | "partial" | "failed" | "cancelled";
+                            tokenBudget: number;
+                            tokensUsed: number;
+                            updatedAt: string;
+                            url: string;
+                            workflowId: string;
+                        };
+                    };
+                };
+            };
+            /** @description The URL is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The workspace started three runs this hour. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getOnboardingRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The run. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingRunResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No run with that ID exists in the workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    cancelOnboardingRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The run. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingRunResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No run with that ID exists in the workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    rerunOnboardingRun: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description An existing run. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        created: boolean;
+                        extracted: boolean;
+                        idealCustomerProfile: {
+                            buyingTriggers: string[];
+                            channels: string[];
+                            createdAt: string;
+                            id: string;
+                            jobs: string[];
+                            objections: string[];
+                            pains: string[];
+                            personas: {
+                                role: string;
+                                seniority?: string;
+                                teamSize?: string;
+                            }[];
+                            provenance: {
+                                [key: string]: {
+                                    confidence?: number;
+                                    editedByUser: boolean;
+                                    /** @enum {string} */
+                                    source: "manual" | "automated" | "enrichment";
+                                    updatedAt: string;
+                                    url?: string;
+                                };
+                            };
+                            updatedAt: string;
+                        } | null;
+                        pages: string[];
+                        productProfile: {
+                            audience: string;
+                            capabilities: string[];
+                            competitors: string[];
+                            createdAt: string;
+                            id: string;
+                            name: string;
+                            pricingNote: string;
+                            problem: string;
+                            proofPoints: {
+                                claim: string;
+                                sourceUrl?: string;
+                            }[];
+                            provenance: {
+                                [key: string]: {
+                                    confidence?: number;
+                                    editedByUser: boolean;
+                                    /** @enum {string} */
+                                    source: "manual" | "automated" | "enrichment";
+                                    updatedAt: string;
+                                    url?: string;
+                                };
+                            };
+                            summary: string;
+                            updatedAt: string;
+                            url: string;
+                        } | null;
+                        reason?: string;
+                        run: {
+                            completedAt: string | null;
+                            completedStages: string[];
+                            createdByUserId: string | null;
+                            deadlineAt: string;
+                            discoveredUrls: string[];
+                            enrichmentCostMicros: number;
+                            errorCode: string | null;
+                            errorMessage: string | null;
+                            fastPathMs: number;
+                            id: string;
+                            modelCostMicros: number;
+                            pageLimit: number;
+                            pagesDiscovered: number;
+                            pagesProcessed: number;
+                            pagesSkipped: number;
+                            progress: number;
+                            stage: string;
+                            startedAt: string;
+                            /** @enum {string} */
+                            status: "queued" | "running" | "completed" | "partial" | "failed" | "cancelled";
+                            tokenBudget: number;
+                            tokensUsed: number;
+                            updatedAt: string;
+                            url: string;
+                            workflowId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Run started. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        created: boolean;
+                        extracted: boolean;
+                        idealCustomerProfile: {
+                            buyingTriggers: string[];
+                            channels: string[];
+                            createdAt: string;
+                            id: string;
+                            jobs: string[];
+                            objections: string[];
+                            pains: string[];
+                            personas: {
+                                role: string;
+                                seniority?: string;
+                                teamSize?: string;
+                            }[];
+                            provenance: {
+                                [key: string]: {
+                                    confidence?: number;
+                                    editedByUser: boolean;
+                                    /** @enum {string} */
+                                    source: "manual" | "automated" | "enrichment";
+                                    updatedAt: string;
+                                    url?: string;
+                                };
+                            };
+                            updatedAt: string;
+                        } | null;
+                        pages: string[];
+                        productProfile: {
+                            audience: string;
+                            capabilities: string[];
+                            competitors: string[];
+                            createdAt: string;
+                            id: string;
+                            name: string;
+                            pricingNote: string;
+                            problem: string;
+                            proofPoints: {
+                                claim: string;
+                                sourceUrl?: string;
+                            }[];
+                            provenance: {
+                                [key: string]: {
+                                    confidence?: number;
+                                    editedByUser: boolean;
+                                    /** @enum {string} */
+                                    source: "manual" | "automated" | "enrichment";
+                                    updatedAt: string;
+                                    url?: string;
+                                };
+                            };
+                            summary: string;
+                            updatedAt: string;
+                            url: string;
+                        } | null;
+                        reason?: string;
+                        run: {
+                            completedAt: string | null;
+                            completedStages: string[];
+                            createdByUserId: string | null;
+                            deadlineAt: string;
+                            discoveredUrls: string[];
+                            enrichmentCostMicros: number;
+                            errorCode: string | null;
+                            errorMessage: string | null;
+                            fastPathMs: number;
+                            id: string;
+                            modelCostMicros: number;
+                            pageLimit: number;
+                            pagesDiscovered: number;
+                            pagesProcessed: number;
+                            pagesSkipped: number;
+                            progress: number;
+                            stage: string;
+                            startedAt: string;
+                            /** @enum {string} */
+                            status: "queued" | "running" | "completed" | "partial" | "failed" | "cancelled";
+                            tokenBudget: number;
+                            tokensUsed: number;
+                            updatedAt: string;
+                            url: string;
+                            workflowId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No run with that ID exists in the workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The workspace started three runs this hour. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listOnboardingEnrichment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The findings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingEnrichmentResponse"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No run with that ID exists in the workspace. */
             404: {
                 headers: {
                     [name: string]: unknown;

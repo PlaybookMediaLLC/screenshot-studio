@@ -67,6 +67,21 @@ class UpdateWebImageTest(unittest.TestCase):
         again = module.update_web_image(result, tag, {**base, **stripe})
         self.assertEqual(len(again["services"][0]["envs"]), len({item["key"] for item in again["services"][0]["envs"]}))
 
+    def test_content_drafts_and_collab_follow_infisical(self):
+        tag = "web-" + "b" * 40
+        base = {"REDIS_URL": "runtime-redis", "PLATFORM_RENDER_CDP_URL": "wss://render.example/devtools",
+                "PLATFORM_RENDER_CDP_TOKEN": "cdp-token", "BETTER_AUTH_URL": "https://shots.example.com"}
+        off = {item["key"] for item in module.update_web_image(self.base, tag, base)["services"][0]["envs"]}
+        self.assertFalse(off & {"PLATFORM_CONTENT_DRAFTS", "PLATFORM_COLLAB_URL"})
+        with_collab = dict(self.base["spec"], services=self.base["spec"]["services"] + [{"name": "collab"}])
+        result = module.update_web_image(with_collab, tag, {**base, "PLATFORM_CONTENT_DRAFTS": "enabled"})
+        envs = {item["key"]: item["value"] for item in result["services"][0]["envs"]}
+        self.assertEqual(envs["PLATFORM_CONTENT_DRAFTS"], "enabled")
+        self.assertEqual(envs["PLATFORM_COLLAB_URL"], "wss://shots.example.com/collab")
+        self.assertIn("collab", {item["name"] for item in result["services"]})
+        again = module.update_web_image(result, tag, {**base, "PLATFORM_CONTENT_DRAFTS": "enabled"})
+        self.assertEqual(len(again["services"][0]["envs"]), len({item["key"] for item in again["services"][0]["envs"]}))
+
     def test_every_web_secret_comes_from_infisical(self):
         tag = "web-" + "b" * 40
         cdp = {"PLATFORM_RENDER_CDP_URL": "wss://render.example/devtools", "PLATFORM_RENDER_CDP_TOKEN": "cdp-token"}

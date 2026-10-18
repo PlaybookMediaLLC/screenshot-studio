@@ -167,7 +167,7 @@ its local UI on http://localhost:8233.
 
 The Go Postiz replacement is a separate optional profile with its own database,
 Redis, and Temporal server. Run `make postiz-go-up` and see
-[Screenshot Studio backend and orchestrator](postiz-go-deployment.md) for the
+[Screenshot Studio backend and orchestrator](social-backend-deployment.md) for the
 local API key and production configuration.
 
 The RustFS bucket is private. The Go backend creates object keys under

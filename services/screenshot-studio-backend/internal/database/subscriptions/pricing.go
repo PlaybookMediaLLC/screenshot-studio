@@ -1,6 +1,6 @@
 package subscriptions
 
-// PricingInner is PricingInnerInterface (subscriptions/pricing.ts).
+// PricingInner is the pricing entry for one plan.
 type PricingInner struct {
 	Current              string `json:"current"`
 	MonthPrice           int    `json:"month_price"`

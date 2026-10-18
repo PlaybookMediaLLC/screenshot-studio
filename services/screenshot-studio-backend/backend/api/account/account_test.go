@@ -213,8 +213,8 @@ func (e *env) do(method, target, body string, mutate ...func(*http.Request)) *ht
 	return rec
 }
 
-// expectValidation checks a ValidationPipe 400 and its messages. It reads
-// both Nest's {message: [...], error, statusCode} and a bare array.
+// expectValidation checks a validation 400 and its messages. It reads
+// both the {message: [...], error, statusCode} body and a bare array.
 func expectValidation(t *testing.T, rec *httptest.ResponseRecorder, messages ...string) {
 	t.Helper()
 	var got []string

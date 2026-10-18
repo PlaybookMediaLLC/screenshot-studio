@@ -58,7 +58,7 @@ type CheckExistsResult struct {
 	Token string
 }
 
-// AuthService ports apps/backend/src/services/auth/auth.service.ts.
+// AuthService is the auth service.
 type AuthService struct {
 	users      UsersService
 	orgs       OrganizationService

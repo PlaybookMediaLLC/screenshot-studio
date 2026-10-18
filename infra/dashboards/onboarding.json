@@ -1,0 +1,214 @@
+{
+  "title": "Onboarding agent",
+  "uid": "platform-onboarding",
+  "schemaVersion": 39,
+  "version": 2,
+  "description": "RFC 032 onboarding runs, read from onboarding_run. No page text or tenant content is queried.",
+  "tags": [
+    "platform",
+    "onboarding"
+  ],
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "refresh": "5m",
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Postgres (read replica)",
+        "type": "datasource",
+        "query": "grafana-postgresql-datasource"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Fast-path latency (p50, p95, p99)",
+      "description": "The budget is 10 seconds (RFC 032 AC 1).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time,\n  percentile_cont(0.5) WITHIN GROUP (ORDER BY \"fastPathMs\") AS p50,\n  percentile_cont(0.95) WITHIN GROUP (ORDER BY \"fastPathMs\") AS p95,\n  percentile_cont(0.99) WITHIN GROUP (ORDER BY \"fastPathMs\") AS p99\nFROM onboarding_run\nWHERE $__timeFilter(\"createdAt\") AND \"fastPathMs\" > 0\nGROUP BY 1 ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Run outcomes (share of finished runs)",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time,\n  avg((\"status\" = 'completed')::int) AS completed,\n  avg((\"status\" = 'partial')::int) AS partial,\n  avg((\"status\" = 'failed')::int) AS failed,\n  avg((\"status\" = 'cancelled')::int) AS cancelled\nFROM onboarding_run\nWHERE $__timeFilter(\"createdAt\") AND \"status\" NOT IN ('queued', 'running')\nGROUP BY 1 ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Pages per run (processed and skipped, p50 and p95)",
+      "description": "Skipped pages were unchanged or cached: the value of incremental crawling.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time,\n  percentile_cont(0.5) WITHIN GROUP (ORDER BY \"pagesProcessed\") AS processed_p50,\n  percentile_cont(0.95) WITHIN GROUP (ORDER BY \"pagesProcessed\") AS processed_p95,\n  percentile_cont(0.5) WITHIN GROUP (ORDER BY \"pagesSkipped\") AS skipped_p50\nFROM onboarding_run\nWHERE $__timeFilter(\"createdAt\")\nGROUP BY 1 ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Tokens per run (p50, p95) and budget stops",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time,\n  percentile_cont(0.5) WITHIN GROUP (ORDER BY \"tokensUsed\") AS tokens_p50,\n  percentile_cont(0.95) WITHIN GROUP (ORDER BY \"tokensUsed\") AS tokens_p95,\n  count(*) FILTER (WHERE \"errorCode\" = 'token_budget') AS budget_stops\nFROM onboarding_run\nWHERE $__timeFilter(\"createdAt\")\nGROUP BY 1 ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Cost per run (USD): model and enrichment, p50, p95, and total",
+      "description": "The platform pays both: onboarding spends no AI credits.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time,\n  percentile_cont(0.5) WITHIN GROUP (ORDER BY \"modelCostMicros\") / 1e6 AS model_p50,\n  percentile_cont(0.95) WITHIN GROUP (ORDER BY \"modelCostMicros\") / 1e6 AS model_p95,\n  percentile_cont(0.5) WITHIN GROUP (ORDER BY \"enrichmentCostMicros\") / 1e6 AS enrichment_p50,\n  percentile_cont(0.95) WITHIN GROUP (ORDER BY \"enrichmentCostMicros\") / 1e6 AS enrichment_p95,\n  sum(\"modelCostMicros\" + \"enrichmentCostMicros\") / 1e6 AS total\nFROM onboarding_run\nWHERE $__timeFilter(\"createdAt\")\nGROUP BY 1 ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Why runs stopped early",
+      "description": "deadline, token_budget, stage_failed, access_revoked, background_unavailable, site_unreadable.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT coalesce(\"errorCode\", 'none') AS reason, \"status\", count(*) AS runs\nFROM onboarding_run\nWHERE $__timeFilter(\"createdAt\") AND \"status\" IN ('partial', 'failed', 'cancelled')\nGROUP BY 1, 2 ORDER BY 3 DESC"
+        }
+      ]
+    }
+  ]
+}

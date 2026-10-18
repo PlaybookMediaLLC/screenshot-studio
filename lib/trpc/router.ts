@@ -12,6 +12,7 @@ import { creativeTemplateRouter, creativeVariantRouter } from './routers/creativ
 import { designRouter } from './routers/design'
 import { editorAiRouter } from './routers/editor-ai'
 import { githubRouter } from './routers/github'
+import { idealCustomerProfileRouter } from './routers/ideal-customer-profile'
 import { integrationRouter } from './routers/integration'
 import { launchRouter } from './routers/launch'
 import { onboardingRouter } from './routers/onboarding'
@@ -39,6 +40,7 @@ export const appRouter = router({
   design: designRouter,
   editorAi: editorAiRouter,
   github: githubRouter,
+  idealCustomerProfile: idealCustomerProfileRouter,
   integration: integrationRouter,
   launch: launchRouter,
   onboarding: onboardingRouter,

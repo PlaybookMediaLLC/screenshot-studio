@@ -4,11 +4,12 @@ import { apiKeyScopes } from '@/lib/auth/api-key-scopes'
 
 // Drafts are content, not publishing: drafts are scheduled by a session only
 // (RFC 037). post:schedule schedules approved campaign content (RFC 038).
-test('organization API keys expose only intake, artifact, draft, and scheduling scopes', () => {
+test('organization API keys expose only intake, artifact, draft, onboarding, and scheduling scopes', () => {
   assert.deepEqual(apiKeyScopes, [
     'artifact:read',
     'asset:write',
     'draft:write',
+    'onboarding:run',
     'post:schedule',
     'release:create',
     'source:write',

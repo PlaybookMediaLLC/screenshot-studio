@@ -1,4 +1,4 @@
-// Package webhooks holds Postiz's dtos/webhooks/webhooks.dto.ts (the SSRF
+// Package webhooks holds the webhook request bodies (the SSRF
 // validator and dispatcher live in internal/ssrf).
 package webhooks
 

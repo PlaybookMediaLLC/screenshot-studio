@@ -1,5 +1,5 @@
-// Package sentryx is Postiz's sentry/initialize.sentry.ts and the
-// SentryGlobalFilter capture rule.
+// Package sentryx initializes Sentry and holds the
+// error capture rule.
 package sentryx
 
 import (

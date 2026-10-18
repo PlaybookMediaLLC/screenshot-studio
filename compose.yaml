@@ -170,6 +170,18 @@ services:
       PUBLISHING_SERVICE_TOKEN: ${PUBLISHING_SERVICE_TOKEN:-local-publishing-service}
       R2_BROWSER_ENDPOINT: http://localhost:9003
       TEMPORAL_ADDRESS: temporal:7233
+      # The onboarding agent (docs/rfcs/032). bin/studio points the model and
+      # the fetch allowlist at the e2e fakes; without a key, drafts come from
+      # page metadata, and enrichment providers without a key are skipped.
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-}
+      PLATFORM_ONBOARDING_AGENT: ${PLATFORM_ONBOARDING_AGENT:-enabled}
+      PLATFORM_ONBOARDING_SURFACES: ${PLATFORM_ONBOARDING_SURFACES:-}
+      PLATFORM_ENRICHMENT_DISABLED: ${PLATFORM_ENRICHMENT_DISABLED:-}
+      PLATFORM_ENRICHMENT_EXA_API_KEY: ${PLATFORM_ENRICHMENT_EXA_API_KEY:-}
+      PLATFORM_ENRICHMENT_GITHUB_TOKEN: ${PLATFORM_ENRICHMENT_GITHUB_TOKEN:-}
+      PLATFORM_SENTRY_DSN: ${PLATFORM_SENTRY_DSN:-}
+      SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS: ${SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS:-}
     ports:
       - '127.0.0.1:8080:8080'
     depends_on:
@@ -247,6 +259,18 @@ services:
       PUBLISHING_RETRY_DELAY: ${PUBLISHING_RETRY_DELAY:-2m}
       RUN_CRON: ${RUN_CRON:-true}
       TEMPORAL_ADDRESS: temporal:7233
+      # The onboarding agent (docs/rfcs/032). bin/studio points the model and
+      # the fetch allowlist at the e2e fakes; without a key, drafts come from
+      # page metadata, and enrichment providers without a key are skipped.
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-}
+      PLATFORM_ONBOARDING_AGENT: ${PLATFORM_ONBOARDING_AGENT:-enabled}
+      PLATFORM_ONBOARDING_SURFACES: ${PLATFORM_ONBOARDING_SURFACES:-}
+      PLATFORM_ENRICHMENT_DISABLED: ${PLATFORM_ENRICHMENT_DISABLED:-}
+      PLATFORM_ENRICHMENT_EXA_API_KEY: ${PLATFORM_ENRICHMENT_EXA_API_KEY:-}
+      PLATFORM_ENRICHMENT_GITHUB_TOKEN: ${PLATFORM_ENRICHMENT_GITHUB_TOKEN:-}
+      PLATFORM_SENTRY_DSN: ${PLATFORM_SENTRY_DSN:-}
+      SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS: ${SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS:-}
     ports:
       - '127.0.0.1:8081:8081'
     depends_on:

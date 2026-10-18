@@ -1,4 +1,4 @@
-// Package hashnode ports hashnode.provider.ts, hashnode.tags.ts and the
+// Package hashnode is the Hashnode provider, its tag list, and the
 // Hashnode settings DTO.
 package hashnode
 
@@ -23,7 +23,7 @@ import (
 // gqlURL is overridden by tests.
 var gqlURL = "https://gql-beta.hashnode.com"
 
-// Tag is one hashnode.tags.ts entry.
+// Tag is one entry of the Hashnode tag list.
 type Tag struct {
 	Name     string  `json:"name,omitempty"`
 	Logo     *string `json:"logo,omitempty"`

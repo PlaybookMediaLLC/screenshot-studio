@@ -23,7 +23,7 @@ var (
 	_ ClippingActivity     = (*ClippingActivities)(nil)
 )
 
-// IntegrationsActivities is integrations.activity.ts. Its refreshToken is
+// IntegrationsActivities are the integrations activities. Its refreshToken is
 // not an @ActivityMethod, so it is not ported here.
 type IntegrationsActivities struct {
 	integrations *integration.Service
@@ -38,14 +38,14 @@ func (a *IntegrationsActivities) GetIntegrationsByID(ctx context.Context, id, or
 	return toIntegration(i), err
 }
 
-// EmailService is the part of services/email.service.ts the email activity
+// EmailService is the part of the email service the email activity
 // uses (satisfied by *email.Service).
 type EmailService interface {
 	SendEmail(ctx context.Context, to, subject, html, addTo, replyTo string) (client.WorkflowRun, error)
 	SendEmailSync(ctx context.Context, to, subject, html, replyTo string)
 }
 
-// EmailActivities is email.activity.ts.
+// EmailActivities are the email activities.
 type EmailActivities struct {
 	email         EmailService
 	organizations *organizations.Service
@@ -96,7 +96,7 @@ func (a *EmailActivities) GetLastPublishDate(ctx context.Context, organizationID
 	return a.organizations.GetLastPublishDate(ctx, organizationID)
 }
 
-// AutopostActivities is autopost.activity.ts.
+// AutopostActivities are the autopost activities.
 type AutopostActivities struct {
 	autopost *autopost.Service
 }
@@ -109,7 +109,7 @@ func (a *AutopostActivities) AutoPost(ctx context.Context, id string) error {
 	return a.autopost.StartAutopost(ctx, id)
 }
 
-// VideoActivities is video.activity.ts.
+// VideoActivities are the video activities.
 type VideoActivities struct {
 	media         *media.Service
 	organizations *organizations.Service
@@ -142,7 +142,7 @@ func (a *VideoActivities) GenerateVideo(ctx context.Context, organizationID stri
 	return json.Marshal(saved)
 }
 
-// MediaActivities is media.activity.ts.
+// MediaActivities are the media activities.
 type MediaActivities struct {
 	media *media.Service
 }
@@ -171,7 +171,7 @@ func (a *MediaActivities) FailMediaProcessing(ctx context.Context, mediaID, errM
 	return err
 }
 
-// ClippingActivities is clipping.activity.ts. An activity on main can never
+// ClippingActivities are the clipping activities. An activity on main can never
 // change its parameters, so every one takes a single object of ids: the
 // state lives on the clipping records, and a field can be added to the
 // object without a new activity.

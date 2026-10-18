@@ -29,7 +29,7 @@ func verifyEnterpriseToken(params string) (map[string]any, error) {
 	return payload, nil
 }
 
-// RegisterEnterpriseController is enterprise.controller.ts (public, /enterprise).
+// RegisterEnterpriseController registers the enterprise routes (public, /enterprise).
 func RegisterEnterpriseController(r *httpx.Router, manager *integrations.Manager, orgs *organizations.Service,
 	integrationService *integration.Service, posts PostsService, store redis.Store) {
 	g := r.Group("/enterprise")

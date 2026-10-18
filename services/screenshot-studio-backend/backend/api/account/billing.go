@@ -18,7 +18,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/payment"
 )
 
-// RegisterBillingController is billing.controller.ts (authenticated, /billing).
+// RegisterBillingController registers the billing routes (authenticated, /billing).
 func RegisterBillingController(r *httpx.Router, authMiddleware httpx.Middleware, perms *auth.PermissionsService,
 	subscriptionService *subscriptions.Service, notificationService *notifications.Service, usersService *users.Service,
 	payments *payment.Service) {
@@ -183,7 +183,7 @@ func RegisterBillingController(r *httpx.Router, authMiddleware httpx.Middleware,
 	g.Get("/", func(c *httpx.Ctx) (any, error) {
 		subscription, err := payments.GetSubscription(c.R.Context(), c.Org.ID)
 		if err != nil || subscription == nil {
-			// undefined: Nest sends an empty body
+			// undefined: send an empty body
 			return nil, err
 		}
 		return subscription, nil
@@ -305,7 +305,7 @@ func RegisterBillingController(r *httpx.Router, authMiddleware httpx.Middleware,
 			return nil, err
 		}
 		if !c.User.IsSuperAdmin {
-			// a plain Error: Nest answers 500
+			// a plain error: answer 500
 			return nil, errUnauthorized
 		}
 		name, err := payments.GetDefaultProviderName(payment.PlatformWeb)

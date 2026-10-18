@@ -9,8 +9,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/httpx"
 )
 
-// RemoveAuth clears the auth cookie and tells the frontend to log out
-// (auth.middleware.ts removeAuth).
+// RemoveAuth clears the auth cookie and tells the frontend to log out.
 func RemoveAuth(c *httpx.Ctx) {
 	cookie := &http.Cookie{
 		Name:    "auth",

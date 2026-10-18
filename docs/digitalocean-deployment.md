@@ -254,6 +254,12 @@ Additional orchestrator configuration comes from the existing Infisical folder:
 `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, and optional `COMPANY_POSTAL_ADDRESS`.
 No new schema migration is required for the maintenance port.
 
+The onboarding agent (docs/rfcs/032) reads two optional keys from the same
+folder: `OPENROUTER_API_KEY` for its model and `PLATFORM_ENRICHMENT_EXA_API_KEY`
+for Exa enrichment. The next backend deploy adds each one present to the
+backend as a `TENANT_` secret and removes each one absent. Without them the
+agent drafts from page metadata and skips Exa.
+
 Tests in `services/internal/maintenance` use a disposable, fully migrated
 `maintenance_test` database and fake provider transports. CI runs these tests
 with the race detector, plus Temporal workflow retry/schedule reconciliation

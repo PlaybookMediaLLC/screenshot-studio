@@ -1,4 +1,4 @@
-// Command backend is Postiz's apps/backend (main.ts + app.module.ts): the
+// Command backend is the social backend server: the
 // REST API, the public API, the MCP server and the copilot runtime.
 package main
 
@@ -85,7 +85,7 @@ func main() {
 	}
 	server := &http.Server{
 		Addr: ":" + port,
-		// main.ts order: cors, startMcp, then compression() in front of Nest.
+		// Order: CORS, then MCP, then compression in front of the router.
 		Handler:           cors().Wrap(a.MCP.Handler(httpx.Compress(router))),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
@@ -119,7 +119,7 @@ func main() {
 	}
 }
 
-// cors is NestFactory.create's cors option.
+// cors returns the CORS options of the API.
 func cors() httpx.CORS {
 	notSecured := os.Getenv("NOT_SECURED") != ""
 	exposed := []string{"reload", "onboarding", "activate", "x-copilotkit-runtime-client-gql-version"}
@@ -144,8 +144,8 @@ func cors() httpx.CORS {
 	}
 }
 
-// newRouter registers the controllers in Nest's order: ApiModule's
-// controllers list, then PublicApiModule's. Express matches routes in
+// newRouter registers the controllers in a fixed order: the API
+// controllers, then the public API controllers. Routes match in
 // registration order, so the order is part of the API.
 func newRouter(a *app.App) *httpx.Router {
 	r := httpx.NewRouter()
@@ -204,7 +204,7 @@ func newRouter(a *app.App) *httpx.Router {
 	return r
 }
 
-// checkConfiguration is main.ts checkConfiguration.
+// checkConfiguration reports configuration problems at startup.
 func checkConfiguration() {
 	checker := &helpers.ConfigurationChecker{}
 	checker.ReadEnvFromProcess()

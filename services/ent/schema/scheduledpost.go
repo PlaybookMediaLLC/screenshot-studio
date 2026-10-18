@@ -28,6 +28,9 @@ func (ScheduledPost) Fields() []ent.Field {
 		field.String("content_draft_id").StorageKey("contentDraftId").Optional().Nillable().Immutable(),
 		// A draft post's media. Variant posts take theirs from the variant.
 		field.String("asset_id").StorageKey("assetId").Optional().Nillable().Immutable(),
+		// Every image of a draft post, in order; asset_id is the first. Posts
+		// scheduled before this column have only asset_id.
+		field.JSON("asset_ids", []string{}).StorageKey("assetIds").Optional().Immutable(),
 		field.String("channel_connection_id").StorageKey("channelConnectionId").Immutable(),
 		field.Time("scheduled_for").StorageKey("scheduledFor"),
 		field.Enum("status").StorageKey("status").Values("DRAFT", "SCHEDULED", "PROCESSING", "PUBLISHED", "FAILED", "CANCELLED", "UNKNOWN_DELIVERY").Default("DRAFT"),

@@ -2,6 +2,7 @@ export const apiKeyScopes = [
   'artifact:read',
   'asset:write',
   'draft:write',
+  'onboarding:run',
   'post:schedule',
   'release:create',
   'source:write',
@@ -14,6 +15,7 @@ export const apiKeyScopePermissions: Record<ApiKeyScope, Record<string, string[]
   'artifact:read': { artifact: ['read'] },
   'asset:write': { asset: ['write'] },
   'draft:write': { draft: ['write'] },
+  'onboarding:run': { onboarding: ['run'] },
   'post:schedule': { post: ['schedule'] },
   'release:create': { release: ['create'] },
   'source:write': { source: ['write'] },
@@ -26,6 +28,7 @@ export const apiKeyScopeDescriptions: Record<ApiKeyScope, string> = {
     'Read releases, campaigns, the review queue, the publishing schedule, and link previews; sign asset downloads; use the editor utilities.',
   'asset:write': 'Complete and delete asset uploads.',
   'draft:write': 'Create, update, and delete content drafts. Only a person schedules a draft.',
+  'onboarding:run': 'Read a product site into its profile and follow the run.',
   'post:schedule':
     'Schedule campaign posts and visuals a person approved, and cancel scheduled posts. It never approves anything.',
   'release:create': 'Create releases and draft campaigns, and submit drafts for review.',

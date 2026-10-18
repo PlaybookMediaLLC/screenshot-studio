@@ -1,4 +1,4 @@
-// Package comments ports libraries/nestjs-libraries/src/dtos/comments.
+// Package comments holds the comment request bodies.
 package comments
 
 type AddCommentDto struct {

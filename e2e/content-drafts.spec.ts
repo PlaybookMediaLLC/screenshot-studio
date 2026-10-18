@@ -122,8 +122,7 @@ test('a draft is written, saved, scheduled to two channels once, and one post is
     await expect(page.getByTestId('preview-x')).toContainText('formatting are removed')
 
     // Over X's limit: the counter goes red, and scheduling is blocked.
-    await draftEditor(page).getByText('for you.').click()
-    await page.keyboard.press('End')
+    await caretAtEndOf(page, draftEditor(page).getByText('for you.'))
     await page.keyboard.type(` ${'x'.repeat(260)}`)
     await expect(page.getByTestId('counter-x')).toHaveText(/^3\d\d \/ 280$/)
     await expect(page.getByTestId('preview-x').getByRole('alert')).toContainText(
@@ -226,14 +225,14 @@ test('a draft is written, saved, scheduled to two channels once, and one post is
 
 // Tables, math and footnotes are kept by the editor, survive a reload, and
 // each serializes into the channel preview as plain text.
-test('a table, a math block and a footnote persist and serialize into the preview', async ({
+test('a table, a math block and a footnote persist, and the blocks post as images', async ({
   identity,
   page,
 }) => {
   let workspace: DraftWorkspace | null = null
   try {
     workspace = await createDraftWorkspace(identity, page, ['linkedin'])
-    await openNewDraft(page)
+    const draftId = await openNewDraft(page)
     await draftEditor(page).click()
     await page.keyboard.type('Pricing')
 
@@ -259,11 +258,10 @@ test('a table, a math block and a footnote persist and serialize into the previe
     const expectPreview = async () => {
       const preview = page.getByTestId('preview-linkedin')
       await expect(preview).toContainText('Pricing[1]')
-      await expect(preview).toContainText(/Plan +\| Price/)
-      await expect(preview).toContainText('E = mc^2')
       await expect(preview).toContainText('[1] Prices exclude tax.')
-      await expect(preview).toContainText('Tables are posted as aligned text rows.')
-      await expect(preview).toContainText('Math is posted as its LaTeX source.')
+      await expect(preview).not.toContainText('E = mc^2')
+      await expect(preview).toContainText('Tables are posted as images.')
+      await expect(preview).toContainText('Math blocks are posted as images.')
       await expect(preview).toContainText('Footnotes become numbered notes at the end.')
     }
     await page.getByLabel(/^linkedin · /).check()
@@ -275,6 +273,56 @@ test('a table, a math block and a footnote persist and serialize into the previe
     await expect(draftEditor(page).locator('.katex').first()).toBeVisible()
     await expect(draftEditor(page)).toContainText('Prices exclude tax.')
     await expectPreview()
+
+    // Scheduling renders the table and the equation and attaches them.
+    await page.getByRole('button', { name: 'Schedule', exact: true }).click()
+    await page.getByRole('button', { name: 'Schedule anyway' }).click()
+    await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
+    const database = createE2EDatabase()
+    try {
+      const post = await queryRow<{ assetIds: string[]; caption: string }>(
+        database,
+        `SELECT "assetIds", caption FROM scheduled_post WHERE "contentDraftId" = $1`,
+        [draftId]
+      )
+      if (!post) throw new Error('The draft post was not created.')
+      expect(post.caption).toBe('Pricing[1]\n\n[1] Prices exclude tax.')
+      expect(post.assetIds).toHaveLength(2)
+      const assets = await queryRows<{ mediaType: string }>(
+        database,
+        `SELECT "mediaType" FROM asset WHERE id = ANY($1) AND status = 'UPLOADED'`,
+        [post.assetIds]
+      )
+      expect(assets.map(({ mediaType }) => mediaType)).toEqual(['image/png', 'image/png'])
+    } finally {
+      await database.end()
+    }
+  } finally {
+    await workspace?.provider.close()
+    await unbindTestGoOrganization(workspace?.organizationId ?? null)
+  }
+})
+
+// Comment threads are saved with the draft, so a reload still shows them.
+test('a comment thread survives a reload', async ({ identity, page }) => {
+  let workspace: DraftWorkspace | null = null
+  try {
+    workspace = await createDraftWorkspace(identity, page, ['linkedin'])
+    await openNewDraft(page)
+    await draftEditor(page).click()
+    await page.keyboard.type('Launch day')
+    await draftEditor(page).getByText('Launch day', { exact: true }).selectText()
+    await page.getByRole('button', { name: 'Comment', exact: true }).click()
+    // The reply box is a small editor that takes focus when it opens.
+    await expect(page.getByText('Reply...')).toBeInViewport()
+    await page.keyboard.type('Check the date')
+    await page.keyboard.press('Enter')
+    await expect(page.getByText('Check the date')).toBeVisible()
+    await expectSaved(page)
+
+    await page.reload()
+    await draftEditor(page).getByText('Launch day', { exact: true }).click({ timeout: 60_000 })
+    await expect(page.getByText('Check the date')).toBeVisible()
   } finally {
     await workspace?.provider.close()
     await unbindTestGoOrganization(workspace?.organizationId ?? null)

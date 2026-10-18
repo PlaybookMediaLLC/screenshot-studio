@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 )
 
-// posts.list.minify.ts: key mappings for minifying post list/calendar
+// Key mappings for minifying post list/calendar
 // responses to reduce payload size (the frontend expands them).
 
 var (

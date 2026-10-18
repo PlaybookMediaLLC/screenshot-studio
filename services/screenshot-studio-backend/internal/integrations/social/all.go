@@ -1,5 +1,5 @@
-// Package social registers every Postiz social provider in
-// socialIntegrationList order (integration.manager.ts). Order matters: it is
+// Package social registers every social provider in
+// a fixed order. Order matters: it is
 // the order of the add-channel screen and of the Temporal provider queues.
 package social
 

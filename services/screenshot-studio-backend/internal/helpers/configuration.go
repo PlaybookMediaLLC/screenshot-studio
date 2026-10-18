@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// ConfigurationChecker is configuration/configuration.checker.ts, run at
+// ConfigurationChecker checks the configuration, run at
 // backend startup: ReadEnvFromProcess, Check, then report the issues.
 type ConfigurationChecker struct {
 	cfg    map[string]string

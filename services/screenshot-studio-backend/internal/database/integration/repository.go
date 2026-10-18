@@ -1,5 +1,5 @@
-// Package integration is database/prisma/integrations (IntegrationRepository,
-// IntegrationService) and integrations/refresh.integration.service.ts
+// Package integration is the integration repository and service
+// (IntegrationRepository, IntegrationService) and the token refresh service
 // (RefreshIntegrationService), which reference each other.
 package integration
 

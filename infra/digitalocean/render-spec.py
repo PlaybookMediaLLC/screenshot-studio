@@ -121,6 +121,8 @@ def render(base, secrets, *, branch="main"):
         "FRONTEND_URL": origin, "MAIN_URL": origin,
         "NEXT_PUBLIC_BACKEND_URL": origin + "/postiz", "BACKEND_INTERNAL_URL": "http://127.0.0.1:3000",
         "STORAGE_PROVIDER": "cloudflare", "POSTIZ_PRIVATE_MEDIA": "true",
+        # Refuse new sign-ups; only the operator's organization may exist.
+        "DISABLE_REGISTRATION": "true",
         "CLOUDFLARE_ACCOUNT_ID": required("CLOUDFLARE_ACCOUNT_ID"),
         "CLOUDFLARE_BUCKETNAME": required("CLOUDFLARE_BUCKETNAME"),
         "CLOUDFLARE_BUCKET_URL": required("CLOUDFLARE_BUCKET_URL"), "CLOUDFLARE_REGION": "auto",

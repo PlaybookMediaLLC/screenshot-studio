@@ -51,6 +51,7 @@ class DeploymentSpecTest(unittest.TestCase):
         self.assertEqual(backend["instance_size_slug"], "apps-s-1vcpu-2gb")
         worker_env = {e["key"]: e for e in backend["envs"]}
         self.assertEqual(worker_env["RUN_WORKER"]["value"], "true")
+        self.assertEqual(worker_env["DISABLE_REGISTRATION"]["value"], "true")
         self.assertEqual(worker_env["TENANT_RUN_MAINTENANCE"]["value"], "true")
         self.assertEqual(worker_env["TENANT_PUBLISHING_SERVICE_TOKEN"]["type"], "SECRET")
         self.assertEqual(worker_env["TENANT_AUDIT_RETENTION_DATABASE_URL"]["type"], "SECRET")

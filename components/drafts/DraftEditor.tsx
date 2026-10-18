@@ -23,7 +23,7 @@ import {
   usePluginOption,
 } from '@shots/platejs-editor/platejs/react'
 import { createYjsPlugin, YjsPlugin } from '@shots/platejs-editor/collaboration'
-import { discussionPlugin, type TDiscussion } from '@shots/platejs-editor/plugins'
+import { commentPlugin, discussionPlugin, type TDiscussion } from '@shots/platejs-editor/plugins'
 import {
   Editor,
   EditorContainer,
@@ -33,7 +33,16 @@ import {
   ToolbarButton,
   ToolbarGroup,
 } from '@shots/platejs-editor/ui'
+import { MoreHorizontalIcon } from 'hugeicons-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import type { DraftDiscussions } from '@/lib/content-drafts/discussions'
+import { cn } from '@/lib/utils'
+import { POST_COLUMN } from './layout'
 
 /**
  * The document editor for a content draft: the vendored Plate.js editor with
@@ -48,6 +57,8 @@ export type DraftCollaboration = { draftId: string; url: string }
 
 export type DraftEditorProps = {
   collaboration: DraftCollaboration | null
+  /** Shown above the text, in the post column: who the post is from. */
+  header?: React.ReactNode
   /** Comment threads stored with the draft. */
   initialDiscussions: DraftDiscussions
   initialValue: Value
@@ -98,6 +109,24 @@ async function collabToken(draftId: string): Promise<string> {
   return ((await response.json()) as { token: string }).token
 }
 
+/**
+ * The editor's frame. While comments are open it keeps a column on the right
+ * for them, so a thread sits beside the post rather than over the text.
+ */
+function CommentColumn({ children }: { children: React.ReactNode }) {
+  const activeId = usePluginOption(commentPlugin, 'activeId')
+  const discussions = usePluginOption(discussionPlugin, 'discussions')
+  const open = Boolean(activeId) || discussions.some((discussion) => !discussion.isResolved)
+  return (
+    <EditorContainer
+      className={cn('min-h-[240px] transition-[padding]', open && 'sm:pr-80')}
+      data-testid="draft-editor"
+    >
+      {children}
+    </EditorContainer>
+  )
+}
+
 /** Every user the plugin shows needs an avatar URL; stored users carry none. */
 function withAvatars(users: DraftDiscussions['users']) {
   return Object.fromEntries(
@@ -140,7 +169,8 @@ function Presence() {
     return () => awareness.off('change', update)
   }, [awareness])
   return (
-    <div className="flex flex-wrap gap-1.5 px-3 py-2" data-testid="presence">
+    // Who else is here sits above the post, at the column's right edge.
+    <div className="absolute -top-12 right-6 flex flex-wrap gap-1.5" data-testid="presence">
       {people.map((person, index) => (
         <span
           className="rounded-full px-2 py-0.5 text-xs text-white"
@@ -228,6 +258,57 @@ function InsertButton({
   )
 }
 
+/** Import and export, out of the writing toolbar's way behind one button. */
+function DocumentMenu({
+  exports,
+  files,
+}: {
+  exports: { label: string; run: () => void | Promise<void> }[]
+  files: { accept: string; label: string; onFile: (file: File) => void }[]
+}) {
+  const inputs = React.useRef<Record<string, HTMLInputElement | null>>({})
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <ToolbarButton aria-label="Import and export" tooltip="Import and export">
+            <MoreHorizontalIcon aria-hidden className="size-4" />
+          </ToolbarButton>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" side="top">
+          {files.map((file) => (
+            <DropdownMenuItem key={file.label} onSelect={() => inputs.current[file.label]?.click()}>
+              {file.label}
+            </DropdownMenuItem>
+          ))}
+          {exports.map((item) => (
+            <DropdownMenuItem key={item.label} onSelect={() => void item.run()}>
+              {item.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {files.map((file) => (
+        <input
+          accept={file.accept}
+          aria-label={file.label}
+          className="hidden"
+          key={file.label}
+          onChange={(event) => {
+            const picked = event.target.files?.[0]
+            event.target.value = ''
+            if (picked) file.onFile(picked)
+          }}
+          ref={(element) => {
+            inputs.current[file.label] = element
+          }}
+          type="file"
+        />
+      ))}
+    </>
+  )
+}
+
 function DraftToolbar({
   editor,
   services,
@@ -270,7 +351,7 @@ function DraftToolbar({
   }
 
   return (
-    <Toolbar className="flex flex-wrap gap-1 border-b border-white/[0.06] px-2 py-1.5">
+    <Toolbar className="flex items-center gap-0.5 rounded-full border border-white/[0.08] bg-[#161616]/95 px-1.5 py-1 shadow-xl shadow-black/40 backdrop-blur">
       <ToolbarGroup>
         <MarkToolbarButton nodeType={KEYS.bold} tooltip="Bold">
           <span className="font-bold">B</span>
@@ -315,22 +396,21 @@ function DraftToolbar({
         </FileButton>
       </ToolbarGroup>
       <ToolbarGroup>
-        <FileButton
-          accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          label="Import DOCX"
-          onFile={importDocument}
-        >
-          Import DOCX
-        </FileButton>
-        <ToolbarButton onClick={exportDocument} tooltip="Export DOCX">
-          Export DOCX
-        </ToolbarButton>
-        <FileButton accept=".md,text/markdown" label="Import Markdown" onFile={importMarkdown}>
-          Import Markdown
-        </FileButton>
-        <ToolbarButton onClick={exportMarkdown} tooltip="Export Markdown">
-          Export Markdown
-        </ToolbarButton>
+        <DocumentMenu
+          files={[
+            {
+              accept:
+                '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              label: 'Import DOCX',
+              onFile: importDocument,
+            },
+            { accept: '.md,text/markdown', label: 'Import Markdown', onFile: importMarkdown },
+          ]}
+          exports={[
+            { label: 'Export DOCX', run: exportDocument },
+            { label: 'Export Markdown', run: exportMarkdown },
+          ]}
+        />
       </ToolbarGroup>
     </Toolbar>
   )
@@ -338,6 +418,7 @@ function DraftToolbar({
 
 export default function DraftEditor({
   collaboration,
+  header,
   initialDiscussions: storedDiscussions,
   initialValue,
   onChange,
@@ -368,6 +449,9 @@ export default function DraftEditor({
       // Comments and suggestions are authored by the signed-in member, not
       // the upstream demo users.
       overridePlugins: [
+        // Comments sit in a column beside the post; only a phone-narrow
+        // editor falls back to opening them over the text.
+        commentPlugin.configure({ options: { overlapWidth: 400 } }),
         discussionPlugin.configure({
           options: {
             currentUserId: user.id,
@@ -423,16 +507,25 @@ export default function DraftEditor({
   return (
     <EditorServicesProvider services={services}>
       <Plate editor={editor} onValueChange={({ value }) => onChange(value)} readOnly={readOnly}>
-        {readOnly ? null : <DraftToolbar editor={editor} services={services} title={title} />}
         {collaboration ? <Presence /> : null}
         <DiscussionsWatcher onChange={onDiscussionsChange} />
-        <EditorContainer
-          className="min-h-[420px]"
-          data-testid="draft-editor"
-          key={live ? 'live' : 'local'}
-        >
-          <Editor aria-label="Draft body" placeholder="Write your post…" variant="default" />
-        </EditorContainer>
+        <CommentColumn key={live ? 'live' : 'local'}>
+          {header ? <div className={cn('pt-10', POST_COLUMN)}>{header}</div> : null}
+          <Editor
+            aria-label="Draft body"
+            className={cn(POST_COLUMN, 'pt-1 pb-12 text-[15px] leading-relaxed')}
+            placeholder="What do you want to say?"
+            variant="default"
+          />
+        </CommentColumn>
+        {readOnly ? null : (
+          // The formatting bar floats at the bottom of the page, out of the text's way.
+          <div className="pointer-events-none sticky bottom-5 z-10 flex justify-center">
+            <div className="pointer-events-auto">
+              <DraftToolbar editor={editor} services={services} title={title} />
+            </div>
+          </div>
+        )}
       </Plate>
     </EditorServicesProvider>
   )

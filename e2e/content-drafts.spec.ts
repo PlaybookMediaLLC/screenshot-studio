@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { expect } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 import JSZip from 'jszip'
 import {
   createDraftWorkspace,
@@ -19,6 +19,41 @@ import {
 import { createE2EDatabase, queryRow, queryRows } from './framework/services'
 
 configureE2EFlow()
+
+/**
+ * Put the caret at the end of a text leaf. slate-react copies the browser
+ * selection into the editor on a 100 ms throttle, and toolbar inserts read the
+ * editor's, so the helper waits past the throttle before returning.
+ */
+async function caretAtEndOf(page: Page, word: Locator): Promise<void> {
+  const text = (await word.textContent()) ?? ''
+  await expect(async () => {
+    const box = await word.boundingBox()
+    await word.click({ position: { x: (box?.width ?? 1) - 1, y: (box?.height ?? 2) / 2 } })
+    expect(
+      await page.evaluate(() => {
+        const selection = window.getSelection()
+        return `${selection?.anchorNode?.textContent}:${selection?.anchorOffset}`
+      })
+    ).toBe(`${text}:${text.length}`)
+  }).toPass({ timeout: 20_000 })
+  await page.waitForTimeout(300)
+}
+
+/** Click into `target` until the caret is inside it, then type there. */
+async function typeInto(page: Page, target: Locator, text: string): Promise<void> {
+  await expect(async () => {
+    await target.click()
+    expect(
+      await target.evaluate((element) => {
+        const anchor = window.getSelection()?.anchorNode
+        return Boolean(anchor && element.contains(anchor))
+      })
+    ).toBe(true)
+  }).toPass({ timeout: 20_000 })
+  await page.keyboard.type(text)
+  await expect(target).toContainText(text)
+}
 
 type PostRow = { caption: string; idempotencyKey: string; platform: string; status: string }
 
@@ -97,8 +132,15 @@ test('a draft is written, saved, scheduled to two channels once, and one post is
     await expect(page.getByTestId('counter-linkedin')).toHaveText(/ \/ 3000$/)
     await expect(page.getByRole('button', { name: 'Schedule', exact: true })).toBeDisabled()
 
-    // Fix it: delete what was added, as the writer would.
-    for (let index = 0; index < 261; index += 1) await page.keyboard.press('Backspace')
+    // Fix it: delete what was added, as the writer would. Count from the
+    // counter, so a keystroke the browser dropped under load cannot skew it.
+    const counted = async () =>
+      Number((await page.getByTestId('counter-x').textContent())?.split(' / ')[0])
+    await expect(async () => {
+      const extra = (await counted()) - 51
+      for (let index = 0; index < extra; index += 1) await page.keyboard.press('Backspace')
+      expect(await counted()).toBe(51)
+    }).toPass({ timeout: 30_000 })
     await expect(page.getByTestId('counter-x')).toHaveText('51 / 280')
     await expectSaved(page)
 
@@ -196,23 +238,20 @@ test('a table, a math block and a footnote persist and serialize into the previe
     await page.keyboard.type('Pricing')
 
     // Blocks insert after the block holding the caret.
+    await caretAtEndOf(page, draftEditor(page).getByText('Pricing', { exact: true }))
     await page.getByRole('button', { name: 'Math', exact: true }).click()
     await page.getByPlaceholder(/f\(x\) =/).fill('E = mc^2')
     await page.getByRole('button', { name: 'Done' }).click()
     await expect(draftEditor(page).locator('.katex').first()).toBeVisible()
 
-    await draftEditor(page).getByText('Pricing').click()
+    await caretAtEndOf(page, draftEditor(page).getByText('Pricing', { exact: true }))
     await page.getByRole('button', { name: 'Table', exact: true }).click()
     const cells = draftEditor(page).locator('td')
-    await cells.nth(0).click()
-    await page.keyboard.type('Plan')
-    await cells.nth(1).click()
-    await page.keyboard.type('Price')
+    await typeInto(page, cells.nth(0), 'Plan')
+    await typeInto(page, cells.nth(1), 'Price')
 
-    // The footnote marker goes at the caret: click at the end of the word.
-    const word = draftEditor(page).getByText('Pricing')
-    const box = await word.boundingBox()
-    await word.click({ position: { x: (box?.width ?? 1) - 1, y: (box?.height ?? 2) / 2 } })
+    // The footnote marker goes at the caret, at the end of the word.
+    await caretAtEndOf(page, draftEditor(page).getByText('Pricing', { exact: true }))
     await page.getByRole('button', { name: 'Footnote', exact: true }).click()
     await page.keyboard.type('Prices exclude tax.')
     await expectSaved(page)

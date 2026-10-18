@@ -42,16 +42,20 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/customercommunication"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/enrichmentrecord"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/idealcustomerprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrunstep"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/onboardingrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
@@ -169,16 +173,20 @@ func checkColumn(t, c string) error {
 			customercommunication.Table:          customercommunication.ValidColumn,
 			deploymentevent.Table:                deploymentevent.ValidColumn,
 			design.Table:                         design.ValidColumn,
+			enrichmentrecord.Table:               enrichmentrecord.ValidColumn,
 			githubinstallstart.Table:             githubinstallstart.ValidColumn,
 			githubinstallation.Table:             githubinstallation.ValidColumn,
+			idealcustomerprofile.Table:           idealcustomerprofile.ValidColumn,
 			integrationconnection.Table:          integrationconnection.ValidColumn,
 			invitation.Table:                     invitation.ValidColumn,
 			launchrun.Table:                      launchrun.ValidColumn,
 			launchrunstep.Table:                  launchrunstep.ValidColumn,
 			member.Table:                         member.ValidColumn,
+			onboardingrun.Table:                  onboardingrun.ValidColumn,
 			organization.Table:                   organization.ValidColumn,
 			organizationenterprisesettings.Table: organizationenterprisesettings.ValidColumn,
 			outboxevent.Table:                    outboxevent.ValidColumn,
+			pageknowledge.Table:                  pageknowledge.ValidColumn,
 			postiztenantbinding.Table:            postiztenantbinding.ValidColumn,
 			productprofile.Table:                 productprofile.ValidColumn,
 			productsurface.Table:                 productsurface.ValidColumn,

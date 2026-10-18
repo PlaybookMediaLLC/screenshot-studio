@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// AdminApplyCouponDto is admin.apply.coupon.dto.ts. Months is a float so a
-// fractional value fails IsInt like in Nest.
+// AdminApplyCouponDto is the admin apply coupon request body. Months is a float so a
+// fractional value fails IsInt.
 type AdminApplyCouponDto struct {
 	Type   *string  `json:"type"`
 	Value  *float64 `json:"value"`
@@ -46,7 +46,7 @@ func (d *AdminApplyCouponDto) Validate() []string {
 	return out
 }
 
-// BillingSubscribeDto is billing.subscribe.dto.ts.
+// BillingSubscribeDto is the billing subscribe request body.
 type BillingSubscribeDto struct {
 	Period            string `json:"period"`
 	Billing           string `json:"billing"`
@@ -63,7 +63,7 @@ func (d *BillingSubscribeDto) Validate() []string {
 	return out
 }
 
-// BillingSyncDto is billing.sync.dto.ts.
+// BillingSyncDto is the billing sync request body.
 type BillingSyncDto struct {
 	Provider *string `json:"provider"`
 }
@@ -75,7 +75,7 @@ func (d *BillingSyncDto) Validate() []string {
 	return nil
 }
 
-// ResetCreditsDto is reset.credits.dto.ts.
+// ResetCreditsDto is the reset credits request body.
 type ResetCreditsDto struct {
 	Type *string `json:"type"`
 }

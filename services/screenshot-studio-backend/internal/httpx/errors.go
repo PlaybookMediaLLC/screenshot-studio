@@ -11,8 +11,8 @@ import (
 	"github.com/getsentry/sentry-go"
 )
 
-// Error is a Nest HttpException: a status and the exact JSON body to send.
-// Write, when set, replaces the default rendering (Nest exception filters).
+// Error is an HTTP error: a status and the exact JSON body to send.
+// Write, when set, replaces the default rendering.
 type Error struct {
 	Status int
 	Body   any
@@ -40,7 +40,7 @@ func named(status int, name string, message any) *Error {
 	if message == nil {
 		message = name
 	}
-	// Nest's createBody: a plain object is the body verbatim; strings and
+	// A plain object is the body verbatim; strings and
 	// arrays become {message, error, statusCode}.
 	if isPlainObject(message) {
 		return &Error{Status: status, Body: message}
@@ -48,7 +48,7 @@ func named(status int, name string, message any) *Error {
 	return &Error{Status: status, Body: namedBody{Message: message, Error: name, StatusCode: status}}
 }
 
-// Nest's exception bodies, with Nest's key order.
+// namedBody is the error body, with a fixed key order.
 type namedBody struct {
 	Message    any    `json:"message"`
 	Error      string `json:"error"`
@@ -65,22 +65,22 @@ func isPlainObject(v any) bool {
 	return k == reflect.Map || k == reflect.Struct
 }
 
-// BadRequest mirrors Nest's BadRequestException.
+// BadRequest returns a 400 Bad Request error.
 func BadRequest(message any) *Error { return named(http.StatusBadRequest, "Bad Request", message) }
 
-// Unauthorized mirrors Nest's UnauthorizedException.
+// Unauthorized returns a 401 Unauthorized error.
 func Unauthorized(message any) *Error { return named(http.StatusUnauthorized, "Unauthorized", message) }
 
-// Forbidden mirrors Nest's ForbiddenException.
+// Forbidden returns a 403 Forbidden error.
 func Forbidden(message any) *Error { return named(http.StatusForbidden, "Forbidden", message) }
 
-// NotFound mirrors Nest's NotFoundException.
+// NotFound returns a 404 Not Found error.
 func NotFound(message any) *Error { return named(http.StatusNotFound, "Not Found", message) }
 
-// Conflict mirrors Nest's ConflictException.
+// Conflict returns a 409 Conflict error.
 func Conflict(message any) *Error { return named(http.StatusConflict, "Conflict", message) }
 
-// UnprocessableEntity mirrors Nest's UnprocessableEntityException.
+// UnprocessableEntity returns a 422 Unprocessable Entity error.
 func UnprocessableEntity(message any) *Error {
 	return named(http.StatusUnprocessableEntity, "Unprocessable Entity", message)
 }
@@ -90,7 +90,7 @@ func TooManyRequests() *Error {
 	return HTTPException("ThrottlerException: Too Many Requests", http.StatusTooManyRequests)
 }
 
-// InternalServerError mirrors Nest's InternalServerErrorException.
+// InternalServerError returns a 500 Internal Server Error.
 func InternalServerError(message any) *Error {
 	return named(http.StatusInternalServerError, "Internal Server Error", message)
 }
@@ -109,7 +109,7 @@ func (c *Ctx) fail(err error) {
 		c.JSON(httpErr.Status, httpErr.Body)
 		return
 	}
-	// Nest's default filter: unknown errors are logged and hidden.
+	// Unknown errors are logged and hidden.
 	slog.Error("unhandled request error", "method", c.R.Method, "path", c.R.URL.Path, "error", err)
 	sentry.CaptureException(err)
 	c.JSON(http.StatusInternalServerError, statusMessage{StatusCode: 500, Message: "Internal server error"})

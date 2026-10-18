@@ -7,7 +7,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-// DOMPurify (isomorphic-dompurify, jsdom) with sanitize.post.content.ts's
+// DOMPurify (isomorphic-dompurify, jsdom) with the post content allow-list
 // config, ported to x/net/html. Only the parts of DOMPurify's algorithm this
 // config can reach are kept.
 
@@ -64,7 +64,7 @@ func isDataAttr(name string) bool {
 	return true
 }
 
-// SanitizePostContent is sanitize.post.content.ts (DOMPurify allow-list).
+// SanitizePostContent sanitizes post HTML with the DOMPurify allow-list.
 func SanitizePostContent(value string) string {
 	if value == "" {
 		return ""

@@ -70,6 +70,12 @@ func (_c *ScheduledPostCreate) SetNillableAssetID(v *string) *ScheduledPostCreat
 	return _c
 }
 
+// SetAssetIds sets the "asset_ids" field.
+func (_c *ScheduledPostCreate) SetAssetIds(v []string) *ScheduledPostCreate {
+	_c.mutation.SetAssetIds(v)
+	return _c
+}
+
 // SetChannelConnectionID sets the "channel_connection_id" field.
 func (_c *ScheduledPostCreate) SetChannelConnectionID(v string) *ScheduledPostCreate {
 	_c.mutation.SetChannelConnectionID(v)
@@ -314,6 +320,10 @@ func (_c *ScheduledPostCreate) createSpec() (*ScheduledPost, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.AssetID(); ok {
 		_spec.SetField(scheduledpost.FieldAssetID, field.TypeString, value)
 		_node.AssetID = &value
+	}
+	if value, ok := _c.mutation.AssetIds(); ok {
+		_spec.SetField(scheduledpost.FieldAssetIds, field.TypeJSON, value)
+		_node.AssetIds = value
 	}
 	if value, ok := _c.mutation.ScheduledFor(); ok {
 		_spec.SetField(scheduledpost.FieldScheduledFor, field.TypeTime, value)

@@ -1,4 +1,4 @@
-// Package pinterest is pinterest.provider.ts.
+// Package pinterest is the Pinterest provider.
 package pinterest
 
 import (

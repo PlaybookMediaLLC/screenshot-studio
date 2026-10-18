@@ -1,4 +1,4 @@
-// Package nostr ports integrations/social/nostr.provider.ts. nostr-tools'
+// Package nostr is the Nostr provider. nostr-tools'
 // event signing (NIP-01, BIP-340 schnorr) and relay protocol are implemented
 // directly over websockets.
 package nostr

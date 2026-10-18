@@ -96,11 +96,17 @@ type DeploymentEvent func(*sql.Selector)
 // Design is the predicate function for design builders.
 type Design func(*sql.Selector)
 
+// EnrichmentRecord is the predicate function for enrichmentrecord builders.
+type EnrichmentRecord func(*sql.Selector)
+
 // GitHubInstallStart is the predicate function for githubinstallstart builders.
 type GitHubInstallStart func(*sql.Selector)
 
 // GitHubInstallation is the predicate function for githubinstallation builders.
 type GitHubInstallation func(*sql.Selector)
+
+// IdealCustomerProfile is the predicate function for idealcustomerprofile builders.
+type IdealCustomerProfile func(*sql.Selector)
 
 // IntegrationConnection is the predicate function for integrationconnection builders.
 type IntegrationConnection func(*sql.Selector)
@@ -117,6 +123,9 @@ type LaunchRunStep func(*sql.Selector)
 // Member is the predicate function for member builders.
 type Member func(*sql.Selector)
 
+// OnboardingRun is the predicate function for onboardingrun builders.
+type OnboardingRun func(*sql.Selector)
+
 // Organization is the predicate function for organization builders.
 type Organization func(*sql.Selector)
 
@@ -125,6 +134,9 @@ type OrganizationEnterpriseSettings func(*sql.Selector)
 
 // OutboxEvent is the predicate function for outboxevent builders.
 type OutboxEvent func(*sql.Selector)
+
+// PageKnowledge is the predicate function for pageknowledge builders.
+type PageKnowledge func(*sql.Selector)
 
 // PostizTenantBinding is the predicate function for postiztenantbinding builders.
 type PostizTenantBinding func(*sql.Selector)

@@ -1,6 +1,6 @@
 package agencies
 
-// Email bodies from agencies.service.ts; {{...}} marks the template literal
+// Email bodies for agency messages; {{...}} marks the template literal
 // interpolations, filled with strings.Replacer.
 const (
 	approvedEmail = `

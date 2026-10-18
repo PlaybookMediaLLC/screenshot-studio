@@ -7,7 +7,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/helpers"
 )
 
-// CodesService is services/codes.service.ts.
+// CodesService is the codes service.
 type CodesService struct{}
 
 func NewCodesService() *CodesService { return &CodesService{} }

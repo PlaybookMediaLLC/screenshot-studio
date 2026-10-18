@@ -323,7 +323,11 @@ run_e2e() {
       POSTIZ_API_URL="${E2E_POSTIZ_API_URL:-http://host.docker.internal:5679/api/public/v1}" \
       SCREENSHOT_API_URL="http://screenshot-mock:5678" \
       SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" \
-      PLATFORM_AI_SCRIPTED=1 compose --profile e2e up --detach --force-recreate screenshot-mock publishing-backend app
+      OPENROUTER_API_KEY="e2e-openrouter" \
+      OPENROUTER_BASE_URL="http://screenshot-mock:5678/openrouter/api/v1" \
+      PLATFORM_ENRICHMENT_DISABLED="github,appstore" \
+      PLATFORM_ENRICHMENT_EXA_API_KEY="" \
+      PLATFORM_AI_SCRIPTED=1 compose --profile e2e up --detach --force-recreate screenshot-mock publishing-backend publishing-orchestrator app
     wait_for_screenshot_mock
     # Publishing runs in the backend, so it is the service that must reach the
     # suite's Postiz mock.
@@ -386,7 +390,8 @@ run_e2e() {
     # them beside the Playwright results, which CI uploads on failure.
     mkdir -p "$ROOT_DIR/test-results"
     compose logs --no-color app >"$ROOT_DIR/test-results/app.log" 2>&1 || true
-    SCREENSHOT_API_URL="" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="" compose up --detach --force-recreate publishing-backend app
+    SCREENSHOT_API_URL="" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="" OPENROUTER_BASE_URL="" \
+      compose up --detach --force-recreate publishing-backend publishing-orchestrator app
   fi
   return "$test_result"
 }

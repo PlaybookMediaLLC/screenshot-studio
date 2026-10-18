@@ -7,10 +7,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/httpx"
 )
 
-// loadSwagger is load.swagger.ts: SwaggerModule.setup('docs', ...) serves
-// the UI on /docs and the document on /docs-json. Nest derives the document
-// from the controller decorators; Postiz adds no @Api* metadata, so the Go
-// document lists every registered route (method + path) and nothing more.
+// loadSwagger serves the Swagger UI on /docs and the document on /docs-json.
+// The document lists every registered route (method + path) and nothing more.
 func loadSwagger(r *httpx.Router) {
 	paths := map[string]map[string]any{}
 	for _, rt := range r.Routes() {

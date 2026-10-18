@@ -1,5 +1,5 @@
-// Package email is Postiz's EmailService (services/email.service.ts) and its
-// providers (emails/*): Resend over HTTP, SMTP (nodemailer) and the empty
+// Package email is the email service and its
+// providers: Resend over HTTP, SMTP (nodemailer) and the empty
 // provider, picked by EMAIL_PROVIDER.
 package email
 
@@ -24,7 +24,7 @@ type Service struct {
 }
 
 // NewService picks the provider from EMAIL_PROVIDER and reports missing
-// environment variables, like the Nest constructor.
+// environment variables.
 func NewService(temporal client.Client) *Service {
 	s := &Service{temporal: temporal}
 	s.EmailService = s.SelectProvider(os.Getenv("EMAIL_PROVIDER"))

@@ -9,7 +9,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/helpers"
 )
 
-// XDto is dtos/posts/providers-settings/x.dto.ts. made_with_ai and
+// XDto holds the X post settings. made_with_ai and
 // paid_partnership stay `any` because the provider accepts "true" strings
 // (assetBoolean) while validation requires booleans.
 type XDto struct {
@@ -71,7 +71,7 @@ func (d *XDto) Validate() []string {
 	return errs
 }
 
-// MediaDto is dtos/media/media.dto.ts (the article cover).
+// MediaDto is a media reference (the article cover).
 type MediaDto struct {
 	ID        *string `json:"id"`
 	Path      *string `json:"path"`

@@ -9,6 +9,7 @@ import (
 
 	productent "github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	socialent "github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/temporalx"
@@ -40,6 +41,7 @@ func (f *fakeSigner) SignDelivery(_ context.Context, organizationID, key string)
 
 type fakePoster struct {
 	calls  int
+	media  int
 	path   string
 	err    error
 	status string
@@ -50,7 +52,7 @@ func (f *fakePoster) Post(_ context.Context, id, token string, posts []integrati
 	if id != "remote-user" || token != "private-token" || len(posts) != 1 || posts[0].ID != "canonical-post-1" {
 		return nil, errors.New("incorrect provider input")
 	}
-	f.path = posts[0].Media[0].Path
+	f.path, f.media = posts[0].Media[0].Path, len(posts[0].Media)
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -81,6 +83,15 @@ func TestDirectPublisherUsesFreshSignedMediaAndRemoteReceipt(t *testing.T) {
 	id, err := p.Publish(context.Background(), input)
 	if err != nil || id != "remote-post-1" || signer.calls != 1 || poster.calls != 1 || poster.path != "https://r2.example/private/image.png?fresh-signature" {
 		t.Fatalf("id=%q err=%v signer=%d provider=%d path=%q", id, err, signer.calls, poster.calls, poster.path)
+	}
+}
+
+func TestDirectPublisherSendsEveryAssetInOnePost(t *testing.T) {
+	p, signer, poster, input := directFixture()
+	input.Assets = []publishing.MediaAsset{{MediaType: "image/png", ObjectKey: "org/product-org/1.png"},
+		{MediaType: "image/png", ObjectKey: "org/product-org/2.png"}}
+	if _, err := p.Publish(context.Background(), input); err != nil || signer.calls != 2 || poster.media != 2 {
+		t.Fatalf("err=%v signer=%d media=%d", err, signer.calls, poster.media)
 	}
 }
 

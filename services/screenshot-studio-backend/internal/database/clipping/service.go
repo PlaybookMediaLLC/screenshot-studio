@@ -74,8 +74,7 @@ const (
 	somethingWentWrong = "Something went wrong while clipping this video, the clipping minutes were given back."
 )
 
-// Word, Segment and Transcript are ClippingWord / ClippingTranscript
-// (upload/clipping.processor.interface.ts).
+// Word, Segment and Transcript are the clipping transcript types.
 type Word struct {
 	Text  string  `json:"text"`
 	Start float64 `json:"start"`

@@ -45,16 +45,20 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/customercommunication"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/enrichmentrecord"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/idealcustomerprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrunstep"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/onboardingrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
@@ -149,10 +153,14 @@ type Client struct {
 	DeploymentEvent *DeploymentEventClient
 	// Design is the client for interacting with the Design builders.
 	Design *DesignClient
+	// EnrichmentRecord is the client for interacting with the EnrichmentRecord builders.
+	EnrichmentRecord *EnrichmentRecordClient
 	// GitHubInstallStart is the client for interacting with the GitHubInstallStart builders.
 	GitHubInstallStart *GitHubInstallStartClient
 	// GitHubInstallation is the client for interacting with the GitHubInstallation builders.
 	GitHubInstallation *GitHubInstallationClient
+	// IdealCustomerProfile is the client for interacting with the IdealCustomerProfile builders.
+	IdealCustomerProfile *IdealCustomerProfileClient
 	// IntegrationConnection is the client for interacting with the IntegrationConnection builders.
 	IntegrationConnection *IntegrationConnectionClient
 	// Invitation is the client for interacting with the Invitation builders.
@@ -163,12 +171,16 @@ type Client struct {
 	LaunchRunStep *LaunchRunStepClient
 	// Member is the client for interacting with the Member builders.
 	Member *MemberClient
+	// OnboardingRun is the client for interacting with the OnboardingRun builders.
+	OnboardingRun *OnboardingRunClient
 	// Organization is the client for interacting with the Organization builders.
 	Organization *OrganizationClient
 	// OrganizationEnterpriseSettings is the client for interacting with the OrganizationEnterpriseSettings builders.
 	OrganizationEnterpriseSettings *OrganizationEnterpriseSettingsClient
 	// OutboxEvent is the client for interacting with the OutboxEvent builders.
 	OutboxEvent *OutboxEventClient
+	// PageKnowledge is the client for interacting with the PageKnowledge builders.
+	PageKnowledge *PageKnowledgeClient
 	// PostizTenantBinding is the client for interacting with the PostizTenantBinding builders.
 	PostizTenantBinding *PostizTenantBindingClient
 	// ProductProfile is the client for interacting with the ProductProfile builders.
@@ -264,16 +276,20 @@ func (c *Client) init() {
 	c.CustomerCommunication = NewCustomerCommunicationClient(c.config)
 	c.DeploymentEvent = NewDeploymentEventClient(c.config)
 	c.Design = NewDesignClient(c.config)
+	c.EnrichmentRecord = NewEnrichmentRecordClient(c.config)
 	c.GitHubInstallStart = NewGitHubInstallStartClient(c.config)
 	c.GitHubInstallation = NewGitHubInstallationClient(c.config)
+	c.IdealCustomerProfile = NewIdealCustomerProfileClient(c.config)
 	c.IntegrationConnection = NewIntegrationConnectionClient(c.config)
 	c.Invitation = NewInvitationClient(c.config)
 	c.LaunchRun = NewLaunchRunClient(c.config)
 	c.LaunchRunStep = NewLaunchRunStepClient(c.config)
 	c.Member = NewMemberClient(c.config)
+	c.OnboardingRun = NewOnboardingRunClient(c.config)
 	c.Organization = NewOrganizationClient(c.config)
 	c.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(c.config)
 	c.OutboxEvent = NewOutboxEventClient(c.config)
+	c.PageKnowledge = NewPageKnowledgeClient(c.config)
 	c.PostizTenantBinding = NewPostizTenantBindingClient(c.config)
 	c.ProductProfile = NewProductProfileClient(c.config)
 	c.ProductSurface = NewProductSurfaceClient(c.config)
@@ -423,16 +439,20 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		CustomerCommunication:          NewCustomerCommunicationClient(cfg),
 		DeploymentEvent:                NewDeploymentEventClient(cfg),
 		Design:                         NewDesignClient(cfg),
+		EnrichmentRecord:               NewEnrichmentRecordClient(cfg),
 		GitHubInstallStart:             NewGitHubInstallStartClient(cfg),
 		GitHubInstallation:             NewGitHubInstallationClient(cfg),
+		IdealCustomerProfile:           NewIdealCustomerProfileClient(cfg),
 		IntegrationConnection:          NewIntegrationConnectionClient(cfg),
 		Invitation:                     NewInvitationClient(cfg),
 		LaunchRun:                      NewLaunchRunClient(cfg),
 		LaunchRunStep:                  NewLaunchRunStepClient(cfg),
 		Member:                         NewMemberClient(cfg),
+		OnboardingRun:                  NewOnboardingRunClient(cfg),
 		Organization:                   NewOrganizationClient(cfg),
 		OrganizationEnterpriseSettings: NewOrganizationEnterpriseSettingsClient(cfg),
 		OutboxEvent:                    NewOutboxEventClient(cfg),
+		PageKnowledge:                  NewPageKnowledgeClient(cfg),
 		PostizTenantBinding:            NewPostizTenantBindingClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
@@ -509,16 +529,20 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		CustomerCommunication:          NewCustomerCommunicationClient(cfg),
 		DeploymentEvent:                NewDeploymentEventClient(cfg),
 		Design:                         NewDesignClient(cfg),
+		EnrichmentRecord:               NewEnrichmentRecordClient(cfg),
 		GitHubInstallStart:             NewGitHubInstallStartClient(cfg),
 		GitHubInstallation:             NewGitHubInstallationClient(cfg),
+		IdealCustomerProfile:           NewIdealCustomerProfileClient(cfg),
 		IntegrationConnection:          NewIntegrationConnectionClient(cfg),
 		Invitation:                     NewInvitationClient(cfg),
 		LaunchRun:                      NewLaunchRunClient(cfg),
 		LaunchRunStep:                  NewLaunchRunStepClient(cfg),
 		Member:                         NewMemberClient(cfg),
+		OnboardingRun:                  NewOnboardingRunClient(cfg),
 		Organization:                   NewOrganizationClient(cfg),
 		OrganizationEnterpriseSettings: NewOrganizationEnterpriseSettingsClient(cfg),
 		OutboxEvent:                    NewOutboxEventClient(cfg),
+		PageKnowledge:                  NewPageKnowledgeClient(cfg),
 		PostizTenantBinding:            NewPostizTenantBindingClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
@@ -582,11 +606,12 @@ func (c *Client) Use(hooks ...Hook) {
 		c.CampaignRevision, c.ChannelConnection, c.CommunicationAttempt,
 		c.CommunicationRecipient, c.ContentAngle, c.ContentDraft, c.Conversation,
 		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
-		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.GitHubInstallStart,
-		c.GitHubInstallation, c.IntegrationConnection, c.Invitation, c.LaunchRun,
-		c.LaunchRunStep, c.Member, c.Organization, c.OrganizationEnterpriseSettings,
-		c.OutboxEvent, c.PostizTenantBinding, c.ProductProfile, c.ProductSurface,
-		c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
+		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
+		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
+		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
+		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
+		c.OutboxEvent, c.PageKnowledge, c.PostizTenantBinding, c.ProductProfile,
+		c.ProductSurface, c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
 		c.ReleaseDocument, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
 		c.Session, c.ShareLink, c.SocialOAuthStart, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
@@ -609,11 +634,12 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.CampaignRevision, c.ChannelConnection, c.CommunicationAttempt,
 		c.CommunicationRecipient, c.ContentAngle, c.ContentDraft, c.Conversation,
 		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
-		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.GitHubInstallStart,
-		c.GitHubInstallation, c.IntegrationConnection, c.Invitation, c.LaunchRun,
-		c.LaunchRunStep, c.Member, c.Organization, c.OrganizationEnterpriseSettings,
-		c.OutboxEvent, c.PostizTenantBinding, c.ProductProfile, c.ProductSurface,
-		c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
+		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
+		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
+		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
+		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
+		c.OutboxEvent, c.PageKnowledge, c.PostizTenantBinding, c.ProductProfile,
+		c.ProductSurface, c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
 		c.ReleaseDocument, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
 		c.Session, c.ShareLink, c.SocialOAuthStart, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
@@ -688,10 +714,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.DeploymentEvent.mutate(ctx, m)
 	case *DesignMutation:
 		return c.Design.mutate(ctx, m)
+	case *EnrichmentRecordMutation:
+		return c.EnrichmentRecord.mutate(ctx, m)
 	case *GitHubInstallStartMutation:
 		return c.GitHubInstallStart.mutate(ctx, m)
 	case *GitHubInstallationMutation:
 		return c.GitHubInstallation.mutate(ctx, m)
+	case *IdealCustomerProfileMutation:
+		return c.IdealCustomerProfile.mutate(ctx, m)
 	case *IntegrationConnectionMutation:
 		return c.IntegrationConnection.mutate(ctx, m)
 	case *InvitationMutation:
@@ -702,12 +732,16 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.LaunchRunStep.mutate(ctx, m)
 	case *MemberMutation:
 		return c.Member.mutate(ctx, m)
+	case *OnboardingRunMutation:
+		return c.OnboardingRun.mutate(ctx, m)
 	case *OrganizationMutation:
 		return c.Organization.mutate(ctx, m)
 	case *OrganizationEnterpriseSettingsMutation:
 		return c.OrganizationEnterpriseSettings.mutate(ctx, m)
 	case *OutboxEventMutation:
 		return c.OutboxEvent.mutate(ctx, m)
+	case *PageKnowledgeMutation:
+		return c.PageKnowledge.mutate(ctx, m)
 	case *PostizTenantBindingMutation:
 		return c.PostizTenantBinding.mutate(ctx, m)
 	case *ProductProfileMutation:
@@ -4837,6 +4871,139 @@ func (c *DesignClient) mutate(ctx context.Context, m *DesignMutation) (Value, er
 	}
 }
 
+// EnrichmentRecordClient is a client for the EnrichmentRecord schema.
+type EnrichmentRecordClient struct {
+	config
+}
+
+// NewEnrichmentRecordClient returns a client for the EnrichmentRecord from the given config.
+func NewEnrichmentRecordClient(c config) *EnrichmentRecordClient {
+	return &EnrichmentRecordClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `enrichmentrecord.Hooks(f(g(h())))`.
+func (c *EnrichmentRecordClient) Use(hooks ...Hook) {
+	c.hooks.EnrichmentRecord = append(c.hooks.EnrichmentRecord, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `enrichmentrecord.Intercept(f(g(h())))`.
+func (c *EnrichmentRecordClient) Intercept(interceptors ...Interceptor) {
+	c.inters.EnrichmentRecord = append(c.inters.EnrichmentRecord, interceptors...)
+}
+
+// Create returns a builder for creating a EnrichmentRecord entity.
+func (c *EnrichmentRecordClient) Create() *EnrichmentRecordCreate {
+	mutation := newEnrichmentRecordMutation(c.config, OpCreate)
+	return &EnrichmentRecordCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of EnrichmentRecord entities.
+func (c *EnrichmentRecordClient) CreateBulk(builders ...*EnrichmentRecordCreate) *EnrichmentRecordCreateBulk {
+	return &EnrichmentRecordCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *EnrichmentRecordClient) MapCreateBulk(slice any, setFunc func(*EnrichmentRecordCreate, int)) *EnrichmentRecordCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &EnrichmentRecordCreateBulk{err: fmt.Errorf("calling to EnrichmentRecordClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*EnrichmentRecordCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &EnrichmentRecordCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for EnrichmentRecord.
+func (c *EnrichmentRecordClient) Update() *EnrichmentRecordUpdate {
+	mutation := newEnrichmentRecordMutation(c.config, OpUpdate)
+	return &EnrichmentRecordUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *EnrichmentRecordClient) UpdateOne(_m *EnrichmentRecord) *EnrichmentRecordUpdateOne {
+	mutation := newEnrichmentRecordMutation(c.config, OpUpdateOne, withEnrichmentRecord(_m))
+	return &EnrichmentRecordUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *EnrichmentRecordClient) UpdateOneID(id string) *EnrichmentRecordUpdateOne {
+	mutation := newEnrichmentRecordMutation(c.config, OpUpdateOne, withEnrichmentRecordID(id))
+	return &EnrichmentRecordUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for EnrichmentRecord.
+func (c *EnrichmentRecordClient) Delete() *EnrichmentRecordDelete {
+	mutation := newEnrichmentRecordMutation(c.config, OpDelete)
+	return &EnrichmentRecordDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *EnrichmentRecordClient) DeleteOne(_m *EnrichmentRecord) *EnrichmentRecordDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *EnrichmentRecordClient) DeleteOneID(id string) *EnrichmentRecordDeleteOne {
+	builder := c.Delete().Where(enrichmentrecord.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &EnrichmentRecordDeleteOne{builder}
+}
+
+// Query returns a query builder for EnrichmentRecord.
+func (c *EnrichmentRecordClient) Query() *EnrichmentRecordQuery {
+	return &EnrichmentRecordQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeEnrichmentRecord},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a EnrichmentRecord entity by its id.
+func (c *EnrichmentRecordClient) Get(ctx context.Context, id string) (*EnrichmentRecord, error) {
+	return c.Query().Where(enrichmentrecord.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *EnrichmentRecordClient) GetX(ctx context.Context, id string) *EnrichmentRecord {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *EnrichmentRecordClient) Hooks() []Hook {
+	return c.hooks.EnrichmentRecord
+}
+
+// Interceptors returns the client interceptors.
+func (c *EnrichmentRecordClient) Interceptors() []Interceptor {
+	return c.inters.EnrichmentRecord
+}
+
+func (c *EnrichmentRecordClient) mutate(ctx context.Context, m *EnrichmentRecordMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&EnrichmentRecordCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&EnrichmentRecordUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&EnrichmentRecordUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&EnrichmentRecordDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown EnrichmentRecord mutation op: %q", m.Op())
+	}
+}
+
 // GitHubInstallStartClient is a client for the GitHubInstallStart schema.
 type GitHubInstallStartClient struct {
 	config
@@ -5100,6 +5267,139 @@ func (c *GitHubInstallationClient) mutate(ctx context.Context, m *GitHubInstalla
 		return (&GitHubInstallationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown GitHubInstallation mutation op: %q", m.Op())
+	}
+}
+
+// IdealCustomerProfileClient is a client for the IdealCustomerProfile schema.
+type IdealCustomerProfileClient struct {
+	config
+}
+
+// NewIdealCustomerProfileClient returns a client for the IdealCustomerProfile from the given config.
+func NewIdealCustomerProfileClient(c config) *IdealCustomerProfileClient {
+	return &IdealCustomerProfileClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `idealcustomerprofile.Hooks(f(g(h())))`.
+func (c *IdealCustomerProfileClient) Use(hooks ...Hook) {
+	c.hooks.IdealCustomerProfile = append(c.hooks.IdealCustomerProfile, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `idealcustomerprofile.Intercept(f(g(h())))`.
+func (c *IdealCustomerProfileClient) Intercept(interceptors ...Interceptor) {
+	c.inters.IdealCustomerProfile = append(c.inters.IdealCustomerProfile, interceptors...)
+}
+
+// Create returns a builder for creating a IdealCustomerProfile entity.
+func (c *IdealCustomerProfileClient) Create() *IdealCustomerProfileCreate {
+	mutation := newIdealCustomerProfileMutation(c.config, OpCreate)
+	return &IdealCustomerProfileCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of IdealCustomerProfile entities.
+func (c *IdealCustomerProfileClient) CreateBulk(builders ...*IdealCustomerProfileCreate) *IdealCustomerProfileCreateBulk {
+	return &IdealCustomerProfileCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *IdealCustomerProfileClient) MapCreateBulk(slice any, setFunc func(*IdealCustomerProfileCreate, int)) *IdealCustomerProfileCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &IdealCustomerProfileCreateBulk{err: fmt.Errorf("calling to IdealCustomerProfileClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*IdealCustomerProfileCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &IdealCustomerProfileCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for IdealCustomerProfile.
+func (c *IdealCustomerProfileClient) Update() *IdealCustomerProfileUpdate {
+	mutation := newIdealCustomerProfileMutation(c.config, OpUpdate)
+	return &IdealCustomerProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *IdealCustomerProfileClient) UpdateOne(_m *IdealCustomerProfile) *IdealCustomerProfileUpdateOne {
+	mutation := newIdealCustomerProfileMutation(c.config, OpUpdateOne, withIdealCustomerProfile(_m))
+	return &IdealCustomerProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *IdealCustomerProfileClient) UpdateOneID(id string) *IdealCustomerProfileUpdateOne {
+	mutation := newIdealCustomerProfileMutation(c.config, OpUpdateOne, withIdealCustomerProfileID(id))
+	return &IdealCustomerProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for IdealCustomerProfile.
+func (c *IdealCustomerProfileClient) Delete() *IdealCustomerProfileDelete {
+	mutation := newIdealCustomerProfileMutation(c.config, OpDelete)
+	return &IdealCustomerProfileDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *IdealCustomerProfileClient) DeleteOne(_m *IdealCustomerProfile) *IdealCustomerProfileDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *IdealCustomerProfileClient) DeleteOneID(id string) *IdealCustomerProfileDeleteOne {
+	builder := c.Delete().Where(idealcustomerprofile.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &IdealCustomerProfileDeleteOne{builder}
+}
+
+// Query returns a query builder for IdealCustomerProfile.
+func (c *IdealCustomerProfileClient) Query() *IdealCustomerProfileQuery {
+	return &IdealCustomerProfileQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeIdealCustomerProfile},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a IdealCustomerProfile entity by its id.
+func (c *IdealCustomerProfileClient) Get(ctx context.Context, id string) (*IdealCustomerProfile, error) {
+	return c.Query().Where(idealcustomerprofile.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *IdealCustomerProfileClient) GetX(ctx context.Context, id string) *IdealCustomerProfile {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *IdealCustomerProfileClient) Hooks() []Hook {
+	return c.hooks.IdealCustomerProfile
+}
+
+// Interceptors returns the client interceptors.
+func (c *IdealCustomerProfileClient) Interceptors() []Interceptor {
+	return c.inters.IdealCustomerProfile
+}
+
+func (c *IdealCustomerProfileClient) mutate(ctx context.Context, m *IdealCustomerProfileMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&IdealCustomerProfileCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&IdealCustomerProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&IdealCustomerProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&IdealCustomerProfileDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown IdealCustomerProfile mutation op: %q", m.Op())
 	}
 }
 
@@ -5768,6 +6068,139 @@ func (c *MemberClient) mutate(ctx context.Context, m *MemberMutation) (Value, er
 	}
 }
 
+// OnboardingRunClient is a client for the OnboardingRun schema.
+type OnboardingRunClient struct {
+	config
+}
+
+// NewOnboardingRunClient returns a client for the OnboardingRun from the given config.
+func NewOnboardingRunClient(c config) *OnboardingRunClient {
+	return &OnboardingRunClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `onboardingrun.Hooks(f(g(h())))`.
+func (c *OnboardingRunClient) Use(hooks ...Hook) {
+	c.hooks.OnboardingRun = append(c.hooks.OnboardingRun, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `onboardingrun.Intercept(f(g(h())))`.
+func (c *OnboardingRunClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OnboardingRun = append(c.inters.OnboardingRun, interceptors...)
+}
+
+// Create returns a builder for creating a OnboardingRun entity.
+func (c *OnboardingRunClient) Create() *OnboardingRunCreate {
+	mutation := newOnboardingRunMutation(c.config, OpCreate)
+	return &OnboardingRunCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OnboardingRun entities.
+func (c *OnboardingRunClient) CreateBulk(builders ...*OnboardingRunCreate) *OnboardingRunCreateBulk {
+	return &OnboardingRunCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OnboardingRunClient) MapCreateBulk(slice any, setFunc func(*OnboardingRunCreate, int)) *OnboardingRunCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OnboardingRunCreateBulk{err: fmt.Errorf("calling to OnboardingRunClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OnboardingRunCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OnboardingRunCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OnboardingRun.
+func (c *OnboardingRunClient) Update() *OnboardingRunUpdate {
+	mutation := newOnboardingRunMutation(c.config, OpUpdate)
+	return &OnboardingRunUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OnboardingRunClient) UpdateOne(_m *OnboardingRun) *OnboardingRunUpdateOne {
+	mutation := newOnboardingRunMutation(c.config, OpUpdateOne, withOnboardingRun(_m))
+	return &OnboardingRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OnboardingRunClient) UpdateOneID(id string) *OnboardingRunUpdateOne {
+	mutation := newOnboardingRunMutation(c.config, OpUpdateOne, withOnboardingRunID(id))
+	return &OnboardingRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OnboardingRun.
+func (c *OnboardingRunClient) Delete() *OnboardingRunDelete {
+	mutation := newOnboardingRunMutation(c.config, OpDelete)
+	return &OnboardingRunDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OnboardingRunClient) DeleteOne(_m *OnboardingRun) *OnboardingRunDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OnboardingRunClient) DeleteOneID(id string) *OnboardingRunDeleteOne {
+	builder := c.Delete().Where(onboardingrun.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OnboardingRunDeleteOne{builder}
+}
+
+// Query returns a query builder for OnboardingRun.
+func (c *OnboardingRunClient) Query() *OnboardingRunQuery {
+	return &OnboardingRunQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOnboardingRun},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OnboardingRun entity by its id.
+func (c *OnboardingRunClient) Get(ctx context.Context, id string) (*OnboardingRun, error) {
+	return c.Query().Where(onboardingrun.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OnboardingRunClient) GetX(ctx context.Context, id string) *OnboardingRun {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *OnboardingRunClient) Hooks() []Hook {
+	return c.hooks.OnboardingRun
+}
+
+// Interceptors returns the client interceptors.
+func (c *OnboardingRunClient) Interceptors() []Interceptor {
+	return c.inters.OnboardingRun
+}
+
+func (c *OnboardingRunClient) mutate(ctx context.Context, m *OnboardingRunMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OnboardingRunCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OnboardingRunUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OnboardingRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OnboardingRunDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OnboardingRun mutation op: %q", m.Op())
+	}
+}
+
 // OrganizationClient is a client for the Organization schema.
 type OrganizationClient struct {
 	config
@@ -6164,6 +6597,139 @@ func (c *OutboxEventClient) mutate(ctx context.Context, m *OutboxEventMutation) 
 		return (&OutboxEventDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown OutboxEvent mutation op: %q", m.Op())
+	}
+}
+
+// PageKnowledgeClient is a client for the PageKnowledge schema.
+type PageKnowledgeClient struct {
+	config
+}
+
+// NewPageKnowledgeClient returns a client for the PageKnowledge from the given config.
+func NewPageKnowledgeClient(c config) *PageKnowledgeClient {
+	return &PageKnowledgeClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `pageknowledge.Hooks(f(g(h())))`.
+func (c *PageKnowledgeClient) Use(hooks ...Hook) {
+	c.hooks.PageKnowledge = append(c.hooks.PageKnowledge, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `pageknowledge.Intercept(f(g(h())))`.
+func (c *PageKnowledgeClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PageKnowledge = append(c.inters.PageKnowledge, interceptors...)
+}
+
+// Create returns a builder for creating a PageKnowledge entity.
+func (c *PageKnowledgeClient) Create() *PageKnowledgeCreate {
+	mutation := newPageKnowledgeMutation(c.config, OpCreate)
+	return &PageKnowledgeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PageKnowledge entities.
+func (c *PageKnowledgeClient) CreateBulk(builders ...*PageKnowledgeCreate) *PageKnowledgeCreateBulk {
+	return &PageKnowledgeCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PageKnowledgeClient) MapCreateBulk(slice any, setFunc func(*PageKnowledgeCreate, int)) *PageKnowledgeCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PageKnowledgeCreateBulk{err: fmt.Errorf("calling to PageKnowledgeClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PageKnowledgeCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PageKnowledgeCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PageKnowledge.
+func (c *PageKnowledgeClient) Update() *PageKnowledgeUpdate {
+	mutation := newPageKnowledgeMutation(c.config, OpUpdate)
+	return &PageKnowledgeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PageKnowledgeClient) UpdateOne(_m *PageKnowledge) *PageKnowledgeUpdateOne {
+	mutation := newPageKnowledgeMutation(c.config, OpUpdateOne, withPageKnowledge(_m))
+	return &PageKnowledgeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PageKnowledgeClient) UpdateOneID(id string) *PageKnowledgeUpdateOne {
+	mutation := newPageKnowledgeMutation(c.config, OpUpdateOne, withPageKnowledgeID(id))
+	return &PageKnowledgeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PageKnowledge.
+func (c *PageKnowledgeClient) Delete() *PageKnowledgeDelete {
+	mutation := newPageKnowledgeMutation(c.config, OpDelete)
+	return &PageKnowledgeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PageKnowledgeClient) DeleteOne(_m *PageKnowledge) *PageKnowledgeDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PageKnowledgeClient) DeleteOneID(id string) *PageKnowledgeDeleteOne {
+	builder := c.Delete().Where(pageknowledge.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PageKnowledgeDeleteOne{builder}
+}
+
+// Query returns a query builder for PageKnowledge.
+func (c *PageKnowledgeClient) Query() *PageKnowledgeQuery {
+	return &PageKnowledgeQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePageKnowledge},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PageKnowledge entity by its id.
+func (c *PageKnowledgeClient) Get(ctx context.Context, id string) (*PageKnowledge, error) {
+	return c.Query().Where(pageknowledge.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PageKnowledgeClient) GetX(ctx context.Context, id string) *PageKnowledge {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PageKnowledgeClient) Hooks() []Hook {
+	return c.hooks.PageKnowledge
+}
+
+// Interceptors returns the client interceptors.
+func (c *PageKnowledgeClient) Interceptors() []Interceptor {
+	return c.inters.PageKnowledge
+}
+
+func (c *PageKnowledgeClient) mutate(ctx context.Context, m *PageKnowledgeMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PageKnowledgeCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PageKnowledgeUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PageKnowledgeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PageKnowledgeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PageKnowledge mutation op: %q", m.Op())
 	}
 }
 
@@ -9815,10 +10381,11 @@ type (
 		CampaignPlan, CampaignPost, CampaignRevision, ChannelConnection,
 		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentDraft,
 		Conversation, ConversationMessage, CreativeTemplate, CreativeVariant,
-		CustomerCommunication, DeploymentEvent, Design, GitHubInstallStart,
-		GitHubInstallation, IntegrationConnection, Invitation, LaunchRun,
-		LaunchRunStep, Member, Organization, OrganizationEnterpriseSettings,
-		OutboxEvent, PostizTenantBinding, ProductProfile, ProductSurface, Project,
+		CustomerCommunication, DeploymentEvent, Design, EnrichmentRecord,
+		GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
+		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
+		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
+		PageKnowledge, PostizTenantBinding, ProductProfile, ProductSurface, Project,
 		ProjectVersion, PublicationAttempt, Release, ReleaseDocument, ReleaseSpec,
 		ScheduledPost, ScreenshotCache, Session, ShareLink, SocialOAuthStart,
 		SourceApp, SourceChange, StorePublishingCredential, StoreReview,
@@ -9833,10 +10400,11 @@ type (
 		CampaignPlan, CampaignPost, CampaignRevision, ChannelConnection,
 		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentDraft,
 		Conversation, ConversationMessage, CreativeTemplate, CreativeVariant,
-		CustomerCommunication, DeploymentEvent, Design, GitHubInstallStart,
-		GitHubInstallation, IntegrationConnection, Invitation, LaunchRun,
-		LaunchRunStep, Member, Organization, OrganizationEnterpriseSettings,
-		OutboxEvent, PostizTenantBinding, ProductProfile, ProductSurface, Project,
+		CustomerCommunication, DeploymentEvent, Design, EnrichmentRecord,
+		GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
+		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
+		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
+		PageKnowledge, PostizTenantBinding, ProductProfile, ProductSurface, Project,
 		ProjectVersion, PublicationAttempt, Release, ReleaseDocument, ReleaseSpec,
 		ScheduledPost, ScreenshotCache, Session, ShareLink, SocialOAuthStart,
 		SourceApp, SourceChange, StorePublishingCredential, StoreReview,

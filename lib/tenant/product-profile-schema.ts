@@ -22,8 +22,11 @@ export const productProfileFieldSchema = z.enum([
 /** One of {@link productProfileFieldSchema}. */
 export type ProductProfileFieldName = z.infer<typeof productProfileFieldSchema>
 
-/** Who changed a field: a person (which locks it) or an automated read of the site. */
-export const productProfileSourceSchema = z.enum(['manual', 'automated'])
+/**
+ * Who changed a field: a person (which locks it), an automated read of the
+ * product's site, or third-party enrichment, which ranks below both.
+ */
+export const productProfileSourceSchema = z.enum(['manual', 'automated', 'enrichment'])
 
 /** One of {@link productProfileSourceSchema}. */
 export type ProductProfileSource = z.infer<typeof productProfileSourceSchema>
@@ -60,9 +63,10 @@ export type ProductProfileValues = z.infer<typeof productProfileValuesSchema>
 /**
  * A person's change: only the fields given change, and each one changed is
  * locked against automated updates. `unlockFields` lets automated updates
- * change those fields again.
+ * change those fields again; `acceptFields` locks fields as they are.
  */
 export const productProfileUpsertSchema = productProfileValuesSchema.partial().extend({
+  acceptFields: z.array(productProfileFieldSchema).max(9).optional(),
   unlockFields: z.array(productProfileFieldSchema).max(9).optional(),
 })
 

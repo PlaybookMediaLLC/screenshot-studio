@@ -86,7 +86,7 @@ type UploadedStream struct {
 }
 
 // Storage is the part of the upload storage (UploadFactory.createStorage())
-// media uses, plus uploadStreamToStorage (upload/custom.upload.validation.ts)
+// media uses, plus uploadStreamToStorage
 // bound to it: sniff the type, enforce the per-type cap, stream to storage.
 type Storage interface {
 	UploadSimple(ctx context.Context, path string) (string, error)
@@ -220,7 +220,7 @@ var safetyViolations = regexp.MustCompile(`(?i)safety_violations=\[([^\]]*)\]`)
 // reported to the user as a safety violation.
 var safetyMessage = regexp.MustCompile(`(?i)safety system|safety_violations|content[ _]policy|rejected as a result of our safety|moderation`)
 
-// generationError (openai/generation.error.ts) normalizes errors thrown by AI
+// generationError normalizes errors thrown by AI
 // generation providers into a clean HTTP error, surfacing the flagged
 // categories of a content-safety rejection.
 func generationError(err error) error {

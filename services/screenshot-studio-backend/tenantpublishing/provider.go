@@ -114,16 +114,16 @@ func (p *Publisher) Publish(ctx context.Context, input postiz.PublishInput) (str
 	}
 	// A content draft post without an image publishes as text (RFC 037).
 	var media []integrations.MediaContent
-	if input.AssetObjectKey != "" {
-		path, err := p.signer.SignDelivery(ctx, input.OrganizationID, input.AssetObjectKey)
+	for _, asset := range input.Media() {
+		path, err := p.signer.SignDelivery(ctx, input.OrganizationID, asset.ObjectKey)
 		if err != nil {
 			return "", postiz.NewError(http.StatusServiceUnavailable, false, "private asset could not be signed")
 		}
 		mediaType := "image"
-		if strings.HasPrefix(input.AssetMediaType, "video/") {
+		if strings.HasPrefix(asset.MediaType, "video/") {
 			mediaType = "video"
 		}
-		media = []integrations.MediaContent{{Type: mediaType, Path: path}}
+		media = append(media, integrations.MediaContent{Type: mediaType, Path: path})
 	}
 	response, err := provider.Post(ctx, account.InternalID, account.Token, []integrations.PostDetails{{
 		ID: input.PostID, Message: input.Caption, Settings: settings, Media: media,

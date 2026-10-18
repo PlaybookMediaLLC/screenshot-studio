@@ -27,7 +27,7 @@ import (
 // credential (RFC 038): this file is the consent and the code exchange.
 
 // APIKeyScopes mirrors apiKeyScopes in lib/auth/api-key-scopes.ts.
-var APIKeyScopes = []string{"artifact:read", "asset:write", "draft:write", "post:schedule", "release:create", "source:write", "upload:sign"}
+var APIKeyScopes = []string{"artifact:read", "asset:write", "draft:write", "onboarding:run", "post:schedule", "release:create", "source:write", "upload:sign"}
 
 // ErrInvalidGrant is an authorization code that is unknown, expired, used,
 // or presented by another client, redirect URI, or PKCE verifier.

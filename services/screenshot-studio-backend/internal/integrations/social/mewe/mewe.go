@@ -1,4 +1,4 @@
-// Package mewe ports mewe.provider.ts and its MeweDto.
+// Package mewe is the MeWe provider and its MeweDto.
 package mewe
 
 import (

@@ -17,14 +17,14 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/httpx"
 )
 
-// RegisterRootController is root.controller.ts.
+// RegisterRootController registers the root routes.
 func RegisterRootController(r *httpx.Router) {
 	r.Group("/").Get("/", func(c *httpx.Ctx) (any, error) {
 		return "App is running!", nil
 	})
 }
 
-// RegisterMonitorController is monitor.controller.ts (public, /monitor).
+// RegisterMonitorController registers the monitor routes (public, /monitor).
 func RegisterMonitorController(r *httpx.Router) {
 	r.Group("/monitor").Get("/queue/:name", func(c *httpx.Ctx) (any, error) {
 		return struct {
@@ -34,7 +34,7 @@ func RegisterMonitorController(r *httpx.Router) {
 	})
 }
 
-// RegisterNotificationsController is notifications.controller.ts (authenticated, /notifications).
+// RegisterNotificationsController registers the notifications routes (authenticated, /notifications).
 func RegisterNotificationsController(r *httpx.Router, authMiddleware httpx.Middleware, notificationService *notifications.Service) {
 	g := r.Group("/notifications", authMiddleware)
 
@@ -47,7 +47,7 @@ func RegisterNotificationsController(r *httpx.Router, authMiddleware httpx.Middl
 	})
 }
 
-// RegisterAnalyticsController is analytics.controller.ts (authenticated, /analytics).
+// RegisterAnalyticsController registers the analytics routes (authenticated, /analytics).
 func RegisterAnalyticsController(r *httpx.Router, authMiddleware httpx.Middleware, integrationService *integration.Service, posts PostsService) {
 	g := r.Group("/analytics", authMiddleware)
 
@@ -73,7 +73,7 @@ func jsNumber(value string) int64 {
 	return int64(n)
 }
 
-// RegisterAdminController is admin.controller.ts (authenticated, /admin).
+// RegisterAdminController registers the admin routes (authenticated, /admin).
 func RegisterAdminController(r *httpx.Router, authMiddleware httpx.Middleware, errorsService *errorsdb.Service, stats *adminstats.Service) {
 	g := r.Group("/admin", authMiddleware)
 
@@ -166,7 +166,7 @@ func parseDayjs(value string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("Invalid Date: %q", value)
 }
 
-// RegisterAnnouncementsController is announcements.controller.ts (authenticated, /announcements).
+// RegisterAnnouncementsController registers the announcements routes (authenticated, /announcements).
 func RegisterAnnouncementsController(r *httpx.Router, authMiddleware httpx.Middleware, announcementsService *announcements.Service) {
 	g := r.Group("/announcements", authMiddleware)
 

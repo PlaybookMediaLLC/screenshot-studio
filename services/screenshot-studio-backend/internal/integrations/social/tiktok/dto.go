@@ -7,7 +7,7 @@ import (
 	"unicode/utf8"
 )
 
-// TikTokMusic is dtos/posts/providers-settings/tiktok.dto.ts TikTokMusic.
+// TikTokMusic is the music choice in the TikTok post settings.
 type TikTokMusic struct {
 	ID     *string `json:"id" jsonschema_description:"The commercial music library track id, taken from the \"id\" returned by the musicSearch function."`
 	Title  *string `json:"title,omitempty"`
@@ -18,7 +18,7 @@ type TikTokMusic struct {
 	VideoVolume any `json:"video_volume,omitempty"`
 }
 
-// TikTokLocation is dtos/posts/providers-settings/tiktok.dto.ts TikTokLocation.
+// TikTokLocation is the location in the TikTok post settings.
 type TikTokLocation struct {
 	ID      *string `json:"id" jsonschema_description:"The location tag id, taken from the \"id\" returned by the locationSearch function."`
 	Name    *string `json:"name"`
@@ -58,7 +58,7 @@ type TikTokDTO struct {
 
 // Validate reproduces the class-validator decorators, messages in declaration
 // order (within a property: @IsDefined first, then bottom-up decorator order;
-// nested messages prefixed with the parent property, like Nest's ValidationPipe).
+// nested messages prefixed with the parent property).
 func (d *TikTokDTO) Validate() []string {
 	var errs []string
 	// @ValidateIf((p) => p.title) @MaxLength(90)

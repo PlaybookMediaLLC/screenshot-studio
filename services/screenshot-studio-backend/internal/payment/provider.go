@@ -208,7 +208,7 @@ func (u Unsupported) ChatbaseRefund(context.Context, string) (*ChatbaseRefundRes
 }
 func (u Unsupported) SyncCustomerEmailsAfterSwitch(context.Context, []Account) error { return nil }
 
-// BillingSubscribeDTO is dtos/billing/billing.subscribe.dto.ts. Optional
+// BillingSubscribeDTO is the billing subscribe request body. Optional
 // fields are pointers so the checkout metadata spread (`...body`) only sends
 // keys the client sent.
 type BillingSubscribeDTO struct {
@@ -220,19 +220,19 @@ type BillingSubscribeDTO struct {
 	DatafastVisitorID *string `json:"datafast_visitor_id,omitempty"`
 }
 
-// AdminApplyCouponDTO is dtos/billing/admin.apply.coupon.dto.ts.
+// AdminApplyCouponDTO is the admin apply coupon request body.
 type AdminApplyCouponDTO struct {
 	Type   string   `json:"type" validate:"oneof=percentage amount"`
 	Value  *float64 `json:"value" validate:"required,min=1"`
 	Months *int     `json:"months" validate:"required,min=1,max=12"`
 }
 
-// BillingSyncDTO is dtos/billing/billing.sync.dto.ts.
+// BillingSyncDTO is the billing sync request body.
 type BillingSyncDTO struct {
 	Provider string `json:"provider" validate:"required"`
 }
 
-// ResetCreditsDTO is dtos/billing/reset.credits.dto.ts.
+// ResetCreditsDTO is the reset credits request body.
 type ResetCreditsDTO struct {
 	Type string `json:"type" validate:"oneof=ai_images ai_videos"`
 }

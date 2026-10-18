@@ -1,4 +1,4 @@
-// Package x is the X (Twitter) provider (x.provider.ts). It talks OAuth 1.0a
+// Package x is the X (Twitter) provider. It talks OAuth 1.0a
 // user context, calling the same endpoints twitter-api-v2 calls.
 package x
 

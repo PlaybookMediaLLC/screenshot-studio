@@ -1,5 +1,8 @@
 {{- if .Values.collab.enabled }}
 {{- $fullName := include "screenshot-studio.fullname" . }}
+{{- if and (gt (int .Values.collab.replicaCount) 1) (not .Values.collab.redis.enabled) }}
+{{- fail "collab.replicaCount above 1 needs collab.redis.enabled (COLLAB_REDIS_URL in existingSecret)" }}
+{{- end }}
 # Real-time co-editing of content drafts (RFC 037). A Hocuspocus server that
 # holds no database credential: it authorizes connections and loads and stores
 # documents only through the Go backend, with COLLAB_SERVICE_TOKEN.
@@ -27,9 +30,9 @@ metadata:
   labels:
     {{- include "screenshot-studio.labels" . | nindent 4 }}
 spec:
-  # One replica: a document's live state lives in one process. More replicas
-  # need the Hocuspocus Redis extension or routing by document name.
-  replicas: 1
+  # Replicas relay a document's live updates through Redis (the Hocuspocus
+  # Redis extension); without Redis there must be one.
+  replicas: {{ .Values.collab.replicaCount }}
   selector:
     matchLabels:
       app.kubernetes.io/component: collab
@@ -70,6 +73,13 @@ spec:
                 secretKeyRef:
                   name: {{ required "existingSecret is required when collab.enabled" .Values.existingSecret }}
                   key: COLLAB_SERVICE_TOKEN
+            {{- if .Values.collab.redis.enabled }}
+            - name: COLLAB_REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: COLLAB_REDIS_URL
+            {{- end }}
           readinessProbe:
             httpGet:
               path: /health

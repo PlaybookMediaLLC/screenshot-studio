@@ -8,7 +8,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/integrations/social/internal/communityutil"
 )
 
-// MediaDTO is dtos/media/media.dto.ts, the main_image setting.
+// MediaDTO is a media reference, the main_image setting.
 type MediaDTO struct {
 	ID        *string `json:"id"`
 	Path      *string `json:"path"`
@@ -28,8 +28,8 @@ type SettingsDTO struct {
 }
 
 // Validate reproduces class-validator: per property IsDefined first, then the
-// remaining decorators bottom-up; nested errors are prefixed like Nest's
-// ValidationPipe does.
+// remaining decorators bottom-up; nested errors are prefixed with the parent
+// property.
 func (d *SettingsDTO) Validate() []string {
 	var errs []string
 	add := func(msg ...string) { errs = append(errs, msg...) }

@@ -338,12 +338,13 @@ func (r *Repository) LoadPublishJob(ctx context.Context, id, runID string) (Publ
 	}
 	return PublishJob{
 		AssetObjectKey: asset.ObjectKey, AssetMediaType: asset.MediaType,
+		Assets:     []MediaAsset{{MediaType: asset.MediaType, ObjectKey: asset.ObjectKey}},
 		Connection: connection, Post: post, WorkspaceActive: workspaceActive && approved && connection.Status == channelconnection.StatusACTIVE,
 	}, nil
 }
 
 // loadDraftPublishJob publishes a content draft's post: its caption was
-// snapshotted when it was scheduled, and its media is the post's own asset,
+// snapshotted when it was scheduled, and its media is the post's own assets,
 // if any. A draft post without an asset publishes as text.
 func (r *Repository) loadDraftPublishJob(ctx context.Context, post *ent.ScheduledPost, connection *ent.ChannelConnection) (PublishJob, error) {
 	inactive := PublishJob{Post: post, Connection: connection, WorkspaceActive: false}
@@ -356,8 +357,13 @@ func (r *Repository) loadDraftPublishJob(ctx context.Context, post *ent.Schedule
 		return inactive, nil
 	}
 	job := PublishJob{Connection: connection, Post: post}
-	if post.AssetID != nil {
-		media, err := r.client.Asset.Query().Where(asset.ID(*post.AssetID), asset.OrganizationID(post.OrganizationID),
+	ids := post.AssetIds
+	if len(ids) == 0 && post.AssetID != nil {
+		ids = []string{*post.AssetID}
+	}
+	// A missing image cancels the post rather than publishing it without one.
+	for _, id := range ids {
+		media, err := r.client.Asset.Query().Where(asset.ID(id), asset.OrganizationID(post.OrganizationID),
 			asset.StatusEQ(asset.StatusUPLOADED)).Only(ctx)
 		if ent.IsNotFound(err) {
 			return inactive, nil
@@ -365,7 +371,10 @@ func (r *Repository) loadDraftPublishJob(ctx context.Context, post *ent.Schedule
 		if err != nil {
 			return PublishJob{}, err
 		}
-		job.AssetObjectKey, job.AssetMediaType = media.ObjectKey, media.MediaType
+		job.Assets = append(job.Assets, MediaAsset{MediaType: media.MediaType, ObjectKey: media.ObjectKey})
+	}
+	if len(job.Assets) > 0 {
+		job.AssetObjectKey, job.AssetMediaType = job.Assets[0].ObjectKey, job.Assets[0].MediaType
 	}
 	workspaceActive, err := r.workspaceActive(ctx, post.OrganizationID)
 	if err != nil {

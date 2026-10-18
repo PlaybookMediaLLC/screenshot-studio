@@ -22,7 +22,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/integrations"
 )
 
-// PostActivity (post.activity.ts). Every method runs on the queue the
+// PostActivity names the post activities. Every method runs on the queue the
 // workflow picks: "main" or the provider queue (identifier before "-").
 const (
 	// getIntegrationById(orgId: string, id: string): Integration | null
@@ -73,14 +73,14 @@ const (
 	RefreshTokenWithCause = "refreshTokenWithCause"
 )
 
-// IntegrationsActivity (integrations.activity.ts).
+// IntegrationsActivity names the integrations activities.
 const (
 	// getIntegrationsById(id: string, orgId: string): Integration | null
 	// (note the argument order, reversed from getIntegrationById)
 	GetIntegrationsByID = "getIntegrationsById"
 )
 
-// EmailActivity (email.activity.ts).
+// EmailActivity names the email activities.
 const (
 	// sendEmail(to: string, subject: string, html: string, replyTo?: string)
 	SendEmail = "sendEmail"
@@ -95,7 +95,7 @@ const (
 	GetLastPublishDate = "getLastPublishDate"
 )
 
-// MediaActivity (media.activity.ts).
+// MediaActivity names the media activities.
 const (
 	// submitMediaProcessing(mediaId: string): string | null (job id)
 	SubmitMediaProcessing = "submitMediaProcessing"
@@ -105,19 +105,19 @@ const (
 	FailMediaProcessing = "failMediaProcessing"
 )
 
-// VideoActivity (video.activity.ts).
+// VideoActivity names the video activities.
 const (
 	// generateVideo(organizationId: string, body: VideoDto): Media
 	GenerateVideo = "generateVideo"
 )
 
-// AutopostActivity (autopost.activity.ts).
+// AutopostActivity names the autopost activities.
 const (
 	// autoPost(id: string): void
 	AutoPost = "autoPost"
 )
 
-// ClippingActivity (clipping.activity.ts). Every activity takes a single
+// ClippingActivity names the clipping activities. Every activity takes a single
 // object of ids so fields can be added without a new activity.
 const (
 	// submitClippingAnalyse({clippingId}): string (job id)
@@ -160,7 +160,7 @@ const (
 	StateDraft     = "DRAFT"
 )
 
-// PostActivity is the Go side of post.activity.ts; register each method
+// PostActivity is the post activity contract; register each method
 // under the matching constant above.
 type PostActivity interface {
 	GetIntegrationByID(ctx context.Context, orgID, id string) (*Integration, error)
@@ -198,12 +198,12 @@ type PostActivity interface {
 	RefreshTokenWithCause(ctx context.Context, integration *Integration, cause string) (OrFalse[integrations.AuthTokenDetails], error)
 }
 
-// IntegrationsActivity is the Go side of integrations.activity.ts.
+// IntegrationsActivity is the integrations activity contract.
 type IntegrationsActivity interface {
 	GetIntegrationsByID(ctx context.Context, id, orgID string) (*Integration, error)
 }
 
-// EmailActivity is the Go side of email.activity.ts. The send results are
+// EmailActivity is the email activity contract. The send results are
 // never read by a workflow.
 type EmailActivity interface {
 	SendEmail(ctx context.Context, to, subject, html string, replyTo *string) error
@@ -215,25 +215,25 @@ type EmailActivity interface {
 	GetLastPublishDate(ctx context.Context, organizationID string) (*int64, error)
 }
 
-// MediaActivity is the Go side of media.activity.ts.
+// MediaActivity is the media activity contract.
 type MediaActivity interface {
 	SubmitMediaProcessing(ctx context.Context, mediaID string) (*string, error)
 	CheckMediaProcessing(ctx context.Context, mediaID, jobID string) (bool, error)
 	FailMediaProcessing(ctx context.Context, mediaID, errMessage string) error
 }
 
-// VideoActivity is the Go side of video.activity.ts. The result is the saved
+// VideoActivity is the video activity contract. The result is the saved
 // Media row, which generateVideoWorkflow returns to its caller.
 type VideoActivity interface {
 	GenerateVideo(ctx context.Context, organizationID string, body VideoBody) (json.RawMessage, error)
 }
 
-// AutopostActivity is the Go side of autopost.activity.ts.
+// AutopostActivity is the autopost activity contract.
 type AutopostActivity interface {
 	AutoPost(ctx context.Context, id string) error
 }
 
-// ClippingActivity is the Go side of clipping.activity.ts.
+// ClippingActivity is the clipping activity contract.
 type ClippingActivity interface {
 	SubmitClippingAnalyse(ctx context.Context, in ClippingRef) (string, error)
 	CheckClippingAnalyse(ctx context.Context, in ClippingJobRef) (ClippingJobResult, error)

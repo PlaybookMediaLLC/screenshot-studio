@@ -267,8 +267,11 @@ export type ProductProofPoint = { claim: string; sourceUrl?: string }
 
 /** Where a product profile field's value came from. An edited field is locked. */
 export type ProductProfileProvenance = {
+  /** How sure an automated source was, in [0, 1], when it said. */
+  confidence?: number
   editedByUser: boolean
-  source: 'manual' | 'automated'
+  /** A person, the product's own site, or third-party enrichment, in that precedence. */
+  source: 'manual' | 'automated' | 'enrichment'
   updatedAt: string
   url?: string
 }
@@ -315,12 +318,112 @@ export type UpsertProductProfileInput = {
   pricingNote?: string
   problem?: string
   proofPoints?: ProductProofPoint[]
-  source?: 'manual' | 'automated'
+  source?: 'manual' | 'automated' | 'enrichment'
   /** The page each automated value came from. */
   sourceUrls?: Partial<Record<ProductProfileField, string>>
   summary?: string
   unlockFields?: ProductProfileField[]
+  /** Locks fields as they are: a person confirmed them. */
+  acceptFields?: ProductProfileField[]
   url?: string
+}
+
+/** One kind of buyer in an ideal customer profile. */
+export type IdealCustomerPersona = { role: string; seniority?: string; teamSize?: string }
+
+/** An ideal customer profile field name. */
+export type IdealCustomerProfileField =
+  'personas' | 'pains' | 'jobs' | 'buyingTriggers' | 'objections' | 'channels'
+
+/** Who the workspace sells to, one per workspace, with per-field provenance. */
+export type IdealCustomerProfile = {
+  buyingTriggers: string[]
+  channels: string[]
+  createdAt: string
+  id: string
+  jobs: string[]
+  objections: string[]
+  pains: string[]
+  personas: IdealCustomerPersona[]
+  provenance: Partial<Record<IdealCustomerProfileField, ProductProfileProvenance>>
+  updatedAt: string
+}
+
+/**
+ * An ideal customer profile change, with the product profile's rules: a
+ * manual change (the default) locks each changed field; an automated one
+ * skips locked fields and records each value's page and confidence.
+ */
+export type UpsertIdealCustomerProfileInput = {
+  buyingTriggers?: string[]
+  channels?: string[]
+  confidence?: Partial<Record<IdealCustomerProfileField, number>>
+  jobs?: string[]
+  objections?: string[]
+  pains?: string[]
+  personas?: IdealCustomerPersona[]
+  source?: 'manual' | 'automated' | 'enrichment'
+  sourceUrls?: Partial<Record<IdealCustomerProfileField, string>>
+  unlockFields?: IdealCustomerProfileField[]
+  /** Locks fields as they are: a person confirmed them. */
+  acceptFields?: IdealCustomerProfileField[]
+}
+
+/** An onboarding run's lifecycle state (docs/rfcs/032). */
+export type OnboardingRunStatus = 'queued' | 'running' | 'completed' | 'partial' | 'failed' | 'cancelled'
+
+/** One onboarding run: its stage, monotonic progress, and the budgets it used. */
+export type OnboardingRun = {
+  completedAt: string | null
+  completedStages: string[]
+  createdByUserId: string | null
+  deadlineAt: string
+  discoveredUrls: string[]
+  enrichmentCostMicros: number
+  errorCode: string | null
+  errorMessage: string | null
+  fastPathMs: number
+  id: string
+  /** What the run's model calls cost the platform, in USD micros; no AI credits are spent. */
+  modelCostMicros: number
+  pageLimit: number
+  pagesDiscovered: number
+  pagesProcessed: number
+  pagesSkipped: number
+  progress: number
+  stage: string
+  startedAt: string
+  status: OnboardingRunStatus
+  tokenBudget: number
+  tokensUsed: number
+  updatedAt: string
+  url: string
+  workflowId: string
+}
+
+/** The fast path's answer: the drafts on screen and the run deepening them. */
+export type OnboardingStartResult = {
+  created: boolean
+  extracted: boolean
+  idealCustomerProfile: IdealCustomerProfile | null
+  pages: string[]
+  productProfile: ProductProfile | null
+  reason?: string
+  run: OnboardingRun
+}
+
+/** One enrichment finding for a run's site, with its provider and confidence. */
+export type OnboardingEnrichmentRecord = {
+  confidence: number
+  costMicros: number
+  domain: string
+  expiresAt: string
+  fetchedAt: string
+  field: string
+  id: string
+  provider: string
+  sourceUrl?: string
+  value: unknown
 }
 
 /**
@@ -664,6 +767,8 @@ export type BackendContentDraft = {
   channelConnectionIds: string[]
   createdAt: string
   createdByUserId: string | null
+  /** Comment threads on the body and their authors, as the editor keeps them. */
+  discussions: Record<string, unknown>
   id: string
   organizationId: string
   plainText: string
@@ -679,6 +784,7 @@ export type BackendContentDraftInput = {
   assetIds?: string[]
   body?: unknown[]
   channelConnectionIds?: string[]
+  discussions?: Record<string, unknown>
   plainText?: string
   title?: string
 }
@@ -700,7 +806,12 @@ export type BackendContentDraftPost = {
 }
 
 /** One channel of a draft schedule and the caption serialized for it. */
-export type BackendContentDraftScheduleTarget = { caption: string; channelConnectionId: string }
+export type BackendContentDraftScheduleTarget = {
+  /** The post's images in order; the draft's own when omitted. */
+  assetIds?: string[]
+  caption: string
+  channelConnectionId: string
+}
 
 export type BackendContentDraftListQuery = {
   cursor?: string
@@ -1642,6 +1753,50 @@ export class ScreenshotStudioBackendSDK {
   /** Creates or changes the product profile; owner or admin only. */
   async upsertProductProfile(input: UpsertProductProfileInput) {
     return this.request<ProductProfile>('v1/product-profile', { body: input, method: 'POST' })
+  }
+  /** The workspace's ideal customer profile, or null before one is saved. */
+  async getIdealCustomerProfile() {
+    return this.request<{ idealCustomerProfile: IdealCustomerProfile | null }>(
+      'v1/ideal-customer-profile'
+    )
+  }
+  /** Creates or changes the ideal customer profile; owner or admin only. */
+  async upsertIdealCustomerProfile(input: UpsertIdealCustomerProfileInput) {
+    return this.request<IdealCustomerProfile>('v1/ideal-customer-profile', {
+      body: input,
+      method: 'POST',
+    })
+  }
+  /** Reads the product's site within ten seconds and starts the background run. */
+  async startOnboardingRun(input: { idempotencyKey?: string; sentence?: string; url: string }) {
+    return this.request<OnboardingStartResult>('v1/onboarding-runs', { body: input, method: 'POST' })
+  }
+  /** One onboarding run; while it runs, its progress is live. */
+  async getOnboardingRun(id: string) {
+    return this.request<{ run: OnboardingRun }>(`v1/onboarding-runs/${encodeURIComponent(id)}`)
+  }
+  /** The workspace's newest onboarding run, or null before its first. */
+  async latestOnboardingRun() {
+    return this.request<{ run: OnboardingRun | null }>('v1/onboarding-runs/latest')
+  }
+  /** Stops a running run; it keeps what it already read. */
+  async cancelOnboardingRun(id: string) {
+    return this.request<{ run: OnboardingRun }>(`v1/onboarding-runs/${encodeURIComponent(id)}/cancel`, {
+      method: 'POST',
+    })
+  }
+  /** Starts a new run for a run's URL; unchanged pages cost nothing. */
+  async rerunOnboardingRun(id: string, input: { idempotencyKey?: string } = {}) {
+    return this.request<OnboardingStartResult>(`v1/onboarding-runs/${encodeURIComponent(id)}/rerun`, {
+      body: input,
+      method: 'POST',
+    })
+  }
+  /** What enrichment found for a run's site. */
+  async listOnboardingEnrichment(id: string) {
+    return this.request<{ enrichment: OnboardingEnrichmentRecord[] }>(
+      `v1/onboarding-runs/${encodeURIComponent(id)}/enrichment`
+    )
   }
 
   async createSourceApp(input: {

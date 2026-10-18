@@ -249,10 +249,14 @@ second scheduler.
   live posts and creates new ones under the new version.
 - Go re-validates each caption against its channel's limit and the
   workspace's prohibited terms, as the campaign path does.
-- Publishing takes the post's media from the draft's first image asset. The
-  publish job carries one asset today; a draft with no image publishes as
-  text. More images per post are a later change to the publish job, and the
-  composer says so before scheduling.
+- Each post carries the draft's images in body order, up to its channel's
+  limit: 4 on X, 9 on LinkedIn, 10 on Instagram. The post keeps the list in
+  `scheduled_post.assetIds` and the first in `assetId`; the composer says when
+  a channel drops images. A draft with no image publishes as text. The publish
+  job carries the list beside the single asset fields, so a job prepared
+  before the list existed still publishes its one image. If any listed image
+  has been deleted by publish time, the post is cancelled rather than sent
+  without it.
 
 ### Serialization
 
@@ -265,10 +269,18 @@ caption per channel and reports what it had to degrade:
 | Lists | `- item` or `1. item`, indented per level |
 | Links | The link text followed by the URL |
 | Mentions, hashtags | Their plain text |
-| Tables | Aligned text rows |
-| Math | The LaTeX source |
+| Tables, math blocks | Images attached to the post, in body order |
+| Inline math | The LaTeX source |
 | Footnotes | Numbered markers, with the notes listed at the end |
 | Unsupported marks | Dropped, and reported |
+
+When the draft is scheduled, the composer renders each table and math block as
+it looks in the editor (`modern-screenshot`), uploads it as a workspace asset,
+and sends the block-to-asset map with the request. The server serializes with
+that map and passes each post's image list to Go, which checks the images are
+the workspace's uploads and applies the channel's image limit. A block the
+composer could not render stays as text: aligned rows for a table, the LaTeX
+source for math. Search and the draft list keep the text form.
 
 The composer shows the per-channel preview the serializer produces, a live
 character counter per selected channel (X 280, LinkedIn 3,000, Instagram
@@ -333,10 +345,19 @@ accept the connection's token for twelve hours after it expires, so a long
 session keeps saving. A member removed from the workspace is refused on their
 next connection, and one demoted below `artifact:edit` joins read-only.
 
-The server runs as one replica: a document's live state lives in one process.
-More replicas need the Hocuspocus Redis extension or routing by document name.
-Comment threads (the discussion plugin) are kept in the editor's memory and
-are not yet stored with the draft; the comment marks in the text are.
+One replica needs nothing else. More replicas relay each document's live
+updates and awareness through Redis (the Hocuspocus Redis extension, enabled
+by `COLLAB_REDIS_URL`), and one replica, chosen by a Redis lock, stores each
+document. The newest writer's token for a document is kept in Redis too, so
+the replica that stores can still present it to the backend. Redis carries
+live updates and those tokens only; every draft stays in the backend. Helm
+(`collab.replicaCount`) and the deploy (`COLLAB_INSTANCE_COUNT`) refuse more
+than one replica without Redis.
+Comment threads (the discussion plugin) are saved with the draft in its
+`discussions` column, capped at 256 KB, by the same versioned autosave as the
+body. When an autosave meets a newer version in a live session, the composer
+merges the stored threads with its own by thread id before saving again; a
+thread both editors changed keeps the local copy.
 
 ## Rollout
 

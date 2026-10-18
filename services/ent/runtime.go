@@ -36,16 +36,20 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/customercommunication"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/enrichmentrecord"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/idealcustomerprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrunstep"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/onboardingrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
@@ -342,16 +346,20 @@ func init() {
 	contentangle.UpdateDefaultUpdatedAt = contentangleDescUpdatedAt.UpdateDefault.(func() time.Time)
 	contentdraftFields := schema.ContentDraft{}.Fields()
 	_ = contentdraftFields
+	// contentdraftDescDiscussions is the schema descriptor for discussions field.
+	contentdraftDescDiscussions := contentdraftFields[7].Descriptor()
+	// contentdraft.DefaultDiscussions holds the default value on creation for the discussions field.
+	contentdraft.DefaultDiscussions = contentdraftDescDiscussions.Default.(map[string]interface{})
 	// contentdraftDescVersion is the schema descriptor for version field.
-	contentdraftDescVersion := contentdraftFields[8].Descriptor()
+	contentdraftDescVersion := contentdraftFields[9].Descriptor()
 	// contentdraft.DefaultVersion holds the default value on creation for the version field.
 	contentdraft.DefaultVersion = contentdraftDescVersion.Default.(int)
 	// contentdraftDescCreatedAt is the schema descriptor for created_at field.
-	contentdraftDescCreatedAt := contentdraftFields[12].Descriptor()
+	contentdraftDescCreatedAt := contentdraftFields[13].Descriptor()
 	// contentdraft.DefaultCreatedAt holds the default value on creation for the created_at field.
 	contentdraft.DefaultCreatedAt = contentdraftDescCreatedAt.Default.(func() time.Time)
 	// contentdraftDescUpdatedAt is the schema descriptor for updated_at field.
-	contentdraftDescUpdatedAt := contentdraftFields[13].Descriptor()
+	contentdraftDescUpdatedAt := contentdraftFields[14].Descriptor()
 	// contentdraft.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	contentdraft.DefaultUpdatedAt = contentdraftDescUpdatedAt.Default.(func() time.Time)
 	// contentdraft.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -438,6 +446,26 @@ func init() {
 	design.DefaultUpdatedAt = designDescUpdatedAt.Default.(func() time.Time)
 	// design.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	design.UpdateDefaultUpdatedAt = designDescUpdatedAt.UpdateDefault.(func() time.Time)
+	enrichmentrecordFields := schema.EnrichmentRecord{}.Fields()
+	_ = enrichmentrecordFields
+	// enrichmentrecordDescConfidence is the schema descriptor for confidence field.
+	enrichmentrecordDescConfidence := enrichmentrecordFields[6].Descriptor()
+	// enrichmentrecord.DefaultConfidence holds the default value on creation for the confidence field.
+	enrichmentrecord.DefaultConfidence = enrichmentrecordDescConfidence.Default.(float64)
+	// enrichmentrecordDescCostMicros is the schema descriptor for cost_micros field.
+	enrichmentrecordDescCostMicros := enrichmentrecordFields[10].Descriptor()
+	// enrichmentrecord.DefaultCostMicros holds the default value on creation for the cost_micros field.
+	enrichmentrecord.DefaultCostMicros = enrichmentrecordDescCostMicros.Default.(int64)
+	// enrichmentrecordDescCreatedAt is the schema descriptor for created_at field.
+	enrichmentrecordDescCreatedAt := enrichmentrecordFields[11].Descriptor()
+	// enrichmentrecord.DefaultCreatedAt holds the default value on creation for the created_at field.
+	enrichmentrecord.DefaultCreatedAt = enrichmentrecordDescCreatedAt.Default.(func() time.Time)
+	// enrichmentrecordDescUpdatedAt is the schema descriptor for updated_at field.
+	enrichmentrecordDescUpdatedAt := enrichmentrecordFields[12].Descriptor()
+	// enrichmentrecord.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	enrichmentrecord.DefaultUpdatedAt = enrichmentrecordDescUpdatedAt.Default.(func() time.Time)
+	// enrichmentrecord.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	enrichmentrecord.UpdateDefaultUpdatedAt = enrichmentrecordDescUpdatedAt.UpdateDefault.(func() time.Time)
 	githubinstallstartFields := schema.GitHubInstallStart{}.Fields()
 	_ = githubinstallstartFields
 	// githubinstallstartDescCreatedAt is the schema descriptor for created_at field.
@@ -460,6 +488,46 @@ func init() {
 	githubinstallation.DefaultUpdatedAt = githubinstallationDescUpdatedAt.Default.(func() time.Time)
 	// githubinstallation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	githubinstallation.UpdateDefaultUpdatedAt = githubinstallationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	idealcustomerprofileFields := schema.IdealCustomerProfile{}.Fields()
+	_ = idealcustomerprofileFields
+	// idealcustomerprofileDescPersonas is the schema descriptor for personas field.
+	idealcustomerprofileDescPersonas := idealcustomerprofileFields[2].Descriptor()
+	// idealcustomerprofile.DefaultPersonas holds the default value on creation for the personas field.
+	idealcustomerprofile.DefaultPersonas = idealcustomerprofileDescPersonas.Default.([]profile.Persona)
+	// idealcustomerprofileDescPains is the schema descriptor for pains field.
+	idealcustomerprofileDescPains := idealcustomerprofileFields[3].Descriptor()
+	// idealcustomerprofile.DefaultPains holds the default value on creation for the pains field.
+	idealcustomerprofile.DefaultPains = idealcustomerprofileDescPains.Default.([]string)
+	// idealcustomerprofileDescJobs is the schema descriptor for jobs field.
+	idealcustomerprofileDescJobs := idealcustomerprofileFields[4].Descriptor()
+	// idealcustomerprofile.DefaultJobs holds the default value on creation for the jobs field.
+	idealcustomerprofile.DefaultJobs = idealcustomerprofileDescJobs.Default.([]string)
+	// idealcustomerprofileDescBuyingTriggers is the schema descriptor for buying_triggers field.
+	idealcustomerprofileDescBuyingTriggers := idealcustomerprofileFields[5].Descriptor()
+	// idealcustomerprofile.DefaultBuyingTriggers holds the default value on creation for the buying_triggers field.
+	idealcustomerprofile.DefaultBuyingTriggers = idealcustomerprofileDescBuyingTriggers.Default.([]string)
+	// idealcustomerprofileDescObjections is the schema descriptor for objections field.
+	idealcustomerprofileDescObjections := idealcustomerprofileFields[6].Descriptor()
+	// idealcustomerprofile.DefaultObjections holds the default value on creation for the objections field.
+	idealcustomerprofile.DefaultObjections = idealcustomerprofileDescObjections.Default.([]string)
+	// idealcustomerprofileDescChannels is the schema descriptor for channels field.
+	idealcustomerprofileDescChannels := idealcustomerprofileFields[7].Descriptor()
+	// idealcustomerprofile.DefaultChannels holds the default value on creation for the channels field.
+	idealcustomerprofile.DefaultChannels = idealcustomerprofileDescChannels.Default.([]string)
+	// idealcustomerprofileDescProvenance is the schema descriptor for provenance field.
+	idealcustomerprofileDescProvenance := idealcustomerprofileFields[8].Descriptor()
+	// idealcustomerprofile.DefaultProvenance holds the default value on creation for the provenance field.
+	idealcustomerprofile.DefaultProvenance = idealcustomerprofileDescProvenance.Default.(map[string]profile.FieldProvenance)
+	// idealcustomerprofileDescCreatedAt is the schema descriptor for created_at field.
+	idealcustomerprofileDescCreatedAt := idealcustomerprofileFields[9].Descriptor()
+	// idealcustomerprofile.DefaultCreatedAt holds the default value on creation for the created_at field.
+	idealcustomerprofile.DefaultCreatedAt = idealcustomerprofileDescCreatedAt.Default.(func() time.Time)
+	// idealcustomerprofileDescUpdatedAt is the schema descriptor for updated_at field.
+	idealcustomerprofileDescUpdatedAt := idealcustomerprofileFields[10].Descriptor()
+	// idealcustomerprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	idealcustomerprofile.DefaultUpdatedAt = idealcustomerprofileDescUpdatedAt.Default.(func() time.Time)
+	// idealcustomerprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	idealcustomerprofile.UpdateDefaultUpdatedAt = idealcustomerprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
 	integrationconnectionFields := schema.IntegrationConnection{}.Fields()
 	_ = integrationconnectionFields
 	// integrationconnectionDescScopes is the schema descriptor for scopes field.
@@ -536,6 +604,74 @@ func init() {
 	memberDescCreatedAt := memberFields[4].Descriptor()
 	// member.DefaultCreatedAt holds the default value on creation for the created_at field.
 	member.DefaultCreatedAt = memberDescCreatedAt.Default.(func() time.Time)
+	onboardingrunFields := schema.OnboardingRun{}.Fields()
+	_ = onboardingrunFields
+	// onboardingrunDescStage is the schema descriptor for stage field.
+	onboardingrunDescStage := onboardingrunFields[4].Descriptor()
+	// onboardingrun.DefaultStage holds the default value on creation for the stage field.
+	onboardingrun.DefaultStage = onboardingrunDescStage.Default.(string)
+	// onboardingrunDescCompletedStages is the schema descriptor for completed_stages field.
+	onboardingrunDescCompletedStages := onboardingrunFields[5].Descriptor()
+	// onboardingrun.DefaultCompletedStages holds the default value on creation for the completed_stages field.
+	onboardingrun.DefaultCompletedStages = onboardingrunDescCompletedStages.Default.([]string)
+	// onboardingrunDescProgress is the schema descriptor for progress field.
+	onboardingrunDescProgress := onboardingrunFields[6].Descriptor()
+	// onboardingrun.DefaultProgress holds the default value on creation for the progress field.
+	onboardingrun.DefaultProgress = onboardingrunDescProgress.Default.(int)
+	// onboardingrunDescDiscoveredUrls is the schema descriptor for discovered_urls field.
+	onboardingrunDescDiscoveredUrls := onboardingrunFields[7].Descriptor()
+	// onboardingrun.DefaultDiscoveredUrls holds the default value on creation for the discovered_urls field.
+	onboardingrun.DefaultDiscoveredUrls = onboardingrunDescDiscoveredUrls.Default.([]string)
+	// onboardingrunDescPagesDiscovered is the schema descriptor for pages_discovered field.
+	onboardingrunDescPagesDiscovered := onboardingrunFields[8].Descriptor()
+	// onboardingrun.DefaultPagesDiscovered holds the default value on creation for the pages_discovered field.
+	onboardingrun.DefaultPagesDiscovered = onboardingrunDescPagesDiscovered.Default.(int)
+	// onboardingrunDescPagesProcessed is the schema descriptor for pages_processed field.
+	onboardingrunDescPagesProcessed := onboardingrunFields[9].Descriptor()
+	// onboardingrun.DefaultPagesProcessed holds the default value on creation for the pages_processed field.
+	onboardingrun.DefaultPagesProcessed = onboardingrunDescPagesProcessed.Default.(int)
+	// onboardingrunDescPagesSkipped is the schema descriptor for pages_skipped field.
+	onboardingrunDescPagesSkipped := onboardingrunFields[10].Descriptor()
+	// onboardingrun.DefaultPagesSkipped holds the default value on creation for the pages_skipped field.
+	onboardingrun.DefaultPagesSkipped = onboardingrunDescPagesSkipped.Default.(int)
+	// onboardingrunDescPageLimit is the schema descriptor for page_limit field.
+	onboardingrunDescPageLimit := onboardingrunFields[11].Descriptor()
+	// onboardingrun.DefaultPageLimit holds the default value on creation for the page_limit field.
+	onboardingrun.DefaultPageLimit = onboardingrunDescPageLimit.Default.(int)
+	// onboardingrunDescTokensUsed is the schema descriptor for tokens_used field.
+	onboardingrunDescTokensUsed := onboardingrunFields[12].Descriptor()
+	// onboardingrun.DefaultTokensUsed holds the default value on creation for the tokens_used field.
+	onboardingrun.DefaultTokensUsed = onboardingrunDescTokensUsed.Default.(int)
+	// onboardingrunDescTokenBudget is the schema descriptor for token_budget field.
+	onboardingrunDescTokenBudget := onboardingrunFields[13].Descriptor()
+	// onboardingrun.DefaultTokenBudget holds the default value on creation for the token_budget field.
+	onboardingrun.DefaultTokenBudget = onboardingrunDescTokenBudget.Default.(int)
+	// onboardingrunDescEnrichmentCostMicros is the schema descriptor for enrichment_cost_micros field.
+	onboardingrunDescEnrichmentCostMicros := onboardingrunFields[14].Descriptor()
+	// onboardingrun.DefaultEnrichmentCostMicros holds the default value on creation for the enrichment_cost_micros field.
+	onboardingrun.DefaultEnrichmentCostMicros = onboardingrunDescEnrichmentCostMicros.Default.(int64)
+	// onboardingrunDescModelCostMicros is the schema descriptor for model_cost_micros field.
+	onboardingrunDescModelCostMicros := onboardingrunFields[15].Descriptor()
+	// onboardingrun.DefaultModelCostMicros holds the default value on creation for the model_cost_micros field.
+	onboardingrun.DefaultModelCostMicros = onboardingrunDescModelCostMicros.Default.(int64)
+	// onboardingrunDescFastPathMs is the schema descriptor for fast_path_ms field.
+	onboardingrunDescFastPathMs := onboardingrunFields[16].Descriptor()
+	// onboardingrun.DefaultFastPathMs holds the default value on creation for the fast_path_ms field.
+	onboardingrun.DefaultFastPathMs = onboardingrunDescFastPathMs.Default.(int)
+	// onboardingrunDescStartedAt is the schema descriptor for started_at field.
+	onboardingrunDescStartedAt := onboardingrunFields[22].Descriptor()
+	// onboardingrun.DefaultStartedAt holds the default value on creation for the started_at field.
+	onboardingrun.DefaultStartedAt = onboardingrunDescStartedAt.Default.(func() time.Time)
+	// onboardingrunDescCreatedAt is the schema descriptor for created_at field.
+	onboardingrunDescCreatedAt := onboardingrunFields[25].Descriptor()
+	// onboardingrun.DefaultCreatedAt holds the default value on creation for the created_at field.
+	onboardingrun.DefaultCreatedAt = onboardingrunDescCreatedAt.Default.(func() time.Time)
+	// onboardingrunDescUpdatedAt is the schema descriptor for updated_at field.
+	onboardingrunDescUpdatedAt := onboardingrunFields[26].Descriptor()
+	// onboardingrun.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	onboardingrun.DefaultUpdatedAt = onboardingrunDescUpdatedAt.Default.(func() time.Time)
+	// onboardingrun.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	onboardingrun.UpdateDefaultUpdatedAt = onboardingrunDescUpdatedAt.UpdateDefault.(func() time.Time)
 	organizationFields := schema.Organization{}.Fields()
 	_ = organizationFields
 	// organizationDescCreatedAt is the schema descriptor for created_at field.
@@ -568,6 +704,30 @@ func init() {
 	outboxeventDescCreatedAt := outboxeventFields[12].Descriptor()
 	// outboxevent.DefaultCreatedAt holds the default value on creation for the created_at field.
 	outboxevent.DefaultCreatedAt = outboxeventDescCreatedAt.Default.(func() time.Time)
+	pageknowledgeFields := schema.PageKnowledge{}.Fields()
+	_ = pageknowledgeFields
+	// pageknowledgeDescTitle is the schema descriptor for title field.
+	pageknowledgeDescTitle := pageknowledgeFields[4].Descriptor()
+	// pageknowledge.DefaultTitle holds the default value on creation for the title field.
+	pageknowledge.DefaultTitle = pageknowledgeDescTitle.Default.(string)
+	// pageknowledgeDescText is the schema descriptor for text field.
+	pageknowledgeDescText := pageknowledgeFields[7].Descriptor()
+	// pageknowledge.DefaultText holds the default value on creation for the text field.
+	pageknowledge.DefaultText = pageknowledgeDescText.Default.(string)
+	// pageknowledgeDescHTTPStatus is the schema descriptor for http_status field.
+	pageknowledgeDescHTTPStatus := pageknowledgeFields[8].Descriptor()
+	// pageknowledge.DefaultHTTPStatus holds the default value on creation for the http_status field.
+	pageknowledge.DefaultHTTPStatus = pageknowledgeDescHTTPStatus.Default.(int)
+	// pageknowledgeDescCreatedAt is the schema descriptor for created_at field.
+	pageknowledgeDescCreatedAt := pageknowledgeFields[12].Descriptor()
+	// pageknowledge.DefaultCreatedAt holds the default value on creation for the created_at field.
+	pageknowledge.DefaultCreatedAt = pageknowledgeDescCreatedAt.Default.(func() time.Time)
+	// pageknowledgeDescUpdatedAt is the schema descriptor for updated_at field.
+	pageknowledgeDescUpdatedAt := pageknowledgeFields[13].Descriptor()
+	// pageknowledge.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	pageknowledge.DefaultUpdatedAt = pageknowledgeDescUpdatedAt.Default.(func() time.Time)
+	// pageknowledge.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	pageknowledge.UpdateDefaultUpdatedAt = pageknowledgeDescUpdatedAt.UpdateDefault.(func() time.Time)
 	postiztenantbindingFields := schema.PostizTenantBinding{}.Fields()
 	_ = postiztenantbindingFields
 	// postiztenantbindingDescCreatedAt is the schema descriptor for created_at field.
@@ -715,15 +875,15 @@ func init() {
 	scheduledpostFields := schema.ScheduledPost{}.Fields()
 	_ = scheduledpostFields
 	// scheduledpostDescIdempotencyKey is the schema descriptor for idempotency_key field.
-	scheduledpostDescIdempotencyKey := scheduledpostFields[9].Descriptor()
+	scheduledpostDescIdempotencyKey := scheduledpostFields[10].Descriptor()
 	// scheduledpost.IdempotencyKeyValidator is a validator for the "idempotency_key" field. It is called by the builders before save.
 	scheduledpost.IdempotencyKeyValidator = scheduledpostDescIdempotencyKey.Validators[0].(func(string) error)
 	// scheduledpostDescCreatedAt is the schema descriptor for created_at field.
-	scheduledpostDescCreatedAt := scheduledpostFields[11].Descriptor()
+	scheduledpostDescCreatedAt := scheduledpostFields[12].Descriptor()
 	// scheduledpost.DefaultCreatedAt holds the default value on creation for the created_at field.
 	scheduledpost.DefaultCreatedAt = scheduledpostDescCreatedAt.Default.(func() time.Time)
 	// scheduledpostDescUpdatedAt is the schema descriptor for updated_at field.
-	scheduledpostDescUpdatedAt := scheduledpostFields[12].Descriptor()
+	scheduledpostDescUpdatedAt := scheduledpostFields[13].Descriptor()
 	// scheduledpost.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	scheduledpost.DefaultUpdatedAt = scheduledpostDescUpdatedAt.Default.(func() time.Time)
 	// scheduledpost.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

@@ -25,6 +25,13 @@ import {
   updateContentDraftContract,
 } from '@/lib/api/contracts/content-drafts'
 import { getLinkPreviewContract } from '@/lib/api/contracts/link-preview'
+import {
+  cancelOnboardingRunContract,
+  createOnboardingRunContract,
+  getOnboardingRunContract,
+  listOnboardingEnrichmentContract,
+  rerunOnboardingRunContract,
+} from '@/lib/api/contracts/onboarding-runs'
 import { createReleaseContract, listReleasesContract } from '@/lib/api/contracts/releases'
 import {
   cancelScheduledPostContract,
@@ -73,6 +80,11 @@ export const documentedContracts = [
   updateContentDraftContract,
   deleteContentDraftContract,
   listContentDraftPostsContract,
+  createOnboardingRunContract,
+  getOnboardingRunContract,
+  cancelOnboardingRunContract,
+  rerunOnboardingRunContract,
+  listOnboardingEnrichmentContract,
   getCurrentUserContract,
   getBootstrapContract,
   listOrganizationsContract,

@@ -72,10 +72,14 @@ type Tx struct {
 	DeploymentEvent *DeploymentEventClient
 	// Design is the client for interacting with the Design builders.
 	Design *DesignClient
+	// EnrichmentRecord is the client for interacting with the EnrichmentRecord builders.
+	EnrichmentRecord *EnrichmentRecordClient
 	// GitHubInstallStart is the client for interacting with the GitHubInstallStart builders.
 	GitHubInstallStart *GitHubInstallStartClient
 	// GitHubInstallation is the client for interacting with the GitHubInstallation builders.
 	GitHubInstallation *GitHubInstallationClient
+	// IdealCustomerProfile is the client for interacting with the IdealCustomerProfile builders.
+	IdealCustomerProfile *IdealCustomerProfileClient
 	// IntegrationConnection is the client for interacting with the IntegrationConnection builders.
 	IntegrationConnection *IntegrationConnectionClient
 	// Invitation is the client for interacting with the Invitation builders.
@@ -86,12 +90,16 @@ type Tx struct {
 	LaunchRunStep *LaunchRunStepClient
 	// Member is the client for interacting with the Member builders.
 	Member *MemberClient
+	// OnboardingRun is the client for interacting with the OnboardingRun builders.
+	OnboardingRun *OnboardingRunClient
 	// Organization is the client for interacting with the Organization builders.
 	Organization *OrganizationClient
 	// OrganizationEnterpriseSettings is the client for interacting with the OrganizationEnterpriseSettings builders.
 	OrganizationEnterpriseSettings *OrganizationEnterpriseSettingsClient
 	// OutboxEvent is the client for interacting with the OutboxEvent builders.
 	OutboxEvent *OutboxEventClient
+	// PageKnowledge is the client for interacting with the PageKnowledge builders.
+	PageKnowledge *PageKnowledgeClient
 	// PostizTenantBinding is the client for interacting with the PostizTenantBinding builders.
 	PostizTenantBinding *PostizTenantBindingClient
 	// ProductProfile is the client for interacting with the ProductProfile builders.
@@ -307,16 +315,20 @@ func (tx *Tx) init() {
 	tx.CustomerCommunication = NewCustomerCommunicationClient(tx.config)
 	tx.DeploymentEvent = NewDeploymentEventClient(tx.config)
 	tx.Design = NewDesignClient(tx.config)
+	tx.EnrichmentRecord = NewEnrichmentRecordClient(tx.config)
 	tx.GitHubInstallStart = NewGitHubInstallStartClient(tx.config)
 	tx.GitHubInstallation = NewGitHubInstallationClient(tx.config)
+	tx.IdealCustomerProfile = NewIdealCustomerProfileClient(tx.config)
 	tx.IntegrationConnection = NewIntegrationConnectionClient(tx.config)
 	tx.Invitation = NewInvitationClient(tx.config)
 	tx.LaunchRun = NewLaunchRunClient(tx.config)
 	tx.LaunchRunStep = NewLaunchRunStepClient(tx.config)
 	tx.Member = NewMemberClient(tx.config)
+	tx.OnboardingRun = NewOnboardingRunClient(tx.config)
 	tx.Organization = NewOrganizationClient(tx.config)
 	tx.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(tx.config)
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
+	tx.PageKnowledge = NewPageKnowledgeClient(tx.config)
 	tx.PostizTenantBinding = NewPostizTenantBindingClient(tx.config)
 	tx.ProductProfile = NewProductProfileClient(tx.config)
 	tx.ProductSurface = NewProductSurfaceClient(tx.config)

@@ -85,6 +85,9 @@ async function getBackendPageAccess(requestHeaders: Headers, session: SignedInSe
       (process.env.PLATFORM_CAMPAIGN_WORKFLOW === 'enabled' ||
         features['campaign:workflow'] === true),
     hasOrganization: count > 0,
+    // The onboarding agent (docs/rfcs/032). The backend decides it, including
+    // the PLATFORM_ONBOARDING_AGENT rollback; without it onboarding is manual.
+    onboardingAgentEnabled: Boolean(workspace) && features['onboarding:agent'] === true,
     // There is no free plan: only an active paid subscription grants this.
     hasPaidPlan: features['workspace:use'] === true,
     isWorkspaceOperational: Boolean(workspace),

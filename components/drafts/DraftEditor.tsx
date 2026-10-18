@@ -20,9 +20,10 @@ import {
   type PlateEditor,
   useEditorRef,
   usePlateEditor,
+  usePluginOption,
 } from '@shots/platejs-editor/platejs/react'
 import { createYjsPlugin, YjsPlugin } from '@shots/platejs-editor/collaboration'
-import { discussionPlugin } from '@shots/platejs-editor/plugins'
+import { discussionPlugin, type TDiscussion } from '@shots/platejs-editor/plugins'
 import {
   Editor,
   EditorContainer,
@@ -32,6 +33,7 @@ import {
   ToolbarButton,
   ToolbarGroup,
 } from '@shots/platejs-editor/ui'
+import type { DraftDiscussions } from '@/lib/content-drafts/discussions'
 
 /**
  * The document editor for a content draft: the vendored Plate.js editor with
@@ -46,8 +48,12 @@ export type DraftCollaboration = { draftId: string; url: string }
 
 export type DraftEditorProps = {
   collaboration: DraftCollaboration | null
+  /** Comment threads stored with the draft. */
+  initialDiscussions: DraftDiscussions
   initialValue: Value
   onChange: (value: Value) => void
+  /** Called when someone adds, edits, resolves or deletes a comment. */
+  onDiscussionsChange: (discussions: DraftDiscussions) => void
   readOnly: boolean
   services: EditorServices
   title: string
@@ -90,6 +96,30 @@ async function collabToken(draftId: string): Promise<string> {
   )
   if (!response.ok) throw new Error(`Collaboration token refused (${response.status}).`)
   return ((await response.json()) as { token: string }).token
+}
+
+/** Every user the plugin shows needs an avatar URL; stored users carry none. */
+function withAvatars(users: DraftDiscussions['users']) {
+  return Object.fromEntries(
+    Object.entries(users).map(([id, person]) => [id, { avatarUrl: '', id, name: person.name }])
+  )
+}
+
+/** Reports comment changes, so the composer saves them with the draft. */
+function DiscussionsWatcher({ onChange }: { onChange: (discussions: DraftDiscussions) => void }) {
+  const threads = usePluginOption(discussionPlugin, 'discussions')
+  const users = usePluginOption(discussionPlugin, 'users')
+  const first = React.useRef(threads)
+  React.useEffect(() => {
+    if (threads === first.current) return
+    onChange({
+      threads: threads as DraftDiscussions['threads'],
+      users: Object.fromEntries(
+        Object.entries(users).map(([id, person]) => [id, { id, name: person.name }])
+      ),
+    })
+  }, [onChange, threads, users])
+  return null
 }
 
 /** Who else is in the draft right now, from the session's awareness. */
@@ -308,13 +338,17 @@ function DraftToolbar({
 
 export default function DraftEditor({
   collaboration,
+  initialDiscussions: storedDiscussions,
   initialValue,
   onChange,
+  onDiscussionsChange,
   readOnly,
   services,
   title,
   user,
 }: DraftEditorProps) {
+  // Read once: later saves must not re-seed the plugin and reset its state.
+  const [initialDiscussions] = React.useState(storedDiscussions)
   const plugins = React.useMemo(() => {
     const live = collaboration
       ? createYjsPlugin(
@@ -337,13 +371,16 @@ export default function DraftEditor({
         discussionPlugin.configure({
           options: {
             currentUserId: user.id,
-            discussions: [],
-            users: { [user.id]: { avatarUrl: '', id: user.id, name: user.name } },
+            discussions: initialDiscussions.threads as TDiscussion[],
+            users: {
+              ...withAvatars(initialDiscussions.users),
+              [user.id]: { avatarUrl: '', id: user.id, name: user.name },
+            },
           },
         }),
       ],
     })
-  }, [collaboration, readOnly, user.id, user.name])
+  }, [collaboration, initialDiscussions, readOnly, user.id, user.name])
   // Mentions offer the signed-in member instead of the upstream demo list.
   React.useEffect(() => {
     setMentionUsers([{ id: user.id, name: user.name }])
@@ -388,6 +425,7 @@ export default function DraftEditor({
       <Plate editor={editor} onValueChange={({ value }) => onChange(value)} readOnly={readOnly}>
         {readOnly ? null : <DraftToolbar editor={editor} services={services} title={title} />}
         {collaboration ? <Presence /> : null}
+        <DiscussionsWatcher onChange={onDiscussionsChange} />
         <EditorContainer
           className="min-h-[420px]"
           data-testid="draft-editor"

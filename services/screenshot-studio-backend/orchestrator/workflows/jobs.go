@@ -17,7 +17,7 @@ type RefreshTokenInput struct {
 	OrganizationID string `json:"organizationId"`
 }
 
-// RefreshTokenWorkflow (refresh.token.workflow.ts) refreshes a channel's
+// RefreshTokenWorkflow refreshes a channel's
 // token when it expires, for as long as the channel is usable.
 func RefreshTokenWorkflow(ctx workflow.Context, in RefreshTokenInput) (bool, error) {
 	act := activityCtx(ctx, "", 10*time.Minute, 0, retry3x2m)
@@ -62,7 +62,7 @@ func RefreshTokenWorkflow(ctx workflow.Context, in RefreshTokenInput) (bool, err
 	}
 }
 
-// MissingPostWorkflow (missing.post.workflow.ts) sweeps for missed posts every
+// MissingPostWorkflow sweeps for missed posts every
 // hour.
 func MissingPostWorkflow(ctx workflow.Context) error {
 	act := activityCtx(ctx, "", 10*time.Minute, 0, retry3x2m)
@@ -96,7 +96,7 @@ type AutoPostInput struct {
 	Immediately bool   `json:"immediately"`
 }
 
-// AutoPostWorkflow (autopost.workflow.ts) checks an RSS autopost every hour.
+// AutoPostWorkflow checks an RSS autopost every hour.
 func AutoPostWorkflow(ctx workflow.Context, in AutoPostInput) error {
 	act := activityCtx(ctx, temporalx.MainQueue, 10*time.Minute, 0, retry3x2m)
 	immediately := in.Immediately
@@ -127,7 +127,7 @@ type GenerateVideoInput struct {
 	Body           activities.VideoBody `json:"body"`
 }
 
-// GenerateVideoWorkflow (generate.video.workflow.ts) returns the saved media.
+// GenerateVideoWorkflow returns the saved media.
 // Generating a video consumes a credit, so a failed attempt is never retried.
 func GenerateVideoWorkflow(ctx workflow.Context, in GenerateVideoInput) (json.RawMessage, error) {
 	act := activityCtx(ctx, temporalx.MainQueue, 40*time.Minute, 0, once)
@@ -153,7 +153,7 @@ const (
 	mediaMaxPolls     = int(time.Hour / mediaPollInterval)
 )
 
-// ProcessMediaWorkflow (process.media.workflow.ts).
+// ProcessMediaWorkflow is the media processing workflow.
 func ProcessMediaWorkflow(ctx workflow.Context, in ProcessMediaInput) error {
 	// Submitting is a plain POST with no idempotency key, so a retry after the
 	// queue accepted the job would run it twice; one attempt, and a failure
@@ -350,7 +350,7 @@ func ClippingClipWorkflow(ctx workflow.Context, in activities.ClipRef) error {
 	return nil
 }
 
-// ClippingWorkflow (clipping.workflow.ts) analyses a video, renders its clips
+// ClippingWorkflow analyses a video, renders its clips
 // in child workflows and creates the draft posts. It returns the clipping row
 // finishClipping / failClipping answered.
 func ClippingWorkflow(ctx workflow.Context, in activities.ClippingRef) (json.RawMessage, error) {

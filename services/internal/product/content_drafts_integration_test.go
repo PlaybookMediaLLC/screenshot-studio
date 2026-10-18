@@ -71,9 +71,17 @@ func TestContentDrafts(t *testing.T) {
 
 	t.Run("a stale write is refused with the current version", func(t *testing.T) {
 		title := "Second"
-		saved, err := repo.UpdateContentDraft(ctx, actor, created.ID, ContentDraftUpdate{BaseVersion: 1, Title: &title})
-		if err != nil || saved.Version != 2 || saved.Title != "Second" || saved.PlainText != "Hello" {
+		threads := map[string]any{"threads": []any{map[string]any{"id": "t1", "comments": []any{}}}}
+		saved, err := repo.UpdateContentDraft(ctx, actor, created.ID, ContentDraftUpdate{BaseVersion: 1, Discussions: &threads, Title: &title})
+		if err != nil || saved.Version != 2 || saved.Title != "Second" || saved.PlainText != "Hello" || len(saved.Discussions) != 1 {
 			t.Fatalf("saved=%+v err=%v", saved, err)
+		}
+		if reread, err := repo.GetContentDraft(ctx, actor, created.ID); err != nil || len(reread.Discussions["threads"].([]any)) != 1 {
+			t.Fatalf("reread=%+v err=%v", reread, err)
+		}
+		huge := map[string]any{"threads": strings.Repeat("x", contentDraftThreadsLimit)}
+		if _, err := repo.UpdateContentDraft(ctx, actor, created.ID, ContentDraftUpdate{BaseVersion: 2, Discussions: &huge}); !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("oversized comments accepted: %v", err)
 		}
 		stale := "Stale"
 		_, err = repo.UpdateContentDraft(ctx, actor, created.ID, ContentDraftUpdate{BaseVersion: 1, Title: &stale})

@@ -14,6 +14,7 @@ import * as contentDrafts from '@/lib/api/contracts/content-drafts'
 import * as integrations from '@/lib/api/contracts/integrations'
 import * as internal from '@/lib/api/contracts/internal'
 import * as linkPreview from '@/lib/api/contracts/link-preview'
+import * as onboardingRuns from '@/lib/api/contracts/onboarding-runs'
 import * as releases from '@/lib/api/contracts/releases'
 import * as scheduledPosts from '@/lib/api/contracts/scheduled-posts'
 import * as sharing from '@/lib/api/contracts/sharing'
@@ -40,6 +41,7 @@ const contracts = new Map<string, RouteContract>(
     integrations,
     internal,
     linkPreview,
+    onboardingRuns,
     releases,
     scheduledPosts,
     sharing,

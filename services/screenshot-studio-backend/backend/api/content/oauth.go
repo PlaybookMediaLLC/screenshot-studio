@@ -109,7 +109,7 @@ func RegisterOAuthController(r *httpx.Router, oauthService *oauth.Service) {
 	// Dynamic Client Registration (RFC 7591), used by MCP clients like Claude
 	g.Post("/register", h.register, httpx.Status(http.StatusCreated))
 	g.Get("/authorize", h.authorize)
-	// RFC 6749 §5.1: successful token responses are 200; strict clients (Canva) reject Nest's default 201
+	// RFC 6749 §5.1: successful token responses are 200; strict clients (Canva) reject a 201
 	g.Post("/token", h.token, httpx.Status(http.StatusOK))
 	g.Get("/userinfo", h.userinfo)
 	g.Post("/userinfo", h.userinfo)

@@ -1,4 +1,4 @@
-// Package devto ports dev.to.provider.ts and its settings DTOs.
+// Package devto is the DEV provider and its settings DTOs.
 package devto
 
 import (

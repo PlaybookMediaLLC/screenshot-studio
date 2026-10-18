@@ -1,5 +1,63 @@
 # Changelog
 
+## [2.17.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.16.0...v2.17.0) (2026-10-18)
+
+
+### Features
+
+* **drafts:** post tables and math blocks as images ([#180](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/180)) ([1d3f1bf](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1d3f1bf612abda52bca741015a50663d27bd7867))
+* **drafts:** publish every image of a draft, up to each channel's limit ([#179](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/179)) ([c2d3845](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/c2d38456303db2d726f6753686fa9d8bde546199))
+
+## [2.16.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.15.0...v2.16.0) (2026-10-18)
+
+
+### Features
+
+* **onboarding:** add enrichment providers behind one interface ([#150](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/150)) ([20d1eba](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/20d1eba3f1bfc1da26bc03464844ebf6066d1f7c))
+* **onboarding:** add the onboarding-runs API and the review screen ([#155](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/155)) ([024e357](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/024e35751f62eb884adfaa43f194cc8ac2f80927))
+* **onboarding:** enrich through Exa, spend no AI credits, and show a progress card ([#167](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/167)) ([7b02568](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/7b02568afb1c9eafd7941a76098efd85ee8bba1b))
+* **onboarding:** run the background read as a Temporal workflow ([#149](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/149)) ([21f8349](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/21f8349ded602a04ede459384004b80b0e967209))
+
+## [2.15.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.14.0...v2.15.0) (2026-10-18)
+
+
+### Features
+
+* **drafts:** save comment threads with the draft ([#176](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/176)) ([1ec9fef](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1ec9fef05f3dfd6eb5f80e57602eb317d628e2ef))
+
+## [2.14.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.13.0...v2.14.0) (2026-10-18)
+
+
+### Features
+
+* **onboarding:** add the onboarding models and the ideal customer form ([#145](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/145)) ([55037d5](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/55037d51491a00d5116bc349b769fdbd4fd1fb69))
+
+## [2.13.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.12.0...v2.13.0) (2026-10-18)
+
+
+### Features
+
+* **collab:** run the collaboration server as several replicas through Redis ([#171](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/171)) ([6998e26](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/6998e261aba86b8958430368f91966647e68b743))
+
+## [2.12.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.11.0...v2.12.0) (2026-10-18)
+
+
+### Features
+
+* **deploy:** ship content drafts and the collab service to production ([#170](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/170)) ([acabcee](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/acabcee6c89f553ac7eb737460cb870d48c234e0))
+
+## [2.11.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.10.2...v2.11.0) (2026-10-18)
+
+
+### Features
+
+* **billing:** calculate sales tax with Stripe Tax at checkout ([#172](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/172)) ([1c11e59](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1c11e590bffc07853711a8987cf1146667ae337d))
+
+
+### Bug Fixes
+
+* **marketing:** remove self-hosting claims from the security page ([#173](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/173)) ([16c93e5](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/16c93e55ac033f2899c03ed46ed2da4dbb7a816d))
+
 ## [2.10.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.10.1...v2.10.2) (2026-10-18)
 
 
@@ -308,7 +366,7 @@
 
 ### Features
 
-* port Postiz services to Screenshot Studio backend ([#57](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/57)) ([07a1e45](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/07a1e45f8c3a4046aee60e2100d93d666788e785))
+* add the social publishing services to the Screenshot Studio backend ([#57](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/57)) ([07a1e45](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/07a1e45f8c3a4046aee60e2100d93d666788e785))
 
 ## [1.9.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.8.2...v1.9.0) (2026-10-09)
 
@@ -414,7 +472,7 @@
 
 ### Features
 
-* **publishing:** complete Postiz Temporal parity ([#40](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/40)) ([e539ebc](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/e539ebc1d0b46a0eaad2927cc0ae0daaa1a14a32))
+* **publishing:** complete the Temporal publishing guarantees ([#40](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/40)) ([e539ebc](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/e539ebc1d0b46a0eaad2927cc0ae0daaa1a14a32))
 
 ## [1.4.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.3.2...v1.4.0) (2026-08-31)
 

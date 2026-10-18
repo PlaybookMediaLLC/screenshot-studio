@@ -22,7 +22,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/track"
 )
 
-// AgentGraphService is the part of agent/agent.graph.service.ts the posts
+// AgentGraphService is the part of the agent graph service the posts
 // controller uses (internal/agent).
 type AgentGraphService interface {
 	// Start is start(orgId, body): the LangGraph streamEvents stream. A
@@ -30,19 +30,19 @@ type AgentGraphService interface {
 	Start(ctx context.Context, orgID string, body *generator.GeneratorDto) iter.Seq2[any, error]
 }
 
-// AgentGraphInsertService is the part of agent/agent.graph.insert.service.ts
+// AgentGraphInsertService is the part of the agent graph insert service
 // the public controller uses (internal/agent).
 type AgentGraphInsertService interface {
 	NewPost(ctx context.Context, post string) (any, error)
 }
 
-// ShortLinkService is the part of short-linking/short.link.service.ts the
+// ShortLinkService is the part of the short link service the
 // posts controller uses (internal/shortlink).
 type ShortLinkService interface {
 	AskShortLinkedin(messages []string) bool
 }
 
-// TrackService is track/track.service.ts (internal/track).
+// TrackService is the track service (internal/track).
 type TrackService interface {
 	Track(ctx context.Context, uniqueID, ip, agent string, tt track.Enum, additional map[string]any, fbclid string, user *ent.User) error
 }
@@ -86,7 +86,7 @@ type AgentMemory interface {
 	ListThreads(ctx context.Context, resourceID string) ([]Thread, error)
 }
 
-// nullable turns a nil result into Nest's empty answer instead of JSON null
+// nullable turns a nil result into an empty response instead of JSON null
 // (a typed nil pointer would otherwise be encoded).
 func nullable[T any](v *T, err error) (any, error) {
 	if err != nil || v == nil {

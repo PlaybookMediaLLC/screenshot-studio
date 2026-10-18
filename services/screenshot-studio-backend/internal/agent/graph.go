@@ -1,4 +1,4 @@
-// Package agent is Postiz's libraries/nestjs-libraries/src/agent: the
+// Package agent is the post generation agent: the
 // LangGraph post generator streamed by POST /posts/generator
 // (AgentGraphService) and the popular posts classifier
 // (AgentGraphInsertService), run as plain Go steps over the OpenAI API.
@@ -580,7 +580,7 @@ var (
 	safetyMessage    = regexp.MustCompile(`(?i)safety system|safety_violations|content[ _]policy|rejected as a result of our safety|moderation`)
 )
 
-// generationError (openai/generation.error.ts) turns a provider error into a
+// generationError turns a provider error into a
 // user-facing HttpException, surfacing AI safety rejections.
 func generationError(err error) error {
 	if httpErr, ok := err.(*httpx.Error); ok {

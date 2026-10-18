@@ -1,4 +1,4 @@
-// Package kick ports kick.provider.ts and its (empty) KickDto.
+// Package kick is the Kick provider and its (empty) KickDto.
 package kick
 
 import (

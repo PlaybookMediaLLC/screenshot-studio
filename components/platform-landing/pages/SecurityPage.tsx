@@ -287,7 +287,6 @@ export function SecurityPage() {
 
       <Section>
         <SectionIntro
-          body="Self-hosting replaces any of them with your own."
           label="Providers"
           lead="The services the hosted platform runs on"
           trail="and what each one does."
@@ -321,10 +320,6 @@ export function SecurityPage() {
                 with the details. Please do not open a public issue for security reports.
               </>
             ),
-          },
-          {
-            q: 'Can we run it in our own cloud?',
-            a: 'Yes. Docker images and a Helm chart ship in the repository, so the whole platform can run on your infrastructure.',
           },
           {
             q: 'Who can see our workspace?',

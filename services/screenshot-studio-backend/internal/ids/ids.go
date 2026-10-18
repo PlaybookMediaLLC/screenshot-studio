@@ -1,5 +1,4 @@
-// Package ids generates Postiz's random identifiers (services/make.is.ts and
-// make.secure.id.ts).
+// Package ids generates random identifiers.
 package ids
 
 import (

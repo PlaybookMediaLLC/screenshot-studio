@@ -8,7 +8,7 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
-// GetCookieURLFromDomain is subdomain.management.ts getCookieUrlFromDomain:
+// GetCookieURLFromDomain returns the cookie domain for a URL:
 // tldts' registrable domain (ICANN rules only, its default) prefixed with a
 // dot, or the bare hostname when there is none (localhost, IPs).
 func GetCookieURLFromDomain(domain string) string {

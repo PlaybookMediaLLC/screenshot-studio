@@ -1,4 +1,4 @@
-// Package lemmy ports integrations/social/lemmy.provider.ts.
+// Package lemmy is the Lemmy provider.
 package lemmy
 
 import (

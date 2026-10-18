@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.19.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.18.0...v2.19.0) (2026-10-18)
+
+
+### Features
+
+* **drafts:** write a draft as the post it becomes ([#189](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/189)) ([4f36e45](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/4f36e458cdc9c3019b41bf3cfa6beb675eda45c2))
+
 ## [2.18.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.17.0...v2.18.0) (2026-10-18)
 
 

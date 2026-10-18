@@ -59,6 +59,8 @@ type Configuration struct {
 	capture     Capturer
 	// collabKey signs content draft collaboration tokens (RFC 037).
 	collabKey []byte
+	// agentClients finds the OAuth clients agents connect through (RFC 038).
+	agentClients AgentClients
 	// imageHost admits the hosts screenshots may be downloaded from; GitHub's by default.
 	imageHost func(string) bool
 	// web replaces the HTTP client for image downloads and readiness probes in tests.

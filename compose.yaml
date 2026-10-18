@@ -48,6 +48,8 @@ services:
       PLATFORM_DESIGN_RENDERER: ${PLATFORM_DESIGN_RENDERER:-}
       PLATFORM_RENDER_BASE_URL: http://localhost:3000
       PLATFORM_RENDER_CDP_URL: http://localhost:9222
+      # The MCP server Settings → AI agents shows (./bin/studio postiz-go-up serves it).
+      PLATFORM_MCP_URL: ${PLATFORM_MCP_URL:-http://localhost:3100/mcp}
       PUBLISHING_API_URL: ${PUBLISHING_API_URL:-http://publishing-backend:8080}
       PUBLISHING_SERVICE_TOKEN: ${PUBLISHING_SERVICE_TOKEN:-local-publishing-service}
       SCREENSHOT_API_URL: ${SCREENSHOT_API_URL:-https://api.microlink.io}
@@ -344,6 +346,19 @@ services:
       PORT: '3000'
       RUN_CRON: 'true'
       RUN_WORKER: 'true'
+      # The MCP server (RFC 038) serves the same domain as publishing-backend:
+      # its media bucket, its quota Redis, and its campaign rollout.
+      PLATFORM_MCP_URL: http://localhost:3100/mcp
+      PLATFORM_QUOTA_REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}
+      R2_ENDPOINT: ${R2_ENDPOINT:-http://rustfs:9000}
+      R2_BROWSER_ENDPOINT: http://localhost:9003
+      R2_REGION: ${R2_REGION:-us-east-1}
+      R2_FORCE_PATH_STYLE: ${R2_FORCE_PATH_STYLE:-true}
+      R2_BUCKET_NAME: ${R2_BUCKET_NAME:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      SCREENSHOT_API_URL: ${SCREENSHOT_API_URL:-https://api.microlink.io}
     ports:
       - '127.0.0.1:3100:3000'
       - '127.0.0.1:3102:3002'
@@ -354,6 +369,10 @@ services:
         condition: service_healthy
       postiz-go-temporal:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      rustfs-init:
+        condition: service_completed_successfully
 
 volumes:
   app_next_cache:

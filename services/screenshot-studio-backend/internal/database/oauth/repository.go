@@ -54,18 +54,6 @@ type CreateAuthorizationData struct {
 	RedirectURI         string
 }
 
-type CreateSelfHostedAuthorizationData struct {
-	OauthAppID          string
-	MCPURL              string
-	APIKey              string
-	Email               string
-	AuthorizationCode   string
-	CodeExpiresAt       time.Time
-	CodeChallenge       string
-	CodeChallengeMethod string
-	RedirectURI         string
-}
-
 // ExchangedToken is exchangeCodeForToken's select {organizationId,
 // organization: {paymentId}}.
 type ExchangedToken struct {
@@ -254,64 +242,4 @@ func (r *Repository) RevokeAllForApp(ctx context.Context, oauthAppID string) (in
 	return r.client.OAuthAuthorization.Update().
 		Where(oauthauthorization.OauthAppID(oauthAppID), oauthauthorization.RevokedAtIsNil()).
 		SetRevokedAt(time.Now()).Save(ctx)
-}
-
-// CreateSelfHostedAuthorization holds the instance API key, so only the id
-// comes back.
-func (r *Repository) CreateSelfHostedAuthorization(ctx context.Context, data CreateSelfHostedAuthorizationData) (string, error) {
-	row, err := r.client.OAuthSelfHostedAuthorization.Create().
-		SetOauthAppID(data.OauthAppID).SetMcpURL(data.MCPURL).SetAPIKey(data.APIKey).
-		SetNillableEmail(orNil(data.Email)).
-		SetAuthorizationCode(data.AuthorizationCode).SetCodeExpiresAt(data.CodeExpiresAt).
-		SetNillableCodeChallenge(orNil(data.CodeChallenge)).
-		SetNillableCodeChallengeMethod(orNil(data.CodeChallengeMethod)).
-		SetNillableRedirectURI(orNil(data.RedirectURI)).
-		Save(ctx)
-	if err != nil {
-		return "", err
-	}
-	return row.ID, nil
-}
-
-// DeleteAbandonedSelfHostedAuthorizations: abandoned consent flows leave
-// rows (and API keys) that never got a token.
-func (r *Repository) DeleteAbandonedSelfHostedAuthorizations(ctx context.Context, olderThan time.Time) (int, error) {
-	return r.client.OAuthSelfHostedAuthorization.Delete().Where(
-		oauthselfhostedauthorization.AccessTokenIsNil(),
-		oauthselfhostedauthorization.CreatedAtLT(olderThan),
-	).Exec(ctx)
-}
-
-func (r *Repository) FindSelfHostedByCode(ctx context.Context, encryptedCode string) (*ent.OAuthSelfHostedAuthorization, error) {
-	return first(r.client.OAuthSelfHostedAuthorization.Query().
-		Where(oauthselfhostedauthorization.AuthorizationCode(encryptedCode), oauthselfhostedauthorization.RevokedAtIsNil()).
-		Select(oauthselfhostedauthorization.FieldID, oauthselfhostedauthorization.FieldOauthAppID,
-			oauthselfhostedauthorization.FieldCodeExpiresAt, oauthselfhostedauthorization.FieldCodeChallenge,
-			oauthselfhostedauthorization.FieldRedirectURI).
-		First(ctx))
-}
-
-func (r *Repository) ExchangeSelfHostedCodeForToken(ctx context.Context, id, encryptedToken string) error {
-	return r.client.OAuthSelfHostedAuthorization.UpdateOneID(id).
-		SetAccessToken(encryptedToken).
-		ClearAuthorizationCode().ClearCodeExpiresAt().ClearCodeChallenge().ClearCodeChallengeMethod().ClearRedirectURI().
-		Exec(ctx)
-}
-
-func (r *Repository) FindSelfHostedByAccessToken(ctx context.Context, encryptedToken string) (*ent.OAuthSelfHostedAuthorization, error) {
-	return first(r.client.OAuthSelfHostedAuthorization.Query().
-		Where(oauthselfhostedauthorization.AccessToken(encryptedToken), oauthselfhostedauthorization.RevokedAtIsNil()).
-		Select(oauthselfhostedauthorization.FieldID, oauthselfhostedauthorization.FieldMcpURL, oauthselfhostedauthorization.FieldAPIKey).
-		First(ctx))
-}
-
-func (r *Repository) FindSelfHostedUserInfo(ctx context.Context, encryptedToken string) (*ent.OAuthSelfHostedAuthorization, error) {
-	return first(r.client.OAuthSelfHostedAuthorization.Query().
-		Where(oauthselfhostedauthorization.AccessToken(encryptedToken), oauthselfhostedauthorization.RevokedAtIsNil()).
-		WithOauthApp().
-		First(ctx))
-}
-
-func (r *Repository) DeleteSelfHostedAuthorization(ctx context.Context, id string) (int, error) {
-	return r.client.OAuthSelfHostedAuthorization.Delete().Where(oauthselfhostedauthorization.ID(id)).Exec(ctx)
 }

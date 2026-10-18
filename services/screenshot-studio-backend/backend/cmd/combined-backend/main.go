@@ -42,7 +42,7 @@ func run(ctx context.Context) error {
 		exec.Command("/publishing-orchestrator"),
 		exec.Command("/publishing-backend"),
 	}
-	children[0].Env = os.Environ()
+	children[0].Env = socialEnv(os.Environ())
 	children[1].Env = tenantEnv
 	children[2].Env = withPort(tenantEnv, "8082")
 	started := make([]*exec.Cmd, 0, len(children))
@@ -135,6 +135,24 @@ func publishingEnv(environ []string) ([]string, error) {
 		return nil, errors.New("direct publishing requires social and tenant Ent clients to use one PostgreSQL database")
 	}
 	return result, nil
+}
+
+// mcpPlatformKeys are the tenant settings the social process's MCP server
+// needs to serve the same domain as the tenant API: the private media bucket,
+// the campaign workflow rollout, and the screenshot API (RFC 038).
+var mcpPlatformKeys = []string{"R2_ENDPOINT", "R2_BROWSER_ENDPOINT", "R2_REGION", "R2_FORCE_PATH_STYLE", "R2_BUCKET_NAME",
+	"R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "PLATFORM_CAMPAIGN_WORKFLOW", "SCREENSHOT_API_URL", "SCREENSHOT_API_KEY"}
+
+// socialEnv is the social process's environment plus the tenant's MCP
+// platform settings it does not set itself.
+func socialEnv(environ []string) []string {
+	result := append([]string{}, environ...)
+	for _, key := range mcpPlatformKeys {
+		if value := envValue(environ, tenantPrefix+key); value != "" && !hasEnv(environ, key) {
+			result = append(result, key+"="+value)
+		}
+	}
+	return result
 }
 
 func envValue(environ []string, key string) string {

@@ -108,6 +108,7 @@ See [docs/editor-platform.md](docs/editor-platform.md).
 - Paid plans only (Pro, Business, Enterprise) through Stripe Checkout and the billing portal, with metered AI credits and extra-launch credit packs; a workspace without a subscription has no access
 - Launch intelligence: a release becomes a cited launch brief, a plan, visuals, and per-channel copy, each reviewed by a teammate (included in every paid plan through the `campaign:workflow` feature)
 - Interactive API reference at `/api-reference` (Scalar), generated from the OpenAPI 3.1 contract at `/openapi.json`
+- An MCP server for AI agents on the Go backend (`/mcp`): Claude Code, Claude.ai, ChatGPT, Cursor, VS Code, and other clients connect with a workspace API key or OAuth; setup guides at `/docs/agents`. In Claude Code, `/plugin install shots --marketplace PlaybookMediaLLC/screenshot-studio` adds the server and a launch skill.
 
 ## Roadmap
 
@@ -153,7 +154,7 @@ Status as of 2026-10-16: done, including the campaign UI for steps 2, 3, and 5 (
    - Approval records who approved a post and when.
    - Revising an approved post sends it back to draft.
    - Revising a live scheduled or published post is refused.
-4. **Security check**, done: approvals and scheduling refuse API-key, service, webhook, and support actors in the backend itself, with a test for every entrypoint.
+4. **Security check**, done: approvals refuse API-key, service, webhook, and support actors in the backend itself, with a test for every entrypoint. Scheduling admits only a publisher's session or a key the backend finds holds `post:schedule` (RFC 038).
 5. **Launch runs** ([004](docs/rfcs/004-trigger-dev-background-jobs.md))
    - Done: the database enforces one active run per kind.
    - Done: runs carry a heartbeat lease, so a dead run fails within minutes.

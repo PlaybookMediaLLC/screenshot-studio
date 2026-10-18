@@ -11,8 +11,7 @@ type AuthorizeOAuthQueryDto struct {
 	// were always ignored; only dynamic clients get S256 enforced (in the service)
 	CodeChallengeMethod string `json:"code_challenge_method,omitempty" query:"code_challenge_method"`
 	Scope               string `json:"scope,omitempty" query:"scope"`
-	// RFC 8707 resource indicator sent by MCP clients, only used to tell if
-	// the connection can be relayed to a self-hosted instance
+	// RFC 8707 resource indicator sent by MCP clients
 	Resource string `json:"resource,omitempty" query:"resource"`
 }
 
@@ -24,23 +23,6 @@ type ApproveOAuthDto struct {
 	CodeChallenge string `json:"code_challenge,omitempty"`
 	// Not validated with IsIn, same as AuthorizeOAuthQueryDto
 	CodeChallengeMethod string `json:"code_challenge_method,omitempty"`
-}
-
-type AuthorizeSelfHostedDto struct {
-	ClientID            string `json:"client_id" validate:"required"`
-	State               string `json:"state,omitempty"`
-	RedirectURI         string `json:"redirect_uri,omitempty"`
-	CodeChallenge       string `json:"code_challenge,omitempty"`
-	CodeChallengeMethod string `json:"code_challenge_method,omitempty"`
-	Resource            string `json:"resource,omitempty"`
-	// The instance as the person knows it: its address, its backend address or
-	// the MCP URL from Settings > Agents (resolved in McpRelayService)
-	InstanceURL string `json:"instance_url" validate:"required,max=2048"`
-	// Optional because the MCP URL from Settings > Agents carries the key
-	APIKey string `json:"api_key,omitempty" validate:"omitempty,max=512"`
-	// Required (in the controller) for clients that read the email from
-	// userinfo, like ChatGPT
-	Email string `json:"email,omitempty" validate:"omitempty,email"`
 }
 
 type CreateOAuthAppDto struct {

@@ -696,6 +696,28 @@ export type BackendApprovalPage = {
   nextCursor: string | null
 }
 
+/**
+ * An OAuth authorization request from an AI agent's client, as the consent
+ * page received it, plus the scopes and key lifetime the member chose.
+ */
+export type BackendAgentAuthorizationRequest = {
+  clientId: string
+  codeChallenge?: string
+  codeChallengeMethod?: string
+  expiresInDays?: number
+  redirectUri: string
+  resource?: string
+  scopes: string[]
+}
+
+/** What the agent consent page shows: the client and where the code goes. */
+export type BackendAgentConsent = {
+  clientId: string
+  clientName: string
+  redirectHost: string
+  redirectUri: string
+}
+
 export type BackendDesign = {
   /** The newest approved render. It differs from `renderedAssetId` after a re-render. */
   approvedVariant: { id: string; sourceAssetId: string } | null
@@ -1966,6 +1988,29 @@ export class ScreenshotStudioBackendSDK {
 
   async createCampaign(input: BackendCreateCampaignInput) {
     return this.request<BackendCampaignCreation>('v1/campaigns', { body: input, method: 'POST' })
+  }
+
+  /**
+   * Validates an AI agent's OAuth request before the consent page shows it.
+   * Only a signed-in owner or admin may connect an agent.
+   */
+  async previewAgentAuthorization(input: BackendAgentAuthorizationRequest) {
+    return this.request<BackendAgentConsent>('v1/agent-authorizations/preview', {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  /**
+   * Records the member's consent and returns a single-use code; the agent
+   * exchanges it at the MCP server's /oauth/token for a workspace API key with
+   * exactly these scopes (RFC 038).
+   */
+  async approveAgentAuthorization(input: BackendAgentAuthorizationRequest) {
+    return this.request<{ code: string; redirectUri: string }>('v1/agent-authorizations', {
+      body: input,
+      method: 'POST',
+    })
   }
 
   /** The review queue: posts waiting for a reviewer's decision, oldest first. */

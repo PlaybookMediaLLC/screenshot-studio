@@ -190,6 +190,26 @@ func (_u *ApikeyUpdate) ClearPermissions() *ApikeyUpdate {
 	return _u
 }
 
+// SetMetadata sets the "metadata" field.
+func (_u *ApikeyUpdate) SetMetadata(v string) *ApikeyUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
+}
+
+// SetNillableMetadata sets the "metadata" field if the given value is not nil.
+func (_u *ApikeyUpdate) SetNillableMetadata(v *string) *ApikeyUpdate {
+	if v != nil {
+		_u.SetMetadata(*v)
+	}
+	return _u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (_u *ApikeyUpdate) ClearMetadata() *ApikeyUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *ApikeyUpdate) SetCreatedAt(v time.Time) *ApikeyUpdate {
 	_u.mutation.SetCreatedAt(v)
@@ -303,6 +323,12 @@ func (_u *ApikeyUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.PermissionsCleared() {
 		_spec.ClearField(apikey.FieldPermissions, field.TypeString)
+	}
+	if value, ok := _u.mutation.Metadata(); ok {
+		_spec.SetField(apikey.FieldMetadata, field.TypeString, value)
+	}
+	if _u.mutation.MetadataCleared() {
+		_spec.ClearField(apikey.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(apikey.FieldCreatedAt, field.TypeTime, value)
@@ -492,6 +518,26 @@ func (_u *ApikeyUpdateOne) ClearPermissions() *ApikeyUpdateOne {
 	return _u
 }
 
+// SetMetadata sets the "metadata" field.
+func (_u *ApikeyUpdateOne) SetMetadata(v string) *ApikeyUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
+}
+
+// SetNillableMetadata sets the "metadata" field if the given value is not nil.
+func (_u *ApikeyUpdateOne) SetNillableMetadata(v *string) *ApikeyUpdateOne {
+	if v != nil {
+		_u.SetMetadata(*v)
+	}
+	return _u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (_u *ApikeyUpdateOne) ClearMetadata() *ApikeyUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *ApikeyUpdateOne) SetCreatedAt(v time.Time) *ApikeyUpdateOne {
 	_u.mutation.SetCreatedAt(v)
@@ -635,6 +681,12 @@ func (_u *ApikeyUpdateOne) sqlSave(ctx context.Context) (_node *Apikey, err erro
 	}
 	if _u.mutation.PermissionsCleared() {
 		_spec.ClearField(apikey.FieldPermissions, field.TypeString)
+	}
+	if value, ok := _u.mutation.Metadata(); ok {
+		_spec.SetField(apikey.FieldMetadata, field.TypeString, value)
+	}
+	if _u.mutation.MetadataCleared() {
+		_spec.ClearField(apikey.FieldMetadata, field.TypeString)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(apikey.FieldCreatedAt, field.TypeTime, value)

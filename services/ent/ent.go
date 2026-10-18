@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/agentauthorization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
@@ -142,6 +143,7 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			agentauthorization.Table:             agentauthorization.ValidColumn,
 			apikey.Table:                         apikey.ValidColumn,
 			approval.Table:                       approval.ValidColumn,
 			asset.Table:                          asset.ValidColumn,

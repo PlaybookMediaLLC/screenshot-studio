@@ -34,6 +34,16 @@ the old `design-renderer` component and requires `PLATFORM_RENDER_CDP_URL`
 (`wss://api.cloudflare.com/client/v4/accounts/<account>/browser-run/devtools/browser?keep_alive=600000`)
 and `PLATFORM_RENDER_CDP_TOKEN` (a Cloudflare API token with Browser Rendering
 Edit) in Infisical.
+
+The MCP server (RFC 038) runs in `screenshot-studio-backend` and is public at
+`https://shots-mcp.playbookmedia.io/mcp`. Set `PLATFORM_MCP_URL` to that URL
+in Infisical. The renderer then adds the host as an alias domain and, on that
+host only, routes the MCP and OAuth paths (`/mcp*`, `/.well-known`, `/oauth`)
+to the backend ahead of the web; OAuth discovery reads metadata from the host
+root. The backend has no other public route. Point a `CNAME` for `shots-mcp.playbookmedia.io`
+at the app's default domain. App Platform issues the certificate once the name
+resolves.
+
 See DigitalOcean's [internal routing documentation](https://docs.digitalocean.com/products/app-platform/how-to/manage-internal-routing/)
 and [app spec reference](https://docs.digitalocean.com/products/app-platform/reference/app-spec/).
 

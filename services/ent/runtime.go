@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/agentauthorization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
@@ -85,6 +86,12 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	agentauthorizationFields := schema.AgentAuthorization{}.Fields()
+	_ = agentauthorizationFields
+	// agentauthorizationDescCreatedAt is the schema descriptor for created_at field.
+	agentauthorizationDescCreatedAt := agentauthorizationFields[15].Descriptor()
+	// agentauthorization.DefaultCreatedAt holds the default value on creation for the created_at field.
+	agentauthorization.DefaultCreatedAt = agentauthorizationDescCreatedAt.Default.(func() time.Time)
 	apikeyFields := schema.Apikey{}.Fields()
 	_ = apikeyFields
 	// apikeyDescConfigID is the schema descriptor for config_id field.

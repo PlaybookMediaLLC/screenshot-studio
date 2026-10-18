@@ -12,6 +12,19 @@ import { organizationProcedure } from '../procedures'
 
 const dayInSeconds = 24 * 60 * 60
 
+/** An agent connected through OAuth keeps its client's name in the key metadata (RFC 038). */
+function agentClientOf(metadata: unknown): string | null {
+  try {
+    const parsed: unknown = typeof metadata === 'string' ? JSON.parse(metadata) : metadata
+    if (parsed && typeof parsed === 'object' && 'source' in parsed && parsed.source === 'agent') {
+      return 'clientName' in parsed && typeof parsed.clientName === 'string' ? parsed.clientName : 'AI agent'
+    }
+  } catch {
+    // Metadata Better Auth wrote for other keys is not ours to read.
+  }
+  return null
+}
+
 function getPermissions(scopes: readonly (keyof typeof apiKeyScopePermissions)[]) {
   return scopes.reduce<Record<string, string[]>>((permissions, scope) => {
     const [resource, actions] = Object.entries(apiKeyScopePermissions[scope])[0] ?? []
@@ -25,7 +38,7 @@ export const apiKeyRouter = router({
     const { rows } = await serviceBackend().authStore({
       model: 'apikey',
       op: 'findMany',
-      select: ['createdAt', 'enabled', 'expiresAt', 'id', 'name', 'prefix', 'start'],
+      select: ['createdAt', 'enabled', 'expiresAt', 'id', 'metadata', 'name', 'prefix', 'start'],
       sortBy: { direction: 'desc', field: 'createdAt' },
       where: [{ field: 'referenceId', value: ctx.access.organizationId }],
     })
@@ -35,11 +48,12 @@ export const apiKeyRouter = router({
         enabled: boolean | null
         expiresAt: string | null
         id: string
+        metadata: unknown
         name: string | null
         prefix: string | null
         start: string | null
       }[]
-    )
+    ).map(({ metadata, ...key }) => ({ ...key, agentClient: agentClientOf(metadata) }))
     return { keys }
   }),
   create: organizationProcedure('brand:manage')

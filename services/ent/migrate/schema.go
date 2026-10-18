@@ -9,6 +9,43 @@ import (
 )
 
 var (
+	// AgentAuthorizationColumns holds the columns for the "agent_authorization" table.
+	AgentAuthorizationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "userId", Type: field.TypeString},
+		{Name: "clientId", Type: field.TypeString},
+		{Name: "clientName", Type: field.TypeString},
+		{Name: "redirectUri", Type: field.TypeString},
+		{Name: "codeHash", Type: field.TypeString},
+		{Name: "codeChallenge", Type: field.TypeString, Nullable: true},
+		{Name: "codeChallengeMethod", Type: field.TypeString, Nullable: true},
+		{Name: "scopes", Type: field.TypeJSON},
+		{Name: "resource", Type: field.TypeString, Nullable: true},
+		{Name: "keyExpiresInDays", Type: field.TypeInt, Nullable: true},
+		{Name: "expiresAt", Type: field.TypeTime},
+		{Name: "exchangedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "apiKeyId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// AgentAuthorizationTable holds the schema information for the "agent_authorization" table.
+	AgentAuthorizationTable = &schema.Table{
+		Name:       "agent_authorization",
+		Columns:    AgentAuthorizationColumns,
+		PrimaryKey: []*schema.Column{AgentAuthorizationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "agentauthorization_codeHash",
+				Unique:  true,
+				Columns: []*schema.Column{AgentAuthorizationColumns[6]},
+			},
+			{
+				Name:    "agentauthorization_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{AgentAuthorizationColumns[1], AgentAuthorizationColumns[15]},
+			},
+		},
+	}
 	// ApikeyColumns holds the columns for the "apikey" table.
 	ApikeyColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -21,6 +58,7 @@ var (
 		{Name: "enabled", Type: field.TypeBool, Nullable: true},
 		{Name: "expiresAt", Type: field.TypeTime, Nullable: true},
 		{Name: "permissions", Type: field.TypeString, Nullable: true},
+		{Name: "metadata", Type: field.TypeString, Nullable: true},
 		{Name: "createdAt", Type: field.TypeTime},
 		{Name: "updatedAt", Type: field.TypeTime},
 	}
@@ -2164,6 +2202,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AgentAuthorizationTable,
 		ApikeyTable,
 		ApprovalTable,
 		AssetTable,
@@ -2238,6 +2277,9 @@ var (
 )
 
 func init() {
+	AgentAuthorizationTable.Annotation = &entsql.Annotation{
+		Table: "agent_authorization",
+	}
 	ApikeyTable.Annotation = &entsql.Annotation{
 		Table: "apikey",
 	}

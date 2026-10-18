@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
@@ -52,4 +53,44 @@ func (c *Configuration) CreateScheduledPost(ctx context.Context, actor Actor,
 		refund()
 	}
 	return result, err
+}
+
+// ListScheduledPosts reads the schedule, newest first, for a publisher's
+// session or an API key. The caller checked the key's artifact:read scope, as
+// for every read.
+func (c *Configuration) ListScheduledPosts(ctx context.Context, actor Actor, limit int) ([]*ent.ScheduledPost, error) {
+	if !actor.IsSession() && actor.Kind != "api_key" {
+		return nil, publishing.ErrForbidden
+	}
+	if err := c.authorizeRoles(ctx, actor, "owner", "admin", "publisher"); err != nil {
+		return nil, err
+	}
+	return c.auth.ListScheduledPosts(ctx, actor.OrganizationID, limit)
+}
+
+// CancelScheduledPost cancels a post that has not started publishing. Its
+// workflow, if one is waiting, ends at its claim, which needs SCHEDULED.
+func (c *Configuration) CancelScheduledPost(ctx context.Context, actor Actor, id string) (*ent.ScheduledPost, error) {
+	if err := c.authorizeScheduling(ctx, actor); err != nil {
+		return nil, err
+	}
+	return c.auth.CancelScheduledPost(ctx, actor.auditActor(), id)
+}
+
+// ScheduledPostView is a scheduled post as /v1 and MCP return it, with its
+// channel connection when it was loaded.
+func ScheduledPostView(post *ent.ScheduledPost) map[string]any {
+	response := map[string]any{
+		"id": post.ID, "caption": post.Caption, "channelConnectionId": post.ChannelConnectionID,
+		"createdAt": post.CreatedAt, "scheduledFor": post.ScheduledFor, "status": post.Status,
+		"updatedAt": post.UpdatedAt, "variantId": post.VariantID, "contentDraftId": post.ContentDraftID,
+	}
+	if connection, err := post.Edges.ChannelConnectionOrErr(); err == nil {
+		response["channelConnection"] = map[string]any{
+			"externalAccountId": connection.ExternalAccountID,
+			"platform":          connection.Platform,
+			"provider":          connection.Provider,
+		}
+	}
+	return response
 }

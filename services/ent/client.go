@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/agentauthorization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
@@ -92,6 +93,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// AgentAuthorization is the client for interacting with the AgentAuthorization builders.
+	AgentAuthorization *AgentAuthorizationClient
 	// Apikey is the client for interacting with the Apikey builders.
 	Apikey *ApikeyClient
 	// Approval is the client for interacting with the Approval builders.
@@ -243,6 +246,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.AgentAuthorization = NewAgentAuthorizationClient(c.config)
 	c.Apikey = NewApikeyClient(c.config)
 	c.Approval = NewApprovalClient(c.config)
 	c.Asset = NewAssetClient(c.config)
@@ -405,6 +409,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:                            ctx,
 		config:                         cfg,
+		AgentAuthorization:             NewAgentAuthorizationClient(cfg),
 		Apikey:                         NewApikeyClient(cfg),
 		Approval:                       NewApprovalClient(cfg),
 		Asset:                          NewAssetClient(cfg),
@@ -494,6 +499,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:                            ctx,
 		config:                         cfg,
+		AgentAuthorization:             NewAgentAuthorizationClient(cfg),
 		Apikey:                         NewApikeyClient(cfg),
 		Approval:                       NewApprovalClient(cfg),
 		Asset:                          NewAssetClient(cfg),
@@ -570,7 +576,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Apikey.
+//		AgentAuthorization.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -593,19 +599,19 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Apikey, c.Approval, c.Asset, c.AudienceSubscriber, c.AuditDrain,
-		c.AuditDrainDelivery, c.AuditLog, c.AuditOutbox, c.AuditRetentionPolicy,
-		c.BillingEntitlementEvent, c.BrandKit, c.BrandProfile, c.Campaign,
-		c.CampaignAsset, c.CampaignPlan, c.CampaignPost, c.CampaignRevision,
-		c.ChannelConnection, c.CommunicationAttempt, c.CommunicationRecipient,
-		c.ContentAngle, c.ContentDraft, c.Conversation, c.ConversationMessage,
-		c.CreativeTemplate, c.CreativeVariant, c.CustomerCommunication,
-		c.DeploymentEvent, c.Design, c.EnrichmentRecord, c.GitHubInstallStart,
-		c.GitHubInstallation, c.IdealCustomerProfile, c.IntegrationConnection,
-		c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member, c.OnboardingRun,
-		c.Organization, c.OrganizationEnterpriseSettings, c.OutboxEvent,
-		c.PageKnowledge, c.PostizTenantBinding, c.ProductProfile, c.ProductSurface,
-		c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
+		c.AgentAuthorization, c.Apikey, c.Approval, c.Asset, c.AudienceSubscriber,
+		c.AuditDrain, c.AuditDrainDelivery, c.AuditLog, c.AuditOutbox,
+		c.AuditRetentionPolicy, c.BillingEntitlementEvent, c.BrandKit, c.BrandProfile,
+		c.Campaign, c.CampaignAsset, c.CampaignPlan, c.CampaignPost,
+		c.CampaignRevision, c.ChannelConnection, c.CommunicationAttempt,
+		c.CommunicationRecipient, c.ContentAngle, c.ContentDraft, c.Conversation,
+		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
+		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
+		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
+		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
+		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
+		c.OutboxEvent, c.PageKnowledge, c.PostizTenantBinding, c.ProductProfile,
+		c.ProductSurface, c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
 		c.ReleaseDocument, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
 		c.Session, c.ShareLink, c.SocialOAuthStart, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
@@ -621,19 +627,19 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Apikey, c.Approval, c.Asset, c.AudienceSubscriber, c.AuditDrain,
-		c.AuditDrainDelivery, c.AuditLog, c.AuditOutbox, c.AuditRetentionPolicy,
-		c.BillingEntitlementEvent, c.BrandKit, c.BrandProfile, c.Campaign,
-		c.CampaignAsset, c.CampaignPlan, c.CampaignPost, c.CampaignRevision,
-		c.ChannelConnection, c.CommunicationAttempt, c.CommunicationRecipient,
-		c.ContentAngle, c.ContentDraft, c.Conversation, c.ConversationMessage,
-		c.CreativeTemplate, c.CreativeVariant, c.CustomerCommunication,
-		c.DeploymentEvent, c.Design, c.EnrichmentRecord, c.GitHubInstallStart,
-		c.GitHubInstallation, c.IdealCustomerProfile, c.IntegrationConnection,
-		c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member, c.OnboardingRun,
-		c.Organization, c.OrganizationEnterpriseSettings, c.OutboxEvent,
-		c.PageKnowledge, c.PostizTenantBinding, c.ProductProfile, c.ProductSurface,
-		c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
+		c.AgentAuthorization, c.Apikey, c.Approval, c.Asset, c.AudienceSubscriber,
+		c.AuditDrain, c.AuditDrainDelivery, c.AuditLog, c.AuditOutbox,
+		c.AuditRetentionPolicy, c.BillingEntitlementEvent, c.BrandKit, c.BrandProfile,
+		c.Campaign, c.CampaignAsset, c.CampaignPlan, c.CampaignPost,
+		c.CampaignRevision, c.ChannelConnection, c.CommunicationAttempt,
+		c.CommunicationRecipient, c.ContentAngle, c.ContentDraft, c.Conversation,
+		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
+		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
+		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
+		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
+		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
+		c.OutboxEvent, c.PageKnowledge, c.PostizTenantBinding, c.ProductProfile,
+		c.ProductSurface, c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
 		c.ReleaseDocument, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
 		c.Session, c.ShareLink, c.SocialOAuthStart, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
@@ -648,6 +654,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *AgentAuthorizationMutation:
+		return c.AgentAuthorization.mutate(ctx, m)
 	case *ApikeyMutation:
 		return c.Apikey.mutate(ctx, m)
 	case *ApprovalMutation:
@@ -790,6 +798,139 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.WorkspaceSettings.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// AgentAuthorizationClient is a client for the AgentAuthorization schema.
+type AgentAuthorizationClient struct {
+	config
+}
+
+// NewAgentAuthorizationClient returns a client for the AgentAuthorization from the given config.
+func NewAgentAuthorizationClient(c config) *AgentAuthorizationClient {
+	return &AgentAuthorizationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `agentauthorization.Hooks(f(g(h())))`.
+func (c *AgentAuthorizationClient) Use(hooks ...Hook) {
+	c.hooks.AgentAuthorization = append(c.hooks.AgentAuthorization, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `agentauthorization.Intercept(f(g(h())))`.
+func (c *AgentAuthorizationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AgentAuthorization = append(c.inters.AgentAuthorization, interceptors...)
+}
+
+// Create returns a builder for creating a AgentAuthorization entity.
+func (c *AgentAuthorizationClient) Create() *AgentAuthorizationCreate {
+	mutation := newAgentAuthorizationMutation(c.config, OpCreate)
+	return &AgentAuthorizationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AgentAuthorization entities.
+func (c *AgentAuthorizationClient) CreateBulk(builders ...*AgentAuthorizationCreate) *AgentAuthorizationCreateBulk {
+	return &AgentAuthorizationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AgentAuthorizationClient) MapCreateBulk(slice any, setFunc func(*AgentAuthorizationCreate, int)) *AgentAuthorizationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AgentAuthorizationCreateBulk{err: fmt.Errorf("calling to AgentAuthorizationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AgentAuthorizationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AgentAuthorizationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AgentAuthorization.
+func (c *AgentAuthorizationClient) Update() *AgentAuthorizationUpdate {
+	mutation := newAgentAuthorizationMutation(c.config, OpUpdate)
+	return &AgentAuthorizationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AgentAuthorizationClient) UpdateOne(_m *AgentAuthorization) *AgentAuthorizationUpdateOne {
+	mutation := newAgentAuthorizationMutation(c.config, OpUpdateOne, withAgentAuthorization(_m))
+	return &AgentAuthorizationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AgentAuthorizationClient) UpdateOneID(id string) *AgentAuthorizationUpdateOne {
+	mutation := newAgentAuthorizationMutation(c.config, OpUpdateOne, withAgentAuthorizationID(id))
+	return &AgentAuthorizationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AgentAuthorization.
+func (c *AgentAuthorizationClient) Delete() *AgentAuthorizationDelete {
+	mutation := newAgentAuthorizationMutation(c.config, OpDelete)
+	return &AgentAuthorizationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AgentAuthorizationClient) DeleteOne(_m *AgentAuthorization) *AgentAuthorizationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AgentAuthorizationClient) DeleteOneID(id string) *AgentAuthorizationDeleteOne {
+	builder := c.Delete().Where(agentauthorization.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AgentAuthorizationDeleteOne{builder}
+}
+
+// Query returns a query builder for AgentAuthorization.
+func (c *AgentAuthorizationClient) Query() *AgentAuthorizationQuery {
+	return &AgentAuthorizationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAgentAuthorization},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AgentAuthorization entity by its id.
+func (c *AgentAuthorizationClient) Get(ctx context.Context, id string) (*AgentAuthorization, error) {
+	return c.Query().Where(agentauthorization.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AgentAuthorizationClient) GetX(ctx context.Context, id string) *AgentAuthorization {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AgentAuthorizationClient) Hooks() []Hook {
+	return c.hooks.AgentAuthorization
+}
+
+// Interceptors returns the client interceptors.
+func (c *AgentAuthorizationClient) Interceptors() []Interceptor {
+	return c.inters.AgentAuthorization
+}
+
+func (c *AgentAuthorizationClient) mutate(ctx context.Context, m *AgentAuthorizationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AgentAuthorizationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AgentAuthorizationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AgentAuthorizationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AgentAuthorizationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AgentAuthorization mutation op: %q", m.Op())
 	}
 }
 
@@ -10234,40 +10375,41 @@ func (c *WorkspaceSettingsClient) mutate(ctx context.Context, m *WorkspaceSettin
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Apikey, Approval, Asset, AudienceSubscriber, AuditDrain, AuditDrainDelivery,
-		AuditLog, AuditOutbox, AuditRetentionPolicy, BillingEntitlementEvent, BrandKit,
-		BrandProfile, Campaign, CampaignAsset, CampaignPlan, CampaignPost,
-		CampaignRevision, ChannelConnection, CommunicationAttempt,
-		CommunicationRecipient, ContentAngle, ContentDraft, Conversation,
-		ConversationMessage, CreativeTemplate, CreativeVariant, CustomerCommunication,
-		DeploymentEvent, Design, EnrichmentRecord, GitHubInstallStart,
-		GitHubInstallation, IdealCustomerProfile, IntegrationConnection, Invitation,
-		LaunchRun, LaunchRunStep, Member, OnboardingRun, Organization,
-		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
-		PostizTenantBinding, ProductProfile, ProductSurface, Project, ProjectVersion,
-		PublicationAttempt, Release, ReleaseDocument, ReleaseSpec, ScheduledPost,
-		ScreenshotCache, Session, ShareLink, SocialOAuthStart, SourceApp, SourceChange,
-		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
-		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
-		WorkspaceEntitlement, WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
+		AgentAuthorization, Apikey, Approval, Asset, AudienceSubscriber, AuditDrain,
+		AuditDrainDelivery, AuditLog, AuditOutbox, AuditRetentionPolicy,
+		BillingEntitlementEvent, BrandKit, BrandProfile, Campaign, CampaignAsset,
+		CampaignPlan, CampaignPost, CampaignRevision, ChannelConnection,
+		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentDraft,
+		Conversation, ConversationMessage, CreativeTemplate, CreativeVariant,
+		CustomerCommunication, DeploymentEvent, Design, EnrichmentRecord,
+		GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
+		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
+		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
+		PageKnowledge, PostizTenantBinding, ProductProfile, ProductSurface, Project,
+		ProjectVersion, PublicationAttempt, Release, ReleaseDocument, ReleaseSpec,
+		ScheduledPost, ScreenshotCache, Session, ShareLink, SocialOAuthStart,
+		SourceApp, SourceChange, StorePublishingCredential, StoreReview,
+		StoreReviewComment, SupportAccessGrant, SurfaceCapture, User,
+		WorkspaceCreditGrant, WorkspaceDeletion, WorkspaceEntitlement,
+		WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
 	}
 	inters struct {
-		Apikey, Approval, Asset, AudienceSubscriber, AuditDrain, AuditDrainDelivery,
-		AuditLog, AuditOutbox, AuditRetentionPolicy, BillingEntitlementEvent, BrandKit,
-		BrandProfile, Campaign, CampaignAsset, CampaignPlan, CampaignPost,
-		CampaignRevision, ChannelConnection, CommunicationAttempt,
-		CommunicationRecipient, ContentAngle, ContentDraft, Conversation,
-		ConversationMessage, CreativeTemplate, CreativeVariant, CustomerCommunication,
-		DeploymentEvent, Design, EnrichmentRecord, GitHubInstallStart,
-		GitHubInstallation, IdealCustomerProfile, IntegrationConnection, Invitation,
-		LaunchRun, LaunchRunStep, Member, OnboardingRun, Organization,
-		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
-		PostizTenantBinding, ProductProfile, ProductSurface, Project, ProjectVersion,
-		PublicationAttempt, Release, ReleaseDocument, ReleaseSpec, ScheduledPost,
-		ScreenshotCache, Session, ShareLink, SocialOAuthStart, SourceApp, SourceChange,
-		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
-		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
-		WorkspaceEntitlement, WorkspaceGitHubInstallation,
-		WorkspaceSettings []ent.Interceptor
+		AgentAuthorization, Apikey, Approval, Asset, AudienceSubscriber, AuditDrain,
+		AuditDrainDelivery, AuditLog, AuditOutbox, AuditRetentionPolicy,
+		BillingEntitlementEvent, BrandKit, BrandProfile, Campaign, CampaignAsset,
+		CampaignPlan, CampaignPost, CampaignRevision, ChannelConnection,
+		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentDraft,
+		Conversation, ConversationMessage, CreativeTemplate, CreativeVariant,
+		CustomerCommunication, DeploymentEvent, Design, EnrichmentRecord,
+		GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
+		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
+		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
+		PageKnowledge, PostizTenantBinding, ProductProfile, ProductSurface, Project,
+		ProjectVersion, PublicationAttempt, Release, ReleaseDocument, ReleaseSpec,
+		ScheduledPost, ScreenshotCache, Session, ShareLink, SocialOAuthStart,
+		SourceApp, SourceChange, StorePublishingCredential, StoreReview,
+		StoreReviewComment, SupportAccessGrant, SurfaceCapture, User,
+		WorkspaceCreditGrant, WorkspaceDeletion, WorkspaceEntitlement,
+		WorkspaceGitHubInstallation, WorkspaceSettings []ent.Interceptor
 	}
 )

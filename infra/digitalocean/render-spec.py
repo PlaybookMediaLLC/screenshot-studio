@@ -18,6 +18,10 @@ WEB_DATABASE_KEYS = {"DATABASE_URL", "DIRECT_URL", "MIGRATION_DATABASE_URL", "AU
                      "POSTIZ_API_URL", "POSTIZ_API_KEY"}
 
 
+# The paths the MCP server and its OAuth flow serve (RFC 038).
+MCP_PATH_PREFIXES = ("/mcp", "/mcp-oauth-claude", "/mcp-oauth-chatgpt", "/mcp-oauth-dynamic", "/.well-known", "/oauth")
+
+
 def same_logical_database(first, second):
     try:
         a, b = urlsplit(first), urlsplit(second)
@@ -141,11 +145,25 @@ def render(base, secrets, *, branch="main"):
         "INSTAGRAM_APP_SECRET": "POSTIZ_GO_INSTAGRAM_APP_SECRET",
     }
     postiz_env += [secret(key, source) for key, source in provider_secret_sources.items() if secrets.get(source)]
+    # The public MCP URL (RFC 038), https://shots-mcp.playbookmedia.io/mcp in
+    # production. OAuth discovery needs it at a host root, so its host is routed
+    # whole to this component below.
+    mcp_url = secrets.get("PLATFORM_MCP_URL", "")
+    mcp_host = urlsplit(mcp_url).hostname if mcp_url else None
+    if mcp_url:
+        if urlsplit(mcp_url).scheme != "https" or not mcp_host or urlsplit(mcp_url).path != "/mcp":
+            raise ValueError("PLATFORM_MCP_URL must be https://<host>/mcp, at the root of its own host")
+        postiz_env.append(env("PLATFORM_MCP_URL", mcp_url))
+        merge_env(web, [env("PLATFORM_MCP_URL", mcp_url)])
     backend = service("screenshot-studio-backend", "services", "services/screenshot-studio-backend/backend/Dockerfile", 3000, "/readyz", "apps-s-1vcpu-2gb")
     merge_env(backend, postiz_env + [env("PORT", "3000"), env("RUN_CRON", "true"), env("RUN_WORKER", "true")])
     # The social API on :3000 is reached only over loopback by the publishing
-    # worker; the backend has no public route.
-    backend.pop("http_port", None)
+    # worker. With an MCP URL, :3000 also serves the MCP host's MCP and OAuth
+    # paths; no other route reaches the backend.
+    if mcp_host:
+        backend["http_port"] = 3000
+    else:
+        backend.pop("http_port", None)
     backend["internal_ports"] = [3003]
     backend["health_check"]["port"] = 3003
     # Once GitHub has cut production over to a digest, subsequent config
@@ -205,6 +223,15 @@ def render(base, secrets, *, branch="main"):
         merge_env(web, [env("PLATFORM_COLLAB_URL", "wss://" + urlsplit(origin).netloc + "/collab")])
     else:
         services.pop("collab", None)
+    if mcp_host:
+        # Only the MCP and OAuth paths reach the backend, and only on the MCP
+        # host (RFC 038); everything else on it falls through to the web.
+        for prefix in MCP_PATH_PREFIXES:
+            rules.insert(0, {"match": {"authority": {"exact": mcp_host}, "path": {"prefix": prefix}},
+                             "component": {"name": "screenshot-studio-backend", "preserve_path_prefix": True}})
+        domains = spec.setdefault("domains", [])
+        if not any(item.get("domain") == mcp_host for item in domains):
+            domains.append({"domain": mcp_host, "type": "ALIAS"})
 
     spec["services"] = list(services.values())
     spec["jobs"] = list(jobs.values())

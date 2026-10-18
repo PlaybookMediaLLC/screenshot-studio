@@ -17,7 +17,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/backend/auth"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database/media"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/database/oauth"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/dtos/generator"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/httpx"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/screenshot-studio-backend/internal/track"
@@ -85,12 +84,6 @@ type AgentMemory interface {
 	// ListThreads is memory.listThreads({ filter: { resourceId }, perPage:
 	// 100000, page: 0, orderBy: { field: 'createdAt', direction: 'DESC' } }).
 	ListThreads(ctx context.Context, resourceID string) ([]Thread, error)
-}
-
-// MCPRelayService is the part of the mcp relay service the OAuth
-// controller uses (internal/chat).
-type MCPRelayService interface {
-	Connect(ctx context.Context, instanceURL, apiKey string) (*oauth.SelfHostedInstance, error)
 }
 
 // nullable turns a nil result into an empty response instead of JSON null

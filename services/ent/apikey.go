@@ -35,6 +35,8 @@ type Apikey struct {
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 	// Permissions holds the value of the "permissions" field.
 	Permissions *string `json:"permissions,omitempty"`
+	// Metadata holds the value of the "metadata" field.
+	Metadata *string `json:"metadata,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -49,7 +51,7 @@ func (*Apikey) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case apikey.FieldEnabled:
 			values[i] = new(sql.NullBool)
-		case apikey.FieldID, apikey.FieldConfigID, apikey.FieldName, apikey.FieldStart, apikey.FieldReferenceID, apikey.FieldPrefix, apikey.FieldKey, apikey.FieldPermissions:
+		case apikey.FieldID, apikey.FieldConfigID, apikey.FieldName, apikey.FieldStart, apikey.FieldReferenceID, apikey.FieldPrefix, apikey.FieldKey, apikey.FieldPermissions, apikey.FieldMetadata:
 			values[i] = new(sql.NullString)
 		case apikey.FieldExpiresAt, apikey.FieldCreatedAt, apikey.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -134,6 +136,13 @@ func (_m *Apikey) assignValues(columns []string, values []any) error {
 				_m.Permissions = new(string)
 				*_m.Permissions = value.String
 			}
+		case apikey.FieldMetadata:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+			} else if value.Valid {
+				_m.Metadata = new(string)
+				*_m.Metadata = value.String
+			}
 		case apikey.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -217,6 +226,11 @@ func (_m *Apikey) String() string {
 	builder.WriteString(", ")
 	if v := _m.Permissions; v != nil {
 		builder.WriteString("permissions=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.Metadata; v != nil {
+		builder.WriteString("metadata=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

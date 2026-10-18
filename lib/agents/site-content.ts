@@ -200,6 +200,19 @@ export const AGENT_PAGES: AgentPage[] = [
     ],
   },
   {
+    path: '/docs/agents',
+    title: 'Connect AI agents to Shots',
+    summary:
+      'Setup for the Shots MCP server, which gives AI agents the workspace operations of the REST API with the same scopes, plan checks, and quotas. Agents that take a header send a workspace API key as a bearer token; Claude.ai, Claude Desktop, and ChatGPT connect through OAuth and a workspace owner or admin approves them. A key with post:schedule schedules approved posts; only a person approves.',
+    points: [
+      'Claude Code: claude mcp add --transport http shots <server URL> --header "Authorization: Bearer $SHOTS_API_KEY"',
+      'Claude.ai and Claude Desktop: a custom connector on the /mcp-oauth-claude URL',
+      'ChatGPT: a developer-mode connector on the /mcp-oauth-dynamic URL',
+      'Cursor, VS Code, Windsurf, Gemini CLI, Codex CLI, and OpenCode: a config snippet with the server URL and a key',
+      'Twelve tools named after the REST operations they mirror, filtered by the key scopes',
+    ],
+  },
+  {
     path: '/developers',
     title: 'Shots Developer Portal',
     summary:
@@ -209,6 +222,7 @@ export const AGENT_PAGES: AgentPage[] = [
       'Interactive API reference: /api-reference',
       'OpenAPI 3.1 spec: /openapi.json',
       'Authentication and rate limits: /docs/authentication',
+      'AI agents over MCP: /docs/agents',
       'Agent overview: /llms.txt and /llms-full.txt',
     ],
   },
@@ -327,6 +341,7 @@ export const AGENT_RESOURCES = [
     name: 'Authentication and rate limits',
     url: `${BASE_URL}/docs/authentication`,
   },
+  { name: 'AI agents and MCP setup', url: `${BASE_URL}/docs/agents` },
   { name: 'llms.txt', url: `${BASE_URL}/llms.txt` },
   { name: 'llms-full.txt', url: `${BASE_URL}/llms-full.txt` },
   { name: 'Sitemap', url: `${BASE_URL}/sitemap.xml` },

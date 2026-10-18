@@ -134,6 +134,37 @@ curl --fail http://localhost:8081/healthz
 The backend and orchestrator images use the `services` directory as their Docker
 build context.
 
+## MCP server
+
+The social backend serves the Shots MCP server (RFC 038,
+`screenshot-studio-backend/internal/chat/mcp`) on `/mcp` and the OAuth mounts
+`/mcp-oauth-claude`, `/mcp-oauth-chatgpt`, and `/mcp-oauth-dynamic`. Its tools
+call `internal/product`, the same domain the `/v1` API serves, with the caller's
+workspace API key as the actor:
+
+- `internal/shotsapi/openapi.json` is the web's OpenAPI document (`npm run
+  api:generate`). Each tool's input schema, API-key scope, plan gate, and quota
+  come from the operation it is named after; the server refuses to start when
+  one is missing.
+- A call runs the REST order: per-key limit, scope, `workspace:use`, the
+  operation's feature, its quota, then argument validation and the domain call.
+  Every call logs one `shots.mcp_call` line with the request ID, client, and
+  workspace.
+- Scheduling tools need the opt-in `post:schedule` scope and take only
+  approved posts and variants. This process has no tenant Temporal client: the
+  orchestrator's once-a-minute `scheduled-posts` dispatcher starts the
+  workflow of a post an agent scheduled, and a cancelled post is never claimed.
+- OAuth consent happens on the web (`/oauth/authorize`), recorded through
+  `POST /v1/agent-authorizations`; `/oauth/token` exchanges the `shc_` code for
+  a workspace API key with the approved scopes.
+
+It reads `DATABASE_URL`, `R2_*` (in production the combined backend copies the
+tenant's `TENANT_R2_*`), `PLATFORM_QUOTA_REDIS_URL` (default `REDIS_URL`),
+`PLATFORM_CAMPAIGN_WORKFLOW`, `SCREENSHOT_API_URL`, and `PLATFORM_MCP_URL`, the
+public MCP URL, which must sit at a host root for OAuth discovery: production
+is `https://shots-mcp.playbookmedia.io/mcp`. Locally, `./bin/studio
+postiz-go-up` serves it at `http://localhost:3100/mcp`.
+
 ## screenshot-studio-backend and screenshot-studio-orchestrator
 
 `screenshot-studio-backend/` is Screenshot Studio's Go social backend and its

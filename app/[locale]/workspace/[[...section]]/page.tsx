@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { WorkspaceSettings } from '@/components/workspace/WorkspaceSettings'
 import { findSettingsSection } from '@/components/workspace/settings-sections'
+import { MCP_URL } from '@/lib/agents/mcp-clients'
 import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
 
 type WorkspacePageProps = {
@@ -33,6 +34,7 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
     >
       <WorkspaceSettings
         email={access.session.user.email}
+        mcpUrl={MCP_URL}
         name={access.session.user.name || ''}
         organization={access.organization}
         role={access.role}

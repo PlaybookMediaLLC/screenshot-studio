@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "shots": {
+      "type": "http",
+      "url": "https://shots-mcp.playbookmedia.io/mcp"
+    }
+  }
+}

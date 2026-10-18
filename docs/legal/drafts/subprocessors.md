@@ -28,22 +28,22 @@ Last changed `[[DATE]]`.
 
 ### Infrastructure and service providers
 
-| Subprocessor                            | What it does for Shots                                    | Personal data it receives                                       | Location                    | DPA or transfer terms |
-| --------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------- | --------------------------- | --------------------- |
-| DigitalOcean, LLC                       | Hosts the web application and the backend                 | All data that the service processes                             | United States (New York)    | `[[CONFIRM]]`         |
-| PlanetScale, Inc.                       | Runs the main database and its backups                    | All stored account and workspace data                           | `[[REGION: PlanetScale]]`   | `[[CONFIRM]]`         |
-| Cloudflare, Inc.                        | Stores files (R2) and renders designs (Browser Rendering) | Uploaded files, rendered images, design content                 | `[[REGION: Cloudflare R2]]` | `[[CONFIRM]]`         |
-| Upstash, Inc.                           | Runs Redis for rate limits, usage meters, and caches      | Hashed client addresses, workspace IDs, usage counts            | `[[REGION: Upstash]]`       | `[[CONFIRM]]`         |
-| Temporal Technologies, Inc.             | Runs scheduled publishing and maintenance workflows       | Record IDs and workflow state                                   | United States (AWS US East) | `[[CONFIRM]]`         |
-| Resend, Inc.                            | Sends account, invitation, and announcement email         | Email addresses, names, message content                         | `[[REGION: Resend]]`        | `[[CONFIRM]]`         |
-| Stripe, Inc.                            | Takes payments and runs the billing portal                | Billing contact, payment method, plan, invoices                 | `[[REGION: Stripe]]`        | `[[CONFIRM]]`         |
-| OpenRouter, Inc.                        | Routes AI requests to model providers                     | Prompts, workspace context, website text, canvas images         | `[[REGION: OpenRouter]]`    | `[[CONFIRM]]`         |
-| Anthropic, PBC (through OpenRouter)     | Runs the default text models                              | The same data as OpenRouter, for each request                   | `[[REGION: Anthropic]]`     | `[[CONFIRM]]`         |
-| Google LLC (through OpenRouter)         | Runs the default image model                              | Image prompts and reference images                              | `[[REGION: Google]]`        | `[[CONFIRM]]`         |
-| PostHog, Inc.                           | Product analytics                                         | Pseudonymous ID, page views, clicks, product events, IP address | United States               | `[[CONFIRM]]`         |
-| Microlink                               | Captures screenshots and reads link previews              | The web addresses that you submit                               | `[[REGION: Microlink]]`     | `[[CONFIRM]]`         |
-| Infisical, Inc.                         | Stores deployment secrets                                 | Service credentials. No customer personal data is expected.     | `[[REGION: Infisical]]`     | `[[CONFIRM]]`         |
-| `[[CONFIRM: support mailbox provider]]` | Receives email to our support address                     | Email content and contact details                               | `[[REGION]]`                | `[[CONFIRM]]`         |
+| Subprocessor                            | What it does for Shots                                    | Personal data it receives                                       | Location                    | DPA           |
+| --------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------- | --------------------------- | ------------- |
+| DigitalOcean, LLC                       | Hosts the web application and the backend                 | All data that the service processes                             | United States (New York)    | `[[CONFIRM]]` |
+| PlanetScale, Inc.                       | Runs the main database and its backups                    | All stored account and workspace data                           | `[[REGION: PlanetScale]]`   | `[[CONFIRM]]` |
+| Cloudflare, Inc.                        | Stores files (R2) and renders designs (Browser Rendering) | Uploaded files, rendered images, design content                 | `[[REGION: Cloudflare R2]]` | `[[CONFIRM]]` |
+| Upstash, Inc.                           | Runs Redis for rate limits, usage meters, and caches      | Hashed client addresses, workspace IDs, usage counts            | `[[REGION: Upstash]]`       | `[[CONFIRM]]` |
+| Temporal Technologies, Inc.             | Runs scheduled publishing and maintenance workflows       | Record IDs and workflow state                                   | United States (AWS US East) | `[[CONFIRM]]` |
+| Resend, Inc.                            | Sends account, invitation, and announcement email         | Email addresses, names, message content                         | `[[REGION: Resend]]`        | `[[CONFIRM]]` |
+| Stripe, Inc.                            | Takes payments and runs the billing portal                | Billing contact, payment method, plan, invoices                 | `[[REGION: Stripe]]`        | `[[CONFIRM]]` |
+| OpenRouter, Inc.                        | Routes AI requests to model providers                     | Prompts, workspace context, website text, canvas images         | `[[REGION: OpenRouter]]`    | `[[CONFIRM]]` |
+| Anthropic, PBC (through OpenRouter)     | Runs the default text models                              | The same data as OpenRouter, for each request                   | `[[REGION: Anthropic]]`     | `[[CONFIRM]]` |
+| Google LLC (through OpenRouter)         | Runs the default image model                              | Image prompts and reference images                              | `[[REGION: Google]]`        | `[[CONFIRM]]` |
+| PostHog, Inc.                           | Product analytics                                         | Pseudonymous ID, page views, clicks, product events, IP address | United States               | `[[CONFIRM]]` |
+| Microlink                               | Captures screenshots and reads link previews              | The web addresses that you submit                               | `[[REGION: Microlink]]`     | `[[CONFIRM]]` |
+| Infisical, Inc.                         | Stores deployment secrets                                 | Service credentials. No customer personal data is expected.     | `[[REGION: Infisical]]`     | `[[CONFIRM]]` |
+| `[[CONFIRM: support mailbox provider]]` | Receives email to our support address                     | Email content and contact details                               | `[[REGION]]`                | `[[CONFIRM]]` |
 
 ### Independent third parties on our website
 

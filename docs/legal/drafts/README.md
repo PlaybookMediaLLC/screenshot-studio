@@ -30,13 +30,27 @@
 | [refund-policy.md](refund-policy.md)                           | Adds a refund and cancellation policy       | none              |
 | [api-terms.md](api-terms.md)                                   | Adds API, agent, and MCP terms              | none              |
 
+## Owner decisions (2026-10-17)
+
+These answers are now in the drafts. They are no longer placeholders.
+
+| Topic                   | Decision                                                |
+| ----------------------- | ------------------------------------------------------- |
+| Legal entity            | PlaybookMedia LLC, a Delaware limited liability company |
+| Target market           | United States only. No EU or UK terms in these drafts.  |
+| Role for workspace data | Service provider (processor) for the customer           |
+| AI training             | We do not use customer data to train models             |
+| Refunds                 | Full refund if the customer asks within 30 days         |
+| Sales tax               | Stripe Tax                                              |
+| Self-hosting            | Not offered                                             |
+| Insurance               | None today                                              |
+
 ## Placeholders
 
 Use these names in every draft. Fill each one once, then replace it everywhere.
 
 | Placeholder                                    | Meaning                                                       |
 | ---------------------------------------------- | ------------------------------------------------------------- |
-| `[[LEGAL ENTITY]]`                             | The company that operates Shots, with its legal form          |
 | `[[ADDRESS]]`                                  | The registered postal address of that company                 |
 | `[[GOVERNING LAW]]`                            | The law that governs the Terms                                |
 | `[[VENUE]]`                                    | The courts or the arbitration seat for disputes               |
@@ -45,16 +59,10 @@ Use these names in every draft. Fill each one once, then replace it everywhere.
 | `[[SECURITY EMAIL]]`                           | The address for vulnerability reports                         |
 | `[[SUPPORT EMAIL]]`                            | The address for support                                       |
 | `[[LEGAL EMAIL]]`                              | The address for legal notices and copyright notices           |
-| `[[DPO/CONTACT]]`                              | The data protection officer or privacy lead, if one exists    |
-| `[[EU REPRESENTATIVE]]`                        | The GDPR Art. 27 representative, if required                  |
-| `[[UK REPRESENTATIVE]]`                        | The UK GDPR representative, if required                       |
 | `[[EFFECTIVE DATE]]`                           | The date the document takes effect                            |
 | `[[NOTICE PERIOD]]`                            | The days of notice before a material change takes effect      |
 | `[[LIABILITY CAP]]`                            | The maximum liability amount                                  |
-| `[[REFUND TERMS]]`                             | The refund rule that the owner chooses                        |
-| `[[TAX TREATMENT]]`                            | How the company charges sales tax and VAT                     |
 | `[[REGION: vendor]]`                           | The data region of a vendor that the code does not show       |
-| `[[TRANSFER MECHANISM]]`                       | SCCs, the UK addendum, the Data Privacy Framework, or other   |
 | `[[DMCA AGENT]]`                               | The registered DMCA agent name and address                    |
 | `[[MINIMUM AGE]]`                              | The minimum age for an account                                |
 | `[[BREACH NOTICE TIME]]`                       | The time limit to tell customers about a personal data breach |
@@ -78,7 +86,7 @@ The private audit report lists each change with evidence and size. The IDs are:
 
 | ID  | Change                                                                   |
 | --- | ------------------------------------------------------------------------ |
-| P1  | A consent banner that holds analytics and ads until the visitor agrees   |
+| P1  | A "Your Privacy Choices" opt-out that honors Global Privacy Control      |
 | P2  | A workspace purge that deletes every piece of workspace content          |
 | P3  | Self-serve account deletion                                              |
 | P4  | Account and workspace data export                                        |
@@ -92,6 +100,8 @@ The private audit report lists each change with evidence and size. The IDs are:
 | P12 | Retention jobs for AI history, sessions, and inactive workspaces         |
 | P13 | Labels for AI-generated content                                          |
 | P14 | Self-hosted fonts and browser libraries, or disclosure and consent       |
+| P15 | Stripe Tax in both Checkout sessions                                     |
+| P16 | Remove the self-hosting answers from the pricing and Security pages      |
 
 ## How to review
 

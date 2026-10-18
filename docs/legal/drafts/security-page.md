@@ -8,13 +8,14 @@
 - Most claims on the Security page match the code.
 - Change four claims: the IP hashing claim, the training claim, the isolation test claim, and the
   provider list.
-- Remove or rewrite the self-hosting lines with the owner.
+- Remove the self-hosting lines. Shots does not offer self-hosting (owner decision, 2026-10-17).
+  The pricing page FAQ has the same claim (P16).
 - Add a vulnerability reporting address and `security.txt` (P7).
 
 ## Claim review
 
 Status values: **Keep** (the code supports it), **Fix** (change the words), **Hold** (publish only
-after a product change), **Owner** (a business decision).
+after a product change), **Remove** (delete the line), **Owner** (a business decision).
 
 | Section   | Live claim (short)                                                                                        | Status | Proposed copy or action                                                                                                                                                                     |
 | --------- | --------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -40,14 +41,14 @@ after a product change), **Owner** (a business decision).
 | Audit     | Audit export: CloudEvents, HMAC SHA-256, Splunk and Datadog presets                                       | Keep   | No change.                                                                                                                                                                                  |
 | Audit     | Export secrets "encrypted at rest with AES-256-GCM"                                                       | Keep   | No change.                                                                                                                                                                                  |
 | Audit     | Exports "refuse private addresses and redirects"                                                          | Keep   | No change.                                                                                                                                                                                  |
-| AI        | "No training on your content ... No model is trained on it."                                              | Hold   | Publish after P11 and counsel review: "We do not train models on your content. Our AI providers are contractually barred from training on it." `[[COUNSEL: confirm the provider terms]]`    |
+| AI        | "No training on your content ... No model is trained on it."                                              | Fix    | Now: "We do not train models on your content." (owner confirmed). Add after P11 and counsel review: "Our AI providers do not train on it either." `[[COUNSEL: confirm the provider terms]]` |
 | AI        | "It runs inside one workspace, holds no credentials, and can't approve anything."                         | Keep   | No change.                                                                                                                                                                                  |
 | AI        | "Prompt and completion text are kept out of the audit log."                                               | Fix    | Add: "Your AI conversations are stored in your workspace until you delete them."                                                                                                            |
-| Providers | "Self-hosting replaces any of them with your own."                                                        | Owner  | Remove, or keep only if the owner supports self-hosting as an offer.                                                                                                                        |
+| Providers | "Self-hosting replaces any of them with your own."                                                        | Remove | Delete the sentence. Self-hosting is not offered.                                                                                                                                           |
 | Providers | Ten providers                                                                                             | Fix    | Replace the table with a link to the [subprocessor list](subprocessors.md). The live table omits Stripe, Google AdSense, the AI model providers behind OpenRouter, and others.              |
 | FAQ       | SOC 2 or ISO 27001: "Not today."                                                                          | Keep   | No change. Do not claim a certification until an auditor issues it.                                                                                                                         |
 | FAQ       | Report a vulnerability through the contact page                                                           | Fix    | "Email `[[SECURITY EMAIL]]`. Read our [Responsible Disclosure policy](responsible-disclosure.md)." Requires P7.                                                                             |
-| FAQ       | "Can we run it in our own cloud? Yes."                                                                    | Owner  | Keep only if the owner supports it. If kept, say that self-hosted deployments are outside our Terms and DPA.                                                                                |
+| FAQ       | "Can we run it in our own cloud? Yes."                                                                    | Remove | Delete the question. Self-hosting is not offered.                                                                                                                                           |
 | FAQ       | "Every read and write is scoped to your workspace."                                                       | Keep   | No change.                                                                                                                                                                                  |
 
 ## New lines to add

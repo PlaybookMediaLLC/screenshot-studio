@@ -6,7 +6,7 @@
 ## Summary
 
 - This addendum covers personal data that a customer puts into a Shots workspace.
-- The customer is the controller. `[[LEGAL ENTITY]]` is the processor.
+- The customer is the business (controller). PlaybookMedia LLC is its service provider (processor).
 - We process the data only to provide Shots, on the customer's instructions.
 - We use the subprocessors on our list. We give notice before we add one, and the customer can
   object.
@@ -17,8 +17,12 @@
 
 1. Workspaces hold personal data of members, invitees, audience email recipients, and people in
    uploaded screenshots.
-2. GDPR Art. 28 requires a contract with specific terms between a controller and a processor.
+2. The CCPA as amended by the CPRA requires a written contract with specific terms before a
+   business discloses personal data to a service provider. The Virginia, Colorado, Connecticut,
+   Texas, Oregon, and other state laws require similar processor contracts.
 3. Enterprise buyers with SSO and SCIM ask for a DPA during procurement.
+4. Shots targets US customers only (owner decision, 2026-10-17). This draft has no EU or UK
+   transfer terms. Add them if a customer outside the US needs them.
 
 ---
 
@@ -28,20 +32,22 @@
 
 Version `[[VERSION]]`. Effective `[[EFFECTIVE DATE]]`.
 
-This addendum is part of the [Terms of Service](terms-of-service.md) between `[[LEGAL ENTITY]]`
-("Processor") and the customer ("Customer").
+This addendum is part of the [Terms of Service](terms-of-service.md) between PlaybookMedia LLC, a
+Delaware limited liability company ("Processor"), and the customer ("Customer").
 
 ### 1. Definitions
 
-Words such as "personal data", "processing", "controller", "processor", "data subject", and
-"personal data breach" have the meanings in the GDPR. "Data Protection Law" means the GDPR, the UK
-GDPR, the Swiss FADP, the CCPA as amended by the CPRA, and other laws that apply to the processing.
-"Customer Personal Data" means personal data in Customer Content that Processor processes for
-Customer.
+"Data Protection Law" means the California Consumer Privacy Act as amended by the California
+Privacy Rights Act (CCPA), and the other US state consumer privacy laws that apply to the
+processing. Words such as "personal data", "personal information", "processing", "controller",
+"business", "processor", "service provider", "sell", "share", and "personal data breach" have the
+meanings in Data Protection Law. "Customer Personal Data" means personal data in Customer Content
+that Processor processes for Customer.
 
 ### 2. Roles and scope
 
-1. Customer is the controller of Customer Personal Data. Processor is its processor.
+1. Customer is the controller (a "business" under the CCPA) of Customer Personal Data. Processor is
+   its processor (a "service provider" under the CCPA).
 2. Annex I describes the processing.
 3. Processor is a controller for account, billing, security, and website data. The
    [Privacy Policy](privacy-policy.md) covers that data, not this addendum.
@@ -94,10 +100,10 @@ protection.
    measures that Processor takes. Processor sends more facts as it learns them.
 3. A notice is not an admission of fault.
 
-### 9. Impact assessments
+### 9. Assessments
 
-Processor gives reasonable help with data protection impact assessments and prior consultations
-that relate to the service.
+Processor gives reasonable help with the data protection assessments that Data Protection Law
+requires and that relate to the service.
 
 ### 10. Return and deletion
 
@@ -114,17 +120,16 @@ that relate to the service.
 ### 11. Audits
 
 1. Processor gives Customer the information that Customer reasonably needs to show compliance with
-   GDPR Art. 28.
+   Data Protection Law.
 2. Processor answers one security questionnaire a year without charge. `[[COUNSEL: on-site audit terms, notice, cost, and frequency]]`
 3. Processor holds no third-party security certification today. `[[CERTIFICATIONS: update when an auditor issues one]]`
 
-### 12. International transfers
+### 12. Data location
 
 1. Processor processes Customer Personal Data in the United States and in the regions on the
    subprocessor list.
-2. For transfers from the EEA, the parties use `[[TRANSFER MECHANISM: for example the Standard Contractual Clauses, Module 2 (controller to processor)]]`. For transfers from the UK, they use
-   `[[UK ADDENDUM OR IDTA]]`. For transfers from Switzerland, they use `[[SWISS MECHANISM]]`.
-3. Annex I and Annex II complete the annexes of those clauses.
+2. If Customer wants to put personal data from outside the United States into Shots, the parties
+   first agree the transfer terms in writing.
 
 ### 13. US state law terms
 
@@ -136,8 +141,7 @@ as the law allows.
 ### 14. Liability and precedence
 
 1. The liability terms of the Terms of Service apply to this addendum. `[[COUNSEL: confirm any separate cap for data protection claims]]`
-2. If this addendum conflicts with the Terms, this addendum wins for Customer Personal Data. If the
-   transfer clauses conflict with this addendum, the transfer clauses win.
+2. If this addendum conflicts with the Terms, this addendum wins for Customer Personal Data.
 
 ---
 
@@ -148,9 +152,9 @@ as the law allows.
 | Subject matter     | Hosting and processing of Customer Content to provide Shots.                                                                                                                                                   |
 | Duration           | The term of the Terms, plus the deletion period in section 10.                                                                                                                                                 |
 | Nature and purpose | Storage, editing, rendering, AI drafting, approval, scheduling, publishing to platforms that Customer chooses, release email, audit logging, and support.                                                      |
-| Data subjects      | Workspace members and invitees; audience email recipients; people who appear in uploaded files or screenshots; people named on websites that Customer asks Shots to read; owners of connected social accounts. |
+| People affected    | Workspace members and invitees; audience email recipients; people who appear in uploaded files or screenshots; people named on websites that Customer asks Shots to read; owners of connected social accounts. |
 | Personal data      | Names, email addresses, profile images, roles, account IDs and usernames at connected services, content of posts and files, AI prompts and outputs, unsubscribe status, audit metadata.                        |
-| Special categories | Not intended. Customer must not upload special category data unless the law allows it and Customer has a lawful basis.                                                                                         |
+| Sensitive data     | Not intended. Customer must not upload sensitive personal information (for example health data or government ID numbers) unless the law allows it.                                                             |
 | Frequency          | Continuous.                                                                                                                                                                                                    |
 | Retention          | See section 10 and the [Privacy Policy](privacy-policy.md) retention table.                                                                                                                                    |
 

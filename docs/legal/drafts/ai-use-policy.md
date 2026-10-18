@@ -52,7 +52,7 @@ AI features can:
    sends the request to a model provider. See the [subprocessor list](subprocessors.md).
 2. The context can include brand data, release notes, text from websites that you ask us to read,
    and images of your canvas or drafts.
-3. We do not train AI models on your content. `[[COUNSEL: confirm the provider terms on training and retention, and state them here.]]` ⚑ Requires product change P11.
+3. We do not use your content to train AI models. `[[COUNSEL: confirm the OpenRouter, Anthropic, and Google terms on training and retention, and state them here.]]` ⚑ Requires product change P11.
 
 ### 3. Human control
 

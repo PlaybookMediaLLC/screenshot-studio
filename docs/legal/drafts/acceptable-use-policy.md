@@ -52,7 +52,7 @@ Do not use Shots to create, store, or publish content that:
 1. Add an address to an audience list only if you have a lawful basis to email it.
 2. Do not buy, rent, or scrape email lists.
 3. Do not remove or hide the unsubscribe link.
-4. Follow the CAN-SPAM Act, GDPR, the ePrivacy rules, CASL, and other email laws that apply to you.
+4. Follow the CAN-SPAM Act and every other email law that applies to you and your recipients.
 
 ### 5. Websites and capture
 
@@ -73,8 +73,8 @@ Do not use Shots to create, store, or publish content that:
 
 ### 7. Sensitive data
 
-Do not upload special category data (for example health data), government ID numbers, payment card
-numbers, or credentials of others, unless the law allows it and you have a lawful basis.
+Do not upload sensitive personal information (for example health data or government ID numbers),
+payment card numbers, or credentials of others, unless the law allows it.
 
 ### 8. Enforcement
 

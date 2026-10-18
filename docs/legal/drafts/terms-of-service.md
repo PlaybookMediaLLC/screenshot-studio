@@ -5,8 +5,8 @@
 
 ## Summary
 
-- These Terms are a business contract between `[[LEGAL ENTITY]]` and the customer that owns a
-  workspace.
+- These Terms are a business contract between PlaybookMedia LLC, a Delaware company, and the
+  customer that owns a workspace. Shots is offered in the United States.
 - Every workspace needs a paid plan. Plans renew automatically until you cancel. Cancellation takes
   effect at the end of the paid period.
 - You own your content and the AI output that you create. You review AI output before you publish
@@ -14,7 +14,19 @@
 - You are responsible for what you publish to social networks. We are not responsible when a
   network fails, changes its API, or suspends your account.
 - There is no uptime commitment unless an Enterprise order form gives one.
+- You can get a full refund of a payment if you ask within 30 days of it. Stripe Tax calculates
+  sales tax.
 - Our liability is limited. Disputes go to `[[VENUE]]` under `[[GOVERNING LAW]]`.
+
+## Owner decisions in this draft (2026-10-17)
+
+| Topic         | Decision                                                |
+| ------------- | ------------------------------------------------------- |
+| Legal entity  | PlaybookMedia LLC, a Delaware limited liability company |
+| Target market | United States only                                      |
+| Refunds       | Full refund if the customer asks within 30 days         |
+| Sales tax     | Calculated and collected with Stripe Tax                |
+| Self-hosting  | Not offered                                             |
 
 ## Redline: changes from the live page
 
@@ -43,8 +55,8 @@ Version `[[VERSION]]`. Effective `[[EFFECTIVE DATE]]`.
 
 ### 1. The agreement
 
-1. These Terms are a contract between `[[LEGAL ENTITY]]`, `[[ADDRESS]]` ("we", "us"), and the
-   customer that creates or owns a workspace ("you").
+1. These Terms are a contract between PlaybookMedia LLC, a Delaware limited liability company,
+   `[[ADDRESS]]` ("we", "us"), and the customer that creates or owns a workspace ("you").
 2. You accept these Terms when you select the acceptance control at sign-up, sign an order form
    that refers to them, or use Shots. ⚑ Requires product change P5 for the acceptance control.
 3. If you accept for a company, you confirm that you have the authority to bind it. "You" then means
@@ -57,8 +69,9 @@ Version `[[VERSION]]`. Effective `[[EFFECTIVE DATE]]`.
 ### 2. Eligibility
 
 1. Shots is for business and professional use.
-2. You must be at least `[[MINIMUM AGE]]` and able to make a binding contract.
-3. You must not use Shots if the law prohibits it, including sanctions and export control law.
+2. We offer Shots to businesses in the United States. `[[COUNSEL: decide whether to refuse sign-ups from outside the United States]]`
+3. You must be at least `[[MINIMUM AGE]]` and able to make a binding contract.
+4. You must not use Shots if the law prohibits it, including sanctions and export control law.
    `[[COUNSEL: confirm the sanctions clause]]`
 
 ### 3. Accounts and workspaces
@@ -99,8 +112,10 @@ Version `[[VERSION]]`. Effective `[[EFFECTIVE DATE]]`.
    After that, plan features close until you pay.
 8. **Price changes.** We tell you about a price change at least `[[NOTICE PERIOD]]` days before
    your next renewal. The new price applies from that renewal.
-9. **Refunds.** `[[REFUND TERMS]]`. See the [Refund Policy](refund-policy.md).
-10. **Taxes.** Prices do not include taxes unless the pricing page says so. `[[TAX TREATMENT]]`
+9. **Refunds.** If you ask within 30 days of a payment, we refund that payment in full. See the
+   [Refund Policy](refund-policy.md).
+10. **Taxes.** Prices do not include sales tax. We calculate and collect sales tax with Stripe Tax,
+    based on your billing address. ⚑ Requires product change P15.
 11. **When a plan ends.** Plan features close. Your workspace content stays for
     `[[RETENTION PERIOD FOR INACTIVE WORKSPACES]]`. ⚑ Requires product change P12.
 
@@ -272,4 +287,4 @@ independently developed.
 
 ### 24. Contact
 
-`[[LEGAL ENTITY]]`, `[[ADDRESS]]`. Email `[[LEGAL EMAIL]]`.
+PlaybookMedia LLC, `[[ADDRESS]]`. Email `[[LEGAL EMAIL]]`.

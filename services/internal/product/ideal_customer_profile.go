@@ -62,6 +62,8 @@ type UpsertIdealCustomerProfileInput struct {
 	Source         string             `json:"source"`
 	SourceURLs     map[string]string  `json:"sourceUrls"`
 	UnlockFields   []string           `json:"unlockFields"`
+	// AcceptFields locks fields as they are: a person confirmed them (manual only).
+	AcceptFields []string `json:"acceptFields"`
 }
 
 func validPersonas(personas *[]profile.Persona) bool {
@@ -92,7 +94,7 @@ func normalizeIdealCustomerProfileInput(input *UpsertIdealCustomerProfileInput) 
 	}
 	lists := []*[]string{input.Pains, input.Jobs, input.BuyingTriggers, input.Objections, input.Channels}
 	valid := validProfileSource(input.Source) && validPersonas(input.Personas) &&
-		(input.Source == ProfileSourceManual || len(input.UnlockFields) == 0)
+		(input.Source == ProfileSourceManual || len(input.UnlockFields)+len(input.AcceptFields) == 0)
 	for _, list := range lists {
 		if list != nil {
 			for i, value := range *list {
@@ -107,7 +109,7 @@ func normalizeIdealCustomerProfileInput(input *UpsertIdealCustomerProfileInput) 
 	for field, confidence := range input.Confidence {
 		valid = valid && slices.Contains(idealCustomerProfileFields, field) && confidence >= 0 && confidence <= 1
 	}
-	for _, field := range input.UnlockFields {
+	for _, field := range append(slices.Clone(input.UnlockFields), input.AcceptFields...) {
 		valid = valid && slices.Contains(idealCustomerProfileFields, field)
 	}
 	if !valid {
@@ -161,6 +163,12 @@ func (c *Configuration) UpsertIdealCustomerProfile(ctx context.Context, actor Ac
 	for _, field := range input.UnlockFields {
 		if entry, ok := provenance[field]; ok {
 			entry.EditedByUser = false
+			provenance[field] = entry
+		}
+	}
+	for _, field := range input.AcceptFields {
+		if entry, ok := provenance[field]; ok {
+			entry.EditedByUser, entry.UpdatedAt = true, time.Now().UTC()
 			provenance[field] = entry
 		}
 	}
@@ -219,7 +227,7 @@ func (c *Configuration) UpsertIdealCustomerProfile(ctx context.Context, actor Ac
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.ideal_customer_profile_updated", "ideal_customer_profile", saved.ID,
 		map[string]any{"changed": strings.Join(changed, ","), "skipped": strings.Join(skipped, ","), "source": input.Source,
-			"unlocked": strings.Join(input.UnlockFields, ",")}); err != nil {
+			"unlocked": strings.Join(input.UnlockFields, ","), "accepted": strings.Join(input.AcceptFields, ",")}); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {

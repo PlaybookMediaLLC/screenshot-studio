@@ -12,6 +12,9 @@ import (
 	"go.temporal.io/sdk/interceptor"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/worker"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/profile"
 )
 
 // The observer passes results and errors through untouched and logs each
@@ -45,5 +48,20 @@ func TestObserverLogsEveryActivityWithItsRun(t *testing.T) {
 		if !strings.Contains(logs.String(), want) {
 			t.Fatalf("logs lack %q:\n%s", want, logs.String())
 		}
+	}
+}
+
+// List fields from different pages add up, deduplicated and capped; a field
+// a person edited is left for the upsert to skip.
+func TestUnionListsMergesPagesButNotEditedFields(t *testing.T) {
+	current := &product.ProductProfileRecord{Capabilities: []string{"Recurring invoices"}, Competitors: []string{"Ledgerly"},
+		ProofPoints: []profile.ProofPoint{{Claim: "2,000 agencies"}},
+		Provenance:  map[string]profile.FieldProvenance{"competitors": {EditedByUser: true}}}
+	capabilities, competitors := []string{"recurring invoices", "Smart retries"}, []string{"Invoicely"}
+	points := []profile.ProofPoint{{Claim: "Rated 4.8"}}
+	draft := product.UpsertProductProfileInput{Capabilities: &capabilities, Competitors: &competitors, ProofPoints: &points}
+	unionLists(&draft, current)
+	if strings.Join(*draft.Capabilities, "|") != "Recurring invoices|Smart retries" || (*draft.Competitors)[0] != "Invoicely" || len(*draft.ProofPoints) != 2 {
+		t.Fatalf("draft %v %v %v", *draft.Capabilities, *draft.Competitors, *draft.ProofPoints)
 	}
 }

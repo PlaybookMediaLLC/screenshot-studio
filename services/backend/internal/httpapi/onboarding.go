@@ -25,6 +25,7 @@ func (s *Server) registerOnboarding(mux *http.ServeMux) {
 	mux.Handle("POST /v1/onboarding-runs", s.authenticateProduct(http.HandlerFunc(s.startOnboardingRun)))
 	mux.Handle("GET /v1/onboarding-runs/latest", s.authenticateProduct(http.HandlerFunc(s.latestOnboardingRun)))
 	mux.Handle("GET /v1/onboarding-runs/{id}", s.authenticateProduct(http.HandlerFunc(s.getOnboardingRun)))
+	mux.Handle("GET /v1/onboarding-runs/{id}/enrichment", s.authenticateProduct(http.HandlerFunc(s.listOnboardingEnrichment)))
 	mux.Handle("POST /v1/onboarding-runs/{id}/cancel", s.authenticateProduct(http.HandlerFunc(s.cancelOnboardingRun)))
 	mux.Handle("POST /v1/onboarding-runs/{id}/rerun", s.authenticateProduct(http.HandlerFunc(s.rerunOnboardingRun)))
 }
@@ -140,4 +141,15 @@ func (s *Server) latestOnboardingRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"run": run})
+}
+
+// listOnboardingEnrichment is what enrichment found for the run's site, each
+// result with its provider, confidence, and source.
+func (s *Server) listOnboardingEnrichment(w http.ResponseWriter, r *http.Request) {
+	records, err := s.configuration.ListOnboardingEnrichment(r.Context(), workspaceActor(r), r.PathValue("id"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"enrichment": records})
 }

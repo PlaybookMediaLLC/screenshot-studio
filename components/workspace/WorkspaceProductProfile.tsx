@@ -153,10 +153,13 @@ export function Provenance({
       </span>
     )
   }
-  if (!entry.url) return 'From your site'
+  const from = entry.source === 'enrichment' ? 'Found elsewhere' : 'From your site'
+  const sure = entry.confidence ? ` (${Math.round(entry.confidence * 100)}% sure)` : ''
+  if (!entry.url) return `${from}${sure}`
   return (
     <span>
-      From your site:{' '}
+      {from}
+      {sure}:{' '}
       <a
         className="text-neutral-300 underline underline-offset-2 hover:text-white"
         href={entry.url}

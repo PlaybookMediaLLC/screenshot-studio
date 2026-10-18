@@ -4,12 +4,13 @@ import { createE2EDatabase, grantWorkspacePlan, queryRow, queryRows } from './fr
 
 /**
  * Onboarding's product step end to end: a paid workspace without a product
- * profile is sent to it, a pasted URL is read into a cited profile (the
- * robots-disallowed page is skipped and the page that tries a prompt
- * injection is not believed), a correction locks its field, and confirming
- * produces a first campaign of exactly seven posts that the founder approves
- * in one action. The app runs with the scripted model (PLATFORM_AI_SCRIPTED=1);
- * the screenshot mock serves the product site.
+ * profile is sent to it, a pasted URL is read into a cited profile by the
+ * onboarding agent (the robots-disallowed page is skipped and the page that
+ * tries a prompt injection is not believed), a correction locks its field,
+ * and confirming produces a first campaign of exactly seven posts that the
+ * founder approves in one action. The app runs with the scripted model
+ * (PLATFORM_AI_SCRIPTED=1), the Go backend with the mock's fake OpenRouter,
+ * and the screenshot mock serves the product site.
  */
 
 configureE2EFlow()
@@ -41,10 +42,17 @@ test('a pasted URL becomes a reviewed product profile and a first campaign of se
   await expect(page.getByRole('heading', { name: 'Does this look right?' })).toBeVisible({
     timeout: 60_000,
   })
-  await expect(page.getByLabel('Product name')).toHaveValue('Acme')
-  await expect(page.getByLabel('Pricing')).toHaveValue(/\$9 a month/)
-  await expect(page.getByText('From your site').first()).toBeVisible()
-  await page.getByLabel('Who it is for').fill('Small creative agencies')
+  await expect(page.getByLabel('Product name', { exact: true })).toHaveText('Acme')
+  // The background read reaches the pricing page and fills in the plan.
+  await expect(page.getByRole('status')).toContainText('Done', { timeout: 90_000 })
+  await expect(page.getByLabel('Pricing', { exact: true })).toHaveText(/\$9 a month/)
+  await expect(page.getByText(/From your site/).first()).toBeVisible()
+  await page.getByRole('button', { name: 'Edit who it is for' }).click()
+  await page.getByLabel('Who it is for', { exact: true }).fill('Small creative agencies')
+  await page.getByRole('button', { name: 'Save who it is for' }).click()
+  await expect(page.getByLabel('Who it is for', { exact: true })).toHaveText(
+    'Small creative agencies'
+  )
   await page.getByRole('button', { name: 'Looks right' }).click()
   await expect(page.getByText('Creating your first 7 posts')).toBeVisible()
 

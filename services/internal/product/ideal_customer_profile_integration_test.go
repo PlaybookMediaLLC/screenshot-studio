@@ -43,6 +43,18 @@ func TestIdealCustomerProfileKeepsManualEditsAndStaysInItsWorkspace(t *testing.T
 		t.Fatalf("after unlock=%+v err=%v", again, err)
 	}
 
+	// Accepting a field locks it as it is, so a refresh keeps it.
+	if accepted, err := repo.UpsertIdealCustomerProfile(ctx, owner, UpsertIdealCustomerProfileInput{AcceptFields: []string{"channels"}}); err != nil ||
+		!accepted.Provenance["channels"].EditedByUser || accepted.Provenance["channels"].Source != ProfileSourceAutomated {
+		t.Fatalf("accepted=%+v err=%v", accepted, err)
+	}
+	if kept, err := repo.UpsertIdealCustomerProfile(ctx, owner, UpsertIdealCustomerProfileInput{Source: ProfileSourceAutomated,
+		Channels: list("Hacker News")}); err != nil || kept.Channels[0] != "r/agency" {
+		t.Fatalf("after accept=%+v err=%v", kept, err)
+	}
+	if _, err := repo.UpsertIdealCustomerProfile(ctx, owner, UpsertIdealCustomerProfileInput{Source: ProfileSourceAutomated, AcceptFields: []string{"pains"}}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("automated accept: %v", err)
+	}
 	w.addMember(t, "viewer", "viewer")
 	if _, err := repo.UpsertIdealCustomerProfile(ctx, w.actor("viewer"), UpsertIdealCustomerProfileInput{Pains: list("Anything")}); !errors.Is(err, publishing.ErrForbidden) {
 		t.Fatalf("viewer edited the ICP: %v", err)

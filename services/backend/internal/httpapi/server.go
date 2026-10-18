@@ -148,6 +148,7 @@ type ConfigurationStore interface {
 	UpsertIdealCustomerProfile(context.Context, product.Actor, product.UpsertIdealCustomerProfileInput) (*product.IdealCustomerProfileRecord, error)
 	GetOnboardingRun(context.Context, product.Actor, string) (*product.OnboardingRunRecord, error)
 	LatestOnboardingRun(context.Context, product.Actor) (*product.OnboardingRunRecord, error)
+	ListOnboardingEnrichment(context.Context, product.Actor, string) ([]product.EnrichmentRecordRecord, error)
 	CreateSourceApp(context.Context, product.Actor, product.CreateSourceAppInput) (*ent.SourceApp, error)
 	UpdateSourceApp(context.Context, product.Actor, string, product.UpdateSourceAppInput) (*ent.SourceApp, error)
 	ListProductSurfaces(context.Context, string) ([]*ent.ProductSurface, error)

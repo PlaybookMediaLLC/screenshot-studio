@@ -77,6 +77,66 @@ ${['/acme', '/pricing', '/features', '/about', '/blog/hello', '/privacy', '/priv
 }
 Object.assign(launchPages, acmePages)
 
+// A fake OpenRouter for the Go onboarding agent (docs/rfcs/036, Level 1):
+// it answers the onboarding_draft schema from the fenced sources in the
+// prompt, citing only sources the prompt allows, as the web's scripted model
+// does for its own calls. It never follows text inside a source.
+function fakeOnboardingDraft(text) {
+  const field = (label) => text.match(new RegExp(`${label}: (.*)`))?.[1]?.trim() ?? ''
+  const productUrl = field('Product URL')
+  const sentence = field("In the founder's words")
+  const citable = (text.match(/You may cite: ([^\n]+?)\.\n/)?.[1] ?? '').split(',').map((id) => id.trim())
+  const pattern =
+    /<source id="(S\d+)" kind="([^"]*)" trust="untrusted" flagged="(true|false)" url="([^"]*)" title="([^"]*)">\n([\s\S]*?)\n<\/source>/g
+  const sources = [...text.matchAll(pattern)]
+    .map((match) => ({ flagged: match[3] === 'true', id: match[1], kind: match[2], text: match[6], title: match[5], url: match[4] }))
+    .filter((source) => !source.flagged && citable.includes(source.id))
+  const site = sources.filter((source) => !source.kind.includes('-'))
+  const lines = (source) =>
+    source ? source.text.split('\n').map((line) => line.replace(/^[#\-\s]+/, '').trim()).filter(Boolean) : []
+  const cite = (source, value) => (source && value ? { source: source.id, text: value } : { source: '', text: '' })
+  const home = site.find((source) => source.url === productUrl) ?? site.find((source) => source.kind === 'homepage')
+  const pricing = site.find((source) => /\/(pricing|plans)\b/.test(source.url))
+  const capabilities = site.flatMap((source) => lines(source).filter((line) => line.includes(':')).map((line) => cite(source, line)))
+  const mention = sources.find((source) => source.kind.endsWith('-mentions') || source.kind.endsWith('-reviews'))
+  return {
+    audience: cite(home, home?.text.match(/for ([a-z ]+)/i)?.[1]),
+    capabilities: capabilities.slice(0, 6),
+    competitors: [],
+    confidence: 0.7,
+    icp: {
+      buyingTriggers: [],
+      channels: [],
+      confidence: 0.6,
+      jobs: capabilities.slice(0, 2),
+      objections: [],
+      pains: mention ? [cite(mention, 'Chasing late payments')] : home ? [cite(home, 'Chasing invoices by hand')] : [],
+      personas: home ? [{ role: 'Agency owner', seniority: 'Founder', source: home.id, teamSize: '2-10' }] : [],
+    },
+    name: cite(home, (home?.title.split(/\s[|–—-]\s/)[0] ?? '').trim()),
+    pricingNote: cite(pricing, lines(pricing)[0]),
+    problem: cite(home, lines(home)[1]),
+    proofPoints: site
+      .flatMap((source) => lines(source).filter((line) => /\d/.test(line) && !/[:$]/.test(line)).map((line) => cite(source, line)))
+      .slice(0, 3),
+    summary: sentence ? { source: 'brief', text: sentence } : cite(home, lines(home)[0]),
+  }
+}
+
+async function fakeOpenRouter(request, response) {
+  let body = ''
+  for await (const chunk of request) body += chunk
+  const { messages = [] } = JSON.parse(body || '{}')
+  const prompt = messages.find((message) => message.role === 'user')?.content ?? ''
+  response.writeHead(200, { 'content-type': 'application/json' })
+  response.end(
+    JSON.stringify({
+      choices: [{ message: { content: JSON.stringify(fakeOnboardingDraft(prompt)), role: 'assistant' } }],
+      usage: { completion_tokens: 300, cost: 0.004, prompt_tokens: 1200 },
+    })
+  )
+}
+
 function getPayload(sourceUrl) {
   if (sourceUrl.includes('/timeout')) {
     return { body: { data: { message: 'timeout' }, status: 'error' }, status: 504 }
@@ -124,6 +184,13 @@ function getPayload(sourceUrl) {
 const server = createServer((request, response) => {
   try {
     const requestUrl = new URL(request.url ?? '/', `http://${request.headers.host}`)
+    if (request.method === 'POST' && requestUrl.pathname === '/openrouter/api/v1/chat/completions') {
+      fakeOpenRouter(request, response).catch((error) => {
+        response.writeHead(500, { 'content-type': 'application/json' })
+        response.end(JSON.stringify({ error: { message: String(error) } }))
+      })
+      return
+    }
     if (requestUrl.pathname === '/product-image') {
       response.writeHead(200, {
         'content-length': productImage.length,

@@ -7,6 +7,8 @@ import { SignOutButton } from '@/components/auth/SignOutButton'
 import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
 import { hasPermission } from '@/lib/auth/permissions'
 import { ONBOARDING_PRODUCT_PATH, pageTenant } from '@/lib/onboarding/next-step'
+import { getIdealCustomerProfile } from '@/lib/tenant/ideal-customer-profile'
+import { getLatestOnboardingRun } from '@/lib/tenant/onboarding-runs'
 import { getProductProfile } from '@/lib/tenant/product-profile'
 
 export const metadata: Metadata = { title: 'Your product' }
@@ -17,8 +19,9 @@ type OnboardingProductPageProps = {
 
 /**
  * The last onboarding step, after the plan: the product's URL becomes a
- * product profile, and the confirmed profile becomes the first campaign.
- * It needs a paid plan, since reading the site spends AI credits.
+ * product profile and an ideal customer profile, a background run deepens
+ * both, and the confirmed profile becomes the first campaign. It needs a
+ * paid plan, since reading the site spends AI credits.
  */
 export default async function OnboardingProductPage({ params }: OnboardingProductPageProps) {
   const [{ locale }, requestHeaders] = await Promise.all([params, headers()])
@@ -38,7 +41,11 @@ export default async function OnboardingProductPage({ params }: OnboardingProduc
   if (!tenant || !hasPermission(access.role, 'brand:manage')) {
     redirect(getLocalizedPath(locale, '/'))
   }
-  const profile = await getProductProfile(tenant).catch(() => null)
+  const [profile, icp, run] = await Promise.all([
+    getProductProfile(tenant).catch(() => null),
+    getIdealCustomerProfile(tenant).catch(() => null),
+    access.onboardingAgentEnabled ? getLatestOnboardingRun(tenant).catch(() => null) : null,
+  ])
   return (
     <OnboardingShell
       current={3}
@@ -53,8 +60,11 @@ export default async function OnboardingProductPage({ params }: OnboardingProduc
       steps={ONBOARDING_STEPS}
     >
       <OnboardingProduct
+        agentEnabled={access.onboardingAgentEnabled}
         campaignsEnabled={access.campaignWorkflowEnabled}
+        initialIcp={icp}
         initialProfile={profile}
+        initialRun={run}
       />
     </OnboardingShell>
   )

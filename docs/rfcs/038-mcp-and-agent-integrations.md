@@ -538,11 +538,14 @@ client's snippet, and lists the agents connected through OAuth.
 2. **Go MCP.** Add the Shots tools, API-key authentication, the OAuth grant
    exchange, rate limits, and logging. Remove the Postiz surface. Ship behind
    the existing mount.
-3. **Public URL.** Route `shots-mcp.playbookmedia.io` to the social backend
-   and set `PLATFORM_MCP_URL=https://shots-mcp.playbookmedia.io/mcp` for the
-   backend and the web. OAuth discovery reads metadata from the host root, so
-   the path-prefixed `/postiz` route production uses today cannot carry the
-   OAuth clients; API-key clients work on either.
+3. **Public URL.** Set `PLATFORM_MCP_URL=https://shots-mcp.playbookmedia.io/mcp`
+   for the backend and the web.
+   - The backend has no public route otherwise: the social API stays
+     internal. On the `shots-mcp.playbookmedia.io` host only, the MCP paths
+     reach it: `/mcp` and its OAuth mounts, `/.well-known/oauth-*`, and
+     `/oauth/*`.
+   - OAuth discovery reads metadata from the host root, so the MCP needs a
+     host of its own.
 4. **Web.** Add the consent page, Settings → AI agents, the client guides, and
    `/llms.txt`.
 5. **Directories.** Submit to the Claude and ChatGPT directories only after

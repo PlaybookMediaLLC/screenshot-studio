@@ -27,7 +27,6 @@ import (
 type Store interface {
 	AIAgentEnabled(ctx context.Context, organizationID string) (bool, error)
 	AuthorizeOnboardingApply(ctx context.Context, started product.Actor) error
-	ConsumeWorkspaceQuota(ctx context.Context, actor product.Actor, name string, amount int) (int, error)
 	CreateProductSurface(ctx context.Context, actor product.Actor, input product.CreateProductSurfaceInput) (*ent.ProductSurface, error)
 	FinishOnboardingRun(ctx context.Context, organizationID, id string, update product.OnboardingRunUpdate) (*product.OnboardingRunRecord, error)
 	GetIdealCustomerProfile(ctx context.Context, actor product.Actor) (*product.IdealCustomerProfileRecord, error)
@@ -155,17 +154,14 @@ func (a *Activities) CrawlPage(ctx context.Context, run Input, pageURL string) (
 	return PageOutcome{Changed: changed, Fetched: true, Flagged: flagged, URL: pageURL}, nil
 }
 
-// modelAllowed is a model configured, the workspace's AI switch on, and AI credits left.
+// modelAllowed is a model configured and the workspace's AI switch on.
+// Onboarding spends no AI credits: the platform pays, within the token budget.
 func (a *Activities) modelAllowed(ctx context.Context, actor product.Actor) bool {
 	if a.Model == nil {
 		return false
 	}
 	enabled, err := a.Store.AIAgentEnabled(ctx, actor.OrganizationID)
-	if err != nil || !enabled {
-		return false
-	}
-	left, err := a.Store.ConsumeWorkspaceQuota(ctx, actor, product.QuotaAICredits, 0)
-	return err == nil && left > 0
+	return err == nil && enabled
 }
 
 // sources fences stored pages as untrusted sources S1..Sn, within the batch's characters.
@@ -186,19 +182,15 @@ func (a *Activities) sources(ctx context.Context, actor product.Actor, urls []st
 	return sources, nil
 }
 
-// draft makes one extraction call over sources and charges what it cost.
-func (a *Activities) draft(ctx context.Context, actor product.Actor, run Input, sources []onboarding.Source) (*onboarding.Draft, int, error) {
+// draft makes one extraction call over sources and reports what it used.
+func (a *Activities) draft(ctx context.Context, run Input, sources []onboarding.Source) (*onboarding.Draft, ModelOutcome, error) {
 	draft, usage, err := onboarding.RunDraft(ctx, a.Model, onboarding.DraftInput{Brief: run.Brief, Homepage: run.URL, Sources: sources}, platformai.RoleDrafting)
-	if credits := platformai.Credits(usage.CostUSD); credits > 0 {
-		if _, chargeErr := a.Store.ConsumeWorkspaceQuota(ctx, actor, product.QuotaAICredits, credits); chargeErr != nil {
-			slog.Warn("onboarding credits not charged", "organizationId", run.OrganizationID, "runId", run.RunID, "credits", credits)
-		}
-	}
+	spent := ModelOutcome{CostMicros: usage.CostMicros(), Tokens: usage.Tokens()}
 	var providerErr *platformai.Error
 	if errors.As(err, &providerErr) && !providerErr.Retryable {
-		return nil, usage.Tokens(), temporal.NewNonRetryableApplicationError("the model provider refused the request", ErrRefused, nil)
+		return nil, spent, temporal.NewNonRetryableApplicationError("the model provider refused the request", ErrRefused, nil)
 	}
-	return draft, usage.Tokens(), err
+	return draft, spent, err
 }
 
 // EnrichProfile reads a batch of changed pages and applies the product
@@ -212,21 +204,22 @@ func (a *Activities) EnrichProfile(ctx context.Context, batch BatchInput) (Model
 	if err != nil || len(sources) == 0 {
 		return ModelOutcome{}, err
 	}
-	draft, tokens, err := a.draft(ctx, actor, batch.Run, sources)
+	draft, spent, err := a.draft(ctx, batch.Run, sources)
 	if err != nil {
-		return ModelOutcome{Tokens: tokens}, err
+		return spent, err
 	}
 	if draft.Profile.Name == nil && draft.Profile.Summary == nil && draft.Profile.Capabilities == nil && draft.Profile.PricingNote == nil {
-		return ModelOutcome{Tokens: tokens}, nil
+		return spent, nil
 	}
 	draft.Profile.URL = nil // the run's URL is the founder's; a page never changes it
 	current, err := a.Store.GetProductProfile(ctx, actor)
 	if err != nil {
-		return ModelOutcome{Tokens: tokens}, err
+		return spent, err
 	}
 	unionLists(&draft.Profile, current)
 	_, err = a.Store.UpsertProductProfile(ctx, actor, draft.Profile)
-	return ModelOutcome{Applied: err == nil, Tokens: tokens}, err
+	spent.Applied = err == nil
+	return spent, err
 }
 
 // unionLists merges list fields with what other pages already supplied, so
@@ -311,20 +304,19 @@ func (a *Activities) DeriveICP(ctx context.Context, run Input) (ModelOutcome, er
 	if len(sources) == 0 {
 		return ModelOutcome{}, nil
 	}
-	draft, tokens, err := a.draft(ctx, actor, run, sources)
+	draft, spent, err := a.draft(ctx, run, sources)
 	if err != nil {
-		return ModelOutcome{Tokens: tokens}, err
+		return spent, err
 	}
-	applied := false
 	site, thirdParty := draft.SplitICP()
 	for _, icp := range []product.UpsertIdealCustomerProfileInput{site, thirdParty} {
 		if icp.Personas == nil && icp.Pains == nil && icp.Jobs == nil && icp.BuyingTriggers == nil && icp.Objections == nil && icp.Channels == nil {
 			continue
 		}
 		if _, err := a.Store.UpsertIdealCustomerProfile(ctx, actor, icp); err != nil {
-			return ModelOutcome{Tokens: tokens}, err
+			return spent, err
 		}
-		applied = true
+		spent.Applied = true
 	}
 	if competitors := draft.Profile.Competitors; competitors != nil {
 		source := product.ProfileSourceAutomated
@@ -334,11 +326,11 @@ func (a *Activities) DeriveICP(ctx context.Context, run Input) (ModelOutcome, er
 		if _, err := a.Store.UpsertProductProfile(ctx, actor, product.UpsertProductProfileInput{Competitors: competitors, Source: source,
 			Confidence: map[string]float64{"competitors": draft.Profile.Confidence["competitors"]},
 			SourceURLs: map[string]string{"competitors": draft.Profile.SourceURLs["competitors"]}}); err != nil {
-			return ModelOutcome{Tokens: tokens}, err
+			return spent, err
 		}
-		applied = true
+		spent.Applied = true
 	}
-	return ModelOutcome{Applied: applied, Tokens: tokens}, nil
+	return spent, nil
 }
 
 func sameSite(pageURL, siteURL string) bool {
@@ -400,8 +392,9 @@ func (a *Activities) SeedSurfaces(ctx context.Context, run Input) error {
 
 func progressUpdate(progress Progress) product.OnboardingRunUpdate {
 	stages := progress.CompletedStages
-	update := product.OnboardingRunUpdate{EnrichmentCostMicros: &progress.EnrichmentCostMicros, PagesDiscovered: &progress.PagesDiscovered,
-		PagesProcessed: &progress.PagesProcessed, PagesSkipped: &progress.PagesSkipped, Progress: progress.Percent, Stage: &progress.Stage,
+	update := product.OnboardingRunUpdate{EnrichmentCostMicros: &progress.EnrichmentCostMicros, ModelCostMicros: &progress.ModelCostMicros,
+		PagesDiscovered: &progress.PagesDiscovered,
+		PagesProcessed:  &progress.PagesProcessed, PagesSkipped: &progress.PagesSkipped, Progress: progress.Percent, Stage: &progress.Stage,
 		TokensUsed: &progress.TokensUsed}
 	if len(stages) > 0 {
 		update.CompletedStage = stages[len(stages)-1]
@@ -429,6 +422,6 @@ func (a *Activities) FinishRun(ctx context.Context, run Input, finish Finish) er
 	slog.Info("onboarding run finished", "metric", "onboarding.run", "organizationId", run.OrganizationID, "runId", run.RunID,
 		"workflowId", activity.GetInfo(ctx).WorkflowExecution.ID, "requestId", run.StartedBy.RequestID, "status", saved.Status,
 		"errorCode", finish.ErrorCode, "pagesProcessed", saved.PagesProcessed, "pagesSkipped", saved.PagesSkipped, "tokens", saved.TokensUsed,
-		"enrichmentCostMicros", saved.EnrichmentCostMicros, "durationMs", time.Since(saved.StartedAt).Milliseconds())
+		"enrichmentCostMicros", saved.EnrichmentCostMicros, "modelCostMicros", saved.ModelCostMicros, "durationMs", time.Since(saved.StartedAt).Milliseconds())
 	return nil
 }

@@ -2,7 +2,7 @@
   "title": "Onboarding agent",
   "uid": "platform-onboarding",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "description": "RFC 032 onboarding runs, read from onboarding_run. No page text or tenant content is queried.",
   "tags": [
     "platform",
@@ -151,8 +151,8 @@
     {
       "id": 5,
       "type": "timeseries",
-      "title": "Enrichment cost per run (USD, p50, p95, and total)",
-      "description": "",
+      "title": "Cost per run (USD): model and enrichment, p50, p95, and total",
+      "description": "The platform pays both: onboarding spends no AI credits.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${datasource}"
@@ -175,7 +175,7 @@
           "format": "time_series",
           "rawQuery": true,
           "editorMode": "code",
-          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time,\n  percentile_cont(0.5) WITHIN GROUP (ORDER BY \"enrichmentCostMicros\") / 1e6 AS cost_p50,\n  percentile_cont(0.95) WITHIN GROUP (ORDER BY \"enrichmentCostMicros\") / 1e6 AS cost_p95,\n  sum(\"enrichmentCostMicros\") / 1e6 AS cost_total\nFROM onboarding_run\nWHERE $__timeFilter(\"createdAt\")\nGROUP BY 1 ORDER BY 1"
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time,\n  percentile_cont(0.5) WITHIN GROUP (ORDER BY \"modelCostMicros\") / 1e6 AS model_p50,\n  percentile_cont(0.95) WITHIN GROUP (ORDER BY \"modelCostMicros\") / 1e6 AS model_p95,\n  percentile_cont(0.5) WITHIN GROUP (ORDER BY \"enrichmentCostMicros\") / 1e6 AS enrichment_p50,\n  percentile_cont(0.95) WITHIN GROUP (ORDER BY \"enrichmentCostMicros\") / 1e6 AS enrichment_p95,\n  sum(\"modelCostMicros\" + \"enrichmentCostMicros\") / 1e6 AS total\nFROM onboarding_run\nWHERE $__timeFilter(\"createdAt\")\nGROUP BY 1 ORDER BY 1"
         }
       ]
     },

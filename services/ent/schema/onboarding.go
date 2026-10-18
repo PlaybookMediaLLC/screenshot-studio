@@ -40,6 +40,8 @@ func (OnboardingRun) Fields() []ent.Field {
 		field.Int("tokens_used").StorageKey("tokensUsed").Default(0),
 		field.Int("token_budget").StorageKey("tokenBudget").Default(0),
 		field.Int64("enrichment_cost_micros").StorageKey("enrichmentCostMicros").Default(0),
+		// What the run's model calls cost the platform; onboarding spends no AI credits.
+		field.Int64("model_cost_micros").StorageKey("modelCostMicros").Default(0),
 		field.Int("fast_path_ms").StorageKey("fastPathMs").Default(0),
 		field.String("error_code").StorageKey("errorCode").Optional().Nillable(),
 		field.String("error_message").StorageKey("errorMessage").Optional().Nillable(),

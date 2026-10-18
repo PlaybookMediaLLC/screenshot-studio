@@ -119,6 +119,11 @@ func EnrichmentCostMicros(v int64) predicate.OnboardingRun {
 	return predicate.OnboardingRun(sql.FieldEQ(FieldEnrichmentCostMicros, v))
 }
 
+// ModelCostMicros applies equality check predicate on the "model_cost_micros" field. It's identical to ModelCostMicrosEQ.
+func ModelCostMicros(v int64) predicate.OnboardingRun {
+	return predicate.OnboardingRun(sql.FieldEQ(FieldModelCostMicros, v))
+}
+
 // FastPathMs applies equality check predicate on the "fast_path_ms" field. It's identical to FastPathMsEQ.
 func FastPathMs(v int) predicate.OnboardingRun {
 	return predicate.OnboardingRun(sql.FieldEQ(FieldFastPathMs, v))
@@ -707,6 +712,46 @@ func EnrichmentCostMicrosLT(v int64) predicate.OnboardingRun {
 // EnrichmentCostMicrosLTE applies the LTE predicate on the "enrichment_cost_micros" field.
 func EnrichmentCostMicrosLTE(v int64) predicate.OnboardingRun {
 	return predicate.OnboardingRun(sql.FieldLTE(FieldEnrichmentCostMicros, v))
+}
+
+// ModelCostMicrosEQ applies the EQ predicate on the "model_cost_micros" field.
+func ModelCostMicrosEQ(v int64) predicate.OnboardingRun {
+	return predicate.OnboardingRun(sql.FieldEQ(FieldModelCostMicros, v))
+}
+
+// ModelCostMicrosNEQ applies the NEQ predicate on the "model_cost_micros" field.
+func ModelCostMicrosNEQ(v int64) predicate.OnboardingRun {
+	return predicate.OnboardingRun(sql.FieldNEQ(FieldModelCostMicros, v))
+}
+
+// ModelCostMicrosIn applies the In predicate on the "model_cost_micros" field.
+func ModelCostMicrosIn(vs ...int64) predicate.OnboardingRun {
+	return predicate.OnboardingRun(sql.FieldIn(FieldModelCostMicros, vs...))
+}
+
+// ModelCostMicrosNotIn applies the NotIn predicate on the "model_cost_micros" field.
+func ModelCostMicrosNotIn(vs ...int64) predicate.OnboardingRun {
+	return predicate.OnboardingRun(sql.FieldNotIn(FieldModelCostMicros, vs...))
+}
+
+// ModelCostMicrosGT applies the GT predicate on the "model_cost_micros" field.
+func ModelCostMicrosGT(v int64) predicate.OnboardingRun {
+	return predicate.OnboardingRun(sql.FieldGT(FieldModelCostMicros, v))
+}
+
+// ModelCostMicrosGTE applies the GTE predicate on the "model_cost_micros" field.
+func ModelCostMicrosGTE(v int64) predicate.OnboardingRun {
+	return predicate.OnboardingRun(sql.FieldGTE(FieldModelCostMicros, v))
+}
+
+// ModelCostMicrosLT applies the LT predicate on the "model_cost_micros" field.
+func ModelCostMicrosLT(v int64) predicate.OnboardingRun {
+	return predicate.OnboardingRun(sql.FieldLT(FieldModelCostMicros, v))
+}
+
+// ModelCostMicrosLTE applies the LTE predicate on the "model_cost_micros" field.
+func ModelCostMicrosLTE(v int64) predicate.OnboardingRun {
+	return predicate.OnboardingRun(sql.FieldLTE(FieldModelCostMicros, v))
 }
 
 // FastPathMsEQ applies the EQ predicate on the "fast_path_ms" field.

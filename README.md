@@ -181,7 +181,8 @@ schedule.
 9. **Product intelligence and the onboarding agent** ([012](docs/rfcs/012-product-intelligence.md), [032](docs/rfcs/032-background-onboarding-agent.md))
    - Done: a cited product profile with per-field provenance and locks on your edits.
    - Done: the onboarding agent drafts the product and ideal-customer profiles in under ten seconds, then a Temporal run crawls the site, enriches both, and reports progress on a review screen where each field is accepted or edited.
-   - Next: MCP tools for the onboarding runs, and enable the agent for every new workspace.
+   - Done: the agent is on by default, spends no AI credits, enriches through Exa, and shows its progress in a card at the bottom right of every app page.
+   - Next: MCP tools for the onboarding runs.
 10. **Workflow 1, URL → seven posts** ([021](docs/rfcs/021-core-workflows.md)), done
     - Confirming the profile builds the first launch campaign and lands on Copy.
     - From Copy: batch approve, connect a channel, schedule.

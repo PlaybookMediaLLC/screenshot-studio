@@ -34913,6 +34913,8 @@ type OnboardingRunMutation struct {
 	addtoken_budget           *int
 	enrichment_cost_micros    *int64
 	addenrichment_cost_micros *int64
+	model_cost_micros         *int64
+	addmodel_cost_micros      *int64
 	fast_path_ms              *int
 	addfast_path_ms           *int
 	error_code                *string
@@ -35729,6 +35731,62 @@ func (m *OnboardingRunMutation) ResetEnrichmentCostMicros() {
 	m.addenrichment_cost_micros = nil
 }
 
+// SetModelCostMicros sets the "model_cost_micros" field.
+func (m *OnboardingRunMutation) SetModelCostMicros(i int64) {
+	m.model_cost_micros = &i
+	m.addmodel_cost_micros = nil
+}
+
+// ModelCostMicros returns the value of the "model_cost_micros" field in the mutation.
+func (m *OnboardingRunMutation) ModelCostMicros() (r int64, exists bool) {
+	v := m.model_cost_micros
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldModelCostMicros returns the old "model_cost_micros" field's value of the OnboardingRun entity.
+// If the OnboardingRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OnboardingRunMutation) OldModelCostMicros(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldModelCostMicros is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldModelCostMicros requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldModelCostMicros: %w", err)
+	}
+	return oldValue.ModelCostMicros, nil
+}
+
+// AddModelCostMicros adds i to the "model_cost_micros" field.
+func (m *OnboardingRunMutation) AddModelCostMicros(i int64) {
+	if m.addmodel_cost_micros != nil {
+		*m.addmodel_cost_micros += i
+	} else {
+		m.addmodel_cost_micros = &i
+	}
+}
+
+// AddedModelCostMicros returns the value that was added to the "model_cost_micros" field in this mutation.
+func (m *OnboardingRunMutation) AddedModelCostMicros() (r int64, exists bool) {
+	v := m.addmodel_cost_micros
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetModelCostMicros resets all changes to the "model_cost_micros" field.
+func (m *OnboardingRunMutation) ResetModelCostMicros() {
+	m.model_cost_micros = nil
+	m.addmodel_cost_micros = nil
+}
+
 // SetFastPathMs sets the "fast_path_ms" field.
 func (m *OnboardingRunMutation) SetFastPathMs(i int) {
 	m.fast_path_ms = &i
@@ -36231,7 +36289,7 @@ func (m *OnboardingRunMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *OnboardingRunMutation) Fields() []string {
-	fields := make([]string, 0, 25)
+	fields := make([]string, 0, 26)
 	if m.organization_id != nil {
 		fields = append(fields, onboardingrun.FieldOrganizationID)
 	}
@@ -36273,6 +36331,9 @@ func (m *OnboardingRunMutation) Fields() []string {
 	}
 	if m.enrichment_cost_micros != nil {
 		fields = append(fields, onboardingrun.FieldEnrichmentCostMicros)
+	}
+	if m.model_cost_micros != nil {
+		fields = append(fields, onboardingrun.FieldModelCostMicros)
 	}
 	if m.fast_path_ms != nil {
 		fields = append(fields, onboardingrun.FieldFastPathMs)
@@ -36343,6 +36404,8 @@ func (m *OnboardingRunMutation) Field(name string) (ent.Value, bool) {
 		return m.TokenBudget()
 	case onboardingrun.FieldEnrichmentCostMicros:
 		return m.EnrichmentCostMicros()
+	case onboardingrun.FieldModelCostMicros:
+		return m.ModelCostMicros()
 	case onboardingrun.FieldFastPathMs:
 		return m.FastPathMs()
 	case onboardingrun.FieldErrorCode:
@@ -36402,6 +36465,8 @@ func (m *OnboardingRunMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldTokenBudget(ctx)
 	case onboardingrun.FieldEnrichmentCostMicros:
 		return m.OldEnrichmentCostMicros(ctx)
+	case onboardingrun.FieldModelCostMicros:
+		return m.OldModelCostMicros(ctx)
 	case onboardingrun.FieldFastPathMs:
 		return m.OldFastPathMs(ctx)
 	case onboardingrun.FieldErrorCode:
@@ -36531,6 +36596,13 @@ func (m *OnboardingRunMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetEnrichmentCostMicros(v)
 		return nil
+	case onboardingrun.FieldModelCostMicros:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetModelCostMicros(v)
+		return nil
 	case onboardingrun.FieldFastPathMs:
 		v, ok := value.(int)
 		if !ok {
@@ -36640,6 +36712,9 @@ func (m *OnboardingRunMutation) AddedFields() []string {
 	if m.addenrichment_cost_micros != nil {
 		fields = append(fields, onboardingrun.FieldEnrichmentCostMicros)
 	}
+	if m.addmodel_cost_micros != nil {
+		fields = append(fields, onboardingrun.FieldModelCostMicros)
+	}
 	if m.addfast_path_ms != nil {
 		fields = append(fields, onboardingrun.FieldFastPathMs)
 	}
@@ -36667,6 +36742,8 @@ func (m *OnboardingRunMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedTokenBudget()
 	case onboardingrun.FieldEnrichmentCostMicros:
 		return m.AddedEnrichmentCostMicros()
+	case onboardingrun.FieldModelCostMicros:
+		return m.AddedModelCostMicros()
 	case onboardingrun.FieldFastPathMs:
 		return m.AddedFastPathMs()
 	}
@@ -36733,6 +36810,13 @@ func (m *OnboardingRunMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddEnrichmentCostMicros(v)
+		return nil
+	case onboardingrun.FieldModelCostMicros:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddModelCostMicros(v)
 		return nil
 	case onboardingrun.FieldFastPathMs:
 		v, ok := value.(int)
@@ -36836,6 +36920,9 @@ func (m *OnboardingRunMutation) ResetField(name string) error {
 		return nil
 	case onboardingrun.FieldEnrichmentCostMicros:
 		m.ResetEnrichmentCostMicros()
+		return nil
+	case onboardingrun.FieldModelCostMicros:
+		m.ResetModelCostMicros()
 		return nil
 	case onboardingrun.FieldFastPathMs:
 		m.ResetFastPathMs()

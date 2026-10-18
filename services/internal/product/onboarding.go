@@ -73,6 +73,7 @@ type OnboardingRunRecord struct {
 	ErrorMessage         *string    `json:"errorMessage"`
 	FastPathMs           int        `json:"fastPathMs"`
 	ID                   string     `json:"id"`
+	ModelCostMicros      int64      `json:"modelCostMicros"`
 	PageLimit            int        `json:"pageLimit"`
 	PagesDiscovered      int        `json:"pagesDiscovered"`
 	PagesProcessed       int        `json:"pagesProcessed"`
@@ -92,7 +93,7 @@ func onboardingRunRecord(row *ent.OnboardingRun) *OnboardingRunRecord {
 	return &OnboardingRunRecord{CompletedAt: row.CompletedAt, CompletedStages: nonNilStrings(row.CompletedStages),
 		CreatedByUserID: row.CreatedByUserID, DeadlineAt: row.DeadlineAt, DiscoveredURLs: nonNilStrings(row.DiscoveredUrls),
 		EnrichmentCostMicros: row.EnrichmentCostMicros, ErrorCode: row.ErrorCode, ErrorMessage: row.ErrorMessage,
-		FastPathMs: row.FastPathMs, ID: row.ID, PageLimit: row.PageLimit, PagesDiscovered: row.PagesDiscovered,
+		FastPathMs: row.FastPathMs, ID: row.ID, ModelCostMicros: row.ModelCostMicros, PageLimit: row.PageLimit, PagesDiscovered: row.PagesDiscovered,
 		PagesProcessed: row.PagesProcessed, PagesSkipped: row.PagesSkipped, Progress: row.Progress, Stage: row.Stage,
 		StartedAt: row.StartedAt, Status: string(row.Status), TokenBudget: row.TokenBudget, TokensUsed: row.TokensUsed,
 		UpdatedAt: row.UpdatedAt, URL: row.URL, WorkflowID: row.WorkflowID}
@@ -272,6 +273,7 @@ type OnboardingRunUpdate struct {
 	ErrorCode            *string   `json:"errorCode"`
 	ErrorMessage         *string   `json:"errorMessage"`
 	FastPathMs           *int      `json:"fastPathMs"`
+	ModelCostMicros      *int64    `json:"modelCostMicros"`
 	PagesDiscovered      *int      `json:"pagesDiscovered"`
 	PagesProcessed       *int      `json:"pagesProcessed"`
 	PagesSkipped         *int      `json:"pagesSkipped"`
@@ -352,6 +354,9 @@ func (c *Configuration) updateOnboardingRunOnce(ctx context.Context, organizatio
 	setInt(update.FastPathMs, change.SetFastPathMs)
 	if update.EnrichmentCostMicros != nil {
 		change.SetEnrichmentCostMicros(max(0, *update.EnrichmentCostMicros))
+	}
+	if update.ModelCostMicros != nil {
+		change.SetModelCostMicros(max(0, *update.ModelCostMicros))
 	}
 	if update.ErrorCode != nil {
 		change.SetErrorCode(clampRunes(*update.ErrorCode, 64))

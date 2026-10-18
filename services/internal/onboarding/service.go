@@ -11,7 +11,6 @@ import (
 
 	"github.com/getsentry/sentry-go"
 
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/platformai"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
@@ -21,7 +20,6 @@ import (
 type Store interface {
 	AIAgentEnabled(ctx context.Context, organizationID string) (bool, error)
 	Authorize(ctx context.Context, actor product.Actor) error
-	ConsumeWorkspaceQuota(ctx context.Context, actor product.Actor, name string, amount int) (int, error)
 	CreateOnboardingRun(ctx context.Context, actor product.Actor, input product.CreateOnboardingRunInput) (*product.OnboardingRunRecord, bool, error)
 	GetIdealCustomerProfile(ctx context.Context, actor product.Actor) (*product.IdealCustomerProfileRecord, error)
 	GetOnboardingRun(ctx context.Context, actor product.Actor, id string) (*product.OnboardingRunRecord, error)
@@ -49,6 +47,7 @@ type Background interface {
 type Progress struct {
 	CompletedStages      []string `json:"completedStages"`
 	EnrichmentCostMicros int64    `json:"enrichmentCostMicros"`
+	ModelCostMicros      int64    `json:"modelCostMicros"`
 	PagesDiscovered      int      `json:"pagesDiscovered"`
 	PagesProcessed       int      `json:"pagesProcessed"`
 	PagesSkipped         int      `json:"pagesSkipped"`
@@ -123,8 +122,9 @@ func (s *Service) Start(ctx context.Context, actor product.Actor, input StartInp
 	defer cancel()
 	s.save(persist, actor, run, fast)
 	elapsed := int(time.Since(started).Milliseconds())
+	modelCost := fast.Usage.CostMicros()
 	update := product.OnboardingRunUpdate{CompletedStage: StageFastPath, DiscoveredURLs: &fast.Discovered, FastPathMs: &elapsed,
-		PagesDiscovered: intPtr(len(fast.Discovered)), Progress: ProgressFastPath, Stage: strPtr(StageCrawl),
+		ModelCostMicros: &modelCost, PagesDiscovered: intPtr(len(fast.Discovered)), Progress: ProgressFastPath, Stage: strPtr(StageCrawl),
 		TokensUsed: intPtr(fast.Usage.Tokens())}
 	if fast.Reason != "" {
 		update.ErrorCode, update.ErrorMessage = strPtr("site_unreadable"), strPtr(fast.Reason)
@@ -156,14 +156,11 @@ func (s *Service) read(ctx context.Context, actor product.Actor, run *product.On
 	return s.FastPath.Run(ctx, input)
 }
 
-// modelAllowed is the workspace's AI switch on and AI credits left.
+// modelAllowed is the workspace's AI switch on. Onboarding spends no AI
+// credits: the platform pays, bounded by the run's token budget.
 func (s *Service) modelAllowed(ctx context.Context, actor product.Actor) bool {
 	enabled, err := s.Store.AIAgentEnabled(ctx, actor.OrganizationID)
-	if err != nil || !enabled {
-		return false
-	}
-	left, err := s.Store.ConsumeWorkspaceQuota(ctx, actor, product.QuotaAICredits, 0)
-	return err == nil && left > 0
+	return err == nil && enabled
 }
 
 // save stores the homepage and applies the drafts as automated changes,
@@ -180,13 +177,6 @@ func (s *Service) save(ctx context.Context, actor product.Actor, run *product.On
 		fast.Homepage.RunID = run.ID
 		_, _, err := s.Store.SavePageKnowledge(ctx, actor, *fast.Homepage)
 		logFailure("page", err)
-	}
-	if credits := platformai.Credits(fast.Usage.CostUSD); credits > 0 {
-		_, err := s.Store.ConsumeWorkspaceQuota(ctx, actor, product.QuotaAICredits, credits)
-		var exceeded *product.QuotaExceededError
-		if !errors.As(err, &exceeded) {
-			logFailure("credits", err)
-		}
 	}
 	if fast.Reused || fast.Draft == nil {
 		return
@@ -245,7 +235,7 @@ func (s *Service) Get(ctx context.Context, actor product.Actor, id string) (*pro
 	run.Progress = max(run.Progress, live.Percent)
 	run.Stage, run.CompletedStages = live.Stage, live.CompletedStages
 	run.PagesDiscovered, run.PagesProcessed, run.PagesSkipped = live.PagesDiscovered, live.PagesProcessed, live.PagesSkipped
-	run.TokensUsed, run.EnrichmentCostMicros = live.TokensUsed, live.EnrichmentCostMicros
+	run.TokensUsed, run.EnrichmentCostMicros, run.ModelCostMicros = live.TokensUsed, live.EnrichmentCostMicros, live.ModelCostMicros
 	return run, nil
 }
 

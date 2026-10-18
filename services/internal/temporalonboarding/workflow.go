@@ -39,7 +39,7 @@ func activityContext(ctx workflow.Context, startToClose, heartbeat time.Duration
 // is partial, not failed, and a cancel keeps what was extracted.
 func Workflow(ctx workflow.Context, input Input) (Progress, error) {
 	progress := Progress{CompletedStages: []string{onboarding.StageFastPath}, PagesDiscovered: len(pages(input)), Percent: onboarding.ProgressFastPath,
-		RunID: input.RunID, Stage: onboarding.StageCrawl, TokenBudget: input.TokenBudget, TokensUsed: input.TokensUsed}
+		RunID: input.RunID, Stage: onboarding.StageCrawl, ModelCostMicros: input.ModelCostMicros, TokenBudget: input.TokenBudget, TokensUsed: input.TokensUsed}
 	if err := workflow.SetQueryHandler(ctx, ProgressQuery, func() (Progress, error) { return progress, nil }); err != nil {
 		return progress, err
 	}
@@ -169,7 +169,7 @@ func (t *tracker) affordable() bool {
 func Pipeline(ctx workflow.Context, input Input) (Outcome, error) {
 	crawlList := pages(input)
 	t := &tracker{ctx: ctx, input: input, progress: Progress{CompletedStages: []string{onboarding.StageFastPath}, PagesDiscovered: len(crawlList),
-		Percent: onboarding.ProgressFastPath, RunID: input.RunID, Stage: onboarding.StageCrawl, TokenBudget: input.TokenBudget, TokensUsed: input.TokensUsed}}
+		Percent: onboarding.ProgressFastPath, RunID: input.RunID, Stage: onboarding.StageCrawl, ModelCostMicros: input.ModelCostMicros, TokenBudget: input.TokenBudget, TokensUsed: input.TokensUsed}}
 	crawlCtx := activityContext(ctx, 45*time.Second, 15*time.Second)
 	var changed []string
 	for i, page := range crawlList {
@@ -211,7 +211,7 @@ func Pipeline(ctx workflow.Context, input Input) (Outcome, error) {
 			}
 			// The batch failed its retries; the others still count.
 		}
-		t.progress.TokensUsed += result.Tokens
+		t.progress.TokensUsed, t.progress.ModelCostMicros = t.progress.TokensUsed+result.Tokens, t.progress.ModelCostMicros+result.CostMicros
 		t.report(onboarding.StageClassify, 55+20*min(start+batchPages, len(changed))/len(changed), false)
 	}
 	t.report(onboarding.StageClassify, 75, true)
@@ -231,7 +231,7 @@ func Pipeline(ctx workflow.Context, input Input) (Outcome, error) {
 		if err := workflow.ExecuteActivity(modelCtx, DeriveICPActivity, input).Get(ctx, &result); err != nil && (ctx.Err() != nil || isType(err, ErrRevoked)) {
 			return Outcome{}, err
 		}
-		t.progress.TokensUsed += result.Tokens
+		t.progress.TokensUsed, t.progress.ModelCostMicros = t.progress.TokensUsed+result.Tokens, t.progress.ModelCostMicros+result.CostMicros
 	}
 	t.report(onboarding.StageICP, 95, true)
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -90,40 +91,84 @@ func TestGitHubAndAppStoreReadPublicCounts(t *testing.T) {
 	}
 }
 
-// Keyed providers are off without their keys, record their cost, and skip
-// the product's own domain in search results.
-func TestKeyedProvidersNeedTheirKeysAndRecordCost(t *testing.T) {
-	if (&PeopleDataLabs{}).Enabled() || (&Brave{}).Enabled() {
-		t.Fatal("a keyed provider is enabled without its key")
+// Exa is off without its key; every call asks for structured output and
+// reads output.content; results on the product's own domain are dropped;
+// grounding sets the source and confidence; each call records its own cost;
+// a reply without structured output is a failure, not free text.
+func TestExaAsksForStructuredOutputOnEveryCall(t *testing.T) {
+	if (&Exa{}).Enabled() {
+		t.Fatal("Exa is enabled without a key")
 	}
-	var pdlKey string
-	pdl := vendorServer(t, func(w http.ResponseWriter, r *http.Request) {
-		pdlKey = r.Header.Get("X-Api-Key")
-		_, _ = w.Write([]byte(`{"employee_count":40,"founded":2019,"industry":"computer software","size":"11-50","likelihood":8,"location":{"name":"lisbon, portugal"},"total_funding_raised":2500000,"latest_funding_stage":"seed"}`))
-	})
-	results, err := (&PeopleDataLabs{APIKey: "key", BaseURL: pdl.URL}).Enrich(context.Background(), Subject{Domain: "acme.test"})
-	facts := results[0].Value.(Firmographics)
-	if err != nil || pdlKey != "key" || facts.Size != "11-50" || facts.FundingTotal != 2_500_000 || results[0].CostMicros != pdlCostMicros || results[0].Confidence != 0.8 {
-		t.Fatalf("pdl %+v err=%v", results, err)
-	}
-	var queries atomic.Int32
-	brave := vendorServer(t, func(w http.ResponseWriter, r *http.Request) {
-		queries.Add(1)
-		if r.Header.Get("X-Subscription-Token") != "key" {
+	var calls atomic.Int32
+	var unstructured atomic.Bool
+	var mu sync.Mutex
+	var queries []map[string]any
+	exa := vendorServer(t, func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		if r.Header.Get("X-Api-Key") != "key" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"web": map[string]any{"results": []map[string]string{
-			{"title": "Acme alternatives", "url": "https://compare.test/acme", "description": "Try Ledgerly or Invoicely."},
-			{"title": "Acme", "url": "https://www.acme.test/", "description": "Our own site."}}}})
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		queries = append(queries, body)
+		mu.Unlock()
+		if r.URL.Path != "/search" || body["outputSchema"] == nil || unstructured.Load() {
+			_, _ = w.Write([]byte(`{"results":[],"costDollars":{"total":0.005}}`))
+			return
+		}
+		query := body["query"].(string)
+		switch {
+		case strings.HasPrefix(query, "Alternatives"):
+			_, _ = w.Write([]byte(`{"output":{"content":{"competitors":[{"name":"Ledgerly","url":"https://ledgerly.test/","reason":"Invoicing for freelancers."},
+{"name":"Acme","url":"https://www.acme.test/","reason":"The product itself."}]},
+"grounding":[{"field":"competitors[0].name","citations":[{"url":"https://compare.test/acme","title":"Acme alternatives"}],"confidence":"high"}]},
+"costDollars":{"total":0.012}}`))
+		case strings.HasPrefix(query, "What customers say"):
+			_, _ = w.Write([]byte(`{"output":{"content":{"praise":["Late payments stopped."],"complaints":["No multi-currency."],"channels":["r/agency"]},
+"grounding":[{"field":"complaints[0]","citations":[{"url":"https://reviews.test/acme","title":"Review"}],"confidence":"medium"}]},
+"costDollars":{"total":0.013}}`))
+		default:
+			_, _ = w.Write([]byte(`{"output":{"content":{"employees":40,"industry":"Software","headquarters":"Lisbon, Portugal","fundingStage":"Seed","fundingTotal":2500000,"founded":"2019"},
+"grounding":[{"field":"fundingTotal","citations":[{"url":"https://news.test/acme-seed","title":"Seed round"}],"confidence":"low"}]},
+"costDollars":{"total":0.014}}`))
+		}
 	})
-	results, err = (&Brave{APIKey: "key", BaseURL: brave.URL}).Enrich(context.Background(), Subject{Domain: "acme.test", Name: "Acme"})
-	if err != nil || queries.Load() != 4 || len(results) != 2 || results[0].Field != FieldCompetitors || results[0].CostMicros != 2*braveCostMicros ||
-		len(results[0].Value.([]Snippet)) != 2 || strings.Contains(results[0].SourceURL, "acme.test") {
-		t.Fatalf("brave %+v err=%v", results, err)
+	provider := &Exa{APIKey: "key", BaseURL: exa.URL}
+	subject := Subject{Domain: "acme.test", Homepage: "https://acme.test/", Name: "Acme"}
+	results, err := provider.Enrich(context.Background(), subject)
+	if err != nil || len(results) != 3 || calls.Load() != 3 {
+		t.Fatalf("results %+v err=%v calls=%d", results, err, calls.Load())
 	}
-	_, err = (&Brave{APIKey: "wrong", BaseURL: brave.URL}).Enrich(context.Background(), Subject{Name: "Acme"})
+	competitors, mentions := results[0].Value.([]Snippet), results[1].Value.([]Snippet)
+	facts := results[2].Value.(Firmographics)
+	if len(competitors) != 1 || competitors[0].Title != "Ledgerly" || competitors[0].Text != "Invoicing for freelancers." ||
+		results[0].SourceURL != "https://compare.test/acme" || results[0].Confidence != 0.7 || results[0].CostMicros != 12_000 {
+		t.Fatalf("competitors %+v", results[0])
+	}
+	if len(mentions) != 3 || mentions[1].Title != "Customers complain" || mentions[1].URL != "https://reviews.test/acme" ||
+		results[1].Confidence != 0.5 || results[1].CostMicros != 13_000 {
+		t.Fatalf("mentions %+v", results[1])
+	}
+	if facts.Headquarters != "Lisbon, Portugal" || facts.FundingTotal != 2_500_000 || results[2].Confidence != 0.3 ||
+		results[2].SourceURL != "https://news.test/acme-seed" || results[2].CostMicros != 14_000 {
+		t.Fatalf("firmographics %+v", results[2])
+	}
+	for _, query := range queries {
+		if query["outputSchema"] == nil || query["type"] != "auto" {
+			t.Fatalf("a call did not ask for structured output: %+v", query)
+		}
+	}
+	if excluded := queries[0]["excludeDomains"].([]any); excluded[0] != "acme.test" {
+		t.Fatalf("own domain not excluded: %+v", queries[0])
+	}
+	unstructured.Store(true)
 	var failure *ProviderError
+	if _, err := provider.Enrich(context.Background(), subject); !errors.As(err, &failure) || failure.Retryable {
+		t.Fatalf("an unstructured reply was accepted: %v", err)
+	}
+	_, err = (&Exa{APIKey: "wrong", BaseURL: exa.URL}).Enrich(context.Background(), subject)
 	if !errors.As(err, &failure) || failure.Retryable || failure.Status != http.StatusUnauthorized {
 		t.Fatalf("unauthorized: %v", err)
 	}

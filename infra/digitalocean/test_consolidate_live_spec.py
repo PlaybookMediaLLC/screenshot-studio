@@ -204,6 +204,22 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         self.assertEqual(scaled_collab["instance_count"], 3)
         self.assertEqual({item["key"]: item["type"] for item in scaled_collab["envs"]}["COLLAB_REDIS_URL"], "SECRET")
 
+    def test_onboarding_keys_follow_infisical(self):
+        secrets = {key: "infisical-" + key for key in
+                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
+        first = cutover.consolidate(self.base, self.digest, secrets)
+        backend_envs = lambda spec: {item["key"]: item for item in next(
+            item for item in spec["services"] if item["name"] == "screenshot-studio-backend")["envs"]}
+        self.assertFalse(cutover.OPTIONAL_TENANT_KEYS & set(backend_envs(first)))
+        # A key added to Infisical reaches the live app on the next deploy.
+        keyed = cutover.consolidate(first, self.digest, dict(secrets, PLATFORM_ENRICHMENT_EXA_API_KEY="exa", OPENROUTER_API_KEY="or"))
+        envs = backend_envs(keyed)
+        self.assertEqual(envs["TENANT_PLATFORM_ENRICHMENT_EXA_API_KEY"], {"key": "TENANT_PLATFORM_ENRICHMENT_EXA_API_KEY", "value": "exa",
+                                                                          "type": "SECRET", "scope": "RUN_TIME"})
+        self.assertEqual(envs["TENANT_OPENROUTER_API_KEY"]["value"], "or")
+        # Removing it from Infisical removes it from the app instead of failing the deploy.
+        self.assertFalse(cutover.OPTIONAL_TENANT_KEYS & set(backend_envs(cutover.consolidate(keyed, self.digest, secrets))))
+
 
 if __name__ == "__main__":
     unittest.main()

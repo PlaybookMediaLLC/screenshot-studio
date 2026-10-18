@@ -240,8 +240,9 @@ func TestBackgroundRunEnrichesAndAReRunOfAnUnchangedSiteCostsNothing(t *testing.
 		icp.Provenance["pains"].URL != "https://forum.test/acme" || icp.Provenance["jobs"].Source != product.ProfileSourceAutomated {
 		t.Fatalf("ICP %+v err=%v", icp, err)
 	}
-	if run.EnrichmentCostMicros != 5_000 || forum.calls.Load() != 1 {
-		t.Fatalf("enrichment cost %d forum calls %d", run.EnrichmentCostMicros, forum.calls.Load())
+	// Three model calls (fast path, profile, ICP) at $0.01, paid by the platform.
+	if run.EnrichmentCostMicros != 5_000 || forum.calls.Load() != 1 || run.ModelCostMicros != 30_000 {
+		t.Fatalf("enrichment cost %d forum calls %d model cost %d", run.EnrichmentCostMicros, forum.calls.Load(), run.ModelCostMicros)
 	}
 	surfaces, err := w.store.ListProductSurfaces(ctx, w.org)
 	if err != nil || len(surfaces) != 2 {

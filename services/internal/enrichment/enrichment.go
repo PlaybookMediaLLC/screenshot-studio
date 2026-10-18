@@ -111,8 +111,7 @@ func FromEnvironment(fetcher *onboarding.Fetcher) []EnrichmentProvider {
 		&Site{Fetcher: fetcher, Off: disabled["site"]},
 		&GitHub{Token: os.Getenv("PLATFORM_ENRICHMENT_GITHUB_TOKEN"), Off: disabled["github"]},
 		&AppStore{Country: country, Off: disabled["appstore"]},
-		&PeopleDataLabs{APIKey: os.Getenv("PLATFORM_ENRICHMENT_PDL_API_KEY")},
-		&Brave{APIKey: os.Getenv("PLATFORM_ENRICHMENT_BRAVE_API_KEY")},
+		&Exa{APIKey: os.Getenv("PLATFORM_ENRICHMENT_EXA_API_KEY")},
 	}
 }
 
@@ -226,9 +225,10 @@ func absorb(subject *Subject, records []product.EnrichmentRecordRecord) {
 }
 
 // merge applies results below the site and the user: social links and brand
-// colors only fill what is empty, and an app rating becomes a proof point
-// only where the profile has none. Competitors and mentions reach the ICP
-// through the extraction prompt, as untrusted sources.
+// colors only fill what is empty, Exa's competitor names fill the profile's
+// alternatives, and an app rating becomes a proof point only where the
+// profile has none. Mentions reach the ICP through the extraction prompt, as
+// untrusted sources.
 func (e *Enricher) merge(ctx context.Context, actor product.Actor, found map[string]product.EnrichmentRecordRecord) error {
 	if socials, ok := found["site/"+FieldSocials]; ok {
 		var handles map[string]string
@@ -241,6 +241,20 @@ func (e *Enricher) merge(ctx context.Context, actor product.Actor, found map[str
 	if brand, ok := found["site/"+FieldBrand]; ok {
 		if err := e.seedBrandKit(ctx, actor, brand); err != nil {
 			slog.Warn("brand kit not seeded from enrichment", "organizationId", actor.OrganizationID, "error", err.Error())
+		}
+	}
+	if record, ok := found["exa/"+FieldCompetitors]; ok {
+		var rivals []Snippet
+		if json.Unmarshal(record.Value, &rivals) == nil && len(rivals) > 0 {
+			names := make([]string, 0, min(len(rivals), 10))
+			for _, rival := range rivals[:min(len(rivals), 10)] {
+				names = append(names, onboarding.ClampText(rival.Title, 100))
+			}
+			_, err := e.Store.UpsertProductProfile(ctx, actor, product.UpsertProductProfileInput{Competitors: &names, Source: product.ProfileSourceEnrichment,
+				SourceURLs: map[string]string{"competitors": record.SourceURL}, Confidence: map[string]float64{"competitors": record.Confidence}})
+			if err != nil {
+				slog.Warn("competitors not applied from enrichment", "organizationId", actor.OrganizationID, "error", err.Error())
+			}
 		}
 	}
 	if listing, ok := found["appstore/"+FieldApps]; ok {

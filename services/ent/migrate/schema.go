@@ -1202,6 +1202,7 @@ var (
 		{Name: "tokensUsed", Type: field.TypeInt, Default: 0},
 		{Name: "tokenBudget", Type: field.TypeInt, Default: 0},
 		{Name: "enrichmentCostMicros", Type: field.TypeInt64, Default: 0},
+		{Name: "modelCostMicros", Type: field.TypeInt64, Default: 0},
 		{Name: "fastPathMs", Type: field.TypeInt, Default: 0},
 		{Name: "errorCode", Type: field.TypeString, Nullable: true},
 		{Name: "errorMessage", Type: field.TypeString, Nullable: true},
@@ -1223,12 +1224,12 @@ var (
 			{
 				Name:    "onboardingrun_organizationId_idempotencyKey",
 				Unique:  true,
-				Columns: []*schema.Column{OnboardingRunColumns[1], OnboardingRunColumns[18]},
+				Columns: []*schema.Column{OnboardingRunColumns[1], OnboardingRunColumns[19]},
 			},
 			{
 				Name:    "onboardingrun_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{OnboardingRunColumns[1], OnboardingRunColumns[24]},
+				Columns: []*schema.Column{OnboardingRunColumns[1], OnboardingRunColumns[25]},
 			},
 		},
 	}

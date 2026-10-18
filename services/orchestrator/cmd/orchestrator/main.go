@@ -24,7 +24,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/platformai"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/quota"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalmaintenance"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalonboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
@@ -117,21 +116,8 @@ func main() {
 	}
 
 	// The onboarding agent's background read (docs/rfcs/032) on its own queue.
+	// Onboarding spends no AI credits, so its store needs no quota meter.
 	onboardingStore := product.NewConfiguration(db.Client)
-	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
-		counter, err := quota.NewRedisCounter(redisURL)
-		if err != nil {
-			slog.Error("invalid quota counter configuration", "error", err)
-			os.Exit(1)
-		}
-		defer counter.Close()
-		meter, err := counter.MonthlyMeter()
-		if err != nil {
-			slog.Error("monthly quota meter unavailable", "error", err)
-			os.Exit(1)
-		}
-		onboardingStore.WithQuotaCounter(counter).WithMonthlyMeter(meter)
-	}
 	fetcher := onboarding.NewFetcher()
 	onboardingActivities := &temporalonboarding.Activities{Fetcher: fetcher, Store: onboardingStore,
 		Enricher: &enrichment.Enricher{Providers: enrichment.FromEnvironment(fetcher), Store: onboardingStore}}

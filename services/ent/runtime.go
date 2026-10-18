@@ -643,20 +643,24 @@ func init() {
 	onboardingrunDescEnrichmentCostMicros := onboardingrunFields[14].Descriptor()
 	// onboardingrun.DefaultEnrichmentCostMicros holds the default value on creation for the enrichment_cost_micros field.
 	onboardingrun.DefaultEnrichmentCostMicros = onboardingrunDescEnrichmentCostMicros.Default.(int64)
+	// onboardingrunDescModelCostMicros is the schema descriptor for model_cost_micros field.
+	onboardingrunDescModelCostMicros := onboardingrunFields[15].Descriptor()
+	// onboardingrun.DefaultModelCostMicros holds the default value on creation for the model_cost_micros field.
+	onboardingrun.DefaultModelCostMicros = onboardingrunDescModelCostMicros.Default.(int64)
 	// onboardingrunDescFastPathMs is the schema descriptor for fast_path_ms field.
-	onboardingrunDescFastPathMs := onboardingrunFields[15].Descriptor()
+	onboardingrunDescFastPathMs := onboardingrunFields[16].Descriptor()
 	// onboardingrun.DefaultFastPathMs holds the default value on creation for the fast_path_ms field.
 	onboardingrun.DefaultFastPathMs = onboardingrunDescFastPathMs.Default.(int)
 	// onboardingrunDescStartedAt is the schema descriptor for started_at field.
-	onboardingrunDescStartedAt := onboardingrunFields[21].Descriptor()
+	onboardingrunDescStartedAt := onboardingrunFields[22].Descriptor()
 	// onboardingrun.DefaultStartedAt holds the default value on creation for the started_at field.
 	onboardingrun.DefaultStartedAt = onboardingrunDescStartedAt.Default.(func() time.Time)
 	// onboardingrunDescCreatedAt is the schema descriptor for created_at field.
-	onboardingrunDescCreatedAt := onboardingrunFields[24].Descriptor()
+	onboardingrunDescCreatedAt := onboardingrunFields[25].Descriptor()
 	// onboardingrun.DefaultCreatedAt holds the default value on creation for the created_at field.
 	onboardingrun.DefaultCreatedAt = onboardingrunDescCreatedAt.Default.(func() time.Time)
 	// onboardingrunDescUpdatedAt is the schema descriptor for updated_at field.
-	onboardingrunDescUpdatedAt := onboardingrunFields[25].Descriptor()
+	onboardingrunDescUpdatedAt := onboardingrunFields[26].Descriptor()
 	// onboardingrun.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	onboardingrun.DefaultUpdatedAt = onboardingrunDescUpdatedAt.Default.(func() time.Time)
 	// onboardingrun.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

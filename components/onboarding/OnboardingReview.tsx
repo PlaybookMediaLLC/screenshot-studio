@@ -1,7 +1,7 @@
 'use client'
 
 import { Check, Loader2, Pencil } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -18,21 +18,9 @@ import {
 } from '@/lib/tenant/product-profile-schema'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
+import { isTerminal, ONBOARDING_STAGES, stagePercent, useOnboardingRun } from './run-progress'
 
 type Provenance = StoredProductProfile['provenance'][ProductProfileFieldName]
-
-/** The run's stages and the share of the progress bar each one fills (RFC 032). */
-const STAGES = [
-  { from: 0, key: 'fast_path', label: 'First read', to: 20 },
-  { from: 20, key: 'crawl', label: 'Reading your pages', to: 55 },
-  { from: 55, key: 'classify', label: 'Updating the profile', to: 75 },
-  { from: 75, key: 'enrich', label: 'Looking around the web', to: 85 },
-  { from: 85, key: 'icp', label: 'Finding your customer', to: 95 },
-  { from: 95, key: 'brand', label: 'Seeding your brand', to: 98 },
-  { from: 98, key: 'surfaces', label: 'Mapping product pages', to: 100 },
-]
-
-const TERMINAL = new Set(['completed', 'partial', 'failed', 'cancelled'])
 
 const lines = (value: string) =>
   value
@@ -80,12 +68,7 @@ function RunProgress({
   onRerun: () => void
   run: StoredOnboardingRun
 }) {
-  const running = !TERMINAL.has(run.status)
-  const stageState = (stage: (typeof STAGES)[number]) => {
-    if (run.completedStages.includes(stage.key) || run.progress >= stage.to) return 100
-    if (run.progress <= stage.from) return 0
-    return Math.round(((run.progress - stage.from) / (stage.to - stage.from)) * 100)
-  }
+  const running = !isTerminal(run.status)
   const summary = {
     cancelled: 'Stopped. Everything read so far is kept.',
     completed: 'Done. Your profile is as complete as your site allows.',
@@ -124,8 +107,8 @@ function RunProgress({
         <div className="h-full bg-white transition-all" style={{ width: `${run.progress}%` }} />
       </div>
       <ol className="grid gap-2 sm:grid-cols-2">
-        {STAGES.map((stage) => {
-          const value = stageState(stage)
+        {ONBOARDING_STAGES.map((stage) => {
+          const value = stagePercent(run, stage)
           return (
             <li className="flex flex-col gap-1" key={stage.key}>
               <span className="flex items-center gap-1.5 text-xs text-neutral-400">
@@ -373,55 +356,22 @@ export function OnboardingReview({
   run: StoredOnboardingRun
 }) {
   const trpcClient = useTRPCClient()
-  const [run, setRun] = useState(initialRun)
   const [profile, setProfile] = useState(initialProfile)
   const [icp, setIcp] = useState(initialIcp)
   const [findings, setFindings] = useState<StoredEnrichment[]>([])
   const [error, setError] = useState<string | null>(null)
-  const progress = useRef(initialRun.progress)
+  // A stage finished: the drafts may have changed underneath.
+  const { lost, run, setRun } = useOnboardingRun(initialRun, async () => {
+    const [productResult, icpResult] = await Promise.all([
+      trpcClient.productProfile.get.query(),
+      trpcClient.idealCustomerProfile.get.query(),
+    ])
+    if (productResult.productProfile) setProfile(productResult.productProfile)
+    setIcp(icpResult.idealCustomerProfile)
+  })
 
   useEffect(() => {
-    if (TERMINAL.has(run.status)) return
-    let delay = 1_000
-    let failures = 0
-    let timer: ReturnType<typeof setTimeout>
-    let stopped = false
-    const poll = async () => {
-      try {
-        const next = (await trpcClient.onboarding.run.query({ runId: run.id })).run
-        failures = 0
-        if (stopped) return
-        // A stage finished: the drafts may have changed underneath.
-        if (next.progress > progress.current || TERMINAL.has(next.status)) {
-          progress.current = next.progress
-          const [productResult, icpResult] = await Promise.all([
-            trpcClient.productProfile.get.query(),
-            trpcClient.idealCustomerProfile.get.query(),
-          ])
-          if (productResult.productProfile) setProfile(productResult.productProfile)
-          setIcp(icpResult.idealCustomerProfile)
-        }
-        setRun(next)
-        if (TERMINAL.has(next.status)) return
-      } catch {
-        failures += 1
-        if (failures >= 5) {
-          setError('Lost track of the background read. Reload to see where it got to.')
-          return
-        }
-      }
-      delay = Math.min(5_000, delay * 1.5)
-      timer = setTimeout(poll, delay)
-    }
-    timer = setTimeout(poll, delay)
-    return () => {
-      stopped = true
-      clearTimeout(timer)
-    }
-  }, [run.id, run.status, trpcClient])
-
-  useEffect(() => {
-    if (!TERMINAL.has(run.status)) return
+    if (!isTerminal(run.status)) return
     trpcClient.onboarding.enrichment
       .query({ runId: run.id })
       .then((result) => setFindings(result.enrichment))
@@ -476,19 +426,18 @@ export function OnboardingReview({
         onRerun={() =>
           void trpcClient.onboarding.rerun
             .mutate({ runId: run.id })
-            .then((result) => {
-              progress.current = result.run.progress
-              setRun(result.run)
-            })
+            .then((result) => setRun(result.run))
             .catch((requestError: unknown) =>
               setError(requestError instanceof Error ? requestError.message : 'Try again later.')
             )
         }
         run={run}
       />
-      {error ? (
+      {error || lost ? (
         <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>
+            {error ?? 'Lost track of the background read. Reload to see where it got to.'}
+          </AlertDescription>
         </Alert>
       ) : null}
       <section aria-label="Your product" className="flex flex-col">

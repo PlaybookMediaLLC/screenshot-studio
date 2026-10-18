@@ -213,9 +213,9 @@ source.
 | `createCampaign`         | `POST /api/v1/campaigns`                                      | write                 | `release:create` | `campaign:workflow` | `api:write:minute` |
 | `listApprovals`          | `GET /api/v1/approvals`                                       | read-only             | `artifact:read`  | `campaign:workflow` | none               |
 | `requestCampaignReview`  | `POST /api/v1/campaigns/{campaignId}/review-requests`         | write                 | `release:create` | `campaign:workflow` | `api:write:minute` |
-| `scheduleCampaignPost`   | `POST /api/v1/campaigns/{campaignId}/posts/{postId}/schedule` | write                 | `post:schedule`  | `campaign:workflow` | `api:write:minute` |
+| `scheduleCampaignPost`   | `POST /api/v1/campaigns/{campaignId}/posts/{postId}/schedule` | write, open world     | `post:schedule`  | `campaign:workflow` | `api:write:minute` |
 | `listScheduledPosts`     | `GET /api/v1/scheduled-posts`                                 | read-only             | `artifact:read`  | `workspace:use`     | none               |
-| `createScheduledPost`    | `POST /api/v1/scheduled-posts`                                | write                 | `post:schedule`  | `workspace:use`     | `api:write:minute` |
+| `createScheduledPost`    | `POST /api/v1/scheduled-posts`                                | write, open world     | `post:schedule`  | `workspace:use`     | `api:write:minute` |
 | `cancelScheduledPost`    | `POST /api/v1/scheduled-posts/{scheduledPostId}/cancel`       | **destructive**       | `post:schedule`  | `workspace:use`     | `api:write:minute` |
 
 Notes on the table:
@@ -236,8 +236,9 @@ Notes on the table:
   approved content: a campaign post must be `APPROVED` with an approved
   visual, and a variant must be `APPROVED` with an approved review. The domain
   checks that, the brand terms, the channel, and the character limit, and it
-  charges `posts:monthly`, exactly as for a session. `cancelScheduledPost`
-  carries `destructiveHint: true`.
+  charges `posts:monthly`, exactly as for a session. Both carry
+  `openWorldHint: true`, because what they schedule goes out to a public
+  channel. `cancelScheduledPost` carries `destructiveHint: true`.
 - **Workflow start.** `/v1` starts the publishing workflow as soon as it
   schedules. The MCP process has no tenant Temporal client, so the
   once-a-minute due-post dispatcher (`scheduled-posts` in

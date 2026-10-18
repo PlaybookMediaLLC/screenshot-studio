@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.12.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.11.0...v2.12.0) (2026-10-18)
+
+
+### Features
+
+* **deploy:** ship content drafts and the collab service to production ([#170](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/170)) ([acabcee](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/acabcee6c89f553ac7eb737460cb870d48c234e0))
+
 ## [2.11.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.10.2...v2.11.0) (2026-10-18)
 
 

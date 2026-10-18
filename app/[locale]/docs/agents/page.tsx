@@ -40,8 +40,8 @@ export default function AgentsDocsPage() {
             REST API
           </Link>
           : read releases and campaigns, draft campaigns, upload assets, capture screenshots, and
-          submit drafts for review. A person still approves, schedules, and publishes in Shots; no
-          agent can.
+          submit drafts for review. A key with post:schedule also schedules posts a person approved.
+          Only a person approves, in Shots; no agent can.
         </p>
         <pre className={codeBlockClassName}>
           <code>{MCP_URL}</code>

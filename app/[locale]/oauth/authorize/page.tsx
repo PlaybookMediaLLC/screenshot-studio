@@ -110,7 +110,8 @@ export default async function AgentConsentPage({ params, searchParams }: Consent
             </label>
           ))}
           <p className="text-xs text-neutral-500">
-            No agent can approve, schedule, or publish content; a person does that in Shots.
+            No agent can approve content; a person does that in Shots. With post:schedule, it can
+            schedule and cancel posts a person already approved.
           </p>
         </fieldset>
         <label className="flex flex-col gap-1.5 text-sm text-neutral-400">

@@ -1,6 +1,6 @@
 ---
 name: shots
-description: Use when the user wants to turn a code change or release into a Shots launch, draft campaign posts, capture product screenshots, upload launch assets, or check what is waiting for review in their Shots workspace.
+description: Use when the user wants to turn a code change or release into a Shots launch, draft campaign posts, capture product screenshots, upload launch assets, check what is waiting for review, or schedule approved posts in their Shots workspace.
 ---
 
 # Shots
@@ -23,10 +23,16 @@ acts in one workspace with the scopes its key or OAuth approval granted.
    file with `createAssetUploadUrl`, a `PUT` to the signed URL with the
    declared `Content-Type` and `If-None-Match: *`, then `completeAssetUpload`.
 5. Submit with `requestCampaignReview` and tell the user to review in Shots.
+6. Once a person approved a post, schedule it with `scheduleCampaignPost` if
+   the key has `post:schedule`. First check each link in the post with
+   `GET /api/v1/link-preview`, then pass `skipLinkCheck: true`. Confirm the
+   channel and time with the user. `listScheduledPosts` shows the schedule.
 
 ## Limits
 
-- No tool approves, schedules, or publishes. Never claim a post is live.
+- No tool approves. Never schedule a post the user has not asked for, and
+  never claim a post is live: it publishes at its scheduled time.
+- `cancelScheduledPost` is destructive; confirm with the user first.
 - `deleteAsset` is destructive; confirm with the user first.
 - A refusal carries a `code`: `workspace_feature_not_entitled` means the plan
   lacks the feature, `forbidden` usually means the key lacks a scope, and

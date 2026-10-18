@@ -39,7 +39,7 @@ Shots runs an MCP server for AI agents at ${MCP_URL}, served by the same backend
 3. Claude.ai, Claude Desktop, and ChatGPT connect through OAuth instead and ask a workspace owner or admin to approve.
 4. Prefer HTTP? Every MCP tool mirrors an operation in ${BASE_URL}/openapi.json; send the same key in \`X-API-Key\`.
 
-Setup for Claude Code, Claude.ai, ChatGPT, Cursor, VS Code, Windsurf, Gemini CLI, Codex CLI, and OpenCode: ${BASE_URL}/docs/agents. Agents can read releases, campaigns, and the review queue, create drafts, upload assets, capture screenshots, and submit drafts for review; only a person approves, schedules, or publishes.`;
+Setup for Claude Code, Claude.ai, ChatGPT, Cursor, VS Code, Windsurf, Gemini CLI, Codex CLI, and OpenCode: ${BASE_URL}/docs/agents. Agents can read releases, campaigns, the review queue, and the schedule, create drafts, upload assets, capture screenshots, and submit drafts for review. With the post:schedule scope they schedule posts a person approved; only a person approves.`;
 
 const comparisonRows = comparisons
   .map(
@@ -432,7 +432,7 @@ ${MCP_URL} is the Shots MCP server (Streamable HTTP). Send a workspace API key a
 |------|-------|------|
 ${mcpToolLines}
 
-No tool approves, schedules, or publishes; a person does that in Shots.
+No tool approves; a person does that in Shots. The scheduling tools need the post:schedule scope and take only posts and visuals a person approved.
 
 ### MCP client configuration
 

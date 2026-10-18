@@ -106,9 +106,9 @@ export function WorkspaceAgentSettings({
           <Row>
             <CopyValue id="mcp-url" label="Server URL" value={mcpUrl} />
             <p className="text-xs text-neutral-500">
-              Agents can read releases, campaigns, and the review queue, create drafts, upload
-              assets, capture screenshots, and submit drafts for review. Only a person approves,
-              schedules, or publishes.{' '}
+              Agents can read releases, campaigns, the review queue, and the schedule, create
+              drafts, upload assets, capture screenshots, and submit drafts for review. With
+              post:schedule they also schedule what a person approved. Only a person approves.{' '}
               <a className="underline underline-offset-4" href="/docs/agents">
                 Setup guides
               </a>

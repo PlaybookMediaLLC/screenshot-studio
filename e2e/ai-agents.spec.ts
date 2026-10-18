@@ -17,6 +17,8 @@ test('an owner creates an agent key whose snippets carry it, and the key cannot 
   await expect(page.getByLabel(/artifact:read/)).toBeChecked()
   await expect(page.getByLabel(/release:create/)).toBeChecked()
   await expect(page.getByLabel(/asset:write/)).not.toBeChecked()
+  // Scheduling is opt-in per key.
+  await expect(page.getByLabel(/post:schedule/)).not.toBeChecked()
 
   await page.getByRole('button', { name: 'Create agent key' }).click()
   await expect(page.getByText('Copy this key now')).toBeVisible()

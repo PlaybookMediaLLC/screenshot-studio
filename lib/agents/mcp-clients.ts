@@ -5,7 +5,7 @@
  */
 
 /** The public MCP endpoint for this deployment: the Go backend, never Next.js. */
-export const MCP_URL = process.env.PLATFORM_MCP_URL ?? 'https://api.shots.playbookmedia.io/mcp'
+export const MCP_URL = process.env.PLATFORM_MCP_URL ?? 'https://shots-mcp.playbookmedia.io/mcp'
 
 /** The MCP base without `/mcp`, where the OAuth mounts live. */
 export const MCP_BASE_URL = MCP_URL.replace(/\/mcp\/?$/, '')
@@ -233,4 +233,12 @@ export const MCP_TOOLS: { name: string; scope: string; summary: string }[] = [
   { name: 'createCampaign', scope: 'release:create', summary: 'Create a draft campaign' },
   { name: 'listApprovals', scope: 'artifact:read', summary: 'List posts waiting for review' },
   { name: 'requestCampaignReview', scope: 'release:create', summary: 'Submit drafts for review' },
+  { name: 'scheduleCampaignPost', scope: 'post:schedule', summary: 'Schedule an approved post' },
+  { name: 'listScheduledPosts', scope: 'artifact:read', summary: 'List the publishing schedule' },
+  { name: 'createScheduledPost', scope: 'post:schedule', summary: 'Schedule an approved visual' },
+  {
+    name: 'cancelScheduledPost',
+    scope: 'post:schedule',
+    summary: 'Cancel a scheduled post (asks to confirm)',
+  },
 ]

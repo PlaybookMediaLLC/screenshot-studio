@@ -203,7 +203,7 @@ export const AGENT_PAGES: AgentPage[] = [
     path: '/docs/agents',
     title: 'Connect AI agents to Shots',
     summary:
-      'Setup for the Shots MCP server, which gives AI agents the workspace operations of the REST API with the same scopes, plan checks, and quotas. Agents that take a header send a workspace API key as a bearer token; Claude.ai, Claude Desktop, and ChatGPT connect through OAuth and a workspace owner or admin approves them. Only a person approves, schedules, or publishes.',
+      'Setup for the Shots MCP server, which gives AI agents the workspace operations of the REST API with the same scopes, plan checks, and quotas. Agents that take a header send a workspace API key as a bearer token; Claude.ai, Claude Desktop, and ChatGPT connect through OAuth and a workspace owner or admin approves them. A key with post:schedule schedules approved posts; only a person approves.',
     points: [
       'Claude Code: claude mcp add --transport http shots <server URL> --header "Authorization: Bearer $SHOTS_API_KEY"',
       'Claude.ai and Claude Desktop: a custom connector on the /mcp-oauth-claude URL',

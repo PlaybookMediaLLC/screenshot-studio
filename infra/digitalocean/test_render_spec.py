@@ -37,7 +37,7 @@ class DeploymentSpecTest(unittest.TestCase):
         web_envs = {item["key"]: item for item in services["web"]["envs"]}
         self.assertEqual(web_envs["PLATFORM_RENDER_CDP_URL"]["value"], "fixture-PLATFORM_RENDER_CDP_URL")
         self.assertEqual(web_envs["PLATFORM_RENDER_CDP_TOKEN"]["type"], "SECRET")
-        self.assertEqual({r["component"]["name"] for r in spec["ingress"]["rules"]}, {"web", "screenshot-studio-backend"})
+        self.assertEqual({r["component"]["name"] for r in spec["ingress"]["rules"]}, {"web"})
         for component in spec["services"] + spec["jobs"]:
             for item in component.get("envs", []):
                 if item["key"] != "EXISTING_SETTING":
@@ -48,6 +48,7 @@ class DeploymentSpecTest(unittest.TestCase):
         backend = services["screenshot-studio-backend"]
         self.assertEqual(backend["health_check"]["port"], 3003)
         self.assertEqual(backend["internal_ports"], [3003, 8082])
+        self.assertNotIn("http_port", backend)
         self.assertEqual(backend["instance_size_slug"], "apps-s-1vcpu-2gb")
         worker_env = {e["key"]: e for e in backend["envs"]}
         self.assertEqual(worker_env["RUN_WORKER"]["value"], "true")

@@ -18,6 +18,8 @@ import { encodeAvif } from "./avif";
 import type {
   CropRect,
   Dimensions,
+  EraseStroke,
+  Point,
   ProcessOptions,
   ProcessResult,
   RasterFormat,
@@ -178,7 +180,9 @@ function downscaleInSteps(
 function renderCropAndTransform(
   bitmap: ImageBitmap,
   crop: CropRect,
-  transform: TransformOptions
+  transform: TransformOptions,
+  mask: Point[] | null,
+  erase: EraseStroke[]
 ): AnyCanvas {
   const rotated = dimensionsAfterRotation(
     { width: crop.width, height: crop.height },
@@ -203,6 +207,25 @@ function renderCropAndTransform(
       transform.flipVertical ? -1 : 1
     );
   }
+  // The image is drawn centred on the origin at crop size, so a source point
+  // maps here by the same offset, and rotation and flips carry it along.
+  const offsetX = crop.x + crop.width / 2;
+  const offsetY = crop.y + crop.height / 2;
+  const tracePath = (points: Point[]) => {
+    context.moveTo(points[0].x - offsetX, points[0].y - offsetY);
+    for (let index = 1; index < points.length; index++) {
+      context.lineTo(points[index].x - offsetX, points[index].y - offsetY);
+    }
+  };
+
+  if (mask && mask.length >= 3) {
+    context.beginPath();
+    tracePath(mask);
+    context.closePath();
+    // Even-odd matches the preview, so a stroke that loops over itself keeps
+    // exactly the areas the user saw kept.
+    context.clip("evenodd");
+  }
   context.drawImage(
     bitmap,
     crop.x,
@@ -214,6 +237,28 @@ function renderCropAndTransform(
     drawWidth,
     drawHeight
   );
+
+  if (erase.length > 0) {
+    context.globalCompositeOperation = "destination-out";
+    context.fillStyle = "#000";
+    context.strokeStyle = "#000";
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    for (const stroke of erase) {
+      if (stroke.points.length === 0) continue;
+      context.beginPath();
+      if (stroke.points.length === 1) {
+        // A zero-length line draws no cap in some browsers, so dab a circle.
+        const [point] = stroke.points;
+        context.arc(point.x - offsetX, point.y - offsetY, stroke.radius, 0, Math.PI * 2);
+        context.fill();
+      } else {
+        context.lineWidth = stroke.radius * 2;
+        tracePath(stroke.points);
+        context.stroke();
+      }
+    }
+  }
   context.restore();
 
   return canvas;
@@ -261,7 +306,13 @@ export async function processBitmap(
     flipVertical: false,
   };
 
-  let canvas = renderCropAndTransform(bitmap, crop, transform);
+  let canvas = renderCropAndTransform(
+    bitmap,
+    crop,
+    transform,
+    options.mask ?? null,
+    options.erase ?? []
+  );
 
   const rotated: Dimensions = {
     width: (canvas as { width: number }).width,

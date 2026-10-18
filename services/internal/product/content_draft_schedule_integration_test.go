@@ -1,0 +1,193 @@
+package product
+
+import (
+	"context"
+	"errors"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/lucsky/cuid"
+)
+
+// Scheduling a content draft: one post per channel, a double submit replays
+// instead of duplicating, a stale version is refused, rescheduling replaces
+// queued posts, captions are checked per channel, another workspace sees
+// nothing, and every post has exactly one source.
+func TestContentDraftScheduling(t *testing.T) {
+	url := os.Getenv("PUBLISHING_TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("PUBLISHING_TEST_DATABASE_URL is not set")
+	}
+	ctx := context.Background()
+	db, err := database.Open(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	var name string
+	if err := db.SQL.QueryRowContext(ctx, `SELECT current_database()`).Scan(&name); err != nil || !strings.Contains(name, "test") {
+		t.Fatalf("refusing database %q: %v", name, err)
+	}
+	exec := func(query string, args ...any) {
+		t.Helper()
+		if _, err := db.SQL.ExecContext(ctx, query, args...); err != nil {
+			t.Fatalf("%v\n%s", err, query)
+		}
+	}
+	id := cuid.New()
+	org, other := "org_"+id, "other_"+id
+	meter := &recordingMonthlyMeter{}
+	repo := NewConfiguration(db.Client).WithMonthlyMeter(meter)
+	actors := map[string]Actor{}
+	for _, organization := range []string{org, other} {
+		userID := "user_" + organization
+		exec(`INSERT INTO "user" (id,name,email,"emailVerified","createdAt","updatedAt") VALUES ($1,'Owner',$2,true,now(),now())`, userID, organization+"@example.test")
+		exec(`INSERT INTO organization (id,name,slug,"createdAt") VALUES ($1,$1,$1,now())`, organization)
+		exec(`INSERT INTO session (id,"expiresAt",token,"createdAt","updatedAt","userId","activeOrganizationId") VALUES ($1,now()+interval '1 hour',$1,now(),now(),$2,$3)`,
+			"session_"+organization, userID, organization)
+		exec(`INSERT INTO member (id,"organizationId","userId",role,"createdAt") VALUES ($1,$2,$3,'owner',now())`, "member_"+organization, organization, userID)
+		actors[organization] = Actor{OrganizationID: organization, UserID: userID, SessionID: "session_" + organization, RequestID: "request_" + id}
+		subscribe(t, ctx, repo, organization, "pro")
+	}
+	t.Cleanup(func() {
+		_, _ = db.SQL.ExecContext(ctx, `DELETE FROM scheduled_post WHERE "organizationId" IN ($1,$2)`, org, other)
+		_, _ = db.SQL.ExecContext(ctx, `DELETE FROM content_draft WHERE "organizationId" IN ($1,$2)`, org, other)
+		_, _ = db.SQL.ExecContext(ctx, `DELETE FROM organization WHERE id IN ($1,$2)`, org, other)
+		_, _ = db.SQL.ExecContext(ctx, `DELETE FROM "user" WHERE id IN ($1,$2)`, "user_"+org, "user_"+other)
+	})
+	owner, foreign := actors[org], actors[other]
+	connect := func(platform string) string {
+		t.Helper()
+		connection, err := repo.auth.CreateConnection(ctx, publishing.Actor{Organization: org, UserID: owner.UserID, RequestID: owner.RequestID, Type: "USER"},
+			publishing.CreateConnectionInput{ExternalAccountID: platform + "-" + id, Platform: platform, ProviderSettings: map[string]any{}, SecretReference: "POSTIZ_API_KEY"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return connection.ID
+	}
+	xChannel, linkedinChannel, instagramChannel := connect("x"), connect("linkedin"), connect("instagram")
+
+	draft, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{PlainText: "Ship faster", Title: "Launch"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	at := time.Now().Add(2 * time.Hour).UTC().Truncate(time.Second)
+	targets := []ContentDraftScheduleTarget{
+		{Caption: "Ship faster on X", ChannelConnectionID: xChannel},
+		{Caption: "Ship faster on LinkedIn, with more room to explain.", ChannelConnectionID: linkedinChannel},
+	}
+
+	t.Run("an over-limit caption and an imageless Instagram post are refused", func(t *testing.T) {
+		long := []ContentDraftScheduleTarget{{Caption: strings.Repeat("a", 281), ChannelConnectionID: xChannel}}
+		if _, err := repo.ScheduleContentDraft(ctx, owner, draft.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: long, Version: 1}); !errors.Is(err, publishing.ErrConflict) {
+			t.Fatalf("over-limit X caption err=%v", err)
+		}
+		insta := []ContentDraftScheduleTarget{{Caption: "Hi", ChannelConnectionID: instagramChannel}}
+		if _, err := repo.ScheduleContentDraft(ctx, owner, draft.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: insta, Version: 1}); !errors.Is(err, publishing.ErrConflict) {
+			t.Fatalf("imageless Instagram err=%v", err)
+		}
+	})
+
+	scheduled, err := repo.ScheduleContentDraft(ctx, owner, draft.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: targets, Version: 1})
+	if err != nil || !scheduled.Created || len(scheduled.Posts) != 2 || len(scheduled.Scheduled) != 2 ||
+		scheduled.Draft.Status != "scheduled" || scheduled.Draft.Version != 2 || len(scheduled.Draft.ChannelConnectionIDs) != 2 {
+		t.Fatalf("scheduled=%+v err=%v", scheduled, err)
+	}
+	if scheduled.Posts[0].Caption != "Ship faster on X" || scheduled.Posts[0].Platform != "x" || scheduled.Posts[1].Platform != "linkedin" {
+		t.Fatalf("posts=%+v", scheduled.Posts)
+	}
+
+	t.Run("a double submit replays the same posts", func(t *testing.T) {
+		replay, err := repo.ScheduleContentDraft(ctx, owner, draft.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: targets, Version: 1})
+		if err != nil || replay.Created || len(replay.Posts) != 2 {
+			t.Fatalf("replay=%+v err=%v", replay, err)
+		}
+		if n, err := db.Client.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(draft.ID)).Count(ctx); err != nil || n != 2 {
+			t.Fatalf("posts after replay=%d err=%v", n, err)
+		}
+	})
+
+	t.Run("a stale version is refused", func(t *testing.T) {
+		title := "Edited"
+		if _, err := repo.UpdateContentDraft(ctx, owner, draft.ID, ContentDraftUpdate{BaseVersion: 2, Title: &title}); err != nil {
+			t.Fatal(err)
+		}
+		_, err := repo.ScheduleContentDraft(ctx, owner, draft.ID, ScheduleContentDraftInput{ScheduledFor: at,
+			Targets: targets[:1], Version: 2})
+		var stale *ContentDraftVersionConflictError
+		if !errors.As(err, &stale) || stale.Current != 3 {
+			t.Fatalf("stale schedule err=%v", err)
+		}
+	})
+
+	t.Run("editing the draft leaves queued captions alone, and rescheduling replaces them", func(t *testing.T) {
+		posts, err := repo.ListContentDraftPosts(ctx, owner, draft.ID)
+		if err != nil || len(posts) != 2 || posts[0].Status != "SCHEDULED" {
+			t.Fatalf("posts=%+v err=%v", posts, err)
+		}
+		again, err := repo.ScheduleContentDraft(ctx, owner, draft.ID, ScheduleContentDraftInput{ScheduledFor: at,
+			Targets: []ContentDraftScheduleTarget{{Caption: "Edited for X", ChannelConnectionID: xChannel}}, Version: 3})
+		if err != nil || !again.Created || len(again.Cancelled) != 2 || len(again.Posts) != 1 || again.Draft.Version != 4 {
+			t.Fatalf("reschedule=%+v err=%v", again, err)
+		}
+		for _, cancelled := range again.Cancelled {
+			post, err := db.Client.ScheduledPost.Get(ctx, cancelled)
+			if err != nil || post.Status != scheduledpost.StatusCANCELLED {
+				t.Fatalf("replaced post=%+v err=%v", post, err)
+			}
+		}
+	})
+
+	t.Run("another workspace sees nothing", func(t *testing.T) {
+		if _, err := repo.ScheduleContentDraft(ctx, foreign, draft.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: targets, Version: 4}); !errors.Is(err, publishing.ErrNotFound) {
+			t.Fatalf("foreign schedule err=%v", err)
+		}
+		if _, err := repo.ListContentDraftPosts(ctx, foreign, draft.ID); !errors.Is(err, publishing.ErrNotFound) {
+			t.Fatalf("foreign posts err=%v", err)
+		}
+		otherDraft, err := repo.CreateContentDraft(ctx, foreign, ContentDraftInput{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		// The other workspace cannot target this workspace's channel.
+		if _, err := repo.ScheduleContentDraft(ctx, foreign, otherDraft.ID, ScheduleContentDraftInput{ScheduledFor: at,
+			Targets: targets[:1], Version: 1}); !errors.Is(err, publishing.ErrNotFound) {
+			t.Fatalf("foreign channel err=%v", err)
+		}
+	})
+
+	t.Run("the publish job sends the snapshotted caption, as text without an image", func(t *testing.T) {
+		live, err := repo.ListContentDraftPosts(ctx, owner, draft.ID)
+		if err != nil || len(live) == 0 || live[0].Status != "SCHEDULED" {
+			t.Fatalf("live=%+v err=%v", live, err)
+		}
+		store := publishing.NewRepository(db.Client)
+		if claimed, err := store.Claim(ctx, live[0].ID, "run-"+id, at.Add(time.Minute)); err != nil || !claimed {
+			t.Fatalf("claimed=%v err=%v", claimed, err)
+		}
+		job, err := store.LoadPublishJob(ctx, live[0].ID, "run-"+id)
+		if err != nil || !job.WorkspaceActive || job.AssetObjectKey != "" || job.Post.Caption != "Edited for X" {
+			t.Fatalf("job=%+v err=%v", job, err)
+		}
+	})
+
+	t.Run("a post has exactly one source", func(t *testing.T) {
+		post := cuid.New()
+		_, err := db.SQL.ExecContext(ctx, `INSERT INTO scheduled_post (id,"organizationId","channelConnectionId","scheduledFor",status,caption,"idempotencyKey","updatedAt") VALUES ($1,$2,$3,now(),'SCHEDULED','x',$1,now())`,
+			post, org, xChannel)
+		if err == nil || !strings.Contains(err.Error(), "scheduled_post_source_check") {
+			t.Fatalf("sourceless post err=%v", err)
+		}
+	})
+
+	t.Run("a draft with posts cannot be deleted", func(t *testing.T) {
+		if err := repo.DeleteContentDraft(ctx, owner, draft.ID); !errors.Is(err, publishing.ErrConflict) {
+			t.Fatalf("delete err=%v", err)
+		}
+	})
+}

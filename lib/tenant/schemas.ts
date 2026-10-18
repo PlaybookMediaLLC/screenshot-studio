@@ -396,8 +396,18 @@ export const scheduledPostCreateSchema = z.object({
   scheduledFor: z.coerce.date().refine((value) => value.getTime() > Date.now(), {
     message: 'Scheduled time must be in the future.',
   }),
-  variantId: z.string().cuid(),
+  // Exactly one source (RFC 037); check with hasOneScheduledPostSource.
+  contentDraftId: z.string().cuid().optional(),
+  variantId: z.string().cuid().optional(),
 })
+
+/** A scheduled post links to a campaign variant or a content draft, never both. */
+export function hasOneScheduledPostSource(input: {
+  contentDraftId?: string
+  variantId?: string
+}): boolean {
+  return Boolean(input.contentDraftId) !== Boolean(input.variantId)
+}
 
 export const scheduledPostListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),

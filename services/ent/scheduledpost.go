@@ -21,7 +21,11 @@ type ScheduledPost struct {
 	// OrganizationID holds the value of the "organization_id" field.
 	OrganizationID string `json:"organization_id,omitempty"`
 	// VariantID holds the value of the "variant_id" field.
-	VariantID string `json:"variant_id,omitempty"`
+	VariantID *string `json:"variant_id,omitempty"`
+	// ContentDraftID holds the value of the "content_draft_id" field.
+	ContentDraftID *string `json:"content_draft_id,omitempty"`
+	// AssetID holds the value of the "asset_id" field.
+	AssetID *string `json:"asset_id,omitempty"`
 	// ChannelConnectionID holds the value of the "channel_connection_id" field.
 	ChannelConnectionID string `json:"channel_connection_id,omitempty"`
 	// ScheduledFor holds the value of the "scheduled_for" field.
@@ -80,7 +84,7 @@ func (*ScheduledPost) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case scheduledpost.FieldID, scheduledpost.FieldOrganizationID, scheduledpost.FieldVariantID, scheduledpost.FieldChannelConnectionID, scheduledpost.FieldStatus, scheduledpost.FieldCaption, scheduledpost.FieldIdempotencyKey, scheduledpost.FieldTriggerRunID:
+		case scheduledpost.FieldID, scheduledpost.FieldOrganizationID, scheduledpost.FieldVariantID, scheduledpost.FieldContentDraftID, scheduledpost.FieldAssetID, scheduledpost.FieldChannelConnectionID, scheduledpost.FieldStatus, scheduledpost.FieldCaption, scheduledpost.FieldIdempotencyKey, scheduledpost.FieldTriggerRunID:
 			values[i] = new(sql.NullString)
 		case scheduledpost.FieldScheduledFor, scheduledpost.FieldCreatedAt, scheduledpost.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -115,7 +119,22 @@ func (_m *ScheduledPost) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field variant_id", values[i])
 			} else if value.Valid {
-				_m.VariantID = value.String
+				_m.VariantID = new(string)
+				*_m.VariantID = value.String
+			}
+		case scheduledpost.FieldContentDraftID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field content_draft_id", values[i])
+			} else if value.Valid {
+				_m.ContentDraftID = new(string)
+				*_m.ContentDraftID = value.String
+			}
+		case scheduledpost.FieldAssetID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field asset_id", values[i])
+			} else if value.Valid {
+				_m.AssetID = new(string)
+				*_m.AssetID = value.String
 			}
 		case scheduledpost.FieldChannelConnectionID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -215,8 +234,20 @@ func (_m *ScheduledPost) String() string {
 	builder.WriteString("organization_id=")
 	builder.WriteString(_m.OrganizationID)
 	builder.WriteString(", ")
-	builder.WriteString("variant_id=")
-	builder.WriteString(_m.VariantID)
+	if v := _m.VariantID; v != nil {
+		builder.WriteString("variant_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.ContentDraftID; v != nil {
+		builder.WriteString("content_draft_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.AssetID; v != nil {
+		builder.WriteString("asset_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("channel_connection_id=")
 	builder.WriteString(_m.ChannelConnectionID)

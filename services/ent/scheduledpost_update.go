@@ -199,6 +199,15 @@ func (_u *ScheduledPostUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			}
 		}
 	}
+	if _u.mutation.VariantIDCleared() {
+		_spec.ClearField(scheduledpost.FieldVariantID, field.TypeString)
+	}
+	if _u.mutation.ContentDraftIDCleared() {
+		_spec.ClearField(scheduledpost.FieldContentDraftID, field.TypeString)
+	}
+	if _u.mutation.AssetIDCleared() {
+		_spec.ClearField(scheduledpost.FieldAssetID, field.TypeString)
+	}
 	if value, ok := _u.mutation.ScheduledFor(); ok {
 		_spec.SetField(scheduledpost.FieldScheduledFor, field.TypeTime, value)
 	}
@@ -481,6 +490,15 @@ func (_u *ScheduledPostUpdateOne) sqlSave(ctx context.Context) (_node *Scheduled
 				ps[i](selector)
 			}
 		}
+	}
+	if _u.mutation.VariantIDCleared() {
+		_spec.ClearField(scheduledpost.FieldVariantID, field.TypeString)
+	}
+	if _u.mutation.ContentDraftIDCleared() {
+		_spec.ClearField(scheduledpost.FieldContentDraftID, field.TypeString)
+	}
+	if _u.mutation.AssetIDCleared() {
+		_spec.ClearField(scheduledpost.FieldAssetID, field.TypeString)
 	}
 	if value, ok := _u.mutation.ScheduledFor(); ok {
 		_spec.SetField(scheduledpost.FieldScheduledFor, field.TypeTime, value)

@@ -8,6 +8,7 @@ import {
   createContentDraftContract,
   deleteContentDraftContract,
   getContentDraftContract,
+  listContentDraftPostsContract,
   listContentDraftsContract,
   updateContentDraftContract,
 } from '@/lib/api/contracts/content-drafts'
@@ -43,6 +44,7 @@ export const documentedContracts = [
   getContentDraftContract,
   updateContentDraftContract,
   deleteContentDraftContract,
+  listContentDraftPostsContract,
   getCurrentUserContract,
   getBootstrapContract,
   listOrganizationsContract,

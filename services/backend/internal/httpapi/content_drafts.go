@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
 
 // ContentDraftStore keeps a workspace's hand-written post drafts (RFC 037).
@@ -15,6 +16,8 @@ type ContentDraftStore interface {
 	ListContentDrafts(context.Context, product.Actor, product.ContentDraftListQuery) (*product.ContentDraftPage, error)
 	UpdateContentDraft(context.Context, product.Actor, string, product.ContentDraftUpdate) (*product.ContentDraftRecord, error)
 	DeleteContentDraft(context.Context, product.Actor, string) error
+	ScheduleContentDraft(context.Context, product.Actor, string, product.ScheduleContentDraftInput) (*product.ScheduleContentDraftResult, error)
+	ListContentDraftPosts(context.Context, product.Actor, string) ([]product.ContentDraftPost, error)
 }
 
 func (s *Server) registerContentDrafts(mux *http.ServeMux) {
@@ -23,6 +26,8 @@ func (s *Server) registerContentDrafts(mux *http.ServeMux) {
 	mux.Handle("GET /v1/content-drafts/{id}", s.authenticateProduct(http.HandlerFunc(s.getContentDraft)))
 	mux.Handle("PATCH /v1/content-drafts/{id}", s.authenticateProduct(http.HandlerFunc(s.updateContentDraft)))
 	mux.Handle("DELETE /v1/content-drafts/{id}", s.authenticateProduct(http.HandlerFunc(s.deleteContentDraft)))
+	mux.Handle("POST /v1/content-drafts/{id}/schedule", s.authenticateProduct(http.HandlerFunc(s.scheduleContentDraft)))
+	mux.Handle("GET /v1/content-drafts/{id}/posts", s.authenticateProduct(http.HandlerFunc(s.listContentDraftPosts)))
 }
 
 // writeContentDraftError answers a stale write with the version the draft is
@@ -119,4 +124,56 @@ func (s *Server) deleteContentDraft(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"deleted": true})
+}
+
+// scheduleContentDraft queues the draft to its channels, then stops the
+// workflows of posts a reschedule replaced and starts the new ones. Starting
+// is idempotent, so a replay after a failed start finishes the job.
+func (s *Server) scheduleContentDraft(w http.ResponseWriter, r *http.Request) {
+	id, ok := contentDraftID(w, r)
+	if !ok {
+		return
+	}
+	var input product.ScheduleContentDraftInput
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid content draft schedule")
+		return
+	}
+	result, err := s.configuration.ScheduleContentDraft(r.Context(), workspaceActor(r), id, input)
+	if err != nil {
+		writeContentDraftError(w, err)
+		return
+	}
+	for _, postID := range result.Cancelled {
+		if err := s.scheduler.Cancel(r.Context(), postID); err != nil {
+			writeError(w, http.StatusServiceUnavailable, "could not stop a replaced publishing workflow")
+			return
+		}
+	}
+	for _, post := range result.Scheduled {
+		if err := s.scheduler.Start(r.Context(), temporalpublishing.ScheduleInput{
+			OrganizationID: post.OrganizationID, PostID: post.ID, ScheduledFor: post.ScheduledFor,
+		}); err != nil {
+			writeError(w, http.StatusServiceUnavailable, "could not start publishing workflow")
+			return
+		}
+	}
+	status := http.StatusOK
+	if result.Created {
+		status = http.StatusCreated
+	}
+	writeJSON(w, status, result)
+}
+
+func (s *Server) listContentDraftPosts(w http.ResponseWriter, r *http.Request) {
+	id, ok := contentDraftID(w, r)
+	if !ok {
+		return
+	}
+	posts, err := s.configuration.ListContentDraftPosts(r.Context(), workspaceActor(r), id)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"posts": posts})
 }

@@ -36,7 +36,9 @@ type CreateScheduledPostInput struct {
 	ChannelConnectionID string
 	IdempotencyKey      string
 	ScheduledFor        time.Time
-	VariantID           string
+	// Exactly one of VariantID and ContentDraftID is set.
+	VariantID      string
+	ContentDraftID string
 }
 
 type CreateScheduledPostResult struct {

@@ -441,6 +441,10 @@ func (c *Configuration) DeleteContentDraft(ctx context.Context, actor Actor, id 
 	}
 	defer tx.Rollback()
 	count, err := tx.ContentDraft.Delete().Where(contentdraft.ID(id), contentdraft.OrganizationID(actor.OrganizationID)).Exec(ctx)
+	if ent.IsConstraintError(err) {
+		// Its scheduled posts keep the draft they came from.
+		return conflict("This draft has scheduled posts. Archive it instead.")
+	}
 	if err != nil {
 		return err
 	}

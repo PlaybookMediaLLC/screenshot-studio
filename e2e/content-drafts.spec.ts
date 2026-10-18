@@ -4,9 +4,12 @@ import JSZip from 'jszip'
 import {
   createDraftWorkspace,
   type DraftWorkspace,
+  chooseChannels,
   draftEditor,
   expectSaved,
+  inPreview,
   openNewDraft,
+  openSchedule,
 } from './framework/content-drafts'
 import { buildDocx } from './fixtures/docx'
 import { configureE2EFlow, test } from './framework/flow'
@@ -40,6 +43,31 @@ async function caretAtEndOf(page: Page, word: Locator): Promise<void> {
   await page.waitForTimeout(300)
 }
 
+/**
+ * Put the caret at the end of the draft's last text, as after reopening the
+ * editor from a dialog. Waits out slate's selection sync like caretAtEndOf.
+ */
+async function caretAtDocumentEnd(page: Page): Promise<void> {
+  await draftEditor(page).focus()
+  await draftEditor(page).evaluate((editor) => {
+    const strings = editor.querySelectorAll('[data-slate-string]')
+    const text = strings[strings.length - 1]?.firstChild
+    if (!text) return
+    const range = document.createRange()
+    range.setStart(text, text.textContent?.length ?? 0)
+    range.collapse(true)
+    window.getSelection()?.removeAllRanges()
+    window.getSelection()?.addRange(range)
+  })
+  await page.waitForTimeout(300)
+}
+
+/** Export from the toolbar's import and export menu. */
+async function exportAs(page: Page, item: 'Export DOCX' | 'Export Markdown'): Promise<void> {
+  await page.getByRole('button', { name: 'Import and export' }).click()
+  await page.getByRole('menuitem', { name: item }).click()
+}
+
 /** Click into `target` until the caret is inside it, then type there. */
 async function typeInto(page: Page, target: Locator, text: string): Promise<void> {
   await expect(async () => {
@@ -51,6 +79,8 @@ async function typeInto(page: Page, target: Locator, text: string): Promise<void
       })
     ).toBe(true)
   }).toPass({ timeout: 20_000 })
+  // Past slate's selection sync, or the first keys land where the caret was.
+  await page.waitForTimeout(300)
   await page.keyboard.type(text)
   await expect(target).toContainText(text)
 }
@@ -114,22 +144,29 @@ test('a draft is written, saved, scheduled to two channels once, and one post is
     await expect(draftEditor(page).locator('img[src*="/api/v1/assets/"]')).toBeVisible()
     await expect(page.getByRole('textbox', { name: 'Draft title' })).toHaveValue('Launch day')
 
-    await page.getByLabel(/^x · /).check()
-    await page.getByLabel(/^linkedin · /).check()
-    await expect(page.getByTestId('preview-x')).toContainText(
-      'Launch day is here. Shots writes the posts for you.'
-    )
-    await expect(page.getByTestId('preview-x')).toContainText('formatting are removed')
+    await chooseChannels(page, ['x', 'linkedin'])
+    await inPreview(page, async () => {
+      await expect(page.getByTestId('preview-x')).toContainText(
+        'Launch day is here. Shots writes the posts for you.'
+      )
+      await expect(page.getByTestId('preview-x')).toContainText('formatting are removed')
+    })
 
     // Over X's limit: the counter goes red, and scheduling is blocked.
     await caretAtEndOf(page, draftEditor(page).getByText('for you.'))
     await page.keyboard.type(` ${'x'.repeat(260)}`)
     await expect(page.getByTestId('counter-x')).toHaveText(/^3\d\d \/ 280$/)
-    await expect(page.getByTestId('preview-x').getByRole('alert')).toContainText(
-      'of 280 characters'
-    )
     await expect(page.getByTestId('counter-linkedin')).toHaveText(/ \/ 3000$/)
-    await expect(page.getByRole('button', { name: 'Schedule', exact: true })).toBeDisabled()
+    await inPreview(page, async () => {
+      await expect(page.getByTestId('preview-x').getByRole('alert')).toContainText(
+        'of 280 characters'
+      )
+    })
+    const blocked = await openSchedule(page)
+    await expect(blocked.getByRole('alert').first()).toContainText('of 280 characters')
+    await expect(blocked.getByRole('button', { name: /^Schedule/ })).toBeDisabled()
+    await blocked.getByRole('button', { name: 'Keep editing' }).click()
+    await caretAtDocumentEnd(page)
 
     // Fix it: delete what was added, as the writer would. Count from the
     // counter, so a keystroke the browser dropped under load cannot skew it.
@@ -143,10 +180,12 @@ test('a draft is written, saved, scheduled to two channels once, and one post is
     await expect(page.getByTestId('counter-x')).toHaveText('51 / 280')
     await expectSaved(page)
 
-    await page.getByRole('button', { name: 'Schedule', exact: true }).click()
-    // Bold is dropped on plain-text channels, so the composer asks first.
-    await expect(page.getByRole('alert').filter({ hasText: 'Some content changes' })).toBeVisible()
-    await page.getByRole('button', { name: 'Schedule anyway' }).click()
+    const dialog = await openSchedule(page)
+    // Bold is dropped on plain-text channels, so the composer says so first.
+    await expect(
+      dialog.getByRole('alert').filter({ hasText: 'Some content changes' })
+    ).toBeVisible()
+    await dialog.getByRole('button', { name: 'Schedule anyway' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
     await expect(page.getByTestId('draft-post').filter({ hasText: 'SCHEDULED' })).toHaveCount(2)
 
@@ -255,16 +294,17 @@ test('a table, a math block and a footnote persist, and the blocks post as image
     await page.keyboard.type('Prices exclude tax.')
     await expectSaved(page)
 
-    const expectPreview = async () => {
-      const preview = page.getByTestId('preview-linkedin')
-      await expect(preview).toContainText('Pricing[1]')
-      await expect(preview).toContainText('[1] Prices exclude tax.')
-      await expect(preview).not.toContainText('E = mc^2')
-      await expect(preview).toContainText('Tables are posted as images.')
-      await expect(preview).toContainText('Math blocks are posted as images.')
-      await expect(preview).toContainText('Footnotes become numbered notes at the end.')
-    }
-    await page.getByLabel(/^linkedin · /).check()
+    const expectPreview = () =>
+      inPreview(page, async () => {
+        const preview = page.getByTestId('preview-linkedin')
+        await expect(preview).toContainText('Pricing[1]')
+        await expect(preview).toContainText('[1] Prices exclude tax.')
+        await expect(preview).not.toContainText('E = mc^2')
+        await expect(preview).toContainText('Tables are posted as images.')
+        await expect(preview).toContainText('Math blocks are posted as images.')
+        await expect(preview).toContainText('Footnotes become numbered notes at the end.')
+      })
+    await chooseChannels(page, ['linkedin'])
     await expectPreview()
     await expectSaved(page)
 
@@ -275,8 +315,7 @@ test('a table, a math block and a footnote persist, and the blocks post as image
     await expectPreview()
 
     // Scheduling renders the table and the equation and attaches them.
-    await page.getByRole('button', { name: 'Schedule', exact: true }).click()
-    await page.getByRole('button', { name: 'Schedule anyway' }).click()
+    await (await openSchedule(page)).getByRole('button', { name: 'Schedule anyway' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
     const database = createE2EDatabase()
     try {
@@ -375,7 +414,7 @@ test('a draft imports and exports DOCX and Markdown', async ({ identity, page })
 
   const [wordFile] = await Promise.all([
     page.waitForEvent('download'),
-    page.getByRole('button', { name: 'Export DOCX' }).click(),
+    exportAs(page, 'Export DOCX'),
   ])
   expect(wordFile.suggestedFilename()).toMatch(/\.docx$/)
   const exported = await JSZip.loadAsync(await readFile((await wordFile.path()) ?? ''))
@@ -385,7 +424,7 @@ test('a draft imports and exports DOCX and Markdown', async ({ identity, page })
 
   const [markdownFile] = await Promise.all([
     page.waitForEvent('download'),
-    page.getByRole('button', { name: 'Export Markdown' }).click(),
+    exportAs(page, 'Export Markdown'),
   ])
   const markdown = await readFile((await markdownFile.path()) ?? '', 'utf8')
   expect(markdown).toContain('Quarterly launch notes')

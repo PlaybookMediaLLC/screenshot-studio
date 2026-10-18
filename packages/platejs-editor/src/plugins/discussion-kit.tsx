@@ -253,7 +253,9 @@ export const discussionPlugin = createPlatePlugin({
     users: usersData,
   },
 })
-  .configure({
+  // extend, not configure: a host's later .configure({ options }) replaces
+  // the configure layer and would drop the block discussion renderer.
+  .extend({
     render: { aboveNodes: BlockDiscussion },
   })
   .extendSelectors(({ getOption }) => ({

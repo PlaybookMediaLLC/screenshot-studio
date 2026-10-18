@@ -5,9 +5,26 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import type { Value } from '@shots/platejs-editor/platejs'
-import { Group, Page, Pill, type PillTone, Row, Section } from '@/components/platform-ui'
+import { ViewIcon } from 'hugeicons-react'
+import { Pill, type PillTone } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { DraftRequestError, type DraftPostWire, draftsApi } from '@/lib/content-drafts/client'
 import {
   type DraftDiscussions,
@@ -16,12 +33,18 @@ import {
 } from '@/lib/content-drafts/discussions'
 import { renderBlockImages } from '@/lib/content-drafts/render-blocks'
 import {
+  CHANNEL_IMAGE_LIMITS,
   type DraftChannel,
   draftPlainText,
   renderableBlockCount,
+  type SerializedCaption,
   serializeDraft,
 } from '@/lib/content-drafts/serialize'
-import { platformEditorServices } from '@/lib/editor/services'
+import { assetContentUrl, platformEditorServices } from '@/lib/editor/services'
+import { cn } from '@/lib/utils'
+import { CHANNEL_META, ChannelIcon } from './channel-meta'
+import { useShowInRail } from './DraftsRail'
+import { POST_COLUMN } from './layout'
 import { useTRPCClient } from '@/lib/trpc/react'
 import type { DraftEditorUser } from './DraftEditor'
 
@@ -70,11 +93,14 @@ function message(error: unknown): string {
 }
 
 /**
- * The content draft composer: the editor, autosave keyed on the version, the
- * channel picker with a live preview and counter per channel, and scheduling.
+ * The content draft composer. The draft reads as the post it becomes: the
+ * author above the text, a counter per channel below it, the channels and
+ * Schedule in the top bar, and a preview of each channel's post on demand.
+ * Autosave is keyed on the draft's version.
  */
 export function DraftComposer({
   aiEnabled,
+  author,
   canEdit,
   canSchedule,
   channels,
@@ -84,6 +110,8 @@ export function DraftComposer({
   user,
 }: {
   aiEnabled: boolean
+  /** Who the post reads as from: the workspace. */
+  author: string
   /** The collaboration server, when real-time co-editing is configured. */
   collabUrl: string | null
   canEdit: boolean
@@ -94,6 +122,7 @@ export function DraftComposer({
   user: DraftEditorUser
 }) {
   const trpcClient = useTRPCClient()
+  const showInRail = useShowInRail()
   const services = React.useMemo(
     () => platformEditorServices(trpcClient, aiEnabled),
     [trpcClient, aiEnabled]
@@ -109,7 +138,8 @@ export function DraftComposer({
   const [posts, setPosts] = React.useState(initialPosts)
   const [saveState, setSaveState] = React.useState<SaveState>('saved')
   const [scheduling, setScheduling] = React.useState(false)
-  const [confirming, setConfirming] = React.useState(false)
+  const [scheduleOpen, setScheduleOpen] = React.useState(false)
+  const [previewing, setPreviewing] = React.useState(false)
   const version = React.useRef(draft.version)
   const editorArea = React.useRef<HTMLDivElement>(null)
   const initialDiscussions = React.useMemo(
@@ -154,6 +184,13 @@ export function DraftComposer({
         version.current = saved.version
         setStatus(saved.status)
         setSaveState('saved')
+        showInRail({
+          excerpt: draftPlainText(nextValue).slice(0, 160),
+          id: draft.id,
+          status: saved.status,
+          title: nextTitle,
+          updatedAt: new Date().toISOString(),
+        })
       } catch (error) {
         if (error instanceof DraftRequestError && error.status === 409 && collaboration) {
           // In a live session every editor holds the same content: another
@@ -183,7 +220,7 @@ export function DraftComposer({
     inFlight.current = run
     await run
     inFlight.current = null
-  }, [canEdit, collaboration, draft.id, reloadLatest])
+  }, [canEdit, collaboration, draft.id, reloadLatest, showInRail])
 
   const scheduleSave = React.useCallback(() => {
     if (!canEdit) return
@@ -237,7 +274,7 @@ export function DraftComposer({
       })
       version.current = result.draft.version
       setStatus(result.draft.status)
-      setConfirming(false)
+      setScheduleOpen(false)
       toast.success(
         result.created
           ? `Scheduled ${result.posts.length} post${result.posts.length === 1 ? '' : 's'}.`
@@ -261,198 +298,427 @@ export function DraftComposer({
     }
   }
 
+  const toggleChannel = (id: string, on: boolean) => {
+    setSelected((current) => (on ? [...current, id] : current.filter((item) => item !== id)))
+    scheduleSave()
+  }
+
   const saveLabel = { error: 'Not saved', saved: 'Saved', saving: 'Saving…', unsaved: 'Editing…' }[
     saveState
   ]
+  const live = posts.filter((post) => post.status === 'SCHEDULED' || post.status === 'PROCESSING')
+  const handles = [...new Set(previews.map(({ channel }) => CHANNEL_META[channel].label))].join(
+    ' · '
+  )
 
   return (
-    <Page
-      actions={
-        <>
+    <div className="flex min-h-full flex-col">
+      <header className="sticky top-0 z-20 flex h-12 shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[#111111]/90 px-4 backdrop-blur">
+        <Link
+          aria-label="All drafts"
+          className="text-neutral-500 hover:text-white md:hidden"
+          href="/drafts"
+        >
+          ←
+        </Link>
+        <input
+          aria-label="Draft title"
+          className="min-w-0 max-w-64 flex-1 truncate bg-transparent text-sm text-neutral-300 outline-none placeholder:text-neutral-600 focus:text-white"
+          disabled={!canEdit}
+          maxLength={200}
+          onChange={(event) => {
+            setTitle(event.target.value)
+            scheduleSave()
+          }}
+          placeholder="Untitled draft"
+          value={title}
+        />
+        {canSchedule && channels.length > 0 ? (
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                aria-label="Channels"
+                className="flex h-7 items-center gap-1.5 rounded-full border border-white/[0.08] px-2.5 text-xs text-neutral-300 hover:border-white/20 hover:text-white"
+                type="button"
+              >
+                {previews.length === 0
+                  ? 'Choose channels'
+                  : previews.map(({ channel, id }) => <ChannelIcon channel={channel} key={id} />)}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-72 p-2">
+              <ChannelToggles channels={channels} onToggle={toggleChannel} selected={selected} />
+            </PopoverContent>
+          </Popover>
+        ) : null}
+        <div className="ml-auto flex items-center gap-3">
           <span className="text-xs text-neutral-500" data-testid="save-state">
             {saveLabel}
           </span>
-          <Pill tone={status === 'scheduled' ? 'green' : 'yellow'}>{status}</Pill>
-          {canEdit ? (
-            <Button onClick={() => void flush()} variant="outline">
-              Save draft
+          {status === 'scheduled' ? <Pill tone="green">Scheduled</Pill> : null}
+          {previews.length > 0 ? (
+            <Button onClick={() => setPreviewing(true)} size="sm" variant="ghost">
+              <ViewIcon aria-hidden className="size-4" />
+              Preview
             </Button>
           ) : null}
-          <Link className="text-sm text-neutral-400 hover:text-white" href="/drafts">
-            All drafts
-          </Link>
-        </>
-      }
-      title="Draft"
-    >
-      <Input
-        aria-label="Draft title"
-        className="text-lg"
-        disabled={!canEdit}
-        maxLength={200}
-        onChange={(event) => {
-          setTitle(event.target.value)
-          scheduleSave()
-        }}
-        value={title}
-      />
-      <div
-        className="overflow-hidden rounded-2xl bg-white/[0.015] ring-1 ring-white/[0.08]"
-        ref={editorArea}
-      >
-        <DraftEditor
-          collaboration={collaboration}
-          initialDiscussions={initialDiscussions}
-          initialValue={editorState.value}
-          key={editorState.key}
-          onChange={(next) => {
-            setValue(next)
-            scheduleSave()
-          }}
-          onDiscussionsChange={onDiscussionsChange}
-          readOnly={!canEdit}
-          services={services}
-          title={title}
-          user={user}
-        />
+          {canSchedule ? (
+            <Button
+              disabled={channels.length === 0}
+              onClick={() => setScheduleOpen(true)}
+              size="sm"
+              title={
+                channels.length === 0 ? 'Connect a channel in workspace settings first.' : undefined
+              }
+            >
+              {status === 'scheduled' ? 'Reschedule' : 'Schedule'}
+            </Button>
+          ) : null}
+        </div>
+      </header>
+
+      <div className="flex-1">
+        <div className="relative" ref={editorArea}>
+          <DraftEditor
+            collaboration={collaboration}
+            header={
+              // The draft reads as the post: who posts it, then the text.
+              <div className="mb-1 flex items-center gap-3">
+                <span
+                  aria-hidden
+                  className="-ml-12 hidden size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500/40 to-violet-500/40 text-sm font-medium text-white sm:flex"
+                >
+                  {author.slice(0, 1).toUpperCase()}
+                </span>
+                <p className="min-w-0 truncate text-sm">
+                  <span className="font-medium text-white">{author}</span>
+                  {handles ? <span className="ml-1.5 text-neutral-500">{handles}</span> : null}
+                </p>
+              </div>
+            }
+            initialDiscussions={initialDiscussions}
+            initialValue={editorState.value}
+            key={editorState.key}
+            onChange={(next) => {
+              setValue(next)
+              scheduleSave()
+            }}
+            onDiscussionsChange={onDiscussionsChange}
+            readOnly={!canEdit}
+            services={services}
+            title={title}
+            user={user}
+          />
+        </div>
+        {previews.length > 0 ? (
+          <div className={cn('mb-10 flex flex-wrap justify-end gap-4', POST_COLUMN)}>
+            {previews.map(({ channel, id, result }) => (
+              <CharacterCount channel={channel} key={id} result={result} testId />
+            ))}
+          </div>
+        ) : null}
+        {posts.length > 0 ? (
+          <section className={cn('mb-40', POST_COLUMN)}>
+            <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              Posts from this draft
+            </h2>
+            <ul className="divide-y divide-white/[0.05] rounded-xl border border-white/[0.06]">
+              {posts.map((post) => (
+                <li
+                  className="flex items-center justify-between gap-4 px-4 py-3"
+                  data-testid="draft-post"
+                  key={post.id}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-white">
+                      {post.platform} · {new Date(post.scheduledFor).toLocaleString()}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-neutral-500">{post.caption}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <Pill tone={POST_TONES[post.status] ?? 'gray'}>{post.status}</Pill>
+                    {canSchedule && (post.status === 'SCHEDULED' || post.status === 'DRAFT') ? (
+                      <Button onClick={() => void cancelPost(post.id)} size="sm" variant="outline">
+                        Cancel
+                      </Button>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </div>
 
-      {canSchedule ? (
-        <Section
-          description="Each channel gets its own plain-text caption, checked against its limit."
-          title="Schedule"
-        >
-          <Group>
-            <Row label="Channels" layout="stacked">
-              {channels.length === 0 ? (
-                <p className="text-sm text-neutral-500">
-                  Connect a channel in workspace settings to schedule this draft.
-                </p>
-              ) : (
-                <div className="flex flex-wrap gap-3">
-                  {channels.map((channel) => (
-                    <label
-                      className="flex items-center gap-2 text-sm text-neutral-200"
-                      key={channel.id}
-                    >
-                      <input
-                        checked={selected.includes(channel.id)}
-                        onChange={(event) => {
-                          setSelected((current) =>
-                            event.target.checked
-                              ? [...current, channel.id]
-                              : current.filter((id) => id !== channel.id)
-                          )
-                          setConfirming(false)
-                          scheduleSave()
-                        }}
-                        type="checkbox"
-                      />
-                      {channel.channel} · {channel.name}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </Row>
-            {previews.map(({ channel, id, name, result }) => (
-              <Row key={id} label={`${channel} · ${name}`} layout="stacked">
-                <div className="flex w-full flex-col gap-2" data-testid={`preview-${channel}`}>
-                  <pre className="w-full whitespace-pre-wrap rounded-lg bg-black/30 p-3 font-sans text-sm text-neutral-200">
-                    {result.caption || ' '}
-                  </pre>
-                  <p
-                    className={
-                      result.length > result.limit
-                        ? 'text-xs text-red-400'
-                        : 'text-xs text-neutral-500'
-                    }
-                    data-testid={`counter-${channel}`}
-                  >
-                    {result.length} / {result.limit}
-                  </p>
-                  {result.errors.map((error) => (
-                    <p className="text-xs text-red-400" key={error} role="alert">
-                      {error}
-                    </p>
-                  ))}
-                  {result.degradations.map((item) => (
-                    <p className="text-xs text-amber-300" key={item.kind}>
-                      {item.message}
-                    </p>
-                  ))}
-                </div>
-              </Row>
-            ))}
-            <Row label="When">
-              <Input
-                aria-label="Schedule time"
-                onChange={(event) => setScheduledFor(event.target.value)}
-                type="datetime-local"
-                value={scheduledFor}
-              />
-            </Row>
-            <Row>
-              {confirming ? (
-                <div className="flex flex-col gap-3" role="alert">
-                  <p className="text-sm text-amber-300">
-                    Some content changes when posted:{' '}
-                    {degraded
-                      .map(
-                        ({ channel, result }) =>
-                          `${channel}: ${result.degradations.map((item) => item.message).join(' ')}`
-                      )
-                      .join(' ')}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button disabled={scheduling} onClick={() => void schedule()}>
-                      Schedule anyway
-                    </Button>
-                    <Button onClick={() => setConfirming(false)} variant="outline">
-                      Keep editing
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  disabled={blocked || scheduling}
-                  onClick={() => (degraded.length > 0 ? setConfirming(true) : void schedule())}
+      <Dialog onOpenChange={setScheduleOpen} open={scheduleOpen}>
+        <DialogContent className="max-w-md gap-5">
+          <DialogHeader>
+            <DialogTitle>{status === 'scheduled' ? 'Reschedule' : 'Schedule'}</DialogTitle>
+            <DialogDescription>
+              All times in {Intl.DateTimeFormat().resolvedOptions().timeZone.replace('_', ' ')}.
+              {live.length > 0 ? ' Its queued posts are replaced.' : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-1.5">
+              {quickTimes().map((option) => (
+                <button
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-xs transition-colors',
+                    scheduledFor === option.value
+                      ? 'border-sky-400/60 bg-sky-400/10 text-white'
+                      : 'border-white/[0.08] text-neutral-400 hover:text-white'
+                  )}
+                  key={option.label}
+                  onClick={() => setScheduledFor(option.value)}
+                  type="button"
                 >
-                  {status === 'scheduled' ? 'Reschedule' : 'Schedule'}
-                </Button>
-              )}
-            </Row>
-          </Group>
-        </Section>
-      ) : null}
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <Input
+              aria-label="Schedule time"
+              onChange={(event) => setScheduledFor(event.target.value)}
+              type="datetime-local"
+              value={scheduledFor}
+            />
+          </div>
+          <ChannelToggles
+            channels={channels}
+            onToggle={toggleChannel}
+            results={new Map(previews.map(({ id, result }) => [id, result]))}
+            selected={selected}
+          />
+          {degraded.length > 0 ? (
+            <p className="text-xs text-amber-300" role="alert">
+              Some content changes when posted:{' '}
+              {degraded
+                .map(
+                  ({ channel, result }) =>
+                    `${CHANNEL_META[channel].label}: ${result.degradations.map((item) => item.message).join(' ')}`
+                )
+                .join(' ')}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button onClick={() => setScheduleOpen(false)} variant="ghost">
+              Keep editing
+            </Button>
+            <Button disabled={blocked || scheduling} onClick={() => void schedule()}>
+              {scheduling ? 'Scheduling…' : degraded.length > 0 ? 'Schedule anyway' : 'Schedule'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {posts.length > 0 ? (
-        <Section title="Scheduled posts">
-          <Group>
-            {posts.map((post) => (
-              <div
-                className="flex items-center justify-between gap-4 p-5"
-                data-testid="draft-post"
-                key={post.id}
-              >
-                <div className="min-w-0">
-                  <p className="text-sm text-white">
-                    {post.platform} · {new Date(post.scheduledFor).toLocaleString()}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-neutral-500">{post.caption}</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  <Pill tone={POST_TONES[post.status] ?? 'gray'}>{post.status}</Pill>
-                  {canSchedule && (post.status === 'SCHEDULED' || post.status === 'DRAFT') ? (
-                    <Button onClick={() => void cancelPost(post.id)} size="sm" variant="outline">
-                      Cancel
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
+      <Sheet onOpenChange={setPreviewing} open={previewing}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-md" side="right">
+          <SheetHeader>
+            <SheetTitle>Preview</SheetTitle>
+            <SheetDescription>Each post as the channel shows it.</SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col gap-4 p-4">
+            {previews.map(({ channel, id, name, result }) => (
+              <PostPreview
+                author={author}
+                channel={channel}
+                handle={name}
+                key={id}
+                result={result}
+              />
             ))}
-          </Group>
-        </Section>
-      ) : null}
-    </Page>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  )
+}
+
+/** Quick picks for the schedule time, as `datetime-local` values. */
+function quickTimes(): { label: string; value: string }[] {
+  const at = (date: Date) => {
+    const pad = (value: number) => String(value).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  }
+  const inAnHour = new Date(Date.now() + 60 * 60_000)
+  inAnHour.setMinutes(Math.ceil(inAnHour.getMinutes() / 15) * 15, 0, 0)
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  tomorrow.setHours(9, 0, 0, 0)
+  const monday = new Date()
+  monday.setDate(monday.getDate() + ((8 - monday.getDay()) % 7 || 7))
+  monday.setHours(9, 0, 0, 0)
+  const options = [
+    { label: 'In an hour', value: at(inAnHour) },
+    { label: 'Tomorrow 9:00', value: at(tomorrow) },
+    { label: 'Monday 9:00', value: at(monday) },
+  ]
+  // On a Sunday, tomorrow is Monday: offer it once.
+  return options.filter(
+    (option, index) => options.findIndex((o) => o.value === option.value) === index
+  )
+}
+
+/** One switch per connected channel; with results, each one's limits and warnings. */
+function ChannelToggles({
+  channels,
+  onToggle,
+  results,
+  selected,
+}: {
+  channels: ComposerChannel[]
+  onToggle: (id: string, on: boolean) => void
+  results?: Map<string, SerializedCaption>
+  selected: string[]
+}) {
+  return (
+    <ul className="flex flex-col gap-1">
+      {channels.map(({ channel, id, name }) => {
+        const result = results?.get(id)
+        return (
+          <li className="rounded-lg px-2 py-1.5 hover:bg-white/[0.03]" key={id}>
+            <label className="flex cursor-pointer items-center gap-3 text-sm text-neutral-200">
+              <ChannelIcon channel={channel} className="size-4 text-neutral-400" />
+              <span className="min-w-0 flex-1 truncate">
+                {CHANNEL_META[channel].label}
+                <span className="ml-1.5 text-neutral-500">{name}</span>
+              </span>
+              <input
+                aria-label={`${channel} · ${name}`}
+                checked={selected.includes(id)}
+                className="relative h-5 w-8 shrink-0 cursor-pointer appearance-none rounded-full bg-white/15 outline-none transition-colors before:absolute before:top-[3px] before:left-[3px] before:size-3.5 before:rounded-full before:bg-white before:transition-transform checked:bg-sky-500 checked:before:translate-x-3 focus-visible:ring-2 focus-visible:ring-sky-400/50"
+                onChange={(event) => onToggle(id, event.target.checked)}
+                type="checkbox"
+              />
+            </label>
+            {result ? (
+              <div className="mt-1 flex flex-col gap-0.5 pl-7">
+                <CharacterCount channel={channel} result={result} />
+                {result.errors.map((error) => (
+                  <p className="text-xs text-red-400" key={error} role="alert">
+                    {error}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/** A ring that fills toward the channel's limit, with the count beside it. */
+function CharacterCount({
+  channel,
+  result,
+  testId = false,
+}: {
+  channel: DraftChannel
+  result: SerializedCaption
+  /** The one counter tests read: the one under the editor. */
+  testId?: boolean
+}) {
+  const over = result.length > result.limit
+  const share = Math.min(result.length / result.limit, 1)
+  const circumference = 2 * Math.PI * 7
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-neutral-500">
+      <ChannelIcon channel={channel} className="size-3.5" />
+      <svg aria-hidden className="size-4 -rotate-90" viewBox="0 0 18 18">
+        <circle className="stroke-white/10" cx="9" cy="9" fill="none" r="7" strokeWidth="2" />
+        <circle
+          className={over ? 'stroke-red-400' : share > 0.9 ? 'stroke-amber-300' : 'stroke-sky-400'}
+          cx="9"
+          cy="9"
+          fill="none"
+          r="7"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - share)}
+          strokeLinecap="round"
+          strokeWidth="2"
+        />
+      </svg>
+      <span
+        className={over ? 'text-red-400' : undefined}
+        data-testid={testId ? `counter-${channel}` : undefined}
+      >
+        {result.length} / {result.limit}
+      </span>
+    </span>
+  )
+}
+
+/** The post as its channel lays it out: author, text, images, and what changes. */
+function PostPreview({
+  author,
+  channel,
+  handle,
+  result,
+}: {
+  author: string
+  channel: DraftChannel
+  handle: string
+  result: SerializedCaption
+}) {
+  return (
+    <article
+      className="rounded-xl border border-white/[0.08] bg-black/30 p-4"
+      data-testid={`preview-${channel}`}
+    >
+      <p className="mb-3 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+        <ChannelIcon channel={channel} />
+        {CHANNEL_META[channel].label}
+      </p>
+      <div className="flex gap-3">
+        <span
+          aria-hidden
+          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500/40 to-violet-500/40 text-sm text-white"
+        >
+          {author.slice(0, 1).toUpperCase()}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm">
+            <span className="font-medium text-white">{author}</span>
+            <span className="ml-1.5 text-neutral-500">{handle}</span>
+          </p>
+          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-neutral-200">
+            {result.caption || ' '}
+          </p>
+          {result.assetIds.length > 0 ? (
+            <div
+              className={cn(
+                'mt-3 grid gap-1 overflow-hidden rounded-xl',
+                result.assetIds.length > 1 && 'grid-cols-2'
+              )}
+            >
+              {result.assetIds.slice(0, CHANNEL_IMAGE_LIMITS[channel]).map((assetId) => (
+                // biome-ignore lint/performance/noImgElement: signed asset redirects
+                <img
+                  alt=""
+                  className="aspect-video w-full bg-white/5 object-cover"
+                  key={assetId}
+                  src={assetContentUrl(assetId)}
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+      <div className="mt-3 flex flex-col gap-1 border-t border-white/[0.06] pt-3">
+        <CharacterCount channel={channel} result={result} />
+        {result.errors.map((error) => (
+          <p className="text-xs text-red-400" key={error} role="alert">
+            {error}
+          </p>
+        ))}
+        {result.degradations.map((item) => (
+          <p className="text-xs text-amber-300" key={item.kind}>
+            {item.message}
+          </p>
+        ))}
+      </div>
+    </article>
   )
 }

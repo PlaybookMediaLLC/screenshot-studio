@@ -1,11 +1,9 @@
 import type { Metadata } from 'next'
-import { DraftList } from '@/components/drafts/DraftList'
+import { DraftsFrame } from '@/components/drafts/DraftsRail'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
-import { Page } from '@/components/platform-ui'
 import { hasPermission } from '@/lib/auth/permissions'
-import { draftPlainText } from '@/lib/content-drafts/serialize'
 import { listContentDrafts } from '@/lib/tenant/content-drafts'
-import { requireDraftsPageAccess } from './page-access'
+import { draftListItems, requireDraftsPageAccess } from './page-access'
 
 export const metadata: Metadata = { title: 'Drafts' }
 
@@ -23,18 +21,19 @@ export default async function DraftsPage({ params }: DraftsPageProps) {
       campaignsEnabled={access.campaignWorkflowEnabled}
       organizationName={access.organization.name}
     >
-      <Page description="Posts you write by hand, then schedule to your channels." title="Drafts">
-        <DraftList
-          canEdit={hasPermission(access.role, 'artifact:edit')}
-          drafts={page.items.map((draft) => ({
-            excerpt: (draft.plainText || draftPlainText(draft.body)).slice(0, 160),
-            id: draft.id,
-            status: draft.status,
-            title: draft.title,
-            updatedAt: draft.updatedAt.toISOString(),
-          }))}
-        />
-      </Page>
+      <DraftsFrame
+        canEdit={hasPermission(access.role, 'artifact:edit')}
+        drafts={draftListItems(page.items)}
+      >
+        <div className="flex h-full items-center justify-center p-8 text-center">
+          <div>
+            <p className="text-sm text-neutral-300">Write it once, post it everywhere.</p>
+            <p className="mt-1 text-xs text-neutral-500">
+              Open a draft on the left, or start a new one.
+            </p>
+          </div>
+        </div>
+      </DraftsFrame>
     </PlatformShell>
   )
 }

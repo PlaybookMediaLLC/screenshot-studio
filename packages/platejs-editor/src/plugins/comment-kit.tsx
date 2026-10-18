@@ -21,6 +21,8 @@ type CommentConfig = ExtendConfig<
     commentingBlock: Path | null;
     hoverId: string | null;
     isOverlapWithEditor: boolean;
+    /** Below this editable width, comments open beside their block instead of in the side column. */
+    overlapWidth: number;
     uniquePathMap: Map<string, Path>;
     updateTimestamp: number | null;
   }
@@ -69,10 +71,11 @@ export const commentPlugin = toTPlatePlugin<CommentConfig>(BaseCommentPlugin, {
     commentingBlock: null,
     hoverId: null,
     isOverlapWithEditor: false,
+    overlapWidth: 700,
     uniquePathMap: new Map(),
     updateTimestamp: null,
   },
-  useHooks: ({ editor, setOption }) => {
+  useHooks: ({ editor, getOption, setOption }) => {
     const editorContainerRef = useEditorContainerRef();
 
     useEffect(() => {
@@ -84,7 +87,7 @@ export const commentPlugin = toTPlatePlugin<CommentConfig>(BaseCommentPlugin, {
 
       const observer = new ResizeObserver((entries) => {
         const width = entries[0].contentRect.width;
-        const isOverlap = width < 700;
+        const isOverlap = width < (getOption("overlapWidth") ?? 700);
 
         setOption("isOverlapWithEditor", isOverlap);
       });
@@ -130,11 +133,9 @@ export const commentPlugin = toTPlatePlugin<CommentConfig>(BaseCommentPlugin, {
           ) {
             const { newProperties, properties } = operation;
             const nextProperties = newProperties as
-              | Record<string, unknown>
-              | undefined;
+              Record<string, unknown> | undefined;
             const previousProperties = properties as
-              | Record<string, unknown>
-              | undefined;
+              Record<string, unknown> | undefined;
 
             if (
               previousProperties?.[getDraftCommentKey()] ||
@@ -166,7 +167,8 @@ export const commentPlugin = toTPlatePlugin<CommentConfig>(BaseCommentPlugin, {
       setDraft: { keys: "mod+shift+m" },
     },
   })
-  .configure({
+  // extend, not configure: a host's .configure({ options }) must keep these.
+  .extend({
     render: {
       afterEditable: FloatingDiscussion,
       node: CommentLeaf,

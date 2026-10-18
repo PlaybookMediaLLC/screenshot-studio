@@ -82,3 +82,26 @@ export async function openNewDraft(page: Page): Promise<string> {
   await expect(draftEditor(page)).toBeVisible({ timeout: 60_000 })
   return new URL(page.url()).pathname.split('/').pop() ?? ''
 }
+
+/** Turn channels on from the composer's channel picker, then close it. */
+export async function chooseChannels(page: Page, platforms: readonly string[]): Promise<void> {
+  await page.getByRole('button', { name: 'Channels' }).click()
+  for (const platform of platforms) await page.getByLabel(new RegExp(`^${platform} · `)).check()
+  await page.keyboard.press('Escape')
+}
+
+/** Run checks against the channel previews, with the preview panel open. */
+export async function inPreview(page: Page, check: () => Promise<void>): Promise<void> {
+  await page.getByRole('button', { name: 'Preview' }).click()
+  await check()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+}
+
+/** Open the schedule dialog from the top bar; returns it. */
+export async function openSchedule(page: Page) {
+  await page.getByRole('button', { name: /^(Schedule|Reschedule)$/ }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+  return dialog
+}

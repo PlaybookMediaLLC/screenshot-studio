@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.16.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.15.0...v2.16.0) (2026-10-18)
+
+
+### Features
+
+* **onboarding:** add enrichment providers behind one interface ([#150](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/150)) ([20d1eba](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/20d1eba3f1bfc1da26bc03464844ebf6066d1f7c))
+* **onboarding:** add the onboarding-runs API and the review screen ([#155](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/155)) ([024e357](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/024e35751f62eb884adfaa43f194cc8ac2f80927))
+* **onboarding:** enrich through Exa, spend no AI credits, and show a progress card ([#167](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/167)) ([7b02568](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/7b02568afb1c9eafd7941a76098efd85ee8bba1b))
+* **onboarding:** run the background read as a Temporal workflow ([#149](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/149)) ([21f8349](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/21f8349ded602a04ede459384004b80b0e967209))
+
 ## [2.15.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.14.0...v2.15.0) (2026-10-18)
 
 

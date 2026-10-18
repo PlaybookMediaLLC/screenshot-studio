@@ -43,11 +43,37 @@ config:
   # PUBLISHING_SERVICE_TOKEN from existingSecret with every backend call.
   publishingApiUrl: ''
   screenshotApiUrl: 'https://api.microlink.io'
+  # Content drafts (RFC 037): 'enabled' turns on the Drafts pages and API.
+  contentDrafts: ''
 
 # Optional Secret containing application connection, authentication, and audit
 # values. REDIS_URL is required when the screenshot API route is enabled.
 # Only the migration job and local backend read its DATABASE_URL.
 existingSecret: ''
+
+# Real-time co-editing of content drafts (RFC 037), built from
+# packages/collab-server/Dockerfile. existingSecret must hold
+# COLLAB_SERVICE_TOKEN (shared with the backend, which also needs
+# COLLAB_TOKEN_SECRET to sign tokens).
+collab:
+  enabled: false
+  image:
+    repository: ''
+    pullPolicy: IfNotPresent
+    tag: ''
+  port: 1234
+  # The backend's URL from inside the cluster; defaults to config.publishingApiUrl.
+  backendUrl: ''
+  # The WebSocket URL browsers connect to (wss://...), given to the web as
+  # PLATFORM_COLLAB_URL. Expose the collab Service at it with your ingress.
+  publicUrl: ''
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
 
 # The Go platform migrator, shipped in the backend image.
 migration:

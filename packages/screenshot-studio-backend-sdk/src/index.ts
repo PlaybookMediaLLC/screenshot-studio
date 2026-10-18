@@ -1922,6 +1922,16 @@ export class ScreenshotStudioBackendSDK {
     }>(`v1/content-drafts/${encodeURIComponent(id)}/schedule`, { body: input, method: 'POST' })
   }
 
+  /** A short-lived token admitting the signed-in member to the draft's live session. */
+  async createContentDraftCollabToken(id: string) {
+    return this.request<{
+      access: 'read' | 'write'
+      documentName: string
+      expiresAt: string
+      token: string
+    }>(`v1/content-drafts/${encodeURIComponent(id)}/collab-token`, { body: {}, method: 'POST' })
+  }
+
   async listContentDraftPosts(id: string) {
     return this.request<{ posts: BackendContentDraftPost[] }>(
       `v1/content-drafts/${encodeURIComponent(id)}/posts`

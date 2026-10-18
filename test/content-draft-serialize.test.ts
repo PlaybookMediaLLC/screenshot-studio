@@ -77,6 +77,7 @@ test('tables become aligned rows and are reported', () => {
           { type: 'tr', children: [cell('Plan'), cell('Price')] },
           { type: 'tr', children: [cell('Pro'), cell('$29')] },
           { type: 'tr', children: [cell('Business'), cell('$99')] },
+          { type: 'tr', children: [cell(''), cell('')] },
         ],
       },
     ],
@@ -154,6 +155,15 @@ test('images become attachments; extra images and embeds are reported', () => {
   assert.deepEqual(result.assetIds, ['asset-1', 'asset-2'])
   assert.deepEqual(result.degradations.map((item) => item.kind).sort(), ['embed', 'extra-images'])
   assert.deepEqual(result.errors, [])
+})
+
+test('an image inside a paragraph is attached too', () => {
+  const result = serializeDraft(
+    [p(text('Notes'), { type: 'img', assetId: 'asset-9', url: '/x', children: [text('')] })],
+    'x'
+  )
+  assert.equal(result.caption, 'Notes')
+  assert.deepEqual(result.assetIds, ['asset-9'])
 })
 
 test('channel limits and requirements block scheduling', () => {

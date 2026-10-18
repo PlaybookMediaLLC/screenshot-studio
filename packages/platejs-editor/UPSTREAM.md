@@ -88,6 +88,9 @@ Boundaries (RFC 037: the package reaches nothing the app owns, enforced by
   y-webrtc ones.
 - `src/lib/rehost-images.ts` (new): re-uploads `data:` and `blob:` images, as
   DOCX import produces, through `uploadFile`.
+- `src/ui/remote-cursor-overlay.tsx` (new, after the Plate registry's): other
+  people's carets and selections; `createYjsPlugin` renders it after the
+  editable. Adds the `@slate-yjs/react` dependency.
 
 ## Pulling a later fix from oppulence-canvas
 

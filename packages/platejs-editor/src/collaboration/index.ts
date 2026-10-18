@@ -1,5 +1,7 @@
 import { YjsPlugin } from "@platejs/yjs/react";
 
+import { RemoteCursorOverlay } from "../ui/remote-cursor-overlay";
+
 export interface CollaborationCursor {
   color: string;
   name: string;
@@ -57,6 +59,7 @@ export const createYjsPlugin = (
     assertPrivateSignaling(config.webrtc.signaling);
   }
   return YjsPlugin.configure({
+    render: { afterEditable: RemoteCursorOverlay },
     options: {
       cursors: {
         data: {

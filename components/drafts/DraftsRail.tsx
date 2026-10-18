@@ -7,7 +7,7 @@ import { Add01Icon } from 'hugeicons-react'
 import { toast } from 'sonner'
 import { draftsApi } from '@/lib/content-drafts/client'
 import { cn } from '@/lib/utils'
-import { LocalTime } from './local-time'
+import { LocalTime, useHydrated } from './local-time'
 
 export type DraftListItem = {
   excerpt: string
@@ -117,6 +117,8 @@ function DraftsRail({
   queue: QueueItem[]
 }) {
   const router = useRouter()
+  // "now" at the server render can be "1m" by hydration: count in the browser.
+  const hydrated = useHydrated()
   const active = drafts.find((draft) => draft.id === activeId)
   const [tab, setTab] = React.useState<RailTab>(
     active?.status === 'archived' ? 'archived' : 'draft'
@@ -256,7 +258,7 @@ function DraftsRail({
                 <span className="truncate">{draft.title}</span>
                 <span className="shrink-0">
                   {tab === 'posted' ? `${draft.publishedPosts} live · ` : ''}
-                  {since(draft.updatedAt)}
+                  {hydrated ? since(draft.updatedAt) : null}
                 </span>
               </p>
             </Link>

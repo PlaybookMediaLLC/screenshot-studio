@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.11.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.10.2...v2.11.0) (2026-10-18)
+
+
+### Features
+
+* **billing:** calculate sales tax with Stripe Tax at checkout ([#172](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/172)) ([1c11e59](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1c11e590bffc07853711a8987cf1146667ae337d))
+
+
+### Bug Fixes
+
+* **marketing:** remove self-hosting claims from the security page ([#173](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/173)) ([16c93e5](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/16c93e55ac033f2899c03ed46ed2da4dbb7a816d))
+
 ## [2.10.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.10.1...v2.10.2) (2026-10-18)
 
 

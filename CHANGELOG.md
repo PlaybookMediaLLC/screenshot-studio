@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.10.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.10.0...v2.10.1) (2026-10-18)
+
+
+### Bug Fixes
+
+* compliance fixes from the legal audit (consent, AI privacy, renewal notice) ([#157](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/157)) ([08c04d4](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/08c04d4aeea17ecce94cdea85b500f2c2bb42155))
+
 ## [2.10.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.9.0...v2.10.0) (2026-10-18)
 
 

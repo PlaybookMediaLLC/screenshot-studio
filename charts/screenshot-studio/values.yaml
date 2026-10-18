@@ -57,6 +57,11 @@ existingSecret: ''
 # COLLAB_TOKEN_SECRET to sign tokens).
 collab:
   enabled: false
+  # More than one replica relays live edits through Redis: set redis.enabled
+  # and put COLLAB_REDIS_URL in existingSecret.
+  replicaCount: 1
+  redis:
+    enabled: false
   image:
     repository: ''
     pullPolicy: IfNotPresent

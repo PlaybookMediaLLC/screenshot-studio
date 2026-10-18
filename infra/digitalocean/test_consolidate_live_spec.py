@@ -196,6 +196,13 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         self.assertFalse({"TENANT_COLLAB_TOKEN_SECRET", "TENANT_COLLAB_SERVICE_TOKEN"} & {item["key"] for item in withdrawn_backend["envs"]})
         with self.assertRaisesRegex(ValueError, "collab-<commit SHA>"):
             cutover.consolidate(live, self.digest, enabled, None, "collab-latest")
+        with self.assertRaisesRegex(ValueError, "COLLAB_REDIS_URL"):
+            cutover.consolidate(live, self.digest, dict(enabled, COLLAB_INSTANCE_COUNT="2"), None, collab_tag)
+        scaled = cutover.consolidate(live, self.digest, dict(enabled, COLLAB_INSTANCE_COUNT="3",
+                                                             COLLAB_REDIS_URL="rediss://collab"), None, collab_tag)
+        scaled_collab = next(item for item in scaled["services"] if item["name"] == "collab")
+        self.assertEqual(scaled_collab["instance_count"], 3)
+        self.assertEqual({item["key"]: item["type"] for item in scaled_collab["envs"]}["COLLAB_REDIS_URL"], "SECRET")
 
 
 if __name__ == "__main__":

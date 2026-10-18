@@ -333,8 +333,14 @@ accept the connection's token for twelve hours after it expires, so a long
 session keeps saving. A member removed from the workspace is refused on their
 next connection, and one demoted below `artifact:edit` joins read-only.
 
-The server runs as one replica: a document's live state lives in one process.
-More replicas need the Hocuspocus Redis extension or routing by document name.
+One replica needs nothing else. More replicas relay each document's live
+updates and awareness through Redis (the Hocuspocus Redis extension, enabled
+by `COLLAB_REDIS_URL`), and one replica, chosen by a Redis lock, stores each
+document. The newest writer's token for a document is kept in Redis too, so
+the replica that stores can still present it to the backend. Redis carries
+live updates and those tokens only; every draft stays in the backend. Helm
+(`collab.replicaCount`) and the deploy (`COLLAB_INSTANCE_COUNT`) refuse more
+than one replica without Redis.
 Comment threads (the discussion plugin) are kept in the editor's memory and
 are not yet stored with the draft; the comment marks in the text are.
 

@@ -7,7 +7,7 @@ make e2e
 ```
 
 Use `test` and `configureE2EFlow` for every flow. They provide a fresh browser page, a unique
-local user identity, path helpers, and lifecycle hooks. New specs in `e2e/` run
+local user identity, path helpers, and lifecycle hooks. New specs in `test/e2e/` run
 automatically in local `make e2e` and CI.
 
 ```ts
@@ -32,7 +32,7 @@ test('creates a release', async ({ app, identity, page }) => {
 The framework automatically attaches the test email and workspace name on a
 failure. It never writes the test password to an artifact.
 
-`e2e/framework/services.ts` creates a disposable direct Postgres or RustFS
+`test/e2e/framework/services.ts` creates a disposable direct Postgres or RustFS
 client for durable assertions. Use it only after a user-visible API action.
 The test runner provides host-safe connection values in `E2E_*` variables; do
 not use an app container hostname from a browser test.
@@ -42,7 +42,7 @@ not use an app container hostname from a browser test.
 Use `mockBrowserJson` for a browser-originated third-party request. It returns
 the configured JSON response and records calls for assertions. For server-side
 egress and real dependency validation, follow
-[`downstream-dependencies.md`](../.agents/skills/add-e2e-flow/references/downstream-dependencies.md).
+[`downstream-dependencies.md`](../../.agents/skills/add-e2e-flow/references/downstream-dependencies.md).
 
 - Run destructive dependency failure cases in `make e2e-recovery`, not in the
   parallel browser suite. It restores every service in a `finally` block.

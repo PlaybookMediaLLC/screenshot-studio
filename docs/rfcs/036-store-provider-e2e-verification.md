@@ -74,7 +74,7 @@ default URLs come from, not how requests are built.
 
 ### The fake
 
-`e2e/fixtures/fake-stores.mjs`, modeled on `e2e/fixtures/fake-social.mjs`,
+`test/e2e/fixtures/fake-stores.mjs`, modeled on `test/e2e/fixtures/fake-social.mjs`,
 runs as a Compose service under the `e2e` profile. It implements just enough
 of each API for the studio's flows, backed by in-memory state per run:
 
@@ -97,7 +97,7 @@ model ids, tool schemas, and usage accounting are exercised.
 
 ### Specs
 
-New flows in `e2e/store-providers.spec.ts`, run by `make e2e` and CI:
+New flows in `test/e2e/store-providers.spec.ts`, run by `make e2e` and CI:
 
 1. **Google Play**: add a connection with the fixture service account, upload
    two sizes in two languages to a draft edit, check the commit button stays

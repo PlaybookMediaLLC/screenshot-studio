@@ -22,7 +22,7 @@ help: ## Show local development commands.
 	@echo "  make rate-limit-smoke           Verify Redis-backed API rate limiting"
 	@echo "  make tenant-isolation           Verify two-organization session and API-key isolation"
 	@echo "  make e2e                        Run all browser end-to-end flows"
-	@echo "  make e2e-file SPEC=e2e/foo.ts   Run one browser end-to-end flow"
+	@echo "  make e2e-file SPEC=test/e2e/x.ts Run one browser end-to-end flow"
 	@echo "  make e2e-onboarding             Verify sign-up and workspace onboarding in Chromium"
 	@echo "  make e2e-recovery               Verify dependency failure and recovery behavior"
 	@echo "  make check                      Run lint and TypeScript checks"
@@ -68,7 +68,7 @@ e2e:
 	@E2E_BASE_URL="$(E2E_BASE_URL)" $(STUDIO) e2e
 
 e2e-file:
-	@test -n "$(SPEC)" || { echo "Usage: make e2e-file SPEC=e2e/example.spec.ts" >&2; exit 2; }
+	@test -n "$(SPEC)" || { echo "Usage: make e2e-file SPEC=test/e2e/example.spec.ts" >&2; exit 2; }
 	@E2E_BASE_URL="$(E2E_BASE_URL)" $(STUDIO) e2e-file "$(SPEC)"
 
 e2e-onboarding:

@@ -6,7 +6,7 @@ import { configureE2EFlow, expect, test } from './framework/flow'
 
 configureE2EFlow()
 
-const TONE = 'e2e/fixtures/tone.wav'
+const TONE = 'test/e2e/fixtures/tone.wav'
 
 /** Paste a tall screenshot (16 coloured, labelled bands) as the main image. */
 async function pasteLongScreenshot(page: Page) {

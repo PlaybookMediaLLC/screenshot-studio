@@ -49,7 +49,7 @@ export default defineConfig([
     ...tseslint.configs.disableTypeChecked,
   },
   {
-    files: ['e2e/fixtures/*.mjs'],
+    files: ['test/e2e/fixtures/*.mjs'],
     languageOptions: {
       globals: {
         AbortSignal: 'readonly',

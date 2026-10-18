@@ -221,4 +221,4 @@ DOM; the export dialog stays responsive and can cancel between files.
 | Contract registry and API boundaries | `npm test` (`test/openapi-contracts.test.ts`, `test/api-platform-boundary.test.ts`) |
 | Backend unit and route tests | `cd services && go test ./internal/product ./backend/internal/httpapi` |
 | Backend lifecycle against Postgres | `PUBLISHING_TEST_DATABASE_URL=… go test ./internal/product -run TestStoreReviewLifecycleAndCredentials` |
-| Browser flows | `npx playwright test e2e/store-screenshots.spec.ts` against the local stack |
+| Browser flows | `npx playwright test test/e2e/store-screenshots.spec.ts` against the local stack |

@@ -151,14 +151,14 @@ Migrations are SQL in `services/platformmigrations/sql`. Ent schemas are in `ser
 Unit tests run with `npm test` (`test/*.test.ts`). The
 cross-feature workflows are Playwright specs:
 
-| Workflow                       | Spec                                   |
-| ------------------------------ | -------------------------------------- |
-| A: brand-based batch export    | `e2e/workflows.spec.ts`                |
-| B: animated product screenshot | `e2e/motion.spec.ts`                   |
-| C: product announcement        | `e2e/workflows.spec.ts`                |
-| D: safe publishing             | `e2e/workflow-safe-publishing.spec.ts` |
-| E: cloud editing               | `e2e/projects.spec.ts`                 |
-| F: consistent frames           | `e2e/frames.spec.ts`                   |
+| Workflow                       | Spec                                        |
+| ------------------------------ | ------------------------------------------- |
+| A: brand-based batch export    | `test/e2e/workflows.spec.ts`                |
+| B: animated product screenshot | `test/e2e/motion.spec.ts`                   |
+| C: product announcement        | `test/e2e/workflows.spec.ts`                |
+| D: safe publishing             | `test/e2e/workflow-safe-publishing.spec.ts` |
+| E: cloud editing               | `test/e2e/projects.spec.ts`                 |
+| F: consistent frames           | `test/e2e/frames.spec.ts`                   |
 
 Feature specs: `editor-ux`, `brand-presets`, `share-links`, `ai-features`,
 `export-batch`, `redaction`, `projects`. Exported files are checked byte by

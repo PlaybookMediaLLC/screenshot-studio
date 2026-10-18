@@ -68,7 +68,12 @@ export const draftsApi = {
     call<DraftWire>(one(id), { body: input, method: 'PATCH' }),
   schedule: (
     id: string,
-    input: { channelConnectionIds: string[]; scheduledFor: string; version: number }
+    input: {
+      blockImages: (string | null)[]
+      channelConnectionIds: string[]
+      scheduledFor: string
+      version: number
+    }
   ) =>
     call<{ created: boolean; draft: DraftWire; posts: DraftPostWire[] }>(`${one(id)}/schedule`, {
       body: input,

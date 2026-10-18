@@ -26,19 +26,17 @@ var draftPlatformChannels = map[string]string{
 }
 
 // draftChannelImageLimits is how many images each channel takes in one post.
-// A post carries the draft's first images up to that many; the composer's
-// preview says so (lib/content-drafts/serialize.ts holds the same numbers).
+// A post carries its first images up to that many; the composer's preview
+// says so (lib/content-drafts/serialize.ts holds the same numbers).
 var draftChannelImageLimits = map[string]int{"instagram": 10, "linkedin": 9, "x": 4}
-
-// draftChannelImages is the draft's images that fit the channel.
-func draftChannelImages(assetIDs []string, platform string) []string {
-	return assetIDs[:min(len(assetIDs), draftChannelImageLimits[draftPlatformChannels[platform]])]
-}
 
 // ContentDraftScheduleTarget is one channel and the caption serialized for it.
 type ContentDraftScheduleTarget struct {
-	Caption             string `json:"caption"`
-	ChannelConnectionID string `json:"channelConnectionId"`
+	// AssetIDs are the post's images in order: the draft's, with its table and
+	// math blocks rendered among them. Omitted, the post takes the draft's.
+	AssetIDs            []string `json:"assetIds"`
+	Caption             string   `json:"caption"`
+	ChannelConnectionID string   `json:"channelConnectionId"`
 }
 
 // ScheduleContentDraftInput schedules the draft at Version to every target.
@@ -109,35 +107,48 @@ func validateDraftTargets(input ScheduleContentDraftInput) error {
 
 // draftTargetConnections loads and checks every target's connection: the
 // workspace's, active, on a platform that takes drafts, and within that
-// channel's caption limit. Instagram posts need an image.
+// channel's caption limit. It also returns each target's images, up to the
+// channel's limit and all the workspace's uploads. Instagram posts need one.
 func draftTargetConnections(ctx context.Context, tx *ent.Tx, organizationID string, targets []ContentDraftScheduleTarget,
-	hasImage bool) (map[string]*ent.ChannelConnection, error) {
+	draftImages []string) (map[string]*ent.ChannelConnection, map[string][]string, error) {
 	connections := make(map[string]*ent.ChannelConnection, len(targets))
+	images := make(map[string][]string, len(targets))
 	for _, target := range targets {
 		connection, err := tx.ChannelConnection.Query().Where(channelconnection.ID(target.ChannelConnectionID),
 			channelconnection.OrganizationID(organizationID)).Only(ctx)
 		if ent.IsNotFound(err) {
-			return nil, publishing.ErrNotFound
+			return nil, nil, publishing.ErrNotFound
 		}
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if connection.Status != channelconnection.StatusACTIVE || connection.Provider != "postiz" {
-			return nil, publishing.ErrNotEligible
+			return nil, nil, publishing.ErrNotEligible
 		}
 		channel, ok := draftPlatformChannels[connection.Platform]
 		if !ok {
-			return nil, conflict("A " + connection.Platform + " channel cannot publish a draft.")
+			return nil, nil, conflict("A " + connection.Platform + " channel cannot publish a draft.")
 		}
-		if channel == "instagram" && !hasImage {
-			return nil, conflict("Instagram needs an image. Add one to the draft first.")
+		ids := draftImages
+		if target.AssetIDs != nil {
+			ids = target.AssetIDs
+		}
+		ids = ids[:min(len(ids), draftChannelImageLimits[channel])]
+		if target.AssetIDs != nil {
+			if ids, err = contentDraftAssets(ctx, tx, organizationID, ids); err != nil {
+				return nil, nil, err
+			}
+		}
+		if channel == "instagram" && len(ids) == 0 {
+			return nil, nil, conflict("Instagram needs an image. Add one to the draft first.")
 		}
 		if length, limit := campaignPostLength(target.Caption, ""), campaignChannelLimit(channel); length > limit {
-			return nil, conflict(fmt.Sprintf("The %s caption is %d characters; the limit is %d.", channel, length, limit))
+			return nil, nil, conflict(fmt.Sprintf("The %s caption is %d characters; the limit is %d.", channel, length, limit))
 		}
 		connections[target.ChannelConnectionID] = connection
+		images[target.ChannelConnectionID] = ids
 	}
-	return connections, nil
+	return connections, images, nil
 }
 
 // replayDraftSchedule returns the posts already made for these targets at this
@@ -235,7 +246,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	if draft.Version != input.Version {
 		return nil, &ContentDraftVersionConflictError{Current: draft.Version}
 	}
-	connections, err := draftTargetConnections(ctx, tx, actor.OrganizationID, input.Targets, len(draft.AssetIds) > 0)
+	connections, images, err := draftTargetConnections(ctx, tx, actor.OrganizationID, input.Targets, draft.AssetIds)
 	if err != nil {
 		return nil, err
 	}
@@ -264,8 +275,8 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	channelIDs := make([]string, 0, len(input.Targets))
 	for _, target := range input.Targets {
 		create := tx.ScheduledPost.Create()
-		if images := draftChannelImages(draft.AssetIds, connections[target.ChannelConnectionID].Platform); len(images) > 0 {
-			create.SetAssetID(images[0]).SetAssetIds(images)
+		if ids := images[target.ChannelConnectionID]; len(ids) > 0 {
+			create.SetAssetID(ids[0]).SetAssetIds(ids)
 		}
 		post, err := create.SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
 			SetContentDraftID(draft.ID).SetChannelConnectionID(target.ChannelConnectionID).

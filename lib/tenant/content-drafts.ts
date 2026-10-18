@@ -75,12 +75,19 @@ export async function listContentDraftPosts(context: TenantContext, id: string) 
 /**
  * Schedule the draft to channels. Each caption is serialized here from the
  * stored draft, with the same function the composer previews with, and a
- * caption a channel cannot take is refused before anything is queued.
+ * caption a channel cannot take is refused before anything is queued. Each
+ * post's images are the draft's, in body order, with rendered table and math
+ * blocks among them; the backend checks they are the workspace's.
  */
 export async function scheduleContentDraft(
   context: OrganizationAccess,
   id: string,
-  input: { channelConnectionIds: string[]; scheduledFor: Date; version: number }
+  input: {
+    blockImages?: (string | null)[]
+    channelConnectionIds: string[]
+    scheduledFor: Date
+    version: number
+  }
 ) {
   const draft = await getContentDraft(context, id)
   if (!draft) return null
@@ -94,11 +101,11 @@ export async function scheduleContentDraft(
     const platform = platforms.get(channelConnectionId)
     const channel = platform ? channelForPlatform(platform) : null
     if (!channel) throw new ScheduledPostError('A selected channel cannot take this draft.', 404)
-    const serialized = serializeDraft(draft.body, channel)
+    const serialized = serializeDraft(draft.body, channel, input.blockImages)
     if (serialized.errors.length > 0) {
       throw new ScheduledPostError(`${channel}: ${serialized.errors.join(' ')}`, 409)
     }
-    return { caption: serialized.caption, channelConnectionId }
+    return { assetIds: serialized.assetIds, caption: serialized.caption, channelConnectionId }
   })
   const result = await backendSDK(context).scheduleContentDraft(id, {
     scheduledFor: input.scheduledFor,

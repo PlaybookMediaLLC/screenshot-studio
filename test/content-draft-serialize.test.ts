@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { channelForPlatform, draftPlainText, serializeDraft } from '@/lib/content-drafts/serialize'
+import {
+  channelForPlatform,
+  draftPlainText,
+  renderableBlockCount,
+  serializeDraft,
+} from '@/lib/content-drafts/serialize'
 
 const p = (...children: object[]) => ({ type: 'p', children })
 const text = (value: string, marks: object = {}) => ({ text: value, ...marks })
@@ -205,4 +210,34 @@ test('connection platforms map to draft channels', () => {
   assert.equal(channelForPlatform('x'), 'x')
   assert.equal(channelForPlatform('tiktok'), null)
   assert.equal(draftPlainText([p(text('Hello'), text(' world', { bold: true }))]), 'Hello world')
+})
+
+test('rendered tables and math blocks post as images in body order', () => {
+  const value = [
+    p(text('Pricing')),
+    { type: 'equation', id: 'eq', texExpression: 'E = mc^2', children: [text('')] },
+    { type: 'img', assetId: 'photo', url: '/api/v1/assets/photo/content', children: [text('')] },
+    {
+      type: 'table',
+      id: 'tbl',
+      children: [{ type: 'tr', children: [{ type: 'td', children: [p(text('Plan'))] }] }],
+    },
+  ]
+  assert.equal(renderableBlockCount(value), 2)
+  const preview = serializeDraft(value, 'instagram', ['', ''])
+  assert.equal(preview.caption, 'Pricing')
+  assert.deepEqual(preview.assetIds, ['photo'])
+  assert.deepEqual(preview.errors, [])
+  assert.deepEqual(preview.degradations.map((item) => item.message).sort(), [
+    'Math blocks are posted as images.',
+    'Tables are posted as images.',
+  ])
+  const posted = serializeDraft(value, 'x', ['eq-png', 'tbl-png'])
+  assert.deepEqual(posted.assetIds, ['eq-png', 'photo', 'tbl-png'])
+  // A block that failed to render posts as text.
+  const partly = serializeDraft(value, 'x', ['eq-png', null])
+  assert.deepEqual(partly.assetIds, ['eq-png', 'photo'])
+  assert.match(partly.caption, /Plan/)
+  // Without rendered images, both stay text.
+  assert.match(serializeDraft(value, 'x').caption, /E = mc\^2[\s\S]*Plan/)
 })

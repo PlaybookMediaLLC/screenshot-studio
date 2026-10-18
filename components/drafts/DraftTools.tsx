@@ -13,6 +13,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { type DraftWire, draftsApi, type RevisionWire } from '@/lib/content-drafts/client'
+import { LocalTime, useHydrated } from './local-time'
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : 'The request could not be completed.'
@@ -129,7 +130,9 @@ export function ShareMenu({
   shareToken: string | null
 }) {
   const [busy, setBusy] = React.useState(false)
-  const link = shareToken ? `${window.location.origin}/d/${shareToken}` : null
+  // The server render has no window: the link appears once in the browser.
+  const hydrated = useHydrated()
+  const link = shareToken && hydrated ? `${window.location.origin}/d/${shareToken}` : null
   const toggle = async (enabled: boolean) => {
     setBusy(true)
     try {
@@ -274,7 +277,7 @@ export function GuestComments({ comments }: { comments: DraftWire['guestComments
           >
             <p className="text-xs text-neutral-500">
               <span className="text-neutral-200">{comment.name}</span> ·{' '}
-              {new Date(comment.createdAt).toLocaleString()}
+              <LocalTime value={comment.createdAt} />
             </p>
             <p className="mt-0.5 whitespace-pre-wrap text-sm text-neutral-200">{comment.text}</p>
           </li>

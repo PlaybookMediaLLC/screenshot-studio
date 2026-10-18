@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { LocalTime } from './local-time'
 
 /** A guest's comment, as the share page shows it. */
 export type GuestComment = { createdAt: string; name: string; text: string }
@@ -76,7 +77,7 @@ export function SharedDraftView({
               >
                 <p className="text-xs text-neutral-500">
                   <span className="text-neutral-200">{item.name}</span> ·{' '}
-                  {new Date(item.createdAt).toLocaleString()}
+                  <LocalTime value={item.createdAt} />
                 </p>
                 <p className="mt-0.5 whitespace-pre-wrap text-sm">{item.text}</p>
               </li>

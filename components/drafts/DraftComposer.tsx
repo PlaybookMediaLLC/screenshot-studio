@@ -385,6 +385,11 @@ export function DraftComposer({
     saveState
   ]
   const live = posts.filter((post) => post.status === 'SCHEDULED' || post.status === 'PROCESSING')
+  // A draft stays scheduled after its posts go out: with nothing left to go
+  // and something live, it has posted, and scheduling again is not a move.
+  const posted =
+    status === 'scheduled' && live.length === 0 && posts.some((post) => post.status === 'PUBLISHED')
+  const rescheduling = status === 'scheduled' && !posted
   const handles = [...new Set(previews.map(({ channel }) => CHANNEL_META[channel].label))].join(
     ' · '
   )
@@ -433,7 +438,11 @@ export function DraftComposer({
           <span className="text-xs text-neutral-500" data-testid="save-state">
             {saveLabel}
           </span>
-          {status === 'scheduled' ? <Pill tone="green">Scheduled</Pill> : null}
+          {posted ? (
+            <Pill tone="blue">Posted</Pill>
+          ) : status === 'scheduled' ? (
+            <Pill tone="green">Scheduled</Pill>
+          ) : null}
           {requireApproval || review.reviewStatus !== 'none' ? (
             <ReviewControls
               canEdit={canEdit}
@@ -475,7 +484,7 @@ export function DraftComposer({
                 channels.length === 0 ? 'Connect a channel in workspace settings first.' : undefined
               }
             >
-              {status === 'scheduled' ? 'Reschedule' : 'Schedule'}
+              {rescheduling ? 'Reschedule' : 'Schedule'}
             </Button>
           ) : null}
         </div>
@@ -547,7 +556,7 @@ export function DraftComposer({
       <Dialog onOpenChange={setScheduleOpen} open={scheduleOpen}>
         <DialogContent className="max-h-[90dvh] max-w-md gap-5 overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{status === 'scheduled' ? 'Reschedule' : 'Schedule'}</DialogTitle>
+            <DialogTitle>{rescheduling ? 'Reschedule' : 'Schedule'}</DialogTitle>
             <DialogDescription>
               All times in {Intl.DateTimeFormat().resolvedOptions().timeZone.replace('_', ' ')}.
               {live.length > 0 ? ' Its queued posts are replaced.' : ''}

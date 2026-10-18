@@ -7,6 +7,7 @@ import { Add01Icon } from 'hugeicons-react'
 import { toast } from 'sonner'
 import { draftsApi } from '@/lib/content-drafts/client'
 import { cn } from '@/lib/utils'
+import { LocalTime } from './local-time'
 
 export type DraftListItem = {
   excerpt: string
@@ -206,13 +207,16 @@ function DraftsRail({
                 key={item.id}
               >
                 <p className="text-[11px] text-sky-300">
-                  {new Date(item.scheduledFor).toLocaleString(undefined, {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    month: 'short',
-                    day: 'numeric',
-                    weekday: 'short',
-                  })}{' '}
+                  <LocalTime
+                    options={{
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      month: 'short',
+                      day: 'numeric',
+                      weekday: 'short',
+                    }}
+                    value={item.scheduledFor}
+                  />{' '}
                   · {item.platform}
                 </p>
                 <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-neutral-200">

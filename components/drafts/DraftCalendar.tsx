@@ -8,6 +8,7 @@ import { type CalendarPostWire, draftsApi } from '@/lib/content-drafts/client'
 import { channelForPlatform } from '@/lib/content-drafts/serialize'
 import { cn } from '@/lib/utils'
 import { ChannelIcon } from './channel-meta'
+import { useHydrated } from './local-time'
 
 /** The drag type a calendar post carries. */
 const CALENDAR_DRAG = 'application/x-shots-calendar-post'
@@ -31,6 +32,9 @@ export function DraftCalendar({
   weekStart: string
 }) {
   const router = useRouter()
+  // Which day a post falls on depends on the reader's zone, which the server
+  // does not know: lay posts out once in the browser.
+  const hydrated = useHydrated()
   const [over, setOver] = React.useState<string | null>(null)
   const start = new Date(`${weekStart}T00:00:00`)
   const days = Array.from({ length: 7 }, (_, index) => {
@@ -87,10 +91,17 @@ export function DraftCalendar({
           </Link>
         </div>
       </header>
-      <div className="grid min-h-0 flex-1 grid-cols-7 divide-x divide-white/[0.05] overflow-y-auto">
+      {/* Local: the site-wide GlobalDropZone would otherwise force a "copy"
+          dropEffect on every dragover, which a moved card refuses. */}
+      <div
+        className="grid min-h-0 flex-1 grid-cols-7 divide-x divide-white/[0.05] overflow-y-auto"
+        data-local-dropzone=""
+      >
         {days.map((day) => {
           const key = dayKey(day)
-          const dayPosts = posts.filter((post) => dayKey(new Date(post.scheduledFor)) === key)
+          const dayPosts = hydrated
+            ? posts.filter((post) => dayKey(new Date(post.scheduledFor)) === key)
+            : []
           return (
             <section
               aria-label={day.toDateString()}
@@ -104,12 +115,16 @@ export function DraftCalendar({
               onDragOver={(event) => {
                 if (!event.dataTransfer.types.includes(CALENDAR_DRAG)) return
                 event.preventDefault()
+                event.dataTransfer.dropEffect = 'move'
                 setOver(key)
               }}
               onDrop={(event) => {
                 setOver(null)
                 const postId = event.dataTransfer.getData(CALENDAR_DRAG)
-                if (postId) void move(postId, day)
+                if (!postId) return
+                // Do not follow the dragged link.
+                event.preventDefault()
+                void move(postId, day)
               }}
             >
               <p className={cn('text-xs', key === today ? 'text-sky-300' : 'text-neutral-500')}>

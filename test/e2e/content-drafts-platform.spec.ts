@@ -230,7 +230,8 @@ test('a share link lets a guest read the draft and leave a comment', async ({
       await guest.close()
     }
 
-    await page.goto(page.url())
+    // A shared draft renders on the server too.
+    expect((await page.goto(page.url()))?.status()).toBe(200)
     await expect(page.getByTestId('guest-comments')).toContainText('Lead with the price.')
     // Off, the link finds nothing.
     await page.getByRole('button', { name: 'Share' }).click()

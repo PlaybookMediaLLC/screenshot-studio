@@ -9,6 +9,7 @@ import { channelForPlatform } from '@/lib/content-drafts/serialize'
 import { cn } from '@/lib/utils'
 import { CHANNEL_META, ChannelIcon } from './channel-meta'
 import { POST_COLUMN } from './layout'
+import { LocalTime } from './local-time'
 
 const POST_TONES: Partial<Record<DraftPostWire['status'], PillTone>> = {
   CANCELLED: 'gray',
@@ -81,7 +82,7 @@ export function DraftPosts({
                   <p className="flex items-center gap-1.5 text-sm text-white">
                     {channel ? <ChannelIcon channel={channel} /> : null}
                     {channel ? CHANNEL_META[channel].label : post.platform} ·{' '}
-                    {new Date(post.scheduledFor).toLocaleString()}
+                    <LocalTime value={post.scheduledFor} />
                   </p>
                   <p className="mt-0.5 truncate text-xs text-neutral-500">{post.caption}</p>
                 </div>
@@ -154,9 +155,13 @@ export function DraftPosts({
                     }
                     type="button"
                   >
-                    {post.metricsAt
-                      ? `Updated ${new Date(post.metricsAt).toLocaleString()} · Refresh`
-                      : 'Read engagement'}
+                    {post.metricsAt ? (
+                      <>
+                        Updated <LocalTime value={post.metricsAt} /> · Refresh
+                      </>
+                    ) : (
+                      'Read engagement'
+                    )}
                   </button>
                 </div>
               ) : null}

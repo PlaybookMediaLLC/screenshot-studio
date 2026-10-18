@@ -12,6 +12,9 @@ FROM base AS dependencies
 WORKDIR /app
 
 COPY package.json package-lock.json ./
+# npm ci links every workspace, so each workspace manifest must exist first.
+# test/workspace-manifests.test.ts fails when a workspace is missing here.
+COPY packages/screenshot-studio-backend-sdk/package.json ./packages/screenshot-studio-backend-sdk/
 RUN --mount=type=cache,target=/root/.npm npm ci --prefer-offline --no-audit
 
 FROM dependencies AS builder

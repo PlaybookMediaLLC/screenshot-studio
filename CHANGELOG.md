@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.14.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.13.0...v2.14.0) (2026-10-18)
+
+
+### Features
+
+* **onboarding:** add the onboarding models and the ideal customer form ([#145](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/145)) ([55037d5](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/55037d51491a00d5116bc349b769fdbd4fd1fb69))
+
 ## [2.13.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.12.0...v2.13.0) (2026-10-18)
 
 

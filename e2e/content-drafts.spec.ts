@@ -291,7 +291,8 @@ test('a comment thread survives a reload', async ({ identity, page }) => {
     await page.keyboard.type('Launch day')
     await draftEditor(page).getByText('Launch day', { exact: true }).selectText()
     await page.getByRole('button', { name: 'Comment', exact: true }).click()
-    await page.getByPlaceholder('Reply...').click()
+    // The reply box is a small editor that takes focus when it opens.
+    await expect(page.getByText('Reply...')).toBeInViewport()
     await page.keyboard.type('Check the date')
     await page.keyboard.press('Enter')
     await expect(page.getByText('Check the date')).toBeVisible()

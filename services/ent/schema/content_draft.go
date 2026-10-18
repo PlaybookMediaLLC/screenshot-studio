@@ -32,7 +32,19 @@ func (ContentDraft) Fields() []ent.Field {
 		field.JSON("channel_connection_ids", []string{}).StorageKey("channelConnectionIds"),
 		// Comment threads on the body, and the people who wrote them.
 		field.JSON("discussions", map[string]any{}).StorageKey("discussions").Default(map[string]any{}),
+		// Text a channel posts instead of the body's, by channel (x, linkedin, instagram).
+		field.JSON("channel_text", map[string]string{}).StorageKey("channelText").Default(map[string]string{}),
 		field.Enum("status").StorageKey("status").Values("draft", "scheduled", "archived").Default("draft"),
+		// Review before scheduling, when the workspace asks for it: approval
+		// holds for approved_version only, so an edit after it needs another.
+		field.Enum("review_status").StorageKey("reviewStatus").Values("none", "pending", "approved", "changes_requested").Default("none"),
+		field.Int("approved_version").StorageKey("approvedVersion").Optional().Nillable(),
+		field.String("reviewed_by_user_id").StorageKey("reviewedByUserId").Optional().Nillable(),
+		field.String("review_note").StorageKey("reviewNote").Optional().Nillable(),
+		// A read-and-comment link for people outside the workspace: on while set.
+		field.String("share_token").StorageKey("shareToken").Optional().Nillable(),
+		// Comments left through that link: name, text and when.
+		field.JSON("guest_comments", []map[string]string{}).StorageKey("guestComments").Default([]map[string]string{}),
 		field.Int("version").StorageKey("version").Default(1),
 		// Yjs document state, written only by the collaboration service.
 		field.Bytes("collab_state").StorageKey("collabState").Optional().Nillable(),

@@ -35,6 +35,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftsettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversationmessage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
@@ -67,6 +69,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasedocument"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasespec"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/screenshotcache"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
@@ -85,6 +88,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacegithubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/profile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
@@ -122,6 +126,8 @@ const (
 	TypeCommunicationRecipient         = "CommunicationRecipient"
 	TypeContentAngle                   = "ContentAngle"
 	TypeContentDraft                   = "ContentDraft"
+	TypeContentDraftRevision           = "ContentDraftRevision"
+	TypeContentDraftSettings           = "ContentDraftSettings"
 	TypeConversation                   = "Conversation"
 	TypeConversationMessage            = "ConversationMessage"
 	TypeCreativeTemplate               = "CreativeTemplate"
@@ -17125,6 +17131,9 @@ type ChannelConnectionMutation struct {
 	provider_settings      *map[string]interface{}
 	secret_reference       *string
 	status                 *channelconnection.Status
+	display_name           *string
+	handle                 *string
+	avatar_url             *string
 	created_by_user_id     *string
 	created_at             *time.Time
 	updated_at             *time.Time
@@ -17493,6 +17502,153 @@ func (m *ChannelConnectionMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetDisplayName sets the "display_name" field.
+func (m *ChannelConnectionMutation) SetDisplayName(s string) {
+	m.display_name = &s
+}
+
+// DisplayName returns the value of the "display_name" field in the mutation.
+func (m *ChannelConnectionMutation) DisplayName() (r string, exists bool) {
+	v := m.display_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisplayName returns the old "display_name" field's value of the ChannelConnection entity.
+// If the ChannelConnection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChannelConnectionMutation) OldDisplayName(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisplayName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisplayName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisplayName: %w", err)
+	}
+	return oldValue.DisplayName, nil
+}
+
+// ClearDisplayName clears the value of the "display_name" field.
+func (m *ChannelConnectionMutation) ClearDisplayName() {
+	m.display_name = nil
+	m.clearedFields[channelconnection.FieldDisplayName] = struct{}{}
+}
+
+// DisplayNameCleared returns if the "display_name" field was cleared in this mutation.
+func (m *ChannelConnectionMutation) DisplayNameCleared() bool {
+	_, ok := m.clearedFields[channelconnection.FieldDisplayName]
+	return ok
+}
+
+// ResetDisplayName resets all changes to the "display_name" field.
+func (m *ChannelConnectionMutation) ResetDisplayName() {
+	m.display_name = nil
+	delete(m.clearedFields, channelconnection.FieldDisplayName)
+}
+
+// SetHandle sets the "handle" field.
+func (m *ChannelConnectionMutation) SetHandle(s string) {
+	m.handle = &s
+}
+
+// Handle returns the value of the "handle" field in the mutation.
+func (m *ChannelConnectionMutation) Handle() (r string, exists bool) {
+	v := m.handle
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHandle returns the old "handle" field's value of the ChannelConnection entity.
+// If the ChannelConnection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChannelConnectionMutation) OldHandle(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHandle is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHandle requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHandle: %w", err)
+	}
+	return oldValue.Handle, nil
+}
+
+// ClearHandle clears the value of the "handle" field.
+func (m *ChannelConnectionMutation) ClearHandle() {
+	m.handle = nil
+	m.clearedFields[channelconnection.FieldHandle] = struct{}{}
+}
+
+// HandleCleared returns if the "handle" field was cleared in this mutation.
+func (m *ChannelConnectionMutation) HandleCleared() bool {
+	_, ok := m.clearedFields[channelconnection.FieldHandle]
+	return ok
+}
+
+// ResetHandle resets all changes to the "handle" field.
+func (m *ChannelConnectionMutation) ResetHandle() {
+	m.handle = nil
+	delete(m.clearedFields, channelconnection.FieldHandle)
+}
+
+// SetAvatarURL sets the "avatar_url" field.
+func (m *ChannelConnectionMutation) SetAvatarURL(s string) {
+	m.avatar_url = &s
+}
+
+// AvatarURL returns the value of the "avatar_url" field in the mutation.
+func (m *ChannelConnectionMutation) AvatarURL() (r string, exists bool) {
+	v := m.avatar_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAvatarURL returns the old "avatar_url" field's value of the ChannelConnection entity.
+// If the ChannelConnection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChannelConnectionMutation) OldAvatarURL(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAvatarURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAvatarURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAvatarURL: %w", err)
+	}
+	return oldValue.AvatarURL, nil
+}
+
+// ClearAvatarURL clears the value of the "avatar_url" field.
+func (m *ChannelConnectionMutation) ClearAvatarURL() {
+	m.avatar_url = nil
+	m.clearedFields[channelconnection.FieldAvatarURL] = struct{}{}
+}
+
+// AvatarURLCleared returns if the "avatar_url" field was cleared in this mutation.
+func (m *ChannelConnectionMutation) AvatarURLCleared() bool {
+	_, ok := m.clearedFields[channelconnection.FieldAvatarURL]
+	return ok
+}
+
+// ResetAvatarURL resets all changes to the "avatar_url" field.
+func (m *ChannelConnectionMutation) ResetAvatarURL() {
+	m.avatar_url = nil
+	delete(m.clearedFields, channelconnection.FieldAvatarURL)
+}
+
 // SetCreatedByUserID sets the "created_by_user_id" field.
 func (m *ChannelConnectionMutation) SetCreatedByUserID(s string) {
 	m.created_by_user_id = &s
@@ -17689,7 +17845,7 @@ func (m *ChannelConnectionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChannelConnectionMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 13)
 	if m.organization_id != nil {
 		fields = append(fields, channelconnection.FieldOrganizationID)
 	}
@@ -17710,6 +17866,15 @@ func (m *ChannelConnectionMutation) Fields() []string {
 	}
 	if m.status != nil {
 		fields = append(fields, channelconnection.FieldStatus)
+	}
+	if m.display_name != nil {
+		fields = append(fields, channelconnection.FieldDisplayName)
+	}
+	if m.handle != nil {
+		fields = append(fields, channelconnection.FieldHandle)
+	}
+	if m.avatar_url != nil {
+		fields = append(fields, channelconnection.FieldAvatarURL)
 	}
 	if m.created_by_user_id != nil {
 		fields = append(fields, channelconnection.FieldCreatedByUserID)
@@ -17742,6 +17907,12 @@ func (m *ChannelConnectionMutation) Field(name string) (ent.Value, bool) {
 		return m.SecretReference()
 	case channelconnection.FieldStatus:
 		return m.Status()
+	case channelconnection.FieldDisplayName:
+		return m.DisplayName()
+	case channelconnection.FieldHandle:
+		return m.Handle()
+	case channelconnection.FieldAvatarURL:
+		return m.AvatarURL()
 	case channelconnection.FieldCreatedByUserID:
 		return m.CreatedByUserID()
 	case channelconnection.FieldCreatedAt:
@@ -17771,6 +17942,12 @@ func (m *ChannelConnectionMutation) OldField(ctx context.Context, name string) (
 		return m.OldSecretReference(ctx)
 	case channelconnection.FieldStatus:
 		return m.OldStatus(ctx)
+	case channelconnection.FieldDisplayName:
+		return m.OldDisplayName(ctx)
+	case channelconnection.FieldHandle:
+		return m.OldHandle(ctx)
+	case channelconnection.FieldAvatarURL:
+		return m.OldAvatarURL(ctx)
 	case channelconnection.FieldCreatedByUserID:
 		return m.OldCreatedByUserID(ctx)
 	case channelconnection.FieldCreatedAt:
@@ -17835,6 +18012,27 @@ func (m *ChannelConnectionMutation) SetField(name string, value ent.Value) error
 		}
 		m.SetStatus(v)
 		return nil
+	case channelconnection.FieldDisplayName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisplayName(v)
+		return nil
+	case channelconnection.FieldHandle:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHandle(v)
+		return nil
+	case channelconnection.FieldAvatarURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAvatarURL(v)
+		return nil
 	case channelconnection.FieldCreatedByUserID:
 		v, ok := value.(string)
 		if !ok {
@@ -17885,7 +18083,17 @@ func (m *ChannelConnectionMutation) AddField(name string, value ent.Value) error
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *ChannelConnectionMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(channelconnection.FieldDisplayName) {
+		fields = append(fields, channelconnection.FieldDisplayName)
+	}
+	if m.FieldCleared(channelconnection.FieldHandle) {
+		fields = append(fields, channelconnection.FieldHandle)
+	}
+	if m.FieldCleared(channelconnection.FieldAvatarURL) {
+		fields = append(fields, channelconnection.FieldAvatarURL)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -17898,6 +18106,17 @@ func (m *ChannelConnectionMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *ChannelConnectionMutation) ClearField(name string) error {
+	switch name {
+	case channelconnection.FieldDisplayName:
+		m.ClearDisplayName()
+		return nil
+	case channelconnection.FieldHandle:
+		m.ClearHandle()
+		return nil
+	case channelconnection.FieldAvatarURL:
+		m.ClearAvatarURL()
+		return nil
+	}
 	return fmt.Errorf("unknown ChannelConnection nullable field %s", name)
 }
 
@@ -17925,6 +18144,15 @@ func (m *ChannelConnectionMutation) ResetField(name string) error {
 		return nil
 	case channelconnection.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case channelconnection.FieldDisplayName:
+		m.ResetDisplayName()
+		return nil
+	case channelconnection.FieldHandle:
+		m.ResetHandle()
+		return nil
+	case channelconnection.FieldAvatarURL:
+		m.ResetAvatarURL()
 		return nil
 	case channelconnection.FieldCreatedByUserID:
 		m.ResetCreatedByUserID()
@@ -20345,7 +20573,16 @@ type ContentDraftMutation struct {
 	channel_connection_ids       *[]string
 	appendchannel_connection_ids []string
 	discussions                  *map[string]interface{}
+	channel_text                 *map[string]string
 	status                       *contentdraft.Status
+	review_status                *contentdraft.ReviewStatus
+	approved_version             *int
+	addapproved_version          *int
+	reviewed_by_user_id          *string
+	review_note                  *string
+	share_token                  *string
+	guest_comments               *[]map[string]string
+	appendguest_comments         []map[string]string
 	version                      *int
 	addversion                   *int
 	collab_state                 *[]byte
@@ -20760,6 +20997,42 @@ func (m *ContentDraftMutation) ResetDiscussions() {
 	m.discussions = nil
 }
 
+// SetChannelText sets the "channel_text" field.
+func (m *ContentDraftMutation) SetChannelText(value map[string]string) {
+	m.channel_text = &value
+}
+
+// ChannelText returns the value of the "channel_text" field in the mutation.
+func (m *ContentDraftMutation) ChannelText() (r map[string]string, exists bool) {
+	v := m.channel_text
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChannelText returns the old "channel_text" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldChannelText(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChannelText is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChannelText requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannelText: %w", err)
+	}
+	return oldValue.ChannelText, nil
+}
+
+// ResetChannelText resets all changes to the "channel_text" field.
+func (m *ContentDraftMutation) ResetChannelText() {
+	m.channel_text = nil
+}
+
 // SetStatus sets the "status" field.
 func (m *ContentDraftMutation) SetStatus(c contentdraft.Status) {
 	m.status = &c
@@ -20794,6 +21067,310 @@ func (m *ContentDraftMutation) OldStatus(ctx context.Context) (v contentdraft.St
 // ResetStatus resets all changes to the "status" field.
 func (m *ContentDraftMutation) ResetStatus() {
 	m.status = nil
+}
+
+// SetReviewStatus sets the "review_status" field.
+func (m *ContentDraftMutation) SetReviewStatus(cs contentdraft.ReviewStatus) {
+	m.review_status = &cs
+}
+
+// ReviewStatus returns the value of the "review_status" field in the mutation.
+func (m *ContentDraftMutation) ReviewStatus() (r contentdraft.ReviewStatus, exists bool) {
+	v := m.review_status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReviewStatus returns the old "review_status" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldReviewStatus(ctx context.Context) (v contentdraft.ReviewStatus, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReviewStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReviewStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReviewStatus: %w", err)
+	}
+	return oldValue.ReviewStatus, nil
+}
+
+// ResetReviewStatus resets all changes to the "review_status" field.
+func (m *ContentDraftMutation) ResetReviewStatus() {
+	m.review_status = nil
+}
+
+// SetApprovedVersion sets the "approved_version" field.
+func (m *ContentDraftMutation) SetApprovedVersion(i int) {
+	m.approved_version = &i
+	m.addapproved_version = nil
+}
+
+// ApprovedVersion returns the value of the "approved_version" field in the mutation.
+func (m *ContentDraftMutation) ApprovedVersion() (r int, exists bool) {
+	v := m.approved_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldApprovedVersion returns the old "approved_version" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldApprovedVersion(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldApprovedVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldApprovedVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldApprovedVersion: %w", err)
+	}
+	return oldValue.ApprovedVersion, nil
+}
+
+// AddApprovedVersion adds i to the "approved_version" field.
+func (m *ContentDraftMutation) AddApprovedVersion(i int) {
+	if m.addapproved_version != nil {
+		*m.addapproved_version += i
+	} else {
+		m.addapproved_version = &i
+	}
+}
+
+// AddedApprovedVersion returns the value that was added to the "approved_version" field in this mutation.
+func (m *ContentDraftMutation) AddedApprovedVersion() (r int, exists bool) {
+	v := m.addapproved_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearApprovedVersion clears the value of the "approved_version" field.
+func (m *ContentDraftMutation) ClearApprovedVersion() {
+	m.approved_version = nil
+	m.addapproved_version = nil
+	m.clearedFields[contentdraft.FieldApprovedVersion] = struct{}{}
+}
+
+// ApprovedVersionCleared returns if the "approved_version" field was cleared in this mutation.
+func (m *ContentDraftMutation) ApprovedVersionCleared() bool {
+	_, ok := m.clearedFields[contentdraft.FieldApprovedVersion]
+	return ok
+}
+
+// ResetApprovedVersion resets all changes to the "approved_version" field.
+func (m *ContentDraftMutation) ResetApprovedVersion() {
+	m.approved_version = nil
+	m.addapproved_version = nil
+	delete(m.clearedFields, contentdraft.FieldApprovedVersion)
+}
+
+// SetReviewedByUserID sets the "reviewed_by_user_id" field.
+func (m *ContentDraftMutation) SetReviewedByUserID(s string) {
+	m.reviewed_by_user_id = &s
+}
+
+// ReviewedByUserID returns the value of the "reviewed_by_user_id" field in the mutation.
+func (m *ContentDraftMutation) ReviewedByUserID() (r string, exists bool) {
+	v := m.reviewed_by_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReviewedByUserID returns the old "reviewed_by_user_id" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldReviewedByUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReviewedByUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReviewedByUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReviewedByUserID: %w", err)
+	}
+	return oldValue.ReviewedByUserID, nil
+}
+
+// ClearReviewedByUserID clears the value of the "reviewed_by_user_id" field.
+func (m *ContentDraftMutation) ClearReviewedByUserID() {
+	m.reviewed_by_user_id = nil
+	m.clearedFields[contentdraft.FieldReviewedByUserID] = struct{}{}
+}
+
+// ReviewedByUserIDCleared returns if the "reviewed_by_user_id" field was cleared in this mutation.
+func (m *ContentDraftMutation) ReviewedByUserIDCleared() bool {
+	_, ok := m.clearedFields[contentdraft.FieldReviewedByUserID]
+	return ok
+}
+
+// ResetReviewedByUserID resets all changes to the "reviewed_by_user_id" field.
+func (m *ContentDraftMutation) ResetReviewedByUserID() {
+	m.reviewed_by_user_id = nil
+	delete(m.clearedFields, contentdraft.FieldReviewedByUserID)
+}
+
+// SetReviewNote sets the "review_note" field.
+func (m *ContentDraftMutation) SetReviewNote(s string) {
+	m.review_note = &s
+}
+
+// ReviewNote returns the value of the "review_note" field in the mutation.
+func (m *ContentDraftMutation) ReviewNote() (r string, exists bool) {
+	v := m.review_note
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReviewNote returns the old "review_note" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldReviewNote(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReviewNote is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReviewNote requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReviewNote: %w", err)
+	}
+	return oldValue.ReviewNote, nil
+}
+
+// ClearReviewNote clears the value of the "review_note" field.
+func (m *ContentDraftMutation) ClearReviewNote() {
+	m.review_note = nil
+	m.clearedFields[contentdraft.FieldReviewNote] = struct{}{}
+}
+
+// ReviewNoteCleared returns if the "review_note" field was cleared in this mutation.
+func (m *ContentDraftMutation) ReviewNoteCleared() bool {
+	_, ok := m.clearedFields[contentdraft.FieldReviewNote]
+	return ok
+}
+
+// ResetReviewNote resets all changes to the "review_note" field.
+func (m *ContentDraftMutation) ResetReviewNote() {
+	m.review_note = nil
+	delete(m.clearedFields, contentdraft.FieldReviewNote)
+}
+
+// SetShareToken sets the "share_token" field.
+func (m *ContentDraftMutation) SetShareToken(s string) {
+	m.share_token = &s
+}
+
+// ShareToken returns the value of the "share_token" field in the mutation.
+func (m *ContentDraftMutation) ShareToken() (r string, exists bool) {
+	v := m.share_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldShareToken returns the old "share_token" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldShareToken(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldShareToken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldShareToken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldShareToken: %w", err)
+	}
+	return oldValue.ShareToken, nil
+}
+
+// ClearShareToken clears the value of the "share_token" field.
+func (m *ContentDraftMutation) ClearShareToken() {
+	m.share_token = nil
+	m.clearedFields[contentdraft.FieldShareToken] = struct{}{}
+}
+
+// ShareTokenCleared returns if the "share_token" field was cleared in this mutation.
+func (m *ContentDraftMutation) ShareTokenCleared() bool {
+	_, ok := m.clearedFields[contentdraft.FieldShareToken]
+	return ok
+}
+
+// ResetShareToken resets all changes to the "share_token" field.
+func (m *ContentDraftMutation) ResetShareToken() {
+	m.share_token = nil
+	delete(m.clearedFields, contentdraft.FieldShareToken)
+}
+
+// SetGuestComments sets the "guest_comments" field.
+func (m *ContentDraftMutation) SetGuestComments(value []map[string]string) {
+	m.guest_comments = &value
+	m.appendguest_comments = nil
+}
+
+// GuestComments returns the value of the "guest_comments" field in the mutation.
+func (m *ContentDraftMutation) GuestComments() (r []map[string]string, exists bool) {
+	v := m.guest_comments
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGuestComments returns the old "guest_comments" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldGuestComments(ctx context.Context) (v []map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGuestComments is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGuestComments requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGuestComments: %w", err)
+	}
+	return oldValue.GuestComments, nil
+}
+
+// AppendGuestComments adds value to the "guest_comments" field.
+func (m *ContentDraftMutation) AppendGuestComments(value []map[string]string) {
+	m.appendguest_comments = append(m.appendguest_comments, value...)
+}
+
+// AppendedGuestComments returns the list of values that were appended to the "guest_comments" field in this mutation.
+func (m *ContentDraftMutation) AppendedGuestComments() ([]map[string]string, bool) {
+	if len(m.appendguest_comments) == 0 {
+		return nil, false
+	}
+	return m.appendguest_comments, true
+}
+
+// ResetGuestComments resets all changes to the "guest_comments" field.
+func (m *ContentDraftMutation) ResetGuestComments() {
+	m.guest_comments = nil
+	m.appendguest_comments = nil
 }
 
 // SetVersion sets the "version" field.
@@ -21105,7 +21682,7 @@ func (m *ContentDraftMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ContentDraftMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 21)
 	if m.organization_id != nil {
 		fields = append(fields, contentdraft.FieldOrganizationID)
 	}
@@ -21127,8 +21704,29 @@ func (m *ContentDraftMutation) Fields() []string {
 	if m.discussions != nil {
 		fields = append(fields, contentdraft.FieldDiscussions)
 	}
+	if m.channel_text != nil {
+		fields = append(fields, contentdraft.FieldChannelText)
+	}
 	if m.status != nil {
 		fields = append(fields, contentdraft.FieldStatus)
+	}
+	if m.review_status != nil {
+		fields = append(fields, contentdraft.FieldReviewStatus)
+	}
+	if m.approved_version != nil {
+		fields = append(fields, contentdraft.FieldApprovedVersion)
+	}
+	if m.reviewed_by_user_id != nil {
+		fields = append(fields, contentdraft.FieldReviewedByUserID)
+	}
+	if m.review_note != nil {
+		fields = append(fields, contentdraft.FieldReviewNote)
+	}
+	if m.share_token != nil {
+		fields = append(fields, contentdraft.FieldShareToken)
+	}
+	if m.guest_comments != nil {
+		fields = append(fields, contentdraft.FieldGuestComments)
 	}
 	if m.version != nil {
 		fields = append(fields, contentdraft.FieldVersion)
@@ -21170,8 +21768,22 @@ func (m *ContentDraftMutation) Field(name string) (ent.Value, bool) {
 		return m.ChannelConnectionIds()
 	case contentdraft.FieldDiscussions:
 		return m.Discussions()
+	case contentdraft.FieldChannelText:
+		return m.ChannelText()
 	case contentdraft.FieldStatus:
 		return m.Status()
+	case contentdraft.FieldReviewStatus:
+		return m.ReviewStatus()
+	case contentdraft.FieldApprovedVersion:
+		return m.ApprovedVersion()
+	case contentdraft.FieldReviewedByUserID:
+		return m.ReviewedByUserID()
+	case contentdraft.FieldReviewNote:
+		return m.ReviewNote()
+	case contentdraft.FieldShareToken:
+		return m.ShareToken()
+	case contentdraft.FieldGuestComments:
+		return m.GuestComments()
 	case contentdraft.FieldVersion:
 		return m.Version()
 	case contentdraft.FieldCollabState:
@@ -21207,8 +21819,22 @@ func (m *ContentDraftMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldChannelConnectionIds(ctx)
 	case contentdraft.FieldDiscussions:
 		return m.OldDiscussions(ctx)
+	case contentdraft.FieldChannelText:
+		return m.OldChannelText(ctx)
 	case contentdraft.FieldStatus:
 		return m.OldStatus(ctx)
+	case contentdraft.FieldReviewStatus:
+		return m.OldReviewStatus(ctx)
+	case contentdraft.FieldApprovedVersion:
+		return m.OldApprovedVersion(ctx)
+	case contentdraft.FieldReviewedByUserID:
+		return m.OldReviewedByUserID(ctx)
+	case contentdraft.FieldReviewNote:
+		return m.OldReviewNote(ctx)
+	case contentdraft.FieldShareToken:
+		return m.OldShareToken(ctx)
+	case contentdraft.FieldGuestComments:
+		return m.OldGuestComments(ctx)
 	case contentdraft.FieldVersion:
 		return m.OldVersion(ctx)
 	case contentdraft.FieldCollabState:
@@ -21279,12 +21905,61 @@ func (m *ContentDraftMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDiscussions(v)
 		return nil
+	case contentdraft.FieldChannelText:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChannelText(v)
+		return nil
 	case contentdraft.FieldStatus:
 		v, ok := value.(contentdraft.Status)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
+		return nil
+	case contentdraft.FieldReviewStatus:
+		v, ok := value.(contentdraft.ReviewStatus)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReviewStatus(v)
+		return nil
+	case contentdraft.FieldApprovedVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetApprovedVersion(v)
+		return nil
+	case contentdraft.FieldReviewedByUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReviewedByUserID(v)
+		return nil
+	case contentdraft.FieldReviewNote:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReviewNote(v)
+		return nil
+	case contentdraft.FieldShareToken:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetShareToken(v)
+		return nil
+	case contentdraft.FieldGuestComments:
+		v, ok := value.([]map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGuestComments(v)
 		return nil
 	case contentdraft.FieldVersion:
 		v, ok := value.(int)
@@ -21336,6 +22011,9 @@ func (m *ContentDraftMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *ContentDraftMutation) AddedFields() []string {
 	var fields []string
+	if m.addapproved_version != nil {
+		fields = append(fields, contentdraft.FieldApprovedVersion)
+	}
 	if m.addversion != nil {
 		fields = append(fields, contentdraft.FieldVersion)
 	}
@@ -21347,6 +22025,8 @@ func (m *ContentDraftMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *ContentDraftMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case contentdraft.FieldApprovedVersion:
+		return m.AddedApprovedVersion()
 	case contentdraft.FieldVersion:
 		return m.AddedVersion()
 	}
@@ -21358,6 +22038,13 @@ func (m *ContentDraftMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *ContentDraftMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case contentdraft.FieldApprovedVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddApprovedVersion(v)
+		return nil
 	case contentdraft.FieldVersion:
 		v, ok := value.(int)
 		if !ok {
@@ -21373,6 +22060,18 @@ func (m *ContentDraftMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *ContentDraftMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(contentdraft.FieldApprovedVersion) {
+		fields = append(fields, contentdraft.FieldApprovedVersion)
+	}
+	if m.FieldCleared(contentdraft.FieldReviewedByUserID) {
+		fields = append(fields, contentdraft.FieldReviewedByUserID)
+	}
+	if m.FieldCleared(contentdraft.FieldReviewNote) {
+		fields = append(fields, contentdraft.FieldReviewNote)
+	}
+	if m.FieldCleared(contentdraft.FieldShareToken) {
+		fields = append(fields, contentdraft.FieldShareToken)
+	}
 	if m.FieldCleared(contentdraft.FieldCollabState) {
 		fields = append(fields, contentdraft.FieldCollabState)
 	}
@@ -21396,6 +22095,18 @@ func (m *ContentDraftMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ContentDraftMutation) ClearField(name string) error {
 	switch name {
+	case contentdraft.FieldApprovedVersion:
+		m.ClearApprovedVersion()
+		return nil
+	case contentdraft.FieldReviewedByUserID:
+		m.ClearReviewedByUserID()
+		return nil
+	case contentdraft.FieldReviewNote:
+		m.ClearReviewNote()
+		return nil
+	case contentdraft.FieldShareToken:
+		m.ClearShareToken()
+		return nil
 	case contentdraft.FieldCollabState:
 		m.ClearCollabState()
 		return nil
@@ -21434,8 +22145,29 @@ func (m *ContentDraftMutation) ResetField(name string) error {
 	case contentdraft.FieldDiscussions:
 		m.ResetDiscussions()
 		return nil
+	case contentdraft.FieldChannelText:
+		m.ResetChannelText()
+		return nil
 	case contentdraft.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case contentdraft.FieldReviewStatus:
+		m.ResetReviewStatus()
+		return nil
+	case contentdraft.FieldApprovedVersion:
+		m.ResetApprovedVersion()
+		return nil
+	case contentdraft.FieldReviewedByUserID:
+		m.ResetReviewedByUserID()
+		return nil
+	case contentdraft.FieldReviewNote:
+		m.ResetReviewNote()
+		return nil
+	case contentdraft.FieldShareToken:
+		m.ResetShareToken()
+		return nil
+	case contentdraft.FieldGuestComments:
+		m.ResetGuestComments()
 		return nil
 	case contentdraft.FieldVersion:
 		m.ResetVersion()
@@ -21505,6 +22237,1246 @@ func (m *ContentDraftMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *ContentDraftMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ContentDraft edge %s", name)
+}
+
+// ContentDraftRevisionMutation represents an operation that mutates the ContentDraftRevision nodes in the graph.
+type ContentDraftRevisionMutation struct {
+	config
+	op                 Op
+	typ                string
+	id                 *string
+	organization_id    *string
+	content_draft_id   *string
+	version            *int
+	addversion         *int
+	title              *string
+	body               *[]interface{}
+	appendbody         []interface{}
+	plain_text         *string
+	created_by_user_id *string
+	created_at         *time.Time
+	clearedFields      map[string]struct{}
+	done               bool
+	oldValue           func(context.Context) (*ContentDraftRevision, error)
+	predicates         []predicate.ContentDraftRevision
+}
+
+var _ ent.Mutation = (*ContentDraftRevisionMutation)(nil)
+
+// contentdraftrevisionOption allows management of the mutation configuration using functional options.
+type contentdraftrevisionOption func(*ContentDraftRevisionMutation)
+
+// newContentDraftRevisionMutation creates new mutation for the ContentDraftRevision entity.
+func newContentDraftRevisionMutation(c config, op Op, opts ...contentdraftrevisionOption) *ContentDraftRevisionMutation {
+	m := &ContentDraftRevisionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeContentDraftRevision,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withContentDraftRevisionID sets the ID field of the mutation.
+func withContentDraftRevisionID(id string) contentdraftrevisionOption {
+	return func(m *ContentDraftRevisionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ContentDraftRevision
+		)
+		m.oldValue = func(ctx context.Context) (*ContentDraftRevision, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ContentDraftRevision.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withContentDraftRevision sets the old ContentDraftRevision of the mutation.
+func withContentDraftRevision(node *ContentDraftRevision) contentdraftrevisionOption {
+	return func(m *ContentDraftRevisionMutation) {
+		m.oldValue = func(context.Context) (*ContentDraftRevision, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ContentDraftRevisionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ContentDraftRevisionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ContentDraftRevision entities.
+func (m *ContentDraftRevisionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ContentDraftRevisionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ContentDraftRevisionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ContentDraftRevision.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *ContentDraftRevisionMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *ContentDraftRevisionMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the ContentDraftRevision entity.
+// If the ContentDraftRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftRevisionMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *ContentDraftRevisionMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetContentDraftID sets the "content_draft_id" field.
+func (m *ContentDraftRevisionMutation) SetContentDraftID(s string) {
+	m.content_draft_id = &s
+}
+
+// ContentDraftID returns the value of the "content_draft_id" field in the mutation.
+func (m *ContentDraftRevisionMutation) ContentDraftID() (r string, exists bool) {
+	v := m.content_draft_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContentDraftID returns the old "content_draft_id" field's value of the ContentDraftRevision entity.
+// If the ContentDraftRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftRevisionMutation) OldContentDraftID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldContentDraftID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldContentDraftID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContentDraftID: %w", err)
+	}
+	return oldValue.ContentDraftID, nil
+}
+
+// ResetContentDraftID resets all changes to the "content_draft_id" field.
+func (m *ContentDraftRevisionMutation) ResetContentDraftID() {
+	m.content_draft_id = nil
+}
+
+// SetVersion sets the "version" field.
+func (m *ContentDraftRevisionMutation) SetVersion(i int) {
+	m.version = &i
+	m.addversion = nil
+}
+
+// Version returns the value of the "version" field in the mutation.
+func (m *ContentDraftRevisionMutation) Version() (r int, exists bool) {
+	v := m.version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVersion returns the old "version" field's value of the ContentDraftRevision entity.
+// If the ContentDraftRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftRevisionMutation) OldVersion(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVersion: %w", err)
+	}
+	return oldValue.Version, nil
+}
+
+// AddVersion adds i to the "version" field.
+func (m *ContentDraftRevisionMutation) AddVersion(i int) {
+	if m.addversion != nil {
+		*m.addversion += i
+	} else {
+		m.addversion = &i
+	}
+}
+
+// AddedVersion returns the value that was added to the "version" field in this mutation.
+func (m *ContentDraftRevisionMutation) AddedVersion() (r int, exists bool) {
+	v := m.addversion
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetVersion resets all changes to the "version" field.
+func (m *ContentDraftRevisionMutation) ResetVersion() {
+	m.version = nil
+	m.addversion = nil
+}
+
+// SetTitle sets the "title" field.
+func (m *ContentDraftRevisionMutation) SetTitle(s string) {
+	m.title = &s
+}
+
+// Title returns the value of the "title" field in the mutation.
+func (m *ContentDraftRevisionMutation) Title() (r string, exists bool) {
+	v := m.title
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTitle returns the old "title" field's value of the ContentDraftRevision entity.
+// If the ContentDraftRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftRevisionMutation) OldTitle(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTitle is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTitle requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTitle: %w", err)
+	}
+	return oldValue.Title, nil
+}
+
+// ResetTitle resets all changes to the "title" field.
+func (m *ContentDraftRevisionMutation) ResetTitle() {
+	m.title = nil
+}
+
+// SetBody sets the "body" field.
+func (m *ContentDraftRevisionMutation) SetBody(i []interface{}) {
+	m.body = &i
+	m.appendbody = nil
+}
+
+// Body returns the value of the "body" field in the mutation.
+func (m *ContentDraftRevisionMutation) Body() (r []interface{}, exists bool) {
+	v := m.body
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBody returns the old "body" field's value of the ContentDraftRevision entity.
+// If the ContentDraftRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftRevisionMutation) OldBody(ctx context.Context) (v []interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBody is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBody requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBody: %w", err)
+	}
+	return oldValue.Body, nil
+}
+
+// AppendBody adds i to the "body" field.
+func (m *ContentDraftRevisionMutation) AppendBody(i []interface{}) {
+	m.appendbody = append(m.appendbody, i...)
+}
+
+// AppendedBody returns the list of values that were appended to the "body" field in this mutation.
+func (m *ContentDraftRevisionMutation) AppendedBody() ([]interface{}, bool) {
+	if len(m.appendbody) == 0 {
+		return nil, false
+	}
+	return m.appendbody, true
+}
+
+// ResetBody resets all changes to the "body" field.
+func (m *ContentDraftRevisionMutation) ResetBody() {
+	m.body = nil
+	m.appendbody = nil
+}
+
+// SetPlainText sets the "plain_text" field.
+func (m *ContentDraftRevisionMutation) SetPlainText(s string) {
+	m.plain_text = &s
+}
+
+// PlainText returns the value of the "plain_text" field in the mutation.
+func (m *ContentDraftRevisionMutation) PlainText() (r string, exists bool) {
+	v := m.plain_text
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlainText returns the old "plain_text" field's value of the ContentDraftRevision entity.
+// If the ContentDraftRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftRevisionMutation) OldPlainText(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlainText is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlainText requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlainText: %w", err)
+	}
+	return oldValue.PlainText, nil
+}
+
+// ResetPlainText resets all changes to the "plain_text" field.
+func (m *ContentDraftRevisionMutation) ResetPlainText() {
+	m.plain_text = nil
+}
+
+// SetCreatedByUserID sets the "created_by_user_id" field.
+func (m *ContentDraftRevisionMutation) SetCreatedByUserID(s string) {
+	m.created_by_user_id = &s
+}
+
+// CreatedByUserID returns the value of the "created_by_user_id" field in the mutation.
+func (m *ContentDraftRevisionMutation) CreatedByUserID() (r string, exists bool) {
+	v := m.created_by_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedByUserID returns the old "created_by_user_id" field's value of the ContentDraftRevision entity.
+// If the ContentDraftRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftRevisionMutation) OldCreatedByUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedByUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedByUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedByUserID: %w", err)
+	}
+	return oldValue.CreatedByUserID, nil
+}
+
+// ClearCreatedByUserID clears the value of the "created_by_user_id" field.
+func (m *ContentDraftRevisionMutation) ClearCreatedByUserID() {
+	m.created_by_user_id = nil
+	m.clearedFields[contentdraftrevision.FieldCreatedByUserID] = struct{}{}
+}
+
+// CreatedByUserIDCleared returns if the "created_by_user_id" field was cleared in this mutation.
+func (m *ContentDraftRevisionMutation) CreatedByUserIDCleared() bool {
+	_, ok := m.clearedFields[contentdraftrevision.FieldCreatedByUserID]
+	return ok
+}
+
+// ResetCreatedByUserID resets all changes to the "created_by_user_id" field.
+func (m *ContentDraftRevisionMutation) ResetCreatedByUserID() {
+	m.created_by_user_id = nil
+	delete(m.clearedFields, contentdraftrevision.FieldCreatedByUserID)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ContentDraftRevisionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ContentDraftRevisionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ContentDraftRevision entity.
+// If the ContentDraftRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftRevisionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ContentDraftRevisionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the ContentDraftRevisionMutation builder.
+func (m *ContentDraftRevisionMutation) Where(ps ...predicate.ContentDraftRevision) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ContentDraftRevisionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ContentDraftRevisionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ContentDraftRevision, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ContentDraftRevisionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ContentDraftRevisionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ContentDraftRevision).
+func (m *ContentDraftRevisionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ContentDraftRevisionMutation) Fields() []string {
+	fields := make([]string, 0, 8)
+	if m.organization_id != nil {
+		fields = append(fields, contentdraftrevision.FieldOrganizationID)
+	}
+	if m.content_draft_id != nil {
+		fields = append(fields, contentdraftrevision.FieldContentDraftID)
+	}
+	if m.version != nil {
+		fields = append(fields, contentdraftrevision.FieldVersion)
+	}
+	if m.title != nil {
+		fields = append(fields, contentdraftrevision.FieldTitle)
+	}
+	if m.body != nil {
+		fields = append(fields, contentdraftrevision.FieldBody)
+	}
+	if m.plain_text != nil {
+		fields = append(fields, contentdraftrevision.FieldPlainText)
+	}
+	if m.created_by_user_id != nil {
+		fields = append(fields, contentdraftrevision.FieldCreatedByUserID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, contentdraftrevision.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ContentDraftRevisionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case contentdraftrevision.FieldOrganizationID:
+		return m.OrganizationID()
+	case contentdraftrevision.FieldContentDraftID:
+		return m.ContentDraftID()
+	case contentdraftrevision.FieldVersion:
+		return m.Version()
+	case contentdraftrevision.FieldTitle:
+		return m.Title()
+	case contentdraftrevision.FieldBody:
+		return m.Body()
+	case contentdraftrevision.FieldPlainText:
+		return m.PlainText()
+	case contentdraftrevision.FieldCreatedByUserID:
+		return m.CreatedByUserID()
+	case contentdraftrevision.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ContentDraftRevisionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case contentdraftrevision.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case contentdraftrevision.FieldContentDraftID:
+		return m.OldContentDraftID(ctx)
+	case contentdraftrevision.FieldVersion:
+		return m.OldVersion(ctx)
+	case contentdraftrevision.FieldTitle:
+		return m.OldTitle(ctx)
+	case contentdraftrevision.FieldBody:
+		return m.OldBody(ctx)
+	case contentdraftrevision.FieldPlainText:
+		return m.OldPlainText(ctx)
+	case contentdraftrevision.FieldCreatedByUserID:
+		return m.OldCreatedByUserID(ctx)
+	case contentdraftrevision.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ContentDraftRevision field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ContentDraftRevisionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case contentdraftrevision.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case contentdraftrevision.FieldContentDraftID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContentDraftID(v)
+		return nil
+	case contentdraftrevision.FieldVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVersion(v)
+		return nil
+	case contentdraftrevision.FieldTitle:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTitle(v)
+		return nil
+	case contentdraftrevision.FieldBody:
+		v, ok := value.([]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBody(v)
+		return nil
+	case contentdraftrevision.FieldPlainText:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlainText(v)
+		return nil
+	case contentdraftrevision.FieldCreatedByUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedByUserID(v)
+		return nil
+	case contentdraftrevision.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ContentDraftRevision field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ContentDraftRevisionMutation) AddedFields() []string {
+	var fields []string
+	if m.addversion != nil {
+		fields = append(fields, contentdraftrevision.FieldVersion)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ContentDraftRevisionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case contentdraftrevision.FieldVersion:
+		return m.AddedVersion()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ContentDraftRevisionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case contentdraftrevision.FieldVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddVersion(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ContentDraftRevision numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ContentDraftRevisionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(contentdraftrevision.FieldCreatedByUserID) {
+		fields = append(fields, contentdraftrevision.FieldCreatedByUserID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ContentDraftRevisionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ContentDraftRevisionMutation) ClearField(name string) error {
+	switch name {
+	case contentdraftrevision.FieldCreatedByUserID:
+		m.ClearCreatedByUserID()
+		return nil
+	}
+	return fmt.Errorf("unknown ContentDraftRevision nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ContentDraftRevisionMutation) ResetField(name string) error {
+	switch name {
+	case contentdraftrevision.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case contentdraftrevision.FieldContentDraftID:
+		m.ResetContentDraftID()
+		return nil
+	case contentdraftrevision.FieldVersion:
+		m.ResetVersion()
+		return nil
+	case contentdraftrevision.FieldTitle:
+		m.ResetTitle()
+		return nil
+	case contentdraftrevision.FieldBody:
+		m.ResetBody()
+		return nil
+	case contentdraftrevision.FieldPlainText:
+		m.ResetPlainText()
+		return nil
+	case contentdraftrevision.FieldCreatedByUserID:
+		m.ResetCreatedByUserID()
+		return nil
+	case contentdraftrevision.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ContentDraftRevision field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ContentDraftRevisionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ContentDraftRevisionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ContentDraftRevisionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ContentDraftRevisionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ContentDraftRevisionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ContentDraftRevisionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ContentDraftRevisionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ContentDraftRevision unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ContentDraftRevisionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ContentDraftRevision edge %s", name)
+}
+
+// ContentDraftSettingsMutation represents an operation that mutates the ContentDraftSettings nodes in the graph.
+type ContentDraftSettingsMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *string
+	posting_slots       *[]schema.QueueSlot
+	appendposting_slots []schema.QueueSlot
+	require_approval    *bool
+	updated_at          *time.Time
+	clearedFields       map[string]struct{}
+	done                bool
+	oldValue            func(context.Context) (*ContentDraftSettings, error)
+	predicates          []predicate.ContentDraftSettings
+}
+
+var _ ent.Mutation = (*ContentDraftSettingsMutation)(nil)
+
+// contentdraftsettingsOption allows management of the mutation configuration using functional options.
+type contentdraftsettingsOption func(*ContentDraftSettingsMutation)
+
+// newContentDraftSettingsMutation creates new mutation for the ContentDraftSettings entity.
+func newContentDraftSettingsMutation(c config, op Op, opts ...contentdraftsettingsOption) *ContentDraftSettingsMutation {
+	m := &ContentDraftSettingsMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeContentDraftSettings,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withContentDraftSettingsID sets the ID field of the mutation.
+func withContentDraftSettingsID(id string) contentdraftsettingsOption {
+	return func(m *ContentDraftSettingsMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ContentDraftSettings
+		)
+		m.oldValue = func(ctx context.Context) (*ContentDraftSettings, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ContentDraftSettings.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withContentDraftSettings sets the old ContentDraftSettings of the mutation.
+func withContentDraftSettings(node *ContentDraftSettings) contentdraftsettingsOption {
+	return func(m *ContentDraftSettingsMutation) {
+		m.oldValue = func(context.Context) (*ContentDraftSettings, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ContentDraftSettingsMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ContentDraftSettingsMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ContentDraftSettings entities.
+func (m *ContentDraftSettingsMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ContentDraftSettingsMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ContentDraftSettingsMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ContentDraftSettings.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetPostingSlots sets the "posting_slots" field.
+func (m *ContentDraftSettingsMutation) SetPostingSlots(ss []schema.QueueSlot) {
+	m.posting_slots = &ss
+	m.appendposting_slots = nil
+}
+
+// PostingSlots returns the value of the "posting_slots" field in the mutation.
+func (m *ContentDraftSettingsMutation) PostingSlots() (r []schema.QueueSlot, exists bool) {
+	v := m.posting_slots
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPostingSlots returns the old "posting_slots" field's value of the ContentDraftSettings entity.
+// If the ContentDraftSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftSettingsMutation) OldPostingSlots(ctx context.Context) (v []schema.QueueSlot, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPostingSlots is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPostingSlots requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPostingSlots: %w", err)
+	}
+	return oldValue.PostingSlots, nil
+}
+
+// AppendPostingSlots adds ss to the "posting_slots" field.
+func (m *ContentDraftSettingsMutation) AppendPostingSlots(ss []schema.QueueSlot) {
+	m.appendposting_slots = append(m.appendposting_slots, ss...)
+}
+
+// AppendedPostingSlots returns the list of values that were appended to the "posting_slots" field in this mutation.
+func (m *ContentDraftSettingsMutation) AppendedPostingSlots() ([]schema.QueueSlot, bool) {
+	if len(m.appendposting_slots) == 0 {
+		return nil, false
+	}
+	return m.appendposting_slots, true
+}
+
+// ResetPostingSlots resets all changes to the "posting_slots" field.
+func (m *ContentDraftSettingsMutation) ResetPostingSlots() {
+	m.posting_slots = nil
+	m.appendposting_slots = nil
+}
+
+// SetRequireApproval sets the "require_approval" field.
+func (m *ContentDraftSettingsMutation) SetRequireApproval(b bool) {
+	m.require_approval = &b
+}
+
+// RequireApproval returns the value of the "require_approval" field in the mutation.
+func (m *ContentDraftSettingsMutation) RequireApproval() (r bool, exists bool) {
+	v := m.require_approval
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRequireApproval returns the old "require_approval" field's value of the ContentDraftSettings entity.
+// If the ContentDraftSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftSettingsMutation) OldRequireApproval(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRequireApproval is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRequireApproval requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRequireApproval: %w", err)
+	}
+	return oldValue.RequireApproval, nil
+}
+
+// ResetRequireApproval resets all changes to the "require_approval" field.
+func (m *ContentDraftSettingsMutation) ResetRequireApproval() {
+	m.require_approval = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ContentDraftSettingsMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ContentDraftSettingsMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ContentDraftSettings entity.
+// If the ContentDraftSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftSettingsMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ContentDraftSettingsMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the ContentDraftSettingsMutation builder.
+func (m *ContentDraftSettingsMutation) Where(ps ...predicate.ContentDraftSettings) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ContentDraftSettingsMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ContentDraftSettingsMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ContentDraftSettings, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ContentDraftSettingsMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ContentDraftSettingsMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ContentDraftSettings).
+func (m *ContentDraftSettingsMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ContentDraftSettingsMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.posting_slots != nil {
+		fields = append(fields, contentdraftsettings.FieldPostingSlots)
+	}
+	if m.require_approval != nil {
+		fields = append(fields, contentdraftsettings.FieldRequireApproval)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, contentdraftsettings.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ContentDraftSettingsMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case contentdraftsettings.FieldPostingSlots:
+		return m.PostingSlots()
+	case contentdraftsettings.FieldRequireApproval:
+		return m.RequireApproval()
+	case contentdraftsettings.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ContentDraftSettingsMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case contentdraftsettings.FieldPostingSlots:
+		return m.OldPostingSlots(ctx)
+	case contentdraftsettings.FieldRequireApproval:
+		return m.OldRequireApproval(ctx)
+	case contentdraftsettings.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ContentDraftSettings field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ContentDraftSettingsMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case contentdraftsettings.FieldPostingSlots:
+		v, ok := value.([]schema.QueueSlot)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPostingSlots(v)
+		return nil
+	case contentdraftsettings.FieldRequireApproval:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRequireApproval(v)
+		return nil
+	case contentdraftsettings.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ContentDraftSettings field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ContentDraftSettingsMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ContentDraftSettingsMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ContentDraftSettingsMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ContentDraftSettings numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ContentDraftSettingsMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ContentDraftSettingsMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ContentDraftSettingsMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown ContentDraftSettings nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ContentDraftSettingsMutation) ResetField(name string) error {
+	switch name {
+	case contentdraftsettings.FieldPostingSlots:
+		m.ResetPostingSlots()
+		return nil
+	case contentdraftsettings.FieldRequireApproval:
+		m.ResetRequireApproval()
+		return nil
+	case contentdraftsettings.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ContentDraftSettings field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ContentDraftSettingsMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ContentDraftSettingsMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ContentDraftSettingsMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ContentDraftSettingsMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ContentDraftSettingsMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ContentDraftSettingsMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ContentDraftSettingsMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ContentDraftSettings unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ContentDraftSettingsMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ContentDraftSettings edge %s", name)
 }
 
 // ConversationMutation represents an operation that mutates the Conversation nodes in the graph.
@@ -49820,6 +51792,13 @@ type ScheduledPostMutation struct {
 	appendasset_ids           []string
 	replies                   *[]thread.Reply
 	appendreplies             []thread.Reply
+	reply_to                  *string
+	thread_progress           *postoptions.ThreadProgress
+	remote_post_id            *string
+	metrics                   *postoptions.Metrics
+	metrics_at                *time.Time
+	auto_actions              *postoptions.AutoActions
+	poll                      *postoptions.Poll
 	scheduled_for             *time.Time
 	status                    *scheduledpost.Status
 	caption                   *string
@@ -50255,6 +52234,349 @@ func (m *ScheduledPostMutation) ResetReplies() {
 	delete(m.clearedFields, scheduledpost.FieldReplies)
 }
 
+// SetReplyTo sets the "reply_to" field.
+func (m *ScheduledPostMutation) SetReplyTo(s string) {
+	m.reply_to = &s
+}
+
+// ReplyTo returns the value of the "reply_to" field in the mutation.
+func (m *ScheduledPostMutation) ReplyTo() (r string, exists bool) {
+	v := m.reply_to
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReplyTo returns the old "reply_to" field's value of the ScheduledPost entity.
+// If the ScheduledPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduledPostMutation) OldReplyTo(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReplyTo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReplyTo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReplyTo: %w", err)
+	}
+	return oldValue.ReplyTo, nil
+}
+
+// ClearReplyTo clears the value of the "reply_to" field.
+func (m *ScheduledPostMutation) ClearReplyTo() {
+	m.reply_to = nil
+	m.clearedFields[scheduledpost.FieldReplyTo] = struct{}{}
+}
+
+// ReplyToCleared returns if the "reply_to" field was cleared in this mutation.
+func (m *ScheduledPostMutation) ReplyToCleared() bool {
+	_, ok := m.clearedFields[scheduledpost.FieldReplyTo]
+	return ok
+}
+
+// ResetReplyTo resets all changes to the "reply_to" field.
+func (m *ScheduledPostMutation) ResetReplyTo() {
+	m.reply_to = nil
+	delete(m.clearedFields, scheduledpost.FieldReplyTo)
+}
+
+// SetThreadProgress sets the "thread_progress" field.
+func (m *ScheduledPostMutation) SetThreadProgress(pp postoptions.ThreadProgress) {
+	m.thread_progress = &pp
+}
+
+// ThreadProgress returns the value of the "thread_progress" field in the mutation.
+func (m *ScheduledPostMutation) ThreadProgress() (r postoptions.ThreadProgress, exists bool) {
+	v := m.thread_progress
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldThreadProgress returns the old "thread_progress" field's value of the ScheduledPost entity.
+// If the ScheduledPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduledPostMutation) OldThreadProgress(ctx context.Context) (v postoptions.ThreadProgress, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldThreadProgress is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldThreadProgress requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldThreadProgress: %w", err)
+	}
+	return oldValue.ThreadProgress, nil
+}
+
+// ClearThreadProgress clears the value of the "thread_progress" field.
+func (m *ScheduledPostMutation) ClearThreadProgress() {
+	m.thread_progress = nil
+	m.clearedFields[scheduledpost.FieldThreadProgress] = struct{}{}
+}
+
+// ThreadProgressCleared returns if the "thread_progress" field was cleared in this mutation.
+func (m *ScheduledPostMutation) ThreadProgressCleared() bool {
+	_, ok := m.clearedFields[scheduledpost.FieldThreadProgress]
+	return ok
+}
+
+// ResetThreadProgress resets all changes to the "thread_progress" field.
+func (m *ScheduledPostMutation) ResetThreadProgress() {
+	m.thread_progress = nil
+	delete(m.clearedFields, scheduledpost.FieldThreadProgress)
+}
+
+// SetRemotePostID sets the "remote_post_id" field.
+func (m *ScheduledPostMutation) SetRemotePostID(s string) {
+	m.remote_post_id = &s
+}
+
+// RemotePostID returns the value of the "remote_post_id" field in the mutation.
+func (m *ScheduledPostMutation) RemotePostID() (r string, exists bool) {
+	v := m.remote_post_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRemotePostID returns the old "remote_post_id" field's value of the ScheduledPost entity.
+// If the ScheduledPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduledPostMutation) OldRemotePostID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRemotePostID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRemotePostID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRemotePostID: %w", err)
+	}
+	return oldValue.RemotePostID, nil
+}
+
+// ClearRemotePostID clears the value of the "remote_post_id" field.
+func (m *ScheduledPostMutation) ClearRemotePostID() {
+	m.remote_post_id = nil
+	m.clearedFields[scheduledpost.FieldRemotePostID] = struct{}{}
+}
+
+// RemotePostIDCleared returns if the "remote_post_id" field was cleared in this mutation.
+func (m *ScheduledPostMutation) RemotePostIDCleared() bool {
+	_, ok := m.clearedFields[scheduledpost.FieldRemotePostID]
+	return ok
+}
+
+// ResetRemotePostID resets all changes to the "remote_post_id" field.
+func (m *ScheduledPostMutation) ResetRemotePostID() {
+	m.remote_post_id = nil
+	delete(m.clearedFields, scheduledpost.FieldRemotePostID)
+}
+
+// SetMetrics sets the "metrics" field.
+func (m *ScheduledPostMutation) SetMetrics(po postoptions.Metrics) {
+	m.metrics = &po
+}
+
+// Metrics returns the value of the "metrics" field in the mutation.
+func (m *ScheduledPostMutation) Metrics() (r postoptions.Metrics, exists bool) {
+	v := m.metrics
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetrics returns the old "metrics" field's value of the ScheduledPost entity.
+// If the ScheduledPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduledPostMutation) OldMetrics(ctx context.Context) (v postoptions.Metrics, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetrics is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetrics requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetrics: %w", err)
+	}
+	return oldValue.Metrics, nil
+}
+
+// ClearMetrics clears the value of the "metrics" field.
+func (m *ScheduledPostMutation) ClearMetrics() {
+	m.metrics = nil
+	m.clearedFields[scheduledpost.FieldMetrics] = struct{}{}
+}
+
+// MetricsCleared returns if the "metrics" field was cleared in this mutation.
+func (m *ScheduledPostMutation) MetricsCleared() bool {
+	_, ok := m.clearedFields[scheduledpost.FieldMetrics]
+	return ok
+}
+
+// ResetMetrics resets all changes to the "metrics" field.
+func (m *ScheduledPostMutation) ResetMetrics() {
+	m.metrics = nil
+	delete(m.clearedFields, scheduledpost.FieldMetrics)
+}
+
+// SetMetricsAt sets the "metrics_at" field.
+func (m *ScheduledPostMutation) SetMetricsAt(t time.Time) {
+	m.metrics_at = &t
+}
+
+// MetricsAt returns the value of the "metrics_at" field in the mutation.
+func (m *ScheduledPostMutation) MetricsAt() (r time.Time, exists bool) {
+	v := m.metrics_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetricsAt returns the old "metrics_at" field's value of the ScheduledPost entity.
+// If the ScheduledPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduledPostMutation) OldMetricsAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetricsAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetricsAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetricsAt: %w", err)
+	}
+	return oldValue.MetricsAt, nil
+}
+
+// ClearMetricsAt clears the value of the "metrics_at" field.
+func (m *ScheduledPostMutation) ClearMetricsAt() {
+	m.metrics_at = nil
+	m.clearedFields[scheduledpost.FieldMetricsAt] = struct{}{}
+}
+
+// MetricsAtCleared returns if the "metrics_at" field was cleared in this mutation.
+func (m *ScheduledPostMutation) MetricsAtCleared() bool {
+	_, ok := m.clearedFields[scheduledpost.FieldMetricsAt]
+	return ok
+}
+
+// ResetMetricsAt resets all changes to the "metrics_at" field.
+func (m *ScheduledPostMutation) ResetMetricsAt() {
+	m.metrics_at = nil
+	delete(m.clearedFields, scheduledpost.FieldMetricsAt)
+}
+
+// SetAutoActions sets the "auto_actions" field.
+func (m *ScheduledPostMutation) SetAutoActions(pa postoptions.AutoActions) {
+	m.auto_actions = &pa
+}
+
+// AutoActions returns the value of the "auto_actions" field in the mutation.
+func (m *ScheduledPostMutation) AutoActions() (r postoptions.AutoActions, exists bool) {
+	v := m.auto_actions
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAutoActions returns the old "auto_actions" field's value of the ScheduledPost entity.
+// If the ScheduledPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduledPostMutation) OldAutoActions(ctx context.Context) (v postoptions.AutoActions, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAutoActions is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAutoActions requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAutoActions: %w", err)
+	}
+	return oldValue.AutoActions, nil
+}
+
+// ClearAutoActions clears the value of the "auto_actions" field.
+func (m *ScheduledPostMutation) ClearAutoActions() {
+	m.auto_actions = nil
+	m.clearedFields[scheduledpost.FieldAutoActions] = struct{}{}
+}
+
+// AutoActionsCleared returns if the "auto_actions" field was cleared in this mutation.
+func (m *ScheduledPostMutation) AutoActionsCleared() bool {
+	_, ok := m.clearedFields[scheduledpost.FieldAutoActions]
+	return ok
+}
+
+// ResetAutoActions resets all changes to the "auto_actions" field.
+func (m *ScheduledPostMutation) ResetAutoActions() {
+	m.auto_actions = nil
+	delete(m.clearedFields, scheduledpost.FieldAutoActions)
+}
+
+// SetPoll sets the "poll" field.
+func (m *ScheduledPostMutation) SetPoll(po postoptions.Poll) {
+	m.poll = &po
+}
+
+// Poll returns the value of the "poll" field in the mutation.
+func (m *ScheduledPostMutation) Poll() (r postoptions.Poll, exists bool) {
+	v := m.poll
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPoll returns the old "poll" field's value of the ScheduledPost entity.
+// If the ScheduledPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduledPostMutation) OldPoll(ctx context.Context) (v postoptions.Poll, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPoll is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPoll requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPoll: %w", err)
+	}
+	return oldValue.Poll, nil
+}
+
+// ClearPoll clears the value of the "poll" field.
+func (m *ScheduledPostMutation) ClearPoll() {
+	m.poll = nil
+	m.clearedFields[scheduledpost.FieldPoll] = struct{}{}
+}
+
+// PollCleared returns if the "poll" field was cleared in this mutation.
+func (m *ScheduledPostMutation) PollCleared() bool {
+	_, ok := m.clearedFields[scheduledpost.FieldPoll]
+	return ok
+}
+
+// ResetPoll resets all changes to the "poll" field.
+func (m *ScheduledPostMutation) ResetPoll() {
+	m.poll = nil
+	delete(m.clearedFields, scheduledpost.FieldPoll)
+}
+
 // SetChannelConnectionID sets the "channel_connection_id" field.
 func (m *ScheduledPostMutation) SetChannelConnectionID(s string) {
 	m.channel_connection = &s
@@ -50671,7 +52993,7 @@ func (m *ScheduledPostMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ScheduledPostMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 21)
 	if m.organization_id != nil {
 		fields = append(fields, scheduledpost.FieldOrganizationID)
 	}
@@ -50689,6 +53011,27 @@ func (m *ScheduledPostMutation) Fields() []string {
 	}
 	if m.replies != nil {
 		fields = append(fields, scheduledpost.FieldReplies)
+	}
+	if m.reply_to != nil {
+		fields = append(fields, scheduledpost.FieldReplyTo)
+	}
+	if m.thread_progress != nil {
+		fields = append(fields, scheduledpost.FieldThreadProgress)
+	}
+	if m.remote_post_id != nil {
+		fields = append(fields, scheduledpost.FieldRemotePostID)
+	}
+	if m.metrics != nil {
+		fields = append(fields, scheduledpost.FieldMetrics)
+	}
+	if m.metrics_at != nil {
+		fields = append(fields, scheduledpost.FieldMetricsAt)
+	}
+	if m.auto_actions != nil {
+		fields = append(fields, scheduledpost.FieldAutoActions)
+	}
+	if m.poll != nil {
+		fields = append(fields, scheduledpost.FieldPoll)
 	}
 	if m.channel_connection != nil {
 		fields = append(fields, scheduledpost.FieldChannelConnectionID)
@@ -50734,6 +53077,20 @@ func (m *ScheduledPostMutation) Field(name string) (ent.Value, bool) {
 		return m.AssetIds()
 	case scheduledpost.FieldReplies:
 		return m.Replies()
+	case scheduledpost.FieldReplyTo:
+		return m.ReplyTo()
+	case scheduledpost.FieldThreadProgress:
+		return m.ThreadProgress()
+	case scheduledpost.FieldRemotePostID:
+		return m.RemotePostID()
+	case scheduledpost.FieldMetrics:
+		return m.Metrics()
+	case scheduledpost.FieldMetricsAt:
+		return m.MetricsAt()
+	case scheduledpost.FieldAutoActions:
+		return m.AutoActions()
+	case scheduledpost.FieldPoll:
+		return m.Poll()
 	case scheduledpost.FieldChannelConnectionID:
 		return m.ChannelConnectionID()
 	case scheduledpost.FieldScheduledFor:
@@ -50771,6 +53128,20 @@ func (m *ScheduledPostMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldAssetIds(ctx)
 	case scheduledpost.FieldReplies:
 		return m.OldReplies(ctx)
+	case scheduledpost.FieldReplyTo:
+		return m.OldReplyTo(ctx)
+	case scheduledpost.FieldThreadProgress:
+		return m.OldThreadProgress(ctx)
+	case scheduledpost.FieldRemotePostID:
+		return m.OldRemotePostID(ctx)
+	case scheduledpost.FieldMetrics:
+		return m.OldMetrics(ctx)
+	case scheduledpost.FieldMetricsAt:
+		return m.OldMetricsAt(ctx)
+	case scheduledpost.FieldAutoActions:
+		return m.OldAutoActions(ctx)
+	case scheduledpost.FieldPoll:
+		return m.OldPoll(ctx)
 	case scheduledpost.FieldChannelConnectionID:
 		return m.OldChannelConnectionID(ctx)
 	case scheduledpost.FieldScheduledFor:
@@ -50837,6 +53208,55 @@ func (m *ScheduledPostMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetReplies(v)
+		return nil
+	case scheduledpost.FieldReplyTo:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReplyTo(v)
+		return nil
+	case scheduledpost.FieldThreadProgress:
+		v, ok := value.(postoptions.ThreadProgress)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetThreadProgress(v)
+		return nil
+	case scheduledpost.FieldRemotePostID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRemotePostID(v)
+		return nil
+	case scheduledpost.FieldMetrics:
+		v, ok := value.(postoptions.Metrics)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetrics(v)
+		return nil
+	case scheduledpost.FieldMetricsAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetricsAt(v)
+		return nil
+	case scheduledpost.FieldAutoActions:
+		v, ok := value.(postoptions.AutoActions)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAutoActions(v)
+		return nil
+	case scheduledpost.FieldPoll:
+		v, ok := value.(postoptions.Poll)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPoll(v)
 		return nil
 	case scheduledpost.FieldChannelConnectionID:
 		v, ok := value.(string)
@@ -50939,6 +53359,27 @@ func (m *ScheduledPostMutation) ClearedFields() []string {
 	if m.FieldCleared(scheduledpost.FieldReplies) {
 		fields = append(fields, scheduledpost.FieldReplies)
 	}
+	if m.FieldCleared(scheduledpost.FieldReplyTo) {
+		fields = append(fields, scheduledpost.FieldReplyTo)
+	}
+	if m.FieldCleared(scheduledpost.FieldThreadProgress) {
+		fields = append(fields, scheduledpost.FieldThreadProgress)
+	}
+	if m.FieldCleared(scheduledpost.FieldRemotePostID) {
+		fields = append(fields, scheduledpost.FieldRemotePostID)
+	}
+	if m.FieldCleared(scheduledpost.FieldMetrics) {
+		fields = append(fields, scheduledpost.FieldMetrics)
+	}
+	if m.FieldCleared(scheduledpost.FieldMetricsAt) {
+		fields = append(fields, scheduledpost.FieldMetricsAt)
+	}
+	if m.FieldCleared(scheduledpost.FieldAutoActions) {
+		fields = append(fields, scheduledpost.FieldAutoActions)
+	}
+	if m.FieldCleared(scheduledpost.FieldPoll) {
+		fields = append(fields, scheduledpost.FieldPoll)
+	}
 	if m.FieldCleared(scheduledpost.FieldTriggerRunID) {
 		fields = append(fields, scheduledpost.FieldTriggerRunID)
 	}
@@ -50971,6 +53412,27 @@ func (m *ScheduledPostMutation) ClearField(name string) error {
 	case scheduledpost.FieldReplies:
 		m.ClearReplies()
 		return nil
+	case scheduledpost.FieldReplyTo:
+		m.ClearReplyTo()
+		return nil
+	case scheduledpost.FieldThreadProgress:
+		m.ClearThreadProgress()
+		return nil
+	case scheduledpost.FieldRemotePostID:
+		m.ClearRemotePostID()
+		return nil
+	case scheduledpost.FieldMetrics:
+		m.ClearMetrics()
+		return nil
+	case scheduledpost.FieldMetricsAt:
+		m.ClearMetricsAt()
+		return nil
+	case scheduledpost.FieldAutoActions:
+		m.ClearAutoActions()
+		return nil
+	case scheduledpost.FieldPoll:
+		m.ClearPoll()
+		return nil
 	case scheduledpost.FieldTriggerRunID:
 		m.ClearTriggerRunID()
 		return nil
@@ -50999,6 +53461,27 @@ func (m *ScheduledPostMutation) ResetField(name string) error {
 		return nil
 	case scheduledpost.FieldReplies:
 		m.ResetReplies()
+		return nil
+	case scheduledpost.FieldReplyTo:
+		m.ResetReplyTo()
+		return nil
+	case scheduledpost.FieldThreadProgress:
+		m.ResetThreadProgress()
+		return nil
+	case scheduledpost.FieldRemotePostID:
+		m.ResetRemotePostID()
+		return nil
+	case scheduledpost.FieldMetrics:
+		m.ResetMetrics()
+		return nil
+	case scheduledpost.FieldMetricsAt:
+		m.ResetMetricsAt()
+		return nil
+	case scheduledpost.FieldAutoActions:
+		m.ResetAutoActions()
+		return nil
+	case scheduledpost.FieldPoll:
+		m.ResetPoll()
 		return nil
 	case scheduledpost.FieldChannelConnectionID:
 		m.ResetChannelConnectionID()

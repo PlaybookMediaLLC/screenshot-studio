@@ -11,6 +11,7 @@ import * as audit from '@/lib/api/contracts/audit'
 import * as billing from '@/lib/api/contracts/billing'
 import * as campaigns from '@/lib/api/contracts/campaigns'
 import * as contentDrafts from '@/lib/api/contracts/content-drafts'
+import * as contentDraftPlatform from '@/lib/api/contracts/content-draft-platform'
 import * as integrations from '@/lib/api/contracts/integrations'
 import * as internal from '@/lib/api/contracts/internal'
 import * as linkPreview from '@/lib/api/contracts/link-preview'
@@ -37,6 +38,7 @@ const contracts = new Map<string, RouteContract>(
     audit,
     billing,
     campaigns,
+    contentDraftPlatform,
     contentDrafts,
     integrations,
     internal,

@@ -1,8 +1,20 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
 
-const providers = ['x', 'instagram', 'instagram-standalone', 'linkedin'] as const
+const providers = [
+  'x',
+  'instagram',
+  'instagram-standalone',
+  'linkedin',
+  'threads',
+  'mastodon',
+] as const
 export type SocialOAuthProvider = (typeof providers)[number]
+
+/** Whether `provider` is one a workspace can connect through OAuth. */
+export function isSocialOAuthProvider(provider: string): provider is SocialOAuthProvider {
+  return (providers as readonly string[]).includes(provider)
+}
 
 export type SocialOAuthCompletion = {
   exchange?: (state: string, code: string) => Promise<unknown>
@@ -32,10 +44,6 @@ const pageChoiceSchema = z.object({
   state: z.string().min(1),
 })
 type InstagramChoice = z.infer<typeof pageChoiceSchema>
-
-function isProvider(value: string): value is SocialOAuthProvider {
-  return providers.some((provider) => provider === value)
-}
 
 function htmlEscape(value: string): string {
   return value.replace(/[&<>"']/g, (character) => {
@@ -103,7 +111,8 @@ export async function completeSocialOAuth(
   providerName: string,
   completion: SocialOAuthCompletion = {}
 ): Promise<Response> {
-  if (!isProvider(providerName)) return new Response('Provider not found.', { status: 404 })
+  if (!isSocialOAuthProvider(providerName))
+    return new Response('Provider not found.', { status: 404 })
   const params = new URL(request.url).searchParams
   if (params.has('error') || params.has('denied')) {
     return new Response(`${providerName} connection was not completed.`, { status: 400 })

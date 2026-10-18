@@ -29,6 +29,12 @@ const (
 	FieldSecretReference = "secretReference"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldDisplayName holds the string denoting the display_name field in the database.
+	FieldDisplayName = "displayName"
+	// FieldHandle holds the string denoting the handle field in the database.
+	FieldHandle = "handle"
+	// FieldAvatarURL holds the string denoting the avatar_url field in the database.
+	FieldAvatarURL = "avatarUrl"
 	// FieldCreatedByUserID holds the string denoting the created_by_user_id field in the database.
 	FieldCreatedByUserID = "createdByUserId"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -58,6 +64,9 @@ var Columns = []string{
 	FieldProviderSettings,
 	FieldSecretReference,
 	FieldStatus,
+	FieldDisplayName,
+	FieldHandle,
+	FieldAvatarURL,
 	FieldCreatedByUserID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -155,6 +164,21 @@ func BySecretReference(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByDisplayName orders the results by the display_name field.
+func ByDisplayName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDisplayName, opts...).ToFunc()
+}
+
+// ByHandle orders the results by the handle field.
+func ByHandle(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHandle, opts...).ToFunc()
+}
+
+// ByAvatarURL orders the results by the avatar_url field.
+func ByAvatarURL(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAvatarURL, opts...).ToFunc()
 }
 
 // ByCreatedByUserID orders the results by the created_by_user_id field.

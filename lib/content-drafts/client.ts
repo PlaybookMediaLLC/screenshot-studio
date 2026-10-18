@@ -1,6 +1,18 @@
 import type { z } from 'zod'
-import type { contentDraftPostSchema, contentDraftSchema } from '@/lib/api/contracts/content-drafts'
+import type {
+  calendarPostSchema,
+  contentDraftRevisionSchema,
+  contentDraftSettingsSchema,
+  draftAssistContract,
+  linkCardSchema,
+} from '@/lib/api/contracts/content-draft-platform'
+import type {
+  contentDraftPostSchema,
+  contentDraftScheduleSchema,
+  contentDraftSchema,
+} from '@/lib/api/contracts/content-drafts'
 import type { DraftDiscussions } from '@/lib/content-drafts/discussions'
+import type { DraftChannel } from '@/lib/content-drafts/serialize'
 
 /**
  * Browser calls to the content draft API (`/api/v1/content-drafts`), with the
@@ -52,6 +64,7 @@ export type DraftSave = {
   baseVersion: number
   body?: unknown[]
   channelConnectionIds?: string[]
+  channelText?: Partial<Record<DraftChannel, string>>
   discussions?: DraftDiscussions
   plainText?: string
   status?: 'draft' | 'archived'
@@ -66,17 +79,51 @@ export const draftsApi = {
   remove: (id: string) => call<{ deleted: true }>(one(id), { method: 'DELETE' }),
   save: (id: string, input: DraftSave) =>
     call<DraftWire>(one(id), { body: input, method: 'PATCH' }),
-  schedule: (
-    id: string,
-    input: {
-      blockImages: (string | null)[]
-      channelConnectionIds: string[]
-      scheduledFor: string
-      version: number
-    }
-  ) =>
+  schedule: (id: string, input: z.input<typeof contentDraftScheduleSchema>) =>
     call<{ created: boolean; draft: DraftWire; posts: DraftPostWire[] }>(`${one(id)}/schedule`, {
       body: input,
       method: 'POST',
     }),
+  review: (id: string, input: { action: 'request' | 'approve' | 'changes'; note?: string }) =>
+    call<DraftWire>(`${one(id)}/review`, { body: input, method: 'POST' }),
+  share: (id: string, enabled: boolean) =>
+    call<DraftWire>(`${one(id)}/share`, { body: { enabled }, method: 'PUT' }),
+  revisions: (id: string) => call<{ items: RevisionWire[] }>(`${one(id)}/revisions`),
+  revision: (id: string, revisionId: string) =>
+    call<RevisionWire>(`${one(id)}/revisions/${encodeURIComponent(revisionId)}`),
+  assist: (input: z.input<typeof draftAssistContract.body>) =>
+    call<{ posts: string[] }>(`${base}/assist`, { body: input, method: 'POST' }),
+  linkCard: (url: string) =>
+    call<z.output<typeof linkCardSchema>>(`${base}/link-card?${new URLSearchParams({ url })}`),
+  settings: () => call<SettingsWire>('/api/v1/content-draft-settings'),
+  saveSettings: (input: Partial<SettingsWire>) =>
+    call<SettingsWire>('/api/v1/content-draft-settings', { body: input, method: 'PUT' }),
+  bestTimes: () =>
+    call<{ items: { at: string; reason: string }[] }>('/api/v1/content-draft-queue/best-times'),
+  calendar: (from: Date, to: Date) =>
+    call<{ items: CalendarPostWire[] }>(
+      `/api/v1/content-draft-posts?${new URLSearchParams({ from: from.toISOString(), to: to.toISOString() })}`
+    ),
+  movePost: (id: string, scheduledFor: Date) =>
+    call<{ post: DraftPostWire }>(`/api/v1/content-draft-posts/${encodeURIComponent(id)}/move`, {
+      body: { scheduledFor: scheduledFor.toISOString() },
+      method: 'POST',
+    }),
+  resumeThread: (id: string) =>
+    call<{ post: DraftPostWire }>(`/api/v1/content-draft-posts/${encodeURIComponent(id)}/resume`, {
+      method: 'POST',
+    }),
+  refreshMetrics: (id: string) =>
+    call<{ post: DraftPostWire }>(`/api/v1/content-draft-posts/${encodeURIComponent(id)}/metrics`, {
+      method: 'POST',
+    }),
 }
+
+/** A saved point in a draft's history, as the API sends it. */
+export type RevisionWire = z.output<typeof contentDraftRevisionSchema>
+
+/** The workspace's drafts settings, as the API sends them. */
+export type SettingsWire = z.output<typeof contentDraftSettingsSchema>
+
+/** A draft post on the calendar, as the API sends it. */
+export type CalendarPostWire = z.output<typeof calendarPostSchema>

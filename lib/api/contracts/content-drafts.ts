@@ -23,6 +23,8 @@ export const contentDraftSchema = z.object({
   channelConnectionIds: z.array(z.string()),
   createdAt: timestampSchema,
   createdByUserId: z.string().nullable(),
+  /** Text a channel posts instead of the body's, by channel. */
+  channelText: z.record(z.string(), z.string()),
   discussions: z.record(z.string(), z.unknown()),
   id: z.string(),
   organizationId: z.string(),
@@ -32,6 +34,19 @@ export const contentDraftSchema = z.object({
   updatedAt: timestampSchema,
   updatedByUserId: z.string().nullable(),
   version: z.number().int().min(1),
+  /** Review before scheduling; approval holds for `approvedVersion` only. */
+  approvedVersion: z.number().int().nullable(),
+  reviewNote: z.string().nullable(),
+  reviewStatus: z.enum(['none', 'pending', 'approved', 'changes_requested']),
+  reviewedByUserId: z.string().nullable(),
+  /** The read-and-comment link's token, while the link is on. */
+  shareToken: z.string().nullable(),
+  /** Comments guests left through that link. */
+  guestComments: z.array(
+    z.object({ createdAt: timestampSchema, name: z.string(), text: z.string() })
+  ),
+  /** The draft's live posts (lists only). */
+  publishedPosts: z.number().int(),
 })
 
 /** The fields a draft is created or updated with. */
@@ -39,6 +54,13 @@ export const contentDraftFieldsSchema = z.object({
   assetIds: z.array(contentDraftIdSchema).max(20).optional(),
   body: plateValueSchema.optional(),
   channelConnectionIds: z.array(contentDraftIdSchema).max(10).optional(),
+  /** Text a channel posts instead of the body's, by channel. */
+  channelText: z
+    .partialRecord(
+      z.enum(['x', 'linkedin', 'instagram', 'threads', 'bluesky', 'mastodon']),
+      z.string().max(100_000)
+    )
+    .optional(),
   /** Comment threads on the body and their authors' names. */
   discussions: z.record(z.string(), z.unknown()).optional(),
   plainText: z.string().max(100_000).optional(),
@@ -201,6 +223,32 @@ export const contentDraftPostSchema = z.object({
   platform: z.string(),
   scheduledFor: timestampSchema,
   status: scheduledPostStatusSchema,
+  /** Once live: engagement as last read, and the post on its platform. */
+  metrics: z.record(z.string(), z.number()).nullable(),
+  metricsAt: timestampSchema.nullable(),
+  url: z.string().nullable(),
+  /** A thread: its reply count and how many went out. */
+  replies: z.number().int(),
+  threadProgress: z.object({
+    lastReplyId: z.string().optional(),
+    posted: z.number().int(),
+    total: z.number().int(),
+  }),
+})
+
+/** A live post's follow-ups (X): repost and reply at a like count, quote after hours. */
+export const autoActionsSchema = z.object({
+  plugAtLikes: z.number().int().min(0).max(1_000_000).optional(),
+  plugText: z.string().max(1_000).optional(),
+  quoteAfterHours: z.number().int().min(0).max(720).optional(),
+  quoteText: z.string().max(1_000).optional(),
+  repostAtLikes: z.number().int().min(0).max(1_000_000).optional(),
+})
+
+/** A poll on a post (X): 2 to 4 choices, open 5 minutes to 7 days. */
+export const pollSchema = z.object({
+  durationMinutes: z.number().int().min(5).max(10_080),
+  options: z.array(z.string().trim().min(1).max(25)).min(2).max(4),
 })
 
 /**
@@ -214,9 +262,19 @@ export const contentDraftScheduleSchema = z.object({
    */
   blockImages: z.array(contentDraftIdSchema.nullable()).max(50).optional(),
   channelConnectionIds: z.array(contentDraftIdSchema).min(1).max(10),
-  scheduledFor: z.coerce.date().refine((value) => value.getTime() > Date.now(), {
-    message: 'Pick a time in the future.',
-  }),
+  /** Per channel connection: X follow-ups and a poll. */
+  options: z
+    .record(
+      contentDraftIdSchema,
+      z.object({ autoActions: autoActionsSchema.optional(), poll: pollSchema.optional() })
+    )
+    .optional(),
+  /** The queue's next free slot instead of `scheduledFor`. */
+  queue: z.boolean().optional(),
+  scheduledFor: z.coerce
+    .date()
+    .refine((value) => value.getTime() > Date.now(), { message: 'Pick a time in the future.' })
+    .optional(),
   version: z.number().int().min(1),
 })
 

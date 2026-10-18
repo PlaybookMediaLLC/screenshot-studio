@@ -38,6 +38,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftsettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversationmessage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
@@ -139,6 +141,10 @@ type Client struct {
 	ContentAngle *ContentAngleClient
 	// ContentDraft is the client for interacting with the ContentDraft builders.
 	ContentDraft *ContentDraftClient
+	// ContentDraftRevision is the client for interacting with the ContentDraftRevision builders.
+	ContentDraftRevision *ContentDraftRevisionClient
+	// ContentDraftSettings is the client for interacting with the ContentDraftSettings builders.
+	ContentDraftSettings *ContentDraftSettingsClient
 	// Conversation is the client for interacting with the Conversation builders.
 	Conversation *ConversationClient
 	// ConversationMessage is the client for interacting with the ConversationMessage builders.
@@ -269,6 +275,8 @@ func (c *Client) init() {
 	c.CommunicationRecipient = NewCommunicationRecipientClient(c.config)
 	c.ContentAngle = NewContentAngleClient(c.config)
 	c.ContentDraft = NewContentDraftClient(c.config)
+	c.ContentDraftRevision = NewContentDraftRevisionClient(c.config)
+	c.ContentDraftSettings = NewContentDraftSettingsClient(c.config)
 	c.Conversation = NewConversationClient(c.config)
 	c.ConversationMessage = NewConversationMessageClient(c.config)
 	c.CreativeTemplate = NewCreativeTemplateClient(c.config)
@@ -432,6 +440,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		CommunicationRecipient:         NewCommunicationRecipientClient(cfg),
 		ContentAngle:                   NewContentAngleClient(cfg),
 		ContentDraft:                   NewContentDraftClient(cfg),
+		ContentDraftRevision:           NewContentDraftRevisionClient(cfg),
+		ContentDraftSettings:           NewContentDraftSettingsClient(cfg),
 		Conversation:                   NewConversationClient(cfg),
 		ConversationMessage:            NewConversationMessageClient(cfg),
 		CreativeTemplate:               NewCreativeTemplateClient(cfg),
@@ -522,6 +532,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		CommunicationRecipient:         NewCommunicationRecipientClient(cfg),
 		ContentAngle:                   NewContentAngleClient(cfg),
 		ContentDraft:                   NewContentDraftClient(cfg),
+		ContentDraftRevision:           NewContentDraftRevisionClient(cfg),
+		ContentDraftSettings:           NewContentDraftSettingsClient(cfg),
 		Conversation:                   NewConversationClient(cfg),
 		ConversationMessage:            NewConversationMessageClient(cfg),
 		CreativeTemplate:               NewCreativeTemplateClient(cfg),
@@ -604,7 +616,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.AuditRetentionPolicy, c.BillingEntitlementEvent, c.BrandKit, c.BrandProfile,
 		c.Campaign, c.CampaignAsset, c.CampaignPlan, c.CampaignPost,
 		c.CampaignRevision, c.ChannelConnection, c.CommunicationAttempt,
-		c.CommunicationRecipient, c.ContentAngle, c.ContentDraft, c.Conversation,
+		c.CommunicationRecipient, c.ContentAngle, c.ContentDraft,
+		c.ContentDraftRevision, c.ContentDraftSettings, c.Conversation,
 		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
 		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
 		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
@@ -632,7 +645,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.AuditRetentionPolicy, c.BillingEntitlementEvent, c.BrandKit, c.BrandProfile,
 		c.Campaign, c.CampaignAsset, c.CampaignPlan, c.CampaignPost,
 		c.CampaignRevision, c.ChannelConnection, c.CommunicationAttempt,
-		c.CommunicationRecipient, c.ContentAngle, c.ContentDraft, c.Conversation,
+		c.CommunicationRecipient, c.ContentAngle, c.ContentDraft,
+		c.ContentDraftRevision, c.ContentDraftSettings, c.Conversation,
 		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
 		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
 		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
@@ -700,6 +714,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ContentAngle.mutate(ctx, m)
 	case *ContentDraftMutation:
 		return c.ContentDraft.mutate(ctx, m)
+	case *ContentDraftRevisionMutation:
+		return c.ContentDraftRevision.mutate(ctx, m)
+	case *ContentDraftSettingsMutation:
+		return c.ContentDraftSettings.mutate(ctx, m)
 	case *ConversationMutation:
 		return c.Conversation.mutate(ctx, m)
 	case *ConversationMessageMutation:
@@ -3905,6 +3923,272 @@ func (c *ContentDraftClient) mutate(ctx context.Context, m *ContentDraftMutation
 		return (&ContentDraftDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown ContentDraft mutation op: %q", m.Op())
+	}
+}
+
+// ContentDraftRevisionClient is a client for the ContentDraftRevision schema.
+type ContentDraftRevisionClient struct {
+	config
+}
+
+// NewContentDraftRevisionClient returns a client for the ContentDraftRevision from the given config.
+func NewContentDraftRevisionClient(c config) *ContentDraftRevisionClient {
+	return &ContentDraftRevisionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `contentdraftrevision.Hooks(f(g(h())))`.
+func (c *ContentDraftRevisionClient) Use(hooks ...Hook) {
+	c.hooks.ContentDraftRevision = append(c.hooks.ContentDraftRevision, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `contentdraftrevision.Intercept(f(g(h())))`.
+func (c *ContentDraftRevisionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ContentDraftRevision = append(c.inters.ContentDraftRevision, interceptors...)
+}
+
+// Create returns a builder for creating a ContentDraftRevision entity.
+func (c *ContentDraftRevisionClient) Create() *ContentDraftRevisionCreate {
+	mutation := newContentDraftRevisionMutation(c.config, OpCreate)
+	return &ContentDraftRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ContentDraftRevision entities.
+func (c *ContentDraftRevisionClient) CreateBulk(builders ...*ContentDraftRevisionCreate) *ContentDraftRevisionCreateBulk {
+	return &ContentDraftRevisionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ContentDraftRevisionClient) MapCreateBulk(slice any, setFunc func(*ContentDraftRevisionCreate, int)) *ContentDraftRevisionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ContentDraftRevisionCreateBulk{err: fmt.Errorf("calling to ContentDraftRevisionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ContentDraftRevisionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ContentDraftRevisionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ContentDraftRevision.
+func (c *ContentDraftRevisionClient) Update() *ContentDraftRevisionUpdate {
+	mutation := newContentDraftRevisionMutation(c.config, OpUpdate)
+	return &ContentDraftRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ContentDraftRevisionClient) UpdateOne(_m *ContentDraftRevision) *ContentDraftRevisionUpdateOne {
+	mutation := newContentDraftRevisionMutation(c.config, OpUpdateOne, withContentDraftRevision(_m))
+	return &ContentDraftRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ContentDraftRevisionClient) UpdateOneID(id string) *ContentDraftRevisionUpdateOne {
+	mutation := newContentDraftRevisionMutation(c.config, OpUpdateOne, withContentDraftRevisionID(id))
+	return &ContentDraftRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ContentDraftRevision.
+func (c *ContentDraftRevisionClient) Delete() *ContentDraftRevisionDelete {
+	mutation := newContentDraftRevisionMutation(c.config, OpDelete)
+	return &ContentDraftRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ContentDraftRevisionClient) DeleteOne(_m *ContentDraftRevision) *ContentDraftRevisionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ContentDraftRevisionClient) DeleteOneID(id string) *ContentDraftRevisionDeleteOne {
+	builder := c.Delete().Where(contentdraftrevision.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ContentDraftRevisionDeleteOne{builder}
+}
+
+// Query returns a query builder for ContentDraftRevision.
+func (c *ContentDraftRevisionClient) Query() *ContentDraftRevisionQuery {
+	return &ContentDraftRevisionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeContentDraftRevision},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ContentDraftRevision entity by its id.
+func (c *ContentDraftRevisionClient) Get(ctx context.Context, id string) (*ContentDraftRevision, error) {
+	return c.Query().Where(contentdraftrevision.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ContentDraftRevisionClient) GetX(ctx context.Context, id string) *ContentDraftRevision {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ContentDraftRevisionClient) Hooks() []Hook {
+	return c.hooks.ContentDraftRevision
+}
+
+// Interceptors returns the client interceptors.
+func (c *ContentDraftRevisionClient) Interceptors() []Interceptor {
+	return c.inters.ContentDraftRevision
+}
+
+func (c *ContentDraftRevisionClient) mutate(ctx context.Context, m *ContentDraftRevisionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ContentDraftRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ContentDraftRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ContentDraftRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ContentDraftRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ContentDraftRevision mutation op: %q", m.Op())
+	}
+}
+
+// ContentDraftSettingsClient is a client for the ContentDraftSettings schema.
+type ContentDraftSettingsClient struct {
+	config
+}
+
+// NewContentDraftSettingsClient returns a client for the ContentDraftSettings from the given config.
+func NewContentDraftSettingsClient(c config) *ContentDraftSettingsClient {
+	return &ContentDraftSettingsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `contentdraftsettings.Hooks(f(g(h())))`.
+func (c *ContentDraftSettingsClient) Use(hooks ...Hook) {
+	c.hooks.ContentDraftSettings = append(c.hooks.ContentDraftSettings, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `contentdraftsettings.Intercept(f(g(h())))`.
+func (c *ContentDraftSettingsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ContentDraftSettings = append(c.inters.ContentDraftSettings, interceptors...)
+}
+
+// Create returns a builder for creating a ContentDraftSettings entity.
+func (c *ContentDraftSettingsClient) Create() *ContentDraftSettingsCreate {
+	mutation := newContentDraftSettingsMutation(c.config, OpCreate)
+	return &ContentDraftSettingsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ContentDraftSettings entities.
+func (c *ContentDraftSettingsClient) CreateBulk(builders ...*ContentDraftSettingsCreate) *ContentDraftSettingsCreateBulk {
+	return &ContentDraftSettingsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ContentDraftSettingsClient) MapCreateBulk(slice any, setFunc func(*ContentDraftSettingsCreate, int)) *ContentDraftSettingsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ContentDraftSettingsCreateBulk{err: fmt.Errorf("calling to ContentDraftSettingsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ContentDraftSettingsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ContentDraftSettingsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ContentDraftSettings.
+func (c *ContentDraftSettingsClient) Update() *ContentDraftSettingsUpdate {
+	mutation := newContentDraftSettingsMutation(c.config, OpUpdate)
+	return &ContentDraftSettingsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ContentDraftSettingsClient) UpdateOne(_m *ContentDraftSettings) *ContentDraftSettingsUpdateOne {
+	mutation := newContentDraftSettingsMutation(c.config, OpUpdateOne, withContentDraftSettings(_m))
+	return &ContentDraftSettingsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ContentDraftSettingsClient) UpdateOneID(id string) *ContentDraftSettingsUpdateOne {
+	mutation := newContentDraftSettingsMutation(c.config, OpUpdateOne, withContentDraftSettingsID(id))
+	return &ContentDraftSettingsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ContentDraftSettings.
+func (c *ContentDraftSettingsClient) Delete() *ContentDraftSettingsDelete {
+	mutation := newContentDraftSettingsMutation(c.config, OpDelete)
+	return &ContentDraftSettingsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ContentDraftSettingsClient) DeleteOne(_m *ContentDraftSettings) *ContentDraftSettingsDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ContentDraftSettingsClient) DeleteOneID(id string) *ContentDraftSettingsDeleteOne {
+	builder := c.Delete().Where(contentdraftsettings.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ContentDraftSettingsDeleteOne{builder}
+}
+
+// Query returns a query builder for ContentDraftSettings.
+func (c *ContentDraftSettingsClient) Query() *ContentDraftSettingsQuery {
+	return &ContentDraftSettingsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeContentDraftSettings},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ContentDraftSettings entity by its id.
+func (c *ContentDraftSettingsClient) Get(ctx context.Context, id string) (*ContentDraftSettings, error) {
+	return c.Query().Where(contentdraftsettings.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ContentDraftSettingsClient) GetX(ctx context.Context, id string) *ContentDraftSettings {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ContentDraftSettingsClient) Hooks() []Hook {
+	return c.hooks.ContentDraftSettings
+}
+
+// Interceptors returns the client interceptors.
+func (c *ContentDraftSettingsClient) Interceptors() []Interceptor {
+	return c.inters.ContentDraftSettings
+}
+
+func (c *ContentDraftSettingsClient) mutate(ctx context.Context, m *ContentDraftSettingsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ContentDraftSettingsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ContentDraftSettingsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ContentDraftSettingsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ContentDraftSettingsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ContentDraftSettings mutation op: %q", m.Op())
 	}
 }
 
@@ -10380,18 +10664,18 @@ type (
 		BillingEntitlementEvent, BrandKit, BrandProfile, Campaign, CampaignAsset,
 		CampaignPlan, CampaignPost, CampaignRevision, ChannelConnection,
 		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentDraft,
-		Conversation, ConversationMessage, CreativeTemplate, CreativeVariant,
-		CustomerCommunication, DeploymentEvent, Design, EnrichmentRecord,
-		GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
-		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
-		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
-		PageKnowledge, PostizTenantBinding, ProductProfile, ProductSurface, Project,
-		ProjectVersion, PublicationAttempt, Release, ReleaseDocument, ReleaseSpec,
-		ScheduledPost, ScreenshotCache, Session, ShareLink, SocialOAuthStart,
-		SourceApp, SourceChange, StorePublishingCredential, StoreReview,
-		StoreReviewComment, SupportAccessGrant, SurfaceCapture, User,
-		WorkspaceCreditGrant, WorkspaceDeletion, WorkspaceEntitlement,
-		WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
+		ContentDraftRevision, ContentDraftSettings, Conversation, ConversationMessage,
+		CreativeTemplate, CreativeVariant, CustomerCommunication, DeploymentEvent,
+		Design, EnrichmentRecord, GitHubInstallStart, GitHubInstallation,
+		IdealCustomerProfile, IntegrationConnection, Invitation, LaunchRun,
+		LaunchRunStep, Member, OnboardingRun, Organization,
+		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
+		PostizTenantBinding, ProductProfile, ProductSurface, Project, ProjectVersion,
+		PublicationAttempt, Release, ReleaseDocument, ReleaseSpec, ScheduledPost,
+		ScreenshotCache, Session, ShareLink, SocialOAuthStart, SourceApp, SourceChange,
+		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
+		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
+		WorkspaceEntitlement, WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
 	}
 	inters struct {
 		AgentAuthorization, Apikey, Approval, Asset, AudienceSubscriber, AuditDrain,
@@ -10399,17 +10683,18 @@ type (
 		BillingEntitlementEvent, BrandKit, BrandProfile, Campaign, CampaignAsset,
 		CampaignPlan, CampaignPost, CampaignRevision, ChannelConnection,
 		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentDraft,
-		Conversation, ConversationMessage, CreativeTemplate, CreativeVariant,
-		CustomerCommunication, DeploymentEvent, Design, EnrichmentRecord,
-		GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
-		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
-		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
-		PageKnowledge, PostizTenantBinding, ProductProfile, ProductSurface, Project,
-		ProjectVersion, PublicationAttempt, Release, ReleaseDocument, ReleaseSpec,
-		ScheduledPost, ScreenshotCache, Session, ShareLink, SocialOAuthStart,
-		SourceApp, SourceChange, StorePublishingCredential, StoreReview,
-		StoreReviewComment, SupportAccessGrant, SurfaceCapture, User,
-		WorkspaceCreditGrant, WorkspaceDeletion, WorkspaceEntitlement,
-		WorkspaceGitHubInstallation, WorkspaceSettings []ent.Interceptor
+		ContentDraftRevision, ContentDraftSettings, Conversation, ConversationMessage,
+		CreativeTemplate, CreativeVariant, CustomerCommunication, DeploymentEvent,
+		Design, EnrichmentRecord, GitHubInstallStart, GitHubInstallation,
+		IdealCustomerProfile, IntegrationConnection, Invitation, LaunchRun,
+		LaunchRunStep, Member, OnboardingRun, Organization,
+		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
+		PostizTenantBinding, ProductProfile, ProductSurface, Project, ProjectVersion,
+		PublicationAttempt, Release, ReleaseDocument, ReleaseSpec, ScheduledPost,
+		ScreenshotCache, Session, ShareLink, SocialOAuthStart, SourceApp, SourceChange,
+		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
+		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
+		WorkspaceEntitlement, WorkspaceGitHubInstallation,
+		WorkspaceSettings []ent.Interceptor
 	}
 )

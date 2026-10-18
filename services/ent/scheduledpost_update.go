@@ -14,6 +14,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 )
 
 // ScheduledPostUpdate is the builder for updating ScheduledPost entities.
@@ -26,6 +27,78 @@ type ScheduledPostUpdate struct {
 // Where appends a list predicates to the ScheduledPostUpdate builder.
 func (_u *ScheduledPostUpdate) Where(ps ...predicate.ScheduledPost) *ScheduledPostUpdate {
 	_u.mutation.Where(ps...)
+	return _u
+}
+
+// SetThreadProgress sets the "thread_progress" field.
+func (_u *ScheduledPostUpdate) SetThreadProgress(v postoptions.ThreadProgress) *ScheduledPostUpdate {
+	_u.mutation.SetThreadProgress(v)
+	return _u
+}
+
+// SetNillableThreadProgress sets the "thread_progress" field if the given value is not nil.
+func (_u *ScheduledPostUpdate) SetNillableThreadProgress(v *postoptions.ThreadProgress) *ScheduledPostUpdate {
+	if v != nil {
+		_u.SetThreadProgress(*v)
+	}
+	return _u
+}
+
+// ClearThreadProgress clears the value of the "thread_progress" field.
+func (_u *ScheduledPostUpdate) ClearThreadProgress() *ScheduledPostUpdate {
+	_u.mutation.ClearThreadProgress()
+	return _u
+}
+
+// SetRemotePostID sets the "remote_post_id" field.
+func (_u *ScheduledPostUpdate) SetRemotePostID(v string) *ScheduledPostUpdate {
+	_u.mutation.SetRemotePostID(v)
+	return _u
+}
+
+// SetNillableRemotePostID sets the "remote_post_id" field if the given value is not nil.
+func (_u *ScheduledPostUpdate) SetNillableRemotePostID(v *string) *ScheduledPostUpdate {
+	if v != nil {
+		_u.SetRemotePostID(*v)
+	}
+	return _u
+}
+
+// ClearRemotePostID clears the value of the "remote_post_id" field.
+func (_u *ScheduledPostUpdate) ClearRemotePostID() *ScheduledPostUpdate {
+	_u.mutation.ClearRemotePostID()
+	return _u
+}
+
+// SetMetrics sets the "metrics" field.
+func (_u *ScheduledPostUpdate) SetMetrics(v postoptions.Metrics) *ScheduledPostUpdate {
+	_u.mutation.SetMetrics(v)
+	return _u
+}
+
+// ClearMetrics clears the value of the "metrics" field.
+func (_u *ScheduledPostUpdate) ClearMetrics() *ScheduledPostUpdate {
+	_u.mutation.ClearMetrics()
+	return _u
+}
+
+// SetMetricsAt sets the "metrics_at" field.
+func (_u *ScheduledPostUpdate) SetMetricsAt(v time.Time) *ScheduledPostUpdate {
+	_u.mutation.SetMetricsAt(v)
+	return _u
+}
+
+// SetNillableMetricsAt sets the "metrics_at" field if the given value is not nil.
+func (_u *ScheduledPostUpdate) SetNillableMetricsAt(v *time.Time) *ScheduledPostUpdate {
+	if v != nil {
+		_u.SetMetricsAt(*v)
+	}
+	return _u
+}
+
+// ClearMetricsAt clears the value of the "metrics_at" field.
+func (_u *ScheduledPostUpdate) ClearMetricsAt() *ScheduledPostUpdate {
+	_u.mutation.ClearMetricsAt()
 	return _u
 }
 
@@ -214,6 +287,39 @@ func (_u *ScheduledPostUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if _u.mutation.RepliesCleared() {
 		_spec.ClearField(scheduledpost.FieldReplies, field.TypeJSON)
 	}
+	if _u.mutation.ReplyToCleared() {
+		_spec.ClearField(scheduledpost.FieldReplyTo, field.TypeString)
+	}
+	if value, ok := _u.mutation.ThreadProgress(); ok {
+		_spec.SetField(scheduledpost.FieldThreadProgress, field.TypeJSON, value)
+	}
+	if _u.mutation.ThreadProgressCleared() {
+		_spec.ClearField(scheduledpost.FieldThreadProgress, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.RemotePostID(); ok {
+		_spec.SetField(scheduledpost.FieldRemotePostID, field.TypeString, value)
+	}
+	if _u.mutation.RemotePostIDCleared() {
+		_spec.ClearField(scheduledpost.FieldRemotePostID, field.TypeString)
+	}
+	if value, ok := _u.mutation.Metrics(); ok {
+		_spec.SetField(scheduledpost.FieldMetrics, field.TypeJSON, value)
+	}
+	if _u.mutation.MetricsCleared() {
+		_spec.ClearField(scheduledpost.FieldMetrics, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.MetricsAt(); ok {
+		_spec.SetField(scheduledpost.FieldMetricsAt, field.TypeTime, value)
+	}
+	if _u.mutation.MetricsAtCleared() {
+		_spec.ClearField(scheduledpost.FieldMetricsAt, field.TypeTime)
+	}
+	if _u.mutation.AutoActionsCleared() {
+		_spec.ClearField(scheduledpost.FieldAutoActions, field.TypeJSON)
+	}
+	if _u.mutation.PollCleared() {
+		_spec.ClearField(scheduledpost.FieldPoll, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.ScheduledFor(); ok {
 		_spec.SetField(scheduledpost.FieldScheduledFor, field.TypeTime, value)
 	}
@@ -295,6 +401,78 @@ type ScheduledPostUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ScheduledPostMutation
+}
+
+// SetThreadProgress sets the "thread_progress" field.
+func (_u *ScheduledPostUpdateOne) SetThreadProgress(v postoptions.ThreadProgress) *ScheduledPostUpdateOne {
+	_u.mutation.SetThreadProgress(v)
+	return _u
+}
+
+// SetNillableThreadProgress sets the "thread_progress" field if the given value is not nil.
+func (_u *ScheduledPostUpdateOne) SetNillableThreadProgress(v *postoptions.ThreadProgress) *ScheduledPostUpdateOne {
+	if v != nil {
+		_u.SetThreadProgress(*v)
+	}
+	return _u
+}
+
+// ClearThreadProgress clears the value of the "thread_progress" field.
+func (_u *ScheduledPostUpdateOne) ClearThreadProgress() *ScheduledPostUpdateOne {
+	_u.mutation.ClearThreadProgress()
+	return _u
+}
+
+// SetRemotePostID sets the "remote_post_id" field.
+func (_u *ScheduledPostUpdateOne) SetRemotePostID(v string) *ScheduledPostUpdateOne {
+	_u.mutation.SetRemotePostID(v)
+	return _u
+}
+
+// SetNillableRemotePostID sets the "remote_post_id" field if the given value is not nil.
+func (_u *ScheduledPostUpdateOne) SetNillableRemotePostID(v *string) *ScheduledPostUpdateOne {
+	if v != nil {
+		_u.SetRemotePostID(*v)
+	}
+	return _u
+}
+
+// ClearRemotePostID clears the value of the "remote_post_id" field.
+func (_u *ScheduledPostUpdateOne) ClearRemotePostID() *ScheduledPostUpdateOne {
+	_u.mutation.ClearRemotePostID()
+	return _u
+}
+
+// SetMetrics sets the "metrics" field.
+func (_u *ScheduledPostUpdateOne) SetMetrics(v postoptions.Metrics) *ScheduledPostUpdateOne {
+	_u.mutation.SetMetrics(v)
+	return _u
+}
+
+// ClearMetrics clears the value of the "metrics" field.
+func (_u *ScheduledPostUpdateOne) ClearMetrics() *ScheduledPostUpdateOne {
+	_u.mutation.ClearMetrics()
+	return _u
+}
+
+// SetMetricsAt sets the "metrics_at" field.
+func (_u *ScheduledPostUpdateOne) SetMetricsAt(v time.Time) *ScheduledPostUpdateOne {
+	_u.mutation.SetMetricsAt(v)
+	return _u
+}
+
+// SetNillableMetricsAt sets the "metrics_at" field if the given value is not nil.
+func (_u *ScheduledPostUpdateOne) SetNillableMetricsAt(v *time.Time) *ScheduledPostUpdateOne {
+	if v != nil {
+		_u.SetMetricsAt(*v)
+	}
+	return _u
+}
+
+// ClearMetricsAt clears the value of the "metrics_at" field.
+func (_u *ScheduledPostUpdateOne) ClearMetricsAt() *ScheduledPostUpdateOne {
+	_u.mutation.ClearMetricsAt()
+	return _u
 }
 
 // SetScheduledFor sets the "scheduled_for" field.
@@ -511,6 +689,39 @@ func (_u *ScheduledPostUpdateOne) sqlSave(ctx context.Context) (_node *Scheduled
 	}
 	if _u.mutation.RepliesCleared() {
 		_spec.ClearField(scheduledpost.FieldReplies, field.TypeJSON)
+	}
+	if _u.mutation.ReplyToCleared() {
+		_spec.ClearField(scheduledpost.FieldReplyTo, field.TypeString)
+	}
+	if value, ok := _u.mutation.ThreadProgress(); ok {
+		_spec.SetField(scheduledpost.FieldThreadProgress, field.TypeJSON, value)
+	}
+	if _u.mutation.ThreadProgressCleared() {
+		_spec.ClearField(scheduledpost.FieldThreadProgress, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.RemotePostID(); ok {
+		_spec.SetField(scheduledpost.FieldRemotePostID, field.TypeString, value)
+	}
+	if _u.mutation.RemotePostIDCleared() {
+		_spec.ClearField(scheduledpost.FieldRemotePostID, field.TypeString)
+	}
+	if value, ok := _u.mutation.Metrics(); ok {
+		_spec.SetField(scheduledpost.FieldMetrics, field.TypeJSON, value)
+	}
+	if _u.mutation.MetricsCleared() {
+		_spec.ClearField(scheduledpost.FieldMetrics, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.MetricsAt(); ok {
+		_spec.SetField(scheduledpost.FieldMetricsAt, field.TypeTime, value)
+	}
+	if _u.mutation.MetricsAtCleared() {
+		_spec.ClearField(scheduledpost.FieldMetricsAt, field.TypeTime)
+	}
+	if _u.mutation.AutoActionsCleared() {
+		_spec.ClearField(scheduledpost.FieldAutoActions, field.TypeJSON)
+	}
+	if _u.mutation.PollCleared() {
+		_spec.ClearField(scheduledpost.FieldPoll, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.ScheduledFor(); ok {
 		_spec.SetField(scheduledpost.FieldScheduledFor, field.TypeTime, value)

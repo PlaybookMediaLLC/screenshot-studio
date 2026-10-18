@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
 )
@@ -153,5 +154,43 @@ func TestPostWorkflowV2StopsAfterLastRateLimitAttempt(t *testing.T) {
 	}
 	if submitCalls != 3 || len(failures) != 3 || !failures[2].RetryAt.IsZero() || result.Outcome != OutcomeFailed || result.FailureCode != "429" {
 		t.Fatalf("result=%#v submit=%d failures=%#v", result, submitCalls, failures)
+	}
+}
+
+// A live post's follow-ups run on schedule: the like-gated repost is tried
+// until it is done, and the quote goes out once, after its delay.
+func TestPostWorkflowV2RunsAutoActionsAfterPublishing(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	var calls []AutoActionsInput
+	env.RegisterActivityWithOptions(func(context.Context, PrepareInput) (PreparedPublication, error) {
+		return PreparedPublication{PostID: "post-1", OrganizationID: "org-1", Ready: true,
+			AutoActions: &postoptions.AutoActions{RepostAtLikes: 10, QuoteAfterHours: 12, QuoteText: "Still true"}}, nil
+	}, activity.RegisterOptions{Name: PrepareActivityName})
+	env.RegisterActivityWithOptions(func(context.Context, BeginInput) (BeginResult, error) {
+		return BeginResult{AttemptID: "attempt-1", AttemptNumber: 1}, nil
+	}, activity.RegisterOptions{Name: BeginActivityName})
+	env.RegisterActivityWithOptions(func(context.Context, SubmitInput) (PublishResult, error) {
+		return PublishResult{Outcome: OutcomePublished, ProviderID: "remote-post-1"}, nil
+	}, activity.RegisterOptions{Name: SubmitActivityName})
+	env.RegisterActivityWithOptions(func(context.Context, CompleteInput) error { return nil },
+		activity.RegisterOptions{Name: CompleteActivityName})
+	env.RegisterActivityWithOptions(func(_ context.Context, input AutoActionsInput) (AutoActionsResult, error) {
+		calls = append(calls, input)
+		// The repost reaches its likes on the second check.
+		return AutoActionsResult{Quoted: input.Quote, Reposted: len(calls) >= 2}, nil
+	}, activity.RegisterOptions{Name: AutoActionsActivityName})
+	env.ExecuteWorkflow(PostWorkflowV2, WorkflowInput{
+		ActivityTaskQueue: DefaultActivityQueue, ActivityTimeout: time.Minute,
+		MainTaskQueue: DefaultWorkflowQueue, MaxAttempts: 3, PostID: "post-1",
+		RetryDelay: time.Hour, ScheduledFor: time.Now(),
+	})
+	if err := env.GetWorkflowError(); err != nil {
+		t.Fatal(err)
+	}
+	// 6h: repost only; 12h: repost (done) and the quote; then nothing is left.
+	if len(calls) != 2 || !calls[0].Repost || calls[0].Quote || !calls[1].Repost || !calls[1].Quote ||
+		calls[1].ProviderID != "remote-post-1" {
+		t.Fatalf("calls=%+v", calls)
 	}
 }

@@ -77,6 +77,66 @@ func (_u *ChannelConnectionUpdate) SetNillableStatus(v *channelconnection.Status
 	return _u
 }
 
+// SetDisplayName sets the "display_name" field.
+func (_u *ChannelConnectionUpdate) SetDisplayName(v string) *ChannelConnectionUpdate {
+	_u.mutation.SetDisplayName(v)
+	return _u
+}
+
+// SetNillableDisplayName sets the "display_name" field if the given value is not nil.
+func (_u *ChannelConnectionUpdate) SetNillableDisplayName(v *string) *ChannelConnectionUpdate {
+	if v != nil {
+		_u.SetDisplayName(*v)
+	}
+	return _u
+}
+
+// ClearDisplayName clears the value of the "display_name" field.
+func (_u *ChannelConnectionUpdate) ClearDisplayName() *ChannelConnectionUpdate {
+	_u.mutation.ClearDisplayName()
+	return _u
+}
+
+// SetHandle sets the "handle" field.
+func (_u *ChannelConnectionUpdate) SetHandle(v string) *ChannelConnectionUpdate {
+	_u.mutation.SetHandle(v)
+	return _u
+}
+
+// SetNillableHandle sets the "handle" field if the given value is not nil.
+func (_u *ChannelConnectionUpdate) SetNillableHandle(v *string) *ChannelConnectionUpdate {
+	if v != nil {
+		_u.SetHandle(*v)
+	}
+	return _u
+}
+
+// ClearHandle clears the value of the "handle" field.
+func (_u *ChannelConnectionUpdate) ClearHandle() *ChannelConnectionUpdate {
+	_u.mutation.ClearHandle()
+	return _u
+}
+
+// SetAvatarURL sets the "avatar_url" field.
+func (_u *ChannelConnectionUpdate) SetAvatarURL(v string) *ChannelConnectionUpdate {
+	_u.mutation.SetAvatarURL(v)
+	return _u
+}
+
+// SetNillableAvatarURL sets the "avatar_url" field if the given value is not nil.
+func (_u *ChannelConnectionUpdate) SetNillableAvatarURL(v *string) *ChannelConnectionUpdate {
+	if v != nil {
+		_u.SetAvatarURL(*v)
+	}
+	return _u
+}
+
+// ClearAvatarURL clears the value of the "avatar_url" field.
+func (_u *ChannelConnectionUpdate) ClearAvatarURL() *ChannelConnectionUpdate {
+	_u.mutation.ClearAvatarURL()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ChannelConnectionUpdate) SetUpdatedAt(v time.Time) *ChannelConnectionUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -199,6 +259,24 @@ func (_u *ChannelConnectionUpdate) sqlSave(ctx context.Context) (_node int, err 
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(channelconnection.FieldStatus, field.TypeEnum, value)
 	}
+	if value, ok := _u.mutation.DisplayName(); ok {
+		_spec.SetField(channelconnection.FieldDisplayName, field.TypeString, value)
+	}
+	if _u.mutation.DisplayNameCleared() {
+		_spec.ClearField(channelconnection.FieldDisplayName, field.TypeString)
+	}
+	if value, ok := _u.mutation.Handle(); ok {
+		_spec.SetField(channelconnection.FieldHandle, field.TypeString, value)
+	}
+	if _u.mutation.HandleCleared() {
+		_spec.ClearField(channelconnection.FieldHandle, field.TypeString)
+	}
+	if value, ok := _u.mutation.AvatarURL(); ok {
+		_spec.SetField(channelconnection.FieldAvatarURL, field.TypeString, value)
+	}
+	if _u.mutation.AvatarURLCleared() {
+		_spec.ClearField(channelconnection.FieldAvatarURL, field.TypeString)
+	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(channelconnection.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -312,6 +390,66 @@ func (_u *ChannelConnectionUpdateOne) SetNillableStatus(v *channelconnection.Sta
 	if v != nil {
 		_u.SetStatus(*v)
 	}
+	return _u
+}
+
+// SetDisplayName sets the "display_name" field.
+func (_u *ChannelConnectionUpdateOne) SetDisplayName(v string) *ChannelConnectionUpdateOne {
+	_u.mutation.SetDisplayName(v)
+	return _u
+}
+
+// SetNillableDisplayName sets the "display_name" field if the given value is not nil.
+func (_u *ChannelConnectionUpdateOne) SetNillableDisplayName(v *string) *ChannelConnectionUpdateOne {
+	if v != nil {
+		_u.SetDisplayName(*v)
+	}
+	return _u
+}
+
+// ClearDisplayName clears the value of the "display_name" field.
+func (_u *ChannelConnectionUpdateOne) ClearDisplayName() *ChannelConnectionUpdateOne {
+	_u.mutation.ClearDisplayName()
+	return _u
+}
+
+// SetHandle sets the "handle" field.
+func (_u *ChannelConnectionUpdateOne) SetHandle(v string) *ChannelConnectionUpdateOne {
+	_u.mutation.SetHandle(v)
+	return _u
+}
+
+// SetNillableHandle sets the "handle" field if the given value is not nil.
+func (_u *ChannelConnectionUpdateOne) SetNillableHandle(v *string) *ChannelConnectionUpdateOne {
+	if v != nil {
+		_u.SetHandle(*v)
+	}
+	return _u
+}
+
+// ClearHandle clears the value of the "handle" field.
+func (_u *ChannelConnectionUpdateOne) ClearHandle() *ChannelConnectionUpdateOne {
+	_u.mutation.ClearHandle()
+	return _u
+}
+
+// SetAvatarURL sets the "avatar_url" field.
+func (_u *ChannelConnectionUpdateOne) SetAvatarURL(v string) *ChannelConnectionUpdateOne {
+	_u.mutation.SetAvatarURL(v)
+	return _u
+}
+
+// SetNillableAvatarURL sets the "avatar_url" field if the given value is not nil.
+func (_u *ChannelConnectionUpdateOne) SetNillableAvatarURL(v *string) *ChannelConnectionUpdateOne {
+	if v != nil {
+		_u.SetAvatarURL(*v)
+	}
+	return _u
+}
+
+// ClearAvatarURL clears the value of the "avatar_url" field.
+func (_u *ChannelConnectionUpdateOne) ClearAvatarURL() *ChannelConnectionUpdateOne {
+	_u.mutation.ClearAvatarURL()
 	return _u
 }
 
@@ -466,6 +604,24 @@ func (_u *ChannelConnectionUpdateOne) sqlSave(ctx context.Context) (_node *Chann
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(channelconnection.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.DisplayName(); ok {
+		_spec.SetField(channelconnection.FieldDisplayName, field.TypeString, value)
+	}
+	if _u.mutation.DisplayNameCleared() {
+		_spec.ClearField(channelconnection.FieldDisplayName, field.TypeString)
+	}
+	if value, ok := _u.mutation.Handle(); ok {
+		_spec.SetField(channelconnection.FieldHandle, field.TypeString, value)
+	}
+	if _u.mutation.HandleCleared() {
+		_spec.ClearField(channelconnection.FieldHandle, field.TypeString)
+	}
+	if value, ok := _u.mutation.AvatarURL(); ok {
+		_spec.SetField(channelconnection.FieldAvatarURL, field.TypeString, value)
+	}
+	if _u.mutation.AvatarURLCleared() {
+		_spec.ClearField(channelconnection.FieldAvatarURL, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(channelconnection.FieldUpdatedAt, field.TypeTime, value)

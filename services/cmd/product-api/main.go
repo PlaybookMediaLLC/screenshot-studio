@@ -24,6 +24,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/quota"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/tenantpublishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalonboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 	"github.com/getsentry/sentry-go"
@@ -69,6 +70,15 @@ func main() {
 	}
 	configuration := product.NewConfiguration(db.Client).WithObjectStore(objects).WithAuthStore(authstore.New(db.SQL)).
 		WithAgentClients(agentclients.New(db.SQL))
+	// Live draft posts' engagement is read through the direct social publisher,
+	// which shares this database (RFC 037).
+	if publisher, closeShared, err := tenantpublishing.OpenShared(ctx, cfg.DatabaseURL, publishing.NewRepository(db.Client),
+		media.NewTenantObjects(objects)); err == nil {
+		defer closeShared()
+		configuration.WithPostMetrics(publisher)
+	} else {
+		slog.Warn("post engagement unavailable", "error", err)
+	}
 	// Content draft collaboration (RFC 037): only the backend can sign tokens.
 	if key := os.Getenv("COLLAB_TOKEN_SECRET"); key != "" {
 		configuration.WithCollabKey([]byte(key))

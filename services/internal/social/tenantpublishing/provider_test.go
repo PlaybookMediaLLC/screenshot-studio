@@ -10,6 +10,7 @@ import (
 
 	productent "github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	socialent "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
@@ -45,6 +46,7 @@ type fakePoster struct {
 	media int
 	// replies records each reply as "message>answers", in order.
 	replies []string
+	poll    *integrations.PollDetails
 	path    string
 	err     error
 	status  string
@@ -55,7 +57,7 @@ func (f *fakePoster) Post(_ context.Context, id, token string, posts []integrati
 	if id != "remote-user" || token != "private-token" || len(posts) != 1 || posts[0].ID != "canonical-post-1" {
 		return nil, errors.New("incorrect provider input")
 	}
-	f.path, f.media = posts[0].Media[0].Path, len(posts[0].Media)
+	f.path, f.media, f.poll = posts[0].Media[0].Path, len(posts[0].Media), posts[0].Poll
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -165,5 +167,25 @@ func TestDirectPublisherRejectsWrongWorkspaceBinding(t *testing.T) {
 	_, err := p.Publish(context.Background(), input)
 	if err == nil || signer.calls != 0 || poster.calls != 0 {
 		t.Fatalf("err=%v signer=%d provider=%d", err, signer.calls, poster.calls)
+	}
+}
+
+func TestDirectPublisherResumesAThreadAndReportsProgress(t *testing.T) {
+	p, _, poster, input := directFixture()
+	input.ReplyTo = "live-reply-2"
+	input.Replies = []publishing.PublishReply{{Caption: "four"}}
+	receipt, err := p.PublishThread(context.Background(), input)
+	// The resumed first part answers the live post; the rest answer it.
+	if err != nil || poster.calls != 0 || strings.Join(poster.replies, ",") != "Canary>live-reply-2,four>reply-1" ||
+		receipt.Thread.Posted != 1 || receipt.Thread.Total != 1 || receipt.Thread.LastReplyID != "reply-2" {
+		t.Fatalf("receipt=%+v err=%v replies=%v", receipt, err, poster.replies)
+	}
+}
+
+func TestDirectPublisherSendsAPoll(t *testing.T) {
+	p, _, poster, input := directFixture()
+	input.Poll = &postoptions.Poll{DurationMinutes: 90, Options: []string{"Yes", "No"}}
+	if _, err := p.Publish(context.Background(), input); err != nil || poster.poll == nil || poster.poll.Duration != 2 {
+		t.Fatalf("err=%v poll=%+v", err, poster.poll)
 	}
 }

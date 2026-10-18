@@ -34,6 +34,8 @@ type pendingData struct {
 	InlineMediaIDs map[string]string `json:"inlineMediaIds,omitempty"`
 	// Media still transcoding on X's side, waiting for STATUS = succeeded.
 	ProcessingIDs []string `json:"processingIds"`
+	// A poll on the tweet, carried until it is created.
+	Poll *integrations.PollDetails `json:"poll,omitempty"`
 	// Arm -> confirm -> publish handshake (same as the Facebook story flow):
 	// finalizePost arms without mutating, checkPostStatus witnesses, and only a
 	// witnessed attempt runs the create - so a create that dies with an unknown
@@ -362,6 +364,7 @@ func (p *Provider) PostPending(ctx context.Context, _, accessToken string, posts
 		MediaIDs:      nonEmpty(media[first.ID]),
 		CoverMediaID:  coverMediaID,
 		ProcessingIDs: processingIDs,
+		Poll:          first.Poll,
 	}
 	if len(inlineImages) > 0 {
 		pending.InlineMediaIDs = map[string]string{}
@@ -483,6 +486,10 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 	if len(mediaIDs) > 0 {
 		body.Media = &tweetMedia{MediaIDs: mediaIDs}
 	}
+	if poll := pending.Poll; poll != nil && len(poll.Options) >= 2 {
+		// X takes the duration in minutes, from 5 minutes to 7 days.
+		body.Poll = &tweetPoll{Options: poll.Options, DurationMinutes: min(max(poll.Duration*60, 5), 7*24*60)}
+	}
 	id, err := p.createTweet(ctx, token, secret, body)
 	if err != nil {
 		return nil, err
@@ -507,8 +514,15 @@ type tweetBody struct {
 	Reply              *struct {
 		InReplyToTweetID string `json:"in_reply_to_tweet_id"`
 	} `json:"reply,omitempty"`
-	MadeWithAI      bool `json:"made_with_ai"`
-	PaidPartnership bool `json:"paid_partnership"`
+	MadeWithAI      bool       `json:"made_with_ai"`
+	PaidPartnership bool       `json:"paid_partnership"`
+	Poll            *tweetPoll `json:"poll,omitempty"`
+}
+
+// tweetPoll is a poll on a tweet: 2 to 4 choices and how long it is open.
+type tweetPoll struct {
+	Options         []string `json:"options"`
+	DurationMinutes int      `json:"duration_minutes"`
 }
 
 // createTweet is the signed raw POST https://api.x.com/2/tweets through fetch.

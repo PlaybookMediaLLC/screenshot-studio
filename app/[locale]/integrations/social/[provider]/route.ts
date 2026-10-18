@@ -1,4 +1,8 @@
-import { completeSocialOAuth, selectInstagramAccount } from '@/lib/tenant/postiz-oauth-callback'
+import {
+  completeSocialOAuth,
+  isSocialOAuthProvider,
+  selectInstagramAccount,
+} from '@/lib/tenant/postiz-oauth-callback'
 import {
   exchangeSocialOAuthCallback,
   registerSocialOAuthDestination,
@@ -11,25 +15,15 @@ type Context = { params: Promise<{ provider: string }> }
 
 export async function GET(request: Request, context: Context): Promise<Response> {
   const { provider } = await context.params
-  if (!['x', 'instagram', 'instagram-standalone', 'linkedin'].includes(provider)) {
+  if (!isSocialOAuthProvider(provider)) {
     return new Response('Provider not found.', { status: 404 })
   }
   try {
     return await completeSocialOAuth(request, provider, {
       exchange: (oauthState, code) =>
-        exchangeSocialOAuthCallback(
-          request.headers,
-          provider as 'x' | 'instagram' | 'instagram-standalone' | 'linkedin',
-          oauthState,
-          code
-        ),
+        exchangeSocialOAuthCallback(request.headers, provider, oauthState, code),
       onConnected: (oauthState, integrationId) =>
-        registerSocialOAuthDestination(
-          request.headers,
-          provider as 'x' | 'instagram-standalone' | 'linkedin',
-          oauthState,
-          integrationId
-        ),
+        registerSocialOAuthDestination(request.headers, provider, oauthState, integrationId),
       onPageChoice: (oauthState, integrationId) =>
         rememberInstagramIntegration(request.headers, oauthState, integrationId),
     })

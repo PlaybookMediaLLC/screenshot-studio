@@ -14,6 +14,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/lucsky/cuid"
 )
@@ -51,20 +52,31 @@ func (e *ContentDraftVersionConflictError) Unwrap() error { return publishing.Er
 // ContentDraftRecord is a draft as the API returns it. The collaboration
 // state is not part of it.
 type ContentDraftRecord struct {
-	AssetIDs             []string       `json:"assetIds"`
-	Body                 []any          `json:"body"`
-	ChannelConnectionIDs []string       `json:"channelConnectionIds"`
-	CreatedAt            time.Time      `json:"createdAt"`
-	CreatedByUserID      *string        `json:"createdByUserId"`
-	Discussions          map[string]any `json:"discussions"`
-	ID                   string         `json:"id"`
-	OrganizationID       string         `json:"organizationId"`
-	PlainText            string         `json:"plainText"`
-	Status               string         `json:"status"`
-	Title                string         `json:"title"`
-	UpdatedAt            time.Time      `json:"updatedAt"`
-	UpdatedByUserID      *string        `json:"updatedByUserId"`
-	Version              int            `json:"version"`
+	AssetIDs             []string          `json:"assetIds"`
+	Body                 []any             `json:"body"`
+	ChannelConnectionIDs []string          `json:"channelConnectionIds"`
+	CreatedAt            time.Time         `json:"createdAt"`
+	CreatedByUserID      *string           `json:"createdByUserId"`
+	ChannelText          map[string]string `json:"channelText"`
+	Discussions          map[string]any    `json:"discussions"`
+	ID                   string            `json:"id"`
+	OrganizationID       string            `json:"organizationId"`
+	PlainText            string            `json:"plainText"`
+	Status               string            `json:"status"`
+	Title                string            `json:"title"`
+	UpdatedAt            time.Time         `json:"updatedAt"`
+	UpdatedByUserID      *string           `json:"updatedByUserId"`
+	Version              int               `json:"version"`
+	// Review before scheduling: none, pending, approved or changes_requested;
+	// approval holds for ApprovedVersion only.
+	ApprovedVersion  *int                `json:"approvedVersion"`
+	ReviewNote       *string             `json:"reviewNote"`
+	ReviewStatus     string              `json:"reviewStatus"`
+	ReviewedByUserID *string             `json:"reviewedByUserId"`
+	ShareToken       *string             `json:"shareToken"`
+	GuestComments    []map[string]string `json:"guestComments"`
+	// PublishedPosts counts the draft's live posts (lists only).
+	PublishedPosts int `json:"publishedPosts"`
 }
 
 // ContentDraftPage is one page of a workspace's drafts, newest first.
@@ -83,33 +95,37 @@ type ContentDraftListQuery struct {
 
 // ContentDraftInput is a new draft. Every field is optional.
 type ContentDraftInput struct {
-	AssetIDs             []string       `json:"assetIds"`
-	Body                 []any          `json:"body"`
-	ChannelConnectionIDs []string       `json:"channelConnectionIds"`
-	Discussions          map[string]any `json:"discussions"`
-	PlainText            string         `json:"plainText"`
-	Title                string         `json:"title"`
+	AssetIDs             []string          `json:"assetIds"`
+	Body                 []any             `json:"body"`
+	ChannelConnectionIDs []string          `json:"channelConnectionIds"`
+	ChannelText          map[string]string `json:"channelText"`
+	Discussions          map[string]any    `json:"discussions"`
+	PlainText            string            `json:"plainText"`
+	Title                string            `json:"title"`
 }
 
 // ContentDraftUpdate changes the fields it sets, based on BaseVersion.
 // Status may move between draft and archived; scheduled is set by scheduling.
 type ContentDraftUpdate struct {
-	AssetIDs             *[]string       `json:"assetIds"`
-	BaseVersion          int             `json:"baseVersion"`
-	Body                 *[]any          `json:"body"`
-	ChannelConnectionIDs *[]string       `json:"channelConnectionIds"`
-	Discussions          *map[string]any `json:"discussions"`
-	PlainText            *string         `json:"plainText"`
-	Status               *string         `json:"status"`
-	Title                *string         `json:"title"`
+	AssetIDs             *[]string          `json:"assetIds"`
+	BaseVersion          int                `json:"baseVersion"`
+	Body                 *[]any             `json:"body"`
+	ChannelConnectionIDs *[]string          `json:"channelConnectionIds"`
+	ChannelText          *map[string]string `json:"channelText"`
+	Discussions          *map[string]any    `json:"discussions"`
+	PlainText            *string            `json:"plainText"`
+	Status               *string            `json:"status"`
+	Title                *string            `json:"title"`
 }
 
 func contentDraftRecord(row *ent.ContentDraft) ContentDraftRecord {
 	return ContentDraftRecord{AssetIDs: nonNilStrings(row.AssetIds), Body: nonNilBody(row.Body),
 		ChannelConnectionIDs: nonNilStrings(row.ChannelConnectionIds), CreatedAt: row.CreatedAt,
-		CreatedByUserID: row.CreatedByUserID, Discussions: nonNilDiscussions(row.Discussions), ID: row.ID, OrganizationID: row.OrganizationID, PlainText: row.PlainText,
+		CreatedByUserID: row.CreatedByUserID, ChannelText: nonNilChannelText(row.ChannelText), Discussions: nonNilDiscussions(row.Discussions), ID: row.ID, OrganizationID: row.OrganizationID, PlainText: row.PlainText,
 		Status: string(row.Status), Title: row.Title, UpdatedAt: row.UpdatedAt, UpdatedByUserID: row.UpdatedByUserID,
-		Version: row.Version}
+		Version: row.Version, ApprovedVersion: row.ApprovedVersion, ReviewNote: row.ReviewNote,
+		ReviewStatus: string(row.ReviewStatus), ReviewedByUserID: row.ReviewedByUserID, ShareToken: row.ShareToken,
+		GuestComments: nonNilComments(row.GuestComments)}
 }
 
 func nonNilBody(body []any) []any {
@@ -124,6 +140,33 @@ func nonNilDiscussions(discussions map[string]any) map[string]any {
 		return map[string]any{}
 	}
 	return discussions
+}
+
+func nonNilChannelText(text map[string]string) map[string]string {
+	if text == nil {
+		return map[string]string{}
+	}
+	return text
+}
+
+// contentDraftChannelText checks per-channel text: a draft channel each, and
+// within contentDraftTextLimit. Empty text is dropped (the body applies).
+func contentDraftChannelText(text map[string]string) (map[string]string, error) {
+	out := map[string]string{}
+	for channel, value := range text {
+		if _, ok := draftChannelLimits[channel]; !ok {
+			return nil, invalid("Channel text is for a draft channel: x, linkedin, instagram, threads, bluesky or mastodon.")
+		}
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if len(value) > contentDraftTextLimit {
+			return nil, invalid("Keep each channel's text under the draft's text limit.")
+		}
+		out[channel] = value
+	}
+	return out, nil
 }
 
 // contentDraftDiscussions bounds the comment threads kept with a draft.
@@ -255,6 +298,10 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 	if err != nil {
 		return nil, err
 	}
+	channelText, err := contentDraftChannelText(input.ChannelText)
+	if err != nil {
+		return nil, err
+	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
@@ -269,7 +316,7 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 		return nil, err
 	}
 	row, err := tx.ContentDraft.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetTitle(title).
-		SetBody(body).SetPlainText(text).SetAssetIds(assets).SetChannelConnectionIds(channels).SetDiscussions(discussions).
+		SetBody(body).SetPlainText(text).SetAssetIds(assets).SetChannelConnectionIds(channels).SetDiscussions(discussions).SetChannelText(channelText).
 		SetNillableCreatedByUserID(projectActor(actor)).SetNillableUpdatedByUserID(projectActor(actor)).Save(ctx)
 	if err != nil {
 		return nil, err
@@ -333,8 +380,23 @@ func (c *Configuration) ListContentDrafts(ctx context.Context, actor Actor, quer
 		next := encodeTimeCursor(last.UpdatedAt, last.ID)
 		page.NextCursor = &next
 	}
+	ids := make([]string, 0, len(found))
 	for _, row := range found {
-		page.Items = append(page.Items, contentDraftRecord(row))
+		ids = append(ids, row.ID)
+	}
+	live, err := c.client.ScheduledPost.Query().Where(scheduledpost.ContentDraftIDIn(ids...),
+		scheduledpost.OrganizationID(actor.OrganizationID), scheduledpost.StatusEQ(scheduledpost.StatusPUBLISHED)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	published := map[string]int{}
+	for _, post := range live {
+		published[*post.ContentDraftID]++
+	}
+	for _, row := range found {
+		record := contentDraftRecord(row)
+		record.PublishedPosts = published[row.ID]
+		page.Items = append(page.Items, record)
 	}
 	return page, nil
 }
@@ -402,6 +464,13 @@ func applyContentDraftUpdate(ctx context.Context, tx *ent.Tx, actor Actor, updat
 		}
 		update.SetDiscussions(discussions)
 	}
+	if input.ChannelText != nil {
+		channelText, err := contentDraftChannelText(*input.ChannelText)
+		if err != nil {
+			return err
+		}
+		update.SetChannelText(channelText)
+	}
 	if input.Status != nil {
 		if *input.Status != "draft" && *input.Status != "archived" {
 			return invalid("A draft can be set to draft or archived; scheduling sets scheduled.")
@@ -439,6 +508,9 @@ func (c *Configuration) UpdateContentDraft(ctx context.Context, actor Actor, id 
 	}
 	row, err := tx.ContentDraft.Get(ctx, id)
 	if err != nil {
+		return nil, err
+	}
+	if err := recordContentDraftRevision(ctx, tx, actor, row, false); err != nil {
 		return nil, err
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_updated", "content_draft", id,

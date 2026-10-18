@@ -1,5 +1,9 @@
 package tenantpublishing
 
 func directPlatformAllowed(platform string) bool {
-	return platform == "linkedin" || platform == "x" || platform == "instagram-standalone" || e2ePlatformAllowed(platform)
+	switch platform {
+	case "linkedin", "x", "instagram-standalone", "threads", "bluesky", "mastodon":
+		return true
+	}
+	return e2ePlatformAllowed(platform)
 }

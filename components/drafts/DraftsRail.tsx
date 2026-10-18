@@ -7,20 +7,42 @@ import { Add01Icon } from 'hugeicons-react'
 import { toast } from 'sonner'
 import { draftsApi } from '@/lib/content-drafts/client'
 import { cn } from '@/lib/utils'
+import { LocalTime, useHydrated } from './local-time'
 
 export type DraftListItem = {
   excerpt: string
   id: string
+  /** Posts from the draft that are live. */
+  publishedPosts: number
   status: 'draft' | 'scheduled' | 'archived'
   title: string
   updatedAt: string
 }
 
-const TABS: { label: string; status: DraftListItem['status'] }[] = [
-  { label: 'Drafts', status: 'draft' },
-  { label: 'Scheduled', status: 'scheduled' },
-  { label: 'Archived', status: 'archived' },
+/** An upcoming post in the queue, with the draft it came from. */
+export type QueueItem = {
+  caption: string
+  draftId: string
+  id: string
+  platform: string
+  scheduledFor: string
+}
+
+/** The rail's tabs: drafts being written, the queue, what went live, the archive. */
+type RailTab = 'draft' | 'queue' | 'posted' | 'archived'
+
+const TABS: { label: string; tab: RailTab }[] = [
+  { label: 'Drafts', tab: 'draft' },
+  { label: 'Queue', tab: 'queue' },
+  { label: 'Posted', tab: 'posted' },
+  { label: 'Archived', tab: 'archived' },
 ]
+
+function inTab(draft: DraftListItem, tab: RailTab): boolean {
+  if (tab === 'posted') return draft.publishedPosts > 0
+  if (tab === 'archived') return draft.status === 'archived'
+  return draft.status === 'draft' || (draft.status === 'scheduled' && draft.publishedPosts === 0)
+}
 
 /** "5m", "3h", "2d", then a date: how long ago a draft was touched. */
 function since(iso: string): string {
@@ -32,7 +54,10 @@ function since(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 }
 
-const RailUpdate = React.createContext<(draft: DraftListItem) => void>(() => {})
+/** A saved draft's line; its live post count stays as the list had it. */
+type SavedDraft = Omit<DraftListItem, 'publishedPosts'>
+
+const RailUpdate = React.createContext<(draft: SavedDraft) => void>(() => {})
 
 /** Lets the open draft keep its line in the list current as it is saved. */
 export function useShowInRail() {
@@ -48,17 +73,28 @@ export function DraftsFrame({
   canEdit,
   children,
   drafts,
+  queue,
 }: {
   activeId?: string
   canEdit: boolean
   children: React.ReactNode
   drafts: DraftListItem[]
+  /** Upcoming posts, soonest first. */
+  queue: QueueItem[]
 }) {
-  const [saved, setSaved] = React.useState<DraftListItem | null>(null)
-  const shown = saved ? [saved, ...drafts.filter((draft) => draft.id !== saved.id)] : drafts
+  const [saved, setSaved] = React.useState<SavedDraft | null>(null)
+  const shown = saved
+    ? [
+        {
+          ...saved,
+          publishedPosts: drafts.find((draft) => draft.id === saved.id)?.publishedPosts ?? 0,
+        },
+        ...drafts.filter((draft) => draft.id !== saved.id),
+      ]
+    : drafts
   return (
     <div className="flex h-[100dvh] min-h-0 md:h-[calc(100vh-1rem-2px)]">
-      <DraftsRail activeId={activeId} canEdit={canEdit} drafts={shown} />
+      <DraftsRail activeId={activeId} canEdit={canEdit} drafts={shown} queue={queue} />
       {/* On a phone the list is the page until a draft is open. */}
       <div
         className={cn('relative min-w-0 flex-1 overflow-y-auto', !activeId && 'hidden md:block')}
@@ -73,14 +109,20 @@ function DraftsRail({
   activeId,
   canEdit,
   drafts,
+  queue,
 }: {
   activeId?: string
   canEdit: boolean
   drafts: DraftListItem[]
+  queue: QueueItem[]
 }) {
   const router = useRouter()
+  // "now" at the server render can be "1m" by hydration: count in the browser.
+  const hydrated = useHydrated()
   const active = drafts.find((draft) => draft.id === activeId)
-  const [tab, setTab] = React.useState<DraftListItem['status']>(active?.status ?? 'draft')
+  const [tab, setTab] = React.useState<RailTab>(
+    active?.status === 'archived' ? 'archived' : 'draft'
+  )
   const [creating, setCreating] = React.useState(false)
   const create = async () => {
     setCreating(true)
@@ -92,7 +134,7 @@ function DraftsRail({
       setCreating(false)
     }
   }
-  const shown = drafts.filter((draft) => draft.status === tab)
+  const shown = drafts.filter((draft) => inTab(draft, tab))
 
   return (
     <aside
@@ -104,22 +146,33 @@ function DraftsRail({
     >
       <div className="flex items-center justify-between px-4 pt-4 pb-3">
         <h1 className="text-sm font-medium text-white">Drafts</h1>
+        <div className="flex items-center gap-3 text-xs text-neutral-500">
+          <Link className="hover:text-white" href="/drafts/calendar">
+            Calendar
+          </Link>
+          <Link className="hover:text-white" href="/drafts/settings">
+            Settings
+          </Link>
+        </div>
       </div>
       <div className="px-3" role="tablist">
-        <div className="grid grid-cols-3 rounded-lg bg-white/[0.04] p-0.5">
+        <div className="grid grid-cols-4 rounded-lg bg-white/[0.04] p-0.5">
           {TABS.map((item) => {
-            const count = drafts.filter((draft) => draft.status === item.status).length
+            const count =
+              item.tab === 'queue'
+                ? queue.length
+                : drafts.filter((draft) => inTab(draft, item.tab)).length
             return (
               <button
-                aria-selected={tab === item.status}
+                aria-selected={tab === item.tab}
                 className={cn(
-                  'rounded-md px-2 py-1 text-xs transition-colors',
-                  tab === item.status
+                  'rounded-md px-1 py-1 text-[11px] transition-colors',
+                  tab === item.tab
                     ? 'bg-white/[0.08] text-white'
                     : 'text-neutral-500 hover:text-neutral-300'
                 )}
-                key={item.status}
-                onClick={() => setTab(item.status)}
+                key={item.tab}
+                onClick={() => setTab(item.tab)}
                 role="tab"
                 type="button"
               >
@@ -142,9 +195,48 @@ function DraftsRail({
         </button>
       ) : null}
       <nav className="mt-2 min-h-0 flex-1 overflow-y-auto border-t border-white/[0.06]">
-        {shown.length === 0 ? (
+        {tab === 'queue' ? (
+          queue.length === 0 ? (
+            <p className="px-4 py-6 text-xs text-neutral-500">
+              Nothing queued. Schedule a draft, or add it to the queue.
+            </p>
+          ) : (
+            queue.map((item) => (
+              <Link
+                className="block border-b border-b-white/[0.04] px-4 py-3 hover:bg-white/[0.02]"
+                data-testid="queue-item"
+                href={`/drafts/${item.draftId}`}
+                key={item.id}
+              >
+                <p className="text-[11px] text-sky-300">
+                  <LocalTime
+                    options={{
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      month: 'short',
+                      day: 'numeric',
+                      weekday: 'short',
+                    }}
+                    value={item.scheduledFor}
+                  />{' '}
+                  · {item.platform}
+                </p>
+                <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-neutral-200">
+                  {item.caption}
+                </p>
+              </Link>
+            ))
+          )
+        ) : shown.length === 0 ? (
           <p className="px-4 py-6 text-xs text-neutral-500">
-            {tab === 'draft' ? 'No drafts. Start one above.' : `Nothing ${tab}.`}
+            {
+              {
+                archived: 'Nothing archived.',
+                draft: 'No drafts. Start one above.',
+                posted: 'Nothing posted yet.',
+                queue: '',
+              }[tab]
+            }
           </p>
         ) : (
           shown.map((draft) => (
@@ -164,7 +256,10 @@ function DraftsRail({
               </p>
               <p className="mt-1.5 flex items-center justify-between text-[11px] text-neutral-500">
                 <span className="truncate">{draft.title}</span>
-                <span className="shrink-0">{since(draft.updatedAt)}</span>
+                <span className="shrink-0">
+                  {tab === 'posted' ? `${draft.publishedPosts} live · ` : ''}
+                  {hydrated ? since(draft.updatedAt) : null}
+                </span>
               </p>
             </Link>
           ))

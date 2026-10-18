@@ -32,6 +32,12 @@ type ChannelConnection struct {
 	SecretReference string `json:"secret_reference,omitempty"`
 	// Status holds the value of the "status" field.
 	Status channelconnection.Status `json:"status,omitempty"`
+	// DisplayName holds the value of the "display_name" field.
+	DisplayName *string `json:"display_name,omitempty"`
+	// Handle holds the value of the "handle" field.
+	Handle *string `json:"handle,omitempty"`
+	// AvatarURL holds the value of the "avatar_url" field.
+	AvatarURL *string `json:"avatar_url,omitempty"`
 	// CreatedByUserID holds the value of the "created_by_user_id" field.
 	CreatedByUserID string `json:"created_by_user_id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -69,7 +75,7 @@ func (*ChannelConnection) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case channelconnection.FieldProviderSettings:
 			values[i] = new([]byte)
-		case channelconnection.FieldID, channelconnection.FieldOrganizationID, channelconnection.FieldProvider, channelconnection.FieldExternalAccountID, channelconnection.FieldPlatform, channelconnection.FieldSecretReference, channelconnection.FieldStatus, channelconnection.FieldCreatedByUserID:
+		case channelconnection.FieldID, channelconnection.FieldOrganizationID, channelconnection.FieldProvider, channelconnection.FieldExternalAccountID, channelconnection.FieldPlatform, channelconnection.FieldSecretReference, channelconnection.FieldStatus, channelconnection.FieldDisplayName, channelconnection.FieldHandle, channelconnection.FieldAvatarURL, channelconnection.FieldCreatedByUserID:
 			values[i] = new(sql.NullString)
 		case channelconnection.FieldCreatedAt, channelconnection.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -137,6 +143,27 @@ func (_m *ChannelConnection) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = channelconnection.Status(value.String)
+			}
+		case channelconnection.FieldDisplayName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field display_name", values[i])
+			} else if value.Valid {
+				_m.DisplayName = new(string)
+				*_m.DisplayName = value.String
+			}
+		case channelconnection.FieldHandle:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field handle", values[i])
+			} else if value.Valid {
+				_m.Handle = new(string)
+				*_m.Handle = value.String
+			}
+		case channelconnection.FieldAvatarURL:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field avatar_url", values[i])
+			} else if value.Valid {
+				_m.AvatarURL = new(string)
+				*_m.AvatarURL = value.String
 			}
 		case channelconnection.FieldCreatedByUserID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -217,6 +244,21 @@ func (_m *ChannelConnection) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	if v := _m.DisplayName; v != nil {
+		builder.WriteString("display_name=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.Handle; v != nil {
+		builder.WriteString("handle=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.AvatarURL; v != nil {
+		builder.WriteString("avatar_url=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("created_by_user_id=")
 	builder.WriteString(_m.CreatedByUserID)

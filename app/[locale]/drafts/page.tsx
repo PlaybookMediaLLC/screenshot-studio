@@ -3,7 +3,7 @@ import { DraftsFrame } from '@/components/drafts/DraftsRail'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { hasPermission } from '@/lib/auth/permissions'
 import { listContentDrafts } from '@/lib/tenant/content-drafts'
-import { draftListItems, requireDraftsPageAccess } from './page-access'
+import { draftListItems, draftQueue, requireDraftsPageAccess } from './page-access'
 
 export const metadata: Metadata = { title: 'Drafts' }
 
@@ -14,7 +14,10 @@ type DraftsPageProps = {
 export default async function DraftsPage({ params }: DraftsPageProps) {
   const { locale } = await params
   const access = await requireDraftsPageAccess(locale, '/drafts')
-  const page = await listContentDrafts(access.tenant, { limit: 100 })
+  const [page, queue] = await Promise.all([
+    listContentDrafts(access.tenant, { limit: 100 }),
+    draftQueue(access.tenant),
+  ])
 
   return (
     <PlatformShell
@@ -24,6 +27,7 @@ export default async function DraftsPage({ params }: DraftsPageProps) {
       <DraftsFrame
         canEdit={hasPermission(access.role, 'artifact:edit')}
         drafts={draftListItems(page.items)}
+        queue={queue}
       >
         <div className="flex h-full items-center justify-center p-8 text-center">
           <div>

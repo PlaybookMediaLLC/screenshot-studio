@@ -125,9 +125,19 @@ export type ChannelConnection = {
   provider: string
   providerSettings: Record<string, unknown>
   status: 'ACTIVE' | 'DISABLED' | 'REVOKED'
+  /** The account as its platform shows it, once Postiz has named it. */
+  avatarUrl?: string | null
+  displayName?: string | null
+  handle?: string | null
 }
 
-export type OAuthProvider = 'x' | 'instagram' | 'instagram-standalone' | 'linkedin'
+export type OAuthProvider =
+  | 'x'
+  | 'instagram'
+  | 'instagram-standalone'
+  | 'linkedin'
+  | 'threads'
+  | 'mastodon'
 export type OAuthExchange = {
   id: string
   pages?: { id: string; pageId: string; name?: string | null }[]
@@ -767,6 +777,8 @@ export type BackendContentDraft = {
   channelConnectionIds: string[]
   createdAt: string
   createdByUserId: string | null
+  /** Text a channel posts instead of the body's, by channel. */
+  channelText: Record<string, string>
   /** Comment threads on the body and their authors, as the editor keeps them. */
   discussions: Record<string, unknown>
   id: string
@@ -778,12 +790,69 @@ export type BackendContentDraft = {
   updatedByUserId: string | null
   /** Every update is based on this; a stale one is refused with 409 and `currentVersion`. */
   version: number
+  /** Review before scheduling; approval holds for `approvedVersion` only. */
+  approvedVersion: number | null
+  reviewNote: string | null
+  reviewStatus: 'none' | 'pending' | 'approved' | 'changes_requested'
+  reviewedByUserId: string | null
+  /** The read-and-comment link's token, while the link is on. */
+  shareToken: string | null
+  /** Comments guests left through that link. */
+  guestComments: { createdAt: string; name: string; text: string }[]
+  /** The draft's live posts (lists only). */
+  publishedPosts: number
 }
+
+/** A workspace's drafts settings: its queue's weekly slots and approvals. */
+export type BackendContentDraftSettings = {
+  postingSlots: { time: string; weekday: number }[]
+  requireApproval: boolean
+  timeZone: string
+}
+
+/** A draft post on the calendar or in the queue, with its draft's title. */
+export type BackendCalendarPost = BackendContentDraftPost & { draftId: string; draftTitle: string }
+
+/** A suggested posting time and why. */
+export type BackendBestTime = { at: string; reason: string }
+
+/** A saved point in a draft's history; `body` only when one is read. */
+export type BackendContentDraftRevision = {
+  body?: unknown[]
+  createdAt: string
+  createdByUserId: string | null
+  id: string
+  plainText: string
+  title: string
+  version: number
+}
+
+/** What a share link shows a guest. */
+export type BackendSharedContentDraft = {
+  body: unknown[]
+  guestComments: { createdAt: string; name: string; text: string }[]
+  plainText: string
+  title: string
+  updatedAt: string
+}
+
+/** A live post's follow-ups (X): repost and reply at a like count, quote after hours. */
+export type BackendAutoActions = {
+  plugAtLikes?: number
+  plugText?: string
+  quoteAfterHours?: number
+  quoteText?: string
+  repostAtLikes?: number
+}
+
+/** A poll on a post (X): 2 to 4 choices, open 5 minutes to 7 days. */
+export type BackendPoll = { durationMinutes: number; options: string[] }
 
 export type BackendContentDraftInput = {
   assetIds?: string[]
   body?: unknown[]
   channelConnectionIds?: string[]
+  channelText?: Record<string, string>
   discussions?: Record<string, unknown>
   plainText?: string
   title?: string
@@ -803,6 +872,13 @@ export type BackendContentDraftPost = {
   platform: string
   scheduledFor: string
   status: ScheduledPostStatus
+  /** Once live: engagement as last read, and the post on its platform. */
+  metrics: Record<string, number> | null
+  metricsAt: string | null
+  url: string | null
+  /** A thread: its reply count and how many went out. */
+  replies: number
+  threadProgress: { lastReplyId?: string; posted: number; total: number }
 }
 
 /** One channel of a draft schedule and the caption serialized for it. */
@@ -811,8 +887,10 @@ export type BackendContentDraftScheduleTarget = {
   assetIds?: string[]
   caption: string
   channelConnectionId: string
-  /** A thread's later posts, posted as replies to the first (X only). */
+  /** A thread's later posts, posted as replies to the first. */
   replies?: { assetIds: string[]; caption: string }[]
+  autoActions?: BackendAutoActions
+  poll?: BackendPoll
 }
 
 export type BackendContentDraftListQuery = {
@@ -2161,6 +2239,98 @@ export class ScreenshotStudioBackendSDK {
   async listContentDraftPosts(id: string) {
     return this.request<{ posts: BackendContentDraftPost[] }>(
       `v1/content-drafts/${encodeURIComponent(id)}/posts`
+    )
+  }
+
+  async getContentDraftSettings() {
+    return this.request<BackendContentDraftSettings>('v1/content-draft-settings')
+  }
+
+  async updateContentDraftSettings(input: {
+    postingSlots?: { time: string; weekday: number }[]
+    requireApproval?: boolean
+  }) {
+    return this.request<BackendContentDraftSettings>('v1/content-draft-settings', {
+      body: input,
+      method: 'PUT',
+    })
+  }
+
+  /** The queue's next free slot. */
+  async nextContentDraftQueueSlot() {
+    return this.request<{ scheduledFor: string }>('v1/content-draft-queue/next')
+  }
+
+  async bestPostingTimes() {
+    return this.request<{ items: BackendBestTime[] }>('v1/content-draft-queue/best-times')
+  }
+
+  /** Draft posts due in [from, to), for the calendar and the queue. */
+  async listContentDraftPostsBetween(from: Date, to: Date) {
+    const params = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() })
+    return this.request<{ items: BackendCalendarPost[] }>(`v1/content-draft-posts?${params}`)
+  }
+
+  async moveContentDraftPost(id: string, scheduledFor: Date) {
+    return this.request<{ post: BackendContentDraftPost }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/move`,
+      { body: { scheduledFor }, method: 'POST' }
+    )
+  }
+
+  /** Post the rest of a thread that stopped partway. */
+  async resumeContentDraftThread(id: string) {
+    return this.request<{ post: BackendContentDraftPost }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/resume`,
+      { body: {}, method: 'POST' }
+    )
+  }
+
+  async refreshContentDraftPostMetrics(id: string) {
+    return this.request<BackendContentDraftPost>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/metrics`,
+      { body: {}, method: 'POST' }
+    )
+  }
+
+  async reviewContentDraft(id: string, input: { action: 'request' | 'approve' | 'changes'; note?: string }) {
+    return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}/review`, {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async shareContentDraft(id: string, enabled: boolean) {
+    return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}/share`, {
+      body: { enabled },
+      method: 'PUT',
+    })
+  }
+
+  async listContentDraftRevisions(id: string) {
+    return this.request<{ items: BackendContentDraftRevision[] }>(
+      `v1/content-drafts/${encodeURIComponent(id)}/revisions`
+    )
+  }
+
+  async getContentDraftRevision(id: string, revisionId: string) {
+    return this.request<BackendContentDraftRevision>(
+      `v1/content-drafts/${encodeURIComponent(id)}/revisions/${encodeURIComponent(revisionId)}`
+    )
+  }
+
+  /** A guest's view of a shared draft (service credential). */
+  async getSharedContentDraft(token: string) {
+    return this.request<BackendSharedContentDraft>(
+      `v1/internal/content-draft-shares/${encodeURIComponent(token)}`
+    )
+  }
+
+  /** A guest's comment on a shared draft (service credential). */
+  async addGuestComment(token: string, input: { name: string; text: string }) {
+    return this.request<BackendSharedContentDraft>(
+      `v1/internal/content-draft-shares/${encodeURIComponent(token)}/comments`,
+      { body: input, method: 'POST' }
     )
   }
 

@@ -583,6 +583,9 @@ var (
 		{Name: "providerSettings", Type: field.TypeJSON},
 		{Name: "secretReference", Type: field.TypeString},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"ACTIVE", "DISABLED", "REVOKED"}, Default: "ACTIVE"},
+		{Name: "displayName", Type: field.TypeString, Nullable: true},
+		{Name: "handle", Type: field.TypeString, Nullable: true},
+		{Name: "avatarUrl", Type: field.TypeString, Nullable: true},
 		{Name: "createdByUserId", Type: field.TypeString},
 		{Name: "createdAt", Type: field.TypeTime},
 		{Name: "updatedAt", Type: field.TypeTime},
@@ -601,7 +604,7 @@ var (
 			{
 				Name:    "channelconnection_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{ChannelConnectionColumns[1], ChannelConnectionColumns[9]},
+				Columns: []*schema.Column{ChannelConnectionColumns[1], ChannelConnectionColumns[12]},
 			},
 		},
 	}
@@ -704,7 +707,14 @@ var (
 		{Name: "assetIds", Type: field.TypeJSON},
 		{Name: "channelConnectionIds", Type: field.TypeJSON},
 		{Name: "discussions", Type: field.TypeJSON},
+		{Name: "channelText", Type: field.TypeJSON},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"draft", "scheduled", "archived"}, Default: "draft"},
+		{Name: "reviewStatus", Type: field.TypeEnum, Enums: []string{"none", "pending", "approved", "changes_requested"}, Default: "none"},
+		{Name: "approvedVersion", Type: field.TypeInt, Nullable: true},
+		{Name: "reviewedByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "reviewNote", Type: field.TypeString, Nullable: true},
+		{Name: "shareToken", Type: field.TypeString, Nullable: true},
+		{Name: "guestComments", Type: field.TypeJSON},
 		{Name: "version", Type: field.TypeInt, Default: 1},
 		{Name: "collabState", Type: field.TypeBytes, Nullable: true},
 		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
@@ -721,9 +731,47 @@ var (
 			{
 				Name:    "contentdraft_organizationId_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[14]},
+				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[21]},
 			},
 		},
+	}
+	// ContentDraftRevisionColumns holds the columns for the "content_draft_revision" table.
+	ContentDraftRevisionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "contentDraftId", Type: field.TypeString},
+		{Name: "version", Type: field.TypeInt},
+		{Name: "title", Type: field.TypeString},
+		{Name: "body", Type: field.TypeJSON},
+		{Name: "plainText", Type: field.TypeString},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// ContentDraftRevisionTable holds the schema information for the "content_draft_revision" table.
+	ContentDraftRevisionTable = &schema.Table{
+		Name:       "content_draft_revision",
+		Columns:    ContentDraftRevisionColumns,
+		PrimaryKey: []*schema.Column{ContentDraftRevisionColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "contentdraftrevision_contentDraftId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ContentDraftRevisionColumns[2], ContentDraftRevisionColumns[8]},
+			},
+		},
+	}
+	// ContentDraftSettingsColumns holds the columns for the "content_draft_settings" table.
+	ContentDraftSettingsColumns = []*schema.Column{
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "postingSlots", Type: field.TypeJSON},
+		{Name: "requireApproval", Type: field.TypeBool, Default: false},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ContentDraftSettingsTable holds the schema information for the "content_draft_settings" table.
+	ContentDraftSettingsTable = &schema.Table{
+		Name:       "content_draft_settings",
+		Columns:    ContentDraftSettingsColumns,
+		PrimaryKey: []*schema.Column{ContentDraftSettingsColumns[0]},
 	}
 	// ConversationColumns holds the columns for the "conversation" table.
 	ConversationColumns = []*schema.Column{
@@ -1681,6 +1729,13 @@ var (
 		{Name: "assetId", Type: field.TypeString, Nullable: true},
 		{Name: "assetIds", Type: field.TypeJSON, Nullable: true},
 		{Name: "replies", Type: field.TypeJSON, Nullable: true},
+		{Name: "replyTo", Type: field.TypeString, Nullable: true},
+		{Name: "threadProgress", Type: field.TypeJSON, Nullable: true},
+		{Name: "remotePostId", Type: field.TypeString, Nullable: true},
+		{Name: "metrics", Type: field.TypeJSON, Nullable: true},
+		{Name: "metricsAt", Type: field.TypeTime, Nullable: true},
+		{Name: "autoActions", Type: field.TypeJSON, Nullable: true},
+		{Name: "poll", Type: field.TypeJSON, Nullable: true},
 		{Name: "scheduledFor", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "SCHEDULED", "PROCESSING", "PUBLISHED", "FAILED", "CANCELLED", "UNKNOWN_DELIVERY"}, Default: "DRAFT"},
 		{Name: "caption", Type: field.TypeString},
@@ -1698,7 +1753,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "scheduled_post_channel_connection_scheduled_posts",
-				Columns:    []*schema.Column{ScheduledPostColumns[14]},
+				Columns:    []*schema.Column{ScheduledPostColumns[21]},
 				RefColumns: []*schema.Column{ChannelConnectionColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1707,17 +1762,17 @@ var (
 			{
 				Name:    "scheduledpost_channelConnectionId_idempotencyKey",
 				Unique:  true,
-				Columns: []*schema.Column{ScheduledPostColumns[14], ScheduledPostColumns[10]},
+				Columns: []*schema.Column{ScheduledPostColumns[21], ScheduledPostColumns[17]},
 			},
 			{
 				Name:    "scheduledpost_organizationId_status_scheduledFor",
 				Unique:  false,
-				Columns: []*schema.Column{ScheduledPostColumns[1], ScheduledPostColumns[8], ScheduledPostColumns[7]},
+				Columns: []*schema.Column{ScheduledPostColumns[1], ScheduledPostColumns[15], ScheduledPostColumns[14]},
 			},
 			{
 				Name:    "scheduledpost_status_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ScheduledPostColumns[8], ScheduledPostColumns[13]},
+				Columns: []*schema.Column{ScheduledPostColumns[15], ScheduledPostColumns[20]},
 			},
 			{
 				Name:    "scheduledpost_contentDraftId",
@@ -2226,6 +2281,8 @@ var (
 		CommunicationRecipientTable,
 		ContentAngleTable,
 		ContentDraftTable,
+		ContentDraftRevisionTable,
+		ContentDraftSettingsTable,
 		ConversationTable,
 		ConversationMessageTable,
 		CreativeTemplateTable,
@@ -2347,6 +2404,12 @@ func init() {
 	}
 	ContentDraftTable.Annotation = &entsql.Annotation{
 		Table: "content_draft",
+	}
+	ContentDraftRevisionTable.Annotation = &entsql.Annotation{
+		Table: "content_draft_revision",
+	}
+	ContentDraftSettingsTable.Annotation = &entsql.Annotation{
+		Table: "content_draft_settings",
 	}
 	ConversationTable.Annotation = &entsql.Annotation{
 		Table: "conversation",

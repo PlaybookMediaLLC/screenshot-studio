@@ -14,6 +14,7 @@ import (
 
 	productent "github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	socialdatabase "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database"
 	socialent "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
@@ -83,77 +84,209 @@ func (r EntIntegrationLookup) FindIntegration(ctx context.Context, orgID, destin
 func (*Publisher) PublishesSynchronously() bool { return true }
 
 func (p *Publisher) Publish(ctx context.Context, input postiz.PublishInput) (string, error) {
+	receipt, err := p.PublishThread(ctx, input)
+	return receipt.PostID, err
+}
+
+// account resolves the workspace's connected account and its provider for a
+// publication, refusing a credential that is not the workspace's or has lapsed.
+func (p *Publisher) account(ctx context.Context, organizationID, destinationID, platform, secretReference string,
+	providerSettings map[string]any) (*socialent.Integration, poster, json.RawMessage, error) {
 	if p.bindings == nil || p.integrations == nil || p.signer == nil || p.resolve == nil {
-		return "", postiz.NewError(http.StatusServiceUnavailable, false, "direct publisher is not configured")
+		return nil, nil, nil, postiz.NewError(http.StatusServiceUnavailable, false, "direct publisher is not configured")
 	}
-	if input.OrganizationID == "" || input.DestinationID == "" || input.Platform == "" || input.PostID == "" {
-		return "", postiz.NewError(http.StatusBadRequest, false, "incomplete publication request")
-	}
-	binding, err := p.bindings.Binding(ctx, input.OrganizationID)
+	binding, err := p.bindings.Binding(ctx, organizationID)
 	if err != nil {
-		return "", postiz.NewError(http.StatusConflict, false, "workspace has no social connection binding")
+		return nil, nil, nil, postiz.NewError(http.StatusConflict, false, "workspace has no social connection binding")
 	}
-	if binding.SecretReference != input.SecretReference {
-		return "", postiz.NewError(http.StatusForbidden, false, "social credential does not belong to workspace")
+	if binding.SecretReference != secretReference {
+		return nil, nil, nil, postiz.NewError(http.StatusForbidden, false, "social credential does not belong to workspace")
 	}
-	account, err := p.integrations.FindIntegration(ctx, binding.GoOrganizationID, input.DestinationID, input.Platform)
+	account, err := p.integrations.FindIntegration(ctx, binding.GoOrganizationID, destinationID, platform)
 	if err != nil {
-		return "", err
+		return nil, nil, nil, err
 	}
 	if account.Disabled || account.RefreshNeeded || account.Token == "" ||
 		account.TokenExpiration != nil && !account.TokenExpiration.After(p.currentTime()) {
-		return "", postiz.NewError(http.StatusConflict, false, "social credentials have expired or been disabled")
+		return nil, nil, nil, postiz.NewError(http.StatusConflict, false, "social credentials have expired or been disabled")
 	}
-	provider := p.resolve(input.Platform)
-	if provider == nil || !directPlatformAllowed(input.Platform) {
-		return "", postiz.NewError(http.StatusBadRequest, false, "social provider is unsupported")
+	provider := p.resolve(platform)
+	if provider == nil || !directPlatformAllowed(platform) {
+		return nil, nil, nil, postiz.NewError(http.StatusBadRequest, false, "social provider is unsupported")
 	}
-	providerSettings := input.ProviderSettings
 	if providerSettings == nil {
 		providerSettings = map[string]any{}
 	}
 	settings, err := json.Marshal(providerSettings)
 	if err != nil {
-		return "", postiz.NewError(http.StatusBadRequest, false, "invalid provider settings")
+		return nil, nil, nil, postiz.NewError(http.StatusBadRequest, false, "invalid provider settings")
+	}
+	return account, provider, settings, nil
+}
+
+// pollDetails is a poll as providers take it: whole hours, at least one.
+func pollDetails(poll *postoptions.Poll) *integrations.PollDetails {
+	if poll == nil || len(poll.Options) < 2 {
+		return nil
+	}
+	return &integrations.PollDetails{Options: poll.Options, Duration: max(1, (poll.DurationMinutes+59)/60)}
+}
+
+// publicationOutcome maps a provider failure: reconnect, or an outcome the
+// remote account must be checked for before any retry.
+func publicationOutcome(err error) error {
+	if temporalx.FailureType(err) == temporalx.TypeRefreshToken || temporalx.FailureType(err) == temporalx.TypeDisconnect {
+		return postiz.NewError(http.StatusConflict, false, "social credentials must be reconnected")
+	}
+	// The provider may have accepted the post before the call failed. A
+	// reconciliation step must inspect the remote account before retrying.
+	return postiz.NewError(http.StatusBadGateway, true, "social publication outcome is unknown")
+}
+
+// PublishThread publishes the post, or answers ReplyTo when it resumes a
+// thread, then its replies; the receipt says how far the thread got.
+func (p *Publisher) PublishThread(ctx context.Context, input postiz.PublishInput) (postiz.Receipt, error) {
+	if input.OrganizationID == "" || input.DestinationID == "" || input.Platform == "" || input.PostID == "" {
+		return postiz.Receipt{}, postiz.NewError(http.StatusBadRequest, false, "incomplete publication request")
+	}
+	account, provider, settings, err := p.account(ctx, input.OrganizationID, input.DestinationID, input.Platform,
+		input.SecretReference, input.ProviderSettings)
+	if err != nil {
+		return postiz.Receipt{}, err
 	}
 	// A content draft post without an image publishes as text (RFC 037).
 	media, err := p.signedMedia(ctx, input.OrganizationID, input.Media())
 	if err != nil {
-		return "", err
+		return postiz.Receipt{}, err
 	}
-	response, err := provider.Post(ctx, account.InternalID, account.Token, []integrations.PostDetails{{
-		ID: input.PostID, Message: input.Caption, Settings: settings, Media: media,
-	}}, account)
-	if err != nil {
-		if temporalx.FailureType(err) == temporalx.TypeRefreshToken || temporalx.FailureType(err) == temporalx.TypeDisconnect {
-			return "", postiz.NewError(http.StatusConflict, false, "social credentials must be reconnected")
+	details := []integrations.PostDetails{{
+		ID: input.PostID, Message: input.Caption, Settings: settings, Media: media, Poll: pollDetails(input.Poll),
+	}}
+	var response []integrations.PostResponse
+	if input.ReplyTo != "" {
+		commenter, ok := provider.(integrations.Commenter)
+		if !ok {
+			return postiz.Receipt{}, postiz.NewError(http.StatusBadRequest, false, "this provider cannot continue a thread")
 		}
-		// The provider may have accepted the post before the call failed. A
-		// reconciliation step must inspect the remote account before retrying.
-		return "", postiz.NewError(http.StatusBadGateway, true, "social publication outcome is unknown")
+		response, err = commenter.Comment(ctx, account.InternalID, input.ReplyTo, "", account.Token, details, account)
+		if err == nil && len(response) == 1 && response[0].PostID != "" && response[0].Status == "" {
+			response[0].Status = "posted"
+		}
+	} else {
+		response, err = provider.Post(ctx, account.InternalID, account.Token, details, account)
+	}
+	if err != nil {
+		return postiz.Receipt{}, publicationOutcome(err)
 	}
 	if len(response) != 1 || response[0].PostID == "" ||
 		response[0].Status != "posted" && response[0].Status != "success" {
-		return "", postiz.NewError(http.StatusBadGateway, true, "provider returned no confirmed post receipt")
+		return postiz.Receipt{}, postiz.NewError(http.StatusBadGateway, true, "provider returned no confirmed post receipt")
 	}
-	p.postReplies(ctx, provider, account, input, settings, response[0].PostID)
-	return response[0].PostID, nil
+	progress := p.postReplies(ctx, provider, account, input, settings, response[0].PostID)
+	return postiz.Receipt{PostID: response[0].PostID, Thread: progress}, nil
+}
+
+// metricNames maps provider analytics labels to the draft's metric names.
+var metricNames = map[string]string{
+	"impressions": "impressions", "likes": "likes", "retweets": "reposts", "reposts": "reposts",
+	"replies": "replies", "comments": "replies", "quotes": "quotes", "bookmarks": "bookmarks",
+	"shares": "reposts", "reactions": "likes", "views": "impressions",
+}
+
+// PostMetrics reads a live post's engagement through its provider; a
+// provider without post analytics has none.
+func (p *Publisher) PostMetrics(ctx context.Context, organizationID, destinationID, platform, secretReference,
+	remotePostID string) (postoptions.Metrics, error) {
+	account, provider, _, err := p.account(ctx, organizationID, destinationID, platform, secretReference, nil)
+	if err != nil {
+		return nil, err
+	}
+	reader, ok := provider.(integrations.PostAnalytics)
+	if !ok {
+		return postoptions.Metrics{}, nil
+	}
+	series, err := reader.PostAnalytics(ctx, account.InternalID, account.Token, remotePostID, 0)
+	if err != nil {
+		return nil, err
+	}
+	metrics := postoptions.Metrics{}
+	for _, item := range series {
+		name, known := metricNames[strings.ToLower(item.Label)]
+		if !known || len(item.Data) == 0 {
+			continue
+		}
+		var total float64
+		if _, err := fmt.Sscan(fmt.Sprint(item.Data[len(item.Data)-1].Total), &total); err == nil {
+			metrics[name] += total
+		}
+	}
+	return metrics, nil
+}
+
+// autoActor is a provider's like-gated follow-ups (X).
+type autoActor interface {
+	AutoRepostPost(context.Context, *socialent.Integration, string, map[string]string) (bool, error)
+	AutoPlugPost(context.Context, *socialent.Integration, string, map[string]string) (bool, error)
+}
+
+// AutoAct runs a live post's follow-ups that are due: a repost and a plug
+// reply once it has enough likes, and a quote (the text with a link to the
+// post). One the provider cannot do reports done, so it is not tried again.
+func (p *Publisher) AutoAct(ctx context.Context, input postiz.AutoActionInput) (postiz.AutoActionResult, error) {
+	result := postiz.AutoActionResult{Plugged: !input.Plug, Quoted: !input.Quote, Reposted: !input.Repost}
+	account, provider, settings, err := p.account(ctx, input.OrganizationID, input.DestinationID, input.Platform,
+		input.SecretReference, nil)
+	if err != nil {
+		return result, err
+	}
+	auto, ok := provider.(autoActor)
+	if input.Repost {
+		result.Reposted = !ok
+		if ok {
+			done, err := auto.AutoRepostPost(ctx, account, input.RemotePostID, map[string]string{"likesAmount": fmt.Sprint(input.RepostAtLikes)})
+			result.Reposted = err == nil && done
+		}
+	}
+	if input.Plug {
+		result.Plugged = !ok
+		if ok {
+			done, err := auto.AutoPlugPost(ctx, account, input.RemotePostID,
+				map[string]string{"likesAmount": fmt.Sprint(input.PlugAtLikes), "post": input.PlugText})
+			result.Plugged = err == nil && done
+		}
+	}
+	if input.Quote {
+		link := input.PostURL
+		if link == "" && input.Platform == "x" {
+			link = "https://x.com/i/status/" + input.RemotePostID
+		}
+		_, err := provider.Post(ctx, account.InternalID, account.Token, []integrations.PostDetails{{
+			ID: input.RemotePostID + "-quote", Message: strings.TrimSpace(input.QuoteText + " " + link), Settings: settings,
+		}}, account)
+		// Quoting once is the point: a failed quote is not retried into a duplicate.
+		result.Quoted = true
+		if err != nil {
+			slog.ErrorContext(ctx, "quote post failed", "post", input.RemotePostID, "error", err)
+		}
+	}
+	return result, nil
 }
 
 // postReplies posts a thread's later posts, each answering the one before.
 // The first post is already live, so a reply that fails ends the thread
-// there and is logged: retrying the publication would post the first again.
-// ponytail: a failed reply is not surfaced to the composer yet; record it on
-// the post when a partial thread needs to be visible.
+// there rather than retrying the publication (which would post the first
+// again). The progress it returns is kept on the post, and the composer
+// offers to post the rest.
 func (p *Publisher) postReplies(ctx context.Context, provider poster, account *socialent.Integration,
-	input postiz.PublishInput, settings json.RawMessage, postID string) {
+	input postiz.PublishInput, settings json.RawMessage, postID string) postoptions.ThreadProgress {
+	progress := postoptions.ThreadProgress{Total: len(input.Replies)}
 	if len(input.Replies) == 0 {
-		return
+		return progress
 	}
 	commenter, ok := provider.(integrations.Commenter)
 	if !ok {
 		slog.WarnContext(ctx, "provider cannot post thread replies", "platform", input.Platform, "post", input.PostID)
-		return
+		return progress
 	}
 	last := ""
 	for index, reply := range input.Replies {
@@ -168,12 +301,14 @@ func (p *Publisher) postReplies(ctx context.Context, provider poster, account *s
 			}
 			if err == nil {
 				last = response[0].PostID
+				progress.Posted, progress.LastReplyID = index+1, last
 				continue
 			}
 		}
 		slog.ErrorContext(ctx, "thread reply was not posted", "post", input.PostID, "reply", index+1, "error", err)
-		return
+		return progress
 	}
+	return progress
 }
 
 // signedMedia signs each private file for the provider to fetch, in order.

@@ -79,6 +79,26 @@ func PlainText(v string) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldEQ(FieldPlainText, v))
 }
 
+// ApprovedVersion applies equality check predicate on the "approved_version" field. It's identical to ApprovedVersionEQ.
+func ApprovedVersion(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldApprovedVersion, v))
+}
+
+// ReviewedByUserID applies equality check predicate on the "reviewed_by_user_id" field. It's identical to ReviewedByUserIDEQ.
+func ReviewedByUserID(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldReviewedByUserID, v))
+}
+
+// ReviewNote applies equality check predicate on the "review_note" field. It's identical to ReviewNoteEQ.
+func ReviewNote(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldReviewNote, v))
+}
+
+// ShareToken applies equality check predicate on the "share_token" field. It's identical to ShareTokenEQ.
+func ShareToken(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldShareToken, v))
+}
+
 // Version applies equality check predicate on the "version" field. It's identical to VersionEQ.
 func Version(v int) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldEQ(FieldVersion, v))
@@ -322,6 +342,301 @@ func StatusIn(vs ...Status) predicate.ContentDraft {
 // StatusNotIn applies the NotIn predicate on the "status" field.
 func StatusNotIn(vs ...Status) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldNotIn(FieldStatus, vs...))
+}
+
+// ReviewStatusEQ applies the EQ predicate on the "review_status" field.
+func ReviewStatusEQ(v ReviewStatus) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldReviewStatus, v))
+}
+
+// ReviewStatusNEQ applies the NEQ predicate on the "review_status" field.
+func ReviewStatusNEQ(v ReviewStatus) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldReviewStatus, v))
+}
+
+// ReviewStatusIn applies the In predicate on the "review_status" field.
+func ReviewStatusIn(vs ...ReviewStatus) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldReviewStatus, vs...))
+}
+
+// ReviewStatusNotIn applies the NotIn predicate on the "review_status" field.
+func ReviewStatusNotIn(vs ...ReviewStatus) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldReviewStatus, vs...))
+}
+
+// ApprovedVersionEQ applies the EQ predicate on the "approved_version" field.
+func ApprovedVersionEQ(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldApprovedVersion, v))
+}
+
+// ApprovedVersionNEQ applies the NEQ predicate on the "approved_version" field.
+func ApprovedVersionNEQ(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldApprovedVersion, v))
+}
+
+// ApprovedVersionIn applies the In predicate on the "approved_version" field.
+func ApprovedVersionIn(vs ...int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldApprovedVersion, vs...))
+}
+
+// ApprovedVersionNotIn applies the NotIn predicate on the "approved_version" field.
+func ApprovedVersionNotIn(vs ...int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldApprovedVersion, vs...))
+}
+
+// ApprovedVersionGT applies the GT predicate on the "approved_version" field.
+func ApprovedVersionGT(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGT(FieldApprovedVersion, v))
+}
+
+// ApprovedVersionGTE applies the GTE predicate on the "approved_version" field.
+func ApprovedVersionGTE(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGTE(FieldApprovedVersion, v))
+}
+
+// ApprovedVersionLT applies the LT predicate on the "approved_version" field.
+func ApprovedVersionLT(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLT(FieldApprovedVersion, v))
+}
+
+// ApprovedVersionLTE applies the LTE predicate on the "approved_version" field.
+func ApprovedVersionLTE(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLTE(FieldApprovedVersion, v))
+}
+
+// ApprovedVersionIsNil applies the IsNil predicate on the "approved_version" field.
+func ApprovedVersionIsNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIsNull(FieldApprovedVersion))
+}
+
+// ApprovedVersionNotNil applies the NotNil predicate on the "approved_version" field.
+func ApprovedVersionNotNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotNull(FieldApprovedVersion))
+}
+
+// ReviewedByUserIDEQ applies the EQ predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDEQ(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldReviewedByUserID, v))
+}
+
+// ReviewedByUserIDNEQ applies the NEQ predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDNEQ(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldReviewedByUserID, v))
+}
+
+// ReviewedByUserIDIn applies the In predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDIn(vs ...string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldReviewedByUserID, vs...))
+}
+
+// ReviewedByUserIDNotIn applies the NotIn predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDNotIn(vs ...string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldReviewedByUserID, vs...))
+}
+
+// ReviewedByUserIDGT applies the GT predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDGT(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGT(FieldReviewedByUserID, v))
+}
+
+// ReviewedByUserIDGTE applies the GTE predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDGTE(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGTE(FieldReviewedByUserID, v))
+}
+
+// ReviewedByUserIDLT applies the LT predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDLT(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLT(FieldReviewedByUserID, v))
+}
+
+// ReviewedByUserIDLTE applies the LTE predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDLTE(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLTE(FieldReviewedByUserID, v))
+}
+
+// ReviewedByUserIDContains applies the Contains predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDContains(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldContains(FieldReviewedByUserID, v))
+}
+
+// ReviewedByUserIDHasPrefix applies the HasPrefix predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDHasPrefix(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldHasPrefix(FieldReviewedByUserID, v))
+}
+
+// ReviewedByUserIDHasSuffix applies the HasSuffix predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDHasSuffix(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldHasSuffix(FieldReviewedByUserID, v))
+}
+
+// ReviewedByUserIDIsNil applies the IsNil predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDIsNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIsNull(FieldReviewedByUserID))
+}
+
+// ReviewedByUserIDNotNil applies the NotNil predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDNotNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotNull(FieldReviewedByUserID))
+}
+
+// ReviewedByUserIDEqualFold applies the EqualFold predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDEqualFold(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEqualFold(FieldReviewedByUserID, v))
+}
+
+// ReviewedByUserIDContainsFold applies the ContainsFold predicate on the "reviewed_by_user_id" field.
+func ReviewedByUserIDContainsFold(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldContainsFold(FieldReviewedByUserID, v))
+}
+
+// ReviewNoteEQ applies the EQ predicate on the "review_note" field.
+func ReviewNoteEQ(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldReviewNote, v))
+}
+
+// ReviewNoteNEQ applies the NEQ predicate on the "review_note" field.
+func ReviewNoteNEQ(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldReviewNote, v))
+}
+
+// ReviewNoteIn applies the In predicate on the "review_note" field.
+func ReviewNoteIn(vs ...string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldReviewNote, vs...))
+}
+
+// ReviewNoteNotIn applies the NotIn predicate on the "review_note" field.
+func ReviewNoteNotIn(vs ...string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldReviewNote, vs...))
+}
+
+// ReviewNoteGT applies the GT predicate on the "review_note" field.
+func ReviewNoteGT(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGT(FieldReviewNote, v))
+}
+
+// ReviewNoteGTE applies the GTE predicate on the "review_note" field.
+func ReviewNoteGTE(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGTE(FieldReviewNote, v))
+}
+
+// ReviewNoteLT applies the LT predicate on the "review_note" field.
+func ReviewNoteLT(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLT(FieldReviewNote, v))
+}
+
+// ReviewNoteLTE applies the LTE predicate on the "review_note" field.
+func ReviewNoteLTE(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLTE(FieldReviewNote, v))
+}
+
+// ReviewNoteContains applies the Contains predicate on the "review_note" field.
+func ReviewNoteContains(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldContains(FieldReviewNote, v))
+}
+
+// ReviewNoteHasPrefix applies the HasPrefix predicate on the "review_note" field.
+func ReviewNoteHasPrefix(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldHasPrefix(FieldReviewNote, v))
+}
+
+// ReviewNoteHasSuffix applies the HasSuffix predicate on the "review_note" field.
+func ReviewNoteHasSuffix(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldHasSuffix(FieldReviewNote, v))
+}
+
+// ReviewNoteIsNil applies the IsNil predicate on the "review_note" field.
+func ReviewNoteIsNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIsNull(FieldReviewNote))
+}
+
+// ReviewNoteNotNil applies the NotNil predicate on the "review_note" field.
+func ReviewNoteNotNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotNull(FieldReviewNote))
+}
+
+// ReviewNoteEqualFold applies the EqualFold predicate on the "review_note" field.
+func ReviewNoteEqualFold(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEqualFold(FieldReviewNote, v))
+}
+
+// ReviewNoteContainsFold applies the ContainsFold predicate on the "review_note" field.
+func ReviewNoteContainsFold(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldContainsFold(FieldReviewNote, v))
+}
+
+// ShareTokenEQ applies the EQ predicate on the "share_token" field.
+func ShareTokenEQ(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldShareToken, v))
+}
+
+// ShareTokenNEQ applies the NEQ predicate on the "share_token" field.
+func ShareTokenNEQ(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldShareToken, v))
+}
+
+// ShareTokenIn applies the In predicate on the "share_token" field.
+func ShareTokenIn(vs ...string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldShareToken, vs...))
+}
+
+// ShareTokenNotIn applies the NotIn predicate on the "share_token" field.
+func ShareTokenNotIn(vs ...string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldShareToken, vs...))
+}
+
+// ShareTokenGT applies the GT predicate on the "share_token" field.
+func ShareTokenGT(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGT(FieldShareToken, v))
+}
+
+// ShareTokenGTE applies the GTE predicate on the "share_token" field.
+func ShareTokenGTE(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGTE(FieldShareToken, v))
+}
+
+// ShareTokenLT applies the LT predicate on the "share_token" field.
+func ShareTokenLT(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLT(FieldShareToken, v))
+}
+
+// ShareTokenLTE applies the LTE predicate on the "share_token" field.
+func ShareTokenLTE(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLTE(FieldShareToken, v))
+}
+
+// ShareTokenContains applies the Contains predicate on the "share_token" field.
+func ShareTokenContains(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldContains(FieldShareToken, v))
+}
+
+// ShareTokenHasPrefix applies the HasPrefix predicate on the "share_token" field.
+func ShareTokenHasPrefix(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldHasPrefix(FieldShareToken, v))
+}
+
+// ShareTokenHasSuffix applies the HasSuffix predicate on the "share_token" field.
+func ShareTokenHasSuffix(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldHasSuffix(FieldShareToken, v))
+}
+
+// ShareTokenIsNil applies the IsNil predicate on the "share_token" field.
+func ShareTokenIsNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIsNull(FieldShareToken))
+}
+
+// ShareTokenNotNil applies the NotNil predicate on the "share_token" field.
+func ShareTokenNotNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotNull(FieldShareToken))
+}
+
+// ShareTokenEqualFold applies the EqualFold predicate on the "share_token" field.
+func ShareTokenEqualFold(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEqualFold(FieldShareToken, v))
+}
+
+// ShareTokenContainsFold applies the ContainsFold predicate on the "share_token" field.
+func ShareTokenContainsFold(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldContainsFold(FieldShareToken, v))
 }
 
 // VersionEQ applies the EQ predicate on the "version" field.

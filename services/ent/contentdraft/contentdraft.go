@@ -28,8 +28,22 @@ const (
 	FieldChannelConnectionIds = "channelConnectionIds"
 	// FieldDiscussions holds the string denoting the discussions field in the database.
 	FieldDiscussions = "discussions"
+	// FieldChannelText holds the string denoting the channel_text field in the database.
+	FieldChannelText = "channelText"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldReviewStatus holds the string denoting the review_status field in the database.
+	FieldReviewStatus = "reviewStatus"
+	// FieldApprovedVersion holds the string denoting the approved_version field in the database.
+	FieldApprovedVersion = "approvedVersion"
+	// FieldReviewedByUserID holds the string denoting the reviewed_by_user_id field in the database.
+	FieldReviewedByUserID = "reviewedByUserId"
+	// FieldReviewNote holds the string denoting the review_note field in the database.
+	FieldReviewNote = "reviewNote"
+	// FieldShareToken holds the string denoting the share_token field in the database.
+	FieldShareToken = "shareToken"
+	// FieldGuestComments holds the string denoting the guest_comments field in the database.
+	FieldGuestComments = "guestComments"
 	// FieldVersion holds the string denoting the version field in the database.
 	FieldVersion = "version"
 	// FieldCollabState holds the string denoting the collab_state field in the database.
@@ -56,7 +70,14 @@ var Columns = []string{
 	FieldAssetIds,
 	FieldChannelConnectionIds,
 	FieldDiscussions,
+	FieldChannelText,
 	FieldStatus,
+	FieldReviewStatus,
+	FieldApprovedVersion,
+	FieldReviewedByUserID,
+	FieldReviewNote,
+	FieldShareToken,
+	FieldGuestComments,
 	FieldVersion,
 	FieldCollabState,
 	FieldCreatedByUserID,
@@ -78,6 +99,10 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultDiscussions holds the default value on creation for the "discussions" field.
 	DefaultDiscussions map[string]interface{}
+	// DefaultChannelText holds the default value on creation for the "channel_text" field.
+	DefaultChannelText map[string]string
+	// DefaultGuestComments holds the default value on creation for the "guest_comments" field.
+	DefaultGuestComments []map[string]string
 	// DefaultVersion holds the default value on creation for the "version" field.
 	DefaultVersion int
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -115,6 +140,34 @@ func StatusValidator(s Status) error {
 	}
 }
 
+// ReviewStatus defines the type for the "review_status" enum field.
+type ReviewStatus string
+
+// ReviewStatusNone is the default value of the ReviewStatus enum.
+const DefaultReviewStatus = ReviewStatusNone
+
+// ReviewStatus values.
+const (
+	ReviewStatusNone             ReviewStatus = "none"
+	ReviewStatusPending          ReviewStatus = "pending"
+	ReviewStatusApproved         ReviewStatus = "approved"
+	ReviewStatusChangesRequested ReviewStatus = "changes_requested"
+)
+
+func (rs ReviewStatus) String() string {
+	return string(rs)
+}
+
+// ReviewStatusValidator is a validator for the "review_status" field enum values. It is called by the builders before save.
+func ReviewStatusValidator(rs ReviewStatus) error {
+	switch rs {
+	case ReviewStatusNone, ReviewStatusPending, ReviewStatusApproved, ReviewStatusChangesRequested:
+		return nil
+	default:
+		return fmt.Errorf("contentdraft: invalid enum value for review_status field: %q", rs)
+	}
+}
+
 // OrderOption defines the ordering options for the ContentDraft queries.
 type OrderOption func(*sql.Selector)
 
@@ -141,6 +194,31 @@ func ByPlainText(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByReviewStatus orders the results by the review_status field.
+func ByReviewStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReviewStatus, opts...).ToFunc()
+}
+
+// ByApprovedVersion orders the results by the approved_version field.
+func ByApprovedVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldApprovedVersion, opts...).ToFunc()
+}
+
+// ByReviewedByUserID orders the results by the reviewed_by_user_id field.
+func ByReviewedByUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReviewedByUserID, opts...).ToFunc()
+}
+
+// ByReviewNote orders the results by the review_note field.
+func ByReviewNote(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReviewNote, opts...).ToFunc()
+}
+
+// ByShareToken orders the results by the share_token field.
+func ByShareToken(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldShareToken, opts...).ToFunc()
 }
 
 // ByVersion orders the results by the version field.

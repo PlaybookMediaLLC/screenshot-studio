@@ -3,10 +3,14 @@
 import * as React from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import type { Value } from '@shots/platejs-editor/platejs'
+import type { PlateEditor } from '@shots/platejs-editor/platejs/react'
 import { ViewIcon } from 'hugeicons-react'
-import { Pill, type PillTone } from '@/components/platform-ui'
+import type { z } from 'zod'
+import type { linkCardSchema } from '@/lib/api/contracts/content-draft-platform'
+import { Pill } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -25,13 +29,19 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { DraftRequestError, type DraftPostWire, draftsApi } from '@/lib/content-drafts/client'
+import {
+  DraftRequestError,
+  type DraftPostWire,
+  type DraftWire,
+  draftsApi,
+} from '@/lib/content-drafts/client'
 import {
   type DraftDiscussions,
   mergeDiscussions,
   readDiscussions,
 } from '@/lib/content-drafts/discussions'
 import { renderBlockImages } from '@/lib/content-drafts/render-blocks'
+import { parseWhen } from '@/lib/content-drafts/when'
 import {
   CHANNEL_IMAGE_LIMITS,
   type DraftChannel,
@@ -39,11 +49,21 @@ import {
   renderableBlockCount,
   type SerializedCaption,
   serializeDraft,
+  THREAD_CHANNELS,
 } from '@/lib/content-drafts/serialize'
 import { assetContentUrl, platformEditorServices } from '@/lib/editor/services'
 import { cn } from '@/lib/utils'
 import { CHANNEL_META, ChannelIcon } from './channel-meta'
+import { DraftPosts } from './DraftPosts'
 import { useShowInRail } from './DraftsRail'
+import {
+  GuestComments,
+  HistorySheet,
+  type DraftReview,
+  ReviewControls,
+  ShareMenu,
+} from './DraftTools'
+import { XOptions, type XPostOptions, xOptionsForRequest } from './XOptions'
 import { POST_COLUMN } from './layout'
 import { useTRPCClient } from '@/lib/trpc/react'
 import type { DraftEditorUser } from './DraftEditor'
@@ -54,31 +74,31 @@ const DraftEditor = dynamic(() => import('./DraftEditor'), {
   ssr: false,
 })
 
-export type ComposerChannel = { channel: DraftChannel; id: string; name: string }
+/** A connected account a draft can go to, as its platform shows it. */
+export type ComposerChannel = {
+  avatarUrl: string | null
+  channel: DraftChannel
+  handle: string | null
+  id: string
+  name: string
+}
 
 export type ComposerDraft = {
   assetIds: string[]
   body: Record<string, unknown>[]
   channelConnectionIds: string[]
+  /** Text a channel posts instead of the body's, by channel. */
+  channelText: Record<string, string>
   discussions: Record<string, unknown>
   id: string
   status: 'draft' | 'scheduled' | 'archived'
   title: string
   version: number
-}
+} & DraftReview & { guestComments: DraftWire['guestComments'] }
 
 type SaveState = 'saved' | 'saving' | 'unsaved' | 'error'
 
 const AUTOSAVE_DELAY_MS = 800
-
-const POST_TONES: Partial<Record<DraftPostWire['status'], PillTone>> = {
-  CANCELLED: 'gray',
-  FAILED: 'red',
-  PROCESSING: 'blue',
-  PUBLISHED: 'green',
-  SCHEDULED: 'purple',
-  UNKNOWN_DELIVERY: 'yellow',
-}
 
 function defaultScheduleTime(): string {
   const at = new Date()
@@ -101,17 +121,21 @@ function message(error: unknown): string {
 export function DraftComposer({
   aiEnabled,
   author,
+  vocabulary,
   canEdit,
   canSchedule,
   channels,
   collabUrl,
   draft,
   posts: initialPosts,
+  requireApproval,
   user,
 }: {
   aiEnabled: boolean
   /** Who the post reads as from: the workspace. */
   author: string
+  /** Handles and hashtags the workspace already writes. */
+  vocabulary: { handles: string[]; hashtags: string[] }
   /** The collaboration server, when real-time co-editing is configured. */
   collabUrl: string | null
   canEdit: boolean
@@ -119,6 +143,8 @@ export function DraftComposer({
   channels: ComposerChannel[]
   draft: ComposerDraft
   posts: DraftPostWire[]
+  /** The workspace approves drafts before they are scheduled. */
+  requireApproval: boolean
   user: DraftEditorUser
 }) {
   const trpcClient = useTRPCClient()
@@ -128,6 +154,15 @@ export function DraftComposer({
     [trpcClient, aiEnabled]
   )
   const [title, setTitle] = React.useState(draft.title)
+  const [review, setReview] = React.useState<DraftReview>(draft)
+  const [guestComments, setGuestComments] = React.useState(draft.guestComments)
+  const [xOptions, setXOptions] = React.useState<Record<string, XPostOptions>>({})
+  const [bestTimes, setBestTimes] = React.useState<{ at: string; reason: string }[]>([])
+  const editorHandle = React.useRef<PlateEditor | null>(null)
+  const onDraft = React.useCallback((next: DraftWire) => {
+    setReview(next)
+    setGuestComments(next.guestComments)
+  }, [])
   const [value, setValue] = React.useState<Value>(draft.body as Value)
   const [editorState, setEditorState] = React.useState({ key: 0, value: draft.body as Value })
   const [status, setStatus] = React.useState(draft.status)
@@ -139,16 +174,22 @@ export function DraftComposer({
   const [saveState, setSaveState] = React.useState<SaveState>('saved')
   const [scheduling, setScheduling] = React.useState(false)
   const [scheduleOpen, setScheduleOpen] = React.useState(false)
+  const [whenText, setWhenText] = React.useState('')
   const [previewing, setPreviewing] = React.useState(false)
   const version = React.useRef(draft.version)
   const editorArea = React.useRef<HTMLDivElement>(null)
+  // Changes made since the last save started.
+  const dirty = React.useRef(false)
   const initialDiscussions = React.useMemo(
     () => readDiscussions(draft.discussions),
     [draft.discussions]
   )
   const discussions = React.useRef(initialDiscussions)
-  const latest = React.useRef({ selected, title, value })
-  latest.current = { selected, title, value }
+  const [channelText, setChannelText] = React.useState<Partial<Record<DraftChannel, string>>>(
+    () => draft.channelText as Partial<Record<DraftChannel, string>>
+  )
+  const latest = React.useRef({ channelText, selected, title, value })
+  latest.current = { channelText, selected, title, value }
   const inFlight = React.useRef<Promise<void> | null>(null)
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const collaboration = React.useMemo(
@@ -168,7 +209,13 @@ export function DraftComposer({
   const save = React.useCallback(async (): Promise<void> => {
     if (!canEdit) return
     if (inFlight.current) await inFlight.current
-    const { selected: channelIds, title: nextTitle, value: nextValue } = latest.current
+    const {
+      channelText: nextChannelText,
+      selected: channelIds,
+      title: nextTitle,
+      value: nextValue,
+    } = latest.current
+    dirty.current = false
     const run = (async () => {
       setSaveState('saving')
       try {
@@ -177,6 +224,7 @@ export function DraftComposer({
           baseVersion: version.current,
           body: nextValue,
           channelConnectionIds: channelIds,
+          channelText: nextChannelText,
           discussions: discussions.current,
           plainText: draftPlainText(nextValue),
           title: nextTitle,
@@ -224,6 +272,7 @@ export function DraftComposer({
 
   const scheduleSave = React.useCallback(() => {
     if (!canEdit) return
+    dirty.current = true
     setSaveState('unsaved')
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => void save(), AUTOSAVE_DELAY_MS)
@@ -237,10 +286,13 @@ export function DraftComposer({
     [scheduleSave]
   )
 
+  // Saves only what changed: a save bumps the version, which would void an
+  // approval given to the version as it stands.
   const flush = React.useCallback(async () => {
     if (timer.current) clearTimeout(timer.current)
     timer.current = null
-    await save()
+    if (dirty.current) await save()
+    else if (inFlight.current) await inFlight.current
   }, [save])
 
   React.useEffect(() => () => void (timer.current && clearTimeout(timer.current)), [])
@@ -251,14 +303,19 @@ export function DraftComposer({
     .filter((channel) => selected.includes(channel.id))
     .map((channel) => ({
       ...channel,
-      result: serializeDraft(value, channel.channel, pendingBlocks),
+      result: serializeDraft(value, channel.channel, pendingBlocks, channelText[channel.channel]),
     }))
   const blocked = previews.length === 0 || previews.some(({ result }) => result.errors.length > 0)
   const degraded = previews.filter(({ result }) => result.degradations.length > 0)
 
-  const refreshPosts = async () => setPosts((await draftsApi.posts(draft.id)).posts)
+  const router = useRouter()
+  // The posts here, and the rail's queue, which the server lists.
+  const refreshPosts = async () => {
+    setPosts((await draftsApi.posts(draft.id)).posts)
+    router.refresh()
+  }
 
-  const schedule = async () => {
+  const schedule = async (queue = false) => {
     setScheduling(true)
     try {
       await flush()
@@ -266,18 +323,26 @@ export function DraftComposer({
         renderableBlockCount(value) > 0 && editorArea.current && services.uploadFile
           ? await renderBlockImages(editorArea.current, services.uploadFile)
           : []
+      const options = Object.fromEntries(
+        Object.entries(xOptions).flatMap(([id, chosen]) => {
+          const request = selected.includes(id) ? xOptionsForRequest(chosen) : undefined
+          return request ? [[id, request]] : []
+        })
+      )
       const result = await draftsApi.schedule(draft.id, {
         blockImages,
         channelConnectionIds: selected,
-        scheduledFor: new Date(scheduledFor).toISOString(),
+        options,
+        ...(queue ? { queue: true } : { scheduledFor: new Date(scheduledFor).toISOString() }),
         version: version.current,
       })
       version.current = result.draft.version
       setStatus(result.draft.status)
       setScheduleOpen(false)
+      const when = result.posts[0] ? new Date(result.posts[0].scheduledFor).toLocaleString() : ''
       toast.success(
         result.created
-          ? `Scheduled ${result.posts.length} post${result.posts.length === 1 ? '' : 's'}.`
+          ? `Scheduled ${result.posts.length} post${result.posts.length === 1 ? '' : 's'}${when ? ` for ${when}` : ''}.`
           : 'Already scheduled.'
       )
       await refreshPosts()
@@ -298,6 +363,19 @@ export function DraftComposer({
     }
   }
 
+  const awaitingApproval =
+    requireApproval &&
+    !(review.reviewStatus === 'approved' && review.approvedVersion === version.current)
+
+  // Best times are fetched when the schedule dialog first opens.
+  React.useEffect(() => {
+    if (!scheduleOpen || bestTimes.length > 0) return
+    draftsApi
+      .bestTimes()
+      .then(({ items }) => setBestTimes(items))
+      .catch(() => setBestTimes([]))
+  }, [bestTimes.length, scheduleOpen])
+
   const toggleChannel = (id: string, on: boolean) => {
     setSelected((current) => (on ? [...current, id] : current.filter((item) => item !== id)))
     scheduleSave()
@@ -307,6 +385,11 @@ export function DraftComposer({
     saveState
   ]
   const live = posts.filter((post) => post.status === 'SCHEDULED' || post.status === 'PROCESSING')
+  // A draft stays scheduled after its posts go out: with nothing left to go
+  // and something live, it has posted, and scheduling again is not a move.
+  const posted =
+    status === 'scheduled' && live.length === 0 && posts.some((post) => post.status === 'PUBLISHED')
+  const rescheduling = status === 'scheduled' && !posted
   const handles = [...new Set(previews.map(({ channel }) => CHANNEL_META[channel].label))].join(
     ' · '
   )
@@ -355,7 +438,37 @@ export function DraftComposer({
           <span className="text-xs text-neutral-500" data-testid="save-state">
             {saveLabel}
           </span>
-          {status === 'scheduled' ? <Pill tone="green">Scheduled</Pill> : null}
+          {posted ? (
+            <Pill tone="blue">Posted</Pill>
+          ) : status === 'scheduled' ? (
+            <Pill tone="green">Scheduled</Pill>
+          ) : null}
+          {requireApproval || review.reviewStatus !== 'none' ? (
+            <ReviewControls
+              canEdit={canEdit}
+              canReview={canSchedule}
+              draftId={draft.id}
+              onDraft={onDraft}
+              review={review}
+            />
+          ) : null}
+          <HistorySheet
+            draftId={draft.id}
+            onRestore={(revision) => {
+              const editor = editorHandle.current
+              if (!editor || !revision.body) return
+              // Through the editor, so a live session and undo both see it.
+              editor.tf.setValue(revision.body as Value)
+              setTitle(revision.title)
+              scheduleSave()
+            }}
+          />
+          <ShareMenu
+            canEdit={canEdit}
+            draftId={draft.id}
+            onDraft={onDraft}
+            shareToken={review.shareToken}
+          />
           {previews.length > 0 ? (
             <Button onClick={() => setPreviewing(true)} size="sm" variant="ghost">
               <ViewIcon aria-hidden className="size-4" />
@@ -371,7 +484,7 @@ export function DraftComposer({
                 channels.length === 0 ? 'Connect a channel in workspace settings first.' : undefined
               }
             >
-              {status === 'scheduled' ? 'Reschedule' : 'Schedule'}
+              {rescheduling ? 'Reschedule' : 'Schedule'}
             </Button>
           ) : null}
         </div>
@@ -380,7 +493,17 @@ export function DraftComposer({
       <div className="flex-1">
         <div className="relative" ref={editorArea}>
           <DraftEditor
+            assistChannel={
+              previews.find(({ channel }) => THREAD_CHANNELS.has(channel))?.channel ??
+              previews[0]?.channel ??
+              'x'
+            }
             collaboration={collaboration}
+            onEditor={(editor) => {
+              editorHandle.current = editor
+            }}
+            handles={vocabulary.handles}
+            hashtags={vocabulary.hashtags}
             postHeader={(number) => (
               // The draft reads as the post: who posts it, then the text.
               <PostHeader
@@ -413,49 +536,53 @@ export function DraftComposer({
             ))}
           </div>
         ) : null}
-        {posts.length > 0 ? (
-          <section className={cn('mb-40', POST_COLUMN)}>
-            <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
-              Posts from this draft
-            </h2>
-            <ul className="divide-y divide-white/[0.05] rounded-xl border border-white/[0.06]">
-              {posts.map((post) => (
-                <li
-                  className="flex items-center justify-between gap-4 px-4 py-3"
-                  data-testid="draft-post"
-                  key={post.id}
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm text-white">
-                      {post.platform} · {new Date(post.scheduledFor).toLocaleString()}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-neutral-500">{post.caption}</p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <Pill tone={POST_TONES[post.status] ?? 'gray'}>{post.status}</Pill>
-                    {canSchedule && (post.status === 'SCHEDULED' || post.status === 'DRAFT') ? (
-                      <Button onClick={() => void cancelPost(post.id)} size="sm" variant="outline">
-                        Cancel
-                      </Button>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
+        <DraftPosts
+          canSchedule={canSchedule}
+          onCancel={cancelPost}
+          onChange={(changed) =>
+            setPosts((current) =>
+              current.some((post) => post.id === changed.id)
+                ? current.map((post) => (post.id === changed.id ? changed : post))
+                : [changed, ...current]
+            )
+          }
+          posts={posts}
+        />
+        <div className={cn('mb-40', POST_COLUMN)}>
+          <GuestComments comments={guestComments} />
+        </div>
       </div>
 
       <Dialog onOpenChange={setScheduleOpen} open={scheduleOpen}>
-        <DialogContent className="max-w-md gap-5">
+        <DialogContent className="max-h-[90dvh] max-w-md gap-5 overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{status === 'scheduled' ? 'Reschedule' : 'Schedule'}</DialogTitle>
+            <DialogTitle>{rescheduling ? 'Reschedule' : 'Schedule'}</DialogTitle>
             <DialogDescription>
               All times in {Intl.DateTimeFormat().resolvedOptions().timeZone.replace('_', ' ')}.
               {live.length > 0 ? ' Its queued posts are replaced.' : ''}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2">
+            <Input
+              aria-label="When, in words"
+              onChange={(event) => {
+                setWhenText(event.target.value)
+                const parsed = parseWhen(event.target.value)
+                if (parsed) setScheduledFor(localInputValue(parsed))
+              }}
+              placeholder='Type a time: "tomorrow 9am", "in 3 hours", "fri 2pm"'
+              value={whenText}
+            />
+            {whenText ? (
+              <p className="text-xs text-neutral-500" data-testid="when-reading">
+                {parseWhen(whenText)
+                  ? `→ ${new Date(scheduledFor).toLocaleString(undefined, {
+                      dateStyle: 'full',
+                      timeStyle: 'short',
+                    })}`
+                  : 'Not a time this reads yet.'}
+              </p>
+            ) : null}
             <div className="flex flex-wrap gap-1.5">
               {quickTimes().map((option) => (
                 <button
@@ -480,12 +607,52 @@ export function DraftComposer({
               value={scheduledFor}
             />
           </div>
+          {bestTimes.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-neutral-500">Best times</span>
+              {bestTimes.map((best) => (
+                <button
+                  className="rounded-full border border-emerald-400/30 px-2.5 py-1 text-xs text-emerald-200 hover:border-emerald-300/60"
+                  key={best.at}
+                  onClick={() => {
+                    setScheduledFor(localInputValue(new Date(best.at)))
+                    setWhenText('')
+                  }}
+                  title={best.reason}
+                  type="button"
+                >
+                  {new Date(best.at).toLocaleString(undefined, {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    weekday: 'short',
+                  })}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <ChannelToggles
             channels={channels}
             onToggle={toggleChannel}
             results={new Map(previews.map(({ id, result }) => [id, result]))}
             selected={selected}
           />
+          {previews
+            .filter(({ channel }) => channel === 'x')
+            .map(({ id, name, result }) => (
+              <div key={id}>
+                <p className="text-xs text-neutral-500">{name}</p>
+                <XOptions
+                  hasImages={result.posts[0]?.images > 0}
+                  onChange={(next) => setXOptions((current) => ({ ...current, [id]: next }))}
+                  value={xOptions[id] ?? {}}
+                />
+              </div>
+            ))}
+          {awaitingApproval ? (
+            <p className="text-xs text-amber-300" role="alert">
+              This workspace approves drafts before they are scheduled. Ask for review first.
+            </p>
+          ) : null}
           {degraded.length > 0 ? (
             <p className="text-xs text-amber-300" role="alert">
               Some content changes when posted:{' '}
@@ -501,7 +668,17 @@ export function DraftComposer({
             <Button onClick={() => setScheduleOpen(false)} variant="ghost">
               Keep editing
             </Button>
-            <Button disabled={blocked || scheduling} onClick={() => void schedule()}>
+            <Button
+              disabled={blocked || scheduling || awaitingApproval}
+              onClick={() => void schedule(true)}
+              variant="outline"
+            >
+              Add to queue
+            </Button>
+            <Button
+              disabled={blocked || scheduling || awaitingApproval}
+              onClick={() => void schedule()}
+            >
               {scheduling ? 'Scheduling…' : degraded.length > 0 ? 'Schedule anyway' : 'Schedule'}
             </Button>
           </DialogFooter>
@@ -515,12 +692,20 @@ export function DraftComposer({
             <SheetDescription>Each post as the channel shows it.</SheetDescription>
           </SheetHeader>
           <div className="flex flex-col gap-4 p-4">
-            {previews.map(({ channel, id, name, result }) => (
+            {previews.map(({ avatarUrl, channel, handle, id, name, result }) => (
               <PostPreview
-                author={author}
                 channel={channel}
-                handle={name}
+                custom={channelText[channel]}
+                account={{ avatarUrl, handle, name }}
                 key={id}
+                onCustomize={
+                  canEdit
+                    ? (next) => {
+                        setChannelText((current) => ({ ...current, [channel]: next ?? '' }))
+                        scheduleSave()
+                      }
+                    : undefined
+                }
                 result={result}
               />
             ))}
@@ -569,12 +754,66 @@ function PostHeader({
   )
 }
 
+/** A date as a `datetime-local` value, in local time. */
+function localInputValue(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+/** Cards already read this session, by link: the preview opens often. */
+const linkCards = new Map<string, Promise<z.output<typeof linkCardSchema> | null>>()
+
+/**
+ * The card a channel shows for the first link in a post without media: the
+ * page's title, description, image and site, read once per link.
+ */
+function LinkCard({ text }: { text: string }) {
+  const url = /https?:\/\/[^\s]+/.exec(text)?.[0]?.replace(/[.,!?;:)'"\]]+$/, '')
+  const [card, setCard] = React.useState<z.output<typeof linkCardSchema> | null>(null)
+  React.useEffect(() => {
+    if (!url) return
+    let current = true
+    if (!linkCards.has(url))
+      linkCards.set(
+        url,
+        draftsApi.linkCard(url).catch(() => null)
+      )
+    void linkCards.get(url)?.then((found) => {
+      if (current) setCard(found)
+    })
+    return () => {
+      current = false
+    }
+  }, [url])
+  if (!url || !card || card.url === undefined) return null
+  return (
+    <a
+      className="mt-3 block overflow-hidden rounded-xl border border-white/[0.08] hover:border-white/20"
+      data-testid="link-card"
+      href={card.url}
+      rel="noreferrer"
+      target="_blank"
+    >
+      {card.image ? (
+        // biome-ignore lint/performance/noImgElement: a page's own Open Graph image
+        <img alt="" className="aspect-[1.91/1] w-full bg-white/5 object-cover" src={card.image} />
+      ) : null}
+      <span className="block p-3">
+        <span className="block text-[11px] text-neutral-500">
+          {card.siteName ?? new URL(card.url).hostname}
+        </span>
+        <span className="block truncate text-sm text-white">{card.title ?? card.url}</span>
+        {card.description ? (
+          <span className="line-clamp-2 block text-xs text-neutral-400">{card.description}</span>
+        ) : null}
+      </span>
+    </a>
+  )
+}
+
 /** Quick picks for the schedule time, as `datetime-local` values. */
 function quickTimes(): { label: string; value: string }[] {
-  const at = (date: Date) => {
-    const pad = (value: number) => String(value).padStart(2, '0')
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
-  }
+  const at = localInputValue
   const inAnHour = new Date(Date.now() + 60 * 60_000)
   inAnHour.setMinutes(Math.ceil(inAnHour.getMinutes() / 15) * 15, 0, 0)
   const tomorrow = new Date()
@@ -608,15 +847,17 @@ function ChannelToggles({
 }) {
   return (
     <ul className="flex flex-col gap-1">
-      {channels.map(({ channel, id, name }) => {
+      {channels.map(({ channel, handle, id, name }) => {
         const result = results?.get(id)
         return (
           <li className="rounded-lg px-2 py-1.5 hover:bg-white/[0.03]" key={id}>
             <label className="flex cursor-pointer items-center gap-3 text-sm text-neutral-200">
               <ChannelIcon channel={channel} className="size-4 text-neutral-400" />
               <span className="min-w-0 flex-1 truncate">
-                {CHANNEL_META[channel].label}
-                <span className="ml-1.5 text-neutral-500">{name}</span>
+                {name}
+                <span className="ml-1.5 text-neutral-500">
+                  {handle ? `@${handle}` : CHANNEL_META[channel].label}
+                </span>
               </span>
               <input
                 aria-label={`${channel} · ${name}`}
@@ -686,25 +927,79 @@ function CharacterCount({
 
 /** The post as its channel lays it out: author, text, images, and what changes. */
 function PostPreview({
-  author,
+  account,
   channel,
-  handle,
+  custom,
+  onCustomize,
   result,
 }: {
-  author: string
+  /** The account the post goes out as. */
+  account: { avatarUrl: string | null; handle: string | null; name: string }
   channel: DraftChannel
-  handle: string
+  /** This channel's own text, when it says something different. */
+  custom?: string
+  /** Set this channel's own text; undefined goes back to the draft's. */
+  onCustomize?: (text: string | undefined) => void
   result: SerializedCaption
 }) {
+  const label = CHANNEL_META[channel].label
+  const [editing, setEditing] = React.useState(false)
   return (
     <article
       className="rounded-xl border border-white/[0.08] bg-black/30 p-4"
       data-testid={`preview-${channel}`}
     >
-      <p className="mb-3 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-neutral-500">
-        <ChannelIcon channel={channel} />
-        {CHANNEL_META[channel].label}
-      </p>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+          <ChannelIcon channel={channel} />
+          {label}
+          {custom ? (
+            <span className="rounded-full bg-sky-400/10 px-1.5 py-0.5 normal-case tracking-normal text-sky-300">
+              Own text
+            </span>
+          ) : null}
+        </p>
+        {onCustomize ? (
+          <button
+            className="text-xs text-neutral-400 hover:text-white"
+            onClick={() => {
+              if (!editing && !custom)
+                onCustomize(result.posts.map((post) => post.caption).join('\n\n\n'))
+              setEditing(!editing)
+            }}
+            type="button"
+          >
+            {editing ? 'Done' : `Write it differently for ${label}`}
+          </button>
+        ) : null}
+      </div>
+      {editing && onCustomize ? (
+        <div className="mb-3 flex flex-col gap-1.5">
+          <textarea
+            aria-label={`${label} text`}
+            className="min-h-32 w-full rounded-lg border border-white/[0.08] bg-black/40 p-2 text-sm text-neutral-100 outline-none focus:border-sky-400/50"
+            onChange={(event) => onCustomize(event.target.value)}
+            value={custom ?? ''}
+          />
+          <p className="flex justify-between text-[11px] text-neutral-500">
+            <span>
+              {THREAD_CHANNELS.has(channel)
+                ? 'Two empty lines start the next post.'
+                : 'Posted as written.'}
+            </span>
+            <button
+              className="hover:text-white"
+              onClick={() => {
+                onCustomize(undefined)
+                setEditing(false)
+              }}
+              type="button"
+            >
+              Use the draft&apos;s text
+            </button>
+          </p>
+        </div>
+      ) : null}
       {(result.posts.length > 0 ? result.posts : [{ assetIds: [], caption: '' }]).map(
         (post, index, posts) => (
           <div className="relative flex gap-3 pb-4 last:pb-0" key={index}>
@@ -712,16 +1007,27 @@ function PostPreview({
               // The thread line, from this avatar down to the next.
               <span aria-hidden className="absolute top-10 bottom-0 left-[18px] w-px bg-white/10" />
             ) : null}
-            <span
-              aria-hidden
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500/40 to-violet-500/40 text-sm text-white"
-            >
-              {author.slice(0, 1).toUpperCase()}
-            </span>
+            {account.avatarUrl ? (
+              // biome-ignore lint/performance/noImgElement: a provider avatar URL
+              <img
+                alt=""
+                className="size-9 shrink-0 rounded-full bg-white/5 object-cover"
+                src={account.avatarUrl}
+              />
+            ) : (
+              <span
+                aria-hidden
+                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500/40 to-violet-500/40 text-sm text-white"
+              >
+                {account.name.slice(0, 1).toUpperCase()}
+              </span>
+            )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm">
-                <span className="font-medium text-white">{author}</span>
-                <span className="ml-1.5 text-neutral-500">{handle}</span>
+                <span className="font-medium text-white">{account.name}</span>
+                {account.handle ? (
+                  <span className="ml-1.5 text-neutral-500">@{account.handle}</span>
+                ) : null}
               </p>
               <p className="mt-1 whitespace-pre-wrap break-words text-sm text-neutral-200">
                 {post.caption || ' '}
@@ -743,7 +1049,9 @@ function PostPreview({
                     />
                   ))}
                 </div>
-              ) : null}
+              ) : (
+                <LinkCard text={post.caption} />
+              )}
             </div>
           </div>
         )

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CHANNEL_RULES } from '@/lib/launch/guards'
+import { xLength } from './x-length'
 
 /**
  * Plate JSON to a social caption (RFC 037). Social channels take plain text,
@@ -10,7 +10,14 @@ import { CHANNEL_RULES } from '@/lib/launch/guards'
  */
 
 /** Channels a draft can be scheduled to. */
-export const draftChannelSchema = z.enum(['x', 'linkedin', 'instagram'])
+export const draftChannelSchema = z.enum([
+  'x',
+  'linkedin',
+  'instagram',
+  'threads',
+  'bluesky',
+  'mastodon',
+])
 
 /** One of {@link draftChannelSchema}. */
 export type DraftChannel = z.infer<typeof draftChannelSchema>
@@ -40,10 +47,30 @@ export type SerializedPost = {
   /** Images in the post, uploaded or still to render. */
   images: number
   length: number
+  /** Uploaded videos among the post's media. */
+  videos: number
 }
 
 /** Channels that post a thread as replies; the others post it as one post. */
-export const THREAD_CHANNELS: ReadonlySet<DraftChannel> = new Set(['x'])
+export const THREAD_CHANNELS: ReadonlySet<DraftChannel> = new Set([
+  'x',
+  'threads',
+  'bluesky',
+  'mastodon',
+])
+
+/**
+ * Each channel's caption limit, as the backend checks it
+ * (`draftChannelLimits` in services/internal/product/content_draft_schedule.go).
+ */
+export const DRAFT_CHANNEL_LIMITS: Record<DraftChannel, number> = {
+  bluesky: 300,
+  instagram: 2_200,
+  linkedin: 3_000,
+  mastodon: 500,
+  threads: 500,
+  x: 280,
+}
 
 /** The block that starts the next post of a thread. */
 export const POST_BREAK = 'post_break'
@@ -80,15 +107,21 @@ type PlateNode = {
  * services/internal/product/content_draft_schedule.go).
  */
 export const CHANNEL_IMAGE_LIMITS: Record<DraftChannel, number> = {
+  bluesky: 4,
   instagram: 10,
   linkedin: 9,
+  mastodon: 4,
+  threads: 10,
   x: 4,
 }
 
 const CONNECTION_CHANNELS: Record<string, DraftChannel> = {
+  bluesky: 'bluesky',
   instagram: 'instagram',
   'instagram-standalone': 'instagram',
   linkedin: 'linkedin',
+  mastodon: 'mastodon',
+  threads: 'threads',
   x: 'x',
 }
 
@@ -137,6 +170,8 @@ type Context = {
   images: number
   /** Images not uploaded to the workspace. */
   unstored: number
+  /** Uploaded videos, which go out as the post's media. */
+  videos: number
 }
 
 /**
@@ -186,6 +221,13 @@ function footnoteNumber(context: Context, identifier: string): number {
   const next = context.footnotes.size + 1
   context.footnotes.set(identifier, next)
   return next
+}
+
+/** An uploaded video is the post's media; it counts with the images. */
+function collectVideo(node: PlateNode, context: Context): void {
+  context.images += 1
+  context.videos += 1
+  context.assetIds.push(String(node.assetId))
 }
 
 function collectImage(node: PlateNode, context: Context): void {
@@ -286,6 +328,10 @@ function blockText(node: PlateNode, context: Context): string {
     collectImage(node, context)
     return ''
   }
+  if (type === 'video' && typeof node.assetId === 'string') {
+    collectVideo(node, context)
+    return ''
+  }
   const dropped = DROPPED_BLOCKS[type]
   if (dropped) {
     degrade(
@@ -373,11 +419,15 @@ export function captionLength(caption: string): number {
  * Serialize a draft for one channel. The caption is trimmed, footnotes follow
  * the body, and the images are attached up to the channel's limit. Table and
  * math blocks in `blockImages` are posted as those images instead of text.
+ * `text`, when set, is what this channel says instead of the body: plain
+ * text, where two empty lines start the next post of a thread. The body's
+ * images still go with it, on the first post.
  */
 export function serializeDraft(
   value: unknown,
   channel: DraftChannel,
-  blockImages?: BlockImages
+  blockImages?: BlockImages,
+  text?: string
 ): SerializedCaption {
   const nodes = (Array.isArray(value) ? value : []) as PlateNode[]
   const context: Context = {
@@ -388,21 +438,43 @@ export function serializeDraft(
     footnotes: new Map(),
     images: 0,
     unstored: 0,
+    videos: 0,
   }
   // Each post of a thread serializes on its own; footnotes close the last.
   const written = splitPosts(nodes).map((group) => {
-    const [assets, images] = [context.assetIds.length, context.images]
+    const [assets, images, videos] = [context.assetIds.length, context.images, context.videos]
     const caption = tidy(serializeBlocks(group, context))
     return {
       assetIds: context.assetIds.slice(assets),
       caption,
       images: context.images - images,
       length: 0,
+      videos: context.videos - videos,
     }
   })
   const notes = footnotesText(nodes, context)
   const last = written[written.length - 1]
   if (notes && last) last.caption = tidy(`${last.caption}\n\n${notes}`)
+  if (text?.trim()) {
+    // The channel's own words replace the body's; only its images carry over.
+    context.degraded.clear()
+    const images = written.flatMap((post) => post.assetIds)
+    const count = written.reduce((total, post) => total + post.images, 0)
+    written.splice(
+      0,
+      written.length,
+      ...text
+        .split(/\n[ \t]*\n[ \t]*\n/)
+        .map(tidy)
+        .map((caption, index) => ({
+          assetIds: index === 0 ? images : [],
+          caption,
+          images: index === 0 ? count : 0,
+          length: 0,
+          videos: index === 0 ? written.reduce((total, post) => total + post.videos, 0) : 0,
+        }))
+    )
+  }
   const filled = written.filter((post) => post.caption || post.images > 0)
   const thread = THREAD_CHANNELS.has(channel)
   if (!thread && filled.length > 1) {
@@ -417,11 +489,16 @@ export function serializeDraft(
             caption: filled.map((post) => post.caption).join('\n\n'),
             images: filled.reduce((total, post) => total + post.images, 0),
             length: 0,
+            videos: filled.reduce((total, post) => total + post.videos, 0),
           },
         ]
-  ).map((post) => ({ ...post, length: captionLength(post.caption) }))
+  ).map((post) => ({
+    ...post,
+    // X counts its own way: links as 23, wide characters as 2.
+    length: channel === 'x' ? xLength(post.caption) : captionLength(post.caption),
+  }))
 
-  const limit = CHANNEL_RULES[channel].bodyMax
+  const limit = DRAFT_CHANNEL_LIMITS[channel]
   const imageLimit = CHANNEL_IMAGE_LIMITS[channel]
   const errors: string[] = []
   if (posts.length === 0 || posts.every((post) => !post.caption)) {
@@ -448,6 +525,14 @@ export function serializeDraft(
   if (context.unstored > 0) {
     errors.push('Upload every image to the workspace before scheduling.')
   }
+  // Every channel takes a video alone: one, with no images beside it.
+  posts.forEach((post, index) => {
+    if (post.videos > 0 && post.images > 1) {
+      errors.push(
+        `${posts.length > 1 ? `Post ${index + 1}: a` : 'A'} video goes alone: one video, no images with it.`
+      )
+    }
+  })
   return {
     assetIds: context.assetIds,
     caption: posts.map((post) => post.caption).join('\n\n'),
@@ -461,8 +546,11 @@ export function serializeDraft(
 }
 
 const CHANNEL_NAMES: Record<DraftChannel, string> = {
+  bluesky: 'Bluesky',
   instagram: 'Instagram',
   linkedin: 'LinkedIn',
+  mastodon: 'Mastodon',
+  threads: 'Threads',
   x: 'X',
 }
 

@@ -87,6 +87,48 @@ func (_c *ChannelConnectionCreate) SetNillableStatus(v *channelconnection.Status
 	return _c
 }
 
+// SetDisplayName sets the "display_name" field.
+func (_c *ChannelConnectionCreate) SetDisplayName(v string) *ChannelConnectionCreate {
+	_c.mutation.SetDisplayName(v)
+	return _c
+}
+
+// SetNillableDisplayName sets the "display_name" field if the given value is not nil.
+func (_c *ChannelConnectionCreate) SetNillableDisplayName(v *string) *ChannelConnectionCreate {
+	if v != nil {
+		_c.SetDisplayName(*v)
+	}
+	return _c
+}
+
+// SetHandle sets the "handle" field.
+func (_c *ChannelConnectionCreate) SetHandle(v string) *ChannelConnectionCreate {
+	_c.mutation.SetHandle(v)
+	return _c
+}
+
+// SetNillableHandle sets the "handle" field if the given value is not nil.
+func (_c *ChannelConnectionCreate) SetNillableHandle(v *string) *ChannelConnectionCreate {
+	if v != nil {
+		_c.SetHandle(*v)
+	}
+	return _c
+}
+
+// SetAvatarURL sets the "avatar_url" field.
+func (_c *ChannelConnectionCreate) SetAvatarURL(v string) *ChannelConnectionCreate {
+	_c.mutation.SetAvatarURL(v)
+	return _c
+}
+
+// SetNillableAvatarURL sets the "avatar_url" field if the given value is not nil.
+func (_c *ChannelConnectionCreate) SetNillableAvatarURL(v *string) *ChannelConnectionCreate {
+	if v != nil {
+		_c.SetAvatarURL(*v)
+	}
+	return _c
+}
+
 // SetCreatedByUserID sets the "created_by_user_id" field.
 func (_c *ChannelConnectionCreate) SetCreatedByUserID(v string) *ChannelConnectionCreate {
 	_c.mutation.SetCreatedByUserID(v)
@@ -312,6 +354,18 @@ func (_c *ChannelConnectionCreate) createSpec() (*ChannelConnection, *sqlgraph.C
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(channelconnection.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.DisplayName(); ok {
+		_spec.SetField(channelconnection.FieldDisplayName, field.TypeString, value)
+		_node.DisplayName = &value
+	}
+	if value, ok := _c.mutation.Handle(); ok {
+		_spec.SetField(channelconnection.FieldHandle, field.TypeString, value)
+		_node.Handle = &value
+	}
+	if value, ok := _c.mutation.AvatarURL(); ok {
+		_spec.SetField(channelconnection.FieldAvatarURL, field.TypeString, value)
+		_node.AvatarURL = &value
 	}
 	if value, ok := _c.mutation.CreatedByUserID(); ok {
 		_spec.SetField(channelconnection.FieldCreatedByUserID, field.TypeString, value)

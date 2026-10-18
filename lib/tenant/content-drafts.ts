@@ -1,14 +1,17 @@
 import 'server-only'
 
 import type {
+  BackendAutoActions,
   BackendContentDraft,
   BackendContentDraftPost,
   BackendContentDraftInput,
   BackendContentDraftListQuery,
   BackendContentDraftUpdate,
+  BackendPoll,
+  BackendSharedContentDraft,
 } from 'screenshot-studio-backend-sdk'
 import type { OrganizationAccess, TenantContext } from '@/lib/auth/access'
-import { backendSDK, orNull, withDates } from '@/lib/backend/sdk'
+import { backendSDK, orNull, serviceBackend, withDates } from '@/lib/backend/sdk'
 import { channelForPlatform, serializeDraft } from '@/lib/content-drafts/serialize'
 import { listBackendConnections } from '@/lib/tenant/publishing-backend'
 import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
@@ -85,12 +88,21 @@ export async function scheduleContentDraft(
   input: {
     blockImages?: (string | null)[]
     channelConnectionIds: string[]
-    scheduledFor: Date
+    /** Per channel: X follow-ups and a poll. */
+    options?: Record<string, { autoActions?: BackendAutoActions; poll?: BackendPoll }>
+    /** When set, the queue's next free slot instead of `scheduledFor`. */
+    queue?: boolean
+    scheduledFor?: Date
     version: number
   }
 ) {
   const draft = await getContentDraft(context, id)
   if (!draft) return null
+  const scheduledFor = input.queue
+    ? new Date((await backendSDK(context).nextContentDraftQueueSlot()).scheduledFor)
+    : input.scheduledFor
+  if (!scheduledFor)
+    throw new ScheduledPostError('Pick a time, or add the draft to the queue.', 400)
   const platforms = new Map(
     (await listBackendConnections(context)).map((connection) => [
       connection.id,
@@ -101,7 +113,12 @@ export async function scheduleContentDraft(
     const platform = platforms.get(channelConnectionId)
     const channel = platform ? channelForPlatform(platform) : null
     if (!channel) throw new ScheduledPostError('A selected channel cannot take this draft.', 404)
-    const serialized = serializeDraft(draft.body, channel, input.blockImages)
+    const serialized = serializeDraft(
+      draft.body,
+      channel,
+      input.blockImages,
+      draft.channelText[channel]
+    )
     if (serialized.errors.length > 0) {
       throw new ScheduledPostError(`${channel}: ${serialized.errors.join(' ')}`, 409)
     }
@@ -115,10 +132,11 @@ export async function scheduleContentDraft(
       ...(replies.length > 0
         ? { replies: replies.map(({ assetIds, caption }) => ({ assetIds, caption })) }
         : {}),
+      ...input.options?.[channelConnectionId],
     }
   })
   const result = await backendSDK(context).scheduleContentDraft(id, {
-    scheduledFor: input.scheduledFor,
+    scheduledFor,
     targets,
     version: input.version,
   })
@@ -133,4 +151,120 @@ export async function scheduleContentDraft(
 export async function createContentDraftCollabToken(context: OrganizationAccess, id: string) {
   const token = await orNull(backendSDK(context).createContentDraftCollabToken(id))
   return token ? withDates(token) : null
+}
+
+/** The workspace's drafts settings: queue slots and approvals. */
+export async function getContentDraftSettings(context: TenantContext) {
+  return backendSDK(context).getContentDraftSettings()
+}
+
+/** Save the drafts settings an owner, admin or publisher sets. */
+export async function updateContentDraftSettings(
+  context: TenantContext,
+  input: { postingSlots?: { time: string; weekday: number }[]; requireApproval?: boolean }
+) {
+  return backendSDK(context).updateContentDraftSettings(input)
+}
+
+/** Suggested posting times, from the workspace's engagement. */
+export async function bestPostingTimes(context: TenantContext) {
+  const { items } = await backendSDK(context).bestPostingTimes()
+  return items.map((item) => ({ ...item, at: new Date(item.at) }))
+}
+
+/** The queue's next free slot. */
+export async function nextQueueSlot(context: TenantContext) {
+  return new Date((await backendSDK(context).nextContentDraftQueueSlot()).scheduledFor)
+}
+
+/** Draft posts due in [from, to), with their drafts' titles. */
+export async function listContentDraftPostsBetween(context: TenantContext, from: Date, to: Date) {
+  const { items } = await backendSDK(context).listContentDraftPostsBetween(from, to)
+  return items.map((post) => ({
+    ...readPost(post),
+    draftId: post.draftId,
+    draftTitle: post.draftTitle,
+  }))
+}
+
+/** Move one queued post; null when it is not in this workspace. */
+export async function moveContentDraftPost(context: TenantContext, id: string, scheduledFor: Date) {
+  const result = await orNull(backendSDK(context).moveContentDraftPost(id, scheduledFor))
+  return result ? readPost(result.post) : null
+}
+
+/** Post the rest of a stopped thread; null when the post is not in this workspace. */
+export async function resumeContentDraftThread(context: TenantContext, id: string) {
+  const result = await orNull(backendSDK(context).resumeContentDraftThread(id))
+  return result ? readPost(result.post) : null
+}
+
+/** Read a live post's engagement now; null when it is not in this workspace. */
+export async function refreshContentDraftPostMetrics(context: TenantContext, id: string) {
+  const post = await orNull(backendSDK(context).refreshContentDraftPostMetrics(id))
+  return post ? readPost(post) : null
+}
+
+/** A review step on a draft; null when it is not in this workspace. */
+export async function reviewContentDraft(
+  context: TenantContext,
+  id: string,
+  input: { action: 'request' | 'approve' | 'changes'; note?: string }
+) {
+  const draft = await orNull(backendSDK(context).reviewContentDraft(id, input))
+  return draft ? readDraft(draft) : null
+}
+
+/** Turn a draft's guest link on or off; null when it is not in this workspace. */
+export async function shareContentDraft(context: TenantContext, id: string, enabled: boolean) {
+  const draft = await orNull(backendSDK(context).shareContentDraft(id, enabled))
+  return draft ? readDraft(draft) : null
+}
+
+/** A draft's revisions, newest first; null when it is not in this workspace. */
+export async function listContentDraftRevisions(context: TenantContext, id: string) {
+  const result = await orNull(backendSDK(context).listContentDraftRevisions(id))
+  // A list carries no bodies; one revision's read does.
+  return result
+    ? result.items.map(
+        ({ createdAt, createdByUserId, id: revisionId, plainText, title, version }) => ({
+          createdAt: new Date(createdAt),
+          createdByUserId,
+          id: revisionId,
+          plainText,
+          title,
+          version,
+        })
+      )
+    : null
+}
+
+/** One revision with its body. */
+export async function getContentDraftRevision(
+  context: TenantContext,
+  id: string,
+  revisionId: string
+) {
+  const revision = await orNull(backendSDK(context).getContentDraftRevision(id, revisionId))
+  if (!revision) return null
+  const { body, ...fields } = revision
+  return { ...withDates(fields), body: body as Record<string, unknown>[] | undefined }
+}
+
+/** A shared draft with Dates, and its body as Plate nodes. */
+function readShared(draft: BackendSharedContentDraft) {
+  const { body, ...fields } = draft
+  return { ...withDates(fields), body: body as Record<string, unknown>[] }
+}
+
+/** A guest's view of a shared draft; null for a link that is off or wrong. */
+export async function getSharedContentDraft(token: string) {
+  const draft = await orNull(serviceBackend().getSharedContentDraft(token))
+  return draft ? readShared(draft) : null
+}
+
+/** Keep a guest's comment on a shared draft; null for a link that is off. */
+export async function addGuestComment(token: string, input: { name: string; text: string }) {
+  const draft = await orNull(serviceBackend().addGuestComment(token, input))
+  return draft ? readShared(draft) : null
 }

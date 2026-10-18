@@ -1,0 +1,132 @@
+'use client'
+
+import * as React from 'react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { draftsApi, type SettingsWire } from '@/lib/content-drafts/client'
+
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+/**
+ * The workspace's drafts settings: the weekly times the queue fills, and
+ * whether a draft needs approval before it is scheduled.
+ */
+export function DraftSettingsForm({
+  canManage,
+  settings,
+}: {
+  canManage: boolean
+  settings: SettingsWire
+}) {
+  const [slots, setSlots] = React.useState(settings.postingSlots)
+  const [requireApproval, setRequireApproval] = React.useState(settings.requireApproval)
+  const [adding, setAdding] = React.useState<Record<number, string>>({})
+  const [saving, setSaving] = React.useState(false)
+  const save = async () => {
+    setSaving(true)
+    try {
+      const saved = await draftsApi.saveSettings({ postingSlots: slots, requireApproval })
+      setSlots(saved.postingSlots)
+      toast.success('Saved.')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'The settings could not be saved.')
+    } finally {
+      setSaving(false)
+    }
+  }
+  return (
+    <div className="mx-auto flex max-w-2xl flex-col gap-8 px-6 py-10">
+      <div>
+        <h2 className="text-lg font-medium text-white">Drafts settings</h2>
+        <p className="mt-1 text-sm text-neutral-500">Times are in {settings.timeZone}.</p>
+      </div>
+      <section className="flex flex-col gap-3">
+        <h3 className="text-sm font-medium text-neutral-200">Posting queue</h3>
+        <p className="text-xs text-neutral-500">
+          “Add to queue” takes the next of these times that no post has yet.
+        </p>
+        <ul className="divide-y divide-white/[0.05] rounded-xl border border-white/[0.06]">
+          {WEEKDAYS.map((name, weekday) => {
+            const times = slots.filter((slot) => slot.weekday === weekday)
+            return (
+              <li className="flex flex-wrap items-center gap-2 px-4 py-2.5" key={name}>
+                <span className="w-24 text-sm text-neutral-300">{name}</span>
+                {times.map((slot) => (
+                  <span
+                    className="flex items-center gap-1 rounded-full border border-white/[0.08] px-2 py-0.5 text-xs text-neutral-200"
+                    key={slot.time}
+                  >
+                    {slot.time}
+                    {canManage ? (
+                      <button
+                        aria-label={`Remove ${name} ${slot.time}`}
+                        className="text-neutral-500 hover:text-red-400"
+                        onClick={() =>
+                          setSlots((current) => current.filter((item) => item !== slot))
+                        }
+                        type="button"
+                      >
+                        ✕
+                      </button>
+                    ) : null}
+                  </span>
+                ))}
+                {canManage ? (
+                  <span className="ml-auto flex items-center gap-1">
+                    <input
+                      aria-label={`New ${name} time`}
+                      className="h-7 rounded-md border border-white/[0.08] bg-transparent px-1 text-xs text-neutral-200"
+                      onChange={(event) =>
+                        setAdding((current) => ({ ...current, [weekday]: event.target.value }))
+                      }
+                      type="time"
+                      value={adding[weekday] ?? ''}
+                    />
+                    <button
+                      className="text-xs text-sky-300 hover:text-sky-200 disabled:opacity-40"
+                      disabled={!adding[weekday]}
+                      onClick={() => {
+                        const time = adding[weekday]
+                        if (!time) return
+                        setSlots((current) =>
+                          current.some((slot) => slot.weekday === weekday && slot.time === time)
+                            ? current
+                            : [...current, { time, weekday }]
+                        )
+                        setAdding((current) => ({ ...current, [weekday]: '' }))
+                      }}
+                      type="button"
+                    >
+                      Add
+                    </button>
+                  </span>
+                ) : null}
+              </li>
+            )
+          })}
+        </ul>
+      </section>
+      <section className="flex flex-col gap-2">
+        <h3 className="text-sm font-medium text-neutral-200">Approvals</h3>
+        <label className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] px-4 py-3 text-sm text-neutral-300">
+          A publisher or admin approves each draft before it is scheduled
+          <input
+            aria-label="Require approval"
+            checked={requireApproval}
+            className="relative h-5 w-8 shrink-0 cursor-pointer appearance-none rounded-full bg-white/15 transition-colors before:absolute before:top-[3px] before:left-[3px] before:size-3.5 before:rounded-full before:bg-white before:transition-transform checked:bg-sky-500 checked:before:translate-x-3 disabled:opacity-50"
+            disabled={!canManage}
+            onChange={(event) => setRequireApproval(event.target.checked)}
+            type="checkbox"
+          />
+        </label>
+      </section>
+      {canManage ? (
+        <div>
+          <Button disabled={saving} onClick={() => void save()}>
+            {saving ? 'Saving…' : 'Save settings'}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  )
+}

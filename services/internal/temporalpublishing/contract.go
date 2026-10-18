@@ -3,6 +3,7 @@ package temporalpublishing
 import (
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
@@ -20,6 +21,7 @@ const (
 	CompleteActivityName    = "CompletePostPublication"
 	FailActivityName        = "FailPostPublication"
 	RecoverActivityName     = "RecoverMissingPosts"
+	AutoActionsActivityName = "RunPostAutoActions"
 	CancelSignalName        = "cancel"
 	PokeSignalName          = "poke"
 	DefaultWorkflowQueue    = "main"
@@ -70,6 +72,9 @@ type PreparedPublication struct {
 	Assets         []publishing.MediaAsset `json:",omitempty"`
 	// Replies follow the post as a thread; jobs from before threads have none.
 	Replies          []publishing.PublishReply `json:",omitempty"`
+	ReplyTo          string                    `json:",omitempty"`
+	AutoActions      *postoptions.AutoActions  `json:",omitempty"`
+	Poll             *postoptions.Poll         `json:",omitempty"`
 	Caption          string
 	DestinationID    string
 	OrganizationID   string
@@ -145,3 +150,16 @@ type ScheduleInput struct {
 }
 
 func WorkflowID(postID string) string { return "post_" + postID }
+
+// AutoActionsInput runs a live post's follow-ups that are due now.
+type AutoActionsInput struct {
+	Job          PreparedPublication
+	ProviderID   string
+	Repost, Plug bool
+	Quote        bool
+}
+
+// AutoActionsResult reports the follow-ups that are done.
+type AutoActionsResult struct {
+	Plugged, Quoted, Reposted bool
+}

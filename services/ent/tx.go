@@ -58,6 +58,10 @@ type Tx struct {
 	ContentAngle *ContentAngleClient
 	// ContentDraft is the client for interacting with the ContentDraft builders.
 	ContentDraft *ContentDraftClient
+	// ContentDraftRevision is the client for interacting with the ContentDraftRevision builders.
+	ContentDraftRevision *ContentDraftRevisionClient
+	// ContentDraftSettings is the client for interacting with the ContentDraftSettings builders.
+	ContentDraftSettings *ContentDraftSettingsClient
 	// Conversation is the client for interacting with the Conversation builders.
 	Conversation *ConversationClient
 	// ConversationMessage is the client for interacting with the ConversationMessage builders.
@@ -308,6 +312,8 @@ func (tx *Tx) init() {
 	tx.CommunicationRecipient = NewCommunicationRecipientClient(tx.config)
 	tx.ContentAngle = NewContentAngleClient(tx.config)
 	tx.ContentDraft = NewContentDraftClient(tx.config)
+	tx.ContentDraftRevision = NewContentDraftRevisionClient(tx.config)
+	tx.ContentDraftSettings = NewContentDraftSettingsClient(tx.config)
 	tx.Conversation = NewConversationClient(tx.config)
 	tx.ConversationMessage = NewConversationMessageClient(tx.config)
 	tx.CreativeTemplate = NewCreativeTemplateClient(tx.config)

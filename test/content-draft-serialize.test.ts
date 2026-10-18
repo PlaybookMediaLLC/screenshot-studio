@@ -282,3 +282,53 @@ test('a thread posts each post on X and one joined post elsewhere', () => {
   assert.deepEqual(long.errors, ['Post 2 is 281 of 280 characters: shorten it for x.'])
   assert.equal(long.length, 281)
 })
+
+test("a channel's own text replaces the body there and keeps the images", () => {
+  const value = [
+    p(text('Body', { bold: true })),
+    { type: 'img', assetId: 'a', url: '/api/v1/assets/a/content', children: [text('')] },
+  ]
+  const x = serializeDraft(value, 'x', undefined, 'Short for X\n\n\nAnd a reply')
+  assert.deepEqual(
+    x.posts.map(({ assetIds, caption }) => ({ assetIds, caption })),
+    [
+      { assetIds: ['a'], caption: 'Short for X' },
+      { assetIds: [], caption: 'And a reply' },
+    ]
+  )
+  assert.deepEqual(x.degradations, [])
+  const linkedin = serializeDraft(value, 'linkedin', undefined, 'Longer for LinkedIn')
+  assert.equal(linkedin.caption, 'Longer for LinkedIn')
+  assert.equal(serializeDraft(value, 'linkedin', undefined, '  ').caption, 'Body')
+})
+
+test('an uploaded video is the post media and goes alone', () => {
+  const video = {
+    type: 'video',
+    assetId: 'v1',
+    url: '/api/v1/assets/v1/content',
+    children: [text('')],
+  }
+  const image = {
+    type: 'img',
+    assetId: 'i1',
+    url: '/api/v1/assets/i1/content',
+    children: [text('')],
+  }
+  const alone = serializeDraft([p(text('Watch')), video], 'linkedin')
+  assert.deepEqual(alone.assetIds, ['v1'])
+  assert.deepEqual(alone.errors, [])
+  assert.deepEqual(alone.degradations, [])
+  const mixed = serializeDraft([p(text('Watch')), video, image], 'x')
+  assert.deepEqual(mixed.errors, ['A video goes alone: one video, no images with it.'])
+  // A video embedded by its link is still left out.
+  const embed = serializeDraft(
+    [p(text('Watch')), { type: 'video', url: 'https://video.example/v', children: [text('')] }],
+    'x'
+  )
+  assert.deepEqual(embed.assetIds, [])
+  assert.deepEqual(
+    embed.degradations.map((item) => item.kind),
+    ['embed']
+  )
+})

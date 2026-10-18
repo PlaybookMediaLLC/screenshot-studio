@@ -34,6 +34,7 @@ func (s *Server) registerContentDrafts(mux *http.ServeMux) {
 	mux.Handle("GET /v1/content-drafts/{id}/posts", s.authenticateProduct(http.HandlerFunc(s.listContentDraftPosts)))
 	mux.Handle("POST /v1/content-drafts/{id}/collab-token", s.authenticateProduct(http.HandlerFunc(s.issueCollabToken)))
 	s.registerCollab(mux)
+	s.registerContentDraftPlatform(mux)
 }
 
 // writeContentDraftError answers a stale write with the version the draft is

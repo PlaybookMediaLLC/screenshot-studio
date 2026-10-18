@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 )
 
 var (
@@ -64,7 +65,11 @@ type PublishJob struct {
 	AssetMediaType string
 	Assets         []MediaAsset
 	// Replies follow the post as a thread, each answering the one before.
-	Replies         []PublishReply
+	Replies []PublishReply
+	// ReplyTo is the live post a resumed thread answers; empty for a new post.
+	ReplyTo         string
+	AutoActions     postoptions.AutoActions
+	Poll            postoptions.Poll
 	Connection      *ent.ChannelConnection
 	Post            *ent.ScheduledPost
 	WorkspaceActive bool

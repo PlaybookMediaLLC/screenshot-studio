@@ -62,6 +62,12 @@ func (_c *ContentDraftCreate) SetDiscussions(v map[string]interface{}) *ContentD
 	return _c
 }
 
+// SetChannelText sets the "channel_text" field.
+func (_c *ContentDraftCreate) SetChannelText(v map[string]string) *ContentDraftCreate {
+	_c.mutation.SetChannelText(v)
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *ContentDraftCreate) SetStatus(v contentdraft.Status) *ContentDraftCreate {
 	_c.mutation.SetStatus(v)
@@ -73,6 +79,82 @@ func (_c *ContentDraftCreate) SetNillableStatus(v *contentdraft.Status) *Content
 	if v != nil {
 		_c.SetStatus(*v)
 	}
+	return _c
+}
+
+// SetReviewStatus sets the "review_status" field.
+func (_c *ContentDraftCreate) SetReviewStatus(v contentdraft.ReviewStatus) *ContentDraftCreate {
+	_c.mutation.SetReviewStatus(v)
+	return _c
+}
+
+// SetNillableReviewStatus sets the "review_status" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableReviewStatus(v *contentdraft.ReviewStatus) *ContentDraftCreate {
+	if v != nil {
+		_c.SetReviewStatus(*v)
+	}
+	return _c
+}
+
+// SetApprovedVersion sets the "approved_version" field.
+func (_c *ContentDraftCreate) SetApprovedVersion(v int) *ContentDraftCreate {
+	_c.mutation.SetApprovedVersion(v)
+	return _c
+}
+
+// SetNillableApprovedVersion sets the "approved_version" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableApprovedVersion(v *int) *ContentDraftCreate {
+	if v != nil {
+		_c.SetApprovedVersion(*v)
+	}
+	return _c
+}
+
+// SetReviewedByUserID sets the "reviewed_by_user_id" field.
+func (_c *ContentDraftCreate) SetReviewedByUserID(v string) *ContentDraftCreate {
+	_c.mutation.SetReviewedByUserID(v)
+	return _c
+}
+
+// SetNillableReviewedByUserID sets the "reviewed_by_user_id" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableReviewedByUserID(v *string) *ContentDraftCreate {
+	if v != nil {
+		_c.SetReviewedByUserID(*v)
+	}
+	return _c
+}
+
+// SetReviewNote sets the "review_note" field.
+func (_c *ContentDraftCreate) SetReviewNote(v string) *ContentDraftCreate {
+	_c.mutation.SetReviewNote(v)
+	return _c
+}
+
+// SetNillableReviewNote sets the "review_note" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableReviewNote(v *string) *ContentDraftCreate {
+	if v != nil {
+		_c.SetReviewNote(*v)
+	}
+	return _c
+}
+
+// SetShareToken sets the "share_token" field.
+func (_c *ContentDraftCreate) SetShareToken(v string) *ContentDraftCreate {
+	_c.mutation.SetShareToken(v)
+	return _c
+}
+
+// SetNillableShareToken sets the "share_token" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableShareToken(v *string) *ContentDraftCreate {
+	if v != nil {
+		_c.SetShareToken(*v)
+	}
+	return _c
+}
+
+// SetGuestComments sets the "guest_comments" field.
+func (_c *ContentDraftCreate) SetGuestComments(v []map[string]string) *ContentDraftCreate {
+	_c.mutation.SetGuestComments(v)
 	return _c
 }
 
@@ -197,9 +279,21 @@ func (_c *ContentDraftCreate) defaults() {
 		v := contentdraft.DefaultDiscussions
 		_c.mutation.SetDiscussions(v)
 	}
+	if _, ok := _c.mutation.ChannelText(); !ok {
+		v := contentdraft.DefaultChannelText
+		_c.mutation.SetChannelText(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := contentdraft.DefaultStatus
 		_c.mutation.SetStatus(v)
+	}
+	if _, ok := _c.mutation.ReviewStatus(); !ok {
+		v := contentdraft.DefaultReviewStatus
+		_c.mutation.SetReviewStatus(v)
+	}
+	if _, ok := _c.mutation.GuestComments(); !ok {
+		v := contentdraft.DefaultGuestComments
+		_c.mutation.SetGuestComments(v)
 	}
 	if _, ok := _c.mutation.Version(); !ok {
 		v := contentdraft.DefaultVersion
@@ -238,6 +332,9 @@ func (_c *ContentDraftCreate) check() error {
 	if _, ok := _c.mutation.Discussions(); !ok {
 		return &ValidationError{Name: "discussions", err: errors.New(`ent: missing required field "ContentDraft.discussions"`)}
 	}
+	if _, ok := _c.mutation.ChannelText(); !ok {
+		return &ValidationError{Name: "channel_text", err: errors.New(`ent: missing required field "ContentDraft.channel_text"`)}
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "ContentDraft.status"`)}
 	}
@@ -245,6 +342,17 @@ func (_c *ContentDraftCreate) check() error {
 		if err := contentdraft.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.status": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.ReviewStatus(); !ok {
+		return &ValidationError{Name: "review_status", err: errors.New(`ent: missing required field "ContentDraft.review_status"`)}
+	}
+	if v, ok := _c.mutation.ReviewStatus(); ok {
+		if err := contentdraft.ReviewStatusValidator(v); err != nil {
+			return &ValidationError{Name: "review_status", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.review_status": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.GuestComments(); !ok {
+		return &ValidationError{Name: "guest_comments", err: errors.New(`ent: missing required field "ContentDraft.guest_comments"`)}
 	}
 	if _, ok := _c.mutation.Version(); !ok {
 		return &ValidationError{Name: "version", err: errors.New(`ent: missing required field "ContentDraft.version"`)}
@@ -318,9 +426,37 @@ func (_c *ContentDraftCreate) createSpec() (*ContentDraft, *sqlgraph.CreateSpec)
 		_spec.SetField(contentdraft.FieldDiscussions, field.TypeJSON, value)
 		_node.Discussions = value
 	}
+	if value, ok := _c.mutation.ChannelText(); ok {
+		_spec.SetField(contentdraft.FieldChannelText, field.TypeJSON, value)
+		_node.ChannelText = value
+	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(contentdraft.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.ReviewStatus(); ok {
+		_spec.SetField(contentdraft.FieldReviewStatus, field.TypeEnum, value)
+		_node.ReviewStatus = value
+	}
+	if value, ok := _c.mutation.ApprovedVersion(); ok {
+		_spec.SetField(contentdraft.FieldApprovedVersion, field.TypeInt, value)
+		_node.ApprovedVersion = &value
+	}
+	if value, ok := _c.mutation.ReviewedByUserID(); ok {
+		_spec.SetField(contentdraft.FieldReviewedByUserID, field.TypeString, value)
+		_node.ReviewedByUserID = &value
+	}
+	if value, ok := _c.mutation.ReviewNote(); ok {
+		_spec.SetField(contentdraft.FieldReviewNote, field.TypeString, value)
+		_node.ReviewNote = &value
+	}
+	if value, ok := _c.mutation.ShareToken(); ok {
+		_spec.SetField(contentdraft.FieldShareToken, field.TypeString, value)
+		_node.ShareToken = &value
+	}
+	if value, ok := _c.mutation.GuestComments(); ok {
+		_spec.SetField(contentdraft.FieldGuestComments, field.TypeJSON, value)
+		_node.GuestComments = value
 	}
 	if value, ok := _c.mutation.Version(); ok {
 		_spec.SetField(contentdraft.FieldVersion, field.TypeInt, value)

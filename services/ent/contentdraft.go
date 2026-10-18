@@ -32,8 +32,22 @@ type ContentDraft struct {
 	ChannelConnectionIds []string `json:"channel_connection_ids,omitempty"`
 	// Discussions holds the value of the "discussions" field.
 	Discussions map[string]interface{} `json:"discussions,omitempty"`
+	// ChannelText holds the value of the "channel_text" field.
+	ChannelText map[string]string `json:"channel_text,omitempty"`
 	// Status holds the value of the "status" field.
 	Status contentdraft.Status `json:"status,omitempty"`
+	// ReviewStatus holds the value of the "review_status" field.
+	ReviewStatus contentdraft.ReviewStatus `json:"review_status,omitempty"`
+	// ApprovedVersion holds the value of the "approved_version" field.
+	ApprovedVersion *int `json:"approved_version,omitempty"`
+	// ReviewedByUserID holds the value of the "reviewed_by_user_id" field.
+	ReviewedByUserID *string `json:"reviewed_by_user_id,omitempty"`
+	// ReviewNote holds the value of the "review_note" field.
+	ReviewNote *string `json:"review_note,omitempty"`
+	// ShareToken holds the value of the "share_token" field.
+	ShareToken *string `json:"share_token,omitempty"`
+	// GuestComments holds the value of the "guest_comments" field.
+	GuestComments []map[string]string `json:"guest_comments,omitempty"`
 	// Version holds the value of the "version" field.
 	Version int `json:"version,omitempty"`
 	// CollabState holds the value of the "collab_state" field.
@@ -54,11 +68,11 @@ func (*ContentDraft) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case contentdraft.FieldBody, contentdraft.FieldAssetIds, contentdraft.FieldChannelConnectionIds, contentdraft.FieldDiscussions, contentdraft.FieldCollabState:
+		case contentdraft.FieldBody, contentdraft.FieldAssetIds, contentdraft.FieldChannelConnectionIds, contentdraft.FieldDiscussions, contentdraft.FieldChannelText, contentdraft.FieldGuestComments, contentdraft.FieldCollabState:
 			values[i] = new([]byte)
-		case contentdraft.FieldVersion:
+		case contentdraft.FieldApprovedVersion, contentdraft.FieldVersion:
 			values[i] = new(sql.NullInt64)
-		case contentdraft.FieldID, contentdraft.FieldOrganizationID, contentdraft.FieldTitle, contentdraft.FieldPlainText, contentdraft.FieldStatus, contentdraft.FieldCreatedByUserID, contentdraft.FieldUpdatedByUserID:
+		case contentdraft.FieldID, contentdraft.FieldOrganizationID, contentdraft.FieldTitle, contentdraft.FieldPlainText, contentdraft.FieldStatus, contentdraft.FieldReviewStatus, contentdraft.FieldReviewedByUserID, contentdraft.FieldReviewNote, contentdraft.FieldShareToken, contentdraft.FieldCreatedByUserID, contentdraft.FieldUpdatedByUserID:
 			values[i] = new(sql.NullString)
 		case contentdraft.FieldCreatedAt, contentdraft.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -133,11 +147,61 @@ func (_m *ContentDraft) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field discussions: %w", err)
 				}
 			}
+		case contentdraft.FieldChannelText:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field channel_text", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.ChannelText); err != nil {
+					return fmt.Errorf("unmarshal field channel_text: %w", err)
+				}
+			}
 		case contentdraft.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = contentdraft.Status(value.String)
+			}
+		case contentdraft.FieldReviewStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field review_status", values[i])
+			} else if value.Valid {
+				_m.ReviewStatus = contentdraft.ReviewStatus(value.String)
+			}
+		case contentdraft.FieldApprovedVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field approved_version", values[i])
+			} else if value.Valid {
+				_m.ApprovedVersion = new(int)
+				*_m.ApprovedVersion = int(value.Int64)
+			}
+		case contentdraft.FieldReviewedByUserID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field reviewed_by_user_id", values[i])
+			} else if value.Valid {
+				_m.ReviewedByUserID = new(string)
+				*_m.ReviewedByUserID = value.String
+			}
+		case contentdraft.FieldReviewNote:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field review_note", values[i])
+			} else if value.Valid {
+				_m.ReviewNote = new(string)
+				*_m.ReviewNote = value.String
+			}
+		case contentdraft.FieldShareToken:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field share_token", values[i])
+			} else if value.Valid {
+				_m.ShareToken = new(string)
+				*_m.ShareToken = value.String
+			}
+		case contentdraft.FieldGuestComments:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field guest_comments", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.GuestComments); err != nil {
+					return fmt.Errorf("unmarshal field guest_comments: %w", err)
+				}
 			}
 		case contentdraft.FieldVersion:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -234,8 +298,37 @@ func (_m *ContentDraft) String() string {
 	builder.WriteString("discussions=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Discussions))
 	builder.WriteString(", ")
+	builder.WriteString("channel_text=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ChannelText))
+	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	builder.WriteString("review_status=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ReviewStatus))
+	builder.WriteString(", ")
+	if v := _m.ApprovedVersion; v != nil {
+		builder.WriteString("approved_version=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.ReviewedByUserID; v != nil {
+		builder.WriteString("reviewed_by_user_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.ReviewNote; v != nil {
+		builder.WriteString("review_note=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.ShareToken; v != nil {
+		builder.WriteString("share_token=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("guest_comments=")
+	builder.WriteString(fmt.Sprintf("%v", _m.GuestComments))
 	builder.WriteString(", ")
 	builder.WriteString("version=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Version))

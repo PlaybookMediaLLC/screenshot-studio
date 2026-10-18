@@ -17,6 +17,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/lucsky/cuid"
 )
 
@@ -70,6 +71,21 @@ func (r *Repository) CreateConnection(ctx context.Context, actor Actor, input Cr
 		return nil, err
 	}
 	return connection.Unwrap(), nil
+}
+
+// SetConnectionProfile records how the account shows on its platform.
+func (r *Repository) SetConnectionProfile(ctx context.Context, id, name, handle, avatar string) (*ent.ChannelConnection, error) {
+	update := r.client.ChannelConnection.UpdateOneID(id)
+	if name != "" {
+		update.SetDisplayName(name)
+	}
+	if handle != "" {
+		update.SetHandle(handle)
+	}
+	if avatar != "" {
+		update.SetAvatarURL(avatar)
+	}
+	return update.Save(ctx)
 }
 
 func (r *Repository) ListConnections(ctx context.Context, organizationID string) ([]*ent.ChannelConnection, error) {
@@ -367,6 +383,10 @@ func (r *Repository) loadDraftPublishJob(ctx context.Context, post *ent.Schedule
 		return inactive, err
 	}
 	job.Assets = assets
+	job.AutoActions, job.Poll = post.AutoActions, post.Poll
+	if post.ReplyTo != nil {
+		job.ReplyTo = *post.ReplyTo
+	}
 	for _, reply := range post.Replies {
 		media, missing, err := r.draftMedia(ctx, post.OrganizationID, reply.AssetIDs)
 		if err != nil || missing {
@@ -383,6 +403,11 @@ func (r *Repository) loadDraftPublishJob(ctx context.Context, post *ent.Schedule
 	}
 	job.WorkspaceActive = workspaceActive && connection.Status == channelconnection.StatusACTIVE
 	return job, nil
+}
+
+// RecordThread keeps how far a published post's thread got.
+func (r *Repository) RecordThread(ctx context.Context, postID string, progress postoptions.ThreadProgress) error {
+	return r.client.ScheduledPost.UpdateOneID(postID).SetThreadProgress(progress).Exec(ctx)
 }
 
 // draftMedia loads a draft post's images in order; missing reports one that
@@ -520,7 +545,7 @@ func (r *Repository) Complete(ctx context.Context, post *ent.ScheduledPost, atte
 		scheduledpost.ID(post.ID),
 		scheduledpost.StatusEQ(scheduledpost.StatusPROCESSING),
 		scheduledpost.TriggerRunIDEQ(runID),
-	).SetStatus(scheduledpost.StatusPUBLISHED).Save(ctx)
+	).SetStatus(scheduledpost.StatusPUBLISHED).SetRemotePostID(providerPostID).Save(ctx)
 	if err != nil || updated != 1 {
 		if err != nil {
 			return err

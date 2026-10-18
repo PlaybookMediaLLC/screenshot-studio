@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 )
 
@@ -32,6 +33,20 @@ type ScheduledPost struct {
 	AssetIds []string `json:"asset_ids,omitempty"`
 	// Replies holds the value of the "replies" field.
 	Replies []thread.Reply `json:"replies,omitempty"`
+	// ReplyTo holds the value of the "reply_to" field.
+	ReplyTo *string `json:"reply_to,omitempty"`
+	// ThreadProgress holds the value of the "thread_progress" field.
+	ThreadProgress postoptions.ThreadProgress `json:"thread_progress,omitempty"`
+	// RemotePostID holds the value of the "remote_post_id" field.
+	RemotePostID *string `json:"remote_post_id,omitempty"`
+	// Metrics holds the value of the "metrics" field.
+	Metrics postoptions.Metrics `json:"metrics,omitempty"`
+	// MetricsAt holds the value of the "metrics_at" field.
+	MetricsAt *time.Time `json:"metrics_at,omitempty"`
+	// AutoActions holds the value of the "auto_actions" field.
+	AutoActions postoptions.AutoActions `json:"auto_actions,omitempty"`
+	// Poll holds the value of the "poll" field.
+	Poll postoptions.Poll `json:"poll,omitempty"`
 	// ChannelConnectionID holds the value of the "channel_connection_id" field.
 	ChannelConnectionID string `json:"channel_connection_id,omitempty"`
 	// ScheduledFor holds the value of the "scheduled_for" field.
@@ -90,11 +105,11 @@ func (*ScheduledPost) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case scheduledpost.FieldAssetIds, scheduledpost.FieldReplies:
+		case scheduledpost.FieldAssetIds, scheduledpost.FieldReplies, scheduledpost.FieldThreadProgress, scheduledpost.FieldMetrics, scheduledpost.FieldAutoActions, scheduledpost.FieldPoll:
 			values[i] = new([]byte)
-		case scheduledpost.FieldID, scheduledpost.FieldOrganizationID, scheduledpost.FieldVariantID, scheduledpost.FieldContentDraftID, scheduledpost.FieldAssetID, scheduledpost.FieldChannelConnectionID, scheduledpost.FieldStatus, scheduledpost.FieldCaption, scheduledpost.FieldIdempotencyKey, scheduledpost.FieldTriggerRunID:
+		case scheduledpost.FieldID, scheduledpost.FieldOrganizationID, scheduledpost.FieldVariantID, scheduledpost.FieldContentDraftID, scheduledpost.FieldAssetID, scheduledpost.FieldReplyTo, scheduledpost.FieldRemotePostID, scheduledpost.FieldChannelConnectionID, scheduledpost.FieldStatus, scheduledpost.FieldCaption, scheduledpost.FieldIdempotencyKey, scheduledpost.FieldTriggerRunID:
 			values[i] = new(sql.NullString)
-		case scheduledpost.FieldScheduledFor, scheduledpost.FieldCreatedAt, scheduledpost.FieldUpdatedAt:
+		case scheduledpost.FieldMetricsAt, scheduledpost.FieldScheduledFor, scheduledpost.FieldCreatedAt, scheduledpost.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -158,6 +173,59 @@ func (_m *ScheduledPost) assignValues(columns []string, values []any) error {
 			} else if value != nil && len(*value) > 0 {
 				if err := json.Unmarshal(*value, &_m.Replies); err != nil {
 					return fmt.Errorf("unmarshal field replies: %w", err)
+				}
+			}
+		case scheduledpost.FieldReplyTo:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field reply_to", values[i])
+			} else if value.Valid {
+				_m.ReplyTo = new(string)
+				*_m.ReplyTo = value.String
+			}
+		case scheduledpost.FieldThreadProgress:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field thread_progress", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.ThreadProgress); err != nil {
+					return fmt.Errorf("unmarshal field thread_progress: %w", err)
+				}
+			}
+		case scheduledpost.FieldRemotePostID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field remote_post_id", values[i])
+			} else if value.Valid {
+				_m.RemotePostID = new(string)
+				*_m.RemotePostID = value.String
+			}
+		case scheduledpost.FieldMetrics:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field metrics", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Metrics); err != nil {
+					return fmt.Errorf("unmarshal field metrics: %w", err)
+				}
+			}
+		case scheduledpost.FieldMetricsAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field metrics_at", values[i])
+			} else if value.Valid {
+				_m.MetricsAt = new(time.Time)
+				*_m.MetricsAt = value.Time
+			}
+		case scheduledpost.FieldAutoActions:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field auto_actions", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.AutoActions); err != nil {
+					return fmt.Errorf("unmarshal field auto_actions: %w", err)
+				}
+			}
+		case scheduledpost.FieldPoll:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field poll", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Poll); err != nil {
+					return fmt.Errorf("unmarshal field poll: %w", err)
 				}
 			}
 		case scheduledpost.FieldChannelConnectionID:
@@ -278,6 +346,33 @@ func (_m *ScheduledPost) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("replies=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Replies))
+	builder.WriteString(", ")
+	if v := _m.ReplyTo; v != nil {
+		builder.WriteString("reply_to=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("thread_progress=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ThreadProgress))
+	builder.WriteString(", ")
+	if v := _m.RemotePostID; v != nil {
+		builder.WriteString("remote_post_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("metrics=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Metrics))
+	builder.WriteString(", ")
+	if v := _m.MetricsAt; v != nil {
+		builder.WriteString("metrics_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("auto_actions=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AutoActions))
+	builder.WriteString(", ")
+	builder.WriteString("poll=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Poll))
 	builder.WriteString(", ")
 	builder.WriteString("channel_connection_id=")
 	builder.WriteString(_m.ChannelConnectionID)

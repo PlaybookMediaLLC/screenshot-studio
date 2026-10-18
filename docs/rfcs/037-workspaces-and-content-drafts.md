@@ -275,6 +275,57 @@ call. The first post is live by the time a reply goes out, so a reply that
 fails ends the thread there and is logged rather than retried. Exports write
 each break as a horizontal rule.
 
+### The posting surface
+
+The drafts pages work like Typefully: the drafts rail (Drafts, Queue,
+Posted, Archived), a calendar, and drafts settings around the composer.
+
+- **Queue.** `content_draft_settings` keeps a workspace's weekly posting
+  slots (default weekdays at 9:00, in the workspace time zone) and whether
+  drafts need approval. "Add to queue" schedules at the next slot no draft
+  post takes. The Queue tab lists posts due in the next 60 days.
+- **Calendar.** A week of draft posts. Dragging a queued post to another day
+  keeps its time; the backend cancels the post and queues a copy without a
+  second charge, because a workflow's timer is fixed when it starts.
+- **Best times.** The weekday hours the workspace's live posts drew the most
+  engagement at, weighting replies and quotes over reposts over likes; with
+  fewer than five measured posts, mid-week mornings and noon.
+- **Plain-language times.** "tomorrow 9am", "in 3 hours", "fri 2pm", "oct 21
+  at noon" read into the schedule time (`lib/content-drafts/when.ts`).
+- **Approvals.** With approval on, a draft is scheduled only once a publisher
+  or admin approves it, and only at the version approved: an edit after
+  approval needs another.
+- **Share links.** A draft can have a read-and-comment link
+  (`/d/<token>`, 24 random bytes). Guests' comments are kept with the draft
+  and shown in the composer; turning the link off makes it find nothing.
+- **History.** A revision is kept at most every ten minutes of editing and
+  on every schedule; restoring one goes through the editor, so a live
+  session and undo see it.
+- **Per-channel text.** A channel can say something different
+  (`content_draft.channelText`); the draft's images still go with it.
+- **Accounts.** Connections keep the account's name, @handle and avatar from
+  Postiz, filled in at connect time or on first list.
+- **Live posts.** A published post keeps its platform id, so the composer
+  links to it and reads its engagement on demand through the provider's
+  analytics. A thread that stopped partway records how far it got and
+  offers "Post the rest": a new post answering the last live reply.
+- **Follow-ups (X).** Repost and reply once a post has enough likes, tried 6,
+  12 and 18 hours after it goes out, and a quote (text plus a link to the
+  post) after a set number of hours. They run in a versioned step of the
+  publishing workflow; a failed one is left undone.
+- **Polls and video.** An X post can carry a poll (2 to 4 choices, open up to
+  7 days, no images). An uploaded video goes out as the post's media, alone:
+  one video, no images beside it, on every channel.
+- **More channels.** Threads (500 characters, 10 images), Bluesky (300, 4)
+  and Mastodon (500, 4) take drafts and threads. Threads and Mastodon
+  connect through OAuth; Bluesky signs in with an app password, so it is
+  connected through the API until that form exists.
+- **Writing help.** The AI rewrites a draft for a channel, turns it into a
+  thread, or shortens it to fit, charged to the workspace's AI credits. The
+  composer offers the handles and hashtags the workspace already writes, and
+  shows a link's card in the preview when a post has no media. X's length
+  counts links as 23 and wide characters as 2, in the composer and in Go.
+
 ### Serialization
 
 Social channels take plain text. One pure function turns Plate JSON into a

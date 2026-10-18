@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
@@ -34,6 +36,7 @@ type Store interface {
 	FinishOAuth(context.Context, publishing.Actor, string, string, string, string) (*ent.ChannelConnection, error)
 	CreateConnection(context.Context, publishing.Actor, publishing.CreateConnectionInput) (*ent.ChannelConnection, error)
 	ListConnections(context.Context, string) ([]*ent.ChannelConnection, error)
+	SetConnectionProfile(ctx context.Context, id, name, handle, avatar string) (*ent.ChannelConnection, error)
 	CreateScheduledPost(context.Context, publishing.Actor, publishing.CreateScheduledPostInput) (publishing.CreateScheduledPostResult, error)
 	ListScheduledPosts(context.Context, string, int) ([]*ent.ScheduledPost, error)
 	CancelScheduledPost(context.Context, publishing.Actor, string) (*ent.ScheduledPost, error)
@@ -53,6 +56,7 @@ type WorkflowScheduler interface {
 type ConfigurationStore interface {
 	ProjectStore
 	ContentDraftStore
+	ContentDraftPlatformStore
 	LibraryStore
 	SharingStore
 	GetCampaignAsset(context.Context, product.Actor, string, string) (*product.CampaignAssetLink, error)
@@ -490,11 +494,50 @@ func (s *Server) listConnections(w http.ResponseWriter, r *http.Request) {
 		writeStoreError(w, err)
 		return
 	}
+	connections = s.fillProfiles(r.Context(), organizationID, connections)
 	items := make([]any, 0, len(connections))
 	for _, connection := range connections {
 		items = append(items, connectionResponse(connection))
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
+// destinationProfiles reads accounts' names, handles and avatars (Postiz).
+type destinationProfiles interface {
+	Profiles(ctx context.Context, secretReference string) (map[string]postiz.DestinationProfile, error)
+}
+
+// fillProfiles names connections that have no name yet, from one Postiz
+// call; connections made before names were stored get them on first list.
+// Best effort: without Postiz the connections are returned as they are.
+func (s *Server) fillProfiles(ctx context.Context, organizationID string, connections []*ent.ChannelConnection) []*ent.ChannelConnection {
+	profiler, ok := s.verifier.(destinationProfiles)
+	missing := false
+	for _, connection := range connections {
+		missing = missing || connection.DisplayName == nil && connection.Status == channelconnection.StatusACTIVE
+	}
+	if !ok || !missing {
+		return connections
+	}
+	binding, err := s.store.Binding(ctx, organizationID)
+	if err != nil {
+		return connections
+	}
+	profiles, err := profiler.Profiles(ctx, binding.SecretReference)
+	if err != nil {
+		slog.WarnContext(ctx, "channel profiles unavailable", "organization", organizationID, "error", err)
+		return connections
+	}
+	for index, connection := range connections {
+		profile, found := profiles[connection.ExternalAccountID]
+		if connection.DisplayName != nil || !found || profile.Name == "" && profile.Handle == "" {
+			continue
+		}
+		if named, err := s.store.SetConnectionProfile(ctx, connection.ID, profile.Name, profile.Handle, profile.AvatarURL); err == nil {
+			connections[index] = named
+		}
+	}
+	return connections
 }
 
 type scheduledPostRequest struct {
@@ -638,6 +681,7 @@ func connectionResponse(connection *ent.ChannelConnection) map[string]any {
 		"platform": connection.Platform, "provider": connection.Provider,
 		"providerSettings": connection.ProviderSettings, "status": connection.Status,
 		"createdAt": connection.CreatedAt, "updatedAt": connection.UpdatedAt,
+		"displayName": connection.DisplayName, "handle": connection.Handle, "avatarUrl": connection.AvatarURL,
 	}
 }
 

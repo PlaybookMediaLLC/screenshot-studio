@@ -31,7 +31,8 @@ func oauthIdentity(w http.ResponseWriter, r *http.Request) (publishing.Actor, st
 }
 
 func validOAuthProvider(provider string) bool {
-	return provider == "x" || provider == "instagram" || provider == "instagram-standalone" || provider == "linkedin"
+	return provider == "x" || provider == "instagram" || provider == "instagram-standalone" || provider == "linkedin" ||
+		provider == "threads" || provider == "mastodon"
 }
 
 func decodeOAuthRequest(w http.ResponseWriter, r *http.Request, requireState, requireIntegration bool) (oauthRequest, bool) {
@@ -52,6 +53,7 @@ func validatedAuthorizationURL(raw, provider string) (string, string, error) {
 	}
 	host := map[string]string{
 		"x": "api.x.com", "instagram": "www.facebook.com", "instagram-standalone": "www.instagram.com", "linkedin": "www.linkedin.com",
+		"threads": "www.threads.net", "mastodon": "mastodon.social",
 	}[provider]
 	if u.Host != host {
 		return "", "", errors.New("unexpected authorization host")

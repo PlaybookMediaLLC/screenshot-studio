@@ -99,6 +99,12 @@ func (_u *ContentDraftUpdate) SetDiscussions(v map[string]interface{}) *ContentD
 	return _u
 }
 
+// SetChannelText sets the "channel_text" field.
+func (_u *ContentDraftUpdate) SetChannelText(v map[string]string) *ContentDraftUpdate {
+	_u.mutation.SetChannelText(v)
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *ContentDraftUpdate) SetStatus(v contentdraft.Status) *ContentDraftUpdate {
 	_u.mutation.SetStatus(v)
@@ -110,6 +116,119 @@ func (_u *ContentDraftUpdate) SetNillableStatus(v *contentdraft.Status) *Content
 	if v != nil {
 		_u.SetStatus(*v)
 	}
+	return _u
+}
+
+// SetReviewStatus sets the "review_status" field.
+func (_u *ContentDraftUpdate) SetReviewStatus(v contentdraft.ReviewStatus) *ContentDraftUpdate {
+	_u.mutation.SetReviewStatus(v)
+	return _u
+}
+
+// SetNillableReviewStatus sets the "review_status" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableReviewStatus(v *contentdraft.ReviewStatus) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetReviewStatus(*v)
+	}
+	return _u
+}
+
+// SetApprovedVersion sets the "approved_version" field.
+func (_u *ContentDraftUpdate) SetApprovedVersion(v int) *ContentDraftUpdate {
+	_u.mutation.ResetApprovedVersion()
+	_u.mutation.SetApprovedVersion(v)
+	return _u
+}
+
+// SetNillableApprovedVersion sets the "approved_version" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableApprovedVersion(v *int) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetApprovedVersion(*v)
+	}
+	return _u
+}
+
+// AddApprovedVersion adds value to the "approved_version" field.
+func (_u *ContentDraftUpdate) AddApprovedVersion(v int) *ContentDraftUpdate {
+	_u.mutation.AddApprovedVersion(v)
+	return _u
+}
+
+// ClearApprovedVersion clears the value of the "approved_version" field.
+func (_u *ContentDraftUpdate) ClearApprovedVersion() *ContentDraftUpdate {
+	_u.mutation.ClearApprovedVersion()
+	return _u
+}
+
+// SetReviewedByUserID sets the "reviewed_by_user_id" field.
+func (_u *ContentDraftUpdate) SetReviewedByUserID(v string) *ContentDraftUpdate {
+	_u.mutation.SetReviewedByUserID(v)
+	return _u
+}
+
+// SetNillableReviewedByUserID sets the "reviewed_by_user_id" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableReviewedByUserID(v *string) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetReviewedByUserID(*v)
+	}
+	return _u
+}
+
+// ClearReviewedByUserID clears the value of the "reviewed_by_user_id" field.
+func (_u *ContentDraftUpdate) ClearReviewedByUserID() *ContentDraftUpdate {
+	_u.mutation.ClearReviewedByUserID()
+	return _u
+}
+
+// SetReviewNote sets the "review_note" field.
+func (_u *ContentDraftUpdate) SetReviewNote(v string) *ContentDraftUpdate {
+	_u.mutation.SetReviewNote(v)
+	return _u
+}
+
+// SetNillableReviewNote sets the "review_note" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableReviewNote(v *string) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetReviewNote(*v)
+	}
+	return _u
+}
+
+// ClearReviewNote clears the value of the "review_note" field.
+func (_u *ContentDraftUpdate) ClearReviewNote() *ContentDraftUpdate {
+	_u.mutation.ClearReviewNote()
+	return _u
+}
+
+// SetShareToken sets the "share_token" field.
+func (_u *ContentDraftUpdate) SetShareToken(v string) *ContentDraftUpdate {
+	_u.mutation.SetShareToken(v)
+	return _u
+}
+
+// SetNillableShareToken sets the "share_token" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableShareToken(v *string) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetShareToken(*v)
+	}
+	return _u
+}
+
+// ClearShareToken clears the value of the "share_token" field.
+func (_u *ContentDraftUpdate) ClearShareToken() *ContentDraftUpdate {
+	_u.mutation.ClearShareToken()
+	return _u
+}
+
+// SetGuestComments sets the "guest_comments" field.
+func (_u *ContentDraftUpdate) SetGuestComments(v []map[string]string) *ContentDraftUpdate {
+	_u.mutation.SetGuestComments(v)
+	return _u
+}
+
+// AppendGuestComments appends value to the "guest_comments" field.
+func (_u *ContentDraftUpdate) AppendGuestComments(v []map[string]string) *ContentDraftUpdate {
+	_u.mutation.AppendGuestComments(v)
 	return _u
 }
 
@@ -240,6 +359,11 @@ func (_u *ContentDraftUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ReviewStatus(); ok {
+		if err := contentdraft.ReviewStatusValidator(v); err != nil {
+			return &ValidationError{Name: "review_status", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.review_status": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -288,8 +412,49 @@ func (_u *ContentDraftUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if value, ok := _u.mutation.Discussions(); ok {
 		_spec.SetField(contentdraft.FieldDiscussions, field.TypeJSON, value)
 	}
+	if value, ok := _u.mutation.ChannelText(); ok {
+		_spec.SetField(contentdraft.FieldChannelText, field.TypeJSON, value)
+	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(contentdraft.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.ReviewStatus(); ok {
+		_spec.SetField(contentdraft.FieldReviewStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.ApprovedVersion(); ok {
+		_spec.SetField(contentdraft.FieldApprovedVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedApprovedVersion(); ok {
+		_spec.AddField(contentdraft.FieldApprovedVersion, field.TypeInt, value)
+	}
+	if _u.mutation.ApprovedVersionCleared() {
+		_spec.ClearField(contentdraft.FieldApprovedVersion, field.TypeInt)
+	}
+	if value, ok := _u.mutation.ReviewedByUserID(); ok {
+		_spec.SetField(contentdraft.FieldReviewedByUserID, field.TypeString, value)
+	}
+	if _u.mutation.ReviewedByUserIDCleared() {
+		_spec.ClearField(contentdraft.FieldReviewedByUserID, field.TypeString)
+	}
+	if value, ok := _u.mutation.ReviewNote(); ok {
+		_spec.SetField(contentdraft.FieldReviewNote, field.TypeString, value)
+	}
+	if _u.mutation.ReviewNoteCleared() {
+		_spec.ClearField(contentdraft.FieldReviewNote, field.TypeString)
+	}
+	if value, ok := _u.mutation.ShareToken(); ok {
+		_spec.SetField(contentdraft.FieldShareToken, field.TypeString, value)
+	}
+	if _u.mutation.ShareTokenCleared() {
+		_spec.ClearField(contentdraft.FieldShareToken, field.TypeString)
+	}
+	if value, ok := _u.mutation.GuestComments(); ok {
+		_spec.SetField(contentdraft.FieldGuestComments, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedGuestComments(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, contentdraft.FieldGuestComments, value)
+		})
 	}
 	if value, ok := _u.mutation.Version(); ok {
 		_spec.SetField(contentdraft.FieldVersion, field.TypeInt, value)
@@ -408,6 +573,12 @@ func (_u *ContentDraftUpdateOne) SetDiscussions(v map[string]interface{}) *Conte
 	return _u
 }
 
+// SetChannelText sets the "channel_text" field.
+func (_u *ContentDraftUpdateOne) SetChannelText(v map[string]string) *ContentDraftUpdateOne {
+	_u.mutation.SetChannelText(v)
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *ContentDraftUpdateOne) SetStatus(v contentdraft.Status) *ContentDraftUpdateOne {
 	_u.mutation.SetStatus(v)
@@ -419,6 +590,119 @@ func (_u *ContentDraftUpdateOne) SetNillableStatus(v *contentdraft.Status) *Cont
 	if v != nil {
 		_u.SetStatus(*v)
 	}
+	return _u
+}
+
+// SetReviewStatus sets the "review_status" field.
+func (_u *ContentDraftUpdateOne) SetReviewStatus(v contentdraft.ReviewStatus) *ContentDraftUpdateOne {
+	_u.mutation.SetReviewStatus(v)
+	return _u
+}
+
+// SetNillableReviewStatus sets the "review_status" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableReviewStatus(v *contentdraft.ReviewStatus) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetReviewStatus(*v)
+	}
+	return _u
+}
+
+// SetApprovedVersion sets the "approved_version" field.
+func (_u *ContentDraftUpdateOne) SetApprovedVersion(v int) *ContentDraftUpdateOne {
+	_u.mutation.ResetApprovedVersion()
+	_u.mutation.SetApprovedVersion(v)
+	return _u
+}
+
+// SetNillableApprovedVersion sets the "approved_version" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableApprovedVersion(v *int) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetApprovedVersion(*v)
+	}
+	return _u
+}
+
+// AddApprovedVersion adds value to the "approved_version" field.
+func (_u *ContentDraftUpdateOne) AddApprovedVersion(v int) *ContentDraftUpdateOne {
+	_u.mutation.AddApprovedVersion(v)
+	return _u
+}
+
+// ClearApprovedVersion clears the value of the "approved_version" field.
+func (_u *ContentDraftUpdateOne) ClearApprovedVersion() *ContentDraftUpdateOne {
+	_u.mutation.ClearApprovedVersion()
+	return _u
+}
+
+// SetReviewedByUserID sets the "reviewed_by_user_id" field.
+func (_u *ContentDraftUpdateOne) SetReviewedByUserID(v string) *ContentDraftUpdateOne {
+	_u.mutation.SetReviewedByUserID(v)
+	return _u
+}
+
+// SetNillableReviewedByUserID sets the "reviewed_by_user_id" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableReviewedByUserID(v *string) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetReviewedByUserID(*v)
+	}
+	return _u
+}
+
+// ClearReviewedByUserID clears the value of the "reviewed_by_user_id" field.
+func (_u *ContentDraftUpdateOne) ClearReviewedByUserID() *ContentDraftUpdateOne {
+	_u.mutation.ClearReviewedByUserID()
+	return _u
+}
+
+// SetReviewNote sets the "review_note" field.
+func (_u *ContentDraftUpdateOne) SetReviewNote(v string) *ContentDraftUpdateOne {
+	_u.mutation.SetReviewNote(v)
+	return _u
+}
+
+// SetNillableReviewNote sets the "review_note" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableReviewNote(v *string) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetReviewNote(*v)
+	}
+	return _u
+}
+
+// ClearReviewNote clears the value of the "review_note" field.
+func (_u *ContentDraftUpdateOne) ClearReviewNote() *ContentDraftUpdateOne {
+	_u.mutation.ClearReviewNote()
+	return _u
+}
+
+// SetShareToken sets the "share_token" field.
+func (_u *ContentDraftUpdateOne) SetShareToken(v string) *ContentDraftUpdateOne {
+	_u.mutation.SetShareToken(v)
+	return _u
+}
+
+// SetNillableShareToken sets the "share_token" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableShareToken(v *string) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetShareToken(*v)
+	}
+	return _u
+}
+
+// ClearShareToken clears the value of the "share_token" field.
+func (_u *ContentDraftUpdateOne) ClearShareToken() *ContentDraftUpdateOne {
+	_u.mutation.ClearShareToken()
+	return _u
+}
+
+// SetGuestComments sets the "guest_comments" field.
+func (_u *ContentDraftUpdateOne) SetGuestComments(v []map[string]string) *ContentDraftUpdateOne {
+	_u.mutation.SetGuestComments(v)
+	return _u
+}
+
+// AppendGuestComments appends value to the "guest_comments" field.
+func (_u *ContentDraftUpdateOne) AppendGuestComments(v []map[string]string) *ContentDraftUpdateOne {
+	_u.mutation.AppendGuestComments(v)
 	return _u
 }
 
@@ -562,6 +846,11 @@ func (_u *ContentDraftUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ReviewStatus(); ok {
+		if err := contentdraft.ReviewStatusValidator(v); err != nil {
+			return &ValidationError{Name: "review_status", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.review_status": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -627,8 +916,49 @@ func (_u *ContentDraftUpdateOne) sqlSave(ctx context.Context) (_node *ContentDra
 	if value, ok := _u.mutation.Discussions(); ok {
 		_spec.SetField(contentdraft.FieldDiscussions, field.TypeJSON, value)
 	}
+	if value, ok := _u.mutation.ChannelText(); ok {
+		_spec.SetField(contentdraft.FieldChannelText, field.TypeJSON, value)
+	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(contentdraft.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.ReviewStatus(); ok {
+		_spec.SetField(contentdraft.FieldReviewStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.ApprovedVersion(); ok {
+		_spec.SetField(contentdraft.FieldApprovedVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedApprovedVersion(); ok {
+		_spec.AddField(contentdraft.FieldApprovedVersion, field.TypeInt, value)
+	}
+	if _u.mutation.ApprovedVersionCleared() {
+		_spec.ClearField(contentdraft.FieldApprovedVersion, field.TypeInt)
+	}
+	if value, ok := _u.mutation.ReviewedByUserID(); ok {
+		_spec.SetField(contentdraft.FieldReviewedByUserID, field.TypeString, value)
+	}
+	if _u.mutation.ReviewedByUserIDCleared() {
+		_spec.ClearField(contentdraft.FieldReviewedByUserID, field.TypeString)
+	}
+	if value, ok := _u.mutation.ReviewNote(); ok {
+		_spec.SetField(contentdraft.FieldReviewNote, field.TypeString, value)
+	}
+	if _u.mutation.ReviewNoteCleared() {
+		_spec.ClearField(contentdraft.FieldReviewNote, field.TypeString)
+	}
+	if value, ok := _u.mutation.ShareToken(); ok {
+		_spec.SetField(contentdraft.FieldShareToken, field.TypeString, value)
+	}
+	if _u.mutation.ShareTokenCleared() {
+		_spec.ClearField(contentdraft.FieldShareToken, field.TypeString)
+	}
+	if value, ok := _u.mutation.GuestComments(); ok {
+		_spec.SetField(contentdraft.FieldGuestComments, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedGuestComments(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, contentdraft.FieldGuestComments, value)
+		})
 	}
 	if value, ok := _u.mutation.Version(); ok {
 		_spec.SetField(contentdraft.FieldVersion, field.TypeInt, value)

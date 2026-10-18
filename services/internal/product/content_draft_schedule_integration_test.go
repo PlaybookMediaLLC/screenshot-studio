@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 	"os"
 	"strings"
 	"testing"
@@ -13,6 +12,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 	"github.com/lucsky/cuid"
 )
 

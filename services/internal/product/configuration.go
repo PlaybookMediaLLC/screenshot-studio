@@ -65,6 +65,8 @@ type Configuration struct {
 	imageHost func(string) bool
 	// web replaces the HTTP client for image downloads and readiness probes in tests.
 	web *http.Client
+	// postMetrics reads a live post's engagement from its platform (RFC 037).
+	postMetrics PostMetricsReader
 }
 
 func NewConfiguration(client *ent.Client) *Configuration {

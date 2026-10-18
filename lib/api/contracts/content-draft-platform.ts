@@ -1,0 +1,233 @@
+import { z } from 'zod'
+import { defineContract, timestampSchema } from '@/lib/api/contract'
+import {
+  contentDraftIdSchema,
+  contentDraftParamsSchema,
+  contentDraftPostSchema,
+  contentDraftSchema,
+  plateValueSchema,
+} from '@/lib/api/contracts/content-drafts'
+
+/**
+ * Content drafts, round two (RFC 037): the posting queue and its settings,
+ * best times, the calendar, moving and resuming posts, review, guest share
+ * links, revisions, live posts' engagement, AI help and link cards.
+ */
+
+/** A weekly posting slot: a weekday (0 is Sunday) and a time as HH:MM. */
+export const queueSlotSchema = z.object({
+  time: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
+  weekday: z.number().int().min(0).max(6),
+})
+
+/** A workspace's drafts settings. */
+export const contentDraftSettingsSchema = z.object({
+  postingSlots: z.array(queueSlotSchema),
+  requireApproval: z.boolean(),
+  timeZone: z.string(),
+})
+
+/** `GET /api/v1/content-draft-settings` */
+export const getContentDraftSettingsContract = defineContract({
+  method: 'GET',
+  name: 'content-drafts.settings',
+  output: contentDraftSettingsSchema,
+  path: '/api/v1/content-draft-settings',
+  summary: "Read the workspace's drafts settings",
+})
+
+/** `PUT /api/v1/content-draft-settings` */
+export const updateContentDraftSettingsContract = defineContract({
+  body: z.object({
+    postingSlots: z.array(queueSlotSchema).max(50).optional(),
+    requireApproval: z.boolean().optional(),
+  }),
+  method: 'PUT',
+  name: 'content-drafts.settings-update',
+  output: contentDraftSettingsSchema,
+  path: '/api/v1/content-draft-settings',
+  summary: "Save the workspace's drafts settings",
+})
+
+/** `GET /api/v1/content-draft-queue/best-times` */
+export const bestPostingTimesContract = defineContract({
+  method: 'GET',
+  name: 'content-drafts.best-times',
+  output: z.object({ items: z.array(z.object({ at: timestampSchema, reason: z.string() })) }),
+  path: '/api/v1/content-draft-queue/best-times',
+  summary: 'Suggest the next times to post',
+})
+
+/** A draft post on the calendar or in the queue. */
+export const calendarPostSchema = contentDraftPostSchema.extend({
+  draftId: z.string(),
+  draftTitle: z.string(),
+})
+
+/** `GET /api/v1/content-draft-posts?from&to` */
+export const listCalendarPostsContract = defineContract({
+  method: 'GET',
+  name: 'content-drafts.calendar',
+  output: z.object({ items: z.array(calendarPostSchema) }),
+  path: '/api/v1/content-draft-posts',
+  query: z.object({ from: z.coerce.date(), to: z.coerce.date() }),
+  summary: 'List draft posts due between two times',
+})
+
+/** Path parameters naming one draft post. */
+export const draftPostParamsSchema = z.object({ id: contentDraftIdSchema })
+
+/** `POST /api/v1/content-draft-posts/{id}/move` */
+export const moveDraftPostContract = defineContract({
+  body: z.object({
+    scheduledFor: z.coerce
+      .date()
+      .refine((value) => value.getTime() > Date.now(), { message: 'Pick a time in the future.' }),
+  }),
+  method: 'POST',
+  name: 'content-drafts.post-move',
+  output: z.object({ post: contentDraftPostSchema }),
+  params: draftPostParamsSchema,
+  path: '/api/v1/content-draft-posts/{id}/move',
+  summary: 'Move a queued draft post to a new time',
+})
+
+/** `POST /api/v1/content-draft-posts/{id}/resume` */
+export const resumeDraftThreadContract = defineContract({
+  method: 'POST',
+  name: 'content-drafts.thread-resume',
+  output: z.object({ post: contentDraftPostSchema }),
+  params: draftPostParamsSchema,
+  path: '/api/v1/content-draft-posts/{id}/resume',
+  status: 201,
+  summary: 'Post the rest of a thread that stopped partway',
+})
+
+/** `POST /api/v1/content-draft-posts/{id}/metrics` */
+export const refreshDraftPostMetricsContract = defineContract({
+  method: 'POST',
+  name: 'content-drafts.post-metrics',
+  output: z.object({ post: contentDraftPostSchema }),
+  params: draftPostParamsSchema,
+  path: '/api/v1/content-draft-posts/{id}/metrics',
+  summary: "Read a live post's engagement now",
+})
+
+/** `POST /api/v1/content-drafts/{id}/review` */
+export const reviewContentDraftContract = defineContract({
+  body: z.object({
+    action: z.enum(['request', 'approve', 'changes']),
+    note: z.string().max(2_000).optional(),
+  }),
+  method: 'POST',
+  name: 'content-drafts.review',
+  output: contentDraftSchema,
+  params: contentDraftParamsSchema,
+  path: '/api/v1/content-drafts/{id}/review',
+  summary: 'Ask for review, approve, or ask for changes',
+})
+
+/** `PUT /api/v1/content-drafts/{id}/share` */
+export const shareContentDraftContract = defineContract({
+  body: z.object({ enabled: z.boolean() }),
+  method: 'PUT',
+  name: 'content-drafts.share',
+  output: contentDraftSchema,
+  params: contentDraftParamsSchema,
+  path: '/api/v1/content-drafts/{id}/share',
+  summary: "Turn a draft's read-and-comment link on or off",
+})
+
+/** A saved point in a draft's history. */
+export const contentDraftRevisionSchema = z.object({
+  body: plateValueSchema.optional(),
+  createdAt: timestampSchema,
+  createdByUserId: z.string().nullable(),
+  id: z.string(),
+  plainText: z.string(),
+  title: z.string(),
+  version: z.number().int(),
+})
+
+/** `GET /api/v1/content-drafts/{id}/revisions` */
+export const listContentDraftRevisionsContract = defineContract({
+  method: 'GET',
+  name: 'content-drafts.revisions',
+  output: z.object({ items: z.array(contentDraftRevisionSchema) }),
+  params: contentDraftParamsSchema,
+  path: '/api/v1/content-drafts/{id}/revisions',
+  summary: "List a draft's revisions, newest first",
+})
+
+/** `GET /api/v1/content-drafts/{id}/revisions/{revisionId}` */
+export const getContentDraftRevisionContract = defineContract({
+  method: 'GET',
+  name: 'content-drafts.revision',
+  output: contentDraftRevisionSchema,
+  params: contentDraftParamsSchema.extend({ revisionId: contentDraftIdSchema }),
+  path: '/api/v1/content-drafts/{id}/revisions/{revisionId}',
+  summary: 'Read one revision of a draft, with its body',
+})
+
+/** What the AI can do to a draft's text. */
+export const draftAssistActionSchema = z.enum(['rewrite', 'thread', 'shorten'])
+
+/** `POST /api/v1/content-drafts/assist` */
+export const draftAssistContract = defineContract({
+  body: z.object({
+    action: draftAssistActionSchema,
+    channel: z.enum(['x', 'linkedin', 'instagram', 'threads', 'bluesky', 'mastodon']),
+    /** The draft's posts as plain text. */
+    posts: z.array(z.string().max(10_000)).min(1).max(25),
+  }),
+  method: 'POST',
+  name: 'content-drafts.assist',
+  output: z.object({ posts: z.array(z.string()).min(1) }),
+  path: '/api/v1/content-drafts/assist',
+  summary: 'Rewrite, thread or shorten a draft for a channel',
+})
+
+/** A link's card: what a channel shows for it. */
+export const linkCardSchema = z.object({
+  description: z.string().nullable(),
+  image: z.string().nullable(),
+  siteName: z.string().nullable(),
+  title: z.string().nullable(),
+  url: z.string(),
+})
+
+/** `GET /api/v1/content-drafts/link-card?url` */
+export const draftLinkCardContract = defineContract({
+  method: 'GET',
+  name: 'content-drafts.link-card',
+  output: linkCardSchema,
+  path: '/api/v1/content-drafts/link-card',
+  query: z.object({ url: z.string().url().max(2_000) }),
+  summary: 'Read the card a channel shows for a link',
+})
+
+/** A guest's view of a shared draft. */
+export const sharedContentDraftSchema = z.object({
+  body: plateValueSchema,
+  guestComments: z.array(
+    z.object({ createdAt: timestampSchema, name: z.string(), text: z.string() })
+  ),
+  plainText: z.string(),
+  title: z.string(),
+  updatedAt: timestampSchema,
+})
+
+/** `POST /api/drafts/shared/{token}/comments` */
+export const addGuestCommentContract = defineContract({
+  body: z.object({
+    name: z.string().trim().min(1).max(80),
+    text: z.string().trim().min(1).max(2_000),
+  }),
+  method: 'POST',
+  name: 'content-drafts.guest-comment',
+  output: sharedContentDraftSchema,
+  params: z.object({ token: z.string().min(20).max(64) }),
+  path: '/api/drafts/shared/{token}/comments',
+  status: 201,
+  summary: 'Leave a comment on a shared draft',
+})

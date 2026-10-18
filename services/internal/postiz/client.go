@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
@@ -35,7 +36,10 @@ type PublishInput struct {
 	AssetObjectKey string
 	Assets         []publishing.MediaAsset
 	// Replies follow the post as a thread, each answering the one before.
-	Replies          []publishing.PublishReply
+	Replies []publishing.PublishReply
+	// ReplyTo is the live post a resumed thread answers.
+	ReplyTo          string
+	Poll             *postoptions.Poll
 	Caption          string
 	DestinationID    string
 	OrganizationID   string
@@ -43,6 +47,37 @@ type PublishInput struct {
 	PostID           string
 	ProviderSettings map[string]any
 	SecretReference  string
+}
+
+// Receipt is a publication's outcome: the post's id and, for a thread, how
+// many replies went out.
+type Receipt struct {
+	PostID string
+	Thread postoptions.ThreadProgress
+}
+
+// AutoActionInput asks for a live post's follow-ups: the ones still due.
+type AutoActionInput struct {
+	DestinationID   string
+	OrganizationID  string
+	Platform        string
+	SecretReference string
+	RemotePostID    string
+	PostURL         string
+	Repost          bool
+	RepostAtLikes   int
+	Plug            bool
+	PlugAtLikes     int
+	PlugText        string
+	Quote           bool
+	QuoteText       string
+}
+
+// AutoActionResult reports the follow-ups that are done.
+type AutoActionResult struct {
+	Plugged  bool
+	Quoted   bool
+	Reposted bool
 }
 
 // Media is every file to publish, in order.
@@ -124,7 +159,9 @@ func New(baseURL string, httpClient *http.Client, assetReader AssetReader) *Clie
 }
 
 func (c *Client) BeginOAuth(ctx context.Context, input BeginOAuthInput) (string, error) {
-	if input.Provider != "x" && input.Provider != "instagram" && input.Provider != "instagram-standalone" && input.Provider != "linkedin" {
+	switch input.Provider {
+	case "x", "instagram", "instagram-standalone", "linkedin", "threads", "mastodon":
+	default:
 		return "", &Error{Status: http.StatusBadRequest, message: "unsupported social provider"}
 	}
 	if !publishing.IsSecretReference(input.SecretReference) {
@@ -245,6 +282,45 @@ func (c *Client) VerifyDestination(ctx context.Context, input VerifyDestinationI
 		}
 	}
 	return &Error{Status: http.StatusNotFound, message: "Postiz destination was not found"}
+}
+
+// DestinationProfile is a connected account as its platform shows it.
+type DestinationProfile struct {
+	AvatarURL string
+	Handle    string
+	Name      string
+}
+
+// Profiles reads every destination's name, handle and picture, by id.
+func (c *Client) Profiles(ctx context.Context, secretReference string) (map[string]DestinationProfile, error) {
+	if !publishing.IsSecretReference(secretReference) {
+		return nil, &Error{Status: http.StatusConflict, message: "invalid Postiz credential reference"}
+	}
+	token := os.Getenv(secretReference)
+	if token == "" {
+		return nil, &Error{Status: http.StatusConflict, message: "Postiz credentials are unavailable"}
+	}
+	var integrations []struct {
+		ID      string `json:"id"`
+		Name    string `json:"name"`
+		Picture string `json:"picture"`
+		Profile string `json:"profile"`
+	}
+	if err := c.getJSON(ctx, token, "integrations", &integrations); err != nil {
+		return nil, err
+	}
+	profiles := make(map[string]DestinationProfile, len(integrations))
+	for _, integration := range integrations {
+		avatar := integration.Picture
+		// Only an absolute https picture can be shown; uploads paths are Postiz's own.
+		if !strings.HasPrefix(avatar, "https://") {
+			avatar = ""
+		}
+		profiles[integration.ID] = DestinationProfile{
+			AvatarURL: avatar, Handle: strings.TrimPrefix(integration.Profile, "@"), Name: integration.Name,
+		}
+	}
+	return profiles, nil
 }
 
 func (c *Client) getJSON(ctx context.Context, token, relative string, target any) error {

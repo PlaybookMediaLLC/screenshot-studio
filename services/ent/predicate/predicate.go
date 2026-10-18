@@ -75,6 +75,12 @@ type ContentAngle func(*sql.Selector)
 // ContentDraft is the predicate function for contentdraft builders.
 type ContentDraft func(*sql.Selector)
 
+// ContentDraftRevision is the predicate function for contentdraftrevision builders.
+type ContentDraftRevision func(*sql.Selector)
+
+// ContentDraftSettings is the predicate function for contentdraftsettings builders.
+type ContentDraftSettings func(*sql.Selector)
+
 // Conversation is the predicate function for conversation builders.
 type Conversation func(*sql.Selector)
 

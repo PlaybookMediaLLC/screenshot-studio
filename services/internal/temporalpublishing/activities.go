@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
@@ -55,7 +57,8 @@ func (a *Activities) Prepare(ctx context.Context, input PrepareInput) (PreparedP
 		return PreparedPublication{}, nil
 	}
 	return PreparedPublication{
-		AssetMediaType: job.AssetMediaType, AssetObjectKey: job.AssetObjectKey, Assets: job.Assets, Replies: job.Replies,
+		AssetMediaType: job.AssetMediaType, AssetObjectKey: job.AssetObjectKey, Assets: job.Assets, Replies: job.Replies, ReplyTo: job.ReplyTo,
+		AutoActions: optionalActions(job.AutoActions), Poll: optionalPoll(job.Poll),
 		Caption: job.Post.Caption, DestinationID: job.Connection.ExternalAccountID,
 		OrganizationID: job.Post.OrganizationID, Platform: job.Connection.Platform,
 		PostID: job.Post.ID, ProviderSettings: job.Connection.ProviderSettings,
@@ -70,8 +73,8 @@ func (a *Activities) Publish(ctx context.Context, input PublishInput) (PublishRe
 	if err != nil {
 		return PublishResult{NextAttempt: input.AttemptNumber, Outcome: OutcomeRetry, RetryAfter: time.Second}, nil
 	}
-	providerID, publishErr := a.provider.Publish(ctx, postiz.PublishInput{
-		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey, Assets: input.Job.Assets, Replies: input.Job.Replies,
+	providerID, publishErr := a.publish(ctx, postiz.PublishInput{
+		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey, Assets: input.Job.Assets, Replies: input.Job.Replies, ReplyTo: input.Job.ReplyTo, Poll: input.Job.Poll,
 		Caption: input.Job.Caption, DestinationID: input.Job.DestinationID,
 		OrganizationID: input.Job.OrganizationID, Platform: input.Job.Platform,
 		PostID:           input.Job.PostID,
@@ -128,9 +131,76 @@ func (a *Activities) Begin(ctx context.Context, input BeginInput) (BeginResult, 
 	return BeginResult{AttemptID: attempt.ID, AttemptNumber: attempt.Number}, nil
 }
 
+func optionalActions(actions postoptions.AutoActions) *postoptions.AutoActions {
+	if actions.Empty() {
+		return nil
+	}
+	return &actions
+}
+
+func optionalPoll(poll postoptions.Poll) *postoptions.Poll {
+	if len(poll.Options) == 0 {
+		return nil
+	}
+	return &poll
+}
+
+// threadPublisher publishes and reports how far a thread got.
+type threadPublisher interface {
+	PublishThread(context.Context, postiz.PublishInput) (postiz.Receipt, error)
+}
+
+// threadRecorder keeps a thread's progress on its post.
+type threadRecorder interface {
+	RecordThread(context.Context, string, postoptions.ThreadProgress) error
+}
+
+// publish uses the provider's thread-aware call when it has one, and keeps
+// the thread's progress; a progress that cannot be kept is logged, since
+// the post is live either way.
+func (a *Activities) publish(ctx context.Context, input postiz.PublishInput) (string, error) {
+	threads, ok := a.provider.(threadPublisher)
+	if !ok || len(input.Replies) == 0 {
+		return a.provider.Publish(ctx, input)
+	}
+	receipt, err := threads.PublishThread(ctx, input)
+	if err != nil {
+		return "", err
+	}
+	if recorder, ok := a.store.(threadRecorder); ok {
+		if err := recorder.RecordThread(ctx, input.PostID, receipt.Thread); err != nil {
+			slog.ErrorContext(ctx, "thread progress was not recorded", "post", input.PostID, "error", err)
+		}
+	}
+	return receipt.PostID, nil
+}
+
+// autoActor runs a live post's follow-ups (repost, plug, quote).
+type autoActor interface {
+	AutoAct(context.Context, postiz.AutoActionInput) (postiz.AutoActionResult, error)
+}
+
+// RunAutoActions runs the follow-ups due now; a provider without them has
+// nothing to do, so every one reports done.
+func (a *Activities) RunAutoActions(ctx context.Context, input AutoActionsInput) (AutoActionsResult, error) {
+	actor, ok := a.provider.(autoActor)
+	actions := input.Job.AutoActions
+	if !ok || actions == nil {
+		return AutoActionsResult{Plugged: true, Quoted: true, Reposted: true}, nil
+	}
+	result, err := actor.AutoAct(ctx, postiz.AutoActionInput{
+		DestinationID: input.Job.DestinationID, OrganizationID: input.Job.OrganizationID,
+		Platform: input.Job.Platform, SecretReference: input.Job.SecretReference, RemotePostID: input.ProviderID,
+		Repost: input.Repost, RepostAtLikes: actions.RepostAtLikes,
+		Plug: input.Plug, PlugAtLikes: actions.PlugAtLikes, PlugText: actions.PlugText,
+		Quote: input.Quote, QuoteText: actions.QuoteText,
+	})
+	return AutoActionsResult{Plugged: result.Plugged, Quoted: result.Quoted, Reposted: result.Reposted}, err
+}
+
 func (a *Activities) Submit(ctx context.Context, input SubmitInput) (PublishResult, error) {
-	providerID, err := a.provider.Publish(ctx, postiz.PublishInput{
-		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey, Assets: input.Job.Assets, Replies: input.Job.Replies,
+	providerID, err := a.publish(ctx, postiz.PublishInput{
+		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey, Assets: input.Job.Assets, Replies: input.Job.Replies, ReplyTo: input.Job.ReplyTo, Poll: input.Job.Poll,
 		Caption: input.Job.Caption, DestinationID: input.Job.DestinationID,
 		OrganizationID: input.Job.OrganizationID, Platform: input.Job.Platform,
 		PostID:           input.Job.PostID,

@@ -10759,6 +10759,15 @@
                     "null"
                   ]
                 },
+                "channelText": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
                 "discussions": {
                   "type": "object",
                   "propertyNames": {
@@ -10799,6 +10808,73 @@
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 9007199254740991
+                },
+                "approvedVersion": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reviewNote": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "reviewStatus": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "approved",
+                    "changes_requested"
+                  ]
+                },
+                "reviewedByUserId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "shareToken": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "guestComments": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "createdAt",
+                      "name",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "publishedPosts": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
                 }
               },
               "required": [
@@ -10807,6 +10883,7 @@
                 "channelConnectionIds",
                 "createdAt",
                 "createdByUserId",
+                "channelText",
                 "discussions",
                 "id",
                 "organizationId",
@@ -10815,7 +10892,14 @@
                 "title",
                 "updatedAt",
                 "updatedByUserId",
-                "version"
+                "version",
+                "approvedVersion",
+                "reviewNote",
+                "reviewStatus",
+                "reviewedByUserId",
+                "shareToken",
+                "guestComments",
+                "publishedPosts"
               ],
               "additionalProperties": false
             }
@@ -10861,6 +10945,24 @@
             "items": {
               "type": "string",
               "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          },
+          "channelText": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "x",
+                "linkedin",
+                "instagram",
+                "threads",
+                "bluesky",
+                "mastodon"
+              ]
+            },
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 100000
             }
           },
           "discussions": {
@@ -10915,6 +11017,15 @@
               "null"
             ]
           },
+          "channelText": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
           "discussions": {
             "type": "object",
             "propertyNames": {
@@ -10955,6 +11066,73 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 9007199254740991
+          },
+          "approvedVersion": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reviewNote": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reviewStatus": {
+            "type": "string",
+            "enum": [
+              "none",
+              "pending",
+              "approved",
+              "changes_requested"
+            ]
+          },
+          "reviewedByUserId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "shareToken": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guestComments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "createdAt": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "createdAt",
+                "name",
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "publishedPosts": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -10963,6 +11141,7 @@
           "channelConnectionIds",
           "createdAt",
           "createdByUserId",
+          "channelText",
           "discussions",
           "id",
           "organizationId",
@@ -10971,7 +11150,14 @@
           "title",
           "updatedAt",
           "updatedByUserId",
-          "version"
+          "version",
+          "approvedVersion",
+          "reviewNote",
+          "reviewStatus",
+          "reviewedByUserId",
+          "shareToken",
+          "guestComments",
+          "publishedPosts"
         ],
         "additionalProperties": false
       },
@@ -11003,6 +11189,24 @@
             "items": {
               "type": "string",
               "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          },
+          "channelText": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "x",
+                "linkedin",
+                "instagram",
+                "threads",
+                "bluesky",
+                "mastodon"
+              ]
+            },
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 100000
             }
           },
           "discussions": {
@@ -11074,6 +11278,62 @@
                     "CANCELLED",
                     "UNKNOWN_DELIVERY"
                   ]
+                },
+                "metrics": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "number"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "metricsAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "replies": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "threadProgress": {
+                  "type": "object",
+                  "properties": {
+                    "lastReplyId": {
+                      "type": "string"
+                    },
+                    "posted": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "posted",
+                    "total"
+                  ],
+                  "additionalProperties": false
                 }
               },
               "required": [
@@ -11083,7 +11343,12 @@
                 "id",
                 "platform",
                 "scheduledFor",
-                "status"
+                "status",
+                "metrics",
+                "metricsAt",
+                "url",
+                "replies",
+                "threadProgress"
               ],
               "additionalProperties": false
             }

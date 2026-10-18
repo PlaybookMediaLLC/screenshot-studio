@@ -285,6 +285,30 @@ func (f ContentDraftFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentDraftMutation", m)
 }
 
+// The ContentDraftRevisionFunc type is an adapter to allow the use of ordinary
+// function as ContentDraftRevision mutator.
+type ContentDraftRevisionFunc func(context.Context, *ent.ContentDraftRevisionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ContentDraftRevisionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ContentDraftRevisionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentDraftRevisionMutation", m)
+}
+
+// The ContentDraftSettingsFunc type is an adapter to allow the use of ordinary
+// function as ContentDraftSettings mutator.
+type ContentDraftSettingsFunc func(context.Context, *ent.ContentDraftSettingsMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ContentDraftSettingsFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ContentDraftSettingsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentDraftSettingsMutation", m)
+}
+
 // The ConversationFunc type is an adapter to allow the use of ordinary
 // function as Conversation mutator.
 type ConversationFunc func(context.Context, *ent.ConversationMutation) (ent.Value, error)

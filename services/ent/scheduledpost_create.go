@@ -13,6 +13,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 )
 
@@ -80,6 +81,96 @@ func (_c *ScheduledPostCreate) SetAssetIds(v []string) *ScheduledPostCreate {
 // SetReplies sets the "replies" field.
 func (_c *ScheduledPostCreate) SetReplies(v []thread.Reply) *ScheduledPostCreate {
 	_c.mutation.SetReplies(v)
+	return _c
+}
+
+// SetReplyTo sets the "reply_to" field.
+func (_c *ScheduledPostCreate) SetReplyTo(v string) *ScheduledPostCreate {
+	_c.mutation.SetReplyTo(v)
+	return _c
+}
+
+// SetNillableReplyTo sets the "reply_to" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableReplyTo(v *string) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetReplyTo(*v)
+	}
+	return _c
+}
+
+// SetThreadProgress sets the "thread_progress" field.
+func (_c *ScheduledPostCreate) SetThreadProgress(v postoptions.ThreadProgress) *ScheduledPostCreate {
+	_c.mutation.SetThreadProgress(v)
+	return _c
+}
+
+// SetNillableThreadProgress sets the "thread_progress" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableThreadProgress(v *postoptions.ThreadProgress) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetThreadProgress(*v)
+	}
+	return _c
+}
+
+// SetRemotePostID sets the "remote_post_id" field.
+func (_c *ScheduledPostCreate) SetRemotePostID(v string) *ScheduledPostCreate {
+	_c.mutation.SetRemotePostID(v)
+	return _c
+}
+
+// SetNillableRemotePostID sets the "remote_post_id" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableRemotePostID(v *string) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetRemotePostID(*v)
+	}
+	return _c
+}
+
+// SetMetrics sets the "metrics" field.
+func (_c *ScheduledPostCreate) SetMetrics(v postoptions.Metrics) *ScheduledPostCreate {
+	_c.mutation.SetMetrics(v)
+	return _c
+}
+
+// SetMetricsAt sets the "metrics_at" field.
+func (_c *ScheduledPostCreate) SetMetricsAt(v time.Time) *ScheduledPostCreate {
+	_c.mutation.SetMetricsAt(v)
+	return _c
+}
+
+// SetNillableMetricsAt sets the "metrics_at" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableMetricsAt(v *time.Time) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetMetricsAt(*v)
+	}
+	return _c
+}
+
+// SetAutoActions sets the "auto_actions" field.
+func (_c *ScheduledPostCreate) SetAutoActions(v postoptions.AutoActions) *ScheduledPostCreate {
+	_c.mutation.SetAutoActions(v)
+	return _c
+}
+
+// SetNillableAutoActions sets the "auto_actions" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableAutoActions(v *postoptions.AutoActions) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetAutoActions(*v)
+	}
+	return _c
+}
+
+// SetPoll sets the "poll" field.
+func (_c *ScheduledPostCreate) SetPoll(v postoptions.Poll) *ScheduledPostCreate {
+	_c.mutation.SetPoll(v)
+	return _c
+}
+
+// SetNillablePoll sets the "poll" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillablePoll(v *postoptions.Poll) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetPoll(*v)
+	}
 	return _c
 }
 
@@ -335,6 +426,34 @@ func (_c *ScheduledPostCreate) createSpec() (*ScheduledPost, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.Replies(); ok {
 		_spec.SetField(scheduledpost.FieldReplies, field.TypeJSON, value)
 		_node.Replies = value
+	}
+	if value, ok := _c.mutation.ReplyTo(); ok {
+		_spec.SetField(scheduledpost.FieldReplyTo, field.TypeString, value)
+		_node.ReplyTo = &value
+	}
+	if value, ok := _c.mutation.ThreadProgress(); ok {
+		_spec.SetField(scheduledpost.FieldThreadProgress, field.TypeJSON, value)
+		_node.ThreadProgress = value
+	}
+	if value, ok := _c.mutation.RemotePostID(); ok {
+		_spec.SetField(scheduledpost.FieldRemotePostID, field.TypeString, value)
+		_node.RemotePostID = &value
+	}
+	if value, ok := _c.mutation.Metrics(); ok {
+		_spec.SetField(scheduledpost.FieldMetrics, field.TypeJSON, value)
+		_node.Metrics = value
+	}
+	if value, ok := _c.mutation.MetricsAt(); ok {
+		_spec.SetField(scheduledpost.FieldMetricsAt, field.TypeTime, value)
+		_node.MetricsAt = &value
+	}
+	if value, ok := _c.mutation.AutoActions(); ok {
+		_spec.SetField(scheduledpost.FieldAutoActions, field.TypeJSON, value)
+		_node.AutoActions = value
+	}
+	if value, ok := _c.mutation.Poll(); ok {
+		_spec.SetField(scheduledpost.FieldPoll, field.TypeJSON, value)
+		_node.Poll = value
 	}
 	if value, ok := _c.mutation.ScheduledFor(); ok {
 		_spec.SetField(scheduledpost.FieldScheduledFor, field.TypeTime, value)

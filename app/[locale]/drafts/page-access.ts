@@ -5,10 +5,10 @@ import { notFound } from 'next/navigation'
 import { getRequestId, type OrganizationAccess } from '@/lib/auth/access'
 import { requirePaidPageAccess } from '@/lib/auth/page-access'
 import { normalizeOrganizationRole } from '@/lib/auth/permissions'
-import type { DraftListItem } from '@/components/drafts/DraftsRail'
+import type { DraftListItem, QueueItem } from '@/components/drafts/DraftsRail'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 import { draftPlainText } from '@/lib/content-drafts/serialize'
-import type { listContentDrafts } from '@/lib/tenant/content-drafts'
+import { type listContentDrafts, listContentDraftPostsBetween } from '@/lib/tenant/content-drafts'
 
 /**
  * Shared guard for the drafts pages: a paid workspace member, inside the
@@ -40,8 +40,28 @@ export function draftListItems(
   return drafts.map((draft) => ({
     excerpt: (draft.plainText || draftPlainText(draft.body)).slice(0, 160),
     id: draft.id,
+    publishedPosts: draft.publishedPosts,
     status: draft.status,
     title: draft.title,
     updatedAt: draft.updatedAt.toISOString(),
   }))
+}
+
+/** The queue: posts due in the next 60 days that have not gone out, soonest first. */
+export async function draftQueue(tenant: OrganizationAccess): Promise<QueueItem[]> {
+  const now = new Date()
+  const posts = await listContentDraftPostsBetween(
+    tenant,
+    now,
+    new Date(now.getTime() + 60 * 86_400_000)
+  )
+  return posts
+    .filter((post) => post.status === 'SCHEDULED' || post.status === 'PROCESSING')
+    .map((post) => ({
+      caption: post.caption,
+      draftId: post.draftId,
+      id: post.id,
+      platform: post.platform,
+      scheduledFor: post.scheduledFor.toISOString(),
+    }))
 }

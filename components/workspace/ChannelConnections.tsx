@@ -15,6 +15,8 @@ const PROVIDERS = [
   { label: 'X', provider: 'x' },
   { label: 'LinkedIn', provider: 'linkedin' },
   { label: 'Instagram', provider: 'instagram-standalone' },
+  { label: 'Threads', provider: 'threads' },
+  { label: 'Mastodon', provider: 'mastodon' },
 ] as const
 
 /** What a return trip from a provider tells the admin, keyed by the `connected` search parameter. */
@@ -23,6 +25,8 @@ const CONNECTED: Record<string, string> = {
   'instagram-standalone':
     'Instagram is connected. Approved Instagram posts can be scheduled to it.',
   linkedin: 'LinkedIn is connected. Approved LinkedIn posts can be scheduled to it.',
+  mastodon: 'Mastodon is connected. Drafts can be scheduled to it.',
+  threads: 'Threads is connected. Drafts can be scheduled to it.',
   x: 'X is connected. Approved X posts can be scheduled to it.',
 }
 
@@ -75,8 +79,11 @@ export function ChannelConnections({ canManage }: { canManage: boolean }) {
                 <Row key={connection.id}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium text-white">
-                      {connection.externalAccountId}
+                      {connection.displayName || connection.externalAccountId}
                     </span>
+                    {connection.handle ? (
+                      <span className="text-sm text-neutral-500">@{connection.handle}</span>
+                    ) : null}
                     <Pill>{connection.platform}</Pill>
                     <Pill tone={connection.status === 'ACTIVE' ? 'green' : 'yellow'}>
                       {connection.status.toLowerCase()}

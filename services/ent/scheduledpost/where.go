@@ -85,6 +85,21 @@ func AssetID(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldEQ(FieldAssetID, v))
 }
 
+// ReplyTo applies equality check predicate on the "reply_to" field. It's identical to ReplyToEQ.
+func ReplyTo(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldReplyTo, v))
+}
+
+// RemotePostID applies equality check predicate on the "remote_post_id" field. It's identical to RemotePostIDEQ.
+func RemotePostID(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldRemotePostID, v))
+}
+
+// MetricsAt applies equality check predicate on the "metrics_at" field. It's identical to MetricsAtEQ.
+func MetricsAt(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldMetricsAt, v))
+}
+
 // ChannelConnectionID applies equality check predicate on the "channel_connection_id" field. It's identical to ChannelConnectionIDEQ.
 func ChannelConnectionID(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldEQ(FieldChannelConnectionID, v))
@@ -428,6 +443,246 @@ func RepliesIsNil() predicate.ScheduledPost {
 // RepliesNotNil applies the NotNil predicate on the "replies" field.
 func RepliesNotNil() predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldNotNull(FieldReplies))
+}
+
+// ReplyToEQ applies the EQ predicate on the "reply_to" field.
+func ReplyToEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldReplyTo, v))
+}
+
+// ReplyToNEQ applies the NEQ predicate on the "reply_to" field.
+func ReplyToNEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNEQ(FieldReplyTo, v))
+}
+
+// ReplyToIn applies the In predicate on the "reply_to" field.
+func ReplyToIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIn(FieldReplyTo, vs...))
+}
+
+// ReplyToNotIn applies the NotIn predicate on the "reply_to" field.
+func ReplyToNotIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotIn(FieldReplyTo, vs...))
+}
+
+// ReplyToGT applies the GT predicate on the "reply_to" field.
+func ReplyToGT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGT(FieldReplyTo, v))
+}
+
+// ReplyToGTE applies the GTE predicate on the "reply_to" field.
+func ReplyToGTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGTE(FieldReplyTo, v))
+}
+
+// ReplyToLT applies the LT predicate on the "reply_to" field.
+func ReplyToLT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLT(FieldReplyTo, v))
+}
+
+// ReplyToLTE applies the LTE predicate on the "reply_to" field.
+func ReplyToLTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLTE(FieldReplyTo, v))
+}
+
+// ReplyToContains applies the Contains predicate on the "reply_to" field.
+func ReplyToContains(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContains(FieldReplyTo, v))
+}
+
+// ReplyToHasPrefix applies the HasPrefix predicate on the "reply_to" field.
+func ReplyToHasPrefix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasPrefix(FieldReplyTo, v))
+}
+
+// ReplyToHasSuffix applies the HasSuffix predicate on the "reply_to" field.
+func ReplyToHasSuffix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasSuffix(FieldReplyTo, v))
+}
+
+// ReplyToIsNil applies the IsNil predicate on the "reply_to" field.
+func ReplyToIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldReplyTo))
+}
+
+// ReplyToNotNil applies the NotNil predicate on the "reply_to" field.
+func ReplyToNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldReplyTo))
+}
+
+// ReplyToEqualFold applies the EqualFold predicate on the "reply_to" field.
+func ReplyToEqualFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEqualFold(FieldReplyTo, v))
+}
+
+// ReplyToContainsFold applies the ContainsFold predicate on the "reply_to" field.
+func ReplyToContainsFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContainsFold(FieldReplyTo, v))
+}
+
+// ThreadProgressIsNil applies the IsNil predicate on the "thread_progress" field.
+func ThreadProgressIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldThreadProgress))
+}
+
+// ThreadProgressNotNil applies the NotNil predicate on the "thread_progress" field.
+func ThreadProgressNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldThreadProgress))
+}
+
+// RemotePostIDEQ applies the EQ predicate on the "remote_post_id" field.
+func RemotePostIDEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldRemotePostID, v))
+}
+
+// RemotePostIDNEQ applies the NEQ predicate on the "remote_post_id" field.
+func RemotePostIDNEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNEQ(FieldRemotePostID, v))
+}
+
+// RemotePostIDIn applies the In predicate on the "remote_post_id" field.
+func RemotePostIDIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIn(FieldRemotePostID, vs...))
+}
+
+// RemotePostIDNotIn applies the NotIn predicate on the "remote_post_id" field.
+func RemotePostIDNotIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotIn(FieldRemotePostID, vs...))
+}
+
+// RemotePostIDGT applies the GT predicate on the "remote_post_id" field.
+func RemotePostIDGT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGT(FieldRemotePostID, v))
+}
+
+// RemotePostIDGTE applies the GTE predicate on the "remote_post_id" field.
+func RemotePostIDGTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGTE(FieldRemotePostID, v))
+}
+
+// RemotePostIDLT applies the LT predicate on the "remote_post_id" field.
+func RemotePostIDLT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLT(FieldRemotePostID, v))
+}
+
+// RemotePostIDLTE applies the LTE predicate on the "remote_post_id" field.
+func RemotePostIDLTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLTE(FieldRemotePostID, v))
+}
+
+// RemotePostIDContains applies the Contains predicate on the "remote_post_id" field.
+func RemotePostIDContains(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContains(FieldRemotePostID, v))
+}
+
+// RemotePostIDHasPrefix applies the HasPrefix predicate on the "remote_post_id" field.
+func RemotePostIDHasPrefix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasPrefix(FieldRemotePostID, v))
+}
+
+// RemotePostIDHasSuffix applies the HasSuffix predicate on the "remote_post_id" field.
+func RemotePostIDHasSuffix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasSuffix(FieldRemotePostID, v))
+}
+
+// RemotePostIDIsNil applies the IsNil predicate on the "remote_post_id" field.
+func RemotePostIDIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldRemotePostID))
+}
+
+// RemotePostIDNotNil applies the NotNil predicate on the "remote_post_id" field.
+func RemotePostIDNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldRemotePostID))
+}
+
+// RemotePostIDEqualFold applies the EqualFold predicate on the "remote_post_id" field.
+func RemotePostIDEqualFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEqualFold(FieldRemotePostID, v))
+}
+
+// RemotePostIDContainsFold applies the ContainsFold predicate on the "remote_post_id" field.
+func RemotePostIDContainsFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContainsFold(FieldRemotePostID, v))
+}
+
+// MetricsIsNil applies the IsNil predicate on the "metrics" field.
+func MetricsIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldMetrics))
+}
+
+// MetricsNotNil applies the NotNil predicate on the "metrics" field.
+func MetricsNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldMetrics))
+}
+
+// MetricsAtEQ applies the EQ predicate on the "metrics_at" field.
+func MetricsAtEQ(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldMetricsAt, v))
+}
+
+// MetricsAtNEQ applies the NEQ predicate on the "metrics_at" field.
+func MetricsAtNEQ(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNEQ(FieldMetricsAt, v))
+}
+
+// MetricsAtIn applies the In predicate on the "metrics_at" field.
+func MetricsAtIn(vs ...time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIn(FieldMetricsAt, vs...))
+}
+
+// MetricsAtNotIn applies the NotIn predicate on the "metrics_at" field.
+func MetricsAtNotIn(vs ...time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotIn(FieldMetricsAt, vs...))
+}
+
+// MetricsAtGT applies the GT predicate on the "metrics_at" field.
+func MetricsAtGT(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGT(FieldMetricsAt, v))
+}
+
+// MetricsAtGTE applies the GTE predicate on the "metrics_at" field.
+func MetricsAtGTE(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGTE(FieldMetricsAt, v))
+}
+
+// MetricsAtLT applies the LT predicate on the "metrics_at" field.
+func MetricsAtLT(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLT(FieldMetricsAt, v))
+}
+
+// MetricsAtLTE applies the LTE predicate on the "metrics_at" field.
+func MetricsAtLTE(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLTE(FieldMetricsAt, v))
+}
+
+// MetricsAtIsNil applies the IsNil predicate on the "metrics_at" field.
+func MetricsAtIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldMetricsAt))
+}
+
+// MetricsAtNotNil applies the NotNil predicate on the "metrics_at" field.
+func MetricsAtNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldMetricsAt))
+}
+
+// AutoActionsIsNil applies the IsNil predicate on the "auto_actions" field.
+func AutoActionsIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldAutoActions))
+}
+
+// AutoActionsNotNil applies the NotNil predicate on the "auto_actions" field.
+func AutoActionsNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldAutoActions))
+}
+
+// PollIsNil applies the IsNil predicate on the "poll" field.
+func PollIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldPoll))
+}
+
+// PollNotNil applies the NotNil predicate on the "poll" field.
+func PollNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldPoll))
 }
 
 // ChannelConnectionIDEQ applies the EQ predicate on the "channel_connection_id" field.

@@ -27,6 +27,20 @@ const (
 	FieldAssetIds = "assetIds"
 	// FieldReplies holds the string denoting the replies field in the database.
 	FieldReplies = "replies"
+	// FieldReplyTo holds the string denoting the reply_to field in the database.
+	FieldReplyTo = "replyTo"
+	// FieldThreadProgress holds the string denoting the thread_progress field in the database.
+	FieldThreadProgress = "threadProgress"
+	// FieldRemotePostID holds the string denoting the remote_post_id field in the database.
+	FieldRemotePostID = "remotePostId"
+	// FieldMetrics holds the string denoting the metrics field in the database.
+	FieldMetrics = "metrics"
+	// FieldMetricsAt holds the string denoting the metrics_at field in the database.
+	FieldMetricsAt = "metricsAt"
+	// FieldAutoActions holds the string denoting the auto_actions field in the database.
+	FieldAutoActions = "autoActions"
+	// FieldPoll holds the string denoting the poll field in the database.
+	FieldPoll = "poll"
 	// FieldChannelConnectionID holds the string denoting the channel_connection_id field in the database.
 	FieldChannelConnectionID = "channelConnectionId"
 	// FieldScheduledFor holds the string denoting the scheduled_for field in the database.
@@ -74,6 +88,13 @@ var Columns = []string{
 	FieldAssetID,
 	FieldAssetIds,
 	FieldReplies,
+	FieldReplyTo,
+	FieldThreadProgress,
+	FieldRemotePostID,
+	FieldMetrics,
+	FieldMetricsAt,
+	FieldAutoActions,
+	FieldPoll,
 	FieldChannelConnectionID,
 	FieldScheduledFor,
 	FieldStatus,
@@ -162,6 +183,21 @@ func ByContentDraftID(opts ...sql.OrderTermOption) OrderOption {
 // ByAssetID orders the results by the asset_id field.
 func ByAssetID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAssetID, opts...).ToFunc()
+}
+
+// ByReplyTo orders the results by the reply_to field.
+func ByReplyTo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReplyTo, opts...).ToFunc()
+}
+
+// ByRemotePostID orders the results by the remote_post_id field.
+func ByRemotePostID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRemotePostID, opts...).ToFunc()
+}
+
+// ByMetricsAt orders the results by the metrics_at field.
+func ByMetricsAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMetricsAt, opts...).ToFunc()
 }
 
 // ByChannelConnectionID orders the results by the channel_connection_id field.

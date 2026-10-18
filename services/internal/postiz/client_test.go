@@ -3,12 +3,13 @@ package postiz
 import (
 	"context"
 	"encoding/json"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
 type staticAssetReader struct{ body []byte }

@@ -90,6 +90,21 @@ func SecretReference(v string) predicate.ChannelConnection {
 	return predicate.ChannelConnection(sql.FieldEQ(FieldSecretReference, v))
 }
 
+// DisplayName applies equality check predicate on the "display_name" field. It's identical to DisplayNameEQ.
+func DisplayName(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldEQ(FieldDisplayName, v))
+}
+
+// Handle applies equality check predicate on the "handle" field. It's identical to HandleEQ.
+func Handle(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldEQ(FieldHandle, v))
+}
+
+// AvatarURL applies equality check predicate on the "avatar_url" field. It's identical to AvatarURLEQ.
+func AvatarURL(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldEQ(FieldAvatarURL, v))
+}
+
 // CreatedByUserID applies equality check predicate on the "created_by_user_id" field. It's identical to CreatedByUserIDEQ.
 func CreatedByUserID(v string) predicate.ChannelConnection {
 	return predicate.ChannelConnection(sql.FieldEQ(FieldCreatedByUserID, v))
@@ -448,6 +463,231 @@ func StatusIn(vs ...Status) predicate.ChannelConnection {
 // StatusNotIn applies the NotIn predicate on the "status" field.
 func StatusNotIn(vs ...Status) predicate.ChannelConnection {
 	return predicate.ChannelConnection(sql.FieldNotIn(FieldStatus, vs...))
+}
+
+// DisplayNameEQ applies the EQ predicate on the "display_name" field.
+func DisplayNameEQ(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldEQ(FieldDisplayName, v))
+}
+
+// DisplayNameNEQ applies the NEQ predicate on the "display_name" field.
+func DisplayNameNEQ(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldNEQ(FieldDisplayName, v))
+}
+
+// DisplayNameIn applies the In predicate on the "display_name" field.
+func DisplayNameIn(vs ...string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldIn(FieldDisplayName, vs...))
+}
+
+// DisplayNameNotIn applies the NotIn predicate on the "display_name" field.
+func DisplayNameNotIn(vs ...string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldNotIn(FieldDisplayName, vs...))
+}
+
+// DisplayNameGT applies the GT predicate on the "display_name" field.
+func DisplayNameGT(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldGT(FieldDisplayName, v))
+}
+
+// DisplayNameGTE applies the GTE predicate on the "display_name" field.
+func DisplayNameGTE(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldGTE(FieldDisplayName, v))
+}
+
+// DisplayNameLT applies the LT predicate on the "display_name" field.
+func DisplayNameLT(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldLT(FieldDisplayName, v))
+}
+
+// DisplayNameLTE applies the LTE predicate on the "display_name" field.
+func DisplayNameLTE(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldLTE(FieldDisplayName, v))
+}
+
+// DisplayNameContains applies the Contains predicate on the "display_name" field.
+func DisplayNameContains(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldContains(FieldDisplayName, v))
+}
+
+// DisplayNameHasPrefix applies the HasPrefix predicate on the "display_name" field.
+func DisplayNameHasPrefix(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldHasPrefix(FieldDisplayName, v))
+}
+
+// DisplayNameHasSuffix applies the HasSuffix predicate on the "display_name" field.
+func DisplayNameHasSuffix(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldHasSuffix(FieldDisplayName, v))
+}
+
+// DisplayNameIsNil applies the IsNil predicate on the "display_name" field.
+func DisplayNameIsNil() predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldIsNull(FieldDisplayName))
+}
+
+// DisplayNameNotNil applies the NotNil predicate on the "display_name" field.
+func DisplayNameNotNil() predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldNotNull(FieldDisplayName))
+}
+
+// DisplayNameEqualFold applies the EqualFold predicate on the "display_name" field.
+func DisplayNameEqualFold(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldEqualFold(FieldDisplayName, v))
+}
+
+// DisplayNameContainsFold applies the ContainsFold predicate on the "display_name" field.
+func DisplayNameContainsFold(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldContainsFold(FieldDisplayName, v))
+}
+
+// HandleEQ applies the EQ predicate on the "handle" field.
+func HandleEQ(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldEQ(FieldHandle, v))
+}
+
+// HandleNEQ applies the NEQ predicate on the "handle" field.
+func HandleNEQ(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldNEQ(FieldHandle, v))
+}
+
+// HandleIn applies the In predicate on the "handle" field.
+func HandleIn(vs ...string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldIn(FieldHandle, vs...))
+}
+
+// HandleNotIn applies the NotIn predicate on the "handle" field.
+func HandleNotIn(vs ...string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldNotIn(FieldHandle, vs...))
+}
+
+// HandleGT applies the GT predicate on the "handle" field.
+func HandleGT(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldGT(FieldHandle, v))
+}
+
+// HandleGTE applies the GTE predicate on the "handle" field.
+func HandleGTE(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldGTE(FieldHandle, v))
+}
+
+// HandleLT applies the LT predicate on the "handle" field.
+func HandleLT(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldLT(FieldHandle, v))
+}
+
+// HandleLTE applies the LTE predicate on the "handle" field.
+func HandleLTE(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldLTE(FieldHandle, v))
+}
+
+// HandleContains applies the Contains predicate on the "handle" field.
+func HandleContains(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldContains(FieldHandle, v))
+}
+
+// HandleHasPrefix applies the HasPrefix predicate on the "handle" field.
+func HandleHasPrefix(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldHasPrefix(FieldHandle, v))
+}
+
+// HandleHasSuffix applies the HasSuffix predicate on the "handle" field.
+func HandleHasSuffix(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldHasSuffix(FieldHandle, v))
+}
+
+// HandleIsNil applies the IsNil predicate on the "handle" field.
+func HandleIsNil() predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldIsNull(FieldHandle))
+}
+
+// HandleNotNil applies the NotNil predicate on the "handle" field.
+func HandleNotNil() predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldNotNull(FieldHandle))
+}
+
+// HandleEqualFold applies the EqualFold predicate on the "handle" field.
+func HandleEqualFold(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldEqualFold(FieldHandle, v))
+}
+
+// HandleContainsFold applies the ContainsFold predicate on the "handle" field.
+func HandleContainsFold(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldContainsFold(FieldHandle, v))
+}
+
+// AvatarURLEQ applies the EQ predicate on the "avatar_url" field.
+func AvatarURLEQ(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldEQ(FieldAvatarURL, v))
+}
+
+// AvatarURLNEQ applies the NEQ predicate on the "avatar_url" field.
+func AvatarURLNEQ(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldNEQ(FieldAvatarURL, v))
+}
+
+// AvatarURLIn applies the In predicate on the "avatar_url" field.
+func AvatarURLIn(vs ...string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldIn(FieldAvatarURL, vs...))
+}
+
+// AvatarURLNotIn applies the NotIn predicate on the "avatar_url" field.
+func AvatarURLNotIn(vs ...string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldNotIn(FieldAvatarURL, vs...))
+}
+
+// AvatarURLGT applies the GT predicate on the "avatar_url" field.
+func AvatarURLGT(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldGT(FieldAvatarURL, v))
+}
+
+// AvatarURLGTE applies the GTE predicate on the "avatar_url" field.
+func AvatarURLGTE(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldGTE(FieldAvatarURL, v))
+}
+
+// AvatarURLLT applies the LT predicate on the "avatar_url" field.
+func AvatarURLLT(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldLT(FieldAvatarURL, v))
+}
+
+// AvatarURLLTE applies the LTE predicate on the "avatar_url" field.
+func AvatarURLLTE(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldLTE(FieldAvatarURL, v))
+}
+
+// AvatarURLContains applies the Contains predicate on the "avatar_url" field.
+func AvatarURLContains(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldContains(FieldAvatarURL, v))
+}
+
+// AvatarURLHasPrefix applies the HasPrefix predicate on the "avatar_url" field.
+func AvatarURLHasPrefix(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldHasPrefix(FieldAvatarURL, v))
+}
+
+// AvatarURLHasSuffix applies the HasSuffix predicate on the "avatar_url" field.
+func AvatarURLHasSuffix(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldHasSuffix(FieldAvatarURL, v))
+}
+
+// AvatarURLIsNil applies the IsNil predicate on the "avatar_url" field.
+func AvatarURLIsNil() predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldIsNull(FieldAvatarURL))
+}
+
+// AvatarURLNotNil applies the NotNil predicate on the "avatar_url" field.
+func AvatarURLNotNil() predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldNotNull(FieldAvatarURL))
+}
+
+// AvatarURLEqualFold applies the EqualFold predicate on the "avatar_url" field.
+func AvatarURLEqualFold(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldEqualFold(FieldAvatarURL, v))
+}
+
+// AvatarURLContainsFold applies the ContainsFold predicate on the "avatar_url" field.
+func AvatarURLContainsFold(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldContainsFold(FieldAvatarURL, v))
 }
 
 // CreatedByUserIDEQ applies the EQ predicate on the "created_by_user_id" field.

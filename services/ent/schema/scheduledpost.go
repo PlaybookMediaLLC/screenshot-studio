@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 	"time"
 
 	"entgo.io/ent"
@@ -10,6 +9,8 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 )
 
 // ScheduledPost is the durable queue and state machine shared by both services.
@@ -34,6 +35,19 @@ func (ScheduledPost) Fields() []ent.Field {
 		field.JSON("asset_ids", []string{}).StorageKey("assetIds").Optional().Immutable(),
 		// A thread's later posts, posted as replies to the first (X only).
 		field.JSON("replies", []thread.Reply{}).StorageKey("replies").Optional().Immutable(),
+		// The live post a resumed thread answers (a remote id); empty for a new post.
+		field.String("reply_to").StorageKey("replyTo").Optional().Nillable().Immutable(),
+		// After a post with replies goes out: how far the thread got.
+		field.JSON("thread_progress", postoptions.ThreadProgress{}).StorageKey("threadProgress").Optional(),
+		// The post's id on its platform, once live.
+		field.String("remote_post_id").StorageKey("remotePostId").Optional().Nillable(),
+		// Engagement, as last read from the platform.
+		field.JSON("metrics", postoptions.Metrics{}).StorageKey("metrics").Optional(),
+		field.Time("metrics_at").StorageKey("metricsAt").Optional().Nillable(),
+		// Follow-ups once the post is live (X: repost, plug, quote).
+		field.JSON("auto_actions", postoptions.AutoActions{}).StorageKey("autoActions").Optional().Immutable(),
+		// A poll on the post (X).
+		field.JSON("poll", postoptions.Poll{}).StorageKey("poll").Optional().Immutable(),
 		field.String("channel_connection_id").StorageKey("channelConnectionId").Immutable(),
 		field.Time("scheduled_for").StorageKey("scheduledFor"),
 		field.Enum("status").StorageKey("status").Values("DRAFT", "SCHEDULED", "PROCESSING", "PUBLISHED", "FAILED", "CANCELLED", "UNKNOWN_DELIVERY").Default("DRAFT"),

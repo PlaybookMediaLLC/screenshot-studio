@@ -1,6 +1,7 @@
 package temporalpublishing
 
 import (
+	"sort"
 	"time"
 
 	"go.temporal.io/sdk/temporal"
@@ -98,6 +99,7 @@ func PostWorkflowV2(ctx workflow.Context, input WorkflowInput) (WorkflowResult, 
 			if err := completeAttempt(ctx, mainCtx, attempt, job, runID, submitted.ProviderID); err != nil {
 				return WorkflowResult{}, err
 			}
+			runAutoActions(ctx, input, job, submitted.ProviderID)
 			return WorkflowResult{Outcome: OutcomePublished, ProviderID: submitted.ProviderID}, nil
 		}
 
@@ -221,4 +223,68 @@ func waitForCancelAndDrainPoke(ctx workflow.Context, cancelSignal, pokeSignal wo
 			return cancelled
 		}
 	}
+}
+
+// autoActionChecks are when a live post's like-gated follow-ups are tried,
+// after it goes out: like counts take hours to build.
+var autoActionChecks = []time.Duration{6 * time.Hour, 12 * time.Hour, 18 * time.Hour}
+
+// runAutoActions runs a live post's follow-ups (RFC 037): a repost and a
+// plug reply once it has enough likes, tried at autoActionChecks, and a
+// quote after QuoteAfterHours. Versioned: workflows from before it skip it.
+// A follow-up that fails is left undone; the post is live either way.
+func runAutoActions(ctx workflow.Context, input WorkflowInput, job PreparedPublication, providerID string) {
+	if workflow.GetVersion(ctx, "post-auto-actions", workflow.DefaultVersion, 1) == workflow.DefaultVersion {
+		return
+	}
+	actions := job.AutoActions
+	if actions == nil || actions.Empty() {
+		return
+	}
+	actionCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+		TaskQueue:           input.ActivityTaskQueue,
+		StartToCloseTimeout: 2 * time.Minute,
+		RetryPolicy:         &temporal.RetryPolicy{MaximumAttempts: 2},
+	})
+	repost, plug, quote := actions.RepostAtLikes > 0, actions.PlugAtLikes > 0, actions.QuoteAfterHours > 0
+	quoteAt := time.Duration(actions.QuoteAfterHours) * time.Hour
+	waits := append([]time.Duration{}, autoActionChecks...)
+	if quote {
+		waits = append(waits, quoteAt)
+	}
+	sort.Slice(waits, func(i, j int) bool { return waits[i] < waits[j] })
+	started := workflow.Now(ctx)
+	last := len(autoActionChecks) - 1
+	for index, wait := range waits {
+		if !repost && !plug && !quote {
+			return
+		}
+		if index > 0 && waits[index-1] == wait {
+			continue
+		}
+		if err := workflow.Sleep(ctx, started.Add(wait).Sub(workflow.Now(ctx))); err != nil {
+			return
+		}
+		check := wait <= autoActionChecks[last] && containsDuration(autoActionChecks, wait)
+		var done AutoActionsResult
+		err := workflow.ExecuteActivity(actionCtx, AutoActionsActivityName, AutoActionsInput{
+			Job: job, ProviderID: providerID,
+			Repost: repost && check, Plug: plug && check, Quote: quote && wait >= quoteAt,
+		}).Get(ctx, &done)
+		if err != nil {
+			continue
+		}
+		repost = repost && !done.Reposted
+		plug = plug && !done.Plugged
+		quote = quote && !done.Quoted
+	}
+}
+
+func containsDuration(list []time.Duration, value time.Duration) bool {
+	for _, item := range list {
+		if item == value {
+			return true
+		}
+	}
+	return false
 }

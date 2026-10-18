@@ -3,15 +3,17 @@ package product
 import (
 	"context"
 	"fmt"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 	"github.com/lucsky/cuid"
 )
 
@@ -24,12 +26,21 @@ import (
 // limit applies (campaignChannelLimits). Other platforms cannot take a draft.
 var draftPlatformChannels = map[string]string{
 	"x": "x", "linkedin": "linkedin", "instagram": "instagram", "instagram-standalone": "instagram",
+	"threads": "threads", "bluesky": "bluesky", "mastodon": "mastodon",
 }
 
 // draftChannelImageLimits is how many images each channel takes in one post.
 // A post carries its first images up to that many; the composer's preview
 // says so (lib/content-drafts/serialize.ts holds the same numbers).
-var draftChannelImageLimits = map[string]int{"instagram": 10, "linkedin": 9, "x": 4}
+var draftChannelImageLimits = map[string]int{
+	"bluesky": 4, "instagram": 10, "linkedin": 9, "mastodon": 4, "threads": 10, "x": 4,
+}
+
+// draftChannelLimits is each channel's caption limit; the composer holds the
+// same numbers (DRAFT_CHANNEL_LIMITS in lib/content-drafts/serialize.ts).
+var draftChannelLimits = map[string]int{
+	"bluesky": 300, "instagram": 2200, "linkedin": 3000, "mastodon": 500, "threads": 500, "x": 280,
+}
 
 // ContentDraftScheduleTarget is one channel and the caption serialized for it.
 type ContentDraftScheduleTarget struct {
@@ -41,10 +52,14 @@ type ContentDraftScheduleTarget struct {
 	// Replies are a thread's later posts, posted as replies to the first.
 	// Only a channel that publishes threads (X) takes them.
 	Replies []thread.Reply `json:"replies"`
+	// AutoActions follow the post once live (X only).
+	AutoActions *postoptions.AutoActions `json:"autoActions"`
+	// Poll asks a question with the post (X only).
+	Poll *postoptions.Poll `json:"poll"`
 }
 
 // draftThreadChannels publish a thread's later posts as replies.
-var draftThreadChannels = map[string]bool{"x": true}
+var draftThreadChannels = map[string]bool{"x": true, "threads": true, "bluesky": true, "mastodon": true}
 
 // contentDraftReplyLimit caps a thread: the first post and this many replies.
 const contentDraftReplyLimit = 24
@@ -65,6 +80,37 @@ type ContentDraftPost struct {
 	Platform            string    `json:"platform"`
 	ScheduledFor        time.Time `json:"scheduledFor"`
 	Status              string    `json:"status"`
+	// Once live: the post on its platform, and its engagement as last read.
+	Metrics   postoptions.Metrics `json:"metrics"`
+	MetricsAt *time.Time          `json:"metricsAt"`
+	URL       *string             `json:"url"`
+	// A thread: how many replies it has and how many went out.
+	Replies        int                        `json:"replies"`
+	ThreadProgress postoptions.ThreadProgress `json:"threadProgress"`
+}
+
+// livePostURL is a live post's address on its platform, where one can be
+// built from its id.
+func livePostURL(platform string, remoteID *string) *string {
+	if remoteID == nil || *remoteID == "" {
+		return nil
+	}
+	var url string
+	switch platform {
+	case "x":
+		url = "https://x.com/i/status/" + *remoteID
+	case "linkedin":
+		url = "https://www.linkedin.com/feed/update/" + *remoteID
+	case "threads", "bluesky", "mastodon":
+		// These providers report a post's address as its id.
+		if strings.HasPrefix(*remoteID, "https://") {
+			url = *remoteID
+		}
+	}
+	if url == "" {
+		return nil
+	}
+	return &url
 }
 
 // ScheduleContentDraftResult is the draft after scheduling and its new posts.
@@ -88,7 +134,8 @@ func contentDraftPostKey(draftID, connectionID string, version int) string {
 func contentDraftPost(post *ent.ScheduledPost, platform string) ContentDraftPost {
 	return ContentDraftPost{Caption: post.Caption, ChannelConnectionID: post.ChannelConnectionID,
 		CreatedAt: post.CreatedAt, ID: post.ID, Platform: platform, ScheduledFor: post.ScheduledFor,
-		Status: string(post.Status)}
+		Status: string(post.Status), Metrics: post.Metrics, MetricsAt: post.MetricsAt,
+		URL: livePostURL(platform, post.RemotePostID), Replies: len(post.Replies), ThreadProgress: post.ThreadProgress}
 }
 
 // validateDraftTargets checks the shape of a schedule before any lookup.
@@ -152,16 +199,59 @@ func draftTargetConnections(ctx context.Context, tx *ent.Tx, organizationID stri
 		if channel == "instagram" && len(ids) == 0 {
 			return nil, nil, conflict("Instagram needs an image. Add one to the draft first.")
 		}
-		if length, limit := campaignPostLength(target.Caption, ""), campaignChannelLimit(channel); length > limit {
+		if length, limit := draftPostLength(channel, target.Caption), draftChannelLimits[channel]; length > limit {
 			return nil, nil, conflict(fmt.Sprintf("The %s caption is %d characters; the limit is %d.", channel, length, limit))
 		}
 		if err := checkDraftReplies(ctx, tx, organizationID, channel, target.Replies); err != nil {
+			return nil, nil, err
+		}
+		if err := checkDraftExtras(channel, target, len(ids)); err != nil {
 			return nil, nil, err
 		}
 		connections[target.ChannelConnectionID] = connection
 		images[target.ChannelConnectionID] = ids
 	}
 	return connections, images, nil
+}
+
+// checkDraftExtras checks a target's auto actions and poll: X only, a poll
+// of 2 to 4 short choices open 5 minutes to 7 days, without images, and
+// sensible follow-ups.
+func checkDraftExtras(channel string, target ContentDraftScheduleTarget, images int) error {
+	if target.AutoActions != nil && !target.AutoActions.Empty() {
+		actions := *target.AutoActions
+		if channel != "x" {
+			return invalid("Auto reposts, replies and quotes are for X posts.")
+		}
+		if actions.RepostAtLikes < 0 || actions.PlugAtLikes < 0 || actions.QuoteAfterHours < 0 ||
+			actions.RepostAtLikes > 1_000_000 || actions.PlugAtLikes > 1_000_000 || actions.QuoteAfterHours > 24*30 {
+			return invalid("Set like counts and hours as small positive numbers.")
+		}
+		if actions.PlugAtLikes > 0 && (strings.TrimSpace(actions.PlugText) == "" || xLength(actions.PlugText) > 280) {
+			return invalid("The auto reply needs text that fits in one X post.")
+		}
+		if actions.QuoteAfterHours > 0 && (strings.TrimSpace(actions.QuoteText) == "" || xLength(actions.QuoteText)+1+xLinkLength > 280) {
+			return invalid("The quote needs text that fits in one X post with the link.")
+		}
+	}
+	if target.Poll != nil && len(target.Poll.Options) > 0 {
+		poll := *target.Poll
+		if channel != "x" {
+			return invalid("Polls are for X posts.")
+		}
+		if images > 0 {
+			return invalid("An X poll cannot have images; remove them or the poll.")
+		}
+		if len(poll.Options) < 2 || len(poll.Options) > 4 || poll.DurationMinutes < 5 || poll.DurationMinutes > 7*24*60 {
+			return invalid("A poll has 2 to 4 choices and stays open 5 minutes to 7 days.")
+		}
+		for _, option := range poll.Options {
+			if strings.TrimSpace(option) == "" || utf8.RuneCountInString(option) > 25 {
+				return invalid("Each poll choice is 1 to 25 characters.")
+			}
+		}
+	}
+	return nil
 }
 
 // checkDraftReplies checks a thread's later posts: a thread channel, at most
@@ -172,7 +262,7 @@ func checkDraftReplies(ctx context.Context, tx *ent.Tx, organizationID, channel 
 		return nil
 	}
 	if !draftThreadChannels[channel] {
-		return invalid("Only X posts a thread; send " + channel + " one post.")
+		return invalid("Only X, Threads, Bluesky and Mastodon post a thread; send " + channel + " one post.")
 	}
 	if len(replies) > contentDraftReplyLimit {
 		return invalid(fmt.Sprintf("A thread can have at most %d replies.", contentDraftReplyLimit))
@@ -180,7 +270,7 @@ func checkDraftReplies(ctx context.Context, tx *ent.Tx, organizationID, channel 
 	for index := range replies {
 		reply := &replies[index]
 		reply.Caption = strings.TrimSpace(reply.Caption)
-		if length, limit := campaignPostLength(reply.Caption, ""), campaignChannelLimit(channel); length > limit {
+		if length, limit := draftPostLength(channel, reply.Caption), draftChannelLimits[channel]; length > limit {
 			return conflict(fmt.Sprintf("Post %d is %d characters; the %s limit is %d.", index+2, length, channel, limit))
 		}
 		ids, err := contentDraftAssets(ctx, tx, organizationID,
@@ -291,6 +381,12 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	if draft.Version != input.Version {
 		return nil, &ContentDraftVersionConflictError{Current: draft.Version}
 	}
+	if err := c.requireDraftApproval(ctx, draft); err != nil {
+		return nil, err
+	}
+	if err := recordContentDraftRevision(ctx, tx, actor, draft, true); err != nil {
+		return nil, err
+	}
 	connections, images, err := draftTargetConnections(ctx, tx, actor.OrganizationID, input.Targets, draft.AssetIds)
 	if err != nil {
 		return nil, err
@@ -328,6 +424,12 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		}
 		if len(target.Replies) > 0 {
 			create.SetReplies(target.Replies)
+		}
+		if target.AutoActions != nil && !target.AutoActions.Empty() {
+			create.SetAutoActions(*target.AutoActions)
+		}
+		if target.Poll != nil && len(target.Poll.Options) > 0 {
+			create.SetPoll(*target.Poll)
 		}
 		post, err := create.SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
 			SetContentDraftID(draft.ID).SetChannelConnectionID(target.ChannelConnectionID).

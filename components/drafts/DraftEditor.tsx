@@ -41,13 +41,21 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { DraftDiscussions } from '@/lib/content-drafts/discussions'
+import { draftsApi } from '@/lib/content-drafts/client'
+import { type DraftChannel, POST_BREAK, serializeDraft } from '@/lib/content-drafts/serialize'
 import { cn } from '@/lib/utils'
+import { CHANNEL_META } from './channel-meta'
 import { POST_COLUMN } from './layout'
+
+/** What the AI can do to a draft (the assist contract's actions). */
+type DraftAssistAction = 'rewrite' | 'thread' | 'shorten'
 import {
   FirstPostHeader,
   insertPostBreak,
   PostBreakPlugin,
   PostHeaderContext,
+  PostToolsContext,
+  splitPostAtCaret,
   ThreadLine,
   threadAsRules,
 } from './thread'
@@ -63,8 +71,42 @@ export type DraftEditorUser = { id: string; name: string }
 /** A live session: the collab server's URL and the draft it edits. */
 export type DraftCollaboration = { draftId: string; url: string }
 
+/** Hashtags the workspace uses, one click from the post. */
+function HashtagChips({ hashtags }: { hashtags: string[] }) {
+  const editor = useEditorRef()
+  return (
+    <div className={cn('flex flex-wrap items-center gap-1.5 pb-6', POST_COLUMN)}>
+      <span className="text-[11px] text-neutral-500">Your hashtags</span>
+      {hashtags.map((tag) => (
+        <button
+          className="rounded-full border border-white/[0.08] px-2 py-0.5 text-xs text-neutral-400 hover:border-sky-400/40 hover:text-white"
+          key={tag}
+          onClick={() => {
+            // At the caret, or at the end of the draft when there is none.
+            if (!editor.selection) editor.tf.select(editor.api.end([]))
+            editor.tf.insertText(` #${tag}`)
+            editor.tf.focus()
+          }}
+          onMouseDown={(event) => event.preventDefault()}
+          type="button"
+        >
+          #{tag}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export type DraftEditorProps = {
+  /** The channel the AI writes for: the first selected thread channel. */
+  assistChannel: DraftChannel
   collaboration: DraftCollaboration | null
+  /** The editor, once made: the host restores revisions through it. */
+  onEditor?: (editor: PlateEditor) => void
+  /** @handles the workspace already writes, offered in the @ picker. */
+  handles: string[]
+  /** Hashtags the workspace already writes, offered as chips. */
+  hashtags: string[]
   /** Each post's header, by its 1-based number in the thread: who it is from. */
   postHeader: (number: number) => React.ReactNode
   /** Comment threads stored with the draft. */
@@ -206,15 +248,19 @@ function fileSlug(title: string): string {
 function FileButton({
   accept,
   children,
+  inputRef,
   label,
   onFile,
 }: {
   accept: string
   children: React.ReactNode
+  /** The hidden picker, for opening it from elsewhere. */
+  inputRef?: React.RefObject<HTMLInputElement | null>
   label: string
   onFile: (file: File) => void
 }) {
-  const input = React.useRef<HTMLInputElement>(null)
+  const own = React.useRef<HTMLInputElement>(null)
+  const input = inputRef ?? own
   return (
     <>
       <ToolbarButton onClick={() => input.current?.click()} tooltip={label}>
@@ -263,6 +309,64 @@ function InsertButton({
     >
       {children}
     </ToolbarButton>
+  )
+}
+
+/** What each AI action is called in the menu. */
+const ASSIST_LABELS: Record<DraftAssistAction, (channel: string) => string> = {
+  rewrite: (channel) => `Rewrite for ${channel}`,
+  shorten: (channel) => `Shorten to fit ${channel}`,
+  thread: () => 'Turn into a thread',
+}
+
+/**
+ * AI help on the whole draft: rewrite it for a channel, turn it into a
+ * thread, or shorten it to fit. The answer replaces the text in one step,
+ * so undo brings the writer's own back; images stay with the first post.
+ */
+function AssistMenu({ channel, editor }: { channel: DraftChannel; editor: PlateEditor }) {
+  const [busy, setBusy] = React.useState(false)
+  const label = CHANNEL_META[channel].label
+  const run = async (action: DraftAssistAction) => {
+    const posts = serializeDraft(editor.children, channel).posts.map((post) => post.caption)
+    if (posts.every((post) => !post.trim())) {
+      toast.info('Write something first.')
+      return
+    }
+    setBusy(true)
+    try {
+      const answer = await draftsApi.assist({ action, channel, posts })
+      const media = editor.children.filter((node) => node.type === 'img' || node.type === 'video')
+      const value = answer.posts.flatMap((post, index) => [
+        ...(index > 0 ? [{ children: [{ text: '' }], type: POST_BREAK }] : []),
+        ...post
+          .split(/\n{2,}/)
+          .map((paragraph) => ({ children: [{ text: paragraph }], type: 'p' })),
+        ...(index === 0 ? media : []),
+      ])
+      editor.tf.withoutNormalizing(() => editor.tf.setValue(value as Value))
+      toast.success('Done. Undo brings your version back.')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'The AI could not answer.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <ToolbarButton aria-label="AI help" disabled={busy} tooltip="AI help">
+          {busy ? 'Writing…' : 'AI'}
+        </ToolbarButton>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" side="top">
+        {(Object.keys(ASSIST_LABELS) as DraftAssistAction[]).map((action) => (
+          <DropdownMenuItem key={action} onSelect={() => void run(action)}>
+            {ASSIST_LABELS[action](label)}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
@@ -318,11 +422,15 @@ function DocumentMenu({
 }
 
 function DraftToolbar({
+  assistChannel,
   editor,
+  imageInput,
   services,
   title,
 }: {
+  assistChannel: DraftChannel
   editor: PlateEditor
+  imageInput: React.RefObject<HTMLInputElement | null>
   services: EditorServices
   title: string
 }) {
@@ -374,6 +482,9 @@ function DraftToolbar({
         <InsertButton editor={editor} insert={() => insertPostBreak(editor)} label="New post (⌘↵)">
           + Post
         </InsertButton>
+        <InsertButton editor={editor} insert={() => splitPostAtCaret(editor)} label="Split post">
+          Split
+        </InsertButton>
       </ToolbarGroup>
       <ToolbarGroup>
         <InsertButton
@@ -398,7 +509,8 @@ function DraftToolbar({
           Footnote
         </InsertButton>
         <FileButton
-          accept="image/png,image/jpeg,image/webp,image/gif"
+          accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm"
+          inputRef={imageInput}
           label="Insert image"
           onFile={(file) => {
             // The media plugin takes a FileList, as from a drop or a picker.
@@ -410,6 +522,11 @@ function DraftToolbar({
           Image
         </FileButton>
       </ToolbarGroup>
+      {services.ai ? (
+        <ToolbarGroup>
+          <AssistMenu channel={assistChannel} editor={editor} />
+        </ToolbarGroup>
+      ) : null}
       <ToolbarGroup>
         <DocumentMenu
           files={[
@@ -432,7 +549,11 @@ function DraftToolbar({
 }
 
 export default function DraftEditor({
+  assistChannel,
   collaboration,
+  onEditor,
+  handles,
+  hashtags,
   postHeader,
   initialDiscussions: storedDiscussions,
   initialValue,
@@ -480,10 +601,18 @@ export default function DraftEditor({
       ],
     })
   }, [collaboration, initialDiscussions, readOnly, user.id, user.name])
-  // Mentions offer the signed-in member instead of the upstream demo list.
+  // Mentions offer the signed-in member and the handles the workspace already
+  // writes, instead of the upstream demo list.
+  const handleList = handles.join(' ')
   React.useEffect(() => {
-    setMentionUsers([{ id: user.id, name: user.name }])
-  }, [user.id, user.name])
+    setMentionUsers([
+      { id: user.id, name: user.name },
+      ...handleList
+        .split(' ')
+        .filter(Boolean)
+        .map((handle) => ({ id: `handle:${handle}`, name: handle })),
+    ])
+  }, [handleList, user.id, user.name])
   const editor = usePlateEditor({
     plugins,
     readOnly,
@@ -491,6 +620,7 @@ export default function DraftEditor({
     skipInitialization: Boolean(collaboration),
     value: collaboration ? undefined : initialValue.length > 0 ? initialValue : EMPTY_VALUE,
   })
+  React.useEffect(() => onEditor?.(editor), [editor, onEditor])
   const firstValue = React.useRef(initialValue)
   // Plate renders the editable only once the editor has content; a live
   // session gets it asynchronously, so the editable remounts when it arrives.
@@ -519,31 +649,45 @@ export default function DraftEditor({
     }
   }, [collaboration, editor])
 
+  const imageInput = React.useRef<HTMLInputElement>(null)
+  const postTools = React.useMemo(
+    () => (readOnly ? {} : { addImage: () => imageInput.current?.click() }),
+    [readOnly]
+  )
   return (
     <EditorServicesProvider services={services}>
       <PostHeaderContext.Provider value={postHeader}>
-        <Plate editor={editor} onValueChange={({ value }) => onChange(value)} readOnly={readOnly}>
-          {collaboration ? <Presence /> : null}
-          <DiscussionsWatcher onChange={onDiscussionsChange} />
-          <CommentColumn key={live ? 'live' : 'local'}>
-            <FirstPostHeader />
-            <ThreadLine />
-            <Editor
-              aria-label="Draft body"
-              className={cn(POST_COLUMN, 'pt-1 pb-12 text-[15px] leading-relaxed')}
-              placeholder="What do you want to say?"
-              variant="default"
-            />
-          </CommentColumn>
-          {readOnly ? null : (
-            // The formatting bar floats at the bottom of the page, out of the text's way.
-            <div className="pointer-events-none sticky bottom-5 z-10 flex justify-center">
-              <div className="pointer-events-auto">
-                <DraftToolbar editor={editor} services={services} title={title} />
+        <PostToolsContext.Provider value={postTools}>
+          <Plate editor={editor} onValueChange={({ value }) => onChange(value)} readOnly={readOnly}>
+            {collaboration ? <Presence /> : null}
+            <DiscussionsWatcher onChange={onDiscussionsChange} />
+            <CommentColumn key={live ? 'live' : 'local'}>
+              <FirstPostHeader />
+              <ThreadLine />
+              <Editor
+                aria-label="Draft body"
+                className={cn(POST_COLUMN, 'pt-1 pb-12 text-[15px] leading-relaxed')}
+                placeholder="What do you want to say?"
+                variant="default"
+              />
+            </CommentColumn>
+            {readOnly || hashtags.length === 0 ? null : <HashtagChips hashtags={hashtags} />}
+            {readOnly ? null : (
+              // The formatting bar floats at the bottom of the page, out of the text's way.
+              <div className="pointer-events-none sticky bottom-5 z-10 flex justify-center">
+                <div className="pointer-events-auto">
+                  <DraftToolbar
+                    assistChannel={assistChannel}
+                    editor={editor}
+                    imageInput={imageInput}
+                    services={services}
+                    title={title}
+                  />
+                </div>
               </div>
-            </div>
-          )}
-        </Plate>
+            )}
+          </Plate>
+        </PostToolsContext.Provider>
       </PostHeaderContext.Provider>
     </EditorServicesProvider>
   )

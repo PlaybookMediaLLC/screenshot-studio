@@ -16,6 +16,7 @@ import (
 )
 
 type fakeStore struct {
+	connections   []*ent.ChannelConnection
 	connection    publishing.CreateConnectionInput
 	scheduled     publishing.CreateScheduledPostInput
 	oauthState    string
@@ -30,6 +31,10 @@ type fakeVerifier struct {
 	input         postiz.VerifyDestinationInput
 	exchangeCalls int
 	pageCalls     int
+}
+
+func (f *fakeVerifier) Profiles(context.Context, string) (map[string]postiz.DestinationProfile, error) {
+	return map[string]postiz.DestinationProfile{"postiz-x": {Handle: "shots_app", Name: "Shots"}}, nil
 }
 
 func (f *fakeVerifier) VerifyDestination(_ context.Context, input postiz.VerifyDestinationInput) error {
@@ -150,7 +155,10 @@ func (f *fakeStore) CreateConnection(_ context.Context, _ publishing.Actor, inpu
 	return &ent.ChannelConnection{ID: "connection-1", Platform: input.Platform, ProviderSettings: input.ProviderSettings}, nil
 }
 func (f *fakeStore) ListConnections(context.Context, string) ([]*ent.ChannelConnection, error) {
-	return nil, nil
+	return f.connections, nil
+}
+func (f *fakeStore) SetConnectionProfile(_ context.Context, id, name, handle, avatar string) (*ent.ChannelConnection, error) {
+	return &ent.ChannelConnection{ID: id, DisplayName: &name, Handle: &handle, AvatarURL: &avatar, Status: "ACTIVE"}, nil
 }
 func (f *fakeStore) CreateScheduledPost(_ context.Context, actor publishing.Actor, input publishing.CreateScheduledPostInput) (publishing.CreateScheduledPostResult, error) {
 	f.scheduled = input
@@ -293,5 +301,21 @@ func TestCreateScheduledPostRejectsPastTime(t *testing.T) {
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestListConnectionsNamesAccountsFromPostiz(t *testing.T) {
+	store := &fakeStore{connections: []*ent.ChannelConnection{{ID: "c1", ExternalAccountID: "postiz-x", Platform: "x", Status: "ACTIVE"}}}
+	handler := New(store, &fakeScheduler{}, &fakeVerifier{}, "secret")
+	request := httptest.NewRequest(http.MethodGet, "/v1/channel-connections", nil)
+	request.Header.Set("Authorization", "Bearer secret")
+	request.Header.Set("X-Organization-ID", "org-1")
+	request.Header.Set("X-User-ID", "user-1")
+	request.Header.Set("X-Session-ID", "session-1")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"displayName":"Shots"`) ||
+		!strings.Contains(response.Body.String(), `"handle":"shots_app"`) {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
 }

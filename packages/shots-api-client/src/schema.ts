@@ -1316,6 +1316,9 @@ export interface components {
                 channelConnectionIds: string[];
                 createdAt: string;
                 createdByUserId: string | null;
+                channelText: {
+                    [key: string]: string;
+                };
                 discussions: {
                     [key: string]: unknown;
                 };
@@ -1328,6 +1331,18 @@ export interface components {
                 updatedAt: string;
                 updatedByUserId: string | null;
                 version: number;
+                approvedVersion: number | null;
+                reviewNote: string | null;
+                /** @enum {string} */
+                reviewStatus: "none" | "pending" | "approved" | "changes_requested";
+                reviewedByUserId: string | null;
+                shareToken: string | null;
+                guestComments: {
+                    createdAt: string;
+                    name: string;
+                    text: string;
+                }[];
+                publishedPosts: number;
             }[];
             nextCursor: string | null;
         };
@@ -1337,6 +1352,9 @@ export interface components {
                 [key: string]: unknown;
             }[];
             channelConnectionIds?: string[];
+            channelText?: {
+                [key: string]: string;
+            };
             discussions?: {
                 [key: string]: unknown;
             };
@@ -1351,6 +1369,9 @@ export interface components {
             channelConnectionIds: string[];
             createdAt: string;
             createdByUserId: string | null;
+            channelText: {
+                [key: string]: string;
+            };
             discussions: {
                 [key: string]: unknown;
             };
@@ -1363,6 +1384,18 @@ export interface components {
             updatedAt: string;
             updatedByUserId: string | null;
             version: number;
+            approvedVersion: number | null;
+            reviewNote: string | null;
+            /** @enum {string} */
+            reviewStatus: "none" | "pending" | "approved" | "changes_requested";
+            reviewedByUserId: string | null;
+            shareToken: string | null;
+            guestComments: {
+                createdAt: string;
+                name: string;
+                text: string;
+            }[];
+            publishedPosts: number;
         };
         ContentDraftUpdateRequest: {
             assetIds?: string[];
@@ -1370,6 +1403,9 @@ export interface components {
                 [key: string]: unknown;
             }[];
             channelConnectionIds?: string[];
+            channelText?: {
+                [key: string]: string;
+            };
             discussions?: {
                 [key: string]: unknown;
             };
@@ -1389,6 +1425,17 @@ export interface components {
                 scheduledFor: string;
                 /** @enum {string} */
                 status: "DRAFT" | "SCHEDULED" | "PROCESSING" | "PUBLISHED" | "FAILED" | "CANCELLED" | "UNKNOWN_DELIVERY";
+                metrics: {
+                    [key: string]: number;
+                } | null;
+                metricsAt: string | null;
+                url: string | null;
+                replies: number;
+                threadProgress: {
+                    lastReplyId?: string;
+                    posted: number;
+                    total: number;
+                };
             }[];
         };
         OnboardingRunCreateRequest: {

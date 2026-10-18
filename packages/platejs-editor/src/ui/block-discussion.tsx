@@ -20,7 +20,14 @@ import {
 } from "platejs";
 import type { PlateElementProps, RenderNodeWrapper } from "platejs/react";
 import { useEditorPlugin, useEditorRef, usePluginOption } from "platejs/react";
-import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
+import {
+  Fragment,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { commentPlugin } from "../plugins/comment-kit";
 import { discussionPlugin, type TDiscussion } from "../plugins/discussion-kit";
@@ -91,9 +98,7 @@ function resolveDiscussionAnchorElement({
 }: {
   activeCommentId: string | null;
   activeSuggestion:
-    | ReturnType<typeof useResolveSuggestion>[number]
-    | null
-    | undefined;
+    ReturnType<typeof useResolveSuggestion>[number] | null | undefined;
   commentNodes: NodeEntry<TCommentText>[];
   draftCommentNode: NodeEntry<TCommentText> | undefined;
   editor: ReturnType<typeof useEditorRef>;
@@ -137,9 +142,7 @@ function renderDiscussionPopoverBody({
 }: {
   activeDiscussion: TDiscussion | null | undefined;
   activeSuggestion:
-    | ReturnType<typeof useResolveSuggestion>[number]
-    | null
-    | undefined;
+    ReturnType<typeof useResolveSuggestion>[number] | null | undefined;
   isCommenting: boolean;
   noneActive: boolean;
   sortedMergedData: Array<
@@ -232,6 +235,7 @@ const BlockCommentsContent = ({
     resolvedSuggestion.some((s) => s.suggestionId === activeSuggestionId);
 
   const [_open, setOpen] = useState(selected);
+  const blockRef = useRef<HTMLDivElement>(null);
 
   // in some cases, we may comment the multiple blocks
   const commentingCurrent =
@@ -289,14 +293,23 @@ const BlockCommentsContent = ({
         }}
         open={open}
       >
-        <div className="w-full">{children}</div>
-        {anchorElement && (
-          <PopoverAnchor
-            asChild
-            className="w-full"
-            virtualRef={{ current: anchorElement }}
-          />
-        )}
+        <div className="w-full" ref={blockRef}>
+          {children}
+        </div>
+        {/* Measured when the popover places itself: the commented text while
+            it is in the page, else its block. A leaf the editor re-rendered
+            measures as the window's corner. */}
+        <PopoverAnchor
+          virtualRef={{
+            current: {
+              getBoundingClientRect: () =>
+                (anchorElement?.isConnected
+                  ? anchorElement
+                  : blockRef.current
+                )?.getBoundingClientRect() ?? new DOMRect(),
+            },
+          }}
+        />
 
         <PopoverContent
           align="center"

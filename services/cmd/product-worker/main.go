@@ -112,6 +112,7 @@ func main() {
 		activityWorker.RegisterActivityWithOptions(activities.Publish, activity.RegisterOptions{Name: temporalpublishing.PublishActivityName})
 		activityWorker.RegisterActivityWithOptions(activities.MarkUnknown, activity.RegisterOptions{Name: temporalpublishing.MarkUnknownActivityName})
 		activityWorker.RegisterActivityWithOptions(activities.Submit, activity.RegisterOptions{Name: temporalpublishing.SubmitActivityName})
+		activityWorker.RegisterActivityWithOptions(activities.RunAutoActions, activity.RegisterOptions{Name: temporalpublishing.AutoActionsActivityName})
 		activityWorker.RegisterActivityWithOptions(activities.Check, activity.RegisterOptions{Name: temporalpublishing.CheckActivityName})
 	}
 

@@ -42,6 +42,9 @@ export async function createDraftWorkspace(
           disabled: false,
           id: `postiz-${platform}`,
           identifier: platform,
+          name: `Shots on ${platform}`,
+          picture: '',
+          profile: `shots_${platform}`,
         })),
       }
     }

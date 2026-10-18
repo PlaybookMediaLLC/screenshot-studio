@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react'
 import { ProfileForm } from '@/components/auth/ProfileForm'
 import { ChannelConnections } from './ChannelConnections'
+import { WorkspaceAgentSettings } from './WorkspaceAgentSettings'
 import { WorkspaceAuditSettings } from './WorkspaceAuditSettings'
 import { WorkspaceBilling } from './WorkspaceBilling'
 import { WorkspaceBrandSettings } from './WorkspaceBrandSettings'
@@ -20,6 +21,7 @@ import type { SettingId } from './settings-sections'
 
 type WorkspaceSettingContentProps = {
   email: string
+  mcpUrl: string
   name: string
   organization: WorkspaceSettingsProps['organization']
   role: string
@@ -29,6 +31,7 @@ type WorkspaceSettingContentProps = {
 
 function getDetailContent({
   email,
+  mcpUrl,
   name,
   organization,
   role,
@@ -37,6 +40,7 @@ function getDetailContent({
 }: WorkspaceSettingContentProps): Record<SettingId, ReactNode> {
   const canManage = hasPermission(role, 'workspace:update')
   return {
+    agents: <WorkspaceAgentSettings canManage={hasPermission(role, 'brand:manage')} mcpUrl={mcpUrl} />,
     api: <WorkspaceDeveloperSettings canManage={canManage} />,
     audit: (
       <WorkspaceAuditSettings

@@ -1,0 +1,13 @@
+{
+  "name": "shots",
+  "owner": { "name": "Playbook Media" },
+  "metadata": { "description": "Shots for Claude Code: the Shots MCP server and a launch workflow skill." },
+  "plugins": [
+    {
+      "name": "shots",
+      "source": "./integrations/claude-code/shots",
+      "description": "Connect Claude Code to a Shots workspace over MCP and draft launches for review.",
+      "category": "productivity"
+    }
+  ]
+}

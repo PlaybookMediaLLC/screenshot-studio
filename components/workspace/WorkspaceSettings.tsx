@@ -5,6 +5,8 @@ import { SETTINGS_SECTIONS, type SettingId } from './settings-sections'
 
 export type WorkspaceSettingsProps = {
   email: string
+  /** The public MCP server URL, shown under AI agents. */
+  mcpUrl: string
   name: string
   organization: {
     id: string

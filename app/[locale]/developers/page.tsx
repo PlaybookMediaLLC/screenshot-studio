@@ -58,6 +58,11 @@ const RESOURCES = [
     detail: "Workspace API keys, signed-in sessions, and rate limits for every endpoint.",
   },
   {
+    href: "/docs/agents",
+    label: "AI agents (MCP)",
+    detail: "Connect Claude, ChatGPT, Cursor, and other agents to a workspace through the Shots MCP server.",
+  },
+  {
     href: "/llms.txt",
     label: "llms.txt",
     detail: "Markdown site overview for AI agents and LLM crawlers.",

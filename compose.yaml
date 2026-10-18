@@ -48,6 +48,8 @@ services:
       PLATFORM_DESIGN_RENDERER: ${PLATFORM_DESIGN_RENDERER:-}
       PLATFORM_RENDER_BASE_URL: http://localhost:3000
       PLATFORM_RENDER_CDP_URL: http://localhost:9222
+      # The MCP server Settings → AI agents shows (./bin/studio postiz-go-up serves it).
+      PLATFORM_MCP_URL: ${PLATFORM_MCP_URL:-http://localhost:3100/mcp}
       PUBLISHING_API_URL: ${PUBLISHING_API_URL:-http://publishing-backend:8080}
       PUBLISHING_SERVICE_TOKEN: ${PUBLISHING_SERVICE_TOKEN:-local-publishing-service}
       SCREENSHOT_API_URL: ${SCREENSHOT_API_URL:-https://api.microlink.io}

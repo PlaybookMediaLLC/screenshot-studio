@@ -11,6 +11,9 @@ import { cn } from '@/lib/utils'
 import { DiffView } from './DiffView'
 import { waitForLaunchRun } from './run-polling'
 import { changeFields } from './proposal-text'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
 
 export type RevisionTarget =
   | { planId: string; type: 'plan' }
@@ -157,21 +160,20 @@ export function RevisePanel({
                 Keep related pieces consistent ({proposed.proposal.related.length})
               </p>
               {proposed.proposal.related.map((change, index) => (
-                <label
+                <Label
                   className="block space-y-2 rounded-lg p-2 ring-1 ring-white/[0.06]"
                   key={`${change.targetId}-${index}`}
                 >
                   <span className="flex items-start gap-2 text-sm">
-                    <input
+                    <Checkbox
                       checked={related.has(index)}
                       className="mt-1 size-4 accent-white"
-                      onChange={(event) => {
+                      onCheckedChange={(checked) => {
                         const next = new Set(related)
-                        if (event.target.checked) next.add(index)
+                        if ((checked === true)) next.add(index)
                         else next.delete(index)
                         setRelated(next)
                       }}
-                      type="checkbox"
                     />
                     <span>
                       <span className="font-medium text-white">{change.label}</span>
@@ -186,7 +188,7 @@ export function RevisePanel({
                       label={field.label}
                     />
                   ))}
-                </label>
+                </Label>
               ))}
             </div>
           ) : null}
@@ -220,10 +222,10 @@ export function RevisePanel({
             void propose()
           }}
         >
-          <label className="block text-xs font-medium text-neutral-400" htmlFor={fieldId}>
+          <Label className="block text-xs font-medium text-neutral-400" htmlFor={fieldId}>
             What should change?
-          </label>
-          <textarea
+          </Label>
+          <Textarea
             autoFocus
             className="min-h-20 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-white outline-none placeholder:text-neutral-600 focus:border-white/20"
             id={fieldId}

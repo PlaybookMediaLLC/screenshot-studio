@@ -475,7 +475,7 @@ function ImageCheck({
         {recommended && ratio > 0 && (
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Crop guide">
             {GUIDES.map((item) => (
-              <button
+              <Button variant="custom" size={null}
                 key={item.id}
                 type="button"
                 aria-pressed={guide === item.id}
@@ -488,7 +488,7 @@ function ImageCheck({
                 )}
               >
                 {item.label}
-              </button>
+              </Button>
             ))}
           </div>
         )}
@@ -812,7 +812,7 @@ export function RawPanel({ preview }: PanelProps) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-lg bg-muted p-[3px]" role="group" aria-label="Format">
           {['JSON', 'HTML'].map((format) => (
-            <button
+            <Button variant="custom" size={null}
               key={format}
               type="button"
               aria-pressed={html === (format === 'HTML')}
@@ -823,7 +823,7 @@ export function RawPanel({ preview }: PanelProps) {
               )}
             >
               {format}
-            </button>
+            </Button>
           ))}
         </div>
         <div className="flex gap-2">

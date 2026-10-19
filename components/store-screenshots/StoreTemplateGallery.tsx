@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Cancel01Icon, Delete02Icon, Layers01Icon } from "hugeicons-react";
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,7 +12,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog'
 import { getStoreProfile } from "@/lib/store-screenshots/config";
 import { createStarterStoreProject } from "@/lib/store-screenshots/project";
 import type { StoreProject } from "@/lib/store-screenshots/types";
@@ -47,14 +47,14 @@ export function StoreTemplateGallery({
               Start with a complete, coordinated screenshot set.
             </p>
           </div>
-          <button
+          <Button variant="custom" size={null}
             type="button"
             onClick={onClose}
             aria-label="Close template gallery"
             className="flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
           >
             <Cancel01Icon size={16} />
-          </button>
+          </Button>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">

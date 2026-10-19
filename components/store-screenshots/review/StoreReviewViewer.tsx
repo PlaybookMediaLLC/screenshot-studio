@@ -4,6 +4,8 @@ import * as React from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 /** A review as the page receives it: rendered slides with signed URLs, and comments. */
 type Review = {
@@ -96,7 +98,7 @@ export function StoreReviewViewer({ token, review }: { token: string; review: Re
             </Button>
           </div>
           <div className="relative" style={{ aspectRatio: `${slide.width} / ${slide.height}`, height: 'min(72vh, 900px)' }}>
-            <button
+            <Button variant="custom" size={null}
               type="button"
               aria-label="Click to place a comment pin on this slide"
               className="absolute inset-0 cursor-crosshair overflow-hidden rounded-lg shadow-xl ring-1 ring-foreground/10"
@@ -106,7 +108,7 @@ export function StoreReviewViewer({ token, review }: { token: string; review: Re
               }}
             >
               <img src={slide.url} alt={`Slide ${index + 1}: ${slide.name}`} className="h-full w-full object-contain" />
-            </button>
+            </Button>
             {slideComments.map((comment, number) =>
               comment.x !== null && comment.y !== null ? (
                 <span key={comment.id} className={cn('pointer-events-none absolute flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[11px] font-semibold text-white shadow', comment.resolvedAt ? 'bg-zinc-400' : 'bg-violet-600')} style={{ left: `${comment.x}%`, top: `${comment.y}%` }}>
@@ -118,10 +120,10 @@ export function StoreReviewViewer({ token, review }: { token: string; review: Re
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Slides">
             {review.slides.map((item, slideIndex) => (
-              <button key={item.slideId} type="button" onClick={() => setIndex(slideIndex)} aria-current={slideIndex === index} className={cn('relative h-20 shrink-0 overflow-hidden rounded ring-1', slideIndex === index ? 'ring-2 ring-violet-500' : 'ring-foreground/10 opacity-70')} style={{ aspectRatio: `${item.width} / ${item.height}` }}>
+              <Button variant="custom" size={null} key={item.slideId} type="button" onClick={() => setIndex(slideIndex)} aria-current={slideIndex === index} className={cn('relative h-20 shrink-0 overflow-hidden rounded ring-1', slideIndex === index ? 'ring-2 ring-violet-500' : 'ring-foreground/10 opacity-70')} style={{ aspectRatio: `${item.width} / ${item.height}` }}>
                 <img src={item.url} alt={`Slide ${slideIndex + 1}`} className="h-full w-full object-cover" />
                 {comments.some((comment) => comment.slideId === item.slideId && !comment.resolvedAt) ? <span className="absolute right-1 top-1 size-2 rounded-full bg-violet-600" aria-label="Has open comments" /> : null}
-              </button>
+              </Button>
             ))}
           </div>
         </main>
@@ -141,8 +143,8 @@ export function StoreReviewViewer({ token, review }: { token: string; review: Re
             ))}
           </div>
           <form onSubmit={send} className="space-y-2 border-t border-foreground/10 p-4">
-            <input value={name} onChange={(event) => setName(event.target.value)} required maxLength={80} placeholder="Your name" aria-label="Your name" className="h-9 w-full rounded-md border border-foreground/15 bg-background px-3 text-sm" />
-            <textarea value={body} onChange={(event) => setBody(event.target.value)} required maxLength={2000} rows={3} placeholder={pin ? 'Comment on the pinned spot' : 'Comment on this slide'} aria-label="Comment" className="w-full rounded-md border border-foreground/15 bg-background p-2 text-sm" />
+            <Input value={name} onChange={(event) => setName(event.target.value)} required maxLength={80} placeholder="Your name" aria-label="Your name" className="h-9 w-full rounded-md border border-foreground/15 bg-background px-3 text-sm" />
+            <Textarea value={body} onChange={(event) => setBody(event.target.value)} required maxLength={2000} rows={3} placeholder={pin ? 'Comment on the pinned spot' : 'Comment on this slide'} aria-label="Comment" className="w-full rounded-md border border-foreground/15 bg-background p-2 text-sm" />
             {error ? (
               <p role="alert" className="text-xs text-destructive">
                 {error}
@@ -150,9 +152,9 @@ export function StoreReviewViewer({ token, review }: { token: string; review: Re
             ) : null}
             <div className="flex items-center justify-between gap-2">
               {pin ? (
-                <button type="button" className="text-xs underline underline-offset-2" onClick={() => setPin(null)}>
+                <Button variant="custom" size={null} type="button" className="text-xs underline underline-offset-2" onClick={() => setPin(null)}>
                   Remove pin
-                </button>
+                </Button>
               ) : (
                 <span className="text-[11px] text-muted-foreground">Tip: click the slide to pin a spot.</span>
               )}

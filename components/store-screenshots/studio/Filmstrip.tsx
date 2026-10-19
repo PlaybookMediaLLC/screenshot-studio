@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { useStudioActions } from './actions'
 import { useEditor, useEditorApi } from './editor-store'
 import { SlideThumbnail } from './SlideThumbnail'
+import { Button } from '@/components/ui/button'
 
 /**
  * The slide strip. Click selects, Cmd/Ctrl-click toggles, Shift-click
@@ -125,7 +126,7 @@ export function Filmstrip(): React.JSX.Element {
                 }}
               >
                 <ContextMenu.Trigger asChild>
-                  <button
+                  <Button variant="custom" size={null}
                     type="button"
                     role="option"
                     aria-selected={isSelected}
@@ -191,7 +192,7 @@ export function Filmstrip(): React.JSX.Element {
                         )}
                       />
                     ) : null}
-                  </button>
+                  </Button>
                 </ContextMenu.Trigger>
                 <ContextMenu.Portal>
                   <ContextMenu.Content className="z-50 min-w-48 rounded-md border border-foreground/10 bg-background p-1 shadow-lg">
@@ -228,7 +229,7 @@ export function Filmstrip(): React.JSX.Element {
           )
         })}
         {dropIndex === slides.length ? <span aria-hidden="true" className="h-16 w-0.5 shrink-0 rounded-full bg-[var(--canvas-selection,#3B82F6)]" /> : null}
-        <button
+        <Button variant="custom" size={null}
           type="button"
           disabled={slides.length >= MAX_PROJECT_SLIDES}
           onClick={() => actions.openDialog('import')}
@@ -237,7 +238,7 @@ export function Filmstrip(): React.JSX.Element {
           className="flex h-[72px] w-[34px] shrink-0 items-center justify-center rounded-md border border-dashed border-foreground/20 text-lg text-muted-foreground hover:bg-foreground/[0.04] disabled:opacity-40"
         >
           +
-        </button>
+        </Button>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1 text-[10px] text-muted-foreground">
         <span className="tabular-nums">
@@ -245,9 +246,9 @@ export function Filmstrip(): React.JSX.Element {
           {slides.length} slides
         </span>
         {selectedSlideIds.length > 1 ? (
-          <button type="button" onClick={() => api.getState().activateSlide(activeSlideId)} className="underline underline-offset-2">
+          <Button variant="custom" size={null} type="button" onClick={() => api.getState().activateSlide(activeSlideId)} className="underline underline-offset-2">
             Clear selection
-          </button>
+          </Button>
         ) : null}
       </div>
     </div>

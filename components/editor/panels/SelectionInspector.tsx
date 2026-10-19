@@ -19,6 +19,7 @@ import {
 } from '../sections'
 import { CanvasSection } from './CanvasSection'
 import { ElementInspector } from '../inspector/ElementInspector'
+import { Button } from '@/components/ui/button'
 
 const KIND_LABELS: Record<SelectionKind, string> = {
   annotation: 'Markup',
@@ -56,13 +57,13 @@ function RedactionProperties({ id }: { id: string }) {
           value={[region.blurAmount]}
           valueDisplay={`${region.blurAmount}`}
         />
-        <button
+        <Button variant="custom" size={null}
           className="flex w-full items-center justify-center gap-1.5 rounded-md py-1.5 text-xs text-destructive hover:bg-destructive/10"
           onClick={() => removeBlurRegion(id)}
           type="button"
         >
           <Delete02Icon size={13} /> Remove redaction
-        </button>
+        </Button>
       </div>
     </SectionWrapper>
   )
@@ -124,14 +125,14 @@ export function SelectionInspector() {
           <span className="font-medium text-foreground">{KIND_LABELS[kind]}</span>
         </p>
         {selection ? (
-          <button
+          <Button variant="custom" size={null}
             aria-label="Clear selection"
             className="grid size-6 place-items-center rounded text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
             onClick={clearEditorSelection}
             type="button"
           >
             <Cancel01Icon size={13} />
-          </button>
+          </Button>
         ) : null}
       </div>
       {kind === 'element' && id ? (

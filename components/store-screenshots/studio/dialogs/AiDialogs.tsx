@@ -3,7 +3,13 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { copyLengthSchema, copyToneSchema, type CopyRequest } from '@/lib/api/contracts/store-screenshots'
 import type { SlideScope } from '@/lib/store-screenshots/commands/schema'
 import type { TextLayer } from '@/lib/store-screenshots/document/schema'
@@ -14,6 +20,16 @@ import { SelectField } from '../controls'
 import { useEditor, useEditorApi } from '../editor-store'
 import type { DialogProps } from './BasicDialogs'
 import { requestJson } from './request'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@/components/ui/accordion'
 
 const BATCH = 60
 
@@ -97,38 +113,42 @@ export function TranslateDialog({ open, onOpenChange }: DialogProps): React.JSX.
         <fieldset className="space-y-1.5" disabled={Boolean(progress)}>
           <legend className="mb-1 text-xs font-semibold">Languages</legend>
           {locales.map((code) => (
-            <label key={code} className="flex items-center gap-2 text-xs">
-              <input type="checkbox" checked={targets.includes(code)} onChange={(event) => setTargets(event.target.checked ? [...targets, code] : targets.filter((item) => item !== code))} />
+            <Label key={code} className="flex items-center gap-2 text-xs">
+              <Checkbox  checked={targets.includes(code)} onCheckedChange={(checked) => setTargets((checked === true) ? [...targets, code] : targets.filter((item) => item !== code))} />
               {localeName(code)}
-            </label>
+            </Label>
           ))}
         </fieldset>
         <fieldset className="space-y-1.5 text-xs" disabled={Boolean(progress)}>
           <legend className="mb-1 font-semibold">Options</legend>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={includeCurrent} onChange={(event) => setIncludeCurrent(event.target.checked)} /> Redo drafts that are still up to date
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={includeApproved} onChange={(event) => setIncludeApproved(event.target.checked)} /> Also redo approved translations
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={useBrief} disabled={!document.productBrief} onChange={(event) => setUseBrief(event.target.checked)} /> Send the product brief for consistent terms
-          </label>
+          <Label className="flex items-center gap-2">
+            <Checkbox  checked={includeCurrent} onCheckedChange={(checked) => setIncludeCurrent((checked === true))} /> Redo drafts that are still up to date
+          </Label>
+          <Label className="flex items-center gap-2">
+            <Checkbox  checked={includeApproved} onCheckedChange={(checked) => setIncludeApproved((checked === true))} /> Also redo approved translations
+          </Label>
+          <Label className="flex items-center gap-2">
+            <Checkbox  checked={useBrief} disabled={!document.productBrief} onCheckedChange={(checked) => setUseBrief((checked === true))} /> Send the product brief for consistent terms
+          </Label>
         </fieldset>
-        <details className="text-xs">
-          <summary className="cursor-pointer">
-            {requests.length} strings will be sent ({uniqueTexts.size} unique)
-          </summary>
-          <ul className="mt-2 max-h-40 list-disc space-y-0.5 overflow-y-auto pl-4 text-muted-foreground">
-            {[...uniqueTexts].slice(0, 50).map((text) => (
-              <li key={text}>{text}</li>
-            ))}
-          </ul>
-        </details>
-        <label className="flex items-start gap-2 rounded-md border border-foreground/10 p-2 text-xs">
-          <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} className="mt-0.5" />
+        <Accordion type="single" collapsible>
+          <AccordionItem value="details" className="text-xs">
+            <AccordionTrigger className="cursor-pointer">
+              {requests.length} strings will be sent ({uniqueTexts.size} unique)
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
+              <ul className="mt-2 max-h-40 list-disc space-y-0.5 overflow-y-auto pl-4 text-muted-foreground">
+                {[...uniqueTexts].slice(0, 50).map((text) => (
+                  <li key={text}>{text}</li>
+                ))}
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+        <Label className="flex items-start gap-2 rounded-md border border-foreground/10 p-2 text-xs">
+          <Checkbox  checked={consent} onCheckedChange={(checked) => setConsent((checked === true))} className="mt-0.5" />
           I may send this text (no images or screenshots) to the AI provider configured for this workspace.
-        </label>
+        </Label>
         {progress ? (
           <div className="space-y-1.5" role="status">
             <p className="text-xs">
@@ -208,10 +228,10 @@ export function CopyDialog({ open, onOpenChange }: DialogProps): React.JSX.Eleme
           <DialogTitle>Write headlines with AI</DialogTitle>
           <DialogDescription>Suggestions use only the facts in your brief: no invented numbers, ratings, or awards. Review every line before publishing.</DialogDescription>
         </DialogHeader>
-        <label className="block space-y-1 text-xs">
+        <Label className="block space-y-1 text-xs">
           <span className="font-semibold">Product brief</span>
-          <textarea value={brief} onChange={(event) => setBrief(event.target.value)} rows={4} maxLength={4000} placeholder="What the app does, for whom, and its key features. Paste your App Store description if you like." className="w-full rounded-md border border-foreground/10 bg-foreground/[0.035] p-2 text-xs outline-none" />
-        </label>
+          <Textarea value={brief} onChange={(event) => setBrief(event.target.value)} rows={4} maxLength={4000} placeholder="What the app does, for whom, and its key features. Paste your App Store description if you like." className="w-full rounded-md border border-foreground/10 bg-foreground/[0.035] p-2 text-xs outline-none" />
+        </Label>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <SelectField label="Tone" value={tone} options={copyToneSchema.options.map((value) => ({ value, label: value[0].toUpperCase() + value.slice(1) }))} onChange={setTone} />
           <SelectField label="Length" value={length} options={copyLengthSchema.options.map((value) => ({ value, label: value === 'short' ? 'Short' : 'Long' }))} onChange={setLength} />
@@ -219,19 +239,19 @@ export function CopyDialog({ open, onOpenChange }: DialogProps): React.JSX.Eleme
           <SelectField label="Language" value={locale} options={[document.localization.sourceLocale, ...document.localization.locales].map((code) => ({ value: code, label: localeName(code) }))} onChange={setLocale} />
         </div>
         <div className="flex gap-3 text-xs">
-          <label className="flex items-center gap-1.5">
-            <input type="radio" name="copy-scope" checked={scope === 'active'} onChange={() => setScope('active')} /> This slide
-          </label>
-          <label className="flex items-center gap-1.5">
-            <input type="radio" name="copy-scope" checked={scope === 'all'} onChange={() => setScope('all')} /> All slides
-          </label>
+          <Label className="flex items-center gap-1.5">
+            <Input type="radio" name="copy-scope" checked={scope === 'active'} onChange={() => setScope('active')} /> This slide
+          </Label>
+          <Label className="flex items-center gap-1.5">
+            <Input type="radio" name="copy-scope" checked={scope === 'all'} onChange={() => setScope('all')} /> All slides
+          </Label>
         </div>
         <div className="space-y-1.5">
           {slides.map((slide) => (
-            <label key={slide.id} className="flex items-center gap-2 text-xs">
+            <Label key={slide.id} className="flex items-center gap-2 text-xs">
               <span className="w-28 shrink-0 truncate text-muted-foreground">{slide.name}</span>
-              <input value={topics[slide.id] ?? ''} onChange={(event) => setTopics({ ...topics, [slide.id]: event.target.value })} placeholder="What this screen shows" aria-label={`What ${slide.name} shows`} className="h-8 min-w-0 flex-1 rounded-md border border-foreground/10 bg-foreground/[0.035] px-2 outline-none" />
-            </label>
+              <Input value={topics[slide.id] ?? ''} onChange={(event) => setTopics({ ...topics, [slide.id]: event.target.value })} placeholder="What this screen shows" aria-label={`What ${slide.name} shows`} className="h-8 min-w-0 flex-1 rounded-md border border-foreground/10 bg-foreground/[0.035] px-2 outline-none" />
+            </Label>
           ))}
         </div>
         <Button disabled={busy || brief.trim().length < 20} onClick={() => void generate()}>

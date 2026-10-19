@@ -8,7 +8,18 @@ import { getAvailableFontWeights } from '@/lib/constants/fonts';
 import { FontPicker } from '@/components/editor/typography/FontPicker';
 import { TextStyleFields } from '@/components/editor/typography/TextStyleFields';
 import { cn } from '@/lib/utils';
-import { Slider } from '@/components/ui/slider';
+import { Slider } from '@/components/ui/slider'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 
 const QUICK_COLORS = [
   '#ffffff', '#000000', '#ef4444', '#f97316',
@@ -60,13 +71,13 @@ export const TextLayerList = () => {
   return (
     <div className="space-y-3">
       {/* Add text button — big and clear */}
-      <button
+      <Button variant="custom" size={null}
         onClick={handleAddText}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-border/60 hover:border-primary/40 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all duration-150"
       >
         <Add01Icon size={16} />
         <span className="text-xs font-medium">Add Text</span>
-      </button>
+      </Button>
 
       {/* Text overlay list */}
       {textOverlays.length > 0 && (
@@ -89,7 +100,7 @@ export const TextLayerList = () => {
                 )}>
                   <TextIcon size={13} />
                 </div>
-                <button
+                <Button variant="custom" size={null}
                   type="button"
                   aria-label={`Edit text: ${overlay.text || 'Empty text'}`}
                   aria-pressed={isSelected}
@@ -100,8 +111,8 @@ export const TextLayerList = () => {
                   )}
                 >
                   {overlay.text || 'Empty text'}
-                </button>
-                <button
+                </Button>
+                <Button variant="custom" size={null}
                   aria-label={overlay.isVisible ? "Hide text" : "Show text"}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -112,8 +123,8 @@ export const TextLayerList = () => {
                   {overlay.isVisible
                     ? <ViewIcon size={13} />
                     : <ViewOffSlashIcon size={13} />}
-                </button>
-                <button
+                </Button>
+                <Button variant="custom" size={null}
                   aria-label="Delete text"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -123,18 +134,18 @@ export const TextLayerList = () => {
                   className="p-1 rounded-md text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
                 >
                   <Delete02Icon size={13} />
-                </button>
+                </Button>
               </div>
             );
           })}
 
           {textOverlays.length > 1 && (
-            <button
+            <Button variant="custom" size={null}
               onClick={clearTextOverlays}
               className="text-[10px] text-muted-foreground hover:text-destructive transition-colors px-2.5 py-1"
             >
               Clear all
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -165,8 +176,8 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
 
           {/* Text content */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Content</label>
-            <textarea
+            <Label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Content</Label>
+            <Textarea
               aria-label="Text content"
               ref={editInputRef}
               value={selectedOverlay.text}
@@ -179,10 +190,10 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
 
           {/* Color */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Color</label>
+            <Label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Color</Label>
             <div className="flex items-center gap-1.5">
               {QUICK_COLORS.map((color) => (
-                <button
+                <Button variant="custom" size={null}
                   key={color}
                   aria-label={`Text color ${color}`}
                   onClick={() => updateTextOverlay(selectedOverlay.id, { color })}
@@ -199,7 +210,7 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
                 />
               ))}
               <div className="w-px h-4 bg-border/40 mx-0.5" />
-              <input
+              <Input
                 aria-label="Custom text color"
                 type="color"
                 value={selectedOverlay.color}
@@ -211,7 +222,7 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
 
           {/* Typography */}
           <div className="space-y-2">
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Typography</label>
+            <Label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Typography</Label>
 
             {/* Font family */}
             <FontPicker
@@ -226,16 +237,26 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
             />
 
             {/* Weight */}
-            <select
-              aria-label="Font weight"
+            <Select
               value={selectedOverlay.fontWeight}
-              onChange={(e) => updateTextOverlay(selectedOverlay.id, { fontWeight: e.target.value })}
-              className="w-full h-9 px-2.5 text-xs rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+              onValueChange={(nextValue) =>
+                updateTextOverlay(selectedOverlay.id, { fontWeight: nextValue })
+              }
             >
-              {getAvailableFontWeights(selectedOverlay.fontFamily).map((w) => (
-                <option key={w} value={w}>{WEIGHT_LABELS[w] ?? w}</option>
-              ))}
-            </select>
+              <SelectTrigger
+                aria-label="Font weight"
+                className="w-full h-9 px-2.5 text-xs rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {getAvailableFontWeights(selectedOverlay.fontFamily).map((w) => (
+                  <SelectItem key={w} value={w}>
+                    {WEIGHT_LABELS[w] ?? w}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             {/* Size */}
             <Slider
@@ -265,26 +286,26 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
           <div className="space-y-2">
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Position on canvas</p>
             <div className="flex gap-2">
-              <button
+              <Button variant="custom" size={null}
                 type="button"
                 onClick={() => updateTextOverlay(selectedOverlay.id, { position: { ...selectedOverlay.position, x: 50 } })}
                 className="flex-1 rounded-md border border-border px-2 py-2 text-xs hover:bg-accent"
               >
                 Center horizontally
-              </button>
-              <button
+              </Button>
+              <Button variant="custom" size={null}
                 type="button"
                 onClick={() => updateTextOverlay(selectedOverlay.id, { position: { ...selectedOverlay.position, y: 50 } })}
                 className="flex-1 rounded-md border border-border px-2 py-2 text-xs hover:bg-accent"
               >
                 Center vertically
-              </button>
+              </Button>
             </div>
             <div className="flex gap-2">
               {(['x', 'y'] as const).map((axis) => (
-                <label key={axis} className="flex flex-1 items-center gap-1 text-xs text-muted-foreground">
+                <Label key={axis} className="flex flex-1 items-center gap-1 text-xs text-muted-foreground">
                   {axis.toUpperCase()} (%)
-                  <input
+                  <Input
                     type="number" min={0} max={100} step={0.1}
                     aria-label={`Text ${axis.toUpperCase()} position`}
                     value={Math.round(selectedOverlay.position[axis] * 10) / 10}
@@ -296,17 +317,17 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
                     }}
                     className="h-8 min-w-0 w-full rounded-md border border-border bg-background px-2 text-foreground"
                   />
-                </label>
+                </Label>
               ))}
             </div>
           </div>
 
           {/* Orientation */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Orientation</label>
+            <Label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Orientation</Label>
             <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted/50 border border-border/20">
               {(['horizontal', 'vertical'] as const).map((dir) => (
-                <button
+                <Button variant="custom" size={null}
                   key={dir}
                   onClick={() => updateTextOverlay(selectedOverlay.id, { orientation: dir })}
                   className={cn(
@@ -317,7 +338,7 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
                   )}
                 >
                   {dir}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -325,8 +346,8 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
           {/* Text Shadow */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Shadow</label>
-              <button
+              <Label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Shadow</Label>
+              <Button variant="custom" size={null}
                 aria-label="Text shadow"
                 aria-pressed={selectedOverlay.textShadow.enabled}
                 onClick={() => updateTextOverlay(selectedOverlay.id, {
@@ -343,7 +364,7 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
                     selectedOverlay.textShadow.enabled ? 'left-[17px]' : 'left-[3px]'
                   )}
                 />
-              </button>
+              </Button>
             </div>
 
             {selectedOverlay.textShadow.enabled && (

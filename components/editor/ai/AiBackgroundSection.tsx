@@ -13,6 +13,7 @@ import { selectScreenshot, useImageStore } from '@/lib/store'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
 import { SectionWrapper } from '../sections/SectionWrapper'
+import { Textarea } from '@/components/ui/textarea'
 
 type PaletteSource = 'none' | 'screenshot' | 'brand'
 type Result = { assetId: string; prompt: string; url: string }
@@ -135,7 +136,7 @@ export function AiBackgroundSection() {
   return (
     <SectionWrapper defaultOpen={false} title="AI background">
       <div className="space-y-2.5">
-        <textarea
+        <Textarea
           aria-label="Describe the background"
           className="w-full resize-none rounded-md border border-foreground/10 bg-transparent px-2.5 py-2 text-xs"
           maxLength={600}
@@ -152,7 +153,7 @@ export function AiBackgroundSection() {
               ['brand', kit ? `Brand: ${kit.name}` : 'Brand kit'],
             ] as const
           ).map(([value, label]) => (
-            <button
+            <Button variant="custom" size={null}
               aria-checked={source === value}
               className={cn(
                 'h-6 rounded-md border px-2 text-[10px] disabled:opacity-40',
@@ -167,7 +168,7 @@ export function AiBackgroundSection() {
               type="button"
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
         {palette.length ? (
@@ -197,7 +198,7 @@ export function AiBackgroundSection() {
           <ul aria-label="Generated backgrounds" className="grid grid-cols-3 gap-1.5">
             {results.map((result) => (
               <li key={result.assetId}>
-                <button
+                <Button variant="custom" size={null}
                   aria-label={`Use background: ${result.prompt}`}
                   className="aspect-video w-full overflow-hidden rounded border border-foreground/10 hover:border-foreground/40"
                   onClick={() => void apply(result)}
@@ -206,7 +207,7 @@ export function AiBackgroundSection() {
                 >
                   {/* A workspace blob URL, not an optimisable asset. */}
                   <img alt="" className="h-full w-full object-cover" src={result.url} />
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

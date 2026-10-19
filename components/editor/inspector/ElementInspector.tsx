@@ -24,6 +24,7 @@ import { useImageStore } from '@/lib/store'
 import type { ElementChanges } from '@/lib/store/elements-slice'
 import { SectionWrapper } from '../sections'
 import { ChoiceField, ColorField, ToggleField } from './fields'
+import { Button } from '@/components/ui/button'
 
 /** Display names of element types. */
 export const ELEMENT_LABELS: Record<CanvasElement['type'], string> = {
@@ -241,7 +242,7 @@ function CalloutFields({ element, update }: { element: ElementOf<'callout'>; upd
 
 function ArrangeButton({ children, label, onClick }: { children: React.ReactNode; label: string; onClick: () => void }) {
   return (
-    <button
+    <Button variant="custom" size={null}
       aria-label={label}
       className="grid h-8 flex-1 place-items-center rounded-md border border-foreground/10 text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
       onClick={onClick}
@@ -249,7 +250,7 @@ function ArrangeButton({ children, label, onClick }: { children: React.ReactNode
       type="button"
     >
       {children}
-    </button>
+    </Button>
   )
 }
 

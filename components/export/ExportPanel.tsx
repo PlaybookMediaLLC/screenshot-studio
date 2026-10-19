@@ -44,6 +44,8 @@ import { cn } from '@/lib/utils'
 import { QualityPresetSelector } from './QualityPresetSelector'
 import { ScaleSlider } from './ScaleSlider'
 import { SizePicker } from './SizePicker'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 
 const QUALITY_OPTIONS = [
   { label: 'High', value: 'high' },
@@ -92,7 +94,7 @@ function FormatButton({
   selected: boolean
 }) {
   return (
-    <button
+    <Button variant="custom" size={null}
       aria-pressed={selected}
       className={cn(
         'h-8 cursor-pointer rounded-md border text-xs font-medium transition-colors',
@@ -105,7 +107,7 @@ function FormatButton({
       type="button"
     >
       {FORMAT_INFO[format].label}
-    </button>
+    </Button>
   )
 }
 
@@ -133,11 +135,11 @@ function SecondsField({
   }
   return (
     <div className="flex items-center justify-between gap-2">
-      <label className="text-xs text-muted-foreground" htmlFor={id}>
+      <Label className="text-xs text-muted-foreground" htmlFor={id}>
         {label}
-      </label>
+      </Label>
       <div className="flex items-center gap-1">
-        <input
+        <Input
           className="h-7 w-16 rounded-md border border-foreground/10 bg-transparent px-2 text-right text-xs tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-foreground/25"
           id={id}
           inputMode="decimal"
@@ -523,7 +525,7 @@ export function ExportPanel({ embed, onBusyChange, onExported, onOpenBatch }: Ex
       {embed}
 
       {onOpenBatch ? (
-        <button
+        <Button variant="custom" size={null}
           className="flex w-full cursor-pointer items-center gap-2.5 rounded-md border border-foreground/[0.08] p-2.5 text-left transition-colors hover:bg-foreground/[0.04]"
           onClick={onOpenBatch}
           type="button"
@@ -535,7 +537,7 @@ export function ExportPanel({ embed, onBusyChange, onExported, onOpenBatch }: Ex
               Apply this design to many screenshots
             </span>
           </span>
-        </button>
+        </Button>
       ) : null}
     </div>
   )

@@ -51,8 +51,8 @@ export function ConsentBanner() {
 /** Footer link that reopens the consent banner. */
 export function CookieSettingsButton({ className }: { className?: string }) {
   return (
-    <button className={className} onClick={openConsentSettings} type="button">
+    <Button variant="custom" size={null} className={className} onClick={openConsentSettings} type="button">
       Cookie settings
-    </button>
+    </Button>
   )
 }

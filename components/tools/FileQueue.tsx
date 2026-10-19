@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatBytes, savingsPercent } from "@/lib/image-tools";
 import type { QueueItem } from "./useToolQueue";
+import { Button } from '@/components/ui/button'
 
 interface FileQueueProps {
   items: QueueItem[];
@@ -146,7 +147,7 @@ export function FileQueue({ items, onRemove, disabled = false }: FileQueueProps)
             <StatusBadge item={item} />
           </div>
 
-          <button
+          <Button variant="custom" size={null}
             type="button"
             onClick={() => onRemove(item.id)}
             disabled={disabled}
@@ -154,7 +155,7 @@ export function FileQueue({ items, onRemove, disabled = false }: FileQueueProps)
             className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
           >
             <Cancel01Icon size={15} aria-hidden="true" />
-          </button>
+          </Button>
         </li>
       ))}
     </ul>

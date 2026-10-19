@@ -28,7 +28,9 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalmaintenance"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalonboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalreleaseautomation"
 	"github.com/getsentry/sentry-go"
+	"github.com/lucsky/cuid"
 	workflowservice "go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/interceptor"
@@ -151,6 +153,47 @@ func main() {
 		defer onboardingWorker.Stop()
 	}
 
+	github, err := githubapp.FromEnvironment()
+	if err != nil {
+		slog.Error("invalid GitHub App configuration")
+		os.Exit(1)
+	}
+	automationStore := product.NewConfiguration(db.Client).WithObjectStore(objectStore)
+	if github != nil {
+		automationStore.WithGitHubApp(github)
+	}
+	if !slices.Contains(cfg.ExcludedQueues, temporalreleaseautomation.TaskQueue) {
+		automationWorker := worker.New(temporalClient, temporalreleaseautomation.TaskQueue, worker.Options{
+			MaxConcurrentActivityExecutionSize: max(1, 5/cfg.WorkerConcurrencyDivider), MaxHeartbeatThrottleInterval: 5 * time.Second,
+			OnFatalError: func(err error) { slog.Error("Temporal release automation worker failed"); stop() },
+		})
+		temporalreleaseautomation.Register(automationWorker, &temporalreleaseautomation.Activities{Store: automationStore})
+		if err := automationWorker.Start(); err != nil {
+			slog.Error("release automation worker did not start")
+			os.Exit(1)
+		}
+		defer automationWorker.Stop()
+		leaseID := cuid.New()
+		go func() {
+			ticker := time.NewTicker(20 * time.Second)
+			defer ticker.Stop()
+			for {
+				if github != nil && cfg.RunMaintenance {
+					leaseCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+					if err := automationStore.AdvertiseReleaseAutomationExecutor(leaseCtx, leaseID); err != nil {
+						slog.Warn("release automation capability lease not renewed")
+					}
+					cancel()
+				}
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+				}
+			}
+		}()
+	}
+
 	if cfg.RunMaintenance {
 		retention, err := database.Open(ctx, cfg.AuditRetentionDatabaseURL)
 		if err != nil {
@@ -162,11 +205,7 @@ func main() {
 		if objectStore != nil {
 			events.WithObjectStore(objectStore)
 		}
-		github, err := githubapp.FromEnvironment()
-		if err != nil {
-			slog.Error("invalid GitHub App configuration", "error", err)
-			os.Exit(1)
-		}
+		events.WithAutomationDispatcher(&temporalreleaseautomation.Client{Temporal: temporalClient})
 		if github != nil {
 			events.WithGitHubApp(github)
 		}

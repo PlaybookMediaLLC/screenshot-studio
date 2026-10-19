@@ -1,11 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { GlassInputWrapper } from '@/components/ui/glass-input-wrapper';
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { GlassInputWrapper } from '@/components/ui/glass-input-wrapper'
 import { ImageShadow } from '@/lib/store';
 
 interface ShadowControlsProps {
@@ -96,7 +96,7 @@ export function ShadowControls({ shadow, onShadowChange }: ShadowControlsProps) 
         <div className="space-y-4">
           <Label className="text-sm font-semibold text-foreground">Shadow Color</Label>
           <div className="flex items-center gap-3">
-            <input
+            <Input
               type="color"
               value={(() => {
                 const rgbMatch = shadow.color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);

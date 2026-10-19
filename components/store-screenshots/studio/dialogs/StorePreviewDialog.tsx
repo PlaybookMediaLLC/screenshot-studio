@@ -2,13 +2,30 @@
 
 import * as React from 'react'
 import { z } from 'zod'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { localeName } from '@/lib/store-screenshots/locales'
 import { getStoreTargetOrDefault, STORE_TARGETS, targetPixelSize } from '@/lib/store-screenshots/targets'
 import { cn } from '@/lib/utils'
 import { useEditor } from '../editor-store'
 import { SlideThumbnail } from '../SlideThumbnail'
 import type { DialogProps } from './BasicDialogs'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 /**
  * Simulated store listings: how the first screenshots read in App Store
@@ -67,33 +84,46 @@ export function StorePreviewDialog({ open, onOpenChange }: DialogProps): React.J
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <div role="tablist" aria-label="Store surface" className="flex gap-1">
             {previewSurfaceSchema.options.map((item) => (
-              <button key={item} type="button" role="tab" aria-selected={surface === item} onClick={() => setSurface(item)} className={cn('h-8 rounded-md px-2.5', surface === item ? 'bg-foreground text-background' : 'border border-foreground/10')}>
+              <Button variant="custom" size={null} key={item} type="button" role="tab" aria-selected={surface === item} onClick={() => setSurface(item)} className={cn('h-8 rounded-md px-2.5', surface === item ? 'bg-foreground text-background' : 'border border-foreground/10')}>
                 {SURFACES[item]}
-              </button>
+              </Button>
             ))}
           </div>
-          <label className="ml-auto flex items-center gap-1.5">
-            <input type="checkbox" checked={dark} onChange={(event) => setDark(event.target.checked)} /> Dark appearance
-          </label>
+          <Label className="ml-auto flex items-center gap-1.5">
+            <Checkbox  checked={dark} onCheckedChange={(checked) => setDark((checked === true))} /> Dark appearance
+          </Label>
           {apple ? (
-            <select aria-label="Screenshot size" value={appleTargetId} onChange={(event) => setAppleTargetId(event.target.value)} className="h-8 rounded-md border border-foreground/10 bg-background px-2">
-              {STORE_TARGETS.filter((target) => target.store === 'app-store' && target.family === 'phone').map((target) => (
-                <option key={target.id} value={target.id}>
-                  {target.shortName}
-                </option>
-              ))}
-            </select>
+            <Select
+              value={appleTargetId}
+              onValueChange={(nextValue) => setAppleTargetId(nextValue)}
+            >
+              <SelectTrigger
+                aria-label="Screenshot size"
+                className="h-8 rounded-md border border-foreground/10 bg-background px-2"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STORE_TARGETS.filter(
+                  (target) => target.store === 'app-store' && target.family === 'phone'
+                ).map((target) => (
+                  <SelectItem key={target.id} value={target.id}>
+                    {target.shortName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           ) : null}
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
-          <label className="text-xs">
+          <Label className="block text-xs">
             <span className="text-muted-foreground">App name</span>
-            <input value={appName} onChange={(event) => setAppName(event.target.value)} className="mt-1 h-8 w-full rounded-md border border-foreground/10 bg-background px-2" />
-          </label>
-          <label className="text-xs">
+            <Input value={appName} onChange={(event) => setAppName(event.target.value)} className="mt-1 h-8 w-full rounded-md border border-foreground/10 bg-background px-2" />
+          </Label>
+          <Label className="block text-xs">
             <span className="text-muted-foreground">{apple ? 'Subtitle' : 'Developer'}</span>
-            <input value={subtitle} onChange={(event) => setSubtitle(event.target.value)} className="mt-1 h-8 w-full rounded-md border border-foreground/10 bg-background px-2" />
-          </label>
+            <Input value={subtitle} onChange={(event) => setSubtitle(event.target.value)} className="mt-1 h-8 w-full rounded-md border border-foreground/10 bg-background px-2" />
+          </Label>
         </div>
 
         <div className="flex justify-center rounded-xl bg-foreground/[0.04] p-6">

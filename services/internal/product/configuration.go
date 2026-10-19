@@ -56,6 +56,7 @@ type Configuration struct {
 	quota       QuotaCounter
 	meter       MonthlyMeter
 	github      GitHubApp
+	automation  AutomationDispatcher
 	capture     Capturer
 	// collabKey signs content draft collaboration tokens (RFC 037).
 	collabKey []byte
@@ -310,6 +311,9 @@ func (c *Configuration) CreateSourceApp(ctx context.Context, actor Actor, input 
 	}
 	var installationRowID *string
 	if input.GitHubConnectionID != nil {
+		if err := c.authorizeGitHubAdmin(ctx, actor); err != nil {
+			return nil, err
+		}
 		// The App's own secret signs its deliveries; a connected source names none.
 		if input.Provider != "github" || input.ExternalID == nil || input.SecretReference != nil {
 			return nil, ErrInvalidInput
@@ -328,6 +332,28 @@ func (c *Configuration) CreateSourceApp(ctx context.Context, actor Actor, input 
 		return nil, err
 	}
 	defer tx.Rollback()
+	if installationRowID != nil {
+		existing, err := tx.SourceApp.Query().Where(sourceapp.OrganizationID(actor.OrganizationID), sourceapp.Provider("github"), sourceapp.ExternalID(*input.ExternalID)).Only(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return nil, err
+		}
+		if existing != nil {
+			if existing.Status != sourceapp.StatusARCHIVED {
+				return nil, publishing.ErrConflict
+			}
+			restored, err := existing.Update().SetGithubInstallationID(*installationRowID).SetStatus(sourceapp.StatusACTIVE).SetName(input.Name).Save(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if err := appendConfigurationAudit(ctx, tx, actor, "product.source_app_reconnected", "source_app", existing.ID); err != nil {
+				return nil, err
+			}
+			if err := tx.Commit(); err != nil {
+				return nil, err
+			}
+			return restored.Unwrap(), nil
+		}
+	}
 	created, err := tx.SourceApp.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetNillableGithubInstallationID(installationRowID).
 		SetName(input.Name).SetProvider(input.Provider).SetNillableExternalID(input.ExternalID).
 		SetNillableSecretReference(input.SecretReference).SetAllowedHosts(input.AllowedHosts).

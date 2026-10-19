@@ -19,6 +19,7 @@ import { useMoveableSnapping } from "@/components/canvas/use-moveable-snapping";
 import { MotionWrap } from "@/components/canvas/motion/motion-layers";
 import { scrollObjectPosition } from "@/lib/animation/motion-evaluate";
 import { useLayerMotions, useScroll } from "@/lib/animation/use-motion";
+import { Input } from '@/components/ui/input'
 
 interface MockupRendererProps {
   mockup: Mockup;
@@ -264,7 +265,7 @@ function MockupRenderer({ mockup, canvasWidth, canvasHeight, zIndex }: MockupRen
             onScreenPointerDown: handleCropPointerDown,
           }}
         />
-        <input
+        <Input
           ref={screenFileInputRef}
           type="file"
           accept="image/*"

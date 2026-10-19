@@ -32,6 +32,14 @@ import { forgetProject } from '@/lib/projects/session'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { ProjectNameDialog } from './ProjectNameDialog'
 import { ProjectPreview } from './ProjectPreview'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 type LibraryProject = {
   document: DesignDocument | null
@@ -157,20 +165,24 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
             value={search}
           />
         </div>
-        <label className="flex items-center gap-2 text-sm text-neutral-400">
+        <Label className="flex items-center gap-2 text-sm text-neutral-400">
           Sort
-          <select
-            className="h-9 rounded-md border border-white/10 bg-transparent px-2 text-sm text-white"
-            onChange={(event) => setSort(projectSortSchema.parse(event.target.value))}
+          <Select
+            onValueChange={(nextValue) => setSort(projectSortSchema.parse(nextValue))}
             value={sort}
           >
-            {projectSortSchema.options.map((option) => (
-              <option key={option} value={option}>
-                {SORT_LABELS[option]}
-              </option>
-            ))}
-          </select>
-        </label>
+            <SelectTrigger className="h-9 rounded-md border border-white/10 bg-transparent px-2 text-sm text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {projectSortSchema.options.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {SORT_LABELS[option]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Label>
         {canEdit ? <Button onClick={() => setCreating(true)}>New project</Button> : null}
       </div>
 
@@ -178,9 +190,9 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
         <Alert variant="destructive">
           <AlertDescription>
             {page.error}{' '}
-            <button className="underline" onClick={() => void load(null)} type="button">
+            <Button variant="custom" size={null} className="underline" onClick={() => void load(null)} type="button">
               Try again
-            </button>
+            </Button>
           </AlertDescription>
         </Alert>
       ) : null}

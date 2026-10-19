@@ -14,6 +14,14 @@ import { ColorField, Section, SelectField, SliderField, ToggleField } from '../c
 import { useEditor, useEditorApi } from '../editor-store'
 import { BackgroundField } from '../inspector/BackgroundField'
 import { TypographyFields } from '../inspector/TextPanel'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 
 const insertButton = 'flex h-9 items-center gap-2 rounded-md border border-foreground/10 px-2.5 text-left text-[11px] hover:bg-foreground/[0.05] disabled:opacity-40'
 
@@ -42,15 +50,15 @@ export function InsertPanel(): React.JSX.Element {
       <Section title="Text" description="New text joins the copy area, so the layout keeps space for it.">
         <div className="grid grid-cols-3 gap-1.5">
           {textRoleSchema.options.map((role) => (
-            <button key={role} type="button" className={insertButton} onClick={() => addText(role)}>
+            <Button variant="custom" size={null} key={role} type="button" className={insertButton} onClick={() => addText(role)}>
               {TEXT_ROLE_LABELS[role]}
-            </button>
+            </Button>
           ))}
         </div>
       </Section>
       <Section title="Devices" description="Each device shows its own screenshot and can be moved, rotated, and cropped independently.">
         <SelectField label="Model" value={modelId} options={DEVICE_MODELS.map((model) => ({ value: model.id, label: model.name }))} onChange={setModelId} />
-        <button
+        <Button variant="custom" size={null}
           type="button"
           className={cn(insertButton, 'w-full')}
           onClick={() => {
@@ -63,22 +71,22 @@ export function InsertPanel(): React.JSX.Element {
           }}
         >
           Add {getDeviceModel(modelId).name}
-        </button>
-        <button type="button" className={cn(insertButton, 'w-full')} onClick={() => actions.openDialog('import')}>
+        </Button>
+        <Button variant="custom" size={null} type="button" className={cn(insertButton, 'w-full')} onClick={() => actions.openDialog('import')}>
           Import screenshots as new slides…
-        </button>
+        </Button>
       </Section>
       <Section title="Badges and annotations" description="Ratings and awards start empty: only add claims you can back up.">
         <div className="grid grid-cols-2 gap-1.5">
           {annotationKindSchema.options.map((kind) => (
-            <button key={kind} type="button" className={insertButton} onClick={() => add(createAnnotation(kind, palette[2] ?? '#6D28D9', 50, nextAnnotationY))}>
+            <Button variant="custom" size={null} key={kind} type="button" className={insertButton} onClick={() => add(createAnnotation(kind, palette[2] ?? '#6D28D9', 50, nextAnnotationY))}>
               {ANNOTATION_LABELS[kind]}
-            </button>
+            </Button>
           ))}
         </div>
       </Section>
       <Section title="Callouts and images">
-        <button
+        <Button variant="custom" size={null}
           type="button"
           disabled={!devices.some((device) => device.assetId)}
           className={cn(insertButton, 'w-full')}
@@ -91,10 +99,10 @@ export function InsertPanel(): React.JSX.Element {
           }}
         >
           Magnified callout
-        </button>
-        <button type="button" className={cn(insertButton, 'w-full')} onClick={actions.chooseImageLayer}>
+        </Button>
+        <Button variant="custom" size={null} type="button" className={cn(insertButton, 'w-full')} onClick={actions.chooseImageLayer}>
           Image or logo…
-        </button>
+        </Button>
       </Section>
     </div>
   )
@@ -114,20 +122,20 @@ export function StylePanel(): React.JSX.Element {
     <div>
       <Section title="Brand and templates">
         <div className="grid grid-cols-2 gap-1.5">
-          <button type="button" className={insertButton} onClick={() => actions.openDialog('brandKits')}>
+          <Button variant="custom" size={null} type="button" className={insertButton} onClick={() => actions.openDialog('brandKits')}>
             Brand kits…
-          </button>
-          <button type="button" className={insertButton} onClick={() => actions.openDialog('templates')}>
+          </Button>
+          <Button variant="custom" size={null} type="button" className={insertButton} onClick={() => actions.openDialog('templates')}>
             Templates…
-          </button>
+          </Button>
         </div>
       </Section>
       <Section title="Typography" description="Defaults for every slide. Slides keep their own changes unless you also replace them.">
         <div role="tablist" aria-label="Text role" className="flex gap-1">
           {textRoleSchema.options.map((item) => (
-            <button key={item} type="button" role="tab" aria-selected={role === item} onClick={() => setRole(item)} className={cn('h-7 flex-1 rounded-md text-[11px]', role === item ? 'bg-foreground/[0.1] text-foreground' : 'text-muted-foreground hover:bg-foreground/[0.05]')}>
+            <Button variant="custom" size={null} key={item} type="button" role="tab" aria-selected={role === item} onClick={() => setRole(item)} className={cn('h-7 flex-1 rounded-md text-[11px]', role === item ? 'bg-foreground/[0.1] text-foreground' : 'text-muted-foreground hover:bg-foreground/[0.05]')}>
               {TEXT_ROLE_LABELS[item]}
-            </button>
+            </Button>
           ))}
         </div>
         <ToggleField label="Also replace slide-specific styles" checked={overrideSlides} onChange={setOverrideSlides} hint="On: every slide's custom size, font, or color for this role is cleared so the new default applies everywhere." />
@@ -152,13 +160,13 @@ export function StylePanel(): React.JSX.Element {
         <SelectField label="Model" value={frame.modelId} options={DEVICE_MODELS.map((item) => ({ value: item.id, label: item.name }))} onChange={(modelId) => api.getState().dispatch({ type: 'theme.patch', patch: { deviceFrame: { ...frame, modelId, finishId: getDeviceModel(modelId).finishes[0].id } } })} />
         <SelectField label="Finish" value={frame.finishId} options={model.finishes.map((finish) => ({ value: finish.id, label: finish.name }))} onChange={(finishId) => api.getState().dispatch({ type: 'theme.patch', patch: { deviceFrame: { ...frame, finishId } } })} />
         <SelectField label="Style" value={frame.style} options={deviceStyleSchema.options.map((style) => ({ value: style, label: DEVICE_STYLE_LABELS[style] }))} onChange={(style) => api.getState().dispatch({ type: 'theme.patch', patch: { deviceFrame: { ...frame, style } } })} />
-        <button
+        <Button variant="custom" size={null}
           type="button"
           className={cn(insertButton, 'w-full')}
           onClick={() => api.getState().dispatch({ type: 'slides.patchDevices', slideIds: document.slides.map((slide) => slide.id), frame: { ...frame } })}
         >
           Use this device on every slide
-        </button>
+        </Button>
         <SliderField label="Shadow" unit="%" value={theme.shadow} min={0} max={100} onChange={(shadow) => api.getState().dispatch({ type: 'theme.patch', patch: { shadow } }, { key: 'theme-shadow' })} />
       </Section>
       <Section title="Palette" description="Offered by every color picker.">
@@ -199,16 +207,16 @@ export function LanguagesPanel(): React.JSX.Element {
             const status = code === sourceLocale ? null : localeStatus(document, code)
             return (
               <div key={code} className={cn('flex items-center gap-2 rounded-md border px-2 py-1.5', locale === code ? 'border-foreground/30 bg-foreground/[0.06]' : 'border-foreground/10')}>
-                <button type="button" aria-pressed={locale === code} onClick={() => api.getState().setLocale(code)} className="min-w-0 flex-1 text-left">
+                <Button variant="custom" size={null} type="button" aria-pressed={locale === code} onClick={() => api.getState().setLocale(code)} className="min-w-0 flex-1 text-left">
                   <span className="block truncate text-xs font-medium">{localeName(code)}</span>
                   <span className="block text-[10px] text-muted-foreground">
                     {status
                       ? `${status.total - status.missing}/${status.total} translated · ${status.approved} approved${status.outdated ? ` · ${status.outdated} outdated` : ''}`
                       : `${code} · source`}
                   </span>
-                </button>
+                </Button>
                 {status ? (
-                  <button
+                  <Button variant="custom" size={null}
                     type="button"
                     aria-label={`Remove ${localeName(code)}`}
                     title="Remove language (translations are kept until you remove them from text)"
@@ -219,22 +227,35 @@ export function LanguagesPanel(): React.JSX.Element {
                     className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                   >
                     ×
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             )
           })}
         </div>
         <div className="flex gap-1.5">
-          <select aria-label="Add a language" value={adding} onChange={(event) => setAdding(event.target.value)} className="h-8 min-w-0 flex-1 rounded-md border border-foreground/10 bg-foreground/[0.035] px-2 text-xs">
-            <option value="">Add a language…</option>
-            {available.map((item) => (
-              <option key={item.code} value={item.code}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-          <button
+          <Select
+            value={String(adding) || '__empty_option__'}
+            onValueChange={(nextValue) =>
+              setAdding(nextValue === '__empty_option__' ? '' : nextValue)
+            }
+          >
+            <SelectTrigger
+              aria-label="Add a language"
+              className="h-8 min-w-0 flex-1 rounded-md border border-foreground/10 bg-foreground/[0.035] px-2 text-xs"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={'__empty_option__'}>Add a language…</SelectItem>
+              {available.map((item) => (
+                <SelectItem key={item.code} value={item.code}>
+                  {item.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="custom" size={null}
             type="button"
             disabled={!adding}
             onClick={() => {
@@ -244,19 +265,19 @@ export function LanguagesPanel(): React.JSX.Element {
             className="h-8 rounded-md bg-foreground px-2.5 text-[11px] text-background disabled:opacity-40"
           >
             Add
-          </button>
+          </Button>
         </div>
       </Section>
       <Section title="Translate">
-        <button type="button" disabled={locales.length === 0} onClick={() => actions.openDialog('translate')} className={cn(insertButton, 'w-full')}>
+        <Button variant="custom" size={null} type="button" disabled={locales.length === 0} onClick={() => actions.openDialog('translate')} className={cn(insertButton, 'w-full')}>
           Translate with AI…
-        </button>
-        <button type="button" onClick={() => actions.openDialog('copy')} className={cn(insertButton, 'w-full')}>
+        </Button>
+        <Button variant="custom" size={null} type="button" onClick={() => actions.openDialog('copy')} className={cn(insertButton, 'w-full')}>
           Write headlines with AI…
-        </button>
-        <button type="button" onClick={() => actions.openDialog('checks')} className={cn(insertButton, 'w-full')}>
+        </Button>
+        <Button variant="custom" size={null} type="button" onClick={() => actions.openDialog('checks')} className={cn(insertButton, 'w-full')}>
           Check text that no longer fits…
-        </button>
+        </Button>
       </Section>
     </div>
   )

@@ -3,7 +3,13 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { storeProviderSchema, type AscBrowseResult, type CredentialSummary, type StoreProvider } from '@/lib/api/contracts/store-publishing'
 import { evaluateSlide } from '@/lib/store-screenshots/engine/scene'
 import { slugify } from '@/lib/store-screenshots/export/plan'
@@ -15,6 +21,16 @@ import { useRenderServices } from '../../render/RenderProvider'
 import { useEditor } from '../editor-store'
 import type { DialogProps } from './BasicDialogs'
 import { blobToBase64, requestJson } from './request'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 
 /**
  * Send screenshots to App Store Connect or a Google Play edit. Uploads go
@@ -222,9 +238,9 @@ export function PublishDialog({ open, onOpenChange }: DialogProps): React.JSX.El
 
         <div role="tablist" aria-label="Store" className="flex gap-1 rounded-md bg-foreground/[0.05] p-1">
           {PROVIDERS.map((item) => (
-            <button key={item} role="tab" type="button" aria-selected={provider === item} disabled={running} onClick={() => switchProvider(item)} className={cn('flex-1 rounded px-3 py-1.5 text-xs', provider === item ? 'bg-background font-medium shadow-sm' : 'text-muted-foreground')}>
+            <Button variant="custom" size={null} key={item} role="tab" type="button" aria-selected={provider === item} disabled={running} onClick={() => switchProvider(item)} className={cn('flex-1 rounded px-3 py-1.5 text-xs', provider === item ? 'bg-background font-medium shadow-sm' : 'text-muted-foreground')}>
               {PROVIDER_LABEL[item]}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -247,13 +263,13 @@ export function PublishDialog({ open, onOpenChange }: DialogProps): React.JSX.El
           <div className="space-y-1.5">
             {providerCredentials.map((item) => (
               <div key={item.id} className={cn('flex items-center gap-2 rounded-md border p-2 text-xs', credentialId === item.id ? 'border-foreground/40' : 'border-foreground/10')}>
-                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
-                  <input type="radio" name="publish-credential" disabled={running} checked={credentialId === item.id} onChange={() => chooseCredential(item.id)} />
+                <Label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+                  <Input type="radio" name="publish-credential" disabled={running} checked={credentialId === item.id} onChange={() => chooseCredential(item.id)} />
                   <span className="truncate">
                     <span className="font-medium">{item.label}</span>{' '}
                     <span className="text-muted-foreground">· {item.metadata.keyId ? `Key ${item.metadata.keyId}` : item.metadata.clientEmail}</span>
                   </span>
-                </label>
+                </Label>
                 {confirmDelete === item.id ? (
                   <>
                     <Button variant="destructive" size="sm" onClick={() => void removeCredential(item.id)}>
@@ -300,55 +316,76 @@ export function PublishDialog({ open, onOpenChange }: DialogProps): React.JSX.El
                     {browsing ? 'Loading…' : 'Load apps'}
                   </Button>
                 ) : (
-                  <select
-                    aria-label="App"
-                    value={appId}
+                  <Select
+                    value={String(appId) || '__empty_option__'}
                     disabled={running}
-                    onChange={(event) => {
-                      setAppId(event.target.value)
+                    onValueChange={(nextValue) => {
+                      setAppId(nextValue === '__empty_option__' ? '' : nextValue)
                       setVersionId('')
                       setVersions([])
                       setLocalizations([])
-                      if (event.target.value) void browse({ appId: event.target.value })
+                      if (nextValue === '__empty_option__' ? '' : nextValue)
+                        void browse({ appId: nextValue === '__empty_option__' ? '' : nextValue })
                     }}
-                    className="h-8 rounded-md border border-foreground/15 bg-background px-2 text-xs"
                   >
-                    <option value="">Choose an app</option>
-                    {apps.map((app) => (
-                      <option key={app.id} value={app.id}>
-                        {app.name} ({app.bundleId})
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger
+                      aria-label="App"
+                      className="h-8 rounded-md border border-foreground/15 bg-background px-2 text-xs"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={'__empty_option__'}>Choose an app</SelectItem>
+                      {apps.map((app) => (
+                        <SelectItem key={app.id} value={app.id}>
+                          {app.name} ({app.bundleId})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
                 {appId ? (
-                  <select
-                    aria-label="Version"
-                    value={versionId}
+                  <Select
+                    value={String(versionId) || '__empty_option__'}
                     disabled={running || browsing}
-                    onChange={(event) => {
-                      setVersionId(event.target.value)
+                    onValueChange={(nextValue) => {
+                      setVersionId(nextValue === '__empty_option__' ? '' : nextValue)
                       setLocalizations([])
-                      if (event.target.value) void browse({ versionId: event.target.value })
+                      if (nextValue === '__empty_option__' ? '' : nextValue)
+                        void browse({
+                          versionId: nextValue === '__empty_option__' ? '' : nextValue,
+                        })
                     }}
-                    className="h-8 rounded-md border border-foreground/15 bg-background px-2 text-xs"
                   >
-                    <option value="">Choose a version</option>
-                    {versions.map((version) => (
-                      <option key={version.id} value={version.id} disabled={!version.editable}>
-                        {version.versionString} · {version.platform} · {version.appStoreState.replaceAll('_', ' ').toLowerCase()}
-                        {version.editable ? '' : ' (locked)'}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger
+                      aria-label="Version"
+                      className="h-8 rounded-md border border-foreground/15 bg-background px-2 text-xs"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={'__empty_option__'}>Choose a version</SelectItem>
+                      {versions.map((version) => (
+                        <SelectItem
+                          key={version.id}
+                          value={version.id}
+                          disabled={!version.editable}
+                        >
+                          {version.versionString} · {version.platform} ·{' '}
+                          {version.appStoreState.replaceAll('_', ' ').toLowerCase()}
+                          {version.editable ? '' : ' (locked)'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : null}
                 {versionId ? <p className="self-center text-[11px] text-muted-foreground">{localizations.length ? `${localizations.length} languages on this version` : browsing ? 'Loading languages…' : ''}</p> : null}
               </div>
             ) : (
-              <label className="block text-xs">
+              <Label className="block text-xs">
                 <span className="text-muted-foreground">Package name</span>
-                <input value={packageName} disabled={running || Boolean(editId)} onChange={(event) => setPackageName(event.target.value.trim())} placeholder="com.example.app" className="mt-1 h-8 w-full rounded-md border border-foreground/15 bg-background px-2 font-mono text-xs" />
-              </label>
+                <Input value={packageName} disabled={running || Boolean(editId)} onChange={(event) => setPackageName(event.target.value.trim())} placeholder="com.example.app" className="mt-1 h-8 w-full rounded-md border border-foreground/15 bg-background px-2 font-mono text-xs" />
+              </Label>
             )}
           </section>
         ) : null}
@@ -358,31 +395,31 @@ export function PublishDialog({ open, onOpenChange }: DialogProps): React.JSX.El
             <fieldset disabled={running} className="space-y-1.5">
               <legend className="mb-1 text-xs font-semibold">Sizes</legend>
               {providerTargets.map((target) => (
-                <label key={target.id} className="flex items-center gap-2 text-xs">
-                  <input type="checkbox" checked={targetIds.includes(target.id)} onChange={(event) => setTargetIds(event.target.checked ? [...targetIds, target.id] : targetIds.filter((id) => id !== target.id))} />
+                <Label key={target.id} className="flex items-center gap-2 text-xs">
+                  <Checkbox  checked={targetIds.includes(target.id)} onCheckedChange={(checked) => setTargetIds((checked === true) ? [...targetIds, target.id] : targetIds.filter((id) => id !== target.id))} />
                   <span>
                     {target.shortName} <span className="text-muted-foreground">· {sizeLabel(targetPixelSize(target, 0, target.orientations[0]))}</span>
                   </span>
-                </label>
+                </Label>
               ))}
             </fieldset>
             <fieldset disabled={running} className="space-y-1.5">
               <legend className="mb-1 text-xs font-semibold">Languages</legend>
               {allLocales.map((code) => (
-                <label key={code} className="flex items-center gap-2 text-xs">
-                  <input type="checkbox" checked={locales.includes(code)} onChange={(event) => setLocales(event.target.checked ? [...locales, code] : locales.filter((item) => item !== code))} />
+                <Label key={code} className="flex items-center gap-2 text-xs">
+                  <Checkbox  checked={locales.includes(code)} onCheckedChange={(checked) => setLocales((checked === true) ? [...locales, code] : locales.filter((item) => item !== code))} />
                   {localeName(code)}
                   {provider === 'GOOGLE_PLAY' ? <span className="text-muted-foreground">({playLocale(code)})</span> : null}
                   {provider === 'APP_STORE_CONNECT' && localizations.length && !localizationFor(code) ? <span className="text-destructive">not on this version</span> : null}
-                </label>
+                </Label>
               ))}
-              <label className="mt-2 flex items-start gap-2 text-xs">
-                <input type="checkbox" checked={replace} onChange={(event) => setReplace(event.target.checked)} className="mt-0.5" />
+              <Label className="mt-2 flex items-start gap-2 text-xs">
+                <Checkbox  checked={replace} onCheckedChange={(checked) => setReplace((checked === true))} className="mt-0.5" />
                 <span>
                   Replace the screenshots already there
                   <span className="block text-[10px] text-muted-foreground">Otherwise new screenshots are added after the existing ones, up to the store limit.</span>
                 </span>
-              </label>
+              </Label>
             </fieldset>
           </div>
         ) : null}
@@ -416,9 +453,9 @@ export function PublishDialog({ open, onOpenChange }: DialogProps): React.JSX.El
               Draft edit ready
             </h3>
             <p>The uploaded images sit in a draft edit and are not on the store listing yet. Committing applies the whole edit to your live listing.</p>
-            <label className="flex items-start gap-2">
-              <input type="checkbox" checked={commitConfirmed} onChange={(event) => setCommitConfirmed(event.target.checked)} className="mt-0.5" />I understand this changes the live Google Play listing for {packageName}.
-            </label>
+            <Label className="flex items-start gap-2">
+              <Checkbox  checked={commitConfirmed} onCheckedChange={(checked) => setCommitConfirmed((checked === true))} className="mt-0.5" />I understand this changes the live Google Play listing for {packageName}.
+            </Label>
             <Button disabled={!commitConfirmed} onClick={() => void commit()}>
               Commit edit to Google Play
             </Button>
@@ -428,9 +465,9 @@ export function PublishDialog({ open, onOpenChange }: DialogProps): React.JSX.El
         {provider === 'GOOGLE_PLAY' && editId && !uploadedAll && !running ? (
           <p role="status" className="text-xs">
             The last upload did not finish, so this draft edit cannot be committed. Upload again to complete it, or{' '}
-            <button type="button" className="underline underline-offset-2" onClick={() => setEditId(null)}>
+            <Button variant="custom" size={null} type="button" className="underline underline-offset-2" onClick={() => setEditId(null)}>
               start a new draft
-            </button>
+            </Button>
             . Uncommitted drafts never reach the listing.
           </p>
         ) : null}
@@ -489,25 +526,25 @@ function AddCredentialForm({ provider, onCancel, onAdded }: { provider: StorePro
 
   return (
     <form onSubmit={save} className="space-y-2 rounded-md border border-foreground/15 p-3 text-xs">
-      <label className="block">
+      <Label className="block">
         <span className="text-muted-foreground">Name</span>
-        <input required value={label} maxLength={80} onChange={(event) => setLabel(event.target.value)} placeholder={asc ? 'e.g. Team upload key' : 'e.g. Play publisher'} className="mt-1 h-8 w-full rounded-md border border-foreground/15 bg-background px-2" />
-      </label>
+        <Input required value={label} maxLength={80} onChange={(event) => setLabel(event.target.value)} placeholder={asc ? 'e.g. Team upload key' : 'e.g. Play publisher'} className="mt-1 h-8 w-full rounded-md border border-foreground/15 bg-background px-2" />
+      </Label>
       {asc ? (
         <div className="grid gap-2 sm:grid-cols-2">
-          <label className="block">
+          <Label className="block">
             <span className="text-muted-foreground">Issuer ID</span>
-            <input required value={issuerId} onChange={(event) => setIssuerId(event.target.value)} className="mt-1 h-8 w-full rounded-md border border-foreground/15 bg-background px-2 font-mono" />
-          </label>
-          <label className="block">
+            <Input required value={issuerId} onChange={(event) => setIssuerId(event.target.value)} className="mt-1 h-8 w-full rounded-md border border-foreground/15 bg-background px-2 font-mono" />
+          </Label>
+          <Label className="block">
             <span className="text-muted-foreground">Key ID</span>
-            <input required value={keyId} onChange={(event) => setKeyId(event.target.value)} className="mt-1 h-8 w-full rounded-md border border-foreground/15 bg-background px-2 font-mono" />
-          </label>
+            <Input required value={keyId} onChange={(event) => setKeyId(event.target.value)} className="mt-1 h-8 w-full rounded-md border border-foreground/15 bg-background px-2 font-mono" />
+          </Label>
         </div>
       ) : null}
-      <label className="block">
+      <Label className="block">
         <span className="text-muted-foreground">{asc ? 'Private key (.p8) with the App Manager role' : 'Service account key (.json) with release permissions'}</span>
-        <input
+        <Input
           type="file"
           required
           accept={asc ? '.p8' : '.json,application/json'}
@@ -519,7 +556,7 @@ function AddCredentialForm({ provider, onCancel, onAdded }: { provider: StorePro
           }}
           className="mt-1 block w-full text-xs"
         />
-      </label>
+      </Label>
       <p className="text-[10px] text-muted-foreground">
         {fileName ? `${fileName} is read in your browser and sent once over HTTPS; the server checks it and stores it encrypted.` : 'The key is stored encrypted on the server and is never shown again.'}
       </p>

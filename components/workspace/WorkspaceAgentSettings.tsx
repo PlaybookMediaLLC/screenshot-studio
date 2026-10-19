@@ -216,9 +216,9 @@ export function WorkspaceAgentSettings({
 function CopyValue({ id, label, value }: { id: string; label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className={fieldLabel} htmlFor={id}>
+      <Label className={fieldLabel} htmlFor={id}>
         {label}
-      </label>
+      </Label>
       <div className="flex gap-2">
         <Input className="h-9 rounded-lg font-mono text-xs" id={id} readOnly value={value} />
         <Button
@@ -246,9 +246,9 @@ function AgentKeyForm({
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
       <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
         <div className="flex flex-col gap-1.5">
-          <label className={fieldLabel} htmlFor="agent-key-name">
+          <Label className={fieldLabel} htmlFor="agent-key-name">
             Key name
-          </label>
+          </Label>
           <Input
             className="h-10 rounded-lg"
             defaultValue="Coding agent"
@@ -258,9 +258,9 @@ function AgentKeyForm({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className={fieldLabel} htmlFor="agent-key-expires">
+          <Label className={fieldLabel} htmlFor="agent-key-expires">
             Expiry (optional)
-          </label>
+          </Label>
           <Input
             className="h-10 rounded-lg"
             id="agent-key-expires"

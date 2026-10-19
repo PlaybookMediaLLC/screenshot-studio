@@ -22,6 +22,8 @@ import type {
 } from "@/lib/store-screenshots/types";
 import type { DeviceScreenContent, MockupDefinition } from "@/types/mockup";
 import { cn } from "@/lib/utils";
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 const FALLBACK_PHONE: MockupDefinition = {
   id: "store-phone",
@@ -166,7 +168,7 @@ function ScreenOnly({
           if (file) onFile?.(file);
         }}
       >
-        <button
+        <Button variant="custom" size={null}
           type="button"
           aria-label="Upload a new screen image"
           onClick={() => inputRef.current?.click()}
@@ -179,8 +181,8 @@ function ScreenOnly({
           </span>
           <span className="text-[clamp(9px,2.2cqw,14px)] font-medium leading-tight">Upload screen image</span>
           <span className="text-[clamp(7px,1.5cqw,11px)] leading-tight text-muted-foreground">Click or drop an image here</span>
-        </button>
-        <input
+        </Button>
+        <Input
           ref={inputRef}
           type="file"
           accept="image/png,image/jpeg,image/webp"
@@ -927,7 +929,7 @@ export const StoreSlideCanvas = React.memo(function StoreSlideCanvas({
               </div>
 
               {interactive && !emptyScreen && !cropping ? (
-                <button
+                <Button variant="custom" size={null}
                   type="button"
                   data-store-device-control="move"
                   aria-label={`Move ${objectLabel}`}
@@ -979,7 +981,7 @@ export const StoreSlideCanvas = React.memo(function StoreSlideCanvas({
                     "pointer-events-auto absolute left-1/2 z-40 flex h-10 -translate-x-1/2 items-center gap-0.5 rounded-full border border-foreground/15 bg-background/95 p-1 text-foreground shadow-lg backdrop-blur-sm",
                     definition ? "top-2" : "-top-14",
                   )}>
-                    <button
+                    <Button variant="custom" size={null}
                       type="button"
                       aria-label="Zoom image out"
                       title="Zoom out"
@@ -991,11 +993,11 @@ export const StoreSlideCanvas = React.memo(function StoreSlideCanvas({
                       className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-foreground/[0.07] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30"
                     >
                       <span aria-hidden="true">−</span>
-                    </button>
+                    </Button>
                     <span className="min-w-9 text-center text-[10px] tabular-nums text-muted-foreground">
                       {Math.round(source.image.scale * 100)}%
                     </span>
-                    <button
+                    <Button variant="custom" size={null}
                       type="button"
                       aria-label="Zoom image in"
                       title="Zoom in"
@@ -1007,9 +1009,9 @@ export const StoreSlideCanvas = React.memo(function StoreSlideCanvas({
                       className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-foreground/[0.07] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30"
                     >
                       <span aria-hidden="true">+</span>
-                    </button>
+                    </Button>
                     <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-foreground/10" />
-                    <button
+                    <Button variant="custom" size={null}
                       type="button"
                       onClick={() => {
                         onScreenImageChange?.(source.id, screenCropSession.original);
@@ -1018,14 +1020,14 @@ export const StoreSlideCanvas = React.memo(function StoreSlideCanvas({
                       className="min-h-8 rounded-full px-2.5 py-1 text-[10px] font-medium text-muted-foreground hover:bg-foreground/[0.07] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="custom" size={null}
                       type="button"
                       onClick={() => setScreenCropSession(null)}
                       className="min-h-8 rounded-full bg-foreground px-2.5 py-1 text-[10px] font-medium text-background hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
                     >
                       Done
-                    </button>
+                    </Button>
                   </div>
                 </>
               ) : null}
@@ -1033,7 +1035,7 @@ export const StoreSlideCanvas = React.memo(function StoreSlideCanvas({
               {selected && !cropping ? (
                 <>
                   {(["top-left", "top-right", "bottom-left", "bottom-right"] as const).map((handle) => (
-                    <button
+                    <Button variant="custom" size={null}
                       key={handle}
                       type="button"
                       data-store-device-control="resize"
@@ -1056,7 +1058,7 @@ export const StoreSlideCanvas = React.memo(function StoreSlideCanvas({
                     aria-hidden="true"
                     className="pointer-events-none absolute -top-8 left-1/2 h-7 w-px -translate-x-1/2 bg-[var(--canvas-selection)]/70"
                   />
-                  <button
+                  <Button variant="custom" size={null}
                     type="button"
                     data-store-device-control="rotate"
                     aria-label={`Rotate ${objectLabel}`}
@@ -1072,10 +1074,10 @@ export const StoreSlideCanvas = React.memo(function StoreSlideCanvas({
                       <path d="M21.5 2v6h-6" />
                       <path d="M21.34 13.72A10 10 0 1 1 18.57 4.62L21.5 8" />
                     </svg>
-                  </button>
+                  </Button>
                   {!definition && source.src ? (
                     <>
-                      <button
+                      <Button variant="custom" size={null}
                         type="button"
                         data-store-device-control="start-crop"
                         aria-label={`Crop ${objectLabel} image`}
@@ -1087,8 +1089,8 @@ export const StoreSlideCanvas = React.memo(function StoreSlideCanvas({
                           <path d="M6 2v14a2 2 0 0 0 2 2h14" />
                           <path d="M2 6h14a2 2 0 0 1 2 2v14" />
                         </svg>
-                      </button>
-                      <button
+                      </Button>
+                      <Button variant="custom" size={null}
                         type="button"
                         data-store-device-control="delete-screen"
                         aria-label={`Delete ${objectLabel} image`}
@@ -1103,7 +1105,7 @@ export const StoreSlideCanvas = React.memo(function StoreSlideCanvas({
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
                           <path d="M6 6l12 12M18 6L6 18" />
                         </svg>
-                      </button>
+                      </Button>
                     </>
                   ) : null}
                 </>

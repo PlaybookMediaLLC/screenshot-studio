@@ -48,6 +48,7 @@ import {
 } from '@/components/workspace/settings-sections'
 import { workspaceInitials } from '@/lib/workspace/initials'
 import { surface } from './shell-config'
+import { Button } from '@/components/ui/button'
 import { EditorNavigation } from './EditorNavigation'
 
 type IconComponent = ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
@@ -65,6 +66,7 @@ const SETTINGS_ICONS: Record<SettingId, IconComponent> = {
   audit: ScrollText,
   brand: Palette,
   integrations: Plug,
+  'release-automation': Bot,
   agents: Bot,
   sharing: Link2,
   product: Package,
@@ -203,7 +205,7 @@ function NavLink({
   if (children) {
     const trigger = (
       <Collapsible.Trigger asChild>
-        <button
+        <Button variant="custom" size={null}
           type="button"
           aria-label={label}
           data-keep-selection
@@ -219,7 +221,7 @@ function NavLink({
               />
             </>
           )}
-        </button>
+        </Button>
       </Collapsible.Trigger>
     )
     return (
@@ -407,13 +409,13 @@ export function PlatformSidebar({
       >
         <Sheet onOpenChange={setMobileOpen} open={mobileOpen}>
           <SheetTrigger asChild>
-            <button
+            <Button variant="custom" size={null}
               aria-label="Open navigation"
               className="grid size-9 place-items-center rounded-lg text-neutral-400 hover:bg-white/[0.04] hover:text-neutral-100"
               type="button"
             >
               <Menu01Icon size={18} strokeWidth={1.8} />
-            </button>
+            </Button>
           </SheetTrigger>
           <SheetContent
             className={cn('w-72 gap-0 border-white/[0.06] p-3', surface.base)}

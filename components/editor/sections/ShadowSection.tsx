@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useImageStore, type ShadowPreset } from '@/lib/store';
 import { SectionWrapper } from './SectionWrapper';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button'
 
 const shadowPresets: { value: ShadowPreset; label: string; shadow: string }[] = [
   { value: 'none', label: 'None', shadow: 'none' },
@@ -41,7 +42,7 @@ export function ShadowSection() {
         {shadowPresets.map(({ value, label, shadow }) => {
           const isSelected = shadowPreset === value;
           return (
-            <button
+            <Button variant="custom" size={null}
               key={value}
               type="button"
               onClick={() => setShadowPreset(value)}
@@ -65,7 +66,7 @@ export function ShadowSection() {
               >
                 {label}
               </span>
-            </button>
+            </Button>
           );
         })}
       </div>

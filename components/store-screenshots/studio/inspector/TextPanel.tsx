@@ -12,6 +12,8 @@ import { ALIGN_ICONS, ChoiceField, ColorField, NumberField, Section, SelectField
 import { useEditor, useEditorApi } from '../editor-store'
 import { FontPicker } from './FontPicker'
 import { LayerStateSection, TransformSection, useBaseWidth, useLayerPatch } from './shared'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
 
 /** Font weight names. */
 export const WEIGHT_OPTIONS = [
@@ -145,13 +147,13 @@ export function TextPanel({ owner, layer, node }: { owner: LayerOwner; layer: Te
       <Section
         title={TEXT_ROLE_LABELS[layer.role]}
         actions={
-          <button type="button" onClick={() => api.getState().startTextEdit(owner, layer.id)} className="h-7 rounded-md border border-foreground/10 px-2 text-[11px] hover:bg-foreground/[0.05]">
+          <Button variant="custom" size={null} type="button" onClick={() => api.getState().startTextEdit(owner, layer.id)} className="h-7 rounded-md border border-foreground/10 px-2 text-[11px] hover:bg-foreground/[0.05]">
             Edit on canvas
-          </button>
+          </Button>
         }
       >
         {editable ? (
-          <textarea
+          <Textarea
             aria-label={`${layer.name} text${localized ? ` (${locale})` : ''}`}
             value={plain}
             rows={3}
@@ -178,22 +180,22 @@ export function TextPanel({ owner, layer, node }: { owner: LayerOwner; layer: Te
             </p>
             <p className="text-[10px] text-muted-foreground">Source: “{layer.content.map((span) => span.text).join('')}”</p>
             {translation && translation.status !== 'approved' ? (
-              <button
+              <Button variant="custom" size={null}
                 type="button"
                 onClick={() => api.getState().dispatch({ type: 'text.setTranslationStatus', slideId: slide.id, layerId: layer.id, locale, status: 'approved' })}
                 className="h-7 rounded-md bg-foreground px-2 text-[11px] text-background"
               >
                 Approve translation
-              </button>
+              </Button>
             ) : null}
             {shown.state === 'outdated' ? (
-              <button
+              <Button variant="custom" size={null}
                 type="button"
                 onClick={() => api.getState().dispatch({ type: 'text.setTranslationStatus', slideId: slide.id, layerId: layer.id, locale, status: 'approved' })}
                 className="ml-2 h-7 rounded-md border border-foreground/10 px-2 text-[11px]"
               >
                 Still correct
-              </button>
+              </Button>
             ) : null}
           </div>
         ) : null}
@@ -201,9 +203,9 @@ export function TextPanel({ owner, layer, node }: { owner: LayerOwner; layer: Te
       <Section
         title="Typography"
         actions={
-          <button type="button" onClick={() => api.getState().dispatch({ type: 'reset.text', owner, layerIds: [layer.id], scope: 'style' })} className="h-7 rounded-md px-2 text-[11px] text-muted-foreground hover:bg-foreground/[0.05]" title="Return to the project style for this role">
+          <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'reset.text', owner, layerIds: [layer.id], scope: 'style' })} className="h-7 rounded-md px-2 text-[11px] text-muted-foreground hover:bg-foreground/[0.05]" title="Return to the project style for this role">
             Reset style
-          </button>
+          </Button>
         }
       >
         {localized ? <ToggleField label={`Only for ${locale}`} checked={localeOnly} onChange={setLocaleOnly} hint="Adjust size and spacing for this language without changing the others." /> : null}

@@ -12,6 +12,7 @@ export type SettingId =
   | 'members'
   | 'product'
   | 'profile'
+  | 'release-automation'
   | 'roles'
   | 'security'
   | 'sharing'
@@ -32,6 +33,12 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     id: 'general',
     slug: '',
     title: 'General',
+  },
+  {
+    description: 'Connect repositories and turn release events into drafts for review.',
+    id: 'release-automation',
+    slug: 'release-automation',
+    title: 'Release automation',
   },
   {
     description: 'Your profile, email address, and account security.',

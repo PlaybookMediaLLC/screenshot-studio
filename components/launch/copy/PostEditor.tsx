@@ -20,6 +20,7 @@ import {
 import type { CampaignPostStatus } from '@/lib/tenant/campaign-status'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
+import { Label } from '@/components/ui/label'
 
 /** Autosave waits this long after the last keystroke. */
 const AUTOSAVE_MS = 800
@@ -187,9 +188,9 @@ export function PostEditor({
         </p>
       ) : null}
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-title`}>
+        <Label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-title`}>
           Title
-        </label>
+        </Label>
         <Input
           className={cn('h-9', fieldClassName)}
           id={`${id}-title`}
@@ -200,9 +201,9 @@ export function PostEditor({
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-copy`}>
+        <Label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-copy`}>
           Copy
-        </label>
+        </Label>
         <Textarea
           autoFocus
           className={cn('min-h-32 leading-6', fieldClassName)}
@@ -214,9 +215,9 @@ export function PostEditor({
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-cta`}>
+        <Label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-cta`}>
           Call to action
-        </label>
+        </Label>
         <Input
           className={cn('h-9', fieldClassName)}
           id={`${id}-cta`}

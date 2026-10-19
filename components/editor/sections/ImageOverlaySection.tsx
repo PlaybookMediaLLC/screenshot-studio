@@ -7,6 +7,8 @@ import { getR2ImageUrl } from '@/lib/r2';
 import { isOverlayPath } from '@/lib/r2-overlays';
 import { ArrowRight01Icon, LayersLogoIcon, Image01Icon } from 'hugeicons-react';
 import { useEditorPanels } from '@/lib/store/editor-panels';
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 function getThumbSrc(overlay: { src: string; isCustom?: boolean }) {
   const isR2 =
@@ -51,7 +53,7 @@ export function ImageOverlaySection() {
   return (
     <SectionWrapper title="Stickers" defaultOpen={true}>
       <div className="space-y-2">
-        <input
+        <Input
           ref={fileInputRef}
           type="file"
           accept="image/*"
@@ -59,7 +61,7 @@ export function ImageOverlaySection() {
           className="hidden"
           onChange={handleAddImage}
         />
-        <button
+        <Button variant="custom" size={null}
           onClick={() => fileInputRef.current?.click()}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md bg-foreground/[0.04] border border-dashed border-foreground/15 hover:bg-foreground/[0.06] hover:border-foreground/25 transition-all duration-150 group"
         >
@@ -69,9 +71,9 @@ export function ImageOverlaySection() {
           <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
             Add Image to Canvas
           </span>
-        </button>
+        </Button>
 
-        <button
+        <Button variant="custom" size={null}
           onClick={() => useEditorPanels.getState().showTab('layers')}
           className="w-full flex items-center gap-3 px-3 py-3 rounded-md bg-foreground/[0.04] border border-foreground/10 hover:bg-foreground/[0.06] hover:border-foreground/20 transition-all duration-150 group"
         >
@@ -115,7 +117,7 @@ export function ImageOverlaySection() {
           size={16}
           className="text-muted-foreground group-hover:text-foreground shrink-0 transition-colors"
         />
-      </button>
+      </Button>
       </div>
     </SectionWrapper>
   );

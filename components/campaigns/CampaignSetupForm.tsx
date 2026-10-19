@@ -12,6 +12,13 @@ import { getErrorMessage } from '@/components/workspace/settings-client'
 import { trackEvent } from '@/lib/analytics'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { productEnvironments } from '@/lib/tenant/schemas'
+import {
+  Select as UiSelect,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 /**
  * The short path from "what product, what shipped" to a saved campaign
@@ -155,22 +162,29 @@ export function CampaignSetupForm({
         <Group>
           <Row>
             <Field htmlFor="campaign-product" label="Product">
-              <select
-                className={selectClassName}
-                id="campaign-product"
-                onChange={(event) => setSurfaceChoice(event.target.value)}
-                value={surfaceChoice}
+              <UiSelect
+                onValueChange={(nextValue) =>
+                  setSurfaceChoice(nextValue === '__empty_option__' ? '' : nextValue)
+                }
+                value={String(surfaceChoice) || '__empty_option__'}
               >
-                {surfaces.map((surface) => (
-                  <option key={surface.id} value={surface.id}>
-                    {surface.name} ({surface.environment})
-                  </option>
-                ))}
-                {canManageProducts ? <option value={NEW_PRODUCT}>Add a product…</option> : null}
-                {!canManageProducts && surfaces.length === 0 ? (
-                  <option value="">No product connected</option>
-                ) : null}
-              </select>
+                <SelectTrigger className={selectClassName} id="campaign-product">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {surfaces.map((surface) => (
+                    <SelectItem key={surface.id} value={surface.id}>
+                      {surface.name} ({surface.environment})
+                    </SelectItem>
+                  ))}
+                  {canManageProducts ? (
+                    <SelectItem value={NEW_PRODUCT}>Add a product…</SelectItem>
+                  ) : null}
+                  {!canManageProducts && surfaces.length === 0 ? (
+                    <SelectItem value={'__empty_option__'}>No product connected</SelectItem>
+                  ) : null}
+                </SelectContent>
+              </UiSelect>
             </Field>
           </Row>
           {isNewProduct ? (
@@ -196,18 +210,18 @@ export function CampaignSetupForm({
                   />
                 </Field>
                 <Field htmlFor="campaign-environment" label="Environment">
-                  <select
-                    className={selectClassName}
-                    defaultValue="production"
-                    id="campaign-environment"
-                    name="environment"
-                  >
-                    {productEnvironments.map((environment) => (
-                      <option key={environment} value={environment}>
-                        {environment}
-                      </option>
-                    ))}
-                  </select>
+                  <UiSelect defaultValue="production" name="environment">
+                    <SelectTrigger className={selectClassName} id="campaign-environment">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {productEnvironments.map((environment) => (
+                        <SelectItem key={environment} value={environment}>
+                          {environment}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </UiSelect>
                 </Field>
               </div>
               <Field htmlFor="campaign-marketing-url" label="Marketing site URL (optional)">

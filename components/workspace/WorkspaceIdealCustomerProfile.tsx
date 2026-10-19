@@ -15,6 +15,7 @@ import {
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from './settings-client'
 import { Provenance } from './WorkspaceProductProfile'
+import { Label } from '@/components/ui/label'
 
 type FormValues = Record<IdealCustomerProfileFieldName, string>
 
@@ -158,7 +159,7 @@ export function IdealCustomerProfileForm({
                   </span>
                 }
                 key={spec.field}
-                label={<label htmlFor={id}>{spec.label}</label>}
+                label={<Label htmlFor={id}>{spec.label}</Label>}
                 layout="stacked"
               >
                 <Textarea

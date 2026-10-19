@@ -69,7 +69,13 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/projectversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
+	entreleaseautomation "github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationexecutor"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationnode"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationrun"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasedocument"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasesourceevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasespec"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/screenshotcache"
@@ -205,8 +211,20 @@ type Client struct {
 	PublicationAttempt *PublicationAttemptClient
 	// Release is the client for interacting with the Release builders.
 	Release *ReleaseClient
+	// ReleaseAutomation is the client for interacting with the ReleaseAutomation builders.
+	ReleaseAutomation *ReleaseAutomationClient
+	// ReleaseAutomationExecutor is the client for interacting with the ReleaseAutomationExecutor builders.
+	ReleaseAutomationExecutor *ReleaseAutomationExecutorClient
+	// ReleaseAutomationNode is the client for interacting with the ReleaseAutomationNode builders.
+	ReleaseAutomationNode *ReleaseAutomationNodeClient
+	// ReleaseAutomationRun is the client for interacting with the ReleaseAutomationRun builders.
+	ReleaseAutomationRun *ReleaseAutomationRunClient
+	// ReleaseAutomationVersion is the client for interacting with the ReleaseAutomationVersion builders.
+	ReleaseAutomationVersion *ReleaseAutomationVersionClient
 	// ReleaseDocument is the client for interacting with the ReleaseDocument builders.
 	ReleaseDocument *ReleaseDocumentClient
+	// ReleaseSourceEvent is the client for interacting with the ReleaseSourceEvent builders.
+	ReleaseSourceEvent *ReleaseSourceEventClient
 	// ReleaseSpec is the client for interacting with the ReleaseSpec builders.
 	ReleaseSpec *ReleaseSpecClient
 	// ScheduledPost is the client for interacting with the ScheduledPost builders.
@@ -312,7 +330,13 @@ func (c *Client) init() {
 	c.ProjectVersion = NewProjectVersionClient(c.config)
 	c.PublicationAttempt = NewPublicationAttemptClient(c.config)
 	c.Release = NewReleaseClient(c.config)
+	c.ReleaseAutomation = NewReleaseAutomationClient(c.config)
+	c.ReleaseAutomationExecutor = NewReleaseAutomationExecutorClient(c.config)
+	c.ReleaseAutomationNode = NewReleaseAutomationNodeClient(c.config)
+	c.ReleaseAutomationRun = NewReleaseAutomationRunClient(c.config)
+	c.ReleaseAutomationVersion = NewReleaseAutomationVersionClient(c.config)
 	c.ReleaseDocument = NewReleaseDocumentClient(c.config)
+	c.ReleaseSourceEvent = NewReleaseSourceEventClient(c.config)
 	c.ReleaseSpec = NewReleaseSpecClient(c.config)
 	c.ScheduledPost = NewScheduledPostClient(c.config)
 	c.ScreenshotCache = NewScreenshotCacheClient(c.config)
@@ -479,7 +503,13 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ProjectVersion:                 NewProjectVersionClient(cfg),
 		PublicationAttempt:             NewPublicationAttemptClient(cfg),
 		Release:                        NewReleaseClient(cfg),
+		ReleaseAutomation:              NewReleaseAutomationClient(cfg),
+		ReleaseAutomationExecutor:      NewReleaseAutomationExecutorClient(cfg),
+		ReleaseAutomationNode:          NewReleaseAutomationNodeClient(cfg),
+		ReleaseAutomationRun:           NewReleaseAutomationRunClient(cfg),
+		ReleaseAutomationVersion:       NewReleaseAutomationVersionClient(cfg),
 		ReleaseDocument:                NewReleaseDocumentClient(cfg),
+		ReleaseSourceEvent:             NewReleaseSourceEventClient(cfg),
 		ReleaseSpec:                    NewReleaseSpecClient(cfg),
 		ScheduledPost:                  NewScheduledPostClient(cfg),
 		ScreenshotCache:                NewScreenshotCacheClient(cfg),
@@ -573,7 +603,13 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ProjectVersion:                 NewProjectVersionClient(cfg),
 		PublicationAttempt:             NewPublicationAttemptClient(cfg),
 		Release:                        NewReleaseClient(cfg),
+		ReleaseAutomation:              NewReleaseAutomationClient(cfg),
+		ReleaseAutomationExecutor:      NewReleaseAutomationExecutorClient(cfg),
+		ReleaseAutomationNode:          NewReleaseAutomationNodeClient(cfg),
+		ReleaseAutomationRun:           NewReleaseAutomationRunClient(cfg),
+		ReleaseAutomationVersion:       NewReleaseAutomationVersionClient(cfg),
 		ReleaseDocument:                NewReleaseDocumentClient(cfg),
+		ReleaseSourceEvent:             NewReleaseSourceEventClient(cfg),
 		ReleaseSpec:                    NewReleaseSpecClient(cfg),
 		ScheduledPost:                  NewScheduledPostClient(cfg),
 		ScreenshotCache:                NewScreenshotCacheClient(cfg),
@@ -637,7 +673,9 @@ func (c *Client) Use(hooks ...Hook) {
 		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
 		c.OutboxEvent, c.PageKnowledge, c.PlatformCreativeSet,
 		c.PlatformCreativeSetVersion, c.ProductProfile, c.ProductSurface, c.Project,
-		c.ProjectVersion, c.PublicationAttempt, c.Release, c.ReleaseDocument,
+		c.ProjectVersion, c.PublicationAttempt, c.Release, c.ReleaseAutomation,
+		c.ReleaseAutomationExecutor, c.ReleaseAutomationNode, c.ReleaseAutomationRun,
+		c.ReleaseAutomationVersion, c.ReleaseDocument, c.ReleaseSourceEvent,
 		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
 		c.SocialOAuthStart, c.SocialTenantBinding, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
@@ -667,7 +705,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
 		c.OutboxEvent, c.PageKnowledge, c.PlatformCreativeSet,
 		c.PlatformCreativeSetVersion, c.ProductProfile, c.ProductSurface, c.Project,
-		c.ProjectVersion, c.PublicationAttempt, c.Release, c.ReleaseDocument,
+		c.ProjectVersion, c.PublicationAttempt, c.Release, c.ReleaseAutomation,
+		c.ReleaseAutomationExecutor, c.ReleaseAutomationNode, c.ReleaseAutomationRun,
+		c.ReleaseAutomationVersion, c.ReleaseDocument, c.ReleaseSourceEvent,
 		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
 		c.SocialOAuthStart, c.SocialTenantBinding, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
@@ -790,8 +830,20 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PublicationAttempt.mutate(ctx, m)
 	case *ReleaseMutation:
 		return c.Release.mutate(ctx, m)
+	case *ReleaseAutomationMutation:
+		return c.ReleaseAutomation.mutate(ctx, m)
+	case *ReleaseAutomationExecutorMutation:
+		return c.ReleaseAutomationExecutor.mutate(ctx, m)
+	case *ReleaseAutomationNodeMutation:
+		return c.ReleaseAutomationNode.mutate(ctx, m)
+	case *ReleaseAutomationRunMutation:
+		return c.ReleaseAutomationRun.mutate(ctx, m)
+	case *ReleaseAutomationVersionMutation:
+		return c.ReleaseAutomationVersion.mutate(ctx, m)
 	case *ReleaseDocumentMutation:
 		return c.ReleaseDocument.mutate(ctx, m)
+	case *ReleaseSourceEventMutation:
+		return c.ReleaseSourceEvent.mutate(ctx, m)
 	case *ReleaseSpecMutation:
 		return c.ReleaseSpec.mutate(ctx, m)
 	case *ScheduledPostMutation:
@@ -8115,6 +8167,671 @@ func (c *ReleaseClient) mutate(ctx context.Context, m *ReleaseMutation) (Value, 
 	}
 }
 
+// ReleaseAutomationClient is a client for the ReleaseAutomation schema.
+type ReleaseAutomationClient struct {
+	config
+}
+
+// NewReleaseAutomationClient returns a client for the ReleaseAutomation from the given config.
+func NewReleaseAutomationClient(c config) *ReleaseAutomationClient {
+	return &ReleaseAutomationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `entreleaseautomation.Hooks(f(g(h())))`.
+func (c *ReleaseAutomationClient) Use(hooks ...Hook) {
+	c.hooks.ReleaseAutomation = append(c.hooks.ReleaseAutomation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `entreleaseautomation.Intercept(f(g(h())))`.
+func (c *ReleaseAutomationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ReleaseAutomation = append(c.inters.ReleaseAutomation, interceptors...)
+}
+
+// Create returns a builder for creating a ReleaseAutomation entity.
+func (c *ReleaseAutomationClient) Create() *ReleaseAutomationCreate {
+	mutation := newReleaseAutomationMutation(c.config, OpCreate)
+	return &ReleaseAutomationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ReleaseAutomation entities.
+func (c *ReleaseAutomationClient) CreateBulk(builders ...*ReleaseAutomationCreate) *ReleaseAutomationCreateBulk {
+	return &ReleaseAutomationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ReleaseAutomationClient) MapCreateBulk(slice any, setFunc func(*ReleaseAutomationCreate, int)) *ReleaseAutomationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ReleaseAutomationCreateBulk{err: fmt.Errorf("calling to ReleaseAutomationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ReleaseAutomationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ReleaseAutomationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ReleaseAutomation.
+func (c *ReleaseAutomationClient) Update() *ReleaseAutomationUpdate {
+	mutation := newReleaseAutomationMutation(c.config, OpUpdate)
+	return &ReleaseAutomationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ReleaseAutomationClient) UpdateOne(_m *ReleaseAutomation) *ReleaseAutomationUpdateOne {
+	mutation := newReleaseAutomationMutation(c.config, OpUpdateOne, withReleaseAutomation(_m))
+	return &ReleaseAutomationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ReleaseAutomationClient) UpdateOneID(id string) *ReleaseAutomationUpdateOne {
+	mutation := newReleaseAutomationMutation(c.config, OpUpdateOne, withReleaseAutomationID(id))
+	return &ReleaseAutomationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ReleaseAutomation.
+func (c *ReleaseAutomationClient) Delete() *ReleaseAutomationDelete {
+	mutation := newReleaseAutomationMutation(c.config, OpDelete)
+	return &ReleaseAutomationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ReleaseAutomationClient) DeleteOne(_m *ReleaseAutomation) *ReleaseAutomationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ReleaseAutomationClient) DeleteOneID(id string) *ReleaseAutomationDeleteOne {
+	builder := c.Delete().Where(entreleaseautomation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ReleaseAutomationDeleteOne{builder}
+}
+
+// Query returns a query builder for ReleaseAutomation.
+func (c *ReleaseAutomationClient) Query() *ReleaseAutomationQuery {
+	return &ReleaseAutomationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeReleaseAutomation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ReleaseAutomation entity by its id.
+func (c *ReleaseAutomationClient) Get(ctx context.Context, id string) (*ReleaseAutomation, error) {
+	return c.Query().Where(entreleaseautomation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ReleaseAutomationClient) GetX(ctx context.Context, id string) *ReleaseAutomation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ReleaseAutomationClient) Hooks() []Hook {
+	return c.hooks.ReleaseAutomation
+}
+
+// Interceptors returns the client interceptors.
+func (c *ReleaseAutomationClient) Interceptors() []Interceptor {
+	return c.inters.ReleaseAutomation
+}
+
+func (c *ReleaseAutomationClient) mutate(ctx context.Context, m *ReleaseAutomationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ReleaseAutomationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ReleaseAutomationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ReleaseAutomationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ReleaseAutomationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ReleaseAutomation mutation op: %q", m.Op())
+	}
+}
+
+// ReleaseAutomationExecutorClient is a client for the ReleaseAutomationExecutor schema.
+type ReleaseAutomationExecutorClient struct {
+	config
+}
+
+// NewReleaseAutomationExecutorClient returns a client for the ReleaseAutomationExecutor from the given config.
+func NewReleaseAutomationExecutorClient(c config) *ReleaseAutomationExecutorClient {
+	return &ReleaseAutomationExecutorClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `releaseautomationexecutor.Hooks(f(g(h())))`.
+func (c *ReleaseAutomationExecutorClient) Use(hooks ...Hook) {
+	c.hooks.ReleaseAutomationExecutor = append(c.hooks.ReleaseAutomationExecutor, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `releaseautomationexecutor.Intercept(f(g(h())))`.
+func (c *ReleaseAutomationExecutorClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ReleaseAutomationExecutor = append(c.inters.ReleaseAutomationExecutor, interceptors...)
+}
+
+// Create returns a builder for creating a ReleaseAutomationExecutor entity.
+func (c *ReleaseAutomationExecutorClient) Create() *ReleaseAutomationExecutorCreate {
+	mutation := newReleaseAutomationExecutorMutation(c.config, OpCreate)
+	return &ReleaseAutomationExecutorCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ReleaseAutomationExecutor entities.
+func (c *ReleaseAutomationExecutorClient) CreateBulk(builders ...*ReleaseAutomationExecutorCreate) *ReleaseAutomationExecutorCreateBulk {
+	return &ReleaseAutomationExecutorCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ReleaseAutomationExecutorClient) MapCreateBulk(slice any, setFunc func(*ReleaseAutomationExecutorCreate, int)) *ReleaseAutomationExecutorCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ReleaseAutomationExecutorCreateBulk{err: fmt.Errorf("calling to ReleaseAutomationExecutorClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ReleaseAutomationExecutorCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ReleaseAutomationExecutorCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ReleaseAutomationExecutor.
+func (c *ReleaseAutomationExecutorClient) Update() *ReleaseAutomationExecutorUpdate {
+	mutation := newReleaseAutomationExecutorMutation(c.config, OpUpdate)
+	return &ReleaseAutomationExecutorUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ReleaseAutomationExecutorClient) UpdateOne(_m *ReleaseAutomationExecutor) *ReleaseAutomationExecutorUpdateOne {
+	mutation := newReleaseAutomationExecutorMutation(c.config, OpUpdateOne, withReleaseAutomationExecutor(_m))
+	return &ReleaseAutomationExecutorUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ReleaseAutomationExecutorClient) UpdateOneID(id string) *ReleaseAutomationExecutorUpdateOne {
+	mutation := newReleaseAutomationExecutorMutation(c.config, OpUpdateOne, withReleaseAutomationExecutorID(id))
+	return &ReleaseAutomationExecutorUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ReleaseAutomationExecutor.
+func (c *ReleaseAutomationExecutorClient) Delete() *ReleaseAutomationExecutorDelete {
+	mutation := newReleaseAutomationExecutorMutation(c.config, OpDelete)
+	return &ReleaseAutomationExecutorDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ReleaseAutomationExecutorClient) DeleteOne(_m *ReleaseAutomationExecutor) *ReleaseAutomationExecutorDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ReleaseAutomationExecutorClient) DeleteOneID(id string) *ReleaseAutomationExecutorDeleteOne {
+	builder := c.Delete().Where(releaseautomationexecutor.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ReleaseAutomationExecutorDeleteOne{builder}
+}
+
+// Query returns a query builder for ReleaseAutomationExecutor.
+func (c *ReleaseAutomationExecutorClient) Query() *ReleaseAutomationExecutorQuery {
+	return &ReleaseAutomationExecutorQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeReleaseAutomationExecutor},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ReleaseAutomationExecutor entity by its id.
+func (c *ReleaseAutomationExecutorClient) Get(ctx context.Context, id string) (*ReleaseAutomationExecutor, error) {
+	return c.Query().Where(releaseautomationexecutor.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ReleaseAutomationExecutorClient) GetX(ctx context.Context, id string) *ReleaseAutomationExecutor {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ReleaseAutomationExecutorClient) Hooks() []Hook {
+	return c.hooks.ReleaseAutomationExecutor
+}
+
+// Interceptors returns the client interceptors.
+func (c *ReleaseAutomationExecutorClient) Interceptors() []Interceptor {
+	return c.inters.ReleaseAutomationExecutor
+}
+
+func (c *ReleaseAutomationExecutorClient) mutate(ctx context.Context, m *ReleaseAutomationExecutorMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ReleaseAutomationExecutorCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ReleaseAutomationExecutorUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ReleaseAutomationExecutorUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ReleaseAutomationExecutorDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ReleaseAutomationExecutor mutation op: %q", m.Op())
+	}
+}
+
+// ReleaseAutomationNodeClient is a client for the ReleaseAutomationNode schema.
+type ReleaseAutomationNodeClient struct {
+	config
+}
+
+// NewReleaseAutomationNodeClient returns a client for the ReleaseAutomationNode from the given config.
+func NewReleaseAutomationNodeClient(c config) *ReleaseAutomationNodeClient {
+	return &ReleaseAutomationNodeClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `releaseautomationnode.Hooks(f(g(h())))`.
+func (c *ReleaseAutomationNodeClient) Use(hooks ...Hook) {
+	c.hooks.ReleaseAutomationNode = append(c.hooks.ReleaseAutomationNode, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `releaseautomationnode.Intercept(f(g(h())))`.
+func (c *ReleaseAutomationNodeClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ReleaseAutomationNode = append(c.inters.ReleaseAutomationNode, interceptors...)
+}
+
+// Create returns a builder for creating a ReleaseAutomationNode entity.
+func (c *ReleaseAutomationNodeClient) Create() *ReleaseAutomationNodeCreate {
+	mutation := newReleaseAutomationNodeMutation(c.config, OpCreate)
+	return &ReleaseAutomationNodeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ReleaseAutomationNode entities.
+func (c *ReleaseAutomationNodeClient) CreateBulk(builders ...*ReleaseAutomationNodeCreate) *ReleaseAutomationNodeCreateBulk {
+	return &ReleaseAutomationNodeCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ReleaseAutomationNodeClient) MapCreateBulk(slice any, setFunc func(*ReleaseAutomationNodeCreate, int)) *ReleaseAutomationNodeCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ReleaseAutomationNodeCreateBulk{err: fmt.Errorf("calling to ReleaseAutomationNodeClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ReleaseAutomationNodeCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ReleaseAutomationNodeCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ReleaseAutomationNode.
+func (c *ReleaseAutomationNodeClient) Update() *ReleaseAutomationNodeUpdate {
+	mutation := newReleaseAutomationNodeMutation(c.config, OpUpdate)
+	return &ReleaseAutomationNodeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ReleaseAutomationNodeClient) UpdateOne(_m *ReleaseAutomationNode) *ReleaseAutomationNodeUpdateOne {
+	mutation := newReleaseAutomationNodeMutation(c.config, OpUpdateOne, withReleaseAutomationNode(_m))
+	return &ReleaseAutomationNodeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ReleaseAutomationNodeClient) UpdateOneID(id string) *ReleaseAutomationNodeUpdateOne {
+	mutation := newReleaseAutomationNodeMutation(c.config, OpUpdateOne, withReleaseAutomationNodeID(id))
+	return &ReleaseAutomationNodeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ReleaseAutomationNode.
+func (c *ReleaseAutomationNodeClient) Delete() *ReleaseAutomationNodeDelete {
+	mutation := newReleaseAutomationNodeMutation(c.config, OpDelete)
+	return &ReleaseAutomationNodeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ReleaseAutomationNodeClient) DeleteOne(_m *ReleaseAutomationNode) *ReleaseAutomationNodeDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ReleaseAutomationNodeClient) DeleteOneID(id string) *ReleaseAutomationNodeDeleteOne {
+	builder := c.Delete().Where(releaseautomationnode.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ReleaseAutomationNodeDeleteOne{builder}
+}
+
+// Query returns a query builder for ReleaseAutomationNode.
+func (c *ReleaseAutomationNodeClient) Query() *ReleaseAutomationNodeQuery {
+	return &ReleaseAutomationNodeQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeReleaseAutomationNode},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ReleaseAutomationNode entity by its id.
+func (c *ReleaseAutomationNodeClient) Get(ctx context.Context, id string) (*ReleaseAutomationNode, error) {
+	return c.Query().Where(releaseautomationnode.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ReleaseAutomationNodeClient) GetX(ctx context.Context, id string) *ReleaseAutomationNode {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ReleaseAutomationNodeClient) Hooks() []Hook {
+	return c.hooks.ReleaseAutomationNode
+}
+
+// Interceptors returns the client interceptors.
+func (c *ReleaseAutomationNodeClient) Interceptors() []Interceptor {
+	return c.inters.ReleaseAutomationNode
+}
+
+func (c *ReleaseAutomationNodeClient) mutate(ctx context.Context, m *ReleaseAutomationNodeMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ReleaseAutomationNodeCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ReleaseAutomationNodeUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ReleaseAutomationNodeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ReleaseAutomationNodeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ReleaseAutomationNode mutation op: %q", m.Op())
+	}
+}
+
+// ReleaseAutomationRunClient is a client for the ReleaseAutomationRun schema.
+type ReleaseAutomationRunClient struct {
+	config
+}
+
+// NewReleaseAutomationRunClient returns a client for the ReleaseAutomationRun from the given config.
+func NewReleaseAutomationRunClient(c config) *ReleaseAutomationRunClient {
+	return &ReleaseAutomationRunClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `releaseautomationrun.Hooks(f(g(h())))`.
+func (c *ReleaseAutomationRunClient) Use(hooks ...Hook) {
+	c.hooks.ReleaseAutomationRun = append(c.hooks.ReleaseAutomationRun, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `releaseautomationrun.Intercept(f(g(h())))`.
+func (c *ReleaseAutomationRunClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ReleaseAutomationRun = append(c.inters.ReleaseAutomationRun, interceptors...)
+}
+
+// Create returns a builder for creating a ReleaseAutomationRun entity.
+func (c *ReleaseAutomationRunClient) Create() *ReleaseAutomationRunCreate {
+	mutation := newReleaseAutomationRunMutation(c.config, OpCreate)
+	return &ReleaseAutomationRunCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ReleaseAutomationRun entities.
+func (c *ReleaseAutomationRunClient) CreateBulk(builders ...*ReleaseAutomationRunCreate) *ReleaseAutomationRunCreateBulk {
+	return &ReleaseAutomationRunCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ReleaseAutomationRunClient) MapCreateBulk(slice any, setFunc func(*ReleaseAutomationRunCreate, int)) *ReleaseAutomationRunCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ReleaseAutomationRunCreateBulk{err: fmt.Errorf("calling to ReleaseAutomationRunClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ReleaseAutomationRunCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ReleaseAutomationRunCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ReleaseAutomationRun.
+func (c *ReleaseAutomationRunClient) Update() *ReleaseAutomationRunUpdate {
+	mutation := newReleaseAutomationRunMutation(c.config, OpUpdate)
+	return &ReleaseAutomationRunUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ReleaseAutomationRunClient) UpdateOne(_m *ReleaseAutomationRun) *ReleaseAutomationRunUpdateOne {
+	mutation := newReleaseAutomationRunMutation(c.config, OpUpdateOne, withReleaseAutomationRun(_m))
+	return &ReleaseAutomationRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ReleaseAutomationRunClient) UpdateOneID(id string) *ReleaseAutomationRunUpdateOne {
+	mutation := newReleaseAutomationRunMutation(c.config, OpUpdateOne, withReleaseAutomationRunID(id))
+	return &ReleaseAutomationRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ReleaseAutomationRun.
+func (c *ReleaseAutomationRunClient) Delete() *ReleaseAutomationRunDelete {
+	mutation := newReleaseAutomationRunMutation(c.config, OpDelete)
+	return &ReleaseAutomationRunDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ReleaseAutomationRunClient) DeleteOne(_m *ReleaseAutomationRun) *ReleaseAutomationRunDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ReleaseAutomationRunClient) DeleteOneID(id string) *ReleaseAutomationRunDeleteOne {
+	builder := c.Delete().Where(releaseautomationrun.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ReleaseAutomationRunDeleteOne{builder}
+}
+
+// Query returns a query builder for ReleaseAutomationRun.
+func (c *ReleaseAutomationRunClient) Query() *ReleaseAutomationRunQuery {
+	return &ReleaseAutomationRunQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeReleaseAutomationRun},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ReleaseAutomationRun entity by its id.
+func (c *ReleaseAutomationRunClient) Get(ctx context.Context, id string) (*ReleaseAutomationRun, error) {
+	return c.Query().Where(releaseautomationrun.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ReleaseAutomationRunClient) GetX(ctx context.Context, id string) *ReleaseAutomationRun {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ReleaseAutomationRunClient) Hooks() []Hook {
+	return c.hooks.ReleaseAutomationRun
+}
+
+// Interceptors returns the client interceptors.
+func (c *ReleaseAutomationRunClient) Interceptors() []Interceptor {
+	return c.inters.ReleaseAutomationRun
+}
+
+func (c *ReleaseAutomationRunClient) mutate(ctx context.Context, m *ReleaseAutomationRunMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ReleaseAutomationRunCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ReleaseAutomationRunUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ReleaseAutomationRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ReleaseAutomationRunDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ReleaseAutomationRun mutation op: %q", m.Op())
+	}
+}
+
+// ReleaseAutomationVersionClient is a client for the ReleaseAutomationVersion schema.
+type ReleaseAutomationVersionClient struct {
+	config
+}
+
+// NewReleaseAutomationVersionClient returns a client for the ReleaseAutomationVersion from the given config.
+func NewReleaseAutomationVersionClient(c config) *ReleaseAutomationVersionClient {
+	return &ReleaseAutomationVersionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `releaseautomationversion.Hooks(f(g(h())))`.
+func (c *ReleaseAutomationVersionClient) Use(hooks ...Hook) {
+	c.hooks.ReleaseAutomationVersion = append(c.hooks.ReleaseAutomationVersion, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `releaseautomationversion.Intercept(f(g(h())))`.
+func (c *ReleaseAutomationVersionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ReleaseAutomationVersion = append(c.inters.ReleaseAutomationVersion, interceptors...)
+}
+
+// Create returns a builder for creating a ReleaseAutomationVersion entity.
+func (c *ReleaseAutomationVersionClient) Create() *ReleaseAutomationVersionCreate {
+	mutation := newReleaseAutomationVersionMutation(c.config, OpCreate)
+	return &ReleaseAutomationVersionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ReleaseAutomationVersion entities.
+func (c *ReleaseAutomationVersionClient) CreateBulk(builders ...*ReleaseAutomationVersionCreate) *ReleaseAutomationVersionCreateBulk {
+	return &ReleaseAutomationVersionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ReleaseAutomationVersionClient) MapCreateBulk(slice any, setFunc func(*ReleaseAutomationVersionCreate, int)) *ReleaseAutomationVersionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ReleaseAutomationVersionCreateBulk{err: fmt.Errorf("calling to ReleaseAutomationVersionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ReleaseAutomationVersionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ReleaseAutomationVersionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ReleaseAutomationVersion.
+func (c *ReleaseAutomationVersionClient) Update() *ReleaseAutomationVersionUpdate {
+	mutation := newReleaseAutomationVersionMutation(c.config, OpUpdate)
+	return &ReleaseAutomationVersionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ReleaseAutomationVersionClient) UpdateOne(_m *ReleaseAutomationVersion) *ReleaseAutomationVersionUpdateOne {
+	mutation := newReleaseAutomationVersionMutation(c.config, OpUpdateOne, withReleaseAutomationVersion(_m))
+	return &ReleaseAutomationVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ReleaseAutomationVersionClient) UpdateOneID(id string) *ReleaseAutomationVersionUpdateOne {
+	mutation := newReleaseAutomationVersionMutation(c.config, OpUpdateOne, withReleaseAutomationVersionID(id))
+	return &ReleaseAutomationVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ReleaseAutomationVersion.
+func (c *ReleaseAutomationVersionClient) Delete() *ReleaseAutomationVersionDelete {
+	mutation := newReleaseAutomationVersionMutation(c.config, OpDelete)
+	return &ReleaseAutomationVersionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ReleaseAutomationVersionClient) DeleteOne(_m *ReleaseAutomationVersion) *ReleaseAutomationVersionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ReleaseAutomationVersionClient) DeleteOneID(id string) *ReleaseAutomationVersionDeleteOne {
+	builder := c.Delete().Where(releaseautomationversion.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ReleaseAutomationVersionDeleteOne{builder}
+}
+
+// Query returns a query builder for ReleaseAutomationVersion.
+func (c *ReleaseAutomationVersionClient) Query() *ReleaseAutomationVersionQuery {
+	return &ReleaseAutomationVersionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeReleaseAutomationVersion},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ReleaseAutomationVersion entity by its id.
+func (c *ReleaseAutomationVersionClient) Get(ctx context.Context, id string) (*ReleaseAutomationVersion, error) {
+	return c.Query().Where(releaseautomationversion.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ReleaseAutomationVersionClient) GetX(ctx context.Context, id string) *ReleaseAutomationVersion {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ReleaseAutomationVersionClient) Hooks() []Hook {
+	return c.hooks.ReleaseAutomationVersion
+}
+
+// Interceptors returns the client interceptors.
+func (c *ReleaseAutomationVersionClient) Interceptors() []Interceptor {
+	return c.inters.ReleaseAutomationVersion
+}
+
+func (c *ReleaseAutomationVersionClient) mutate(ctx context.Context, m *ReleaseAutomationVersionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ReleaseAutomationVersionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ReleaseAutomationVersionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ReleaseAutomationVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ReleaseAutomationVersionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ReleaseAutomationVersion mutation op: %q", m.Op())
+	}
+}
+
 // ReleaseDocumentClient is a client for the ReleaseDocument schema.
 type ReleaseDocumentClient struct {
 	config
@@ -8245,6 +8962,139 @@ func (c *ReleaseDocumentClient) mutate(ctx context.Context, m *ReleaseDocumentMu
 		return (&ReleaseDocumentDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown ReleaseDocument mutation op: %q", m.Op())
+	}
+}
+
+// ReleaseSourceEventClient is a client for the ReleaseSourceEvent schema.
+type ReleaseSourceEventClient struct {
+	config
+}
+
+// NewReleaseSourceEventClient returns a client for the ReleaseSourceEvent from the given config.
+func NewReleaseSourceEventClient(c config) *ReleaseSourceEventClient {
+	return &ReleaseSourceEventClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `releasesourceevent.Hooks(f(g(h())))`.
+func (c *ReleaseSourceEventClient) Use(hooks ...Hook) {
+	c.hooks.ReleaseSourceEvent = append(c.hooks.ReleaseSourceEvent, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `releasesourceevent.Intercept(f(g(h())))`.
+func (c *ReleaseSourceEventClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ReleaseSourceEvent = append(c.inters.ReleaseSourceEvent, interceptors...)
+}
+
+// Create returns a builder for creating a ReleaseSourceEvent entity.
+func (c *ReleaseSourceEventClient) Create() *ReleaseSourceEventCreate {
+	mutation := newReleaseSourceEventMutation(c.config, OpCreate)
+	return &ReleaseSourceEventCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ReleaseSourceEvent entities.
+func (c *ReleaseSourceEventClient) CreateBulk(builders ...*ReleaseSourceEventCreate) *ReleaseSourceEventCreateBulk {
+	return &ReleaseSourceEventCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ReleaseSourceEventClient) MapCreateBulk(slice any, setFunc func(*ReleaseSourceEventCreate, int)) *ReleaseSourceEventCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ReleaseSourceEventCreateBulk{err: fmt.Errorf("calling to ReleaseSourceEventClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ReleaseSourceEventCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ReleaseSourceEventCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ReleaseSourceEvent.
+func (c *ReleaseSourceEventClient) Update() *ReleaseSourceEventUpdate {
+	mutation := newReleaseSourceEventMutation(c.config, OpUpdate)
+	return &ReleaseSourceEventUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ReleaseSourceEventClient) UpdateOne(_m *ReleaseSourceEvent) *ReleaseSourceEventUpdateOne {
+	mutation := newReleaseSourceEventMutation(c.config, OpUpdateOne, withReleaseSourceEvent(_m))
+	return &ReleaseSourceEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ReleaseSourceEventClient) UpdateOneID(id string) *ReleaseSourceEventUpdateOne {
+	mutation := newReleaseSourceEventMutation(c.config, OpUpdateOne, withReleaseSourceEventID(id))
+	return &ReleaseSourceEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ReleaseSourceEvent.
+func (c *ReleaseSourceEventClient) Delete() *ReleaseSourceEventDelete {
+	mutation := newReleaseSourceEventMutation(c.config, OpDelete)
+	return &ReleaseSourceEventDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ReleaseSourceEventClient) DeleteOne(_m *ReleaseSourceEvent) *ReleaseSourceEventDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ReleaseSourceEventClient) DeleteOneID(id string) *ReleaseSourceEventDeleteOne {
+	builder := c.Delete().Where(releasesourceevent.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ReleaseSourceEventDeleteOne{builder}
+}
+
+// Query returns a query builder for ReleaseSourceEvent.
+func (c *ReleaseSourceEventClient) Query() *ReleaseSourceEventQuery {
+	return &ReleaseSourceEventQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeReleaseSourceEvent},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ReleaseSourceEvent entity by its id.
+func (c *ReleaseSourceEventClient) Get(ctx context.Context, id string) (*ReleaseSourceEvent, error) {
+	return c.Query().Where(releasesourceevent.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ReleaseSourceEventClient) GetX(ctx context.Context, id string) *ReleaseSourceEvent {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ReleaseSourceEventClient) Hooks() []Hook {
+	return c.hooks.ReleaseSourceEvent
+}
+
+// Interceptors returns the client interceptors.
+func (c *ReleaseSourceEventClient) Interceptors() []Interceptor {
+	return c.inters.ReleaseSourceEvent
+}
+
+func (c *ReleaseSourceEventClient) mutate(ctx context.Context, m *ReleaseSourceEventMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ReleaseSourceEventCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ReleaseSourceEventUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ReleaseSourceEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ReleaseSourceEventDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ReleaseSourceEvent mutation op: %q", m.Op())
 	}
 }
 
@@ -10956,7 +11806,9 @@ type (
 		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
 		PlatformCreativeSet, PlatformCreativeSetVersion, ProductProfile,
 		ProductSurface, Project, ProjectVersion, PublicationAttempt, Release,
-		ReleaseDocument, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
+		ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
+		ReleaseAutomationRun, ReleaseAutomationVersion, ReleaseDocument,
+		ReleaseSourceEvent, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
 		ShareLink, SocialOAuthStart, SocialTenantBinding, SourceApp, SourceChange,
 		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
 		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
@@ -10976,7 +11828,9 @@ type (
 		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
 		PlatformCreativeSet, PlatformCreativeSetVersion, ProductProfile,
 		ProductSurface, Project, ProjectVersion, PublicationAttempt, Release,
-		ReleaseDocument, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
+		ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
+		ReleaseAutomationRun, ReleaseAutomationVersion, ReleaseDocument,
+		ReleaseSourceEvent, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
 		ShareLink, SocialOAuthStart, SocialTenantBinding, SourceApp, SourceChange,
 		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
 		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,

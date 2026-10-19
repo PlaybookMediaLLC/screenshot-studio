@@ -1,12 +1,8 @@
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from '@/components/ui/popover';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { aspectRatios } from '@/lib/constants/aspect-ratios';
 import { useImageStore } from '@/lib/store';
 import { AspectRatioPicker } from './aspect-ratio-picker';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button'
 import * as React from 'react';
 import { ArrowDown01Icon } from 'hugeicons-react';
 
@@ -60,7 +56,7 @@ export const AspectRatioDropdown = () => {
               if (!ratio) return null;
               const isSelected = selectedAspectRatio === id;
               return (
-                <button
+                <Button variant="custom" size={null}
                   key={id}
                   onClick={() => handleQuickSelect(id)}
                   className={`relative rounded-md border transition-all ${

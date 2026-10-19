@@ -5,6 +5,7 @@ import { selectScreenshot, useImageStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { SectionWrapper } from './SectionWrapper';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button'
 
 type PositionKey = 'tl' | 'tc' | 'tr' | 'ml' | 'mc' | 'mr' | 'bl' | 'bc' | 'br';
 
@@ -100,17 +101,17 @@ export function ImagePositionSection() {
   return (
     <SectionWrapper title="Position" defaultOpen={true}>
       <div className="space-y-2">
-        <button
+        <Button variant="custom" size={null}
           type="button"
           onClick={handleAuto}
           className="flex h-9 w-full items-center justify-center rounded-md bg-foreground/[0.04] text-[11px] font-semibold tracking-wide text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
         >
           Auto
-        </button>
+        </Button>
 
         <div className="mx-auto grid w-full max-w-[220px] grid-cols-3 gap-1.5">
           {positions.map((pos) => (
-            <button
+            <Button variant="custom" size={null}
               key={pos.key}
               type="button"
               title={pos.label}
@@ -125,7 +126,7 @@ export function ImagePositionSection() {
               )}
             >
               <PositionIcon x={pos.x} y={pos.y} />
-            </button>
+            </Button>
           ))}
         </div>
       </div>

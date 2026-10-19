@@ -26,6 +26,7 @@ import { useDeviceUIStore } from '@/lib/store/device-ui'
 import { useEditorPanels } from '@/lib/store/editor-panels'
 import type { DeviceImageFit } from '@/types/mockup'
 import { CodeOptions } from './CodeOptions'
+import { Input } from '@/components/ui/input'
 
 const iconButton =
   'flex h-8 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground disabled:opacity-35 max-[768px]:h-11'
@@ -54,13 +55,13 @@ export function ScreenInspector({ id }: { id: string }) {
           <p className="min-w-0 truncate text-xs font-medium text-foreground">
             {contentLabel(screen)}
           </p>
-          <button
+          <Button variant="custom" size={null}
             className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
             onClick={() => useEditorPanels.getState().showTab('frame')}
             type="button"
           >
             {frameLabel(screen)} · Change
-          </button>
+          </Button>
         </div>
 
         {code ? (
@@ -86,7 +87,7 @@ export function ScreenInspector({ id }: { id: string }) {
                 <CropIcon size={13} /> {cropping ? 'Done' : 'Crop'}
               </Button>
             </div>
-            <input
+            <Input
               accept={ALLOWED_IMAGE_TYPES.join(',')}
               aria-label="Replace screen image"
               className="hidden"
@@ -165,7 +166,7 @@ export function ScreenInspector({ id }: { id: string }) {
         />
 
         <div className="grid grid-cols-6 gap-1" role="group" aria-label="Screen order and actions">
-          <button
+          <Button variant="custom" size={null}
             aria-label="Send to back"
             className={iconButton}
             onClick={() => reorderMockup(screen.id, 'bottom')}
@@ -173,8 +174,8 @@ export function ScreenInspector({ id }: { id: string }) {
             type="button"
           >
             <LayerSendToBackIcon size={14} />
-          </button>
-          <button
+          </Button>
+          <Button variant="custom" size={null}
             aria-label="Send backward"
             className={iconButton}
             onClick={() => reorderMockup(screen.id, 'down')}
@@ -182,8 +183,8 @@ export function ScreenInspector({ id }: { id: string }) {
             type="button"
           >
             <ArrowDown01Icon size={14} />
-          </button>
-          <button
+          </Button>
+          <Button variant="custom" size={null}
             aria-label="Bring forward"
             className={iconButton}
             onClick={() => reorderMockup(screen.id, 'up')}
@@ -191,8 +192,8 @@ export function ScreenInspector({ id }: { id: string }) {
             type="button"
           >
             <ArrowUp01Icon size={14} />
-          </button>
-          <button
+          </Button>
+          <Button variant="custom" size={null}
             aria-label="Bring to front"
             className={iconButton}
             onClick={() => reorderMockup(screen.id, 'top')}
@@ -200,8 +201,8 @@ export function ScreenInspector({ id }: { id: string }) {
             type="button"
           >
             <LayerBringToFrontIcon size={14} />
-          </button>
-          <button
+          </Button>
+          <Button variant="custom" size={null}
             aria-label="Duplicate screen"
             className={iconButton}
             disabled={count >= MAX_DEVICE_MOCKUPS}
@@ -213,8 +214,8 @@ export function ScreenInspector({ id }: { id: string }) {
             type="button"
           >
             <Copy01Icon size={14} />
-          </button>
-          <button
+          </Button>
+          <Button variant="custom" size={null}
             aria-label="Delete screen"
             className="flex h-8 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive max-[768px]:h-11"
             onClick={() => {
@@ -225,7 +226,7 @@ export function ScreenInspector({ id }: { id: string }) {
             type="button"
           >
             <Delete02Icon size={14} />
-          </button>
+          </Button>
         </div>
       </div>
     </SectionWrapper>

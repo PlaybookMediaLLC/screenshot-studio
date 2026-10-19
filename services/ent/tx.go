@@ -120,8 +120,20 @@ type Tx struct {
 	PublicationAttempt *PublicationAttemptClient
 	// Release is the client for interacting with the Release builders.
 	Release *ReleaseClient
+	// ReleaseAutomation is the client for interacting with the ReleaseAutomation builders.
+	ReleaseAutomation *ReleaseAutomationClient
+	// ReleaseAutomationExecutor is the client for interacting with the ReleaseAutomationExecutor builders.
+	ReleaseAutomationExecutor *ReleaseAutomationExecutorClient
+	// ReleaseAutomationNode is the client for interacting with the ReleaseAutomationNode builders.
+	ReleaseAutomationNode *ReleaseAutomationNodeClient
+	// ReleaseAutomationRun is the client for interacting with the ReleaseAutomationRun builders.
+	ReleaseAutomationRun *ReleaseAutomationRunClient
+	// ReleaseAutomationVersion is the client for interacting with the ReleaseAutomationVersion builders.
+	ReleaseAutomationVersion *ReleaseAutomationVersionClient
 	// ReleaseDocument is the client for interacting with the ReleaseDocument builders.
 	ReleaseDocument *ReleaseDocumentClient
+	// ReleaseSourceEvent is the client for interacting with the ReleaseSourceEvent builders.
+	ReleaseSourceEvent *ReleaseSourceEventClient
 	// ReleaseSpec is the client for interacting with the ReleaseSpec builders.
 	ReleaseSpec *ReleaseSpecClient
 	// ScheduledPost is the client for interacting with the ScheduledPost builders.
@@ -347,7 +359,13 @@ func (tx *Tx) init() {
 	tx.ProjectVersion = NewProjectVersionClient(tx.config)
 	tx.PublicationAttempt = NewPublicationAttemptClient(tx.config)
 	tx.Release = NewReleaseClient(tx.config)
+	tx.ReleaseAutomation = NewReleaseAutomationClient(tx.config)
+	tx.ReleaseAutomationExecutor = NewReleaseAutomationExecutorClient(tx.config)
+	tx.ReleaseAutomationNode = NewReleaseAutomationNodeClient(tx.config)
+	tx.ReleaseAutomationRun = NewReleaseAutomationRunClient(tx.config)
+	tx.ReleaseAutomationVersion = NewReleaseAutomationVersionClient(tx.config)
 	tx.ReleaseDocument = NewReleaseDocumentClient(tx.config)
+	tx.ReleaseSourceEvent = NewReleaseSourceEventClient(tx.config)
 	tx.ReleaseSpec = NewReleaseSpecClient(tx.config)
 	tx.ScheduledPost = NewScheduledPostClient(tx.config)
 	tx.ScreenshotCache = NewScreenshotCacheClient(tx.config)

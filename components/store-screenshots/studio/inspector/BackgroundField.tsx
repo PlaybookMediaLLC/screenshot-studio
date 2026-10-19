@@ -15,6 +15,7 @@ import type { Background, StoreAsset } from '@/lib/store-screenshots/document/sc
 import { analyzeImage } from '@/lib/store-screenshots/media/image'
 import { cn } from '@/lib/utils'
 import { ChoiceField, ColorField, NumberField, SliderField } from '../controls'
+import { Button } from '@/components/ui/button'
 
 /**
  * Background editing used by slides, panoramas, the project theme, and bulk
@@ -69,7 +70,7 @@ export function BackgroundField({
     <div className="space-y-3">
       <div className="grid grid-cols-8 gap-1.5" role="group" aria-label="Background presets">
         {BACKGROUND_PRESETS.map((preset) => (
-          <button
+          <Button variant="custom" size={null}
             key={preset.name}
             type="button"
             aria-label={`${preset.name} background`}
@@ -128,17 +129,17 @@ export function BackgroundField({
       ) : null}
       <div className="flex flex-wrap gap-2">
         {onChooseImage ? (
-          <button type="button" onClick={onChooseImage} className="h-8 rounded-md border border-foreground/10 px-2 text-[11px] hover:bg-foreground/[0.05]">
+          <Button variant="custom" size={null} type="button" onClick={onChooseImage} className="h-8 rounded-md border border-foreground/10 px-2 text-[11px] hover:bg-foreground/[0.05]">
             Upload image
-          </button>
+          </Button>
         ) : null}
-        <button type="button" aria-expanded={libraryOpen} onClick={() => setLibraryOpen((open) => !open)} className="h-8 rounded-md border border-foreground/10 px-2 text-[11px] hover:bg-foreground/[0.05]">
+        <Button variant="custom" size={null} type="button" aria-expanded={libraryOpen} onClick={() => setLibraryOpen((open) => !open)} className="h-8 rounded-md border border-foreground/10 px-2 text-[11px] hover:bg-foreground/[0.05]">
           {libraryOpen ? 'Hide library' : 'Image library'}
-        </button>
+        </Button>
         {allowInherit ? (
-          <button type="button" onClick={() => onChange(null)} className="h-8 rounded-md px-2 text-[11px] text-muted-foreground hover:bg-foreground/[0.05]">
+          <Button variant="custom" size={null} type="button" onClick={() => onChange(null)} className="h-8 rounded-md px-2 text-[11px] text-muted-foreground hover:bg-foreground/[0.05]">
             Use project background
-          </button>
+          </Button>
         ) : null}
       </div>
       {libraryOpen ? (
@@ -148,7 +149,7 @@ export function BackgroundField({
               <p className="text-[10px] font-medium text-muted-foreground">{BACKGROUND_CATEGORY_LABELS[category] ?? category}</p>
               <div className="grid grid-cols-4 gap-1.5">
                 {(backgroundCategories[category] ?? []).map((path, index) => (
-                  <button
+                  <Button variant="custom" size={null}
                     key={path}
                     type="button"
                     disabled={loading !== null}
@@ -162,7 +163,7 @@ export function BackgroundField({
                     className={cn('relative aspect-square overflow-hidden rounded-md border border-foreground/10 hover:border-foreground/30', loading === path && 'animate-pulse')}
                   >
                     <CachedImage src={getBackgroundThumbnailUrl(path)} alt="" className="h-full w-full object-cover" />
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>

@@ -20,6 +20,7 @@ import { rememberUploadedSources } from '@/lib/design/upload-sources'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
 import { type VariantsRequest, withoutImageSources } from './useEditorCopilot'
+import { Textarea } from '@/components/ui/textarea'
 
 /** A version: its changes, and a preview of them on the design as it was when it was made. */
 type Candidate = { changes: DesignChanges; preview: DesignDocument; reason: string; title: string }
@@ -132,7 +133,7 @@ export function VariantsPanel({
         Complete versions of this design to compare. Your design does not change until you apply
         one.
       </p>
-      <textarea
+      <Textarea
         aria-label="What the versions should explore"
         className="w-full resize-none rounded-md border bg-transparent px-3 py-2 text-sm"
         onChange={(event) => setInstruction(event.target.value)}
@@ -147,7 +148,7 @@ export function VariantsPanel({
           role="radiogroup"
         >
           {COUNTS.map((value) => (
-            <button
+            <Button variant="custom" size={null}
               aria-checked={count === value}
               className={cn(
                 'rounded px-2 py-1 text-xs',
@@ -159,7 +160,7 @@ export function VariantsPanel({
               type="button"
             >
               {value}
-            </button>
+            </Button>
           ))}
         </div>
         <Button
@@ -188,7 +189,7 @@ export function VariantsPanel({
           </li>
           {candidates.map((candidate) => (
             <li key={candidate.title}>
-              <button
+              <Button variant="custom" size={null}
                 aria-label={`Inspect ${candidate.title}`}
                 className="w-full overflow-hidden rounded-lg border text-left hover:ring-2 hover:ring-ring"
                 onClick={() => setInspecting(candidate)}
@@ -201,7 +202,7 @@ export function VariantsPanel({
                 <span className="block truncate px-2 py-1.5 text-xs font-medium">
                   {candidate.title}
                 </span>
-              </button>
+              </Button>
             </li>
           ))}
         </ul>

@@ -32,6 +32,9 @@ import {
   FRAME_WIDTH_MAX,
   type WindowStyle,
 } from './code-themes';
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
 
 SyntaxHighlighter.registerLanguage('bash', bash);
 SyntaxHighlighter.registerLanguage('cpp', cpp);
@@ -251,7 +254,7 @@ export const CodeFrame = React.forwardRef<HTMLDivElement, CodeFrameProps>(
                 <span style={dotStyle(isMonoLight ? '#d0d0d0' : '#28c840')} />
 
                 {editingTitle ? (
-                  <input
+                  <Input
                     autoFocus
                     value={title}
                     onChange={(e) => onTitleChange?.(e.target.value)}
@@ -265,14 +268,14 @@ export const CodeFrame = React.forwardRef<HTMLDivElement, CodeFrameProps>(
                     style={{ fontFamily: INTER, color: titleColor }}
                   />
                 ) : (
-                  <button
+                  <Button variant="custom" size={null}
                     type="button"
                     onClick={() => onTitleChange && setEditingTitle(true)}
                     className="absolute left-1/2 -translate-x-1/2 truncate text-xs"
                     style={{ fontFamily: INTER, color: titleColor, cursor: onTitleChange ? 'text' : 'default' }}
                   >
                     {title || 'untitled'}
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
@@ -323,7 +326,7 @@ export const CodeFrame = React.forwardRef<HTMLDivElement, CodeFrameProps>(
                 </SyntaxHighlighter>
 
                 {editable ? (
-                  <textarea
+                  <Textarea
                     ref={textareaRef}
                     value={code}
                     onChange={(e) => onCodeChange?.(e.target.value)}

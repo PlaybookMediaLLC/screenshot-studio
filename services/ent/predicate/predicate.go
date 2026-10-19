@@ -168,8 +168,26 @@ type PublicationAttempt func(*sql.Selector)
 // Release is the predicate function for release builders.
 type Release func(*sql.Selector)
 
+// ReleaseAutomation is the predicate function for entreleaseautomation builders.
+type ReleaseAutomation func(*sql.Selector)
+
+// ReleaseAutomationExecutor is the predicate function for releaseautomationexecutor builders.
+type ReleaseAutomationExecutor func(*sql.Selector)
+
+// ReleaseAutomationNode is the predicate function for releaseautomationnode builders.
+type ReleaseAutomationNode func(*sql.Selector)
+
+// ReleaseAutomationRun is the predicate function for releaseautomationrun builders.
+type ReleaseAutomationRun func(*sql.Selector)
+
+// ReleaseAutomationVersion is the predicate function for releaseautomationversion builders.
+type ReleaseAutomationVersion func(*sql.Selector)
+
 // ReleaseDocument is the predicate function for releasedocument builders.
 type ReleaseDocument func(*sql.Selector)
+
+// ReleaseSourceEvent is the predicate function for releasesourceevent builders.
+type ReleaseSourceEvent func(*sql.Selector)
 
 // ReleaseSpec is the predicate function for releasespec builders.
 type ReleaseSpec func(*sql.Selector)

@@ -1680,6 +1680,155 @@ var (
 			},
 		},
 	}
+	// ReleaseAutomationColumns holds the columns for the "release_automation" table.
+	ReleaseAutomationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "sourceAppId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Default: ""},
+		{Name: "family", Type: field.TypeString},
+		{Name: "priority", Type: field.TypeInt, Default: 0},
+		{Name: "revision", Type: field.TypeInt, Default: 1},
+		{Name: "enabled", Type: field.TypeBool, Default: false},
+		{Name: "activePriority", Type: field.TypeInt, Default: 0},
+		{Name: "activeVersionId", Type: field.TypeString, Nullable: true},
+		{Name: "draft", Type: field.TypeJSON},
+		{Name: "layout", Type: field.TypeJSON},
+		{Name: "modifiedBy", Type: field.TypeString},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ReleaseAutomationTable holds the schema information for the "release_automation" table.
+	ReleaseAutomationTable = &schema.Table{
+		Name:       "release_automation",
+		Columns:    ReleaseAutomationColumns,
+		PrimaryKey: []*schema.Column{ReleaseAutomationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "releaseautomation_organizationId_sourceAppId_family_priority",
+				Unique:  false,
+				Columns: []*schema.Column{ReleaseAutomationColumns[1], ReleaseAutomationColumns[2], ReleaseAutomationColumns[5], ReleaseAutomationColumns[6]},
+			},
+		},
+	}
+	// ReleaseAutomationExecutorColumns holds the columns for the "release_automation_executor" table.
+	ReleaseAutomationExecutorColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "schemaVersion", Type: field.TypeInt},
+		{Name: "expiresAt", Type: field.TypeTime},
+	}
+	// ReleaseAutomationExecutorTable holds the schema information for the "release_automation_executor" table.
+	ReleaseAutomationExecutorTable = &schema.Table{
+		Name:       "release_automation_executor",
+		Columns:    ReleaseAutomationExecutorColumns,
+		PrimaryKey: []*schema.Column{ReleaseAutomationExecutorColumns[0]},
+	}
+	// ReleaseAutomationNodeColumns holds the columns for the "release_automation_node" table.
+	ReleaseAutomationNodeColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "runId", Type: field.TypeString},
+		{Name: "nodeId", Type: field.TypeString},
+		{Name: "actionKey", Type: field.TypeString},
+		{Name: "status", Type: field.TypeString, Default: "running"},
+		{Name: "attempts", Type: field.TypeInt, Default: 1},
+		{Name: "failureCode", Type: field.TypeString, Default: ""},
+		{Name: "decision", Type: field.TypeJSON, Nullable: true},
+		{Name: "outputs", Type: field.TypeJSON},
+		{Name: "startedAt", Type: field.TypeTime},
+		{Name: "completedAt", Type: field.TypeTime, Nullable: true},
+	}
+	// ReleaseAutomationNodeTable holds the schema information for the "release_automation_node" table.
+	ReleaseAutomationNodeTable = &schema.Table{
+		Name:       "release_automation_node",
+		Columns:    ReleaseAutomationNodeColumns,
+		PrimaryKey: []*schema.Column{ReleaseAutomationNodeColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "releaseautomationnode_runId_nodeId",
+				Unique:  true,
+				Columns: []*schema.Column{ReleaseAutomationNodeColumns[2], ReleaseAutomationNodeColumns[3]},
+			},
+			{
+				Name:    "releaseautomationnode_organizationId_actionKey",
+				Unique:  true,
+				Columns: []*schema.Column{ReleaseAutomationNodeColumns[1], ReleaseAutomationNodeColumns[4]},
+			},
+		},
+	}
+	// ReleaseAutomationRunColumns holds the columns for the "release_automation_run" table.
+	ReleaseAutomationRunColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "eventId", Type: field.TypeString},
+		{Name: "definitionId", Type: field.TypeString, Nullable: true},
+		{Name: "versionId", Type: field.TypeString, Nullable: true},
+		{Name: "workflowId", Type: field.TypeString},
+		{Name: "temporalRunId", Type: field.TypeString, Default: ""},
+		{Name: "status", Type: field.TypeString, Default: "queued"},
+		{Name: "cancelRequested", Type: field.TypeBool, Default: false},
+		{Name: "recoveryAttempt", Type: field.TypeInt, Default: 0},
+		{Name: "failureCode", Type: field.TypeString, Default: ""},
+		{Name: "reason", Type: field.TypeString, Default: ""},
+		{Name: "outputs", Type: field.TypeJSON},
+		{Name: "startedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "completedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ReleaseAutomationRunTable holds the schema information for the "release_automation_run" table.
+	ReleaseAutomationRunTable = &schema.Table{
+		Name:       "release_automation_run",
+		Columns:    ReleaseAutomationRunColumns,
+		PrimaryKey: []*schema.Column{ReleaseAutomationRunColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "releaseautomationrun_eventId",
+				Unique:  true,
+				Columns: []*schema.Column{ReleaseAutomationRunColumns[2]},
+			},
+			{
+				Name:    "releaseautomationrun_workflowId",
+				Unique:  true,
+				Columns: []*schema.Column{ReleaseAutomationRunColumns[5]},
+			},
+			{
+				Name:    "releaseautomationrun_organizationId_status_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ReleaseAutomationRunColumns[1], ReleaseAutomationRunColumns[7], ReleaseAutomationRunColumns[15]},
+			},
+		},
+	}
+	// ReleaseAutomationVersionColumns holds the columns for the "release_automation_version" table.
+	ReleaseAutomationVersionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "definitionId", Type: field.TypeString},
+		{Name: "revision", Type: field.TypeInt},
+		{Name: "graph", Type: field.TypeJSON},
+		{Name: "contentHash", Type: field.TypeString},
+		{Name: "activatedBy", Type: field.TypeString},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// ReleaseAutomationVersionTable holds the schema information for the "release_automation_version" table.
+	ReleaseAutomationVersionTable = &schema.Table{
+		Name:       "release_automation_version",
+		Columns:    ReleaseAutomationVersionColumns,
+		PrimaryKey: []*schema.Column{ReleaseAutomationVersionColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "releaseautomationversion_definitionId_revision",
+				Unique:  true,
+				Columns: []*schema.Column{ReleaseAutomationVersionColumns[2], ReleaseAutomationVersionColumns[3]},
+			},
+			{
+				Name:    "releaseautomationversion_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ReleaseAutomationVersionColumns[1], ReleaseAutomationVersionColumns[7]},
+			},
+		},
+	}
 	// ReleaseDocumentColumns holds the columns for the "release_document" table.
 	ReleaseDocumentColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1709,6 +1858,41 @@ var (
 				Name:    "releasedocument_organizationId_createdAt",
 				Unique:  false,
 				Columns: []*schema.Column{ReleaseDocumentColumns[1], ReleaseDocumentColumns[9]},
+			},
+		},
+	}
+	// ReleaseSourceEventColumns holds the columns for the "release_source_event" table.
+	ReleaseSourceEventColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "sourceAppId", Type: field.TypeString},
+		{Name: "semanticKey", Type: field.TypeString},
+		{Name: "deliveryId", Type: field.TypeString},
+		{Name: "snapshot", Type: field.TypeJSON},
+		{Name: "versionIds", Type: field.TypeJSON},
+		{Name: "collectUnmatched", Type: field.TypeBool, Default: true},
+		{Name: "mode", Type: field.TypeString},
+		{Name: "disposition", Type: field.TypeString, Default: "queued"},
+		{Name: "reason", Type: field.TypeString, Default: ""},
+		{Name: "enrichment", Type: field.TypeJSON},
+		{Name: "enrichedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "receivedAt", Type: field.TypeTime},
+	}
+	// ReleaseSourceEventTable holds the schema information for the "release_source_event" table.
+	ReleaseSourceEventTable = &schema.Table{
+		Name:       "release_source_event",
+		Columns:    ReleaseSourceEventColumns,
+		PrimaryKey: []*schema.Column{ReleaseSourceEventColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "releasesourceevent_organizationId_sourceAppId_semanticKey",
+				Unique:  true,
+				Columns: []*schema.Column{ReleaseSourceEventColumns[1], ReleaseSourceEventColumns[2], ReleaseSourceEventColumns[3]},
+			},
+			{
+				Name:    "releasesourceevent_organizationId_receivedAt",
+				Unique:  false,
+				Columns: []*schema.Column{ReleaseSourceEventColumns[1], ReleaseSourceEventColumns[13]},
 			},
 		},
 	}
@@ -1958,6 +2142,8 @@ var (
 		{Name: "ignoreBotPullRequests", Type: field.TypeBool, Default: true},
 		{Name: "ignoredPullRequestAuthors", Type: field.TypeJSON},
 		{Name: "skipPrereleases", Type: field.TypeBool, Default: false},
+		{Name: "releaseAutomation", Type: field.TypeBool, Default: false},
+		{Name: "automationCollectUnmatched", Type: field.TypeBool, Default: true},
 		{Name: "githubInstallationId", Type: field.TypeString, Nullable: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "ACTIVE", "ARCHIVED"}, Default: "DRAFT"},
 		{Name: "createdAt", Type: field.TypeTime},
@@ -1987,7 +2173,7 @@ var (
 			{
 				Name:    "sourceapp_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{SourceAppColumns[1], SourceAppColumns[13]},
+				Columns: []*schema.Column{SourceAppColumns[1], SourceAppColumns[15]},
 			},
 		},
 	}
@@ -2364,7 +2550,13 @@ var (
 		ProjectVersionTable,
 		PublicationAttemptTable,
 		ReleaseTable,
+		ReleaseAutomationTable,
+		ReleaseAutomationExecutorTable,
+		ReleaseAutomationNodeTable,
+		ReleaseAutomationRunTable,
+		ReleaseAutomationVersionTable,
 		ReleaseDocumentTable,
+		ReleaseSourceEventTable,
 		ReleaseSpecTable,
 		ScheduledPostTable,
 		ScreenshotCacheTable,
@@ -2554,8 +2746,26 @@ func init() {
 	ReleaseTable.Annotation = &entsql.Annotation{
 		Table: "release",
 	}
+	ReleaseAutomationTable.Annotation = &entsql.Annotation{
+		Table: "release_automation",
+	}
+	ReleaseAutomationExecutorTable.Annotation = &entsql.Annotation{
+		Table: "release_automation_executor",
+	}
+	ReleaseAutomationNodeTable.Annotation = &entsql.Annotation{
+		Table: "release_automation_node",
+	}
+	ReleaseAutomationRunTable.Annotation = &entsql.Annotation{
+		Table: "release_automation_run",
+	}
+	ReleaseAutomationVersionTable.Annotation = &entsql.Annotation{
+		Table: "release_automation_version",
+	}
 	ReleaseDocumentTable.Annotation = &entsql.Annotation{
 		Table: "release_document",
+	}
+	ReleaseSourceEventTable.Annotation = &entsql.Annotation{
+		Table: "release_source_event",
 	}
 	ReleaseSpecTable.Annotation = &entsql.Annotation{
 		Table: "release_spec",

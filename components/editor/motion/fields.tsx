@@ -1,6 +1,8 @@
 'use client'
 
 import * as React from 'react'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 
 /**
  * Number inputs for motion: values in the units the panel shows, times in
@@ -32,11 +34,11 @@ export function NumberField({
   const id = React.useId()
   return (
     <div className="flex items-center justify-between gap-2">
-      <label className="shrink-0 text-xs text-muted-foreground" htmlFor={id}>
+      <Label className="shrink-0 text-xs text-muted-foreground" htmlFor={id}>
         {label}
-      </label>
+      </Label>
       <div className="flex w-24 items-center gap-1">
-        <input
+        <Input
           className={inputClass}
           id={id}
           max={max}

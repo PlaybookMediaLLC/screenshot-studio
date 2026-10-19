@@ -4,6 +4,17 @@ import * as React from 'react'
 import { Slider } from '@/components/ui/slider'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Button } from '@/components/ui/button'
 
 /**
  * Inspector primitives. Every property in the inspector uses these, so
@@ -23,7 +34,7 @@ export function IconButton({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
+        <Button variant="custom" size={null}
           type="button"
           aria-label={label}
           aria-pressed={active}
@@ -36,7 +47,7 @@ export function IconButton({
           {...props}
         >
           {children}
-        </button>
+        </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom" sideOffset={6}>
         {label}
@@ -118,7 +129,7 @@ export function NumberField({
   }
   const input = (
     <div className={cn('flex h-8 min-w-0 items-center rounded-md border border-foreground/10 bg-foreground/[0.035] focus-within:border-foreground/30', disabled && 'opacity-50')}>
-      <input
+      <Input
         id={id}
         type="text"
         inputMode="decimal"
@@ -149,9 +160,9 @@ export function NumberField({
   if (compact) return input
   return (
     <div className="min-w-0 space-y-1">
-      <label htmlFor={id} className="block text-[11px] text-muted-foreground">
+      <Label htmlFor={id} className="block text-[11px] text-muted-foreground">
         {label}
-      </label>
+      </Label>
       {input}
       {hint ? (
         <p id={`${id}-hint`} className="text-[10px] leading-snug text-muted-foreground">
@@ -252,14 +263,14 @@ export function ColorField({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-2">
-        <label htmlFor={id} className="text-[11px] text-muted-foreground">
+        <Label htmlFor={id} className="text-[11px] text-muted-foreground">
           {label}
-        </label>
+        </Label>
         {contrast ? <ContrastBadge ratio={contrast.ratio} required={contrast.required} /> : null}
       </div>
       <div className="flex items-center gap-1.5">
         <div className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border border-foreground/10 bg-foreground/[0.035] px-2">
-          <input
+          <Input
             id={id}
             type="color"
             value={shown.toLowerCase()}
@@ -269,7 +280,7 @@ export function ColorField({
           <span className="truncate font-mono text-[11px] uppercase text-foreground">{value === null && allowAuto ? `Auto · ${shown}` : shown}</span>
         </div>
         {allowAuto ? (
-          <button
+          <Button variant="custom" size={null}
             type="button"
             aria-pressed={value === null}
             onClick={() => onChange(value === null ? shown : null)}
@@ -280,13 +291,13 @@ export function ColorField({
             )}
           >
             Auto
-          </button>
+          </Button>
         ) : null}
       </div>
       {palette.length ? (
         <div className="flex flex-wrap gap-1" role="group" aria-label={`${label} palette`}>
           {palette.map((color) => (
-            <button
+            <Button variant="custom" size={null}
               key={color}
               type="button"
               aria-label={`Use ${color}`}
@@ -299,9 +310,9 @@ export function ColorField({
         </div>
       ) : null}
       {contrast && contrast.ratio < contrast.required && contrast.readable ? (
-        <button type="button" onClick={() => onChange(null)} className="text-[11px] font-medium text-foreground underline underline-offset-2">
+        <Button variant="custom" size={null} type="button" onClick={() => onChange(null)} className="text-[11px] font-medium text-foreground underline underline-offset-2">
           Use a readable color automatically
-        </button>
+        </Button>
       ) : null}
     </div>
   )
@@ -324,21 +335,24 @@ export function SelectField<T extends string>({
   const id = React.useId()
   return (
     <div className="min-w-0 space-y-1">
-      <label htmlFor={id} className={cn('block text-[11px] text-muted-foreground', hideLabel && 'sr-only')}>
+      <Label htmlFor={id} className={cn('block text-[11px] text-muted-foreground', hideLabel && 'sr-only')}>
         {label}
-      </label>
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value as T)}
-        className="h-8 w-full rounded-md border border-foreground/10 bg-foreground/[0.035] px-2 text-xs text-foreground outline-none focus:border-foreground/30"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      </Label>
+      <Select value={String(value)} onValueChange={(nextValue) => onChange(nextValue as T)}>
+        <SelectTrigger
+          id={id}
+          className="h-8 w-full rounded-md border border-foreground/10 bg-foreground/[0.035] px-2 text-xs text-foreground outline-none focus:border-foreground/30"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={String(option.value)}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   )
 }
@@ -360,7 +374,7 @@ export function ChoiceField<T extends string>({
       <span className="block text-[11px] text-muted-foreground">{label}</span>
       <div role="radiogroup" aria-label={label} className="flex h-8 rounded-md border border-foreground/10 bg-foreground/[0.035] p-0.5">
         {options.map((option) => (
-          <button
+          <Button variant="custom" size={null}
             key={option.value}
             type="button"
             role="radio"
@@ -374,7 +388,7 @@ export function ChoiceField<T extends string>({
             )}
           >
             {option.icon ?? option.label}
-          </button>
+          </Button>
         ))}
       </div>
     </div>
@@ -396,10 +410,10 @@ export function ToggleField({
   const id = React.useId()
   return (
     <div className="space-y-0.5">
-      <label htmlFor={id} className="flex cursor-pointer items-center justify-between gap-3 text-[11px] text-muted-foreground">
+      <Label htmlFor={id} className="flex cursor-pointer items-center justify-between gap-3 text-[11px] text-muted-foreground">
         <span>{label}</span>
-        <input id={id} type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="size-4 accent-foreground" />
-      </label>
+        <Checkbox id={id}  checked={checked} onCheckedChange={(checked) => onChange((checked === true))} className="size-4 accent-foreground" />
+      </Label>
       {hint ? <p className="text-[10px] leading-snug text-muted-foreground">{hint}</p> : null}
     </div>
   )

@@ -1,0 +1,1180 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import {
+  AlertCircle,
+  ArrowLeft,
+  Check,
+  ChevronRight,
+  CircleStop,
+  GitBranch,
+  GitPullRequest,
+  Loader2,
+  Play,
+  Plus,
+  Save,
+  ShieldCheck,
+  Trash2,
+  Workflow,
+  Zap,
+} from 'lucide-react'
+import {
+  Background,
+  Controls,
+  MarkerType,
+  Handle,
+  Position,
+  ReactFlow,
+  type Node,
+  type NodeProps,
+  type Connection,
+} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
+import type {
+  AutomationAction,
+  AutomationCondition,
+  AutomationDefinition,
+  AutomationGraph,
+  AutomationHistoryItem,
+  AutomationLayout,
+  AutomationNode,
+  AutomationOverview,
+  AutomationPreview,
+} from 'screenshot-studio-backend-sdk'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { cn } from '@/lib/utils'
+import { useTRPCClient } from '@/lib/trpc/react'
+import { releaseExample } from '@/lib/release-automation/examples'
+import { getErrorMessage } from '../settings-client'
+import { automationSelectClass, ConditionEditor } from './ConditionEditor'
+import { Label } from '@/components/ui/label'
+import {
+  Select as UiSelect,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+
+const actionNames = {
+  create_release: 'Create release draft',
+  create_campaign: 'Create campaign drafts',
+  submit_review: 'Submit for human review',
+}
+const familyNames = {
+  'release.published': 'Release published',
+  'pull_request.merged': 'Pull request merged',
+  'deployment.succeeded': 'Deployment succeeded',
+}
+const nodeIcons = { trigger: Zap, condition: GitBranch, action: Workflow, end: CircleStop }
+type CanvasNode = Node<{
+  label: string
+  detail: string
+  kind: AutomationNode['type']
+  visited: boolean
+  invalid: boolean
+}>
+
+function conditionSummary(condition?: AutomationCondition) {
+  if (!condition) return 'Choose a condition'
+  if (condition.group) return `${condition.group} of ${condition.children?.length ?? 0} conditions`
+  return `${condition.field} ${condition.operator?.replaceAll('_', ' ') ?? ''} ${(condition.values ?? []).join(', ')}`.trim()
+}
+
+function nodeLabel(node: AutomationNode, family: AutomationGraph['family']) {
+  if (node.type === 'action')
+    return node.action ? actionNames[node.action.type] : 'Choose an action'
+  if (node.type === 'trigger') return familyNames[family]
+  if (node.type === 'end')
+    return node.outcome === 'skipped' ? 'Skip this event' : 'Workflow complete'
+  return 'If / then / else'
+}
+
+function WorkflowNode({ data, selected }: NodeProps<CanvasNode>) {
+  const Icon = nodeIcons[data.kind]
+  return (
+    <div
+      className={cn(
+        'w-64 rounded-xl border bg-card text-card-foreground shadow-sm transition-[border-color,box-shadow] motion-reduce:transition-none',
+        selected ? 'border-emerald-500 ring-4 ring-emerald-500/15' : 'border-border',
+        data.visited && 'border-emerald-500/70',
+        data.invalid && 'border-destructive'
+      )}
+    >
+      {data.kind !== 'trigger' ? (
+        <Handle
+          type="target"
+          position={Position.Top}
+          className="!size-2.5 !border-2 !border-card !bg-muted-foreground"
+          aria-label="Incoming connection"
+        />
+      ) : null}
+      <div className="flex items-center gap-3 p-3">
+        <span
+          className={cn(
+            'flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted',
+            data.kind === 'condition' && 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+            data.kind === 'trigger' && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+          )}
+        >
+          <Icon className="size-4" aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold leading-5">{data.label}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground" title={data.detail}>
+            {data.detail}
+          </p>
+        </div>
+        {data.visited ? (
+          <Check className="size-3.5 shrink-0 text-emerald-500" aria-label="On preview path" />
+        ) : null}
+      </div>
+      {data.kind === 'condition' ? (
+        <div className="relative grid grid-cols-2 border-t border-border text-center text-[10px] font-medium">
+          <span className="border-r border-border py-1.5 text-emerald-600 dark:text-emerald-400">
+            TRUE · Continue
+          </span>
+          <span className="py-1.5 text-amber-600 dark:text-amber-400">FALSE · Otherwise</span>
+          <Handle
+            type="source"
+            id="true"
+            position={Position.Bottom}
+            className="!size-2.5 !border-2 !border-card !bg-emerald-500"
+            style={{ left: '25%' }}
+            aria-label="True branch"
+          />
+          <Handle
+            type="source"
+            id="false"
+            position={Position.Bottom}
+            className="!size-2.5 !border-2 !border-card !bg-amber-500"
+            style={{ left: '75%' }}
+            aria-label="False branch"
+          />
+        </div>
+      ) : data.kind !== 'end' ? (
+        <Handle
+          type="source"
+          id="next"
+          position={Position.Bottom}
+          className="!size-2.5 !border-2 !border-card !bg-muted-foreground"
+          aria-label="Next step"
+        />
+      ) : null}
+    </div>
+  )
+}
+
+const nodeTypes = { workflow: WorkflowNode }
+
+/** The canvas authors a server-validated graph; it never executes actions. */
+export function WorkflowEditor({
+  definition,
+  overview,
+  history,
+  onSaved,
+  onClose,
+}: {
+  definition: AutomationDefinition
+  overview: AutomationOverview
+  history: AutomationHistoryItem[]
+  onSaved: (value: AutomationDefinition) => void
+  onClose: () => void
+}) {
+  const client = useTRPCClient()
+  const [record, setRecord] = useState(definition)
+  const [graph, setGraph] = useState<AutomationGraph>(definition.draft)
+  const [layout, setLayout] = useState<AutomationLayout>(definition.layout)
+  const [name, setName] = useState(definition.name)
+  const [description, setDescription] = useState(definition.description)
+  const [priority, setPriority] = useState(definition.priority)
+  const [selected, setSelected] = useState('condition')
+  const [panel, setPanel] = useState('node')
+  const [confirmClose, setConfirmClose] = useState(false)
+  const [sample, setSample] = useState('example:match')
+  const [preview, setPreview] = useState<AutomationPreview | null>(null)
+  const [issues, setIssues] = useState(definition.issues)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState('')
+  const [dirty, setDirty] = useState(!definition.id)
+  const source = overview.sources.find((item) => item.id === record.sourceAppId)
+  const selectedNode = graph.nodes.find((node) => node.id === selected)
+  const fields = overview.fields[graph.family]
+
+  useEffect(() => {
+    if (!dirty) return
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty])
+
+  function closeEditor() {
+    if (busy) return
+    if (dirty) setConfirmClose(true)
+    else onClose()
+  }
+  function selectNode(id: string) {
+    setSelected(id)
+    setPanel('node')
+  }
+  function changeGraph(next: AutomationGraph) {
+    setGraph(next)
+    setDirty(true)
+    setPreview(null)
+    setIssues([])
+    setMessage('Unsaved draft changes.')
+  }
+  function changeNode(next: AutomationNode) {
+    changeGraph({ ...graph, nodes: graph.nodes.map((node) => (node.id === next.id ? next : node)) })
+  }
+  function connect(from: string, to: string, branch: string) {
+    changeGraph({
+      ...graph,
+      edges: [
+        ...graph.edges.filter((edge) => edge.from !== from || edge.branch !== branch),
+        ...(to ? [{ from, to, branch }] : []),
+      ],
+    })
+  }
+  function drawConnection(connection: Connection) {
+    if (connection.source && connection.target)
+      connect(connection.source, connection.target, connection.sourceHandle ?? 'next')
+  }
+  function addNode(type: AutomationNode['type']) {
+    const id = `${type}_${crypto.randomUUID().slice(0, 8)}`
+    const node: AutomationNode = {
+      id,
+      type,
+      ...(type === 'condition'
+        ? { condition: { field: 'event.family', operator: 'eq', values: [graph.family] } }
+        : {}),
+      ...(type === 'action' ? { action: { type: 'create_release' as const } } : {}),
+      ...(type === 'end' ? { outcome: 'completed' } : {}),
+    }
+    changeGraph({ ...graph, nodes: [...graph.nodes, node] })
+    setLayout({ ...layout, [id]: { x: 300, y: graph.nodes.length * 50 } })
+    selectNode(id)
+  }
+  function removeNode(id: string) {
+    changeGraph({
+      ...graph,
+      nodes: graph.nodes.filter((node) => node.id !== id),
+      edges: graph.edges.filter((edge) => edge.from !== id && edge.to !== id),
+    })
+    setSelected('')
+  }
+
+  async function save(): Promise<AutomationDefinition> {
+    const saved = await client.releaseAutomation.save.mutate({
+      id: record.id,
+      sourceAppId: record.sourceAppId,
+      name,
+      description,
+      priority,
+      expectedRevision: record.id ? record.revision : 0,
+      graph,
+      layout,
+    })
+    setRecord(saved)
+    setIssues(saved.issues)
+    setDirty(false)
+    onSaved(saved)
+    setMessage(
+      saved.issues.length
+        ? 'Draft saved with validation errors. Activation is blocked.'
+        : 'Draft saved and validated by the backend.'
+    )
+    return saved
+  }
+  async function perform(action: () => Promise<void>) {
+    setBusy(true)
+    setError(null)
+    try {
+      await action()
+    } catch (failure) {
+      setError(getErrorMessage(failure))
+    } finally {
+      setBusy(false)
+    }
+  }
+  async function testDraft() {
+    const result = await client.releaseAutomation.preview.mutate(
+      sample.startsWith('example:')
+        ? {
+            sourceAppId: record.sourceAppId,
+            graph,
+            example: releaseExample(graph.family, source?.repositoryId ?? '1', sample.slice(8)),
+          }
+        : { sourceAppId: record.sourceAppId, graph, eventId: sample }
+    )
+    setPreview(result)
+    setIssues(result.issues)
+    setPanel('test')
+  }
+
+  const visited = new Set(preview?.steps.map((step) => step.nodeId))
+  const nodes: CanvasNode[] = graph.nodes.map((node, index) => ({
+    id: node.id,
+    type: 'workflow',
+    selected: node.id === selected,
+    position: layout[node.id] ?? { x: 40, y: index * 150 },
+    data: {
+      kind: node.type,
+      label: nodeLabel(node, graph.family),
+      detail:
+        node.type === 'condition'
+          ? conditionSummary(node.condition)
+          : node.type === 'trigger'
+            ? (source?.name ?? 'Connected repository')
+            : node.type === 'end'
+              ? node.outcome === 'skipped'
+                ? 'No further actions'
+                : 'End of this path'
+              : node.action?.type === 'create_campaign'
+                ? `${node.action.destinationIds?.length ?? 0} draft destinations`
+                : node.action?.type === 'submit_review'
+                  ? 'A person approves before publishing'
+                  : 'From the source event',
+      visited: visited.has(node.id),
+      invalid: issues.some((issue) => issue.nodeId === node.id),
+    },
+    ariaLabel: `${node.id}: ${node.type}`,
+  }))
+  const edges = graph.edges.map((edge) => {
+    const onPath = preview?.steps.some(
+      (step, index) => step.nodeId === edge.from && preview.steps[index + 1]?.nodeId === edge.to
+    )
+    const color =
+      edge.branch === 'false' ? '#d99a38' : onPath || edge.branch === 'true' ? '#2caa83' : '#7c8793'
+    return {
+      id: `${edge.from}:${edge.branch}:${edge.to}`,
+      source: edge.from,
+      target: edge.to,
+      sourceHandle: edge.branch,
+      type: 'smoothstep',
+      label: edge.branch === 'next' ? undefined : edge.branch === 'true' ? 'True' : 'False',
+      style: {
+        stroke: color,
+        strokeWidth: onPath ? 2.5 : 1.5,
+        opacity: preview && !onPath ? 0.25 : 1,
+      },
+      markerEnd: { type: MarkerType.ArrowClosed, color },
+      labelStyle: { fill: color, fontSize: 11, fontWeight: 600 },
+      labelBgStyle: { fill: 'var(--card)' },
+      labelBgPadding: [6, 3] as [number, number],
+      labelBgBorderRadius: 4,
+    }
+  })
+
+  return (
+    <>
+      <Dialog
+        open
+        onOpenChange={(open) => {
+          if (!open) closeEditor()
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="top-0 left-0 translate-x-0 translate-y-0 flex h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:max-w-full lg:top-4 lg:left-4 lg:h-[calc(100dvh-2rem)] lg:w-[calc(100vw-2rem)] lg:rounded-xl"
+          onInteractOutside={(event) => event.preventDefault()}
+        >
+          <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 lg:px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                aria-label="Close editor"
+                disabled={busy}
+                onClick={closeEditor}
+              >
+                <ArrowLeft className="size-4" aria-hidden="true" />
+              </Button>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <DialogTitle className="text-xs font-medium">Workflow editor</DialogTitle>
+                  <ChevronRight className="size-3" aria-hidden="true" />
+                  <span className={record.enabled ? 'text-emerald-600 dark:text-emerald-400' : ''}>
+                    {record.enabled ? 'Active version' : 'Draft'}
+                  </span>
+                  {dirty ? (
+                    <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-700 dark:text-amber-400">
+                      Unsaved
+                    </span>
+                  ) : null}
+                </div>
+                <Input
+                  aria-label="Definition name"
+                  disabled={busy}
+                  className="-ml-2 mt-1 h-8 w-[min(26rem,65vw)] border-transparent bg-transparent px-2 text-base font-semibold shadow-none hover:border-border md:text-base"
+                  value={name}
+                  onChange={(event) => {
+                    setName(event.target.value)
+                    setDirty(true)
+                    setMessage('')
+                  }}
+                />
+                <DialogDescription className="sr-only">
+                  Build a release workflow on the canvas. Configure nodes in the side panel, test a
+                  path, then activate a saved version.
+                </DialogDescription>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                disabled={busy}
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  void perform(async () => {
+                    await save()
+                  })
+                }
+              >
+                <Save className="size-3.5" aria-hidden="true" /> Save draft
+              </Button>
+              <Button
+                disabled={busy}
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setPanel('test')
+                  void perform(testDraft)
+                }}
+              >
+                <Play className="size-3.5" aria-hidden="true" /> Test draft
+              </Button>
+              <Button
+                disabled={busy || !overview.executorAvailable}
+                type="button"
+                onClick={() =>
+                  void perform(async () => {
+                    const saved = dirty ? await save() : record
+                    const active = await client.releaseAutomation.activate.mutate({
+                      id: saved.id,
+                      revision: saved.revision,
+                    })
+                    setRecord(active)
+                    onSaved(active)
+                    setMessage(
+                      'Version activated for future events. Previously accepted events retain their versions.'
+                    )
+                  })
+                }
+              >
+                <Zap className="size-3.5" aria-hidden="true" /> Activate version
+              </Button>
+            </div>
+          </header>
+          <div className="grid min-h-0 flex-1 grid-rows-[minmax(240px,45%)_minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_360px] md:grid-rows-1 xl:grid-cols-[minmax(0,1fr)_380px]">
+            <section
+              className="relative flex min-h-0 min-w-0 flex-col bg-muted/20"
+              aria-label="Workflow canvas"
+            >
+              <div className="z-10 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-card/80 px-4 py-2.5">
+                <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+                  <GitPullRequest className="size-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{source?.name}</span>
+                </span>
+                <div aria-label="Node palette" className="flex flex-wrap gap-1">
+                  {(['trigger', 'condition', 'action', 'end'] as const).map((type) => (
+                    <Button
+                      key={type}
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 gap-1 px-2 text-xs"
+                      disabled={
+                        busy ||
+                        graph.nodes.length >= 64 ||
+                        (type === 'trigger' && graph.nodes.some((node) => node.type === 'trigger'))
+                      }
+                      onClick={() => addNode(type)}
+                    >
+                      <Plus className="size-3" aria-hidden="true" /> Add {type}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div className="min-h-0 flex-1">
+                <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  nodeTypes={nodeTypes}
+                  onConnect={drawConnection}
+                  fitView
+                  fitViewOptions={{ padding: 0.15 }}
+                  minZoom={0.15}
+                  maxZoom={1.5}
+                  nodesDraggable={!busy}
+                  nodesConnectable={!busy}
+                  deleteKeyCode={null}
+                  onNodeClick={(_, node) => selectNode(node.id)}
+                  onNodesChange={(changes) => {
+                    const positions = { ...layout }
+                    let moved = false
+                    for (const change of changes) {
+                      if (change.type === 'position' && change.position) {
+                        positions[change.id] = change.position
+                        moved = true
+                      }
+                      if (change.type === 'select' && change.selected) selectNode(change.id)
+                    }
+                    if (moved) {
+                      setLayout(positions)
+                      setDirty(true)
+                      setMessage('')
+                    }
+                  }}
+                  className="[--xy-controls-button-background-color:var(--card)] [--xy-controls-button-background-color-hover:var(--muted)] [--xy-controls-button-color:var(--foreground)] [--xy-controls-button-border-color:var(--border)]"
+                >
+                  <Background gap={20} size={1} color="var(--border)" />
+                  <Controls
+                    showInteractive={false}
+                    className="!overflow-hidden !rounded-lg !border !border-border !shadow-sm"
+                  />
+                </ReactFlow>
+              </div>
+              <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-card/70 px-4 py-2 text-[11px] text-muted-foreground">
+                <span>
+                  {graph.nodes.length} nodes · {graph.edges.length} connections
+                </span>
+                <span>
+                  {preview ? 'Preview path highlighted' : 'Drag to connect · Select a node to edit'}
+                </span>
+              </div>
+            </section>
+            <aside
+              aria-label="Workflow inspector"
+              className="flex min-h-0 flex-col border-t border-border bg-card md:border-t-0 md:border-l"
+            >
+              <Tabs value={panel} onValueChange={setPanel} className="min-h-0 flex-1 gap-0">
+                <TabsList
+                  aria-label="Workflow inspector panels"
+                  className="mx-4 my-3 grid w-auto shrink-0 grid-cols-3"
+                >
+                  <TabsTrigger value="node">Node</TabsTrigger>
+                  <TabsTrigger value="workflow">Workflow</TabsTrigger>
+                  <TabsTrigger value="test">
+                    Test{' '}
+                    {preview ? <span className="size-1.5 rounded-full bg-emerald-500" /> : null}
+                  </TabsTrigger>
+                </TabsList>
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5">
+                  <fieldset disabled={busy} className="min-w-0">
+                    <TabsContent value="node" className="space-y-5">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                          Step configuration
+                        </p>
+                        <h3 className="mt-1 text-lg font-semibold">
+                          {selectedNode ? nodeLabel(selectedNode, graph.family) : 'Select a node'}
+                        </h3>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                          Changes stay in your draft until you activate a version.
+                        </p>
+                      </div>
+                      <Label className="grid gap-1 text-sm">
+                        Configure node
+                        <UiSelect
+                          value={String(selected) || '__empty_option__'}
+                          onValueChange={(nextValue) =>
+                            selectNode(nextValue === '__empty_option__' ? '' : nextValue)
+                          }
+                        >
+                          <SelectTrigger className={automationSelectClass}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={'__empty_option__'}>Select a node</SelectItem>
+                            {graph.nodes.map((node) => (
+                              <SelectItem key={node.id} value={node.id}>
+                                {nodeLabel(node, graph.family)} · {node.id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </UiSelect>
+                      </Label>
+                      {selectedNode ? (
+                        <div className="space-y-5">
+                          {selectedNode.type === 'condition' ? (
+                            <ConditionEditor
+                              label="Node condition"
+                              fields={fields}
+                              value={
+                                selectedNode.condition ?? {
+                                  field: 'event.family',
+                                  operator: 'exists',
+                                }
+                              }
+                              onChange={(condition) => changeNode({ ...selectedNode, condition })}
+                            />
+                          ) : null}
+                          {selectedNode.type === 'action' ? (
+                            <ActionEditor
+                              node={selectedNode}
+                              graph={graph}
+                              overview={overview}
+                              onChange={(action) => changeNode({ ...selectedNode, action })}
+                            />
+                          ) : null}
+                          {selectedNode.type === 'trigger' ? (
+                            <p className="text-sm">
+                              This trigger is bound to {graph.family}. A different event family
+                              needs another definition.
+                            </p>
+                          ) : null}
+                          {selectedNode.type === 'end' ? (
+                            <Label className="grid gap-1 text-sm">
+                              Outcome
+                              <UiSelect
+                                value={selectedNode.outcome ?? ''}
+                                onValueChange={(nextValue) =>
+                                  changeNode({ ...selectedNode, outcome: nextValue })
+                                }
+                              >
+                                <SelectTrigger className={automationSelectClass}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="completed">Completed</SelectItem>
+                                  <SelectItem value="skipped">Intentionally skipped</SelectItem>
+                                </SelectContent>
+                              </UiSelect>
+                            </Label>
+                          ) : null}
+                          {(selectedNode.type === 'condition'
+                            ? ['true', 'false']
+                            : selectedNode.type === 'end'
+                              ? []
+                              : ['next']
+                          ).map((branch) => (
+                            <Label key={branch} className="grid gap-1 text-sm">
+                              {branch} connection
+                              <UiSelect
+                                value={
+                                  String(
+                                    graph.edges.find(
+                                      (edge) =>
+                                        edge.from === selectedNode.id && edge.branch === branch
+                                    )?.to ?? ''
+                                  ) || '__empty_option__'
+                                }
+                                onValueChange={(nextValue) =>
+                                  connect(
+                                    selectedNode.id,
+                                    nextValue === '__empty_option__' ? '' : nextValue,
+                                    branch
+                                  )
+                                }
+                              >
+                                <SelectTrigger
+                                  aria-label={`${selectedNode.id} ${branch} connection`}
+                                  className={automationSelectClass}
+                                >
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value={'__empty_option__'}>Unconnected</SelectItem>
+                                  {graph.nodes
+                                    .filter(
+                                      (node) =>
+                                        node.id !== selectedNode.id && node.type !== 'trigger'
+                                    )
+                                    .map((node) => (
+                                      <SelectItem key={node.id} value={node.id}>
+                                        {nodeLabel(node, graph.family)} · {node.id}
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </UiSelect>
+                            </Label>
+                          ))}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            type="button"
+                            onClick={() => removeNode(selectedNode.id)}
+                          >
+                            <Trash2 className="size-3.5" aria-hidden="true" /> Remove{' '}
+                            {selectedNode.id}
+                          </Button>
+                        </div>
+                      ) : null}
+
+                      {!selectedNode ? (
+                        <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                          Choose a node on the canvas or add a step to get started.
+                        </p>
+                      ) : null}
+                    </TabsContent>
+                    <TabsContent value="workflow" className="space-y-5">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                          Workflow settings
+                        </p>
+                        <h3 className="mt-1 text-lg font-semibold">When should this run?</h3>
+                      </div>
+                      <div className="rounded-lg border border-border bg-muted/20 p-3">
+                        <p className="text-xs text-muted-foreground">GitHub event</p>
+                        <p className="mt-1 text-sm font-medium">{familyNames[graph.family]}</p>
+                        <p className="mt-1 break-words text-xs text-muted-foreground">
+                          {source?.name}
+                        </p>
+                      </div>
+                      <Label className="grid gap-1.5 text-sm">
+                        Description
+                        <Input
+                          value={description}
+                          placeholder="Describe what this workflow does"
+                          onChange={(event) => {
+                            setDescription(event.target.value)
+                            setDirty(true)
+                            setMessage('')
+                          }}
+                        />
+                      </Label>
+                      <Label className="grid gap-1.5 text-sm">
+                        Priority
+                        <Input
+                          type="number"
+                          min={0}
+                          max={9999}
+                          value={priority}
+                          onChange={(event) => {
+                            setPriority(Number(event.target.value))
+                            setDirty(true)
+                            setMessage('')
+                          }}
+                        />
+                      </Label>
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        Lower numbers run first for this repository and event. Ties use the
+                        definition ID. The first matching workflow wins.
+                      </p>
+                      <ConditionEditor
+                        label="Qualification"
+                        value={graph.qualification}
+                        fields={fields}
+                        onChange={(qualification) => changeGraph({ ...graph, qualification })}
+                      />
+                      <div className="flex gap-2 rounded-lg bg-muted/40 p-3 text-xs leading-5 text-muted-foreground">
+                        <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                        <p>
+                          Drafts use recorded source text. A person must approve and schedule
+                          content after review.
+                        </p>
+                      </div>
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        Draft revision {record.revision || 'new'}
+                        {record.updatedAt
+                          ? ` · Saved ${new Date(record.updatedAt).toLocaleString()}`
+                          : ''}
+                      </p>
+                      {record.enabled ? (
+                        <Button
+                          disabled={busy}
+                          variant="outline"
+                          type="button"
+                          onClick={() =>
+                            void perform(async () => {
+                              await client.releaseAutomation.disable.mutate({
+                                id: record.id,
+                                revision: record.revision,
+                              })
+                              const disabled = {
+                                ...record,
+                                enabled: false,
+                                revision: record.revision + 1,
+                              }
+                              setRecord(disabled)
+                              onSaved(disabled)
+                              setMessage(
+                                'Disabled. Cancellation requested; source stays in automation mode and history is kept.'
+                              )
+                            })
+                          }
+                        >
+                          Deactivate
+                        </Button>
+                      ) : null}
+                    </TabsContent>
+                    <TabsContent value="test" className="space-y-5">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                          Dry run
+                        </p>
+                        <h3 className="mt-1 text-lg font-semibold">Follow the evidence</h3>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                          See which path an event takes. Testing creates no releases, notifications,
+                          or posts.
+                        </p>
+                      </div>
+                      <Label className="grid gap-1 text-sm">
+                        Test evidence
+                        <UiSelect
+                          value={sample}
+                          onValueChange={(nextValue) => {
+                            setSample(nextValue)
+                            setPreview(null)
+                          }}
+                        >
+                          <SelectTrigger className={automationSelectClass}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="example:match">Example: matching event</SelectItem>
+                            <SelectItem value="example:else">
+                              Example: else / no-match event
+                            </SelectItem>
+                            {graph.family === 'pull_request.merged' ? (
+                              <SelectItem value="example:pending">
+                                Example: file enrichment pending
+                              </SelectItem>
+                            ) : null}
+                            {history
+                              .filter(
+                                (item) =>
+                                  item.event.snapshot.family === graph.family &&
+                                  item.event.sourceAppId === record.sourceAppId
+                              )
+                              .map((item) => (
+                                <SelectItem key={item.event.id} value={item.event.id}>
+                                  Recorded: {item.event.snapshot.title} ·{' '}
+                                  {new Date(item.event.receivedAt).toLocaleString()}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </UiSelect>
+                      </Label>
+
+                      {preview ? (
+                        <div className="space-y-4" aria-live="polite">
+                          <div
+                            className={cn(
+                              'rounded-lg border p-3',
+                              ['completed', 'skipped'].includes(preview.outcome)
+                                ? 'border-emerald-500/25 bg-emerald-500/5'
+                                : 'border-amber-500/30 bg-amber-500/5'
+                            )}
+                          >
+                            <h3 className="flex items-center gap-2 text-sm font-semibold">
+                              {['completed', 'skipped'].includes(preview.outcome) ? (
+                                <Check className="size-4" aria-hidden="true" />
+                              ) : (
+                                <AlertCircle className="size-4" aria-hidden="true" />
+                              )}
+                              Preview: {preview.outcome}
+                            </h3>
+                            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                              {preview.evidence}
+                            </p>
+                            <p className="mt-2 text-xs">
+                              Qualification: {preview.qualification.status}{' '}
+                              {preview.qualification.reason}
+                            </p>
+                          </div>
+                          <ol className="space-y-1">
+                            {preview.steps.map((step, index) => (
+                              <li key={step.nodeId}>
+                                <Button variant="custom" size={null}
+                                  type="button"
+                                  onClick={() => selectNode(step.nodeId)}
+                                  className="group flex w-full items-start gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+                                >
+                                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-border font-mono text-[10px] text-muted-foreground">
+                                    {String(index + 1).padStart(2, '0')}
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block text-xs font-medium">
+                                      {nodes.find((node) => node.id === step.nodeId)?.data.label ??
+                                        step.nodeId}
+                                    </span>
+                                    <span className="mt-1 block text-[11px] leading-4 text-muted-foreground">
+                                      {step.decision
+                                        ? `${step.decision.match ? 'True' : 'False'} · ${step.decision.reason}`
+                                        : (step.outcome ??
+                                          (step.type === 'trigger'
+                                            ? 'Event received'
+                                            : 'Expected action'))}
+                                    </span>
+                                  </span>
+                                  <ChevronRight
+                                    className="mt-1 size-3.5 shrink-0 text-muted-foreground"
+                                    aria-hidden="true"
+                                  />
+                                </Button>
+                              </li>
+                            ))}
+                          </ol>
+                          <p className="text-xs leading-5 text-muted-foreground">
+                            Output references resolve during execution. This preview does not create
+                            output IDs.
+                          </p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setPreview(null)}
+                          >
+                            Clear preview
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-dashed border-border px-5 py-8 text-center">
+                          <Play
+                            className="mx-auto size-6 text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                          <p className="mt-3 text-sm font-medium">Ready for a test run</p>
+                          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                            Choose evidence, then select Test draft above. The result will highlight
+                            a path on the canvas.
+                          </p>
+                        </div>
+                      )}
+                    </TabsContent>
+                  </fieldset>
+                  <div className="mt-5">
+                    {' '}
+                    <div
+                      aria-label="Workflow validation"
+                      className="space-y-2 rounded-lg border border-border bg-muted/20 p-3"
+                      aria-live="polite"
+                    >
+                      <h3 className="font-medium">Validation</h3>
+                      {issues.length ? (
+                        <ul className="space-y-1">
+                          {issues.map((issue, index) => (
+                            <li key={`${issue.code}-${index}`}>
+                              <Button variant="custom" size={null}
+                                type="button"
+                                className="text-left text-sm text-destructive underline"
+                                onClick={() =>
+                                  issue.nodeId ? selectNode(issue.nodeId) : setPanel('workflow')
+                                }
+                              >
+                                {issue.nodeId ? `${issue.nodeId}: ` : ''}
+                                {issue.message}
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          {dirty
+                            ? 'Save or test this draft for current server validation.'
+                            : 'The saved graph is valid.'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Tabs>
+            </aside>
+          </div>
+          <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border bg-card px-5 py-2.5 text-xs">
+            <div className="flex min-w-0 items-center gap-2">
+              {busy ? (
+                <Loader2
+                  className="size-3.5 shrink-0 animate-spin motion-reduce:animate-none"
+                  aria-hidden="true"
+                />
+              ) : (
+                <span
+                  className={cn(
+                    'size-1.5 shrink-0 rounded-full',
+                    dirty ? 'bg-amber-500' : 'bg-emerald-500'
+                  )}
+                />
+              )}
+              <p role="status">
+                {message || (dirty ? 'Unsaved draft changes.' : 'All changes saved.')}
+              </p>
+            </div>
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <ShieldCheck className="size-3.5" aria-hidden="true" />
+              Human approval before publishing
+            </span>
+            {!overview.executorAvailable ? (
+              <p className="w-full text-amber-600 dark:text-amber-400">
+                No compatible executor is available. You can save and test; activation is
+                unavailable.
+              </p>
+            ) : null}
+            {error ? (
+              <p role="alert" className="w-full text-destructive">
+                {error}
+              </p>
+            ) : null}
+          </footer>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={confirmClose} onOpenChange={setConfirmClose}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Your latest edits have not been saved. Keep editing to save them, or close and discard
+            these changes.
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <AlertDialogAction onClick={onClose}>Discard changes</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
+
+function ActionEditor({
+  node,
+  graph,
+  overview,
+  onChange,
+}: {
+  node: AutomationNode
+  graph: AutomationGraph
+  overview: AutomationOverview
+  onChange: (action: AutomationAction) => void
+}) {
+  const action = node.action ?? { type: 'create_release' as const }
+  const producer = action.type === 'create_campaign' ? 'create_release' : 'create_campaign'
+  const output = action.type === 'create_campaign' ? 'releaseId' : 'campaignId'
+  return (
+    <div className="space-y-3">
+      <Label className="grid gap-1 text-sm">
+        Action
+        <UiSelect
+          value={action.type}
+          onValueChange={(nextValue) => onChange({ type: nextValue as AutomationAction['type'] })}
+        >
+          <SelectTrigger className={automationSelectClass}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(actionNames).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </UiSelect>
+      </Label>
+      {action.type !== 'create_release' ? (
+        <Label className="grid gap-1 text-sm">
+          Input from action
+          <UiSelect
+            value={String(action.input?.nodeId ?? '') || '__empty_option__'}
+            onValueChange={(nextValue) =>
+              onChange({
+                ...action,
+                input: { nodeId: nextValue === '__empty_option__' ? '' : nextValue, output },
+              })
+            }
+          >
+            <SelectTrigger className={automationSelectClass}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={'__empty_option__'}>Choose an output</SelectItem>
+              {graph.nodes
+                .filter((candidate) => candidate.action?.type === producer)
+                .map((candidate) => (
+                  <SelectItem key={candidate.id} value={candidate.id}>
+                    {candidate.id}.{output}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </UiSelect>
+        </Label>
+      ) : null}
+      {action.type === 'create_campaign' ? (
+        <>
+          <Label className="grid gap-1 text-sm">
+            Brand kit
+            <UiSelect
+              value={String(action.brandKitId ?? '') || '__empty_option__'}
+              onValueChange={(nextValue) =>
+                onChange({
+                  ...action,
+                  brandKitId: nextValue === '__empty_option__' ? '' : nextValue,
+                })
+              }
+            >
+              <SelectTrigger className={automationSelectClass}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={'__empty_option__'}>Select a published brand kit</SelectItem>
+                {overview.brands.map((brand) => (
+                  <SelectItem key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </UiSelect>
+          </Label>
+          <fieldset className="space-y-2">
+            <legend className="text-sm">Draft destinations</legend>
+            {overview.destinations.map((destination) => (
+              <Label key={destination.id} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={action.destinationIds?.includes(destination.id) ?? false}
+                  onCheckedChange={(checked) => onChange({
+                      ...action,
+                      destinationIds: (checked === true)
+                        ? [...(action.destinationIds ?? []), destination.id]
+                        : action.destinationIds?.filter((id) => id !== destination.id),
+                    })}
+                />
+                {destination.name}
+              </Label>
+            ))}
+            {overview.destinations.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Connect a destination in workspace Channels first.
+              </p>
+            ) : null}
+          </fieldset>
+          <Label className="grid gap-1 text-sm">
+            Call to action
+            <Input
+              value={action.callToAction ?? ''}
+              onChange={(event) => onChange({ ...action, callToAction: event.target.value })}
+            />
+          </Label>
+        </>
+      ) : null}
+      {action.type !== 'submit_review' ? (
+        <Label className="grid gap-1 text-sm">
+          Audience
+          <Input
+            value={action.audience ?? ''}
+            onChange={(event) => onChange({ ...action, audience: event.target.value })}
+          />
+        </Label>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Uses the existing review queue and notifications. This node must connect directly to an
+          end node. Approval stays with a person.
+        </p>
+      )}
+    </div>
+  )
+}

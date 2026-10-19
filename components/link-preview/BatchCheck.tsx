@@ -16,6 +16,18 @@ import { cn } from '@/lib/utils'
 import { downloadText, normalizeUrl, requestPreview } from './client'
 import { PANEL } from './MetadataPanels'
 import { hostname } from './PlatformPreviews'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table'
 
 /** Most links one batch checks; the API allows 30 previews a minute. */
 const MAX_LINKS = 20
@@ -167,7 +179,7 @@ export function BatchCheck({
           }}
           className="flex flex-wrap items-center gap-2 border-b border-white/[0.07] pb-4"
         >
-          <input
+          <Input
             value={site}
             onChange={(event) => setSite(event.target.value)}
             placeholder="Import from a sitemap: example.com or example.com/sitemap.xml"
@@ -180,19 +192,19 @@ export function BatchCheck({
           </Button>
           {imported && <p className="w-full text-xs text-muted-foreground">{imported}</p>}
         </form>
-        <label className="block space-y-1.5">
+        <Label className="block space-y-1.5">
           <span className="text-sm font-medium text-foreground">Links to check</span>
           <span className="block text-xs text-muted-foreground">
             One per line, up to {MAX_LINKS}. Paste your campaign links, launch pages, or blog posts.
           </span>
-          <textarea
+          <Textarea
             value={text}
             onChange={(event) => setText(event.target.value)}
             rows={6}
             placeholder={'example.com\nexample.com/pricing\nexample.com/blog/launch'}
             className="w-full resize-y rounded-lg bg-white/[0.03] px-3 py-2 font-mono text-sm text-foreground ring-1 ring-white/[0.08] outline-none placeholder:text-muted-foreground focus:ring-white/25"
           />
-        </label>
+        </Label>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">
             {urls.length} link{urls.length === 1 ? '' : 's'}
@@ -214,14 +226,13 @@ export function BatchCheck({
                 ` · average score ${Math.round(checked.reduce((sum, row) => sum + row.score, 0) / checked.length)}`}
             </h3>
             <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                <input
-                  type="checkbox"
+              <Label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Checkbox
                   checked={onlyProblems}
-                  onChange={(event) => setOnlyProblems(event.target.checked)}
+                  onCheckedChange={(checked) => setOnlyProblems((checked === true))}
                 />
                 Only pages with errors or warnings
-              </label>
+              </Label>
               <Button
                 variant="outline"
                 size="sm"
@@ -262,12 +273,12 @@ export function BatchCheck({
             </div>
           )}
           <div className={cn(PANEL, 'overflow-x-auto')}>
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-muted-foreground">
-                <tr className="border-b border-white/[0.07]">
-                  <th className="px-4 py-3 font-medium">Link</th>
-                  <th className="px-4 py-3 font-medium">
-                    <button
+            <Table className="w-full text-left text-sm">
+              <TableHeader className="text-xs text-muted-foreground">
+                <TableRow className="border-b border-white/[0.07]">
+                  <TableHead className="whitespace-normal px-4 py-3 font-medium">Link</TableHead>
+                  <TableHead className="whitespace-normal px-4 py-3 font-medium">
+                    <Button variant="custom" size={null}
                       type="button"
                       onClick={() => setSortByScore((value) => !value)}
                       aria-pressed={sortByScore}
@@ -278,17 +289,17 @@ export function BatchCheck({
                     >
                       Score
                       <ArrowDownUp className="size-3" />
-                    </button>
-                  </th>
-                  <th className="px-4 py-3 font-medium">Errors · Warnings</th>
-                  <th className="px-4 py-3 font-medium">Top issue</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.07]">
+                    </Button>
+                  </TableHead>
+                  <TableHead className="whitespace-normal px-4 py-3 font-medium">Errors · Warnings</TableHead>
+                  <TableHead className="whitespace-normal px-4 py-3 font-medium">Top issue</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-white/[0.07]">
                 {shown.map(({ result, url }) => (
-                  <tr key={url} className="align-top">
-                    <td className="max-w-64 px-4 py-3">
-                      <button
+                  <TableRow key={url} className="align-top">
+                    <TableCell className="whitespace-normal max-w-64 px-4 py-3">
+                      <Button variant="custom" size={null}
                         type="button"
                         onClick={() => onOpen(url)}
                         className="block truncate text-left text-foreground hover:underline"
@@ -296,19 +307,19 @@ export function BatchCheck({
                       >
                         {hostname(url)}
                         {new URL(url).pathname === '/' ? '' : new URL(url).pathname}
-                      </button>
-                    </td>
+                      </Button>
+                    </TableCell>
                     {!result ? (
-                      <td colSpan={3} className="px-4 py-3 text-muted-foreground">
+                      <TableCell colSpan={3} className="whitespace-normal px-4 py-3 text-muted-foreground">
                         <Loader2 className="size-4 animate-spin" aria-label="Checking" />
-                      </td>
+                      </TableCell>
                     ) : 'error' in result ? (
-                      <td colSpan={3} className="px-4 py-3 text-red-400">
+                      <TableCell colSpan={3} className="whitespace-normal px-4 py-3 text-red-400">
                         {result.error}
-                      </td>
+                      </TableCell>
                     ) : (
                       <>
-                        <td className="px-4 py-3 font-semibold tabular-nums">
+                        <TableCell className="whitespace-normal px-4 py-3 font-semibold tabular-nums">
                           <span
                             className={
                               result.score >= 80
@@ -320,8 +331,8 @@ export function BatchCheck({
                           >
                             {result.score}
                           </span>
-                        </td>
-                        <td className="px-4 py-3">
+                        </TableCell>
+                        <TableCell className="whitespace-normal px-4 py-3">
                           <span className="flex gap-1.5">
                             <Pill tone="red">
                               {result.issues.filter((issue) => issue.severity === error).length}
@@ -330,16 +341,16 @@ export function BatchCheck({
                               {result.issues.filter((issue) => issue.severity === warning).length}
                             </Pill>
                           </span>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
+                        </TableCell>
+                        <TableCell className="whitespace-normal px-4 py-3 text-muted-foreground">
                           {result.issues[0]?.title ?? 'Nothing to fix'}
-                        </td>
+                        </TableCell>
                       </>
                     )}
-                  </tr>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </section>
       )}

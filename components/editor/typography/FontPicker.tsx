@@ -5,6 +5,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { fontFamilies, getFontCSS } from '@/lib/constants/fonts'
 import { GOOGLE_FONTS, googleFontFamily, googleFontId, isGoogleFontId } from '@/lib/typography/google-fonts'
 import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 type Option = { group: string; id: string; name: string }
 
@@ -44,7 +46,7 @@ export function FontPicker({ onChange, value }: { onChange: (id: string) => void
   return (
     <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
-        <button
+        <Button variant="custom" size={null}
           aria-label="Font family"
           className="flex h-9 w-full items-center justify-between rounded-lg border border-border bg-background px-2.5 text-left text-xs"
           style={{ fontFamily: getFontCSS(value) }}
@@ -52,10 +54,10 @@ export function FontPicker({ onChange, value }: { onChange: (id: string) => void
         >
           <span className="truncate">{fontName(value)}</span>
           <span className="text-muted-foreground">▾</span>
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 p-2">
-        <input
+        <Input
           aria-activedescendant={choices[active] ? `font-option-${active}` : undefined}
           aria-controls="font-options"
           aria-label="Search fonts"
@@ -85,7 +87,7 @@ export function FontPicker({ onChange, value }: { onChange: (id: string) => void
                   {option.group}
                 </p>
               ) : null}
-              <button
+              <Button variant="custom" size={null}
                 aria-selected={option.id === value}
                 className={cn(
                   'w-full truncate rounded px-2 py-1.5 text-left text-xs',
@@ -99,7 +101,7 @@ export function FontPicker({ onChange, value }: { onChange: (id: string) => void
                 type="button"
               >
                 {option.name}
-              </button>
+              </Button>
             </li>
           ))}
           {choices.length === 0 ? <li className="px-2 py-3 text-xs text-muted-foreground">No fonts match.</li> : null}

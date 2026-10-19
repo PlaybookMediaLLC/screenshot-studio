@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { WorkspaceSsoList } from './WorkspaceSsoList'
 import { getErrorMessage, requestJson } from './settings-client'
+import { Label } from '@/components/ui/label'
 
 const ssoProviderSchema = z.object({
   domain: z.string(),
@@ -201,9 +202,9 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium text-neutral-400" htmlFor={htmlFor}>
+      <Label className="text-xs font-medium text-neutral-400" htmlFor={htmlFor}>
         {label}
-      </label>
+      </Label>
       {children}
     </div>
   )
@@ -295,9 +296,9 @@ function ScimForm({
 }) {
   return (
     <form className="flex flex-col gap-3" onSubmit={onSubmit}>
-      <label className="text-xs font-medium text-neutral-400" htmlFor="scim-provider-id">
+      <Label className="text-xs font-medium text-neutral-400" htmlFor="scim-provider-id">
         Provider ID
-      </label>
+      </Label>
       <div className="flex gap-3">
         <Input
           className="h-10 flex-1 rounded-lg"

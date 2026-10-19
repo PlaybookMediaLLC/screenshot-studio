@@ -22,6 +22,14 @@ import {
 import { useTRPCClient } from '@/lib/trpc/react'
 import { saveExportToWorkspace } from '@/lib/workspace/save-export'
 import { getErrorMessage } from './settings-client'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 type BrandKitSummary = { id: string; name: string; status: string; version: number }
 
@@ -153,7 +161,7 @@ export function WorkspaceBrandSettings({ canManage }: WorkspaceBrandSettingsProp
         <Section title="Create a new active version">
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <Group>
-              <Row label={<label htmlFor="brand-name">Brand kit name</label>}>
+              <Row label={<Label htmlFor="brand-name">Brand kit name</Label>}>
                 <Input className="h-10 rounded-lg md:w-72" id="brand-name" name="name" required />
               </Row>
               <Row description="Hex values, like #6d5dfc." label="Colors" layout="stacked">
@@ -175,24 +183,26 @@ export function WorkspaceBrandSettings({ canManage }: WorkspaceBrandSettingsProp
                   </p>
                 ) : null}
               </Row>
-              <Row label={<label htmlFor="brand-font-family">Primary typeface</label>}>
-                <select
-                  className="h-10 rounded-lg bg-white/[0.03] px-3 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none md:w-72"
-                  defaultValue="inter"
-                  id="brand-font-family"
-                  name="headingFamily"
-                  required
-                >
-                  {fontFamilies.map((font) => (
-                    <option key={font.id} value={font.id}>
-                      {font.name}
-                    </option>
-                  ))}
-                </select>
+              <Row label={<Label htmlFor="brand-font-family">Primary typeface</Label>}>
+                <Select defaultValue="inter" name="headingFamily" required>
+                  <SelectTrigger
+                    className="h-10 rounded-lg bg-white/[0.03] px-3 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none md:w-72"
+                    id="brand-font-family"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fontFamilies.map((font) => (
+                      <SelectItem key={font.id} value={font.id}>
+                        {font.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Row>
               <Row
                 description="PNG, WebP, or JPEG, up to 5 MB."
-                label={<label htmlFor="brand-logo">Logo</label>}
+                label={<Label htmlFor="brand-logo">Logo</Label>}
               >
                 <div className="flex items-center gap-3">
                   {logo ? (
@@ -334,7 +344,7 @@ function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
         >
           <Group>
             <Row
-              label={<label htmlFor="brand-voice-product">Product description</label>}
+              label={<Label htmlFor="brand-voice-product">Product description</Label>}
               layout="stacked"
             >
               <Textarea
@@ -346,7 +356,7 @@ function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
                 required
               />
             </Row>
-            <Row label={<label htmlFor="brand-voice-audience">Audience</label>} layout="stacked">
+            <Row label={<Label htmlFor="brand-voice-audience">Audience</Label>} layout="stacked">
               <Textarea
                 className={textareaClassName}
                 defaultValue={profile?.audience}
@@ -356,7 +366,7 @@ function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
                 required
               />
             </Row>
-            <Row label={<label htmlFor="brand-voice-tone">Tone</label>}>
+            <Row label={<Label htmlFor="brand-voice-tone">Tone</Label>}>
               <Input
                 className={inputClassName}
                 defaultValue={profile?.tone}
@@ -367,7 +377,7 @@ function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
                 required
               />
             </Row>
-            <Row label={<label htmlFor="brand-voice-tagline">Tagline</label>}>
+            <Row label={<Label htmlFor="brand-voice-tagline">Tagline</Label>}>
               <Input
                 className={inputClassName}
                 defaultValue={profile?.tagline ?? ''}
@@ -376,7 +386,7 @@ function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
                 name="tagline"
               />
             </Row>
-            <Row label={<label htmlFor="brand-voice-cta">Call-to-action conventions</label>}>
+            <Row label={<Label htmlFor="brand-voice-cta">Call-to-action conventions</Label>}>
               <Input
                 className={inputClassName}
                 defaultValue={profile?.ctaConventions ?? ''}
@@ -394,7 +404,7 @@ function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
             </Row>
             <Row
               description={<span id="brand-voice-styles-hint">Comma-separated.</span>}
-              label={<label htmlFor="brand-voice-styles">Preferred styles</label>}
+              label={<Label htmlFor="brand-voice-styles">Preferred styles</Label>}
             >
               <Input
                 aria-describedby="brand-voice-styles-hint"
@@ -409,7 +419,7 @@ function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
               description={
                 <span id="brand-voice-handles-hint">One per line, like x: @handle.</span>
               }
-              label={<label htmlFor="brand-voice-handles">Social handles</label>}
+              label={<Label htmlFor="brand-voice-handles">Social handles</Label>}
               layout="stacked"
             >
               <Textarea
@@ -487,22 +497,28 @@ function ProhibitedTermsEditor({
                 placeholder="Why it is off brand (optional)"
                 value={entry.reason}
               />
-              <select
-                aria-label={`How term ${index + 1} matches`}
-                className="h-10 rounded-lg bg-white/[0.03] px-3 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none"
-                onChange={(event) =>
+              <Select
+                onValueChange={(nextValue) =>
                   update(index, {
-                    matchMode: prohibitedTermMatchModeSchema.parse(event.target.value),
+                    matchMode: prohibitedTermMatchModeSchema.parse(nextValue),
                   })
                 }
                 value={entry.matchMode}
               >
-                {prohibitedTermMatchModeSchema.options.map((mode) => (
-                  <option key={mode} value={mode}>
-                    {MATCH_MODES[mode]}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger
+                  aria-label={`How term ${index + 1} matches`}
+                  className="h-10 rounded-lg bg-white/[0.03] px-3 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {prohibitedTermMatchModeSchema.options.map((mode) => (
+                    <SelectItem key={mode} value={mode}>
+                      {MATCH_MODES[mode]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 aria-label={`Remove term ${index + 1}`}
                 className="h-10 rounded-lg"
@@ -543,11 +559,11 @@ function ColorField({
   const isValid = HEX_COLOR.test(value)
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium text-neutral-400" htmlFor={id}>
+      <Label className="text-xs font-medium text-neutral-400" htmlFor={id}>
         {label}
-      </label>
+      </Label>
       <div className="flex items-center gap-2">
-        <input
+        <Input
           aria-label={`${label} color picker`}
           className="h-10 w-10 shrink-0 cursor-pointer rounded-lg bg-transparent"
           onChange={(event) => onChange(event.target.value)}

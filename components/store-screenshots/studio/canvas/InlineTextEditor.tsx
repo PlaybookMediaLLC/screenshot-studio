@@ -13,6 +13,9 @@ import { textNodeStyle } from '../../render/SlideRender'
 import { spanStyle } from '../../render/text-style'
 import { useEditorApi } from '../editor-store'
 import { placeToolbar } from './toolbar-placement'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 /**
  * Direct text editing on the canvas. The editable element uses the
@@ -280,7 +283,7 @@ export function InlineTextEditor({
       style={{ left: placement.x, top: placement.y }}
     >
       {BUTTONS.map((button) => (
-        <button
+        <Button variant="custom" size={null}
           key={button.label}
           type="button"
           aria-label={button.label}
@@ -293,16 +296,16 @@ export function InlineTextEditor({
           )}
         >
           {button.glyph}
-        </button>
+        </Button>
       ))}
       <span aria-hidden="true" className="mx-1 h-5 w-px bg-foreground/10" />
-      <label className="flex size-8 cursor-pointer items-center justify-center rounded-md hover:bg-foreground/[0.07]" title="Text color for selection">
+      <Label className="flex size-8 cursor-pointer items-center justify-center rounded-md hover:bg-foreground/[0.07]" title="Text color for selection">
         <span className="sr-only">Text color for selection</span>
         <span className="size-4 rounded-full border border-foreground/20" style={{ background: marks.color ?? node.color }} />
-        <input type="color" className="sr-only" value={marks.color ?? node.color} onChange={(event) => applyChange({ set: { color: event.target.value.toUpperCase() } })} />
-      </label>
+        <Input type="color" className="sr-only" value={marks.color ?? node.color} onChange={(event) => applyChange({ set: { color: event.target.value.toUpperCase() } })} />
+      </Label>
       {palette.slice(0, 4).map((color) => (
-        <button
+        <Button variant="custom" size={null}
           key={color}
           type="button"
           aria-label={`Color selection ${color}`}
@@ -311,9 +314,9 @@ export function InlineTextEditor({
           className="flex size-6 items-center justify-center rounded-md hover:bg-foreground/[0.07]"
         >
           <span className="size-3.5 rounded-full border border-foreground/20" style={{ background: color }} />
-        </button>
+        </Button>
       ))}
-      <button
+      <Button variant="custom" size={null}
         type="button"
         aria-label="Highlight pill"
         aria-pressed={Boolean(marks.highlight)}
@@ -322,8 +325,8 @@ export function InlineTextEditor({
         className={cn('flex h-8 items-center justify-center rounded-md px-2 text-[11px] font-medium hover:bg-foreground/[0.07]', marks.highlight && 'bg-foreground/[0.12]')}
       >
         Pill
-      </button>
-      <button
+      </Button>
+      <Button variant="custom" size={null}
         type="button"
         aria-label="Gradient text"
         aria-pressed={Boolean(marks.gradient)}
@@ -334,8 +337,8 @@ export function InlineTextEditor({
         className={cn('flex h-8 items-center justify-center rounded-md px-2 text-[11px] font-semibold hover:bg-foreground/[0.07]', marks.gradient && 'bg-foreground/[0.12]')}
       >
         <span className="bg-gradient-to-r from-violet-500 to-rose-500 bg-clip-text text-transparent">Grad</span>
-      </button>
-      <button
+      </Button>
+      <Button variant="custom" size={null}
         type="button"
         aria-label="Clear formatting"
         title="Clear formatting"
@@ -343,11 +346,11 @@ export function InlineTextEditor({
         className="flex h-8 items-center justify-center rounded-md px-2 text-[11px] text-muted-foreground hover:bg-foreground/[0.07]"
       >
         Clear
-      </button>
+      </Button>
       <span aria-hidden="true" className="mx-1 h-5 w-px bg-foreground/10" />
-      <button type="button" onClick={finish} className="h-8 rounded-md bg-foreground px-2.5 text-[11px] font-medium text-background">
+      <Button variant="custom" size={null} type="button" onClick={finish} className="h-8 rounded-md bg-foreground px-2.5 text-[11px] font-medium text-background">
         Done
-      </button>
+      </Button>
     </div>
   )
 

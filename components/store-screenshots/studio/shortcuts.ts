@@ -51,6 +51,7 @@ export const SHORTCUTS: Shortcut[] = [
 function isTyping(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
   if (target.isContentEditable) return true
+  if (target.closest('[role="combobox"]')) return true
   if (target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true
   if (target instanceof HTMLInputElement) {
     return !['checkbox', 'radio', 'button', 'range', 'color', 'submit'].includes(target.type)
@@ -59,7 +60,7 @@ function isTyping(target: EventTarget | null): boolean {
 }
 
 function inDialog(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement && Boolean(target.closest('[role="dialog"],[role="alertdialog"],[role="menu"]'))
+  return target instanceof HTMLElement && Boolean(target.closest('[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"]'))
 }
 
 function onCanvasOrBody(target: EventTarget | null): boolean {

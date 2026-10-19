@@ -1,3 +1,4 @@
+import { chooseOption } from './framework/browser'
 import { readFile } from 'node:fs/promises'
 import type { Download, Locator, Page } from '@playwright/test'
 import { signUpAndCreateWorkspace } from './framework/auth'
@@ -196,7 +197,7 @@ test('framed screenshots compose, preview, and export the same everywhere (Workf
   await expect(screens).toHaveCount(4)
   const code = page.getByLabel('Code', { exact: true })
   await code.fill('$ npm run ship\n✓ Built in 1.2s\n✓ Published to x, linkedin')
-  await page.getByLabel('Language').selectOption('shell-session')
+  await chooseOption(page.getByLabel('Language'), 'Terminal session')
   await page.getByRole('button', { exact: true, name: 'Frame' }).first().click()
   await expect(framePanel.getByText('code in macos window')).toBeVisible()
   await framePanel.getByRole('button', { exact: true, name: 'macOS Terminal' }).click()

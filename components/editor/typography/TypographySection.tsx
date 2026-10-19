@@ -8,6 +8,7 @@ import { useEditorDocument } from '@/lib/design/use-editor-document'
 import { useImageStore } from '@/lib/store'
 import { TYPOGRAPHY_TEMPLATES, withTypographyTemplate } from '@/lib/typography/templates'
 import { SectionWrapper } from '../sections/SectionWrapper'
+import { Button } from '@/components/ui/button'
 
 const aspectCss = (width: number, height: number) => `${width} / ${height}`
 
@@ -31,7 +32,7 @@ export function TypographySection() {
     <SectionWrapper defaultOpen={false} title="Typography">
       <div className="grid grid-cols-2 gap-1.5">
         {TYPOGRAPHY_TEMPLATES.map((template) => (
-          <button
+          <Button variant="custom" size={null}
             aria-label={`Apply ${template.name} typography`}
             className="group overflow-hidden rounded-md border border-foreground/10 text-left transition-colors hover:border-foreground/25"
             key={template.id}
@@ -49,7 +50,7 @@ export function TypographySection() {
               {template.name}
               {template.use === 'app-store' ? ' · App Store' : ''}
             </p>
-          </button>
+          </Button>
         ))}
       </div>
     </SectionWrapper>

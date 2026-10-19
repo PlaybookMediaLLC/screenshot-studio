@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { Button } from '@/components/ui/button'
 
 const INTER =
   'Inter, "Inter Fallback", Arial, Helvetica, sans-serif';
@@ -52,9 +53,9 @@ export default function Error({
         ) : null}
 
         <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-          <button type="button" onClick={() => reset()} className={primaryCtaClassName}>
+          <Button variant="custom" size={null} type="button" onClick={() => reset()} className={primaryCtaClassName}>
             Try again
-          </button>
+          </Button>
           <Link href="/editor" className={secondaryCtaClassName}>
             Open editor
           </Link>

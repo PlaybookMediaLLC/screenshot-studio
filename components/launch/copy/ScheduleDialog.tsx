@@ -16,6 +16,15 @@ import {
 import { getErrorMessage } from '@/components/workspace/settings-client'
 import { connectionsForChannel } from '@/lib/launch/schedule'
 import { useTRPCClient } from '@/lib/trpc/react'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 
 /** An approved visual a post can publish with; `id` is its creative variant. */
 export type ScheduleVisual = { id: string; label: string }
@@ -160,9 +169,9 @@ export function ScheduleDialog({
           </DialogHeader>
           <form className="flex flex-col gap-4" onSubmit={submit}>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-neutral-400" htmlFor={ids.visual}>
+              <Label className="text-xs font-medium text-neutral-400" htmlFor={ids.visual}>
                 Visual
-              </label>
+              </Label>
               {post.visuals.length === 0 && !post.creativeVariantId ? (
                 <p className="text-sm text-neutral-500">
                   No approved visuals yet.{' '}
@@ -174,28 +183,33 @@ export function ScheduleDialog({
                   </Link>
                 </p>
               ) : (
-                <select
-                  className={fieldClass}
-                  id={ids.visual}
-                  onChange={(event) => setVariantId(event.target.value)}
-                  value={variantId}
+                <Select
+                  onValueChange={(nextValue) =>
+                    setVariantId(nextValue === '__empty_option__' ? '' : nextValue)
+                  }
+                  value={String(variantId) || '__empty_option__'}
                 >
-                  {post.creativeVariantId &&
-                  !post.visuals.some((visual) => visual.id === post.creativeVariantId) ? (
-                    <option value="">Keep the current visual</option>
-                  ) : null}
-                  {post.visuals.map((visual) => (
-                    <option key={visual.id} value={visual.id}>
-                      {visual.label}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className={fieldClass} id={ids.visual}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {post.creativeVariantId &&
+                    !post.visuals.some((visual) => visual.id === post.creativeVariantId) ? (
+                      <SelectItem value={'__empty_option__'}>Keep the current visual</SelectItem>
+                    ) : null}
+                    {post.visuals.map((visual) => (
+                      <SelectItem key={visual.id} value={visual.id}>
+                        {visual.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-neutral-400" htmlFor={ids.channel}>
+              <Label className="text-xs font-medium text-neutral-400" htmlFor={ids.channel}>
                 Account
-              </label>
+              </Label>
               {usable === null ? (
                 <p className="text-sm text-neutral-500">Loading connected accounts…</p>
               ) : usable.length === 0 ? (
@@ -209,25 +223,28 @@ export function ScheduleDialog({
                   </Link>
                 </p>
               ) : (
-                <select
-                  className={fieldClass}
-                  id={ids.channel}
-                  onChange={(event) => setConnectionId(event.target.value)}
+                <Select
+                  onValueChange={(nextValue) => setConnectionId(nextValue)}
                   value={connectionId}
                 >
-                  {usable.map((connection) => (
-                    <option key={connection.id} value={connection.id}>
-                      {connection.externalAccountId} ({connection.platform})
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className={fieldClass} id={ids.channel}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {usable.map((connection) => (
+                      <SelectItem key={connection.id} value={connection.id}>
+                        {connection.externalAccountId} ({connection.platform})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-neutral-400" htmlFor={ids.time}>
+              <Label className="text-xs font-medium text-neutral-400" htmlFor={ids.time}>
                 Publish at
-              </label>
-              <input
+              </Label>
+              <Input
                 className={fieldClass}
                 id={ids.time}
                 onChange={(event) => setTime(event.target.value)}

@@ -8,6 +8,7 @@ import { trackCTAClick } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
 import { ctaClassName } from './CtaLink'
 import { type checkoutPathSchema, ctaToneSchema } from './primitives'
+import { Button } from '@/components/ui/button'
 
 const LOCALE_PREFIX = new RegExp(`^/(${locales.join('|')})(?=/|$)`)
 
@@ -73,7 +74,7 @@ export function CheckoutButton({
   const [main, ...others] = choices
   return (
     <div className={cn('flex flex-col items-center gap-2', className)}>
-      <button
+      <Button variant="custom" size={null}
         className={cn(
           ctaClassName(ctaToneSchema.enum.secondary),
           'w-full justify-center disabled:opacity-60'
@@ -83,9 +84,9 @@ export function CheckoutButton({
         type="button"
       >
         {main.label}
-      </button>
+      </Button>
       {others.map((choice) => (
-        <button
+        <Button variant="custom" size={null}
           className="text-[13px] text-white/60 underline-offset-4 hover:text-white hover:underline disabled:opacity-60"
           disabled={busy}
           key={choice.label}
@@ -93,7 +94,7 @@ export function CheckoutButton({
           type="button"
         >
           {choice.label}
-        </button>
+        </Button>
       ))}
       {needsWorkspace ? (
         <p className="text-center text-[13px] text-white/70" role="alert">

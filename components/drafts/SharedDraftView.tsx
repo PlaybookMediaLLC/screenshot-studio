@@ -4,6 +4,8 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { LocalTime } from './local-time'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 /** A guest's comment, as the share page shows it. */
 export type GuestComment = { createdAt: string; name: string; text: string }
@@ -85,7 +87,7 @@ export function SharedDraftView({
           </ul>
         )}
         <form className="flex flex-col gap-2" onSubmit={send}>
-          <input
+          <Input
             aria-label="Your name"
             className="h-9 rounded-md border border-white/[0.08] bg-transparent px-3 text-sm"
             maxLength={80}
@@ -94,7 +96,7 @@ export function SharedDraftView({
             required
             value={name}
           />
-          <textarea
+          <Textarea
             aria-label="Your comment"
             className="min-h-24 rounded-md border border-white/[0.08] bg-transparent p-3 text-sm"
             maxLength={2000}

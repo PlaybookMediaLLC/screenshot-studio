@@ -31,6 +31,7 @@ import { useImageStore } from '@/lib/store'
 import { useMotionUI } from '@/lib/store/motion-ui'
 import { usePlaybackStore } from '@/lib/store/playback'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 /** Height of one motion row in the timeline, in px. */
 export const MOTION_ROW_HEIGHT = 30
@@ -221,14 +222,14 @@ function Row({
           {label}
         </span>
         {onRemove ? (
-          <button
+          <Button variant="custom" size={null}
             aria-label={removeLabel}
             className="flex size-4 shrink-0 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover/label:opacity-100"
             onClick={onRemove}
             type="button"
           >
             <Cancel01Icon size={9} />
-          </button>
+          </Button>
         ) : null}
       </div>
       <div
@@ -314,7 +315,7 @@ function Diamond({
   }
 
   return (
-    <button
+    <Button variant="custom" size={null}
       aria-label={`Keyframe at ${(time / 1000).toFixed(2)} seconds`}
       aria-pressed={selected}
       className={cn(

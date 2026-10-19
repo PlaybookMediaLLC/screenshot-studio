@@ -17,6 +17,8 @@ import {
 } from "@/lib/constants/backgrounds";
 import { cn } from "@/lib/utils";
 import { trackCTAClick } from "@/lib/analytics";
+import { Slider } from '@/components/ui/slider'
+import { Button } from '@/components/ui/button'
 
 type AspectId = "16:9" | "1:1" | "9:16";
 type LayoutId = "flat" | "tilt-left" | "tilt-right" | "float";
@@ -515,7 +517,7 @@ export function EditorPreview(): React.JSX.Element {
 
               <div className="flex items-center justify-center gap-0.5 px-2">
                 {ASPECTS.map((item) => (
-                  <button
+                  <Button variant="custom" size={null}
                     key={item.id}
                     type="button"
                     onClick={() => setAspect(item.id)}
@@ -529,7 +531,7 @@ export function EditorPreview(): React.JSX.Element {
                   >
                     <AspectRatioIcon size={12} />
                     {item.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
@@ -554,7 +556,7 @@ export function EditorPreview(): React.JSX.Element {
                   </p>
                   <div className="mb-2 grid grid-cols-4 gap-1">
                     {BG_KINDS.map((kind) => (
-                      <button
+                      <Button variant="custom" size={null}
                         key={kind.id}
                         type="button"
                         onClick={() => selectBgKind(kind.id)}
@@ -566,7 +568,7 @@ export function EditorPreview(): React.JSX.Element {
                         )}
                       >
                         {kind.label}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -574,7 +576,7 @@ export function EditorPreview(): React.JSX.Element {
                       const swatch = getBackgroundCSS(item.config);
                       const selected = item.id === bgId;
                       return (
-                        <button
+                        <Button variant="custom" size={null}
                           key={item.id}
                           type="button"
                           title={item.label}
@@ -592,7 +594,7 @@ export function EditorPreview(): React.JSX.Element {
                             className="block h-full w-full rounded-md"
                             style={swatch}
                           />
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -767,7 +769,7 @@ export function EditorPreview(): React.JSX.Element {
                     {LAYOUTS.map((item) => {
                       const selected = item.id === layout;
                       return (
-                        <button
+                        <Button variant="custom" size={null}
                           key={item.id}
                           type="button"
                           onClick={() => setLayout(item.id)}
@@ -801,7 +803,7 @@ export function EditorPreview(): React.JSX.Element {
                           <span className="text-center text-[10px] font-medium text-muted-foreground">
                             {item.label}
                           </span>
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -896,14 +898,14 @@ export function EditorPreview(): React.JSX.Element {
                         },
                       ] as const
                     ).map((preset) => (
-                      <button
+                      <Button variant="custom" size={null}
                         key={preset.id}
                         type="button"
                         onClick={preset.apply}
                         className="h-8 cursor-pointer rounded-md border border-border px-2.5 text-left text-[11px] font-medium text-muted-foreground transition-colors duration-150 hover:border-foreground/20 hover:text-foreground"
                       >
                         {preset.label}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -943,14 +945,13 @@ function SliderRow({
           {value}
         </span>
       </div>
-      <input
-        type="range"
+      <Slider
         min={min}
         max={max}
-        value={valueNum}
+        value={[valueNum]}
         disabled={disabled}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1 w-full cursor-pointer appearance-none rounded-full bg-foreground/10 accent-foreground disabled:cursor-not-allowed"
+        onValueChange={([nextValue]) => onChange(Number(nextValue))}
+        className="w-full"
         aria-label={label}
       />
     </div>
@@ -969,7 +970,7 @@ function FrameChip({
   label: string;
 }): React.JSX.Element {
   return (
-    <button
+    <Button variant="custom" size={null}
       type="button"
       onClick={onClick}
       aria-pressed={active}
@@ -982,6 +983,6 @@ function FrameChip({
     >
       {icon}
       {label}
-    </button>
+    </Button>
   );
 }

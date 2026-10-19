@@ -1,3 +1,4 @@
+import { chooseOption } from './framework/browser'
 import { openWorkspaceSetting, signUpAndCreateWorkspace } from './framework/auth'
 import { configureE2EFlow, expect, test } from './framework/flow'
 
@@ -24,7 +25,7 @@ test('an owner can persist workspace, profile, and active brand-kit settings', a
 
   await openWorkspaceSetting(page, 'Brand kit')
   await page.getByLabel('Brand kit name').fill('Launch system')
-  await page.getByLabel('Primary typeface').selectOption('inter')
+  await chooseOption(page.getByLabel('Primary typeface'), 'Inter')
   await page.getByRole('button', { name: 'Publish brand kit' }).click()
   await expect(page.getByText('Launch system')).toBeVisible()
   await expect(page.getByText('v1 · active')).toBeVisible()
@@ -36,14 +37,14 @@ test('an owner can persist workspace, profile, and active brand-kit settings', a
   await page.getByRole('button', { name: 'Add term' }).click()
   await page.getByLabel('Term 1', { exact: true }).fill('guaranteed')
   await page.getByLabel('Reason for term 1').fill('Legal does not allow promises')
-  await page.getByLabel('How term 1 matches').selectOption('phrase')
+  await chooseOption(page.getByLabel('How term 1 matches'), 'Anywhere, even inside a word')
   await page.getByRole('button', { name: 'Save brand voice' }).click()
   await expect(page.getByText('Brand voice saved.')).toBeVisible()
 
   await page.reload()
   await expect(page.getByLabel('Term 1', { exact: true })).toHaveValue('guaranteed')
   await expect(page.getByLabel('Reason for term 1')).toHaveValue('Legal does not allow promises')
-  await expect(page.getByLabel('How term 1 matches')).toHaveValue('phrase')
+  await expect(page.getByLabel('How term 1 matches')).toHaveText('Anywhere, even inside a word')
 
   await openWorkspaceSetting(page, 'Product pages')
   await page.getByLabel('Name', { exact: true }).fill('Billing')

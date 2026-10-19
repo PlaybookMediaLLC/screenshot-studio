@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
+import { Button } from '../components/ui/button';
 import { ExportPresetsSection, exportPresets } from '../components/editor/sections/ExportPresetsSection';
 import { predefinedPresets } from '../components/editor/sections/QuickTemplatesSection';
 import { themes } from '../components/editor/sections/ScreenshotDesignSection';
@@ -13,7 +14,7 @@ import { getClipLocalInterpolatedProperties } from '../lib/animation/interpolati
 
 function buttons(node: React.ReactNode): React.ReactElement<{ onClick: () => void }>[] {
   if (!React.isValidElement<{ children?: React.ReactNode }>(node)) return [];
-  if (node.type === 'button') return [node as React.ReactElement<{ onClick: () => void }>];
+  if (node.type === Button) return [node as React.ReactElement<{ onClick: () => void }>];
   return React.Children.toArray(node.props.children).flatMap(buttons);
 }
 

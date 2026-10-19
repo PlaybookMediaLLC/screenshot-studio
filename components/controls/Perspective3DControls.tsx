@@ -2,9 +2,9 @@
 
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
-import { Slider } from '@/components/ui/slider';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils';
 import { ShadowControls } from '@/components/controls/ShadowControls';
 
@@ -299,7 +299,7 @@ export function Perspective3DControls() {
         {PRESETS.map((preset, index) => {
           const isSelected = selectedPresetIndex === index;
           return (
-            <button
+            <Button variant="custom" size={null}
               key={preset.name}
               onClick={() => applyPreset(preset, index)}
               className={cn(
@@ -313,7 +313,7 @@ export function Perspective3DControls() {
                 className="w-16 h-16 bg-background"
                 style={getTransformStyle(preset)}
               />
-            </button>
+            </Button>
           );
         })}
       </div>

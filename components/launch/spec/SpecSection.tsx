@@ -23,6 +23,8 @@ import {
   type TextSection,
 } from '@/lib/launch/spec-text'
 import { Citations, type SourceIndex } from './citations'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 export type EditableSection = Exclude<SpecSectionKey, 'openQuestions'>
 
@@ -324,13 +326,13 @@ function SectionEditor({
     >
       {fields.map((field) => (
         <div className="flex flex-col gap-1.5" key={field.key}>
-          <label className="text-sm font-medium text-white" htmlFor={`${id}-${field.key}`}>
+          <Label className="text-sm font-medium text-white" htmlFor={`${id}-${field.key}`}>
             {field.label}
-          </label>
+          </Label>
           <p className="text-xs text-neutral-500" id={`${id}-${field.key}-help`}>
             {field.help}
           </p>
-          <textarea
+          <Textarea
             aria-describedby={`${id}-${field.key}-help${errors.length > 0 ? ` ${id}-errors` : ''}`}
             aria-invalid={errors.length > 0 || undefined}
             className="mt-1 min-h-24 w-full rounded-lg bg-white/[0.03] px-3 py-2 font-mono text-[13px] leading-6 text-neutral-100 ring-1 ring-white/[0.08] outline-none [field-sizing:content] focus:ring-white/25 aria-invalid:ring-red-500/40"

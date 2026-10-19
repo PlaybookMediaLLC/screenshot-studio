@@ -39,6 +39,7 @@ import { applyPresetTo, type DesignPreset } from '@/lib/presets/preset'
 import { useImageStore } from '@/lib/store'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { SectionWrapper } from '../sections/SectionWrapper'
+import { Button } from '@/components/ui/button'
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'That did not work. Try again.'
@@ -84,7 +85,7 @@ export function PresetLibrarySection() {
     <SectionWrapper
       action={
         session ? (
-          <button
+          <Button variant="custom" size={null}
             aria-label="Save design as preset"
             className="flex h-6 items-center gap-1 rounded-md bg-muted/60 px-2 text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             onClick={() => setSaving(true)}
@@ -92,7 +93,7 @@ export function PresetLibrarySection() {
           >
             <PlusSignIcon size={10} />
             Save
-          </button>
+          </Button>
         ) : null
       }
       title="My presets"
@@ -115,7 +116,7 @@ export function PresetLibrarySection() {
         <ul aria-label="Saved presets" className="grid grid-cols-2 gap-1.5">
           {presets.map((preset) => (
             <li className="group relative" key={preset.id}>
-              <button
+              <Button variant="custom" size={null}
                 aria-label={`Apply preset ${preset.name}`}
                 className="w-full overflow-hidden rounded-md border border-foreground/10 text-left transition-colors hover:border-foreground/25 disabled:opacity-60"
                 disabled={busy !== null}
@@ -131,7 +132,7 @@ export function PresetLibrarySection() {
                 <p className="truncate px-1.5 py-1 pr-6 text-[10px] font-medium text-muted-foreground group-hover:text-foreground">
                   {preset.name}
                 </p>
-              </button>
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger
                   aria-label={`${preset.name} options`}

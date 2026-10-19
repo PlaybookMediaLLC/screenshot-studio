@@ -14,6 +14,8 @@ import {
   toggleTarget,
 } from '@/lib/export/sizes'
 import { cn } from '@/lib/utils'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 
 /** The preset groups shown in the picker, in order. */
 const PICKER_GROUPS = sizeGroupSchema.options.filter(
@@ -55,7 +57,7 @@ export function SizePicker({
   const option = (target: ExportTarget) => {
     const id = `size-${target.id}`
     return (
-      <label
+      <Label
         className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-foreground/[0.05]"
         htmlFor={id}
         key={target.id}
@@ -69,7 +71,7 @@ export function SizePicker({
         <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
           {target.width}×{target.height}
         </span>
-      </label>
+      </Label>
     )
   }
 
@@ -79,13 +81,13 @@ export function SizePicker({
         <span className="text-sm font-medium text-foreground">Sizes</span>
         <Popover onOpenChange={setOpen} open={open}>
           <PopoverTrigger asChild>
-            <button
+            <Button variant="custom" size={null}
               className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
               type="button"
             >
               <Add01Icon size={13} />
               Add sizes
-            </button>
+            </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72 p-0" collisionPadding={16} side="left">
             <div
@@ -132,12 +134,12 @@ export function SizePicker({
                   placeholder="Height"
                   value={custom.height}
                 />
-                <button
+                <Button variant="custom" size={null}
                   className="h-8 shrink-0 cursor-pointer rounded-md bg-foreground px-2.5 text-xs font-medium text-background hover:opacity-90"
                   type="submit"
                 >
                   Add
-                </button>
+                </Button>
               </div>
               {customError ? (
                 <p className="text-[11px] text-destructive" role="alert">
@@ -165,14 +167,14 @@ export function SizePicker({
               <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
                 {target.width}×{target.height}
               </span>
-              <button
+              <Button variant="custom" size={null}
                 aria-label={`Remove ${target.label}`}
                 className="grid size-5 cursor-pointer place-items-center rounded text-muted-foreground hover:bg-foreground/[0.08] hover:text-foreground"
                 onClick={() => onChange(toggleTarget(value, target))}
                 type="button"
               >
                 <Cancel01Icon size={11} />
-              </button>
+              </Button>
             </li>
           ))}
         </ul>

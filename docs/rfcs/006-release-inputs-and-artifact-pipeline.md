@@ -2,6 +2,7 @@
 
 **Status:** Partially implemented
 **Status note (2026-10-16):** Release intake, private R2 asset storage, and launch drafts shipped. Capture uses Microlink for screenshots and Cloudflare Browser Rendering for design renders, not Steel Browser. Background work runs on Temporal or Next.js `after()`, not Trigger.dev.
+**Implementation update (2026-10-19):** [Release automation](../release-automation.md) adds explicit published-release, merged-PR, and successful-deployment definitions. Historical imports never run marketing actions; automated change association uses explicit PR evidence and provider occurrence cutoffs, including late arrivals.
 **Date:** 2026-08-13
 **Depends on:** RFC 001, RFC 002, RFC 003, RFC 004, and RFC 005
 **Owners:** Product, Engineering, and Security

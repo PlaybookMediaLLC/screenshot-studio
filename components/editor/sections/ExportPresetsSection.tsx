@@ -4,6 +4,7 @@ import * as React from "react";
 import { SectionWrapper } from "./SectionWrapper";
 import { useImageStore } from "@/lib/store";
 import { toast } from "sonner";
+import { Button } from '@/components/ui/button'
 
 export const exportPresets = [
   { id: "chrome-web-store", name: "Chrome Web Store", platform: "Extension", width: 1280, height: 800 },
@@ -24,7 +25,7 @@ export function ExportPresetsSection() {
       <p className="mb-2 text-[10px] text-muted-foreground">Canvas size at 1×. Export scale multiplies these dimensions.</p>
       <div className="grid grid-cols-2 gap-1.5">
         {exportPresets.map((preset) => (
-          <button
+          <Button variant="custom" size={null}
             key={preset.id}
             onClick={() => {
               useImageStore.getState().setCustomDimensions(preset.width, preset.height);
@@ -41,7 +42,7 @@ export function ExportPresetsSection() {
               {preset.name}
             </p>
             <p className="text-[9px] text-muted-foreground">{preset.width}×{preset.height}</p>
-          </button>
+          </Button>
         ))}
       </div>
     </SectionWrapper>

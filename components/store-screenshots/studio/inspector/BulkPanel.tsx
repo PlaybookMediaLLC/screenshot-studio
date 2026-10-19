@@ -11,6 +11,7 @@ import { useEditor, useEditorApi } from '../editor-store'
 import { BackgroundField } from './BackgroundField'
 import { FontPicker } from './FontPicker'
 import { WEIGHT_OPTIONS } from './TextPanel'
+import { Button } from '@/components/ui/button'
 
 /**
  * Bulk editing for several selected slides. Each control writes one
@@ -31,12 +32,12 @@ export function BulkPanel(): React.JSX.Element {
   return (
     <>
       <Section title={`${count} slides selected`} description="Changes here apply to the selected slides only and undo as one step.">
-        <button type="button" onClick={() => actions.openDialog('applyStyle')} className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+        <Button variant="custom" size={null} type="button" onClick={() => actions.openDialog('applyStyle')} className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
           Copy style from the active slide…
-        </button>
-        <button type="button" onClick={() => actions.openDialog('brandKits')} className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+        </Button>
+        <Button variant="custom" size={null} type="button" onClick={() => actions.openDialog('brandKits')} className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
           Apply a brand kit…
-        </button>
+        </Button>
       </Section>
       <Section title="Background">
         <BackgroundField
@@ -119,13 +120,13 @@ export function BulkPanel(): React.JSX.Element {
           options={[{ value: '', label: 'Choose…' }, ...deviceStyleSchema.options.map((style) => ({ value: style, label: DEVICE_STYLE_LABELS[style] }))]}
           onChange={(style) => style && api.getState().dispatch({ type: 'slides.patchDevices', slideIds: selected, frame: { style } })}
         />
-        <button
+        <Button variant="custom" size={null}
           type="button"
           onClick={() => api.getState().dispatch({ type: 'slides.patchDevices', slideIds: selected, transform: { offsetX: 0, offsetY: 0, scale: 1, rotation: 0, tiltX: 0, tiltY: 0 } })}
           className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]"
         >
           Reset device positions on {count} slides
-        </button>
+        </Button>
       </Section>
     </>
   )

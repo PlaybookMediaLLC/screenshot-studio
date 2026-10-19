@@ -8,6 +8,8 @@
 
 import { cn } from '@/lib/utils';
 import { LockIcon } from 'hugeicons-react';
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 
 interface ScaleSliderProps {
   scale: number;
@@ -23,12 +25,12 @@ const RESOLUTION_PRESETS = [
 export function ScaleSlider({ scale, onScaleChange }: ScaleSliderProps) {
   return (
     <div className="space-y-3">
-      <label className="text-sm font-medium text-foreground">Resolution</label>
+      <Label className="text-sm font-medium text-foreground">Resolution</Label>
       <div className="flex gap-0.5 p-0.5 border border-foreground/10 bg-foreground/[0.04] rounded-md">
         {RESOLUTION_PRESETS.map((preset) => {
           const isSelected = preset.scale === scale;
           return (
-            <button
+            <Button variant="custom" size={null}
               key={preset.scale}
               type="button"
               onClick={() => onScaleChange(preset.scale)}
@@ -64,7 +66,7 @@ export function ScaleSlider({ scale, onScaleChange }: ScaleSliderProps) {
                   <LockIcon size={11} />
                 </span>
               ) : null}
-            </button>
+            </Button>
           );
         })}
       </div>

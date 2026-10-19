@@ -1,8 +1,9 @@
 'use client';
 
-import { SegmentedControl } from '@/components/ui/segmented-control';
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import type { ExportFormat, QualityPreset } from '@/lib/export/types';
 import { QUALITY_PRESET_LABELS } from '@/lib/export/types';
+import { Label } from '@/components/ui/label'
 
 interface QualityPresetSelectorProps {
   qualityPreset: QualityPreset;
@@ -21,7 +22,7 @@ export function QualityPresetSelector({
 
   return (
     <div className="space-y-3">
-      <label className="text-sm font-medium text-foreground">Quality</label>
+      <Label className="text-sm font-medium text-foreground">Quality</Label>
       <SegmentedControl
         value={qualityPreset}
         onChange={(id) => onQualityPresetChange(id as QualityPreset)}

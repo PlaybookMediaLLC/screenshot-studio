@@ -2,6 +2,7 @@
 
 import { useImageStore } from '@/lib/store'
 import { useResponsiveCanvasDimensions } from '@/hooks/useAspectRatioDimensions'
+import { Button } from '@/components/ui/button'
 
 const OVERLAY_SHADOW_IDS = [
   '023', '001', '002', '007', '017', '019', '031', '037', '041', '050',
@@ -58,14 +59,14 @@ export function OverlayShadowsGallery() {
         <div
           className="grid grid-cols-4 gap-2"
         >
-          <button
+          <Button variant="custom" size={null}
             onClick={handleRemoveShadows}
             className="flex items-center justify-center w-16 h-9 text-xs text-muted-foreground cursor-pointer hover:scale-105 transition-all duration-200"
           >
             None
-          </button>
+          </Button>
           {OVERLAY_SHADOW_URLS.map((shadowUrl, index) => (
-            <button
+            <Button variant="custom" size={null}
               key={index}
               onClick={() => handleAddShadow(shadowUrl)}
               className="block w-16 h-9 shrink-0 cursor-pointer transition-all duration-200 hover:scale-105 rounded-sm bg-muted"
@@ -77,7 +78,7 @@ export function OverlayShadowsGallery() {
                 className="w-full h-full object-cover rounded-sm"
                 loading="lazy"
               />
-            </button>
+            </Button>
           ))}
         </div>
       </div>

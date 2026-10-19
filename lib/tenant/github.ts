@@ -6,10 +6,10 @@ import { type OrganizationAccess, requireActiveOrganizationPermission } from '@/
 import { getAuthBaseUrl } from '@/lib/auth/environment'
 import { backendSDK, serviceBackend } from '@/lib/backend/sdk'
 import { githubChoiceStateSchema, githubInstallationChoiceSchema } from './github-choices'
-import { getWebhookIntent, ingestWebhookIntent, verifyWebhookSignature } from './webhooks'
+import { verifyWebhookSignature } from './webhooks'
 
 /** Where users return in the app after connecting GitHub. */
-const SETTINGS_PATH = '/workspace/developers'
+const SETTINGS_PATH = '/workspace/release-automation'
 
 /** The outcome shown on the settings page after a connection attempt. */
 export const githubConnectOutcomeSchema = z.enum([
@@ -208,11 +208,6 @@ const installationRepositoriesSchema = z.object({
   repositories_removed: z.array(z.object({ id: z.number().int().positive() })).nullish(),
 })
 
-const repositoryEventSchema = z.object({
-  installation: z.object({ id: z.number().int().positive() }),
-  repository: z.object({ id: z.number().int().positive() }),
-})
-
 /** GitHub installation lifecycle actions and the state each leaves. */
 const installationStatus = {
   deleted: 'DELETED',
@@ -263,30 +258,11 @@ export async function handleGitHubAppDelivery(input: {
       return { handled: result.archived }
     }
     default: {
-      const { installation, repository } = repositoryEventSchema.parse(payload)
-      const { sources } = await backend.getGitHubSources(installation.id, repository.id)
-      let handled = 0
-      for (const source of sources) {
-        const intent = getWebhookIntent({
-          body: input.body,
-          contentType: 'application/json',
-          deliveryId: input.deliveryId,
-          eventName: input.eventName,
-          source: {
-            branch: source.branch,
-            externalId: source.externalId,
-            ignoreBotPullRequests: source.ignoreBotPullRequests ?? true,
-            ignoredPullRequestAuthors: source.ignoredPullRequestAuthors ?? [],
-            provider: 'github',
-            skipPrereleases: source.skipPrereleases ?? false,
-          },
-        })
-        if (intent) {
-          await ingestWebhookIntent({ deliveryId: input.deliveryId, intent, source })
-          handled += 1
-        }
-      }
-      return { handled }
+      return backend.acceptGitHubEvent({
+        body: payload,
+        deliveryId: input.deliveryId,
+        eventName: event.data,
+      })
     }
   }
 }

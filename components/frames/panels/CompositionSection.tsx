@@ -21,6 +21,7 @@ import { COMPOSITION_LAYOUTS, compositionLayoutSchema } from '@/lib/frames/layou
 import { useEditorDocument } from '@/lib/design/use-editor-document'
 import { useImageStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
 
 /**
  * Several screenshots in one composition: add screenshots or code, and lay
@@ -92,7 +93,7 @@ export function CompositionSection() {
             <CodeIcon size={14} /> Add code
           </Button>
         </div>
-        <input
+        <Input
           accept={ALLOWED_IMAGE_TYPES.join(',')}
           aria-label="Add screenshots"
           className="hidden"
@@ -111,7 +112,7 @@ export function CompositionSection() {
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-foreground">Layout</span>
               {activeLayout ? (
-                <button
+                <Button variant="custom" size={null}
                   className="flex min-h-6 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     const composition = compositionLayoutSchema.safeParse(activeLayout)
@@ -121,12 +122,12 @@ export function CompositionSection() {
                   type="button"
                 >
                   <RotateClockwiseIcon size={12} /> Reset
-                </button>
+                </Button>
               ) : null}
             </div>
             <div className="grid grid-cols-2 gap-1.5" role="group" aria-label="Composition layouts">
               {compositionLayoutSchema.options.map((layout) => (
-                <button
+                <Button variant="custom" size={null}
                   aria-label={`${COMPOSITION_LAYOUTS[layout].name} layout`}
                   aria-pressed={activeLayout === layout}
                   className="group flex min-w-0 flex-col gap-1 text-left"
@@ -155,12 +156,12 @@ export function CompositionSection() {
                   <span className="px-0.5 text-[10px] leading-tight text-muted-foreground">
                     {COMPOSITION_LAYOUTS[layout].name}
                   </span>
-                </button>
+                </Button>
               ))}
             </div>
             <div className="grid grid-cols-2 gap-1.5" role="group" aria-label="Device layouts">
               {DEVICE_LAYOUTS.map((layout) => (
-                <button
+                <Button variant="custom" size={null}
                   aria-pressed={activeLayout === layout.id}
                   className={cn(
                     'min-h-8 rounded-md border px-2 py-1.5 text-left text-xs leading-tight transition-colors max-[768px]:min-h-11 disabled:cursor-not-allowed disabled:opacity-35',
@@ -175,7 +176,7 @@ export function CompositionSection() {
                   type="button"
                 >
                   {layout.name}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

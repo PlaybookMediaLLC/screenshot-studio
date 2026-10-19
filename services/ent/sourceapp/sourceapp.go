@@ -34,6 +34,10 @@ const (
 	FieldIgnoredPullRequestAuthors = "ignoredPullRequestAuthors"
 	// FieldSkipPrereleases holds the string denoting the skip_prereleases field in the database.
 	FieldSkipPrereleases = "skipPrereleases"
+	// FieldReleaseAutomation holds the string denoting the release_automation field in the database.
+	FieldReleaseAutomation = "releaseAutomation"
+	// FieldAutomationCollectUnmatched holds the string denoting the automation_collect_unmatched field in the database.
+	FieldAutomationCollectUnmatched = "automationCollectUnmatched"
 	// FieldGithubInstallationID holds the string denoting the github_installation_id field in the database.
 	FieldGithubInstallationID = "githubInstallationId"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -59,6 +63,8 @@ var Columns = []string{
 	FieldIgnoreBotPullRequests,
 	FieldIgnoredPullRequestAuthors,
 	FieldSkipPrereleases,
+	FieldReleaseAutomation,
+	FieldAutomationCollectUnmatched,
 	FieldGithubInstallationID,
 	FieldStatus,
 	FieldCreatedAt,
@@ -84,6 +90,10 @@ var (
 	DefaultIgnoredPullRequestAuthors []string
 	// DefaultSkipPrereleases holds the default value on creation for the "skip_prereleases" field.
 	DefaultSkipPrereleases bool
+	// DefaultReleaseAutomation holds the default value on creation for the "release_automation" field.
+	DefaultReleaseAutomation bool
+	// DefaultAutomationCollectUnmatched holds the default value on creation for the "automation_collect_unmatched" field.
+	DefaultAutomationCollectUnmatched bool
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -165,6 +175,16 @@ func ByIgnoreBotPullRequests(opts ...sql.OrderTermOption) OrderOption {
 // BySkipPrereleases orders the results by the skip_prereleases field.
 func BySkipPrereleases(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSkipPrereleases, opts...).ToFunc()
+}
+
+// ByReleaseAutomation orders the results by the release_automation field.
+func ByReleaseAutomation(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReleaseAutomation, opts...).ToFunc()
+}
+
+// ByAutomationCollectUnmatched orders the results by the automation_collect_unmatched field.
+func ByAutomationCollectUnmatched(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAutomationCollectUnmatched, opts...).ToFunc()
 }
 
 // ByGithubInstallationID orders the results by the github_installation_id field.

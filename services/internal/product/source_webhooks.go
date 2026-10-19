@@ -36,10 +36,12 @@ type WebhookSource struct {
 }
 
 type IngestSourceReleaseInput struct {
-	Audience         *string `json:"audience"`
-	BenefitStatement string  `json:"benefitStatement"`
-	Description      *string `json:"description"`
-	EventID          string  `json:"eventId"`
+	// Only the internal automation activity supplies explicit membership evidence.
+	automationAssociation *sourceReleaseAssociation
+	Audience              *string `json:"audience"`
+	BenefitStatement      string  `json:"benefitStatement"`
+	Description           *string `json:"description"`
+	EventID               string  `json:"eventId"`
 	// Notes are the release notes in full; features and linked PRs are read from them.
 	Notes *string `json:"notes"`
 	// RepositoryID scopes which collected changes the release takes; RepositoryName
@@ -49,6 +51,11 @@ type IngestSourceReleaseInput struct {
 	SourceAppID    string   `json:"sourceAppId"`
 	SourceURLs     []string `json:"sourceUrls"`
 	Title          string   `json:"title"`
+}
+
+type sourceReleaseAssociation struct {
+	Numbers []int
+	Cutoff  time.Time
 }
 
 type SourceReleaseIngest struct {
@@ -101,7 +108,7 @@ func ignoresAuthor(source *ent.SourceApp, login string) bool {
 // the source's collected changes, its outbox event, and the audit record in
 // one transaction; a replayed event returns the release it created.
 func (c *Configuration) IngestSourceRelease(ctx context.Context, actor Actor, input IngestSourceReleaseInput) (*SourceReleaseIngest, error) {
-	if actor.Kind != "webhook" {
+	if actor.Kind != "webhook" && !(actor.Kind == "service" && input.automationAssociation != nil) {
 		return nil, publishing.ErrForbidden
 	}
 	if err := c.authorizeRoles(ctx, actor); err != nil {
@@ -142,13 +149,18 @@ func (c *Configuration) ingestSourceRelease(ctx context.Context, actor Actor, in
 		return nil, err
 	}
 	defer tx.Rollback()
-	source, err := tx.SourceApp.Query().Where(sourceapp.ID(input.SourceAppID),
-		sourceapp.OrganizationID(actor.OrganizationID), sourceapp.StatusEQ(sourceapp.StatusACTIVE)).Only(ctx)
+	source, err := lockAutomationSource(ctx, tx, actor.OrganizationID, input.SourceAppID)
 	if ent.IsNotFound(err) {
 		return nil, publishing.ErrNotFound
 	}
 	if err != nil {
 		return nil, err
+	}
+	if source.Status != sourceapp.StatusACTIVE {
+		return nil, publishing.ErrNotFound
+	}
+	if source.ReleaseAutomation && input.automationAssociation == nil {
+		return nil, conflict("This source uses release automation; legacy release intake is disabled.")
 	}
 	existing, err := tx.OutboxEvent.Query().Where(outboxevent.OrganizationID(actor.OrganizationID),
 		outboxevent.IdempotencyKey(key)).Only(ctx)
@@ -164,6 +176,11 @@ func (c *Configuration) ingestSourceRelease(ctx context.Context, actor Actor, in
 		return nil, err
 	}
 	payload := map[string]any{"releaseId": id, "sourceAppId": input.SourceAppID}
+	if evidence := input.automationAssociation; evidence != nil {
+		payload["associationNumbers"] = evidence.Numbers
+		payload["associationCutoff"] = evidence.Cutoff.Format(time.RFC3339Nano)
+		payload["associationRepository"] = optionalText(input.RepositoryID)
+	}
 	// A GitHub release keeps its ID, so the worker can read its signed screenshots.
 	if parts := strings.Split(input.EventID, ":"); len(parts) == 3 && parts[0] == "release" {
 		if releaseID, err := strconv.ParseInt(parts[2], 10, 64); err == nil {
@@ -188,6 +205,9 @@ func (c *Configuration) ingestSourceRelease(ctx context.Context, actor Actor, in
 		sourcechange.SourceAppID(source.ID), sourcechange.ReleaseIDIsNil())
 	if input.RepositoryID != nil {
 		attach.Where(sourcechange.RepositoryID(*input.RepositoryID))
+	}
+	if evidence := input.automationAssociation; evidence != nil {
+		attach.Where(sourcechange.NumberIn(evidence.Numbers...), sourcechange.MergedAtLTE(evidence.Cutoff))
 	}
 	if _, err = attach.SetReleaseID(id).Save(ctx); err != nil {
 		return nil, err
@@ -225,6 +245,9 @@ func releaseFeatures(ctx context.Context, tx *ent.Tx, source *ent.SourceApp, inp
 		sourcechange.SourceAppID(source.ID), sourcechange.ReleaseIDIsNil())
 	if input.RepositoryID != nil {
 		pending.Where(sourcechange.RepositoryID(*input.RepositoryID))
+	}
+	if evidence := input.automationAssociation; evidence != nil {
+		pending.Where(sourcechange.NumberIn(evidence.Numbers...), sourcechange.MergedAtLTE(evidence.Cutoff))
 	}
 	changes, err := pending.Order(ent.Asc(sourcechange.FieldMergedAt)).All(ctx)
 	if err != nil {
@@ -307,12 +330,11 @@ func (c *Configuration) collectSourceChange(ctx context.Context, actor Actor, in
 		return nil, err
 	}
 	defer tx.Rollback()
-	active, err := tx.SourceApp.Query().Where(sourceapp.ID(input.SourceAppID),
-		sourceapp.OrganizationID(actor.OrganizationID), sourceapp.StatusEQ(sourceapp.StatusACTIVE)).Exist(ctx)
+	source, err := lockAutomationSource(ctx, tx, actor.OrganizationID, input.SourceAppID)
 	if err != nil {
 		return nil, err
 	}
-	if !active {
+	if source.Status != sourceapp.StatusACTIVE {
 		return nil, publishing.ErrNotFound
 	}
 	existing, err := tx.SourceChange.Query().Where(sourcechange.OrganizationID(actor.OrganizationID),
@@ -329,6 +351,9 @@ func (c *Configuration) collectSourceChange(ctx context.Context, actor Actor, in
 		SetRepositoryID(input.RepositoryID).SetNumber(input.Number).SetTitle(input.Title).SetBody(input.Body).
 		SetURL(input.URL).SetNillableAuthorLogin(input.AuthorLogin).SetLabels(input.Labels).
 		SetImageUrls(releasenotes.Images(input.Body)).SetMergedAt(input.MergedAt).Save(ctx); err != nil {
+		return nil, err
+	}
+	if err := associateLateSourceChange(ctx, tx, actor, source, input, id); err != nil {
 		return nil, err
 	}
 	if _, err = tx.OutboxEvent.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).

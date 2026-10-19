@@ -38,6 +38,10 @@ type SourceApp struct {
 	IgnoredPullRequestAuthors []string `json:"ignored_pull_request_authors,omitempty"`
 	// SkipPrereleases holds the value of the "skip_prereleases" field.
 	SkipPrereleases bool `json:"skip_prereleases,omitempty"`
+	// ReleaseAutomation holds the value of the "release_automation" field.
+	ReleaseAutomation bool `json:"release_automation,omitempty"`
+	// AutomationCollectUnmatched holds the value of the "automation_collect_unmatched" field.
+	AutomationCollectUnmatched bool `json:"automation_collect_unmatched,omitempty"`
 	// GithubInstallationID holds the value of the "github_installation_id" field.
 	GithubInstallationID *string `json:"github_installation_id,omitempty"`
 	// Status holds the value of the "status" field.
@@ -56,7 +60,7 @@ func (*SourceApp) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case sourceapp.FieldAllowedHosts, sourceapp.FieldIgnoredPullRequestAuthors:
 			values[i] = new([]byte)
-		case sourceapp.FieldIgnoreBotPullRequests, sourceapp.FieldSkipPrereleases:
+		case sourceapp.FieldIgnoreBotPullRequests, sourceapp.FieldSkipPrereleases, sourceapp.FieldReleaseAutomation, sourceapp.FieldAutomationCollectUnmatched:
 			values[i] = new(sql.NullBool)
 		case sourceapp.FieldID, sourceapp.FieldOrganizationID, sourceapp.FieldName, sourceapp.FieldProvider, sourceapp.FieldExternalID, sourceapp.FieldSecretReference, sourceapp.FieldBranch, sourceapp.FieldGithubInstallationID, sourceapp.FieldStatus:
 			values[i] = new(sql.NullString)
@@ -149,6 +153,18 @@ func (_m *SourceApp) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field skip_prereleases", values[i])
 			} else if value.Valid {
 				_m.SkipPrereleases = value.Bool
+			}
+		case sourceapp.FieldReleaseAutomation:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field release_automation", values[i])
+			} else if value.Valid {
+				_m.ReleaseAutomation = value.Bool
+			}
+		case sourceapp.FieldAutomationCollectUnmatched:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field automation_collect_unmatched", values[i])
+			} else if value.Valid {
+				_m.AutomationCollectUnmatched = value.Bool
 			}
 		case sourceapp.FieldGithubInstallationID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -243,6 +259,12 @@ func (_m *SourceApp) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("skip_prereleases=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SkipPrereleases))
+	builder.WriteString(", ")
+	builder.WriteString("release_automation=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ReleaseAutomation))
+	builder.WriteString(", ")
+	builder.WriteString("automation_collect_unmatched=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AutomationCollectUnmatched))
 	builder.WriteString(", ")
 	if v := _m.GithubInstallationID; v != nil {
 		builder.WriteString("github_installation_id=")

@@ -29,6 +29,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 interface NavigationProps {
   brandName?: string
@@ -275,7 +276,7 @@ export function Navigation({ brandName = 'Shots' }: NavigationProps) {
             onMouseEnter={scheduleOpenResources}
             onMouseLeave={closeResources}
           >
-            <button
+            <Button variant="custom" size={null}
               type="button"
               aria-expanded={resourcesOpen}
               aria-haspopup="true"
@@ -293,7 +294,7 @@ export function Navigation({ brandName = 'Shots' }: NavigationProps) {
                   resourcesOpen && 'rotate-180'
                 )}
               />
-            </button>
+            </Button>
 
             <AnimatePresence>
               {resourcesOpen ? (
@@ -412,7 +413,7 @@ export function Navigation({ brandName = 'Shots' }: NavigationProps) {
           <div className="hidden md:block">
             <AccountMenu />
           </div>
-          <button
+          <Button variant="custom" size={null}
             type="button"
             className="md:hidden flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground hover:bg-muted/50"
             aria-label="Open menu"
@@ -420,7 +421,7 @@ export function Navigation({ brandName = 'Shots' }: NavigationProps) {
             onClick={() => setMobileMenuOpen(true)}
           >
             <Menu01Icon className="size-5" />
-          </button>
+          </Button>
         </div>
       </motion.div>
 

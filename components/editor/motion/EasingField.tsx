@@ -4,6 +4,15 @@ import * as React from 'react'
 import { EASING_BEZIERS, easeProgress, formatBezier } from '@/lib/animation/bezier'
 import { type CubicBezier, easingSchema, type EasingName } from '@/lib/animation/motion-schema'
 import { cn } from '@/lib/utils'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 
 /** An easing as motion stores it: a named curve, or a custom curve that wins. */
 export type EasingValue = { bezier?: CubicBezier; easing: EasingName }
@@ -106,26 +115,32 @@ export function EasingField({
   return (
     <div className="space-y-2" data-easing-field="">
       <div className="flex items-center justify-between gap-2">
-        <label className="text-xs text-muted-foreground" htmlFor={selectId}>
+        <Label className="text-xs text-muted-foreground" htmlFor={selectId}>
           {label}
-        </label>
-        <select
-          className="h-7 rounded-md border border-foreground/10 bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-          id={selectId}
-          onChange={(event) => {
-            const next = event.target.value
+        </Label>
+        <Select
+          onValueChange={(nextValue) => {
+            const next = nextValue
             if (next === 'custom') onChange({ bezier: curve, easing: value.easing })
             else onChange({ bezier: null, easing: easingSchema.parse(next) })
           }}
           value={custom ? 'custom' : value.easing}
         >
-          {easingSchema.options.map((name) => (
-            <option key={name} value={name}>
-              {EASING_LABELS[name]}
-            </option>
-          ))}
-          <option value="custom">Custom curve</option>
-        </select>
+          <SelectTrigger
+            className="h-7 rounded-md border border-foreground/10 bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+            id={selectId}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {easingSchema.options.map((name) => (
+              <SelectItem key={name} value={name}>
+                {EASING_LABELS[name]}
+              </SelectItem>
+            ))}
+            <SelectItem value="custom">Custom curve</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <svg
@@ -199,9 +214,9 @@ export function EasingField({
 
       <div className="grid grid-cols-4 gap-1.5">
         {(['x1', 'y1', 'x2', 'y2'] as const).map((key) => (
-          <label className="space-y-0.5" key={key}>
+          <Label className="block space-y-0.5" key={key}>
             <span className="block text-[10px] uppercase text-muted-foreground">{key}</span>
-            <input
+            <Input
               aria-label={`Bézier ${key}`}
               className="h-7 w-full rounded-md border border-foreground/10 bg-background px-1.5 text-xs tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
               max={key.startsWith('x') ? 1 : 3}
@@ -219,7 +234,7 @@ export function EasingField({
               type="number"
               value={curve[key]}
             />
-          </label>
+          </Label>
         ))}
       </div>
     </div>

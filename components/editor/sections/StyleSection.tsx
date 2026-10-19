@@ -2,9 +2,10 @@
 
 import * as React from 'react';
 import { useImageStore, type ImageStylePreset } from '@/lib/store';
-import { Slider } from '@/components/ui/slider';
+import { Slider } from '@/components/ui/slider'
 import { SectionWrapper } from './SectionWrapper';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button'
 
 const stylePresets: { value: ImageStylePreset; label: string }[] = [
   { value: 'default', label: 'Default' },
@@ -93,7 +94,7 @@ export function StyleSection() {
           {stylePresets.map(({ value, label }) => {
             const isSelected = imageStylePreset === value;
             return (
-              <button
+              <Button variant="custom" size={null}
                 key={value}
                 type="button"
                 onClick={() => setImageStylePreset(value)}
@@ -117,7 +118,7 @@ export function StyleSection() {
                 >
                   {label}
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>

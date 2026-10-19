@@ -17,6 +17,7 @@ import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
 import { getAuthErrorMessage } from './error-message'
 import { authInputClassName, FormAlert, SubmitButton } from './fields'
+import { Label } from '@/components/ui/label'
 
 const POLL_MS = 2_000
 
@@ -299,13 +300,13 @@ export function OnboardingProduct({
           />
         </section>
         {agentEnabled ? (
-          <button
+          <Button variant="custom" size={null}
             className="w-fit text-sm text-neutral-400 underline underline-offset-4 hover:text-white"
             onClick={() => setStage({ kind: 'url', manual: false, problem: null })}
             type="button"
           >
             Read my site instead
-          </button>
+          </Button>
         ) : null}
       </div>
     )
@@ -318,9 +319,9 @@ export function OnboardingProduct({
           Your product
         </Heading>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-300" htmlFor="product-site-url">
+          <Label className="text-sm font-medium text-neutral-300" htmlFor="product-site-url">
             Product URL
-          </label>
+          </Label>
           <Input
             className={authInputClassName}
             disabled={stage.kind === 'reading'}
@@ -333,9 +334,9 @@ export function OnboardingProduct({
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-300" htmlFor="product-site-sentence">
+          <Label className="text-sm font-medium text-neutral-300" htmlFor="product-site-sentence">
             In one sentence, what does it do? <span className="text-neutral-500">(optional)</span>
-          </label>
+          </Label>
           <Input
             className={authInputClassName}
             disabled={stage.kind === 'reading'}
@@ -356,7 +357,7 @@ export function OnboardingProduct({
           Read my site
         </SubmitButton>
         {stage.kind === 'url' && !stage.manual ? (
-          <button
+          <Button variant="custom" size={null}
             className="w-fit text-sm text-neutral-400 underline underline-offset-4 hover:text-white"
             onClick={() => {
               trackOnboarding('onboarding_product_started', { path: 'manual' })
@@ -365,7 +366,7 @@ export function OnboardingProduct({
             type="button"
           >
             Describe it yourself instead
-          </button>
+          </Button>
         ) : null}
       </form>
       {stage.kind === 'url' && stage.manual ? (

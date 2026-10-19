@@ -1,5 +1,7 @@
 'use client'
 
+import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts'
+
 import * as React from 'react'
 import { z } from 'zod'
 import type { LayerOwner } from '@/lib/store-screenshots/commands/schema'
@@ -15,6 +17,8 @@ import { SlideRender } from '../../render/SlideRender'
 import { ownerLayers, useEditor, useEditorApi } from '../editor-store'
 import { CropOverlay } from './CropOverlay'
 import { InlineTextEditor } from './InlineTextEditor'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 /**
  * The editing canvas. The slide is drawn by the shared renderer at export
@@ -237,7 +241,7 @@ export function EditorCanvas({ onFiles }: EditorCanvasProps): React.JSX.Element 
 
   React.useEffect(() => {
     const down = (event: KeyboardEvent) => {
-      if (event.code === 'Space' && !(event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || (event.target as HTMLElement)?.isContentEditable)) {
+      if (event.code === 'Space' && !shouldIgnoreEditorShortcut(event)) {
         setSpaceHeld(true)
       }
     }
@@ -599,7 +603,7 @@ export function EditorCanvas({ onFiles }: EditorCanvasProps): React.JSX.Element 
         </svg>
         {single && singleOutline
           ? singleOutline.map((corner, cornerIndex) => (
-              <button
+              <Button variant="custom" size={null}
                 key={cornerIndex}
                 type="button"
                 data-store-canvas-control="resize"
@@ -612,7 +616,7 @@ export function EditorCanvas({ onFiles }: EditorCanvasProps): React.JSX.Element 
             ))
           : null}
         {single && rotateHandle ? (
-          <button
+          <Button variant="custom" size={null}
             type="button"
             data-store-canvas-control="rotate"
             aria-label={`Rotate ${single.name}`}
@@ -625,14 +629,14 @@ export function EditorCanvas({ onFiles }: EditorCanvasProps): React.JSX.Element 
               <path d="M21.5 2v6h-6" />
               <path d="M21.34 13.72A10 10 0 1 1 18.57 4.62L21.5 8" />
             </svg>
-          </button>
+          </Button>
         ) : null}
         {scene.nodes
           .filter((node): node is SceneDevice => node.type === 'device' && !node.assetId && !node.panorama)
           .map((node) => {
             const center = toScreen(rectCenter(node.box))
             return (
-              <button
+              <Button variant="custom" size={null}
                 key={node.layerId}
                 type="button"
                 data-store-canvas-control="add-screenshot"
@@ -644,7 +648,7 @@ export function EditorCanvas({ onFiles }: EditorCanvasProps): React.JSX.Element 
                 style={{ left: center.x, top: center.y }}
               >
                 Add screenshot
-              </button>
+              </Button>
             )
           })}
         {view.rulers ? <Rulers origin={origin} scale={scale} size={size} viewport={viewport} /> : null}
@@ -658,7 +662,7 @@ export function EditorCanvas({ onFiles }: EditorCanvasProps): React.JSX.Element 
         {locale !== document.localization.sourceLocale ? <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-sky-700 dark:text-sky-300">{locale}</span> : null}
       </div>
       <CanvasZoomBar scale={scale} fitted={zoom === null} />
-      <input
+      <Input
         ref={fileInputRef}
         type="file"
         accept="image/png,image/jpeg,image/webp"
@@ -695,16 +699,16 @@ function CanvasZoomBar({ scale, fitted }: { scale: number; fitted: boolean }): R
   const button = 'flex h-7 min-w-7 items-center justify-center rounded-md px-1.5 text-xs hover:bg-foreground/[0.07]'
   return (
     <div data-store-canvas-control="zoom" className="absolute bottom-3 right-3 z-30 flex items-center gap-0.5 rounded-lg border border-foreground/10 bg-background/95 p-0.5 shadow-sm" onPointerDown={(event) => event.stopPropagation()}>
-      <button type="button" className={button} aria-label="Zoom out" title="Zoom out (⌘−)" onClick={() => step(1 / 1.25)}>
+      <Button variant="custom" size={null} type="button" className={button} aria-label="Zoom out" title="Zoom out (⌘−)" onClick={() => step(1 / 1.25)}>
         −
-      </button>
-      <button type="button" className={cn(button, 'min-w-12 tabular-nums')} aria-label="Fit slide to screen" title="Fit to screen (⌘0)" onClick={() => api.getState().setZoom(null)}>
+      </Button>
+      <Button variant="custom" size={null} type="button" className={cn(button, 'min-w-12 tabular-nums')} aria-label="Fit slide to screen" title="Fit to screen (⌘0)" onClick={() => api.getState().setZoom(null)}>
         {fitted ? 'Fit' : `${Math.round(scale * 100)}%`}
-      </button>
-      <button type="button" className={button} aria-label="Zoom in" title="Zoom in (⌘+)" onClick={() => step(1.25)}>
+      </Button>
+      <Button variant="custom" size={null} type="button" className={button} aria-label="Zoom in" title="Zoom in (⌘+)" onClick={() => step(1.25)}>
         +
-      </button>
-      <button
+      </Button>
+      <Button variant="custom" size={null}
         type="button"
         className={button}
         aria-label="Actual size"
@@ -715,7 +719,7 @@ function CanvasZoomBar({ scale, fitted }: { scale: number; fitted: boolean }): R
         }}
       >
         1:1
-      </button>
+      </Button>
     </div>
   )
 }

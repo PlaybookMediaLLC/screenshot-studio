@@ -11,6 +11,7 @@ import {
 } from 'hugeicons-react';
 import { cn } from '@/lib/utils';
 import type { ImageOverlay } from '@/lib/store';
+import { Button } from '@/components/ui/button'
 
 interface OverlayToolbarProps {
   position: { x: number; y: number };
@@ -92,7 +93,7 @@ export function OverlayToolbar({
       }}
       onClick={(e) => e.stopPropagation()}
     >
-      <button
+      <Button variant="custom" size={null}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -102,8 +103,8 @@ export function OverlayToolbar({
         title="Rotate -45°"
       >
         <RotateLeft01Icon size={14} />
-      </button>
-      <button
+      </Button>
+      <Button variant="custom" size={null}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -113,11 +114,11 @@ export function OverlayToolbar({
         title="Rotate +45°"
       >
         <RotateRight01Icon size={14} />
-      </button>
+      </Button>
 
       <div className="mx-0.5 h-3.5 w-px bg-foreground/10" aria-hidden />
 
-      <button
+      <Button variant="custom" size={null}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -127,8 +128,8 @@ export function OverlayToolbar({
         title="Decrease size"
       >
         <MinusSignIcon size={14} />
-      </button>
-      <button
+      </Button>
+      <Button variant="custom" size={null}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -138,11 +139,11 @@ export function OverlayToolbar({
         title="Increase size"
       >
         <PlusSignIcon size={14} />
-      </button>
+      </Button>
 
       <div className="mx-0.5 h-3.5 w-px bg-foreground/10" aria-hidden />
 
-      <button
+      <Button variant="custom" size={null}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -152,11 +153,11 @@ export function OverlayToolbar({
         title="Duplicate"
       >
         <Copy01Icon size={14} />
-      </button>
+      </Button>
 
       <div className="mx-0.5 h-3.5 w-px bg-foreground/10" aria-hidden />
 
-      <button
+      <Button variant="custom" size={null}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -166,7 +167,7 @@ export function OverlayToolbar({
         title="Delete"
       >
         <Delete02Icon size={14} />
-      </button>
+      </Button>
     </div>
   );
 }

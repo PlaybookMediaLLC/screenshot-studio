@@ -11,6 +11,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaign"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
@@ -20,9 +21,11 @@ type CampaignTransition struct {
 }
 
 type CampaignPostDecision struct {
-	Decision string   `json:"decision"`
-	Note     *string  `json:"note"`
-	PostIDs  []string `json:"postIds"`
+	// An automation retry returns the transition receipt, even after a later human decision.
+	IdempotencyKey string   `json:"idempotencyKey,omitempty"`
+	Decision       string   `json:"decision"`
+	Note           *string  `json:"note"`
+	PostIDs        []string `json:"postIds"`
 }
 
 type CampaignPostTransition struct {
@@ -157,7 +160,7 @@ func postDecision(decision string) (from []campaignpost.Status, to campaignpost.
 
 func (c *Configuration) TransitionCampaignPosts(ctx context.Context, actor Actor, campaignID string, input CampaignPostDecision) (*CampaignPostTransition, error) {
 	from, to, roles, ok := postDecision(input.Decision)
-	if !ok || len(input.PostIDs) > 100 || (input.Note != nil && len(*input.Note) > 1000) {
+	if !ok || len(input.PostIDs) > 100 || (input.Note != nil && len(*input.Note) > 1000) || len(input.IdempotencyKey) > 128 || (input.IdempotencyKey != "" && input.Decision != "submit") {
 		return nil, ErrInvalidInput
 	}
 	// Approve, reject, and request changes are a person's decisions. Submit
@@ -190,6 +193,24 @@ func (c *Configuration) TransitionCampaignPosts(ctx context.Context, actor Actor
 		return nil, err
 	}
 	defer tx.Rollback()
+	if input.IdempotencyKey != "" {
+		prior, err := tx.OutboxEvent.Query().Where(outboxevent.OrganizationID(actor.OrganizationID),
+			outboxevent.IdempotencyKey("campaign-review:"+campaignID+":"+input.IdempotencyKey)).Only(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return nil, err
+		}
+		if prior != nil {
+			body, err := json.Marshal(prior.Payload["postIds"])
+			if err != nil {
+				return nil, err
+			}
+			var ids []string
+			if err := json.Unmarshal(body, &ids); err != nil {
+				return nil, err
+			}
+			return &CampaignPostTransition{PostIDs: ids, Status: string(to)}, nil
+		}
+	}
 	owned, err := tx.Campaign.Query().Where(campaign.ID(campaignID), campaign.OrganizationID(actor.OrganizationID)).Exist(ctx)
 	if err != nil {
 		return nil, err
@@ -230,7 +251,7 @@ func (c *Configuration) TransitionCampaignPosts(ctx context.Context, actor Actor
 	if count != len(ids) {
 		return nil, publishing.ErrConflict
 	}
-	if err := reviewEvent(ctx, tx, actor, campaignID, input.Decision, ids, input.Note); err != nil {
+	if err := reviewEvent(ctx, tx, actor, campaignID, input.Decision, ids, input.Note, input.IdempotencyKey); err != nil {
 		return nil, err
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.campaign_post_status_changed", "campaign", campaignID,

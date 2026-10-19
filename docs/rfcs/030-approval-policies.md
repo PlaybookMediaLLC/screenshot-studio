@@ -2,6 +2,7 @@
 
 **Status:** Not started
 **Status note (2026-10-16):** Nothing in this RFC is built.
+**Implementation boundary (2026-10-19):** [Release automation](../release-automation.md) can submit drafts through the existing review transition and then ends. It implements none of this RFC's policy-based approval or approval bypass proposals.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 003, RFC 019, and RFC 029

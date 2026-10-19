@@ -67,6 +67,10 @@ var ErrNotEligible = errors.New("tenant resource is no longer eligible for dispa
 // an event it does not own. Each handler is safe to run again after a crash.
 func (c *Configuration) HandleOutboxEvent(ctx context.Context, eventID, organizationID, eventType, aggregateID string) (bool, error) {
 	switch eventType {
+	case EventReleaseAutomationDispatch:
+		return true, c.dispatchReleaseAutomation(ctx, organizationID, aggregateID, false)
+	case EventReleaseAutomationCancel:
+		return true, c.dispatchReleaseAutomation(ctx, organizationID, aggregateID, true)
 	case EventSourceChangeCollected:
 		return true, c.enrichChange(ctx, organizationID, aggregateID)
 	case EventReleaseIngested:
@@ -412,6 +416,9 @@ func (c *Configuration) backfillSource(ctx context.Context, organizationID, sour
 	var latest time.Time
 	for i := len(releases) - 1; i >= 0; i-- {
 		item := releases[i]
+		if err := c.recordHistoricalRelease(ctx, source, repository, item); err != nil {
+			return err
+		}
 		notes := releasenotes.Clean(item.Body, MaxReleaseNotesRunes)
 		title := releasenotes.Clean(firstNonEmpty(item.Name, item.TagName), 160)
 		repositoryName := repository.FullName
@@ -421,8 +428,22 @@ func (c *Configuration) backfillSource(ctx context.Context, organizationID, sour
 		if item.HTMLURL != "" {
 			input.SourceURLs = []string{item.HTMLURL}
 		}
-		if _, err := c.IngestSourceRelease(ctx, actor, input); err != nil && !errors.Is(err, ErrInvalidInput) {
+		owner, repo, _ := strings.Cut(repository.FullName, "/")
+		numbers := releasenotes.PullRequests(notes, owner, repo)
+		for _, feature := range releasenotes.Features(notes) {
+			if feature.Number > 0 && !slices.Contains(numbers, feature.Number) {
+				numbers = append(numbers, feature.Number)
+			}
+		}
+		input.automationAssociation = &sourceReleaseAssociation{Numbers: numbers, Cutoff: item.PublishedAt}
+		imported, err := c.IngestSourceRelease(ctx, actor, input)
+		if err != nil && !errors.Is(err, ErrInvalidInput) {
 			return err
+		}
+		if err == nil {
+			if err := c.recordHistoricalReleaseOutput(ctx, organizationID, source.ID, input.EventID, imported.ReleaseID); err != nil {
+				return err
+			}
 		}
 		if item.PublishedAt.After(latest) {
 			latest = item.PublishedAt
@@ -439,6 +460,9 @@ func (c *Configuration) backfillSource(ctx context.Context, organizationID, sour
 	for _, pr := range merged {
 		if pr.MergedAt == nil || !pr.MergedAt.After(latest) || ignoresPullRequestAuthor(source, pr.User.Login, pr.User.Type) {
 			continue
+		}
+		if err := c.recordHistoricalPR(ctx, source, repository, pr); err != nil {
+			return err
 		}
 		labels := []string{}
 		for _, label := range pr.Labels {

@@ -21,6 +21,7 @@ import { productSurfaceRouter } from './routers/product-surface'
 import { projectRouter } from './routers/project'
 import { channelConnectionRouter, scheduledPostRouter } from './routers/publishing'
 import { releaseRouter } from './routers/release'
+import { releaseAutomationRouter } from './routers/release-automation'
 import { shareLinkRouter } from './routers/share-link'
 import { workspaceRouter } from './routers/workspace'
 
@@ -48,6 +49,7 @@ export const appRouter = router({
   productSurface: productSurfaceRouter,
   project: projectRouter,
   release: releaseRouter,
+  releaseAutomation: releaseAutomationRouter,
   scheduledPost: scheduledPostRouter,
   shareLink: shareLinkRouter,
   sourceApp: sourceAppRouter,

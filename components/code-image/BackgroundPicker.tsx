@@ -1,12 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { CachedImage } from '@/components/ui/cached-image';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { CachedImage } from '@/components/ui/cached-image'
 import { cn } from '@/lib/utils';
 import {
   GRADIENT_PRESETS,
@@ -19,6 +15,7 @@ import {
   type BackgroundSelection,
   type GradientTheme,
 } from './code-backgrounds';
+import { Button } from '@/components/ui/button'
 
 interface BackgroundPickerProps {
   theme: GradientTheme;
@@ -40,7 +37,7 @@ function Swatch({
   style: React.CSSProperties;
 }) {
   return (
-    <button
+    <Button variant="custom" size={null}
       type="button"
       onClick={onClick}
       title={title}
@@ -64,7 +61,7 @@ function ImageSwatch({
   onClick: () => void;
 }) {
   return (
-    <button
+    <Button variant="custom" size={null}
       type="button"
       onClick={onClick}
       title={path}
@@ -75,7 +72,7 @@ function ImageSwatch({
       )}
     >
       <CachedImage src={getImageBackgroundUrl(path)} alt="" className="object-cover" />
-    </button>
+    </Button>
   );
 }
 
@@ -102,7 +99,7 @@ export function BackgroundPicker({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
+        <Button variant="custom" size={null}
           type="button"
           disabled={disabled}
           aria-label="Choose background"

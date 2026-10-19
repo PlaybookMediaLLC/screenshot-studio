@@ -5,6 +5,8 @@ import { navGroupSchema, pagesInGroup, type NavGroup } from '@/lib/marketing/pla
 import { cn } from '@/lib/utils'
 import { CtaLink } from './CtaLink'
 import { CONTAINER, MONO, MUTED } from './primitives'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Button } from '@/components/ui/button'
 
 const GROUP = navGroupSchema.enum
 
@@ -63,7 +65,7 @@ export function LandingNav() {
           <ul className="hidden items-center gap-1 text-[15px] lg:flex">
             {MENUS.map((menu) => (
               <li className="group relative" key={menu.group}>
-                <button
+                <Button variant="custom" size={null}
                   aria-haspopup="true"
                   className="flex items-center gap-1 rounded-full px-3 py-2 text-white/55 transition-colors duration-150 hover:text-white group-focus-within:text-white"
                   type="button"
@@ -73,7 +75,7 @@ export function LandingNav() {
                     aria-hidden="true"
                     className="size-3.5 transition-transform duration-150 group-focus-within:rotate-180 group-hover:rotate-180"
                   />
-                </button>
+                </Button>
                 <div className="invisible absolute left-0 top-full pt-3 opacity-0 transition-[opacity,visibility] duration-150 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
                   <ul className="grid w-[520px] grid-cols-2 gap-1 rounded-2xl border border-white/[0.08] bg-[#111] p-2 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.8)]">
                     {menuItems(menu).map((item) => (
@@ -115,14 +117,17 @@ export function LandingNav() {
               label="Get started"
               location="landing_nav"
             />
-            <details className="group relative lg:hidden">
-              <summary
+            <Popover>
+              <PopoverTrigger asChild>
+              <Button variant="custom" size={null}
                 aria-label="Open menu"
-                className="flex size-10 cursor-pointer list-none items-center justify-center rounded-full border border-white/10 text-white [&::-webkit-details-marker]:hidden"
+                className="flex size-10 items-center justify-center rounded-full border border-white/10 text-white lg:hidden"
+                type="button"
               >
                 <Menu01Icon aria-hidden="true" className="size-5" />
-              </summary>
-              <div className="absolute right-0 top-12 max-h-[75vh] w-72 overflow-y-auto rounded-xl border border-white/10 bg-[#111] p-2 shadow-2xl">
+              </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" sideOffset={8} className="max-h-[75vh] w-72 overflow-y-auto rounded-xl border border-white/10 bg-[#111] p-2 shadow-2xl lg:hidden">
                 {MENUS.map((menu) => (
                   <div
                     className="border-b border-white/[0.06] py-2 last:border-b-0"
@@ -162,8 +167,8 @@ export function LandingNav() {
                     </Link>
                   ))}
                 </div>
-              </div>
-            </details>
+              </PopoverContent>
+            </Popover>
           </div>
         </nav>
       </header>

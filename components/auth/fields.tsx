@@ -3,6 +3,7 @@ import type { ComponentProps, ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { Label } from '@/components/ui/label'
 
 /** Shared look for the auth and onboarding forms. */
 export const authInputClassName =
@@ -13,9 +14,9 @@ type AuthFieldProps = ComponentProps<typeof Input> & { hint?: ReactNode; id: str
 export function AuthField({ className, hint, id, label, ...props }: AuthFieldProps) {
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-neutral-300" htmlFor={id}>
+      <Label className="text-sm font-medium text-neutral-300" htmlFor={id}>
         {label}
-      </label>
+      </Label>
       <Input className={cn(authInputClassName, className)} id={id} {...props} />
       {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
     </div>

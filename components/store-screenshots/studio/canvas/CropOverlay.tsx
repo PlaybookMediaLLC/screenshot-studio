@@ -10,6 +10,7 @@ import { screenImageRect, type SceneDevice } from '@/lib/store-screenshots/engin
 import type { AssetResolver } from '../../render/SlideRender'
 import { useEditorApi } from '../editor-store'
 import { placeToolbar } from './toolbar-placement'
+import { Button } from '@/components/ui/button'
 
 /**
  * Crop mode for a device screen: drag the screenshot, zoom it, then Done or
@@ -99,29 +100,29 @@ export function CropOverlay({ node, layer, owner, scale, overlay, toScreen, view
       style={{ left: placement.x, top: placement.y }}
       onMouseDown={(event) => event.preventDefault()}
     >
-      <button type="button" aria-label="Zoom screenshot out" title="Zoom out (−)" onClick={() => zoomBy(1 / 1.1)} className="flex size-8 items-center justify-center rounded-full hover:bg-foreground/[0.07]">
+      <Button variant="custom" size={null} type="button" aria-label="Zoom screenshot out" title="Zoom out (−)" onClick={() => zoomBy(1 / 1.1)} className="flex size-8 items-center justify-center rounded-full hover:bg-foreground/[0.07]">
         −
-      </button>
+      </Button>
       <span className="min-w-12 text-center text-[11px] tabular-nums text-muted-foreground" aria-live="polite">
         {Math.round(layer.image.scale * 100)}%
       </span>
-      <button type="button" aria-label="Zoom screenshot in" title="Zoom in (+)" onClick={() => zoomBy(1.1)} className="flex size-8 items-center justify-center rounded-full hover:bg-foreground/[0.07]">
+      <Button variant="custom" size={null} type="button" aria-label="Zoom screenshot in" title="Zoom in (+)" onClick={() => zoomBy(1.1)} className="flex size-8 items-center justify-center rounded-full hover:bg-foreground/[0.07]">
         +
-      </button>
+      </Button>
       <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-foreground/10" />
-      <button type="button" onClick={() => write(customFramingFor(node, 'fill'))} className="h-8 rounded-full px-2.5 text-[11px] hover:bg-foreground/[0.07]" title="Fill the screen">
+      <Button variant="custom" size={null} type="button" onClick={() => write(customFramingFor(node, 'fill'))} className="h-8 rounded-full px-2.5 text-[11px] hover:bg-foreground/[0.07]" title="Fill the screen">
         Fill
-      </button>
-      <button type="button" onClick={() => write({ mode: 'custom', scale: 1, offsetX: 0, offsetY: 0 })} className="h-8 rounded-full px-2.5 text-[11px] hover:bg-foreground/[0.07]" title="Show the whole screenshot">
+      </Button>
+      <Button variant="custom" size={null} type="button" onClick={() => write({ mode: 'custom', scale: 1, offsetX: 0, offsetY: 0 })} className="h-8 rounded-full px-2.5 text-[11px] hover:bg-foreground/[0.07]" title="Show the whole screenshot">
         Fit
-      </button>
+      </Button>
       <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-foreground/10" />
-      <button type="button" onClick={cancel} className="h-8 rounded-full px-2.5 text-[11px] text-muted-foreground hover:bg-foreground/[0.07]" title="Cancel (Esc)">
+      <Button variant="custom" size={null} type="button" onClick={cancel} className="h-8 rounded-full px-2.5 text-[11px] text-muted-foreground hover:bg-foreground/[0.07]" title="Cancel (Esc)">
         Cancel
-      </button>
-      <button type="button" onClick={done} className="h-8 rounded-full bg-foreground px-3 text-[11px] font-medium text-background" title="Done (Enter)">
+      </Button>
+      <Button variant="custom" size={null} type="button" onClick={done} className="h-8 rounded-full bg-foreground px-3 text-[11px] font-medium text-background" title="Done (Enter)">
         Done
-      </button>
+      </Button>
     </div>
   )
 

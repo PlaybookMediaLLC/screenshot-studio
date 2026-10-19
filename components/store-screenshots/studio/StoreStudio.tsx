@@ -49,6 +49,7 @@ import { Sidebar } from './sidebar/Sidebar'
 import { SlideThumbnail } from './SlideThumbnail'
 import { StudioHeader } from './StudioHeader'
 import type { StoreApi } from 'zustand/vanilla'
+import { Input } from '@/components/ui/input'
 
 /**
  * The store screenshot studio. Opens the last project (or migrates the old
@@ -220,7 +221,7 @@ function EditorLayout({
             </SheetContent>
           </Sheet>
         ) : null}
-        <input
+        <Input
           ref={screenshotInputRef}
           type="file"
           accept="image/png,image/jpeg,image/webp"
@@ -233,7 +234,7 @@ function EditorLayout({
             event.currentTarget.value = ''
           }}
         />
-        <input
+        <Input
           ref={imageInputRef}
           type="file"
           accept="image/png,image/jpeg,image/webp"
@@ -254,7 +255,7 @@ function EditorLayout({
             })
           }}
         />
-        <input
+        <Input
           ref={backgroundInputRef}
           type="file"
           accept="image/png,image/jpeg,image/webp"
@@ -404,7 +405,7 @@ function StartScreen({ projects, onStart, onOpen, onImport }: { projects: Projec
             <Button variant="outline" onClick={() => inputRef.current?.click()}>
               Import screenshots…
             </Button>
-            <input
+            <Input
               ref={inputRef}
               type="file"
               multiple
@@ -425,10 +426,10 @@ function StartScreen({ projects, onStart, onOpen, onImport }: { projects: Projec
               <ul className="mt-3 grid gap-3 sm:grid-cols-4">
                 {projects.map((project) => (
                   <li key={project.id}>
-                    <button type="button" onClick={() => onOpen(project.id)} className="w-full rounded-lg border border-foreground/10 p-3 text-left hover:bg-foreground/[0.03]">
+                    <Button variant="custom" size={null} type="button" onClick={() => onOpen(project.id)} className="w-full rounded-lg border border-foreground/10 p-3 text-left hover:bg-foreground/[0.03]">
                       <span className="block truncate text-sm font-medium">{project.name}</span>
                       <span className="text-[11px] text-muted-foreground">{project.slideCount} slides</span>
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>

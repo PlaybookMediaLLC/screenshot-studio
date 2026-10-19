@@ -4,7 +4,6 @@ import * as React from "react";
 import { toast } from "sonner";
 import {
   Add01Icon,
-  ArrowDown01Icon,
   Cancel01Icon,
   GridIcon,
   Image01Icon,
@@ -13,12 +12,12 @@ import {
   Settings02Icon,
   TextIcon,
 } from "hugeicons-react";
-import { Button } from "@/components/ui/button";
-import { CachedImage } from "@/components/ui/cached-image";
+import { Button } from '@/components/ui/button'
+import { CachedImage } from '@/components/ui/cached-image'
 import { SectionWrapper } from "@/components/editor/sections";
-import { SegmentedControl } from "@/components/ui/segmented-control";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
 import {
   STORE_BACKGROUND_PRESETS,
   STORE_FONT_OPTIONS,
@@ -52,6 +51,16 @@ import type {
 } from "@/lib/store-screenshots/types";
 import { cn } from "@/lib/utils";
 import { showStoreUndoToast } from "./store-undo-toast";
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select as UiSelect,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 type GlobalTab = "layout" | "theme";
 type SlideTab = "content" | "advanced";
@@ -121,13 +130,13 @@ function ColorInput({
   onChange: (value: string) => void;
 }): React.JSX.Element {
   return (
-    <label className="block space-y-2 text-xs text-muted-foreground">
+    <Label className="block space-y-2 text-xs text-muted-foreground">
       <span className="block">{label}</span>
       <span className="flex h-9 items-center gap-2 rounded-md border border-foreground/10 bg-foreground/[0.035] px-2">
-        <input aria-label={ariaLabel ?? `${label} color`} type="color" value={value} onChange={(event) => onChange(event.target.value)} className="size-5 cursor-pointer rounded border-0 bg-transparent p-0" />
+        <Input aria-label={ariaLabel ?? `${label} color`} type="color" value={value} onChange={(event) => onChange(event.target.value)} className="size-5 cursor-pointer rounded border-0 bg-transparent p-0" />
         <span className="font-mono text-[11px] uppercase text-foreground">{value}</span>
       </span>
-    </label>
+    </Label>
   );
 }
 
@@ -165,7 +174,7 @@ function NumberInput({
   };
 
   return (
-    <input
+    <Input
       ref={inputRef}
       aria-label={ariaLabel}
       type="number"
@@ -326,7 +335,7 @@ export function StoreGlobalPanel({
                   const selected = selectedLayoutId === layoutId;
 
                   return (
-                    <button
+                    <Button variant="custom" size={null}
                       key={layoutId}
                       type="button"
                       aria-pressed={selected}
@@ -342,7 +351,7 @@ export function StoreGlobalPanel({
                       )}
                     >
                       {layoutId.replace("-", " ")}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -397,7 +406,7 @@ export function StoreGlobalPanel({
             <Section title="Backgrounds">
               <div className="grid grid-cols-4 gap-2">
                 {STORE_BACKGROUND_PRESETS.map((preset) => (
-                  <button
+                  <Button variant="custom" size={null}
                     key={preset.name}
                     type="button"
                     title={preset.name}
@@ -452,7 +461,7 @@ export function StoreGlobalPanel({
                       {selectedSlide.backgroundImageOverride ? "Replace" : "Customize"}
                     </Button>
                   </div>
-                  <input
+                  <Input
                     ref={backgroundInputRef}
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
@@ -499,7 +508,7 @@ export function StoreGlobalPanel({
                       <span className="min-w-0 flex-1 truncate text-[11px] text-foreground">
                         {selectedSlide.backgroundImageOverride.name}
                       </span>
-                      <button
+                      <Button variant="custom" size={null}
                         type="button"
                         aria-label="Remove custom slide background"
                         title="Remove custom background"
@@ -519,7 +528,7 @@ export function StoreGlobalPanel({
                         className="flex size-8 shrink-0 items-center justify-center rounded-md text-destructive hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
                       >
                         <Cancel01Icon size={13} />
-                      </button>
+                      </Button>
                     </div>
                   ) : null}
                 </div>
@@ -537,7 +546,7 @@ export function StoreGlobalPanel({
                     const imageUrl = getBackgroundUrl(imagePath);
                     const selected = selectedSlide?.backgroundImageOverride?.src === imageUrl;
                     return (
-                      <button
+                      <Button variant="custom" size={null}
                         key={imagePath}
                         type="button"
                         title={`${BACKGROUND_CATEGORY_LABELS[category] ?? category} ${index + 1}`}
@@ -556,7 +565,7 @@ export function StoreGlobalPanel({
                           alt=""
                           className="h-full w-full object-cover"
                         />
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
@@ -714,7 +723,7 @@ export function StoreSlidePanel({
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] font-medium text-muted-foreground">Heading</span>
                   {slide.headline ? (
-                    <button
+                    <Button variant="custom" size={null}
                       type="button"
                       aria-label="Delete heading"
                       title="Delete heading"
@@ -728,10 +737,10 @@ export function StoreSlidePanel({
                       className="flex size-8 items-center justify-center rounded text-destructive hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
                     >
                       <Cancel01Icon size={12} />
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
-                <textarea
+                <Textarea
                   ref={headingInputRef}
                   aria-label="Heading"
                   rows={2}
@@ -746,7 +755,7 @@ export function StoreSlidePanel({
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] font-medium text-muted-foreground">Subheading</span>
                   {slide.subhead ? (
-                    <button
+                    <Button variant="custom" size={null}
                       type="button"
                       aria-label="Delete subheading"
                       title="Delete subheading"
@@ -760,10 +769,10 @@ export function StoreSlidePanel({
                       className="flex size-8 items-center justify-center rounded text-destructive hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
                     >
                       <Cancel01Icon size={12} />
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
-                <textarea
+                <Textarea
                   ref={subheadingInputRef}
                   aria-label="Subheading"
                   rows={2}
@@ -786,7 +795,7 @@ export function StoreSlidePanel({
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[10px] font-medium text-muted-foreground">Text {index + 1}</span>
-                      <button
+                      <Button variant="custom" size={null}
                         type="button"
                         aria-label={`Remove text block ${index + 1}`}
                         title="Remove text"
@@ -805,9 +814,9 @@ export function StoreSlidePanel({
                         className="flex size-8 items-center justify-center rounded text-destructive hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
                       >
                         <Cancel01Icon size={12} />
-                      </button>
+                      </Button>
                     </div>
-                    <textarea
+                    <Textarea
                       aria-label={`Text block ${index + 1}`}
                       rows={2}
                       value={text.text}
@@ -831,25 +840,33 @@ export function StoreSlidePanel({
                     </div>
                     <div className="grid grid-cols-[minmax(0,1fr)_32px_32px_50px] gap-1">
                       <span className="relative min-w-0">
-                        <select
-                          aria-label={`Text block ${index + 1} style`}
+                        <UiSelect
                           value={kind}
-                          onChange={(event) => updateExtraText(text.id, {
-                            kind: event.target.value as StoreExtraText["kind"],
-                            fontSize: event.target.value === "heading" && kind !== "heading"
-                              ? 5.5
-                              : event.target.value === "subheading" && kind !== "subheading"
-                                ? 3.25
-                                : fontSize,
-                          })}
-                          className="h-9 w-full appearance-none rounded-md border border-foreground/10 bg-foreground/[0.035] pl-2 pr-6 text-xs leading-normal text-foreground outline-none focus:border-foreground/25"
+                          onValueChange={(nextValue) =>
+                            updateExtraText(text.id, {
+                              kind: nextValue as StoreExtraText['kind'],
+                              fontSize:
+                                nextValue === 'heading' && kind !== 'heading'
+                                  ? 5.5
+                                  : nextValue === 'subheading' && kind !== 'subheading'
+                                    ? 3.25
+                                    : fontSize,
+                            })
+                          }
                         >
-                          <option value="heading">Heading</option>
-                          <option value="subheading">Subheading</option>
-                        </select>
-                        <ArrowDown01Icon aria-hidden="true" size={11} className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                          <SelectTrigger
+                            aria-label={`Text block ${index + 1} style`}
+                            className="h-9 w-full appearance-none rounded-md border border-foreground/10 bg-foreground/[0.035] pl-2 pr-6 text-xs leading-normal text-foreground outline-none focus:border-foreground/25"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="heading">Heading</SelectItem>
+                            <SelectItem value="subheading">Subheading</SelectItem>
+                          </SelectContent>
+                        </UiSelect>
                       </span>
-                      <button
+                      <Button variant="custom" size={null}
                         type="button"
                         aria-label={`Bold text block ${index + 1}`}
                         aria-pressed={text.bold ?? false}
@@ -863,8 +880,8 @@ export function StoreSlidePanel({
                         )}
                       >
                         B
-                      </button>
-                      <button
+                      </Button>
+                      <Button variant="custom" size={null}
                         type="button"
                         aria-label={`Italic text block ${index + 1}`}
                         aria-pressed={text.italic ?? false}
@@ -878,8 +895,8 @@ export function StoreSlidePanel({
                         )}
                       >
                         I
-                      </button>
-                      <label className="relative block">
+                      </Button>
+                      <Label className="relative block">
                         <span className="sr-only">Text block {index + 1} font size</span>
                         <NumberInput
                           ariaLabel={`Text block ${index + 1} font size`}
@@ -889,7 +906,7 @@ export function StoreSlidePanel({
                           step={0.25}
                           onChange={(fontSize) => updateExtraText(text.id, { fontSize })}
                         />
-                      </label>
+                      </Label>
                     </div>
                   </div>
                 );
@@ -912,23 +929,30 @@ export function StoreSlidePanel({
             </Section>
             <Section title="Typography" compact>
               <div className="space-y-5">
-                <label className="block space-y-2 text-xs text-muted-foreground">
+                <Label className="block space-y-2 text-xs text-muted-foreground">
                   <span className="block">Font</span>
                   <span className="relative block">
-                    <select
+                    <UiSelect
                       value={theme.fontFamily}
-                      onChange={(event) => onThemeChange({ fontFamily: event.target.value })}
-                      className="h-9 w-full appearance-none rounded-md border border-foreground/10 bg-foreground/[0.035] py-0 pl-2 pr-8 text-xs text-foreground outline-none focus:border-foreground/25"
+                      onValueChange={(nextValue) => onThemeChange({ fontFamily: nextValue })}
                     >
-                      {STORE_FONT_OPTIONS.map((font) => <option key={font.name} value={font.value}>{font.name}</option>)}
-                    </select>
-                    <ArrowDown01Icon aria-hidden="true" size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <SelectTrigger className="h-9 w-full appearance-none rounded-md border border-foreground/10 bg-foreground/[0.035] py-0 pl-2 pr-8 text-xs text-foreground outline-none focus:border-foreground/25">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STORE_FONT_OPTIONS.map((font) => (
+                          <SelectItem key={font.name} value={font.value}>
+                            {font.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </UiSelect>
                   </span>
-                </label>
+                </Label>
                 <div className="flex h-9 items-center justify-between gap-3 rounded-md border border-foreground/10 bg-foreground/[0.025] px-2.5">
-                  <label htmlFor="store-text-color-scope" className="cursor-pointer text-[10px] font-medium text-muted-foreground">
+                  <Label htmlFor="store-text-color-scope" className="cursor-pointer text-[10px] font-medium text-muted-foreground">
                     Apply to all screenshots
-                  </label>
+                  </Label>
                   <Switch
                     id="store-text-color-scope"
                     checked={textColorScope === "all"}
@@ -961,44 +985,58 @@ export function StoreSlidePanel({
             <Section title={isDuo ? `${screenLabel} image` : "Screenshot"} compact>
               {isDuo ? (
                 <div className="grid grid-cols-2 gap-2">
-                    <label className="flex min-w-0 items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <Label className="flex min-w-0 items-center gap-1.5 text-[10px] text-muted-foreground">
                       <span className="shrink-0">Left</span>
                       <span className="relative min-w-0 flex-1">
-                        <select
-                          aria-label="Left device image"
+                        <UiSelect
                           value={leftSlideId}
-                          onChange={(event) => update({ duoLeftSlideId: event.target.value })}
-                          className="h-8 w-full appearance-none rounded-md border border-foreground/10 bg-foreground/[0.035] py-0 pl-1.5 pr-6 text-[10px] text-foreground outline-none focus:border-foreground/25"
+                          onValueChange={(nextValue) => update({ duoLeftSlideId: nextValue })}
                         >
-                          {slides.map((candidate, index) => (
-                            <option key={candidate.id} value={candidate.id}>{index + 1} · {candidate.name}</option>
-                          ))}
-                        </select>
-                        <ArrowDown01Icon aria-hidden="true" size={12} className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                          <SelectTrigger
+                            aria-label="Left device image"
+                            className="h-8 w-full appearance-none rounded-md border border-foreground/10 bg-foreground/[0.035] py-0 pl-1.5 pr-6 text-[10px] text-foreground outline-none focus:border-foreground/25"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {slides.map((candidate, index) => (
+                              <SelectItem key={candidate.id} value={candidate.id}>
+                                {index + 1} · {candidate.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </UiSelect>
                       </span>
-                    </label>
-                    <label className="flex min-w-0 items-center gap-1.5 text-[10px] text-muted-foreground">
+                    </Label>
+                    <Label className="flex min-w-0 items-center gap-1.5 text-[10px] text-muted-foreground">
                       <span className="shrink-0">Right</span>
                       <span className="relative min-w-0 flex-1">
-                        <select
-                          aria-label="Right device image"
+                        <UiSelect
                           value={rightSlideId}
-                          onChange={(event) => update({ duoRightSlideId: event.target.value })}
-                          className="h-8 w-full appearance-none rounded-md border border-foreground/10 bg-foreground/[0.035] py-0 pl-1.5 pr-6 text-[10px] text-foreground outline-none focus:border-foreground/25"
+                          onValueChange={(nextValue) => update({ duoRightSlideId: nextValue })}
                         >
-                          {slides.map((candidate, index) => (
-                            <option key={candidate.id} value={candidate.id}>{index + 1} · {candidate.name}</option>
-                          ))}
-                        </select>
-                        <ArrowDown01Icon aria-hidden="true" size={12} className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                          <SelectTrigger
+                            aria-label="Right device image"
+                            className="h-8 w-full appearance-none rounded-md border border-foreground/10 bg-foreground/[0.035] py-0 pl-1.5 pr-6 text-[10px] text-foreground outline-none focus:border-foreground/25"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {slides.map((candidate, index) => (
+                              <SelectItem key={candidate.id} value={candidate.id}>
+                                {index + 1} · {candidate.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </UiSelect>
                       </span>
-                    </label>
+                    </Label>
                 </div>
               ) : null}
               <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => replaceInputRef.current?.click()}>
                 <Image01Icon size={14} /> {screenSlide.src ? `Replace ${screenImageLabel}` : `Upload ${screenImageLabel}`}
               </Button>
-              <input
+              <Input
                 ref={replaceInputRef}
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
@@ -1013,14 +1051,14 @@ export function StoreSlidePanel({
                 <>
                   <div className="flex items-center justify-between gap-3 border-t border-foreground/10 pt-3">
                     <span className="text-[10px] font-medium text-muted-foreground">Image framing</span>
-                    <button
+                    <Button variant="custom" size={null}
                       type="button"
                       disabled={!imageFramingChanged}
                       onClick={() => onChange(screenSlide.id, { image: { ...DEFAULT_IMAGE_TRANSFORM } })}
                       className="rounded px-1.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
                     >
                       Reset
-                    </button>
+                    </Button>
                   </div>
                   <SegmentedControl
                     size="sm"
@@ -1077,7 +1115,7 @@ export function StoreSlidePanel({
                   <div className="flex items-center gap-2 rounded-md border border-foreground/10 bg-foreground/[0.035] p-2">
                     <img src={slide.overlay.src} alt="" className="size-9 rounded object-cover" />
                     <span className="min-w-0 flex-1 truncate text-xs text-foreground">{slide.overlay.name}</span>
-                    <button
+                    <Button variant="custom" size={null}
                       type="button"
                       aria-label="Remove overlay"
                       onClick={() => {
@@ -1094,7 +1132,7 @@ export function StoreSlidePanel({
                       className="flex size-8 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
                     >
                       <Cancel01Icon size={14} />
-                    </button>
+                    </Button>
                   </div>
                   <RangeControl label="Size" value={slide.overlay.size} min={8} max={70} suffix="%" onChange={(size) => update({ overlay: { ...slide.overlay!, size } })} />
                   <RangeControl label="Horizontal" value={slide.overlay.x} min={0} max={100} suffix="%" onChange={(x) => update({ overlay: { ...slide.overlay!, x } })} />
@@ -1106,7 +1144,7 @@ export function StoreSlidePanel({
                   <Image01Icon size={14} /> Add overlay image
                 </Button>
               )}
-              <input
+              <Input
                 ref={overlayInputRef}
                 type="file"
                 accept="image/png,image/jpeg,image/webp"

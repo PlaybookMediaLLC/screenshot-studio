@@ -13,6 +13,10 @@ import {
 import { cn } from '@/lib/utils'
 import { copyText, normalizeUrl } from './client'
 import { PANEL } from './MetadataPanels'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 
 /** Where the generated check runs. */
 export const automationTargetSchema = z.enum(['github', 'node', 'curl'])
@@ -52,19 +56,19 @@ export function AutomatePanel({ url }: { url: string }) {
   return (
     <div className="space-y-6">
       <section className={cn(PANEL, 'grid gap-4 p-5 md:grid-cols-[2fr_1fr]')}>
-        <label className="block space-y-1.5">
+        <Label className="block space-y-1.5">
           <span className="text-xs text-muted-foreground">Links to check, one per line</span>
-          <textarea
+          <Textarea
             value={urls}
             onChange={(event) => setUrls(event.target.value)}
             rows={4}
             className={cn(INPUT, 'resize-y font-mono')}
           />
-        </label>
+        </Label>
         <div className="space-y-4">
-          <label className="block space-y-1.5">
+          <Label className="block space-y-1.5">
             <span className="text-xs text-muted-foreground">Fail below score</span>
-            <input
+            <Input
               type="number"
               min={0}
               max={100}
@@ -74,15 +78,14 @@ export function AutomatePanel({ url }: { url: string }) {
               }
               className={INPUT}
             />
-          </label>
-          <label className="flex items-center gap-2 text-sm text-foreground">
-            <input
-              type="checkbox"
+          </Label>
+          <Label className="flex items-center gap-2 text-sm text-foreground">
+            <Checkbox
               checked={failOnErrors}
-              onChange={(event) => setFailOnErrors(event.target.checked)}
+              onCheckedChange={(checked) => setFailOnErrors((checked === true))}
             />
             Fail on any error
-          </label>
+          </Label>
         </div>
       </section>
 
@@ -94,7 +97,7 @@ export function AutomatePanel({ url }: { url: string }) {
             aria-label="Runs in"
           >
             {TARGETS.map((item) => (
-              <button
+              <Button variant="custom" size={null}
                 key={item.id}
                 type="button"
                 aria-pressed={item.id === target.id}
@@ -105,7 +108,7 @@ export function AutomatePanel({ url }: { url: string }) {
                 )}
               >
                 {item.label}
-              </button>
+              </Button>
             ))}
           </div>
           <Button

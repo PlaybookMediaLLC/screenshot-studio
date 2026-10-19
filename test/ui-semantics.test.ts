@@ -4,6 +4,21 @@ import { readFile } from "node:fs/promises";
 import { jsx } from "react/jsx-runtime";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SectionWrapper } from "../components/editor/sections/SectionWrapper";
+import { Input } from "../components/ui/input";
+import { Switch } from "../components/ui/switch";
+
+test("radio inputs stay compact and disabled switches retain their native disabled state", () => {
+  const radio = renderToStaticMarkup(jsx(Input, { type: "radio", name: "format", value: "png" }));
+  assert.match(radio, /name="format"/);
+  assert.match(radio, /size-4/);
+  assert.doesNotMatch(radio, /h-9|px-3|w-full/);
+  const toggle = renderToStaticMarkup(jsx(Switch, {
+    checked: true, disabled: true, onCheckedChange: () => assert.fail("disabled switch toggled"),
+  }));
+  assert.match(toggle, /role="switch"/);
+  assert.match(toggle, /aria-checked="true"/);
+  assert.match(toggle, /disabled=""/);
+});
 
 test("segmented controls expose toggle buttons instead of incomplete tab semantics", async () => {
   const source = await readFile(

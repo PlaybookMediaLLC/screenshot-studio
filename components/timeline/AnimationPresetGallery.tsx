@@ -6,7 +6,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { ANIMATION_PRESETS, CATEGORY_LABELS } from '@/lib/animation/presets';
 import { cn } from '@/lib/utils';
 import type { AnimationPreset } from '@/types/animation';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button'
 import { Delete02Icon, Add01Icon } from 'hugeicons-react';
 
 const PRESET_BY_CATEGORY = ANIMATION_PRESETS.reduce(
@@ -116,7 +116,7 @@ export function AnimationPresetGallery() {
             {presets.map((preset) => {
               const isApplied = animationClips.some((c) => c.presetId === preset.id);
               return (
-                <button
+                <Button variant="custom" size={null}
                   key={preset.id}
                   type="button"
                   onClick={() => handlePresetClick(preset)}
@@ -172,7 +172,7 @@ export function AnimationPresetGallery() {
                   <span className="text-[9px] font-medium text-muted-foreground truncate w-full text-center">
                     {preset.name}
                   </span>
-                </button>
+                </Button>
               );
             })}
           </div>

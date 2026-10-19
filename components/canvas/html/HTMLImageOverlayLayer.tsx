@@ -19,6 +19,7 @@ import {
 import { useMoveableSnapping } from '../use-moveable-snapping';
 import { useLayerMotions } from '@/lib/animation/use-motion';
 import { MotionWrap } from '../motion/motion-layers';
+import { Button } from '@/components/ui/button'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -158,7 +159,7 @@ function ContextToolbar({
       style={{ pointerEvents: 'auto' }}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <button
+      <Button variant="custom" size={null}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -171,8 +172,8 @@ function ContextToolbar({
         title={isFront ? 'Send behind image' : 'Bring to front'}
       >
         {isFront ? <LayerSendToBackIcon size={14} /> : <LayerBringToFrontIcon size={14} />}
-      </button>
-      <button
+      </Button>
+      <Button variant="custom" size={null}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -182,9 +183,9 @@ function ContextToolbar({
         title="Duplicate"
       >
         <Copy01Icon size={14} />
-      </button>
+      </Button>
       <div className="mx-0.5 h-3.5 w-px bg-foreground/10" aria-hidden />
-      <button
+      <Button variant="custom" size={null}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -194,7 +195,7 @@ function ContextToolbar({
         title="Delete"
       >
         <Delete02Icon size={14} />
-      </button>
+      </Button>
     </div>
   );
 }

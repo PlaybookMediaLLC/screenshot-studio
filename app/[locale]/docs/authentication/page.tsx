@@ -4,6 +4,14 @@ import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
 import { INTER, codeBlockClassName, linkClassName } from "@/lib/seo/docs-shared";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table'
 
 export const metadata: Metadata = {
   title: "Shots API Authentication",
@@ -125,34 +133,34 @@ export default function AuthenticationPage() {
               Rate limits
             </h2>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="py-2 pr-4 font-medium text-foreground">
+              <Table className="w-full text-left text-sm">
+                <TableHeader>
+                  <TableRow className="border-b border-border">
+                    <TableHead className="whitespace-normal py-2 pr-4 font-medium text-foreground">
                       Endpoint
-                    </th>
-                    <th className="py-2 pr-4 font-medium text-foreground">
+                    </TableHead>
+                    <TableHead className="whitespace-normal py-2 pr-4 font-medium text-foreground">
                       Limit
-                    </th>
-                    <th className="py-2 font-medium text-foreground">Notes</th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                    <TableHead className="whitespace-normal py-2 font-medium text-foreground">Notes</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {LIMITS.map((row) => (
-                    <tr key={row.endpoint} className="border-b border-border/60">
-                      <td className="py-2 pr-4 font-mono text-xs text-foreground">
+                    <TableRow key={row.endpoint} className="border-b border-border/60">
+                      <TableCell className="whitespace-normal py-2 pr-4 font-mono text-xs text-foreground">
                         {row.endpoint}
-                      </td>
-                      <td className="py-2 pr-4 text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="whitespace-normal py-2 pr-4 text-muted-foreground">
                         {row.limit}
-                      </td>
-                      <td className="py-2 text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="whitespace-normal py-2 text-muted-foreground">
                         {row.notes}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </section>
 

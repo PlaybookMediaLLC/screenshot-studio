@@ -13,6 +13,9 @@ import {
 import { cn } from '@/lib/utils'
 import { copyText } from './client'
 import { PANEL } from './MetadataPanels'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 
 const C = shareChannelSchema.enum
 /** Channels whose post length matters, shown under the composer. */
@@ -52,18 +55,18 @@ export function PostComposer({
 }) {
   return (
     <section className={cn(PANEL, 'space-y-3 p-4')}>
-      <label className="block space-y-1.5">
+      <Label className="block space-y-1.5">
         <span className="text-xs text-muted-foreground">
           Post text · shows above every card, and fills the share links on the Share tab
         </span>
-        <textarea
+        <Textarea
           value={post}
           onChange={(event) => onChange(event.target.value)}
           rows={3}
           placeholder="Write the post that goes with the link…"
           className={cn(INPUT, 'resize-y')}
         />
-      </label>
+      </Label>
       <ul className="flex flex-wrap gap-2 text-xs">
         {COUNTED.map((channel) => {
           const { limit, linkLength, name } = CHANNELS[channel]
@@ -117,24 +120,24 @@ export function SharePanel({
   return (
     <div className="space-y-6">
       <section className={cn(PANEL, 'grid gap-4 p-5 sm:grid-cols-2')}>
-        <label className="block space-y-1.5">
+        <Label className="block space-y-1.5">
           <span className="text-xs text-muted-foreground">Campaign (utm_campaign)</span>
-          <input
+          <Input
             value={campaign}
             onChange={(event) => setCampaign(event.target.value)}
             placeholder="spring-launch"
             className={INPUT}
           />
-        </label>
-        <label className="block space-y-1.5">
+        </Label>
+        <Label className="block space-y-1.5">
           <span className="text-xs text-muted-foreground">Variant (utm_content, optional)</span>
-          <input
+          <Input
             value={content}
             onChange={(event) => setContent(event.target.value)}
             placeholder="hero-image"
             className={INPUT}
           />
-        </label>
+        </Label>
         <p
           className={cn(
             'text-xs sm:col-span-2',

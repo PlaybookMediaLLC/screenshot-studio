@@ -13,11 +13,14 @@ import {
 } from '@/lib/r2-backgrounds';
 import { gradientColors, type GradientKey } from '@/lib/constants/gradient-colors';
 import { meshGradients, magicGradients, type MeshGradientKey, type MagicGradientKey } from '@/lib/constants/mesh-gradients';
-import { ColorPicker } from '@/components/ui/color-picker';
+import { ColorPicker } from '@/components/ui/color-picker'
 import { SectionWrapper } from './SectionWrapper';
 import { Cancel01Icon, Image01Icon, ShuffleIcon } from 'hugeicons-react';
 import { cn } from '@/lib/utils';
-import { CachedImage } from '@/components/ui/cached-image';
+import { CachedImage } from '@/components/ui/cached-image'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 // Shadow overlay IDs
 const OVERLAY_SHADOW_IDS = [
@@ -79,17 +82,17 @@ function HexColorField({
   };
 
   return (
-    <label className="block min-w-0 space-y-1.5 text-[10px] text-muted-foreground">
+    <Label className="block min-w-0 space-y-1.5 text-[10px] text-muted-foreground">
       <span>{label}</span>
       <span className="flex h-8 items-center gap-1.5 rounded-md border border-foreground/10 bg-foreground/[0.035] px-1.5 focus-within:border-foreground/25 focus-within:ring-1 focus-within:ring-foreground/10">
-        <input
+        <Input
           aria-label={`${label} gradient color`}
           type="color"
           value={value}
           onChange={(event) => onChange(event.target.value.toUpperCase())}
           className="size-5 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0"
         />
-        <input
+        <Input
           ref={inputRef}
           aria-label={`${label} gradient hex code`}
           value={draft}
@@ -106,7 +109,7 @@ function HexColorField({
           className="min-w-0 flex-1 bg-transparent font-mono text-[10px] uppercase text-foreground outline-none"
         />
       </span>
-    </label>
+    </Label>
   );
 }
 
@@ -264,7 +267,7 @@ export function BackgroundSection() {
       <SectionWrapper title="Light & Shadow" defaultOpen={true}>
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-2 p-1">
-            <button
+            <Button variant="custom" size={null}
               onClick={handleRemoveShadows}
               className={cn(
                 'aspect-[16/9] flex items-center justify-center text-xs font-medium rounded-md border transition-all',
@@ -274,9 +277,9 @@ export function BackgroundSection() {
               )}
             >
               None
-            </button>
+            </Button>
             {OVERLAY_SHADOW_URLS.slice(0, 11).map((shadowUrl, index) => (
-              <button
+              <Button variant="custom" size={null}
                 key={index}
                 onClick={() => handleAddShadow(shadowUrl)}
                 className={cn(
@@ -292,7 +295,7 @@ export function BackgroundSection() {
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -309,7 +312,7 @@ export function BackgroundSection() {
                 : 'border-foreground/10 bg-foreground/[0.04] hover:bg-foreground/[0.06] hover:border-foreground/20'
             )}
           >
-            <input {...getBgInputProps()} />
+            <Input {...getBgInputProps()} />
             <div className={cn(
               "w-7 h-7 rounded-md flex items-center justify-center",
               customBgType === 'image' ? "bg-foreground/[0.1]" : "bg-foreground/[0.06]"
@@ -334,7 +337,7 @@ export function BackgroundSection() {
             )}
           />
 
-          <button
+          <Button variant="custom" size={null}
             onClick={() => {
               setBackgroundType('solid');
               setBackgroundValue('transparent');
@@ -358,7 +361,7 @@ export function BackgroundSection() {
               />
             </div>
             <span className={cn("text-[10px] font-medium", customBgType === 'transparent' ? "text-foreground" : "text-muted-foreground")}>Transparent</span>
-          </button>
+          </Button>
         </div>
         {bgUploadError && <p className="text-xs text-destructive mt-2">{bgUploadError}</p>}
 
@@ -369,7 +372,7 @@ export function BackgroundSection() {
               alt="Background"
               className="w-full h-full object-cover"
             />
-            <button
+            <Button variant="custom" size={null}
               className="absolute top-2 right-2 p-1 rounded-md bg-background/80 text-foreground hover:bg-foreground/10 transition-colors"
               onClick={() => {
                 setBackgroundType('gradient');
@@ -378,7 +381,7 @@ export function BackgroundSection() {
               }}
             >
               <Cancel01Icon size={14} />
-            </button>
+            </Button>
           </div>
         )}
       </SectionWrapper>
@@ -391,7 +394,7 @@ export function BackgroundSection() {
         >
           <div className="grid grid-cols-4 gap-2 p-1">
             {(backgroundCategories[category] || []).map((imagePath: string, idx: number) => (
-              <button
+              <Button variant="custom" size={null}
                 key={`${category}-${idx}`}
                 onClick={() => {
                   setBackgroundValue(imagePath);
@@ -409,7 +412,7 @@ export function BackgroundSection() {
                   alt={`${category} ${idx + 1}`}
                   className="w-full h-full object-cover"
                 />
-              </button>
+              </Button>
             ))}
           </div>
         </SectionWrapper>
@@ -419,7 +422,7 @@ export function BackgroundSection() {
         title="Magic Gradients"
         defaultOpen={true}
         action={
-          <button
+          <Button variant="custom" size={null}
             onClick={(e) => {
               e.stopPropagation();
               shuffleMagicGradient();
@@ -428,7 +431,7 @@ export function BackgroundSection() {
           >
             <span>SHUFFLE</span>
             <ShuffleIcon size={12} />
-          </button>
+          </Button>
         }
       >
         <div className="overflow-x-auto scrollbar-hide">
@@ -437,7 +440,7 @@ export function BackgroundSection() {
             style={{ gridTemplateRows: 'repeat(4, 1fr)', gridAutoFlow: 'column' }}
           >
             {(Object.keys(magicGradients) as MagicGradientKey[]).map((key, idx) => (
-              <button
+              <Button variant="custom" size={null}
                 key={`magic-${key}`}
                 onClick={() => {
                   setBackgroundType('gradient');
@@ -478,7 +481,7 @@ export function BackgroundSection() {
             style={{ gridTemplateRows: 'repeat(4, 1fr)', gridAutoFlow: 'column' }}
           >
             {(Object.keys(gradientColors) as GradientKey[]).map((key, idx) => (
-              <button
+              <Button variant="custom" size={null}
                 key={`classic-${key}`}
                 onClick={() => {
                   setBackgroundType('gradient');
@@ -500,7 +503,7 @@ export function BackgroundSection() {
               const classicCount = Object.keys(gradientColors).length;
               const colOffset = Math.ceil(classicCount / 4);
               return (
-                <button
+                <Button variant="custom" size={null}
                   key={`mesh-${key}`}
                   onClick={() => {
                     setBackgroundType('gradient');

@@ -15,6 +15,15 @@ import {
   MAX_CODE_LENGTH,
 } from '@/lib/frames/schema'
 import { googleFontFamily } from '@/lib/typography/google-fonts'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 
 const selectClass =
   'h-8 w-full rounded-md border border-foreground/10 bg-foreground/[0.04] px-2 text-xs text-foreground focus:border-foreground/25 focus:outline-none focus:ring-1 focus:ring-foreground/15'
@@ -33,21 +42,21 @@ function SelectField<Value extends string>({
   const id = React.useId()
   return (
     <div className="space-y-1.5">
-      <label className="text-xs text-muted-foreground" htmlFor={id}>
+      <Label className="text-xs text-muted-foreground" htmlFor={id}>
         {label}
-      </label>
-      <select
-        className={selectClass}
-        id={id}
-        onChange={(event) => onChange(event.target.value as Value)}
-        value={value}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      </Label>
+      <Select onValueChange={(nextValue) => onChange(nextValue as Value)} value={String(value)}>
+        <SelectTrigger className={selectClass} id={id}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={String(option.value)}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   )
 }
@@ -58,10 +67,10 @@ export function CodeOptions({ code, id }: { code: CodeContent; id: string }) {
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground" htmlFor={`${id}-code`}>
+        <Label className="text-xs text-muted-foreground" htmlFor={`${id}-code`}>
           Code
-        </label>
-        <textarea
+        </Label>
+        <Textarea
           className="min-h-40 w-full resize-y rounded-md border border-foreground/10 bg-foreground/[0.04] p-2 font-mono text-[11px] leading-relaxed text-foreground focus:border-foreground/25 focus:outline-none focus:ring-1 focus:ring-foreground/15"
           id={`${id}-code`}
           maxLength={MAX_CODE_LENGTH}

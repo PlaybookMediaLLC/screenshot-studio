@@ -2,6 +2,7 @@
 
 **Status:** Implemented (tRPC surface; see `lib/trpc/`)
 **Status note (2026-10-16):** Shipped. Its decision not to build a Go backend is superseded: product data now sits behind the Go backend in `services/`, which the web calls through `lib/backend/sdk.ts`.
+**Implementation update (2026-10-19):** The `releaseAutomation` tRPC router uses Zod contracts and the backend SDK for definitions, preview, activation, source modes, and history/recovery. [Release automation](../release-automation.md) retains the web/database boundary and owner/admin management checks.
 **Date:** 2026-08-13
 **Depends on:** RFC 002 through RFC 006
 **Owners:** Product, Engineering, and Security

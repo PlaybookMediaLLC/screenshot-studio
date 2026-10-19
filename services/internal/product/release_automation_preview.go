@@ -1,0 +1,180 @@
+package product
+
+import (
+	"context"
+	"errors"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandkit"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasesourceevent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacegithubinstallation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	automation "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
+)
+
+type AutomationSource struct {
+	CollectUnmatched   bool   `json:"collectUnmatched"`
+	ConnectionState    string `json:"connectionState"`
+	ID                 string `json:"id"`
+	Name               string `json:"name"`
+	RepositoryID       string `json:"repositoryId"`
+	Status             string `json:"status"`
+	Mode               string `json:"mode"`
+	Account            string `json:"account"`
+	InstallationStatus string `json:"installationStatus"`
+}
+type AutomationChoice struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+type AutomationOverview struct {
+	Definitions       []AutomationDefinition                  `json:"definitions"`
+	Sources           []AutomationSource                      `json:"sources"`
+	Brands            []AutomationChoice                      `json:"brands"`
+	Destinations      []AutomationChoice                      `json:"destinations"`
+	Fields            map[automation.Family]map[string]string `json:"fields"`
+	ExecutorAvailable bool                                    `json:"executorAvailable"`
+}
+
+func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Actor) (*AutomationOverview, error) {
+	definitions, err := c.ListReleaseAutomations(ctx, actor)
+	if err != nil {
+		return nil, err
+	}
+	result := &AutomationOverview{Definitions: definitions, Sources: []AutomationSource{}, Brands: []AutomationChoice{}, Destinations: []AutomationChoice{}, Fields: map[automation.Family]map[string]string{}}
+	result.ExecutorAvailable, err = c.ReleaseAutomationAvailable(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, family := range []automation.Family{automation.Published, automation.Merged, automation.Deployed} {
+		result.Fields[family] = automation.FieldKinds(family)
+	}
+	sources, err := c.client.SourceApp.Query().Where(sourceapp.OrganizationID(actor.OrganizationID), sourceapp.Provider("github"), sourceapp.GithubInstallationIDNotNil()).Order(ent.Asc(sourceapp.FieldName)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, source := range sources {
+		item := AutomationSource{ID: source.ID, Name: source.Name, Status: string(source.Status), Mode: "legacy", InstallationStatus: "DELETED"}
+		item.CollectUnmatched = source.AutomationCollectUnmatched
+		if source.ExternalID != nil {
+			item.RepositoryID = *source.ExternalID
+		}
+		if source.ReleaseAutomation {
+			item.Mode = "automation"
+		}
+		installation, err := c.client.GitHubInstallation.Get(ctx, *source.GithubInstallationID)
+		if err != nil && !ent.IsNotFound(err) {
+			return nil, err
+		}
+		if installation != nil {
+			item.Account, item.InstallationStatus = installation.AccountLogin, string(installation.Status)
+		}
+		linked, err := c.client.WorkspaceGitHubInstallation.Query().Where(workspacegithubinstallation.OrganizationID(actor.OrganizationID), workspacegithubinstallation.GithubInstallationID(*source.GithubInstallationID)).Exist(ctx)
+		if err != nil {
+			return nil, err
+		}
+		switch {
+		case !linked:
+			item.ConnectionState = "disconnected"
+		case item.InstallationStatus == "DELETED":
+			item.ConnectionState = "deleted"
+		case item.InstallationStatus == "SUSPENDED":
+			item.ConnectionState = "suspended"
+		case source.Status != sourceapp.StatusACTIVE:
+			item.ConnectionState = "repository_access_removed"
+		default:
+			item.ConnectionState = "connected"
+		}
+		result.Sources = append(result.Sources, item)
+	}
+	brands, err := c.client.BrandKit.Query().Where(brandkit.OrganizationID(actor.OrganizationID), brandkit.StatusEQ(brandkit.StatusACTIVE)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, brand := range brands {
+		result.Brands = append(result.Brands, AutomationChoice{ID: brand.ID, Name: brand.Name})
+	}
+	destinations, err := c.client.ChannelConnection.Query().Where(channelconnection.OrganizationID(actor.OrganizationID), channelconnection.StatusEQ(channelconnection.StatusACTIVE)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, destination := range destinations {
+		name := destination.Platform
+		if destination.DisplayName != nil {
+			name += " · " + *destination.DisplayName
+		}
+		result.Destinations = append(result.Destinations, AutomationChoice{ID: destination.ID, Name: name})
+	}
+	return result, nil
+}
+
+type AutomationPreviewInput struct {
+	SourceAppID string            `json:"sourceAppId"`
+	Graph       automation.Graph  `json:"graph"`
+	EventID     string            `json:"eventId"`
+	Example     *automation.Event `json:"example"`
+}
+type AutomationPreview struct {
+	automation.Preview
+	Evidence string `json:"evidence"`
+}
+
+// PreviewReleaseAutomation uses the production validator/evaluator and only
+// reads tenant data. It never fetches GitHub or calls generation/domain actions.
+func (c *Configuration) PreviewReleaseAutomation(ctx context.Context, actor Actor, input AutomationPreviewInput) (*AutomationPreview, error) {
+	if err := c.authorizeAutomationAdmin(ctx, actor); err != nil {
+		return nil, err
+	}
+	source, err := c.client.SourceApp.Query().Where(sourceapp.ID(input.SourceAppID), sourceapp.OrganizationID(actor.OrganizationID)).Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var snapshot automation.Event
+	evidence := "Administrator-supplied example; no external reads or actions."
+	if input.EventID != "" {
+		if input.Example != nil {
+			return nil, ErrInvalidInput
+		}
+		event, err := c.client.ReleaseSourceEvent.Query().Where(releasesourceevent.ID(input.EventID), releasesourceevent.OrganizationID(actor.OrganizationID)).Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if event.SourceAppID != source.ID {
+			return nil, ErrInvalidInput
+		}
+		snapshot = event.Snapshot
+		for field, value := range event.Enrichment {
+			snapshot.Fields[field] = value
+		}
+		evidence = "Recorded workspace event and its persisted enrichment; no data refreshed."
+	} else {
+		if input.Example == nil {
+			return nil, ErrInvalidInput
+		}
+		snapshot = *input.Example
+		if err := automation.ValidateEvent(snapshot); err != nil {
+			return nil, ErrInvalidInput
+		}
+	}
+	preview := automation.DryRun(input.Graph, snapshot)
+	// Preview predicts activation, which opts the source into automation mode.
+	source.ReleaseAutomation = true
+	if filter := automationSourceFilter(source, snapshot); filter != "" && len(preview.Issues) == 0 {
+		preview.Qualification = automation.Decision{Status: "evaluated", Match: false, Reason: filter}
+		preview.Steps = []automation.Step{}
+		preview.Outcome = "skipped"
+	}
+	if len(preview.Issues) == 0 {
+		if err := c.automationResources(ctx, actor.OrganizationID, input.Graph); err != nil {
+			if ent.IsNotFound(err) || errors.Is(err, publishing.ErrNotFound) {
+				preview.Issues = append(preview.Issues, automation.Issue{Code: "resource_unavailable", Message: "A selected brand kit or destination is unavailable in this workspace."})
+				preview.Outcome = "invalid"
+			} else {
+				return nil, err
+			}
+		}
+	}
+	return &AutomationPreview{Preview: preview, Evidence: evidence}, nil
+}

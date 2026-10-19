@@ -8,6 +8,21 @@ import { CtaLink } from './CtaLink'
 import { LandingFooter } from './LandingFooter'
 import { LandingNav } from './LandingNav'
 import { Check, CONTAINER, ctaToneSchema, MONO, MUTED, Section, Stage } from './primitives'
+import {
+  Table,
+  TableCaption,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table'
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@/components/ui/accordion'
 
 /** An icon component from hugeicons-react. */
 type Icon = ComponentType<{ className?: string; strokeWidth?: number; 'aria-hidden'?: boolean }>
@@ -194,44 +209,44 @@ export function RowTable({
 }) {
   return (
     <div className="min-w-0 overflow-x-auto">
-      <table className="w-full min-w-[560px] border-collapse text-left text-[15px]">
-        {caption ? <caption className="sr-only">{caption}</caption> : null}
+      <Table className="w-full min-w-[560px] border-collapse text-left text-[15px]">
+        {caption ? <TableCaption className="sr-only">{caption}</TableCaption> : null}
         {head ? (
-          <thead>
-            <tr className="border-b border-[#212121]">
+          <TableHeader>
+            <TableRow className="border-b border-[#212121]">
               {head.map((cell, index) => (
-                <th
-                  className={cn('py-4 pr-6 font-normal', MUTED, index === 0 ? 'w-[34%]' : null)}
+                <TableHead
+                  className={`whitespace-normal ${cn('py-4 pr-6 font-normal', MUTED, index === 0 ? 'w-[34%]' : null)}`}
                   key={index}
                   scope="col"
                 >
                   {cell}
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
+            </TableRow>
+          </TableHeader>
         ) : null}
-        <tbody>
+        <TableBody>
           {rows.map((row, index) => (
-            <tr className="border-b border-[#212121] align-top" key={index}>
-              <th
-                className={cn(
+            <TableRow className="border-b border-[#212121] align-top" key={index}>
+              <TableHead
+                className={`whitespace-normal ${cn(
                   'py-4 pr-6 font-normal text-white',
                   monoLabels && cn(MONO, 'text-[13px]')
-                )}
+                )}`}
                 scope="row"
               >
                 {row.label}
-              </th>
+              </TableHead>
               {row.cells.map((cell, cellIndex) => (
-                <td className={cn('py-4 pr-6', MUTED)} key={cellIndex}>
+                <TableCell className={`whitespace-normal ${cn('py-4 pr-6', MUTED)}`} key={cellIndex}>
                   {cell}
-                </td>
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   )
 }
@@ -239,21 +254,27 @@ export function RowTable({
 /** A question and its answer. */
 export type Faq = { q: string; a: ReactNode }
 
-/** FAQ entries as native details elements. No client script. */
+/** Independent FAQ disclosures with keyboard-accessible triggers. */
 export function FaqList({ items }: { items: Faq[] }) {
   return (
     <div className="border-t border-[#212121]">
       {items.map((faq) => (
-        <details className="group border-b border-[#212121]" key={faq.q}>
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-6 text-lg text-white [&::-webkit-details-marker]:hidden">
-            {faq.q}
-            <span
-              aria-hidden="true"
-              className="relative size-3.5 shrink-0 before:absolute before:inset-x-0 before:top-1/2 before:h-px before:bg-white after:absolute after:inset-y-0 after:left-1/2 after:w-px after:bg-white after:transition-transform group-open:after:scale-y-0"
-            />
-          </summary>
-          <div className={cn('max-w-[600px] pb-7 text-base leading-[1.65]', MUTED)}>{faq.a}</div>
-        </details>
+        <Accordion type="single" collapsible key={faq.q}>
+          <AccordionItem value="details" className="group border-b border-[#212121]">
+            <AccordionTrigger className="[&>svg:last-child]:hidden flex cursor-pointer list-none items-center justify-between gap-6 py-6 text-lg text-white [&::-webkit-details-marker]:hidden">
+              {faq.q}
+              <span
+                aria-hidden="true"
+                className="relative size-3.5 shrink-0 before:absolute before:inset-x-0 before:top-1/2 before:h-px before:bg-white after:absolute after:inset-y-0 after:left-1/2 after:w-px after:bg-white after:transition-transform group-data-[state=open]:after:scale-y-0"
+              />
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
+              <div className={cn('max-w-[600px] pb-7 text-base leading-[1.65]', MUTED)}>
+                {faq.a}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       ))}
     </div>
   )

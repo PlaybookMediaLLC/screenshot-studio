@@ -3,9 +3,9 @@
 import * as React from 'react';
 import { LinkSquare02Icon, Loading03Icon } from 'hugeicons-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { SegmentedControl } from '@/components/ui/segmented-control';
-import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { Switch } from '@/components/ui/switch'
+import { Button } from '@/components/ui/button'
 import { BackgroundPicker } from '@/components/code-image/BackgroundPicker';
 import {
   frameBackgroundStyle,
@@ -37,6 +37,7 @@ import {
   type TweetData,
   type TweetTheme,
 } from './TweetCard';
+import { Input } from '@/components/ui/input'
 
 const HASH_WRITE_DELAY = 400;
 const FETCH_TIMEOUT_MS = 20000;
@@ -263,7 +264,7 @@ function PostLinkForm({ value, onValueChange, onLoad, loading, error, showingSam
             aria-hidden="true"
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/40"
           />
-          <input
+          <Input
             type="text"
             inputMode="url"
             value={value}

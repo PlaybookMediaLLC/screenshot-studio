@@ -19,6 +19,7 @@ import { StoreScreenshotsShortcut } from "@/components/store-screenshots/StoreSc
 import { STORE_SHORTCUT_GAP } from "@/lib/store-screenshots/config";
 import { TEMPLATE_DEMO_IMAGE_NAME } from "@/lib/templates/demo-media";
 import { useBackgroundImageReady } from "@/hooks/useBackgroundImageReady";
+import { Button } from '@/components/ui/button'
 
 export function EditorCanvas() {
   const isMobile = useIsMobile();
@@ -189,7 +190,7 @@ export function EditorCanvas() {
                       : 'border-foreground/10 hover:border-foreground/20'
                   )}
                 >
-                  <button
+                  <Button variant="custom" size={null}
                     type="button"
                     aria-label={`Select slide ${slides.indexOf(slide) + 1}`}
                     aria-pressed={slide.id === activeSlideId}
@@ -202,9 +203,9 @@ export function EditorCanvas() {
                       className="h-full w-full object-cover"
                       draggable={false}
                     />
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button variant="custom" size={null}
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -214,7 +215,7 @@ export function EditorCanvas() {
                     title="Delete slide"
                   >
                     <Cancel01Icon size={10} />
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>

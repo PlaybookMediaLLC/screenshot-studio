@@ -4,7 +4,13 @@ import * as React from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import type { ReviewSummary } from '@/lib/api/contracts/store-screenshots'
 import { evaluateSlide } from '@/lib/store-screenshots/engine/scene'
 import { getStoreTargetOrDefault, targetPixelSize } from '@/lib/store-screenshots/targets'
@@ -14,6 +20,9 @@ import { useRenderServices } from '../../render/RenderProvider'
 import { useEditor, useEditorApi } from '../editor-store'
 import type { DialogProps } from './BasicDialogs'
 import { blobToBase64, requestJson } from './request'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 
 /** Review images are rendered at this width: sharp on a laptop, small to upload. */
 const REVIEW_WIDTH = 900
@@ -136,14 +145,14 @@ export function ReviewDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
         </DialogHeader>
 
         <fieldset disabled={running} className="grid gap-2 sm:grid-cols-[1fr_180px_auto] sm:items-end">
-          <label className="text-xs">
+          <Label className="block text-xs">
             <span className="text-muted-foreground">Review name</span>
-            <input value={name} maxLength={120} onChange={(event) => setName(event.target.value)} className="mt-1 h-9 w-full rounded-md border border-foreground/15 bg-background px-2 text-sm" />
-          </label>
-          <label className="text-xs">
+            <Input value={name} maxLength={120} onChange={(event) => setName(event.target.value)} className="mt-1 h-9 w-full rounded-md border border-foreground/15 bg-background px-2 text-sm" />
+          </Label>
+          <Label className="block text-xs">
             <span className="text-muted-foreground">Version label (optional)</span>
-            <input value={versionLabel} maxLength={80} placeholder="e.g. Draft 2" onChange={(event) => setVersionLabel(event.target.value)} className="mt-1 h-9 w-full rounded-md border border-foreground/15 bg-background px-2 text-sm" />
-          </label>
+            <Input value={versionLabel} maxLength={80} placeholder="e.g. Draft 2" onChange={(event) => setVersionLabel(event.target.value)} className="mt-1 h-9 w-full rounded-md border border-foreground/15 bg-background px-2 text-sm" />
+          </Label>
           <Button onClick={() => void create()}>Create link</Button>
         </fieldset>
         {running ? (
@@ -165,9 +174,9 @@ export function ReviewDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
           {loadError ? (
             <p role="alert" className="text-xs text-destructive">
               {loadError}{' '}
-              <button type="button" className="underline underline-offset-2" onClick={() => void load()}>
+              <Button variant="custom" size={null} type="button" className="underline underline-offset-2" onClick={() => void load()}>
                 Try again
-              </button>
+              </Button>
             </p>
           ) : null}
           {reviews === null && !loadError ? <p className="text-xs text-muted-foreground">Loading…</p> : null}
@@ -211,7 +220,7 @@ export function ReviewDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
                   ) : null}
                 </header>
                 {review.url ? (
-                  <input readOnly value={review.url} aria-label={`Review link for ${review.name}`} onFocus={(event) => event.currentTarget.select()} className="h-8 w-full rounded-md border border-foreground/10 bg-foreground/[0.03] px-2 font-mono text-[11px]" />
+                  <Input readOnly value={review.url} aria-label={`Review link for ${review.name}`} onFocus={(event) => event.currentTarget.select()} className="h-8 w-full rounded-md border border-foreground/10 bg-foreground/[0.03] px-2 font-mono text-[11px]" />
                 ) : null}
                 {review.comments.length ? (
                   <ul className="space-y-1.5" aria-label={`Comments on ${review.name}`}>
@@ -221,14 +230,14 @@ export function ReviewDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
                       return (
                         <li key={comment.id} className={cn('rounded border border-foreground/10 p-2 text-xs', comment.resolvedAt && 'opacity-60')}>
                           <div className="flex items-center justify-between gap-2">
-                            <button type="button" className="truncate text-left font-medium underline-offset-2 hover:underline" onClick={() => showSlide(comment.slideId)}>
+                            <Button variant="custom" size={null} type="button" className="truncate text-left font-medium underline-offset-2 hover:underline" onClick={() => showSlide(comment.slideId)}>
                               {slideIndex >= 0 ? `Slide ${slideIndex + 1}` : 'Deleted slide'} · {slideName}
                               {comment.x !== null && comment.y !== null ? ` · pinned at ${Math.round(comment.x)}%, ${Math.round(comment.y)}%` : ''}
-                            </button>
-                            <label className="flex shrink-0 items-center gap-1 text-[11px]">
-                              <input type="checkbox" checked={Boolean(comment.resolvedAt)} onChange={(event) => void resolve(review.id, comment.id, event.target.checked)} />
+                            </Button>
+                            <Label className="flex shrink-0 items-center gap-1 text-[11px]">
+                              <Checkbox  checked={Boolean(comment.resolvedAt)} onCheckedChange={(checked) => void resolve(review.id, comment.id, (checked === true))} />
                               Resolved
-                            </label>
+                            </Label>
                           </div>
                           <p className="mt-1 whitespace-pre-wrap">{comment.body}</p>
                           <p className="mt-1 text-[10px] text-muted-foreground">

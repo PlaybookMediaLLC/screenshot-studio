@@ -9,6 +9,14 @@ import {
   codeBlockClassName,
   linkClassName,
 } from "@/lib/seo/docs-shared";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table'
 
 export const metadata: Metadata = {
   title: "Shots API Documentation",
@@ -326,36 +334,36 @@ export default function DocsPage() {
 }`}</code>
             </pre>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="py-2 pr-4 font-medium text-foreground">
+              <Table className="w-full text-left text-sm">
+                <TableHeader>
+                  <TableRow className="border-b border-border">
+                    <TableHead className="whitespace-normal py-2 pr-4 font-medium text-foreground">
                       Code
-                    </th>
-                    <th className="py-2 pr-4 font-medium text-foreground">
+                    </TableHead>
+                    <TableHead className="whitespace-normal py-2 pr-4 font-medium text-foreground">
                       Status
-                    </th>
-                    <th className="py-2 font-medium text-foreground">
+                    </TableHead>
+                    <TableHead className="whitespace-normal py-2 font-medium text-foreground">
                       Meaning
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {ERROR_CODES.map((row) => (
-                    <tr key={row.code} className="border-b border-border/60">
-                      <td className="py-2 pr-4 font-mono text-xs text-foreground">
+                    <TableRow key={row.code} className="border-b border-border/60">
+                      <TableCell className="whitespace-normal py-2 pr-4 font-mono text-xs text-foreground">
                         {row.code}
-                      </td>
-                      <td className="py-2 pr-4 text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="whitespace-normal py-2 pr-4 text-muted-foreground">
                         {row.status}
-                      </td>
-                      <td className="py-2 text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="whitespace-normal py-2 text-muted-foreground">
                         {row.meaning}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </section>
 

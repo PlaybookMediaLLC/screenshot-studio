@@ -59,7 +59,7 @@ func (StoreReviewComment) Fields() []ent.Field {
 		field.Float("x").StorageKey("x").Optional().Nillable(),
 		field.Float("y").StorageKey("y").Optional().Nillable(),
 		field.String("author_name").StorageKey("authorName"),
-        field.String("platform_author_user_id").StorageKey("platformAuthorUserId").Optional().Nillable(),
+		field.String("platform_author_user_id").StorageKey("platformAuthorUserId").Optional().Nillable(),
 		field.String("body").StorageKey("body"),
 		field.Bool("from_link").StorageKey("fromLink"),
 		field.Time("resolved_at").StorageKey("resolvedAt").Optional().Nillable(),

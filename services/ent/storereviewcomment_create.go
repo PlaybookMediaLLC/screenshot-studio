@@ -72,6 +72,20 @@ func (_c *StoreReviewCommentCreate) SetAuthorName(v string) *StoreReviewCommentC
 	return _c
 }
 
+// SetPlatformAuthorUserID sets the "platform_author_user_id" field.
+func (_c *StoreReviewCommentCreate) SetPlatformAuthorUserID(v string) *StoreReviewCommentCreate {
+	_c.mutation.SetPlatformAuthorUserID(v)
+	return _c
+}
+
+// SetNillablePlatformAuthorUserID sets the "platform_author_user_id" field if the given value is not nil.
+func (_c *StoreReviewCommentCreate) SetNillablePlatformAuthorUserID(v *string) *StoreReviewCommentCreate {
+	if v != nil {
+		_c.SetPlatformAuthorUserID(*v)
+	}
+	return _c
+}
+
 // SetBody sets the "body" field.
 func (_c *StoreReviewCommentCreate) SetBody(v string) *StoreReviewCommentCreate {
 	_c.mutation.SetBody(v)
@@ -254,6 +268,10 @@ func (_c *StoreReviewCommentCreate) createSpec() (*StoreReviewComment, *sqlgraph
 	if value, ok := _c.mutation.AuthorName(); ok {
 		_spec.SetField(storereviewcomment.FieldAuthorName, field.TypeString, value)
 		_node.AuthorName = value
+	}
+	if value, ok := _c.mutation.PlatformAuthorUserID(); ok {
+		_spec.SetField(storereviewcomment.FieldPlatformAuthorUserID, field.TypeString, value)
+		_node.PlatformAuthorUserID = &value
 	}
 	if value, ok := _c.mutation.Body(); ok {
 		_spec.SetField(storereviewcomment.FieldBody, field.TypeString, value)

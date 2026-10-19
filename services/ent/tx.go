@@ -108,6 +108,22 @@ type Tx struct {
 	PlatformCreativeSet *PlatformCreativeSetClient
 	// PlatformCreativeSetVersion is the client for interacting with the PlatformCreativeSetVersion builders.
 	PlatformCreativeSetVersion *PlatformCreativeSetVersionClient
+	// PlatformNotificationDelivery is the client for interacting with the PlatformNotificationDelivery builders.
+	PlatformNotificationDelivery *PlatformNotificationDeliveryClient
+	// PlatformNotificationInbox is the client for interacting with the PlatformNotificationInbox builders.
+	PlatformNotificationInbox *PlatformNotificationInboxClient
+	// PlatformNotificationPolicy is the client for interacting with the PlatformNotificationPolicy builders.
+	PlatformNotificationPolicy *PlatformNotificationPolicyClient
+	// PlatformNotificationPreference is the client for interacting with the PlatformNotificationPreference builders.
+	PlatformNotificationPreference *PlatformNotificationPreferenceClient
+	// PlatformNotificationSeenAction is the client for interacting with the PlatformNotificationSeenAction builders.
+	PlatformNotificationSeenAction *PlatformNotificationSeenActionClient
+	// PlatformSlackConnection is the client for interacting with the PlatformSlackConnection builders.
+	PlatformSlackConnection *PlatformSlackConnectionClient
+	// PlatformSlackInstallation is the client for interacting with the PlatformSlackInstallation builders.
+	PlatformSlackInstallation *PlatformSlackInstallationClient
+	// PlatformSlackPacing is the client for interacting with the PlatformSlackPacing builders.
+	PlatformSlackPacing *PlatformSlackPacingClient
 	// ProductProfile is the client for interacting with the ProductProfile builders.
 	ProductProfile *ProductProfileClient
 	// ProductSurface is the client for interacting with the ProductSurface builders.
@@ -353,6 +369,14 @@ func (tx *Tx) init() {
 	tx.PageKnowledge = NewPageKnowledgeClient(tx.config)
 	tx.PlatformCreativeSet = NewPlatformCreativeSetClient(tx.config)
 	tx.PlatformCreativeSetVersion = NewPlatformCreativeSetVersionClient(tx.config)
+	tx.PlatformNotificationDelivery = NewPlatformNotificationDeliveryClient(tx.config)
+	tx.PlatformNotificationInbox = NewPlatformNotificationInboxClient(tx.config)
+	tx.PlatformNotificationPolicy = NewPlatformNotificationPolicyClient(tx.config)
+	tx.PlatformNotificationPreference = NewPlatformNotificationPreferenceClient(tx.config)
+	tx.PlatformNotificationSeenAction = NewPlatformNotificationSeenActionClient(tx.config)
+	tx.PlatformSlackConnection = NewPlatformSlackConnectionClient(tx.config)
+	tx.PlatformSlackInstallation = NewPlatformSlackInstallationClient(tx.config)
+	tx.PlatformSlackPacing = NewPlatformSlackPacingClient(tx.config)
 	tx.ProductProfile = NewProductProfileClient(tx.config)
 	tx.ProductSurface = NewProductSurfaceClient(tx.config)
 	tx.Project = NewProjectClient(tx.config)

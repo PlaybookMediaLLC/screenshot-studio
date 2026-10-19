@@ -26,10 +26,11 @@ services:
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
       NODE_ENV: development
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      # Slack, Notion, and Figma delivery (docs/integrations.md). Unset providers show as not set up.
+      # Notion and Figma delivery. Slack credentials are backend-only.
       INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:-}
-      SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}
-      SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET:-}
+      SLACK_CLIENT_ID: ''
+      SLACK_CLIENT_SECRET: ''
+      PLATFORM_NOTIFICATION_ENCRYPTION_KEY: ''
       NOTION_CLIENT_ID: ${NOTION_CLIENT_ID:-}
       NOTION_CLIENT_SECRET: ${NOTION_CLIENT_SECRET:-}
       FIGMA_CLIENT_ID: ${FIGMA_CLIENT_ID:-}
@@ -163,6 +164,12 @@ services:
     entrypoint: ['/publishing-backend']
     env_file: .local/dev.env
     environment:
+      PLATFORM_NOTIFICATION_ENCRYPTION_KEY: ${PLATFORM_NOTIFICATION_ENCRYPTION_KEY:-}
+      PLATFORM_ACTIVITY_LEGACY_PAUSED: ${PLATFORM_ACTIVITY_LEGACY_PAUSED:-true}
+      SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}
+      SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET:-}
+      PLATFORM_SLACK_CALLBACK_URL: ${PLATFORM_SLACK_CALLBACK_URL:-}
+      INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:-}
       PORT: '8080'
       DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
@@ -256,6 +263,12 @@ services:
     entrypoint: ['/publishing-orchestrator']
     env_file: .local/dev.env
     environment:
+      PLATFORM_NOTIFICATION_ENCRYPTION_KEY: ${PLATFORM_NOTIFICATION_ENCRYPTION_KEY:-}
+      PLATFORM_ACTIVITY_LEGACY_PAUSED: ${PLATFORM_ACTIVITY_LEGACY_PAUSED:-true}
+      SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}
+      SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET:-}
+      PLATFORM_SLACK_CALLBACK_URL: ${PLATFORM_SLACK_CALLBACK_URL:-}
+      INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:-}
       PORT: '8081'
       DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
       SOCIAL_API_URL: ${SOCIAL_API_URL:-http://screenshot-studio-backend:3000/public/v1}
@@ -320,6 +333,12 @@ services:
     # runs the tenant API and workers on a production host.
     entrypoint: ['/screenshot-studio-backend']
     environment:
+      PLATFORM_NOTIFICATION_ENCRYPTION_KEY: ${PLATFORM_NOTIFICATION_ENCRYPTION_KEY:-}
+      PLATFORM_ACTIVITY_LEGACY_PAUSED: ${PLATFORM_ACTIVITY_LEGACY_PAUSED:-true}
+      SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}
+      SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET:-}
+      PLATFORM_SLACK_CALLBACK_URL: ${PLATFORM_SLACK_CALLBACK_URL:-}
+      INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:-}
       DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
       REDIS_URL: redis://social-redis:6379
       TEMPORAL_ADDRESS: social-temporal:7233

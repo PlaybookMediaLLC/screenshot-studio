@@ -33,14 +33,15 @@ type Where struct {
 }
 
 type Request struct {
-	Data      map[string]any     `json:"data"`
-	Increment map[string]float64 `json:"increment"`
-	Limit     int                `json:"limit"`
-	Model     string             `json:"model"`
-	Offset    int                `json:"offset"`
-	Op        string             `json:"op"`
-	Select    []string           `json:"select"`
-	SortBy    *struct {
+	ActorSessionID string             `json:"actorSessionId,omitempty"`
+	Data           map[string]any     `json:"data"`
+	Increment      map[string]float64 `json:"increment"`
+	Limit          int                `json:"limit"`
+	Model          string             `json:"model"`
+	Offset         int                `json:"offset"`
+	Op             string             `json:"op"`
+	Select         []string           `json:"select"`
+	SortBy         *struct {
 		Direction string `json:"direction"`
 		Field     string `json:"field"`
 	} `json:"sortBy"`
@@ -54,10 +55,17 @@ type Result struct {
 	Rows  []map[string]any `json:"rows,omitempty"`
 }
 
+type executor interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
 type Store struct {
-	db      *sql.DB
-	mu      sync.Mutex
-	columns map[string]map[string]string
+	executor executor
+	db       *sql.DB
+	mu       sync.Mutex
+	columns  map[string]map[string]string
 }
 
 func New(db *sql.DB) *Store { return &Store{db: db} }
@@ -310,6 +318,31 @@ func (s *Store) Execute(ctx context.Context, request Request) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	if request.Model == "member" && request.Op != "findOne" && request.Op != "findMany" && request.Op != "count" && s.executor == nil {
+		tx, err := s.db.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback()
+		actor := ""
+		if request.ActorSessionID != "" {
+			if err = tx.QueryRowContext(ctx, `SELECT s."userId" FROM session s JOIN "user" u ON u.id=s."userId" WHERE s.id=$1 AND s."expiresAt">now() AND NOT coalesce(u.banned,false) FOR SHARE OF s,u`, request.ActorSessionID).Scan(&actor); err != nil {
+				return nil, fmt.Errorf("%w: actor session is no longer active", ErrInvalid)
+			}
+		}
+		if _, err = tx.ExecContext(ctx, `SELECT set_config('platform.activity_actor',$1,true)`, actor); err != nil {
+			return nil, err
+		}
+		scoped := &Store{db: s.db, columns: schema, executor: tx}
+		result, err := scoped.Execute(ctx, request)
+		if err != nil {
+			return nil, err
+		}
+		if err = tx.Commit(); err != nil {
+			return nil, err
+		}
+		return result, nil
+	}
 	q := &query{columns: schema[request.Model], table: quote(request.Model)}
 	switch request.Op {
 	case "create":
@@ -374,7 +407,7 @@ func (s *Store) Execute(ctx context.Context, request Request) (*Result, error) {
 			return nil, err
 		}
 		var count int64
-		if err := s.db.QueryRowContext(ctx, fmt.Sprintf("SELECT count(*) FROM %s WHERE %s", q.table, filter), q.args...).Scan(&count); err != nil {
+		if err := s.runner().QueryRowContext(ctx, fmt.Sprintf("SELECT count(*) FROM %s WHERE %s", q.table, filter), q.args...).Scan(&count); err != nil {
 			return nil, err
 		}
 		return &Result{Count: &count}, nil
@@ -435,7 +468,7 @@ func (s *Store) Execute(ctx context.Context, request Request) (*Result, error) {
 }
 
 func (s *Store) affected(ctx context.Context, statement string, args []any) (*Result, error) {
-	result, err := s.db.ExecContext(ctx, statement, args...)
+	result, err := s.runner().ExecContext(ctx, statement, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -458,7 +491,7 @@ func (s *Store) one(ctx context.Context, statement string, args []any) (*Result,
 }
 
 func (s *Store) rows(ctx context.Context, statement string, args []any) ([]map[string]any, error) {
-	rows, err := s.db.QueryContext(ctx, statement, args...)
+	rows, err := s.runner().QueryContext(ctx, statement, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -491,4 +524,11 @@ func (s *Store) rows(ctx context.Context, statement string, args []any) ([]map[s
 		result = append(result, row)
 	}
 	return result, rows.Err()
+}
+
+func (s *Store) runner() executor {
+	if s.executor != nil {
+		return s.executor
+	}
+	return s.db
 }

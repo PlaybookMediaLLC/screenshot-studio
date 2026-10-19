@@ -287,6 +287,10 @@ func TestWorkerEnrichesReleasesBackfillsAndCaptures(t *testing.T) {
 	if refreshed, _ := db.Client.ProductSurface.Get(ctx, surface.ID); len(refreshed.ScreenshotAssetIds) != 1 || refreshed.ScreenshotAssetIds[0] != captured.AssetIds[0] {
 		t.Fatalf("surface screenshots=%v", refreshed.ScreenshotAssetIds)
 	}
+	var generatedOwner string
+	if err := db.SQL.QueryRowContext(ctx, `SELECT payload->>'ownerUserId' FROM outbox_event WHERE "aggregateId"=$1 AND type='asset.uploaded'`, captured.AssetIds[0]).Scan(&generatedOwner); err != nil || generatedOwner != owner.UserID {
+		t.Fatalf("background asset owner=%s err=%v", generatedOwner, err)
+	}
 	// The capture is a row; a second deployment supersedes it and keeps it.
 	again, _ := db.Client.DeploymentEvent.Get(ctx, deploy("4", &live))
 	captures, err := repo.ListSurfaceCaptures(ctx, owner, surface.ID)

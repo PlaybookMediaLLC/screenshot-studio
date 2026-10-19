@@ -71,6 +71,7 @@ func (SourceApp) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("id").StorageKey("id").Immutable(),
 		field.String("organization_id").StorageKey("organizationId").Immutable(),
+		field.String("platform_owner_user_id").StorageKey("platformOwnerUserId").Optional().Nillable(),
 		field.String("name").StorageKey("name"),
 		field.String("provider").StorageKey("provider").Default("generic"),
 		field.String("external_id").StorageKey("externalId").Optional().Nillable(),

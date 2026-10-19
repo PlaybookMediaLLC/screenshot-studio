@@ -15,6 +15,8 @@ const (
 	FieldID = "id"
 	// FieldOrganizationID holds the string denoting the organization_id field in the database.
 	FieldOrganizationID = "organizationId"
+	// FieldPlatformOwnerUserID holds the string denoting the platform_owner_user_id field in the database.
+	FieldPlatformOwnerUserID = "platformOwnerUserId"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldSlug holds the string denoting the slug field in the database.
@@ -45,6 +47,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldOrganizationID,
+	FieldPlatformOwnerUserID,
 	FieldName,
 	FieldSlug,
 	FieldURL,
@@ -90,6 +93,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByOrganizationID orders the results by the organization_id field.
 func ByOrganizationID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOrganizationID, opts...).ToFunc()
+}
+
+// ByPlatformOwnerUserID orders the results by the platform_owner_user_id field.
+func ByPlatformOwnerUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPlatformOwnerUserID, opts...).ToFunc()
 }
 
 // ByName orders the results by the name field.

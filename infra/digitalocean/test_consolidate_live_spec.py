@@ -84,6 +84,22 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         # Once the social name exists in Infisical, it wins.
         self.assertEqual(values["X_API_SECRET"], "new-x")
 
+    def test_notifications_configuration_stays_backend_owned(self):
+        backend = self.base["spec"]["services"][-1]
+        keys = ("PLATFORM_NOTIFICATION_ENCRYPTION_KEY", "SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET",
+                "PLATFORM_SLACK_CALLBACK_URL", "INTEGRATION_ENCRYPTION_KEY")
+        secrets = {key: "fixture-" + key for key in keys}
+        secrets.update({key: "fixture" for key in ("R2_ENDPOINT", "R2_BUCKET_NAME", "R2_ACCESS_KEY_ID",
+                                                  "R2_SECRET_ACCESS_KEY", "REDIS_URL")})
+        cutover.configure_product_api(backend, secrets)
+        values = {item["key"]: item for item in backend["envs"]}
+        for key in keys:
+            self.assertEqual(values["TENANT_" + key]["value"], secrets[key])
+            self.assertEqual(values["TENANT_" + key]["type"], "SECRET")
+            self.assertEqual(values["TENANT_" + key]["scope"], "RUN_TIME")
+        cutover.configure_product_api(backend, {key: value for key, value in secrets.items() if key not in keys})
+        self.assertFalse({item["key"] for item in backend["envs"]} & {"TENANT_" + key for key in keys})
+
     def test_refuses_unexpected_topology(self):
         self.base["spec"]["services"].append({"name": "unexpected"})
         with self.assertRaisesRegex(ValueError, "topology changed"):

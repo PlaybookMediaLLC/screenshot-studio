@@ -118,7 +118,12 @@ func (a plainAuth) Next(_ []byte, more bool) ([]byte, error) {
 	return nil, nil
 }
 
-func (NodeMailerProvider) SendEmail(ctx context.Context, to, subject, html, emailFromName, emailFromAddress, _ string) (any, error) {
+func (p NodeMailerProvider) SendEmail(ctx context.Context, to, subject, html, emailFromName, emailFromAddress, _ string) (any, error) {
+	return p.SendMessage(ctx, to, subject, html, html, emailFromName, emailFromAddress)
+}
+
+// SendMessage preserves the legacy SMTP settings while carrying a real plaintext alternative.
+func (NodeMailerProvider) SendMessage(ctx context.Context, to, subject, text, html, emailFromName, emailFromAddress string) (map[string]any, error) {
 	host := os.Getenv("EMAIL_HOST")
 	secure := os.Getenv("EMAIL_SECURE") == "true"
 	// +process.env.EMAIL_PORT is NaN when unset, which nodemailer replaces
@@ -181,7 +186,7 @@ func (NodeMailerProvider) SendEmail(ctx context.Context, to, subject, html, emai
 	if err != nil {
 		return nil, err
 	}
-	if _, err := w.Write(buildMessage(emailFromName, emailFromAddress, to, subject, html, messageID)); err != nil {
+	if _, err := w.Write(buildAlternativeMessage(emailFromName, emailFromAddress, to, subject, text, html, messageID)); err != nil {
 		return nil, err
 	}
 	if err := w.Close(); err != nil {
@@ -213,6 +218,9 @@ func domainOf(address string) string {
 // buildMessage is the multipart/alternative message nodemailer builds for
 // {from, to, subject, text: html, html}.
 func buildMessage(fromName, fromAddress, to, subject, html, messageID string) []byte {
+	return buildAlternativeMessage(fromName, fromAddress, to, subject, html, html, messageID)
+}
+func buildAlternativeMessage(fromName, fromAddress, to, subject, text, html, messageID string) []byte {
 	boundary := "--_NmP-" + randomHex(8) + "-Part_1"
 	var b strings.Builder
 	header := func(k, v string) { b.WriteString(k + ": " + v + "\r\n") }
@@ -229,7 +237,11 @@ func buildMessage(fromName, fromAddress, to, subject, html, messageID string) []
 		header("Content-Type", contentType+"; charset=utf-8")
 		header("Content-Transfer-Encoding", "base64")
 		b.WriteString("\r\n")
-		b.WriteString(encodeBase64Lines(html))
+		body := html
+		if contentType == "text/plain" {
+			body = text
+		}
+		b.WriteString(encodeBase64Lines(body))
 	}
 	b.WriteString("--" + boundary + "--\r\n")
 	return []byte(b.String())

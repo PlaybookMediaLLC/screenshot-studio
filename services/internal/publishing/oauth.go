@@ -2,6 +2,7 @@ package publishing
 
 import (
 	"context"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
@@ -114,6 +115,9 @@ func (r *Repository) FinishOAuth(ctx context.Context, actor Actor, sessionID, st
 			return nil, ErrConflict
 		}
 		if err != nil {
+			return nil, err
+		}
+		if err := activity.Emit(ctx, tx, actor.Organization, "integration.connected", "channel_connection", connection.ID, actor.UserID, "connected:"+connection.ID, map[string]any{"ownerUserId": actor.UserID}); err != nil {
 			return nil, err
 		}
 		if err := appendAudit(ctx, tx, auditInput{

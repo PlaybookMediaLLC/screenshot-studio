@@ -90,3 +90,17 @@ func TestSocialEnvGetsTheMCPPlatformSettings(t *testing.T) {
 		}
 	}
 }
+
+func TestSocialEnvSharesBackendSlackLifecycle(t *testing.T) {
+	keys := []string{"PLATFORM_NOTIFICATION_ENCRYPTION_KEY", "SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET", "PLATFORM_SLACK_CALLBACK_URL", "INTEGRATION_ENCRYPTION_KEY"}
+	environ := []string{}
+	for _, key := range keys {
+		environ = append(environ, "TENANT_"+key+"=fixture")
+	}
+	result := socialEnv(environ)
+	for _, key := range keys {
+		if !hasEntry(result, key+"=fixture") {
+			t.Errorf("missing shared Slack configuration: %s", key)
+		}
+	}
+}

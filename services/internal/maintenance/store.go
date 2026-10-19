@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
 	"github.com/lucsky/cuid"
 )
 
@@ -25,6 +26,7 @@ type ProductEvents interface {
 }
 
 type Store struct {
+	Activity    *notifications.Service
 	DB          *sql.DB
 	RetentionDB *sql.DB
 	Objects     ObjectDeleter
@@ -47,6 +49,7 @@ func (s *Store) Run(ctx context.Context, job string) (int, error) {
 		"tenant-outbox": s.Outbox, "audit-drains": s.AuditDrains,
 		"communications": s.Communications, "workspace-cleanup": s.WorkspaceCleanup,
 		"audit-retention": s.AuditRetention,
+		"notifications":   s.Notifications,
 	}
 	handler, ok := handlers[job]
 	if !ok {

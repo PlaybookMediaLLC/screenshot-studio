@@ -1371,6 +1371,8 @@ var (
 		{Name: "idempotencyKey", Type: field.TypeString},
 		{Name: "deliveredAt", Type: field.TypeTime, Nullable: true},
 		{Name: "processingAt", Type: field.TypeTime, Nullable: true},
+		{Name: "notification_version", Type: field.TypeInt, Default: 1},
+		{Name: "notification_fanned", Type: field.TypeBool, Default: false},
 		{Name: "attempts", Type: field.TypeInt, Default: 0},
 		{Name: "lastError", Type: field.TypeString, Nullable: true},
 		{Name: "deadLetteredAt", Type: field.TypeTime, Nullable: true},
@@ -1390,7 +1392,7 @@ var (
 			{
 				Name:    "outboxevent_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{OutboxEventColumns[1], OutboxEventColumns[12]},
+				Columns: []*schema.Column{OutboxEventColumns[1], OutboxEventColumns[14]},
 			},
 		},
 	}
@@ -1481,6 +1483,204 @@ var (
 			},
 		},
 	}
+	// PlatformNotificationDeliveryColumns holds the columns for the "platform_notification_delivery" table.
+	PlatformNotificationDeliveryColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "event_id", Type: field.TypeString},
+		{Name: "kind", Type: field.TypeString},
+		{Name: "channel", Type: field.TypeString},
+		{Name: "destination", Type: field.TypeString},
+		{Name: "status", Type: field.TypeString, Default: "PENDING"},
+		{Name: "policy_generation", Type: field.TypeInt, Default: 1},
+		{Name: "preference_generation", Type: field.TypeInt, Default: 1},
+		{Name: "connection_id", Type: field.TypeString, Default: ""},
+		{Name: "claim_token", Type: field.TypeString, Default: ""},
+		{Name: "claimed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "send_started_at", Type: field.TypeTime, Nullable: true},
+		{Name: "attempts", Type: field.TypeInt, Default: 0},
+		{Name: "next_attempt_at", Type: field.TypeTime},
+		{Name: "failure_code", Type: field.TypeString, Default: ""},
+		{Name: "provider_receipt", Type: field.TypeString, Default: ""},
+		{Name: "encrypted_payload", Type: field.TypeString, Default: ""},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// PlatformNotificationDeliveryTable holds the schema information for the "platform_notification_delivery" table.
+	PlatformNotificationDeliveryTable = &schema.Table{
+		Name:       "platform_notification_delivery",
+		Columns:    PlatformNotificationDeliveryColumns,
+		PrimaryKey: []*schema.Column{PlatformNotificationDeliveryColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformnotificationdelivery_organizationId_event_id_channel_destination",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformNotificationDeliveryColumns[1], PlatformNotificationDeliveryColumns[2], PlatformNotificationDeliveryColumns[4], PlatformNotificationDeliveryColumns[5]},
+			},
+			{
+				Name:    "platformnotificationdelivery_status_next_attempt_at",
+				Unique:  false,
+				Columns: []*schema.Column{PlatformNotificationDeliveryColumns[6], PlatformNotificationDeliveryColumns[14]},
+			},
+		},
+	}
+	// PlatformNotificationInboxColumns holds the columns for the "platform_notification_inbox" table.
+	PlatformNotificationInboxColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "userId", Type: field.TypeString},
+		{Name: "event_id", Type: field.TypeString},
+		{Name: "kind", Type: field.TypeString},
+		{Name: "resource_type", Type: field.TypeString},
+		{Name: "resource_id", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString},
+		{Name: "href", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// PlatformNotificationInboxTable holds the schema information for the "platform_notification_inbox" table.
+	PlatformNotificationInboxTable = &schema.Table{
+		Name:       "platform_notification_inbox",
+		Columns:    PlatformNotificationInboxColumns,
+		PrimaryKey: []*schema.Column{PlatformNotificationInboxColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformnotificationinbox_organizationId_userId_created_at_id",
+				Unique:  false,
+				Columns: []*schema.Column{PlatformNotificationInboxColumns[1], PlatformNotificationInboxColumns[2], PlatformNotificationInboxColumns[9], PlatformNotificationInboxColumns[0]},
+			},
+			{
+				Name:    "platformnotificationinbox_organizationId_userId_event_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformNotificationInboxColumns[1], PlatformNotificationInboxColumns[2], PlatformNotificationInboxColumns[3]},
+			},
+		},
+	}
+	// PlatformNotificationPolicyColumns holds the columns for the "platform_notification_policy" table.
+	PlatformNotificationPolicyColumns = []*schema.Column{
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "events", Type: field.TypeJSON},
+		{Name: "availability", Type: field.TypeJSON},
+		{Name: "generation", Type: field.TypeInt, Default: 1},
+		{Name: "slack_connection_id", Type: field.TypeString, Default: ""},
+		{Name: "slack_channel_id", Type: field.TypeString, Default: ""},
+		{Name: "slack_channel_name", Type: field.TypeString, Default: ""},
+		{Name: "enabled_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// PlatformNotificationPolicyTable holds the schema information for the "platform_notification_policy" table.
+	PlatformNotificationPolicyTable = &schema.Table{
+		Name:       "platform_notification_policy",
+		Columns:    PlatformNotificationPolicyColumns,
+		PrimaryKey: []*schema.Column{PlatformNotificationPolicyColumns[0]},
+	}
+	// PlatformNotificationPreferenceColumns holds the columns for the "platform_notification_preference" table.
+	PlatformNotificationPreferenceColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "userId", Type: field.TypeString},
+		{Name: "events", Type: field.TypeJSON},
+		{Name: "generation", Type: field.TypeInt, Default: 1},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// PlatformNotificationPreferenceTable holds the schema information for the "platform_notification_preference" table.
+	PlatformNotificationPreferenceTable = &schema.Table{
+		Name:       "platform_notification_preference",
+		Columns:    PlatformNotificationPreferenceColumns,
+		PrimaryKey: []*schema.Column{PlatformNotificationPreferenceColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformnotificationpreference_organizationId_userId",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformNotificationPreferenceColumns[1], PlatformNotificationPreferenceColumns[2]},
+			},
+		},
+	}
+	// PlatformNotificationSeenActionColumns holds the columns for the "platform_notification_seen_action" table.
+	PlatformNotificationSeenActionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "userId", Type: field.TypeString},
+		{Name: "request_key", Type: field.TypeString},
+		{Name: "deleted_count", Type: field.TypeInt, Default: 0},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// PlatformNotificationSeenActionTable holds the schema information for the "platform_notification_seen_action" table.
+	PlatformNotificationSeenActionTable = &schema.Table{
+		Name:       "platform_notification_seen_action",
+		Columns:    PlatformNotificationSeenActionColumns,
+		PrimaryKey: []*schema.Column{PlatformNotificationSeenActionColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformnotificationseenaction_organizationId_userId_request_key",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformNotificationSeenActionColumns[1], PlatformNotificationSeenActionColumns[2], PlatformNotificationSeenActionColumns[3]},
+			},
+		},
+	}
+	// PlatformSlackConnectionColumns holds the columns for the "platform_slack_connection" table.
+	PlatformSlackConnectionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "installation_id", Type: field.TypeString},
+		{Name: "legacy_social_id", Type: field.TypeString, Default: ""},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// PlatformSlackConnectionTable holds the schema information for the "platform_slack_connection" table.
+	PlatformSlackConnectionTable = &schema.Table{
+		Name:       "platform_slack_connection",
+		Columns:    PlatformSlackConnectionColumns,
+		PrimaryKey: []*schema.Column{PlatformSlackConnectionColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformslackconnection_organizationId_installation_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformSlackConnectionColumns[1], PlatformSlackConnectionColumns[2]},
+			},
+		},
+	}
+	// PlatformSlackInstallationColumns holds the columns for the "platform_slack_installation" table.
+	PlatformSlackInstallationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "app_id", Type: field.TypeString},
+		{Name: "team_id", Type: field.TypeString},
+		{Name: "enterprise_id", Type: field.TypeString, Default: ""},
+		{Name: "team_name", Type: field.TypeString},
+		{Name: "encrypted_credentials", Type: field.TypeString},
+		{Name: "scopes", Type: field.TypeJSON},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
+		{Name: "health", Type: field.TypeString, Default: "CONNECTED"},
+		{Name: "refresh_claim", Type: field.TypeString, Default: ""},
+		{Name: "refresh_started_at", Type: field.TypeTime, Nullable: true},
+		{Name: "checked_at", Type: field.TypeTime, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// PlatformSlackInstallationTable holds the schema information for the "platform_slack_installation" table.
+	PlatformSlackInstallationTable = &schema.Table{
+		Name:       "platform_slack_installation",
+		Columns:    PlatformSlackInstallationColumns,
+		PrimaryKey: []*schema.Column{PlatformSlackInstallationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformslackinstallation_app_id_team_id_enterprise_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformSlackInstallationColumns[1], PlatformSlackInstallationColumns[2], PlatformSlackInstallationColumns[3]},
+			},
+		},
+	}
+	// PlatformSlackPacingColumns holds the columns for the "platform_slack_pacing" table.
+	PlatformSlackPacingColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "installation_id", Type: field.TypeString},
+		{Name: "channel_id", Type: field.TypeString},
+		{Name: "next_at", Type: field.TypeTime},
+	}
+	// PlatformSlackPacingTable holds the schema information for the "platform_slack_pacing" table.
+	PlatformSlackPacingTable = &schema.Table{
+		Name:       "platform_slack_pacing",
+		Columns:    PlatformSlackPacingColumns,
+		PrimaryKey: []*schema.Column{PlatformSlackPacingColumns[0]},
+	}
 	// ProductProfileColumns holds the columns for the "product_profile" table.
 	ProductProfileColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1515,6 +1715,7 @@ var (
 	ProductSurfaceColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "organizationId", Type: field.TypeString},
+		{Name: "platformOwnerUserId", Type: field.TypeString, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "slug", Type: field.TypeString},
 		{Name: "url", Type: field.TypeString},
@@ -1536,17 +1737,17 @@ var (
 			{
 				Name:    "productsurface_organizationId_name",
 				Unique:  true,
-				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[2]},
+				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[3]},
 			},
 			{
 				Name:    "productsurface_organizationId_slug",
 				Unique:  true,
-				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[3]},
+				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[4]},
 			},
 			{
 				Name:    "productsurface_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[11]},
+				Columns: []*schema.Column{ProductSurfaceColumns[1], ProductSurfaceColumns[12]},
 			},
 		},
 	}
@@ -2133,6 +2334,7 @@ var (
 	SourceAppColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "organizationId", Type: field.TypeString},
+		{Name: "platformOwnerUserId", Type: field.TypeString, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "provider", Type: field.TypeString, Default: "generic"},
 		{Name: "externalId", Type: field.TypeString, Nullable: true},
@@ -2158,22 +2360,22 @@ var (
 			{
 				Name:    "sourceapp_organizationId_name",
 				Unique:  true,
-				Columns: []*schema.Column{SourceAppColumns[1], SourceAppColumns[2]},
+				Columns: []*schema.Column{SourceAppColumns[1], SourceAppColumns[3]},
 			},
 			{
 				Name:    "sourceapp_organizationId_provider_externalId",
 				Unique:  true,
-				Columns: []*schema.Column{SourceAppColumns[1], SourceAppColumns[3], SourceAppColumns[4]},
+				Columns: []*schema.Column{SourceAppColumns[1], SourceAppColumns[4], SourceAppColumns[5]},
 			},
 			{
 				Name:    "sourceapp_provider_externalId",
 				Unique:  false,
-				Columns: []*schema.Column{SourceAppColumns[3], SourceAppColumns[4]},
+				Columns: []*schema.Column{SourceAppColumns[4], SourceAppColumns[5]},
 			},
 			{
 				Name:    "sourceapp_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{SourceAppColumns[1], SourceAppColumns[15]},
+				Columns: []*schema.Column{SourceAppColumns[1], SourceAppColumns[16]},
 			},
 		},
 	}
@@ -2277,6 +2479,7 @@ var (
 		{Name: "x", Type: field.TypeFloat64, Nullable: true},
 		{Name: "y", Type: field.TypeFloat64, Nullable: true},
 		{Name: "authorName", Type: field.TypeString},
+		{Name: "platformAuthorUserId", Type: field.TypeString, Nullable: true},
 		{Name: "body", Type: field.TypeString},
 		{Name: "fromLink", Type: field.TypeBool},
 		{Name: "resolvedAt", Type: field.TypeTime, Nullable: true},
@@ -2292,7 +2495,7 @@ var (
 			{
 				Name:    "storereviewcomment_organizationId_reviewId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{StoreReviewCommentColumns[1], StoreReviewCommentColumns[2], StoreReviewCommentColumns[11]},
+				Columns: []*schema.Column{StoreReviewCommentColumns[1], StoreReviewCommentColumns[2], StoreReviewCommentColumns[12]},
 			},
 		},
 	}
@@ -2544,6 +2747,14 @@ var (
 		PageKnowledgeTable,
 		PlatformCreativeSetTable,
 		PlatformCreativeSetVersionTable,
+		PlatformNotificationDeliveryTable,
+		PlatformNotificationInboxTable,
+		PlatformNotificationPolicyTable,
+		PlatformNotificationPreferenceTable,
+		PlatformNotificationSeenActionTable,
+		PlatformSlackConnectionTable,
+		PlatformSlackInstallationTable,
+		PlatformSlackPacingTable,
 		ProductProfileTable,
 		ProductSurfaceTable,
 		ProjectTable,
@@ -2726,6 +2937,30 @@ func init() {
 	}
 	PlatformCreativeSetVersionTable.Annotation = &entsql.Annotation{
 		Table: "platform_creative_set_version",
+	}
+	PlatformNotificationDeliveryTable.Annotation = &entsql.Annotation{
+		Table: "platform_notification_delivery",
+	}
+	PlatformNotificationInboxTable.Annotation = &entsql.Annotation{
+		Table: "platform_notification_inbox",
+	}
+	PlatformNotificationPolicyTable.Annotation = &entsql.Annotation{
+		Table: "platform_notification_policy",
+	}
+	PlatformNotificationPreferenceTable.Annotation = &entsql.Annotation{
+		Table: "platform_notification_preference",
+	}
+	PlatformNotificationSeenActionTable.Annotation = &entsql.Annotation{
+		Table: "platform_notification_seen_action",
+	}
+	PlatformSlackConnectionTable.Annotation = &entsql.Annotation{
+		Table: "platform_slack_connection",
+	}
+	PlatformSlackInstallationTable.Annotation = &entsql.Annotation{
+		Table: "platform_slack_installation",
+	}
+	PlatformSlackPacingTable.Annotation = &entsql.Annotation{
+		Table: "platform_slack_pacing",
 	}
 	ProductProfileTable.Annotation = &entsql.Annotation{
 		Table: "product_profile",

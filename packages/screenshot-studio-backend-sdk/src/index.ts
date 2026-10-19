@@ -1,3 +1,14 @@
+import type {
+  NotificationSettings,
+  NotificationPolicy,
+  NotificationPreferences,
+  NotificationPage,
+  NotificationSeen,
+  NotificationConnection,
+  NotificationSlackChannels,
+  NotificationDelivery,
+} from './notifications.js'
+export type * from './notifications.js'
 /** Typed client for the Screenshot Studio Go backend. Instantiate on a trusted server. */
 import type {
   AutomationOverview,
@@ -33,6 +44,7 @@ export type AuthStoreWhere = {
 }
 
 export type AuthStoreRequest = {
+  actorSessionId?: string
   data?: Record<string, unknown>
   increment?: Record<string, number>
   limit?: number
@@ -2615,6 +2627,125 @@ export class ScreenshotStudioBackendSDK {
   async shareLinkObjectUrl(token: string, variant: 'media' | 'poster') {
     return this.request<{ mediaType: string; url: string }>(
       `v1/internal/share-links/${encodeURIComponent(token)}/object-url?variant=${variant}`
+    )
+  }
+
+  /** Current workspace policy and the authenticated member's preferences. */
+  notificationSettings() {
+    return this.request<NotificationSettings>('v1/workspace/notifications')
+  }
+  /** Owner/admin policy update. */
+  saveNotificationPolicy(body: NotificationPolicy) {
+    return this.request<NotificationSettings>('v1/workspace/notifications/policy', {
+      method: 'PUT',
+      body,
+    })
+  }
+  /** Update only the current member's preferences. */
+  saveNotificationPreferences(body: NotificationPreferences) {
+    return this.request<NotificationSettings>('v1/workspace/notifications/preferences', {
+      method: 'PUT',
+      body,
+    })
+  }
+  /** Read-only inbox page. */
+  notificationInbox(cursor = '') {
+    return this.request<NotificationPage>(
+      `v1/workspace/notifications/inbox?cursor=${encodeURIComponent(cursor)}`
+    )
+  }
+  /** Read-only unseen count. */
+  notificationCount() {
+    return this.request<{ unseenCount: number }>('v1/workspace/notifications/count')
+  }
+  /** Delete displayed rows, or mark a transaction snapshot seen with a stable key. */
+  acknowledgeNotifications(body: { ids?: string[]; all?: boolean; key?: string }) {
+    return this.request<NotificationSeen>('v1/workspace/notifications/seen', {
+      method: 'POST',
+      body,
+    })
+  }
+  /** Reauthorize a link, including after its inbox row was deleted. */
+  resolveNotification(id: string) {
+    return this.request<{ href: string }>(
+      `v1/workspace/notifications/resolve/${encodeURIComponent(id)}`
+    )
+  }
+  /** Begin backend-owned, session-bound Slack OAuth. */
+  connectNotificationSlack(
+    purpose: 'notifications' | 'design' | 'publishing' = 'notifications',
+    connectionId?: string
+  ) {
+    return this.request<{ url: string }>('v1/workspace/notifications/slack/connect', {
+      method: 'POST',
+      body: { purpose, connectionId },
+    })
+  }
+  /** Consume one OAuth state and store verified provider identity in Go. */
+  completeNotificationSlack(body: { state: string; code: string }) {
+    return this.request<NotificationConnection>('v1/workspace/notifications/slack/callback', {
+      method: 'POST',
+      body,
+    })
+  }
+  /** Read one provider cursor page. */
+  notificationSlackChannels(connectionId: string, cursor = '') {
+    return this.request<NotificationSlackChannels>(
+      `v1/workspace/notifications/slack/channels?connectionId=${encodeURIComponent(connectionId)}&cursor=${encodeURIComponent(cursor)}`
+    )
+  }
+  /** Disconnect only this platform workspace. */
+  disconnectNotificationSlack(id: string) {
+    return this.request<{ disconnected: boolean }>(
+      `v1/workspace/notifications/slack/${encodeURIComponent(id)}`,
+      { method: 'DELETE' }
+    )
+  }
+  /** Request an explicitly targeted test with a stable retry key. */
+  testNotification(body: { channel: 'email' | 'slack'; key: string }) {
+    return this.request<{ deliveryId: string }>('v1/workspace/notifications/test', {
+      method: 'POST',
+      body,
+    })
+  }
+  /** Authorized delivery status, without retained notification content. */
+  /** Inspect a personal delivery or an authorized workspace delivery. */
+  notificationDelivery(id: string) {
+    return this.request<NotificationDelivery>(
+      `v1/workspace/notifications/deliveries/${encodeURIComponent(id)}`
+    )
+  }
+  notificationDeliveries() {
+    return this.request<{ deliveries: NotificationDelivery[] }>(
+      'v1/workspace/notifications/deliveries'
+    )
+  }
+  /** Recover one unresolved delivery; successful receipts cannot be replayed. */
+  recoverNotification(id: string, action: 'retry' | 'confirm_delivered' | 'dismiss') {
+    return this.request<{ recovered: boolean }>(
+      `v1/workspace/notifications/deliveries/${encodeURIComponent(id)}/recover`,
+      { method: 'POST', body: { action } }
+    )
+  }
+
+  /** Backend-owned Slack availability. */
+  slackSetup() {
+    return this.request<{ ready: boolean }>('v1/integrations/slack/setup')
+  }
+  /** All channels visible to an authorized design connection. */
+  slackDesignChannels(id: string) {
+    return this.request<{ channels: NotificationSlackChannels['channels'] }>(
+      `v1/integrations/${encodeURIComponent(id)}/slack/channels`
+    )
+  }
+  /** Deliver an authorized live share link without retrieving credentials. */
+  deliverSlackDesign(
+    id: string,
+    body: { shareLinkId: string; channelId: string; message?: string }
+  ) {
+    return this.request<{ label: string; url: string | null }>(
+      `v1/integrations/${encodeURIComponent(id)}/slack/deliver`,
+      { method: 'POST', body }
     )
   }
 

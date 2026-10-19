@@ -93,7 +93,7 @@ func TestScheduleReconciliationPreservesPauseAndCadence(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if len(f.created) != 6 {
+	if len(f.created) != len(Jobs) {
 		t.Fatalf("created %d schedules", len(f.created))
 	}
 	for id, o := range f.created {

@@ -18,6 +18,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/httpapi"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/media"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/onboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/platformai"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
@@ -68,7 +69,7 @@ func main() {
 		slog.Error("media storage unavailable", "error", err)
 		os.Exit(1)
 	}
-	configuration := product.NewConfiguration(db.Client).WithObjectStore(objects).WithAuthStore(authstore.New(db.SQL)).
+	configuration := product.NewConfiguration(db.Client).WithNotifications(notifications.New(db.SQL, db.Client)).WithObjectStore(objects).WithAuthStore(authstore.New(db.SQL)).
 		WithAgentClients(agentclients.New(db.SQL))
 	// Live draft posts' engagement is read through the direct social publisher,
 	// which shares this database (RFC 037).

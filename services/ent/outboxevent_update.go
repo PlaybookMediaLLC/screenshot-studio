@@ -130,6 +130,41 @@ func (_u *OutboxEventUpdate) ClearProcessingAt() *OutboxEventUpdate {
 	return _u
 }
 
+// SetNotificationVersion sets the "notification_version" field.
+func (_u *OutboxEventUpdate) SetNotificationVersion(v int) *OutboxEventUpdate {
+	_u.mutation.ResetNotificationVersion()
+	_u.mutation.SetNotificationVersion(v)
+	return _u
+}
+
+// SetNillableNotificationVersion sets the "notification_version" field if the given value is not nil.
+func (_u *OutboxEventUpdate) SetNillableNotificationVersion(v *int) *OutboxEventUpdate {
+	if v != nil {
+		_u.SetNotificationVersion(*v)
+	}
+	return _u
+}
+
+// AddNotificationVersion adds value to the "notification_version" field.
+func (_u *OutboxEventUpdate) AddNotificationVersion(v int) *OutboxEventUpdate {
+	_u.mutation.AddNotificationVersion(v)
+	return _u
+}
+
+// SetNotificationFanned sets the "notification_fanned" field.
+func (_u *OutboxEventUpdate) SetNotificationFanned(v bool) *OutboxEventUpdate {
+	_u.mutation.SetNotificationFanned(v)
+	return _u
+}
+
+// SetNillableNotificationFanned sets the "notification_fanned" field if the given value is not nil.
+func (_u *OutboxEventUpdate) SetNillableNotificationFanned(v *bool) *OutboxEventUpdate {
+	if v != nil {
+		_u.SetNotificationFanned(*v)
+	}
+	return _u
+}
+
 // SetAttempts sets the "attempts" field.
 func (_u *OutboxEventUpdate) SetAttempts(v int) *OutboxEventUpdate {
 	_u.mutation.ResetAttempts()
@@ -258,6 +293,15 @@ func (_u *OutboxEventUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	}
 	if _u.mutation.ProcessingAtCleared() {
 		_spec.ClearField(outboxevent.FieldProcessingAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.NotificationVersion(); ok {
+		_spec.SetField(outboxevent.FieldNotificationVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedNotificationVersion(); ok {
+		_spec.AddField(outboxevent.FieldNotificationVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.NotificationFanned(); ok {
+		_spec.SetField(outboxevent.FieldNotificationFanned, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Attempts(); ok {
 		_spec.SetField(outboxevent.FieldAttempts, field.TypeInt, value)
@@ -396,6 +440,41 @@ func (_u *OutboxEventUpdateOne) SetNillableProcessingAt(v *time.Time) *OutboxEve
 // ClearProcessingAt clears the value of the "processing_at" field.
 func (_u *OutboxEventUpdateOne) ClearProcessingAt() *OutboxEventUpdateOne {
 	_u.mutation.ClearProcessingAt()
+	return _u
+}
+
+// SetNotificationVersion sets the "notification_version" field.
+func (_u *OutboxEventUpdateOne) SetNotificationVersion(v int) *OutboxEventUpdateOne {
+	_u.mutation.ResetNotificationVersion()
+	_u.mutation.SetNotificationVersion(v)
+	return _u
+}
+
+// SetNillableNotificationVersion sets the "notification_version" field if the given value is not nil.
+func (_u *OutboxEventUpdateOne) SetNillableNotificationVersion(v *int) *OutboxEventUpdateOne {
+	if v != nil {
+		_u.SetNotificationVersion(*v)
+	}
+	return _u
+}
+
+// AddNotificationVersion adds value to the "notification_version" field.
+func (_u *OutboxEventUpdateOne) AddNotificationVersion(v int) *OutboxEventUpdateOne {
+	_u.mutation.AddNotificationVersion(v)
+	return _u
+}
+
+// SetNotificationFanned sets the "notification_fanned" field.
+func (_u *OutboxEventUpdateOne) SetNotificationFanned(v bool) *OutboxEventUpdateOne {
+	_u.mutation.SetNotificationFanned(v)
+	return _u
+}
+
+// SetNillableNotificationFanned sets the "notification_fanned" field if the given value is not nil.
+func (_u *OutboxEventUpdateOne) SetNillableNotificationFanned(v *bool) *OutboxEventUpdateOne {
+	if v != nil {
+		_u.SetNotificationFanned(*v)
+	}
 	return _u
 }
 
@@ -557,6 +636,15 @@ func (_u *OutboxEventUpdateOne) sqlSave(ctx context.Context) (_node *OutboxEvent
 	}
 	if _u.mutation.ProcessingAtCleared() {
 		_spec.ClearField(outboxevent.FieldProcessingAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.NotificationVersion(); ok {
+		_spec.SetField(outboxevent.FieldNotificationVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedNotificationVersion(); ok {
+		_spec.AddField(outboxevent.FieldNotificationVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.NotificationFanned(); ok {
+		_spec.SetField(outboxevent.FieldNotificationFanned, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Attempts(); ok {
 		_spec.SetField(outboxevent.FieldAttempts, field.TypeInt, value)

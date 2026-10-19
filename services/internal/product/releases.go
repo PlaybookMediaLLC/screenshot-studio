@@ -287,7 +287,7 @@ func (c *Configuration) CreateRelease(ctx context.Context, actor Actor, input Cr
 		if err == nil {
 			_, err = tx.OutboxEvent.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
 				SetType("release.created").SetAggregateType("release").SetAggregateID(id).
-				SetPayload(map[string]any{"releaseId": id}).SetIdempotencyKey(input.IdempotencyKey).Save(ctx)
+				SetPayload(map[string]any{"releaseId": id, "actorUserId": actor.UserID}).SetIdempotencyKey(input.IdempotencyKey).Save(ctx)
 		}
 		if ent.IsConstraintError(err) {
 			_ = tx.Rollback()

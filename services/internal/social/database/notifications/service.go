@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"context"
+	"os"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/organizations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
@@ -70,7 +71,7 @@ func (s *Service) InAppNotification(ctx context.Context, orgID, subject, message
 	if err := s.repo.CreateNotification(ctx, orgID, message); err != nil {
 		return err
 	}
-	if !sendEmail {
+	if !sendEmail || os.Getenv("PLATFORM_ACTIVITY_LEGACY_PAUSED") != "false" {
 		return nil
 	}
 
@@ -96,6 +97,9 @@ func (s *Service) InAppNotification(ctx context.Context, orgID, subject, message
 // SendEmailsToOrg emails every member, honoring their success/failure email
 // preferences ("info" is always sent; "" means no type).
 func (s *Service) SendEmailsToOrg(ctx context.Context, orgID, subject, message string, typ NotificationType) error {
+	if os.Getenv("PLATFORM_ACTIVITY_LEGACY_PAUSED") != "false" {
+		return nil
+	}
 	members, err := s.organizations.GetAllUsersOrgs(ctx, orgID)
 	if err != nil {
 		return err

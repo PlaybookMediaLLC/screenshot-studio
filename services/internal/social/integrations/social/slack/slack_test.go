@@ -3,117 +3,97 @@ package slack
 import (
 	"context"
 	"encoding/json"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-
+	"errors"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
+	"go.temporal.io/sdk/temporal"
+	"strings"
+	"testing"
 )
 
-var (
-	_ integrations.Provider              = (*Provider)(nil)
-	_ integrations.Commenter             = (*Provider)(nil)
-	_ integrations.NicknameChanger       = (*Provider)(nil)
-	_ integrations.ProfilePictureChanger = (*Provider)(nil)
-)
+var _ integrations.Provider = (*Provider)(nil)
+var _ integrations.Commenter = (*Provider)(nil)
 
-func fake(t *testing.T, handler http.HandlerFunc) *Provider {
-	t.Helper()
-	t.Setenv("DISABLE_SSRF_PROTECTION", "true")
-	srv := httptest.NewServer(handler)
-	old := apiBase
-	apiBase = srv.URL
-	t.Cleanup(func() { apiBase = old; srv.Close() })
-	return New()
+type lifecycleFunc func(context.Context, string, string, string, map[string]any) (map[string]json.RawMessage, error)
+
+func (f lifecycleFunc) SocialSlackCall(ctx context.Context, org, id, method string, payload map[string]any) (map[string]json.RawMessage, error) {
+	return f(ctx, org, id, method, payload)
 }
-
-func TestPost(t *testing.T) {
-	var posted string
-	p := fake(t, func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
-		switch r.URL.Path {
-		case "/api/conversations.join":
-			_, _ = io.WriteString(w, `{"ok":true}`)
-		case "/api/chat.postMessage":
-			posted = string(body)
-			_, _ = io.WriteString(w, `{"ok":true,"ts":"1.2","channel":"C1"}`)
-		case "/api/chat.getPermalink":
-			if r.URL.Query().Get("message_ts") != "1.2" {
-				w.WriteHeader(400)
-			}
-			_, _ = io.WriteString(w, `{"ok":true,"permalink":"https://x.slack.com/p12"}`)
+func raw(value string) map[string]json.RawMessage {
+	var out map[string]json.RawMessage
+	_ = json.Unmarshal([]byte(value), &out)
+	return out
+}
+func TestPublishingUsesManagedIdentityAndAccessibleSafeText(t *testing.T) {
+	calls := 0
+	p := New(lifecycleFunc(func(_ context.Context, org, id, method string, payload map[string]any) (map[string]json.RawMessage, error) {
+		if org != "org" || id != "integration" {
+			t.Fatal("tenant identity lost")
 		}
-	})
-	res, err := p.Post(context.Background(), "", "tok", []integrations.PostDetails{{
-		ID: "p", Message: "hello", Settings: json.RawMessage(`{"channel":"C1"}`),
-		Media: []integrations.MediaContent{{Path: "https://cdn/a.png"}},
-	}}, &ent.Integration{Name: "Bot"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if res[0].PostID != "1.2" || res[0].ReleaseURL != "https://x.slack.com/p12" || res[0].Status != "posted" {
-		t.Fatalf("%+v", res[0])
-	}
-	want := `{"channel":"C1","username":"Bot","icon_url":null,"blocks":[{"text":{"text":"hello","type":"mrkdwn"},"type":"section"},{"alt_text":"","image_url":"https://cdn/a.png","type":"image"}]}`
-	if posted != want {
-		t.Fatalf("posted %s", posted)
-	}
-}
-
-func TestPostAPIErrors(t *testing.T) {
-	answer := `{"ok":false,"error":"channel_not_found"}`
-	p := fake(t, func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, answer) })
-	post := []integrations.PostDetails{{Settings: json.RawMessage(`{"channel":"C1"}`)}}
-	_, err := p.Post(context.Background(), "", "tok", post, &ent.Integration{})
-	if temporalx.FailureType(err) != temporalx.TypeBadBody || temporalx.FailureMessage(err) != "channel_not_found" {
-		t.Fatalf("bad body: %v", err)
-	}
-	answer = `{"ok":false,"error":"invalid_auth"}`
-	if _, err = p.Post(context.Background(), "", "tok", post, &ent.Integration{}); temporalx.FailureType(err) != temporalx.TypeRefreshToken {
-		t.Fatalf("refresh: %v", err)
-	}
-	answer = `{"ok":false,"error":"ratelimited","errors":["slow down"]}`
-	if _, err = p.Comment(context.Background(), "", "1", "", "tok", post, &ent.Integration{}); err == nil || temporalx.FailureType(err) != "" || err.Error() != "ratelimited: slow down" {
-		t.Fatalf("ratelimited: %v", err)
-	}
-}
-
-func TestAuthenticate(t *testing.T) {
-	t.Setenv("FRONTEND_URL", "http://localhost:4200")
-	var redirect string
-	p := fake(t, func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/oauth.v2.access":
-			_ = r.ParseForm()
-			redirect = r.PostForm.Get("redirect_uri")
-			_, _ = io.WriteString(w, `{"access_token":"xoxb","team":{"id":"T1"},"bot_user_id":"U1","scope":"channels:read,chat:write,users:read,groups:read,channels:join,chat:write.customize"}`)
-		case "/api/users.info":
-			_, _ = io.WriteString(w, `{"user":{"name":"bot","real_name":"Bot","profile":{"image_original":"pic"}}}`)
+		calls++
+		if method == "chat.getPermalink" {
+			return nil, errors.New("permalink unavailable")
 		}
-	})
-	auth, err := p.Authenticate(context.Background(), integrations.AuthenticateParams{Code: "c", Refresh: "r1"}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if auth.ID != "T1" || auth.Name != "Bot" || auth.RefreshToken != "null" || auth.ExpiresIn < 3e9 {
-		t.Fatalf("%+v", auth)
-	}
-	if redirect != "https://redirectmeto.com/http://localhost:4200/integrations/social/slack?refresh=r1" {
-		t.Fatalf("redirect %s", redirect)
-	}
-	link, _ := p.GenerateAuthURL(context.Background(), nil)
-	if !strings.Contains(link.URL, "redirect_uri=https%3A%2F%2Fredirectmeto.com%2Fhttp%3A%2F%2Flocalhost%3A4200%2Fintegrations%2Fsocial%2Fslack&scope=") {
-		t.Fatalf("url %s", link.URL)
+		if payload["text"] != "hello &lt;!channel&gt;" || payload["unfurl_links"] != false || payload["unfurl_media"] != false || payload["link_names"] != false {
+			t.Fatalf("unsafe fallback: %+v", payload)
+		}
+		if payload["username"] != "Bot" {
+			t.Fatal("publishing profile lost")
+		}
+		return raw(`{"ok":true,"ts":"1.2","channel":"C1"}`), nil
+	}))
+	result, err := p.Post(context.Background(), "team", "ignored-legacy-token", []integrations.PostDetails{{ID: "post", Message: "hello <!channel>", Settings: json.RawMessage(`{"channel":"C1"}`)}}, &ent.Integration{ID: "integration", OrganizationID: "org", Name: "Bot"})
+	if err != nil || len(result) != 1 || result[0].PostID != "1.2" || result[0].Status != "posted" || calls != 2 {
+		t.Fatalf("result=%+v err=%v calls=%d", result, err, calls)
 	}
 }
-
-func TestCheckValidity(t *testing.T) {
-	msg, _ := New().CheckValidity(context.Background(), [][]integrations.ValidityMedia{{{Path: "a.png"}}, {{Path: "b.mp4"}}}, nil, nil)
-	if msg != "No video support for Slack, only images" {
-		t.Fatal(msg)
+func TestChannelsFollowEmptyPagesAndRejectLoops(t *testing.T) {
+	count := 0
+	loop := false
+	p := New(lifecycleFunc(func(_ context.Context, _, _, _ string, payload map[string]any) (map[string]json.RawMessage, error) {
+		count++
+		if count == 1 || loop {
+			return raw(`{"channels":[],"response_metadata":{"next_cursor":"next"}}`), nil
+		}
+		if payload["cursor"] != "next" {
+			t.Fatal("cursor lost")
+		}
+		return raw(`{"channels":[{"id":"C1","name":"launch"}],"response_metadata":{"next_cursor":""}}`), nil
+	}))
+	result, err := p.channels(context.Background(), &ent.Integration{ID: "i"})
+	if err != nil || len(result) != 1 || count != 2 {
+		t.Fatalf("%+v %v", result, err)
+	}
+	loop = true
+	if _, err = p.channels(context.Background(), &ent.Integration{ID: "i"}); err == nil {
+		t.Fatal("cursor loop accepted")
+	}
+}
+func TestProviderFailsClosedWithoutLifecycleAndOAuthUsesPlatformSession(t *testing.T) {
+	p := New()
+	if _, err := p.Post(context.Background(), "", "legacy-token", []integrations.PostDetails{{Settings: json.RawMessage(`{"channel":"C1"}`)}}, &ent.Integration{}); err == nil {
+		t.Fatal("unmanaged send accepted")
+	}
+	t.Setenv("BETTER_AUTH_URL", "https://studio.example")
+	result, err := p.GenerateAuthURL(context.Background(), nil)
+	if err != nil || !strings.Contains(result.URL, "/api/integrations/slack/connect?purpose=publishing") || result.State != "" {
+		t.Fatalf("%+v %v", result, err)
+	}
+	if _, err = p.Authenticate(context.Background(), integrations.AuthenticateParams{Code: "code"}, nil); err == nil {
+		t.Fatal("legacy code exchange accepted")
+	}
+}
+func TestMalformedReceiptAndVideoValidation(t *testing.T) {
+	p := New(lifecycleFunc(func(context.Context, string, string, string, map[string]any) (map[string]json.RawMessage, error) {
+		return raw(`{"ok":true}`), nil
+	}))
+	_, err := p.Post(context.Background(), "", "", []integrations.PostDetails{{Settings: json.RawMessage(`{"channel":"C1"}`)}}, &ent.Integration{})
+	var uncertain *temporal.ApplicationError
+	if !errors.As(err, &uncertain) || !uncertain.NonRetryable() || uncertain.Type() != "slack_uncertain" {
+		t.Fatalf("ambiguous send is retryable: %v", err)
+	}
+	msg, _ := p.CheckValidity(context.Background(), [][]integrations.ValidityMedia{{{Path: "video.mp4"}}}, nil, nil)
+	if msg == "" {
+		t.Fatal("video accepted")
 	}
 }

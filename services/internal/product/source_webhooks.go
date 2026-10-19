@@ -175,7 +175,7 @@ func (c *Configuration) ingestSourceRelease(ctx context.Context, actor Actor, in
 	if err != nil {
 		return nil, err
 	}
-	payload := map[string]any{"releaseId": id, "sourceAppId": input.SourceAppID}
+	payload := map[string]any{"releaseId": id, "sourceAppId": input.SourceAppID, "actorUserId": actor.UserID}
 	if evidence := input.automationAssociation; evidence != nil {
 		payload["associationNumbers"] = evidence.Numbers
 		payload["associationCutoff"] = evidence.Cutoff.Format(time.RFC3339Nano)
@@ -358,7 +358,7 @@ func (c *Configuration) collectSourceChange(ctx context.Context, actor Actor, in
 	}
 	if _, err = tx.OutboxEvent.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
 		SetType("source_change.collected").SetAggregateType("source_change").SetAggregateID(id).
-		SetPayload(map[string]any{"changeId": id, "sourceAppId": input.SourceAppID}).
+		SetPayload(map[string]any{"changeId": id, "sourceAppId": input.SourceAppID, "actorUserId": actor.UserID}).
 		SetIdempotencyKey("change:" + input.SourceAppID + ":" + input.RepositoryID + ":" + strconv.Itoa(input.Number)).Save(ctx); err != nil {
 		return nil, err
 	}
@@ -430,7 +430,7 @@ func (c *Configuration) IngestDeployment(ctx context.Context, actor Actor, input
 	}
 	if _, err = tx.OutboxEvent.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
 		SetType("deployment.succeeded").SetAggregateType("deployment_event").SetAggregateID(created.ID).
-		SetPayload(map[string]any{"deploymentId": created.ID, "sourceAppId": input.SourceAppID}).
+		SetPayload(map[string]any{"deploymentId": created.ID, "sourceAppId": input.SourceAppID, "actorUserId": actor.UserID}).
 		SetIdempotencyKey("deployment:" + input.SourceAppID + ":" + input.ExternalID).Save(ctx); err != nil {
 		return nil, err
 	}

@@ -16,7 +16,9 @@ IMAGE = {"registry_type": "GHCR", "registry": "playbookmediallc", "repository": 
 SERVICES = {"web", "storage", "screenshot-studio-backend"}
 # Designs render in Cloudflare Browser Rendering over CDP, not a render service.
 RETIRED_SERVICES = {"design-renderer"}
-RETIRED_WEB_KEYS = {"PLATFORM_RENDER_SERVICE_URL", "PLATFORM_RENDER_SERVICE_SECRET"}
+RETIRED_WEB_KEYS = {"PLATFORM_RENDER_SERVICE_URL", "PLATFORM_RENDER_SERVICE_SECRET",
+                    "SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET", "PLATFORM_SLACK_CALLBACK_URL",
+                    "PLATFORM_NOTIFICATION_ENCRYPTION_KEY"}
 # Deployed by the backend workflow when its secrets are set (RFC 037).
 OPTIONAL_SERVICES = {"collab"}
 JOBS = {"platform-migrate", "social-migrate"}

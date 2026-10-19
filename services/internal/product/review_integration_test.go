@@ -2,8 +2,11 @@ package product
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
@@ -22,8 +25,17 @@ func (m *recordingReviewMailer) SendReviewNotification(_ context.Context, messag
 func TestReviewNotificationsAndMachineSubmit(t *testing.T) {
 	w := newTestWorkspace(t)
 	ctx, repo := w.ctx, w.repo
-	mailer := &recordingReviewMailer{}
-	repo.WithReviewMailer(mailer)
+	t.Setenv("RESEND_API_KEY", "fixture-only")
+	t.Setenv("BETTER_AUTH_URL", "https://app.example.test")
+	t.Setenv("PLATFORM_NOTIFICATION_ENCRYPTION_KEY", base64.StdEncoding.EncodeToString(make([]byte, 32)))
+	notify := notifications.New(w.db.SQL, w.db.Client)
+	messages := []notifications.Envelope{}
+	notify.Send = func(_ context.Context, d notifications.Delivery, e notifications.Envelope) (notifications.Outcome, error) {
+		if d.OrganizationID == w.org {
+			messages = append(messages, e)
+		}
+		return notifications.Outcome{Status: "SUCCEEDED", Receipt: d.ID}, nil
+	}
 	w.addMember(t, "approver", "approver")
 	w.addMember(t, "creator", "creator")
 	w.addMember(t, "viewer", "viewer")
@@ -44,6 +56,19 @@ func TestReviewNotificationsAndMachineSubmit(t *testing.T) {
 			t.Fatalf("handle %s: handled=%v err=%v", kind, handled, err)
 		}
 		w.db.Client.OutboxEvent.UpdateOneID(events[0].ID).SetDeliveredAt(events[0].CreatedAt).ExecX(ctx)
+		for batch := 0; batch < 100; batch++ {
+			if err := notify.Process(ctx); err != nil {
+				t.Fatal(err)
+			}
+			var done bool
+			if err := w.db.SQL.QueryRow(`SELECT notification_fanned AND NOT EXISTS(SELECT 1 FROM platform_notification_delivery d WHERE d.event_id=e.id AND d.status IN ('PENDING','CLAIMED')) FROM outbox_event e WHERE e.id=$1`, events[0].ID).Scan(&done); err != nil {
+				t.Fatal(err)
+			}
+			if done {
+				return
+			}
+		}
+		t.Fatal("review event was not dispatched within 100 bounded batches")
 	}
 
 	// The creator submits one post: the owner and approver hear, not the creator or viewer.
@@ -53,9 +78,9 @@ func TestReviewNotificationsAndMachineSubmit(t *testing.T) {
 	}
 	dispatch(EventCampaignPostsSubmitted)
 	emails := []string{}
-	for _, message := range mailer.sent {
-		emails = append(emails, message.Email)
-		if message.Decision != "submit" || message.PostCount != 1 || message.ActorName != "creator" || message.CampaignName != "Launch" {
+	for _, message := range messages {
+		emails = append(emails, message.To)
+		if !strings.Contains(message.Text, "creator") || !strings.Contains(message.Subject, "Launch") {
 			t.Fatalf("submit notification=%+v", message)
 		}
 	}
@@ -65,15 +90,14 @@ func TestReviewNotificationsAndMachineSubmit(t *testing.T) {
 	}
 
 	// The approver asks for changes: only the creator hears, with the note.
-	mailer.sent = nil
+	messages = nil
 	note := "Shorter, please"
 	if _, err := repo.TransitionCampaignPosts(ctx, w.actor("approver"), created.ID, CampaignPostDecision{Decision: "request_changes", Note: &note}); err != nil {
 		t.Fatal(err)
 	}
 	dispatch(EventCampaignPostsDecided)
-	if len(mailer.sent) != 1 || mailer.sent[0].Email != "creator-"+w.id+"@example.test" || mailer.sent[0].Note != note ||
-		mailer.sent[0].Decision != "request_changes" {
-		t.Fatalf("decision notifications=%+v", mailer.sent)
+	if len(messages) != 1 || messages[0].To != "creator-"+w.id+"@example.test" || !strings.Contains(messages[0].Text, note) {
+		t.Fatalf("decision notifications=%+v", messages)
 	}
 
 	// API keys: release:create may submit; another scope may not; none may approve.
@@ -93,9 +117,9 @@ func TestReviewNotificationsAndMachineSubmit(t *testing.T) {
 	if _, err := repo.TransitionCampaignPosts(ctx, releaseKey, created.ID, CampaignPostDecision{Decision: "approve"}); !errors.Is(err, publishing.ErrForbidden) {
 		t.Fatalf("API key approved: %v", err)
 	}
-	mailer.sent = nil
+	messages = nil
 	dispatch(EventCampaignPostsSubmitted)
-	if len(mailer.sent) != 2 || mailer.sent[0].ActorName != "CI" {
-		t.Fatalf("machine submit notifications=%+v", mailer.sent)
+	if len(messages) != 2 || !strings.Contains(messages[0].Text, "CI") {
+		t.Fatalf("machine submit notifications=%+v", messages)
 	}
 }

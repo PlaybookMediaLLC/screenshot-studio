@@ -10,6 +10,7 @@ export type SettingId =
   | 'general'
   | 'integrations'
   | 'members'
+  | 'notifications'
   | 'product'
   | 'profile'
   | 'release-automation'
@@ -28,6 +29,12 @@ export type SettingSection = {
 }
 
 export const SETTINGS_SECTIONS: SettingSection[] = [
+  {
+    id: 'notifications',
+    slug: 'notifications',
+    title: 'Notifications',
+    description: 'Activity preferences, delivery channels, and Slack notifications.',
+  },
   {
     description: 'Workspace name, release preferences, and defaults.',
     id: 'general',

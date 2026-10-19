@@ -10,6 +10,7 @@ import { WorkspaceDeveloperSettings } from './WorkspaceDeveloperSettings'
 import { WorkspaceGeneralSettings } from './WorkspaceGeneralSettings'
 import { WorkspaceIdentitySettings } from './WorkspaceIdentitySettings'
 import { WorkspaceIntegrations } from './WorkspaceIntegrations'
+import { WorkspaceNotifications } from './WorkspaceNotifications'
 import { WorkspaceMembersSettings } from './WorkspaceMembersSettings'
 import { WorkspaceIdealCustomerProfile } from './WorkspaceIdealCustomerProfile'
 import { WorkspaceProductProfile } from './WorkspaceProductProfile'
@@ -64,6 +65,7 @@ function getDetailContent({
       />
     ),
     integrations: <WorkspaceIntegrations canManage={canManage} />,
+    notifications: <WorkspaceNotifications />,
     members: (
       <WorkspaceMembersSettings
         canInvite={hasPermission(role, 'member:invite')}

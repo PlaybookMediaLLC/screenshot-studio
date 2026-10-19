@@ -17,6 +17,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { type ComponentType, useState } from 'react'
+import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { Collapsible } from 'radix-ui'
 import {
@@ -36,6 +37,7 @@ import {
   PanelsTopLeft,
   Share2,
   Code2,
+  Bell,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -66,6 +68,7 @@ const SETTINGS_ICONS: Record<SettingId, IconComponent> = {
   audit: ScrollText,
   brand: Palette,
   integrations: Plug,
+  notifications: Bell,
   'release-automation': Bot,
   agents: Bot,
   sharing: Link2,
@@ -205,7 +208,9 @@ function NavLink({
   if (children) {
     const trigger = (
       <Collapsible.Trigger asChild>
-        <Button variant="custom" size={null}
+        <Button
+          variant="custom"
+          size={null}
           type="button"
           aria-label={label}
           data-keep-selection
@@ -275,6 +280,7 @@ function Navigation({
 }) {
   return (
     <nav aria-label="Workspace" className={cn('grid', collapsed ? 'gap-3' : 'gap-6')}>
+      <NotificationCenter collapsed={collapsed} />
       {NAV_GROUPS.map((group, index) => (
         <div className="grid gap-0.5" key={index}>
           {group.label && !collapsed ? (
@@ -409,7 +415,9 @@ export function PlatformSidebar({
       >
         <Sheet onOpenChange={setMobileOpen} open={mobileOpen}>
           <SheetTrigger asChild>
-            <Button variant="custom" size={null}
+            <Button
+              variant="custom"
+              size={null}
               aria-label="Open navigation"
               className="grid size-9 place-items-center rounded-lg text-neutral-400 hover:bg-white/[0.04] hover:text-neutral-100"
               type="button"
@@ -444,6 +452,9 @@ export function PlatformSidebar({
           </SheetContent>
         </Sheet>
         <Brand collapsed={false} />
+        <div className="ml-auto">
+          <NotificationCenter />
+        </div>
       </header>
     </>
   )

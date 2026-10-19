@@ -60,6 +60,14 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativeset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativesetversion"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationdelivery"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationinbox"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationpolicy"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationpreference"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationseenaction"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
@@ -160,6 +168,14 @@ const (
 	TypePageKnowledge                  = "PageKnowledge"
 	TypePlatformCreativeSet            = "PlatformCreativeSet"
 	TypePlatformCreativeSetVersion     = "PlatformCreativeSetVersion"
+	TypePlatformNotificationDelivery   = "PlatformNotificationDelivery"
+	TypePlatformNotificationInbox      = "PlatformNotificationInbox"
+	TypePlatformNotificationPolicy     = "PlatformNotificationPolicy"
+	TypePlatformNotificationPreference = "PlatformNotificationPreference"
+	TypePlatformNotificationSeenAction = "PlatformNotificationSeenAction"
+	TypePlatformSlackConnection        = "PlatformSlackConnection"
+	TypePlatformSlackInstallation      = "PlatformSlackInstallation"
+	TypePlatformSlackPacing            = "PlatformSlackPacing"
 	TypeProductProfile                 = "ProductProfile"
 	TypeProductSurface                 = "ProductSurface"
 	TypeProject                        = "Project"
@@ -41437,26 +41453,29 @@ func (m *OrganizationEnterpriseSettingsMutation) ResetEdge(name string) error {
 // OutboxEventMutation represents an operation that mutates the OutboxEvent nodes in the graph.
 type OutboxEventMutation struct {
 	config
-	op               Op
-	typ              string
-	id               *string
-	organization_id  *string
-	_type            *string
-	aggregate_type   *string
-	aggregate_id     *string
-	payload          *map[string]interface{}
-	idempotency_key  *string
-	delivered_at     *time.Time
-	processing_at    *time.Time
-	attempts         *int
-	addattempts      *int
-	last_error       *string
-	dead_lettered_at *time.Time
-	created_at       *time.Time
-	clearedFields    map[string]struct{}
-	done             bool
-	oldValue         func(context.Context) (*OutboxEvent, error)
-	predicates       []predicate.OutboxEvent
+	op                      Op
+	typ                     string
+	id                      *string
+	organization_id         *string
+	_type                   *string
+	aggregate_type          *string
+	aggregate_id            *string
+	payload                 *map[string]interface{}
+	idempotency_key         *string
+	delivered_at            *time.Time
+	processing_at           *time.Time
+	notification_version    *int
+	addnotification_version *int
+	notification_fanned     *bool
+	attempts                *int
+	addattempts             *int
+	last_error              *string
+	dead_lettered_at        *time.Time
+	created_at              *time.Time
+	clearedFields           map[string]struct{}
+	done                    bool
+	oldValue                func(context.Context) (*OutboxEvent, error)
+	predicates              []predicate.OutboxEvent
 }
 
 var _ ent.Mutation = (*OutboxEventMutation)(nil)
@@ -41877,6 +41896,98 @@ func (m *OutboxEventMutation) ResetProcessingAt() {
 	delete(m.clearedFields, outboxevent.FieldProcessingAt)
 }
 
+// SetNotificationVersion sets the "notification_version" field.
+func (m *OutboxEventMutation) SetNotificationVersion(i int) {
+	m.notification_version = &i
+	m.addnotification_version = nil
+}
+
+// NotificationVersion returns the value of the "notification_version" field in the mutation.
+func (m *OutboxEventMutation) NotificationVersion() (r int, exists bool) {
+	v := m.notification_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNotificationVersion returns the old "notification_version" field's value of the OutboxEvent entity.
+// If the OutboxEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OutboxEventMutation) OldNotificationVersion(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNotificationVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNotificationVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNotificationVersion: %w", err)
+	}
+	return oldValue.NotificationVersion, nil
+}
+
+// AddNotificationVersion adds i to the "notification_version" field.
+func (m *OutboxEventMutation) AddNotificationVersion(i int) {
+	if m.addnotification_version != nil {
+		*m.addnotification_version += i
+	} else {
+		m.addnotification_version = &i
+	}
+}
+
+// AddedNotificationVersion returns the value that was added to the "notification_version" field in this mutation.
+func (m *OutboxEventMutation) AddedNotificationVersion() (r int, exists bool) {
+	v := m.addnotification_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetNotificationVersion resets all changes to the "notification_version" field.
+func (m *OutboxEventMutation) ResetNotificationVersion() {
+	m.notification_version = nil
+	m.addnotification_version = nil
+}
+
+// SetNotificationFanned sets the "notification_fanned" field.
+func (m *OutboxEventMutation) SetNotificationFanned(b bool) {
+	m.notification_fanned = &b
+}
+
+// NotificationFanned returns the value of the "notification_fanned" field in the mutation.
+func (m *OutboxEventMutation) NotificationFanned() (r bool, exists bool) {
+	v := m.notification_fanned
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNotificationFanned returns the old "notification_fanned" field's value of the OutboxEvent entity.
+// If the OutboxEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OutboxEventMutation) OldNotificationFanned(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNotificationFanned is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNotificationFanned requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNotificationFanned: %w", err)
+	}
+	return oldValue.NotificationFanned, nil
+}
+
+// ResetNotificationFanned resets all changes to the "notification_fanned" field.
+func (m *OutboxEventMutation) ResetNotificationFanned() {
+	m.notification_fanned = nil
+}
+
 // SetAttempts sets the "attempts" field.
 func (m *OutboxEventMutation) SetAttempts(i int) {
 	m.attempts = &i
@@ -42101,7 +42212,7 @@ func (m *OutboxEventMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *OutboxEventMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 14)
 	if m.organization_id != nil {
 		fields = append(fields, outboxevent.FieldOrganizationID)
 	}
@@ -42125,6 +42236,12 @@ func (m *OutboxEventMutation) Fields() []string {
 	}
 	if m.processing_at != nil {
 		fields = append(fields, outboxevent.FieldProcessingAt)
+	}
+	if m.notification_version != nil {
+		fields = append(fields, outboxevent.FieldNotificationVersion)
+	}
+	if m.notification_fanned != nil {
+		fields = append(fields, outboxevent.FieldNotificationFanned)
 	}
 	if m.attempts != nil {
 		fields = append(fields, outboxevent.FieldAttempts)
@@ -42162,6 +42279,10 @@ func (m *OutboxEventMutation) Field(name string) (ent.Value, bool) {
 		return m.DeliveredAt()
 	case outboxevent.FieldProcessingAt:
 		return m.ProcessingAt()
+	case outboxevent.FieldNotificationVersion:
+		return m.NotificationVersion()
+	case outboxevent.FieldNotificationFanned:
+		return m.NotificationFanned()
 	case outboxevent.FieldAttempts:
 		return m.Attempts()
 	case outboxevent.FieldLastError:
@@ -42195,6 +42316,10 @@ func (m *OutboxEventMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldDeliveredAt(ctx)
 	case outboxevent.FieldProcessingAt:
 		return m.OldProcessingAt(ctx)
+	case outboxevent.FieldNotificationVersion:
+		return m.OldNotificationVersion(ctx)
+	case outboxevent.FieldNotificationFanned:
+		return m.OldNotificationFanned(ctx)
 	case outboxevent.FieldAttempts:
 		return m.OldAttempts(ctx)
 	case outboxevent.FieldLastError:
@@ -42268,6 +42393,20 @@ func (m *OutboxEventMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetProcessingAt(v)
 		return nil
+	case outboxevent.FieldNotificationVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNotificationVersion(v)
+		return nil
+	case outboxevent.FieldNotificationFanned:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNotificationFanned(v)
+		return nil
 	case outboxevent.FieldAttempts:
 		v, ok := value.(int)
 		if !ok {
@@ -42304,6 +42443,9 @@ func (m *OutboxEventMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *OutboxEventMutation) AddedFields() []string {
 	var fields []string
+	if m.addnotification_version != nil {
+		fields = append(fields, outboxevent.FieldNotificationVersion)
+	}
 	if m.addattempts != nil {
 		fields = append(fields, outboxevent.FieldAttempts)
 	}
@@ -42315,6 +42457,8 @@ func (m *OutboxEventMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *OutboxEventMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case outboxevent.FieldNotificationVersion:
+		return m.AddedNotificationVersion()
 	case outboxevent.FieldAttempts:
 		return m.AddedAttempts()
 	}
@@ -42326,6 +42470,13 @@ func (m *OutboxEventMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *OutboxEventMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case outboxevent.FieldNotificationVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddNotificationVersion(v)
+		return nil
 	case outboxevent.FieldAttempts:
 		v, ok := value.(int)
 		if !ok {
@@ -42410,6 +42561,12 @@ func (m *OutboxEventMutation) ResetField(name string) error {
 		return nil
 	case outboxevent.FieldProcessingAt:
 		m.ResetProcessingAt()
+		return nil
+	case outboxevent.FieldNotificationVersion:
+		m.ResetNotificationVersion()
+		return nil
+	case outboxevent.FieldNotificationFanned:
+		m.ResetNotificationFanned()
 		return nil
 	case outboxevent.FieldAttempts:
 		m.ResetAttempts()
@@ -45247,6 +45404,6121 @@ func (m *PlatformCreativeSetVersionMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown PlatformCreativeSetVersion edge %s", name)
 }
 
+// PlatformNotificationDeliveryMutation represents an operation that mutates the PlatformNotificationDelivery nodes in the graph.
+type PlatformNotificationDeliveryMutation struct {
+	config
+	op                       Op
+	typ                      string
+	id                       *string
+	organization_id          *string
+	event_id                 *string
+	kind                     *string
+	channel                  *string
+	destination              *string
+	status                   *string
+	policy_generation        *int
+	addpolicy_generation     *int
+	preference_generation    *int
+	addpreference_generation *int
+	connection_id            *string
+	claim_token              *string
+	claimed_at               *time.Time
+	send_started_at          *time.Time
+	attempts                 *int
+	addattempts              *int
+	next_attempt_at          *time.Time
+	failure_code             *string
+	provider_receipt         *string
+	encrypted_payload        *string
+	created_at               *time.Time
+	updated_at               *time.Time
+	clearedFields            map[string]struct{}
+	done                     bool
+	oldValue                 func(context.Context) (*PlatformNotificationDelivery, error)
+	predicates               []predicate.PlatformNotificationDelivery
+}
+
+var _ ent.Mutation = (*PlatformNotificationDeliveryMutation)(nil)
+
+// platformnotificationdeliveryOption allows management of the mutation configuration using functional options.
+type platformnotificationdeliveryOption func(*PlatformNotificationDeliveryMutation)
+
+// newPlatformNotificationDeliveryMutation creates new mutation for the PlatformNotificationDelivery entity.
+func newPlatformNotificationDeliveryMutation(c config, op Op, opts ...platformnotificationdeliveryOption) *PlatformNotificationDeliveryMutation {
+	m := &PlatformNotificationDeliveryMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformNotificationDelivery,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformNotificationDeliveryID sets the ID field of the mutation.
+func withPlatformNotificationDeliveryID(id string) platformnotificationdeliveryOption {
+	return func(m *PlatformNotificationDeliveryMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformNotificationDelivery
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformNotificationDelivery, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformNotificationDelivery.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformNotificationDelivery sets the old PlatformNotificationDelivery of the mutation.
+func withPlatformNotificationDelivery(node *PlatformNotificationDelivery) platformnotificationdeliveryOption {
+	return func(m *PlatformNotificationDeliveryMutation) {
+		m.oldValue = func(context.Context) (*PlatformNotificationDelivery, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformNotificationDeliveryMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformNotificationDeliveryMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformNotificationDelivery entities.
+func (m *PlatformNotificationDeliveryMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformNotificationDeliveryMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformNotificationDeliveryMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformNotificationDelivery.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *PlatformNotificationDeliveryMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *PlatformNotificationDeliveryMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetEventID sets the "event_id" field.
+func (m *PlatformNotificationDeliveryMutation) SetEventID(s string) {
+	m.event_id = &s
+}
+
+// EventID returns the value of the "event_id" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) EventID() (r string, exists bool) {
+	v := m.event_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEventID returns the old "event_id" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldEventID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEventID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEventID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEventID: %w", err)
+	}
+	return oldValue.EventID, nil
+}
+
+// ResetEventID resets all changes to the "event_id" field.
+func (m *PlatformNotificationDeliveryMutation) ResetEventID() {
+	m.event_id = nil
+}
+
+// SetKind sets the "kind" field.
+func (m *PlatformNotificationDeliveryMutation) SetKind(s string) {
+	m.kind = &s
+}
+
+// Kind returns the value of the "kind" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) Kind() (r string, exists bool) {
+	v := m.kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKind returns the old "kind" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldKind(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// ResetKind resets all changes to the "kind" field.
+func (m *PlatformNotificationDeliveryMutation) ResetKind() {
+	m.kind = nil
+}
+
+// SetChannel sets the "channel" field.
+func (m *PlatformNotificationDeliveryMutation) SetChannel(s string) {
+	m.channel = &s
+}
+
+// Channel returns the value of the "channel" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) Channel() (r string, exists bool) {
+	v := m.channel
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChannel returns the old "channel" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldChannel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChannel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChannel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannel: %w", err)
+	}
+	return oldValue.Channel, nil
+}
+
+// ResetChannel resets all changes to the "channel" field.
+func (m *PlatformNotificationDeliveryMutation) ResetChannel() {
+	m.channel = nil
+}
+
+// SetDestination sets the "destination" field.
+func (m *PlatformNotificationDeliveryMutation) SetDestination(s string) {
+	m.destination = &s
+}
+
+// Destination returns the value of the "destination" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) Destination() (r string, exists bool) {
+	v := m.destination
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDestination returns the old "destination" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldDestination(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDestination is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDestination requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDestination: %w", err)
+	}
+	return oldValue.Destination, nil
+}
+
+// ResetDestination resets all changes to the "destination" field.
+func (m *PlatformNotificationDeliveryMutation) ResetDestination() {
+	m.destination = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *PlatformNotificationDeliveryMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *PlatformNotificationDeliveryMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetPolicyGeneration sets the "policy_generation" field.
+func (m *PlatformNotificationDeliveryMutation) SetPolicyGeneration(i int) {
+	m.policy_generation = &i
+	m.addpolicy_generation = nil
+}
+
+// PolicyGeneration returns the value of the "policy_generation" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) PolicyGeneration() (r int, exists bool) {
+	v := m.policy_generation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPolicyGeneration returns the old "policy_generation" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldPolicyGeneration(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPolicyGeneration is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPolicyGeneration requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPolicyGeneration: %w", err)
+	}
+	return oldValue.PolicyGeneration, nil
+}
+
+// AddPolicyGeneration adds i to the "policy_generation" field.
+func (m *PlatformNotificationDeliveryMutation) AddPolicyGeneration(i int) {
+	if m.addpolicy_generation != nil {
+		*m.addpolicy_generation += i
+	} else {
+		m.addpolicy_generation = &i
+	}
+}
+
+// AddedPolicyGeneration returns the value that was added to the "policy_generation" field in this mutation.
+func (m *PlatformNotificationDeliveryMutation) AddedPolicyGeneration() (r int, exists bool) {
+	v := m.addpolicy_generation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPolicyGeneration resets all changes to the "policy_generation" field.
+func (m *PlatformNotificationDeliveryMutation) ResetPolicyGeneration() {
+	m.policy_generation = nil
+	m.addpolicy_generation = nil
+}
+
+// SetPreferenceGeneration sets the "preference_generation" field.
+func (m *PlatformNotificationDeliveryMutation) SetPreferenceGeneration(i int) {
+	m.preference_generation = &i
+	m.addpreference_generation = nil
+}
+
+// PreferenceGeneration returns the value of the "preference_generation" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) PreferenceGeneration() (r int, exists bool) {
+	v := m.preference_generation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPreferenceGeneration returns the old "preference_generation" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldPreferenceGeneration(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPreferenceGeneration is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPreferenceGeneration requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPreferenceGeneration: %w", err)
+	}
+	return oldValue.PreferenceGeneration, nil
+}
+
+// AddPreferenceGeneration adds i to the "preference_generation" field.
+func (m *PlatformNotificationDeliveryMutation) AddPreferenceGeneration(i int) {
+	if m.addpreference_generation != nil {
+		*m.addpreference_generation += i
+	} else {
+		m.addpreference_generation = &i
+	}
+}
+
+// AddedPreferenceGeneration returns the value that was added to the "preference_generation" field in this mutation.
+func (m *PlatformNotificationDeliveryMutation) AddedPreferenceGeneration() (r int, exists bool) {
+	v := m.addpreference_generation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPreferenceGeneration resets all changes to the "preference_generation" field.
+func (m *PlatformNotificationDeliveryMutation) ResetPreferenceGeneration() {
+	m.preference_generation = nil
+	m.addpreference_generation = nil
+}
+
+// SetConnectionID sets the "connection_id" field.
+func (m *PlatformNotificationDeliveryMutation) SetConnectionID(s string) {
+	m.connection_id = &s
+}
+
+// ConnectionID returns the value of the "connection_id" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) ConnectionID() (r string, exists bool) {
+	v := m.connection_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldConnectionID returns the old "connection_id" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldConnectionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldConnectionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldConnectionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldConnectionID: %w", err)
+	}
+	return oldValue.ConnectionID, nil
+}
+
+// ResetConnectionID resets all changes to the "connection_id" field.
+func (m *PlatformNotificationDeliveryMutation) ResetConnectionID() {
+	m.connection_id = nil
+}
+
+// SetClaimToken sets the "claim_token" field.
+func (m *PlatformNotificationDeliveryMutation) SetClaimToken(s string) {
+	m.claim_token = &s
+}
+
+// ClaimToken returns the value of the "claim_token" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) ClaimToken() (r string, exists bool) {
+	v := m.claim_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClaimToken returns the old "claim_token" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldClaimToken(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClaimToken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClaimToken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClaimToken: %w", err)
+	}
+	return oldValue.ClaimToken, nil
+}
+
+// ResetClaimToken resets all changes to the "claim_token" field.
+func (m *PlatformNotificationDeliveryMutation) ResetClaimToken() {
+	m.claim_token = nil
+}
+
+// SetClaimedAt sets the "claimed_at" field.
+func (m *PlatformNotificationDeliveryMutation) SetClaimedAt(t time.Time) {
+	m.claimed_at = &t
+}
+
+// ClaimedAt returns the value of the "claimed_at" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) ClaimedAt() (r time.Time, exists bool) {
+	v := m.claimed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClaimedAt returns the old "claimed_at" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldClaimedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClaimedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClaimedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClaimedAt: %w", err)
+	}
+	return oldValue.ClaimedAt, nil
+}
+
+// ClearClaimedAt clears the value of the "claimed_at" field.
+func (m *PlatformNotificationDeliveryMutation) ClearClaimedAt() {
+	m.claimed_at = nil
+	m.clearedFields[platformnotificationdelivery.FieldClaimedAt] = struct{}{}
+}
+
+// ClaimedAtCleared returns if the "claimed_at" field was cleared in this mutation.
+func (m *PlatformNotificationDeliveryMutation) ClaimedAtCleared() bool {
+	_, ok := m.clearedFields[platformnotificationdelivery.FieldClaimedAt]
+	return ok
+}
+
+// ResetClaimedAt resets all changes to the "claimed_at" field.
+func (m *PlatformNotificationDeliveryMutation) ResetClaimedAt() {
+	m.claimed_at = nil
+	delete(m.clearedFields, platformnotificationdelivery.FieldClaimedAt)
+}
+
+// SetSendStartedAt sets the "send_started_at" field.
+func (m *PlatformNotificationDeliveryMutation) SetSendStartedAt(t time.Time) {
+	m.send_started_at = &t
+}
+
+// SendStartedAt returns the value of the "send_started_at" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) SendStartedAt() (r time.Time, exists bool) {
+	v := m.send_started_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSendStartedAt returns the old "send_started_at" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldSendStartedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSendStartedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSendStartedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSendStartedAt: %w", err)
+	}
+	return oldValue.SendStartedAt, nil
+}
+
+// ClearSendStartedAt clears the value of the "send_started_at" field.
+func (m *PlatformNotificationDeliveryMutation) ClearSendStartedAt() {
+	m.send_started_at = nil
+	m.clearedFields[platformnotificationdelivery.FieldSendStartedAt] = struct{}{}
+}
+
+// SendStartedAtCleared returns if the "send_started_at" field was cleared in this mutation.
+func (m *PlatformNotificationDeliveryMutation) SendStartedAtCleared() bool {
+	_, ok := m.clearedFields[platformnotificationdelivery.FieldSendStartedAt]
+	return ok
+}
+
+// ResetSendStartedAt resets all changes to the "send_started_at" field.
+func (m *PlatformNotificationDeliveryMutation) ResetSendStartedAt() {
+	m.send_started_at = nil
+	delete(m.clearedFields, platformnotificationdelivery.FieldSendStartedAt)
+}
+
+// SetAttempts sets the "attempts" field.
+func (m *PlatformNotificationDeliveryMutation) SetAttempts(i int) {
+	m.attempts = &i
+	m.addattempts = nil
+}
+
+// Attempts returns the value of the "attempts" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) Attempts() (r int, exists bool) {
+	v := m.attempts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAttempts returns the old "attempts" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldAttempts(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAttempts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAttempts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAttempts: %w", err)
+	}
+	return oldValue.Attempts, nil
+}
+
+// AddAttempts adds i to the "attempts" field.
+func (m *PlatformNotificationDeliveryMutation) AddAttempts(i int) {
+	if m.addattempts != nil {
+		*m.addattempts += i
+	} else {
+		m.addattempts = &i
+	}
+}
+
+// AddedAttempts returns the value that was added to the "attempts" field in this mutation.
+func (m *PlatformNotificationDeliveryMutation) AddedAttempts() (r int, exists bool) {
+	v := m.addattempts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAttempts resets all changes to the "attempts" field.
+func (m *PlatformNotificationDeliveryMutation) ResetAttempts() {
+	m.attempts = nil
+	m.addattempts = nil
+}
+
+// SetNextAttemptAt sets the "next_attempt_at" field.
+func (m *PlatformNotificationDeliveryMutation) SetNextAttemptAt(t time.Time) {
+	m.next_attempt_at = &t
+}
+
+// NextAttemptAt returns the value of the "next_attempt_at" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) NextAttemptAt() (r time.Time, exists bool) {
+	v := m.next_attempt_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNextAttemptAt returns the old "next_attempt_at" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldNextAttemptAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNextAttemptAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNextAttemptAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNextAttemptAt: %w", err)
+	}
+	return oldValue.NextAttemptAt, nil
+}
+
+// ResetNextAttemptAt resets all changes to the "next_attempt_at" field.
+func (m *PlatformNotificationDeliveryMutation) ResetNextAttemptAt() {
+	m.next_attempt_at = nil
+}
+
+// SetFailureCode sets the "failure_code" field.
+func (m *PlatformNotificationDeliveryMutation) SetFailureCode(s string) {
+	m.failure_code = &s
+}
+
+// FailureCode returns the value of the "failure_code" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) FailureCode() (r string, exists bool) {
+	v := m.failure_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFailureCode returns the old "failure_code" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldFailureCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFailureCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFailureCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFailureCode: %w", err)
+	}
+	return oldValue.FailureCode, nil
+}
+
+// ResetFailureCode resets all changes to the "failure_code" field.
+func (m *PlatformNotificationDeliveryMutation) ResetFailureCode() {
+	m.failure_code = nil
+}
+
+// SetProviderReceipt sets the "provider_receipt" field.
+func (m *PlatformNotificationDeliveryMutation) SetProviderReceipt(s string) {
+	m.provider_receipt = &s
+}
+
+// ProviderReceipt returns the value of the "provider_receipt" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) ProviderReceipt() (r string, exists bool) {
+	v := m.provider_receipt
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderReceipt returns the old "provider_receipt" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldProviderReceipt(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderReceipt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderReceipt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderReceipt: %w", err)
+	}
+	return oldValue.ProviderReceipt, nil
+}
+
+// ResetProviderReceipt resets all changes to the "provider_receipt" field.
+func (m *PlatformNotificationDeliveryMutation) ResetProviderReceipt() {
+	m.provider_receipt = nil
+}
+
+// SetEncryptedPayload sets the "encrypted_payload" field.
+func (m *PlatformNotificationDeliveryMutation) SetEncryptedPayload(s string) {
+	m.encrypted_payload = &s
+}
+
+// EncryptedPayload returns the value of the "encrypted_payload" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) EncryptedPayload() (r string, exists bool) {
+	v := m.encrypted_payload
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEncryptedPayload returns the old "encrypted_payload" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldEncryptedPayload(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEncryptedPayload is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEncryptedPayload requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEncryptedPayload: %w", err)
+	}
+	return oldValue.EncryptedPayload, nil
+}
+
+// ResetEncryptedPayload resets all changes to the "encrypted_payload" field.
+func (m *PlatformNotificationDeliveryMutation) ResetEncryptedPayload() {
+	m.encrypted_payload = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PlatformNotificationDeliveryMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PlatformNotificationDeliveryMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *PlatformNotificationDeliveryMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *PlatformNotificationDeliveryMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the PlatformNotificationDeliveryMutation builder.
+func (m *PlatformNotificationDeliveryMutation) Where(ps ...predicate.PlatformNotificationDelivery) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformNotificationDeliveryMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformNotificationDeliveryMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformNotificationDelivery, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformNotificationDeliveryMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformNotificationDeliveryMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformNotificationDelivery).
+func (m *PlatformNotificationDeliveryMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformNotificationDeliveryMutation) Fields() []string {
+	fields := make([]string, 0, 19)
+	if m.organization_id != nil {
+		fields = append(fields, platformnotificationdelivery.FieldOrganizationID)
+	}
+	if m.event_id != nil {
+		fields = append(fields, platformnotificationdelivery.FieldEventID)
+	}
+	if m.kind != nil {
+		fields = append(fields, platformnotificationdelivery.FieldKind)
+	}
+	if m.channel != nil {
+		fields = append(fields, platformnotificationdelivery.FieldChannel)
+	}
+	if m.destination != nil {
+		fields = append(fields, platformnotificationdelivery.FieldDestination)
+	}
+	if m.status != nil {
+		fields = append(fields, platformnotificationdelivery.FieldStatus)
+	}
+	if m.policy_generation != nil {
+		fields = append(fields, platformnotificationdelivery.FieldPolicyGeneration)
+	}
+	if m.preference_generation != nil {
+		fields = append(fields, platformnotificationdelivery.FieldPreferenceGeneration)
+	}
+	if m.connection_id != nil {
+		fields = append(fields, platformnotificationdelivery.FieldConnectionID)
+	}
+	if m.claim_token != nil {
+		fields = append(fields, platformnotificationdelivery.FieldClaimToken)
+	}
+	if m.claimed_at != nil {
+		fields = append(fields, platformnotificationdelivery.FieldClaimedAt)
+	}
+	if m.send_started_at != nil {
+		fields = append(fields, platformnotificationdelivery.FieldSendStartedAt)
+	}
+	if m.attempts != nil {
+		fields = append(fields, platformnotificationdelivery.FieldAttempts)
+	}
+	if m.next_attempt_at != nil {
+		fields = append(fields, platformnotificationdelivery.FieldNextAttemptAt)
+	}
+	if m.failure_code != nil {
+		fields = append(fields, platformnotificationdelivery.FieldFailureCode)
+	}
+	if m.provider_receipt != nil {
+		fields = append(fields, platformnotificationdelivery.FieldProviderReceipt)
+	}
+	if m.encrypted_payload != nil {
+		fields = append(fields, platformnotificationdelivery.FieldEncryptedPayload)
+	}
+	if m.created_at != nil {
+		fields = append(fields, platformnotificationdelivery.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, platformnotificationdelivery.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformNotificationDeliveryMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformnotificationdelivery.FieldOrganizationID:
+		return m.OrganizationID()
+	case platformnotificationdelivery.FieldEventID:
+		return m.EventID()
+	case platformnotificationdelivery.FieldKind:
+		return m.Kind()
+	case platformnotificationdelivery.FieldChannel:
+		return m.Channel()
+	case platformnotificationdelivery.FieldDestination:
+		return m.Destination()
+	case platformnotificationdelivery.FieldStatus:
+		return m.Status()
+	case platformnotificationdelivery.FieldPolicyGeneration:
+		return m.PolicyGeneration()
+	case platformnotificationdelivery.FieldPreferenceGeneration:
+		return m.PreferenceGeneration()
+	case platformnotificationdelivery.FieldConnectionID:
+		return m.ConnectionID()
+	case platformnotificationdelivery.FieldClaimToken:
+		return m.ClaimToken()
+	case platformnotificationdelivery.FieldClaimedAt:
+		return m.ClaimedAt()
+	case platformnotificationdelivery.FieldSendStartedAt:
+		return m.SendStartedAt()
+	case platformnotificationdelivery.FieldAttempts:
+		return m.Attempts()
+	case platformnotificationdelivery.FieldNextAttemptAt:
+		return m.NextAttemptAt()
+	case platformnotificationdelivery.FieldFailureCode:
+		return m.FailureCode()
+	case platformnotificationdelivery.FieldProviderReceipt:
+		return m.ProviderReceipt()
+	case platformnotificationdelivery.FieldEncryptedPayload:
+		return m.EncryptedPayload()
+	case platformnotificationdelivery.FieldCreatedAt:
+		return m.CreatedAt()
+	case platformnotificationdelivery.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformNotificationDeliveryMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformnotificationdelivery.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case platformnotificationdelivery.FieldEventID:
+		return m.OldEventID(ctx)
+	case platformnotificationdelivery.FieldKind:
+		return m.OldKind(ctx)
+	case platformnotificationdelivery.FieldChannel:
+		return m.OldChannel(ctx)
+	case platformnotificationdelivery.FieldDestination:
+		return m.OldDestination(ctx)
+	case platformnotificationdelivery.FieldStatus:
+		return m.OldStatus(ctx)
+	case platformnotificationdelivery.FieldPolicyGeneration:
+		return m.OldPolicyGeneration(ctx)
+	case platformnotificationdelivery.FieldPreferenceGeneration:
+		return m.OldPreferenceGeneration(ctx)
+	case platformnotificationdelivery.FieldConnectionID:
+		return m.OldConnectionID(ctx)
+	case platformnotificationdelivery.FieldClaimToken:
+		return m.OldClaimToken(ctx)
+	case platformnotificationdelivery.FieldClaimedAt:
+		return m.OldClaimedAt(ctx)
+	case platformnotificationdelivery.FieldSendStartedAt:
+		return m.OldSendStartedAt(ctx)
+	case platformnotificationdelivery.FieldAttempts:
+		return m.OldAttempts(ctx)
+	case platformnotificationdelivery.FieldNextAttemptAt:
+		return m.OldNextAttemptAt(ctx)
+	case platformnotificationdelivery.FieldFailureCode:
+		return m.OldFailureCode(ctx)
+	case platformnotificationdelivery.FieldProviderReceipt:
+		return m.OldProviderReceipt(ctx)
+	case platformnotificationdelivery.FieldEncryptedPayload:
+		return m.OldEncryptedPayload(ctx)
+	case platformnotificationdelivery.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case platformnotificationdelivery.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformNotificationDelivery field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformNotificationDeliveryMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformnotificationdelivery.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case platformnotificationdelivery.FieldEventID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEventID(v)
+		return nil
+	case platformnotificationdelivery.FieldKind:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKind(v)
+		return nil
+	case platformnotificationdelivery.FieldChannel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChannel(v)
+		return nil
+	case platformnotificationdelivery.FieldDestination:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDestination(v)
+		return nil
+	case platformnotificationdelivery.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case platformnotificationdelivery.FieldPolicyGeneration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPolicyGeneration(v)
+		return nil
+	case platformnotificationdelivery.FieldPreferenceGeneration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPreferenceGeneration(v)
+		return nil
+	case platformnotificationdelivery.FieldConnectionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetConnectionID(v)
+		return nil
+	case platformnotificationdelivery.FieldClaimToken:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClaimToken(v)
+		return nil
+	case platformnotificationdelivery.FieldClaimedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClaimedAt(v)
+		return nil
+	case platformnotificationdelivery.FieldSendStartedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSendStartedAt(v)
+		return nil
+	case platformnotificationdelivery.FieldAttempts:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAttempts(v)
+		return nil
+	case platformnotificationdelivery.FieldNextAttemptAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNextAttemptAt(v)
+		return nil
+	case platformnotificationdelivery.FieldFailureCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFailureCode(v)
+		return nil
+	case platformnotificationdelivery.FieldProviderReceipt:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderReceipt(v)
+		return nil
+	case platformnotificationdelivery.FieldEncryptedPayload:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEncryptedPayload(v)
+		return nil
+	case platformnotificationdelivery.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case platformnotificationdelivery.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationDelivery field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformNotificationDeliveryMutation) AddedFields() []string {
+	var fields []string
+	if m.addpolicy_generation != nil {
+		fields = append(fields, platformnotificationdelivery.FieldPolicyGeneration)
+	}
+	if m.addpreference_generation != nil {
+		fields = append(fields, platformnotificationdelivery.FieldPreferenceGeneration)
+	}
+	if m.addattempts != nil {
+		fields = append(fields, platformnotificationdelivery.FieldAttempts)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformNotificationDeliveryMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case platformnotificationdelivery.FieldPolicyGeneration:
+		return m.AddedPolicyGeneration()
+	case platformnotificationdelivery.FieldPreferenceGeneration:
+		return m.AddedPreferenceGeneration()
+	case platformnotificationdelivery.FieldAttempts:
+		return m.AddedAttempts()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformNotificationDeliveryMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case platformnotificationdelivery.FieldPolicyGeneration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPolicyGeneration(v)
+		return nil
+	case platformnotificationdelivery.FieldPreferenceGeneration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPreferenceGeneration(v)
+		return nil
+	case platformnotificationdelivery.FieldAttempts:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAttempts(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationDelivery numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformNotificationDeliveryMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(platformnotificationdelivery.FieldClaimedAt) {
+		fields = append(fields, platformnotificationdelivery.FieldClaimedAt)
+	}
+	if m.FieldCleared(platformnotificationdelivery.FieldSendStartedAt) {
+		fields = append(fields, platformnotificationdelivery.FieldSendStartedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformNotificationDeliveryMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformNotificationDeliveryMutation) ClearField(name string) error {
+	switch name {
+	case platformnotificationdelivery.FieldClaimedAt:
+		m.ClearClaimedAt()
+		return nil
+	case platformnotificationdelivery.FieldSendStartedAt:
+		m.ClearSendStartedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationDelivery nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformNotificationDeliveryMutation) ResetField(name string) error {
+	switch name {
+	case platformnotificationdelivery.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case platformnotificationdelivery.FieldEventID:
+		m.ResetEventID()
+		return nil
+	case platformnotificationdelivery.FieldKind:
+		m.ResetKind()
+		return nil
+	case platformnotificationdelivery.FieldChannel:
+		m.ResetChannel()
+		return nil
+	case platformnotificationdelivery.FieldDestination:
+		m.ResetDestination()
+		return nil
+	case platformnotificationdelivery.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case platformnotificationdelivery.FieldPolicyGeneration:
+		m.ResetPolicyGeneration()
+		return nil
+	case platformnotificationdelivery.FieldPreferenceGeneration:
+		m.ResetPreferenceGeneration()
+		return nil
+	case platformnotificationdelivery.FieldConnectionID:
+		m.ResetConnectionID()
+		return nil
+	case platformnotificationdelivery.FieldClaimToken:
+		m.ResetClaimToken()
+		return nil
+	case platformnotificationdelivery.FieldClaimedAt:
+		m.ResetClaimedAt()
+		return nil
+	case platformnotificationdelivery.FieldSendStartedAt:
+		m.ResetSendStartedAt()
+		return nil
+	case platformnotificationdelivery.FieldAttempts:
+		m.ResetAttempts()
+		return nil
+	case platformnotificationdelivery.FieldNextAttemptAt:
+		m.ResetNextAttemptAt()
+		return nil
+	case platformnotificationdelivery.FieldFailureCode:
+		m.ResetFailureCode()
+		return nil
+	case platformnotificationdelivery.FieldProviderReceipt:
+		m.ResetProviderReceipt()
+		return nil
+	case platformnotificationdelivery.FieldEncryptedPayload:
+		m.ResetEncryptedPayload()
+		return nil
+	case platformnotificationdelivery.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case platformnotificationdelivery.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationDelivery field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformNotificationDeliveryMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformNotificationDeliveryMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformNotificationDeliveryMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformNotificationDeliveryMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformNotificationDeliveryMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformNotificationDeliveryMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformNotificationDeliveryMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformNotificationDelivery unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformNotificationDeliveryMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformNotificationDelivery edge %s", name)
+}
+
+// PlatformNotificationInboxMutation represents an operation that mutates the PlatformNotificationInbox nodes in the graph.
+type PlatformNotificationInboxMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	organization_id *string
+	user_id         *string
+	event_id        *string
+	kind            *string
+	resource_type   *string
+	resource_id     *string
+	description     *string
+	href            *string
+	created_at      *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*PlatformNotificationInbox, error)
+	predicates      []predicate.PlatformNotificationInbox
+}
+
+var _ ent.Mutation = (*PlatformNotificationInboxMutation)(nil)
+
+// platformnotificationinboxOption allows management of the mutation configuration using functional options.
+type platformnotificationinboxOption func(*PlatformNotificationInboxMutation)
+
+// newPlatformNotificationInboxMutation creates new mutation for the PlatformNotificationInbox entity.
+func newPlatformNotificationInboxMutation(c config, op Op, opts ...platformnotificationinboxOption) *PlatformNotificationInboxMutation {
+	m := &PlatformNotificationInboxMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformNotificationInbox,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformNotificationInboxID sets the ID field of the mutation.
+func withPlatformNotificationInboxID(id string) platformnotificationinboxOption {
+	return func(m *PlatformNotificationInboxMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformNotificationInbox
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformNotificationInbox, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformNotificationInbox.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformNotificationInbox sets the old PlatformNotificationInbox of the mutation.
+func withPlatformNotificationInbox(node *PlatformNotificationInbox) platformnotificationinboxOption {
+	return func(m *PlatformNotificationInboxMutation) {
+		m.oldValue = func(context.Context) (*PlatformNotificationInbox, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformNotificationInboxMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformNotificationInboxMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformNotificationInbox entities.
+func (m *PlatformNotificationInboxMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformNotificationInboxMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformNotificationInboxMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformNotificationInbox.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *PlatformNotificationInboxMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *PlatformNotificationInboxMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the PlatformNotificationInbox entity.
+// If the PlatformNotificationInbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationInboxMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *PlatformNotificationInboxMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *PlatformNotificationInboxMutation) SetUserID(s string) {
+	m.user_id = &s
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *PlatformNotificationInboxMutation) UserID() (r string, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the PlatformNotificationInbox entity.
+// If the PlatformNotificationInbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationInboxMutation) OldUserID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *PlatformNotificationInboxMutation) ResetUserID() {
+	m.user_id = nil
+}
+
+// SetEventID sets the "event_id" field.
+func (m *PlatformNotificationInboxMutation) SetEventID(s string) {
+	m.event_id = &s
+}
+
+// EventID returns the value of the "event_id" field in the mutation.
+func (m *PlatformNotificationInboxMutation) EventID() (r string, exists bool) {
+	v := m.event_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEventID returns the old "event_id" field's value of the PlatformNotificationInbox entity.
+// If the PlatformNotificationInbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationInboxMutation) OldEventID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEventID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEventID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEventID: %w", err)
+	}
+	return oldValue.EventID, nil
+}
+
+// ResetEventID resets all changes to the "event_id" field.
+func (m *PlatformNotificationInboxMutation) ResetEventID() {
+	m.event_id = nil
+}
+
+// SetKind sets the "kind" field.
+func (m *PlatformNotificationInboxMutation) SetKind(s string) {
+	m.kind = &s
+}
+
+// Kind returns the value of the "kind" field in the mutation.
+func (m *PlatformNotificationInboxMutation) Kind() (r string, exists bool) {
+	v := m.kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKind returns the old "kind" field's value of the PlatformNotificationInbox entity.
+// If the PlatformNotificationInbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationInboxMutation) OldKind(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// ResetKind resets all changes to the "kind" field.
+func (m *PlatformNotificationInboxMutation) ResetKind() {
+	m.kind = nil
+}
+
+// SetResourceType sets the "resource_type" field.
+func (m *PlatformNotificationInboxMutation) SetResourceType(s string) {
+	m.resource_type = &s
+}
+
+// ResourceType returns the value of the "resource_type" field in the mutation.
+func (m *PlatformNotificationInboxMutation) ResourceType() (r string, exists bool) {
+	v := m.resource_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResourceType returns the old "resource_type" field's value of the PlatformNotificationInbox entity.
+// If the PlatformNotificationInbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationInboxMutation) OldResourceType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResourceType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResourceType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResourceType: %w", err)
+	}
+	return oldValue.ResourceType, nil
+}
+
+// ResetResourceType resets all changes to the "resource_type" field.
+func (m *PlatformNotificationInboxMutation) ResetResourceType() {
+	m.resource_type = nil
+}
+
+// SetResourceID sets the "resource_id" field.
+func (m *PlatformNotificationInboxMutation) SetResourceID(s string) {
+	m.resource_id = &s
+}
+
+// ResourceID returns the value of the "resource_id" field in the mutation.
+func (m *PlatformNotificationInboxMutation) ResourceID() (r string, exists bool) {
+	v := m.resource_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResourceID returns the old "resource_id" field's value of the PlatformNotificationInbox entity.
+// If the PlatformNotificationInbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationInboxMutation) OldResourceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResourceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResourceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResourceID: %w", err)
+	}
+	return oldValue.ResourceID, nil
+}
+
+// ResetResourceID resets all changes to the "resource_id" field.
+func (m *PlatformNotificationInboxMutation) ResetResourceID() {
+	m.resource_id = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *PlatformNotificationInboxMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *PlatformNotificationInboxMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the PlatformNotificationInbox entity.
+// If the PlatformNotificationInbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationInboxMutation) OldDescription(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *PlatformNotificationInboxMutation) ResetDescription() {
+	m.description = nil
+}
+
+// SetHref sets the "href" field.
+func (m *PlatformNotificationInboxMutation) SetHref(s string) {
+	m.href = &s
+}
+
+// Href returns the value of the "href" field in the mutation.
+func (m *PlatformNotificationInboxMutation) Href() (r string, exists bool) {
+	v := m.href
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHref returns the old "href" field's value of the PlatformNotificationInbox entity.
+// If the PlatformNotificationInbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationInboxMutation) OldHref(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHref is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHref requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHref: %w", err)
+	}
+	return oldValue.Href, nil
+}
+
+// ResetHref resets all changes to the "href" field.
+func (m *PlatformNotificationInboxMutation) ResetHref() {
+	m.href = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PlatformNotificationInboxMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PlatformNotificationInboxMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PlatformNotificationInbox entity.
+// If the PlatformNotificationInbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationInboxMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PlatformNotificationInboxMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the PlatformNotificationInboxMutation builder.
+func (m *PlatformNotificationInboxMutation) Where(ps ...predicate.PlatformNotificationInbox) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformNotificationInboxMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformNotificationInboxMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformNotificationInbox, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformNotificationInboxMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformNotificationInboxMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformNotificationInbox).
+func (m *PlatformNotificationInboxMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformNotificationInboxMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.organization_id != nil {
+		fields = append(fields, platformnotificationinbox.FieldOrganizationID)
+	}
+	if m.user_id != nil {
+		fields = append(fields, platformnotificationinbox.FieldUserID)
+	}
+	if m.event_id != nil {
+		fields = append(fields, platformnotificationinbox.FieldEventID)
+	}
+	if m.kind != nil {
+		fields = append(fields, platformnotificationinbox.FieldKind)
+	}
+	if m.resource_type != nil {
+		fields = append(fields, platformnotificationinbox.FieldResourceType)
+	}
+	if m.resource_id != nil {
+		fields = append(fields, platformnotificationinbox.FieldResourceID)
+	}
+	if m.description != nil {
+		fields = append(fields, platformnotificationinbox.FieldDescription)
+	}
+	if m.href != nil {
+		fields = append(fields, platformnotificationinbox.FieldHref)
+	}
+	if m.created_at != nil {
+		fields = append(fields, platformnotificationinbox.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformNotificationInboxMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformnotificationinbox.FieldOrganizationID:
+		return m.OrganizationID()
+	case platformnotificationinbox.FieldUserID:
+		return m.UserID()
+	case platformnotificationinbox.FieldEventID:
+		return m.EventID()
+	case platformnotificationinbox.FieldKind:
+		return m.Kind()
+	case platformnotificationinbox.FieldResourceType:
+		return m.ResourceType()
+	case platformnotificationinbox.FieldResourceID:
+		return m.ResourceID()
+	case platformnotificationinbox.FieldDescription:
+		return m.Description()
+	case platformnotificationinbox.FieldHref:
+		return m.Href()
+	case platformnotificationinbox.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformNotificationInboxMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformnotificationinbox.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case platformnotificationinbox.FieldUserID:
+		return m.OldUserID(ctx)
+	case platformnotificationinbox.FieldEventID:
+		return m.OldEventID(ctx)
+	case platformnotificationinbox.FieldKind:
+		return m.OldKind(ctx)
+	case platformnotificationinbox.FieldResourceType:
+		return m.OldResourceType(ctx)
+	case platformnotificationinbox.FieldResourceID:
+		return m.OldResourceID(ctx)
+	case platformnotificationinbox.FieldDescription:
+		return m.OldDescription(ctx)
+	case platformnotificationinbox.FieldHref:
+		return m.OldHref(ctx)
+	case platformnotificationinbox.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformNotificationInbox field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformNotificationInboxMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformnotificationinbox.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case platformnotificationinbox.FieldUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case platformnotificationinbox.FieldEventID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEventID(v)
+		return nil
+	case platformnotificationinbox.FieldKind:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKind(v)
+		return nil
+	case platformnotificationinbox.FieldResourceType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResourceType(v)
+		return nil
+	case platformnotificationinbox.FieldResourceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResourceID(v)
+		return nil
+	case platformnotificationinbox.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case platformnotificationinbox.FieldHref:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHref(v)
+		return nil
+	case platformnotificationinbox.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationInbox field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformNotificationInboxMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformNotificationInboxMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformNotificationInboxMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PlatformNotificationInbox numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformNotificationInboxMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformNotificationInboxMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformNotificationInboxMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown PlatformNotificationInbox nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformNotificationInboxMutation) ResetField(name string) error {
+	switch name {
+	case platformnotificationinbox.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case platformnotificationinbox.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case platformnotificationinbox.FieldEventID:
+		m.ResetEventID()
+		return nil
+	case platformnotificationinbox.FieldKind:
+		m.ResetKind()
+		return nil
+	case platformnotificationinbox.FieldResourceType:
+		m.ResetResourceType()
+		return nil
+	case platformnotificationinbox.FieldResourceID:
+		m.ResetResourceID()
+		return nil
+	case platformnotificationinbox.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case platformnotificationinbox.FieldHref:
+		m.ResetHref()
+		return nil
+	case platformnotificationinbox.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationInbox field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformNotificationInboxMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformNotificationInboxMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformNotificationInboxMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformNotificationInboxMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformNotificationInboxMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformNotificationInboxMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformNotificationInboxMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformNotificationInbox unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformNotificationInboxMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformNotificationInbox edge %s", name)
+}
+
+// PlatformNotificationPolicyMutation represents an operation that mutates the PlatformNotificationPolicy nodes in the graph.
+type PlatformNotificationPolicyMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *string
+	events              *map[string]interface{}
+	availability        *map[string]bool
+	generation          *int
+	addgeneration       *int
+	slack_connection_id *string
+	slack_channel_id    *string
+	slack_channel_name  *string
+	enabled_at          *time.Time
+	updated_at          *time.Time
+	clearedFields       map[string]struct{}
+	done                bool
+	oldValue            func(context.Context) (*PlatformNotificationPolicy, error)
+	predicates          []predicate.PlatformNotificationPolicy
+}
+
+var _ ent.Mutation = (*PlatformNotificationPolicyMutation)(nil)
+
+// platformnotificationpolicyOption allows management of the mutation configuration using functional options.
+type platformnotificationpolicyOption func(*PlatformNotificationPolicyMutation)
+
+// newPlatformNotificationPolicyMutation creates new mutation for the PlatformNotificationPolicy entity.
+func newPlatformNotificationPolicyMutation(c config, op Op, opts ...platformnotificationpolicyOption) *PlatformNotificationPolicyMutation {
+	m := &PlatformNotificationPolicyMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformNotificationPolicy,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformNotificationPolicyID sets the ID field of the mutation.
+func withPlatformNotificationPolicyID(id string) platformnotificationpolicyOption {
+	return func(m *PlatformNotificationPolicyMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformNotificationPolicy
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformNotificationPolicy, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformNotificationPolicy.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformNotificationPolicy sets the old PlatformNotificationPolicy of the mutation.
+func withPlatformNotificationPolicy(node *PlatformNotificationPolicy) platformnotificationpolicyOption {
+	return func(m *PlatformNotificationPolicyMutation) {
+		m.oldValue = func(context.Context) (*PlatformNotificationPolicy, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformNotificationPolicyMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformNotificationPolicyMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformNotificationPolicy entities.
+func (m *PlatformNotificationPolicyMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformNotificationPolicyMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformNotificationPolicyMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformNotificationPolicy.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetEvents sets the "events" field.
+func (m *PlatformNotificationPolicyMutation) SetEvents(value map[string]interface{}) {
+	m.events = &value
+}
+
+// Events returns the value of the "events" field in the mutation.
+func (m *PlatformNotificationPolicyMutation) Events() (r map[string]interface{}, exists bool) {
+	v := m.events
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEvents returns the old "events" field's value of the PlatformNotificationPolicy entity.
+// If the PlatformNotificationPolicy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPolicyMutation) OldEvents(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEvents is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEvents requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEvents: %w", err)
+	}
+	return oldValue.Events, nil
+}
+
+// ResetEvents resets all changes to the "events" field.
+func (m *PlatformNotificationPolicyMutation) ResetEvents() {
+	m.events = nil
+}
+
+// SetAvailability sets the "availability" field.
+func (m *PlatformNotificationPolicyMutation) SetAvailability(value map[string]bool) {
+	m.availability = &value
+}
+
+// Availability returns the value of the "availability" field in the mutation.
+func (m *PlatformNotificationPolicyMutation) Availability() (r map[string]bool, exists bool) {
+	v := m.availability
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAvailability returns the old "availability" field's value of the PlatformNotificationPolicy entity.
+// If the PlatformNotificationPolicy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPolicyMutation) OldAvailability(ctx context.Context) (v map[string]bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAvailability is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAvailability requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAvailability: %w", err)
+	}
+	return oldValue.Availability, nil
+}
+
+// ResetAvailability resets all changes to the "availability" field.
+func (m *PlatformNotificationPolicyMutation) ResetAvailability() {
+	m.availability = nil
+}
+
+// SetGeneration sets the "generation" field.
+func (m *PlatformNotificationPolicyMutation) SetGeneration(i int) {
+	m.generation = &i
+	m.addgeneration = nil
+}
+
+// Generation returns the value of the "generation" field in the mutation.
+func (m *PlatformNotificationPolicyMutation) Generation() (r int, exists bool) {
+	v := m.generation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGeneration returns the old "generation" field's value of the PlatformNotificationPolicy entity.
+// If the PlatformNotificationPolicy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPolicyMutation) OldGeneration(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGeneration is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGeneration requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGeneration: %w", err)
+	}
+	return oldValue.Generation, nil
+}
+
+// AddGeneration adds i to the "generation" field.
+func (m *PlatformNotificationPolicyMutation) AddGeneration(i int) {
+	if m.addgeneration != nil {
+		*m.addgeneration += i
+	} else {
+		m.addgeneration = &i
+	}
+}
+
+// AddedGeneration returns the value that was added to the "generation" field in this mutation.
+func (m *PlatformNotificationPolicyMutation) AddedGeneration() (r int, exists bool) {
+	v := m.addgeneration
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetGeneration resets all changes to the "generation" field.
+func (m *PlatformNotificationPolicyMutation) ResetGeneration() {
+	m.generation = nil
+	m.addgeneration = nil
+}
+
+// SetSlackConnectionID sets the "slack_connection_id" field.
+func (m *PlatformNotificationPolicyMutation) SetSlackConnectionID(s string) {
+	m.slack_connection_id = &s
+}
+
+// SlackConnectionID returns the value of the "slack_connection_id" field in the mutation.
+func (m *PlatformNotificationPolicyMutation) SlackConnectionID() (r string, exists bool) {
+	v := m.slack_connection_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlackConnectionID returns the old "slack_connection_id" field's value of the PlatformNotificationPolicy entity.
+// If the PlatformNotificationPolicy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPolicyMutation) OldSlackConnectionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSlackConnectionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSlackConnectionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlackConnectionID: %w", err)
+	}
+	return oldValue.SlackConnectionID, nil
+}
+
+// ResetSlackConnectionID resets all changes to the "slack_connection_id" field.
+func (m *PlatformNotificationPolicyMutation) ResetSlackConnectionID() {
+	m.slack_connection_id = nil
+}
+
+// SetSlackChannelID sets the "slack_channel_id" field.
+func (m *PlatformNotificationPolicyMutation) SetSlackChannelID(s string) {
+	m.slack_channel_id = &s
+}
+
+// SlackChannelID returns the value of the "slack_channel_id" field in the mutation.
+func (m *PlatformNotificationPolicyMutation) SlackChannelID() (r string, exists bool) {
+	v := m.slack_channel_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlackChannelID returns the old "slack_channel_id" field's value of the PlatformNotificationPolicy entity.
+// If the PlatformNotificationPolicy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPolicyMutation) OldSlackChannelID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSlackChannelID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSlackChannelID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlackChannelID: %w", err)
+	}
+	return oldValue.SlackChannelID, nil
+}
+
+// ResetSlackChannelID resets all changes to the "slack_channel_id" field.
+func (m *PlatformNotificationPolicyMutation) ResetSlackChannelID() {
+	m.slack_channel_id = nil
+}
+
+// SetSlackChannelName sets the "slack_channel_name" field.
+func (m *PlatformNotificationPolicyMutation) SetSlackChannelName(s string) {
+	m.slack_channel_name = &s
+}
+
+// SlackChannelName returns the value of the "slack_channel_name" field in the mutation.
+func (m *PlatformNotificationPolicyMutation) SlackChannelName() (r string, exists bool) {
+	v := m.slack_channel_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlackChannelName returns the old "slack_channel_name" field's value of the PlatformNotificationPolicy entity.
+// If the PlatformNotificationPolicy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPolicyMutation) OldSlackChannelName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSlackChannelName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSlackChannelName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlackChannelName: %w", err)
+	}
+	return oldValue.SlackChannelName, nil
+}
+
+// ResetSlackChannelName resets all changes to the "slack_channel_name" field.
+func (m *PlatformNotificationPolicyMutation) ResetSlackChannelName() {
+	m.slack_channel_name = nil
+}
+
+// SetEnabledAt sets the "enabled_at" field.
+func (m *PlatformNotificationPolicyMutation) SetEnabledAt(t time.Time) {
+	m.enabled_at = &t
+}
+
+// EnabledAt returns the value of the "enabled_at" field in the mutation.
+func (m *PlatformNotificationPolicyMutation) EnabledAt() (r time.Time, exists bool) {
+	v := m.enabled_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnabledAt returns the old "enabled_at" field's value of the PlatformNotificationPolicy entity.
+// If the PlatformNotificationPolicy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPolicyMutation) OldEnabledAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnabledAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnabledAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnabledAt: %w", err)
+	}
+	return oldValue.EnabledAt, nil
+}
+
+// ResetEnabledAt resets all changes to the "enabled_at" field.
+func (m *PlatformNotificationPolicyMutation) ResetEnabledAt() {
+	m.enabled_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *PlatformNotificationPolicyMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *PlatformNotificationPolicyMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the PlatformNotificationPolicy entity.
+// If the PlatformNotificationPolicy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPolicyMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *PlatformNotificationPolicyMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the PlatformNotificationPolicyMutation builder.
+func (m *PlatformNotificationPolicyMutation) Where(ps ...predicate.PlatformNotificationPolicy) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformNotificationPolicyMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformNotificationPolicyMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformNotificationPolicy, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformNotificationPolicyMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformNotificationPolicyMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformNotificationPolicy).
+func (m *PlatformNotificationPolicyMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformNotificationPolicyMutation) Fields() []string {
+	fields := make([]string, 0, 8)
+	if m.events != nil {
+		fields = append(fields, platformnotificationpolicy.FieldEvents)
+	}
+	if m.availability != nil {
+		fields = append(fields, platformnotificationpolicy.FieldAvailability)
+	}
+	if m.generation != nil {
+		fields = append(fields, platformnotificationpolicy.FieldGeneration)
+	}
+	if m.slack_connection_id != nil {
+		fields = append(fields, platformnotificationpolicy.FieldSlackConnectionID)
+	}
+	if m.slack_channel_id != nil {
+		fields = append(fields, platformnotificationpolicy.FieldSlackChannelID)
+	}
+	if m.slack_channel_name != nil {
+		fields = append(fields, platformnotificationpolicy.FieldSlackChannelName)
+	}
+	if m.enabled_at != nil {
+		fields = append(fields, platformnotificationpolicy.FieldEnabledAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, platformnotificationpolicy.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformNotificationPolicyMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformnotificationpolicy.FieldEvents:
+		return m.Events()
+	case platformnotificationpolicy.FieldAvailability:
+		return m.Availability()
+	case platformnotificationpolicy.FieldGeneration:
+		return m.Generation()
+	case platformnotificationpolicy.FieldSlackConnectionID:
+		return m.SlackConnectionID()
+	case platformnotificationpolicy.FieldSlackChannelID:
+		return m.SlackChannelID()
+	case platformnotificationpolicy.FieldSlackChannelName:
+		return m.SlackChannelName()
+	case platformnotificationpolicy.FieldEnabledAt:
+		return m.EnabledAt()
+	case platformnotificationpolicy.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformNotificationPolicyMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformnotificationpolicy.FieldEvents:
+		return m.OldEvents(ctx)
+	case platformnotificationpolicy.FieldAvailability:
+		return m.OldAvailability(ctx)
+	case platformnotificationpolicy.FieldGeneration:
+		return m.OldGeneration(ctx)
+	case platformnotificationpolicy.FieldSlackConnectionID:
+		return m.OldSlackConnectionID(ctx)
+	case platformnotificationpolicy.FieldSlackChannelID:
+		return m.OldSlackChannelID(ctx)
+	case platformnotificationpolicy.FieldSlackChannelName:
+		return m.OldSlackChannelName(ctx)
+	case platformnotificationpolicy.FieldEnabledAt:
+		return m.OldEnabledAt(ctx)
+	case platformnotificationpolicy.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformNotificationPolicy field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformNotificationPolicyMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformnotificationpolicy.FieldEvents:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEvents(v)
+		return nil
+	case platformnotificationpolicy.FieldAvailability:
+		v, ok := value.(map[string]bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAvailability(v)
+		return nil
+	case platformnotificationpolicy.FieldGeneration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGeneration(v)
+		return nil
+	case platformnotificationpolicy.FieldSlackConnectionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlackConnectionID(v)
+		return nil
+	case platformnotificationpolicy.FieldSlackChannelID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlackChannelID(v)
+		return nil
+	case platformnotificationpolicy.FieldSlackChannelName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlackChannelName(v)
+		return nil
+	case platformnotificationpolicy.FieldEnabledAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnabledAt(v)
+		return nil
+	case platformnotificationpolicy.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationPolicy field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformNotificationPolicyMutation) AddedFields() []string {
+	var fields []string
+	if m.addgeneration != nil {
+		fields = append(fields, platformnotificationpolicy.FieldGeneration)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformNotificationPolicyMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case platformnotificationpolicy.FieldGeneration:
+		return m.AddedGeneration()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformNotificationPolicyMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case platformnotificationpolicy.FieldGeneration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddGeneration(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationPolicy numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformNotificationPolicyMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformNotificationPolicyMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformNotificationPolicyMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown PlatformNotificationPolicy nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformNotificationPolicyMutation) ResetField(name string) error {
+	switch name {
+	case platformnotificationpolicy.FieldEvents:
+		m.ResetEvents()
+		return nil
+	case platformnotificationpolicy.FieldAvailability:
+		m.ResetAvailability()
+		return nil
+	case platformnotificationpolicy.FieldGeneration:
+		m.ResetGeneration()
+		return nil
+	case platformnotificationpolicy.FieldSlackConnectionID:
+		m.ResetSlackConnectionID()
+		return nil
+	case platformnotificationpolicy.FieldSlackChannelID:
+		m.ResetSlackChannelID()
+		return nil
+	case platformnotificationpolicy.FieldSlackChannelName:
+		m.ResetSlackChannelName()
+		return nil
+	case platformnotificationpolicy.FieldEnabledAt:
+		m.ResetEnabledAt()
+		return nil
+	case platformnotificationpolicy.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationPolicy field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformNotificationPolicyMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformNotificationPolicyMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformNotificationPolicyMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformNotificationPolicyMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformNotificationPolicyMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformNotificationPolicyMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformNotificationPolicyMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformNotificationPolicy unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformNotificationPolicyMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformNotificationPolicy edge %s", name)
+}
+
+// PlatformNotificationPreferenceMutation represents an operation that mutates the PlatformNotificationPreference nodes in the graph.
+type PlatformNotificationPreferenceMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	organization_id *string
+	user_id         *string
+	events          *map[string]interface{}
+	generation      *int
+	addgeneration   *int
+	updated_at      *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*PlatformNotificationPreference, error)
+	predicates      []predicate.PlatformNotificationPreference
+}
+
+var _ ent.Mutation = (*PlatformNotificationPreferenceMutation)(nil)
+
+// platformnotificationpreferenceOption allows management of the mutation configuration using functional options.
+type platformnotificationpreferenceOption func(*PlatformNotificationPreferenceMutation)
+
+// newPlatformNotificationPreferenceMutation creates new mutation for the PlatformNotificationPreference entity.
+func newPlatformNotificationPreferenceMutation(c config, op Op, opts ...platformnotificationpreferenceOption) *PlatformNotificationPreferenceMutation {
+	m := &PlatformNotificationPreferenceMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformNotificationPreference,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformNotificationPreferenceID sets the ID field of the mutation.
+func withPlatformNotificationPreferenceID(id string) platformnotificationpreferenceOption {
+	return func(m *PlatformNotificationPreferenceMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformNotificationPreference
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformNotificationPreference, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformNotificationPreference.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformNotificationPreference sets the old PlatformNotificationPreference of the mutation.
+func withPlatformNotificationPreference(node *PlatformNotificationPreference) platformnotificationpreferenceOption {
+	return func(m *PlatformNotificationPreferenceMutation) {
+		m.oldValue = func(context.Context) (*PlatformNotificationPreference, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformNotificationPreferenceMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformNotificationPreferenceMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformNotificationPreference entities.
+func (m *PlatformNotificationPreferenceMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformNotificationPreferenceMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformNotificationPreferenceMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformNotificationPreference.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *PlatformNotificationPreferenceMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *PlatformNotificationPreferenceMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the PlatformNotificationPreference entity.
+// If the PlatformNotificationPreference object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPreferenceMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *PlatformNotificationPreferenceMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *PlatformNotificationPreferenceMutation) SetUserID(s string) {
+	m.user_id = &s
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *PlatformNotificationPreferenceMutation) UserID() (r string, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the PlatformNotificationPreference entity.
+// If the PlatformNotificationPreference object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPreferenceMutation) OldUserID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *PlatformNotificationPreferenceMutation) ResetUserID() {
+	m.user_id = nil
+}
+
+// SetEvents sets the "events" field.
+func (m *PlatformNotificationPreferenceMutation) SetEvents(value map[string]interface{}) {
+	m.events = &value
+}
+
+// Events returns the value of the "events" field in the mutation.
+func (m *PlatformNotificationPreferenceMutation) Events() (r map[string]interface{}, exists bool) {
+	v := m.events
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEvents returns the old "events" field's value of the PlatformNotificationPreference entity.
+// If the PlatformNotificationPreference object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPreferenceMutation) OldEvents(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEvents is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEvents requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEvents: %w", err)
+	}
+	return oldValue.Events, nil
+}
+
+// ResetEvents resets all changes to the "events" field.
+func (m *PlatformNotificationPreferenceMutation) ResetEvents() {
+	m.events = nil
+}
+
+// SetGeneration sets the "generation" field.
+func (m *PlatformNotificationPreferenceMutation) SetGeneration(i int) {
+	m.generation = &i
+	m.addgeneration = nil
+}
+
+// Generation returns the value of the "generation" field in the mutation.
+func (m *PlatformNotificationPreferenceMutation) Generation() (r int, exists bool) {
+	v := m.generation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGeneration returns the old "generation" field's value of the PlatformNotificationPreference entity.
+// If the PlatformNotificationPreference object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPreferenceMutation) OldGeneration(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGeneration is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGeneration requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGeneration: %w", err)
+	}
+	return oldValue.Generation, nil
+}
+
+// AddGeneration adds i to the "generation" field.
+func (m *PlatformNotificationPreferenceMutation) AddGeneration(i int) {
+	if m.addgeneration != nil {
+		*m.addgeneration += i
+	} else {
+		m.addgeneration = &i
+	}
+}
+
+// AddedGeneration returns the value that was added to the "generation" field in this mutation.
+func (m *PlatformNotificationPreferenceMutation) AddedGeneration() (r int, exists bool) {
+	v := m.addgeneration
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetGeneration resets all changes to the "generation" field.
+func (m *PlatformNotificationPreferenceMutation) ResetGeneration() {
+	m.generation = nil
+	m.addgeneration = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *PlatformNotificationPreferenceMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *PlatformNotificationPreferenceMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the PlatformNotificationPreference entity.
+// If the PlatformNotificationPreference object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPreferenceMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *PlatformNotificationPreferenceMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the PlatformNotificationPreferenceMutation builder.
+func (m *PlatformNotificationPreferenceMutation) Where(ps ...predicate.PlatformNotificationPreference) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformNotificationPreferenceMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformNotificationPreferenceMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformNotificationPreference, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformNotificationPreferenceMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformNotificationPreferenceMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformNotificationPreference).
+func (m *PlatformNotificationPreferenceMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformNotificationPreferenceMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.organization_id != nil {
+		fields = append(fields, platformnotificationpreference.FieldOrganizationID)
+	}
+	if m.user_id != nil {
+		fields = append(fields, platformnotificationpreference.FieldUserID)
+	}
+	if m.events != nil {
+		fields = append(fields, platformnotificationpreference.FieldEvents)
+	}
+	if m.generation != nil {
+		fields = append(fields, platformnotificationpreference.FieldGeneration)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, platformnotificationpreference.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformNotificationPreferenceMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformnotificationpreference.FieldOrganizationID:
+		return m.OrganizationID()
+	case platformnotificationpreference.FieldUserID:
+		return m.UserID()
+	case platformnotificationpreference.FieldEvents:
+		return m.Events()
+	case platformnotificationpreference.FieldGeneration:
+		return m.Generation()
+	case platformnotificationpreference.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformNotificationPreferenceMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformnotificationpreference.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case platformnotificationpreference.FieldUserID:
+		return m.OldUserID(ctx)
+	case platformnotificationpreference.FieldEvents:
+		return m.OldEvents(ctx)
+	case platformnotificationpreference.FieldGeneration:
+		return m.OldGeneration(ctx)
+	case platformnotificationpreference.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformNotificationPreference field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformNotificationPreferenceMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformnotificationpreference.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case platformnotificationpreference.FieldUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case platformnotificationpreference.FieldEvents:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEvents(v)
+		return nil
+	case platformnotificationpreference.FieldGeneration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGeneration(v)
+		return nil
+	case platformnotificationpreference.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationPreference field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformNotificationPreferenceMutation) AddedFields() []string {
+	var fields []string
+	if m.addgeneration != nil {
+		fields = append(fields, platformnotificationpreference.FieldGeneration)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformNotificationPreferenceMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case platformnotificationpreference.FieldGeneration:
+		return m.AddedGeneration()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformNotificationPreferenceMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case platformnotificationpreference.FieldGeneration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddGeneration(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationPreference numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformNotificationPreferenceMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformNotificationPreferenceMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformNotificationPreferenceMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown PlatformNotificationPreference nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformNotificationPreferenceMutation) ResetField(name string) error {
+	switch name {
+	case platformnotificationpreference.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case platformnotificationpreference.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case platformnotificationpreference.FieldEvents:
+		m.ResetEvents()
+		return nil
+	case platformnotificationpreference.FieldGeneration:
+		m.ResetGeneration()
+		return nil
+	case platformnotificationpreference.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationPreference field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformNotificationPreferenceMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformNotificationPreferenceMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformNotificationPreferenceMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformNotificationPreferenceMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformNotificationPreferenceMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformNotificationPreferenceMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformNotificationPreferenceMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformNotificationPreference unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformNotificationPreferenceMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformNotificationPreference edge %s", name)
+}
+
+// PlatformNotificationSeenActionMutation represents an operation that mutates the PlatformNotificationSeenAction nodes in the graph.
+type PlatformNotificationSeenActionMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *string
+	organization_id  *string
+	user_id          *string
+	request_key      *string
+	deleted_count    *int
+	adddeleted_count *int
+	created_at       *time.Time
+	clearedFields    map[string]struct{}
+	done             bool
+	oldValue         func(context.Context) (*PlatformNotificationSeenAction, error)
+	predicates       []predicate.PlatformNotificationSeenAction
+}
+
+var _ ent.Mutation = (*PlatformNotificationSeenActionMutation)(nil)
+
+// platformnotificationseenactionOption allows management of the mutation configuration using functional options.
+type platformnotificationseenactionOption func(*PlatformNotificationSeenActionMutation)
+
+// newPlatformNotificationSeenActionMutation creates new mutation for the PlatformNotificationSeenAction entity.
+func newPlatformNotificationSeenActionMutation(c config, op Op, opts ...platformnotificationseenactionOption) *PlatformNotificationSeenActionMutation {
+	m := &PlatformNotificationSeenActionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformNotificationSeenAction,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformNotificationSeenActionID sets the ID field of the mutation.
+func withPlatformNotificationSeenActionID(id string) platformnotificationseenactionOption {
+	return func(m *PlatformNotificationSeenActionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformNotificationSeenAction
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformNotificationSeenAction, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformNotificationSeenAction.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformNotificationSeenAction sets the old PlatformNotificationSeenAction of the mutation.
+func withPlatformNotificationSeenAction(node *PlatformNotificationSeenAction) platformnotificationseenactionOption {
+	return func(m *PlatformNotificationSeenActionMutation) {
+		m.oldValue = func(context.Context) (*PlatformNotificationSeenAction, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformNotificationSeenActionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformNotificationSeenActionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformNotificationSeenAction entities.
+func (m *PlatformNotificationSeenActionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformNotificationSeenActionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformNotificationSeenActionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformNotificationSeenAction.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *PlatformNotificationSeenActionMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *PlatformNotificationSeenActionMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the PlatformNotificationSeenAction entity.
+// If the PlatformNotificationSeenAction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationSeenActionMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *PlatformNotificationSeenActionMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *PlatformNotificationSeenActionMutation) SetUserID(s string) {
+	m.user_id = &s
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *PlatformNotificationSeenActionMutation) UserID() (r string, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the PlatformNotificationSeenAction entity.
+// If the PlatformNotificationSeenAction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationSeenActionMutation) OldUserID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *PlatformNotificationSeenActionMutation) ResetUserID() {
+	m.user_id = nil
+}
+
+// SetRequestKey sets the "request_key" field.
+func (m *PlatformNotificationSeenActionMutation) SetRequestKey(s string) {
+	m.request_key = &s
+}
+
+// RequestKey returns the value of the "request_key" field in the mutation.
+func (m *PlatformNotificationSeenActionMutation) RequestKey() (r string, exists bool) {
+	v := m.request_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRequestKey returns the old "request_key" field's value of the PlatformNotificationSeenAction entity.
+// If the PlatformNotificationSeenAction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationSeenActionMutation) OldRequestKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRequestKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRequestKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRequestKey: %w", err)
+	}
+	return oldValue.RequestKey, nil
+}
+
+// ResetRequestKey resets all changes to the "request_key" field.
+func (m *PlatformNotificationSeenActionMutation) ResetRequestKey() {
+	m.request_key = nil
+}
+
+// SetDeletedCount sets the "deleted_count" field.
+func (m *PlatformNotificationSeenActionMutation) SetDeletedCount(i int) {
+	m.deleted_count = &i
+	m.adddeleted_count = nil
+}
+
+// DeletedCount returns the value of the "deleted_count" field in the mutation.
+func (m *PlatformNotificationSeenActionMutation) DeletedCount() (r int, exists bool) {
+	v := m.deleted_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedCount returns the old "deleted_count" field's value of the PlatformNotificationSeenAction entity.
+// If the PlatformNotificationSeenAction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationSeenActionMutation) OldDeletedCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedCount: %w", err)
+	}
+	return oldValue.DeletedCount, nil
+}
+
+// AddDeletedCount adds i to the "deleted_count" field.
+func (m *PlatformNotificationSeenActionMutation) AddDeletedCount(i int) {
+	if m.adddeleted_count != nil {
+		*m.adddeleted_count += i
+	} else {
+		m.adddeleted_count = &i
+	}
+}
+
+// AddedDeletedCount returns the value that was added to the "deleted_count" field in this mutation.
+func (m *PlatformNotificationSeenActionMutation) AddedDeletedCount() (r int, exists bool) {
+	v := m.adddeleted_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDeletedCount resets all changes to the "deleted_count" field.
+func (m *PlatformNotificationSeenActionMutation) ResetDeletedCount() {
+	m.deleted_count = nil
+	m.adddeleted_count = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PlatformNotificationSeenActionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PlatformNotificationSeenActionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PlatformNotificationSeenAction entity.
+// If the PlatformNotificationSeenAction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationSeenActionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PlatformNotificationSeenActionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the PlatformNotificationSeenActionMutation builder.
+func (m *PlatformNotificationSeenActionMutation) Where(ps ...predicate.PlatformNotificationSeenAction) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformNotificationSeenActionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformNotificationSeenActionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformNotificationSeenAction, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformNotificationSeenActionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformNotificationSeenActionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformNotificationSeenAction).
+func (m *PlatformNotificationSeenActionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformNotificationSeenActionMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.organization_id != nil {
+		fields = append(fields, platformnotificationseenaction.FieldOrganizationID)
+	}
+	if m.user_id != nil {
+		fields = append(fields, platformnotificationseenaction.FieldUserID)
+	}
+	if m.request_key != nil {
+		fields = append(fields, platformnotificationseenaction.FieldRequestKey)
+	}
+	if m.deleted_count != nil {
+		fields = append(fields, platformnotificationseenaction.FieldDeletedCount)
+	}
+	if m.created_at != nil {
+		fields = append(fields, platformnotificationseenaction.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformNotificationSeenActionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformnotificationseenaction.FieldOrganizationID:
+		return m.OrganizationID()
+	case platformnotificationseenaction.FieldUserID:
+		return m.UserID()
+	case platformnotificationseenaction.FieldRequestKey:
+		return m.RequestKey()
+	case platformnotificationseenaction.FieldDeletedCount:
+		return m.DeletedCount()
+	case platformnotificationseenaction.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformNotificationSeenActionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformnotificationseenaction.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case platformnotificationseenaction.FieldUserID:
+		return m.OldUserID(ctx)
+	case platformnotificationseenaction.FieldRequestKey:
+		return m.OldRequestKey(ctx)
+	case platformnotificationseenaction.FieldDeletedCount:
+		return m.OldDeletedCount(ctx)
+	case platformnotificationseenaction.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformNotificationSeenAction field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformNotificationSeenActionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformnotificationseenaction.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case platformnotificationseenaction.FieldUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case platformnotificationseenaction.FieldRequestKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRequestKey(v)
+		return nil
+	case platformnotificationseenaction.FieldDeletedCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedCount(v)
+		return nil
+	case platformnotificationseenaction.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationSeenAction field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformNotificationSeenActionMutation) AddedFields() []string {
+	var fields []string
+	if m.adddeleted_count != nil {
+		fields = append(fields, platformnotificationseenaction.FieldDeletedCount)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformNotificationSeenActionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case platformnotificationseenaction.FieldDeletedCount:
+		return m.AddedDeletedCount()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformNotificationSeenActionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case platformnotificationseenaction.FieldDeletedCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDeletedCount(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationSeenAction numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformNotificationSeenActionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformNotificationSeenActionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformNotificationSeenActionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown PlatformNotificationSeenAction nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformNotificationSeenActionMutation) ResetField(name string) error {
+	switch name {
+	case platformnotificationseenaction.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case platformnotificationseenaction.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case platformnotificationseenaction.FieldRequestKey:
+		m.ResetRequestKey()
+		return nil
+	case platformnotificationseenaction.FieldDeletedCount:
+		m.ResetDeletedCount()
+		return nil
+	case platformnotificationseenaction.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformNotificationSeenAction field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformNotificationSeenActionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformNotificationSeenActionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformNotificationSeenActionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformNotificationSeenActionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformNotificationSeenActionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformNotificationSeenActionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformNotificationSeenActionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformNotificationSeenAction unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformNotificationSeenActionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformNotificationSeenAction edge %s", name)
+}
+
+// PlatformSlackConnectionMutation represents an operation that mutates the PlatformSlackConnection nodes in the graph.
+type PlatformSlackConnectionMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *string
+	organization_id  *string
+	installation_id  *string
+	legacy_social_id *string
+	created_at       *time.Time
+	clearedFields    map[string]struct{}
+	done             bool
+	oldValue         func(context.Context) (*PlatformSlackConnection, error)
+	predicates       []predicate.PlatformSlackConnection
+}
+
+var _ ent.Mutation = (*PlatformSlackConnectionMutation)(nil)
+
+// platformslackconnectionOption allows management of the mutation configuration using functional options.
+type platformslackconnectionOption func(*PlatformSlackConnectionMutation)
+
+// newPlatformSlackConnectionMutation creates new mutation for the PlatformSlackConnection entity.
+func newPlatformSlackConnectionMutation(c config, op Op, opts ...platformslackconnectionOption) *PlatformSlackConnectionMutation {
+	m := &PlatformSlackConnectionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformSlackConnection,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformSlackConnectionID sets the ID field of the mutation.
+func withPlatformSlackConnectionID(id string) platformslackconnectionOption {
+	return func(m *PlatformSlackConnectionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformSlackConnection
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformSlackConnection, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformSlackConnection.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformSlackConnection sets the old PlatformSlackConnection of the mutation.
+func withPlatformSlackConnection(node *PlatformSlackConnection) platformslackconnectionOption {
+	return func(m *PlatformSlackConnectionMutation) {
+		m.oldValue = func(context.Context) (*PlatformSlackConnection, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformSlackConnectionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformSlackConnectionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformSlackConnection entities.
+func (m *PlatformSlackConnectionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformSlackConnectionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformSlackConnectionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformSlackConnection.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *PlatformSlackConnectionMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *PlatformSlackConnectionMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the PlatformSlackConnection entity.
+// If the PlatformSlackConnection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackConnectionMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *PlatformSlackConnectionMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetInstallationID sets the "installation_id" field.
+func (m *PlatformSlackConnectionMutation) SetInstallationID(s string) {
+	m.installation_id = &s
+}
+
+// InstallationID returns the value of the "installation_id" field in the mutation.
+func (m *PlatformSlackConnectionMutation) InstallationID() (r string, exists bool) {
+	v := m.installation_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInstallationID returns the old "installation_id" field's value of the PlatformSlackConnection entity.
+// If the PlatformSlackConnection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackConnectionMutation) OldInstallationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInstallationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInstallationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInstallationID: %w", err)
+	}
+	return oldValue.InstallationID, nil
+}
+
+// ResetInstallationID resets all changes to the "installation_id" field.
+func (m *PlatformSlackConnectionMutation) ResetInstallationID() {
+	m.installation_id = nil
+}
+
+// SetLegacySocialID sets the "legacy_social_id" field.
+func (m *PlatformSlackConnectionMutation) SetLegacySocialID(s string) {
+	m.legacy_social_id = &s
+}
+
+// LegacySocialID returns the value of the "legacy_social_id" field in the mutation.
+func (m *PlatformSlackConnectionMutation) LegacySocialID() (r string, exists bool) {
+	v := m.legacy_social_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLegacySocialID returns the old "legacy_social_id" field's value of the PlatformSlackConnection entity.
+// If the PlatformSlackConnection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackConnectionMutation) OldLegacySocialID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLegacySocialID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLegacySocialID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLegacySocialID: %w", err)
+	}
+	return oldValue.LegacySocialID, nil
+}
+
+// ResetLegacySocialID resets all changes to the "legacy_social_id" field.
+func (m *PlatformSlackConnectionMutation) ResetLegacySocialID() {
+	m.legacy_social_id = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PlatformSlackConnectionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PlatformSlackConnectionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PlatformSlackConnection entity.
+// If the PlatformSlackConnection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackConnectionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PlatformSlackConnectionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the PlatformSlackConnectionMutation builder.
+func (m *PlatformSlackConnectionMutation) Where(ps ...predicate.PlatformSlackConnection) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformSlackConnectionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformSlackConnectionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformSlackConnection, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformSlackConnectionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformSlackConnectionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformSlackConnection).
+func (m *PlatformSlackConnectionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformSlackConnectionMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.organization_id != nil {
+		fields = append(fields, platformslackconnection.FieldOrganizationID)
+	}
+	if m.installation_id != nil {
+		fields = append(fields, platformslackconnection.FieldInstallationID)
+	}
+	if m.legacy_social_id != nil {
+		fields = append(fields, platformslackconnection.FieldLegacySocialID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, platformslackconnection.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformSlackConnectionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformslackconnection.FieldOrganizationID:
+		return m.OrganizationID()
+	case platformslackconnection.FieldInstallationID:
+		return m.InstallationID()
+	case platformslackconnection.FieldLegacySocialID:
+		return m.LegacySocialID()
+	case platformslackconnection.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformSlackConnectionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformslackconnection.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case platformslackconnection.FieldInstallationID:
+		return m.OldInstallationID(ctx)
+	case platformslackconnection.FieldLegacySocialID:
+		return m.OldLegacySocialID(ctx)
+	case platformslackconnection.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformSlackConnection field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformSlackConnectionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformslackconnection.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case platformslackconnection.FieldInstallationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInstallationID(v)
+		return nil
+	case platformslackconnection.FieldLegacySocialID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLegacySocialID(v)
+		return nil
+	case platformslackconnection.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformSlackConnection field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformSlackConnectionMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformSlackConnectionMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformSlackConnectionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PlatformSlackConnection numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformSlackConnectionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformSlackConnectionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformSlackConnectionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown PlatformSlackConnection nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformSlackConnectionMutation) ResetField(name string) error {
+	switch name {
+	case platformslackconnection.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case platformslackconnection.FieldInstallationID:
+		m.ResetInstallationID()
+		return nil
+	case platformslackconnection.FieldLegacySocialID:
+		m.ResetLegacySocialID()
+		return nil
+	case platformslackconnection.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformSlackConnection field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformSlackConnectionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformSlackConnectionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformSlackConnectionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformSlackConnectionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformSlackConnectionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformSlackConnectionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformSlackConnectionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformSlackConnection unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformSlackConnectionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformSlackConnection edge %s", name)
+}
+
+// PlatformSlackInstallationMutation represents an operation that mutates the PlatformSlackInstallation nodes in the graph.
+type PlatformSlackInstallationMutation struct {
+	config
+	op                    Op
+	typ                   string
+	id                    *string
+	app_id                *string
+	team_id               *string
+	enterprise_id         *string
+	team_name             *string
+	encrypted_credentials *string
+	scopes                *[]string
+	appendscopes          []string
+	expires_at            *time.Time
+	health                *string
+	refresh_claim         *string
+	refresh_started_at    *time.Time
+	checked_at            *time.Time
+	created_at            *time.Time
+	updated_at            *time.Time
+	clearedFields         map[string]struct{}
+	done                  bool
+	oldValue              func(context.Context) (*PlatformSlackInstallation, error)
+	predicates            []predicate.PlatformSlackInstallation
+}
+
+var _ ent.Mutation = (*PlatformSlackInstallationMutation)(nil)
+
+// platformslackinstallationOption allows management of the mutation configuration using functional options.
+type platformslackinstallationOption func(*PlatformSlackInstallationMutation)
+
+// newPlatformSlackInstallationMutation creates new mutation for the PlatformSlackInstallation entity.
+func newPlatformSlackInstallationMutation(c config, op Op, opts ...platformslackinstallationOption) *PlatformSlackInstallationMutation {
+	m := &PlatformSlackInstallationMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformSlackInstallation,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformSlackInstallationID sets the ID field of the mutation.
+func withPlatformSlackInstallationID(id string) platformslackinstallationOption {
+	return func(m *PlatformSlackInstallationMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformSlackInstallation
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformSlackInstallation, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformSlackInstallation.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformSlackInstallation sets the old PlatformSlackInstallation of the mutation.
+func withPlatformSlackInstallation(node *PlatformSlackInstallation) platformslackinstallationOption {
+	return func(m *PlatformSlackInstallationMutation) {
+		m.oldValue = func(context.Context) (*PlatformSlackInstallation, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformSlackInstallationMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformSlackInstallationMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformSlackInstallation entities.
+func (m *PlatformSlackInstallationMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformSlackInstallationMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformSlackInstallationMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformSlackInstallation.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetAppID sets the "app_id" field.
+func (m *PlatformSlackInstallationMutation) SetAppID(s string) {
+	m.app_id = &s
+}
+
+// AppID returns the value of the "app_id" field in the mutation.
+func (m *PlatformSlackInstallationMutation) AppID() (r string, exists bool) {
+	v := m.app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppID returns the old "app_id" field's value of the PlatformSlackInstallation entity.
+// If the PlatformSlackInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackInstallationMutation) OldAppID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppID: %w", err)
+	}
+	return oldValue.AppID, nil
+}
+
+// ResetAppID resets all changes to the "app_id" field.
+func (m *PlatformSlackInstallationMutation) ResetAppID() {
+	m.app_id = nil
+}
+
+// SetTeamID sets the "team_id" field.
+func (m *PlatformSlackInstallationMutation) SetTeamID(s string) {
+	m.team_id = &s
+}
+
+// TeamID returns the value of the "team_id" field in the mutation.
+func (m *PlatformSlackInstallationMutation) TeamID() (r string, exists bool) {
+	v := m.team_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTeamID returns the old "team_id" field's value of the PlatformSlackInstallation entity.
+// If the PlatformSlackInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackInstallationMutation) OldTeamID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTeamID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTeamID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTeamID: %w", err)
+	}
+	return oldValue.TeamID, nil
+}
+
+// ResetTeamID resets all changes to the "team_id" field.
+func (m *PlatformSlackInstallationMutation) ResetTeamID() {
+	m.team_id = nil
+}
+
+// SetEnterpriseID sets the "enterprise_id" field.
+func (m *PlatformSlackInstallationMutation) SetEnterpriseID(s string) {
+	m.enterprise_id = &s
+}
+
+// EnterpriseID returns the value of the "enterprise_id" field in the mutation.
+func (m *PlatformSlackInstallationMutation) EnterpriseID() (r string, exists bool) {
+	v := m.enterprise_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnterpriseID returns the old "enterprise_id" field's value of the PlatformSlackInstallation entity.
+// If the PlatformSlackInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackInstallationMutation) OldEnterpriseID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnterpriseID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnterpriseID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnterpriseID: %w", err)
+	}
+	return oldValue.EnterpriseID, nil
+}
+
+// ResetEnterpriseID resets all changes to the "enterprise_id" field.
+func (m *PlatformSlackInstallationMutation) ResetEnterpriseID() {
+	m.enterprise_id = nil
+}
+
+// SetTeamName sets the "team_name" field.
+func (m *PlatformSlackInstallationMutation) SetTeamName(s string) {
+	m.team_name = &s
+}
+
+// TeamName returns the value of the "team_name" field in the mutation.
+func (m *PlatformSlackInstallationMutation) TeamName() (r string, exists bool) {
+	v := m.team_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTeamName returns the old "team_name" field's value of the PlatformSlackInstallation entity.
+// If the PlatformSlackInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackInstallationMutation) OldTeamName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTeamName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTeamName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTeamName: %w", err)
+	}
+	return oldValue.TeamName, nil
+}
+
+// ResetTeamName resets all changes to the "team_name" field.
+func (m *PlatformSlackInstallationMutation) ResetTeamName() {
+	m.team_name = nil
+}
+
+// SetEncryptedCredentials sets the "encrypted_credentials" field.
+func (m *PlatformSlackInstallationMutation) SetEncryptedCredentials(s string) {
+	m.encrypted_credentials = &s
+}
+
+// EncryptedCredentials returns the value of the "encrypted_credentials" field in the mutation.
+func (m *PlatformSlackInstallationMutation) EncryptedCredentials() (r string, exists bool) {
+	v := m.encrypted_credentials
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEncryptedCredentials returns the old "encrypted_credentials" field's value of the PlatformSlackInstallation entity.
+// If the PlatformSlackInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackInstallationMutation) OldEncryptedCredentials(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEncryptedCredentials is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEncryptedCredentials requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEncryptedCredentials: %w", err)
+	}
+	return oldValue.EncryptedCredentials, nil
+}
+
+// ResetEncryptedCredentials resets all changes to the "encrypted_credentials" field.
+func (m *PlatformSlackInstallationMutation) ResetEncryptedCredentials() {
+	m.encrypted_credentials = nil
+}
+
+// SetScopes sets the "scopes" field.
+func (m *PlatformSlackInstallationMutation) SetScopes(s []string) {
+	m.scopes = &s
+	m.appendscopes = nil
+}
+
+// Scopes returns the value of the "scopes" field in the mutation.
+func (m *PlatformSlackInstallationMutation) Scopes() (r []string, exists bool) {
+	v := m.scopes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScopes returns the old "scopes" field's value of the PlatformSlackInstallation entity.
+// If the PlatformSlackInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackInstallationMutation) OldScopes(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScopes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScopes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScopes: %w", err)
+	}
+	return oldValue.Scopes, nil
+}
+
+// AppendScopes adds s to the "scopes" field.
+func (m *PlatformSlackInstallationMutation) AppendScopes(s []string) {
+	m.appendscopes = append(m.appendscopes, s...)
+}
+
+// AppendedScopes returns the list of values that were appended to the "scopes" field in this mutation.
+func (m *PlatformSlackInstallationMutation) AppendedScopes() ([]string, bool) {
+	if len(m.appendscopes) == 0 {
+		return nil, false
+	}
+	return m.appendscopes, true
+}
+
+// ResetScopes resets all changes to the "scopes" field.
+func (m *PlatformSlackInstallationMutation) ResetScopes() {
+	m.scopes = nil
+	m.appendscopes = nil
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (m *PlatformSlackInstallationMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *PlatformSlackInstallationMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the PlatformSlackInstallation entity.
+// If the PlatformSlackInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackInstallationMutation) OldExpiresAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ClearExpiresAt clears the value of the "expires_at" field.
+func (m *PlatformSlackInstallationMutation) ClearExpiresAt() {
+	m.expires_at = nil
+	m.clearedFields[platformslackinstallation.FieldExpiresAt] = struct{}{}
+}
+
+// ExpiresAtCleared returns if the "expires_at" field was cleared in this mutation.
+func (m *PlatformSlackInstallationMutation) ExpiresAtCleared() bool {
+	_, ok := m.clearedFields[platformslackinstallation.FieldExpiresAt]
+	return ok
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *PlatformSlackInstallationMutation) ResetExpiresAt() {
+	m.expires_at = nil
+	delete(m.clearedFields, platformslackinstallation.FieldExpiresAt)
+}
+
+// SetHealth sets the "health" field.
+func (m *PlatformSlackInstallationMutation) SetHealth(s string) {
+	m.health = &s
+}
+
+// Health returns the value of the "health" field in the mutation.
+func (m *PlatformSlackInstallationMutation) Health() (r string, exists bool) {
+	v := m.health
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHealth returns the old "health" field's value of the PlatformSlackInstallation entity.
+// If the PlatformSlackInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackInstallationMutation) OldHealth(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHealth is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHealth requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHealth: %w", err)
+	}
+	return oldValue.Health, nil
+}
+
+// ResetHealth resets all changes to the "health" field.
+func (m *PlatformSlackInstallationMutation) ResetHealth() {
+	m.health = nil
+}
+
+// SetRefreshClaim sets the "refresh_claim" field.
+func (m *PlatformSlackInstallationMutation) SetRefreshClaim(s string) {
+	m.refresh_claim = &s
+}
+
+// RefreshClaim returns the value of the "refresh_claim" field in the mutation.
+func (m *PlatformSlackInstallationMutation) RefreshClaim() (r string, exists bool) {
+	v := m.refresh_claim
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRefreshClaim returns the old "refresh_claim" field's value of the PlatformSlackInstallation entity.
+// If the PlatformSlackInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackInstallationMutation) OldRefreshClaim(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRefreshClaim is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRefreshClaim requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRefreshClaim: %w", err)
+	}
+	return oldValue.RefreshClaim, nil
+}
+
+// ResetRefreshClaim resets all changes to the "refresh_claim" field.
+func (m *PlatformSlackInstallationMutation) ResetRefreshClaim() {
+	m.refresh_claim = nil
+}
+
+// SetRefreshStartedAt sets the "refresh_started_at" field.
+func (m *PlatformSlackInstallationMutation) SetRefreshStartedAt(t time.Time) {
+	m.refresh_started_at = &t
+}
+
+// RefreshStartedAt returns the value of the "refresh_started_at" field in the mutation.
+func (m *PlatformSlackInstallationMutation) RefreshStartedAt() (r time.Time, exists bool) {
+	v := m.refresh_started_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRefreshStartedAt returns the old "refresh_started_at" field's value of the PlatformSlackInstallation entity.
+// If the PlatformSlackInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackInstallationMutation) OldRefreshStartedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRefreshStartedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRefreshStartedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRefreshStartedAt: %w", err)
+	}
+	return oldValue.RefreshStartedAt, nil
+}
+
+// ClearRefreshStartedAt clears the value of the "refresh_started_at" field.
+func (m *PlatformSlackInstallationMutation) ClearRefreshStartedAt() {
+	m.refresh_started_at = nil
+	m.clearedFields[platformslackinstallation.FieldRefreshStartedAt] = struct{}{}
+}
+
+// RefreshStartedAtCleared returns if the "refresh_started_at" field was cleared in this mutation.
+func (m *PlatformSlackInstallationMutation) RefreshStartedAtCleared() bool {
+	_, ok := m.clearedFields[platformslackinstallation.FieldRefreshStartedAt]
+	return ok
+}
+
+// ResetRefreshStartedAt resets all changes to the "refresh_started_at" field.
+func (m *PlatformSlackInstallationMutation) ResetRefreshStartedAt() {
+	m.refresh_started_at = nil
+	delete(m.clearedFields, platformslackinstallation.FieldRefreshStartedAt)
+}
+
+// SetCheckedAt sets the "checked_at" field.
+func (m *PlatformSlackInstallationMutation) SetCheckedAt(t time.Time) {
+	m.checked_at = &t
+}
+
+// CheckedAt returns the value of the "checked_at" field in the mutation.
+func (m *PlatformSlackInstallationMutation) CheckedAt() (r time.Time, exists bool) {
+	v := m.checked_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCheckedAt returns the old "checked_at" field's value of the PlatformSlackInstallation entity.
+// If the PlatformSlackInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackInstallationMutation) OldCheckedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCheckedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCheckedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCheckedAt: %w", err)
+	}
+	return oldValue.CheckedAt, nil
+}
+
+// ClearCheckedAt clears the value of the "checked_at" field.
+func (m *PlatformSlackInstallationMutation) ClearCheckedAt() {
+	m.checked_at = nil
+	m.clearedFields[platformslackinstallation.FieldCheckedAt] = struct{}{}
+}
+
+// CheckedAtCleared returns if the "checked_at" field was cleared in this mutation.
+func (m *PlatformSlackInstallationMutation) CheckedAtCleared() bool {
+	_, ok := m.clearedFields[platformslackinstallation.FieldCheckedAt]
+	return ok
+}
+
+// ResetCheckedAt resets all changes to the "checked_at" field.
+func (m *PlatformSlackInstallationMutation) ResetCheckedAt() {
+	m.checked_at = nil
+	delete(m.clearedFields, platformslackinstallation.FieldCheckedAt)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PlatformSlackInstallationMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PlatformSlackInstallationMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PlatformSlackInstallation entity.
+// If the PlatformSlackInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackInstallationMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PlatformSlackInstallationMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *PlatformSlackInstallationMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *PlatformSlackInstallationMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the PlatformSlackInstallation entity.
+// If the PlatformSlackInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackInstallationMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *PlatformSlackInstallationMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the PlatformSlackInstallationMutation builder.
+func (m *PlatformSlackInstallationMutation) Where(ps ...predicate.PlatformSlackInstallation) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformSlackInstallationMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformSlackInstallationMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformSlackInstallation, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformSlackInstallationMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformSlackInstallationMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformSlackInstallation).
+func (m *PlatformSlackInstallationMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformSlackInstallationMutation) Fields() []string {
+	fields := make([]string, 0, 13)
+	if m.app_id != nil {
+		fields = append(fields, platformslackinstallation.FieldAppID)
+	}
+	if m.team_id != nil {
+		fields = append(fields, platformslackinstallation.FieldTeamID)
+	}
+	if m.enterprise_id != nil {
+		fields = append(fields, platformslackinstallation.FieldEnterpriseID)
+	}
+	if m.team_name != nil {
+		fields = append(fields, platformslackinstallation.FieldTeamName)
+	}
+	if m.encrypted_credentials != nil {
+		fields = append(fields, platformslackinstallation.FieldEncryptedCredentials)
+	}
+	if m.scopes != nil {
+		fields = append(fields, platformslackinstallation.FieldScopes)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, platformslackinstallation.FieldExpiresAt)
+	}
+	if m.health != nil {
+		fields = append(fields, platformslackinstallation.FieldHealth)
+	}
+	if m.refresh_claim != nil {
+		fields = append(fields, platformslackinstallation.FieldRefreshClaim)
+	}
+	if m.refresh_started_at != nil {
+		fields = append(fields, platformslackinstallation.FieldRefreshStartedAt)
+	}
+	if m.checked_at != nil {
+		fields = append(fields, platformslackinstallation.FieldCheckedAt)
+	}
+	if m.created_at != nil {
+		fields = append(fields, platformslackinstallation.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, platformslackinstallation.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformSlackInstallationMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformslackinstallation.FieldAppID:
+		return m.AppID()
+	case platformslackinstallation.FieldTeamID:
+		return m.TeamID()
+	case platformslackinstallation.FieldEnterpriseID:
+		return m.EnterpriseID()
+	case platformslackinstallation.FieldTeamName:
+		return m.TeamName()
+	case platformslackinstallation.FieldEncryptedCredentials:
+		return m.EncryptedCredentials()
+	case platformslackinstallation.FieldScopes:
+		return m.Scopes()
+	case platformslackinstallation.FieldExpiresAt:
+		return m.ExpiresAt()
+	case platformslackinstallation.FieldHealth:
+		return m.Health()
+	case platformslackinstallation.FieldRefreshClaim:
+		return m.RefreshClaim()
+	case platformslackinstallation.FieldRefreshStartedAt:
+		return m.RefreshStartedAt()
+	case platformslackinstallation.FieldCheckedAt:
+		return m.CheckedAt()
+	case platformslackinstallation.FieldCreatedAt:
+		return m.CreatedAt()
+	case platformslackinstallation.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformSlackInstallationMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformslackinstallation.FieldAppID:
+		return m.OldAppID(ctx)
+	case platformslackinstallation.FieldTeamID:
+		return m.OldTeamID(ctx)
+	case platformslackinstallation.FieldEnterpriseID:
+		return m.OldEnterpriseID(ctx)
+	case platformslackinstallation.FieldTeamName:
+		return m.OldTeamName(ctx)
+	case platformslackinstallation.FieldEncryptedCredentials:
+		return m.OldEncryptedCredentials(ctx)
+	case platformslackinstallation.FieldScopes:
+		return m.OldScopes(ctx)
+	case platformslackinstallation.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
+	case platformslackinstallation.FieldHealth:
+		return m.OldHealth(ctx)
+	case platformslackinstallation.FieldRefreshClaim:
+		return m.OldRefreshClaim(ctx)
+	case platformslackinstallation.FieldRefreshStartedAt:
+		return m.OldRefreshStartedAt(ctx)
+	case platformslackinstallation.FieldCheckedAt:
+		return m.OldCheckedAt(ctx)
+	case platformslackinstallation.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case platformslackinstallation.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformSlackInstallation field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformSlackInstallationMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformslackinstallation.FieldAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppID(v)
+		return nil
+	case platformslackinstallation.FieldTeamID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTeamID(v)
+		return nil
+	case platformslackinstallation.FieldEnterpriseID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnterpriseID(v)
+		return nil
+	case platformslackinstallation.FieldTeamName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTeamName(v)
+		return nil
+	case platformslackinstallation.FieldEncryptedCredentials:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEncryptedCredentials(v)
+		return nil
+	case platformslackinstallation.FieldScopes:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScopes(v)
+		return nil
+	case platformslackinstallation.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
+	case platformslackinstallation.FieldHealth:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHealth(v)
+		return nil
+	case platformslackinstallation.FieldRefreshClaim:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRefreshClaim(v)
+		return nil
+	case platformslackinstallation.FieldRefreshStartedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRefreshStartedAt(v)
+		return nil
+	case platformslackinstallation.FieldCheckedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCheckedAt(v)
+		return nil
+	case platformslackinstallation.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case platformslackinstallation.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformSlackInstallation field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformSlackInstallationMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformSlackInstallationMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformSlackInstallationMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PlatformSlackInstallation numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformSlackInstallationMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(platformslackinstallation.FieldExpiresAt) {
+		fields = append(fields, platformslackinstallation.FieldExpiresAt)
+	}
+	if m.FieldCleared(platformslackinstallation.FieldRefreshStartedAt) {
+		fields = append(fields, platformslackinstallation.FieldRefreshStartedAt)
+	}
+	if m.FieldCleared(platformslackinstallation.FieldCheckedAt) {
+		fields = append(fields, platformslackinstallation.FieldCheckedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformSlackInstallationMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformSlackInstallationMutation) ClearField(name string) error {
+	switch name {
+	case platformslackinstallation.FieldExpiresAt:
+		m.ClearExpiresAt()
+		return nil
+	case platformslackinstallation.FieldRefreshStartedAt:
+		m.ClearRefreshStartedAt()
+		return nil
+	case platformslackinstallation.FieldCheckedAt:
+		m.ClearCheckedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformSlackInstallation nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformSlackInstallationMutation) ResetField(name string) error {
+	switch name {
+	case platformslackinstallation.FieldAppID:
+		m.ResetAppID()
+		return nil
+	case platformslackinstallation.FieldTeamID:
+		m.ResetTeamID()
+		return nil
+	case platformslackinstallation.FieldEnterpriseID:
+		m.ResetEnterpriseID()
+		return nil
+	case platformslackinstallation.FieldTeamName:
+		m.ResetTeamName()
+		return nil
+	case platformslackinstallation.FieldEncryptedCredentials:
+		m.ResetEncryptedCredentials()
+		return nil
+	case platformslackinstallation.FieldScopes:
+		m.ResetScopes()
+		return nil
+	case platformslackinstallation.FieldExpiresAt:
+		m.ResetExpiresAt()
+		return nil
+	case platformslackinstallation.FieldHealth:
+		m.ResetHealth()
+		return nil
+	case platformslackinstallation.FieldRefreshClaim:
+		m.ResetRefreshClaim()
+		return nil
+	case platformslackinstallation.FieldRefreshStartedAt:
+		m.ResetRefreshStartedAt()
+		return nil
+	case platformslackinstallation.FieldCheckedAt:
+		m.ResetCheckedAt()
+		return nil
+	case platformslackinstallation.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case platformslackinstallation.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformSlackInstallation field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformSlackInstallationMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformSlackInstallationMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformSlackInstallationMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformSlackInstallationMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformSlackInstallationMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformSlackInstallationMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformSlackInstallationMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformSlackInstallation unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformSlackInstallationMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformSlackInstallation edge %s", name)
+}
+
+// PlatformSlackPacingMutation represents an operation that mutates the PlatformSlackPacing nodes in the graph.
+type PlatformSlackPacingMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	installation_id *string
+	channel_id      *string
+	next_at         *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*PlatformSlackPacing, error)
+	predicates      []predicate.PlatformSlackPacing
+}
+
+var _ ent.Mutation = (*PlatformSlackPacingMutation)(nil)
+
+// platformslackpacingOption allows management of the mutation configuration using functional options.
+type platformslackpacingOption func(*PlatformSlackPacingMutation)
+
+// newPlatformSlackPacingMutation creates new mutation for the PlatformSlackPacing entity.
+func newPlatformSlackPacingMutation(c config, op Op, opts ...platformslackpacingOption) *PlatformSlackPacingMutation {
+	m := &PlatformSlackPacingMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformSlackPacing,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformSlackPacingID sets the ID field of the mutation.
+func withPlatformSlackPacingID(id string) platformslackpacingOption {
+	return func(m *PlatformSlackPacingMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformSlackPacing
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformSlackPacing, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformSlackPacing.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformSlackPacing sets the old PlatformSlackPacing of the mutation.
+func withPlatformSlackPacing(node *PlatformSlackPacing) platformslackpacingOption {
+	return func(m *PlatformSlackPacingMutation) {
+		m.oldValue = func(context.Context) (*PlatformSlackPacing, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformSlackPacingMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformSlackPacingMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformSlackPacing entities.
+func (m *PlatformSlackPacingMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformSlackPacingMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformSlackPacingMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformSlackPacing.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetInstallationID sets the "installation_id" field.
+func (m *PlatformSlackPacingMutation) SetInstallationID(s string) {
+	m.installation_id = &s
+}
+
+// InstallationID returns the value of the "installation_id" field in the mutation.
+func (m *PlatformSlackPacingMutation) InstallationID() (r string, exists bool) {
+	v := m.installation_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInstallationID returns the old "installation_id" field's value of the PlatformSlackPacing entity.
+// If the PlatformSlackPacing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackPacingMutation) OldInstallationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInstallationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInstallationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInstallationID: %w", err)
+	}
+	return oldValue.InstallationID, nil
+}
+
+// ResetInstallationID resets all changes to the "installation_id" field.
+func (m *PlatformSlackPacingMutation) ResetInstallationID() {
+	m.installation_id = nil
+}
+
+// SetChannelID sets the "channel_id" field.
+func (m *PlatformSlackPacingMutation) SetChannelID(s string) {
+	m.channel_id = &s
+}
+
+// ChannelID returns the value of the "channel_id" field in the mutation.
+func (m *PlatformSlackPacingMutation) ChannelID() (r string, exists bool) {
+	v := m.channel_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChannelID returns the old "channel_id" field's value of the PlatformSlackPacing entity.
+// If the PlatformSlackPacing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackPacingMutation) OldChannelID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChannelID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChannelID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannelID: %w", err)
+	}
+	return oldValue.ChannelID, nil
+}
+
+// ResetChannelID resets all changes to the "channel_id" field.
+func (m *PlatformSlackPacingMutation) ResetChannelID() {
+	m.channel_id = nil
+}
+
+// SetNextAt sets the "next_at" field.
+func (m *PlatformSlackPacingMutation) SetNextAt(t time.Time) {
+	m.next_at = &t
+}
+
+// NextAt returns the value of the "next_at" field in the mutation.
+func (m *PlatformSlackPacingMutation) NextAt() (r time.Time, exists bool) {
+	v := m.next_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNextAt returns the old "next_at" field's value of the PlatformSlackPacing entity.
+// If the PlatformSlackPacing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackPacingMutation) OldNextAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNextAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNextAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNextAt: %w", err)
+	}
+	return oldValue.NextAt, nil
+}
+
+// ResetNextAt resets all changes to the "next_at" field.
+func (m *PlatformSlackPacingMutation) ResetNextAt() {
+	m.next_at = nil
+}
+
+// Where appends a list predicates to the PlatformSlackPacingMutation builder.
+func (m *PlatformSlackPacingMutation) Where(ps ...predicate.PlatformSlackPacing) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformSlackPacingMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformSlackPacingMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformSlackPacing, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformSlackPacingMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformSlackPacingMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformSlackPacing).
+func (m *PlatformSlackPacingMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformSlackPacingMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.installation_id != nil {
+		fields = append(fields, platformslackpacing.FieldInstallationID)
+	}
+	if m.channel_id != nil {
+		fields = append(fields, platformslackpacing.FieldChannelID)
+	}
+	if m.next_at != nil {
+		fields = append(fields, platformslackpacing.FieldNextAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformSlackPacingMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformslackpacing.FieldInstallationID:
+		return m.InstallationID()
+	case platformslackpacing.FieldChannelID:
+		return m.ChannelID()
+	case platformslackpacing.FieldNextAt:
+		return m.NextAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformSlackPacingMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformslackpacing.FieldInstallationID:
+		return m.OldInstallationID(ctx)
+	case platformslackpacing.FieldChannelID:
+		return m.OldChannelID(ctx)
+	case platformslackpacing.FieldNextAt:
+		return m.OldNextAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformSlackPacing field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformSlackPacingMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformslackpacing.FieldInstallationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInstallationID(v)
+		return nil
+	case platformslackpacing.FieldChannelID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChannelID(v)
+		return nil
+	case platformslackpacing.FieldNextAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNextAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformSlackPacing field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformSlackPacingMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformSlackPacingMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformSlackPacingMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PlatformSlackPacing numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformSlackPacingMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformSlackPacingMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformSlackPacingMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown PlatformSlackPacing nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformSlackPacingMutation) ResetField(name string) error {
+	switch name {
+	case platformslackpacing.FieldInstallationID:
+		m.ResetInstallationID()
+		return nil
+	case platformslackpacing.FieldChannelID:
+		m.ResetChannelID()
+		return nil
+	case platformslackpacing.FieldNextAt:
+		m.ResetNextAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformSlackPacing field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformSlackPacingMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformSlackPacingMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformSlackPacingMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformSlackPacingMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformSlackPacingMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformSlackPacingMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformSlackPacingMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformSlackPacing unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformSlackPacingMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformSlackPacing edge %s", name)
+}
+
 // ProductProfileMutation represents an operation that mutates the ProductProfile nodes in the graph.
 type ProductProfileMutation struct {
 	config
@@ -46282,6 +52554,7 @@ type ProductSurfaceMutation struct {
 	typ                        string
 	id                         *string
 	organization_id            *string
+	platform_owner_user_id     *string
 	name                       *string
 	slug                       *string
 	url                        *string
@@ -46439,6 +52712,55 @@ func (m *ProductSurfaceMutation) OldOrganizationID(ctx context.Context) (v strin
 // ResetOrganizationID resets all changes to the "organization_id" field.
 func (m *ProductSurfaceMutation) ResetOrganizationID() {
 	m.organization_id = nil
+}
+
+// SetPlatformOwnerUserID sets the "platform_owner_user_id" field.
+func (m *ProductSurfaceMutation) SetPlatformOwnerUserID(s string) {
+	m.platform_owner_user_id = &s
+}
+
+// PlatformOwnerUserID returns the value of the "platform_owner_user_id" field in the mutation.
+func (m *ProductSurfaceMutation) PlatformOwnerUserID() (r string, exists bool) {
+	v := m.platform_owner_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlatformOwnerUserID returns the old "platform_owner_user_id" field's value of the ProductSurface entity.
+// If the ProductSurface object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductSurfaceMutation) OldPlatformOwnerUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlatformOwnerUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlatformOwnerUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlatformOwnerUserID: %w", err)
+	}
+	return oldValue.PlatformOwnerUserID, nil
+}
+
+// ClearPlatformOwnerUserID clears the value of the "platform_owner_user_id" field.
+func (m *ProductSurfaceMutation) ClearPlatformOwnerUserID() {
+	m.platform_owner_user_id = nil
+	m.clearedFields[productsurface.FieldPlatformOwnerUserID] = struct{}{}
+}
+
+// PlatformOwnerUserIDCleared returns if the "platform_owner_user_id" field was cleared in this mutation.
+func (m *ProductSurfaceMutation) PlatformOwnerUserIDCleared() bool {
+	_, ok := m.clearedFields[productsurface.FieldPlatformOwnerUserID]
+	return ok
+}
+
+// ResetPlatformOwnerUserID resets all changes to the "platform_owner_user_id" field.
+func (m *ProductSurfaceMutation) ResetPlatformOwnerUserID() {
+	m.platform_owner_user_id = nil
+	delete(m.clearedFields, productsurface.FieldPlatformOwnerUserID)
 }
 
 // SetName sets the "name" field.
@@ -46940,9 +53262,12 @@ func (m *ProductSurfaceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProductSurfaceMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.organization_id != nil {
 		fields = append(fields, productsurface.FieldOrganizationID)
+	}
+	if m.platform_owner_user_id != nil {
+		fields = append(fields, productsurface.FieldPlatformOwnerUserID)
 	}
 	if m.name != nil {
 		fields = append(fields, productsurface.FieldName)
@@ -46987,6 +53312,8 @@ func (m *ProductSurfaceMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case productsurface.FieldOrganizationID:
 		return m.OrganizationID()
+	case productsurface.FieldPlatformOwnerUserID:
+		return m.PlatformOwnerUserID()
 	case productsurface.FieldName:
 		return m.Name()
 	case productsurface.FieldSlug:
@@ -47020,6 +53347,8 @@ func (m *ProductSurfaceMutation) OldField(ctx context.Context, name string) (ent
 	switch name {
 	case productsurface.FieldOrganizationID:
 		return m.OldOrganizationID(ctx)
+	case productsurface.FieldPlatformOwnerUserID:
+		return m.OldPlatformOwnerUserID(ctx)
 	case productsurface.FieldName:
 		return m.OldName(ctx)
 	case productsurface.FieldSlug:
@@ -47057,6 +53386,13 @@ func (m *ProductSurfaceMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetOrganizationID(v)
+		return nil
+	case productsurface.FieldPlatformOwnerUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlatformOwnerUserID(v)
 		return nil
 	case productsurface.FieldName:
 		v, ok := value.(string)
@@ -47165,6 +53501,9 @@ func (m *ProductSurfaceMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *ProductSurfaceMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(productsurface.FieldPlatformOwnerUserID) {
+		fields = append(fields, productsurface.FieldPlatformOwnerUserID)
+	}
 	if m.FieldCleared(productsurface.FieldDescription) {
 		fields = append(fields, productsurface.FieldDescription)
 	}
@@ -47188,6 +53527,9 @@ func (m *ProductSurfaceMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ProductSurfaceMutation) ClearField(name string) error {
 	switch name {
+	case productsurface.FieldPlatformOwnerUserID:
+		m.ClearPlatformOwnerUserID()
+		return nil
 	case productsurface.FieldDescription:
 		m.ClearDescription()
 		return nil
@@ -47207,6 +53549,9 @@ func (m *ProductSurfaceMutation) ResetField(name string) error {
 	switch name {
 	case productsurface.FieldOrganizationID:
 		m.ResetOrganizationID()
+		return nil
+	case productsurface.FieldPlatformOwnerUserID:
+		m.ResetPlatformOwnerUserID()
 		return nil
 	case productsurface.FieldName:
 		m.ResetName()
@@ -64030,6 +70375,7 @@ type SourceAppMutation struct {
 	typ                                string
 	id                                 *string
 	organization_id                    *string
+	platform_owner_user_id             *string
 	name                               *string
 	provider                           *string
 	external_id                        *string
@@ -64191,6 +70537,55 @@ func (m *SourceAppMutation) OldOrganizationID(ctx context.Context) (v string, er
 // ResetOrganizationID resets all changes to the "organization_id" field.
 func (m *SourceAppMutation) ResetOrganizationID() {
 	m.organization_id = nil
+}
+
+// SetPlatformOwnerUserID sets the "platform_owner_user_id" field.
+func (m *SourceAppMutation) SetPlatformOwnerUserID(s string) {
+	m.platform_owner_user_id = &s
+}
+
+// PlatformOwnerUserID returns the value of the "platform_owner_user_id" field in the mutation.
+func (m *SourceAppMutation) PlatformOwnerUserID() (r string, exists bool) {
+	v := m.platform_owner_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlatformOwnerUserID returns the old "platform_owner_user_id" field's value of the SourceApp entity.
+// If the SourceApp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SourceAppMutation) OldPlatformOwnerUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlatformOwnerUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlatformOwnerUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlatformOwnerUserID: %w", err)
+	}
+	return oldValue.PlatformOwnerUserID, nil
+}
+
+// ClearPlatformOwnerUserID clears the value of the "platform_owner_user_id" field.
+func (m *SourceAppMutation) ClearPlatformOwnerUserID() {
+	m.platform_owner_user_id = nil
+	m.clearedFields[sourceapp.FieldPlatformOwnerUserID] = struct{}{}
+}
+
+// PlatformOwnerUserIDCleared returns if the "platform_owner_user_id" field was cleared in this mutation.
+func (m *SourceAppMutation) PlatformOwnerUserIDCleared() bool {
+	_, ok := m.clearedFields[sourceapp.FieldPlatformOwnerUserID]
+	return ok
+}
+
+// ResetPlatformOwnerUserID resets all changes to the "platform_owner_user_id" field.
+func (m *SourceAppMutation) ResetPlatformOwnerUserID() {
+	m.platform_owner_user_id = nil
+	delete(m.clearedFields, sourceapp.FieldPlatformOwnerUserID)
 }
 
 // SetName sets the "name" field.
@@ -64849,9 +71244,12 @@ func (m *SourceAppMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SourceAppMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 17)
 	if m.organization_id != nil {
 		fields = append(fields, sourceapp.FieldOrganizationID)
+	}
+	if m.platform_owner_user_id != nil {
+		fields = append(fields, sourceapp.FieldPlatformOwnerUserID)
 	}
 	if m.name != nil {
 		fields = append(fields, sourceapp.FieldName)
@@ -64908,6 +71306,8 @@ func (m *SourceAppMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case sourceapp.FieldOrganizationID:
 		return m.OrganizationID()
+	case sourceapp.FieldPlatformOwnerUserID:
+		return m.PlatformOwnerUserID()
 	case sourceapp.FieldName:
 		return m.Name()
 	case sourceapp.FieldProvider:
@@ -64949,6 +71349,8 @@ func (m *SourceAppMutation) OldField(ctx context.Context, name string) (ent.Valu
 	switch name {
 	case sourceapp.FieldOrganizationID:
 		return m.OldOrganizationID(ctx)
+	case sourceapp.FieldPlatformOwnerUserID:
+		return m.OldPlatformOwnerUserID(ctx)
 	case sourceapp.FieldName:
 		return m.OldName(ctx)
 	case sourceapp.FieldProvider:
@@ -64994,6 +71396,13 @@ func (m *SourceAppMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetOrganizationID(v)
+		return nil
+	case sourceapp.FieldPlatformOwnerUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlatformOwnerUserID(v)
 		return nil
 	case sourceapp.FieldName:
 		v, ok := value.(string)
@@ -65130,6 +71539,9 @@ func (m *SourceAppMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *SourceAppMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(sourceapp.FieldPlatformOwnerUserID) {
+		fields = append(fields, sourceapp.FieldPlatformOwnerUserID)
+	}
 	if m.FieldCleared(sourceapp.FieldExternalID) {
 		fields = append(fields, sourceapp.FieldExternalID)
 	}
@@ -65156,6 +71568,9 @@ func (m *SourceAppMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *SourceAppMutation) ClearField(name string) error {
 	switch name {
+	case sourceapp.FieldPlatformOwnerUserID:
+		m.ClearPlatformOwnerUserID()
+		return nil
 	case sourceapp.FieldExternalID:
 		m.ClearExternalID()
 		return nil
@@ -65178,6 +71593,9 @@ func (m *SourceAppMutation) ResetField(name string) error {
 	switch name {
 	case sourceapp.FieldOrganizationID:
 		m.ResetOrganizationID()
+		return nil
+	case sourceapp.FieldPlatformOwnerUserID:
+		m.ResetPlatformOwnerUserID()
 		return nil
 	case sourceapp.FieldName:
 		m.ResetName()
@@ -68262,26 +74680,27 @@ func (m *StoreReviewMutation) ResetEdge(name string) error {
 // StoreReviewCommentMutation represents an operation that mutates the StoreReviewComment nodes in the graph.
 type StoreReviewCommentMutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *string
-	organization_id     *string
-	review_id           *string
-	slide_id            *string
-	x                   *float64
-	addx                *float64
-	y                   *float64
-	addy                *float64
-	author_name         *string
-	body                *string
-	from_link           *bool
-	resolved_at         *time.Time
-	resolved_by_user_id *string
-	created_at          *time.Time
-	clearedFields       map[string]struct{}
-	done                bool
-	oldValue            func(context.Context) (*StoreReviewComment, error)
-	predicates          []predicate.StoreReviewComment
+	op                      Op
+	typ                     string
+	id                      *string
+	organization_id         *string
+	review_id               *string
+	slide_id                *string
+	x                       *float64
+	addx                    *float64
+	y                       *float64
+	addy                    *float64
+	author_name             *string
+	platform_author_user_id *string
+	body                    *string
+	from_link               *bool
+	resolved_at             *time.Time
+	resolved_by_user_id     *string
+	created_at              *time.Time
+	clearedFields           map[string]struct{}
+	done                    bool
+	oldValue                func(context.Context) (*StoreReviewComment, error)
+	predicates              []predicate.StoreReviewComment
 }
 
 var _ ent.Mutation = (*StoreReviewCommentMutation)(nil)
@@ -68672,6 +75091,55 @@ func (m *StoreReviewCommentMutation) ResetAuthorName() {
 	m.author_name = nil
 }
 
+// SetPlatformAuthorUserID sets the "platform_author_user_id" field.
+func (m *StoreReviewCommentMutation) SetPlatformAuthorUserID(s string) {
+	m.platform_author_user_id = &s
+}
+
+// PlatformAuthorUserID returns the value of the "platform_author_user_id" field in the mutation.
+func (m *StoreReviewCommentMutation) PlatformAuthorUserID() (r string, exists bool) {
+	v := m.platform_author_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlatformAuthorUserID returns the old "platform_author_user_id" field's value of the StoreReviewComment entity.
+// If the StoreReviewComment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StoreReviewCommentMutation) OldPlatformAuthorUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlatformAuthorUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlatformAuthorUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlatformAuthorUserID: %w", err)
+	}
+	return oldValue.PlatformAuthorUserID, nil
+}
+
+// ClearPlatformAuthorUserID clears the value of the "platform_author_user_id" field.
+func (m *StoreReviewCommentMutation) ClearPlatformAuthorUserID() {
+	m.platform_author_user_id = nil
+	m.clearedFields[storereviewcomment.FieldPlatformAuthorUserID] = struct{}{}
+}
+
+// PlatformAuthorUserIDCleared returns if the "platform_author_user_id" field was cleared in this mutation.
+func (m *StoreReviewCommentMutation) PlatformAuthorUserIDCleared() bool {
+	_, ok := m.clearedFields[storereviewcomment.FieldPlatformAuthorUserID]
+	return ok
+}
+
+// ResetPlatformAuthorUserID resets all changes to the "platform_author_user_id" field.
+func (m *StoreReviewCommentMutation) ResetPlatformAuthorUserID() {
+	m.platform_author_user_id = nil
+	delete(m.clearedFields, storereviewcomment.FieldPlatformAuthorUserID)
+}
+
 // SetBody sets the "body" field.
 func (m *StoreReviewCommentMutation) SetBody(s string) {
 	m.body = &s
@@ -68912,7 +75380,7 @@ func (m *StoreReviewCommentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *StoreReviewCommentMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.organization_id != nil {
 		fields = append(fields, storereviewcomment.FieldOrganizationID)
 	}
@@ -68930,6 +75398,9 @@ func (m *StoreReviewCommentMutation) Fields() []string {
 	}
 	if m.author_name != nil {
 		fields = append(fields, storereviewcomment.FieldAuthorName)
+	}
+	if m.platform_author_user_id != nil {
+		fields = append(fields, storereviewcomment.FieldPlatformAuthorUserID)
 	}
 	if m.body != nil {
 		fields = append(fields, storereviewcomment.FieldBody)
@@ -68966,6 +75437,8 @@ func (m *StoreReviewCommentMutation) Field(name string) (ent.Value, bool) {
 		return m.Y()
 	case storereviewcomment.FieldAuthorName:
 		return m.AuthorName()
+	case storereviewcomment.FieldPlatformAuthorUserID:
+		return m.PlatformAuthorUserID()
 	case storereviewcomment.FieldBody:
 		return m.Body()
 	case storereviewcomment.FieldFromLink:
@@ -68997,6 +75470,8 @@ func (m *StoreReviewCommentMutation) OldField(ctx context.Context, name string) 
 		return m.OldY(ctx)
 	case storereviewcomment.FieldAuthorName:
 		return m.OldAuthorName(ctx)
+	case storereviewcomment.FieldPlatformAuthorUserID:
+		return m.OldPlatformAuthorUserID(ctx)
 	case storereviewcomment.FieldBody:
 		return m.OldBody(ctx)
 	case storereviewcomment.FieldFromLink:
@@ -69057,6 +75532,13 @@ func (m *StoreReviewCommentMutation) SetField(name string, value ent.Value) erro
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAuthorName(v)
+		return nil
+	case storereviewcomment.FieldPlatformAuthorUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlatformAuthorUserID(v)
 		return nil
 	case storereviewcomment.FieldBody:
 		v, ok := value.(string)
@@ -69156,6 +75638,9 @@ func (m *StoreReviewCommentMutation) ClearedFields() []string {
 	if m.FieldCleared(storereviewcomment.FieldY) {
 		fields = append(fields, storereviewcomment.FieldY)
 	}
+	if m.FieldCleared(storereviewcomment.FieldPlatformAuthorUserID) {
+		fields = append(fields, storereviewcomment.FieldPlatformAuthorUserID)
+	}
 	if m.FieldCleared(storereviewcomment.FieldResolvedAt) {
 		fields = append(fields, storereviewcomment.FieldResolvedAt)
 	}
@@ -69181,6 +75666,9 @@ func (m *StoreReviewCommentMutation) ClearField(name string) error {
 		return nil
 	case storereviewcomment.FieldY:
 		m.ClearY()
+		return nil
+	case storereviewcomment.FieldPlatformAuthorUserID:
+		m.ClearPlatformAuthorUserID()
 		return nil
 	case storereviewcomment.FieldResolvedAt:
 		m.ClearResolvedAt()
@@ -69213,6 +75701,9 @@ func (m *StoreReviewCommentMutation) ResetField(name string) error {
 		return nil
 	case storereviewcomment.FieldAuthorName:
 		m.ResetAuthorName()
+		return nil
+	case storereviewcomment.FieldPlatformAuthorUserID:
+		m.ResetPlatformAuthorUserID()
 		return nil
 	case storereviewcomment.FieldBody:
 		m.ResetBody()

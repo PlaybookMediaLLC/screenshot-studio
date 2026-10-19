@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 	"image"
 	"io"
 	"log/slog"
@@ -80,7 +81,8 @@ func (c *Configuration) HandleOutboxEvent(ctx context.Context, eventID, organiza
 	case EventDeploymentSucceeded:
 		return true, c.captureDeployment(ctx, organizationID, aggregateID)
 	case EventCampaignPostsSubmitted, EventCampaignPostsDecided:
-		return true, c.notifyReview(ctx, eventID, organizationID, aggregateID)
+		// Personal deliveries are claimed independently by the notification dispatcher.
+		return true, nil
 	}
 	return false, nil
 }
@@ -209,6 +211,9 @@ func (c *Configuration) releaseScreenshots(ctx context.Context, eventID, organiz
 		}
 	}
 	actor := Actor{OrganizationID: organizationID, Kind: "service", Display: "github", RequestID: eventID}
+	if source.PlatformOwnerUserID != nil {
+		actor.UserID = *source.PlatformOwnerUserID
+	}
 	assets := []string{}
 	for i, imageURL := range dedupe(images, releasenotes.MaxImages) {
 		authorization := ""
@@ -552,9 +557,24 @@ func (c *Configuration) captureDeployment(ctx context.Context, organizationID, d
 	assets := []string{}
 	failed := func(surface *ent.ProductSurface, code string, err error) error {
 		slog.Info("deployment capture failed", "surface", surface.ID, "code", code, "reason", err.Error())
-		return surface.Update().SetLastCaptureFailureCode(code).Exec(ctx)
+		tx, txErr := c.client.Tx(ctx)
+		if txErr != nil {
+			return txErr
+		}
+		defer tx.Rollback()
+		if txErr = tx.ProductSurface.UpdateOneID(surface.ID).SetLastCaptureFailureCode(code).Exec(ctx); txErr != nil {
+			return txErr
+		}
+		if txErr = activity.Emit(ctx, tx, organizationID, "capture.failed", "product_surface", surface.ID, "", deploymentID+":"+surface.ID, map[string]any{"background": true}); txErr != nil {
+			return txErr
+		}
+		return tx.Commit()
 	}
 	for i, surface := range surfaces {
+		actor.UserID = ""
+		if surface.PlatformOwnerUserID != nil {
+			actor.UserID = *surface.PlatformOwnerUserID
+		}
 		shot, err := c.capture.Capture(ctx, surface.URL)
 		if err != nil {
 			if err := failed(surface, "capture_failed", err); err != nil {
@@ -574,7 +594,7 @@ func (c *Configuration) captureDeployment(ctx context.Context, organizationID, d
 		if err != nil {
 			return err
 		}
-		if _, err := recordCapture(ctx, tx, surface, stored, surfacecapture.SourceDeployment, &row.ID); err != nil {
+		if _, err := recordCapture(ctx, tx, actor, surface, stored, surfacecapture.SourceDeployment, &row.ID); err != nil {
 			_ = tx.Rollback()
 			return err
 		}

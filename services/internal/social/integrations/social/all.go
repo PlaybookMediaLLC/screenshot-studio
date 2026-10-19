@@ -44,7 +44,7 @@ import (
 
 // All returns a new instance of every registered provider. mastodoncustom is
 // ported but, as in the original app, not registered.
-func All() []integrations.Provider {
+func All(lifecycle ...slack.Lifecycle) []integrations.Provider {
 	providers := []integrations.Provider{
 		x.New(),
 		linkedin.New(),
@@ -61,7 +61,7 @@ func All() []integrations.Provider {
 		pinterest.New(),
 		dribbble.New(),
 		discord.New(),
-		slack.New(),
+		slack.New(lifecycle...),
 		kick.New(),
 		twitch.New(),
 		mastodon.New(),
@@ -86,4 +86,6 @@ func All() []integrations.Provider {
 }
 
 // NewManager is the IntegrationManager over All().
-func NewManager() *integrations.Manager { return integrations.NewManager(All()) }
+func NewManager(lifecycle ...slack.Lifecycle) *integrations.Manager {
+	return integrations.NewManager(All(lifecycle...))
+}

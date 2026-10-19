@@ -287,6 +287,16 @@ func (c *Configuration) AddStoreReviewComment(ctx context.Context, actor Actor, 
 	} else if err := c.AuthorizeRead(ctx, actor); err != nil {
 		return nil, err
 	}
+	if !fromLink {
+		if !actor.IsSession() {
+			return nil, publishing.ErrForbidden
+		}
+		person, err := c.client.User.Get(ctx, actor.UserID)
+		if err != nil {
+			return nil, err
+		}
+		input.AuthorName = person.Name
+	}
 	input.Body = strings.TrimSpace(input.Body)
 	input.AuthorName = strings.TrimSpace(input.AuthorName)
 	if input.Body == "" || utf8.RuneCountInString(input.Body) > maxCommentBody || input.AuthorName == "" ||
@@ -328,13 +338,17 @@ func (c *Configuration) AddStoreReviewComment(ctx context.Context, actor Actor, 
 		return nil, ErrRateLimited
 	}
 	create := tx.StoreReviewComment.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetReviewID(reviewID).
-		SetSlideID(input.SlideID).SetAuthorName(input.AuthorName).SetBody(input.Body).SetFromLink(fromLink).SetNillableX(input.X).SetNillableY(input.Y)
+		SetSlideID(input.SlideID).SetAuthorName(input.AuthorName).SetNillablePlatformAuthorUserID(projectActor(actor)).SetBody(input.Body).SetFromLink(fromLink).SetNillableX(input.X).SetNillableY(input.Y)
 	comment, err := create.Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.store_review_commented", "store_review", reviewID,
-		map[string]any{"commentId": comment.ID, "fromLink": fromLink}); err != nil {
+	participants, err := storeReviewParticipants(ctx, tx, actor.OrganizationID, reviewID)
+	if err != nil {
+		return nil, err
+	}
+	if err := recordProductActivity(ctx, tx, actor, "comment.created", "product.store_review_commented", "store_review", reviewID,
+		map[string]any{"commentId": comment.ID, "fromLink": fromLink, "participantUserIds": participants}); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -349,24 +363,57 @@ func (c *Configuration) ResolveStoreReviewComment(ctx context.Context, actor Act
 	if err := c.authorizeRoles(ctx, actor, "owner", "admin", "creator"); err != nil {
 		return err
 	}
-	update := c.client.StoreReviewComment.Update().Where(storereviewcomment.ID(commentID), storereviewcomment.ReviewID(reviewID),
-		storereviewcomment.OrganizationID(actor.OrganizationID))
-	if resolved {
-		update.SetResolvedAt(time.Now())
-		if actor.UserID != "" {
-			update.SetResolvedByUserID(actor.UserID)
-		}
-	} else {
-		update.ClearResolvedAt().ClearResolvedByUserID()
-	}
-	changed, err := update.Save(ctx)
+	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return err
 	}
-	if changed == 0 {
+	defer tx.Rollback()
+	if _, err = tx.PlatformExec(ctx, `SELECT id FROM store_review_comment WHERE id=$1 AND "reviewId"=$2 AND "organizationId"=$3 FOR UPDATE`, commentID, reviewID, actor.OrganizationID); err != nil {
+		return err
+	}
+	row, err := tx.StoreReviewComment.Query().Where(storereviewcomment.ID(commentID), storereviewcomment.ReviewID(reviewID), storereviewcomment.OrganizationID(actor.OrganizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
 		return publishing.ErrNotFound
 	}
-	return nil
+	if err != nil {
+		return err
+	}
+	if (row.ResolvedAt != nil) == resolved {
+		return nil
+	}
+	update := row.Update()
+	if resolved {
+		update.SetResolvedAt(time.Now()).SetResolvedByUserID(actor.UserID)
+	} else {
+		update.ClearResolvedAt().ClearResolvedByUserID()
+	}
+	if err = update.Exec(ctx); err != nil {
+		return err
+	}
+	participants, err := storeReviewParticipants(ctx, tx, actor.OrganizationID, reviewID)
+	if err != nil {
+		return err
+	}
+	if resolved {
+		if err = recordProductActivity(ctx, tx, actor, "comment.resolved", "product.store_review_comment_resolved", "store_review", reviewID, map[string]any{"commentId": commentID, "participantUserIds": participants}); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func storeReviewParticipants(ctx context.Context, tx *ent.Tx, org, id string) ([]string, error) {
+	rows, err := tx.StoreReviewComment.Query().Where(storereviewcomment.OrganizationID(org), storereviewcomment.ReviewID(id)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := []string{}
+	for _, row := range rows {
+		if row.PlatformAuthorUserID != nil {
+			result = append(result, *row.PlatformAuthorUserID)
+		}
+	}
+	return result, nil
 }
 
 // RevokeStoreReview turns off link access. Idempotent.

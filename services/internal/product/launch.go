@@ -23,6 +23,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasespec"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/lucsky/cuid"
 )
@@ -309,12 +310,19 @@ func (c *Configuration) ApproveLaunchSpec(ctx context.Context, actor Actor, id s
 		return nil, err
 	}
 	defer tx.Rollback()
+	if _, err = tx.PlatformExec(ctx, `SELECT id FROM release_spec WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, id, actor.OrganizationID); err != nil {
+		return nil, err
+	}
 	spec, err := tx.ReleaseSpec.Query().Where(releasespec.ID(id), releasespec.OrganizationID(actor.OrganizationID)).Only(ctx)
 	if ent.IsNotFound(err) {
 		return nil, launchNotFound("Spec")
 	}
 	if err != nil {
 		return nil, err
+	}
+	if spec.Status == releasespec.StatusAPPROVED {
+		result := launchSpec(spec)
+		return &result, nil
 	}
 	if _, err := tx.ReleaseSpec.Update().Where(releasespec.ReleaseID(spec.ReleaseID), releasespec.IDNEQ(spec.ID),
 		releasespec.StatusEQ(releasespec.StatusAPPROVED)).SetStatus(releasespec.StatusSUPERSEDED).Save(ctx); err != nil {
@@ -330,7 +338,7 @@ func (c *Configuration) ApproveLaunchSpec(ctx context.Context, actor Actor, id s
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.release_spec_approved", "release_spec", spec.ID,
+	if err := recordProductActivity(ctx, tx, actor, "brief.approved", "product.release_spec_approved", "release_spec", spec.ID,
 		map[string]any{"version": spec.Version}); err != nil {
 		return nil, err
 	}
@@ -478,12 +486,19 @@ func (c *Configuration) ApproveLaunchPlan(ctx context.Context, actor Actor, id s
 		return nil, err
 	}
 	defer tx.Rollback()
+	if _, err = tx.PlatformExec(ctx, `SELECT id FROM campaign_plan WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, id, actor.OrganizationID); err != nil {
+		return nil, err
+	}
 	plan, err := tx.CampaignPlan.Query().Where(campaignplan.ID(id), campaignplan.OrganizationID(actor.OrganizationID)).Only(ctx)
 	if ent.IsNotFound(err) {
 		return nil, launchNotFound("Plan")
 	}
 	if err != nil {
 		return nil, err
+	}
+	if plan.Status == campaignplan.StatusAPPROVED {
+		result := launchPlan(plan)
+		return &result, nil
 	}
 	if _, err := tx.CampaignPlan.Update().Where(campaignplan.CampaignID(plan.CampaignID), campaignplan.IDNEQ(plan.ID),
 		campaignplan.StatusEQ(campaignplan.StatusAPPROVED)).SetStatus(campaignplan.StatusSUPERSEDED).Save(ctx); err != nil {
@@ -499,7 +514,7 @@ func (c *Configuration) ApproveLaunchPlan(ctx context.Context, actor Actor, id s
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.campaign_plan_approved", "campaign_plan", plan.ID,
+	if err := recordProductActivity(ctx, tx, actor, "plan.approved", "product.campaign_plan_approved", "campaign_plan", plan.ID,
 		map[string]any{"campaignId": plan.CampaignID, "version": plan.Version}); err != nil {
 		return nil, err
 	}
@@ -1287,12 +1302,23 @@ func (c *Configuration) startLaunchRun(ctx context.Context, actor Actor, campaig
 	if campaignID != nil && kind != "revision" {
 		// A dead run gives up its slot here; the partial unique index on
 		// running runs then admits exactly one of concurrent starts.
-		if _, err := tx.LaunchRun.Update().Where(launchrun.CampaignID(*campaignID), launchrun.Kind(kind),
+		expired, err := tx.LaunchRun.Query().Where(launchrun.CampaignID(*campaignID), launchrun.Kind(kind),
 			launchrun.OrganizationID(actor.OrganizationID), launchrun.StatusEQ(launchrun.StatusRUNNING),
 			launchrun.Or(launchrun.HeartbeatAtLT(now.Add(-launchRunHeartbeatStaleAfter)),
-				launchrun.And(launchrun.HeartbeatAtIsNil(), launchrun.StartedAtLT(now.Add(-launchRunStaleAfter))))).
-			SetStatus(launchrun.StatusFAILED).SetFinishedAt(now).SetError("The run stopped responding.").Save(ctx); err != nil {
+				launchrun.And(launchrun.HeartbeatAtIsNil(), launchrun.StartedAtLT(now.Add(-launchRunStaleAfter))))).All(ctx)
+		if err != nil {
 			return nil, err
+		}
+		for _, run := range expired {
+			changed, err := tx.LaunchRun.Update().Where(launchrun.ID(run.ID), launchrun.StatusEQ(launchrun.StatusRUNNING), launchrun.Or(launchrun.HeartbeatAtLT(now.Add(-launchRunHeartbeatStaleAfter)), launchrun.And(launchrun.HeartbeatAtIsNil(), launchrun.StartedAtLT(now.Add(-launchRunStaleAfter))))).SetStatus(launchrun.StatusFAILED).SetFinishedAt(now).SetError("The run stopped responding.").Save(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if changed > 0 {
+				if err = activity.Emit(ctx, tx, actor.OrganizationID, "generation.failed", "launch_run", run.ID, "", run.ID, map[string]any{"background": true}); err != nil {
+					return nil, err
+				}
+			}
 		}
 	}
 	row, err := tx.LaunchRun.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetNillableCampaignID(campaignID).
@@ -1324,8 +1350,13 @@ func (c *Configuration) FinishLaunchRun(ctx context.Context, actor Actor, id str
 			return ErrInvalidInput
 		}
 	}
+	tx, err := c.client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 	// Only a running run finishes; a cancelled or expired one stays as it is.
-	count, err := c.client.LaunchRun.Update().Where(launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID),
+	count, err := tx.LaunchRun.Update().Where(launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID),
 		launchrun.StatusEQ(launchrun.StatusRUNNING)).
 		SetStatus(status).SetFinishedAt(time.Now().UTC()).SetNillableResultID(input.ResultID).
 		SetNillableSummary(input.Summary).SetNillableError(input.Error).
@@ -1337,7 +1368,11 @@ func (c *Configuration) FinishLaunchRun(ctx context.Context, actor Actor, id str
 	if count == 0 {
 		return c.launchRunExists(ctx, actor, id)
 	}
-	return nil
+	kind := map[launchrun.Status]string{launchrun.StatusSUCCEEDED: "generation.completed", launchrun.StatusFAILED: "generation.failed", launchrun.StatusBUDGET_EXHAUSTED: "generation.budget_exhausted"}[status]
+	if err = activity.Emit(ctx, tx, actor.OrganizationID, kind, "launch_run", id, "", id, map[string]any{"background": true}); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // HeartbeatLaunchRun records that a run's worker is alive and reports whether
@@ -1365,12 +1400,17 @@ func (c *Configuration) CancelLaunchRun(ctx context.Context, actor Actor, id str
 	if _, err := c.authorizeLaunchRun(ctx, actor, id); err != nil {
 		return false, err
 	}
+	tx, err := c.client.Tx(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
 	now := time.Now().UTC()
 	running := []predicate.LaunchRun{launchrun.ID(id), launchrun.OrganizationID(actor.OrganizationID), launchrun.StatusEQ(launchrun.StatusRUNNING)}
-	count, err := c.client.LaunchRun.Update().Where(append(running, launchrun.KindIn(agentRunKinds...))...).
+	count, err := tx.LaunchRun.Update().Where(append(running, launchrun.KindIn(agentRunKinds...))...).
 		SetStatus(launchrun.StatusCANCELLED).SetFinishedAt(now).SetError("Cancelled.").Save(ctx)
 	if err == nil && count == 0 {
-		count, err = c.client.LaunchRun.Update().Where(append(running, launchrun.KindNotIn(agentRunKinds...))...).
+		count, err = tx.LaunchRun.Update().Where(append(running, launchrun.KindNotIn(agentRunKinds...))...).
 			SetStatus(launchrun.StatusFAILED).SetFinishedAt(now).SetError("Cancelled.").Save(ctx)
 	}
 	if err != nil {
@@ -1378,6 +1418,12 @@ func (c *Configuration) CancelLaunchRun(ctx context.Context, actor Actor, id str
 	}
 	if count == 0 {
 		return false, c.launchRunExists(ctx, actor, id)
+	}
+	if err = activity.Emit(ctx, tx, actor.OrganizationID, "generation.cancelled", "launch_run", id, actor.UserID, id, nil); err != nil {
+		return false, err
+	}
+	if err = tx.Commit(); err != nil {
+		return false, err
 	}
 	return true, nil
 }

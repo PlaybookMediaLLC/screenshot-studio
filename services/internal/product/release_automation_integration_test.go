@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasesourceevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	automation "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
 )
@@ -283,15 +285,27 @@ func TestAutomationActionsReuseReceiptsAndRequireHumanApproval(t *testing.T) {
 	if len(events) != 1 {
 		t.Fatalf("review notifications duplicated: %d", len(events))
 	}
-	mailer := &recordingReviewMailer{}
-	f.repo.WithReviewMailer(mailer)
-	for i := 0; i < 2; i++ {
-		if err := f.repo.notifyReview(f.ctx, events[0].ID, f.org, outputs.CampaignID); err != nil {
+	t.Setenv("RESEND_API_KEY", "fixture-only")
+	t.Setenv("BETTER_AUTH_URL", "https://app.example.test")
+	t.Setenv("PLATFORM_NOTIFICATION_ENCRYPTION_KEY", base64.StdEncoding.EncodeToString(make([]byte, 32)))
+	notify := notifications.New(f.db.SQL, f.db.Client)
+	sends := 0
+	notify.Send = func(_ context.Context, d notifications.Delivery, _ notifications.Envelope) (notifications.Outcome, error) {
+		if d.EventID == events[0].ID {
+			sends++
+		}
+		return notifications.Outcome{Status: "SUCCEEDED", Receipt: d.ID}, nil
+	}
+	for batch := 0; batch < 100 && sends == 0; batch++ {
+		if err := notify.Process(f.ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if len(mailer.sent) != 1 {
-		t.Fatalf("recipient repeated: %d", len(mailer.sent))
+	if err := notify.Process(f.ctx); err != nil {
+		t.Fatal(err)
+	}
+	if sends != 1 {
+		t.Fatalf("recipient sends: %d", sends)
 	}
 	if err := f.repo.FinishReleaseAutomation(f.ctx, f.org, runID, "succeeded", "", "Submitted for review.", 0); err != nil {
 		t.Fatal(err)
@@ -540,17 +554,12 @@ func TestAutomationSharedInstallationFanoutIsAtomicAndScoped(t *testing.T) {
 	}
 }
 
-type uncertainReviewMailer struct{ calls int }
-
-func (m *uncertainReviewMailer) SendReviewNotification(_ context.Context, _ ReviewNotification) error {
-	m.calls++
-	return errors.New("acknowledgement lost")
-}
-
 func TestAutomationReviewNotificationUnknownDoesNotResend(t *testing.T) {
 	w := newTestWorkspace(t)
-	mailer := &uncertainReviewMailer{}
-	w.repo.WithReviewMailer(mailer)
+	t.Setenv("RESEND_API_KEY", "fixture-only")
+	t.Setenv("BETTER_AUTH_URL", "https://app.example.test")
+	t.Setenv("PLATFORM_NOTIFICATION_ENCRYPTION_KEY", base64.StdEncoding.EncodeToString(make([]byte, 32)))
+	notify := notifications.New(w.db.SQL, w.db.Client)
 	campaign, err := w.repo.CreateCampaign(w.ctx, w.owner, CreateCampaignInput{Name: "Review", Objective: "Adoption", Posts: []CampaignPostInput{{Channel: "x", Copy: "One"}}})
 	if err != nil {
 		t.Fatal(err)
@@ -559,12 +568,24 @@ func TestAutomationReviewNotificationUnknownDoesNotResend(t *testing.T) {
 		t.Fatal(err)
 	}
 	event := w.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(w.org), outboxevent.Type(EventCampaignPostsSubmitted)).OnlyX(w.ctx)
-	for i := 0; i < 2; i++ {
-		if err := w.repo.notifyReview(w.ctx, event.ID, w.org, campaign.ID); !errors.Is(err, ErrReviewDeliveryUnknown) {
-			t.Fatalf("unknown delivery lost: %v", err)
+	sends := 0
+	notify.Send = func(_ context.Context, d notifications.Delivery, _ notifications.Envelope) (notifications.Outcome, error) {
+		if d.EventID == event.ID {
+			sends++
+			return notifications.Outcome{Status: "UNCERTAIN", Code: "ACKNOWLEDGEMENT_LOST"}, nil
+		}
+		return notifications.Outcome{Status: "SUCCEEDED", Receipt: d.ID}, nil
+	}
+	for batch := 0; batch < 100 && sends == 0; batch++ {
+		if err := notify.Process(w.ctx); err != nil {
+			t.Fatal(err)
 		}
 	}
-	if mailer.calls != 1 {
-		t.Fatalf("uncertain send repeated %d times", mailer.calls)
+	if err := notify.Process(w.ctx); err != nil {
+		t.Fatal(err)
+	}
+	var status string
+	if err := w.db.SQL.QueryRow(`SELECT status FROM platform_notification_delivery WHERE event_id=$1 AND channel='email'`, event.ID).Scan(&status); err != nil || status != "UNCERTAIN" || sends != 1 {
+		t.Fatalf("uncertain delivery: status=%s sends=%d err=%v", status, sends, err)
 	}
 }

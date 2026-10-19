@@ -15,6 +15,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/lucsky/cuid"
 )
@@ -84,7 +85,7 @@ func surfaceCaptureRecord(row *ent.SurfaceCapture) SurfaceCaptureRecord {
 
 // recordCapture makes assetID the surface's current capture: the previous one
 // is superseded, never removed, and the surface's freshness is updated.
-func recordCapture(ctx context.Context, tx *ent.Tx, surface *ent.ProductSurface, assetID string,
+func recordCapture(ctx context.Context, tx *ent.Tx, actor Actor, surface *ent.ProductSurface, assetID string,
 	source surfacecapture.Source, sourceID *string) (*ent.SurfaceCapture, error) {
 	now := time.Now().UTC()
 	if err := tx.SurfaceCapture.Update().Where(surfacecapture.SurfaceID(surface.ID), surfacecapture.SupersededAtIsNil()).
@@ -107,6 +108,18 @@ func recordCapture(ctx context.Context, tx *ent.Tx, surface *ent.ProductSurface,
 	}
 	if err := tx.ProductSurface.UpdateOneID(surface.ID).SetLastCapturedAt(now).ClearLastCaptureFailureCode().
 		SetScreenshotAssetIds(screenshots).Exec(ctx); err != nil {
+		return nil, err
+	}
+	human := ""
+	background := source != surfacecapture.SourceManual
+	if actor.IsSession() && !background {
+		human = actor.UserID
+	}
+	occurrence := created.ID
+	if source == surfacecapture.SourceDeployment && sourceID != nil {
+		occurrence = *sourceID + ":" + surface.ID
+	}
+	if err = activity.Emit(ctx, tx, surface.OrganizationID, "capture.completed", "product_surface", surface.ID, human, occurrence, map[string]any{"requestedByUserId": actor.UserID, "background": background}); err != nil {
 		return nil, err
 	}
 	return created, nil
@@ -153,7 +166,7 @@ func (c *Configuration) RecordSurfaceCapture(ctx context.Context, actor Actor, s
 	if image.Status != asset.StatusUPLOADED || !strings.HasPrefix(image.MediaType, "image/") {
 		return nil, invalid("A capture must be an uploaded image.")
 	}
-	created, err := recordCapture(ctx, tx, surface, image.ID, source, input.SourceID)
+	created, err := recordCapture(ctx, tx, actor, surface, image.ID, source, input.SourceID)
 	if err != nil {
 		return nil, err
 	}

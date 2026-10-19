@@ -327,7 +327,7 @@ func cancelLiveDraftPosts(ctx context.Context, tx *ent.Tx, actor Actor, draftID 
 		if count != 1 {
 			return nil, publishing.ErrConflict
 		}
-		if err := appendConfigurationAudit(ctx, tx, actor, "post.cancelled", "scheduled_post", post.ID,
+		if err := recordProductActivity(ctx, tx, actor, "post.cancelled", "post.cancelled", "scheduled_post", post.ID,
 			map[string]any{"contentDraftId": draftID, "reason": "rescheduled"}); err != nil {
 			return nil, err
 		}
@@ -442,7 +442,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 			}
 			return nil, err
 		}
-		if err := appendConfigurationAudit(ctx, tx, actor, "post.scheduled", "scheduled_post", post.ID,
+		if err := recordProductActivity(ctx, tx, actor, "post.scheduled", "post.scheduled", "scheduled_post", post.ID,
 			map[string]any{"contentDraftId": draft.ID}); err != nil {
 			return nil, err
 		}

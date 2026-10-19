@@ -49,8 +49,12 @@ func TestApplyFreshDatabaseAndIsIdempotent(t *testing.T) {
 	if err := Apply(ctx, db.SQL); err != nil {
 		t.Fatalf("repeat migration failed: %v", err)
 	}
+	entries, err := files.ReadDir("sql")
+	if err != nil {
+		t.Fatal(err)
+	}
 	var applied int
-	if err := db.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM "_screenshot_studio_go_migrations"`).Scan(&applied); err != nil || applied != 45 {
+	if err := db.SQL.QueryRowContext(ctx, `SELECT COUNT(*) FROM "_screenshot_studio_go_migrations"`).Scan(&applied); err != nil || applied != len(entries) {
 		t.Fatalf("applied migrations=%d err=%v", applied, err)
 	}
 }

@@ -29,6 +29,10 @@ const (
 	FieldDeliveredAt = "deliveredAt"
 	// FieldProcessingAt holds the string denoting the processing_at field in the database.
 	FieldProcessingAt = "processingAt"
+	// FieldNotificationVersion holds the string denoting the notification_version field in the database.
+	FieldNotificationVersion = "notification_version"
+	// FieldNotificationFanned holds the string denoting the notification_fanned field in the database.
+	FieldNotificationFanned = "notification_fanned"
 	// FieldAttempts holds the string denoting the attempts field in the database.
 	FieldAttempts = "attempts"
 	// FieldLastError holds the string denoting the last_error field in the database.
@@ -52,6 +56,8 @@ var Columns = []string{
 	FieldIdempotencyKey,
 	FieldDeliveredAt,
 	FieldProcessingAt,
+	FieldNotificationVersion,
+	FieldNotificationFanned,
 	FieldAttempts,
 	FieldLastError,
 	FieldDeadLetteredAt,
@@ -69,6 +75,10 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultNotificationVersion holds the default value on creation for the "notification_version" field.
+	DefaultNotificationVersion int
+	// DefaultNotificationFanned holds the default value on creation for the "notification_fanned" field.
+	DefaultNotificationFanned bool
 	// DefaultAttempts holds the default value on creation for the "attempts" field.
 	DefaultAttempts int
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -116,6 +126,16 @@ func ByDeliveredAt(opts ...sql.OrderTermOption) OrderOption {
 // ByProcessingAt orders the results by the processing_at field.
 func ByProcessingAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldProcessingAt, opts...).ToFunc()
+}
+
+// ByNotificationVersion orders the results by the notification_version field.
+func ByNotificationVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNotificationVersion, opts...).ToFunc()
+}
+
+// ByNotificationFanned orders the results by the notification_fanned field.
+func ByNotificationFanned(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNotificationFanned, opts...).ToFunc()
 }
 
 // ByAttempts orders the results by the attempts field.

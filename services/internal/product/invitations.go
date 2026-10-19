@@ -136,7 +136,7 @@ func (c *Configuration) InviteMember(ctx context.Context, actor Actor, email, ro
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.member_invited", "invitation", created.ID,
+	if err := recordProductActivity(ctx, tx, actor, "invitation.created", "product.member_invited", "invitation", created.ID,
 		map[string]any{"role": role}); err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func (c *Configuration) RevokeInvitation(ctx context.Context, actor Actor, invit
 	if count != 1 {
 		return notFound("Pending invitation not found.")
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.member_invitation_revoked", "invitation", invitationID); err != nil {
+	if err := recordProductActivity(ctx, tx, actor, "invitation.revoked", "product.member_invitation_revoked", "invitation", invitationID); err != nil {
 		return err
 	}
 	return tx.Commit()

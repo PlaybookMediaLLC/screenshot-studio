@@ -26,6 +26,20 @@ func (_c *ProductSurfaceCreate) SetOrganizationID(v string) *ProductSurfaceCreat
 	return _c
 }
 
+// SetPlatformOwnerUserID sets the "platform_owner_user_id" field.
+func (_c *ProductSurfaceCreate) SetPlatformOwnerUserID(v string) *ProductSurfaceCreate {
+	_c.mutation.SetPlatformOwnerUserID(v)
+	return _c
+}
+
+// SetNillablePlatformOwnerUserID sets the "platform_owner_user_id" field if the given value is not nil.
+func (_c *ProductSurfaceCreate) SetNillablePlatformOwnerUserID(v *string) *ProductSurfaceCreate {
+	if v != nil {
+		_c.SetPlatformOwnerUserID(*v)
+	}
+	return _c
+}
+
 // SetName sets the "name" field.
 func (_c *ProductSurfaceCreate) SetName(v string) *ProductSurfaceCreate {
 	_c.mutation.SetName(v)
@@ -262,6 +276,10 @@ func (_c *ProductSurfaceCreate) createSpec() (*ProductSurface, *sqlgraph.CreateS
 	if value, ok := _c.mutation.OrganizationID(); ok {
 		_spec.SetField(productsurface.FieldOrganizationID, field.TypeString, value)
 		_node.OrganizationID = value
+	}
+	if value, ok := _c.mutation.PlatformOwnerUserID(); ok {
+		_spec.SetField(productsurface.FieldPlatformOwnerUserID, field.TypeString, value)
+		_node.PlatformOwnerUserID = &value
 	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(productsurface.FieldName, field.TypeString, value)

@@ -1,0 +1,66 @@
+package notifications
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"time"
+)
+
+// Maintain checks at most five installations per run and removes only receipts whose source can no longer replay.
+func (s *Service) Maintain(ctx context.Context) error {
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err = tx.ExecContext(ctx, `DELETE FROM platform_notification_inbox i WHERE NOT EXISTS(SELECT 1 FROM outbox_event e WHERE e.id=i.event_id AND e."organizationId"=i."organizationId")`); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `DELETE FROM platform_notification_delivery d WHERE NOT EXISTS(SELECT 1 FROM outbox_event e WHERE e.id=d.event_id AND e."organizationId"=d."organizationId")`); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE platform_notification_delivery SET encrypted_payload='' WHERE status='UNCERTAIN' AND send_started_at<now()-interval '24 hours' AND encrypted_payload<>''`); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `DELETE FROM social_oauth_start WHERE provider='platform-slack' AND "expiresAt"<now()`); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `DELETE FROM platform_slack_installation i WHERE NOT EXISTS(SELECT 1 FROM platform_slack_connection c WHERE c.installation_id=i.id)`); err != nil {
+		return err
+	}
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+	healthCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	for range 5 {
+		var installation, org, id, team string
+		err = s.DB.QueryRowContext(healthCtx, `UPDATE platform_slack_installation i SET checked_at=now() WHERE i.id=(SELECT s.id FROM platform_slack_installation s WHERE s.health='CONNECTED' AND (s.checked_at IS NULL OR s.checked_at<now()-interval '1 hour') AND EXISTS(SELECT 1 FROM platform_slack_connection c WHERE c.installation_id=s.id) ORDER BY s.checked_at NULLS FIRST,s.id FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING i.id,i.team_id`).Scan(&installation, &team)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		err = s.DB.QueryRowContext(healthCtx, `SELECT "organizationId",id FROM platform_slack_connection WHERE installation_id=$1 ORDER BY id LIMIT 1`, installation).Scan(&org, &id)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		result, callErr := s.connectionCall(healthCtx, org, id, "auth.test", map[string]any{})
+		if callErr != nil {
+			continue
+		}
+		var identity string
+		if json.Unmarshal(result["team_id"], &identity) != nil || identity != team {
+			if err = s.revoke(healthCtx, org, id); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}

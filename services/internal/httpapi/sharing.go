@@ -25,6 +25,9 @@ type SharingStore interface {
 }
 
 func (s *Server) registerSharing(mux *http.ServeMux) {
+	for _, pattern := range []string{"GET /v1/integrations/slack/setup", "GET /v1/integrations/{id}/slack/channels", "POST /v1/integrations/{id}/slack/deliver"} {
+		mux.Handle(pattern, s.authenticateProduct(http.HandlerFunc(s.slackDesign)))
+	}
 	mux.Handle("GET /v1/share-links", s.authenticateProduct(http.HandlerFunc(s.listShareLinks)))
 	mux.Handle("POST /v1/share-links", s.authenticateProduct(http.HandlerFunc(s.createShareLink)))
 	mux.Handle("GET /v1/share-links/{id}", s.authenticateProduct(http.HandlerFunc(s.getShareLink)))

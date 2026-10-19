@@ -585,6 +585,102 @@ func (f PlatformCreativeSetVersionFunc) Mutate(ctx context.Context, m ent.Mutati
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformCreativeSetVersionMutation", m)
 }
 
+// The PlatformNotificationDeliveryFunc type is an adapter to allow the use of ordinary
+// function as PlatformNotificationDelivery mutator.
+type PlatformNotificationDeliveryFunc func(context.Context, *ent.PlatformNotificationDeliveryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformNotificationDeliveryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformNotificationDeliveryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformNotificationDeliveryMutation", m)
+}
+
+// The PlatformNotificationInboxFunc type is an adapter to allow the use of ordinary
+// function as PlatformNotificationInbox mutator.
+type PlatformNotificationInboxFunc func(context.Context, *ent.PlatformNotificationInboxMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformNotificationInboxFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformNotificationInboxMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformNotificationInboxMutation", m)
+}
+
+// The PlatformNotificationPolicyFunc type is an adapter to allow the use of ordinary
+// function as PlatformNotificationPolicy mutator.
+type PlatformNotificationPolicyFunc func(context.Context, *ent.PlatformNotificationPolicyMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformNotificationPolicyFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformNotificationPolicyMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformNotificationPolicyMutation", m)
+}
+
+// The PlatformNotificationPreferenceFunc type is an adapter to allow the use of ordinary
+// function as PlatformNotificationPreference mutator.
+type PlatformNotificationPreferenceFunc func(context.Context, *ent.PlatformNotificationPreferenceMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformNotificationPreferenceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformNotificationPreferenceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformNotificationPreferenceMutation", m)
+}
+
+// The PlatformNotificationSeenActionFunc type is an adapter to allow the use of ordinary
+// function as PlatformNotificationSeenAction mutator.
+type PlatformNotificationSeenActionFunc func(context.Context, *ent.PlatformNotificationSeenActionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformNotificationSeenActionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformNotificationSeenActionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformNotificationSeenActionMutation", m)
+}
+
+// The PlatformSlackConnectionFunc type is an adapter to allow the use of ordinary
+// function as PlatformSlackConnection mutator.
+type PlatformSlackConnectionFunc func(context.Context, *ent.PlatformSlackConnectionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformSlackConnectionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformSlackConnectionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformSlackConnectionMutation", m)
+}
+
+// The PlatformSlackInstallationFunc type is an adapter to allow the use of ordinary
+// function as PlatformSlackInstallation mutator.
+type PlatformSlackInstallationFunc func(context.Context, *ent.PlatformSlackInstallationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformSlackInstallationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformSlackInstallationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformSlackInstallationMutation", m)
+}
+
+// The PlatformSlackPacingFunc type is an adapter to allow the use of ordinary
+// function as PlatformSlackPacing mutator.
+type PlatformSlackPacingFunc func(context.Context, *ent.PlatformSlackPacingMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformSlackPacingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformSlackPacingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformSlackPacingMutation", m)
+}
+
 // The ProductProfileFunc type is an adapter to allow the use of ordinary
 // function as ProductProfile mutator.
 type ProductProfileFunc func(context.Context, *ent.ProductProfileMutation) (ent.Value, error)

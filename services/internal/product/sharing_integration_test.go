@@ -131,12 +131,15 @@ func TestShareLinksAndIntegrations(t *testing.T) {
 		t.Fatalf("stranger sees links=%+v err=%v", links, err)
 	}
 
-	saved, err := repo.SaveIntegration(ctx, actor, IntegrationInput{Provider: "SLACK", ExternalID: "T123", DisplayName: "Acme",
+	if _, err := repo.SaveIntegration(ctx, actor, IntegrationInput{Provider: "SLACK", ExternalID: "T123", DisplayName: "Legacy", EncryptedCredentials: "v1.iv.tag.cipher"}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("web Slack credentials accepted: %v", err)
+	}
+	saved, err := repo.SaveIntegration(ctx, actor, IntegrationInput{Provider: "NOTION", ExternalID: "T123", DisplayName: "Acme",
 		EncryptedCredentials: "v1.iv.tag.cipher", Scopes: []string{"chat:write"}})
-	if err != nil || saved.Provider != "SLACK" {
+	if err != nil || saved.Provider != "NOTION" {
 		t.Fatalf("saved=%+v err=%v", saved, err)
 	}
-	again, err := repo.SaveIntegration(ctx, actor, IntegrationInput{Provider: "SLACK", ExternalID: "T123", DisplayName: "Acme Inc",
+	again, err := repo.SaveIntegration(ctx, actor, IntegrationInput{Provider: "NOTION", ExternalID: "T123", DisplayName: "Acme Inc",
 		EncryptedCredentials: "v1.iv.tag.cipher2"})
 	if err != nil || again.ID != saved.ID || again.DisplayName != "Acme Inc" {
 		t.Fatalf("reconnect made a second connection: %+v err=%v", again, err)

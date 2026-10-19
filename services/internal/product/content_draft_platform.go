@@ -16,6 +16,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftsettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
@@ -332,7 +333,7 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "post.moved", "scheduled_post", moved.ID,
+	if err := recordProductActivity(ctx, tx, actor, "post.moved", "post.moved", "scheduled_post", moved.ID,
 		map[string]any{"from": post.ID, "scheduledFor": at.UTC()}); err != nil {
 		return nil, err
 	}
@@ -421,12 +422,24 @@ func (c *Configuration) ReviewContentDraft(ctx context.Context, actor Actor, id 
 		return nil, err
 	}
 	defer tx.Rollback()
+	if _, err = tx.PlatformExec(ctx, `SELECT id FROM content_draft WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, id, actor.OrganizationID); err != nil {
+		return nil, err
+	}
+
 	draft, err := tx.ContentDraft.Query().Where(contentdraft.ID(id), contentdraft.OrganizationID(actor.OrganizationID)).Only(ctx)
 	if ent.IsNotFound(err) {
 		return nil, publishing.ErrNotFound
 	}
 	if err != nil {
 		return nil, err
+	}
+	nextStatus := map[string]string{"request": "pending", "approve": "approved", "changes": "changes_requested"}[input.Action]
+	if nextStatus == "" {
+		return nil, invalid("A review action is request, approve or changes.")
+	}
+	if string(draft.ReviewStatus) == nextStatus && optionalText(draft.ReviewNote) == note && (input.Action != "approve" || draft.ApprovedVersion != nil && *draft.ApprovedVersion == draft.Version) {
+		result := contentDraftRecord(draft)
+		return &result, nil
 	}
 	// A review step does not change the content, so it keeps the version.
 	update := tx.ContentDraft.UpdateOneID(id).SetNillableReviewedByUserID(projectActor(actor))
@@ -449,7 +462,7 @@ func (c *Configuration) ReviewContentDraft(ctx context.Context, actor Actor, id 
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_review", "content_draft", id,
+	if err := recordProductActivity(ctx, tx, actor, map[string]string{"request": "draft.review_requested", "approve": "draft.approved", "changes": "draft.changes_requested"}[input.Action], "product.content_draft_review", "content_draft", id,
 		map[string]any{"action": input.Action, "version": draft.Version}); err != nil {
 		return nil, err
 	}
@@ -557,7 +570,15 @@ func (c *Configuration) AddGuestComment(ctx context.Context, token string, input
 	if name == "" || text == "" || utf8.RuneCountInString(name) > 80 || utf8.RuneCountInString(text) > 2000 {
 		return nil, invalid("Add your name (under 80 characters) and a comment (under 2,000).")
 	}
-	draft, err := sharedDraftByToken(ctx, c.client, token)
+	tx, err := c.client.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	if _, err = tx.PlatformExec(ctx, `SELECT id FROM content_draft WHERE "shareToken"=$1 FOR UPDATE`, token); err != nil {
+		return nil, err
+	}
+	draft, err := sharedDraftByToken(ctx, tx.Client(), token)
 	if err != nil {
 		return nil, err
 	}
@@ -565,11 +586,19 @@ func (c *Configuration) AddGuestComment(ctx context.Context, token string, input
 	if len(comments) >= 200 {
 		return nil, conflict("This draft has as many guest comments as it can keep.")
 	}
+	commentID := cuid.New()
 	comments = append(comments, map[string]string{
+		"id":        commentID,
 		"createdAt": time.Now().UTC().Format(time.RFC3339), "name": name, "text": text,
 	})
 	// A guest comment leaves the draft's version alone: writers keep saving.
-	if _, err := c.client.ContentDraft.UpdateOneID(draft.ID).SetGuestComments(comments).Save(ctx); err != nil {
+	if _, err := tx.ContentDraft.UpdateOneID(draft.ID).SetGuestComments(comments).Save(ctx); err != nil {
+		return nil, err
+	}
+	if err = activity.Emit(ctx, tx, draft.OrganizationID, "comment.created", "content_draft", draft.ID, "", commentID, map[string]any{"commentId": commentID}); err != nil {
+		return nil, err
+	}
+	if err = tx.Commit(); err != nil {
 		return nil, err
 	}
 	return c.GetSharedContentDraft(ctx, token)

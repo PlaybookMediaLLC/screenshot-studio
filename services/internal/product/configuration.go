@@ -13,6 +13,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/lucsky/cuid"
 )
@@ -47,17 +48,18 @@ func (a Actor) auditActor() publishing.Actor {
 }
 
 type Configuration struct {
-	client      *ent.Client
-	authStore   *authstore.Store
-	auth        *publishing.Repository
-	invitations InvitationMailer
-	reviews     ReviewMailer
-	objects     AssetObjectStore
-	quota       QuotaCounter
-	meter       MonthlyMeter
-	github      GitHubApp
-	automation  AutomationDispatcher
-	capture     Capturer
+	notifications *notifications.Service
+	client        *ent.Client
+	authStore     *authstore.Store
+	auth          *publishing.Repository
+	invitations   InvitationMailer
+	reviews       ReviewMailer
+	objects       AssetObjectStore
+	quota         QuotaCounter
+	meter         MonthlyMeter
+	github        GitHubApp
+	automation    AutomationDispatcher
+	capture       Capturer
 	// collabKey signs content draft collaboration tokens (RFC 037).
 	collabKey []byte
 	// agentClients finds the OAuth clients agents connect through (RFC 038).
@@ -345,7 +347,7 @@ func (c *Configuration) CreateSourceApp(ctx context.Context, actor Actor, input 
 			if err != nil {
 				return nil, err
 			}
-			if err := appendConfigurationAudit(ctx, tx, actor, "product.source_app_reconnected", "source_app", existing.ID); err != nil {
+			if err := recordProductActivity(ctx, tx, actor, "source_app.connected", "product.source_app_reconnected", "source_app", existing.ID, nil); err != nil {
 				return nil, err
 			}
 			if err := tx.Commit(); err != nil {
@@ -354,7 +356,7 @@ func (c *Configuration) CreateSourceApp(ctx context.Context, actor Actor, input 
 			return restored.Unwrap(), nil
 		}
 	}
-	created, err := tx.SourceApp.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetNillableGithubInstallationID(installationRowID).
+	created, err := tx.SourceApp.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetNillablePlatformOwnerUserID(projectActor(actor)).SetNillableGithubInstallationID(installationRowID).
 		SetName(input.Name).SetProvider(input.Provider).SetNillableExternalID(input.ExternalID).
 		SetNillableSecretReference(input.SecretReference).SetAllowedHosts(input.AllowedHosts).
 		SetNillableBranch(input.Branch).SetNillableIgnoreBotPullRequests(input.IgnoreBotPullRequests).
@@ -370,12 +372,10 @@ func (c *Configuration) CreateSourceApp(ctx context.Context, actor Actor, input 
 		return nil, err
 	}
 	// A connected repository is backfilled with its recent releases and merges.
-	if installationRowID != nil {
-		if _, err := tx.OutboxEvent.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
-			SetType("source_app.connected").SetAggregateType("source_app").SetAggregateID(created.ID).
-			SetPayload(map[string]any{"sourceAppId": created.ID}).SetIdempotencyKey("connected:" + created.ID).Save(ctx); err != nil {
-			return nil, err
-		}
+	if _, err := tx.OutboxEvent.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
+		SetType("source_app.connected").SetAggregateType("source_app").SetAggregateID(created.ID).
+		SetPayload(map[string]any{"sourceAppId": created.ID, "actorUserId": actor.UserID, "ownerUserId": actor.UserID}).SetIdempotencyKey("connected:" + created.ID).Save(ctx); err != nil {
+		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
@@ -465,7 +465,7 @@ func (c *Configuration) CreateProductSurface(ctx context.Context, actor Actor, i
 	if err != nil {
 		return nil, err
 	}
-	created, err := tx.ProductSurface.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
+	created, err := tx.ProductSurface.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetNillablePlatformOwnerUserID(projectActor(actor)).
 		SetName(input.Name).SetSlug(slug).SetURL(input.URL).SetEnvironment(input.Environment).
 		SetNillableDescription(input.Description).SetFeatureTags(input.FeatureTags).
 		SetScreenshotAssetIds(input.ScreenshotAssetIDs).Save(ctx)

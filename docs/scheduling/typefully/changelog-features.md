@@ -28,32 +28,33 @@ This file lists every entry in the Typefully changelog as a feature to build.
 - Platform limits (characters, file sizes, durations) come from the Typefully changelog. Check them against the platform API docs before you build.
 - "Typefully plan" notes show how Typefully packages the feature. They are not decisions for our product.
 - Mark a feature `[x]` when it ships.
+- [work-items/triage.md](work-items/triage.md) gives the status of each feature in Shots. A `[x]` from the triage means that Shots already has the feature.
 
 ## 1. Accounts, sign-in, and platforms
 
-- [ ] **TF-010 Multiple X accounts** (2021-11-29, [entry](https://typefully.com/changelog/multi-account-support-is-here-40))
+- [x] **TF-010 Multiple X accounts** (2021-11-29, [entry](https://typefully.com/changelog/multi-account-support-is-here-40))
   - Let one user add and manage more than one X account.
   - Write, schedule, and publish on each account.
   - Add accounts from the avatar menu in the top-right corner.
   - Move drafts between accounts.
   - Extended by TF-104 (one calendar for all social sets).
-- [ ] **TF-035 Cross-post to LinkedIn** (2023-03-08, [entry](https://typefully.com/changelog/publish-to-linkedin-69))
+- [x] **TF-035 Cross-post to LinkedIn** (2023-03-08, [entry](https://typefully.com/changelog/publish-to-linkedin-69))
   - Connect a LinkedIn account.
   - Cross-post X posts and threads to LinkedIn.
   - Typefully plan: Creator plan.
-- [ ] **TF-041 Standalone LinkedIn posts** (2023-06-13, [entry](https://typefully.com/changelog/publish-standalone-linkedin-posts-75))
+- [x] **TF-041 Standalone LinkedIn posts** (2023-06-13, [entry](https://typefully.com/changelog/publish-standalone-linkedin-posts-75))
   - Let the user publish a LinkedIn post without an X version.
   - Turn off the X version of the draft to make a LinkedIn-only post.
-- [ ] **TF-047 Create LinkedIn drafts directly** (2023-09-15, [entry](https://typefully.com/changelog/create-linkedin-drafts-82))
+- [x] **TF-047 Create LinkedIn drafts directly** (2023-09-15, [entry](https://typefully.com/changelog/create-linkedin-drafts-82))
   - Add a drop-down menu to the "New draft" button.
   - Let the user create a LinkedIn draft directly, without an X draft first.
   - Typefully plan: Creator plan or higher to connect LinkedIn.
   - Extended by TF-082 (any platform as the primary platform).
-- [ ] **TF-048 Mastodon as a platform** (2023-11-13, [entry](https://typefully.com/changelog/new-platform-mastodon-83))
+- [x] **TF-048 Mastodon as a platform** (2023-11-13, [entry](https://typefully.com/changelog/new-platform-mastodon-83))
   - Write, publish, and schedule Mastodon drafts.
   - Make the editor and the core model platform-neutral, so that new platforms are easy to add.
   - Typefully plan: Creator plan.
-- [ ] **TF-062 Threads by Meta** (2024-08-27, [entry](https://typefully.com/changelog/threads-by-meta-integration-now-in-beta-100))
+- [x] **TF-062 Threads by Meta** (2024-08-27, [entry](https://typefully.com/changelog/threads-by-meta-integration-now-in-beta-100))
   - Connect a Threads account in account settings.
   - Support standalone Threads drafts and cross-posts.
   - Support AI rewrites and rich media on Threads drafts.
@@ -197,11 +198,11 @@ This file lists every entry in the Typefully changelog as a feature to build.
   - On mobile, add a floating toolbar to add images or create a draft.
   - Animate the switch to the thread preview.
   - Extended by TF-050 (emoji picker button).
-- [ ] **TF-008 Best time to post** (2021-11-10, [entry](https://typefully.com/changelog/whats-the-best-time-to-tweet-38))
+- [x] **TF-008 Best time to post** (2021-11-10, [entry](https://typefully.com/changelog/whats-the-best-time-to-tweet-38))
   - Show charts of when the account gets the most engagement.
   - Show the charts in the analytics (Grow) tab.
   - Add a "+" button on each daily chart to add the suggested slot to the posting schedule.
-- [ ] **TF-021 Faster scheduling and a rebuilt queue** (2022-05-09, [entry](https://typefully.com/changelog/revamped-scheduling-53))
+- [x] **TF-021 Faster scheduling and a rebuilt queue** (2022-05-09, [entry](https://typefully.com/changelog/revamped-scheduling-53))
   - Add a "Next free slot" button and a shortcut (⌘⌥Enter).
   - After the user schedules a draft, open a new empty draft.
   - Rebuild the queue. Give it its own page.
@@ -215,7 +216,7 @@ This file lists every entry in the Typefully changelog as a feature to build.
 - [ ] **TF-034 Repurpose published posts** (2023-02-22, [entry](https://typefully.com/changelog/repurpose-published-posts-68))
   - Add a "Pick" action to empty queue slots.
   - Add a "Repurpose published posts" tab. Let the user fill the slot from a published post.
-- [ ] **TF-052 Quick change of the scheduled time** (2024-02-08, [entry](https://typefully.com/changelog/quickly-adjust-scheduled-time-87))
+- [x] **TF-052 Quick change of the scheduled time** (2024-02-08, [entry](https://typefully.com/changelog/quickly-adjust-scheduled-time-87))
   - Let the user change the scheduled time from the schedule interface.
   - Do not require a full reschedule.
 - [ ] **TF-053 Calendar view** (2024-03-18, [entry](https://typefully.com/changelog/calendar-view-88))
@@ -253,7 +254,7 @@ This file lists every entry in the Typefully changelog as a feature to build.
 
 ## 5. Post options per platform
 
-- [ ] **TF-011 Auto-repost and auto-plug** (2021-12-14, [entry](https://typefully.com/changelog/auto-retweet-and-auto-plug-your-threads-41))
+- [x] **TF-011 Auto-repost and auto-plug** (2021-12-14, [entry](https://typefully.com/changelog/auto-retweet-and-auto-plug-your-threads-41))
   - Auto-repost: schedule reposts of a new thread from the engagement it gets. Purpose: reach other timezones.
   - Auto-plug: attach a plug (for example, a website or newsletter link) only when the thread reaches a set threshold.
   - In the schedule interface, let the user pick the next free slot or the best time from analytics.
@@ -268,7 +269,7 @@ This file lists every entry in the Typefully changelog as a feature to build.
   - Continue an old thread.
 - [ ] **TF-027 Default auto-repost and auto-plug settings** (2022-08-25, [entry](https://typefully.com/changelog/remember-auto-retweet-and-auto-plug-58))
   - Let the user save auto-repost and auto-plug settings as defaults for new drafts.
-- [ ] **TF-036 Polls on X** (2023-03-14, [entry](https://typefully.com/changelog/polls-70))
+- [x] **TF-036 Polls on X** (2023-03-14, [entry](https://typefully.com/changelog/polls-70))
   - Add a "Poll" option on any X post.
   - Allow up to 4 options.
   - Extended by TF-109 (polls on more platforms).
@@ -389,13 +390,13 @@ This file lists every entry in the Typefully changelog as a feature to build.
   - After the thread publishes, show an "unrolled" version of the thread at the same link.
   - Let the user add the unrolled link to the thread in one click.
   - Extended by TF-060.
-- [ ] **TF-022 Teams** (2022-05-11, [entry](https://typefully.com/changelog/collaboration-52))
+- [x] **TF-022 Teams** (2022-05-11, [entry](https://typefully.com/changelog/collaboration-52))
   - Let the user create a team.
   - Invite any number of teammates.
   - Set the permissions of each teammate.
   - Let teammates write, edit, schedule, and publish on shared accounts.
   - Typefully plan: Team plan, flat price while in beta.
-- [ ] **TF-028 Comments on drafts** (2022-09-15, [entry](https://typefully.com/changelog/comments-62))
+- [x] **TF-028 Comments on drafts** (2022-09-15, [entry](https://typefully.com/changelog/comments-62))
   - Let the user select text, or click a comment button under a post, to add a comment.
   - Let anyone with the share link leave comments, for free.
   - Extended by TF-095 and TF-099.
@@ -410,7 +411,7 @@ This file lists every entry in the Typefully changelog as a feature to build.
   - Make link previews of shared drafts accurate in Slack, Notion, and other websites.
   - Use the first image of the draft as the preview image.
   - Keep draft sharing free.
-- [ ] **TF-086 Draft locking** (2025-09-17, [entry](https://typefully.com/changelog/smoother-collaboration-for-teams-123))
+- [x] **TF-086 Draft locking** (2025-09-17, [entry](https://typefully.com/changelog/smoother-collaboration-for-teams-123))
   - Lock the editor for other teammates immediately when one teammate edits a draft.
   - Prevent edit conflicts and overwrites.
   - Apply the same lock across tabs and browsers of one user.
@@ -447,14 +448,14 @@ This file lists every entry in the Typefully changelog as a feature to build.
 - [ ] **TF-046 Add emoji with AI** (2023-09-14, [entry](https://typefully.com/changelog/emojify-your-posts-with-ai-81))
   - Add AI commands that add emoji to a post.
   - Open the AI from the ✨ icon or ⌘J (Ctrl+J). Search "emoji" to find the commands.
-- [ ] **TF-055 AI rewrite on all platforms** (2024-04-08, [entry](https://typefully.com/changelog/ai-rewriting-on-all-platforms-92))
+- [x] **TF-055 AI rewrite on all platforms** (2024-04-08, [entry](https://typefully.com/changelog/ai-rewriting-on-all-platforms-92))
   - Enable AI rewrite on X, LinkedIn, and Mastodon drafts.
   - Let the user select any text and rewrite it.
   - Include these actions: improve grammar, condense, make punchier.
-- [ ] **TF-056 Complex custom AI prompts** (2024-04-10, [entry](https://typefully.com/changelog/smarter-prompts-for-typefully-ai-93))
+- [x] **TF-056 Complex custom AI prompts** (2024-04-10, [entry](https://typefully.com/changelog/smarter-prompts-for-typefully-ai-93))
   - Accept complex custom instructions in user prompts.
   - Typefully used GPT-4 Turbo. Use our current default model. Do not copy their model choice.
-- [ ] **TF-059 Faster, smarter AI model for rewrites** (2024-06-14, [entry](https://typefully.com/changelog/smarter-typefully-ai-with-gpt-4o-95))
+- [x] **TF-059 Faster, smarter AI model for rewrites** (2024-06-14, [entry](https://typefully.com/changelog/smarter-typefully-ai-with-gpt-4o-95))
   - Use a fast, current model for preset rewrite prompts and custom prompts.
   - Open the AI from a sparkle button and from a shortcut (⌘J or Ctrl+J).
   - Typefully used GPT-4o. Use our current default model.
